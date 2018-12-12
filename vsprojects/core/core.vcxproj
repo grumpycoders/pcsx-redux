@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{9372D878-F76C-418B-8E2A-8E9896FF575B}</ProjectGuid>
+    <RootNamespace>core</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>..\..\third_party\zlib;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>..\..\third_party\zlib;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>..\..\third_party\zlib;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>..\..\third_party\zlib;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\core\cdriso.c" />
+    <ClCompile Include="..\..\src\core\cdrom.c" />
+    <ClCompile Include="..\..\src\core\cheat.c" />
+    <ClCompile Include="..\..\src\core\debug.c" />
+    <ClCompile Include="..\..\src\core\decode_xa.c" />
+    <ClCompile Include="..\..\src\core\disr3000a.c" />
+    <ClCompile Include="..\..\src\core\gpu.c" />
+    <ClCompile Include="..\..\src\core\gte.c" />
+    <ClCompile Include="..\..\src\core\ix86\iR3000A.c" />
+    <ClCompile Include="..\..\src\core\ix86\ix86.c" />
+    <ClCompile Include="..\..\src\core\mdec.c" />
+    <ClCompile Include="..\..\src\core\misc.c" />
+    <ClCompile Include="..\..\src\core\pgxp_cpu.c" />
+    <ClCompile Include="..\..\src\core\pgxp_debug.c" />
+    <ClCompile Include="..\..\src\core\pgxp_gte.c" />
+    <ClCompile Include="..\..\src\core\pgxp_mem.c" />
+    <ClCompile Include="..\..\src\core\pgxp_value.c" />
+    <ClCompile Include="..\..\src\core\plugins.c" />
+    <ClCompile Include="..\..\src\core\ppf.c" />
+    <ClCompile Include="..\..\src\core\psxbios.c" />
+    <ClCompile Include="..\..\src\core\psxcommon.c" />
+    <ClCompile Include="..\..\src\core\psxcounters.c" />
+    <ClCompile Include="..\..\src\core\psxdma.c" />
+    <ClCompile Include="..\..\src\core\psxhle.c" />
+    <ClCompile Include="..\..\src\core\psxhw.c" />
+    <ClCompile Include="..\..\src\core\psxinterpreter.c" />
+    <ClCompile Include="..\..\src\core\psxmem.c" />
+    <ClCompile Include="..\..\src\core\r3000a.c" />
+    <ClCompile Include="..\..\src\core\sio.c" />
+    <ClCompile Include="..\..\src\core\socket.c" />
+    <ClCompile Include="..\..\src\core\spu.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\core\cdriso.h" />
+    <ClInclude Include="..\..\src\core\cdrom.h" />
+    <ClInclude Include="..\..\src\core\cheat.h" />
+    <ClInclude Include="..\..\src\core\coff.h" />
+    <ClInclude Include="..\..\src\core\debug.h" />
+    <ClInclude Include="..\..\src\core\decode_xa.h" />
+    <ClInclude Include="..\..\src\core\ecm.h" />
+    <ClInclude Include="..\..\src\core\gpu.h" />
+    <ClInclude Include="..\..\src\core\gte.h" />
+    <ClInclude Include="..\..\src\core\ix86\iGte.h" />
+    <ClInclude Include="..\..\src\core\ix86\iPGXP.h" />
+    <ClInclude Include="..\..\src\core\ix86\ix86.h" />
+    <ClInclude Include="..\..\src\core\mdec.h" />
+    <ClInclude Include="..\..\src\core\misc.h" />
+    <ClInclude Include="..\..\src\core\pgxp_cpu.h" />
+    <ClInclude Include="..\..\src\core\pgxp_debug.h" />
+    <ClInclude Include="..\..\src\core\pgxp_gte.h" />
+    <ClInclude Include="..\..\src\core\pgxp_mem.h" />
+    <ClInclude Include="..\..\src\core\pgxp_value.h" />
+    <ClInclude Include="..\..\src\core\plugins.h" />
+    <ClInclude Include="..\..\src\core\ppf.h" />
+    <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
+    <ClInclude Include="..\..\src\core\psxbios.h" />
+    <ClInclude Include="..\..\src\core\psxcommon.h" />
+    <ClInclude Include="..\..\src\core\psxcounters.h" />
+    <ClInclude Include="..\..\src\core\psxdma.h" />
+    <ClInclude Include="..\..\src\core\psxhle.h" />
+    <ClInclude Include="..\..\src\core\psxhw.h" />
+    <ClInclude Include="..\..\src\core\psxinterpreter_pgxp.h" />
+    <ClInclude Include="..\..\src\core\psxmem.h" />
+    <ClInclude Include="..\..\src\core\r3000a.h" />
+    <ClInclude Include="..\..\src\core\sio.h" />
+    <ClInclude Include="..\..\src\core\sjisfont.h" />
+    <ClInclude Include="..\..\src\core\socket.h" />
+    <ClInclude Include="..\..\src\core\spu.h" />
+    <ClInclude Include="..\..\src\core\system.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
