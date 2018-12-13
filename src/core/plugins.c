@@ -62,6 +62,42 @@ GPUsetSpeed GPU_setSpeed;
 GPUpgxpMemory GPU_pgxpMemory;
 GPUpgxpCacheVertex GPU_pgxpCacheVertex;
 
+#ifdef _WIN32
+long CALLBACK softGPUopen(HWND hwndGPU);
+#else
+long softGPUopen(unsigned long *disp, const char *CapText, const char *CfgFile);
+#endif
+void CALLBACK softGPUdisplayText(char *pText);
+void CALLBACK softGPUdisplayFlags(uint32_t dwFlags);
+void CALLBACK softGPUmakeSnapshot(void);
+long CALLBACK softGPUinit();
+long CALLBACK softGPUclose();
+long CALLBACK softGPUshutdown();
+void CALLBACK softGPUcursor(int iPlayer, int x, int y);
+void CALLBACK softGPUupdateLace(void);
+uint32_t CALLBACK softGPUreadStatus(void);
+void CALLBACK softGPUwriteStatus(uint32_t gdata);
+void CALLBACK softGPUreadDataMem(uint32_t *pMem, int iSize);
+uint32_t CALLBACK softGPUreadData(void);
+void CALLBACK softGPUwriteDataMem(uint32_t *pMem, int iSize);
+void CALLBACK softGPUwriteData(uint32_t gdata);
+void CALLBACK softGPUsetMode(uint32_t gdata);
+long CALLBACK softGPUgetMode(void);
+long CALLBACK softGPUdmaChain(uint32_t *baseAddrL, uint32_t addr);
+long CALLBACK softGPUconfigure(void);
+void CALLBACK softGPUabout(void);
+long CALLBACK softGPUtest(void);
+long CALLBACK softGPUfreeze(uint32_t ulGetFreezeData, void *pF);
+void CALLBACK softGPUgetScreenPic(unsigned char *pMem);
+void CALLBACK softGPUshowScreenPic(unsigned char *pMem);
+#ifndef _WIN32
+void CALLBACK softGPUkeypressed(int keycode);
+#endif
+void CALLBACK softGPUhSync(int val);
+void CALLBACK softGPUvSync(int val);
+void CALLBACK softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
+void CALLBACK softGPUvBlank(int val);
+
 CDRinit CDR_init;
 CDRshutdown CDR_shutdown;
 CDRopen CDR_open;
@@ -232,6 +268,8 @@ void CALLBACK GPU__setSpeed(float newSpeed) {}
 void CALLBACK GPU__pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
 void CALLBACK GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
 
+
+#if 0
 #define LoadGpuSym1(dest, name) LoadSym(GPU_##dest, GPU##dest, name, TRUE);
 
 #define LoadGpuSym0(dest, name)                  \
@@ -239,6 +277,7 @@ void CALLBACK GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVe
     if (GPU_##dest == NULL) GPU_##dest = (GPU##dest)GPU__##dest;
 
 #define LoadGpuSymN(dest, name) LoadSym(GPU_##dest, GPU##dest, name, FALSE);
+#endif
 
 static int LoadGPUplugin(const char *GPUdll) {
 #if 0
@@ -283,6 +322,41 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym0(test, "GPUtest");
     LoadGpuSym0(about, "GPUabout");
 #endif
+
+#define LoadGpuSym0(s, x) GPU_##s = softGPU##s
+#define LoadGpuSym1(s, x) GPU_##s = softGPU##s
+
+    LoadGpuSym1(init, "GPUinit");
+    LoadGpuSym1(shutdown, "GPUshutdown");
+    LoadGpuSym1(open, "GPUopen");
+    LoadGpuSym1(close, "GPUclose");
+    LoadGpuSym1(readData, "GPUreadData");
+    LoadGpuSym1(readDataMem, "GPUreadDataMem");
+    LoadGpuSym1(readStatus, "GPUreadStatus");
+    LoadGpuSym1(writeData, "GPUwriteData");
+    LoadGpuSym1(writeDataMem, "GPUwriteDataMem");
+    LoadGpuSym1(writeStatus, "GPUwriteStatus");
+    LoadGpuSym1(dmaChain, "GPUdmaChain");
+    LoadGpuSym1(updateLace, "GPUupdateLace");
+    //LoadGpuSym0(keypressed, "GPUkeypressed");
+    LoadGpuSym0(displayText, "GPUdisplayText");
+    LoadGpuSym0(makeSnapshot, "GPUmakeSnapshot");
+    //LoadGpuSym0(toggleDebug, "GPUtoggleDebug");
+    LoadGpuSym1(freeze, "GPUfreeze");
+    LoadGpuSym0(getScreenPic, "GPUgetScreenPic");
+    LoadGpuSym0(showScreenPic, "GPUshowScreenPic");
+    //LoadGpuSym0(clearDynarec, "GPUclearDynarec");
+    LoadGpuSym0(hSync, "GPUhSync");
+    LoadGpuSym0(vBlank, "GPUvBlank");
+    LoadGpuSym0(visualVibration, "GPUvisualVibration");
+    LoadGpuSym0(cursor, "GPUcursor");
+    //LoadGpuSym0(addVertex, "GPUaddVertex");
+    //LoadGpuSym0(setSpeed, "GPUsetSpeed");
+    //LoadGpuSym0(pgxpMemory, "GPUpgxpMemory");
+    //LoadGpuSym0(pgxpCacheVertex, "GPUpgxpCacheVertex");
+    LoadGpuSym0(configure, "GPUconfigure");
+    LoadGpuSym0(test, "GPUtest");
+    LoadGpuSym0(about, "GPUabout");
 
     return 0;
 }
@@ -789,6 +863,7 @@ int LoadPlugins() {
         SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
+#if BLARGH
     ret = SPU_init();
     if (ret < 0) {
         SysMessage(_("Error initializing SPU plugin: %d"), ret);
@@ -804,6 +879,7 @@ int LoadPlugins() {
         SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
         return -1;
     }
+#endif
 
     if (Config.UseNet) {
         ret = NET_init();
