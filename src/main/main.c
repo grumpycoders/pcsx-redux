@@ -1,5 +1,7 @@
 #include <zlib.h>
 
+#include <SDL.h>
+
 #include "psxcommon.h"
 #include "r3000a.h"
 
@@ -32,13 +34,12 @@ int main() {
     Config.PsxAuto = 1;
     Config.HLE = 1;
 
+    SetIsoFile("test.img");
     LoadPlugins();
-    cdrIsoInit();
 
     EmuInit();
     EmuReset();
 
-    SetIsoFile("test.img");
     CDR_open();
     CheckCdrom();
     LoadCdrom();
@@ -46,4 +47,6 @@ int main() {
     psxCpu = &psxInt;
     psxCpu->Init();
     psxCpu->Execute();
+
+    return 0;
 }
