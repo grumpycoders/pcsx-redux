@@ -20,33 +20,32 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{36D6F879-F4CB-477E-BB87-33D867EDDB0A}</ProjectGuid>
-    <RootNamespace>pcsxredux</RootNamespace>
+    <ProjectGuid>{B86F9380-6228-4B11-87AD-29FDABF95ABB}</ProjectGuid>
+    <RootNamespace>imguisdlogl3</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
-    <ProjectName>main</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,20 +70,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src\core;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w\;..\..\third_party\SDL\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src\core;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w\;..\..\third_party\SDL\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src\core;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w\;..\..\third_party\SDL\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src\core;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w\;..\..\third_party\SDL\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -93,10 +88,6 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies>imm32.lib;setupapi.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Console</SubSystem>
-    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -105,10 +96,6 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies>imm32.lib;setupapi.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Console</SubSystem>
-    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -122,8 +109,6 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>imm32.lib;setupapi.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -138,32 +123,24 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>imm32.lib;setupapi.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\core\core.vcxproj">
-      <Project>{9372d878-f76c-418b-8e2a-8e9896ff575b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\imgui-sdl-ogl3\imgui-sdl-ogl3.vcxproj">
-      <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\soft\soft.vcxproj">
-      <Project>{a20744cc-8040-4ac5-8115-59e48ab616ad}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\SDLmain\SDLmain.vcxproj">
-      <Project>{da956fd3-e142-46f2-9dd5-c78bebb56b7a}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\SDL\SDL.vcxproj">
-      <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\zlib\zlib.vcxproj">
-      <Project>{3125e078-7261-48c4-803e-4b29ceeaa56b}</Project>
-    </ProjectReference>
+    <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_sdl.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.c" />
+    <ClCompile Include="..\..\third_party\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\imgui_draw.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\main\main.c" />
+    <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_sdl.h" />
+    <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.h" />
+    <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\glcorearb.h" />
+    <ClInclude Include="..\..\third_party\imgui\imconfig.h" />
+    <ClInclude Include="..\..\third_party\imgui\imgui.h" />
+    <ClInclude Include="..\..\third_party\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\third_party\imgui\imstb_textedit.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
