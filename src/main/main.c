@@ -32,6 +32,7 @@ int main() {
     Config.PsxAuto = 1;
     Config.HLE = 1;
 
+    LoadPlugins();
     cdrIsoInit();
 
     EmuInit();
