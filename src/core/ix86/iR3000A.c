@@ -505,7 +505,7 @@ static void recShutdown() {
 
 static void recError() {
     SysReset();
-    ClosePlugins();
+    //ClosePlugins();
     SysMessage("Unrecoverable error while running recompiler\n");
     SysRunGui();
 }

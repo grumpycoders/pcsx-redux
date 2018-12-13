@@ -691,90 +691,9 @@ void RewindState() {
 GPUFreeze_t *gpufP = NULL;
 SPUFreeze_t *spufP = NULL;
 
-/*
-Pros of using SHM
-+ No need to change SaveState interface (gzip OK)
-+ Possibiliy to preserve saves after pcsxr crash
-
-Cons of using SHM
-- UNIX only
-- Possibility of leaving left over shm files
-- Possibly not the quickest way to allocate memory
-
-*/
-#if !defined(NO_RT_SHM) && !defined(_WINDOWS) && !defined(_WIN32)
-#include <errno.h>
-#include <fcntl.h> /* For O_* constants */
-#include <sys/mman.h>
-#include <sys/stat.h> /* For mode constants */
-
-#define SHM_SS_NAME_TEMPLATE "/pcsxrmemsavestate%.4u"
-
-int SaveStateMem(const u32 id) {
-    char name[32];
-    int ret = -1;
-
-    snprintf(name, sizeof(name), SHM_SS_NAME_TEMPLATE, id);
-    int fd = shm_open(name, O_CREAT | O_RDWR | O_TRUNC, 0666);
-
-    if (fd >= 0) {
-        gzFile f = gzdopen(fd, "wb0T");  // Fast and no compression
-        // gzbuffer(f, 64*1024);
-        // assert(gzdirect(f) == TRUE);
-        if (f != NULL) {
-            ret = SaveStateGz(f, NULL);
-            // printf("Saved %s/%i (ID: %i SZ: %lik)\n", name, fd, id, size/1024);
-        } else {
-            SysMessage("GZ OPEN FAIL %i\n", errno);
-        }
-    } else {
-        SysMessage("FD OPEN FAIL %i\n", errno);
-    }
-    return ret;
-}
-
-int LoadStateMem(const u32 id) {
-    char name[32];
-    int ret = -1;
-
-    snprintf(name, sizeof(name), SHM_SS_NAME_TEMPLATE, id);
-    int fd = shm_open(name, O_RDONLY, 0444);
-
-    if (fd >= 0) {
-        gzFile f = gzdopen(fd, "rb");
-        if (f != NULL) {
-            ret = LoadStateGz(f);
-            // printf("Loaded %s/%i (ID: %i RET: %i)\n", name, fd, id, ret);
-            shm_unlink(name);
-        } else {
-            SysMessage("GZ OPEN FAIL %i\n", errno);
-        }
-    } else {
-        SysMessage("FD OPEN FAIL %i (%s)\n", errno, name);
-    }
-    return ret;
-}
-
-void CleanupMemSaveStates() {
-    char name[32];
-    u32 i;
-
-    for (i = 0; i <= Config.RewindCount; i++) {
-        snprintf(name, sizeof(name), SHM_SS_NAME_TEMPLATE, i);
-        if (shm_unlink(name) != 0) {
-            // break;
-        }
-    }
-    free(gpufP);
-    gpufP = NULL;
-    free(spufP);
-    spufP = NULL;
-}
-#else
 int SaveStateMem(const u32 id) { return 0; }
 int LoadStateMem(const u32 id) { return 0; }
 void CleanupMemSaveStates() {}
-#endif
 
 int SaveStateGz(gzFile f, long *gzsize) {
     int Size;

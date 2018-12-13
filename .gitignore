@@ -21,3 +21,6 @@ ipch/
 *.VC.db
 *.VC.VC.opendb
 
+
+# Bazel files
+/bazel-*
