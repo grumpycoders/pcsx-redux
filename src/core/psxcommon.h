@@ -43,7 +43,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+#ifdef MAX_PATH
 #define MAXPATHLEN MAX_PATH
+#endif
+#ifdef PATH_MAX
+#define MAXPATHLEN PATH_MAX
+#endif
 #endif
 
 // Define types
