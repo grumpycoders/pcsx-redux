@@ -384,7 +384,7 @@ int CheckCdrom() {
     if (Config.PerGameMcd) {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
-#ifdef _WINDOWS
+#ifdef _WIN32
         sprintf(mcd1path, "memcards\\games\\%s-%02d.mcd", Config.PsxExeName, 1);
         sprintf(mcd2path, "memcards\\games\\%s-%02d.mcd", Config.PsxExeName, 2);
 #else
