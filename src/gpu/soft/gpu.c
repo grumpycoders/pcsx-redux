@@ -471,9 +471,9 @@ long CALLBACK softGPUinit()  // GPU INIT
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-long CALLBACK softGPUopen(HWND hwndGPU)  // GPU OPEN
+long CALLBACK softGPUopen(unsigned int texture)  // GPU OPEN
 {
-    hWGPU = hwndGPU;  // store hwnd
+    textureid = texture;  // store hwnd
 
     SetKeyHandler();  // sub-class window
 
@@ -759,7 +759,7 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 {
     softGPUclose();
     iWindowMode = !iWindowMode;
-    softGPUopen(hWGPU);
+    softGPUopen(textureid);
     bChangeWinMode = FALSE;
     bDoVSyncUpdate = TRUE;
 }

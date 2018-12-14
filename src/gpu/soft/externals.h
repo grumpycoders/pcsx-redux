@@ -208,9 +208,10 @@ extern HMODULE hDDrawDLL;
 
 #ifndef _IN_DRAW
 
+extern unsigned int textureid;
+
 #ifdef _WIN32
 extern sDX DX;
-extern HWND hWGPU;
 extern GUID guiDev;
 extern int iRefreshRate;
 extern BOOL bVsync;

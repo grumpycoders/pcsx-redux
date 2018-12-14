@@ -19,7 +19,7 @@ static GLuint gEmuTexture = 0;
 static void startFrame();
 static void endFrame();
 
-void GUI_init() {
+unsigned int GUI_init() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         assert(0);
     }
@@ -50,6 +50,8 @@ void GUI_init() {
     glGenTextures(1, &gEmuTexture);
 
     startFrame();
+
+    return gEmuTexture;
 }
 
 static void startFrame() {
@@ -70,7 +72,7 @@ static void endFrame() {
     // Update the output texture from emulator here
     {
         glBindTexture(GL_TEXTURE_2D, gEmuTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 352, 224, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
@@ -89,7 +91,7 @@ static void endFrame() {
     ImGui::Begin("Emu output");
     {
         ImVec2 textureSize = ImGui::GetWindowSize();
-        textureSize.y = textureSize.x * (224.f / 352.f);  // TODO: what's the ratio of PSX?
+        textureSize.y = textureSize.x * (512.f / 1024.f);  // TODO: what's the ratio of PSX?
         ImGui::Image((ImTextureID)gEmuTexture, textureSize, ImVec2(0, 1), ImVec2(1, 0));
         ImGui::SameLine();
     }

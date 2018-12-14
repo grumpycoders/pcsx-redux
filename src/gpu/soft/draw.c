@@ -18,6 +18,8 @@
 
 #define _IN_DRAW
 
+#include "GL/gl3w.h"
+
 #include "draw.h"
 #include "externals.h"
 #include "gpu.h"
@@ -42,8 +44,8 @@ int iWinSize;
 int iUseScanLines = 0;
 int iUseNoStretchBlt = 0;
 int iFastFwd = 0;
-int iDebugMode = 0;
-int iFVDisplay = 0;
+int iDebugMode = 1;
+int iFVDisplay = 1;
 PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
@@ -1910,7 +1912,7 @@ sDX DX;
 static DDSURFACEDESC ddsd;
 GUID guiDev;
 BOOL bDeviceOK;
-HWND hWGPU;
+unsigned int textureid;
 int iSysMemory = 0;
 int iFPSEInterface = 0;
 int iRefreshRate;
@@ -2664,6 +2666,7 @@ void BlitScreen15_2xSaI(unsigned char *surf, long x, long y)  // BLIT IN 16bit C
 
 void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
 {
+#if 0
     DDBLTFX ddbltfx;
 
     ddbltfx.dwSize = sizeof(ddbltfx);
@@ -2674,18 +2677,21 @@ void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
     if (iUseNoStretchBlt >= 3) {
         if (pSaISmallBuff) memset(pSaISmallBuff, 0, 512 * 512 * 4);
     }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 void DoClearFrontBuffer(void)  // CLEAR PRIMARY BUFFER
 {
+#if 0
     DDBLTFX ddbltfx;
 
     ddbltfx.dwSize = sizeof(ddbltfx);
     ddbltfx.dwFillColor = 0x00000000;
 
     IDirectDrawSurface_Blt(DX.DDSPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx);
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -3171,12 +3177,11 @@ void ShowGunCursor(unsigned char *surf) {
 
 ////////////////////////////////////////////////////////////////////////
 
+#if 0
 void DoBufferSwap(void)  // SWAP BUFFERS
 {                        // (we don't swap... we blit only)
     HRESULT ddrval;
     long x, y;
-
-    return;
 
     ddrval = IDirectDrawSurface_Lock(DX.DDSRender, NULL, &ddsd, DDLOCK_WAIT | DDLOCK_WRITEONLY, NULL);
 
@@ -3286,7 +3291,17 @@ void DoBufferSwap(void)  // SWAP BUFFERS
 
     if (DX.DDSScreenPic) DisplayPic();
 }
+#else
 
+static uint8_t *textureMem = NULL;
+
+void DoBufferSwap() {
+    long x, y;
+    BlitScreen32(textureMem, 0, 0);
+    glBindTexture(GL_TEXTURE_2D, textureid);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, textureMem);
+}
+#endif
 ////////////////////////////////////////////////////////////////////////
 // GAMMA
 ////////////////////////////////////////////////////////////////////////
@@ -3765,6 +3780,7 @@ DWORD dwGPUStyle = 0;  // vars to store some wimdows stuff
 HANDLE hGPUMenu = NULL;
 
 unsigned long ulInitDisplay(void) {
+#if 0
     HDC hdc;
     RECT r;
 
@@ -3812,16 +3828,20 @@ unsigned long ulInitDisplay(void) {
     if (!iWindowMode)                         // fullscreen mode?
         ShowWindow(hWGPU, SW_SHOWMAXIMIZED);  // -> maximize again (fixes strange DX behavior)
 
+#endif
+    textureMem = (uint8_t *)malloc(1024 * 512 * 4);
     return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 void CloseDisplay(void) {
+#if 0
     DXcleanup();  // cleanup dx
 
     SetWindowLong(hWGPU, GWL_STYLE, dwGPUStyle);  // repair window
     if (hGPUMenu) SetMenu(hWGPU, (HMENU)hGPUMenu);
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////

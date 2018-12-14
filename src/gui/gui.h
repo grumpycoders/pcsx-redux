@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void GUI_init();
+unsigned int GUI_init();
 void GUI_flip();
 
 #ifdef __cplusplus
