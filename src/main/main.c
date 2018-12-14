@@ -4,6 +4,7 @@
 
 #include "psxcommon.h"
 #include "r3000a.h"
+#include "gui/gui.h"
 
 void SysPrintf(const char *fmt, ...) {
     // print message to debugging console
@@ -15,6 +16,7 @@ void SysMessage(const char *fmt, ...) {
 
 void SysUpdate() {
     // called on vblank to update states
+    GUI_flip();
 }
 
 void SysRunGui() {
@@ -30,6 +32,8 @@ void SysClose() {
 }
 
 int main() {
+    GUI_init();
+
     memset(&Config, 0, sizeof(PcsxConfig));
     Config.PsxAuto = 1;
     Config.HLE = 1;
