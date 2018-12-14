@@ -21,10 +21,10 @@
  * Miscellaneous functions, including savestates and CD-ROM loading.
  */
 
+#include "misc.h"
 #include <stddef.h>
 #include "cdrom.h"
 #include "mdec.h"
-#include "misc.h"
 #include "ppf.h"
 
 char CdromId[10] = "";

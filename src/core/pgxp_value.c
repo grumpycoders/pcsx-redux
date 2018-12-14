@@ -1,5 +1,5 @@
-#include "limits.h"
 #include "pgxp_value.h"
+#include "limits.h"
 
 void SetValue(PGXP_value *pV, u32 psxV) {
     psx_value psx;

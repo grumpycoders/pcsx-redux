@@ -3309,9 +3309,10 @@ void DXSetGamma(void) {
         int i;
         LPDIRECTDRAWGAMMACONTROL DD_Gamma = NULL;
 
-//        if
-//            FAILED(IDirectDrawSurface_QueryInterface(DX.DDSPrimary, &IID_IDirectDrawGammaControl, (void **)&DD_Gamma))
-//        return;
+        //        if
+        //            FAILED(IDirectDrawSurface_QueryInterface(DX.DDSPrimary, &IID_IDirectDrawGammaControl, (void
+        //            **)&DD_Gamma))
+        //        return;
 
         for (i = 0; i < 256; i++) {
             f = (((float)(i * 256)) * g);

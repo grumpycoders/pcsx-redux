@@ -20,29 +20,29 @@
 
 #include <windows.h>
 
-void          DoBufferSwap(void);
-void          DoClearScreenBuffer(void);
-void          DoClearFrontBuffer(void);
+void DoBufferSwap(void);
+void DoClearScreenBuffer(void);
+void DoClearFrontBuffer(void);
 unsigned long ulInitDisplay(void);
-void          CloseDisplay(void);
-void          CreatePic(unsigned char * pMem);
-void          DestroyPic(void);
-void          DisplayPic(void);
-void          ShowGpuPic(void);
-void          ShowTextGpuPic(void);
+void CloseDisplay(void);
+void CreatePic(unsigned char* pMem);
+void DestroyPic(void);
+void DisplayPic(void);
+void ShowGpuPic(void);
+void ShowTextGpuPic(void);
 
 typedef struct {
-#define MWM_HINTS_DECORATIONS   2
-  long flags;
-  long functions;
-  long decorations;
-  long input_mode;
+#define MWM_HINTS_DECORATIONS 2
+    long flags;
+    long functions;
+    long decorations;
+    long input_mode;
 } MotifWmHints;
 
 #ifdef _WIN32
-void          MoveScanLineArea(HWND hwnd);
+void MoveScanLineArea(HWND hwnd);
 #endif
 
 ///////////////////////////////////////////////////////////////////////
 
-#endif // _GPU_DRAW_H_
+#endif  // _GPU_DRAW_H_

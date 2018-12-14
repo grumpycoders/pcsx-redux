@@ -21,10 +21,10 @@
  * Functions for PSX hardware control.
  */
 
+#include "psxhw.h"
 #include "cdrom.h"
 #include "gpu.h"
 #include "mdec.h"
-#include "psxhw.h"
 
 // Vampire Hunter D hack
 boolean dmaGpuListHackEn = FALSE;

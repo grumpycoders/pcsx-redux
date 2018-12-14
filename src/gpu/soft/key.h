@@ -18,7 +18,7 @@
 #ifndef _KEY_INTERNALS_H
 #define _KEY_INTERNALS_H
 
-void    SetKeyHandler(void);
-void    ReleaseKeyHandler(void);
+void SetKeyHandler(void);
+void ReleaseKeyHandler(void);
 
-#endif // _KEY_INTERNALS_H
+#endif  // _KEY_INTERNALS_H

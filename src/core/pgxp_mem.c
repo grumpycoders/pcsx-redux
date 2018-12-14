@@ -1,6 +1,6 @@
+#include "pgxp_mem.h"
 #include "pgxp_cpu.h"
 #include "pgxp_gte.h"
-#include "pgxp_mem.h"
 #include "pgxp_value.h"
 
 PGXP_value Mem[3 * 2048 * 1024 / 4];  // mirror 2MB in 32-bit words * 3
