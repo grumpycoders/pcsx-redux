@@ -18,6 +18,8 @@
 #ifndef _GPU_SOFT_H_
 #define _GPU_SOFT_H_
 
+#include <stdint.h>
+
 void offsetPSXLine(void);
 void offsetPSX2(void);
 void offsetPSX3(void);

@@ -21,9 +21,8 @@
  * i386 assembly functions for R3000A core.
  */
 
-#ifdef __i386__
+#if defined(__i386__) || defined(_M_IX86)
 
-#include <sys/mman.h>
 #include "../pgxp_cpu.h"
 #include "../pgxp_debug.h"
 #include "../pgxp_gte.h"
@@ -462,7 +461,12 @@ static int recInit() {
 
     psxRecLUT = (u32 *)malloc(0x010000 * 4);
 
+#ifndef _WIN32
     recMem = mmap(0, RECMEM_SIZE + 0x1000, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#else
+    recMem = ((char *)VirtualAlloc(NULL, RECMEM_SIZE + 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+#endif
+
 
     recRAM = (char *)malloc(0x200000);
     recROM = (char *)malloc(0x080000);
@@ -497,7 +501,11 @@ static void recReset() {
 static void recShutdown() {
     if (recMem == NULL) return;
     free(psxRecLUT);
+#ifndef _WIN32
     munmap(recMem, RECMEM_SIZE + 0x1000);
+#else
+    VirtualFree(recMem, RECMEM_SIZE + 0x1000, MEM_RELEASE);
+#endif
     free(recRAM);
     free(recROM);
     x86Shutdown();
