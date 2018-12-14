@@ -322,6 +322,7 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym0(about, "GPUabout");
 #endif
 
+#define LoadGpuSymD(s, x) GPU_##s = GPU__##s;
 #define LoadGpuSym0(s, x) GPU_##s = softGPU##s
 #define LoadGpuSym1(s, x) GPU_##s = softGPU##s
 
@@ -337,22 +338,22 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym1(writeStatus, "GPUwriteStatus");
     LoadGpuSym1(dmaChain, "GPUdmaChain");
     LoadGpuSym1(updateLace, "GPUupdateLace");
-    // LoadGpuSym0(keypressed, "GPUkeypressed");
+    LoadGpuSymD(keypressed, "GPUkeypressed");
     LoadGpuSym0(displayText, "GPUdisplayText");
     LoadGpuSym0(makeSnapshot, "GPUmakeSnapshot");
-    // LoadGpuSym0(toggleDebug, "GPUtoggleDebug");
+    LoadGpuSymD(toggleDebug, "GPUtoggleDebug");
     LoadGpuSym1(freeze, "GPUfreeze");
     LoadGpuSym0(getScreenPic, "GPUgetScreenPic");
     LoadGpuSym0(showScreenPic, "GPUshowScreenPic");
-    // LoadGpuSym0(clearDynarec, "GPUclearDynarec");
+    LoadGpuSymD(clearDynarec, "GPUclearDynarec");
     LoadGpuSym0(hSync, "GPUhSync");
     LoadGpuSym0(vBlank, "GPUvBlank");
     LoadGpuSym0(visualVibration, "GPUvisualVibration");
     LoadGpuSym0(cursor, "GPUcursor");
-    // LoadGpuSym0(addVertex, "GPUaddVertex");
-    // LoadGpuSym0(setSpeed, "GPUsetSpeed");
-    // LoadGpuSym0(pgxpMemory, "GPUpgxpMemory");
-    // LoadGpuSym0(pgxpCacheVertex, "GPUpgxpCacheVertex");
+    LoadGpuSymD(addVertex, "GPUaddVertex");
+    LoadGpuSymD(setSpeed, "GPUsetSpeed");
+    LoadGpuSymD(pgxpMemory, "GPUpgxpMemory");
+    LoadGpuSymD(pgxpCacheVertex, "GPUpgxpCacheVertex");
     LoadGpuSym0(configure, "GPUconfigure");
     LoadGpuSym0(test, "GPUtest");
     LoadGpuSym0(about, "GPUabout");
@@ -754,11 +755,14 @@ void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
     LoadSym(PAD1_##dest, PAD##dest, name, FALSE); \
     if (PAD1_##dest == NULL) PAD1_##dest = (PAD##dest)PAD1__##dest;
 
-long CALLBACK nullPAD_init(long flags) {}
+long CALLBACK nullPAD_init(long flags) { return 0; }
 void CALLBACK nullPAD_shutdown() {}
 long CALLBACK nullPAD_open(HWND x) { return 0; }
 void CALLBACK nullPAD_close() {}
-long CALLBACK nullPAD_readPort(PadDataS *data) { memset(data, 0, sizeof(PadDataS)); }
+long CALLBACK nullPAD_readPort(PadDataS *data) {
+    memset(data, 0, sizeof(PadDataS));
+    return 0;
+}
 
 static int LoadPAD1plugin(const char *PAD1dll) {
     void *drv;
@@ -787,7 +791,7 @@ static int LoadPAD1plugin(const char *PAD1dll) {
     LoadPad1Sym0(registerVibration, "PADregisterVibration");
     LoadPad1Sym0(registerCursor, "PADregisterCursor");
 #endif
-    
+
     PAD1_init = nullPAD_init;
     PAD1_shutdown = nullPAD_shutdown;
     PAD1_open = nullPAD_open;
