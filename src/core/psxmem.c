@@ -74,7 +74,7 @@ int psxMemInit() {
 #ifndef _WIN32
     psxM = mmap(0, 0x00220000, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #else
-    psxM = ((s8 *)VirtualAlloc(NULL, 0x00220000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+    psxM = ((s8 *)VirtualAlloc(NULL, 0x00220000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 #endif
 
     psxP = &psxM[0x200000];
