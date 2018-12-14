@@ -254,7 +254,7 @@ void CALLBACK ZN_GPUshowScreenPic(unsigned char * pMem)
  GPUshowScreenPic(pMem);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 #ifndef _WIN32
 

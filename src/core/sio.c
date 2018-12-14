@@ -21,8 +21,8 @@
  * SIO functions.
  */
 
-#include <sys/stat.h>
 #include "sio.h"
+#include <sys/stat.h>
 
 // Status Flags
 #define TX_RDY 0x0001
@@ -797,7 +797,7 @@ unsigned short sioReadCtrl16() { return CtrlReg; }
 unsigned short sioReadBaud16() { return BaudReg; }
 
 void netError() {
-    //ClosePlugins();
+    // ClosePlugins();
     SysMessage("%s", _("Connection closed!\n"));
 
     CdromId[0] = '\0';

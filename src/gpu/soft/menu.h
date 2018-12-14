@@ -24,4 +24,4 @@ void InitMenu(void);
 void BuildDispMenu(int iInc);
 void SwitchDispMenu(int iStep);
 
-#endif // _GPU_MENU_H_
+#endif  // _GPU_MENU_H_

@@ -21,8 +21,8 @@
  * Plugin library callback/access functions.
  */
 
-#include "cdriso.h"
 #include "plugins.h"
+#include "cdriso.h"
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
@@ -268,7 +268,6 @@ void CALLBACK GPU__setSpeed(float newSpeed) {}
 void CALLBACK GPU__pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
 void CALLBACK GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
 
-
 #if 0
 #define LoadGpuSym1(dest, name) LoadSym(GPU_##dest, GPU##dest, name, TRUE);
 
@@ -338,22 +337,22 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym1(writeStatus, "GPUwriteStatus");
     LoadGpuSym1(dmaChain, "GPUdmaChain");
     LoadGpuSym1(updateLace, "GPUupdateLace");
-    //LoadGpuSym0(keypressed, "GPUkeypressed");
+    // LoadGpuSym0(keypressed, "GPUkeypressed");
     LoadGpuSym0(displayText, "GPUdisplayText");
     LoadGpuSym0(makeSnapshot, "GPUmakeSnapshot");
-    //LoadGpuSym0(toggleDebug, "GPUtoggleDebug");
+    // LoadGpuSym0(toggleDebug, "GPUtoggleDebug");
     LoadGpuSym1(freeze, "GPUfreeze");
     LoadGpuSym0(getScreenPic, "GPUgetScreenPic");
     LoadGpuSym0(showScreenPic, "GPUshowScreenPic");
-    //LoadGpuSym0(clearDynarec, "GPUclearDynarec");
+    // LoadGpuSym0(clearDynarec, "GPUclearDynarec");
     LoadGpuSym0(hSync, "GPUhSync");
     LoadGpuSym0(vBlank, "GPUvBlank");
     LoadGpuSym0(visualVibration, "GPUvisualVibration");
     LoadGpuSym0(cursor, "GPUcursor");
-    //LoadGpuSym0(addVertex, "GPUaddVertex");
-    //LoadGpuSym0(setSpeed, "GPUsetSpeed");
-    //LoadGpuSym0(pgxpMemory, "GPUpgxpMemory");
-    //LoadGpuSym0(pgxpCacheVertex, "GPUpgxpCacheVertex");
+    // LoadGpuSym0(addVertex, "GPUaddVertex");
+    // LoadGpuSym0(setSpeed, "GPUsetSpeed");
+    // LoadGpuSym0(pgxpMemory, "GPUpgxpMemory");
+    // LoadGpuSym0(pgxpCacheVertex, "GPUpgxpCacheVertex");
     LoadGpuSym0(configure, "GPUconfigure");
     LoadGpuSym0(test, "GPUtest");
     LoadGpuSym0(about, "GPUabout");

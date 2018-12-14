@@ -25,9 +25,9 @@
  *      Author: iCatButler
  ***************************************************************************/
 
+#include "pgxp_gte.h"
 #include "pgxp_cpu.h"
 #include "pgxp_debug.h"
-#include "pgxp_gte.h"
 #include "pgxp_mem.h"
 #include "pgxp_value.h"
 
@@ -264,7 +264,7 @@ void MFC2(int reg) {
         case 28:
         case 29:
             //	psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7,
-            //0x1f, 0, 0) << 10);
+            // 0x1f, 0, 0) << 10);
             break;
     }
 }

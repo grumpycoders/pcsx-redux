@@ -132,18 +132,18 @@ LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 ////////////////////////////////////////////////////////////////////////
 
 void SetKeyHandler(void) {
-//    if (!wpOrgWndProc)  // setup keyhandler
-//    {
-//        wpOrgWndProc = (WNDPROC)GetWindowLong(hWGPU, GWL_WNDPROC);
-//        SetWindowLong(hWGPU, GWL_WNDPROC, (long)KeyWndProc);
-//    }
+    //    if (!wpOrgWndProc)  // setup keyhandler
+    //    {
+    //        wpOrgWndProc = (WNDPROC)GetWindowLong(hWGPU, GWL_WNDPROC);
+    //        SetWindowLong(hWGPU, GWL_WNDPROC, (long)KeyWndProc);
+    //    }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 void ReleaseKeyHandler(void) {
-//    if (wpOrgWndProc)
-//        SetWindowLong(hWGPU, GWL_WNDPROC,  // set old proc
-//                      (long)wpOrgWndProc);
-//    wpOrgWndProc = 0;
+    //    if (wpOrgWndProc)
+    //        SetWindowLong(hWGPU, GWL_WNDPROC,  // set old proc
+    //                      (long)wpOrgWndProc);
+    //    wpOrgWndProc = 0;
 }
