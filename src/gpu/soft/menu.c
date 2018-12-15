@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,25 +16,67 @@
  *                                                                         *
  ***************************************************************************/
 
-#define _IN_MENU
+//*************************************************************************//
+// History of changes:
+//
+// 2005/04/15 - Pete
+// - Changed user frame limit to floating point value
+//
+// 2003/07/27 - Pete
+// - Added pad core flags display
+//
+// 2002/12/14 - Pete
+// - Added dithering menu item
+//
+// 2002/05/25 - Pete
+// - Added menu support for linuzappz's fast forward skipping
+//
+// 2002/01/13 - linuzappz
+// - Added timing for the szDebugText (to 2 secs)
+//
+// 2001/12/22 - syo
+// - modified for "transparent menu"
+//   (Pete: added 'V' display for WaitVBlank)
+//
+// 2001/11/09 - Darko Matesic
+// - added recording status
+//   (Pete: added terminate zero to the menu buffer ;)
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
 
-#include "menu.h"
-#include "draw.h"
-#include "externals.h"
-#include "gpu.h"
+#include "stdafx.h"
 
 #ifdef _WIN32
 
-//#include "record.h"
-
-HFONT hGFont = NULL;
-BOOL bTransparent = FALSE;
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "record.h"
 
 #endif
 
+#define _IN_MENU
+
+#include "draw.h"
+#include "externals.h"
+#include "gpu.h"
+#include "menu.h"
+
 unsigned long dwCoreFlags = 0;
 
+////////////////////////////////////////////////////////////////////////
 // create lists/stuff for fonts (actually there are no more lists, but I am too lazy to change the func names ;)
+////////////////////////////////////////////////////////////////////////
+
+#ifdef _WIN32
+HFONT hGFont = NULL;
+BOOL bTransparent = FALSE;
+#endif
+
 void InitMenu(void) {
 #ifdef _WIN32
     hGFont = CreateFont(  //-8,
@@ -45,7 +88,10 @@ void InitMenu(void) {
 #endif
 }
 
+////////////////////////////////////////////////////////////////////////
 // kill existing lists/fonts
+////////////////////////////////////////////////////////////////////////
+
 void CloseMenu(void) {
 #ifdef _WIN32
     if (hGFont) DeleteObject(hGFont);
@@ -55,7 +101,9 @@ void CloseMenu(void) {
 #endif
 }
 
+////////////////////////////////////////////////////////////////////////
 // DISPLAY FPS/MENU TEXT
+////////////////////////////////////////////////////////////////////////
 
 #include <time.h>
 extern time_t tStart;
@@ -64,36 +112,38 @@ int iMPos = 0;  // menu arrow pos
 
 void DisplayText(void)  // DISPLAY TEXT
 {
-#ifdef _WIN32
-    HDC hdc;
-    HFONT hFO;
+#if 0
+ HDC hdc;HFONT hFO;
 
-    IDirectDrawSurface_GetDC(DX.DDSRender, &hdc);
-    hFO = (HFONT)SelectObject(hdc, hGFont);
+ IDirectDrawSurface_GetDC(DX.DDSRender,&hdc);
+ hFO=(HFONT)SelectObject(hdc,hGFont);
 
-    SetTextColor(hdc, RGB(0, 255, 0));
-    if (bTransparent)
-        SetBkMode(hdc, TRANSPARENT);
-    else
-        SetBkColor(hdc, RGB(0, 0, 0));
+ SetTextColor(hdc,RGB(0,255,0));
+ if(bTransparent) 
+      SetBkMode(hdc,TRANSPARENT);
+ else SetBkColor(hdc,RGB(0,0,0));
 
-    if (szDebugText[0] && ((time(NULL) - tStart) < 2))  // special debug text? show it
-    {
-        RECT r = {0, 0, 1024, 1024};
-        DrawText(hdc, szDebugText, lstrlen(szDebugText), &r, DT_LEFT | DT_NOCLIP);
-    } else  // else standard gpu menu
-    {
-        szDebugText[0] = 0;
-        lstrcat(szDispBuf, szMenuBuf);
-        ExtTextOut(hdc, 0, 0, 0, NULL, szDispBuf, lstrlen(szDispBuf), NULL);
-    }
+ if(szDebugText[0] && ((time(NULL) - tStart) < 2))     // special debug text? show it
+  {
+   RECT r={0,0,1024,1024};
+   DrawText(hdc,szDebugText,lstrlen(szDebugText),&r,DT_LEFT|DT_NOCLIP);
+  }
+ else                                                  // else standard gpu menu
+  {
+   szDebugText[0]=0;
+   lstrcat(szDispBuf,szMenuBuf);
+   ExtTextOut(hdc,0,0,0,NULL,szDispBuf,lstrlen(szDispBuf),NULL);
+  }
 
-    SelectObject(hdc, hFO);
-    IDirectDrawSurface_ReleaseDC(DX.DDSRender, hdc);
+ SelectObject(hdc,hFO);
+ IDirectDrawSurface_ReleaseDC(DX.DDSRender,hdc);
 #endif
 }
 
+////////////////////////////////////////////////////////////////////////
 // Build Menu buffer (== Dispbuffer without FPS)...
+////////////////////////////////////////////////////////////////////////
+
 void BuildDispMenu(int iInc) {
     if (!(ulKeybits & KEY_SHOWFPS)) return;  // mmm, cheater ;)
 
@@ -145,14 +195,12 @@ void BuildDispMenu(int iInc) {
 #ifdef _WIN32
     if (bVsync_Key) szMenuBuf[25] = 'V';
 #endif
-
     if (lSelectedSlot) szMenuBuf[26] = '0' + (char)lSelectedSlot;
 
     szMenuBuf[(iMPos + 1) * 5] = '<';  // set arrow
 
 #ifdef _WIN32
-    // if(RECORD_RECORDING)
-    if (0) {
+    if (RECORD_RECORDING) {
         szMenuBuf[27] = ' ';
         szMenuBuf[28] = ' ';
         szMenuBuf[29] = ' ';
@@ -162,17 +210,20 @@ void BuildDispMenu(int iInc) {
         szMenuBuf[33] = 0;
     }
 
-    if (DX.DDSScreenPic) ShowTextGpuPic();
+// if(DX.DDSScreenPic) ShowTextGpuPic();
 #endif
 }
 
+////////////////////////////////////////////////////////////////////////
 // Some menu action...
+////////////////////////////////////////////////////////////////////////
+
 void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
 {
     if (!(ulKeybits & KEY_SHOWFPS)) return;  // tststs
 
-    switch (iMPos) {
-        case 0:  // frame limit
+    switch (iMPos) {  //////////////////////////////////////////////////////
+        case 0:       // frame limit
         {
             int iType = 0;
             bInitCap = TRUE;
@@ -198,7 +249,7 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
                 SetAutoFrameCap();
             }
         } break;
-
+        //////////////////////////////////////////////////////
         case 1:  // frame skip
             bInitCap = TRUE;
             if (iStep > 0) {
@@ -228,13 +279,13 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
             }
             bSkipNextFrame = FALSE;
             break;
-
+        //////////////////////////////////////////////////////
         case 2:  // dithering
             iUseDither += iStep;
             if (iUseDither < 0) iUseDither = 2;
             if (iUseDither > 2) iUseDither = 0;
             break;
-
+        //////////////////////////////////////////////////////
         case 3:  // special fixes
             if (iUseFixes) {
                 iUseFixes = 0;
@@ -250,3 +301,7 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
 
     BuildDispMenu(0);  // update info
 }
+
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////

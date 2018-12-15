@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,8 +16,18 @@
  *                                                                         *
  ***************************************************************************/
 
+//*************************************************************************//
+// History of changes:
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
+
 #ifndef _GPU_INTERNALS_H
 #define _GPU_INTERNALS_H
+
+/////////////////////////////////////////////////////////////////////////////
 
 #define OPAQUEON 10
 #define OPAQUEOFF 11
@@ -31,22 +42,16 @@
 #define KEY_BADTEXTURES 128
 #define KEY_CHECKTHISOUT 256
 
-#if !defined(__BIG_ENDIAN__) || defined(__x86_64__) || defined(__i386__)
-#ifndef __LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
-#endif
-#endif
-
-#ifdef __LITTLE_ENDIAN__
+#ifndef _FPSE
 #define RED(x) (x & 0xff)
 #define BLUE(x) ((x >> 16) & 0xff)
 #define GREEN(x) ((x >> 8) & 0xff)
 #define COLOR(x) (x & 0xffffff)
-#elif defined __BIG_ENDIAN__
-#define RED(x) ((x >> 24) & 0xff)
-#define BLUE(x) ((x >> 8) & 0xff)
-#define GREEN(x) ((x >> 16) & 0xff)
-#define COLOR(x) SWAP32(x & 0xffffff)
+#else
+#define BLUE(x) (x & 0xff)
+#define RED(x) ((x >> 16) & 0xff)
+#define GREEN(x) ((x >> 8) & 0xff)
+#define COLOR(x) (x & 0xffffff)
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

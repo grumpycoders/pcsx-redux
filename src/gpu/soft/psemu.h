@@ -1,5 +1,5 @@
 /***************************************************************************
-                          key.h  -  description
+                          psemu.h  -  description
                              -------------------
     begin                : Sun Oct 28 2001
     copyright            : (C) 2001 by Pete Bernert
@@ -24,10 +24,12 @@
 //
 //*************************************************************************//
 
-#ifndef _KEY_INTERNALS_H
-#define _KEY_INTERNALS_H
+#ifndef _PSEMU_PLUGIN_DEFS_H
+#define _PSEMU_PLUGIN_DEFS_H
 
-void SetKeyHandler(void);
-void ReleaseKeyHandler(void);
+// plugin type returned by PSEgetLibType
+#define PSE_LT_CDR 1
+#define PSE_LT_GPU 2
+#define PSE_LT_SPU 4
 
-#endif  // _KEY_INTERNALS_H
+#endif  // _PSEMU_PLUGIN_DEFS_H

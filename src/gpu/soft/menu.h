@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -14,6 +15,14 @@
  *   additional informations.                                              *
  *                                                                         *
  ***************************************************************************/
+
+//*************************************************************************//
+// History of changes:
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
 
 #ifndef _GPU_MENU_H_
 #define _GPU_MENU_H_

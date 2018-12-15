@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,10 +16,19 @@
  *                                                                         *
  ***************************************************************************/
 
+//*************************************************************************//
+// History of changes:
+//
+// 2002/06/04 - Lewpy
+// - new line drawing funcs
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
+
 #ifndef _GPU_SOFT_H_
 #define _GPU_SOFT_H_
-
-#include <stdint.h>
 
 void offsetPSXLine(void);
 void offsetPSX2(void);
@@ -27,18 +37,18 @@ void offsetPSX4(void);
 
 void FillSoftwareAreaTrans(short x0, short y0, short x1, short y1, unsigned short col);
 void FillSoftwareArea(short x0, short y0, short x1, short y1, unsigned short col);
-void drawPoly3G(int32_t rgb1, int32_t rgb2, int32_t rgb3);
-void drawPoly4G(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
-void drawPoly3F(int32_t rgb);
-void drawPoly4F(int32_t rgb);
+void drawPoly3G(long rgb1, long rgb2, long rgb3);
+void drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4);
+void drawPoly3F(long rgb);
+void drawPoly4F(long rgb);
 void drawPoly4FT(unsigned char* baseAddr);
 void drawPoly4GT(unsigned char* baseAddr);
 void drawPoly3FT(unsigned char* baseAddr);
 void drawPoly3GT(unsigned char* baseAddr);
-void DrawSoftwareSprite(unsigned char* baseAddr, short w, short h, int32_t tx, int32_t ty);
-void DrawSoftwareSpriteTWin(unsigned char* baseAddr, int32_t w, int32_t h);
-void DrawSoftwareSpriteMirror(unsigned char* baseAddr, int32_t w, int32_t h);
-void DrawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
-void DrawSoftwareLineFlat(int32_t rgb);
+void DrawSoftwareSprite(unsigned char* baseAddr, short w, short h, long tx, long ty);
+void DrawSoftwareSpriteTWin(unsigned char* baseAddr, long w, long h);
+void DrawSoftwareSpriteMirror(unsigned char* baseAddr, long w, long h);
+void DrawSoftwareLineShade(long rgb0, long rgb1);
+void DrawSoftwareLineFlat(long rgb);
 
 #endif  // _GPU_SOFT_H_

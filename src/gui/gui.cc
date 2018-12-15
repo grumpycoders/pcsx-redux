@@ -40,7 +40,9 @@ unsigned int GUI_init() {
     gGlcontext = SDL_GL_CreateContext(gWindow);
     assert(gGlcontext);
 
-    gl3wInit();
+    int result = gl3wInit();
+
+    assert(result == 0);
 
     // Setup ImGui binding
     ImGui::CreateContext();
@@ -92,7 +94,7 @@ static void endFrame() {
     {
         ImVec2 textureSize = ImGui::GetWindowSize();
         textureSize.y = textureSize.x * (512.f / 1024.f);  // TODO: what's the ratio of PSX?
-        ImGui::Image((ImTextureID)gEmuTexture, textureSize, ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((ImTextureID)gEmuTexture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
         ImGui::SameLine();
     }
     ImGui::End();
@@ -107,6 +109,6 @@ static void endFrame() {
 }
 
 void GUI_flip() {
-    endFrame(); 
+    endFrame();
     startFrame();
 }

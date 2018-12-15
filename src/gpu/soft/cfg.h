@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,10 +16,16 @@
  *                                                                         *
  ***************************************************************************/
 
+//*************************************************************************//
+// History of changes:
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
+
 #ifndef _GPU_CFG_H_
 #define _GPU_CFG_H_
-
-#include <windows.h>
 
 void ReadConfig(void);
 void WriteConfig(void);
@@ -26,9 +33,9 @@ void ReadWinSizeConfig(void);
 
 #ifdef _WIN32
 BOOL CALLBACK SoftDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-#else
+#else  // LINUX
 void SoftDlgProc(void);
 void AboutDlgProc(void);
 #endif
 
-#endif
+#endif  // _GPU_CFG_H_

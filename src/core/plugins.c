@@ -346,8 +346,8 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym0(getScreenPic, "GPUgetScreenPic");
     LoadGpuSym0(showScreenPic, "GPUshowScreenPic");
     LoadGpuSymD(clearDynarec, "GPUclearDynarec");
-    LoadGpuSym0(hSync, "GPUhSync");
-    LoadGpuSym0(vBlank, "GPUvBlank");
+    LoadGpuSymD(hSync, "GPUhSync");
+    LoadGpuSymD(vBlank, "GPUvBlank");
     LoadGpuSym0(visualVibration, "GPUvisualVibration");
     LoadGpuSym0(cursor, "GPUcursor");
     LoadGpuSymD(addVertex, "GPUaddVertex");

@@ -44,7 +44,10 @@ int main() {
 
     memset(&Config, 0, sizeof(PcsxConfig));
     Config.PsxAuto = 1;
-    Config.HLE = 1;
+    Config.HLE = 0;
+    Config.SlowBoot = 0;
+    strcpy(Config.BiosDir, ".");
+    strcpy(Config.Bios, "bios.bin");
 
     SetIsoFile("test.img");
     LoadPlugins();

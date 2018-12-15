@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -14,6 +15,34 @@
  *   additional informations.                                              *
  *                                                                         *
  ***************************************************************************/
+
+//*************************************************************************//
+// History of changes:
+//
+// 2005/04/15 - Pete
+// - Changed user frame limit to floating point value
+//
+// 2004/01/31 - Pete
+// - added zn stuff
+//
+// 2002/04/20 - linuzappz
+// - added iFastFwd var
+//
+// 2001/12/22 - syo
+// - added vsync & transparent vars
+//
+// 2001/12/16 - Pete
+// - added iFPSEInterface variable
+//
+// 2001/12/05 - syo
+// - added iSysMemory and iStopSaver
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
+
+/////////////////////////////////////////////////////////////////////////////
 
 #define INFO_TW 0
 #define INFO_DRAWSTART 1
@@ -51,59 +80,6 @@
 #define GPUIsNotReadyForCommands (lGPUstatusRet &= ~GPUSTATUS_READYFORCOMMANDS)
 #define GPUIsReadyForCommands (lGPUstatusRet |= GPUSTATUS_READYFORCOMMANDS)
 
-#ifdef _WIN32
-
-#ifndef STRICT
-#define STRICT
-#endif
-#define D3D_OVERLOADS
-#define DIRECT3D_VERSION 0x600
-#define CINTERFACE
-#ifndef WINVER
-#define WINVER 0x0500
-#endif
-
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <tchar.h>
-#include <windows.h>
-#include <windowsx.h>
-//#include "resource.h"
-
-#include "d3d.h"
-#include "d3dtypes.h"
-#include "ddraw.h"
-
-#ifdef _MSC_VER
-#pragma warning(disable : 864)
-#pragma warning(disable : 4244)
-#pragma warning(disable : 4996)
-#endif
-
-#else
-
-#define __X11_C_
-// X11 render
-#define __inline inline
-#define CALLBACK
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#ifndef _MACGL
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/cursorfont.h>
-#endif
-#include <math.h>
-#include <stdint.h>
-
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 
 typedef struct VRAMLOADTTAG {
@@ -119,8 +95,8 @@ typedef struct VRAMLOADTTAG {
 /////////////////////////////////////////////////////////////////////////////
 
 typedef struct PSXPOINTTAG {
-    int32_t x;
-    int32_t y;
+    long x;
+    long y;
 } PSXPoint_t;
 
 typedef struct PSXSPOINTTAG {
@@ -137,28 +113,31 @@ typedef struct PSXRECTTAG {
 
 #ifdef _WIN32
 
-typedef struct SDXTAG {
-    LPDIRECTDRAW DD;
+#if 0
+				typedef struct SDXTAG
+{
+ LPDIRECTDRAW                   DD;
 
-    LPDIRECTDRAWSURFACE DDSPrimary;
-    LPDIRECTDRAWSURFACE DDSRender;
-    LPDIRECTDRAWSURFACE DDSHelper;
-    LPDIRECTDRAWSURFACE DDSScreenPic;
-    HWND hWnd;
+ LPDIRECTDRAWSURFACE            DDSPrimary;
+ LPDIRECTDRAWSURFACE            DDSRender;
+ LPDIRECTDRAWSURFACE            DDSHelper;
+ LPDIRECTDRAWSURFACE            DDSScreenPic;
+ HWND                           hWnd;
 } sDX;
 
-#else
+#endif  // 0
 
+#else
 // linux defines for some windows stuff
 
 #define FALSE 0
 #define TRUE 1
 #define BOOL unsigned short
 #define LOWORD(l) ((unsigned short)(l))
-#define HIWORD(l) ((unsigned short)(((uint32_t)(l) >> 16) & 0xFFFF))
+#define HIWORD(l) ((unsigned short)(((unsigned long)(l) >> 16) & 0xFFFF))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
-#define DWORD uint32_t
+#define DWORD unsigned long
 #define __int64 long long int
 
 typedef struct RECTTAG {
@@ -184,22 +163,23 @@ typedef struct PSXDISPLAYTAG {
     PSXPoint_t DisplayPosition;
     PSXPoint_t DisplayEnd;
 
-    int32_t Double;
-    int32_t Height;
-    int32_t PAL;
-    int32_t InterlacedNew;
-    int32_t Interlaced;
-    int32_t RGB24New;
-    int32_t RGB24;
+    long Double;
+    long Height;
+    long PAL;
+    long InterlacedNew;
+    long Interlaced;
+    long RGB24New;
+    long RGB24;
     PSXSPoint_t DrawOffset;
-    int32_t Disabled;
+    long Disabled;
     PSXRect_t Range;
 
 } PSXDisplay_t;
 
+/////////////////////////////////////////////////////////////////////////////
+
 #ifdef _WIN32
 extern HINSTANCE hInst;
-extern HMODULE hDDrawDLL;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -208,10 +188,9 @@ extern HMODULE hDDrawDLL;
 
 #ifndef _IN_DRAW
 
-extern unsigned int textureid;
-
 #ifdef _WIN32
-extern sDX DX;
+// extern sDX            DX;
+extern unsigned int textureId;
 extern GUID guiDev;
 extern int iRefreshRate;
 extern BOOL bVsync;
@@ -222,8 +201,8 @@ extern char *pCaptionText;
 
 extern int iResX;
 extern int iResY;
-extern int32_t GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
-extern int32_t GlobalTextREST, GlobalTextABR, GlobalTextPAGE;
+extern long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
+extern long GlobalTextREST, GlobalTextABR, GlobalTextPAGE;
 extern short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;
 extern long lLowerpart;
 extern BOOL bIsFirstFrame;
@@ -237,10 +216,7 @@ extern short g_m2;
 extern short g_m3;
 extern short DrawSemiTrans;
 extern int iUseGammaVal;
-#ifdef _WIN32
 extern int iUseScanLines;
-#endif
-extern int iMaintainAspect;
 extern int iDesktopCol;
 extern int iUseNoStretchBlt;
 extern int iShowFPS;
@@ -252,6 +228,7 @@ extern unsigned short usCursorActive;
 
 #ifdef _WIN32
 extern int iSysMemory;
+extern int iFPSEInterface;
 #endif
 
 #endif
@@ -262,21 +239,21 @@ extern int iSysMemory;
 
 extern BOOL bUsingTWin;
 extern TWin_t TWin;
-// extern unsigned long  clutid;
+extern unsigned long clutid;
 extern void (*primTableJ[256])(unsigned char *);
 extern void (*primTableSkip[256])(unsigned char *);
 extern unsigned short usMirror;
 extern int iDither;
-extern uint32_t dwCfgFixes;
-extern uint32_t dwActFixes;
-extern uint32_t dwEmuFixes;
+extern unsigned long dwCfgFixes;
+extern unsigned long dwActFixes;
+extern unsigned long dwEmuFixes;
 extern int iUseFixes;
 extern int iUseDither;
 extern BOOL bDoVSyncUpdate;
-extern int32_t drawX;
-extern int32_t drawY;
-extern int32_t drawW;
-extern int32_t drawH;
+extern long drawX;
+extern long drawY;
+extern long drawW;
+extern long drawH;
 
 #endif
 
@@ -301,22 +278,20 @@ extern PSXDisplay_t PSXDisplay;
 extern PSXDisplay_t PreviousPSXDisplay;
 extern BOOL bSkipNextFrame;
 extern long lGPUstatusRet;
-// extern long           drawingLines;
+extern long drawingLines;
 extern unsigned char *psxVSecure;
 extern unsigned char *psxVub;
 extern signed char *psxVsb;
 extern unsigned short *psxVuw;
 extern signed short *psxVsw;
-extern uint32_t *psxVul;
-extern int32_t *psxVsl;
+extern unsigned long *psxVul;
+extern signed long *psxVsl;
 extern unsigned short *psxVuw_eom;
 extern BOOL bChangeWinMode;
 extern long lSelectedSlot;
-extern BOOL bInitCap;
 extern DWORD dwLaceCnt;
-extern uint32_t lGPUInfoVals[];
-extern uint32_t ulStatusControl[];
-extern uint32_t vBlank;
+extern unsigned long lGPUInfoVals[];
+extern unsigned long ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
 
@@ -326,7 +301,7 @@ extern int iRumbleTime;
 
 #ifndef _IN_MENU
 
-extern uint32_t dwCoreFlags;
+extern unsigned long dwCoreFlags;
 
 #ifdef _WIN32
 extern HFONT hGFont;
@@ -352,6 +327,7 @@ extern char szGPUKeys[];
 
 #ifndef _IN_FPS
 
+extern BOOL bInitCap;
 extern int UseFrameLimit;
 extern int UseFrameSkip;
 extern float fFrameRate;
@@ -363,6 +339,7 @@ extern float fps_cur;
 extern BOOL IsPerformanceCounter;
 extern int iStopSaver;
 #endif
+extern BOOL bSSSPSXLimit;
 
 #endif
 
@@ -384,7 +361,7 @@ extern char *pConfigFile;
 
 #ifndef _IN_ZN
 
-extern uint32_t dwGPUVersion;
+extern unsigned long dwGPUVersion;
 extern int iGPUHeight;
 extern int iGPUHeightMask;
 extern int GlobalTextIL;
