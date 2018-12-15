@@ -162,7 +162,7 @@
     <ProjectReference Include="..\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\soft2\soft2.vcxproj">
+    <ProjectReference Include="..\soft\soft.vcxproj">
       <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>
     <ProjectReference Include="..\zlib\zlib.vcxproj">

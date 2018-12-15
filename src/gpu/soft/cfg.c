@@ -99,7 +99,7 @@
 #ifdef _WIN32
 
 #include <stdio.h>
-#include <vfw.h>
+//#include <vfw.h>
 #include "record.h"
 #include "stdafx.h"
 
@@ -918,7 +918,7 @@ void ReadConfig(void) {
     bTransparent = FALSE;
     bSSSPSXLimit = FALSE;
     iRefreshRate = 0;
-    iDebugMode = 1;
+    iDebugMode = 0;
     lstrcpy(szGPUKeys, szKeyDefaults);
 
     memset(szDevName, 0, 128);
@@ -1029,7 +1029,8 @@ void ReadConfig(void) {
     size = sizeof(xb);    \
     RegQueryValueEx(myKey, xa, 0, &type, (LPBYTE)&xb, &size);
 
-            GetDWORD("RecordingMode", RECORD_RECORDING_MODE);
+#if 0
+				            GetDWORD("RecordingMode", RECORD_RECORDING_MODE);
             GetDWORD("RecordingVideoSize", RECORD_VIDEO_SIZE);
             GetDWORD("RecordingWidth", RECORD_RECORDING_WIDTH);
             GetDWORD("RecordingHeight", RECORD_RECORDING_HEIGHT);
@@ -1039,6 +1040,7 @@ void ReadConfig(void) {
             GetBINARY("RecordingCompressionState1", RECORD_COMPRESSION_STATE1);
             GetBINARY("RecordingCompression2", RECORD_COMPRESSION2);
             GetBINARY("RecordingCompressionState2", RECORD_COMPRESSION_STATE2);
+
 
             if (RECORD_RECORDING_WIDTH > 1024) RECORD_RECORDING_WIDTH = 1024;
             if (RECORD_RECORDING_HEIGHT > 768) RECORD_RECORDING_HEIGHT = 768;
@@ -1054,6 +1056,7 @@ void ReadConfig(void) {
                 RECORD_COMPRESSION2.cbSize = sizeof(RECORD_COMPRESSION2);
             }
             RECORD_COMPRESSION2.lpState = RECORD_COMPRESSION_STATE2;
+#endif  // 0
 
             //
             // end of recording options
@@ -1160,7 +1163,8 @@ void WriteConfig(void) {
     RegSetValueEx(myKey, "DeviceName", 0, REG_BINARY, (LPBYTE)szDevName, 128);
     RegSetValueEx(myKey, "GuiDev", 0, REG_BINARY, (LPBYTE)&guiDev, sizeof(GUID));
 
-    //
+#if 0
+				    //
     // Recording options
     //
     if (RECORD_COMPRESSION1.cbState > sizeof(RECORD_COMPRESSION_STATE1) ||
@@ -1191,6 +1195,8 @@ void WriteConfig(void) {
     SetBINARY("RecordingCompressionState1", RECORD_COMPRESSION_STATE1);
     SetBINARY("RecordingCompression2", RECORD_COMPRESSION2);
     SetBINARY("RecordingCompressionState2", RECORD_COMPRESSION_STATE2);
+
+#endif  // 0
     //
     //
     //

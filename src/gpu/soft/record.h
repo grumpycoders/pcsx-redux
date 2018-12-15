@@ -31,10 +31,11 @@
 #ifndef _RECORD_H_
 #define _RECORD_H_
 
-#include <vfw.h>
+//#include <vfw.h>
 #include "stdafx.h"
 
-extern BOOL RECORD_RECORDING;
+#if 0
+				extern BOOL RECORD_RECORDING;
 extern BITMAPINFOHEADER RECORD_BI;
 extern unsigned char RECORD_BUFFER[1600 * 1200 * 3];
 extern unsigned long RECORD_INDEX;
@@ -48,6 +49,8 @@ extern COMPVARS RECORD_COMPRESSION1;
 extern unsigned char RECORD_COMPRESSION_STATE1[4096];
 extern COMPVARS RECORD_COMPRESSION2;
 extern unsigned char RECORD_COMPRESSION_STATE2[4096];
+
+#endif  // 0
 
 BOOL RECORD_Start();
 void RECORD_Stop();

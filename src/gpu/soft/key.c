@@ -84,7 +84,7 @@ LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
             if (!iUseScanLines) break;
             if (!iWindowMode) break;
             if (bIsFirstFrame) break;
-            MoveScanLineArea(hwnd);
+            //MoveScanLineArea(hwnd);
         } break;
         //--------------------------------------------------//
         case WM_KEYDOWN:  // keydown
@@ -117,13 +117,16 @@ LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
             }
 
             if (wParam == (WPARAM)szGPUKeys[6]) {
-                if (RECORD_RECORDING == TRUE) {
+#if 0
+				                if (RECORD_RECORDING == TRUE) {
                     RECORD_RECORDING = FALSE;
                     RECORD_Stop();
                 } else {
                     RECORD_RECORDING = TRUE;
                     RECORD_Start();
                 }
+
+#endif  // 0
                 BuildDispMenu(0);
                 break;
             }

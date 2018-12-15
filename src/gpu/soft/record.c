@@ -35,12 +35,13 @@
 #include <direct.h>
 #include <math.h>
 #include <stdio.h>
-#include <vfw.h>
+//#include <vfw.h>
 #include "externals.h"
 #include "gpu.h"
 #include "stdafx.h"
 
-extern BOOL RECORD_RECORDING = FALSE;
+#if 0
+				extern BOOL RECORD_RECORDING = FALSE;
 BITMAPINFOHEADER RECORD_BI = {40, 0, 0, 1, 16, 0, 0, 2048, 2048, 0, 0};
 unsigned char RECORD_BUFFER[1600 * 1200 * 3];
 unsigned long RECORD_INDEX;
@@ -61,6 +62,8 @@ PAVIFILE pfile = NULL;
 PAVISTREAM ps = NULL;
 PAVISTREAM psCompressed = NULL;
 AVICOMPRESSOPTIONS opts;
+
+#endif  // 0
 
 unsigned long frame;
 unsigned long skip;

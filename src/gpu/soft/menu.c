@@ -199,7 +199,7 @@ void BuildDispMenu(int iInc) {
 
     szMenuBuf[(iMPos + 1) * 5] = '<';  // set arrow
 
-#ifdef _WIN32
+#if 0
     if (RECORD_RECORDING) {
         szMenuBuf[27] = ' ';
         szMenuBuf[28] = ' ';

@@ -593,7 +593,7 @@ long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
 
 long CALLBACK softGPUclose()  // GPU CLOSE
 {
-#ifdef _WIN32
+#if 0
     if (RECORD_RECORDING == TRUE) {
         RECORD_Stop();
         RECORD_RECORDING = FALSE;
@@ -882,7 +882,7 @@ void CALLBACK softGPUupdateLace(void)  // VSYNC
         }
     }
 
-#ifdef _WIN32
+#if 0
 
     if (RECORD_RECORDING)
         if (RECORD_WriteFrame() == FALSE) {
