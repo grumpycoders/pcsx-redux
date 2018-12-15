@@ -467,7 +467,6 @@ static int recInit() {
     recMem = ((char *)VirtualAlloc(NULL, RECMEM_SIZE + 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
 #endif
 
-
     recRAM = (char *)malloc(0x200000);
     recROM = (char *)malloc(0x080000);
     if (recRAM == NULL || recROM == NULL || recMem == NULL || psxRecLUT == NULL) {

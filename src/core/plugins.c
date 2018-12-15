@@ -63,7 +63,7 @@ GPUpgxpMemory GPU_pgxpMemory;
 GPUpgxpCacheVertex GPU_pgxpCacheVertex;
 
 #ifdef _WIN32
-long CALLBACK softGPUopen(HWND hwndGPU);
+long CALLBACK softGPUopen(unsigned int texture);
 #else
 long softGPUopen(unsigned long *disp, const char *CapText, const char *CfgFile);
 #endif
@@ -322,6 +322,7 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym0(about, "GPUabout");
 #endif
 
+#define LoadGpuSymD(s, x) GPU_##s = GPU__##s;
 #define LoadGpuSym0(s, x) GPU_##s = softGPU##s
 #define LoadGpuSym1(s, x) GPU_##s = softGPU##s
 
@@ -337,22 +338,22 @@ static int LoadGPUplugin(const char *GPUdll) {
     LoadGpuSym1(writeStatus, "GPUwriteStatus");
     LoadGpuSym1(dmaChain, "GPUdmaChain");
     LoadGpuSym1(updateLace, "GPUupdateLace");
-    // LoadGpuSym0(keypressed, "GPUkeypressed");
+    LoadGpuSymD(keypressed, "GPUkeypressed");
     LoadGpuSym0(displayText, "GPUdisplayText");
     LoadGpuSym0(makeSnapshot, "GPUmakeSnapshot");
-    // LoadGpuSym0(toggleDebug, "GPUtoggleDebug");
+    LoadGpuSymD(toggleDebug, "GPUtoggleDebug");
     LoadGpuSym1(freeze, "GPUfreeze");
     LoadGpuSym0(getScreenPic, "GPUgetScreenPic");
     LoadGpuSym0(showScreenPic, "GPUshowScreenPic");
-    // LoadGpuSym0(clearDynarec, "GPUclearDynarec");
-    LoadGpuSym0(hSync, "GPUhSync");
-    LoadGpuSym0(vBlank, "GPUvBlank");
+    LoadGpuSymD(clearDynarec, "GPUclearDynarec");
+    LoadGpuSymD(hSync, "GPUhSync");
+    LoadGpuSymD(vBlank, "GPUvBlank");
     LoadGpuSym0(visualVibration, "GPUvisualVibration");
     LoadGpuSym0(cursor, "GPUcursor");
-    // LoadGpuSym0(addVertex, "GPUaddVertex");
-    // LoadGpuSym0(setSpeed, "GPUsetSpeed");
-    // LoadGpuSym0(pgxpMemory, "GPUpgxpMemory");
-    // LoadGpuSym0(pgxpCacheVertex, "GPUpgxpCacheVertex");
+    LoadGpuSymD(addVertex, "GPUaddVertex");
+    LoadGpuSymD(setSpeed, "GPUsetSpeed");
+    LoadGpuSymD(pgxpMemory, "GPUpgxpMemory");
+    LoadGpuSymD(pgxpCacheVertex, "GPUpgxpCacheVertex");
     LoadGpuSym0(configure, "GPUconfigure");
     LoadGpuSym0(test, "GPUtest");
     LoadGpuSym0(about, "GPUabout");
@@ -434,13 +435,166 @@ long CALLBACK SPU__configure(void) { return 0; }
 void CALLBACK SPU__about(void) {}
 long CALLBACK SPU__test(void) { return 0; }
 
-#define LoadSpuSym1(dest, name) LoadSym(SPU_##dest, SPU##dest, name, TRUE);
+//#define LoadSpuSym1(dest, name) LoadSym(SPU_##dest, SPU##dest, name, TRUE);
 
 #define LoadSpuSym0(dest, name)                  \
     LoadSym(SPU_##dest, SPU##dest, name, FALSE); \
     if (SPU_##dest == NULL) SPU_##dest = (SPU##dest)SPU__##dest;
 
 #define LoadSpuSymN(dest, name) LoadSym(SPU_##dest, SPU##dest, name, FALSE);
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "decode_xa.h"
+#include "psxcommon.h"
+
+int iSoundMuted = 1;
+
+static int spu_sbaddr;
+static short spureg[(0x1e00 - 0x1c00) / 2];
+static short *spumem;
+
+long CALLBACK nullSPU_init(void) {
+    spumem = (short *)malloc(512 * 1024);
+    if (spumem == NULL) return -1;
+
+    return 0;
+}
+
+long CALLBACK nullSPU_shutdown(void) {
+    if (spumem != NULL) {
+        free(spumem);
+        spumem = NULL;
+    }
+
+    return 0;
+}
+
+long CALLBACK nullSPU_open(void) { return 0; }
+
+long CALLBACK nullSPU_close(void) { return 0; }
+
+// New Interface
+
+void CALLBACK nullSPU_writeRegister(unsigned long reg, unsigned short val) {
+    spureg[(reg - 0x1f801c00) / 2] = val;
+    switch (reg) {
+        case 0x1f801da6:  // spu sbaddr
+            spu_sbaddr = val * 8;
+            break;
+        case 0x1f801da8:  // spu data
+            spumem[spu_sbaddr / 2] = (short)val;
+            spu_sbaddr += 2;
+            if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
+            break;
+    }
+}
+
+unsigned short CALLBACK nullSPU_readRegister(unsigned long reg) {
+    switch (reg) {
+        case 0x1f801da6:  // spu sbaddr
+            return spu_sbaddr / 8;
+        case 0x1f801da8:  // spu data
+        {
+            int ret = spumem[spu_sbaddr / 2];
+            spu_sbaddr += 2;
+            if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
+            return ret;
+        }
+        default:
+            return spureg[(reg - 0x1f801c00) / 2];
+    }
+    return 0;
+}
+
+void CALLBACK nullSPU_readDMAMem(unsigned short *ptr, int size) {
+    for (int i = 0; i < size; i++) {
+        ptr[i] = spumem[spu_sbaddr / 2];
+        spu_sbaddr += 2;
+        if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
+    }
+}
+
+void CALLBACK nullSPU_writeDMAMem(unsigned short *ptr, int size) {
+    for (int i = 0; i < size; i++) {
+        spumem[spu_sbaddr / 2] = (short)ptr[i];
+        spu_sbaddr += 2;
+        if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
+    }
+}
+
+void CALLBACK nullSPU_playADPCMchannel(xa_decode_t *xap) {}
+// Old Interface
+
+unsigned short CALLBACK nullSPU_getOne(unsigned long val) {
+    if (val > 0x7ffff) return 0;
+    return spumem[val / 2];
+}
+
+void CALLBACK nullSPU_putOne(unsigned long val, unsigned short data) {
+    if (val > 0x7ffff) return;
+    spumem[val / 2] = data;
+}
+
+void CALLBACK nullSPU_setAddr(unsigned char ch, unsigned short waddr) {}
+
+void CALLBACK nullSPU_setPitch(unsigned char ch, unsigned short pitch) {}
+
+void CALLBACK nullSPU_setVolumeL(unsigned char ch, short vol) {}
+
+void CALLBACK nullSPU_setVolumeR(unsigned char ch, short vol) {}
+
+void CALLBACK nullSPU_startChannels1(unsigned short channels) {}
+
+void CALLBACK nullSPU_startChannels2(unsigned short channels) {}
+
+void CALLBACK nullSPU_stopChannels1(unsigned short channels) {}
+
+void CALLBACK nullSPU_stopChannels2(unsigned short channels) {}
+
+long CALLBACK nullSPU_test(void) { return 0; }
+
+long CALLBACK nullSPU_configure(void) { return 0; }
+
+void CALLBACK nullSPU_about(void) {}
+
+long CALLBACK nullSPU_freeze(unsigned long ulFreezeMode, void *pF) {
+#if 0
+	if( ulFreezeMode == 1 )
+	{
+		memcpy(pF->cSPURam, spumem, 512*1024);
+		memcpy(pF->cSPUPort, spureg, 0x200);
+		pF->Addr = spu_sbaddr;
+	}
+	else
+	{
+		memcpy(spumem, pF->cSPURam, 512*1024);
+		memcpy(spureg, pF->cSPUPort, 0x200);
+		spu_sbaddr = pF->Addr;
+	}
+#endif
+    return 1;
+}
+
+void CALLBACK nullSPU_async(u32 length) {}
+
+void(CALLBACK *nullSPU_irqcallback)(void);
+
+void CALLBACK nullSPU_registerCallback(void(CALLBACK *callback)(void)) { nullSPU_irqcallback = callback; }
+
+void CALLBACK nullSPU_writeDMA(unsigned short val) {
+    spumem[spu_sbaddr >> 1] = val;
+    spu_sbaddr += 2;
+    if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
+}
+
+unsigned short CALLBACK nullSPU_readDMA(void) {
+    unsigned short s = spumem[spu_sbaddr >> 1];
+    spu_sbaddr += 2;
+    if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
+    return s;
+}
 
 static int LoadSPUplugin(const char *SPUdll) {
     void *drv;
@@ -472,6 +626,27 @@ static int LoadSPUplugin(const char *SPUdll) {
     LoadSpuSymN(async, "SPUasync");
     LoadSpuSymN(playCDDAchannel, "SPUplayCDDAchannel");
 #endif
+
+#define LoadSpuSym1(s, x) SPU_##s = nullSPU_##s;
+
+    LoadSpuSym1(init, "SPUinit");
+    LoadSpuSym1(shutdown, "SPUshutdown");
+    LoadSpuSym1(open, "SPUopen");
+    LoadSpuSym1(close, "SPUclose");
+    // LoadSpuSym0(configure, "SPUconfigure");
+    // LoadSpuSym0(about, "SPUabout");
+    // LoadSpuSym0(test, "SPUtest");
+    LoadSpuSym1(writeRegister, "SPUwriteRegister");
+    LoadSpuSym1(readRegister, "SPUreadRegister");
+    LoadSpuSym1(writeDMA, "SPUwriteDMA");
+    LoadSpuSym1(readDMA, "SPUreadDMA");
+    LoadSpuSym1(writeDMAMem, "SPUwriteDMAMem");
+    LoadSpuSym1(readDMAMem, "SPUreadDMAMem");
+    LoadSpuSym1(playADPCMchannel, "SPUplayADPCMchannel");
+    LoadSpuSym1(freeze, "SPUfreeze");
+    LoadSpuSym1(registerCallback, "SPUregisterCallback");
+    // LoadSpuSymN(async, "SPUasync");
+    // LoadSpuSymN(playCDDAchannel, "SPUplayCDDAchannel");
 
     return 0;
 }
@@ -580,6 +755,15 @@ void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
     LoadSym(PAD1_##dest, PAD##dest, name, FALSE); \
     if (PAD1_##dest == NULL) PAD1_##dest = (PAD##dest)PAD1__##dest;
 
+long CALLBACK nullPAD_init(long flags) { return 0; }
+void CALLBACK nullPAD_shutdown() {}
+long CALLBACK nullPAD_open(HWND x) { return 0; }
+void CALLBACK nullPAD_close() {}
+long CALLBACK nullPAD_readPort(PadDataS *data) {
+    memset(data, 0, sizeof(PadDataS));
+    return 0;
+}
+
 static int LoadPAD1plugin(const char *PAD1dll) {
     void *drv;
 
@@ -607,6 +791,21 @@ static int LoadPAD1plugin(const char *PAD1dll) {
     LoadPad1Sym0(registerVibration, "PADregisterVibration");
     LoadPad1Sym0(registerCursor, "PADregisterCursor");
 #endif
+
+    PAD1_init = nullPAD_init;
+    PAD1_shutdown = nullPAD_shutdown;
+    PAD1_open = nullPAD_open;
+    PAD1_close = nullPAD_close;
+    PAD1_readPort1 = nullPAD_readPort;
+    PAD1_query = PAD1__query;
+    PAD1_configure = PAD1__configure;
+    PAD1_test = PAD1__test;
+    PAD1_about = PAD1__about;
+    PAD1_keypressed = PAD1__keypressed;
+    PAD1_startPoll = PAD1__startPoll;
+    PAD1_poll = PAD1__poll;
+    PAD1_registerVibration = PAD1__registerVibration;
+    PAD1_registerCursor = PAD1__registerCursor;
 
     return 0;
 }
@@ -664,6 +863,21 @@ static int LoadPAD2plugin(const char *PAD2dll) {
     LoadPad2Sym0(registerVibration, "PADregisterVibration");
     LoadPad2Sym0(registerCursor, "PADregisterCursor");
 #endif
+
+    PAD2_init = nullPAD_init;
+    PAD2_shutdown = nullPAD_shutdown;
+    PAD2_open = nullPAD_open;
+    PAD2_close = nullPAD_close;
+    PAD2_readPort2 = nullPAD_readPort;
+    PAD2_query = PAD2__query;
+    PAD2_configure = PAD2__configure;
+    PAD2_test = PAD2__test;
+    PAD2_about = PAD2__about;
+    PAD2_keypressed = PAD2__keypressed;
+    PAD2_startPoll = PAD2__startPoll;
+    PAD2_poll = PAD2__poll;
+    PAD2_registerVibration = PAD2__registerVibration;
+    PAD2_registerCursor = PAD2__registerCursor;
 
     return 0;
 }
@@ -862,7 +1076,6 @@ int LoadPlugins() {
         SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
-#if BLARGH
     ret = SPU_init();
     if (ret < 0) {
         SysMessage(_("Error initializing SPU plugin: %d"), ret);
@@ -878,7 +1091,6 @@ int LoadPlugins() {
         SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
         return -1;
     }
-#endif
 
     if (Config.UseNet) {
         ret = NET_init();

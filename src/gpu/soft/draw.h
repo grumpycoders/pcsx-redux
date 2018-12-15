@@ -5,6 +5,7 @@
     copyright            : (C) 2001 by Pete Bernert
     email                : BlackDove@addcom.de
  ***************************************************************************/
+
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -15,10 +16,16 @@
  *                                                                         *
  ***************************************************************************/
 
+//*************************************************************************//
+// History of changes:
+//
+// 2001/10/28 - Pete
+// - generic cleanup for the Peops release
+//
+//*************************************************************************//
+
 #ifndef _GPU_DRAW_H_
 #define _GPU_DRAW_H_
-
-#include <windows.h>
 
 void DoBufferSwap(void);
 void DoClearScreenBuffer(void);
@@ -30,14 +37,6 @@ void DestroyPic(void);
 void DisplayPic(void);
 void ShowGpuPic(void);
 void ShowTextGpuPic(void);
-
-typedef struct {
-#define MWM_HINTS_DECORATIONS 2
-    long flags;
-    long functions;
-    long decorations;
-    long input_mode;
-} MotifWmHints;
 
 #ifdef _WIN32
 void MoveScanLineArea(HWND hwnd);

@@ -15,8 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301 USA.
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * In addition, as a special exception, Andrea Mazzoleni
  * gives permission to link the code of this program with
@@ -112,67 +111,67 @@ static __inline unsigned short interp_16_97(unsigned short p1, unsigned short p2
 #define INTERP_32_MASK_1(v) (v & 0xFF00FF)
 #define INTERP_32_MASK_2(v) (v & 0x00FF00)
 
-static __inline unsigned int interp_32_521(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_521(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 5 + INTERP_32_MASK_1(p2) * 2 + INTERP_32_MASK_1(p3) * 1) / 8) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 5 + INTERP_32_MASK_2(p2) * 2 + INTERP_32_MASK_2(p3) * 1) / 8);
 }
 
-static __inline unsigned int interp_32_332(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_332(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 3 + INTERP_32_MASK_1(p2) * 3 + INTERP_32_MASK_1(p3) * 2) / 8) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 3 + INTERP_32_MASK_2(p2) * 3 + INTERP_32_MASK_2(p3) * 2) / 8);
 }
 
-static __inline unsigned int interp_32_211(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_211(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 2 + INTERP_32_MASK_1(p2) + INTERP_32_MASK_1(p3)) / 4) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 2 + INTERP_32_MASK_2(p2) + INTERP_32_MASK_2(p3)) / 4);
 }
 
-static __inline unsigned int interp_32_611(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_611(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 6 + INTERP_32_MASK_1(p2) + INTERP_32_MASK_1(p3)) / 8) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 6 + INTERP_32_MASK_2(p2) + INTERP_32_MASK_2(p3)) / 8);
 }
 
-static __inline unsigned int interp_32_71(unsigned int p1, unsigned int p2) {
+static __inline unsigned long interp_32_71(unsigned long p1, unsigned long p2) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 7 + INTERP_32_MASK_1(p2)) / 8) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 7 + INTERP_32_MASK_2(p2)) / 8);
 }
 
-static __inline unsigned int interp_32_772(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_772(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1(((INTERP_32_MASK_1(p1) + INTERP_32_MASK_1(p2)) * 7 + INTERP_32_MASK_1(p3) * 2) / 16) |
            INTERP_32_MASK_2(((INTERP_32_MASK_2(p1) + INTERP_32_MASK_2(p2)) * 7 + INTERP_32_MASK_2(p3) * 2) / 16);
 }
 
-static __inline unsigned int interp_32_11(unsigned int p1, unsigned int p2) {
+static __inline unsigned long interp_32_11(unsigned long p1, unsigned long p2) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) + INTERP_32_MASK_1(p2)) / 2) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) + INTERP_32_MASK_2(p2)) / 2);
 }
 
-static __inline unsigned int interp_32_31(unsigned int p1, unsigned int p2) {
+static __inline unsigned long interp_32_31(unsigned long p1, unsigned long p2) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 3 + INTERP_32_MASK_1(p2)) / 4) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 3 + INTERP_32_MASK_2(p2)) / 4);
 }
 
-static __inline unsigned int interp_32_1411(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_1411(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 14 + INTERP_32_MASK_1(p2) + INTERP_32_MASK_1(p3)) / 16) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 14 + INTERP_32_MASK_2(p2) + INTERP_32_MASK_2(p3)) / 16);
 }
 
-static __inline unsigned int interp_32_431(unsigned int p1, unsigned int p2, unsigned int p3) {
+static __inline unsigned long interp_32_431(unsigned long p1, unsigned long p2, unsigned long p3) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 4 + INTERP_32_MASK_1(p2) * 3 + INTERP_32_MASK_1(p3)) / 8) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 4 + INTERP_32_MASK_2(p2) * 3 + INTERP_32_MASK_2(p3)) / 8);
 }
 
-static __inline unsigned int interp_32_53(unsigned int p1, unsigned int p2) {
+static __inline unsigned long interp_32_53(unsigned long p1, unsigned long p2) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 5 + INTERP_32_MASK_1(p2) * 3) / 8) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 5 + INTERP_32_MASK_2(p2) * 3) / 8);
 }
 
-static __inline unsigned int interp_32_151(unsigned int p1, unsigned int p2) {
+static __inline unsigned long interp_32_151(unsigned long p1, unsigned long p2) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 15 + INTERP_32_MASK_1(p2)) / 16) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 15 + INTERP_32_MASK_2(p2)) / 16);
 }
 
-static __inline unsigned int interp_32_97(unsigned int p1, unsigned int p2) {
+static __inline unsigned long interp_32_97(unsigned long p1, unsigned long p2) {
     return INTERP_32_MASK_1((INTERP_32_MASK_1(p1) * 9 + INTERP_32_MASK_1(p2) * 7) / 16) |
            INTERP_32_MASK_2((INTERP_32_MASK_2(p1) * 9 + INTERP_32_MASK_2(p2) * 7) / 16);
 }
@@ -184,7 +183,7 @@ static __inline unsigned int interp_32_97(unsigned int p1, unsigned int p2) {
 #define INTERP_U_LIMIT (0x07 * 4)
 #define INTERP_V_LIMIT (0x06 * 8)
 
-__inline static int interp_16_diff(unsigned short p1, unsigned short p2) {
+static int interp_16_diff(unsigned short p1, unsigned short p2) {
     int r, g, b;
     int y, u, v;
 
@@ -213,7 +212,7 @@ __inline static int interp_16_diff(unsigned short p1, unsigned short p2) {
     return 0;
 }
 
-__inline static int interp_32_diff(unsigned int p1, unsigned int p2) {
+static int interp_32_diff(unsigned long p1, unsigned long p2) {
     int r, g, b;
     int y, u, v;
 
@@ -236,7 +235,7 @@ __inline static int interp_32_diff(unsigned int p1, unsigned int p2) {
     return 0;
 }
 
-__inline static void interp_set(unsigned bits_per_pixel) {
+static void interp_set(unsigned bits_per_pixel) {
     interp_bits_per_pixel = bits_per_pixel;
 
     switch (bits_per_pixel) {
