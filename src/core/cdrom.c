@@ -160,48 +160,48 @@ extern SPUregisterCallback SPU_registerCallback;
 // cdrInterrupt
 #define CDR_INT(eCycle)                                      \
     {                                                        \
-        psxRegs.interrupt |= (1 << PSXINT_CDR);              \
-        psxRegs.intCycle[PSXINT_CDR].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_CDR].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_CDR);              \
+        g_psxRegs.intCycle[PSXINT_CDR].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_CDR].sCycle = g_psxRegs.cycle; \
     }
 
 // cdrReadInterrupt
 #define CDREAD_INT(eCycle)                                      \
     {                                                           \
-        psxRegs.interrupt |= (1 << PSXINT_CDREAD);              \
-        psxRegs.intCycle[PSXINT_CDREAD].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_CDREAD].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_CDREAD);              \
+        g_psxRegs.intCycle[PSXINT_CDREAD].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_CDREAD].sCycle = g_psxRegs.cycle; \
     }
 
 // cdrDecodedBufferInterrupt
 #define CDRDBUF_INT(eCycle)                                      \
     {                                                            \
-        psxRegs.interrupt |= (1 << PSXINT_CDRDBUF);              \
-        psxRegs.intCycle[PSXINT_CDRDBUF].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_CDRDBUF].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_CDRDBUF);              \
+        g_psxRegs.intCycle[PSXINT_CDRDBUF].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_CDRDBUF].sCycle = g_psxRegs.cycle; \
     }
 
 // cdrLidSeekInterrupt
 #define CDRLID_INT(eCycle)                                      \
     {                                                           \
-        psxRegs.interrupt |= (1 << PSXINT_CDRLID);              \
-        psxRegs.intCycle[PSXINT_CDRLID].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_CDRLID].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_CDRLID);              \
+        g_psxRegs.intCycle[PSXINT_CDRLID].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_CDRLID].sCycle = g_psxRegs.cycle; \
     }
 
 // cdrPlayInterrupt
 #define CDRMISC_INT(eCycle)                                      \
     {                                                            \
-        psxRegs.interrupt |= (1 << PSXINT_CDRPLAY);              \
-        psxRegs.intCycle[PSXINT_CDRPLAY].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_CDRPLAY].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_CDRPLAY);              \
+        g_psxRegs.intCycle[PSXINT_CDRPLAY].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_CDRPLAY].sCycle = g_psxRegs.cycle; \
     }
 
 #define StopReading()                                   \
     {                                                   \
         if (cdr.Reading) {                              \
             cdr.Reading = 0;                            \
-            psxRegs.interrupt &= ~(1 << PSXINT_CDREAD); \
+            g_psxRegs.interrupt &= ~(1 << PSXINT_CDREAD); \
         }                                               \
         cdr.StatP &= ~(STATUS_READ | STATUS_SEEK);      \
     }
@@ -597,7 +597,7 @@ void cdrInterrupt() {
 
     if (cdr.IrqRepeated) {
         cdr.IrqRepeated = 0;
-        if (cdr.eCycle > psxRegs.cycle) {
+        if (cdr.eCycle > g_psxRegs.cycle) {
             CDR_INT(cdr.eCycle);
             goto finish;
         }

@@ -24,13 +24,13 @@
 #include "psxhle.h"
 
 static void hleDummy() {
-    psxRegs.pc = psxRegs.GPR.n.ra;
+    g_psxRegs.pc = g_psxRegs.GPR.n.ra;
 
     psxBranchTest();
 }
 
 static void hleA0() {
-    u32 call = psxRegs.GPR.n.t1 & 0xff;
+    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
 
     if (biosA0[call]) biosA0[call]();
 
@@ -38,7 +38,7 @@ static void hleA0() {
 }
 
 static void hleB0() {
-    u32 call = psxRegs.GPR.n.t1 & 0xff;
+    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
 
     if (biosB0[call]) biosB0[call]();
 
@@ -46,7 +46,7 @@ static void hleB0() {
 }
 
 static void hleC0() {
-    u32 call = psxRegs.GPR.n.t1 & 0xff;
+    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
 
     if (biosC0[call]) biosC0[call]();
 
@@ -57,8 +57,8 @@ static void hleBootstrap() {  // 0xbfc00000
     SysPrintf("hleBootstrap\n");
     CheckCdrom();
     LoadCdrom();
-    SysPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", CdromLabel, (unsigned int)psxRegs.pc,
-              (unsigned int)psxRegs.GPR.n.sp);
+    SysPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", CdromLabel, (unsigned int)g_psxRegs.pc,
+              (unsigned int)g_psxRegs.GPR.n.sp);
 }
 
 typedef struct {
@@ -76,18 +76,18 @@ typedef struct {
 } EXEC;
 
 static void hleExecRet() {
-    EXEC *header = (EXEC *)PSXM(psxRegs.GPR.n.s0);
+    EXEC *header = (EXEC *)PSXM(g_psxRegs.GPR.n.s0);
 
-    SysPrintf("ExecRet %x: %x\n", psxRegs.GPR.n.s0, header->ret);
+    SysPrintf("ExecRet %x: %x\n", g_psxRegs.GPR.n.s0, header->ret);
 
-    psxRegs.GPR.n.ra = header->ret;
-    psxRegs.GPR.n.sp = header->_sp;
-    psxRegs.GPR.n.s8 = header->_fp;
-    psxRegs.GPR.n.gp = header->_gp;
-    psxRegs.GPR.n.s0 = header->base;
+    g_psxRegs.GPR.n.ra = header->ret;
+    g_psxRegs.GPR.n.sp = header->_sp;
+    g_psxRegs.GPR.n.s8 = header->_fp;
+    g_psxRegs.GPR.n.gp = header->_gp;
+    g_psxRegs.GPR.n.s0 = header->base;
 
-    psxRegs.GPR.n.v0 = 1;
-    psxRegs.pc = psxRegs.GPR.n.ra;
+    g_psxRegs.GPR.n.v0 = 1;
+    g_psxRegs.pc = g_psxRegs.GPR.n.ra;
 }
 
 void (*psxHLEt[256])() = {hleDummy, hleA0, hleB0, hleC0, hleBootstrap, hleExecRet, hleDummy, hleDummy};

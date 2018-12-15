@@ -31,7 +31,7 @@ extern "C" {
     void gte##f();                                        \
     static void rec##f() {                                \
         iFlushRegs();                                     \
-        MOV32ItoM((u32)&psxRegs.code, (u32)psxRegs.code); \
+        MOV32ItoM((u32)&g_psxRegs.code, (u32)g_psxRegs.code); \
         CALLFunc((u32)gte##f);                            \
         /*	branch = 2; */                                 \
     }

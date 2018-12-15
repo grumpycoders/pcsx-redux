@@ -102,26 +102,26 @@ void PGXP_pushSXYZ2s(s64 _x, s64 _y, s64 _z, u32 v) {
     if (Config.PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
 }
 
-#define VX(n) (psxRegs.CP2D.p[n << 1].sw.l)
-#define VY(n) (psxRegs.CP2D.p[n << 1].sw.h)
-#define VZ(n) (psxRegs.CP2D.p[(n << 1) + 1].sw.l)
+#define VX(n) (g_psxRegs.CP2D.p[n << 1].sw.l)
+#define VY(n) (g_psxRegs.CP2D.p[n << 1].sw.h)
+#define VZ(n) (g_psxRegs.CP2D.p[(n << 1) + 1].sw.l)
 
 void PGXP_RTPS(u32 _n, u32 _v) {
     // Transform
-    float TRX = (s64)psxRegs.CP2C.p[5].sd;
-    float TRY = (s64)psxRegs.CP2C.p[6].sd;
-    float TRZ = (s64)psxRegs.CP2C.p[7].sd;
+    float TRX = (s64)g_psxRegs.CP2C.p[5].sd;
+    float TRY = (s64)g_psxRegs.CP2C.p[6].sd;
+    float TRZ = (s64)g_psxRegs.CP2C.p[7].sd;
 
     // Rotation with 12-bit shift
-    float R11 = (float)psxRegs.CP2C.p[0].sw.l / (float)(1 << 12);
-    float R12 = (float)psxRegs.CP2C.p[0].sw.h / (float)(1 << 12);
-    float R13 = (float)psxRegs.CP2C.p[1].sw.l / (float)(1 << 12);
-    float R21 = (float)psxRegs.CP2C.p[1].sw.h / (float)(1 << 12);
-    float R22 = (float)psxRegs.CP2C.p[2].sw.l / (float)(1 << 12);
-    float R23 = (float)psxRegs.CP2C.p[2].sw.h / (float)(1 << 12);
-    float R31 = (float)psxRegs.CP2C.p[3].sw.l / (float)(1 << 12);
-    float R32 = (float)psxRegs.CP2C.p[3].sw.h / (float)(1 << 12);
-    float R33 = (float)psxRegs.CP2C.p[4].sw.l / (float)(1 << 12);
+    float R11 = (float)g_psxRegs.CP2C.p[0].sw.l / (float)(1 << 12);
+    float R12 = (float)g_psxRegs.CP2C.p[0].sw.h / (float)(1 << 12);
+    float R13 = (float)g_psxRegs.CP2C.p[1].sw.l / (float)(1 << 12);
+    float R21 = (float)g_psxRegs.CP2C.p[1].sw.h / (float)(1 << 12);
+    float R22 = (float)g_psxRegs.CP2C.p[2].sw.l / (float)(1 << 12);
+    float R23 = (float)g_psxRegs.CP2C.p[2].sw.h / (float)(1 << 12);
+    float R31 = (float)g_psxRegs.CP2C.p[3].sw.l / (float)(1 << 12);
+    float R32 = (float)g_psxRegs.CP2C.p[3].sw.h / (float)(1 << 12);
+    float R33 = (float)g_psxRegs.CP2C.p[4].sw.l / (float)(1 << 12);
 
     // Bring vertex into view space
     float MAC1 = TRX + (R11 * VX(_n)) + (R12 * VY(_n)) + (R13 * VZ(_n));
@@ -132,14 +132,14 @@ void PGXP_RTPS(u32 _n, u32 _v) {
     float IR2 = max(min(MAC2, 0x7fff), -0x8000);
     float IR3 = max(min(MAC3, 0x7fff), -0x8000);
 
-    float H = psxRegs.CP2C.p[26].sw.l;           // Near plane
+    float H = g_psxRegs.CP2C.p[26].sw.l;           // Near plane
     float F = 0xFFFF;                            // Far plane?
     float SZ3 = max(min(MAC3, 0xffff), 0x0000);  // Clamp SZ3 to near plane because we have no clipping (no proper Z)
     //	float h_over_sz3 = H / SZ3;
 
     // Offsets with 16-bit shift
-    float OFX = (float)psxRegs.CP2C.p[24].sd / (float)(1 << 16);
-    float OFY = (float)psxRegs.CP2C.p[25].sd / (float)(1 << 16);
+    float OFX = (float)g_psxRegs.CP2C.p[24].sd / (float)(1 << 16);
+    float OFY = (float)g_psxRegs.CP2C.p[25].sd / (float)(1 << 16);
 
     float h_over_w = min(H / SZ3, (float)0x1ffff / (float)0xffff);
     h_over_w = (SZ3 == 0) ? ((float)0x1ffff / (float)0xffff) : h_over_w;
@@ -263,7 +263,7 @@ void MFC2(int reg) {
 
         case 28:
         case 29:
-            //	psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7,
+            //	g_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7,
             // 0x1f, 0, 0) << 10);
             break;
     }

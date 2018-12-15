@@ -112,7 +112,7 @@ static inline void _psxRcntWcount(u32 index, u32 value) {
         value &= 0xffff;
     }
 
-    rcnts[index].cycleStart = psxRegs.cycle;
+    rcnts[index].cycleStart = g_psxRegs.cycle;
     rcnts[index].cycleStart -= value * rcnts[index].rate;
 
     // TODO: <=.
@@ -129,7 +129,7 @@ static inline void _psxRcntWcount(u32 index, u32 value) {
 static inline u32 _psxRcntRcount(u32 index) {
     u32 count;
 
-    count = psxRegs.cycle;
+    count = g_psxRegs.cycle;
     count -= rcnts[index].cycleStart;
     count /= rcnts[index].rate;
 
@@ -147,7 +147,7 @@ static void psxRcntSet() {
     s32 countToUpdate;
     u32 i;
 
-    psxNextsCounter = psxRegs.cycle;
+    psxNextsCounter = g_psxRegs.cycle;
     psxNextCounter = 0x7fffffff;
 
     for (i = 0; i < CounterQuantity; ++i) {
@@ -171,7 +171,7 @@ static void psxRcntReset(u32 index) {
 
     if (rcnts[index].counterState == CountToTarget) {
         if (rcnts[index].mode & RcCountToTarget) {
-            count = psxRegs.cycle;
+            count = g_psxRegs.cycle;
             count -= rcnts[index].cycleStart;
             count /= rcnts[index].rate;
             count -= rcnts[index].target;
@@ -191,7 +191,7 @@ static void psxRcntReset(u32 index) {
 
         rcnts[index].mode |= RcCountEqTarget;
     } else if (rcnts[index].counterState == CountToOverflow) {
-        count = psxRegs.cycle;
+        count = g_psxRegs.cycle;
         count -= rcnts[index].cycleStart;
         count /= rcnts[index].rate;
         count -= 0xffff;
@@ -217,7 +217,7 @@ static void psxRcntReset(u32 index) {
 void psxRcntUpdate() {
     u32 cycle;
 
-    cycle = psxRegs.cycle;
+    cycle = g_psxRegs.cycle;
 
     // rcnt 0.
     if (cycle - rcnts[0].cycleStart >= rcnts[0].cycle) {
@@ -375,8 +375,8 @@ u32 psxRcntRcount(u32 index) {
         static u32 cylast = 0;
         u32 count1 = count;
         count /= BIAS;
-        verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (psxRegs.cycle - cylast));
-        cylast = psxRegs.cycle;
+        verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (g_psxRegs.cycle - cylast));
+        cylast = g_psxRegs.cycle;
         clast = count;
     }
 

@@ -158,7 +158,7 @@ int LoadCdrom() {
     s8 exename[256];
 
     if (!Config.HLE) {
-        if (!Config.SlowBoot) psxRegs.pc = psxRegs.GPR.n.ra;
+        if (!Config.SlowBoot) g_psxRegs.pc = g_psxRegs.GPR.n.ra;
         return 0;
     }
 
@@ -210,10 +210,10 @@ int LoadCdrom() {
 
     memcpy(&tmpHead, buf + 12, sizeof(EXE_HEADER));
 
-    psxRegs.pc = SWAP32(tmpHead.pc0);
-    psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
-    psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
-    if (psxRegs.GPR.n.sp == 0) psxRegs.GPR.n.sp = 0x801fff00;
+    g_psxRegs.pc = SWAP32(tmpHead.pc0);
+    g_psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
+    g_psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
+    if (g_psxRegs.GPR.n.sp == 0) g_psxRegs.GPR.n.sp = 0x801fff00;
 
     tmpHead.t_size = SWAP32(tmpHead.t_size);
     tmpHead.t_addr = SWAP32(tmpHead.t_addr);
@@ -274,7 +274,7 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
 #ifdef PSXREC
     psxCpu->Clear(addr, size / 4);
 #endif
-    psxRegs.ICache_valid = FALSE;
+    g_psxRegs.ICache_valid = FALSE;
 
     while (size) {
         incTime();
@@ -471,10 +471,10 @@ int Load(const char *ExePath) {
                 fseek(tmpFile, 0x800, SEEK_SET);
                 fread(PSXM(SWAP32(tmpHead.t_addr)), SWAP32(tmpHead.t_size), 1, tmpFile);
                 fclose(tmpFile);
-                psxRegs.pc = SWAP32(tmpHead.pc0);
-                psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
-                psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
-                if (psxRegs.GPR.n.sp == 0) psxRegs.GPR.n.sp = 0x801fff00;
+                g_psxRegs.pc = SWAP32(tmpHead.pc0);
+                g_psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
+                g_psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
+                if (g_psxRegs.GPR.n.sp == 0) g_psxRegs.GPR.n.sp = 0x801fff00;
                 retval = 0;
                 break;
 
@@ -496,8 +496,8 @@ int Load(const char *ExePath) {
                             break;
                         case 3:                          /* register loading (PC only?) */
                             fseek(tmpFile, 2, SEEK_CUR); /* unknown field */
-                            fread(&psxRegs.pc, 4, 1, tmpFile);
-                            psxRegs.pc = SWAPu32(psxRegs.pc);
+                            fread(&g_psxRegs.pc, 4, 1, tmpFile);
+                            g_psxRegs.pc = SWAPu32(g_psxRegs.pc);
                             break;
                         case 0: /* End of file */
                             break;
@@ -513,8 +513,8 @@ int Load(const char *ExePath) {
                 fread(&coffHead, sizeof(coffHead), 1, tmpFile);
                 fread(&optHead, sizeof(optHead), 1, tmpFile);
 
-                psxRegs.pc = SWAP32(optHead.entry);
-                psxRegs.GPR.n.sp = 0x801fff00;
+                g_psxRegs.pc = SWAP32(optHead.entry);
+                g_psxRegs.GPR.n.sp = 0x801fff00;
 
                 for (i = 0; i < SWAP16(coffHead.f_nscns); i++) {
                     fseek(tmpFile, sizeof(FILHDR) + SWAP16(coffHead.f_opthdr) + sizeof(section) * i, SEEK_SET);
@@ -713,7 +713,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     gzwrite(f, psxM, 0x00200000);
     gzwrite(f, psxR, 0x00080000);
     gzwrite(f, psxH, 0x00010000);
-    gzwrite(f, (void *)&psxRegs, sizeof(psxRegs));
+    gzwrite(f, (void *)&g_psxRegs, sizeof(g_psxRegs));
 
     // gpu
     if (!gpufP) gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
@@ -780,7 +780,7 @@ int LoadStateGz(gzFile f) {
     gzread(f, psxM, 0x00200000);
     gzread(f, psxR, 0x00080000);
     gzread(f, psxH, 0x00010000);
-    gzread(f, (void *)&psxRegs, sizeof(psxRegs));
+    gzread(f, (void *)&g_psxRegs, sizeof(g_psxRegs));
 
     if (Config.HLE) psxBiosFreeze(0);
 

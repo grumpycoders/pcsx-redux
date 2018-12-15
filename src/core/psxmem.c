@@ -163,7 +163,7 @@ u8 psxMemRead8(u32 mem) {
     u32 t;
 
     if (!Config.MemHack) {
-        psxRegs.cycle += 0;
+        g_psxRegs.cycle += 0;
     }
 
     t = mem >> 16;
@@ -191,7 +191,7 @@ u16 psxMemRead16(u32 mem) {
     u32 t;
 
     if (!Config.MemHack) {
-        psxRegs.cycle += 1;
+        g_psxRegs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -219,7 +219,7 @@ u32 psxMemRead32(u32 mem) {
     u32 t;
 
     if (!Config.MemHack) {
-        psxRegs.cycle += 1;
+        g_psxRegs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -249,7 +249,7 @@ void psxMemWrite8(u32 mem, u8 value) {
     u32 t;
 
     if (!Config.MemHack) {
-        psxRegs.cycle += 1;
+        g_psxRegs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -279,7 +279,7 @@ void psxMemWrite16(u32 mem, u16 value) {
     u32 t;
 
     if (!Config.MemHack) {
-        psxRegs.cycle += 1;
+        g_psxRegs.cycle += 1;
     }
 
     t = mem >> 16;
@@ -309,7 +309,7 @@ void psxMemWrite32(u32 mem, u32 value) {
     u32 t;
 
     if (!Config.MemHack) {
-        psxRegs.cycle += 1;
+        g_psxRegs.cycle += 1;
     }
 
     //	if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) SysPrintf("t2fix!!\n");
@@ -351,7 +351,7 @@ void psxMemWrite32(u32 mem, u32 value) {
                         memset(psxMemWLUT + 0x8000, 0, 0x80 * sizeof(void *));
                         memset(psxMemWLUT + 0xa000, 0, 0x80 * sizeof(void *));
 
-                        psxRegs.ICache_valid = FALSE;
+                        g_psxRegs.ICache_valid = FALSE;
                         break;
                     case 0x00:
                     case 0x1e988:
