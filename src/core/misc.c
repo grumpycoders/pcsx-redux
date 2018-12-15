@@ -864,7 +864,7 @@ int RecvPcsxInfo() {
         if (Config.Cpu == CPU_INTERPRETER)
             psxCpu = &psxInt;
         else
-            psxCpu = &psxRec;
+            psxCpu = &g_psxRec;
 #else
         psxCpu = &psxInt;
 #endif

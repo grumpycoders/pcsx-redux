@@ -3399,6 +3399,6 @@ static void recSetPGXPMode(u32 pgxpMode) {
     recReset();
 }
 
-R3000Acpu psxRec = {recInit, recReset, recExecute, recExecuteBlock, recClear, recShutdown, recSetPGXPMode};
+R3000Acpu g_psxRec = {recInit, recReset, recExecute, recExecuteBlock, recClear, recShutdown, recSetPGXPMode};
 
 #endif
