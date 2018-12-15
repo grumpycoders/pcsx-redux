@@ -29,7 +29,7 @@
 #include "psxhle.h"
 #include "r3000a.h"
 
-static int branch = 0;
+static int s_branch = 0;
 static int branch2 = 0;
 static u32 branchPC;
 
@@ -114,7 +114,7 @@ static void delayRead(int reg, u32 bpc) {
 
     psxRegs.pc = bpc;
 
-    branch = 0;
+    s_branch = 0;
 
     psxRegs.GPR.r[reg] = rold;
     execI();  // first branch opcode
@@ -133,7 +133,7 @@ static void delayWrite(int reg, u32 bpc) {
 
     pPsxBSC[psxRegs.code >> 26]();
 
-    branch = 0;
+    s_branch = 0;
     psxRegs.pc = bpc;
 
     psxBranchTest();
@@ -144,7 +144,7 @@ static void delayReadWrite(int reg, u32 bpc) {
 
     // the branch delay load is skipped
 
-    branch = 0;
+    s_branch = 0;
     psxRegs.pc = bpc;
 
     psxBranchTest();
@@ -370,7 +370,7 @@ void psxDelayTest(int reg, u32 bpc) {
     code = Read_ICache(bpc, TRUE);
 
     tmp = ((code == NULL) ? 0 : SWAP32(*code));
-    branch = 1;
+    s_branch = 1;
 
     switch (psxTestLoadDelay(reg, tmp)) {
         case 1:
@@ -385,7 +385,7 @@ void psxDelayTest(int reg, u32 bpc) {
     }
     pPsxBSC[psxRegs.code >> 26]();
 
-    branch = 0;
+    s_branch = 0;
     psxRegs.pc = bpc;
 
     psxBranchTest();
@@ -457,7 +457,7 @@ static u32 psxBranchNoDelay(void) {
 static int psxDelayBranchExec(u32 tar) {
     execI();
 
-    branch = 0;
+    s_branch = 0;
     psxRegs.pc = tar;
     psxRegs.cycle += BIAS;
     psxBranchTest();
@@ -512,7 +512,7 @@ static __inline void doBranch(u32 tar) {
     u32 *code;
     u32 tmp;
 
-    branch2 = branch = 1;
+    branch2 = s_branch = 1;
     branchPC = tar;
 
     // notaz: check for branch in delay slot
@@ -564,7 +564,7 @@ static __inline void doBranch(u32 tar) {
 
     pPsxBSC[psxRegs.code >> 26]();
 
-    branch = 0;
+    s_branch = 0;
     psxRegs.pc = branchPC;
 
     psxBranchTest();
@@ -785,7 +785,7 @@ void psxBREAK() {
 
 void psxSYSCALL() {
     psxRegs.pc -= 4;
-    psxException(0x20, branch);
+    psxException(0x20, s_branch);
 }
 
 void psxRFE() {
@@ -839,7 +839,7 @@ void psxJALR() {
 
 void psxLB() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -856,7 +856,7 @@ void psxLB() {
 
 void psxLBU() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -873,7 +873,7 @@ void psxLBU() {
 
 void psxLH() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -890,7 +890,7 @@ void psxLH() {
 
 void psxLHU() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -907,7 +907,7 @@ void psxLHU() {
 
 void psxLW() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -931,7 +931,7 @@ void psxLWL() {
     u32 mem = psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -961,7 +961,7 @@ void psxLWR() {
     u32 mem = psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -1031,7 +1031,7 @@ void psxSWR() {
  *********************************************************/
 void psxMFC0() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -1046,7 +1046,7 @@ void psxMFC0() {
 
 void psxCFC0() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -1063,7 +1063,7 @@ void psxTestSWInts() {
     // the next code is untested, if u know please
     // tell me if it works ok or not (linuzappz)
     if (psxRegs.CP0.n.Cause & psxRegs.CP0.n.Status & 0x0300 && psxRegs.CP0.n.Status & 0x1) {
-        psxException(psxRegs.CP0.n.Cause, branch);
+        psxException(psxRegs.CP0.n.Cause, s_branch);
     }
 }
 
@@ -1091,7 +1091,7 @@ void psxCTC0() { MTC0(_Rd_, _u32(_rRt_)); }
 
 void psxMFC2() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
@@ -1104,7 +1104,7 @@ void psxMFC2() {
 
 void psxCFC2() {
     // load delay = 1 latency
-    if (branch == 0) {
+    if (s_branch == 0) {
         // simulate: beq r0,r0,lw+4 / lw / (delay slot)
         psxRegs.pc -= 4;
         doBranch(psxRegs.pc + 4);
