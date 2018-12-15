@@ -23,32 +23,32 @@
  *           alexey silinov
  */
 
-#ifdef __i386__
+#if defined(__i386__) || defined(_M_IX86)
 
 #include "ix86.h"
 
-s8* x86Ptr;
-u8* j8Ptr[32];
-u32* j32Ptr[32];
+s8* g_x86Ptr;
+u8* g_j8Ptr[32];
+u32* g_j32Ptr[32];
 
 void x86Init() {}
 
-void x86SetPtr(char* ptr) { x86Ptr = ptr; }
+void x86SetPtr(char* ptr) { g_x86Ptr = ptr; }
 
 void x86Shutdown() {}
 
 void x86SetJ8(u8* j8) {
-    u32 jump = (x86Ptr - (s8*)j8) - 1;
+    u32 jump = (g_x86Ptr - (s8*)j8) - 1;
 
     if (jump > 0x7f) printf("j8 greater than 0x7f!!\n");
     *j8 = (u8)jump;
 }
 
-void x86SetJ32(u32* j32) { *j32 = (x86Ptr - (s8*)j32) - 4; }
+void x86SetJ32(u32* j32) { *j32 = (g_x86Ptr - (s8*)j32) - 4; }
 
 void x86Align(int bytes) {
     // fordward align
-    x86Ptr = (s8*)(((u32)x86Ptr + bytes) & ~(bytes - 1));
+    g_x86Ptr = (s8*)(((u32)g_x86Ptr + bytes) & ~(bytes - 1));
 }
 
 #define SIB 4
@@ -71,7 +71,7 @@ void x86Align(int bytes) {
     {                      \
         write8(cc);        \
         write8(to);        \
-        return x86Ptr - 1; \
+        return g_x86Ptr - 1; \
     }
 
 #define J32Rel(cc, to)             \
@@ -79,7 +79,7 @@ void x86Align(int bytes) {
         write8(0x0F);              \
         write8(cc);                \
         write32(to);               \
-        return (u32*)(x86Ptr - 4); \
+        return (u32*)(g_x86Ptr - 4); \
     }
 
 #define CMOV32RtoR(cc, to, from) \
@@ -688,14 +688,14 @@ void NEG32R(int from) {
 u8* JMP8(u8 to) {
     write8(0xEB);
     write8(to);
-    return x86Ptr - 1;
+    return g_x86Ptr - 1;
 }
 
 /* jmp rel32 */
 u32* JMP32(u32 to) {
     write8(0xE9);
     write32(to);
-    return (u32*)(x86Ptr - 4);
+    return (u32*)(g_x86Ptr - 4);
 }
 
 /* jmp r32 */
@@ -789,7 +789,7 @@ u32* JO32(u32 to) { J32Rel(0x80, to); }
 u32* JNO32(u32 to) { J32Rel(0x81, to); }
 
 /* call func */
-void CALLFunc(u32 func) { CALL32(func - ((u32)x86Ptr + 5)); }
+void CALLFunc(u32 func) { CALL32(func - ((u32)g_x86Ptr + 5)); }
 
 /* call rel32 */
 void CALL32(u32 to) {
@@ -1223,7 +1223,7 @@ void PSUBDRtoR(int to, int from) {
 // changed:basara
 // P.s.It's sux.Don't use it offten.
 void MOVQ64ItoR(int reg, u64 i) {
-    MOVQMtoR(reg, (u32)(x86Ptr) + 2 + 7);
+    MOVQMtoR(reg, (u32)(g_x86Ptr) + 2 + 7);
     JMP8(8);
     write64(i);
 }

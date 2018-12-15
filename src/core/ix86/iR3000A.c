@@ -241,16 +241,16 @@ static void iJump(u32 branchPC) {
 
     // maybe just happened an interruption, check so
     CMP32ItoM((u32)&g_psxRegs.pc, branchPC);
-    j8Ptr[0] = JE8(0);
+    g_j8Ptr[0] = JE8(0);
     RET();
 
-    x86SetJ8(j8Ptr[0]);
+    x86SetJ8(g_j8Ptr[0]);
     MOV32MtoR(EAX, PC_REC(branchPC));
     TEST32RtoR(EAX, EAX);
-    j8Ptr[1] = JNE8(0);
+    g_j8Ptr[1] = JNE8(0);
     RET();
 
-    x86SetJ8(j8Ptr[1]);
+    x86SetJ8(g_j8Ptr[1]);
     RET();
     JMP32R(EAX);
 }
@@ -297,16 +297,16 @@ static void iBranch(u32 branchPC, int savectx) {
 
     // maybe just happened an interruption, check so
     CMP32ItoM((u32)&g_psxRegs.pc, branchPC);
-    j8Ptr[1] = JE8(0);
+    g_j8Ptr[1] = JE8(0);
     RET();
 
-    x86SetJ8(j8Ptr[1]);
+    x86SetJ8(g_j8Ptr[1]);
     MOV32MtoR(EAX, PC_REC(branchPC));
     TEST32RtoR(EAX, EAX);
-    j8Ptr[2] = JNE8(0);
+    g_j8Ptr[2] = JNE8(0);
     RET();
 
-    x86SetJ8(j8Ptr[2]);
+    x86SetJ8(g_j8Ptr[2]);
     JMP32R(EAX);
 
     s_pc -= 4;
@@ -370,7 +370,7 @@ void iDumpBlock(char *ptr) {
 
     fflush(stdout);
     f = fopen("dump1", "w");
-    fwrite(ptr, 1, (u32)x86Ptr - (u32)ptr, f);
+    fwrite(ptr, 1, (u32)g_x86Ptr - (u32)ptr, f);
     fclose(f);
     system("ndisasmw -u dump1");
     fflush(stdout);
@@ -535,11 +535,11 @@ static void recCOP0() { s_pRecCP0[_Rs_](); }
 static void recCOP2() {
     MOV32MtoR(EAX, (u32)&g_psxRegs.CP0.n.Status);
     AND32ItoR(EAX, 0x40000000);
-    j8Ptr[31] = JZ8(0);
+    g_j8Ptr[31] = JZ8(0);
 
     s_pRecCP2[_Funct_]();
 
-    x86SetJ8(j8Ptr[31]);
+    x86SetJ8(g_j8Ptr[31]);
 }
 
 static void recBASIC() { s_pRecCP2BSC[_Rs_](); }
@@ -1179,7 +1179,7 @@ static void recDIV() {
     } else {
         MOV32MtoR(ECX, (u32)&g_psxRegs.GPR.r[_Rt_]);
         CMP32ItoR(ECX, 0);
-        j8Ptr[0] = JE8(0);
+        g_j8Ptr[0] = JE8(0);
     }
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);  // printf("divrsk %x\n", s_iRegs[_Rs_].k);
@@ -1192,9 +1192,9 @@ static void recDIV() {
     MOV32RtoM((u32)&g_psxRegs.GPR.n.hi, EDX);
 
     if (!IsConst(_Rt_)) {
-        j8Ptr[1] = JMP8(1);
+        g_j8Ptr[1] = JMP8(1);
 
-        x86SetJ8(j8Ptr[0]);
+        x86SetJ8(g_j8Ptr[0]);
 
         MOV32ItoM((u32)&g_psxRegs.GPR.n.lo, 0xffffffff);
         if (IsConst(_Rs_)) {
@@ -1204,7 +1204,7 @@ static void recDIV() {
             MOV32RtoM((u32)&g_psxRegs.GPR.n.hi, EAX);
         }
 
-        x86SetJ8(j8Ptr[1]);
+        x86SetJ8(g_j8Ptr[1]);
     }
 }
 
@@ -1228,7 +1228,7 @@ static void recDIVU() {
     } else {
         MOV32MtoR(ECX, (u32)&g_psxRegs.GPR.r[_Rt_]);
         CMP32ItoR(ECX, 0);
-        j8Ptr[0] = JE8(0);
+        g_j8Ptr[0] = JE8(0);
     }
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);  // printf("divursk %x\n", s_iRegs[_Rs_].k);
@@ -1241,9 +1241,9 @@ static void recDIVU() {
     MOV32RtoM((u32)&g_psxRegs.GPR.n.hi, EDX);
 
     if (!IsConst(_Rt_)) {
-        j8Ptr[1] = JMP8(1);
+        g_j8Ptr[1] = JMP8(1);
 
-        x86SetJ8(j8Ptr[0]);
+        x86SetJ8(g_j8Ptr[0]);
 
         MOV32ItoM((u32)&g_psxRegs.GPR.n.lo, 0xffffffff);
         if (IsConst(_Rs_)) {
@@ -1253,7 +1253,7 @@ static void recDIVU() {
             MOV32RtoM((u32)&g_psxRegs.GPR.n.hi, EAX);
         }
 
-        x86SetJ8(j8Ptr[1]);
+        x86SetJ8(g_j8Ptr[1]);
     }
 }
 //#endif
@@ -1751,7 +1751,7 @@ static void recLWBlock(int count) {
 
 	respsave = s_resp; s_resp = 0;
 	TEST32RtoR(EAX, EAX);
-	j32Ptr[4] = JZ32(0);
+	g_j32Ptr[4] = JZ32(0);
 	XOR32RtoR(ECX, ECX);
 	for (i = 0; i < count; i++, code++) {
 		if (_fRt_(*code)) {
@@ -1763,14 +1763,14 @@ static void recLWBlock(int count) {
 		if (i != (count - 1))
 			INC32R(ECX);
 	}
-	j32Ptr[5] = JMP32(0);
-	x86SetJ32(j32Ptr[4]);
+	g_j32Ptr[5] = JMP32(0);
+	x86SetJ32(g_j32Ptr[4]);
 	for (i = 0, code = (u32 *)PSXM(pc); i < count; i++, code++) {
 		g_psxRegs.code = *code;
 		recLW();
 	}
 	ADD32ItoR(ESP, s_resp);
-	x86SetJ32(j32Ptr[5]);
+	x86SetJ32(g_j32Ptr[5]);
 	s_resp = respsave;
 }
 #endif
@@ -2108,7 +2108,7 @@ static void recSWBlock(int count) {
 	respsave = s_resp;
 	s_resp = 0;
 	TEST32RtoR(EAX, EAX);
-	j32Ptr[4] = JZ32(0);
+	g_j32Ptr[4] = JZ32(0);
 	XOR32RtoR(ECX, ECX);
 	for (i = 0, code = (u32 *)PSXM(pc); i < count; i++, code++) {
 		if (IsConst(_fRt_(*code))) {
@@ -2120,14 +2120,14 @@ static void recSWBlock(int count) {
 		if (i != (count - 1))
 			INC32R(ECX);
 	}
-	j32Ptr[5] = JMP32(0);
-	x86SetJ32(j32Ptr[4]);
+	g_j32Ptr[5] = JMP32(0);
+	x86SetJ32(g_j32Ptr[4]);
 	for (i = 0, code = (u32 *)PSXM(pc); i < count; i++, code++) {
 		g_psxRegs.code = *code;
 		recSW();
 	}
 	ADD32ItoR(ESP, s_resp);
-	x86SetJ32(j32Ptr[5]);
+	x86SetJ32(g_j32Ptr[5]);
 	s_resp = respsave;
 }
 #endif
@@ -2559,11 +2559,11 @@ static void recBLTZ() {
     }
 
     CMP32ItoM((u32)&g_psxRegs.GPR.r[_Rs_], 0);
-    j32Ptr[4] = JL32(0);
+    g_j32Ptr[4] = JL32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     iBranch(bpc, 0);
     s_pc += 4;
@@ -2589,11 +2589,11 @@ static void recBGTZ() {
     }
 
     CMP32ItoM((u32)&g_psxRegs.GPR.r[_Rs_], 0);
-    j32Ptr[4] = JG32(0);
+    g_j32Ptr[4] = JG32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     iBranch(bpc, 0);
     s_pc += 4;
@@ -2620,11 +2620,11 @@ static void recBLTZAL() {
     }
 
     CMP32ItoM((u32)&g_psxRegs.GPR.r[_Rs_], 0);
-    j32Ptr[4] = JL32(0);
+    g_j32Ptr[4] = JL32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     MOV32ItoM((u32)&g_psxRegs.GPR.r[31], s_pc + 4);
     iBranch(bpc, 0);
@@ -2652,11 +2652,11 @@ static void recBGEZAL() {
     }
 
     CMP32ItoM((u32)&g_psxRegs.GPR.r[_Rs_], 0);
-    j32Ptr[4] = JGE32(0);
+    g_j32Ptr[4] = JGE32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     MOV32ItoM((u32)&g_psxRegs.GPR.r[31], s_pc + 4);
     iBranch(bpc, 0);
@@ -2736,11 +2736,11 @@ static void recBEQ() {
             CMP32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
         }
 
-        j32Ptr[4] = JE32(0);
+        g_j32Ptr[4] = JE32(0);
 
         iBranch(s_pc + 4, 1);
 
-        x86SetJ32(j32Ptr[4]);
+        x86SetJ32(g_j32Ptr[4]);
 
         iBranch(bpc, 0);
         s_pc += 4;
@@ -2772,11 +2772,11 @@ static void recBNE() {
         MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rs_]);
         CMP32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    j32Ptr[4] = JNE32(0);
+    g_j32Ptr[4] = JNE32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     iBranch(bpc, 0);
     s_pc += 4;
@@ -2802,11 +2802,11 @@ static void recBLEZ() {
     }
 
     CMP32ItoM((u32)&g_psxRegs.GPR.r[_Rs_], 0);
-    j32Ptr[4] = JLE32(0);
+    g_j32Ptr[4] = JLE32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     iBranch(bpc, 0);
     s_pc += 4;
@@ -2832,11 +2832,11 @@ static void recBGEZ() {
     }
 
     CMP32ItoM((u32)&g_psxRegs.GPR.r[_Rs_], 0);
-    j32Ptr[4] = JGE32(0);
+    g_j32Ptr[4] = JGE32(0);
 
     iBranch(s_pc + 4, 1);
 
-    x86SetJ32(j32Ptr[4]);
+    x86SetJ32(g_j32Ptr[4]);
 
     iBranch(bpc, 0);
     s_pc += 4;
@@ -3292,13 +3292,13 @@ static void recRecompile() {
     dump = 0;
     s_resp = 0;
 
-    /* if x86Ptr reached the mem limit reset whole mem */
-    if (((u32)x86Ptr - (u32)s_recMem) >= (RECMEM_SIZE - 0x10000)) recReset();
+    /* if g_x86Ptr reached the mem limit reset whole mem */
+    if (((u32)g_x86Ptr - (u32)s_recMem) >= (RECMEM_SIZE - 0x10000)) recReset();
 
     x86Align(32);
-    ptr = x86Ptr;
+    ptr = g_x86Ptr;
 
-    PC_REC32(g_psxRegs.pc) = (u32)x86Ptr;
+    PC_REC32(g_psxRegs.pc) = (u32)g_x86Ptr;
     s_pc = g_psxRegs.pc;
     s_old_pc = s_pc;
 

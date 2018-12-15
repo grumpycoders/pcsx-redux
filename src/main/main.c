@@ -65,5 +65,9 @@ int main() {
     psxCpu->Init();
     psxCpu->Execute();
 
+    psxCpu = &g_psxRec;
+    psxCpu->Init();
+    psxCpu->Execute();
+
     return 0;
 }

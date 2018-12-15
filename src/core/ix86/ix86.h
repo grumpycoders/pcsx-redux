@@ -66,17 +66,17 @@ extern "C" {
 
 /* general defines */
 #define write8(val)     \
-    *(u8*)x86Ptr = val; \
-    x86Ptr++;
+    *(u8*)g_x86Ptr = val; \
+    g_x86Ptr++;
 #define write16(val)     \
-    *(u16*)x86Ptr = val; \
-    x86Ptr += 2;
+    *(u16*)g_x86Ptr = val; \
+    g_x86Ptr += 2;
 #define write32(val)     \
-    *(u32*)x86Ptr = val; \
-    x86Ptr += 4;
+    *(u32*)g_x86Ptr = val; \
+    g_x86Ptr += 4;
 #define write64(val)     \
-    *(u64*)x86Ptr = val; \
-    x86Ptr += 8;
+    *(u64*)g_x86Ptr = val; \
+    g_x86Ptr += 8;
 
 #define EAX 0
 #define EBX 3
@@ -105,9 +105,9 @@ extern "C" {
 #define XMM6 6
 #define XMM7 7
 
-extern s8* x86Ptr;
-extern u8* j8Ptr[32];
-extern u32* j32Ptr[32];
+extern s8* g_x86Ptr;
+extern u8* g_j8Ptr[32];
+extern u32* g_j32Ptr[32];
 
 void x86Init();
 void x86SetPtr(char* ptr);
