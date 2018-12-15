@@ -25,7 +25,7 @@
 
 #if defined(__i386__) || defined(_M_IX86)
 
-#include "ix86.h"
+#include "core/ix86/ix86.h"
 
 s8* g_x86Ptr;
 u8* g_j8Ptr[32];
