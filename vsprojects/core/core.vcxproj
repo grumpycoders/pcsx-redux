@@ -134,7 +134,7 @@
     <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
-    <ClCompile Include="..\..\src\core\decode_xa.c" />
+    <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.c" />
     <ClCompile Include="..\..\src\core\gpu.c" />
     <ClCompile Include="..\..\src\core\gte.c" />
