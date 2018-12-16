@@ -178,7 +178,7 @@ void WriteMem16(PGXP_value* src, u32 addr) {
     psx_value* pVal = NULL;
 
     if (dest) {
-        pVal = &dest->value;
+        pVal = reinterpret_cast<psx_value*>(&dest->value);
         // determine if high or low word
         if ((addr % 4) == 2) {
             dest->y = src->x;
