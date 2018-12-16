@@ -146,7 +146,7 @@
     <ClCompile Include="..\..\src\core\pgxp_debug.cc" />
     <ClCompile Include="..\..\src\core\pgxp_gte.cc" />
     <ClCompile Include="..\..\src\core\pgxp_mem.cc" />
-    <ClCompile Include="..\..\src\core\pgxp_value.c" />
+    <ClCompile Include="..\..\src\core\pgxp_value.cc" />
     <ClCompile Include="..\..\src\core\plugins.c" />
     <ClCompile Include="..\..\src\core\ppf.c" />
     <ClCompile Include="..\..\src\core\psxbios.c" />
