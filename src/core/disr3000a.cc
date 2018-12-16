@@ -75,7 +75,7 @@ typedef char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
         return s_ostr;                             \
     }
 
-#include "r3000a.h"
+#include "core/r3000a.h"
 
 #undef _Funct_
 #undef _Rd_
@@ -141,7 +141,8 @@ MakeDisF(disXOR, dName("XOR"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
  * Register arithmetic & Register trap logic              *
  * Format:  OP rs, rt                                     *
  *********************************************************/
-MakeDisF(disDIV, dName("DIV"); dGPR(_Rs_); dGPR(_Rt_);) MakeDisF(disDIVU, dName("DIVU"); dGPR(_Rs_); dGPR(_Rt_););
+MakeDisF(disDIV, dName("DIV"); dGPR(_Rs_); dGPR(_Rt_););
+MakeDisF(disDIVU, dName("DIVU"); dGPR(_Rs_); dGPR(_Rt_););
 MakeDisF(disMULT, dName("MULT"); dGPR(_Rs_); dGPR(_Rt_););
 MakeDisF(disMULTU, dName("MULTU"); dGPR(_Rs_); dGPR(_Rt_););
 
@@ -187,13 +188,15 @@ MakeDisF(disLUI, dName("LUI"); dGPR(_Rt_); dImm(););
  * Move from HI/LO to GPR                                 *
  * Format:  OP rd                                         *
  *********************************************************/
-MakeDisF(disMFHI, dName("MFHI"); dGPR(_Rd_); dHI();) MakeDisF(disMFLO, dName("MFLO"); dGPR(_Rd_); dLO(););
+MakeDisF(disMFHI, dName("MFHI"); dGPR(_Rd_); dHI(););
+MakeDisF(disMFLO, dName("MFLO"); dGPR(_Rd_); dLO(););
 
 /*********************************************************
  * Move from GPR to HI/LO                                 *
  * Format:  OP rd                                         *
  *********************************************************/
-MakeDisF(disMTHI, dName("MTHI"); dHI(); dGPR(_Rs_);) MakeDisF(disMTLO, dName("MTLO"); dLO(); dGPR(_Rs_););
+MakeDisF(disMTHI, dName("MTHI"); dHI(); dGPR(_Rs_););
+MakeDisF(disMTLO, dName("MTLO"); dLO(); dGPR(_Rs_););
 
 /*********************************************************
  * Special purpose instructions                           *
@@ -243,21 +246,26 @@ MakeDisF(disBNE, dName("BNE"); dGPR(_Rs_); dGPR(_Rt_); dOffset(););
  * Jump to target                                         *
  * Format:  OP target                                     *
  *********************************************************/
-MakeDisF(disJ, dName("J"); dTarget();) MakeDisF(disJAL, dName("JAL"); dTarget(); dGPR(31););
+MakeDisF(disJ, dName("J"); dTarget(););
+MakeDisF(disJAL, dName("JAL"); dTarget(); dGPR(31););
 
 /*********************************************************
  * Register jump                                          *
  * Format:  OP rs, rd                                     *
  *********************************************************/
-MakeDisF(disJR, dName("JR"); dGPR(_Rs_);) MakeDisF(disJALR, dName("JALR"); dGPR(_Rs_); dGPR(_Rd_));
+MakeDisF(disJR, dName("JR"); dGPR(_Rs_););
+MakeDisF(disJALR, dName("JALR"); dGPR(_Rs_); dGPR(_Rd_));
 
 /*********************************************************
  * Load and store for GPR                                 *
  * Format:  OP rt, offset(base)                           *
  *********************************************************/
-MakeDisF(disLB, dName("LB"); dGPR(_Rt_); dOfB();) MakeDisF(disLBU, dName("LBU"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLH, dName("LH"); dGPR(_Rt_); dOfB();) MakeDisF(disLHU, dName("LHU"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLW, dName("LW"); dGPR(_Rt_); dOfB();) MakeDisF(disLWL, dName("LWL"); dGPR(_Rt_); dOfB(););
+MakeDisF(disLB, dName("LB"); dGPR(_Rt_); dOfB(););
+MakeDisF(disLBU, dName("LBU"); dGPR(_Rt_); dOfB(););
+MakeDisF(disLH, dName("LH"); dGPR(_Rt_); dOfB(););
+MakeDisF(disLHU, dName("LHU"); dGPR(_Rt_); dOfB(););
+MakeDisF(disLW, dName("LW"); dGPR(_Rt_); dOfB(););
+MakeDisF(disLWL, dName("LWL"); dGPR(_Rt_); dOfB(););
 MakeDisF(disLWR, dName("LWR"); dGPR(_Rt_); dOfB(););
 MakeDisF(disLWC2, dName("LWC2"); dCP2D(_Rt_); dOfB(););
 MakeDisF(disSB, dName("SB"); dGPR(_Rt_); dOfB(););
@@ -271,7 +279,8 @@ MakeDisF(disSWC2, dName("SWC2"); dCP2D(_Rt_); dOfB(););
  * Moves between GPR and COPx                             *
  * Format:  OP rt, fs                                     *
  *********************************************************/
-MakeDisF(disMFC0, dName("MFC0"); dGPR(_Rt_); dCP0(_Rd_);) MakeDisF(disMTC0, dName("MTC0"); dCP0(_Rd_); dGPR(_Rt_););
+MakeDisF(disMFC0, dName("MFC0"); dGPR(_Rt_); dCP0(_Rd_););
+MakeDisF(disMTC0, dName("MTC0"); dCP0(_Rd_); dGPR(_Rt_););
 MakeDisF(disCFC0, dName("CFC0"); dGPR(_Rt_); dCP0(_Rd_););
 MakeDisF(disCTC0, dName("CTC0"); dCP0(_Rd_); dGPR(_Rt_););
 
