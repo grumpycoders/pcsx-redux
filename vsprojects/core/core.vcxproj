@@ -149,7 +149,7 @@
     <ClCompile Include="..\..\src\core\pgxp_value.cc" />
     <ClCompile Include="..\..\src\core\plugins.cc" />
     <ClCompile Include="..\..\src\core\ppf.cc" />
-    <ClCompile Include="..\..\src\core\psxbios.c" />
+    <ClCompile Include="..\..\src\core\psxbios.cc" />
     <ClCompile Include="..\..\src\core\psxcommon.c" />
     <ClCompile Include="..\..\src\core\psxcounters.c" />
     <ClCompile Include="..\..\src\core\psxdma.c" />

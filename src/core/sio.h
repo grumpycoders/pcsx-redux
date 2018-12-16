@@ -52,11 +52,11 @@ void netError();
 void sioInterrupt();
 int sioFreeze(gzFile f, int Mode);
 
-void LoadMcd(int mcd, char *str);
-void LoadMcds(char *mcd1, char *mcd2);
-void SaveMcd(char *mcd, char *data, uint32_t adr, int size);
-void CreateMcd(char *mcd);
-void ConvertMcd(char *mcd, char *data);
+void LoadMcd(int mcd, const char *str);
+void LoadMcds(const char *mcd1, const char *mcd2);
+void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size);
+void CreateMcd(const char *mcd);
+void ConvertMcd(const char *mcd, const char *data);
 
 typedef struct {
     char Title[48 + 1];       // Title in ASCII
