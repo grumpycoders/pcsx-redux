@@ -16,10 +16,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "gpu.h"
-#include "pgxp_mem.h"
-#include "psxdma.h"
-#include "psxhw.h"
+#include "core/gpu.h"
+#include "core/pgxp_mem.h"
+#include "core/psxdma.h"
+#include "core/psxhw.h"
 
 #define GPUSTATUS_ODDLINES 0x80000000
 #define GPUSTATUS_DMABITS 0x60000000           // Two bits
@@ -40,18 +40,18 @@
 #define GPUSTATUS_DITHER 0x00000200
 
 // Taken from PEOPS SOFTGPU
-u32 lUsedAddr[3];
+static u32 s_lUsedAddr[3];
 
 static inline boolean CheckForEndlessLoop(u32 laddr) {
-    if (laddr == lUsedAddr[1]) return TRUE;
-    if (laddr == lUsedAddr[2]) return TRUE;
+    if (laddr == s_lUsedAddr[1]) return TRUE;
+    if (laddr == s_lUsedAddr[2]) return TRUE;
 
-    if (laddr < lUsedAddr[0])
-        lUsedAddr[1] = laddr;
+    if (laddr < s_lUsedAddr[0])
+        s_lUsedAddr[1] = laddr;
     else
-        lUsedAddr[2] = laddr;
+        s_lUsedAddr[2] = laddr;
 
-    lUsedAddr[0] = laddr;
+    s_lUsedAddr[0] = laddr;
 
     return FALSE;
 }
@@ -60,7 +60,7 @@ static u32 gpuDmaChainSize(u32 addr) {
     u32 size;
     u32 DMACommandCounter = 0;
 
-    lUsedAddr[0] = lUsedAddr[1] = lUsedAddr[2] = 0xffffff;
+    s_lUsedAddr[0] = s_lUsedAddr[1] = s_lUsedAddr[2] = 0xffffff;
 
     // initial linked list ptr (word)
     size = 1;
