@@ -157,7 +157,7 @@
     <ClCompile Include="..\..\src\core\psxhw.cc" />
     <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
     <ClCompile Include="..\..\src\core\psxmem.cc" />
-    <ClCompile Include="..\..\src\core\r3000a.c" />
+    <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\sio.c" />
     <ClCompile Include="..\..\src\core\socket.c" />
     <ClCompile Include="..\..\src\core\spu.c" />
