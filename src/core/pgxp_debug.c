@@ -276,11 +276,11 @@ PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
         case fOp_CPU_Lo:
             return &CPU_Lo;
         case fOp_CPU_Rd:
-            return &CPU_reg[rd(instr)];
+            return &g_CPU_reg[rd(instr)];
         case fOp_CPU_Rs:
-            return &CPU_reg[rs(instr)];
+            return &g_CPU_reg[rs(instr)];
         case fOp_CPU_Rt:
-            return &CPU_reg[rt(instr)];
+            return &g_CPU_reg[rt(instr)];
         case fOp_GTE_Dd:
             return &GTE_data_reg[rd(instr)];
         case fOp_GTE_Dt:
@@ -290,9 +290,9 @@ PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
         case fOp_GTE_Ct:
             return &GTE_ctrl_reg[rt(instr)];
         case fOp_CP0_Dd:
-            return &CP0_reg[rd(instr)];
+            return &g_CP0_reg[rd(instr)];
         case fOp_CP0_Cd:
-            return &CP0_reg[rd(instr)];
+            return &g_CP0_reg[rd(instr)];
         case fOp_Ad:
             return GetPtr(psxValue);
         default:
@@ -368,17 +368,17 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CPU_Rd:
-                    pReg = &CPU_reg[rd(instr)];
+                    pReg = &g_CPU_reg[rd(instr)];
                     sprintf(szOpdName, "Rd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CPU_Rs:
-                    pReg = &CPU_reg[rs(instr)];
+                    pReg = &g_CPU_reg[rs(instr)];
                     sprintf(szOpdName, "Rs[%d]", rs(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CPU_Rt:
-                    pReg = &CPU_reg[rt(instr)];
+                    pReg = &g_CPU_reg[rt(instr)];
                     sprintf(szOpdName, "Rt[%d]", rt(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
@@ -403,12 +403,12 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CP0_Dd:
-                    pReg = &CP0_reg[rd(instr)];
+                    pReg = &g_CP0_reg[rd(instr)];
                     sprintf(szOpdName, "CP0_Dd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CP0_Cd:
-                    pReg = &CP0_reg[rd(instr)];
+                    pReg = &g_CP0_reg[rd(instr)];
                     sprintf(szOpdName, "CP0_Cd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;

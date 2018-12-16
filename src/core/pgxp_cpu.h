@@ -33,10 +33,10 @@
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;
 
-extern PGXP_value* CPU_reg;
-extern PGXP_value* CP0_reg;
-#define CPU_Hi CPU_reg[33]
-#define CPU_Lo CPU_reg[34]
+extern PGXP_value* g_CPU_reg;
+extern PGXP_value* g_CP0_reg;
+#define CPU_Hi g_CPU_reg[33]
+#define CPU_Lo g_CPU_reg[34]
 
 void PGXP_InitCPU();
 
