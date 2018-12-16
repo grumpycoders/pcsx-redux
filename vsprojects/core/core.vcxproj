@@ -153,7 +153,7 @@
     <ClCompile Include="..\..\src\core\psxcommon.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
-    <ClCompile Include="..\..\src\core\psxhle.c" />
+    <ClCompile Include="..\..\src\core\psxhle.cc" />
     <ClCompile Include="..\..\src\core\psxhw.c" />
     <ClCompile Include="..\..\src\core\psxinterpreter.c" />
     <ClCompile Include="..\..\src\core\psxmem.c" />
