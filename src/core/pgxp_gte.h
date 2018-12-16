@@ -28,13 +28,17 @@
 #ifndef _PGXP_GTE_H_
 #define _PGXP_GTE_H_
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;
 
 extern PGXP_value* g_GTE_data_reg;
 extern PGXP_value* g_GTE_ctrl_reg;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void PGXP_InitGTE();
 
@@ -56,6 +60,10 @@ void PGXP_GTE_CTC2(u32 instr, u32 rdVal, u32 rtVal);  // copy GPR reg to GTE ctr
 // Memory Access
 void PGXP_GTE_LWC2(u32 instr, u32 rtVal, u32 addr);  // copy memory to GTE reg
 void PGXP_GTE_SWC2(u32 instr, u32 rtVal, u32 addr);  // copy GTE reg to memory
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))
