@@ -28,7 +28,7 @@
 #ifndef _PGXP_VALUE_H_
 #define _PGXP_VALUE_H_
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 typedef union {
 #if defined(__BIGENDIAN__)

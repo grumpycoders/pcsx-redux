@@ -24,13 +24,6 @@
 #include "core/psxcommon.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern void (*psxHLEt[256])();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

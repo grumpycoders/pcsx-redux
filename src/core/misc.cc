@@ -113,9 +113,9 @@ void mmssdd(char *b, char *p) {
     READTRACK();                  \
     memcpy(_dir + 2048, buf + 12, 2048);
 
-int GetCdromFile(u8 *mdir, u8 *time, s8 *filename) {
+int GetCdromFile(u8 *mdir, u8 *time, const char *filename) {
     struct iso_directory_record *dir;
-    char ddir[4096];
+    u8 ddir[4096];
     u8 *buf;
     int i;
 
@@ -156,7 +156,7 @@ int LoadCdrom() {
     struct iso_directory_record *dir;
     u8 time[4], *buf;
     u8 mdir[4096];
-    s8 exename[256];
+    char exename[256];
 
     if (!g_config.HLE) {
         if (!g_config.SlowBoot) g_psxRegs.pc = g_psxRegs.GPR.n.ra;
@@ -190,7 +190,7 @@ int LoadCdrom() {
         if (GetCdromFile(mdir, time, exename) == -1) {
             sscanf((char *)buf + 12, "BOOT = cdrom:%255s", exename);
             if (GetCdromFile(mdir, time, exename) == -1) {
-                char *ptr = strstr(buf + 12, "cdrom:");
+                char *ptr = strstr(reinterpret_cast<char *>(buf + 12), "cdrom:");
                 if (ptr != NULL) {
                     ptr += 6;
                     while (*ptr == '\\' || *ptr == '/') ptr++;
@@ -238,7 +238,8 @@ int LoadCdrom() {
 int LoadCdromFile(const char *filename, EXE_HEADER *head) {
     struct iso_directory_record *dir;
     u8 time[4], *buf;
-    u8 mdir[4096], exename[256];
+    u8 mdir[4096];
+    char exename[256];
     u32 size, addr;
     void *psxaddr;
 
@@ -294,7 +295,8 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
 
 int CheckCdrom() {
     struct iso_directory_record *dir;
-    unsigned char time[4], *buf;
+    unsigned char time[4];
+    unsigned char *buf;
     unsigned char mdir[4096];
     char exename[256];
     int i, len, c;
@@ -311,7 +313,7 @@ int CheckCdrom() {
     memset(g_cdromId, 0, sizeof(g_cdromId));
     memset(exename, 0, sizeof(exename));
 
-    strncpy(g_cdromLabel, buf + 52, 32);
+    strncpy(g_cdromLabel, reinterpret_cast<char *>(buf + 52), 32);
 
     // skip head and sub, and go to the root directory record
     dir = (struct iso_directory_record *)&buf[12 + 156];
@@ -327,7 +329,7 @@ int CheckCdrom() {
         if (GetCdromFile(mdir, time, exename) == -1) {
             sscanf((char *)buf + 12, "BOOT = cdrom:%255s", exename);
             if (GetCdromFile(mdir, time, exename) == -1) {
-                char *ptr = strstr(buf + 12, "cdrom:");  // possibly the executable is in some subdir
+                char *ptr = strstr(reinterpret_cast<char *>(buf + 12), "cdrom:");  // possibly the executable is in some subdir
                 if (ptr != NULL) {
                     ptr += 6;
                     while (*ptr == '\\' || *ptr == '/') ptr++;

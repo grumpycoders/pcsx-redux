@@ -22,10 +22,6 @@
 
 #include "core/psxcommon.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if defined(__BIGENDIAN__)
 
 #define _SWAP16(b) ((((unsigned char *)&(b))[0] & 0xff) | (((unsigned char *)&(b))[1] & 0xff) << 8)
@@ -140,7 +136,4 @@ void psxMemWrite16(u32 mem, u16 value);
 void psxMemWrite32(u32 mem, u32 value);
 void *psxMemPointer(u32 mem);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

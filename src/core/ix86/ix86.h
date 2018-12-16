@@ -31,10 +31,6 @@
 #include "core/psxhle.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // x86Flags defines
 #define X86FLAG_FPU 0x00000001
 #define X86FLAG_VME 0x00000002
@@ -110,7 +106,7 @@ extern u8* g_j8Ptr[32];
 extern u32* g_j32Ptr[32];
 
 void x86Init();
-void x86SetPtr(char* ptr);
+void x86SetPtr(s8* ptr);
 void x86Shutdown();
 
 void x86SetJ8(u8* j8);
@@ -674,7 +670,4 @@ void XORPSRtoR(int to, int from);
 void ANDPSMtoR(int to, int from);
 void ANDPSRtoR(int to, int from);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

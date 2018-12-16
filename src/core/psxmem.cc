@@ -359,7 +359,7 @@ void psxMemWrite32(u32 mem, u32 value) {
                     case 0x1e988:
                         if (writeok == 1) break;
                         writeok = 1;
-                        for (i = 0; i < 0x80; i++) g_psxMemWLUT[i + 0x0000] = (void *)&g_psxM[(i & 0x1f) << 16];
+                        for (i = 0; i < 0x80; i++) g_psxMemWLUT[i + 0x0000] = (u8 *)&g_psxM[(i & 0x1f) << 16];
                         memcpy(g_psxMemWLUT + 0x8000, g_psxMemWLUT, 0x80 * sizeof(void *));
                         memcpy(g_psxMemWLUT + 0xa000, g_psxMemWLUT, 0x80 * sizeof(void *));
                         break;

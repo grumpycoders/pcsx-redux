@@ -27,10 +27,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define btoi(b) ((b) / 16 * 10 + (b) % 16) /* BCD to u_char */
 #define itob(i) ((i) / 10 * 16 + (i) % 10) /* u_char to BCD */
 
@@ -132,7 +128,4 @@ void cdrWrite2(unsigned char rt);
 void cdrWrite3(unsigned char rt);
 int cdrFreeze(gzFile f, int Mode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

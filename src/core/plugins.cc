@@ -21,8 +21,8 @@
  * Plugin library callback/access functions.
  */
 
-#include "core/cdriso.h"
 #include "core/plugins.h"
+#include "core/cdriso.h"
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
@@ -62,6 +62,8 @@ GPUsetSpeed GPU_setSpeed;
 GPUpgxpMemory GPU_pgxpMemory;
 GPUpgxpCacheVertex GPU_pgxpCacheVertex;
 
+extern "C" {
+
 #ifdef _WIN32
 long CALLBACK softGPUopen(unsigned int texture);
 #else
@@ -87,9 +89,9 @@ long CALLBACK softGPUdmaChain(uint32_t *baseAddrL, uint32_t addr);
 long CALLBACK softGPUconfigure(void);
 void CALLBACK softGPUabout(void);
 long CALLBACK softGPUtest(void);
-long CALLBACK softGPUfreeze(uint32_t ulGetFreezeData, void *pF);
-void CALLBACK softGPUgetScreenPic(unsigned char *pMem);
-void CALLBACK softGPUshowScreenPic(unsigned char *pMem);
+long CALLBACK softGPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF);
+long CALLBACK softGPUgetScreenPic(unsigned char *pMem);
+long CALLBACK softGPUshowScreenPic(unsigned char *pMem);
 #ifndef _WIN32
 void CALLBACK softGPUkeypressed(int keycode);
 #endif
@@ -97,6 +99,8 @@ void CALLBACK softGPUhSync(int val);
 void CALLBACK softGPUvSync(int val);
 void CALLBACK softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void CALLBACK softGPUvBlank(int val);
+
+}
 
 CDRinit CDR_init;
 CDRshutdown CDR_shutdown;
@@ -471,7 +475,7 @@ long CALLBACK nullSPU_shutdown(void) {
     return 0;
 }
 
-long CALLBACK nullSPU_open(void) { return 0; }
+long CALLBACK nullSPU_open(HWND hwnd) { return 0; }
 
 long CALLBACK nullSPU_close(void) { return 0; }
 
@@ -559,7 +563,7 @@ long CALLBACK nullSPU_configure(void) { return 0; }
 
 void CALLBACK nullSPU_about(void) {}
 
-long CALLBACK nullSPU_freeze(unsigned long ulFreezeMode, void *pF) {
+long CALLBACK nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
 #if 0
 	if( ulFreezeMode == 1 )
 	{
@@ -744,7 +748,7 @@ void CALLBACK PAD1__about(void) {}
 long CALLBACK PAD1__test(void) { return 0; }
 long CALLBACK PAD1__query(void) { return 3; }
 long CALLBACK PAD1__keypressed() { return 0; }
-void CALLBACK PAD1__registerVibration(void(CALLBACK *callback)(unsigned long, unsigned long)) {}
+void CALLBACK PAD1__registerVibration(void(CALLBACK *callback)(uint32_t, uint32_t)) {}
 void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
 
 #define LoadPad1Sym1(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, TRUE);
@@ -756,9 +760,9 @@ void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
     if (PAD1_##dest == NULL) PAD1_##dest = (PAD##dest)PAD1__##dest;
 
 long CALLBACK nullPAD_init(long flags) { return 0; }
-void CALLBACK nullPAD_shutdown() {}
+long CALLBACK nullPAD_shutdown() { return 0; }
 long CALLBACK nullPAD_open(HWND x) { return 0; }
-void CALLBACK nullPAD_close() {}
+long CALLBACK nullPAD_close() { return 0; }
 long CALLBACK nullPAD_readPort(PadDataS *data) {
     memset(data, 0, sizeof(PadDataS));
     return 0;
@@ -825,7 +829,7 @@ void CALLBACK PAD2__about(void) {}
 long CALLBACK PAD2__test(void) { return 0; }
 long CALLBACK PAD2__query(void) { return PSE_PAD_USE_PORT1 | PSE_PAD_USE_PORT2; }
 long CALLBACK PAD2__keypressed() { return 0; }
-void CALLBACK PAD2__registerVibration(void(CALLBACK *callback)(unsigned long, unsigned long)) {}
+void CALLBACK PAD2__registerVibration(void(CALLBACK *callback)(uint32_t, uint32_t)) {}
 void CALLBACK PAD2__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
 
 #define LoadPad2Sym1(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, TRUE);

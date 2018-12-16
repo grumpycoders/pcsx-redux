@@ -51,8 +51,8 @@
 
 // *** FOR WORKS ON PADS AND MEMORY CARDS *****
 
-void LoadDongle(char *str);
-void SaveDongle(char *str);
+void LoadDongle(const char *str);
+void SaveDongle(const char *str);
 
 #define BUFFER_SIZE 0x1010
 
@@ -823,7 +823,7 @@ void sioInterrupt() {
 #endif
 }
 
-void LoadMcd(int mcd, char *str) {
+void LoadMcd(int mcd, const char *str) {
     FILE *f;
     char *data = NULL;
     char filepath[MAXPATHLEN] = {'\0'};
@@ -876,12 +876,12 @@ void LoadMcd(int mcd, char *str) {
     s_cardh[1] |= MCDST_CHANGED;
 }
 
-void LoadMcds(char *mcd1, char *mcd2) {
+void LoadMcds(const char *mcd1, const char *mcd2) {
     LoadMcd(1, mcd1);
     LoadMcd(2, mcd2);
 }
 
-void SaveMcd(char *mcd, char *data, uint32_t adr, int size) {
+void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size) {
     FILE *f;
 
     f = fopen(mcd, "r+b");
@@ -916,7 +916,7 @@ void SaveMcd(char *mcd, char *data, uint32_t adr, int size) {
     ConvertMcd(mcd, data);
 }
 
-void CreateMcd(char *mcd) {
+void CreateMcd(const char *mcd) {
     FILE *f;
     struct stat buf;
     int s = MCD_SIZE;
@@ -1067,7 +1067,7 @@ void CreateMcd(char *mcd) {
     fclose(f);
 }
 
-void ConvertMcd(char *mcd, char *data) {
+void ConvertMcd(const char *mcd, const char *data) {
     FILE *f;
     int i = 0;
     int s = MCD_SIZE;
@@ -1166,7 +1166,7 @@ void ConvertMcd(char *mcd, char *data) {
 }
 
 void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
-    unsigned char *data = NULL, *ptr, *str, *sstr;
+    char *data = NULL, *ptr, *str, *sstr;
     unsigned short clut[16];
     unsigned short c;
     int i, x;
@@ -1285,7 +1285,7 @@ int sioFreeze(gzFile f, int Mode) {
     return 0;
 }
 
-void LoadDongle(char *str) {
+void LoadDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "r+b");
@@ -1317,7 +1317,7 @@ void LoadDongle(char *str) {
     }
 }
 
-void SaveDongle(char *str) {
+void SaveDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "wb");

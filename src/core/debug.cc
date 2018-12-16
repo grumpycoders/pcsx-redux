@@ -254,7 +254,7 @@ enum {
     MAP_EXEC_JAL = 128,
 };
 
-static char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
+static const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
 
 typedef struct breakpoint_s {
     struct breakpoint_s *next, *prev;

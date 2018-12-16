@@ -25,10 +25,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern u32 g_psxNextCounter, g_psxNextsCounter;
 
 void psxRcntInit();
@@ -44,7 +40,4 @@ u32 psxRcntRtarget(u32 index);
 
 s32 psxRcntFreeze(gzFile f, s32 Mode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

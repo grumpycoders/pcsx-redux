@@ -20,10 +20,6 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int SysInit();                                 // Init mem and plugins
 void SysReset();                               // Resets mem
 void SysPrintf(const char *fmt, ...);          // Printf used by bios syscalls
@@ -36,7 +32,4 @@ void SysUpdate();                              // Called on VBlank (to update i.
 void SysRunGui();                              // Returns to the Gui
 void SysClose();                               // Close mem and plugins
 
-#ifdef __cplusplus
-}
-#endif
 #endif

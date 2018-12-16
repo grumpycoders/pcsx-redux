@@ -1524,7 +1524,7 @@ void psxBios__96_remove() {  // 72
 }
 
 void psxBios_SetMem() {  // 9f
-    u32 new = psxHu32(0x1060);
+    u32 newMem = psxHu32(0x1060);
 
 #ifdef PSXBIOS_LOG
     PSXBIOS_LOG("psxBios_%s: %x, %x\n", g_biosA0n[0x9f], a0, a1);
@@ -1532,13 +1532,13 @@ void psxBios_SetMem() {  // 9f
 
     switch (a0) {
         case 2:
-            psxHu32ref(0x1060) = SWAP32(new);
+            psxHu32ref(0x1060) = SWAP32(newMem);
             psxMu32ref(0x060) = a0;
             SysPrintf("Change effective memory : %d MBytes\n", a0);
             break;
 
         case 8:
-            psxHu32ref(0x1060) = SWAP32(new | 0x300);
+            psxHu32ref(0x1060) = SWAP32(newMem | 0x300);
             psxMu32ref(0x060) = a0;
             SysPrintf("Change effective memory : %d MBytes\n", a0);
 
@@ -2001,9 +2001,9 @@ void psxBios_UnDeliverEvent() {  // 0x20
     pc0 = ra;
 }
 
-static void buopen(int mcd, u8 *ptr, u8 *cfg) {
+static void buopen(int mcd, char *ptr, const char *cfg) {
     int i;
-    u8 *fptr = ptr;
+    char *fptr = ptr;
 
     strcpy(s_FDesc[1 + mcd].name, Ra0 + 5);
     s_FDesc[1 + mcd].offset = 0;
@@ -2021,8 +2021,8 @@ static void buopen(int mcd, u8 *ptr, u8 *cfg) {
     if (a1 & 0x200 && v0 == -1) { /* FCREAT */
         fptr = ptr;
         for (i = 1; i < 16; i++) {
-            int j, xor, nblk = a1 >> 16;
-            u8 *pptr, *fptr2;
+            int j, checksum, nblk = a1 >> 16;
+            char *pptr, *fptr2;
 
             fptr += 128;
             if ((*fptr & 0xF0) != 0xa0) continue;
@@ -2044,20 +2044,20 @@ static void buopen(int mcd, u8 *ptr, u8 *cfg) {
                     fptr2[0] = j < nblk ? 0x52 : 0x53;
                     pptr[8] = i - 1;
                     pptr[9] = 0;
-                    for (k = 0, xor = 0; k < 127; k++) xor ^= pptr[k];
-                    pptr[127] = xor;
+                    for (k = 0, checksum = 0; k < 127; k++) checksum ^= pptr[k];
+                    pptr[127] = checksum;
                     pptr = fptr2;
                     break;
                 }
                 /* shouldn't this return ENOSPC if i == 16? */
             }
             pptr[8] = pptr[9] = 0xff;
-            for (j = 0, xor = 0; j < 127; j++) xor ^= pptr[j];
-            pptr[127] = xor;
+            for (j = 0, checksum = 0; j < 127; j++) checksum ^= pptr[j];
+            pptr[127] = checksum;
             SysPrintf("openC %s %d\n", ptr, nblk);
             v0 = 1 + mcd;
             /* just go ahead and resave them all */
-            SaveMcd(cfg, ptr, 128, 128 * 15);
+            SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
             break;
         }
         /* shouldn't this return ENOSPC if i == 16? */
@@ -2355,15 +2355,15 @@ void psxBios_nextfile() {  // 43
 #define burename(mcd)                                                      \
     {                                                                      \
         for (i = 1; i < 16; i++) {                                         \
-            int namelen, j, xor = 0;                                       \
+            int namelen, j, chksum = 0;                                       \
             ptr = g_mcd##mcd##Data + 128 * i;                                \
             if ((*ptr & 0xF0) != 0x50) continue;                           \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;                      \
             namelen = strlen(Ra1 + 5);                                     \
             memcpy(ptr + 0xa, Ra1 + 5, namelen);                           \
             memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                \
-            for (j = 0; j < 127; j++) xor ^= ptr[j];                       \
-            ptr[127] = xor;                                                \
+            for (j = 0; j < 127; j++) chksum ^= ptr[j];                       \
+            ptr[127] = chksum;                                                \
             SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
             v0 = 1;                                                        \
             break;                                                         \
@@ -3001,7 +3001,7 @@ void psxBiosInit() {
     /**/
     base = 0x1000;
     size = sizeof(EvCB) * 32;
-    s_Event = (void *)&g_psxR[base];
+    s_Event = reinterpret_cast<EvCB *>(&g_psxR[base]);
     base += size * 6;
     memset(s_Event, 0, size * 6);
     s_HwEV = s_Event;

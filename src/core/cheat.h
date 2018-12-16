@@ -23,10 +23,6 @@
 
 #include "core/psxcommon.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define all_extension_cht "*.cht"
 #define dot_extension_cht ".cht"
 #define tla_extension_cht "cht"
@@ -119,7 +115,4 @@ extern int g_numSearchResults;
 #define CHEAT_LESSTHAN16 0xD2    /* 16-bit Less Than */
 #define CHEAT_GREATERTHAN16 0xD3 /* 16-bit Greater Than */
 
-#ifdef __cplusplus
-}
-#endif
 #endif

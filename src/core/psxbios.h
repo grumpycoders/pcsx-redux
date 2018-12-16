@@ -26,10 +26,6 @@
 #include "core/r3000a.h"
 #include "core/sio.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char *g_biosA0n[256];
 extern const char *g_biosB0n[256];
 extern const char *g_biosC0n[256];
@@ -45,7 +41,4 @@ extern void (*biosC0[256])();
 
 extern boolean g_hleSoftCall;
 
-#ifdef __cplusplus
-}
-#endif
 #endif

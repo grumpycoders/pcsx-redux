@@ -23,10 +23,6 @@
 #include "core/psxcommon.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void gteMFC2();
 void gteCFC2();
 void gteMTC2();
@@ -57,7 +53,4 @@ void gteGPF();
 void gteGPL();
 void gteNCCT();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

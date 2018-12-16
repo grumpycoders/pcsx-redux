@@ -25,10 +25,6 @@
 #include "core/psxcounters.h"
 #include "core/psxmem.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     int (*Init)();
     void (*Reset)();
@@ -352,7 +348,4 @@ void psxJumpTest();
 
 void psxSetPGXPMode(u32 pgxpMode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

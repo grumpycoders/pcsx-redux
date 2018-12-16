@@ -28,10 +28,10 @@
 #ifndef _PGXP_MEM_H_
 #define _PGXP_MEM_H_
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
-void PGXP_Init();     // initialise memory
-char* PGXP_GetMem();  // return pointer to precision memory
+void PGXP_Init();   // initialise memory
+u8* PGXP_GetMem();  // return pointer to precision memory
 u32 PGXP_ConvertAddress(u32 addr);
 
 struct PGXP_value_Tag;

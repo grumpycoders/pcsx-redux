@@ -84,7 +84,7 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
     // cache value in GPU plugin
     temp.word = _v;
     if (g_config.PGXP_Cache)
-        GPU_pgxpCacheVertex(temp.x, temp.y, &SXY2);
+        GPU_pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char *>(&SXY2));
     else
         GPU_pgxpCacheVertex(0, 0, NULL);
 
