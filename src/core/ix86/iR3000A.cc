@@ -24,9 +24,11 @@
 #if defined(__i386__) || defined(_M_IX86)
 
 #include "core/ix86/ix86.h"
+extern "C" {
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
+};
 #include "core/psxcommon.h"
 
 #ifndef MAP_ANONYMOUS
@@ -48,15 +50,15 @@ static u32 *s_psxRecLUT;
 
 static const size_t RECMEM_SIZE = 8 * 1024 * 1024;
 
-static char *s_recMem; /* the recompiled blocks will be here */
+static s8 *s_recMem; /* the recompiled blocks will be here */
 static char *s_recRAM; /* and the s_ptr to the blocks here */
 static char *s_recROM; /* and here */
 
-static u32 s_pc;      /* recompiler pc */
-static u32 s_old_pc;  /* recompiler oldpc */
-static u32 s_count;   /* recompiler intruction count */
-static int s_branch;  /* set for branch */
-static u32 s_target;  /* branch target */
+static u32 s_pc;     /* recompiler pc */
+static u32 s_old_pc; /* recompiler oldpc */
+static u32 s_count;  /* recompiler intruction count */
+static int s_branch; /* set for branch */
+static u32 s_target; /* branch target */
 static u32 s_resp;
 
 typedef struct {
@@ -68,11 +70,7 @@ typedef struct {
 static iRegisters s_iRegs[32];
 static iRegisters s_iRegsS[32];
 
-enum {
-    ST_UNK = 0,
-    ST_CONST = 1,
-    ST_MAPPED = 2
-};
+enum { ST_UNK = 0, ST_CONST = 1, ST_MAPPED = 2 };
 
 #define IsConst(reg) (s_iRegs[reg].state == ST_CONST)
 #define IsMapped(reg) (s_iRegs[reg].state == ST_MAPPED)
@@ -316,9 +314,9 @@ static void iBranch(u32 branchPC, int savectx) {
     }
 }
 
-char *txt0 = "EAX = %x : ECX = %x : EDX = %x\n";
-char *txt1 = "EAX = %x\n";
-char *txt2 = "M32 = %x\n";
+const char txt0[] = "EAX = %x : ECX = %x : EDX = %x\n";
+const char txt1[] = "EAX = %x\n";
+const char txt2[] = "M32 = %x\n";
 
 void iLogX86() {
     PUSHA32();
@@ -360,7 +358,7 @@ static void iDumpRegs() {
 }
 #endif
 
-void iDumpBlock(char *ptr) {
+void iDumpBlock(s8 *ptr) {
     FILE *f;
     u32 i;
 
@@ -376,36 +374,36 @@ void iDumpBlock(char *ptr) {
     fflush(stdout);
 }
 
-#define REC_FUNC(f)                                       \
-    void psx##f();                                        \
-    static void rec##f() {                                \
-        iFlushRegs();                                     \
+#define REC_FUNC(f)                                           \
+    void psx##f();                                            \
+    static void rec##f() {                                    \
+        iFlushRegs();                                         \
         MOV32ItoM((u32)&g_psxRegs.code, (u32)g_psxRegs.code); \
         MOV32ItoM((u32)&g_psxRegs.pc, (u32)s_pc);             \
-        CALLFunc((u32)psx##f);                            \
-        /*	branch = 2; */                                 \
+        CALLFunc((u32)psx##f);                                \
+        /*	branch = 2; */                                     \
     }
 
-#define REC_SYS(f)                                        \
-    void psx##f();                                        \
-    static void rec##f() {                                \
-        iFlushRegs();                                     \
+#define REC_SYS(f)                                            \
+    void psx##f();                                            \
+    static void rec##f() {                                    \
+        iFlushRegs();                                         \
         MOV32ItoM((u32)&g_psxRegs.code, (u32)g_psxRegs.code); \
         MOV32ItoM((u32)&g_psxRegs.pc, (u32)s_pc);             \
-        CALLFunc((u32)psx##f);                            \
-        branch = 2;                                       \
-        iRet();                                           \
+        CALLFunc((u32)psx##f);                                \
+        branch = 2;                                           \
+        iRet();                                               \
     }
 
-#define REC_BRANCH(f)                                     \
-    void psx##f();                                        \
-    static void rec##f() {                                \
-        iFlushRegs();                                     \
+#define REC_BRANCH(f)                                         \
+    void psx##f();                                            \
+    static void rec##f() {                                    \
+        iFlushRegs();                                         \
         MOV32ItoM((u32)&g_psxRegs.code, (u32)g_psxRegs.code); \
         MOV32ItoM((u32)&g_psxRegs.pc, (u32)s_pc);             \
-        CALLFunc((u32)psx##f);                            \
-        branch = 2;                                       \
-        iRet();                                           \
+        CALLFunc((u32)psx##f);                                \
+        branch = 2;                                           \
+        iRet();                                               \
     }
 
 static void recRecompile();
@@ -416,9 +414,9 @@ static int recInit() {
     s_psxRecLUT = (u32 *)malloc(0x010000 * 4);
 
 #ifndef _WIN32
-    recMem = mmap(0, RECMEM_SIZE + 0x1000, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    recMem = (s8 *)mmap(0, RECMEM_SIZE + 0x1000, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #else
-    s_recMem = ((char *)VirtualAlloc(NULL, RECMEM_SIZE + 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+    s_recMem = (s8 *)VirtualAlloc(NULL, RECMEM_SIZE + 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
 
     s_recRAM = (char *)malloc(0x200000);
@@ -1620,8 +1618,8 @@ static void recLW() {
     s_resp += 4;
 }
 
-extern const u32 LWL_MASK[4];
-extern const u32 LWL_SHIFT[4];
+extern "C" const u32 LWL_MASK[4];
+extern "C" const u32 LWL_SHIFT[4];
 
 void iLWLk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -1775,8 +1773,8 @@ static void recLWBlock(int count) {
 }
 #endif
 
-extern const u32 LWR_MASK[4];
-extern const u32 LWR_SHIFT[4];
+extern "C" const u32 LWR_MASK[4];
+extern "C" const u32 LWR_SHIFT[4];
 
 void iLWRk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2132,8 +2130,8 @@ static void recSWBlock(int count) {
 }
 #endif
 
-extern const u32 SWL_MASK[4];
-extern const u32 SWL_SHIFT[4];
+extern "C" const u32 SWL_MASK[4];
+extern "C" const u32 SWL_SHIFT[4];
 
 void iSWLk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2215,8 +2213,8 @@ void recSWL() {
     s_resp += 8;
 }
 
-extern const u32 SWR_MASK[4];
-extern const u32 SWR_SHIFT[4];
+extern "C" const u32 SWR_MASK[4];
+extern "C" const u32 SWR_SHIFT[4];
 
 void iSWRk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2944,7 +2942,7 @@ static void recHLE() {
 // PGXP wrapper functions
 /////////////////////////////////////////////
 
-pgxpRecNULL() {}
+void pgxpRecNULL() {}
 
 // Choose between debug and direct function
 #ifdef PGXP_CPU_DEBUG
@@ -2962,7 +2960,7 @@ pgxpRecNULL() {}
 
 #define PGXP_REC_FUNC(pu, op)                      \
     static void pgxpRec##op() {                    \
-        PUSH32I(g_psxRegs.code);                     \
+        PUSH32I(g_psxRegs.code);                   \
         PGXP_DBG_OP_E(op)                          \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, )); \
         s_resp += 4;                               \
@@ -2972,7 +2970,7 @@ pgxpRecNULL() {}
 #define PGXP_REC_FUNC_1(pu, op, reg1)               \
     static void pgxpRec##op() {                     \
         reg1;                                       \
-        PUSH32I(g_psxRegs.code);                      \
+        PUSH32I(g_psxRegs.code);                    \
         PGXP_DBG_OP_E(op)                           \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 1)); \
         s_resp += 8;                                \
@@ -2990,7 +2988,7 @@ pgxpRecNULL() {}
         rec##op();                                                    \
         reg3;                                                         \
         reg4;                                                         \
-        PUSH32I(g_psxRegs.code);                                        \
+        PUSH32I(g_psxRegs.code);                                      \
         PGXP_DBG_OP_E(op)                                             \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, nReg));                \
         s_resp += (4 * nReg) + 4;                                     \
@@ -3000,7 +2998,7 @@ pgxpRecNULL() {}
     static void pgxpRec##op() {                     \
         reg1;                                       \
         reg2;                                       \
-        PUSH32I(g_psxRegs.code);                      \
+        PUSH32I(g_psxRegs.code);                    \
         PGXP_DBG_OP_E(op)                           \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 2)); \
         s_resp += 12;                               \
@@ -3008,32 +3006,32 @@ pgxpRecNULL() {}
     }
 
 static u32 gTempAddr = 0;
-#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)             \
-    static void pgxpRec##op() {                        \
-        if (IsConst(_Rs_)) {                           \
+#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)               \
+    static void pgxpRec##op() {                          \
+        if (IsConst(_Rs_)) {                             \
             MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);     \
-        } else {                                       \
+        } else {                                         \
             MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rs_]); \
-            if (_Imm_) {                               \
-                ADD32ItoR(EAX, _Imm_);                 \
-            }                                          \
-        }                                              \
-        MOV32RtoM((u32)&gTempAddr, EAX);               \
-        rec##op();                                     \
-        PUSH32M((u32)&gTempAddr);                      \
-        reg1;                                          \
+            if (_Imm_) {                                 \
+                ADD32ItoR(EAX, _Imm_);                   \
+            }                                            \
+        }                                                \
+        MOV32RtoM((u32)&gTempAddr, EAX);                 \
+        rec##op();                                       \
+        PUSH32M((u32)&gTempAddr);                        \
+        reg1;                                            \
         PUSH32I(g_psxRegs.code);                         \
-        PGXP_DBG_OP_E(op)                              \
-        CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 2));    \
-        s_resp += 12;                                  \
+        PGXP_DBG_OP_E(op)                                \
+        CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 2));      \
+        s_resp += 12;                                    \
     }
 
 #define CPU_REG_NC(idx) MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[idx])
 
-#define CPU_REG(idx)                  \
-    if (IsConst(idx))                 \
+#define CPU_REG(idx)                    \
+    if (IsConst(idx))                   \
         MOV32ItoR(EAX, s_iRegs[idx].k); \
-    else                              \
+    else                                \
         MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[idx]);
 
 #define CP0_REG(idx) MOV32MtoR(EAX, (u32)&g_psxRegs.CP0.r[idx])
@@ -3054,7 +3052,7 @@ static u32 gTempReg2 = 0;
         rec##op();                                   \
         PUSH32M((u32)&gTempReg1);                    \
         reg2;                                        \
-        PUSH32I(g_psxRegs.code);                       \
+        PUSH32I(g_psxRegs.code);                     \
         PGXP_DBG_OP_E(op)                            \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 2));  \
         s_resp += 12;                                \
@@ -3074,7 +3072,7 @@ static u32 gTempReg2 = 0;
         PUSH32M((u32)&gTempReg1);                          \
         PUSH32M((u32)&gTempReg2);                          \
         reg3;                                              \
-        PUSH32I(g_psxRegs.code);                             \
+        PUSH32I(g_psxRegs.code);                           \
         PGXP_DBG_OP_E(op)                                  \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 3));        \
         s_resp += 16;                                      \
@@ -3095,7 +3093,7 @@ static u32 gTempReg2 = 0;
         PUSH32M((u32)&gTempReg2);                                \
         reg3;                                                    \
         reg4;                                                    \
-        PUSH32I(g_psxRegs.code);                                   \
+        PUSH32I(g_psxRegs.code);                                 \
         PGXP_DBG_OP_E(op)                                        \
         CALLFunc((u32)PGXP_REC_FUNC_OP(pu, op, 4));              \
         s_resp += 20;                                            \
@@ -3216,14 +3214,14 @@ static void (*s_recSPC[64])() = {
     recNULL, recNULL,    recNULL,  recNULL,  recNULL, recNULL, recNULL, recNULL, recNULL};
 
 static void (*s_recREG[32])() = {recBLTZ,   recBGEZ,   recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                               recNULL,   recNULL,   recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                               recBLTZAL, recBGEZAL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                               recNULL,   recNULL,   recNULL, recNULL, recNULL, recNULL, recNULL, recNULL};
+                                 recNULL,   recNULL,   recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
+                                 recBLTZAL, recBGEZAL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
+                                 recNULL,   recNULL,   recNULL, recNULL, recNULL, recNULL, recNULL, recNULL};
 
 static void (*s_recCP0[32])() = {recMFC0, recNULL, recCFC0, recNULL, recMTC0, recNULL, recCTC0, recNULL,
-                               recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                               recRFE,  recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                               recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL};
+                                 recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
+                                 recRFE,  recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
+                                 recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL};
 
 static void (*s_recCP2[64])() = {
     recBASIC, recRTPS,  recNULL,  recNULL, recNULL, recNULL,  recNCLIP, recNULL,  // 00
@@ -3237,9 +3235,9 @@ static void (*s_recCP2[64])() = {
 };
 
 static void (*s_recCP2BSC[32])() = {recMFC2, recNULL, recCFC2, recNULL, recMTC2, recNULL, recCTC2, recNULL,
-                                  recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                                  recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
-                                  recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL};
+                                    recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
+                                    recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL,
+                                    recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL, recNULL};
 
 // Trace all functions using PGXP
 static void (*s_pgxpRecBSC[64])() = {
@@ -3287,7 +3285,7 @@ static void (*s_pgxpRecBSCMem[64])() = {
 
 static void recRecompile() {
     char *p;
-    char *ptr;
+    s8 *ptr;
 
     dump = 0;
     s_resp = 0;

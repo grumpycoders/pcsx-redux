@@ -138,7 +138,7 @@
     <ClCompile Include="..\..\src\core\disr3000a.c" />
     <ClCompile Include="..\..\src\core\gpu.c" />
     <ClCompile Include="..\..\src\core\gte.c" />
-    <ClCompile Include="..\..\src\core\ix86\iR3000A.c" />
+    <ClCompile Include="..\..\src\core\ix86\iR3000A.cc" />
     <ClCompile Include="..\..\src\core\ix86\ix86.c" />
     <ClCompile Include="..\..\src\core\mdec.c" />
     <ClCompile Include="..\..\src\core\misc.c" />
