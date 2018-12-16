@@ -66,11 +66,6 @@
 #define _(msgid) msgid
 #define N_(msgid) msgid
 
-extern FILE *g_emuLog;
-extern int g_log;
-
-void __Log(char *fmt, ...);
-
 typedef struct {
     char Gpu[MAXPATHLEN];
     char Spu[MAXPATHLEN];

@@ -24,14 +24,24 @@ namespace PCSX {
 
 class System {
   public:
-    virtual void SysReset() = 0;                           // Request a system reset
-    virtual void SysBiosPrintf(const char *fmt, ...) = 0;  // Printf used by bios syscalls
+    // Requests a system reset
+    virtual void SysReset() = 0;                           
+    // Printf used by bios syscalls
+    virtual void SysBiosPrintf(const char *fmt, ...) = 0;  
     virtual void SysBiosPrintf(const char *fmt, va_list va) = 0;
-    virtual void SysPrintf(const char *fmt, ...) = 0;      // Printf used by the code in general
-    virtual void SysMessage(const char *fmt, ...) = 0;     // Message used to print msg to users
-    virtual void SysUpdate() = 0;                          // Called on VBlank (to update i.e. pads)
-    virtual void SysRunGui() = 0;                          // Returns to the Gui
-    virtual void SysClose() = 0;                           // Close mem and plugins
+    // Printf used by the code in general, to indicate errors most of the time
+    // TODO: convert them all to logs
+    virtual void SysPrintf(const char *fmt, ...) = 0;      
+    // Add a log line
+    virtual void SysLog(const char *facility, const char *fmt, va_list a) = 0;
+    // Message used to print msg to users
+    virtual void SysMessage(const char *fmt, ...) = 0;
+    // Called on VBlank (to update i.e. pads)
+    virtual void SysUpdate() = 0;
+    // Returns to the Gui
+    virtual void SysRunGui() = 0;
+    // Close mem and plugins
+    virtual void SysClose() = 0;
 };
 
 extern System *system;

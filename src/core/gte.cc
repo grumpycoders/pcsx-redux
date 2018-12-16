@@ -447,10 +447,7 @@ static int docop2(int op) {
     switch (GTE_FUNCT(gteop)) {
         case 0x00:
         case 0x01:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: RTPS|", op);
-#endif
-
             MAC1 = A1(/*int44*/ (int64_t)((int64_t)TRX << 12) + (R11 * VX0) + (R12 * VY0) + (R13 * VZ0));
             MAC2 = A2(/*int44*/ (int64_t)((int64_t)TRY << 12) + (R21 * VX0) + (R22 * VY0) + (R23 * VZ0));
             MAC3 = A3(/*int44*/ (int64_t)((int64_t)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
@@ -477,9 +474,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x06:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCLIP|", op);
-#endif
             if (PGXP_NLCIP_valid(SXY0, SXY1, SXY2))
                 MAC0 = F(PGXP_NCLIP());
             else
@@ -487,10 +482,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x0c:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: OP|", op);
-#endif
-
             MAC1 = A1((int64_t)(R22 * IR3) - (R33 * IR2));
             MAC2 = A2((int64_t)(R33 * IR1) - (R11 * IR3));
             MAC3 = A3((int64_t)(R11 * IR2) - (R22 * IR1));
@@ -500,10 +492,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x10:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: DPCS|", op);
-#endif
-
             MAC1 = A1((R << 16) + (IR0 * Lm_B1(A1(((int64_t)RFC << 12) - (R << 16)), 0)));
             MAC2 = A2((G << 16) + (IR0 * Lm_B2(A2(((int64_t)GFC << 12) - (G << 16)), 0)));
             MAC3 = A3((B << 16) + (IR0 * Lm_B3(A3(((int64_t)BFC << 12) - (B << 16)), 0)));
@@ -519,10 +508,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x11:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: INTPL|", op);
-#endif
-
             MAC1 = A1((IR1 << 12) + (IR0 * Lm_B1(A1(((int64_t)RFC << 12) - (IR1 << 12)), 0)));
             MAC2 = A2((IR2 << 12) + (IR0 * Lm_B2(A2(((int64_t)GFC << 12) - (IR2 << 12)), 0)));
             MAC3 = A3((IR3 << 12) + (IR0 * Lm_B3(A3(((int64_t)BFC << 12) - (IR3 << 12)), 0)));
@@ -538,10 +524,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x12:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: MVMVA|", op);
-#endif
-
             mx = GTE_MX(gteop);
             v = GTE_V(gteop);
             cv = GTE_CV(gteop);
@@ -572,10 +555,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x13:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCDS|", op);
-#endif
-
             MAC1 = A1((int64_t)(L11 * VX0) + (L12 * VY0) + (L13 * VZ0));
             MAC2 = A2((int64_t)(L21 * VX0) + (L22 * VY0) + (L23 * VZ0));
             MAC3 = A3((int64_t)(L31 * VX0) + (L32 * VY0) + (L33 * VZ0));
@@ -603,10 +583,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x14:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: CDP|", op);
-#endif
-
             MAC1 = A1(/*int44*/ (int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
             MAC2 = A2(/*int44*/ (int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
             MAC3 = A3(/*int44*/ (int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
@@ -628,10 +605,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x16:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCDT|", op);
-#endif
-
             for (v = 0; v < 3; v++) {
                 MAC1 = A1((int64_t)(L11 * VX(v)) + (L12 * VY(v)) + (L13 * VZ(v)));
                 MAC2 = A2((int64_t)(L21 * VX(v)) + (L22 * VY(v)) + (L23 * VZ(v)));
@@ -661,10 +635,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x1b:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCCS|", op);
-#endif
-
             MAC1 = A1((int64_t)(L11 * VX0) + (L12 * VY0) + (L13 * VZ0));
             MAC2 = A2((int64_t)(L21 * VX0) + (L22 * VY0) + (L23 * VZ0));
             MAC3 = A3((int64_t)(L31 * VX0) + (L32 * VY0) + (L33 * VZ0));
@@ -692,10 +663,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x1c:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: CC|", op);
-#endif
-
             MAC1 = A1(/*int44*/ (int64_t)(((int64_t)RBK) << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3));
             MAC2 = A2(/*int44*/ (int64_t)(((int64_t)GBK) << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3));
             MAC3 = A3(/*int44*/ (int64_t)(((int64_t)BBK) << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3));
@@ -717,10 +685,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x1e:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCS|", op);
-#endif
-
             MAC1 = A1((int64_t)(L11 * VX0) + (L12 * VY0) + (L13 * VZ0));
             MAC2 = A2((int64_t)(L21 * VX0) + (L22 * VY0) + (L23 * VZ0));
             MAC3 = A3((int64_t)(L31 * VX0) + (L32 * VY0) + (L33 * VZ0));
@@ -742,10 +707,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x20:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCT|", op);
-#endif
-
             for (v = 0; v < 3; v++) {
                 MAC1 = A1((int64_t)(L11 * VX(v)) + (L12 * VY(v)) + (L13 * VZ(v)));
                 MAC2 = A2((int64_t)(L21 * VX(v)) + (L22 * VY(v)) + (L23 * VZ(v)));
@@ -769,10 +731,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x28:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: SQR|", op);
-#endif
-
             MAC1 = A1(IR1 * IR1);
             MAC2 = A2(IR2 * IR2);
             MAC3 = A3(IR3 * IR3);
@@ -782,10 +741,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x29:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: DPCL|", op);
-#endif
-
             MAC1 = A1(((R << 4) * IR1) + (IR0 * Lm_B1(A1(((int64_t)RFC << 12) - ((R << 4) * IR1)), 0)));
             MAC2 = A2(((G << 4) * IR2) + (IR0 * Lm_B2(A2(((int64_t)GFC << 12) - ((G << 4) * IR2)), 0)));
             MAC3 = A3(((B << 4) * IR3) + (IR0 * Lm_B3(A3(((int64_t)BFC << 12) - ((B << 4) * IR3)), 0)));
@@ -801,10 +757,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x2a:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: DPCT|", op);
-#endif
-
             for (v = 0; v < 3; v++) {
                 MAC1 = A1((R0 << 16) + (IR0 * Lm_B1(A1(((int64_t)RFC << 12) - (R0 << 16)), 0)));
                 MAC2 = A2((G0 << 16) + (IR0 * Lm_B2(A2(((int64_t)GFC << 12) - (G0 << 16)), 0)));
@@ -822,28 +775,19 @@ static int docop2(int op) {
             return 1;
 
         case 0x2d:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: AVSZ3|", op);
-#endif
-
             MAC0 = F((int64_t)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
             OTZ = Lm_D(s_mac0, 1);
             return 1;
 
         case 0x2e:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: AVSZ4|", op);
-#endif
-
             MAC0 = F((int64_t)(ZSF4 * SZ0) + (ZSF4 * SZ1) + (ZSF4 * SZ2) + (ZSF4 * SZ3));
             OTZ = Lm_D(s_mac0, 1);
             return 1;
 
         case 0x30:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: RTPT|", op);
-#endif
-
             for (v = 0; v < 3; v++) {
                 MAC1 = A1(/*int44*/ (int64_t)((int64_t)TRX << 12) + (R11 * VX(v)) + (R12 * VY(v)) + (R13 * VZ(v)));
                 MAC2 = A2(/*int44*/ (int64_t)((int64_t)TRY << 12) + (R21 * VX(v)) + (R22 * VY(v)) + (R23 * VZ(v)));
@@ -879,10 +823,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x3d:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: GPF|", op);
-#endif
-
             MAC1 = A1(IR0 * IR1);
             MAC2 = A2(IR0 * IR2);
             MAC3 = A3(IR0 * IR3);
@@ -898,10 +839,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x3e:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: GPL|", op);
-#endif
-
             MAC1 = A1(gte_shift(MAC1, -s_sf) + (IR0 * IR1));
             MAC2 = A2(gte_shift(MAC2, -s_sf) + (IR0 * IR2));
             MAC3 = A3(gte_shift(MAC3, -s_sf) + (IR0 * IR3));
@@ -917,10 +855,7 @@ static int docop2(int op) {
             return 1;
 
         case 0x3f:
-#ifdef GTE_LOG
             GTE_LOG("%08x GTE: NCCT|", op);
-#endif
-
             for (v = 0; v < 3; v++) {
                 MAC1 = A1((int64_t)(L11 * VX(v)) + (L12 * VY(v)) + (L13 * VZ(v)));
                 MAC2 = A2((int64_t)(L21 * VX(v)) + (L22 * VY(v)) + (L23 * VZ(v)));

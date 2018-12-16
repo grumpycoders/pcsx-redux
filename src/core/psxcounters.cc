@@ -66,13 +66,6 @@ static const uint32_t s_frameRate[] = {60, 50};
 static const uint32_t s_VBlankStart[] = {243, 256};
 static const uint32_t s_spuUpdInterval[] = {23, 22};
 
-#if defined(PSXHW_LOG)
-#if defined(PSXMEM_LOG) && defined(PSXDMA_LOG)  // automatic guess if we want trace level logging
-static const int32_t VerboseLevel = 4;
-#else
-static const int32_t VerboseLevel = 0;
-#endif
-#endif
 static const uint16_t JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
 
 /******************************************************************************/
@@ -90,18 +83,10 @@ uint32_t g_psxNextCounter = 0, g_psxNextsCounter = 0;
 static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
 
 static void verboseLog(int32_t level, const char *str, ...) {
-#ifdef PSXHW_LOG
-    if (level <= VerboseLevel) {
-        va_list va;
-        char buf[4096];
-
-        va_start(va, str);
-        vsnprintf(buf, sizeof(buf), str, va);
-        va_end(va);
-
-        PSXHW_LOG("%s", buf);
-    }
-#endif
+    va_list va;
+    va_start(va, str);
+    PSXHW_LOGV(str, va);
+    va_end(va);
 }
 
 /******************************************************************************/

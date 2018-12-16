@@ -359,9 +359,7 @@ static void Find_CurTrack(const uint8_t *time) {
         sect = fsm2sec(g_cdr.ResultTD);
         if (sect - current >= 150) break;
     }
-#ifdef CDR_LOG
     CDR_LOG("Find_CurTrack *** %02d %02d\n", g_cdr.CurTrack, current);
-#endif
 }
 
 static void generate_subq(const uint8_t *time) {
@@ -422,9 +420,7 @@ static void ReadTrack(const uint8_t *time) {
 
     if (memcmp(g_cdr.Prev, tmp, 3) == 0) return;
 
-#ifdef CDR_LOG
     CDR_LOG("ReadTrack *** %02x:%02x:%02x\n", tmp[0], tmp[1], tmp[2]);
-#endif
 
     g_cdr.RErr = CDR_readTrack(tmp);
     memcpy(g_cdr.Prev, tmp, 3);
@@ -438,19 +434,15 @@ static void ReadTrack(const uint8_t *time) {
             memcpy(g_cdr.subq.Relative, subq->TrackRelativeAddress, 3);
             memcpy(g_cdr.subq.Absolute, subq->AbsoluteAddress, 3);
         } else {
-#ifdef CDR_LOG_IO
             CDR_LOG_IO("subq bad crc @%02x:%02x:%02x\n", tmp[0], tmp[1], tmp[2]);
-#endif
         }
     } else {
         generate_subq(time);
     }
 
-#ifdef CDR_LOG
     CDR_LOG(" -> %02x,%02x %02x:%02x:%02x %02x:%02x:%02x\n", g_cdr.subq.Track, g_cdr.subq.Index, g_cdr.subq.Relative[0],
             g_cdr.subq.Relative[1], g_cdr.subq.Relative[2], g_cdr.subq.Absolute[0], g_cdr.subq.Absolute[1],
             g_cdr.subq.Absolute[2]);
-#endif
 }
 
 static void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
@@ -460,9 +452,7 @@ static void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
             CDR_INT(ecycle);
             return;
         }
-#ifdef CDR_LOG_IO
         CDR_LOG_IO("cdr: override cmd %02x -> %02x\n", g_cdr.Irq, irq);
-#endif
     }
 
     g_cdr.Irq = irq;
@@ -473,9 +463,7 @@ static void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
 
 static void cdrPlayInterrupt_Autopause() {
     if ((g_cdr.Mode & MODE_AUTOPAUSE) && g_cdr.TrackChanged) {
-#ifdef CDR_LOG
         CDR_LOG("CDDA STOP\n");
-#endif
         // Magic the Gathering
         // - looping territory cdda
 
@@ -540,9 +528,7 @@ void cdrPlayInterrupt() {
     }
 
     if (!g_cdr.Play) return;
-#ifdef CDR_LOG
     CDR_LOG("CDDA - %d:%d:%d\n", g_cdr.SetSectorPlay[0], g_cdr.SetSectorPlay[1], g_cdr.SetSectorPlay[2]);
-#endif
     if (memcmp(g_cdr.SetSectorPlay, g_cdr.SetSectorEnd, 3) == 0) {
         StopCdda();
         g_cdr.TrackChanged = true;
@@ -604,9 +590,7 @@ void cdrInterrupt() {
     }
 
     g_cdr.Irq = 0;
-#ifdef CDR_LOG
     CDR_LOG("CDRINT %x %x %x %x\n", g_cdr.Seeked, g_cdr.Stat, Irq, g_cdr.IrqRepeated);
-#endif
     switch (Irq) {
         case CdlSync:
             // TOOD: sometimes/always return error?
@@ -636,17 +620,13 @@ void cdrInterrupt() {
             // - Pause player, hit Track 01/02/../xx (Setloc issued!!)
 
             if (g_cdr.ParamC == 0 || g_cdr.Param[0] == 0) {
-#ifdef CDR_LOG
                 CDR_LOG("PLAY Resume @ %d:%d:%d\n", g_cdr.SetSectorPlay[0], g_cdr.SetSectorPlay[1], g_cdr.SetSectorPlay[2]);
-#endif
             } else {
                 int track = btoi(g_cdr.Param[0]);
 
                 if (track <= g_cdr.ResultTN[1]) g_cdr.CurTrack = track;
 
-#ifdef CDR_LOG
                 CDR_LOG("PLAY track %d\n", g_cdr.CurTrack);
-#endif
 
                 if (CDR_getTD((uint8_t)g_cdr.CurTrack, g_cdr.ResultTD) != -1) {
                     g_cdr.SetSectorPlay[0] = g_cdr.ResultTD[2];
@@ -934,9 +914,7 @@ void cdrInterrupt() {
 
         case CdlGetQ:
             // TODO?
-#ifdef CDR_LOG
             CDR_LOG("got CdlGetQ\n");
-#endif
             break;
 
         case CdlReadToc:
@@ -1003,9 +981,7 @@ void cdrInterrupt() {
             break;
 
         default:
-#ifdef CDR_LOG
             CDR_LOG("Invalid command: %02x\n", Irq);
-#endif
             error = ERROR_INVALIDCMD;
             // FALLTHROUGH
 
@@ -1039,14 +1015,11 @@ finish:
     setIrq();
     g_cdr.ParamC = 0;
 
-#ifdef CDR_LOG_IO
     {
-        int i;
         CDR_LOG_IO("CDR IRQ %d cmd %02x stat %02x: ", !!(g_cdr.Stat & g_cdr.Reg2), Irq, g_cdr.Stat);
-        for (i = 0; i < g_cdr.ResultC; i++) CDR_LOG_IO("%02x ", g_cdr.Result[i]);
+        for (int i = 0; i < g_cdr.ResultC; i++) CDR_LOG_IO("%02x ", g_cdr.Result[i]);
         CDR_LOG_IO("\n");
     }
-#endif
 }
 
 #define ssat32_to_16(v)     \
@@ -1123,9 +1096,7 @@ void cdrReadInterrupt() {
     if (buf == NULL) g_cdr.RErr = -1;
 
     if (g_cdr.RErr == -1) {
-#ifdef CDR_LOG
         CDR_LOG("cdrReadInterrupt() Log: err\n");
-#endif
         memset(g_cdr.Transfer, 0, DATA_SIZE);
         g_cdr.Stat = DiskError;
         g_cdr.Result[0] |= STATUS_ERROR;
@@ -1136,9 +1107,7 @@ void cdrReadInterrupt() {
     memcpy(g_cdr.Transfer, buf, DATA_SIZE);
     CheckPPFCache(g_cdr.Transfer, g_cdr.Prev[0], g_cdr.Prev[1], g_cdr.Prev[2]);
 
-#ifdef CDR_LOG
     CDR_LOG("cdrReadInterrupt() Log: cdr.Transfer %x:%x:%x\n", g_cdr.Transfer[0], g_cdr.Transfer[1], g_cdr.Transfer[2]);
-#endif
 
     if ((!g_cdr.Muted) && (g_cdr.Mode & MODE_STRSND) && (!g_config.Xa) && (g_cdr.FirstSector != -1)) {  // CD-XA
         // Firemen 2: Multi-XA files - briefings, cutscenes
@@ -1212,16 +1181,12 @@ unsigned char cdrRead0(void) {
     // What means the 0x10 and the 0x08 bits? I only saw it used by the bios
     g_cdr.Ctrl |= 0x18;
 
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr r0: %02x\n", g_cdr.Ctrl);
-#endif
     return psxHu8(0x1800) = g_cdr.Ctrl;
 }
 
 void cdrWrite0(unsigned char rt) {
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr w0: %02x\n", rt);
-#endif
     g_cdr.Ctrl = (rt & 3) | (g_cdr.Ctrl & ~3);
 }
 
@@ -1232,18 +1197,14 @@ unsigned char cdrRead1(void) {
         psxHu8(0x1801) = 0;
     g_cdr.ResultP++;
     if (g_cdr.ResultP == g_cdr.ResultC) g_cdr.ResultReady = 0;
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr r1: %02x\n", psxHu8(0x1801));
-#endif
     return psxHu8(0x1801);
 }
 
 void cdrWrite1(unsigned char rt) {
     uint8_t set_loc[3];
     int i;
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr w1: %02x\n", rt);
-#endif
     switch (g_cdr.Ctrl & 3) {
         case 0:
             break;
@@ -1257,7 +1218,6 @@ void cdrWrite1(unsigned char rt) {
     g_cdr.Cmd = rt;
     g_cdr.OCUP = 0;
 
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("CD1 write: %x (%s)", rt, CmdName[rt]);
     if (g_cdr.ParamC) {
         CDR_LOG_IO(" Param[%d] = {", g_cdr.ParamC);
@@ -1266,7 +1226,6 @@ void cdrWrite1(unsigned char rt) {
     } else {
         CDR_LOG_IO("\n");
     }
-#endif
 
     g_cdr.ResultReady = 0;
     g_cdr.Ctrl |= 0x80;
@@ -1301,9 +1260,7 @@ void cdrWrite1(unsigned char rt) {
             break;
 
         case CdlSetmode:
-#ifdef CDR_LOG
             CDR_LOG("cdrWrite1() Log: Setmode %x\n", g_cdr.Param[0]);
-#endif
             g_cdr.Mode = g_cdr.Param[0];
 
             // Squaresoft on PlayStation 1998 Collector's CD Vol. 1
@@ -1323,16 +1280,12 @@ unsigned char cdrRead2(void) {
         g_cdr.transferIndex++;
         adjustTransferIndex();
     }
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr r2: %02x\n", ret);
-#endif
     return ret;
 }
 
 void cdrWrite2(unsigned char rt) {
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr w2: %02x\n", rt);
-#endif
     switch (g_cdr.Ctrl & 3) {
         case 0:
             if (g_cdr.ParamC < 8)  // FIXME: size and wrapping
@@ -1356,16 +1309,12 @@ unsigned char cdrRead3(void) {
         psxHu8(0x1803) = g_cdr.Stat | 0xE0;
     else
         psxHu8(0x1803) = g_cdr.Reg2 | 0xE0;
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr r3: %02x\n", psxHu8(0x1803));
-#endif
     return psxHu8(0x1803);
 }
 
 void cdrWrite3(unsigned char rt) {
-#ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr w3: %02x\n", rt);
-#endif
     switch (g_cdr.Ctrl & 3) {
         case 0:
             break;  // transfer
@@ -1380,10 +1329,8 @@ void cdrWrite3(unsigned char rt) {
         case 3:
             if (rt & 0x20) {
                 memcpy(&g_cdr.AttenuatorLeftToLeft, &g_cdr.AttenuatorLeftToLeftT, 4);
-#ifdef CDR_LOG_IO
                 CDR_LOG_IO("CD-XA Volume: %02x %02x | %02x %02x\n", g_cdr.AttenuatorLeftToLeft, g_cdr.AttenuatorLeftToRight,
                            g_cdr.AttenuatorRightToLeft, g_cdr.AttenuatorRightToRight);
-#endif
             }
             return;
     }
@@ -1413,17 +1360,13 @@ void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     int i;
     uint8_t *ptr;
 
-#ifdef CDR_LOG
     CDR_LOG("psxDma3() Log: *** DMA 3 *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
 
     switch (chcr) {
         case 0x11000000:
         case 0x11400100:
             if (g_cdr.Readed == 0) {
-#ifdef CDR_LOG
                 CDR_LOG("psxDma3() Log: *** DMA 3 *** NOT READY\n");
-#endif
                 break;
             }
 
@@ -1448,9 +1391,7 @@ void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
 
             ptr = (uint8_t *)PSXM(madr);
             if (ptr == NULL) {
-#ifdef CDR_LOG
                 CDR_LOG("psxDma3() Log: *** DMA 3 *** NULL Pointer!\n");
-#endif
                 break;
             }
 
@@ -1475,9 +1416,7 @@ void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
             return;
 
         default:
-#ifdef CDR_LOG
             CDR_LOG("psxDma3() Log: Unknown cddma %x\n", chcr);
-#endif
             break;
     }
 

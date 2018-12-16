@@ -180,9 +180,7 @@ uint8_t psxMemRead8(uint32_t mem) {
             if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR1);
             return *(uint8_t *)(p + (mem & 0xffff));
         } else {
-#ifdef PSXMEM_LOG
             PSXMEM_LOG("err lb %8.8lx\n", mem);
-#endif
             return 0;
         }
     }
@@ -208,9 +206,7 @@ uint16_t psxMemRead16(uint32_t mem) {
             if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR2);
             return SWAPu16(*(uint16_t *)(p + (mem & 0xffff)));
         } else {
-#ifdef PSXMEM_LOG
             PSXMEM_LOG("err lh %8.8lx\n", mem);
-#endif
             return 0;
         }
     }
@@ -236,11 +232,9 @@ uint32_t psxMemRead32(uint32_t mem) {
             if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR4);
             return SWAPu32(*(uint32_t *)(p + (mem & 0xffff)));
         } else {
-#ifdef PSXMEM_LOG
             if (writeok) {
                 PSXMEM_LOG("err lw %8.8lx\n", mem);
             }
-#endif
             return 0;
         }
     }
@@ -267,9 +261,7 @@ void psxMemWrite8(uint32_t mem, uint8_t value) {
             *(uint8_t *)(p + (mem & 0xffff)) = value;
             g_psxCpu->Clear((mem & (~3)), 1);
         } else {
-#ifdef PSXMEM_LOG
             PSXMEM_LOG("err sb %8.8lx\n", mem);
-#endif
         }
     }
 }
@@ -295,9 +287,7 @@ void psxMemWrite16(uint32_t mem, uint16_t value) {
             *(uint16_t *)(p + (mem & 0xffff)) = SWAPu16(value);
             g_psxCpu->Clear((mem & (~3)), 1);
         } else {
-#ifdef PSXMEM_LOG
             PSXMEM_LOG("err sh %8.8lx\n", mem);
-#endif
         }
     }
 }
@@ -327,11 +317,9 @@ void psxMemWrite32(uint32_t mem, uint32_t value) {
             if (mem != 0xfffe0130) {
                 if (!writeok) g_psxCpu->Clear(mem, 1);
 
-#ifdef PSXMEM_LOG
                 if (writeok) {
                     PSXMEM_LOG("err sw %8.8lx\n", mem);
                 }
-#endif
             } else {
                 int i;
 
@@ -356,9 +344,7 @@ void psxMemWrite32(uint32_t mem, uint32_t value) {
                         memcpy(g_psxMemWLUT + 0xa000, g_psxMemWLUT, 0x80 * sizeof(void *));
                         break;
                     default:
-#ifdef PSXMEM_LOG
                         PSXMEM_LOG("unk %8.8lx = %x\n", mem, value);
-#endif
                         break;
                 }
             }

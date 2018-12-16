@@ -101,9 +101,7 @@ uint32_t PGXP_ConvertAddress(uint32_t addr) {
             break;
     }
 
-#ifdef GTE_LOG
-        // GTE_LOG("PGXP_Read %x [%x] |", addr, paddr);
-#endif
+    GTE_LOG("PGXP_Read %x [%x] |", addr, paddr);
 
     return paddr;
 }

@@ -489,10 +489,8 @@ int Load(const char *ExePath) {
                             fread(&section_size, 4, 1, tmpFile);
                             section_address = SWAPu32(section_address);
                             section_size = SWAPu32(section_size);
-#ifdef EMU_LOG
                             EMU_LOG("Loading %08X bytes from %08X to %08X\n", section_size, ftell(tmpFile),
                                     section_address);
-#endif
                             fread(PSXM(section_address), section_size, 1, tmpFile);
                             break;
                         case 3:                          /* register loading (PC only?) */

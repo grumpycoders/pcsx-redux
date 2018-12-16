@@ -35,14 +35,10 @@ static uint32_t s_branchPC;
 
 // These macros are used to assemble the repassembler functions
 
-#ifdef PSXCPU_LOG
-#define debugI()                                                  \
-    if (g_config.PsxOut) {                                          \
+#define debugI()                                                      \
+    if (g_config.PsxOut) {                                            \
         PSXCPU_LOG("%s\n", disR3000AF(g_psxRegs.code, g_psxRegs.pc)); \
     }
-#else
-#define debugI()
-#endif
 
 static inline void execI();
 
@@ -1070,9 +1066,7 @@ static void psxCFC2() {
  * Format:  ?                                             *
  *********************************************************/
 static void psxNULL() {
-#ifdef PSXCPU_LOG
     PSXCPU_LOG("psx: Unimplemented op %x\n", g_psxRegs.code);
-#endif
 }
 
 static void psxSPECIAL() { s_pPsxSPC[_Funct_](); }

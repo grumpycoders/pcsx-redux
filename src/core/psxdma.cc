@@ -37,14 +37,10 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
 
     switch (chcr) {
         case 0x01000201:  // cpu to spu transfer
-#ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA4 SPU - mem2spu *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
             ptr = (uint16_t *)PSXM(madr);
             if (ptr == NULL) {
-#ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
-#endif
                 break;
             }
             SPU_writeDMAMem(ptr, (bcr >> 16) * (bcr & 0xffff) * 2);
@@ -57,14 +53,10 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             return;
 
         case 0x01000200:  // spu to cpu transfer
-#ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA4 SPU - spu2mem *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
             ptr = (uint16_t *)PSXM(madr);
             if (ptr == NULL) {
-#ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA4 SPU - spu2mem *** NULL Pointer!!!\n");
-#endif
                 break;
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
@@ -79,11 +71,9 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
 #endif
             return;
 
-#ifdef PSXDMA_LOG
         default:
             PSXDMA_LOG("*** DMA4 SPU - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
             break;
-#endif
     }
 
     HW_DMA4_CHCR &= SWAP32(~0x01000000);
@@ -94,15 +84,11 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     uint32_t size;
     uint32_t *mem = (uint32_t *)PSXM(madr);
 
-#ifdef PSXDMA_LOG
     PSXDMA_LOG("*** DMA6 OT *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
 
     if (chcr == 0x11000002) {
         if (mem == NULL) {
-#ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA6 OT *** NULL Pointer!!!\n");
-#endif
             HW_DMA6_CHCR &= SWAP32(~0x01000000);
             DMA_INTERRUPT(6);
             return;
@@ -126,12 +112,10 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
 #endif
         return;
     }
-#ifdef PSXDMA_LOG
     else {
         // Unknown option
         PSXDMA_LOG("*** DMA6 OT - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
     }
-#endif
 
     HW_DMA6_CHCR &= SWAP32(~0x01000000);
     DMA_INTERRUPT(6);

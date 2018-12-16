@@ -39,8 +39,6 @@ int psxInit() {
     } else
         g_psxCpu = &g_psxRec;
 
-    g_log = 0;
-
     if (psxMemInit() == -1) return -1;
     PGXP_Init();
     PauseDebugger();
@@ -65,10 +63,7 @@ void psxReset() {
 
     if (!g_config.HLE) psxExecuteBios();
 
-#ifdef EMU_LOG
     EMU_LOG("*BIOS END*\n");
-#endif
-    g_log = 0;
 }
 
 void psxShutdown() {
@@ -84,9 +79,7 @@ void psxException(uint32_t code, uint32_t bd) {
 
     // Set the EPC & PC
     if (bd) {
-#ifdef PSXCPU_LOG
         PSXCPU_LOG("bd set!!!\n");
-#endif
         PCSX::system->SysPrintf("bd set!!!\n");
         g_psxRegs.CP0.n.Cause |= 0x80000000;
         g_psxRegs.CP0.n.EPC = (g_psxRegs.pc - 4);
@@ -113,9 +106,7 @@ void psxBranchTest() {
             // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
             opcode = SWAP32(*Read_ICache(g_psxRegs.pc, true));
             if (((opcode >> 24) & 0xfe) != 0x4a) {
-#ifdef PSXCPU_LOG
                 PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
-#endif
                 psxException(0x400, 0);
             }
         }
@@ -238,30 +229,24 @@ void psxJumpTest() {
                 if (biosA0[call])
                     biosA0[call]();
                 else if (call != 0x28 && call != 0xe) {
-#ifdef PSXBIOS_LOG
                     PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", g_biosA0n[call], call, g_psxRegs.GPR.n.a0,
                                 g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
-#endif
                 }
                 break;
             case 0xb0:
                 if (biosB0[call])
                     biosB0[call]();
                 else if (call != 0x17 && call != 0xb) {
-#ifdef PSXBIOS_LOG
                     PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", g_biosB0n[call], call, g_psxRegs.GPR.n.a0,
                                 g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
-#endif
                 }
                 break;
             case 0xc0:
                 if (biosC0[call])
                     biosC0[call]();
                 else {
-#ifdef PSXBIOS_LOG
                     PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", g_biosC0n[call], call, g_psxRegs.GPR.n.a0,
                                 g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
-#endif
                 }
 
                 break;

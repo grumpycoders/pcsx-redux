@@ -26,9 +26,6 @@
 PcsxConfig g_config;
 bool g_netOpened = false;
 
-int g_log = 0;
-FILE *g_emuLog = NULL;
-
 // It is safe if these overflow
 uint32_t g_rewind_counter = 0;
 uint8_t g_vblank_count_hideafter = 0;
@@ -79,19 +76,3 @@ void EmuUpdate() {
 }
 
 void EmuSetPGXPMode(uint32_t pgxpMode) { psxSetPGXPMode(pgxpMode); }
-
-void __Log(char *fmt, ...) {
-    va_list list;
-#ifdef LOG_STDOUT
-    char tmp[1024];
-#endif
-
-    va_start(list, fmt);
-#ifndef LOG_STDOUT
-    vfprintf(g_emuLog, fmt, list);
-#else
-    vsprintf(tmp, fmt, list);
-    PCSX::system->SysPrintf(tmp);
-#endif
-    va_end(list);
-}

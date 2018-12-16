@@ -88,9 +88,7 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
     else
         GPU_pgxpCacheVertex(0, 0, NULL);
 
-#ifdef GTE_LOG
     GTE_LOG("PGXP_PUSH (%f, %f) %u %u|", SXY2.x, SXY2.y, SXY2.flags, SXY2.count);
-#endif
 }
 
 void PGXP_pushSXYZ2s(int64_t _x, int64_t _y, int64_t _z, uint32_t v) {

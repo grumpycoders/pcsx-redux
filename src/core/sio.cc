@@ -142,9 +142,7 @@ unsigned char reverse_8(unsigned char bits) {
 }
 
 void sioWrite8(unsigned char value) {
-#ifdef PAD_LOG
     PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, s_parp, s_padst, s_mcdst);
-#endif
     switch (s_padst) {
         case 1:
             SIO_INT(SIO_CYCLES);
@@ -608,10 +606,7 @@ s_buf[5]);
                 s_parp++;
                 if (s_parp == s_bufcount) {
                     s_gsdonglest = 0;
-
-#ifdef GSDONGLE_LOG
-                    PAD_LOG("(gameshark dongle) DONE!!\n");
-#endif
+                    MISC_LOG("(gameshark dongle) DONE!!\n");
                 }
             } else {
                 // ERROR!!
@@ -719,9 +714,7 @@ void sioWriteStat16(unsigned short value) {}
 void sioWriteMode16(unsigned short value) { s_modeReg = value; }
 
 void sioWriteCtrl16(unsigned short value) {
-#ifdef PAD_LOG
     PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, s_parp, s_padst, s_mcdst);
-#endif
     s_ctrlReg = value & ~RESET_ERR;
     if (value & RESET_ERR) s_statReg &= ~IRQ;
     if ((s_ctrlReg & SIO_RESET) || (!s_ctrlReg)) {
@@ -766,10 +759,8 @@ unsigned char sioRead8() {
         }
     }
 
-#ifdef PAD_LOG
     PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg, s_buf[s_parp > 0 ? s_parp - 1 : 0],
             s_buf[s_parp], s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
-#endif
     return ret;
 }
 
@@ -808,9 +799,7 @@ void netError() {
 }
 
 void sioInterrupt() {
-#ifdef PAD_LOG
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", g_psxRegs.CP0.n.Status);
-#endif
     //	PCSX::system->SysPrintf("Sio Interrupt\n");
     s_statReg |= IRQ;
     psxHu32ref(0x1070) |= SWAPu32(0x80);
