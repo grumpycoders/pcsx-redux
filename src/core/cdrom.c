@@ -915,7 +915,7 @@ void cdrInterrupt() {
                 g_cdr.Result[1] = 0xc0;
             } else {
                 if (stat.Type == 2) g_cdr.Result[1] |= 0x10;
-                if (CdromId[0] == '\0') g_cdr.Result[1] |= 0x80;
+                if (g_cdromId[0] == '\0') g_cdr.Result[1] |= 0x80;
             }
             g_cdr.Result[0] |= (g_cdr.Result[1] >> 4) & 0x08;
 

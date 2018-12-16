@@ -800,8 +800,8 @@ void netError() {
     // ClosePlugins();
     SysMessage("%s", _("Connection closed!\n"));
 
-    CdromId[0] = '\0';
-    CdromLabel[0] = '\0';
+    g_cdromId[0] = '\0';
+    g_cdromLabel[0] = '\0';
 
     SysRunGui();
 }

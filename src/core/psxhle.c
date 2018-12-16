@@ -57,7 +57,7 @@ static void hleBootstrap() {  // 0xbfc00000
     SysPrintf("hleBootstrap\n");
     CheckCdrom();
     LoadCdrom();
-    SysPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", CdromLabel, (unsigned int)g_psxRegs.pc,
+    SysPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", g_cdromLabel, (unsigned int)g_psxRegs.pc,
               (unsigned int)g_psxRegs.GPR.n.sp);
 }
 

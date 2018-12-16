@@ -21,14 +21,15 @@
  * Miscellaneous functions, including savestates and CD-ROM loading.
  */
 
-#include "misc.h"
 #include <stddef.h>
-#include "cdrom.h"
-#include "mdec.h"
-#include "ppf.h"
 
-char CdromId[10] = "";
-char CdromLabel[33] = "";
+#include "core/cdrom.h"
+#include "core/mdec.h"
+#include "core/misc.h"
+#include "core/ppf.h"
+
+char g_cdromId[10] = "";
+char g_cdromLabel[33] = "";
 
 // PSX Executable types
 #define PSX_EXE 1
@@ -53,8 +54,8 @@ struct iso_directory_record {
 };
 
 // local extern
-void trim_key(char *str, char key);
-void split(char *str, char key, char *pout);
+static void trim_key(char *str, char key);
+static void split(char *str, char key, char *pout);
 
 void mmssdd(char *b, char *p) {
     int m, s, d;
@@ -306,11 +307,11 @@ int CheckCdrom() {
 
     READTRACK();
 
-    memset(CdromLabel, 0, sizeof(CdromLabel));
-    memset(CdromId, 0, sizeof(CdromId));
+    memset(g_cdromLabel, 0, sizeof(g_cdromLabel));
+    memset(g_cdromId, 0, sizeof(g_cdromId));
     memset(exename, 0, sizeof(exename));
 
-    strncpy(CdromLabel, buf + 52, 32);
+    strncpy(g_cdromLabel, buf + 52, 32);
 
     // skip head and sub, and go to the root directory record
     dir = (struct iso_directory_record *)&buf[12 + 156];
@@ -342,24 +343,24 @@ int CheckCdrom() {
         }
     } else if (GetCdromFile(mdir, time, "PSX.EXE;1") != -1) {
         strcpy(exename, "PSX.EXE;1");
-        strcpy(CdromId, "SLUS99999");
+        strcpy(g_cdromId, "SLUS99999");
     } else
         return -1;  // SYSTEM.CNF and PSX.EXE not found
 
-    if (CdromId[0] == '\0') {
+    if (g_cdromId[0] == '\0') {
         len = strlen(exename);
         c = 0;
         for (i = 0; i < len; ++i) {
-            if (exename[i] == ';' || c >= sizeof(CdromId) - 1) break;
-            if (isalnum(exename[i])) CdromId[c++] = exename[i];
+            if (exename[i] == ';' || c >= sizeof(g_cdromId) - 1) break;
+            if (isalnum(exename[i])) g_cdromId[c++] = exename[i];
         }
     }
 
     if (Config.PsxAuto) {  // autodetect system (pal or ntsc)
-        if ((CdromId[2] == 'e') || (CdromId[2] == 'E') || !strncmp(CdromId, "DTLS3035", 8) ||
-            !strncmp(CdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
-            !strncmp(CdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
-            !strncmp(CdromId, "PBPX95008", 9))    // add more serials if they are discovered.
+        if ((g_cdromId[2] == 'e') || (g_cdromId[2] == 'E') || !strncmp(g_cdromId, "DTLS3035", 8) ||
+            !strncmp(g_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
+            !strncmp(g_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
+            !strncmp(g_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
             Config.PsxType = PSX_TYPE_PAL;        // pal
         else
             Config.PsxType = PSX_TYPE_NTSC;  // ntsc
@@ -371,11 +372,11 @@ int CheckCdrom() {
         PsxClockSpeed = 33868800 * Config.PsxClock;
     }
 
-    if (CdromLabel[0] == ' ') {
-        strncpy(CdromLabel, CdromId, 9);
+    if (g_cdromLabel[0] == ' ') {
+        strncpy(g_cdromLabel, g_cdromId, 9);
     }
-    SysPrintf(_("CD-ROM Label: %.32s\n"), CdromLabel);
-    SysPrintf(_("CD-ROM ID: %.9s\n"), CdromId);
+    SysPrintf(_("CD-ROM Label: %.32s\n"), g_cdromLabel);
+    SysPrintf(_("CD-ROM ID: %.9s\n"), g_cdromId);
     SysPrintf(_("CD-ROM EXE Name: %.255s\n"), exename);
 
     memset(Config.PsxExeName, 0, sizeof(Config.PsxExeName));
@@ -454,8 +455,8 @@ int Load(const char *ExePath) {
     u32 section_address, section_size;
     void *psxmaddr;
 
-    strncpy(CdromId, "SLUS99999", 9);
-    strncpy(CdromLabel, "SLUS_999.99", 11);
+    strncpy(g_cdromId, "SLUS99999", 9);
+    strncpy(g_cdromLabel, "SLUS_999.99", 11);
 
     tmpFile = fopen(ExePath, "rb");
     if (tmpFile == NULL) {
@@ -539,8 +540,8 @@ int Load(const char *ExePath) {
     }
 
     if (retval != 0) {
-        CdromId[0] = '\0';
-        CdromLabel[0] = '\0';
+        g_cdromId[0] = '\0';
+        g_cdromLabel[0] = '\0';
     }
 
     return retval;
@@ -659,37 +660,37 @@ int LoadState(const char *file) {
     return LoadStateGz(f);
 }
 
-u32 mem_cur_save_count = 0, mem_last_save;
-boolean mem_wrapped = FALSE;  // Whether we went past max count and restarted counting
+static u32 s_mem_cur_save_count = 0, mem_last_save;
+static boolean s_mem_wrapped = FALSE;  // Whether we went past max count and restarted counting
 
 void CreateRewindState() {
     if (Config.RewindCount > 0) {
-        SaveStateMem(mem_last_save = mem_cur_save_count++);
+        SaveStateMem(mem_last_save = s_mem_cur_save_count++);
 
-        if (mem_cur_save_count > Config.RewindCount) {
-            mem_cur_save_count = 0;
-            mem_wrapped = TRUE;
+        if (s_mem_cur_save_count > Config.RewindCount) {
+            s_mem_cur_save_count = 0;
+            s_mem_wrapped = TRUE;
         }
     }
 }
 
 void RewindState() {
-    mem_cur_save_count--;
-    if (mem_cur_save_count > Config.RewindCount && mem_wrapped) {
-        mem_cur_save_count = Config.RewindCount;
-        mem_wrapped = FALSE;
-    } else if (mem_cur_save_count > Config.RewindCount && !mem_wrapped) {
-        mem_cur_save_count++;
+    s_mem_cur_save_count--;
+    if (s_mem_cur_save_count > Config.RewindCount && s_mem_wrapped) {
+        s_mem_cur_save_count = Config.RewindCount;
+        s_mem_wrapped = FALSE;
+    } else if (s_mem_cur_save_count > Config.RewindCount && !s_mem_wrapped) {
+        s_mem_cur_save_count++;
         return;
-    } else if (mem_last_save == mem_cur_save_count - 1) {
-        mem_cur_save_count = 0;
+    } else if (mem_last_save == s_mem_cur_save_count - 1) {
+        s_mem_cur_save_count = 0;
         return;
     }
-    LoadStateMem(mem_cur_save_count);
+    LoadStateMem(s_mem_cur_save_count);
 }
 
-GPUFreeze_t *gpufP = NULL;
-SPUFreeze_t *spufP = NULL;
+static GPUFreeze_t *s_gpufP = NULL;
+static SPUFreeze_t *s_spufP = NULL;
 
 int SaveStateMem(const u32 id) { return 0; }
 int LoadStateMem(const u32 id) { return 0; }
@@ -716,32 +717,32 @@ int SaveStateGz(gzFile f, long *gzsize) {
     gzwrite(f, (void *)&g_psxRegs, sizeof(g_psxRegs));
 
     // gpu
-    if (!gpufP) gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
-    gpufP->ulFreezeVersion = 1;
-    GPU_freeze(1, gpufP);
-    gzwrite(f, gpufP, sizeof(GPUFreeze_t));
+    if (!s_gpufP) s_gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
+    s_gpufP->ulFreezeVersion = 1;
+    GPU_freeze(1, s_gpufP);
+    gzwrite(f, s_gpufP, sizeof(GPUFreeze_t));
 
     // SPU Plugin cannot change during run, so we query size info just once per session
-    if (!spufP) {
-        spufP = (SPUFreeze_t *)malloc(offsetof(SPUFreeze_t, SPUPorts));  // only first 3 elements (up to Size)
-        SPU_freeze(2, spufP);
-        Size = spufP->Size;
+    if (!s_spufP) {
+        s_spufP = (SPUFreeze_t *)malloc(offsetof(SPUFreeze_t, SPUPorts));  // only first 3 elements (up to Size)
+        SPU_freeze(2, s_spufP);
+        Size = s_spufP->Size;
         SysPrintf("SPUFreezeSize %i/(%i)\n", Size, offsetof(SPUFreeze_t, SPUPorts));
-        free(spufP);
-        spufP = (SPUFreeze_t *)malloc(Size);
-        spufP->Size = Size;
+        free(s_spufP);
+        s_spufP = (SPUFreeze_t *)malloc(Size);
+        s_spufP->Size = Size;
 
-        if (spufP->Size <= 0) {
+        if (s_spufP->Size <= 0) {
             gzclose(f);
-            free(spufP);
-            spufP = NULL;
+            free(s_spufP);
+            s_spufP = NULL;
             return 1;  // error
         }
     }
     // spu
-    gzwrite(f, &(spufP->Size), 4);
-    SPU_freeze(1, spufP);
-    gzwrite(f, spufP, spufP->Size);
+    gzwrite(f, &(s_spufP->Size), 4);
+    SPU_freeze(1, s_spufP);
+    gzwrite(f, s_spufP, s_spufP->Size);
 
     sioFreeze(f, 1);
     cdrFreeze(f, 1);
@@ -785,9 +786,9 @@ int LoadStateGz(gzFile f) {
     if (Config.HLE) psxBiosFreeze(0);
 
     // gpu
-    if (!gpufP) gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
-    gzread(f, gpufP, sizeof(GPUFreeze_t));
-    GPU_freeze(0, gpufP);
+    if (!s_gpufP) s_gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
+    gzread(f, s_gpufP, sizeof(GPUFreeze_t));
+    GPU_freeze(0, s_gpufP);
 
     // spu
     gzread(f, &Size, 4);
@@ -881,7 +882,7 @@ int RecvPcsxInfo() {
 // remove the leading and trailing spaces in a string
 void trim(char *str) { trim_key(str, ' '); }
 
-void trim_key(char *str, char key) {
+static void trim_key(char *str, char key) {
     int pos = 0;
     char *dest = str;
 
@@ -900,7 +901,7 @@ void trim_key(char *str, char key) {
 }
 
 // split by the keys codes in strings
-void split(char *str, char key, char *pout) {
+static void split(char *str, char key, char *pout) {
     char *psrc = str;
     char *pdst = pout;
     int len = strlen(str);
@@ -917,25 +918,39 @@ void split(char *str, char key, char *pout) {
 
 // lookup table for crc calculation
 static unsigned short crctab[256] = {
-    0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD,
-    0xE1CE, 0xF1EF, 0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6, 0x9339, 0x8318, 0xB37B, 0xA35A,
-    0xD3BD, 0xC39C, 0xF3FF, 0xE3DE, 0x2462, 0x3443, 0x0420, 0x1401, 0x64E6, 0x74C7, 0x44A4, 0x5485, 0xA56A, 0xB54B,
-    0x8528, 0x9509, 0xE5EE, 0xF5CF, 0xC5AC, 0xD58D, 0x3653, 0x2672, 0x1611, 0x0630, 0x76D7, 0x66F6, 0x5695, 0x46B4,
-    0xB75B, 0xA77A, 0x9719, 0x8738, 0xF7DF, 0xE7FE, 0xD79D, 0xC7BC, 0x48C4, 0x58E5, 0x6886, 0x78A7, 0x0840, 0x1861,
-    0x2802, 0x3823, 0xC9CC, 0xD9ED, 0xE98E, 0xF9AF, 0x8948, 0x9969, 0xA90A, 0xB92B, 0x5AF5, 0x4AD4, 0x7AB7, 0x6A96,
-    0x1A71, 0x0A50, 0x3A33, 0x2A12, 0xDBFD, 0xCBDC, 0xFBBF, 0xEB9E, 0x9B79, 0x8B58, 0xBB3B, 0xAB1A, 0x6CA6, 0x7C87,
-    0x4CE4, 0x5CC5, 0x2C22, 0x3C03, 0x0C60, 0x1C41, 0xEDAE, 0xFD8F, 0xCDEC, 0xDDCD, 0xAD2A, 0xBD0B, 0x8D68, 0x9D49,
-    0x7E97, 0x6EB6, 0x5ED5, 0x4EF4, 0x3E13, 0x2E32, 0x1E51, 0x0E70, 0xFF9F, 0xEFBE, 0xDFDD, 0xCFFC, 0xBF1B, 0xAF3A,
-    0x9F59, 0x8F78, 0x9188, 0x81A9, 0xB1CA, 0xA1EB, 0xD10C, 0xC12D, 0xF14E, 0xE16F, 0x1080, 0x00A1, 0x30C2, 0x20E3,
-    0x5004, 0x4025, 0x7046, 0x6067, 0x83B9, 0x9398, 0xA3FB, 0xB3DA, 0xC33D, 0xD31C, 0xE37F, 0xF35E, 0x02B1, 0x1290,
-    0x22F3, 0x32D2, 0x4235, 0x5214, 0x6277, 0x7256, 0xB5EA, 0xA5CB, 0x95A8, 0x8589, 0xF56E, 0xE54F, 0xD52C, 0xC50D,
-    0x34E2, 0x24C3, 0x14A0, 0x0481, 0x7466, 0x6447, 0x5424, 0x4405, 0xA7DB, 0xB7FA, 0x8799, 0x97B8, 0xE75F, 0xF77E,
-    0xC71D, 0xD73C, 0x26D3, 0x36F2, 0x0691, 0x16B0, 0x6657, 0x7676, 0x4615, 0x5634, 0xD94C, 0xC96D, 0xF90E, 0xE92F,
-    0x99C8, 0x89E9, 0xB98A, 0xA9AB, 0x5844, 0x4865, 0x7806, 0x6827, 0x18C0, 0x08E1, 0x3882, 0x28A3, 0xCB7D, 0xDB5C,
-    0xEB3F, 0xFB1E, 0x8BF9, 0x9BD8, 0xABBB, 0xBB9A, 0x4A75, 0x5A54, 0x6A37, 0x7A16, 0x0AF1, 0x1AD0, 0x2AB3, 0x3A92,
-    0xFD2E, 0xED0F, 0xDD6C, 0xCD4D, 0xBDAA, 0xAD8B, 0x9DE8, 0x8DC9, 0x7C26, 0x6C07, 0x5C64, 0x4C45, 0x3CA2, 0x2C83,
-    0x1CE0, 0x0CC1, 0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8, 0x6E17, 0x7E36, 0x4E55, 0x5E74,
-    0x2E93, 0x3EB2, 0x0ED1, 0x1EF0};
+    0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
+    0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
+    0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,
+    0x9339, 0x8318, 0xB37B, 0xA35A, 0xD3BD, 0xC39C, 0xF3FF, 0xE3DE,
+    0x2462, 0x3443, 0x0420, 0x1401, 0x64E6, 0x74C7, 0x44A4, 0x5485,
+    0xA56A, 0xB54B, 0x8528, 0x9509, 0xE5EE, 0xF5CF, 0xC5AC, 0xD58D,
+    0x3653, 0x2672, 0x1611, 0x0630, 0x76D7, 0x66F6, 0x5695, 0x46B4,
+    0xB75B, 0xA77A, 0x9719, 0x8738, 0xF7DF, 0xE7FE, 0xD79D, 0xC7BC,
+    0x48C4, 0x58E5, 0x6886, 0x78A7, 0x0840, 0x1861, 0x2802, 0x3823,
+    0xC9CC, 0xD9ED, 0xE98E, 0xF9AF, 0x8948, 0x9969, 0xA90A, 0xB92B,
+    0x5AF5, 0x4AD4, 0x7AB7, 0x6A96, 0x1A71, 0x0A50, 0x3A33, 0x2A12,
+    0xDBFD, 0xCBDC, 0xFBBF, 0xEB9E, 0x9B79, 0x8B58, 0xBB3B, 0xAB1A,
+    0x6CA6, 0x7C87, 0x4CE4, 0x5CC5, 0x2C22, 0x3C03, 0x0C60, 0x1C41,
+    0xEDAE, 0xFD8F, 0xCDEC, 0xDDCD, 0xAD2A, 0xBD0B, 0x8D68, 0x9D49,
+    0x7E97, 0x6EB6, 0x5ED5, 0x4EF4, 0x3E13, 0x2E32, 0x1E51, 0x0E70,
+    0xFF9F, 0xEFBE, 0xDFDD, 0xCFFC, 0xBF1B, 0xAF3A, 0x9F59, 0x8F78,
+    0x9188, 0x81A9, 0xB1CA, 0xA1EB, 0xD10C, 0xC12D, 0xF14E, 0xE16F,
+    0x1080, 0x00A1, 0x30C2, 0x20E3, 0x5004, 0x4025, 0x7046, 0x6067,
+    0x83B9, 0x9398, 0xA3FB, 0xB3DA, 0xC33D, 0xD31C, 0xE37F, 0xF35E,
+    0x02B1, 0x1290, 0x22F3, 0x32D2, 0x4235, 0x5214, 0x6277, 0x7256,
+    0xB5EA, 0xA5CB, 0x95A8, 0x8589, 0xF56E, 0xE54F, 0xD52C, 0xC50D,
+    0x34E2, 0x24C3, 0x14A0, 0x0481, 0x7466, 0x6447, 0x5424, 0x4405,
+    0xA7DB, 0xB7FA, 0x8799, 0x97B8, 0xE75F, 0xF77E, 0xC71D, 0xD73C,
+    0x26D3, 0x36F2, 0x0691, 0x16B0, 0x6657, 0x7676, 0x4615, 0x5634,
+    0xD94C, 0xC96D, 0xF90E, 0xE92F, 0x99C8, 0x89E9, 0xB98A, 0xA9AB,
+    0x5844, 0x4865, 0x7806, 0x6827, 0x18C0, 0x08E1, 0x3882, 0x28A3,
+    0xCB7D, 0xDB5C, 0xEB3F, 0xFB1E, 0x8BF9, 0x9BD8, 0xABBB, 0xBB9A,
+    0x4A75, 0x5A54, 0x6A37, 0x7A16, 0x0AF1, 0x1AD0, 0x2AB3, 0x3A92,
+    0xFD2E, 0xED0F, 0xDD6C, 0xCD4D, 0xBDAA, 0xAD8B, 0x9DE8, 0x8DC9,
+    0x7C26, 0x6C07, 0x5C64, 0x4C45, 0x3CA2, 0x2C83, 0x1CE0, 0x0CC1,
+    0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8,
+    0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
+};
 
 u16 calcCrc(u8 *d, int len) {
     u16 crc = 0;

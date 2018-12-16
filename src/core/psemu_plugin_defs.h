@@ -205,7 +205,7 @@ typedef struct {
 typedef struct {
         char EmuName[32];
         char CdromID[9];	// ie. 'SCPH12345', no \0 trailing character
-        char CdromLabel[11];
+        char g_cdromLabel[11];
         void *psxMem;
         GPUshowScreenPic GPU_showScreenPic;
         GPUdisplayText GPU_displayText;

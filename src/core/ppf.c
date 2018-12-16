@@ -200,20 +200,20 @@ void BuildPPFCache() {
 
     FreePPFCache();
 
-    if (CdromId[0] == '\0') return;
+    if (g_cdromId[0] == '\0') return;
 
     // Generate filename in the format of SLUS_123.45
-    buffer[0] = toupper(CdromId[0]);
-    buffer[1] = toupper(CdromId[1]);
-    buffer[2] = toupper(CdromId[2]);
-    buffer[3] = toupper(CdromId[3]);
+    buffer[0] = toupper(g_cdromId[0]);
+    buffer[1] = toupper(g_cdromId[1]);
+    buffer[2] = toupper(g_cdromId[2]);
+    buffer[3] = toupper(g_cdromId[3]);
     buffer[4] = '_';
-    buffer[5] = CdromId[4];
-    buffer[6] = CdromId[5];
-    buffer[7] = CdromId[6];
+    buffer[5] = g_cdromId[4];
+    buffer[6] = g_cdromId[5];
+    buffer[7] = g_cdromId[6];
     buffer[8] = '.';
-    buffer[9] = CdromId[7];
-    buffer[10] = CdromId[8];
+    buffer[9] = g_cdromId[7];
+    buffer[10] = g_cdromId[8];
     buffer[11] = '\0';
 
     sprintf(szPPF, "%s/%s", Config.PatchesDir, buffer);
@@ -351,20 +351,20 @@ int LoadSBI(const char *filename) {
     char buffer[16], sbifile[MAXPATHLEN];
 
     if (filename == NULL) {
-        if (CdromId[0] == '\0') return -1;
+        if (g_cdromId[0] == '\0') return -1;
 
         // Generate filename in the format of SLUS_123.45.sbi
-        buffer[0] = toupper(CdromId[0]);
-        buffer[1] = toupper(CdromId[1]);
-        buffer[2] = toupper(CdromId[2]);
-        buffer[3] = toupper(CdromId[3]);
+        buffer[0] = toupper(g_cdromId[0]);
+        buffer[1] = toupper(g_cdromId[1]);
+        buffer[2] = toupper(g_cdromId[2]);
+        buffer[3] = toupper(g_cdromId[3]);
         buffer[4] = '_';
-        buffer[5] = CdromId[4];
-        buffer[6] = CdromId[5];
-        buffer[7] = CdromId[6];
+        buffer[5] = g_cdromId[4];
+        buffer[6] = g_cdromId[5];
+        buffer[7] = g_cdromId[6];
         buffer[8] = '.';
-        buffer[9] = CdromId[7];
-        buffer[10] = CdromId[8];
+        buffer[9] = g_cdromId[7];
+        buffer[10] = g_cdromId[8];
         buffer[11] = '.';
         buffer[12] = 's';
         buffer[13] = 'b';
