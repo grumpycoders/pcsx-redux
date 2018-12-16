@@ -88,12 +88,12 @@ static struct compr_img_t {
 
 static int (*s_cdimg_read_func)(FILE *f, unsigned int base, void *dest, int sector);
 
-extern "C" char *CALLBACK CDR__getDriveLetter(void);
-extern "C" long CALLBACK CDR__configure(void);
-extern "C" long CALLBACK CDR__test(void);
-extern "C" void CALLBACK CDR__about(void);
-extern "C" long CALLBACK CDR__setfilename(char *filename);
-extern "C" long CALLBACK CDR__getStatus(struct CdrStat *stat);
+char *CALLBACK CDR__getDriveLetter(void);
+long CALLBACK CDR__configure(void);
+long CALLBACK CDR__test(void);
+void CALLBACK CDR__about(void);
+long CALLBACK CDR__setfilename(char *filename);
+long CALLBACK CDR__getStatus(struct CdrStat *stat);
 
 static void DecodeRawSubData(void);
 
@@ -1962,7 +1962,7 @@ static unsigned char *CALLBACK ISOgetBufferSub(void) {
     return NULL;
 }
 
-extern "C" long CALLBACK ISOgetStatus(struct CdrStat *stat) {
+long CALLBACK ISOgetStatus(struct CdrStat *stat) {
     u32 sect;
 
     CDR__getStatus(stat);

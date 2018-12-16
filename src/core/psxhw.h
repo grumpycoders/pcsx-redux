@@ -26,10 +26,6 @@
 #include "core/r3000a.h"
 #include "core/sio.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define HW_DMA0_MADR (psxHu32ref(0x1080))  // MDEC in DMA
 #define HW_DMA0_BCR (psxHu32ref(0x1084))
 #define HW_DMA0_CHCR (psxHu32ref(0x1088))
@@ -72,7 +68,4 @@ void psxHwWrite16(u32 add, u16 value);
 void psxHwWrite32(u32 add, u32 value);
 int psxHwFreeze(gzFile f, int Mode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

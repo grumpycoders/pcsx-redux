@@ -25,10 +25,6 @@
 #include "core/psxhw.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void mdecInit();
 void mdecWrite0(u32 data);
 void mdecWrite1(u32 data);
@@ -39,7 +35,4 @@ void psxDma1(u32 madr, u32 bcr, u32 chcr);
 void mdec1Interrupt();
 int mdecFreeze(gzFile f, int Mode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

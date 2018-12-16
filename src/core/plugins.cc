@@ -370,7 +370,6 @@ void *hCDRDriver = NULL;
 long CALLBACK CDR__play(unsigned char *sector) { return 0; }
 long CALLBACK CDR__stop(void) { return 0; }
 
-extern "C" {
 long CALLBACK CDR__getStatus(struct CdrStat *stat) {
     if (cdOpenCaseTime < 0 || cdOpenCaseTime > (s64)time(NULL))
         stat->Status = 0x10;
@@ -385,7 +384,6 @@ long CALLBACK CDR__configure(void) { return 0; }
 long CALLBACK CDR__test(void) { return 0; }
 void CALLBACK CDR__about(void) {}
 long CALLBACK CDR__setfilename(char *filename) { return 0; }
-}
 
 #define LoadCdrSym1(dest, name) LoadSym(CDR_##dest, CDR##dest, name, TRUE);
 

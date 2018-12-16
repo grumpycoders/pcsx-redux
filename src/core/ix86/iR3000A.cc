@@ -24,11 +24,9 @@
 #if defined(__i386__) || defined(_M_IX86)
 
 #include "core/ix86/ix86.h"
-extern "C" {
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
-};
 #include "core/psxcommon.h"
 
 #ifndef MAP_ANONYMOUS
@@ -1618,8 +1616,8 @@ static void recLW() {
     s_resp += 4;
 }
 
-extern "C" const u32 LWL_MASK[4];
-extern "C" const u32 LWL_SHIFT[4];
+extern "C" const u32 g_LWL_MASK[4];
+extern "C" const u32 g_LWL_SHIFT[4];
 
 void iLWLk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -1627,8 +1625,8 @@ void iLWLk(u32 shift) {
     } else {
         MOV32MtoR(ECX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    AND32ItoR(ECX, LWL_MASK[shift]);
-    SHL32ItoR(EAX, LWL_SHIFT[shift]);
+    AND32ItoR(ECX, g_LWL_MASK[shift]);
+    SHL32ItoR(EAX, g_LWL_SHIFT[shift]);
     OR32RtoR(EAX, ECX);
 }
 
@@ -1673,18 +1671,18 @@ void recLWL() {
         POP32R(EDX);
         AND32ItoR(EDX, 0x3);  // shift = addr & 3;
 
-        MOV32ItoR(ECX, (u32)LWL_SHIFT);
+        MOV32ItoR(ECX, (u32)g_LWL_SHIFT);
         MOV32RmStoR(ECX, ECX, EDX, 2);
-        SHL32CLtoR(EAX);  // mem(EAX) << LWL_SHIFT[shift]
+        SHL32CLtoR(EAX);  // mem(EAX) << g_LWL_SHIFT[shift]
 
-        MOV32ItoR(ECX, (u32)LWL_MASK);
+        MOV32ItoR(ECX, (u32)g_LWL_MASK);
         MOV32RmStoR(ECX, ECX, EDX, 2);
         if (IsConst(_Rt_)) {
             MOV32ItoR(EDX, s_iRegs[_Rt_].k);
         } else {
             MOV32MtoR(EDX, (u32)&g_psxRegs.GPR.r[_Rt_]);
         }
-        AND32RtoR(EDX, ECX);  // _rRt_ & LWL_MASK[shift]
+        AND32RtoR(EDX, ECX);  // _rRt_ & g_LWL_MASK[shift]
 
         OR32RtoR(EAX, EDX);
 
@@ -1773,8 +1771,8 @@ static void recLWBlock(int count) {
 }
 #endif
 
-extern "C" const u32 LWR_MASK[4];
-extern "C" const u32 LWR_SHIFT[4];
+extern "C" const u32 g_LWR_MASK[4];
+extern "C" const u32 g_LWR_SHIFT[4];
 
 void iLWRk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -1782,8 +1780,8 @@ void iLWRk(u32 shift) {
     } else {
         MOV32MtoR(ECX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    AND32ItoR(ECX, LWR_MASK[shift]);
-    SHR32ItoR(EAX, LWR_SHIFT[shift]);
+    AND32ItoR(ECX, g_LWR_MASK[shift]);
+    SHR32ItoR(EAX, g_LWR_SHIFT[shift]);
     OR32RtoR(EAX, ECX);
 }
 
@@ -1828,11 +1826,11 @@ void recLWR() {
         POP32R(EDX);
         AND32ItoR(EDX, 0x3);  // shift = addr & 3;
 
-        MOV32ItoR(ECX, (u32)LWR_SHIFT);
+        MOV32ItoR(ECX, (u32)g_LWR_SHIFT);
         MOV32RmStoR(ECX, ECX, EDX, 2);
-        SHR32CLtoR(EAX);  // mem(EAX) >> LWR_SHIFT[shift]
+        SHR32CLtoR(EAX);  // mem(EAX) >> g_LWR_SHIFT[shift]
 
-        MOV32ItoR(ECX, (u32)LWR_MASK);
+        MOV32ItoR(ECX, (u32)g_LWR_MASK);
         MOV32RmStoR(ECX, ECX, EDX, 2);
 
         if (IsConst(_Rt_)) {
@@ -1840,7 +1838,7 @@ void recLWR() {
         } else {
             MOV32MtoR(EDX, (u32)&g_psxRegs.GPR.r[_Rt_]);
         }
-        AND32RtoR(EDX, ECX);  // _rRt_ & LWR_MASK[shift]
+        AND32RtoR(EDX, ECX);  // _rRt_ & g_LWR_MASK[shift]
 
         OR32RtoR(EAX, EDX);
 
@@ -2130,8 +2128,8 @@ static void recSWBlock(int count) {
 }
 #endif
 
-extern "C" const u32 SWL_MASK[4];
-extern "C" const u32 SWL_SHIFT[4];
+extern "C" const u32 g_SWL_MASK[4];
+extern "C" const u32 g_SWL_SHIFT[4];
 
 void iSWLk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2139,8 +2137,8 @@ void iSWLk(u32 shift) {
     } else {
         MOV32MtoR(ECX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    SHR32ItoR(ECX, SWL_SHIFT[shift]);
-    AND32ItoR(EAX, SWL_MASK[shift]);
+    SHR32ItoR(ECX, g_SWL_SHIFT[shift]);
+    AND32ItoR(EAX, g_SWL_MASK[shift]);
     OR32RtoR(EAX, ECX);
 }
 
@@ -2183,18 +2181,18 @@ void recSWL() {
     POP32R(EDX);
     AND32ItoR(EDX, 0x3);  // shift = addr & 3;
 
-    MOV32ItoR(ECX, (u32)SWL_MASK);
+    MOV32ItoR(ECX, (u32)g_SWL_MASK);
     MOV32RmStoR(ECX, ECX, EDX, 2);
-    AND32RtoR(EAX, ECX);  // mem & SWL_MASK[shift]
+    AND32RtoR(EAX, ECX);  // mem & g_SWL_MASK[shift]
 
-    MOV32ItoR(ECX, (u32)SWL_SHIFT);
+    MOV32ItoR(ECX, (u32)g_SWL_SHIFT);
     MOV32RmStoR(ECX, ECX, EDX, 2);
     if (IsConst(_Rt_)) {
         MOV32ItoR(EDX, s_iRegs[_Rt_].k);
     } else {
         MOV32MtoR(EDX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    SHR32CLtoR(EDX);  // _rRt_ >> SWL_SHIFT[shift]
+    SHR32CLtoR(EDX);  // _rRt_ >> g_SWL_SHIFT[shift]
 
     OR32RtoR(EAX, EDX);
     PUSH32R(EAX);
@@ -2213,8 +2211,8 @@ void recSWL() {
     s_resp += 8;
 }
 
-extern "C" const u32 SWR_MASK[4];
-extern "C" const u32 SWR_SHIFT[4];
+extern "C" const u32 g_SWR_MASK[4];
+extern "C" const u32 g_SWR_SHIFT[4];
 
 void iSWRk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2222,8 +2220,8 @@ void iSWRk(u32 shift) {
     } else {
         MOV32MtoR(ECX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    SHL32ItoR(ECX, SWR_SHIFT[shift]);
-    AND32ItoR(EAX, SWR_MASK[shift]);
+    SHL32ItoR(ECX, g_SWR_SHIFT[shift]);
+    AND32ItoR(EAX, g_SWR_MASK[shift]);
     OR32RtoR(EAX, ECX);
 }
 
@@ -2266,18 +2264,18 @@ void recSWR() {
     POP32R(EDX);
     AND32ItoR(EDX, 0x3);  // shift = addr & 3;
 
-    MOV32ItoR(ECX, (u32)SWR_MASK);
+    MOV32ItoR(ECX, (u32)g_SWR_MASK);
     MOV32RmStoR(ECX, ECX, EDX, 2);
-    AND32RtoR(EAX, ECX);  // mem & SWR_MASK[shift]
+    AND32RtoR(EAX, ECX);  // mem & g_SWR_MASK[shift]
 
-    MOV32ItoR(ECX, (u32)SWR_SHIFT);
+    MOV32ItoR(ECX, (u32)g_SWR_SHIFT);
     MOV32RmStoR(ECX, ECX, EDX, 2);
     if (IsConst(_Rt_)) {
         MOV32ItoR(EDX, s_iRegs[_Rt_].k);
     } else {
         MOV32MtoR(EDX, (u32)&g_psxRegs.GPR.r[_Rt_]);
     }
-    SHL32CLtoR(EDX);  // _rRt_ << SWR_SHIFT[shift]
+    SHL32CLtoR(EDX);  // _rRt_ << g_SWR_SHIFT[shift]
 
     OR32RtoR(EAX, EDX);
     PUSH32R(EAX);

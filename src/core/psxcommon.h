@@ -82,10 +82,6 @@ typedef uint8_t boolean;
 #include "core/debug.h"
 #include "core/system.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp
 #endif
@@ -224,7 +220,4 @@ void EmuShutdown();
 void EmuUpdate();
 void EmuSetPGXPMode(u32 pgxpMode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

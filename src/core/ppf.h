@@ -21,10 +21,6 @@
 
 #include "core/psxcommon.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void BuildPPFCache();
 void FreePPFCache();
 void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f);
@@ -33,7 +29,4 @@ int LoadSBI(const char *filename);
 boolean CheckSBI(const u8 *time);
 void UnloadSBI(void);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

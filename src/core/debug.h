@@ -22,10 +22,6 @@
 
 #include "core/psxcommon.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 enum breakpoint_types { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
 
 void StartDebugger();
@@ -69,7 +65,4 @@ char *disR3000AF(u32 code, u32 pc);
 #define EMU_LOG __Log
 #endif
 
-#ifdef __cplusplus
-}
-#endif
 #endif

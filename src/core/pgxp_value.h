@@ -28,11 +28,7 @@
 #ifndef _PGXP_VALUE_H_
 #define _PGXP_VALUE_H_
 
-#include "psxcommon.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "core/psxcommon.h"
 
 typedef union {
 #if defined(__BIGENDIAN__)
@@ -135,9 +131,5 @@ typedef union {
     };
     u32 word;
 } low_value;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  //_PGX_VALUE_H_

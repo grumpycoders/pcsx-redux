@@ -25,10 +25,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define H_SPUirqAddr 0x0da4
 #define H_SPUaddr 0x0da6
 #define H_SPUdata 0x0da8
@@ -41,7 +37,4 @@ extern "C" {
 
 void CALLBACK SPUirq(void);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

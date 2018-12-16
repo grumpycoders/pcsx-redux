@@ -31,10 +31,6 @@
 #include "core/psxhle.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // x86Flags defines
 #define X86FLAG_FPU 0x00000001
 #define X86FLAG_VME 0x00000002
@@ -674,7 +670,4 @@ void XORPSRtoR(int to, int from);
 void ANDPSMtoR(int to, int from);
 void ANDPSRtoR(int to, int from);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

@@ -18,10 +18,6 @@
 #ifndef __SOCKET_H__
 #define __SOCKET_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int StartServer();
 void StopServer();
 
@@ -37,7 +33,4 @@ void WriteSocket(char* buffer, int len);
 void SetsBlock();
 void SetsNonblock();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

@@ -1,11 +1,11 @@
 #include <SDL.h>
-#include <zlib.h>
 
 #include "core/psxcommon.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
 
-void SysPrintf(const char *fmt, ...) {
+    void
+    SysPrintf(const char *fmt, ...) {
     // print message to debugging console
     va_list a;
     va_start(a, fmt);
@@ -38,7 +38,7 @@ void SysClose() {
     // emulator is requesting a shutdown of the emulation
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     unsigned int texture = GUI_init();
 
     memset(&g_config, 0, sizeof(PcsxConfig));

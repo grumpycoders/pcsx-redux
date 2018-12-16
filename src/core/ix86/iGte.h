@@ -23,10 +23,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define CP2_FUNC(f)                                       \
     void gte##f();                                        \
     static void rec##f() {                                \
@@ -65,7 +61,4 @@ CP2_FUNC(GPF);
 CP2_FUNC(GPL);
 CP2_FUNC(NCCT);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

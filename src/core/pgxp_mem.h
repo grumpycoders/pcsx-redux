@@ -30,10 +30,6 @@
 
 #include "core/psxcommon.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void PGXP_Init();   // initialise memory
 u8* PGXP_GetMem();  // return pointer to precision memory
 u32 PGXP_ConvertAddress(u32 addr);
@@ -49,9 +45,5 @@ void ValidateAndCopyMem16(PGXP_value* dest, u32 addr, u32 value, int sign);
 
 void WriteMem(PGXP_value* value, u32 addr);
 void WriteMem16(PGXP_value* src, u32 addr);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  //_PGXP_MEM_H_

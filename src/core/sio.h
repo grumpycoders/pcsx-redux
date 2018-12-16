@@ -26,10 +26,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MCD_SECT_SIZE (8 * 16)
 #define MCD_SIZE (1024 * MCD_SECT_SIZE)
 
@@ -72,7 +68,4 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
 
 void CALLBACK SIO1irq(void);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

@@ -25,10 +25,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define GPUDMA_INT(eCycle)                                      \
     {                                                           \
         g_psxRegs.interrupt |= (1 << PSXINT_GPUDMA);              \
@@ -83,7 +79,4 @@ void mdec0Interrupt();
 void gpuotcInterrupt();
 void cdrDmaInterrupt();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

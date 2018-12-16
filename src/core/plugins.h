@@ -43,15 +43,15 @@ typedef long (*SIO1open)(unsigned long*);
 #include "core/psemu_plugin_defs.h"
 #include "core/spu.h"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 typedef long(CALLBACK* GPUopen)(unsigned int texture);
 typedef long(CALLBACK* SPUopen)(HWND);
 typedef long(CALLBACK* PADopen)(HWND);
 typedef long(CALLBACK* NETopen)(HWND);
 typedef long(CALLBACK* SIO1open)(HWND);
+
+}
 
 #endif
 
@@ -433,7 +433,4 @@ const char* GetLdrFile(void);
 boolean UsingIso(void);
 void SetCdOpenCaseTime(s64 time);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

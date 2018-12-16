@@ -26,10 +26,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #undef s_addr
 
 typedef struct {
@@ -80,7 +76,4 @@ void CleanupMemSaveStates();  // Removes all save states stored by memory funcs 
 void trim(char *str);
 u16 calcCrc(u8 *d, int len);
 
-#ifdef __cplusplus
-}
-#endif
 #endif
