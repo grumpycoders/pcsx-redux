@@ -20,9 +20,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "ppf.h"
-#include "cdrom.h"
-#include "psxcommon.h"
+#include "core/cdrom.h"
+#include "core/ppf.h"
+#include "core/psxcommon.h"
 
 typedef struct tagPPF_DATA {
     s32 addr;
@@ -36,9 +36,9 @@ typedef struct tagPPF_CACHE {
     struct tagPPF_DATA *pNext;
 } PPF_CACHE;
 
-static PPF_CACHE *ppfCache = NULL;
-static PPF_DATA *ppfHead = NULL, *ppfLast = NULL;
-static int iPPFNum = 0;
+static PPF_CACHE *s_ppfCache = NULL;
+static PPF_DATA *s_ppfHead = NULL, *s_ppfLast = NULL;
+static int s_iPPFNum = 0;
 
 // using a linked data list, and address array
 static void FillPPFCache() {
@@ -46,22 +46,22 @@ static void FillPPFCache() {
     PPF_CACHE *pc;
     s32 lastaddr;
 
-    p = ppfHead;
+    p = s_ppfHead;
     lastaddr = -1;
-    iPPFNum = 0;
+    s_iPPFNum = 0;
 
     while (p != NULL) {
-        if (p->addr != lastaddr) iPPFNum++;
+        if (p->addr != lastaddr) s_iPPFNum++;
         lastaddr = p->addr;
         p = p->pNext;
     }
 
-    if (iPPFNum <= 0) return;
+    if (s_iPPFNum <= 0) return;
 
-    pc = ppfCache = (PPF_CACHE *)malloc(iPPFNum * sizeof(PPF_CACHE));
+    pc = s_ppfCache = (PPF_CACHE *)malloc(s_iPPFNum * sizeof(PPF_CACHE));
 
-    iPPFNum--;
-    p = ppfHead;
+    s_iPPFNum--;
+    p = s_ppfHead;
     lastaddr = -1;
 
     while (p != NULL) {
@@ -76,7 +76,7 @@ static void FillPPFCache() {
 }
 
 void FreePPFCache() {
-    PPF_DATA *p = ppfHead;
+    PPF_DATA *p = s_ppfHead;
     void *pn;
 
     while (p != NULL) {
@@ -84,22 +84,22 @@ void FreePPFCache() {
         free(p);
         p = (PPF_DATA *)pn;
     }
-    ppfHead = NULL;
-    ppfLast = NULL;
+    s_ppfHead = NULL;
+    s_ppfLast = NULL;
 
-    if (ppfCache != NULL) free(ppfCache);
-    ppfCache = NULL;
+    if (s_ppfCache != NULL) free(s_ppfCache);
+    s_ppfCache = NULL;
 }
 
 void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
     int addr = MSF2SECT(btoi(m), btoi(s), btoi(f)), pos, anz, start;
 
-    if (ppfCache == NULL) return;
+    if (s_ppfCache == NULL) return;
 
-    pcstart = ppfCache;
+    pcstart = s_ppfCache;
     if (addr < pcstart->addr) return;
-    pcend = ppfCache + iPPFNum;
+    pcend = s_ppfCache + s_iPPFNum;
     if (addr > pcend->addr) return;
 
     while (1) {
@@ -139,23 +139,23 @@ void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned
 }
 
 static void AddToPPF(s32 ladr, s32 pos, s32 anz, unsigned char *ppfmem) {
-    if (ppfHead == NULL) {
-        ppfHead = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
-        ppfHead->addr = ladr;
-        ppfHead->pNext = NULL;
-        ppfHead->pos = pos;
-        ppfHead->anz = anz;
-        memcpy(ppfHead + 1, ppfmem, anz);
-        iPPFNum = 1;
-        ppfLast = ppfHead;
+    if (s_ppfHead == NULL) {
+        s_ppfHead = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
+        s_ppfHead->addr = ladr;
+        s_ppfHead->pNext = NULL;
+        s_ppfHead->pos = pos;
+        s_ppfHead->anz = anz;
+        memcpy(s_ppfHead + 1, ppfmem, anz);
+        s_iPPFNum = 1;
+        s_ppfLast = s_ppfHead;
     } else {
-        PPF_DATA *p = ppfHead;
+        PPF_DATA *p = s_ppfHead;
         PPF_DATA *plast = NULL;
         PPF_DATA *padd;
 
-        if (ladr > ppfLast->addr || (ladr == ppfLast->addr && pos > ppfLast->pos)) {
+        if (ladr > s_ppfLast->addr || (ladr == s_ppfLast->addr && pos > s_ppfLast->pos)) {
             p = NULL;
-            plast = ppfLast;
+            plast = s_ppfLast;
         } else {
             while (p != NULL) {
                 if (ladr < p->addr) break;
@@ -177,13 +177,13 @@ static void AddToPPF(s32 ladr, s32 pos, s32 anz, unsigned char *ppfmem) {
         padd->pos = pos;
         padd->anz = anz;
         memcpy(padd + 1, ppfmem, anz);
-        iPPFNum++;
+        s_iPPFNum++;
         if (plast == NULL)
-            ppfHead = padd;
+            s_ppfHead = padd;
         else
             plast->pNext = padd;
 
-        if (padd->pNext == NULL) ppfLast = padd;
+        if (padd->pNext == NULL) s_ppfLast = padd;
     }
 }
 
