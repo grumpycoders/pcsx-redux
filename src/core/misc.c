@@ -273,7 +273,7 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
 
     // Cache clear/invalidate dynarec/int. Fixes startup of Casper/X-Files and possibly others.
 #ifdef PSXREC
-    psxCpu->Clear(addr, size / 4);
+    g_psxCpu->Clear(addr, size / 4);
 #endif
     g_psxRegs.ICache_valid = FALSE;
 
@@ -775,7 +775,7 @@ int LoadStateGz(gzFile f) {
         return -1;
     }
 
-    psxCpu->Reset();
+    g_psxCpu->Reset();
     gzseek(f, SZ_GPUPIC, SEEK_CUR);
 
     gzread(f, g_psxM, 0x00200000);
@@ -860,20 +860,20 @@ int RecvPcsxInfo() {
     tmp = g_config.Cpu;
     NET_recvData(&g_config.Cpu, sizeof(g_config.Cpu), PSE_NET_BLOCKING);
     if (tmp != g_config.Cpu) {
-        psxCpu->Shutdown();
+        g_psxCpu->Shutdown();
 #ifdef PSXREC
         if (g_config.Cpu == CPU_INTERPRETER)
-            psxCpu = &g_psxInt;
+            g_psxCpu = &g_psxInt;
         else
-            psxCpu = &g_psxRec;
+            g_psxCpu = &g_psxRec;
 #else
-        psxCpu = &g_psxInt;
+        g_psxCpu = &g_psxInt;
 #endif
-        if (psxCpu->Init() == -1) {
+        if (g_psxCpu->Init() == -1) {
             SysClose();
             return -1;
         }
-        psxCpu->Reset();
+        g_psxCpu->Reset();
     }
 
     return 0;

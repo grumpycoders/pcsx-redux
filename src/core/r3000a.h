@@ -39,7 +39,7 @@ typedef struct {
     void (*SetPGXPMode)(u32 pgxpMode);
 } R3000Acpu;
 
-extern R3000Acpu *psxCpu;
+extern R3000Acpu *g_psxCpu;
 extern R3000Acpu g_psxInt;
 extern R3000Acpu g_psxRec;
 #define PSXREC

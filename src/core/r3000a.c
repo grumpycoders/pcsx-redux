@@ -21,14 +21,14 @@
  * R3000A CPU functions.
  */
 
-#include "r3000a.h"
-#include "cdrom.h"
-#include "gpu.h"
-#include "gte.h"
-#include "mdec.h"
-#include "pgxp_mem.h"
+#include "core/cdrom.h"
+#include "core/gpu.h"
+#include "core/gte.h"
+#include "core/mdec.h"
+#include "core/pgxp_mem.h"
+#include "core/r3000a.h"
 
-R3000Acpu *psxCpu = NULL;
+R3000Acpu *g_psxCpu = NULL;
 psxRegisters g_psxRegs;
 
 int psxInit() {
@@ -36,11 +36,11 @@ int psxInit() {
 
 #ifdef PSXREC
     if (g_config.Cpu == CPU_INTERPRETER) {
-        psxCpu = &g_psxInt;
+        g_psxCpu = &g_psxInt;
     } else
-        psxCpu = &g_psxRec;
+        g_psxCpu = &g_psxRec;
 #else
-    psxCpu = &g_psxInt;
+    g_psxCpu = &g_psxInt;
 #endif
 
     g_log = 0;
@@ -49,11 +49,11 @@ int psxInit() {
     PGXP_Init();
     PauseDebugger();
 
-    return psxCpu->Init();
+    return g_psxCpu->Init();
 }
 
 void psxReset() {
-    psxCpu->Reset();
+    g_psxCpu->Reset();
 
     psxMemReset();
 
@@ -79,7 +79,7 @@ void psxShutdown() {
     psxMemShutdown();
     psxBiosShutdown();
 
-    psxCpu->Shutdown();
+    g_psxCpu->Shutdown();
 }
 
 void psxException(u32 code, u32 bd) {
@@ -274,10 +274,10 @@ void psxJumpTest() {
 }
 
 void psxExecuteBios() {
-    while (g_psxRegs.pc != 0x80030000) psxCpu->ExecuteBlock();
+    while (g_psxRegs.pc != 0x80030000) g_psxCpu->ExecuteBlock();
 }
 
 void psxSetPGXPMode(u32 pgxpMode) {
-    psxCpu->SetPGXPMode(pgxpMode);
-    // psxCpu->Reset();
+    g_psxCpu->SetPGXPMode(pgxpMode);
+    // g_psxCpu->Reset();
 }

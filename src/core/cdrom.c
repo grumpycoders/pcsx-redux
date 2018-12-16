@@ -1466,7 +1466,7 @@ void psxDma3(u32 madr, u32 bcr, u32 chcr) {
                 adjustTransferIndex();
             }
 #ifdef PSXREC
-            psxCpu->Clear(madr, cdsize / 4);
+            g_psxCpu->Clear(madr, cdsize / 4);
 #endif
             // burst vs normal
             if (chcr == 0x11400100) {

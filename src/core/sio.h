@@ -33,7 +33,7 @@ extern "C" {
 #define MCD_SECT_SIZE (8 * 16)
 #define MCD_SIZE (1024 * MCD_SECT_SIZE)
 
-extern char Mcd1Data[MCD_SIZE], Mcd2Data[MCD_SIZE];
+extern char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
 
 void sioWrite8(unsigned char value);
 void sioWriteStat16(unsigned short value);

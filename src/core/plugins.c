@@ -654,12 +654,12 @@ static int LoadSPUplugin(const char *SPUdll) {
 void *hPAD1Driver = NULL;
 void *hPAD2Driver = NULL;
 
-static unsigned char buf[256];
+static unsigned char s_buf[256];
 unsigned char stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 unsigned char mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
 unsigned char analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-static int bufcount, bufc;
+static int s_bufcount, bufc;
 
 PadDataS padd1, padd2;
 
@@ -673,8 +673,8 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             mousepar[5] = pad->moveX;
             mousepar[6] = pad->moveY;
 
-            memcpy(buf, mousepar, 7);
-            bufcount = 6;
+            memcpy(s_buf, mousepar, 7);
+            s_bufcount = 6;
             break;
         case PSE_PAD_TYPE_NEGCON:  // npc101/npc104(slph00001/slph00069)
             analogpar[1] = 0x23;
@@ -685,8 +685,8 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             analogpar[7] = pad->leftJoyX;
             analogpar[8] = pad->leftJoyY;
 
-            memcpy(buf, analogpar, 9);
-            bufcount = 8;
+            memcpy(s_buf, analogpar, 9);
+            s_bufcount = 8;
             break;
         case PSE_PAD_TYPE_ANALOGPAD:  // scph1150
             analogpar[1] = 0x73;
@@ -697,8 +697,8 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             analogpar[7] = pad->leftJoyX;
             analogpar[8] = pad->leftJoyY;
 
-            memcpy(buf, analogpar, 9);
-            bufcount = 8;
+            memcpy(s_buf, analogpar, 9);
+            s_bufcount = 8;
             break;
         case PSE_PAD_TYPE_ANALOGJOY:  // scph1110
             analogpar[1] = 0x53;
@@ -709,24 +709,24 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             analogpar[7] = pad->leftJoyX;
             analogpar[8] = pad->leftJoyY;
 
-            memcpy(buf, analogpar, 9);
-            bufcount = 8;
+            memcpy(s_buf, analogpar, 9);
+            s_bufcount = 8;
             break;
         case PSE_PAD_TYPE_STANDARD:
         default:
             stdpar[3] = pad->buttonStatus & 0xff;
             stdpar[4] = pad->buttonStatus >> 8;
 
-            memcpy(buf, stdpar, 5);
-            bufcount = 4;
+            memcpy(s_buf, stdpar, 5);
+            s_bufcount = 4;
     }
 
-    return buf[bufc++];
+    return s_buf[bufc++];
 }
 
 unsigned char _PADpoll(unsigned char value) {
-    if (bufc > bufcount) return 0;
-    return buf[bufc++];
+    if (bufc > s_bufcount) return 0;
+    return s_buf[bufc++];
 }
 
 unsigned char CALLBACK PAD1__startPoll(int pad) {
@@ -1026,7 +1026,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
 
 #endif
 
-void CALLBACK clearDynarec(void) { psxCpu->Reset(); }
+void CALLBACK clearDynarec(void) { g_psxCpu->Reset(); }
 
 int LoadPlugins() {
     long ret;

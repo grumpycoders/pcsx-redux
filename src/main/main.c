@@ -61,13 +61,13 @@ int main() {
     CheckCdrom();
     LoadCdrom();
 
-    psxCpu = &g_psxInt;
-    psxCpu->Init();
-    psxCpu->Execute();
+    g_psxCpu = &g_psxInt;
+    g_psxCpu->Init();
+    g_psxCpu->Execute();
 
-    psxCpu = &g_psxRec;
-    psxCpu->Init();
-    psxCpu->Execute();
+    g_psxCpu = &g_psxRec;
+    g_psxCpu->Init();
+    g_psxCpu->Execute();
 
     return 0;
 }

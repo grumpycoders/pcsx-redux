@@ -499,7 +499,7 @@ static inline void softCall(u32 pc) {
 
     g_hleSoftCall = TRUE;
 
-    while (pc0 != 0x80001000) psxCpu->ExecuteBlock();
+    while (pc0 != 0x80001000) g_psxCpu->ExecuteBlock();
 
     g_hleSoftCall = FALSE;
 }
@@ -511,7 +511,7 @@ static inline void softCall2(u32 pc) {
 
     g_hleSoftCall = TRUE;
 
-    while (pc0 != 0x80001000) psxCpu->ExecuteBlock();
+    while (pc0 != 0x80001000) g_psxCpu->ExecuteBlock();
     ra = sra;
 
     g_hleSoftCall = FALSE;
@@ -2077,11 +2077,11 @@ void psxBios_open() {  // 0x32
     v0 = -1;
 
     if (!strncmp(Ra0, "bu00", 4)) {
-        buopen(1, Mcd1Data, g_config.Mcd1);
+        buopen(1, g_mcd1Data, g_config.Mcd1);
     }
 
     if (!strncmp(Ra0, "bu10", 4)) {
-        buopen(2, Mcd2Data, g_config.Mcd2);
+        buopen(2, g_mcd2Data, g_config.Mcd2);
     }
 
     pc0 = ra;
@@ -2116,8 +2116,8 @@ void psxBios_lseek() {  // 0x33
 #define buread(mcd)                                                                          \
     {                                                                                        \
         SysPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
-                  Mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
-        ptr = Mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;         \
+                  g_mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
+        ptr = g_mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;         \
         memcpy(Ra1, ptr, a2);                                                                \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                    \
             v0 = 0;                                                                          \
@@ -2157,10 +2157,10 @@ void psxBios_read() {  // 0x34
     {                                                                                     \
         u32 offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;               \
         SysPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
-        ptr = Mcd##mcd##Data + offset;                                                    \
+        ptr = g_mcd##mcd##Data + offset;                                                    \
         memcpy(ptr, Ra1, a2);                                                             \
         s_FDesc[1 + mcd].offset += a2;                                                      \
-        SaveMcd(g_config.Mcd##mcd, Mcd##mcd##Data, offset, a2);                             \
+        SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, offset, a2);                             \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                 \
             v0 = 0;                                                                       \
         else                                                                              \
@@ -2258,7 +2258,7 @@ int nfile;
         while (nfile < 16) {                                                                  \
             int match = 1;                                                                    \
                                                                                               \
-            ptr = Mcd##mcd##Data + 128 * (nfile + 1);                                         \
+            ptr = g_mcd##mcd##Data + 128 * (nfile + 1);                                         \
             nfile++;                                                                          \
             if ((*ptr & 0xF0) != 0x50) continue;                                              \
             /* Bug link files show up as free block. */                                       \
@@ -2356,7 +2356,7 @@ void psxBios_nextfile() {  // 43
     {                                                                      \
         for (i = 1; i < 16; i++) {                                         \
             int namelen, j, xor = 0;                                       \
-            ptr = Mcd##mcd##Data + 128 * i;                                \
+            ptr = g_mcd##mcd##Data + 128 * i;                                \
             if ((*ptr & 0xF0) != 0x50) continue;                           \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;                      \
             namelen = strlen(Ra1 + 5);                                     \
@@ -2364,7 +2364,7 @@ void psxBios_nextfile() {  // 43
             memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                \
             for (j = 0; j < 127; j++) xor ^= ptr[j];                       \
             ptr[127] = xor;                                                \
-            SaveMcd(g_config.Mcd##mcd, Mcd##mcd##Data, 128 * i + 0xa, 0x76); \
+            SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
             v0 = 1;                                                        \
             break;                                                         \
         }                                                                  \
@@ -2398,11 +2398,11 @@ void psxBios_rename() {  // 44
 #define budelete(mcd)                                             \
     {                                                             \
         for (i = 1; i < 16; i++) {                                \
-            ptr = Mcd##mcd##Data + 128 * i;                       \
+            ptr = g_mcd##mcd##Data + 128 * i;                       \
             if ((*ptr & 0xF0) != 0x50) continue;                  \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;             \
             *ptr = (*ptr & 0xf) | 0xA0;                           \
-            SaveMcd(g_config.Mcd##mcd, Mcd##mcd##Data, 128 * i, 1); \
+            SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, 128 * i, 1); \
             SysPrintf("delete %s\n", ptr + 0xa);                  \
             v0 = 1;                                               \
             break;                                                \
@@ -2475,11 +2475,11 @@ void psxBios__card_write() {  // 0x4e
     s_card_active_chan = a0;
 
     if (port == 0) {
-        memcpy(Mcd1Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(g_config.Mcd1, Mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        memcpy(g_mcd1Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
+        SaveMcd(g_config.Mcd1, g_mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     } else {
-        memcpy(Mcd2Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(g_config.Mcd2, Mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        memcpy(g_mcd2Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
+        SaveMcd(g_config.Mcd2, g_mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     }
 
     DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2500,9 +2500,9 @@ void psxBios__card_read() {  // 0x4f
     s_card_active_chan = a0;
 
     if (port == 0) {
-        memcpy(Ra2, Mcd1Data + (sect * MCD_SECT_SIZE), MCD_SECT_SIZE);
+        memcpy(Ra2, g_mcd1Data + (sect * MCD_SECT_SIZE), MCD_SECT_SIZE);
     } else {
-        memcpy(Ra2, Mcd2Data + (sect * MCD_SECT_SIZE), MCD_SECT_SIZE);
+        memcpy(Ra2, g_mcd2Data + (sect * MCD_SECT_SIZE), MCD_SECT_SIZE);
     }
 
     DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004

@@ -21,8 +21,9 @@
  * SIO functions.
  */
 
-#include "sio.h"
 #include <sys/stat.h>
+
+#include "core/sio.h"
 
 // Status Flags
 #define TX_RDY 0x0001
@@ -55,35 +56,35 @@ void SaveDongle(char *str);
 
 #define BUFFER_SIZE 0x1010
 
-static unsigned char buf[BUFFER_SIZE];
+static unsigned char s_buf[BUFFER_SIZE];
 
 //[0] -> dummy
 //[1] -> memory card status flag
 //[2] -> card 1 id, 0x5a->plugged, any other not plugged
 //[3] -> card 2 id, 0x5d->plugged, any other not plugged
-unsigned char cardh[4] = {0x00, 0x08, 0x5a, 0x5d};
+unsigned char s_cardh[4] = {0x00, 0x08, 0x5a, 0x5d};
 
 // Transfer Ready and the Buffer is Empty
-// static unsigned short StatReg = 0x002b;
-static unsigned short StatReg = TX_RDY | TX_EMPTY;
-static unsigned short ModeReg;
-static unsigned short CtrlReg;
-static unsigned short BaudReg;
+// static unsigned short s_statReg = 0x002b;
+static unsigned short s_statReg = TX_RDY | TX_EMPTY;
+static unsigned short s_modeReg;
+static unsigned short s_ctrlReg;
+static unsigned short s_baudReg;
 
-static unsigned int bufcount;
-static unsigned int parp;
-static unsigned int mcdst, rdwr;
-static unsigned char adrH, adrL;
-static unsigned int padst;
-static unsigned int gsdonglest;
+static unsigned int s_bufcount;
+static unsigned int s_parp;
+static unsigned int s_mcdst, s_rdwr;
+static unsigned char s_adrH, s_adrL;
+static unsigned int s_padst;
+static unsigned int s_gsdonglest;
 
-char Mcd1Data[MCD_SIZE], Mcd2Data[MCD_SIZE];
+char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
 
 #define DONGLE_SIZE 0x40 * 0x1000
 
-unsigned int DongleBank;
-unsigned char DongleData[DONGLE_SIZE];
-static int DongleInit;
+unsigned int s_dongleBank;
+unsigned char s_dongleData[DONGLE_SIZE];
+static int s_dongleInit;
 
 #if 0
 // Breaks Twisted Metal 2 intro
@@ -95,8 +96,8 @@ static int DongleInit;
             g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
         }                                                        \
                                                                  \
-        StatReg &= ~RX_RDY;                                      \
-        StatReg &= ~TX_RDY;                                      \
+        s_statReg &= ~RX_RDY;                                      \
+        s_statReg &= ~TX_RDY;                                      \
     }
 #endif
 
@@ -112,7 +113,7 @@ static int DongleInit;
 // clk cycle byte
 // 4us * 8bits = (PSXCLK / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
-#define SIO_CYCLES (BaudReg * 8)
+#define SIO_CYCLES (s_baudReg * 8)
 
 // rely on this for now - someone's actual testing
 //#define SIO_CYCLES (PSXCLK / 57600)
@@ -142,9 +143,9 @@ unsigned char reverse_8(unsigned char bits) {
 
 void sioWrite8(unsigned char value) {
 #ifdef PAD_LOG
-    PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, parp, padst, mcdst);
+    PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, s_parp, s_padst, s_mcdst);
 #endif
-    switch (padst) {
+    switch (s_padst) {
         case 1:
             SIO_INT(SIO_CYCLES);
             /*
@@ -165,163 +166,163 @@ void sioWrite8(unsigned char value) {
             */
 
             if ((value & 0x40) == 0x40) {
-                padst = 2;
-                parp = 1;
+                s_padst = 2;
+                s_parp = 1;
                 if (!g_config.UseNet) {
-                    switch (CtrlReg & 0x2002) {
+                    switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
-                            buf[parp] = PAD1_poll(value);
+                            s_buf[s_parp] = PAD1_poll(value);
                             break;
                         case 0x2002:
-                            buf[parp] = PAD2_poll(value);
+                            s_buf[s_parp] = PAD2_poll(value);
                             break;
                     }
                 } /* else {
-//					SysPrintf("%x: %x, %x, %x, %x\n", CtrlReg&0x2002, buf[2], buf[3], buf[4],
-buf[5]);
+//					SysPrintf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
+s_buf[5]);
                  }*/
 
-                if (!(buf[parp] & 0x0f)) {
-                    bufcount = 2 + 32;
+                if (!(s_buf[s_parp] & 0x0f)) {
+                    s_bufcount = 2 + 32;
                 } else {
-                    bufcount = 2 + (buf[parp] & 0x0f) * 2;
+                    s_bufcount = 2 + (s_buf[s_parp] & 0x0f) * 2;
                 }
 
                 // Digital / Dual Shock Controller
-                if (buf[parp] == 0x41) {
+                if (s_buf[s_parp] == 0x41) {
                     switch (value) {
                         // enter config mode
                         case 0x43:
-                            buf[1] = 0x43;
+                            s_buf[1] = 0x43;
                             break;
 
                         // get status
                         case 0x45:
-                            buf[1] = 0xf3;
+                            s_buf[1] = 0xf3;
                             break;
                     }
                 }
 
                 // NegCon - Wipeout 3
-                if (buf[parp] == 0x23) {
+                if (s_buf[s_parp] == 0x23) {
                     switch (value) {
                         // enter config mode
                         case 0x43:
-                            buf[1] = 0x79;
+                            s_buf[1] = 0x79;
                             break;
 
                         // get status
                         case 0x45:
-                            buf[1] = 0xf3;
+                            s_buf[1] = 0xf3;
                             break;
                     }
                 }
             } else
-                padst = 0;
+                s_padst = 0;
             return;
         case 2:
-            parp++;
-            /*			if (buf[1] == 0x45) {
-                                            buf[parp] = 0;
+            s_parp++;
+            /*			if (s_buf[1] == 0x45) {
+                                            s_buf[s_parp] = 0;
                                             SIO_INT(SIO_CYCLES);
                                             return;
                                     }*/
             if (!g_config.UseNet) {
-                switch (CtrlReg & 0x2002) {
+                switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
-                        buf[parp] = PAD1_poll(value);
+                        s_buf[s_parp] = PAD1_poll(value);
                         break;
                     case 0x2002:
-                        buf[parp] = PAD2_poll(value);
+                        s_buf[s_parp] = PAD2_poll(value);
                         break;
                 }
             }
 
-            if (parp == bufcount) {
-                padst = 0;
+            if (s_parp == s_bufcount) {
+                s_padst = 0;
                 return;
             }
             SIO_INT(SIO_CYCLES);
             return;
     }
 
-    switch (mcdst) {
+    switch (s_mcdst) {
         case 1:
             SIO_INT(SIO_CYCLES);
-            if (rdwr) {
-                parp++;
+            if (s_rdwr) {
+                s_parp++;
                 return;
             }
-            parp = 1;
+            s_parp = 1;
             switch (value) {
                 case 0x52:
-                    rdwr = 1;
+                    s_rdwr = 1;
                     break;
                 case 0x57:
-                    rdwr = 2;
+                    s_rdwr = 2;
                     break;
                 default:
-                    mcdst = 0;
+                    s_mcdst = 0;
             }
             return;
         case 2:  // address H
             SIO_INT(SIO_CYCLES);
-            adrH = value;
-            *buf = 0;
-            parp = 0;
-            bufcount = 1;
-            mcdst = 3;
+            s_adrH = value;
+            *s_buf = 0;
+            s_parp = 0;
+            s_bufcount = 1;
+            s_mcdst = 3;
             return;
         case 3:  // address L
             SIO_INT(SIO_CYCLES);
-            adrL = value;
-            *buf = adrH;
-            parp = 0;
-            bufcount = 1;
-            mcdst = 4;
+            s_adrL = value;
+            *s_buf = s_adrH;
+            s_parp = 0;
+            s_bufcount = 1;
+            s_mcdst = 4;
             return;
         case 4:
             SIO_INT(SIO_CYCLES);
-            parp = 0;
-            switch (rdwr) {
+            s_parp = 0;
+            switch (s_rdwr) {
                 case 1:  // read
-                    buf[0] = 0x5c;
-                    buf[1] = 0x5d;
-                    buf[2] = adrH;
-                    buf[3] = adrL;
-                    switch (CtrlReg & 0x2002) {
+                    s_buf[0] = 0x5c;
+                    s_buf[1] = 0x5d;
+                    s_buf[2] = s_adrH;
+                    s_buf[3] = s_adrL;
+                    switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
-                            memcpy(&buf[4], Mcd1Data + (adrL | (adrH << 8)) * 128, 128);
+                            memcpy(&s_buf[4], g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                         case 0x2002:
-                            memcpy(&buf[4], Mcd2Data + (adrL | (adrH << 8)) * 128, 128);
+                            memcpy(&s_buf[4], g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                     }
                     {
                         char xorsum = 0;
                         int i;
-                        for (i = 2; i < 128 + 4; i++) xorsum ^= buf[i];
-                        buf[132] = xorsum;
+                        for (i = 2; i < 128 + 4; i++) xorsum ^= s_buf[i];
+                        s_buf[132] = xorsum;
                     }
-                    buf[133] = 0x47;
-                    bufcount = 133;
+                    s_buf[133] = 0x47;
+                    s_bufcount = 133;
                     break;
                 case 2:  // write
-                    buf[0] = adrL;
-                    buf[1] = value;
-                    buf[129] = 0x5c;
-                    buf[130] = 0x5d;
-                    buf[131] = 0x47;
-                    bufcount = 131;
-                    cardh[1] &= ~MCDST_CHANGED;
+                    s_buf[0] = s_adrL;
+                    s_buf[1] = value;
+                    s_buf[129] = 0x5c;
+                    s_buf[130] = 0x5d;
+                    s_buf[131] = 0x47;
+                    s_bufcount = 131;
+                    s_cardh[1] &= ~MCDST_CHANGED;
                     break;
             }
-            mcdst = 5;
+            s_mcdst = 5;
             return;
         case 5:
-            parp++;
-            if (rdwr == 2) {
-                if (parp < 128) buf[parp + 1] = value;
+            s_parp++;
+            if (s_rdwr == 2) {
+                if (s_parp < 128) s_buf[s_parp + 1] = value;
             }
             SIO_INT(SIO_CYCLES);
             return;
@@ -335,7 +336,7 @@ buf[5]);
     ae - be - ef - 01 + 42 + [00] * $1000
     ae - be - ef - 03 + 01,01,1f,e3,85,ae,d1,28 + [00] * 4
     */
-    switch (gsdonglest) {
+    switch (s_gsdonglest) {
         // main command loop
         case 1:
             SIO_INT(SIO_CYCLES);
@@ -345,92 +346,92 @@ buf[5]);
 
             // reset device when fail?
             if (value == 0xae) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
             }
 
             // GS CDX
             else if (value == 0xbe) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
-                buf[0] = reverse_8(0xde);
+                s_buf[0] = reverse_8(0xde);
             }
 
             // GS CDX
             else if (value == 0xef) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
-                buf[0] = reverse_8(0xad);
+                s_buf[0] = reverse_8(0xad);
             }
 
             // GS CDX [1 in + $1000 out + $1 out]
             else if (value == 0x01) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
                 // $00 = 0000 0000
                 // - (reverse) 0000 0000
-                buf[0] = 0x00;
-                gsdonglest = 2;
+                s_buf[0] = 0x00;
+                s_gsdonglest = 2;
             }
 
             // GS CDX [1 in + $1000 in + $1 out]
             else if (value == 0x02) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
                 // $00 = 0000 0000
                 // - (reverse) 0000 0000
-                buf[0] = 0x00;
-                gsdonglest = 3;
+                s_buf[0] = 0x00;
+                s_gsdonglest = 3;
             }
 
             // GS CDX [8 in, 4 out]
             else if (value == 0x03) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
                 // $00 = 0000 0000
                 // - (reverse) 0000 0000
-                buf[0] = 0x00;
+                s_buf[0] = 0x00;
 
-                gsdonglest = 4;
+                s_gsdonglest = 4;
             }
 
             // GS CDX [out 1]
             else if (value == 0x04) {
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
                 // $00 = 0000 0000
                 // - (reverse) 0000 0000
-                buf[0] = 0x00;
-                gsdonglest = 5;
+                s_buf[0] = 0x00;
+                s_gsdonglest = 5;
             } else {
                 // ERROR!!
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
-                buf[0] = 0xff;
+                s_parp = 0;
+                s_bufcount = s_parp;
+                s_buf[0] = 0xff;
 
-                gsdonglest = 0;
+                s_gsdonglest = 0;
             }
 
             return;
@@ -441,48 +442,48 @@ buf[5]);
             unsigned int lcv;
 
             SIO_INT(SIO_CYCLES);
-            StatReg |= RX_RDY;
+            s_statReg |= RX_RDY;
 
             // read 1 byte
-            DongleBank = buf[0];
+            s_dongleBank = s_buf[0];
 
             // write data + checksum
             checksum = 0;
             for (lcv = 0; lcv < 0x1000; lcv++) {
                 unsigned char data;
 
-                data = DongleData[DongleBank * 0x1000 + lcv];
+                data = s_dongleData[s_dongleBank * 0x1000 + lcv];
 
-                buf[lcv + 1] = reverse_8(data);
+                s_buf[lcv + 1] = reverse_8(data);
                 checksum += data;
             }
 
-            parp = 0;
-            bufcount = 0x1001;
-            buf[0x1001] = reverse_8(checksum);
+            s_parp = 0;
+            s_bufcount = 0x1001;
+            s_buf[0x1001] = reverse_8(checksum);
 
-            gsdonglest = 255;
+            s_gsdonglest = 255;
             return;
         }
 
         // be - ef - 02
         case 3:
             SIO_INT(SIO_CYCLES);
-            StatReg |= RX_RDY;
+            s_statReg |= RX_RDY;
 
             // command start
-            if (parp < 0x1000 + 1) {
+            if (s_parp < 0x1000 + 1) {
                 // read 1 byte
-                buf[parp] = value;
-                parp++;
+                s_buf[s_parp] = value;
+                s_parp++;
             }
 
-            if (parp == 0x1001) {
+            if (s_parp == 0x1001) {
                 unsigned char checksum;
                 unsigned int lcv;
 
-                DongleBank = buf[0];
-                memcpy(DongleData + DongleBank * 0x1000, buf + 1, 0x1000);
+                s_dongleBank = s_buf[0];
+                memcpy(s_dongleData + s_dongleBank * 0x1000, s_buf + 1, 0x1000);
 
                 // save to file
                 SaveDongle("memcards/CDX_Dongle.bin");
@@ -490,92 +491,92 @@ buf[5]);
                 // write 8-bit checksum
                 checksum = 0;
                 for (lcv = 1; lcv < 0x1001; lcv++) {
-                    checksum += buf[lcv];
+                    checksum += s_buf[lcv];
                 }
 
-                parp = 0;
-                bufcount = 1;
-                buf[1] = reverse_8(checksum);
+                s_parp = 0;
+                s_bufcount = 1;
+                s_buf[1] = reverse_8(checksum);
 
                 // flush result
-                gsdonglest = 255;
+                s_gsdonglest = 255;
             }
             return;
 
         // be - ef - 03
         case 4:
             SIO_INT(SIO_CYCLES);
-            StatReg |= RX_RDY;
+            s_statReg |= RX_RDY;
 
             // command start
-            if (parp < 8) {
+            if (s_parp < 8) {
                 // read 2 (?,?) + 4 (DATA?) + 2 (CRC?)
-                buf[parp] = value;
-                parp++;
+                s_buf[s_parp] = value;
+                s_parp++;
             }
 
-            if (parp == 8) {
+            if (s_parp == 8) {
                 // now write 4 bytes via -FOUR- $00 writes
-                parp = 8;
-                bufcount = 12;
+                s_parp = 8;
+                s_bufcount = 12;
 
                 // TODO: Solve CDX algorithm
 
                 // GS CDX [magic key]
-                if (buf[2] == 0x12 && buf[3] == 0x34 && buf[4] == 0x56 && buf[5] == 0x78) {
-                    buf[9] = reverse_8(0x3e);
-                    buf[10] = reverse_8(0xa0);
-                    buf[11] = reverse_8(0x40);
-                    buf[12] = reverse_8(0x29);
+                if (s_buf[2] == 0x12 && s_buf[3] == 0x34 && s_buf[4] == 0x56 && s_buf[5] == 0x78) {
+                    s_buf[9] = reverse_8(0x3e);
+                    s_buf[10] = reverse_8(0xa0);
+                    s_buf[11] = reverse_8(0x40);
+                    s_buf[12] = reverse_8(0x29);
                 }
 
                 // GS CDX [address key #2 = 6ec]
-                else if (buf[2] == 0x1f && buf[3] == 0xe3 && buf[4] == 0x45 && buf[5] == 0x60) {
-                    buf[9] = reverse_8(0xee);
-                    buf[10] = reverse_8(0xdd);
-                    buf[11] = reverse_8(0x71);
-                    buf[12] = reverse_8(0xa8);
+                else if (s_buf[2] == 0x1f && s_buf[3] == 0xe3 && s_buf[4] == 0x45 && s_buf[5] == 0x60) {
+                    s_buf[9] = reverse_8(0xee);
+                    s_buf[10] = reverse_8(0xdd);
+                    s_buf[11] = reverse_8(0x71);
+                    s_buf[12] = reverse_8(0xa8);
                 }
 
                 // GS CDX [address key #3 = ???]
-                else if (buf[2] == 0x1f && buf[3] == 0xe3 && buf[4] == 0x72 && buf[5] == 0xe3) {
+                else if (s_buf[2] == 0x1f && s_buf[3] == 0xe3 && s_buf[4] == 0x72 && s_buf[5] == 0xe3) {
                     // unsolved!!
 
                     // Used here: 80090348 / 80090498
 
                     // dummy value - MSB
-                    buf[9] = reverse_8(0xfa);
-                    buf[10] = reverse_8(0xde);
-                    buf[11] = reverse_8(0x21);
-                    buf[12] = reverse_8(0x97);
+                    s_buf[9] = reverse_8(0xfa);
+                    s_buf[10] = reverse_8(0xde);
+                    s_buf[11] = reverse_8(0x21);
+                    s_buf[12] = reverse_8(0x97);
                 }
 
                 // GS CDX [address key #4 = a00]
-                else if (buf[2] == 0x1f && buf[3] == 0xe3 && buf[4] == 0x85 && buf[5] == 0xae) {
-                    buf[9] = reverse_8(0xee);
-                    buf[10] = reverse_8(0xdd);
-                    buf[11] = reverse_8(0x7d);
-                    buf[12] = reverse_8(0x44);
+                else if (s_buf[2] == 0x1f && s_buf[3] == 0xe3 && s_buf[4] == 0x85 && s_buf[5] == 0xae) {
+                    s_buf[9] = reverse_8(0xee);
+                    s_buf[10] = reverse_8(0xdd);
+                    s_buf[11] = reverse_8(0x7d);
+                    s_buf[12] = reverse_8(0x44);
                 }
 
                 // GS CDX [address key #5 = 9ec]
-                else if (buf[2] == 0x17 && buf[3] == 0xe3 && buf[4] == 0xb5 && buf[5] == 0x60) {
-                    buf[9] = reverse_8(0xee);
-                    buf[10] = reverse_8(0xdd);
-                    buf[11] = reverse_8(0x7e);
-                    buf[12] = reverse_8(0xa8);
+                else if (s_buf[2] == 0x17 && s_buf[3] == 0xe3 && s_buf[4] == 0xb5 && s_buf[5] == 0x60) {
+                    s_buf[9] = reverse_8(0xee);
+                    s_buf[10] = reverse_8(0xdd);
+                    s_buf[11] = reverse_8(0x7e);
+                    s_buf[12] = reverse_8(0xa8);
                 }
 
                 else {
                     // dummy value - MSB
-                    buf[9] = reverse_8(0xfa);
-                    buf[10] = reverse_8(0xde);
-                    buf[11] = reverse_8(0x21);
-                    buf[12] = reverse_8(0x97);
+                    s_buf[9] = reverse_8(0xfa);
+                    s_buf[10] = reverse_8(0xde);
+                    s_buf[11] = reverse_8(0x21);
+                    s_buf[12] = reverse_8(0x97);
                 }
 
                 // flush bytes -> done
-                gsdonglest = 255;
+                s_gsdonglest = 255;
             }
             return;
 
@@ -583,17 +584,17 @@ buf[5]);
         case 5:
             if (value == 0x00) {
                 SIO_INT(SIO_CYCLES);
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
                 // read 1 byte
-                parp = 0;
-                bufcount = parp;
+                s_parp = 0;
+                s_bufcount = s_parp;
 
                 // size of dongle card?
-                buf[0] = reverse_8(DONGLE_SIZE / 0x1000);
+                s_buf[0] = reverse_8(DONGLE_SIZE / 0x1000);
 
                 // done already
-                gsdonglest = 0;
+                s_gsdonglest = 0;
             }
             return;
 
@@ -602,11 +603,11 @@ buf[5]);
             if (value == 0x00) {
                 // SIO_INT( SIO_CYCLES );
                 SIO_INT(1);
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp++;
-                if (parp == bufcount) {
-                    gsdonglest = 0;
+                s_parp++;
+                if (s_parp == s_bufcount) {
+                    s_gsdonglest = 0;
 
 #ifdef GSDONGLE_LOG
                     PAD_LOG("(gameshark dongle) DONE!!\n");
@@ -614,160 +615,160 @@ buf[5]);
                 }
             } else {
                 // ERROR!!
-                StatReg |= RX_RDY;
+                s_statReg |= RX_RDY;
 
-                parp = 0;
-                bufcount = parp;
-                buf[0] = 0xff;
+                s_parp = 0;
+                s_bufcount = s_parp;
+                s_buf[0] = 0xff;
 
-                gsdonglest = 0;
+                s_gsdonglest = 0;
             }
             return;
     }
 
     switch (value) {
         case 0x01:              // start pad
-            StatReg |= RX_RDY;  // Transfer is Ready
+            s_statReg |= RX_RDY;  // Transfer is Ready
 
             if (!g_config.UseNet) {
-                switch (CtrlReg & 0x2002) {
+                switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
-                        buf[0] = PAD1_startPoll(1);
+                        s_buf[0] = PAD1_startPoll(1);
                         break;
                     case 0x2002:
-                        buf[0] = PAD2_startPoll(2);
+                        s_buf[0] = PAD2_startPoll(2);
                         break;
                 }
             } else {
-                if ((CtrlReg & 0x2002) == 0x0002) {
+                if ((s_ctrlReg & 0x2002) == 0x0002) {
                     int i, j;
 
                     PAD1_startPoll(1);
-                    buf[0] = 0;
-                    buf[1] = PAD1_poll(0x42);
-                    if (!(buf[1] & 0x0f)) {
-                        bufcount = 32;
+                    s_buf[0] = 0;
+                    s_buf[1] = PAD1_poll(0x42);
+                    if (!(s_buf[1] & 0x0f)) {
+                        s_bufcount = 32;
                     } else {
-                        bufcount = (buf[1] & 0x0f) * 2;
+                        s_bufcount = (s_buf[1] & 0x0f) * 2;
                     }
-                    buf[2] = PAD1_poll(0);
+                    s_buf[2] = PAD1_poll(0);
                     i = 3;
-                    j = bufcount;
+                    j = s_bufcount;
                     while (j--) {
-                        buf[i++] = PAD1_poll(0);
+                        s_buf[i++] = PAD1_poll(0);
                     }
-                    bufcount += 3;
+                    s_bufcount += 3;
 
-                    if (NET_sendPadData(buf, bufcount) == -1) netError();
+                    if (NET_sendPadData(s_buf, s_bufcount) == -1) netError();
 
-                    if (NET_recvPadData(buf, 1) == -1) netError();
-                    if (NET_recvPadData(buf + 128, 2) == -1) netError();
+                    if (NET_recvPadData(s_buf, 1) == -1) netError();
+                    if (NET_recvPadData(s_buf + 128, 2) == -1) netError();
                 } else {
-                    memcpy(buf, buf + 128, 32);
+                    memcpy(s_buf, s_buf + 128, 32);
                 }
             }
 
-            bufcount = 2;
-            parp = 0;
-            padst = 1;
+            s_bufcount = 2;
+            s_parp = 0;
+            s_padst = 1;
             SIO_INT(SIO_CYCLES);
             return;
         case 0x81:  // start memcard
                     // case 0x82: case 0x83: case 0x84: // Multitap memcard access
-            StatReg |= RX_RDY;
+            s_statReg |= RX_RDY;
 
             // Chronicles of the Sword - no memcard = password options
             if (g_config.NoMemcard || (!g_config.Mcd1[0] && !g_config.Mcd2[0])) {
-                memset(buf, 0x00, 4);
+                memset(s_buf, 0x00, 4);
             } else {
-                memcpy(buf, cardh, 4);
-                if (!g_config.Mcd1[0]) buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                if (!g_config.Mcd2[0]) buf[3] = 0;  // is card 2 plugged?
+                memcpy(s_buf, s_cardh, 4);
+                if (!g_config.Mcd1[0]) s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
+                if (!g_config.Mcd2[0]) s_buf[3] = 0;  // is card 2 plugged?
             }
 
-            parp = 0;
-            bufcount = 3;
-            mcdst = 1;
-            rdwr = 0;
+            s_parp = 0;
+            s_bufcount = 3;
+            s_mcdst = 1;
+            s_rdwr = 0;
             SIO_INT(SIO_CYCLES);
             return;
         case 0xae:  // GameShark CDX - start dongle
-            StatReg |= RX_RDY;
-            gsdonglest = 1;
+            s_statReg |= RX_RDY;
+            s_gsdonglest = 1;
 
-            parp = 0;
-            bufcount = parp;
+            s_parp = 0;
+            s_bufcount = s_parp;
 
-            if (!DongleInit) {
+            if (!s_dongleInit) {
                 LoadDongle("memcards/CDX_Dongle.bin");
 
-                DongleInit = 1;
+                s_dongleInit = 1;
             }
 
             SIO_INT(SIO_CYCLES);
             return;
 
         default:  // no hardware found
-            StatReg |= RX_RDY;
+            s_statReg |= RX_RDY;
             return;
     }
 }
 
 void sioWriteStat16(unsigned short value) {}
 
-void sioWriteMode16(unsigned short value) { ModeReg = value; }
+void sioWriteMode16(unsigned short value) { s_modeReg = value; }
 
 void sioWriteCtrl16(unsigned short value) {
 #ifdef PAD_LOG
-    PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, parp, padst, mcdst);
+    PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, s_parp, s_padst, s_mcdst);
 #endif
-    CtrlReg = value & ~RESET_ERR;
-    if (value & RESET_ERR) StatReg &= ~IRQ;
-    if ((CtrlReg & SIO_RESET) || (!CtrlReg)) {
-        padst = 0;
-        mcdst = 0;
-        parp = 0;
-        StatReg = TX_RDY | TX_EMPTY;
+    s_ctrlReg = value & ~RESET_ERR;
+    if (value & RESET_ERR) s_statReg &= ~IRQ;
+    if ((s_ctrlReg & SIO_RESET) || (!s_ctrlReg)) {
+        s_padst = 0;
+        s_mcdst = 0;
+        s_parp = 0;
+        s_statReg = TX_RDY | TX_EMPTY;
         g_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
     }
 }
 
-void sioWriteBaud16(unsigned short value) { BaudReg = value; }
+void sioWriteBaud16(unsigned short value) { s_baudReg = value; }
 
 unsigned char sioRead8() {
     unsigned char ret = 0;
 
-    if ((StatReg & RX_RDY) /* && (CtrlReg & RX_PERM)*/) {
-        //		StatReg &= ~RX_OVERRUN;
-        ret = buf[parp];
-        if (parp == bufcount) {
-            StatReg &= ~RX_RDY;  // Receive is not Ready now
-            if (mcdst == 5) {
-                mcdst = 0;
-                if (rdwr == 2) {
-                    switch (CtrlReg & 0x2002) {
+    if ((s_statReg & RX_RDY) /* && (s_ctrlReg & RX_PERM)*/) {
+        //		s_statReg &= ~RX_OVERRUN;
+        ret = s_buf[s_parp];
+        if (s_parp == s_bufcount) {
+            s_statReg &= ~RX_RDY;  // Receive is not Ready now
+            if (s_mcdst == 5) {
+                s_mcdst = 0;
+                if (s_rdwr == 2) {
+                    switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
-                            memcpy(Mcd1Data + (adrL | (adrH << 8)) * 128, &buf[1], 128);
-                            SaveMcd(g_config.Mcd1, Mcd1Data, (adrL | (adrH << 8)) * 128, 128);
+                            memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
+                            SaveMcd(g_config.Mcd1, g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                         case 0x2002:
-                            memcpy(Mcd2Data + (adrL | (adrH << 8)) * 128, &buf[1], 128);
-                            SaveMcd(g_config.Mcd2, Mcd2Data, (adrL | (adrH << 8)) * 128, 128);
+                            memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
+                            SaveMcd(g_config.Mcd2, g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                     }
                 }
             }
-            if (padst == 2) padst = 0;
-            if (mcdst == 1) {
-                mcdst = 2;
-                StatReg |= RX_RDY;
+            if (s_padst == 2) s_padst = 0;
+            if (s_mcdst == 1) {
+                s_mcdst = 2;
+                s_statReg |= RX_RDY;
             }
         }
     }
 
 #ifdef PAD_LOG
-    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, parp, StatReg, buf[parp > 0 ? parp - 1 : 0],
-            buf[parp], buf[parp < BUFFER_SIZE - 1 ? parp + 1 : BUFFER_SIZE - 1]);
+    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg, s_buf[s_parp > 0 ? s_parp - 1 : 0],
+            s_buf[s_parp], s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
 #endif
     return ret;
 }
@@ -775,7 +776,7 @@ unsigned char sioRead8() {
 unsigned short sioReadStat16() {
     u16 hard;
 
-    hard = StatReg;
+    hard = s_statReg;
 
 #if 0
 	// wait for IRQ first
@@ -790,11 +791,11 @@ unsigned short sioReadStat16() {
     return hard;
 }
 
-unsigned short sioReadMode16() { return ModeReg; }
+unsigned short sioReadMode16() { return s_modeReg; }
 
-unsigned short sioReadCtrl16() { return CtrlReg; }
+unsigned short sioReadCtrl16() { return s_ctrlReg; }
 
-unsigned short sioReadBaud16() { return BaudReg; }
+unsigned short sioReadBaud16() { return s_baudReg; }
 
 void netError() {
     // ClosePlugins();
@@ -811,14 +812,14 @@ void sioInterrupt() {
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", g_psxRegs.CP0.n.Status);
 #endif
     //	SysPrintf("Sio Interrupt\n");
-    StatReg |= IRQ;
+    s_statReg |= IRQ;
     psxHu32ref(0x1070) |= SWAPu32(0x80);
 
 #if 0
 	// Rhapsody: fixes input problems
 	// Twisted Metal 2: breaks intro
-	StatReg |= TX_RDY;
-	StatReg |= RX_RDY;
+	s_statReg |= TX_RDY;
+	s_statReg |= RX_RDY;
 #endif
 }
 
@@ -828,8 +829,8 @@ void LoadMcd(int mcd, char *str) {
     char filepath[MAXPATHLEN] = {'\0'};
     const char *apppath = GetAppPath();
 
-    if (mcd == 1) data = Mcd1Data;
-    if (mcd == 2) data = Mcd2Data;
+    if (mcd == 1) data = g_mcd1Data;
+    if (mcd == 2) data = g_mcd2Data;
 
     if (*str == 0) {
         SysPrintf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
@@ -872,7 +873,7 @@ void LoadMcd(int mcd, char *str) {
     }
 
     // flag indicating entries have not yet been read (i.e. new card plugged)
-    cardh[1] |= MCDST_CHANGED;
+    s_cardh[1] |= MCDST_CHANGED;
 }
 
 void LoadMcds(char *mcd1, char *mcd2) {
@@ -1172,8 +1173,8 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
 
     memset(Info, 0, sizeof(McdBlock));
 
-    if (mcd == 1) data = Mcd1Data;
-    if (mcd == 2) data = Mcd2Data;
+    if (mcd == 1) data = g_mcd1Data;
+    if (mcd == 2) data = g_mcd2Data;
 
     ptr = data + block * 8192 + 2;
 
@@ -1268,18 +1269,18 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
 }
 
 int sioFreeze(gzFile f, int Mode) {
-    gzfreeze(buf, sizeof(buf));
-    gzfreeze(&StatReg, sizeof(StatReg));
-    gzfreeze(&ModeReg, sizeof(ModeReg));
-    gzfreeze(&CtrlReg, sizeof(CtrlReg));
-    gzfreeze(&BaudReg, sizeof(BaudReg));
-    gzfreeze(&bufcount, sizeof(bufcount));
-    gzfreeze(&parp, sizeof(parp));
-    gzfreeze(&mcdst, sizeof(mcdst));
-    gzfreeze(&rdwr, sizeof(rdwr));
-    gzfreeze(&adrH, sizeof(adrH));
-    gzfreeze(&adrL, sizeof(adrL));
-    gzfreeze(&padst, sizeof(padst));
+    gzfreeze(s_buf, sizeof(s_buf));
+    gzfreeze(&s_statReg, sizeof(s_statReg));
+    gzfreeze(&s_modeReg, sizeof(s_modeReg));
+    gzfreeze(&s_ctrlReg, sizeof(s_ctrlReg));
+    gzfreeze(&s_baudReg, sizeof(s_baudReg));
+    gzfreeze(&s_bufcount, sizeof(s_bufcount));
+    gzfreeze(&s_parp, sizeof(s_parp));
+    gzfreeze(&s_mcdst, sizeof(s_mcdst));
+    gzfreeze(&s_rdwr, sizeof(s_rdwr));
+    gzfreeze(&s_adrH, sizeof(s_adrH));
+    gzfreeze(&s_adrL, sizeof(s_adrL));
+    gzfreeze(&s_padst, sizeof(s_padst));
 
     return 0;
 }
@@ -1289,12 +1290,12 @@ void LoadDongle(char *str) {
 
     f = fopen(str, "r+b");
     if (f != NULL) {
-        fread(DongleData, 1, DONGLE_SIZE, f);
+        fread(s_dongleData, 1, DONGLE_SIZE, f);
         fclose(f);
     } else {
         u32 *ptr, lcv;
 
-        ptr = (unsigned int *)DongleData;
+        ptr = (unsigned int *)s_dongleData;
 
         // create temp data
         ptr[0] = (u32)0x02015447;
@@ -1321,7 +1322,7 @@ void SaveDongle(char *str) {
 
     f = fopen(str, "wb");
     if (f != NULL) {
-        fwrite(DongleData, 1, DONGLE_SIZE, f);
+        fwrite(s_dongleData, 1, DONGLE_SIZE, f);
         fclose(f);
     }
 }
