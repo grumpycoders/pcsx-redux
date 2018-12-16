@@ -131,7 +131,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\core\cdriso.cc" />
-    <ClCompile Include="..\..\src\core\cdrom.c" />
+    <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\cheat.c" />
     <ClCompile Include="..\..\src\core\debug.c" />
     <ClCompile Include="..\..\src\core\decode_xa.c" />

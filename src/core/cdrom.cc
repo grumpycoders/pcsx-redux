@@ -60,7 +60,7 @@ cdrStruct g_cdr;
 #define CdlGetQ 29       // 0x1d
 #define CdlReadToc 30    // 0x1e
 
-char *CmdName[0x100] = {
+const char *CmdName[0x100] = {
     "CdlSync",     "CdlNop",     "CdlSetloc", "CdlPlay",  "CdlForward", "CdlBackward",  "CdlReadN",   "CdlStandby",
     "CdlStop",     "CdlPause",   "CdlInit",   "CdlMute",  "CdlDemute",  "CdlSetfilter", "CdlSetmode", "CdlGetmode",
     "CdlGetlocL",  "CdlGetlocP", "CdlReadT",  "CdlGetTN", "CdlGetTD",   "CdlSeekL",     "CdlSeekP",   "CdlSetclock",
@@ -127,8 +127,8 @@ enum seeked_state {
 
 static struct CdrStat stat;
 
-extern unsigned int msf2sec(const char *msf);
-extern void sec2msf(unsigned int s, const char *msf);
+unsigned int msf2sec(const u8 *msf);
+void sec2msf(unsigned int s, u8 *msf);
 
 // for that weird psemu API..
 static unsigned int fsm2sec(const u8 *msf) { return ((msf[2] * 60 + msf[1]) * 75) + msf[0]; }
