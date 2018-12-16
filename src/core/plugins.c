@@ -1037,32 +1037,32 @@ int LoadPlugins() {
     if (UsingIso()) {
         LoadCDRplugin(NULL);
     } else {
-        sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Cdr);
+        sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Cdr);
         if (LoadCDRplugin(Plugin) == -1) return -1;
     }
 
-    sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Gpu);
+    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Gpu);
     if (LoadGPUplugin(Plugin) == -1) return -1;
 
-    sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Spu);
+    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Spu);
     if (LoadSPUplugin(Plugin) == -1) return -1;
 
-    sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Pad1);
+    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Pad1);
     if (LoadPAD1plugin(Plugin) == -1) return -1;
 
-    sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Pad2);
+    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Pad2);
     if (LoadPAD2plugin(Plugin) == -1) return -1;
 
-    if (strcmp("Disabled", Config.Net) == 0 || strcmp("", Config.Net) == 0)
-        Config.UseNet = FALSE;
+    if (strcmp("Disabled", g_config.Net) == 0 || strcmp("", g_config.Net) == 0)
+        g_config.UseNet = FALSE;
     else {
-        Config.UseNet = TRUE;
-        sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Net);
-        if (LoadNETplugin(Plugin) == -1) Config.UseNet = FALSE;
+        g_config.UseNet = TRUE;
+        sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Net);
+        if (LoadNETplugin(Plugin) == -1) g_config.UseNet = FALSE;
     }
 
 #ifdef ENABLE_SIO1API
-    sprintf(Plugin, "%s/%s", Config.PluginsDir, Config.Sio1);
+    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Sio1);
     if (LoadSIO1plugin(Plugin) == -1) return -1;
 #endif
 
@@ -1092,7 +1092,7 @@ int LoadPlugins() {
         return -1;
     }
 
-    if (Config.UseNet) {
+    if (g_config.UseNet) {
         ret = NET_init();
         if (ret < 0) {
             SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
@@ -1113,11 +1113,11 @@ int LoadPlugins() {
 }
 
 void ReleasePlugins() {
-    if (Config.UseNet) {
+    if (g_config.UseNet) {
         long ret = NET_close();
-        if (ret < 0) Config.UseNet = FALSE;
+        if (ret < 0) g_config.UseNet = FALSE;
     }
-    NetOpened = FALSE;
+    g_netOpened = FALSE;
 
     if (hCDRDriver != NULL || cdrIsoActive()) CDR_shutdown();
     if (hGPUDriver != NULL) GPU_shutdown();
@@ -1125,7 +1125,7 @@ void ReleasePlugins() {
     if (hPAD1Driver != NULL) PAD1_shutdown();
     if (hPAD2Driver != NULL) PAD2_shutdown();
 
-    if (Config.UseNet && hNETDriver != NULL) NET_shutdown();
+    if (g_config.UseNet && hNETDriver != NULL) NET_shutdown();
 
 #if 0
     if (hCDRDriver != NULL) SysCloseLibrary(hCDRDriver);
@@ -1139,7 +1139,7 @@ void ReleasePlugins() {
     if (hPAD2Driver != NULL) SysCloseLibrary(hPAD2Driver);
     hPAD2Driver = NULL;
 
-    if (Config.UseNet && hNETDriver != NULL) {
+    if (g_config.UseNet && hNETDriver != NULL) {
         SysCloseLibrary(hNETDriver);
         hNETDriver = NULL;
     }
@@ -1195,6 +1195,6 @@ const char *GetAppPath(void) { return AppPath; }
 
 const char *GetLdrFile(void) { return LdrFile; }
 
-boolean UsingIso(void) { return (IsoFile[0] != '\0' || Config.Cdr[0] == '\0'); }
+boolean UsingIso(void) { return (IsoFile[0] != '\0' || g_config.Cdr[0] == '\0'); }
 
 void SetCdOpenCaseTime(s64 time) { cdOpenCaseTime = time; }

@@ -17,29 +17,28 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "psxcommon.h"
-#include "psxbios.h"
-#include "r3000a.h"
+#include "core/cheat.h"
+#include "core/ppf.h"
+#include "core/psxcommon.h"
+#include "core/psxbios.h"
+#include "core/r3000a.h"
 
-#include "cheat.h"
-#include "ppf.h"
+PcsxConfig g_config;
+boolean g_netOpened = FALSE;
 
-PcsxConfig Config;
-boolean NetOpened = FALSE;
-
-int Log = 0;
-FILE *emuLog = NULL;
+int g_log = 0;
+FILE *g_emuLog = NULL;
 
 // It is safe if these overflow
-u32 rewind_counter = 0;
-u8 vblank_count_hideafter = 0;
+u32 g_rewind_counter = 0;
+u8 g_vblank_count_hideafter = 0;
 
 // Used for overclocking
-u32 PsxClockSpeed = 33868800;
+u32 g_psxClockSpeed = 33868800;
 
 int EmuInit() {
     int ret = psxInit();
-    EmuSetPGXPMode(Config.PGXP_Mode);
+    EmuSetPGXPMode(g_config.PGXP_Mode);
     return ret;
 }
 
@@ -64,17 +63,17 @@ void EmuShutdown() {
 
 void EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!Config.HLE || !g_hleSoftCall) SysUpdate();
+    if (!g_config.HLE || !g_hleSoftCall) SysUpdate();
 
     ApplyCheats();
 
-    if (vblank_count_hideafter) {
-        if (!(--vblank_count_hideafter)) {
+    if (g_vblank_count_hideafter) {
+        if (!(--g_vblank_count_hideafter)) {
             GPU_showScreenPic(NULL);
         }
     }
 
-    if (Config.RewindInterval > 0 && !(++rewind_counter % Config.RewindInterval)) {
+    if (g_config.RewindInterval > 0 && !(++g_rewind_counter % g_config.RewindInterval)) {
         CreateRewindState();
     }
 }
@@ -89,7 +88,7 @@ void __Log(char *fmt, ...) {
 
     va_start(list, fmt);
 #ifndef LOG_STDOUT
-    vfprintf(emuLog, fmt, list);
+    vfprintf(g_emuLog, fmt, list);
 #else
     vsprintf(tmp, fmt, list);
     SysPrintf(tmp);

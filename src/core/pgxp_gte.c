@@ -76,14 +76,14 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
 
     SXY2.x = _x;
     SXY2.y = _y;
-    SXY2.z = Config.PGXP_Texture ? _z : 1.f;
+    SXY2.z = g_config.PGXP_Texture ? _z : 1.f;
     SXY2.value = _v;
     SXY2.flags = VALID_ALL;
     SXY2.count = uCount++;
 
     // cache value in GPU plugin
     temp.word = _v;
-    if (Config.PGXP_Cache)
+    if (g_config.PGXP_Cache)
         GPU_pgxpCacheVertex(temp.x, temp.y, &SXY2);
     else
         GPU_pgxpCacheVertex(0, 0, NULL);
@@ -98,7 +98,7 @@ void PGXP_pushSXYZ2s(s64 _x, s64 _y, s64 _z, u32 v) {
     float fy = (float)(_y) / (float)(1 << 16);
     float fz = (float)(_z);
 
-    if (Config.PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
+    if (g_config.PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
 }
 
 #define VX(n) (g_psxRegs.CP2D.p[n << 1].sw.l)
@@ -144,7 +144,7 @@ void PGXP_RTPS(u32 _n, u32 _v) {
     h_over_w = (SZ3 == 0) ? ((float)0x1ffff / (float)0xffff) : h_over_w;
 
     // PSX Screen space X,Y,W components
-    float sx = OFX + (IR1 * h_over_w) * (Config.Widescreen ? 0.75 : 1);
+    float sx = OFX + (IR1 * h_over_w) * (g_config.Widescreen ? 0.75 : 1);
     float sy = OFY + (IR2 * h_over_w);
     float sw = SZ3;  // max(SZ3, 0.1);
 
@@ -173,7 +173,7 @@ int PGXP_NLCIP_valid(u32 sxy0, u32 sxy1, u32 sxy2) {
     Validate(&SXY0, sxy0);
     Validate(&SXY1, sxy1);
     Validate(&SXY2, sxy2);
-    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && Config.PGXP_GTE && (Config.PGXP_Mode > 0))
+    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && g_config.PGXP_GTE && (g_config.PGXP_Mode > 0))
         return 1;
     return 0;
 }

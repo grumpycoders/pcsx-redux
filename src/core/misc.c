@@ -158,8 +158,8 @@ int LoadCdrom() {
     u8 mdir[4096];
     s8 exename[256];
 
-    if (!Config.HLE) {
-        if (!Config.SlowBoot) g_psxRegs.pc = g_psxRegs.GPR.n.ra;
+    if (!g_config.HLE) {
+        if (!g_config.SlowBoot) g_psxRegs.pc = g_psxRegs.GPR.n.ra;
         return 0;
     }
 
@@ -356,20 +356,20 @@ int CheckCdrom() {
         }
     }
 
-    if (Config.PsxAuto) {  // autodetect system (pal or ntsc)
+    if (g_config.PsxAuto) {  // autodetect system (pal or ntsc)
         if ((g_cdromId[2] == 'e') || (g_cdromId[2] == 'E') || !strncmp(g_cdromId, "DTLS3035", 8) ||
             !strncmp(g_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
             !strncmp(g_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
             !strncmp(g_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
-            Config.PsxType = PSX_TYPE_PAL;        // pal
+            g_config.PsxType = PSX_TYPE_PAL;        // pal
         else
-            Config.PsxType = PSX_TYPE_NTSC;  // ntsc
+            g_config.PsxType = PSX_TYPE_NTSC;  // ntsc
     }
 
-    if (Config.OverClock == 0) {
-        PsxClockSpeed = 33868800;  // 33.8688 MHz (stock)
+    if (g_config.OverClock == 0) {
+        g_psxClockSpeed = 33868800;  // 33.8688 MHz (stock)
     } else {
-        PsxClockSpeed = 33868800 * Config.PsxClock;
+        g_psxClockSpeed = 33868800 * g_config.PsxClock;
     }
 
     if (g_cdromLabel[0] == ' ') {
@@ -379,23 +379,23 @@ int CheckCdrom() {
     SysPrintf(_("CD-ROM ID: %.9s\n"), g_cdromId);
     SysPrintf(_("CD-ROM EXE Name: %.255s\n"), exename);
 
-    memset(Config.PsxExeName, 0, sizeof(Config.PsxExeName));
-    strncpy(Config.PsxExeName, exename, 11);
+    memset(g_config.PsxExeName, 0, sizeof(g_config.PsxExeName));
+    strncpy(g_config.PsxExeName, exename, 11);
 
-    if (Config.PerGameMcd) {
+    if (g_config.PerGameMcd) {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
 #ifdef _WIN32
-        sprintf(mcd1path, "memcards\\games\\%s-%02d.mcd", Config.PsxExeName, 1);
-        sprintf(mcd2path, "memcards\\games\\%s-%02d.mcd", Config.PsxExeName, 2);
+        sprintf(mcd1path, "memcards\\games\\%s-%02d.mcd", g_config.PsxExeName, 1);
+        sprintf(mcd2path, "memcards\\games\\%s-%02d.mcd", g_config.PsxExeName, 2);
 #else
         // lk: dot paths should not be hardcoded here, this is for testing only
-        sprintf(mcd1path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"), Config.PsxExeName, 1);
-        sprintf(mcd2path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"), Config.PsxExeName, 2);
+        sprintf(mcd1path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"), g_config.PsxExeName, 1);
+        sprintf(mcd2path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"), g_config.PsxExeName, 2);
 #endif
-        strcpy(Config.Mcd1, mcd1path);
-        strcpy(Config.Mcd2, mcd2path);
-        LoadMcds(Config.Mcd1, Config.Mcd2);
+        strcpy(g_config.Mcd1, mcd1path);
+        strcpy(g_config.Mcd2, mcd2path);
+        LoadMcds(g_config.Mcd1, g_config.Mcd2);
     }
 
     BuildPPFCache();
@@ -433,7 +433,7 @@ static void LoadLibPS() {
     FILE *f;
 
     // Load Net Yaroze runtime library (if exists)
-    sprintf(buf, "%s/libps.exe", Config.BiosDir);
+    sprintf(buf, "%s/libps.exe", g_config.BiosDir);
     f = fopen(buf, "rb");
 
     if (f != NULL) {
@@ -664,10 +664,10 @@ static u32 s_mem_cur_save_count = 0, mem_last_save;
 static boolean s_mem_wrapped = FALSE;  // Whether we went past max count and restarted counting
 
 void CreateRewindState() {
-    if (Config.RewindCount > 0) {
+    if (g_config.RewindCount > 0) {
         SaveStateMem(mem_last_save = s_mem_cur_save_count++);
 
-        if (s_mem_cur_save_count > Config.RewindCount) {
+        if (s_mem_cur_save_count > g_config.RewindCount) {
             s_mem_cur_save_count = 0;
             s_mem_wrapped = TRUE;
         }
@@ -676,10 +676,10 @@ void CreateRewindState() {
 
 void RewindState() {
     s_mem_cur_save_count--;
-    if (s_mem_cur_save_count > Config.RewindCount && s_mem_wrapped) {
-        s_mem_cur_save_count = Config.RewindCount;
+    if (s_mem_cur_save_count > g_config.RewindCount && s_mem_wrapped) {
+        s_mem_cur_save_count = g_config.RewindCount;
         s_mem_wrapped = FALSE;
-    } else if (s_mem_cur_save_count > Config.RewindCount && !s_mem_wrapped) {
+    } else if (s_mem_cur_save_count > g_config.RewindCount && !s_mem_wrapped) {
         s_mem_cur_save_count++;
         return;
     } else if (mem_last_save == s_mem_cur_save_count - 1) {
@@ -704,12 +704,12 @@ int SaveStateGz(gzFile f, long *gzsize) {
 
     gzwrite(f, (void *)PcsxrHeader, sizeof(PcsxrHeader));
     gzwrite(f, (void *)&SaveVersion, sizeof(u32));
-    gzwrite(f, (void *)&Config.HLE, sizeof(boolean));
+    gzwrite(f, (void *)&g_config.HLE, sizeof(boolean));
 
     if (gzsize) GPU_getScreenPic(pMemGpuPic);  // Not necessary with ephemeral saves
     gzwrite(f, pMemGpuPic, SZ_GPUPIC);
 
-    if (Config.HLE) psxBiosFreeze(1);
+    if (g_config.HLE) psxBiosFreeze(1);
 
     gzwrite(f, psxM, 0x00200000);
     gzwrite(f, psxR, 0x00080000);
@@ -770,7 +770,7 @@ int LoadStateGz(gzFile f) {
     gzread(f, &hle, sizeof(boolean));
 
     // Compare header only "STv4 PCSXR" part no version
-    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != Config.HLE) {
+    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != g_config.HLE) {
         gzclose(f);
         return -1;
     }
@@ -783,7 +783,7 @@ int LoadStateGz(gzFile f) {
     gzread(f, psxH, 0x00010000);
     gzread(f, (void *)&g_psxRegs, sizeof(g_psxRegs));
 
-    if (Config.HLE) psxBiosFreeze(0);
+    if (g_config.HLE) psxBiosFreeze(0);
 
     // gpu
     if (!s_gpufP) s_gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
@@ -824,7 +824,7 @@ int CheckState(const char *file) {
     gzclose(f);
 
     // Compare header only "STv4 PCSXR" part no version
-    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != Config.HLE) return -1;
+    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != g_config.HLE) return -1;
 
     return 0;
 }
@@ -834,12 +834,12 @@ int CheckState(const char *file) {
 int SendPcsxInfo() {
     if (NET_recvData == NULL || NET_sendData == NULL) return 0;
 
-    NET_sendData(&Config.Xa, sizeof(Config.Xa), PSE_NET_BLOCKING);
-    NET_sendData(&Config.SioIrq, sizeof(Config.SioIrq), PSE_NET_BLOCKING);
-    NET_sendData(&Config.SpuIrq, sizeof(Config.SpuIrq), PSE_NET_BLOCKING);
-    NET_sendData(&Config.RCntFix, sizeof(Config.RCntFix), PSE_NET_BLOCKING);
-    NET_sendData(&Config.PsxType, sizeof(Config.PsxType), PSE_NET_BLOCKING);
-    NET_sendData(&Config.Cpu, sizeof(Config.Cpu), PSE_NET_BLOCKING);
+    NET_sendData(&g_config.Xa, sizeof(g_config.Xa), PSE_NET_BLOCKING);
+    NET_sendData(&g_config.SioIrq, sizeof(g_config.SioIrq), PSE_NET_BLOCKING);
+    NET_sendData(&g_config.SpuIrq, sizeof(g_config.SpuIrq), PSE_NET_BLOCKING);
+    NET_sendData(&g_config.RCntFix, sizeof(g_config.RCntFix), PSE_NET_BLOCKING);
+    NET_sendData(&g_config.PsxType, sizeof(g_config.PsxType), PSE_NET_BLOCKING);
+    NET_sendData(&g_config.Cpu, sizeof(g_config.Cpu), PSE_NET_BLOCKING);
 
     return 0;
 }
@@ -849,20 +849,20 @@ int RecvPcsxInfo() {
 
     if (NET_recvData == NULL || NET_sendData == NULL) return 0;
 
-    NET_recvData(&Config.Xa, sizeof(Config.Xa), PSE_NET_BLOCKING);
-    NET_recvData(&Config.SioIrq, sizeof(Config.SioIrq), PSE_NET_BLOCKING);
-    NET_recvData(&Config.SpuIrq, sizeof(Config.SpuIrq), PSE_NET_BLOCKING);
-    NET_recvData(&Config.RCntFix, sizeof(Config.RCntFix), PSE_NET_BLOCKING);
-    NET_recvData(&Config.PsxType, sizeof(Config.PsxType), PSE_NET_BLOCKING);
+    NET_recvData(&g_config.Xa, sizeof(g_config.Xa), PSE_NET_BLOCKING);
+    NET_recvData(&g_config.SioIrq, sizeof(g_config.SioIrq), PSE_NET_BLOCKING);
+    NET_recvData(&g_config.SpuIrq, sizeof(g_config.SpuIrq), PSE_NET_BLOCKING);
+    NET_recvData(&g_config.RCntFix, sizeof(g_config.RCntFix), PSE_NET_BLOCKING);
+    NET_recvData(&g_config.PsxType, sizeof(g_config.PsxType), PSE_NET_BLOCKING);
 
     SysUpdate();
 
-    tmp = Config.Cpu;
-    NET_recvData(&Config.Cpu, sizeof(Config.Cpu), PSE_NET_BLOCKING);
-    if (tmp != Config.Cpu) {
+    tmp = g_config.Cpu;
+    NET_recvData(&g_config.Cpu, sizeof(g_config.Cpu), PSE_NET_BLOCKING);
+    if (tmp != g_config.Cpu) {
         psxCpu->Shutdown();
 #ifdef PSXREC
-        if (Config.Cpu == CPU_INTERPRETER)
+        if (g_config.Cpu == CPU_INTERPRETER)
             psxCpu = &psxInt;
         else
             psxCpu = &g_psxRec;

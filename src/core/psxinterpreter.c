@@ -37,7 +37,7 @@ static u32 branchPC;
 
 #ifdef PSXCPU_LOG
 #define debugI()                                                  \
-    if (Config.PsxOut) {                                          \
+    if (g_config.PsxOut) {                                          \
         PSXCPU_LOG("%s\n", disR3000AF(g_psxRegs.code, g_psxRegs.pc)); \
     }
 #else
@@ -1257,7 +1257,7 @@ static inline void execI() {
 
     debugI();
 
-    if (Config.Debug) ProcessDebug();
+    if (g_config.Debug) ProcessDebug();
 
     g_psxRegs.pc += 4;
     g_psxRegs.cycle += BIAS;

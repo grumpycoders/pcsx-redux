@@ -35,7 +35,7 @@ int psxInit() {
     SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
 #ifdef PSXREC
-    if (Config.Cpu == CPU_INTERPRETER) {
+    if (g_config.Cpu == CPU_INTERPRETER) {
         psxCpu = &psxInt;
     } else
         psxCpu = &g_psxRec;
@@ -43,7 +43,7 @@ int psxInit() {
     psxCpu = &psxInt;
 #endif
 
-    Log = 0;
+    g_log = 0;
 
     if (psxMemInit() == -1) return -1;
     PGXP_Init();
@@ -67,12 +67,12 @@ void psxReset() {
     psxHwReset();
     psxBiosInit();
 
-    if (!Config.HLE) psxExecuteBios();
+    if (!g_config.HLE) psxExecuteBios();
 
 #ifdef EMU_LOG
     EMU_LOG("*BIOS END*\n");
 #endif
-    Log = 0;
+    g_log = 0;
 }
 
 void psxShutdown() {
@@ -105,7 +105,7 @@ void psxException(u32 code, u32 bd) {
     // Set the Status
     g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & ~0x3f) | ((g_psxRegs.CP0.n.Status & 0xf) << 2);
 
-    if (Config.HLE) psxBiosException();
+    if (g_config.HLE) psxBiosException();
 }
 
 void psxBranchTest() {
@@ -151,7 +151,7 @@ void psxBranchTest() {
     if ((g_psxRegs.cycle - psxNextsCounter) >= psxNextCounter) psxRcntUpdate();
 
     if (g_psxRegs.interrupt) {
-        if ((g_psxRegs.interrupt & (1 << PSXINT_SIO)) && !Config.SioIrq) {  // sio
+        if ((g_psxRegs.interrupt & (1 << PSXINT_SIO)) && !g_config.SioIrq) {  // sio
             if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_SIO].sCycle) >= g_psxRegs.intCycle[PSXINT_SIO].cycle) {
                 g_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
                 sioInterrupt();
@@ -235,7 +235,7 @@ void psxBranchTest() {
 }
 
 void psxJumpTest() {
-    if (!Config.HLE && Config.PsxOut) {
+    if (!g_config.HLE && g_config.PsxOut) {
         u32 call = g_psxRegs.GPR.n.t1 & 0xff;
         switch (g_psxRegs.pc & 0x1fffff) {
             case 0xa0:

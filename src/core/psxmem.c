@@ -121,27 +121,27 @@ void psxMemReset() {
     memset(psxP, 0, 0x00010000);
 
     // Load BIOS
-    if (strcmp(Config.Bios, "HLE") != 0) {
+    if (strcmp(g_config.Bios, "HLE") != 0) {
         // AppPath's priority is high.
         const char *apppath = GetAppPath();
         if (strlen(apppath) > 0)
-            strcat(strcat(strcat(bios, GetAppPath()), "bios\\"), Config.Bios);
+            strcat(strcat(strcat(bios, GetAppPath()), "bios\\"), g_config.Bios);
         else
-            sprintf(bios, "%s/%s", Config.BiosDir, Config.Bios);
+            sprintf(bios, "%s/%s", g_config.BiosDir, g_config.Bios);
 
         f = fopen(bios, "rb");
         if (f == NULL) {
             SysMessage(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
             memset(psxR, 0, 0x80000);
-            Config.HLE = TRUE;
+            g_config.HLE = TRUE;
         } else {
             fread(psxR, 1, 0x80000, f);
             fclose(f);
-            Config.HLE = FALSE;
+            g_config.HLE = FALSE;
             SysPrintf(_("Loaded BIOS: %s\n"), bios);
         }
     } else
-        Config.HLE = TRUE;
+        g_config.HLE = TRUE;
 }
 
 void psxMemShutdown() {
@@ -162,7 +162,7 @@ u8 psxMemRead8(u32 mem) {
     char *p;
     u32 t;
 
-    if (!Config.MemHack) {
+    if (!g_config.MemHack) {
         g_psxRegs.cycle += 0;
     }
 
@@ -175,7 +175,7 @@ u8 psxMemRead8(u32 mem) {
     } else {
         p = (char *)(psxMemRLUT[t]);
         if (p != NULL) {
-            if (Config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR1);
+            if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR1);
             return *(u8 *)(p + (mem & 0xffff));
         } else {
 #ifdef PSXMEM_LOG
@@ -190,7 +190,7 @@ u16 psxMemRead16(u32 mem) {
     char *p;
     u32 t;
 
-    if (!Config.MemHack) {
+    if (!g_config.MemHack) {
         g_psxRegs.cycle += 1;
     }
 
@@ -203,7 +203,7 @@ u16 psxMemRead16(u32 mem) {
     } else {
         p = (char *)(psxMemRLUT[t]);
         if (p != NULL) {
-            if (Config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR2);
+            if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR2);
             return SWAPu16(*(u16 *)(p + (mem & 0xffff)));
         } else {
 #ifdef PSXMEM_LOG
@@ -218,7 +218,7 @@ u32 psxMemRead32(u32 mem) {
     char *p;
     u32 t;
 
-    if (!Config.MemHack) {
+    if (!g_config.MemHack) {
         g_psxRegs.cycle += 1;
     }
 
@@ -231,7 +231,7 @@ u32 psxMemRead32(u32 mem) {
     } else {
         p = (char *)(psxMemRLUT[t]);
         if (p != NULL) {
-            if (Config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR4);
+            if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BR4);
             return SWAPu32(*(u32 *)(p + (mem & 0xffff)));
         } else {
 #ifdef PSXMEM_LOG
@@ -248,7 +248,7 @@ void psxMemWrite8(u32 mem, u8 value) {
     char *p;
     u32 t;
 
-    if (!Config.MemHack) {
+    if (!g_config.MemHack) {
         g_psxRegs.cycle += 1;
     }
 
@@ -261,7 +261,7 @@ void psxMemWrite8(u32 mem, u8 value) {
     } else {
         p = (char *)(psxMemWLUT[t]);
         if (p != NULL) {
-            if (Config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW1);
+            if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW1);
             *(u8 *)(p + (mem & 0xffff)) = value;
 #ifdef PSXREC
             psxCpu->Clear((mem & (~3)), 1);
@@ -278,7 +278,7 @@ void psxMemWrite16(u32 mem, u16 value) {
     char *p;
     u32 t;
 
-    if (!Config.MemHack) {
+    if (!g_config.MemHack) {
         g_psxRegs.cycle += 1;
     }
 
@@ -291,7 +291,7 @@ void psxMemWrite16(u32 mem, u16 value) {
     } else {
         p = (char *)(psxMemWLUT[t]);
         if (p != NULL) {
-            if (Config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW2);
+            if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW2);
             *(u16 *)(p + (mem & 0xffff)) = SWAPu16(value);
 #ifdef PSXREC
             psxCpu->Clear((mem & (~3)), 1);
@@ -308,7 +308,7 @@ void psxMemWrite32(u32 mem, u32 value) {
     char *p;
     u32 t;
 
-    if (!Config.MemHack) {
+    if (!g_config.MemHack) {
         g_psxRegs.cycle += 1;
     }
 
@@ -322,7 +322,7 @@ void psxMemWrite32(u32 mem, u32 value) {
     } else {
         p = (char *)(psxMemWLUT[t]);
         if (p != NULL) {
-            if (Config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW4);
+            if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW4);
             *(u32 *)(p + (mem & 0xffff)) = SWAPu32(value);
 #ifdef PSXREC
             psxCpu->Clear(mem, 1);

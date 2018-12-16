@@ -244,11 +244,11 @@ void psxRcntUpdate() {
         hSyncCount++;
 
         // Update spu.
-        if (spuSyncCount >= SpuUpdInterval[Config.PsxType]) {
+        if (spuSyncCount >= SpuUpdInterval[g_config.PsxType]) {
             spuSyncCount = 0;
 
             if (SPU_async) {
-                SPU_async(SpuUpdInterval[Config.PsxType] * rcnts[3].target);
+                SPU_async(SpuUpdInterval[g_config.PsxType] * rcnts[3].target);
             }
         }
 
@@ -259,7 +259,7 @@ void psxRcntUpdate() {
 #endif
 
         // VSync irq.
-        if (hSyncCount == VBlankStart[Config.PsxType]) {
+        if (hSyncCount == VBlankStart[g_config.PsxType]) {
             GPU_vBlank(1);
 
             // For the best times. :D
@@ -267,7 +267,7 @@ void psxRcntUpdate() {
         }
 
         // Update lace. (calculated at psxHsyncCalculate() on init/defreeze)
-        if (hSyncCount >= HSyncTotal[Config.PsxType]) {
+        if (hSyncCount >= HSyncTotal[g_config.PsxType]) {
             hSyncCount = 0;
 
             GPU_vBlank(0);
@@ -310,7 +310,7 @@ void psxRcntWmode(u32 index, u32 value) {
             break;
         case 1:
             if (value & Rc1HSyncClock) {
-                rcnts[index].rate = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
+                rcnts[index].rate = (PSXCLK / (FrameRate[g_config.PsxType] * HSyncTotal[g_config.PsxType]));
             } else {
                 rcnts[index].rate = 1;
             }
@@ -355,8 +355,8 @@ u32 psxRcntRcount(u32 index) {
 
     // Parasite Eve 2 fix - artificial clock jitter based on BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
-    if (Config.HackFix && index == 2 && rcnts[index].counterState == CountToTarget &&
-        (Config.RCntFix || ((rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
+    if (g_config.HackFix && index == 2 && rcnts[index].counterState == CountToTarget &&
+        (g_config.RCntFix || ((rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
         /*
          *The problem is that...
          *
@@ -409,10 +409,10 @@ u32 psxRcntRtarget(u32 index) {
 void psxHsyncCalculate() {
     HSyncTotal[PSX_TYPE_NTSC] = 263;
     HSyncTotal[PSX_TYPE_PAL] = 313;
-    if (Config.VSyncWA) {
-        HSyncTotal[Config.PsxType] = HSyncTotal[Config.PsxType] / BIAS;
-    } else if (Config.HackFix) {
-        HSyncTotal[Config.PsxType] = HSyncTotal[Config.PsxType] + 1;
+    if (g_config.VSyncWA) {
+        HSyncTotal[g_config.PsxType] = HSyncTotal[g_config.PsxType] / BIAS;
+    } else if (g_config.HackFix) {
+        HSyncTotal[g_config.PsxType] = HSyncTotal[g_config.PsxType] + 1;
     }
 }
 
@@ -436,7 +436,7 @@ void psxRcntInit() {
     // rcnt base.
     rcnts[3].rate = 1;
     rcnts[3].mode = RcCountToTarget;
-    rcnts[3].target = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
+    rcnts[3].target = (PSXCLK / (FrameRate[g_config.PsxType] * HSyncTotal[g_config.PsxType]));
 
     for (i = 0; i < CounterQuantity; ++i) {
         _psxRcntWcount(i, 0);
@@ -460,8 +460,8 @@ s32 psxRcntFreeze(gzFile f, s32 Mode) {
     if (Mode == 0) {
         psxHsyncCalculate();
         // iCB: recalculate target count in case overclock is changed
-        rcnts[3].target = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
-        if (rcnts[1].rate != 1) rcnts[1].rate = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
+        rcnts[3].target = (PSXCLK / (FrameRate[g_config.PsxType] * HSyncTotal[g_config.PsxType]));
+        if (rcnts[1].rate != 1) rcnts[1].rate = (PSXCLK / (FrameRate[g_config.PsxType] * HSyncTotal[g_config.PsxType]));
     }
 
     return 0;

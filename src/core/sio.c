@@ -89,7 +89,7 @@ static int DongleInit;
 // Breaks Twisted Metal 2 intro
 #define SIO_INT(eCycle)                                          \
     {                                                            \
-        if (!Config.SioIrq) {                                    \
+        if (!g_config.SioIrq) {                                    \
             g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
             g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
             g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
@@ -102,7 +102,7 @@ static int DongleInit;
 
 #define SIO_INT(eCycle)                                          \
     {                                                            \
-        if (!Config.SioIrq) {                                    \
+        if (!g_config.SioIrq) {                                    \
             g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
             g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
             g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
@@ -167,7 +167,7 @@ void sioWrite8(unsigned char value) {
             if ((value & 0x40) == 0x40) {
                 padst = 2;
                 parp = 1;
-                if (!Config.UseNet) {
+                if (!g_config.UseNet) {
                     switch (CtrlReg & 0x2002) {
                         case 0x0002:
                             buf[parp] = PAD1_poll(value);
@@ -226,7 +226,7 @@ buf[5]);
                                             SIO_INT(SIO_CYCLES);
                                             return;
                                     }*/
-            if (!Config.UseNet) {
+            if (!g_config.UseNet) {
                 switch (CtrlReg & 0x2002) {
                     case 0x0002:
                         buf[parp] = PAD1_poll(value);
@@ -629,7 +629,7 @@ buf[5]);
         case 0x01:              // start pad
             StatReg |= RX_RDY;  // Transfer is Ready
 
-            if (!Config.UseNet) {
+            if (!g_config.UseNet) {
                 switch (CtrlReg & 0x2002) {
                     case 0x0002:
                         buf[0] = PAD1_startPoll(1);
@@ -677,12 +677,12 @@ buf[5]);
             StatReg |= RX_RDY;
 
             // Chronicles of the Sword - no memcard = password options
-            if (Config.NoMemcard || (!Config.Mcd1[0] && !Config.Mcd2[0])) {
+            if (g_config.NoMemcard || (!g_config.Mcd1[0] && !g_config.Mcd2[0])) {
                 memset(buf, 0x00, 4);
             } else {
                 memcpy(buf, cardh, 4);
-                if (!Config.Mcd1[0]) buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                if (!Config.Mcd2[0]) buf[3] = 0;  // is card 2 plugged?
+                if (!g_config.Mcd1[0]) buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
+                if (!g_config.Mcd2[0]) buf[3] = 0;  // is card 2 plugged?
             }
 
             parp = 0;
@@ -748,11 +748,11 @@ unsigned char sioRead8() {
                     switch (CtrlReg & 0x2002) {
                         case 0x0002:
                             memcpy(Mcd1Data + (adrL | (adrH << 8)) * 128, &buf[1], 128);
-                            SaveMcd(Config.Mcd1, Mcd1Data, (adrL | (adrH << 8)) * 128, 128);
+                            SaveMcd(g_config.Mcd1, Mcd1Data, (adrL | (adrH << 8)) * 128, 128);
                             break;
                         case 0x2002:
                             memcpy(Mcd2Data + (adrL | (adrH << 8)) * 128, &buf[1], 128);
-                            SaveMcd(Config.Mcd2, Mcd2Data, (adrL | (adrH << 8)) * 128, 128);
+                            SaveMcd(g_config.Mcd2, Mcd2Data, (adrL | (adrH << 8)) * 128, 128);
                             break;
                     }
                 }

@@ -1309,13 +1309,13 @@ void psxBios_printf() {  // 0x3f
 }
 
 void psxBios_format() {  // 0x41
-    if (strcmp(Ra0, "bu00:") == 0 && Config.Mcd1[0] != '\0') {
-        CreateMcd(Config.Mcd1);
-        LoadMcd(1, Config.Mcd1);
+    if (strcmp(Ra0, "bu00:") == 0 && g_config.Mcd1[0] != '\0') {
+        CreateMcd(g_config.Mcd1);
+        LoadMcd(1, g_config.Mcd1);
         v0 = 1;
-    } else if (strcmp(Ra0, "bu10:") == 0 && Config.Mcd2[0] != '\0') {
-        CreateMcd(Config.Mcd2);
-        LoadMcd(2, Config.Mcd2);
+    } else if (strcmp(Ra0, "bu10:") == 0 && g_config.Mcd2[0] != '\0') {
+        CreateMcd(g_config.Mcd2);
+        LoadMcd(2, g_config.Mcd2);
         v0 = 1;
     } else {
         v0 = 0;
@@ -1563,13 +1563,13 @@ void psxBios__card_info() {  // ab
         case 0x01:
         case 0x02:
         case 0x03:
-            ret = Config.Mcd1[0] ? 0x2 : 0x8;
+            ret = g_config.Mcd1[0] ? 0x2 : 0x8;
             break;
         case 0x10:
         case 0x11:
         case 0x12:
         case 0x13:
-            ret = Config.Mcd2[0] ? 0x2 : 0x8;
+            ret = g_config.Mcd2[0] ? 0x2 : 0x8;
             break;
         default:
 #ifdef PSXBIOS_LOG
@@ -1580,7 +1580,7 @@ void psxBios__card_info() {  // ab
     }
 
     // COTS password option
-    if (Config.NoMemcard) ret = 0x8;
+    if (g_config.NoMemcard) ret = 0x8;
 
     //	DeliverEvent(0x11, 0x2); // 0xf0000011, 0x0004
     DeliverEvent(0x81, ret);  // 0xf4000001, 0x0004
@@ -2077,11 +2077,11 @@ void psxBios_open() {  // 0x32
     v0 = -1;
 
     if (!strncmp(Ra0, "bu00", 4)) {
-        buopen(1, Mcd1Data, Config.Mcd1);
+        buopen(1, Mcd1Data, g_config.Mcd1);
     }
 
     if (!strncmp(Ra0, "bu10", 4)) {
-        buopen(2, Mcd2Data, Config.Mcd2);
+        buopen(2, Mcd2Data, g_config.Mcd2);
     }
 
     pc0 = ra;
@@ -2160,7 +2160,7 @@ void psxBios_read() {  // 0x34
         ptr = Mcd##mcd##Data + offset;                                                    \
         memcpy(ptr, Ra1, a2);                                                             \
         s_FDesc[1 + mcd].offset += a2;                                                      \
-        SaveMcd(Config.Mcd##mcd, Mcd##mcd##Data, offset, a2);                             \
+        SaveMcd(g_config.Mcd##mcd, Mcd##mcd##Data, offset, a2);                             \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                 \
             v0 = 0;                                                                       \
         else                                                                              \
@@ -2364,7 +2364,7 @@ void psxBios_nextfile() {  // 43
             memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                \
             for (j = 0; j < 127; j++) xor ^= ptr[j];                       \
             ptr[127] = xor;                                                \
-            SaveMcd(Config.Mcd##mcd, Mcd##mcd##Data, 128 * i + 0xa, 0x76); \
+            SaveMcd(g_config.Mcd##mcd, Mcd##mcd##Data, 128 * i + 0xa, 0x76); \
             v0 = 1;                                                        \
             break;                                                         \
         }                                                                  \
@@ -2402,7 +2402,7 @@ void psxBios_rename() {  // 44
             if ((*ptr & 0xF0) != 0x50) continue;                  \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;             \
             *ptr = (*ptr & 0xf) | 0xA0;                           \
-            SaveMcd(Config.Mcd##mcd, Mcd##mcd##Data, 128 * i, 1); \
+            SaveMcd(g_config.Mcd##mcd, Mcd##mcd##Data, 128 * i, 1); \
             SysPrintf("delete %s\n", ptr + 0xa);                  \
             v0 = 1;                                               \
             break;                                                \
@@ -2476,10 +2476,10 @@ void psxBios__card_write() {  // 0x4e
 
     if (port == 0) {
         memcpy(Mcd1Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(Config.Mcd1, Mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        SaveMcd(g_config.Mcd1, Mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     } else {
         memcpy(Mcd2Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(Config.Mcd2, Mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        SaveMcd(g_config.Mcd2, Mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     }
 
     DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2687,7 +2687,7 @@ void psxBiosInit() {
     biosB0[0x3d] = psxBios_putchar;
     biosB0[0x3f] = psxBios_puts;
 
-    if (!Config.HLE) return;
+    if (!g_config.HLE) return;
 
     for (i = 0; i < 256; i++) {
         if (biosA0[i] == NULL) biosA0[i] = psxBios_dummy;
@@ -3099,7 +3099,7 @@ void biosInterrupt() {
     if (s_pad_buf != NULL) {
         u32 *buf = (u32 *)s_pad_buf;
 
-        if (!Config.UseNet) {
+        if (!g_config.UseNet) {
             PAD1_startPoll(1);
             if (PAD1_poll(0x42) == 0x23) {
                 PAD1_poll(0);
@@ -3142,7 +3142,7 @@ void biosInterrupt() {
             if (NET_recvPadData(&((u16 *)buf)[1], 2) == -1) netError();
         }
     }
-    if (Config.UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
+    if (g_config.UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
         psxBios_PADpoll(1);
 
         if (NET_sendPadData(s_pad_buf1, i) == -1) netError();

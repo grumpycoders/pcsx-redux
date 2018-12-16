@@ -42,12 +42,12 @@ void SysClose() {
 int main() {
     unsigned int texture = GUI_init();
 
-    memset(&Config, 0, sizeof(PcsxConfig));
-    Config.PsxAuto = 1;
-    Config.HLE = 0;
-    Config.SlowBoot = 0;
-    strcpy(Config.BiosDir, ".");
-    strcpy(Config.Bios, "bios.bin");
+    memset(&g_config, 0, sizeof(PcsxConfig));
+    g_config.PsxAuto = 1;
+    g_config.HLE = 0;
+    g_config.SlowBoot = 0;
+    strcpy(g_config.BiosDir, ".");
+    strcpy(g_config.Bios, "bios.bin");
 
     SetIsoFile("test.img");
     LoadPlugins();
