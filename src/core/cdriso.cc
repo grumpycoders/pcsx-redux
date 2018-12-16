@@ -1962,7 +1962,7 @@ static unsigned char *CALLBACK ISOgetBufferSub(void) {
     return NULL;
 }
 
-static long CALLBACK ISOgetStatus(struct CdrStat *stat) {
+extern "C" long CALLBACK ISOgetStatus(struct CdrStat *stat) {
     u32 sect;
 
     CDR__getStatus(stat);
