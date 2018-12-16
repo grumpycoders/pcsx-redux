@@ -34,14 +34,10 @@ psxRegisters g_psxRegs;
 int psxInit() {
     PCSX::system->SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
-#ifdef PSXREC
     if (g_config.Cpu == CPU_INTERPRETER) {
         g_psxCpu = &g_psxInt;
     } else
         g_psxCpu = &g_psxRec;
-#else
-    g_psxCpu = &g_psxInt;
-#endif
 
     g_log = 0;
 

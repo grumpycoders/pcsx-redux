@@ -265,9 +265,7 @@ void psxMemWrite8(uint32_t mem, uint8_t value) {
         if (p != NULL) {
             if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW1);
             *(uint8_t *)(p + (mem & 0xffff)) = value;
-#ifdef PSXREC
             g_psxCpu->Clear((mem & (~3)), 1);
-#endif
         } else {
 #ifdef PSXMEM_LOG
             PSXMEM_LOG("err sb %8.8lx\n", mem);
@@ -295,9 +293,7 @@ void psxMemWrite16(uint32_t mem, uint16_t value) {
         if (p != NULL) {
             if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW2);
             *(uint16_t *)(p + (mem & 0xffff)) = SWAPu16(value);
-#ifdef PSXREC
             g_psxCpu->Clear((mem & (~3)), 1);
-#endif
         } else {
 #ifdef PSXMEM_LOG
             PSXMEM_LOG("err sh %8.8lx\n", mem);
@@ -326,14 +322,10 @@ void psxMemWrite32(uint32_t mem, uint32_t value) {
         if (p != NULL) {
             if (g_config.Debug) DebugCheckBP((mem & 0xffffff) | 0x80000000, BW4);
             *(uint32_t *)(p + (mem & 0xffff)) = SWAPu32(value);
-#ifdef PSXREC
             g_psxCpu->Clear(mem, 1);
-#endif
         } else {
             if (mem != 0xfffe0130) {
-#ifdef PSXREC
                 if (!writeok) g_psxCpu->Clear(mem, 1);
-#endif
 
 #ifdef PSXMEM_LOG
                 if (writeok) {

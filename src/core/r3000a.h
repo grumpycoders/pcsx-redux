@@ -38,7 +38,6 @@ typedef struct {
 extern R3000Acpu *g_psxCpu;
 extern R3000Acpu g_psxInt;
 extern R3000Acpu g_psxRec;
-#define PSXREC
 
 typedef union {
 #if defined(__BIGENDIAN__)

@@ -121,9 +121,6 @@ typedef struct {
     bool PGXP_Cache;
     bool PGXP_Texture;
     uint32_t PGXP_Mode;
-#ifdef _WIN32
-    char Lang[256];
-#endif
 } PcsxConfig;
 
 extern PcsxConfig g_config;

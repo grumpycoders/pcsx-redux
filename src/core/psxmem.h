@@ -120,10 +120,6 @@ extern uint8_t **g_psxMemRLUT;
 
 #define PSXMu32ref(mem) (*(uint32_t *)PSXM(mem))
 
-#if !defined(PSXREC) && (defined(__x86_64__) || defined(__i386__) || defined(__ppc__)) && !defined(NOPSXREC)
-#define PSXREC
-#endif
-
 int psxMemInit();
 void psxMemReset();
 void psxMemShutdown();
