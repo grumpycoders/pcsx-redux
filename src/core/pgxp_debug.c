@@ -1,10 +1,10 @@
-#include "pgxp_debug.h"
-#include "pgxp_cpu.h"
-#include "pgxp_gte.h"
-#include "pgxp_mem.h"
-#include "pgxp_value.h"
+#include "core/pgxp_cpu.h"
+#include "core/pgxp_debug.h"
+#include "core/pgxp_gte.h"
+#include "core/pgxp_mem.h"
+#include "core/pgxp_value.h"
 
-unsigned int pgxp_debug = 0;
+unsigned int g_pgxp_debug = 0;
 
 // Instruction register decoding
 #define op(_instr) (_instr >> 26)           // The op part of the instruction register
@@ -276,25 +276,25 @@ PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
         case fOp_CPU_Lo:
             return &CPU_Lo;
         case fOp_CPU_Rd:
-            return &CPU_reg[rd(instr)];
+            return &g_CPU_reg[rd(instr)];
         case fOp_CPU_Rs:
-            return &CPU_reg[rs(instr)];
+            return &g_CPU_reg[rs(instr)];
         case fOp_CPU_Rt:
-            return &CPU_reg[rt(instr)];
+            return &g_CPU_reg[rt(instr)];
         case fOp_GTE_Dd:
-            return &GTE_data_reg[rd(instr)];
+            return &g_GTE_data_reg[rd(instr)];
         case fOp_GTE_Dt:
-            return &GTE_data_reg[rt(instr)];
+            return &g_GTE_data_reg[rt(instr)];
         case fOp_GTE_Cd:
-            return &GTE_ctrl_reg[rd(instr)];
+            return &g_GTE_ctrl_reg[rd(instr)];
         case fOp_GTE_Ct:
-            return &GTE_ctrl_reg[rt(instr)];
+            return &g_GTE_ctrl_reg[rt(instr)];
         case fOp_CP0_Dd:
-            return &CP0_reg[rd(instr)];
+            return &g_CP0_reg[rd(instr)];
         case fOp_CP0_Cd:
-            return &CP0_reg[rd(instr)];
+            return &g_CP0_reg[rd(instr)];
         case fOp_Ad:
-            return GetPtr(psxValue);
+            return PGXP_GetPtr(psxValue);
         default:
             return NULL;
     }
@@ -368,47 +368,47 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CPU_Rd:
-                    pReg = &CPU_reg[rd(instr)];
+                    pReg = &g_CPU_reg[rd(instr)];
                     sprintf(szOpdName, "Rd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CPU_Rs:
-                    pReg = &CPU_reg[rs(instr)];
+                    pReg = &g_CPU_reg[rs(instr)];
                     sprintf(szOpdName, "Rs[%d]", rs(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CPU_Rt:
-                    pReg = &CPU_reg[rt(instr)];
+                    pReg = &g_CPU_reg[rt(instr)];
                     sprintf(szOpdName, "Rt[%d]", rt(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Dd:
-                    pReg = &GTE_data_reg[rd(instr)];
+                    pReg = &g_GTE_data_reg[rd(instr)];
                     sprintf(szOpdName, "GTE_Dd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Dt:
-                    pReg = &GTE_data_reg[rt(instr)];
+                    pReg = &g_GTE_data_reg[rt(instr)];
                     sprintf(szOpdName, "GTE_Dt[%d]", rt(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Cd:
-                    pReg = &GTE_ctrl_reg[rd(instr)];
+                    pReg = &g_GTE_ctrl_reg[rd(instr)];
                     sprintf(szOpdName, "GTE_Cd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Ct:
-                    pReg = &GTE_ctrl_reg[rt(instr)];
+                    pReg = &g_GTE_ctrl_reg[rt(instr)];
                     sprintf(szOpdName, "GTE_Ct[%d]", rt(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CP0_Dd:
-                    pReg = &CP0_reg[rd(instr)];
+                    pReg = &g_CP0_reg[rd(instr)];
                     sprintf(szOpdName, "CP0_Dd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_CP0_Cd:
-                    pReg = &CP0_reg[rd(instr)];
+                    pReg = &g_CP0_reg[rd(instr)];
                     sprintf(szOpdName, "CP0_Cd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
@@ -435,7 +435,7 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
                         pReg->compFlags[0], pReg->compFlags[1], pReg->compFlags[2], pReg->compFlags[3]);
                 strcat(szBuffer, szTempBuffer);
             } else if (flag == fOp_Ad) {
-                pReg = GetPtr(psx_reg.d);
+                pReg = PGXP_GetPtr(psx_reg.d);
                 if (pReg)
                     sprintf(szTempBuffer, "%s %s [%x(%d, %d) (%x) %x(%.2f, %.2f, %.2f)%x : %x:%x:%x:%x] ", szPre,
                             szOpdName, psx_reg.d, psx_reg.sw.l, psx_reg.sw.h, PGXP_ConvertAddress(psx_reg.d),
@@ -490,7 +490,7 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
 
 #ifdef PGXP_OUTPUT_ALL
     // reset buffers
-    if (pgxp_debug) {
+    if (g_pgxp_debug) {
         memset(szInputBuffer, 0, sizeof(szInputBuffer));
         memset(szOutputBuffer, 0, sizeof(szOutputBuffer));
 
@@ -528,7 +528,7 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
 
 #ifdef PGXP_OUTPUT_ALL
     // Print operation details
-    if (pgxp_debug) {
+    if (g_pgxp_debug) {
         sprintf(szOutputBuffer, "%s %x %x: ", opData.szOpName, op(instr), func(instr));
         // Print outputs
         PrintOperands(szOutputBuffer, instr, opData.OutputFlags, "/", psx_regs, 0);

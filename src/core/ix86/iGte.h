@@ -20,18 +20,18 @@
 #ifndef __IGTE_H__
 #define __IGTE_H__
 
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "../psxmem.h"
-#include "../r3000a.h"
 
 #define CP2_FUNC(f)                                       \
     void gte##f();                                        \
     static void rec##f() {                                \
         iFlushRegs();                                     \
-        MOV32ItoM((u32)&psxRegs.code, (u32)psxRegs.code); \
+        MOV32ItoM((u32)&g_psxRegs.code, (u32)g_psxRegs.code); \
         CALLFunc((u32)gte##f);                            \
         /*	branch = 2; */                                 \
     }

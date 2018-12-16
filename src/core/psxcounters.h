@@ -20,16 +20,16 @@
 #ifndef __PSXCOUNTERS_H__
 #define __PSXCOUNTERS_H__
 
+#include "core/plugins.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "plugins.h"
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
-
-extern u32 psxNextCounter, psxNextsCounter;
+extern u32 g_psxNextCounter, g_psxNextsCounter;
 
 void psxRcntInit();
 void psxRcntUpdate();

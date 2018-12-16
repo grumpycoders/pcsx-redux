@@ -37,8 +37,8 @@ u32 PGXP_ConvertAddress(u32 addr);
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;
 
-PGXP_value* GetPtr(u32 addr);
-PGXP_value* ReadMem(u32 addr);
+PGXP_value* PGXP_GetPtr(u32 addr);
+PGXP_value* PGXP_ReadMem(u32 addr);
 
 void ValidateAndCopyMem(PGXP_value* dest, u32 addr, u32 value);
 void ValidateAndCopyMem16(PGXP_value* dest, u32 addr, u32 value, int sign);

@@ -21,6 +21,6 @@
  * Sound (SPU) functions.
  */
 
-#include "spu.h"
+#include "core/spu.h"
 
 void CALLBACK SPUirq(void) { psxHu32ref(0x1070) |= SWAPu32(0x200); }

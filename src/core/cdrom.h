@@ -20,16 +20,16 @@
 #ifndef __CDROM_H__
 #define __CDROM_H__
 
+#include "core/decode_xa.h"
+#include "core/plugins.h"
+#include "core/psxcommon.h"
+#include "core/psxhw.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "decode_xa.h"
-#include "plugins.h"
-#include "psxcommon.h"
-#include "psxhw.h"
-#include "psxmem.h"
-#include "r3000a.h"
 
 #define btoi(b) ((b) / 16 * 10 + (b) % 16) /* BCD to u_char */
 #define itob(i) ((i) / 10 * 16 + (i) % 10) /* u_char to BCD */
@@ -110,7 +110,7 @@ typedef struct {
     unsigned char TrackChanged;
 } cdrStruct;
 
-extern cdrStruct cdr;
+extern cdrStruct g_cdr;
 
 void cdrReset();
 void cdrAttenuate(s16 *buf, int samples, int stereo);

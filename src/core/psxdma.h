@@ -20,55 +20,55 @@
 #ifndef __PSXDMA_H__
 #define __PSXDMA_H__
 
+#include "core/psxcommon.h"
+#include "core/psxhw.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "psxcommon.h"
-#include "psxhw.h"
-#include "psxmem.h"
-#include "r3000a.h"
-
 #define GPUDMA_INT(eCycle)                                      \
     {                                                           \
-        psxRegs.interrupt |= (1 << PSXINT_GPUDMA);              \
-        psxRegs.intCycle[PSXINT_GPUDMA].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_GPUDMA].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_GPUDMA);              \
+        g_psxRegs.intCycle[PSXINT_GPUDMA].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_GPUDMA].sCycle = g_psxRegs.cycle; \
     }
 
 #define SPUDMA_INT(eCycle)                                      \
     {                                                           \
-        psxRegs.interrupt |= (1 << PSXINT_SPUDMA);              \
-        psxRegs.intCycle[PSXINT_SPUDMA].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_SPUDMA].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_SPUDMA);              \
+        g_psxRegs.intCycle[PSXINT_SPUDMA].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_SPUDMA].sCycle = g_psxRegs.cycle; \
     }
 
 #define MDECOUTDMA_INT(eCycle)                                      \
     {                                                               \
-        psxRegs.interrupt |= (1 << PSXINT_MDECOUTDMA);              \
-        psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_MDECOUTDMA);              \
+        g_psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle = g_psxRegs.cycle; \
     }
 
 #define MDECINDMA_INT(eCycle)                                      \
     {                                                              \
-        psxRegs.interrupt |= (1 << PSXINT_MDECINDMA);              \
-        psxRegs.intCycle[PSXINT_MDECINDMA].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_MDECINDMA].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_MDECINDMA);              \
+        g_psxRegs.intCycle[PSXINT_MDECINDMA].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_MDECINDMA].sCycle = g_psxRegs.cycle; \
     }
 
 #define GPUOTCDMA_INT(eCycle)                                      \
     {                                                              \
-        psxRegs.interrupt |= (1 << PSXINT_GPUOTCDMA);              \
-        psxRegs.intCycle[PSXINT_GPUOTCDMA].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_GPUOTCDMA].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_GPUOTCDMA);              \
+        g_psxRegs.intCycle[PSXINT_GPUOTCDMA].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_GPUOTCDMA].sCycle = g_psxRegs.cycle; \
     }
 
 #define CDRDMA_INT(eCycle)                                      \
     {                                                           \
-        psxRegs.interrupt |= (1 << PSXINT_CDRDMA);              \
-        psxRegs.intCycle[PSXINT_CDRDMA].cycle = eCycle;         \
-        psxRegs.intCycle[PSXINT_CDRDMA].sCycle = psxRegs.cycle; \
+        g_psxRegs.interrupt |= (1 << PSXINT_CDRDMA);              \
+        g_psxRegs.intCycle[PSXINT_CDRDMA].cycle = eCycle;         \
+        g_psxRegs.intCycle[PSXINT_CDRDMA].sCycle = g_psxRegs.cycle; \
     }
 
 /*

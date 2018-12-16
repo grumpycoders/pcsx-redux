@@ -20,7 +20,7 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +39,10 @@ void DebugCheckBP(u32 address, enum breakpoint_types type);
 void PauseDebugger();
 void ResumeDebugger();
 
-extern char *disRNameGPR[];
-extern char *disRNameCP2D[];
-extern char *disRNameCP2C[];
-extern char *disRNameCP0[];
+extern const char *g_disRNameGPR[];
+extern const char *g_disRNameCP2D[];
+extern const char *g_disRNameCP2C[];
+extern const char *g_disRNameCP0[];
 
 char *disR3000AF(u32 code, u32 pc);
 
@@ -55,13 +55,13 @@ char *disR3000AF(u32 code, u32 pc);
 //#define PAD_LOG  __Log
 //#define SIO1_LOG  __Log
 //#define GTE_LOG  __Log
-//#define CDR_LOG  __Log("%8.8lx %8.8lx: ", psxRegs.pc, psxRegs.cycle); __Log
-//#define CDR_LOG_IO  __Log("%8.8lx %8.8lx: ", psxRegs.pc, psxRegs.cycle); __Log
+//#define CDR_LOG  __Log("%8.8lx %8.8lx: ", g_psxRegs.pc, g_psxRegs.cycle); __Log
+//#define CDR_LOG_IO  __Log("%8.8lx %8.8lx: ", g_psxRegs.pc, g_psxRegs.cycle); __Log
 
-//#define PSXHW_LOG   __Log("%8.8lx %8.8lx: ", psxRegs.pc, psxRegs.cycle); __Log
-//#define PSXBIOS_LOG __Log("%8.8lx %8.8lx: ", psxRegs.pc, psxRegs.cycle); __Log
+//#define PSXHW_LOG   __Log("%8.8lx %8.8lx: ", g_psxRegs.pc, g_psxRegs.cycle); __Log
+//#define PSXBIOS_LOG __Log("%8.8lx %8.8lx: ", g_psxRegs.pc, g_psxRegs.cycle); __Log
 //#define PSXDMA_LOG  __Log
-//#define PSXMEM_LOG  __Log("%8.8lx %8.8lx: ", psxRegs.pc, psxRegs.cycle); __Log
+//#define PSXMEM_LOG  __Log("%8.8lx %8.8lx: ", g_psxRegs.pc, g_psxRegs.cycle); __Log
 //#define PSXCPU_LOG  __Log
 
 #if defined(PSXCPU_LOG) || defined(PSXDMA_LOG) || defined(CDR_LOG) || defined(PSXHW_LOG) || defined(PSXBIOS_LOG) || \

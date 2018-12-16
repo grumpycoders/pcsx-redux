@@ -33,8 +33,8 @@
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;
 
-extern PGXP_value* GTE_data_reg;
-extern PGXP_value* GTE_ctrl_reg;
+extern PGXP_value* g_GTE_data_reg;
+extern PGXP_value* g_GTE_ctrl_reg;
 
 void PGXP_InitGTE();
 

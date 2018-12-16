@@ -29,7 +29,7 @@
 #ifndef __ECOFF_H__
 #define __ECOFF_H__
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 /*
  * Some ECOFF definitions.
@@ -49,9 +49,9 @@ typedef struct scnhdr {
     u32 s_paddr;    /* physical address, aliased s_nlib */
     u32 s_vaddr;    /* virtual address */
     u32 s_size;     /* section size */
-    u32 s_scnptr;   /* file ptr to raw data for section */
-    u32 s_relptr;   /* file ptr to relocation */
-    u32 s_lnnoptr;  /* file ptr to gp histogram */
+    u32 s_scnptr;   /* file s_ptr to raw data for section */
+    u32 s_relptr;   /* file s_ptr to relocation */
+    u32 s_lnnoptr;  /* file s_ptr to gp histogram */
     u16 s_nreloc;   /* number of relocation entries */
     u16 s_nlnno;    /* number of gp histogram entries */
     u32 s_flags;    /* flags */

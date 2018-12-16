@@ -5,10 +5,10 @@
  *
  */
 
-#include "gte.h"
-#include "pgxp_debug.h"
-#include "pgxp_gte.h"
-#include "psxmem.h"
+#include "core/gte.h"
+#include "core/pgxp_debug.h"
+#include "core/pgxp_gte.h"
+#include "core/psxmem.h"
 
 #define GTE_SF(op) ((op >> 19) & 1)
 #define GTE_MX(op) ((op >> 17) & 3)
@@ -17,131 +17,131 @@
 #define GTE_LM(op) ((op >> 10) & 1)
 #define GTE_FUNCT(op) (op & 63)
 
-#define gteop (psxRegs.code & 0x1ffffff)
+#define gteop (g_psxRegs.code & 0x1ffffff)
 
-#define VX0 (psxRegs.CP2D.p[0].sw.l)
-#define VY0 (psxRegs.CP2D.p[0].sw.h)
-#define VZ0 (psxRegs.CP2D.p[1].sw.l)
-#define VX1 (psxRegs.CP2D.p[2].w.l)
-#define VY1 (psxRegs.CP2D.p[2].w.h)
-#define VZ1 (psxRegs.CP2D.p[3].w.l)
-#define VX2 (psxRegs.CP2D.p[4].w.l)
-#define VY2 (psxRegs.CP2D.p[4].w.h)
-#define VZ2 (psxRegs.CP2D.p[5].w.l)
-#define R (psxRegs.CP2D.p[6].b.l)
-#define G (psxRegs.CP2D.p[6].b.h)
-#define B (psxRegs.CP2D.p[6].b.h2)
-#define CODE (psxRegs.CP2D.p[6].b.h3)
-#define OTZ (psxRegs.CP2D.p[7].w.l)
-#define IR0 (psxRegs.CP2D.p[8].sw.l)
-#define IR1 (psxRegs.CP2D.p[9].sw.l)
-#define IR2 (psxRegs.CP2D.p[10].sw.l)
-#define IR3 (psxRegs.CP2D.p[11].sw.l)
-#define SXY0 (psxRegs.CP2D.p[12].d)
-#define SX0 (psxRegs.CP2D.p[12].sw.l)
-#define SY0 (psxRegs.CP2D.p[12].sw.h)
-#define SXY1 (psxRegs.CP2D.p[13].d)
-#define SX1 (psxRegs.CP2D.p[13].sw.l)
-#define SY1 (psxRegs.CP2D.p[13].sw.h)
-#define SXY2 (psxRegs.CP2D.p[14].d)
-#define SX2 (psxRegs.CP2D.p[14].sw.l)
-#define SY2 (psxRegs.CP2D.p[14].sw.h)
-#define SXYP (psxRegs.CP2D.p[15].d)
-#define SXP (psxRegs.CP2D.p[15].sw.l)
-#define SYP (psxRegs.CP2D.p[15].sw.h)
-#define SZ0 (psxRegs.CP2D.p[16].w.l)
-#define SZ1 (psxRegs.CP2D.p[17].w.l)
-#define SZ2 (psxRegs.CP2D.p[18].w.l)
-#define SZ3 (psxRegs.CP2D.p[19].w.l)
-#define RGB0 (psxRegs.CP2D.p[20].d)
-#define R0 (psxRegs.CP2D.p[20].b.l)
-#define G0 (psxRegs.CP2D.p[20].b.h)
-#define B0 (psxRegs.CP2D.p[20].b.h2)
-#define CD0 (psxRegs.CP2D.p[20].b.h3)
-#define RGB1 (psxRegs.CP2D.p[21].d)
-#define R1 (psxRegs.CP2D.p[21].b.l)
-#define G1 (psxRegs.CP2D.p[21].b.h)
-#define B1 (psxRegs.CP2D.p[21].b.h2)
-#define CD1 (psxRegs.CP2D.p[21].b.h3)
-#define RGB2 (psxRegs.CP2D.p[22].d)
-#define R2 (psxRegs.CP2D.p[22].b.l)
-#define G2 (psxRegs.CP2D.p[22].b.h)
-#define B2 (psxRegs.CP2D.p[22].b.h2)
-#define CD2 (psxRegs.CP2D.p[22].b.h3)
-#define RES1 (psxRegs.CP2D.p[23].d)
-#define MAC0 (psxRegs.CP2D.p[24].sd)
-#define MAC1 (psxRegs.CP2D.p[25].sd)
-#define MAC2 (psxRegs.CP2D.p[26].sd)
-#define MAC3 (psxRegs.CP2D.p[27].sd)
-#define IRGB (psxRegs.CP2D.p[28].d)
-#define ORGB (psxRegs.CP2D.p[29].d)
-#define LZCS (psxRegs.CP2D.p[30].d)
-#define LZCR (psxRegs.CP2D.p[31].d)
+#define VX0 (g_psxRegs.CP2D.p[0].sw.l)
+#define VY0 (g_psxRegs.CP2D.p[0].sw.h)
+#define VZ0 (g_psxRegs.CP2D.p[1].sw.l)
+#define VX1 (g_psxRegs.CP2D.p[2].w.l)
+#define VY1 (g_psxRegs.CP2D.p[2].w.h)
+#define VZ1 (g_psxRegs.CP2D.p[3].w.l)
+#define VX2 (g_psxRegs.CP2D.p[4].w.l)
+#define VY2 (g_psxRegs.CP2D.p[4].w.h)
+#define VZ2 (g_psxRegs.CP2D.p[5].w.l)
+#define R (g_psxRegs.CP2D.p[6].b.l)
+#define G (g_psxRegs.CP2D.p[6].b.h)
+#define B (g_psxRegs.CP2D.p[6].b.h2)
+#define CODE (g_psxRegs.CP2D.p[6].b.h3)
+#define OTZ (g_psxRegs.CP2D.p[7].w.l)
+#define IR0 (g_psxRegs.CP2D.p[8].sw.l)
+#define IR1 (g_psxRegs.CP2D.p[9].sw.l)
+#define IR2 (g_psxRegs.CP2D.p[10].sw.l)
+#define IR3 (g_psxRegs.CP2D.p[11].sw.l)
+#define SXY0 (g_psxRegs.CP2D.p[12].d)
+#define SX0 (g_psxRegs.CP2D.p[12].sw.l)
+#define SY0 (g_psxRegs.CP2D.p[12].sw.h)
+#define SXY1 (g_psxRegs.CP2D.p[13].d)
+#define SX1 (g_psxRegs.CP2D.p[13].sw.l)
+#define SY1 (g_psxRegs.CP2D.p[13].sw.h)
+#define SXY2 (g_psxRegs.CP2D.p[14].d)
+#define SX2 (g_psxRegs.CP2D.p[14].sw.l)
+#define SY2 (g_psxRegs.CP2D.p[14].sw.h)
+#define SXYP (g_psxRegs.CP2D.p[15].d)
+#define SXP (g_psxRegs.CP2D.p[15].sw.l)
+#define SYP (g_psxRegs.CP2D.p[15].sw.h)
+#define SZ0 (g_psxRegs.CP2D.p[16].w.l)
+#define SZ1 (g_psxRegs.CP2D.p[17].w.l)
+#define SZ2 (g_psxRegs.CP2D.p[18].w.l)
+#define SZ3 (g_psxRegs.CP2D.p[19].w.l)
+#define RGB0 (g_psxRegs.CP2D.p[20].d)
+#define R0 (g_psxRegs.CP2D.p[20].b.l)
+#define G0 (g_psxRegs.CP2D.p[20].b.h)
+#define B0 (g_psxRegs.CP2D.p[20].b.h2)
+#define CD0 (g_psxRegs.CP2D.p[20].b.h3)
+#define RGB1 (g_psxRegs.CP2D.p[21].d)
+#define R1 (g_psxRegs.CP2D.p[21].b.l)
+#define G1 (g_psxRegs.CP2D.p[21].b.h)
+#define B1 (g_psxRegs.CP2D.p[21].b.h2)
+#define CD1 (g_psxRegs.CP2D.p[21].b.h3)
+#define RGB2 (g_psxRegs.CP2D.p[22].d)
+#define R2 (g_psxRegs.CP2D.p[22].b.l)
+#define G2 (g_psxRegs.CP2D.p[22].b.h)
+#define B2 (g_psxRegs.CP2D.p[22].b.h2)
+#define CD2 (g_psxRegs.CP2D.p[22].b.h3)
+#define RES1 (g_psxRegs.CP2D.p[23].d)
+#define MAC0 (g_psxRegs.CP2D.p[24].sd)
+#define MAC1 (g_psxRegs.CP2D.p[25].sd)
+#define MAC2 (g_psxRegs.CP2D.p[26].sd)
+#define MAC3 (g_psxRegs.CP2D.p[27].sd)
+#define IRGB (g_psxRegs.CP2D.p[28].d)
+#define ORGB (g_psxRegs.CP2D.p[29].d)
+#define LZCS (g_psxRegs.CP2D.p[30].d)
+#define LZCR (g_psxRegs.CP2D.p[31].d)
 
-#define R11 (psxRegs.CP2C.p[0].sw.l)
-#define R12 (psxRegs.CP2C.p[0].sw.h)
-#define R13 (psxRegs.CP2C.p[1].sw.l)
-#define R21 (psxRegs.CP2C.p[1].sw.h)
-#define R22 (psxRegs.CP2C.p[2].sw.l)
-#define R23 (psxRegs.CP2C.p[2].sw.h)
-#define R31 (psxRegs.CP2C.p[3].sw.l)
-#define R32 (psxRegs.CP2C.p[3].sw.h)
-#define R33 (psxRegs.CP2C.p[4].sw.l)
-#define TRX (psxRegs.CP2C.p[5].sd)
-#define TRY (psxRegs.CP2C.p[6].sd)
-#define TRZ (psxRegs.CP2C.p[7].sd)
-#define L11 (psxRegs.CP2C.p[8].sw.l)
-#define L12 (psxRegs.CP2C.p[8].sw.h)
-#define L13 (psxRegs.CP2C.p[9].sw.l)
-#define L21 (psxRegs.CP2C.p[9].sw.h)
-#define L22 (psxRegs.CP2C.p[10].sw.l)
-#define L23 (psxRegs.CP2C.p[10].sw.h)
-#define L31 (psxRegs.CP2C.p[11].sw.l)
-#define L32 (psxRegs.CP2C.p[11].sw.h)
-#define L33 (psxRegs.CP2C.p[12].sw.l)
-#define RBK (psxRegs.CP2C.p[13].sd)
-#define GBK (psxRegs.CP2C.p[14].sd)
-#define BBK (psxRegs.CP2C.p[15].sd)
-#define LR1 (psxRegs.CP2C.p[16].sw.l)
-#define LR2 (psxRegs.CP2C.p[16].sw.h)
-#define LR3 (psxRegs.CP2C.p[17].sw.l)
-#define LG1 (psxRegs.CP2C.p[17].sw.h)
-#define LG2 (psxRegs.CP2C.p[18].sw.l)
-#define LG3 (psxRegs.CP2C.p[18].sw.h)
-#define LB1 (psxRegs.CP2C.p[19].sw.l)
-#define LB2 (psxRegs.CP2C.p[19].sw.h)
-#define LB3 (psxRegs.CP2C.p[20].sw.l)
-#define RFC (psxRegs.CP2C.p[21].sd)
-#define GFC (psxRegs.CP2C.p[22].sd)
-#define BFC (psxRegs.CP2C.p[23].sd)
-#define OFX (psxRegs.CP2C.p[24].sd)
-#define OFY (psxRegs.CP2C.p[25].sd)
-#define H (psxRegs.CP2C.p[26].sw.l)
-#define DQA (psxRegs.CP2C.p[27].sw.l)
-#define DQB (psxRegs.CP2C.p[28].sd)
-#define ZSF3 (psxRegs.CP2C.p[29].sw.l)
-#define ZSF4 (psxRegs.CP2C.p[30].sw.l)
-#define FLAG (psxRegs.CP2C.p[31].d)
+#define R11 (g_psxRegs.CP2C.p[0].sw.l)
+#define R12 (g_psxRegs.CP2C.p[0].sw.h)
+#define R13 (g_psxRegs.CP2C.p[1].sw.l)
+#define R21 (g_psxRegs.CP2C.p[1].sw.h)
+#define R22 (g_psxRegs.CP2C.p[2].sw.l)
+#define R23 (g_psxRegs.CP2C.p[2].sw.h)
+#define R31 (g_psxRegs.CP2C.p[3].sw.l)
+#define R32 (g_psxRegs.CP2C.p[3].sw.h)
+#define R33 (g_psxRegs.CP2C.p[4].sw.l)
+#define TRX (g_psxRegs.CP2C.p[5].sd)
+#define TRY (g_psxRegs.CP2C.p[6].sd)
+#define TRZ (g_psxRegs.CP2C.p[7].sd)
+#define L11 (g_psxRegs.CP2C.p[8].sw.l)
+#define L12 (g_psxRegs.CP2C.p[8].sw.h)
+#define L13 (g_psxRegs.CP2C.p[9].sw.l)
+#define L21 (g_psxRegs.CP2C.p[9].sw.h)
+#define L22 (g_psxRegs.CP2C.p[10].sw.l)
+#define L23 (g_psxRegs.CP2C.p[10].sw.h)
+#define L31 (g_psxRegs.CP2C.p[11].sw.l)
+#define L32 (g_psxRegs.CP2C.p[11].sw.h)
+#define L33 (g_psxRegs.CP2C.p[12].sw.l)
+#define RBK (g_psxRegs.CP2C.p[13].sd)
+#define GBK (g_psxRegs.CP2C.p[14].sd)
+#define BBK (g_psxRegs.CP2C.p[15].sd)
+#define LR1 (g_psxRegs.CP2C.p[16].sw.l)
+#define LR2 (g_psxRegs.CP2C.p[16].sw.h)
+#define LR3 (g_psxRegs.CP2C.p[17].sw.l)
+#define LG1 (g_psxRegs.CP2C.p[17].sw.h)
+#define LG2 (g_psxRegs.CP2C.p[18].sw.l)
+#define LG3 (g_psxRegs.CP2C.p[18].sw.h)
+#define LB1 (g_psxRegs.CP2C.p[19].sw.l)
+#define LB2 (g_psxRegs.CP2C.p[19].sw.h)
+#define LB3 (g_psxRegs.CP2C.p[20].sw.l)
+#define RFC (g_psxRegs.CP2C.p[21].sd)
+#define GFC (g_psxRegs.CP2C.p[22].sd)
+#define BFC (g_psxRegs.CP2C.p[23].sd)
+#define OFX (g_psxRegs.CP2C.p[24].sd)
+#define OFY (g_psxRegs.CP2C.p[25].sd)
+#define H (g_psxRegs.CP2C.p[26].sw.l)
+#define DQA (g_psxRegs.CP2C.p[27].sw.l)
+#define DQB (g_psxRegs.CP2C.p[28].sd)
+#define ZSF3 (g_psxRegs.CP2C.p[29].sw.l)
+#define ZSF4 (g_psxRegs.CP2C.p[30].sw.l)
+#define FLAG (g_psxRegs.CP2C.p[31].d)
 
-#define VX(n) (n < 3 ? psxRegs.CP2D.p[n << 1].sw.l : IR1)
-#define VY(n) (n < 3 ? psxRegs.CP2D.p[n << 1].sw.h : IR2)
-#define VZ(n) (n < 3 ? psxRegs.CP2D.p[(n << 1) + 1].sw.l : IR3)
-#define MX11(n) (n < 3 ? psxRegs.CP2C.p[(n << 3)].sw.l : -R << 4)
-#define MX12(n) (n < 3 ? psxRegs.CP2C.p[(n << 3)].sw.h : R << 4)
-#define MX13(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 1].sw.l : IR0)
-#define MX21(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 1].sw.h : R13)
-#define MX22(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 2].sw.l : R13)
-#define MX23(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 2].sw.h : R13)
-#define MX31(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 3].sw.l : R22)
-#define MX32(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 3].sw.h : R22)
-#define MX33(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 4].sw.l : R22)
-#define CV1(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 5].sd : 0)
-#define CV2(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
-#define CV3(n) (n < 3 ? psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
+#define VX(n) (n < 3 ? g_psxRegs.CP2D.p[n << 1].sw.l : IR1)
+#define VY(n) (n < 3 ? g_psxRegs.CP2D.p[n << 1].sw.h : IR2)
+#define VZ(n) (n < 3 ? g_psxRegs.CP2D.p[(n << 1) + 1].sw.l : IR3)
+#define MX11(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3)].sw.l : -R << 4)
+#define MX12(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3)].sw.h : R << 4)
+#define MX13(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 1].sw.l : IR0)
+#define MX21(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 1].sw.h : R13)
+#define MX22(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 2].sw.l : R13)
+#define MX23(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 2].sw.h : R13)
+#define MX31(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 3].sw.l : R22)
+#define MX32(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 3].sw.h : R22)
+#define MX33(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 4].sw.l : R22)
+#define CV1(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 5].sd : 0)
+#define CV2(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
+#define CV3(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
 
-static int m_sf;
-static s64 m_mac0;
-static s64 m_mac3;
+static int s_sf;
+static s64 s_mac0;
+static s64 s_mac3;
 
 static u32 gte_leadingzerocount(u32 lzcs) {
     u32 lzcr = 0;
@@ -156,7 +156,7 @@ static u32 gte_leadingzerocount(u32 lzcs) {
     return lzcr;
 }
 
-s32 LIM(s32 value, s32 max, s32 min, u32 flag) {
+static s32 LIM(s32 value, s32 max, s32 min, u32 flag) {
     if (value > max) {
         FLAG |= flag;
         return max;
@@ -177,7 +177,7 @@ static u32 MFC2(int reg) {
         case 9:
         case 10:
         case 11:
-            psxRegs.CP2D.p[reg].d = (s32)psxRegs.CP2D.p[reg].sw.l;
+            g_psxRegs.CP2D.p[reg].d = (s32)g_psxRegs.CP2D.p[reg].sw.l;
             break;
 
         case 7:
@@ -185,21 +185,21 @@ static u32 MFC2(int reg) {
         case 17:
         case 18:
         case 19:
-            psxRegs.CP2D.p[reg].d = (u32)psxRegs.CP2D.p[reg].w.l;
+            g_psxRegs.CP2D.p[reg].d = (u32)g_psxRegs.CP2D.p[reg].w.l;
             break;
 
         case 15:
-            psxRegs.CP2D.p[reg].d = SXY2;
+            g_psxRegs.CP2D.p[reg].d = SXY2;
             break;
 
         case 28:
         case 29:
-            psxRegs.CP2D.p[reg].d =
+            g_psxRegs.CP2D.p[reg].d =
                 LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7, 0x1f, 0, 0) << 10);
             break;
     }
 
-    return psxRegs.CP2D.p[reg].d;
+    return g_psxRegs.CP2D.p[reg].d;
 }
 
 static void MTC2(u32 value, int reg) {
@@ -224,7 +224,7 @@ static void MTC2(u32 value, int reg) {
             return;
     }
 
-    psxRegs.CP2D.p[reg].d = value;
+    g_psxRegs.CP2D.p[reg].d = value;
 }
 
 static void CTC2(u32 value, int reg) {
@@ -245,26 +245,26 @@ static void CTC2(u32 value, int reg) {
             break;
     }
 
-    psxRegs.CP2C.p[reg].d = value;
+    g_psxRegs.CP2C.p[reg].d = value;
 }
 
 void gteMFC2() {
     // CPU[Rt] = GTE_D[Rd]
     if (!_Rt_) return;
-    psxRegs.GPR.r[_Rt_] = MFC2(_Rd_);
+    g_psxRegs.GPR.r[_Rt_] = MFC2(_Rd_);
 }
 
 void gteCFC2() {
     // CPU[Rt] = GTE_C[Rd]
     if (!_Rt_) return;
-    psxRegs.GPR.r[_Rt_] = psxRegs.CP2C.p[_Rd_].d;
+    g_psxRegs.GPR.r[_Rt_] = g_psxRegs.CP2C.p[_Rd_].d;
 }
 
-void gteMTC2() { MTC2(psxRegs.GPR.r[_Rt_], _Rd_); }
+void gteMTC2() { MTC2(g_psxRegs.GPR.r[_Rt_], _Rd_); }
 
-void gteCTC2() { CTC2(psxRegs.GPR.r[_Rt_], _Rd_); }
+void gteCTC2() { CTC2(g_psxRegs.GPR.r[_Rt_], _Rd_); }
 
-#define _oB_ (psxRegs.GPR.r[_Rs_] + _Imm_)
+#define _oB_ (g_psxRegs.GPR.r[_Rs_] + _Imm_)
 
 void gteLWC2() { MTC2(psxMemRead32(_oB_), _Rt_); }
 
@@ -279,15 +279,15 @@ static inline s64 gte_shift(s64 a, int sf) {
     return a;
 }
 
-s32 BOUNDS(/*int44*/ s64 value, int max_flag, int min_flag) {
+static s32 BOUNDS(/*int44*/ s64 value, int max_flag, int min_flag) {
     if (value /*.positive_overflow()*/ > S64(0x7ffffffffff)) FLAG |= max_flag;
 
     if (value /*.negative_overflow()*/ < S64(-0x80000000000)) FLAG |= min_flag;
 
-    return gte_shift(value /*.value()*/, m_sf);
+    return gte_shift(value /*.value()*/, s_sf);
 }
 
-u32 gte_divide(u16 numerator, u16 denominator) {
+static u32 gte_divide(u16 numerator, u16 denominator) {
     if (numerator < (denominator * 2)) {
         static u8 table[] = {
             0xff, 0xfd, 0xfb, 0xf9, 0xf7, 0xf5, 0xf3, 0xf1, 0xef, 0xee, 0xec, 0xea, 0xe8, 0xe6, 0xe4, 0xe3, 0xe1, 0xdf,
@@ -321,17 +321,17 @@ u32 gte_divide(u16 numerator, u16 denominator) {
 
 /* Setting bits 12 & 19-22 in FLAG does not set bit 31 */
 
-s32 A1(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
-s32 A2(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
-s32 A3(/*int44*/ s64 a) {
-    m_mac3 = a;
+static s32 A1(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
+static s32 A2(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
+static s32 A3(/*int44*/ s64 a) {
+    s_mac3 = a;
     return BOUNDS(a, (1 << 31) | (1 << 28), (1 << 31) | (1 << 25));
 }
-s32 Lm_B1(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 24)); }
-s32 Lm_B2(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 23)); }
-s32 Lm_B3(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 22)); }
+static s32 Lm_B1(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 24)); }
+static s32 Lm_B2(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 23)); }
+static s32 Lm_B3(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 22)); }
 
-s32 Lm_B3_sf(s64 value, int sf, int lm) {
+static s32 Lm_B3_sf(s64 value, int sf, int lm) {
     s32 value_sf = gte_shift(value, sf);
     s32 value_12 = gte_shift(value, 1);
     int max = 0x7fff;
@@ -348,12 +348,12 @@ s32 Lm_B3_sf(s64 value, int sf, int lm) {
     return value_sf;
 }
 
-s32 Lm_C1(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 21)); }
-s32 Lm_C2(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 20)); }
-s32 Lm_C3(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 19)); }
-s32 Lm_D(s64 a, int sf) { return LIM(gte_shift(a, sf), 0xffff, 0x0000, (1 << 31) | (1 << 18)); }
+static s32 Lm_C1(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 21)); }
+static s32 Lm_C2(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 20)); }
+static s32 Lm_C3(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 19)); }
+static s32 Lm_D(s64 a, int sf) { return LIM(gte_shift(a, sf), 0xffff, 0x0000, (1 << 31) | (1 << 18)); }
 
-u32 Lm_E(u32 result) {
+static u32 Lm_E(u32 result) {
     if (result == 0xffffffff) {
         FLAG |= (1 << 31) | (1 << 17);
         return 0x1ffff;
@@ -364,8 +364,8 @@ u32 Lm_E(u32 result) {
     return result;
 }
 
-s64 F(s64 a) {
-    m_mac0 = a;
+static s64 F(s64 a) {
+    s_mac0 = a;
 
     if (a > S64(0x7fffffff)) FLAG |= (1 << 31) | (1 << 16);
 
@@ -374,7 +374,7 @@ s64 F(s64 a) {
     return a;
 }
 
-s32 Lm_G1(s64 a) {
+static s32 Lm_G1(s64 a) {
     if (a > 0x3ff) {
         FLAG |= (1 << 31) | (1 << 14);
         return 0x3ff;
@@ -387,7 +387,7 @@ s32 Lm_G1(s64 a) {
     return a;
 }
 
-s32 Lm_G2(s64 a) {
+static s32 Lm_G2(s64 a) {
     if (a > 0x3ff) {
         FLAG |= (1 << 31) | (1 << 13);
         return 0x3ff;
@@ -401,7 +401,7 @@ s32 Lm_G2(s64 a) {
     return a;
 }
 
-s32 Lm_G1_ia(s64 a) {
+static s32 Lm_G1_ia(s64 a) {
     if (a > 0x3ffffff) return 0x3ffffff;
 
     if (a < -0x4000000) return -0x4000000;
@@ -409,7 +409,7 @@ s32 Lm_G1_ia(s64 a) {
     return a;
 }
 
-s32 Lm_G2_ia(s64 a) {
+static s32 Lm_G2_ia(s64 a) {
     if (a > 0x3ffffff) return 0x3ffffff;
 
     if (a < -0x4000000) return -0x4000000;
@@ -417,7 +417,7 @@ s32 Lm_G2_ia(s64 a) {
     return a;
 }
 
-s32 Lm_H(s64 value, int sf) {
+static s32 Lm_H(s64 value, int sf) {
     s64 value_sf = gte_shift(value, sf);
     s32 value_12 = gte_shift(value, 1);
     int max = 0x1000;
@@ -432,7 +432,7 @@ s32 Lm_H(s64 value, int sf) {
     return value_12;
 }
 
-int docop2(int op) {
+static int docop2(int op) {
     int v;
     int lm;
     int cv;
@@ -440,7 +440,7 @@ int docop2(int op) {
     s32 h_over_sz3 = 0;
 
     lm = GTE_LM(gteop);
-    m_sf = GTE_SF(gteop);
+    s_sf = GTE_SF(gteop);
 
     FLAG = 0;
 
@@ -456,24 +456,24 @@ int docop2(int op) {
             MAC3 = A3(/*int44*/ (s64)((s64)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
             IR1 = Lm_B1(MAC1, lm);
             IR2 = Lm_B2(MAC2, lm);
-            IR3 = Lm_B3_sf(m_mac3, m_sf, lm);
+            IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
             SZ0 = SZ1;
             SZ1 = SZ2;
             SZ2 = SZ3;
-            SZ3 = Lm_D(m_mac3, 1);
+            SZ3 = Lm_D(s_mac3, 1);
             h_over_sz3 = Lm_E(gte_divide(H, SZ3));
             SXY0 = SXY1;
             SXY1 = SXY2;
-            SX2 = Lm_G1(F((s64)OFX + ((s64)IR1 * h_over_sz3) * (Config.Widescreen ? 0.75 : 1)) >> 16);
+            SX2 = Lm_G1(F((s64)OFX + ((s64)IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)) >> 16);
             SY2 = Lm_G2(F((s64)OFY + ((s64)IR2 * h_over_sz3)) >> 16);
 
-            PGXP_pushSXYZ2s(Lm_G1_ia((s64)OFX + (s64)(IR1 * h_over_sz3) * (Config.Widescreen ? 0.75 : 1)),
+            PGXP_pushSXYZ2s(Lm_G1_ia((s64)OFX + (s64)(IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)),
                             Lm_G2_ia((s64)OFY + (s64)(IR2 * h_over_sz3)), max(SZ3, H / 2), SXY2);
 
             // PGXP_RTPS(0, SXY2);
 
             MAC0 = F((s64)DQB + ((s64)DQA * h_over_sz3));
-            IR0 = Lm_H(m_mac0, 1);
+            IR0 = Lm_H(s_mac0, 1);
             return 1;
 
         case 0x06:
@@ -827,7 +827,7 @@ int docop2(int op) {
 #endif
 
             MAC0 = F((s64)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
-            OTZ = Lm_D(m_mac0, 1);
+            OTZ = Lm_D(s_mac0, 1);
             return 1;
 
         case 0x2e:
@@ -836,7 +836,7 @@ int docop2(int op) {
 #endif
 
             MAC0 = F((s64)(ZSF4 * SZ0) + (ZSF4 * SZ1) + (ZSF4 * SZ2) + (ZSF4 * SZ3));
-            OTZ = Lm_D(m_mac0, 1);
+            OTZ = Lm_D(s_mac0, 1);
             return 1;
 
         case 0x30:
@@ -850,15 +850,15 @@ int docop2(int op) {
                 MAC3 = A3(/*int44*/ (s64)((s64)TRZ << 12) + (R31 * VX(v)) + (R32 * VY(v)) + (R33 * VZ(v)));
                 IR1 = Lm_B1(MAC1, lm);
                 IR2 = Lm_B2(MAC2, lm);
-                IR3 = Lm_B3_sf(m_mac3, m_sf, lm);
+                IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
                 SZ0 = SZ1;
                 SZ1 = SZ2;
                 SZ2 = SZ3;
-                SZ3 = Lm_D(m_mac3, 1);
+                SZ3 = Lm_D(s_mac3, 1);
                 h_over_sz3 = Lm_E(gte_divide(H, SZ3));
                 SXY0 = SXY1;
                 SXY1 = SXY2;
-                SX2 = Lm_G1(F((s64)OFX + ((s64)IR1 * h_over_sz3) * (Config.Widescreen ? 0.75 : 1)) >> 16);
+                SX2 = Lm_G1(F((s64)OFX + ((s64)IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)) >> 16);
                 SY2 = Lm_G2(F((s64)OFY + ((s64)IR2 * h_over_sz3)) >> 16);
 
                 // float tempMx = MAC1;
@@ -868,14 +868,14 @@ int docop2(int op) {
                 // float tempMz = MAC3;
                 // float tempZ = SZ3;
                 //
-                PGXP_pushSXYZ2s(Lm_G1_ia((s64)OFX + (s64)(IR1 * h_over_sz3) * (Config.Widescreen ? 0.75 : 1)),
+                PGXP_pushSXYZ2s(Lm_G1_ia((s64)OFX + (s64)(IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)),
                                 Lm_G2_ia((s64)OFY + (s64)(IR2 * h_over_sz3)), max(SZ3, H / 2), SXY2);
 
                 // PGXP_RTPS(v, SXY2);
             }
 
             MAC0 = F((s64)DQB + ((s64)DQA * h_over_sz3));
-            IR0 = Lm_H(m_mac0, 1);
+            IR0 = Lm_H(s_mac0, 1);
             return 1;
 
         case 0x3d:
@@ -902,9 +902,9 @@ int docop2(int op) {
             GTE_LOG("%08x GTE: GPL|", op);
 #endif
 
-            MAC1 = A1(gte_shift(MAC1, -m_sf) + (IR0 * IR1));
-            MAC2 = A2(gte_shift(MAC2, -m_sf) + (IR0 * IR2));
-            MAC3 = A3(gte_shift(MAC3, -m_sf) + (IR0 * IR3));
+            MAC1 = A1(gte_shift(MAC1, -s_sf) + (IR0 * IR1));
+            MAC2 = A2(gte_shift(MAC2, -s_sf) + (IR0 * IR2));
+            MAC3 = A3(gte_shift(MAC3, -s_sf) + (IR0 * IR3));
             IR1 = Lm_B1(MAC1, lm);
             IR2 = Lm_B2(MAC2, lm);
             IR3 = Lm_B3(MAC3, lm);

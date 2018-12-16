@@ -20,11 +20,11 @@
 #ifndef __DECODE_XA_H__
 #define __DECODE_XA_H__
 
+#include "core/psxcommon.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "psxcommon.h"
 
 typedef struct {
     s32 y0, y1;

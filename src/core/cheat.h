@@ -19,6 +19,10 @@
 #ifndef CHEAT_H
 #define CHEAT_H
 
+#include <stdint.h>
+
+#include "core/psxcommon.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -82,16 +86,16 @@ void CheatSearchNoChange8();
 void CheatSearchNoChange16();
 void CheatSearchNoChange32();
 
-extern Cheat *Cheats;
-extern CheatCode *CheatCodes;
-extern int NumCheats;
-extern int NumCodes;
+extern Cheat *g_cheats;
+extern CheatCode *g_cheatCodes;
+extern int g_numCheats;
+extern int g_numCodes;
 
-extern s8 *prevM;
-extern u32 *SearchResults;
-extern int NumSearchResults;
+extern s8 *g_prevM;
+extern u32 *g_searchResults;
+extern int g_numSearchResults;
 
-#define PREVM(mem) (&prevM[mem])
+#define PREVM(mem) (&g_prevM[mem])
 #define PrevMu8(mem) (*(u8 *)PREVM(mem))
 #define PrevMu16(mem) (SWAP16(*(u16 *)PREVM(mem)))
 #define PrevMu32(mem) (SWAP32(*(u32 *)PREVM(mem)))

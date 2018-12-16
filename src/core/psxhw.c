@@ -21,21 +21,21 @@
  * Functions for PSX hardware control.
  */
 
-#include "psxhw.h"
-#include "cdrom.h"
-#include "gpu.h"
-#include "mdec.h"
+#include "core/cdrom.h"
+#include "core/gpu.h"
+#include "core/mdec.h"
+#include "core/psxhw.h"
 
 // Vampire Hunter D hack
-boolean dmaGpuListHackEn = FALSE;
+boolean g_dmaGpuListHackEn = FALSE;
 
 static inline void setIrq(u32 irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
 
 void psxHwReset() {
-    if (Config.SioIrq) psxHu32ref(0x1070) |= SWAP32(0x80);
-    if (Config.SpuIrq) psxHu32ref(0x1070) |= SWAP32(0x200);
+    if (g_config.SioIrq) psxHu32ref(0x1070) |= SWAP32(0x80);
+    if (g_config.SpuIrq) psxHu32ref(0x1070) |= SWAP32(0x200);
 
-    memset(psxH, 0, 0x10000);
+    memset(g_psxH, 0, 0x10000);
 
     mdecInit();  // initialize mdec decoder
     cdrReset();
@@ -504,8 +504,8 @@ void psxHwWrite16(u32 add, u16 value) {
 #ifdef PSXHW_LOG
             PSXHW_LOG("IREG 16bit write %x\n", value);
 #endif
-            if (Config.SioIrq) psxHu16ref(0x1070) |= SWAPu16(0x80);
-            if (Config.SpuIrq) psxHu16ref(0x1070) |= SWAPu16(0x200);
+            if (g_config.SioIrq) psxHu16ref(0x1070) |= SWAPu16(0x80);
+            if (g_config.SpuIrq) psxHu16ref(0x1070) |= SWAPu16(0x200);
             psxHu16ref(0x1070) &= SWAPu16(value);
             return;
 
@@ -630,8 +630,8 @@ void psxHwWrite32(u32 add, u32 value) {
 #ifdef PSXHW_LOG
             PSXHW_LOG("IREG 32bit write %x\n", value);
 #endif
-            if (Config.SioIrq) psxHu32ref(0x1070) |= SWAPu32(0x80);
-            if (Config.SpuIrq) psxHu32ref(0x1070) |= SWAPu32(0x200);
+            if (g_config.SioIrq) psxHu32ref(0x1070) |= SWAPu32(0x80);
+            if (g_config.SpuIrq) psxHu32ref(0x1070) |= SWAPu32(0x200);
             psxHu32ref(0x1070) &= SWAPu32(value);
             return;
         case 0x1f801074:
@@ -695,12 +695,12 @@ void psxHwWrite32(u32 add, u32 value) {
              * it is incompletele and still beign built by the game.
              * Maybe it is ready when some signal comes in or within given delay?
              */
-            if (dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
+            if (g_dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
                 psxDma2(SWAPu32(HW_DMA2_MADR), SWAPu32(HW_DMA2_BCR), SWAPu32(value));
                 return;
             }
             DmaExec(2);  // DMA2 chcr (GPU DMA)
-            if (Config.HackFix && HW_DMA2_CHCR == 0x1000401) dmaGpuListHackEn = TRUE;
+            if (g_config.HackFix && HW_DMA2_CHCR == 0x1000401) g_dmaGpuListHackEn = TRUE;
             return;
 
 #ifdef PSXHW_LOG
@@ -793,7 +793,7 @@ void psxHwWrite32(u32 add, u32 value) {
             // MML/Tronbonne is known to use this.
             // TODO FIFO is not implemented properly so commands are not exact
             // and thus we rely on hack that counter/cdrom irqs are enabled at same time
-            if (Config.HackFix && SWAPu32(value) == 0x1f00000 && (psxHu32ref(0x1070) & 0x44)) {
+            if (g_config.HackFix && SWAPu32(value) == 0x1f00000 && (psxHu32ref(0x1070) & 0x44)) {
                 setIrq(0x01);
             }
             GPU_writeData(value);
@@ -802,7 +802,7 @@ void psxHwWrite32(u32 add, u32 value) {
 #ifdef PSXHW_LOG
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
 #endif
-            if (value & 0x8000000) dmaGpuListHackEn = FALSE;
+            if (value & 0x8000000) g_dmaGpuListHackEn = FALSE;
             GPU_writeStatus(value);
             return;
 

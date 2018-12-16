@@ -21,70 +21,70 @@
  * R3000A CPU functions.
  */
 
-#include "r3000a.h"
-#include "cdrom.h"
-#include "gpu.h"
-#include "gte.h"
-#include "mdec.h"
-#include "pgxp_mem.h"
+#include "core/cdrom.h"
+#include "core/gpu.h"
+#include "core/gte.h"
+#include "core/mdec.h"
+#include "core/pgxp_mem.h"
+#include "core/r3000a.h"
 
-R3000Acpu *psxCpu = NULL;
-psxRegisters psxRegs;
+R3000Acpu *g_psxCpu = NULL;
+psxRegisters g_psxRegs;
 
 int psxInit() {
     SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
 #ifdef PSXREC
-    if (Config.Cpu == CPU_INTERPRETER) {
-        psxCpu = &psxInt;
+    if (g_config.Cpu == CPU_INTERPRETER) {
+        g_psxCpu = &g_psxInt;
     } else
-        psxCpu = &psxRec;
+        g_psxCpu = &g_psxRec;
 #else
-    psxCpu = &psxInt;
+    g_psxCpu = &g_psxInt;
 #endif
 
-    Log = 0;
+    g_log = 0;
 
     if (psxMemInit() == -1) return -1;
     PGXP_Init();
     PauseDebugger();
 
-    return psxCpu->Init();
+    return g_psxCpu->Init();
 }
 
 void psxReset() {
-    psxCpu->Reset();
+    g_psxCpu->Reset();
 
     psxMemReset();
 
-    memset(&psxRegs, 0, sizeof(psxRegs));
+    memset(&g_psxRegs, 0, sizeof(g_psxRegs));
 
-    psxRegs.pc = 0xbfc00000;  // Start in bootstrap
+    g_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
 
-    psxRegs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
-    psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
+    g_psxRegs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
+    g_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
     psxHwReset();
     psxBiosInit();
 
-    if (!Config.HLE) psxExecuteBios();
+    if (!g_config.HLE) psxExecuteBios();
 
 #ifdef EMU_LOG
     EMU_LOG("*BIOS END*\n");
 #endif
-    Log = 0;
+    g_log = 0;
 }
 
 void psxShutdown() {
     psxMemShutdown();
     psxBiosShutdown();
 
-    psxCpu->Shutdown();
+    g_psxCpu->Shutdown();
 }
 
 void psxException(u32 code, u32 bd) {
     // Set the Cause
-    psxRegs.CP0.n.Cause = code;
+    g_psxRegs.CP0.n.Cause = code;
 
     // Set the EPC & PC
     if (bd) {
@@ -92,30 +92,30 @@ void psxException(u32 code, u32 bd) {
         PSXCPU_LOG("bd set!!!\n");
 #endif
         SysPrintf("bd set!!!\n");
-        psxRegs.CP0.n.Cause |= 0x80000000;
-        psxRegs.CP0.n.EPC = (psxRegs.pc - 4);
+        g_psxRegs.CP0.n.Cause |= 0x80000000;
+        g_psxRegs.CP0.n.EPC = (g_psxRegs.pc - 4);
     } else
-        psxRegs.CP0.n.EPC = (psxRegs.pc);
+        g_psxRegs.CP0.n.EPC = (g_psxRegs.pc);
 
-    if (psxRegs.CP0.n.Status & 0x400000)
-        psxRegs.pc = 0xbfc00180;
+    if (g_psxRegs.CP0.n.Status & 0x400000)
+        g_psxRegs.pc = 0xbfc00180;
     else
-        psxRegs.pc = 0x80000080;
+        g_psxRegs.pc = 0x80000080;
 
     // Set the Status
-    psxRegs.CP0.n.Status = (psxRegs.CP0.n.Status & ~0x3f) | ((psxRegs.CP0.n.Status & 0xf) << 2);
+    g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & ~0x3f) | ((g_psxRegs.CP0.n.Status & 0xf) << 2);
 
-    if (Config.HLE) psxBiosException();
+    if (g_config.HLE) psxBiosException();
 }
 
 void psxBranchTest() {
     // GameShark Sampler: Give VSync pin some delay before exception eats it
     if (psxHu32(0x1070) & psxHu32(0x1074)) {
-        if ((psxRegs.CP0.n.Status & 0x401) == 0x401) {
+        if ((g_psxRegs.CP0.n.Status & 0x401) == 0x401) {
             u32 opcode;
 
             // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
-            opcode = SWAP32(*Read_ICache(psxRegs.pc, TRUE));
+            opcode = SWAP32(*Read_ICache(g_psxRegs.pc, TRUE));
             if (((opcode >> 24) & 0xfe) != 0x4a) {
 #ifdef PSXCPU_LOG
                 PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
@@ -134,100 +134,100 @@ void psxBranchTest() {
 		if( init == 0 ) {
 			// 10 apu cycles
 			// - Final Fantasy Tactics (distorted - dropped sound effects)
-			psxRegs.intCycle[PSXINT_SPUASYNC].cycle = PSXCLK / 44100 * 10;
+			g_psxRegs.intCycle[PSXINT_SPUASYNC].cycle = PSXCLK / 44100 * 10;
 
 			init = 1;
 		}
 
-		elapsed = psxRegs.cycle - psxRegs.intCycle[PSXINT_SPUASYNC].sCycle;
-		if (elapsed >= psxRegs.intCycle[PSXINT_SPUASYNC].cycle) {
+		elapsed = g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle;
+		if (elapsed >= g_psxRegs.intCycle[PSXINT_SPUASYNC].cycle) {
 			SPU_async( elapsed );
 
-			psxRegs.intCycle[PSXINT_SPUASYNC].sCycle = psxRegs.cycle;
+			g_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle = g_psxRegs.cycle;
 		}
 	}
 #endif
 
-    if ((psxRegs.cycle - psxNextsCounter) >= psxNextCounter) psxRcntUpdate();
+    if ((g_psxRegs.cycle - g_psxNextsCounter) >= g_psxNextCounter) psxRcntUpdate();
 
-    if (psxRegs.interrupt) {
-        if ((psxRegs.interrupt & (1 << PSXINT_SIO)) && !Config.SioIrq) {  // sio
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_SIO].sCycle) >= psxRegs.intCycle[PSXINT_SIO].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_SIO);
+    if (g_psxRegs.interrupt) {
+        if ((g_psxRegs.interrupt & (1 << PSXINT_SIO)) && !g_config.SioIrq) {  // sio
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_SIO].sCycle) >= g_psxRegs.intCycle[PSXINT_SIO].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
                 sioInterrupt();
             }
         }
-        if (psxRegs.interrupt & (1 << PSXINT_CDR)) {  // cdr
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_CDR].sCycle) >= psxRegs.intCycle[PSXINT_CDR].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_CDR);
+        if (g_psxRegs.interrupt & (1 << PSXINT_CDR)) {  // cdr
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_CDR].sCycle) >= g_psxRegs.intCycle[PSXINT_CDR].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_CDR);
                 cdrInterrupt();
             }
         }
-        if (psxRegs.interrupt & (1 << PSXINT_CDREAD)) {  // cdr read
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_CDREAD].sCycle) >= psxRegs.intCycle[PSXINT_CDREAD].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_CDREAD);
+        if (g_psxRegs.interrupt & (1 << PSXINT_CDREAD)) {  // cdr read
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_CDREAD].sCycle) >= g_psxRegs.intCycle[PSXINT_CDREAD].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_CDREAD);
                 cdrReadInterrupt();
             }
         }
-        if (psxRegs.interrupt & (1 << PSXINT_GPUDMA)) {  // gpu dma
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_GPUDMA].sCycle) >= psxRegs.intCycle[PSXINT_GPUDMA].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_GPUDMA);
+        if (g_psxRegs.interrupt & (1 << PSXINT_GPUDMA)) {  // gpu dma
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_GPUDMA].sCycle) >= g_psxRegs.intCycle[PSXINT_GPUDMA].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_GPUDMA);
                 gpuInterrupt();
             }
         }
-        if (psxRegs.interrupt & (1 << PSXINT_MDECOUTDMA)) {  // mdec out dma
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle) >=
-                psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_MDECOUTDMA);
+        if (g_psxRegs.interrupt & (1 << PSXINT_MDECOUTDMA)) {  // mdec out dma
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle) >=
+                g_psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_MDECOUTDMA);
                 mdec1Interrupt();
             }
         }
-        if (psxRegs.interrupt & (1 << PSXINT_SPUDMA)) {  // spu dma
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_SPUDMA].sCycle) >= psxRegs.intCycle[PSXINT_SPUDMA].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_SPUDMA);
+        if (g_psxRegs.interrupt & (1 << PSXINT_SPUDMA)) {  // spu dma
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_SPUDMA].sCycle) >= g_psxRegs.intCycle[PSXINT_SPUDMA].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_SPUDMA);
                 spuInterrupt();
             }
         }
-        if (psxRegs.interrupt & (1 << PSXINT_MDECINDMA)) {  // mdec in
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_MDECINDMA].sCycle) >=
-                psxRegs.intCycle[PSXINT_MDECINDMA].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_MDECINDMA);
+        if (g_psxRegs.interrupt & (1 << PSXINT_MDECINDMA)) {  // mdec in
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_MDECINDMA].sCycle) >=
+                g_psxRegs.intCycle[PSXINT_MDECINDMA].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_MDECINDMA);
                 mdec0Interrupt();
             }
         }
 
-        if (psxRegs.interrupt & (1 << PSXINT_GPUOTCDMA)) {  // gpu otc
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_GPUOTCDMA].sCycle) >=
-                psxRegs.intCycle[PSXINT_GPUOTCDMA].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_GPUOTCDMA);
+        if (g_psxRegs.interrupt & (1 << PSXINT_GPUOTCDMA)) {  // gpu otc
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_GPUOTCDMA].sCycle) >=
+                g_psxRegs.intCycle[PSXINT_GPUOTCDMA].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_GPUOTCDMA);
                 gpuotcInterrupt();
             }
         }
 
-        if (psxRegs.interrupt & (1 << PSXINT_CDRDMA)) {  // cdrom
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_CDRDMA].sCycle) >= psxRegs.intCycle[PSXINT_CDRDMA].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_CDRDMA);
+        if (g_psxRegs.interrupt & (1 << PSXINT_CDRDMA)) {  // cdrom
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_CDRDMA].sCycle) >= g_psxRegs.intCycle[PSXINT_CDRDMA].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_CDRDMA);
                 cdrDmaInterrupt();
             }
         }
 
-        if (psxRegs.interrupt & (1 << PSXINT_CDRPLAY)) {  // cdr play timing
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_CDRPLAY].sCycle) >= psxRegs.intCycle[PSXINT_CDRPLAY].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_CDRPLAY);
+        if (g_psxRegs.interrupt & (1 << PSXINT_CDRPLAY)) {  // cdr play timing
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_CDRPLAY].sCycle) >= g_psxRegs.intCycle[PSXINT_CDRPLAY].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_CDRPLAY);
                 cdrPlayInterrupt();
             }
         }
 
-        if (psxRegs.interrupt & (1 << PSXINT_CDRDBUF)) {  // cdr decoded buffer
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_CDRDBUF].sCycle) >= psxRegs.intCycle[PSXINT_CDRDBUF].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_CDRDBUF);
+        if (g_psxRegs.interrupt & (1 << PSXINT_CDRDBUF)) {  // cdr decoded buffer
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_CDRDBUF].sCycle) >= g_psxRegs.intCycle[PSXINT_CDRDBUF].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_CDRDBUF);
                 cdrDecodedBufferInterrupt();
             }
         }
 
-        if (psxRegs.interrupt & (1 << PSXINT_CDRLID)) {  // cdr lid states
-            if ((psxRegs.cycle - psxRegs.intCycle[PSXINT_CDRLID].sCycle) >= psxRegs.intCycle[PSXINT_CDRLID].cycle) {
-                psxRegs.interrupt &= ~(1 << PSXINT_CDRLID);
+        if (g_psxRegs.interrupt & (1 << PSXINT_CDRLID)) {  // cdr lid states
+            if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_CDRLID].sCycle) >= g_psxRegs.intCycle[PSXINT_CDRLID].cycle) {
+                g_psxRegs.interrupt &= ~(1 << PSXINT_CDRLID);
                 cdrLidSeekInterrupt();
             }
         }
@@ -235,16 +235,16 @@ void psxBranchTest() {
 }
 
 void psxJumpTest() {
-    if (!Config.HLE && Config.PsxOut) {
-        u32 call = psxRegs.GPR.n.t1 & 0xff;
-        switch (psxRegs.pc & 0x1fffff) {
+    if (!g_config.HLE && g_config.PsxOut) {
+        u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+        switch (g_psxRegs.pc & 0x1fffff) {
             case 0xa0:
                 if (biosA0[call])
                     biosA0[call]();
                 else if (call != 0x28 && call != 0xe) {
 #ifdef PSXBIOS_LOG
-                    PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", biosA0n[call], call, psxRegs.GPR.n.a0,
-                                psxRegs.GPR.n.a1, psxRegs.GPR.n.a2, psxRegs.GPR.n.a3);
+                    PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", g_biosA0n[call], call, g_psxRegs.GPR.n.a0,
+                                g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
 #endif
                 }
                 break;
@@ -253,8 +253,8 @@ void psxJumpTest() {
                     biosB0[call]();
                 else if (call != 0x17 && call != 0xb) {
 #ifdef PSXBIOS_LOG
-                    PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", biosB0n[call], call, psxRegs.GPR.n.a0,
-                                psxRegs.GPR.n.a1, psxRegs.GPR.n.a2, psxRegs.GPR.n.a3);
+                    PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", g_biosB0n[call], call, g_psxRegs.GPR.n.a0,
+                                g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
 #endif
                 }
                 break;
@@ -263,8 +263,8 @@ void psxJumpTest() {
                     biosC0[call]();
                 else {
 #ifdef PSXBIOS_LOG
-                    PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", biosC0n[call], call, psxRegs.GPR.n.a0,
-                                psxRegs.GPR.n.a1, psxRegs.GPR.n.a2, psxRegs.GPR.n.a3);
+                    PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", g_biosC0n[call], call, g_psxRegs.GPR.n.a0,
+                                g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
 #endif
                 }
 
@@ -274,10 +274,10 @@ void psxJumpTest() {
 }
 
 void psxExecuteBios() {
-    while (psxRegs.pc != 0x80030000) psxCpu->ExecuteBlock();
+    while (g_psxRegs.pc != 0x80030000) g_psxCpu->ExecuteBlock();
 }
 
 void psxSetPGXPMode(u32 pgxpMode) {
-    psxCpu->SetPGXPMode(pgxpMode);
-    // psxCpu->Reset();
+    g_psxCpu->SetPGXPMode(pgxpMode);
+    // g_psxCpu->Reset();
 }

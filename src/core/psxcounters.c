@@ -21,7 +21,7 @@
  * Internal PSX counters.
  */
 
-#include "psxcounters.h"
+#include "core/psxcounters.h"
 
 /******************************************************************************/
 
@@ -59,12 +59,12 @@ enum {
 #define CounterQuantity (4)
 // static const u32 CounterQuantity  = 4;
 
-static const u32 CountToOverflow = 0;
-static const u32 CountToTarget = 1;
+static const u32 s_countToOverflow = 0;
+static const u32 s_countToTarget = 1;
 
-static const u32 FrameRate[] = {60, 50};
-static const u32 VBlankStart[] = {243, 256};
-static const u32 SpuUpdInterval[] = {23, 22};
+static const u32 s_frameRate[] = {60, 50};
+static const u32 s_VBlankStart[] = {243, 256};
+static const u32 s_spuUpdInterval[] = {23, 22};
 
 #if defined(PSXHW_LOG)
 #if defined(PSXMEM_LOG) && defined(PSXDMA_LOG)  // automatic guess if we want trace level logging
@@ -77,13 +77,13 @@ static const u16 JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountTo
 
 /******************************************************************************/
 
-static Rcnt rcnts[CounterQuantity];
+static Rcnt s_rcnts[CounterQuantity];
 
-static u32 hSyncCount = 0;
-static u32 spuSyncCount = 0;
+static u32 s_hSyncCount = 0;
+static u32 s_spuSyncCount = 0;
 
-u32 HSyncTotal[PSX_TYPE_PAL + 1];  // 2
-u32 psxNextCounter = 0, psxNextsCounter = 0;
+static u32 s_HSyncTotal[PSX_TYPE_PAL + 1];  // 2
+u32 g_psxNextCounter = 0, g_psxNextsCounter = 0;
 
 /******************************************************************************/
 
@@ -112,16 +112,16 @@ static inline void _psxRcntWcount(u32 index, u32 value) {
         value &= 0xffff;
     }
 
-    rcnts[index].cycleStart = psxRegs.cycle;
-    rcnts[index].cycleStart -= value * rcnts[index].rate;
+    s_rcnts[index].cycleStart = g_psxRegs.cycle;
+    s_rcnts[index].cycleStart -= value * s_rcnts[index].rate;
 
     // TODO: <=.
-    if (value < rcnts[index].target) {
-        rcnts[index].cycle = rcnts[index].target * rcnts[index].rate;
-        rcnts[index].counterState = CountToTarget;
+    if (value < s_rcnts[index].target) {
+        s_rcnts[index].cycle = s_rcnts[index].target * s_rcnts[index].rate;
+        s_rcnts[index].counterState = s_countToTarget;
     } else {
-        rcnts[index].cycle = 0xffff * rcnts[index].rate;
-        rcnts[index].counterState = CountToOverflow;
+        s_rcnts[index].cycle = 0xffff * s_rcnts[index].rate;
+        s_rcnts[index].counterState = s_countToOverflow;
     }
     verboseLog(5, "[RCNT %i] scount: %x\n", index, value);
 }
@@ -129,9 +129,9 @@ static inline void _psxRcntWcount(u32 index, u32 value) {
 static inline u32 _psxRcntRcount(u32 index) {
     u32 count;
 
-    count = psxRegs.cycle;
-    count -= rcnts[index].cycleStart;
-    count /= rcnts[index].rate;
+    count = g_psxRegs.cycle;
+    count -= s_rcnts[index].cycleStart;
+    count /= s_rcnts[index].rate;
 
     if (count > 0xffff) {
         verboseLog(1, "[RCNT %i] rcount > 0xffff: %x\n", index, count);
@@ -147,19 +147,19 @@ static void psxRcntSet() {
     s32 countToUpdate;
     u32 i;
 
-    psxNextsCounter = psxRegs.cycle;
-    psxNextCounter = 0x7fffffff;
+    g_psxNextsCounter = g_psxRegs.cycle;
+    g_psxNextCounter = 0x7fffffff;
 
     for (i = 0; i < CounterQuantity; ++i) {
-        countToUpdate = rcnts[i].cycle - (psxNextsCounter - rcnts[i].cycleStart);
+        countToUpdate = s_rcnts[i].cycle - (g_psxNextsCounter - s_rcnts[i].cycleStart);
 
         if (countToUpdate < 0) {
-            psxNextCounter = 0;
+            g_psxNextCounter = 0;
             break;
         }
 
-        if (countToUpdate < (s32)psxNextCounter) {
-            psxNextCounter = countToUpdate;
+        if (countToUpdate < (s32)g_psxNextCounter) {
+            g_psxNextCounter = countToUpdate;
         }
     }
 }
@@ -169,47 +169,47 @@ static void psxRcntSet() {
 static void psxRcntReset(u32 index) {
     u32 count;
 
-    if (rcnts[index].counterState == CountToTarget) {
-        if (rcnts[index].mode & RcCountToTarget) {
-            count = psxRegs.cycle;
-            count -= rcnts[index].cycleStart;
-            count /= rcnts[index].rate;
-            count -= rcnts[index].target;
+    if (s_rcnts[index].counterState == s_countToTarget) {
+        if (s_rcnts[index].mode & RcCountToTarget) {
+            count = g_psxRegs.cycle;
+            count -= s_rcnts[index].cycleStart;
+            count /= s_rcnts[index].rate;
+            count -= s_rcnts[index].target;
         } else {
             count = _psxRcntRcount(index);
         }
 
         _psxRcntWcount(index, count);
 
-        if (rcnts[index].mode & RcIrqOnTarget) {
-            if ((rcnts[index].mode & RcIrqRegenerate) || (!rcnts[index].irqState)) {
+        if (s_rcnts[index].mode & RcIrqOnTarget) {
+            if ((s_rcnts[index].mode & RcIrqRegenerate) || (!s_rcnts[index].irqState)) {
                 verboseLog(3, "[RCNT %i] irq: %x\n", index, count);
-                setIrq(rcnts[index].irq);
-                rcnts[index].irqState = TRUE;
+                setIrq(s_rcnts[index].irq);
+                s_rcnts[index].irqState = TRUE;
             }
         }
 
-        rcnts[index].mode |= RcCountEqTarget;
-    } else if (rcnts[index].counterState == CountToOverflow) {
-        count = psxRegs.cycle;
-        count -= rcnts[index].cycleStart;
-        count /= rcnts[index].rate;
+        s_rcnts[index].mode |= RcCountEqTarget;
+    } else if (s_rcnts[index].counterState == s_countToOverflow) {
+        count = g_psxRegs.cycle;
+        count -= s_rcnts[index].cycleStart;
+        count /= s_rcnts[index].rate;
         count -= 0xffff;
 
         _psxRcntWcount(index, count);
 
-        if (rcnts[index].mode & RcIrqOnOverflow) {
-            if ((rcnts[index].mode & RcIrqRegenerate) || (!rcnts[index].irqState)) {
+        if (s_rcnts[index].mode & RcIrqOnOverflow) {
+            if ((s_rcnts[index].mode & RcIrqRegenerate) || (!s_rcnts[index].irqState)) {
                 verboseLog(3, "[RCNT %i] irq: %x\n", index, count);
-                setIrq(rcnts[index].irq);
-                rcnts[index].irqState = TRUE;
+                setIrq(s_rcnts[index].irq);
+                s_rcnts[index].irqState = TRUE;
             }
         }
 
-        rcnts[index].mode |= RcOverflow;
+        s_rcnts[index].mode |= RcOverflow;
     }
 
-    rcnts[index].mode |= RcIrqRequest;
+    s_rcnts[index].mode |= RcIrqRequest;
 
     psxRcntSet();
 }
@@ -217,38 +217,38 @@ static void psxRcntReset(u32 index) {
 void psxRcntUpdate() {
     u32 cycle;
 
-    cycle = psxRegs.cycle;
+    cycle = g_psxRegs.cycle;
 
     // rcnt 0.
-    if (cycle - rcnts[0].cycleStart >= rcnts[0].cycle) {
+    if (cycle - s_rcnts[0].cycleStart >= s_rcnts[0].cycle) {
         psxRcntReset(0);
     }
 
     // rcnt 1.
-    if (cycle - rcnts[1].cycleStart >= rcnts[1].cycle) {
+    if (cycle - s_rcnts[1].cycleStart >= s_rcnts[1].cycle) {
         psxRcntReset(1);
     }
 
     // rcnt 2.
-    if (cycle - rcnts[2].cycleStart >= rcnts[2].cycle) {
+    if (cycle - s_rcnts[2].cycleStart >= s_rcnts[2].cycle) {
         psxRcntReset(2);
     }
 
     // rcnt base.
-    if (cycle - rcnts[3].cycleStart >= rcnts[3].cycle) {
+    if (cycle - s_rcnts[3].cycleStart >= s_rcnts[3].cycle) {
         psxRcntReset(3);
 
-        GPU_hSync(hSyncCount);
+        GPU_hSync(s_hSyncCount);
 
-        spuSyncCount++;
-        hSyncCount++;
+        s_spuSyncCount++;
+        s_hSyncCount++;
 
         // Update spu.
-        if (spuSyncCount >= SpuUpdInterval[Config.PsxType]) {
-            spuSyncCount = 0;
+        if (s_spuSyncCount >= s_spuUpdInterval[g_config.PsxType]) {
+            s_spuSyncCount = 0;
 
             if (SPU_async) {
-                SPU_async(SpuUpdInterval[Config.PsxType] * rcnts[3].target);
+                SPU_async(s_spuUpdInterval[g_config.PsxType] * s_rcnts[3].target);
             }
         }
 
@@ -259,7 +259,7 @@ void psxRcntUpdate() {
 #endif
 
         // VSync irq.
-        if (hSyncCount == VBlankStart[Config.PsxType]) {
+        if (s_hSyncCount == s_VBlankStart[g_config.PsxType]) {
             GPU_vBlank(1);
 
             // For the best times. :D
@@ -267,8 +267,8 @@ void psxRcntUpdate() {
         }
 
         // Update lace. (calculated at psxHsyncCalculate() on init/defreeze)
-        if (hSyncCount >= HSyncTotal[Config.PsxType]) {
-            hSyncCount = 0;
+        if (s_hSyncCount >= s_HSyncTotal[g_config.PsxType]) {
+            s_hSyncCount = 0;
 
             GPU_vBlank(0);
             setIrq(0x01);
@@ -297,34 +297,34 @@ void psxRcntWmode(u32 index, u32 value) {
 
     psxRcntUpdate();
 
-    rcnts[index].mode = value;
-    rcnts[index].irqState = FALSE;
+    s_rcnts[index].mode = value;
+    s_rcnts[index].irqState = FALSE;
 
     switch (index) {
         case 0:
             if (value & Rc0PixelClock) {
-                rcnts[index].rate = 5;
+                s_rcnts[index].rate = 5;
             } else {
-                rcnts[index].rate = 1;
+                s_rcnts[index].rate = 1;
             }
             break;
         case 1:
             if (value & Rc1HSyncClock) {
-                rcnts[index].rate = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
+                s_rcnts[index].rate = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
             } else {
-                rcnts[index].rate = 1;
+                s_rcnts[index].rate = 1;
             }
             break;
         case 2:
             if (value & Rc2OneEighthClock) {
-                rcnts[index].rate = 8;
+                s_rcnts[index].rate = 8;
             } else {
-                rcnts[index].rate = 1;
+                s_rcnts[index].rate = 1;
             }
 
             // TODO: wcount must work.
             if (value & Rc2Disable) {
-                rcnts[index].rate = 0xffffffff;
+                s_rcnts[index].rate = 0xffffffff;
             }
             break;
     }
@@ -338,7 +338,7 @@ void psxRcntWtarget(u32 index, u32 value) {
 
     psxRcntUpdate();
 
-    rcnts[index].target = value;  // TODO: only upper 16bit used
+    s_rcnts[index].target = value;  // TODO: only upper 16bit used
 
     _psxRcntWcount(index, _psxRcntRcount(index));
     psxRcntSet();
@@ -355,8 +355,8 @@ u32 psxRcntRcount(u32 index) {
 
     // Parasite Eve 2 fix - artificial clock jitter based on BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
-    if (Config.HackFix && index == 2 && rcnts[index].counterState == CountToTarget &&
-        (Config.RCntFix || ((rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
+    if (g_config.HackFix && index == 2 && s_rcnts[index].counterState == s_countToTarget &&
+        (g_config.RCntFix || ((s_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
         /*
          *The problem is that...
          *
@@ -375,8 +375,8 @@ u32 psxRcntRcount(u32 index) {
         static u32 cylast = 0;
         u32 count1 = count;
         count /= BIAS;
-        verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (psxRegs.cycle - cylast));
-        cylast = psxRegs.cycle;
+        verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (g_psxRegs.cycle - cylast));
+        cylast = g_psxRegs.cycle;
         clast = count;
     }
 
@@ -390,8 +390,8 @@ u32 psxRcntRmode(u32 index) {
 
     psxRcntUpdate();
 
-    mode = rcnts[index].mode;
-    rcnts[index].mode &= 0xe7ff;
+    mode = s_rcnts[index].mode;
+    s_rcnts[index].mode &= 0xe7ff;
 
     verboseLog(2, "[RCNT %i] rmode: %x\n", index, mode);
 
@@ -399,20 +399,20 @@ u32 psxRcntRmode(u32 index) {
 }
 
 u32 psxRcntRtarget(u32 index) {
-    verboseLog(2, "[RCNT %i] rtarget: %x\n", index, rcnts[index].target);
+    verboseLog(2, "[RCNT %i] rtarget: %x\n", index, s_rcnts[index].target);
 
-    return rcnts[index].target;
+    return s_rcnts[index].target;
 }
 
 /******************************************************************************/
 
 void psxHsyncCalculate() {
-    HSyncTotal[PSX_TYPE_NTSC] = 263;
-    HSyncTotal[PSX_TYPE_PAL] = 313;
-    if (Config.VSyncWA) {
-        HSyncTotal[Config.PsxType] = HSyncTotal[Config.PsxType] / BIAS;
-    } else if (Config.HackFix) {
-        HSyncTotal[Config.PsxType] = HSyncTotal[Config.PsxType] + 1;
+    s_HSyncTotal[PSX_TYPE_NTSC] = 263;
+    s_HSyncTotal[PSX_TYPE_PAL] = 313;
+    if (g_config.VSyncWA) {
+        s_HSyncTotal[g_config.PsxType] = s_HSyncTotal[g_config.PsxType] / BIAS;
+    } else if (g_config.HackFix) {
+        s_HSyncTotal[g_config.PsxType] = s_HSyncTotal[g_config.PsxType] + 1;
     }
 }
 
@@ -422,28 +422,28 @@ void psxRcntInit() {
     psxHsyncCalculate();
 
     // rcnt 0.
-    rcnts[0].rate = 1;
-    rcnts[0].irq = 0x10;
+    s_rcnts[0].rate = 1;
+    s_rcnts[0].irq = 0x10;
 
     // rcnt 1.
-    rcnts[1].rate = 1;
-    rcnts[1].irq = 0x20;
+    s_rcnts[1].rate = 1;
+    s_rcnts[1].irq = 0x20;
 
     // rcnt 2.
-    rcnts[2].rate = 1;
-    rcnts[2].irq = 0x40;
+    s_rcnts[2].rate = 1;
+    s_rcnts[2].irq = 0x40;
 
     // rcnt base.
-    rcnts[3].rate = 1;
-    rcnts[3].mode = RcCountToTarget;
-    rcnts[3].target = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
+    s_rcnts[3].rate = 1;
+    s_rcnts[3].mode = RcCountToTarget;
+    s_rcnts[3].target = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
 
     for (i = 0; i < CounterQuantity; ++i) {
         _psxRcntWcount(i, 0);
     }
 
-    hSyncCount = 0;
-    spuSyncCount = 0;
+    s_hSyncCount = 0;
+    s_spuSyncCount = 0;
 
     psxRcntSet();
 }
@@ -451,17 +451,17 @@ void psxRcntInit() {
 /******************************************************************************/
 
 s32 psxRcntFreeze(gzFile f, s32 Mode) {
-    gzfreeze(&rcnts, sizeof(rcnts));
-    gzfreeze(&hSyncCount, sizeof(hSyncCount));
-    gzfreeze(&spuSyncCount, sizeof(spuSyncCount));
-    gzfreeze(&psxNextCounter, sizeof(psxNextCounter));
-    gzfreeze(&psxNextsCounter, sizeof(psxNextsCounter));
+    gzfreeze(&s_rcnts, sizeof(s_rcnts));
+    gzfreeze(&s_hSyncCount, sizeof(s_hSyncCount));
+    gzfreeze(&s_spuSyncCount, sizeof(s_spuSyncCount));
+    gzfreeze(&g_psxNextCounter, sizeof(g_psxNextCounter));
+    gzfreeze(&g_psxNextsCounter, sizeof(g_psxNextsCounter));
 
     if (Mode == 0) {
         psxHsyncCalculate();
         // iCB: recalculate target count in case overclock is changed
-        rcnts[3].target = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
-        if (rcnts[1].rate != 1) rcnts[1].rate = (PSXCLK / (FrameRate[Config.PsxType] * HSyncTotal[Config.PsxType]));
+        s_rcnts[3].target = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
+        if (s_rcnts[1].rate != 1) s_rcnts[1].rate = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
     }
 
     return 0;

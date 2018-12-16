@@ -16,48 +16,45 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
+#include "core/cheat.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
 
-#include "cheat.h"
+Cheat *g_cheats = NULL;
+int g_numCheats = 0;
+static int s_numCheatsAllocated = 0;
 
-Cheat *Cheats = NULL;
-int NumCheats = 0;
-static int NumCheatsAllocated = 0;
+CheatCode *g_cheatCodes = NULL;
+int g_numCodes = 0;
+static int s_numCodesAllocated = 0;
 
-CheatCode *CheatCodes = NULL;
-int NumCodes = 0;
-static int NumCodesAllocated = 0;
-
-s8 *prevM = NULL;
-u32 *SearchResults = NULL;
-int NumSearchResults = 0;
-static int NumSearchResultsAllocated = 0;
+s8 *g_prevM = NULL;
+u32 *g_searchResults = NULL;
+int g_numSearchResults = 0;
+static int s_numSearchResultsAllocated = 0;
 
 #define ALLOC_INCREMENT 100
 
 void ClearAllCheats() {
-    int i;
-
-    if (Cheats != NULL) {
-        for (i = 0; i < NumCheats; i++) {
-            free(Cheats[i].Descr);
+    if (g_cheats != NULL) {
+        for (int i = 0; i < g_numCheats; i++) {
+            free(g_cheats[i].Descr);
         }
-        free(Cheats);
+        free(g_cheats);
     }
 
-    Cheats = NULL;
-    NumCheats = 0;
-    NumCheatsAllocated = 0;
+    g_cheats = NULL;
+    g_numCheats = 0;
+    s_numCheatsAllocated = 0;
 
-    if (CheatCodes != NULL) {
-        free(CheatCodes);
+    if (g_cheatCodes != NULL) {
+        free(g_cheatCodes);
     }
 
-    CheatCodes = NULL;
-    NumCodes = 0;
-    NumCodesAllocated = 0;
+    g_cheatCodes = NULL;
+    g_numCodes = 0;
+    s_numCodesAllocated = 0;
 }
 
 // load cheats from the specific filename
@@ -83,17 +80,17 @@ void LoadCheats(const char *filename) {
         if (buf[0] == '#' || buf[0] == ';' || buf[0] == '/' || buf[0] == '\"' || buf[0] == '\0') continue;
 
         if (buf[0] == '[' && buf[strlen(buf) - 1] == ']') {
-            if (NumCheats > 0) Cheats[NumCheats - 1].n = count;
+            if (g_numCheats > 0) g_cheats[g_numCheats - 1].n = count;
 
-            if (NumCheats >= NumCheatsAllocated) {
-                NumCheatsAllocated += ALLOC_INCREMENT;
+            if (g_numCheats >= s_numCheatsAllocated) {
+                s_numCheatsAllocated += ALLOC_INCREMENT;
 
-                if (Cheats == NULL) {
-                    assert(NumCheats == 0);
-                    assert(NumCheatsAllocated == ALLOC_INCREMENT);
-                    Cheats = (Cheat *)malloc(sizeof(Cheat) * NumCheatsAllocated);
+                if (g_cheats == NULL) {
+                    assert(g_numCheats == 0);
+                    assert(s_numCheatsAllocated == ALLOC_INCREMENT);
+                    g_cheats = (Cheat *)malloc(sizeof(Cheat) * s_numCheatsAllocated);
                 } else {
-                    Cheats = (Cheat *)realloc(Cheats, sizeof(Cheat) * NumCheatsAllocated);
+                    g_cheats = (Cheat *)realloc(g_cheats, sizeof(Cheat) * s_numCheatsAllocated);
                 }
             }
 
@@ -101,43 +98,43 @@ void LoadCheats(const char *filename) {
             count = 0;
 
             if (buf[1] == '*') {
-                Cheats[NumCheats].Descr = strdup(buf + 2);
-                Cheats[NumCheats].Enabled = 1;
+                g_cheats[g_numCheats].Descr = strdup(buf + 2);
+                g_cheats[g_numCheats].Enabled = 1;
             } else {
-                Cheats[NumCheats].Descr = strdup(buf + 1);
-                Cheats[NumCheats].Enabled = 0;
+                g_cheats[g_numCheats].Descr = strdup(buf + 1);
+                g_cheats[g_numCheats].Enabled = 0;
             }
 
-            Cheats[NumCheats].First = NumCodes;
+            g_cheats[g_numCheats].First = g_numCodes;
 
-            NumCheats++;
+            g_numCheats++;
             continue;
         }
 
-        if (NumCheats <= 0) continue;
+        if (g_numCheats <= 0) continue;
 
-        if (NumCodes >= NumCodesAllocated) {
-            NumCodesAllocated += ALLOC_INCREMENT;
+        if (g_numCodes >= s_numCodesAllocated) {
+            s_numCodesAllocated += ALLOC_INCREMENT;
 
-            if (CheatCodes == NULL) {
-                assert(NumCodes == 0);
-                assert(NumCodesAllocated == ALLOC_INCREMENT);
-                CheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * NumCodesAllocated);
+            if (g_cheatCodes == NULL) {
+                assert(g_numCodes == 0);
+                assert(s_numCodesAllocated == ALLOC_INCREMENT);
+                g_cheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * s_numCodesAllocated);
             } else {
-                CheatCodes = (CheatCode *)realloc(CheatCodes, sizeof(CheatCode) * NumCodesAllocated);
+                g_cheatCodes = (CheatCode *)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
             }
         }
 
         sscanf(buf, "%x %x", &t1, &t2);
 
-        CheatCodes[NumCodes].Addr = t1;
-        CheatCodes[NumCodes].Val = t2;
+        g_cheatCodes[g_numCodes].Addr = t1;
+        g_cheatCodes[g_numCodes].Val = t2;
 
-        NumCodes++;
+        g_numCodes++;
         count++;
     }
 
-    if (NumCheats > 0) Cheats[NumCheats - 1].n = count;
+    if (g_numCheats > 0) g_cheats[g_numCheats - 1].n = count;
 
     fclose(fp);
 
@@ -154,16 +151,16 @@ void SaveCheats(const char *filename) {
         return;
     }
 
-    for (i = 0; i < NumCheats; i++) {
+    for (i = 0; i < g_numCheats; i++) {
         // write the description
-        if (Cheats[i].Enabled)
-            fprintf(fp, "[*%s]\n", Cheats[i].Descr);
+        if (g_cheats[i].Enabled)
+            fprintf(fp, "[*%s]\n", g_cheats[i].Descr);
         else
-            fprintf(fp, "[%s]\n", Cheats[i].Descr);
+            fprintf(fp, "[%s]\n", g_cheats[i].Descr);
 
         // write all cheat codes
-        for (j = 0; j < Cheats[i].n; j++) {
-            fprintf(fp, "%.8X %.4X\n", CheatCodes[Cheats[i].First + j].Addr, CheatCodes[Cheats[i].First + j].Val);
+        for (j = 0; j < g_cheats[i].n; j++) {
+            fprintf(fp, "%.8X %.4X\n", g_cheatCodes[g_cheats[i].First + j].Addr, g_cheatCodes[g_cheats[i].First + j].Val);
         }
 
         fprintf(fp, "\n");
@@ -178,18 +175,18 @@ void SaveCheats(const char *filename) {
 void ApplyCheats() {
     int i, j, k, endindex;
 
-    for (i = 0; i < NumCheats; i++) {
-        if (!Cheats[i].Enabled) {
+    for (i = 0; i < g_numCheats; i++) {
+        if (!g_cheats[i].Enabled) {
             continue;
         }
 
         // process all cheat codes
-        endindex = Cheats[i].First + Cheats[i].n;
+        endindex = g_cheats[i].First + g_cheats[i].n;
 
-        for (j = Cheats[i].First; j < endindex; j++) {
-            u8 type = (uint8_t)(CheatCodes[j].Addr >> 24);
-            u32 addr = (CheatCodes[j].Addr & 0x001FFFFF);
-            u16 val = CheatCodes[j].Val;
+        for (j = g_cheats[i].First; j < endindex; j++) {
+            u8 type = (uint8_t)(g_cheatCodes[j].Addr >> 24);
+            u32 addr = (g_cheatCodes[j].Addr & 0x001FFFFF);
+            u16 val = g_cheatCodes[j].Val;
             u32 taddr;
 
             switch (type) {
@@ -221,21 +218,21 @@ void ApplyCheats() {
                     j++;
                     if (j >= endindex) break;
 
-                    type = (uint8_t)(CheatCodes[j].Addr >> 24);
-                    taddr = (CheatCodes[j].Addr & 0x001FFFFF);
-                    val = CheatCodes[j].Val;
+                    type = (uint8_t)(g_cheatCodes[j].Addr >> 24);
+                    taddr = (g_cheatCodes[j].Addr & 0x001FFFFF);
+                    val = g_cheatCodes[j].Val;
 
                     if (type == CHEAT_CONST8) {
                         for (k = 0; k < ((addr >> 8) & 0xFF); k++) {
                             psxMu8ref(taddr) = (u8)val;
                             taddr += (s8)(addr & 0xFF);
-                            val += (s8)(CheatCodes[j - 1].Val & 0xFF);
+                            val += (s8)(g_cheatCodes[j - 1].Val & 0xFF);
                         }
                     } else if (type == CHEAT_CONST16) {
                         for (k = 0; k < ((addr >> 8) & 0xFF); k++) {
                             psxMu16ref(taddr) = SWAPu16(val);
                             taddr += (s8)(addr & 0xFF);
-                            val += (s8)(CheatCodes[j - 1].Val & 0xFF);
+                            val += (s8)(g_cheatCodes[j - 1].Val & 0xFF);
                         }
                     }
                     break;
@@ -244,7 +241,7 @@ void ApplyCheats() {
                     j++;
                     if (j >= endindex) break;
 
-                    taddr = (CheatCodes[j].Addr & 0x001FFFFF);
+                    taddr = (g_cheatCodes[j].Addr & 0x001FFFFF);
                     for (k = 0; k < val; k++) {
                         psxMu8ref(taddr + k) = PSXMu8(addr + k);
                     }
@@ -290,22 +287,22 @@ int AddCheat(const char *descr, char *code) {
     int c = 1;
     char *p1, *p2;
 
-    if (NumCheats >= NumCheatsAllocated) {
-        NumCheatsAllocated += ALLOC_INCREMENT;
+    if (g_numCheats >= s_numCheatsAllocated) {
+        s_numCheatsAllocated += ALLOC_INCREMENT;
 
-        if (Cheats == NULL) {
-            assert(NumCheats == 0);
-            assert(NumCheatsAllocated == ALLOC_INCREMENT);
-            Cheats = (Cheat *)malloc(sizeof(Cheat) * NumCheatsAllocated);
+        if (g_cheats == NULL) {
+            assert(g_numCheats == 0);
+            assert(s_numCheatsAllocated == ALLOC_INCREMENT);
+            g_cheats = (Cheat *)malloc(sizeof(Cheat) * s_numCheatsAllocated);
         } else {
-            Cheats = (Cheat *)realloc(Cheats, sizeof(Cheat) * NumCheatsAllocated);
+            g_cheats = (Cheat *)realloc(g_cheats, sizeof(Cheat) * s_numCheatsAllocated);
         }
     }
 
-    Cheats[NumCheats].Descr = strdup(descr[0] ? descr : _("(Untitled)"));
-    Cheats[NumCheats].Enabled = 0;
-    Cheats[NumCheats].First = NumCodes;
-    Cheats[NumCheats].n = 0;
+    g_cheats[g_numCheats].Descr = strdup(descr[0] ? descr : _("(Untitled)"));
+    g_cheats[g_numCheats].Enabled = 0;
+    g_cheats[g_numCheats].First = g_numCodes;
+    g_cheats[g_numCheats].n = 0;
 
     p1 = code;
     p2 = code;
@@ -325,54 +322,54 @@ int AddCheat(const char *descr, char *code) {
         sscanf(p1, "%x %x", &t1, &t2);
 
         if (t1 > 0x10000000) {
-            if (NumCodes >= NumCodesAllocated) {
-                NumCodesAllocated += ALLOC_INCREMENT;
+            if (g_numCodes >= s_numCodesAllocated) {
+                s_numCodesAllocated += ALLOC_INCREMENT;
 
-                if (CheatCodes == NULL) {
-                    assert(NumCodes == 0);
-                    assert(NumCodesAllocated == ALLOC_INCREMENT);
-                    CheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * NumCodesAllocated);
+                if (g_cheatCodes == NULL) {
+                    assert(g_numCodes == 0);
+                    assert(s_numCodesAllocated == ALLOC_INCREMENT);
+                    g_cheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * s_numCodesAllocated);
                 } else {
-                    CheatCodes = (CheatCode *)realloc(CheatCodes, sizeof(CheatCode) * NumCodesAllocated);
+                    g_cheatCodes = (CheatCode *)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
                 }
             }
 
-            CheatCodes[NumCodes].Addr = t1;
-            CheatCodes[NumCodes].Val = t2;
-            NumCodes++;
-            Cheats[NumCheats].n++;
+            g_cheatCodes[g_numCodes].Addr = t1;
+            g_cheatCodes[g_numCodes].Val = t2;
+            g_numCodes++;
+            g_cheats[g_numCheats].n++;
         }
 
         p1 = p2;
     }
 
-    if (Cheats[NumCheats].n == 0) {
+    if (g_cheats[g_numCheats].n == 0) {
         return -1;
     }
 
-    NumCheats++;
+    g_numCheats++;
     return 0;
 }
 
 void RemoveCheat(int index) {
-    assert(index >= 0 && index < NumCheats);
+    assert(index >= 0 && index < g_numCheats);
 
-    free(Cheats[index].Descr);
+    free(g_cheats[index].Descr);
 
-    while (index < NumCheats - 1) {
-        Cheats[index] = Cheats[index + 1];
+    while (index < g_numCheats - 1) {
+        g_cheats[index] = g_cheats[index + 1];
         index++;
     }
 
-    NumCheats--;
+    g_numCheats--;
 }
 
 int EditCheat(int index, const char *descr, char *code) {
     int c = 1;
-    int prev = NumCodes;
+    int prev = g_numCodes;
     char *p1, *p2;
 
-    assert(index >= 0 && index < NumCheats);
+    assert(index >= 0 && index < g_numCheats);
 
     p1 = code;
     p2 = code;
@@ -392,80 +389,80 @@ int EditCheat(int index, const char *descr, char *code) {
         sscanf(p1, "%x %x", &t1, &t2);
 
         if (t1 > 0x10000000) {
-            if (NumCodes >= NumCodesAllocated) {
-                NumCodesAllocated += ALLOC_INCREMENT;
+            if (g_numCodes >= s_numCodesAllocated) {
+                s_numCodesAllocated += ALLOC_INCREMENT;
 
-                if (CheatCodes == NULL) {
-                    assert(NumCodes == 0);
-                    assert(NumCodesAllocated == ALLOC_INCREMENT);
-                    CheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * NumCodesAllocated);
+                if (g_cheatCodes == NULL) {
+                    assert(g_numCodes == 0);
+                    assert(s_numCodesAllocated == ALLOC_INCREMENT);
+                    g_cheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * s_numCodesAllocated);
                 } else {
-                    CheatCodes = (CheatCode *)realloc(CheatCodes, sizeof(CheatCode) * NumCodesAllocated);
+                    g_cheatCodes = (CheatCode *)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
                 }
             }
 
-            CheatCodes[NumCodes].Addr = t1;
-            CheatCodes[NumCodes].Val = t2;
-            NumCodes++;
+            g_cheatCodes[g_numCodes].Addr = t1;
+            g_cheatCodes[g_numCodes].Val = t2;
+            g_numCodes++;
         }
 
         p1 = p2;
     }
 
-    if (NumCodes == prev) {
+    if (g_numCodes == prev) {
         return -1;
     }
 
-    free(Cheats[index].Descr);
-    Cheats[index].Descr = strdup(descr[0] ? descr : _("(Untitled)"));
-    Cheats[index].First = prev;
-    Cheats[index].n = NumCodes - prev;
+    free(g_cheats[index].Descr);
+    g_cheats[index].Descr = strdup(descr[0] ? descr : _("(Untitled)"));
+    g_cheats[index].First = prev;
+    g_cheats[index].n = g_numCodes - prev;
 
     return 0;
 }
 
 void FreeCheatSearchResults() {
-    if (SearchResults != NULL) {
-        free(SearchResults);
+    if (g_searchResults != NULL) {
+        free(g_searchResults);
     }
-    SearchResults = NULL;
+    g_searchResults = NULL;
 
-    NumSearchResults = 0;
-    NumSearchResultsAllocated = 0;
+    g_numSearchResults = 0;
+    s_numSearchResultsAllocated = 0;
 }
 
 void FreeCheatSearchMem() {
-    if (prevM != NULL) {
-        free(prevM);
+    if (g_prevM != NULL) {
+        free(g_prevM);
     }
-    prevM = NULL;
+    g_prevM = NULL;
 }
 
 void CheatSearchBackupMemory() {
-    if (prevM != NULL) {
-        memcpy(prevM, psxM, 0x200000);
+    if (g_prevM != NULL) {
+        memcpy(g_prevM, g_psxM, 0x200000);
     }
 }
 
 static void CheatSearchInitBackupMemory() {
-    if (prevM == NULL) {
-        prevM = (s8 *)malloc(0x200000);
+    if (g_prevM == NULL) {
+        g_prevM = (s8 *)malloc(0x200000);
         CheatSearchBackupMemory();
     }
 }
 
 static void CheatSearchAddResult(u32 addr) {
-    if (NumSearchResults >= NumSearchResultsAllocated) {
-        NumSearchResultsAllocated += ALLOC_INCREMENT;
+    if (g_numSearchResults >= s_numSearchResultsAllocated) {
+        s_numSearchResultsAllocated += ALLOC_INCREMENT;
 
-        if (SearchResults == NULL) {
-            SearchResults = (u32 *)malloc(sizeof(u32) * NumSearchResultsAllocated);
+        if (g_searchResults == NULL) {
+            g_searchResults = (u32 *)malloc(sizeof(u32) * s_numSearchResultsAllocated);
         } else {
-            SearchResults = (u32 *)realloc(SearchResults, sizeof(u32) * NumSearchResultsAllocated);
+            g_searchResults = (u32 *)realloc(g_searchResults, sizeof(u32) * s_numSearchResultsAllocated);
         }
     }
 
-    SearchResults[NumSearchResults++] = addr;
+    g_searchResults[g_numSearchResults++] = addr;
 }
 
 void CheatSearchEqual8(u8 val) {
@@ -473,7 +470,7 @@ void CheatSearchEqual8(u8 val) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i++) {
             if (PSXMu8(i) == val) {
@@ -484,13 +481,13 @@ void CheatSearchEqual8(u8 val) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu8(SearchResults[i]) == val) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu8(g_searchResults[i]) == val) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -499,7 +496,7 @@ void CheatSearchEqual16(u16 val) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i += 2) {
             if (PSXMu16(i) == val) {
@@ -510,13 +507,13 @@ void CheatSearchEqual16(u16 val) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu16(SearchResults[i]) == val) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu16(g_searchResults[i]) == val) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -525,7 +522,7 @@ void CheatSearchEqual32(u32 val) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i += 4) {
             if (PSXMu32(i) == val) {
@@ -536,13 +533,13 @@ void CheatSearchEqual32(u32 val) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu32(SearchResults[i]) == val) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu32(g_searchResults[i]) == val) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -551,7 +548,7 @@ void CheatSearchNotEqual8(u8 val) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i++) {
             if (PSXMu8(i) != val) {
@@ -562,13 +559,13 @@ void CheatSearchNotEqual8(u8 val) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu8(SearchResults[i]) != val) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu8(g_searchResults[i]) != val) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -577,7 +574,7 @@ void CheatSearchNotEqual16(u16 val) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i += 2) {
             if (PSXMu16(i) != val) {
@@ -588,13 +585,13 @@ void CheatSearchNotEqual16(u16 val) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu16(SearchResults[i]) != val) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu16(g_searchResults[i]) != val) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -603,7 +600,7 @@ void CheatSearchNotEqual32(u32 val) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i += 4) {
             if (PSXMu32(i) != val) {
@@ -614,13 +611,13 @@ void CheatSearchNotEqual32(u32 val) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu32(SearchResults[i]) != val) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu32(g_searchResults[i]) != val) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -629,7 +626,7 @@ void CheatSearchRange8(u8 min, u8 max) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i++) {
             if (PSXMu8(i) >= min && PSXMu8(i) <= max) {
@@ -640,13 +637,13 @@ void CheatSearchRange8(u8 min, u8 max) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu8(SearchResults[i]) >= min && PSXMu8(SearchResults[i]) <= max) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu8(g_searchResults[i]) >= min && PSXMu8(g_searchResults[i]) <= max) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -655,7 +652,7 @@ void CheatSearchRange16(u16 min, u16 max) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i += 2) {
             if (PSXMu16(i) >= min && PSXMu16(i) <= max) {
@@ -666,13 +663,13 @@ void CheatSearchRange16(u16 min, u16 max) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu16(SearchResults[i]) >= min && PSXMu16(SearchResults[i]) <= max) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu16(g_searchResults[i]) >= min && PSXMu16(g_searchResults[i]) <= max) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
@@ -681,7 +678,7 @@ void CheatSearchRange32(u32 min, u32 max) {
 
     CheatSearchInitBackupMemory();
 
-    if (SearchResults == NULL) {
+    if (g_searchResults == NULL) {
         // search the whole memory
         for (i = 0; i < 0x200000; i += 4) {
             if (PSXMu32(i) >= min && PSXMu32(i) <= max) {
@@ -692,300 +689,300 @@ void CheatSearchRange32(u32 min, u32 max) {
         // only search within the previous results
         j = 0;
 
-        for (i = 0; i < NumSearchResults; i++) {
-            if (PSXMu32(SearchResults[i]) >= min && PSXMu32(SearchResults[i]) <= max) {
-                SearchResults[j++] = SearchResults[i];
+        for (i = 0; i < g_numSearchResults; i++) {
+            if (PSXMu32(g_searchResults[i]) >= min && PSXMu32(g_searchResults[i]) <= max) {
+                g_searchResults[j++] = g_searchResults[i];
             }
         }
 
-        NumSearchResults = j;
+        g_numSearchResults = j;
     }
 }
 
 void CheatSearchIncreasedBy8(u8 val) {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PSXMu8(SearchResults[i]) - PrevMu8(SearchResults[i]) == val) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PSXMu8(g_searchResults[i]) - PrevMu8(g_searchResults[i]) == val) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchIncreasedBy16(u16 val) {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PSXMu16(SearchResults[i]) - PrevMu16(SearchResults[i]) == val) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PSXMu16(g_searchResults[i]) - PrevMu16(g_searchResults[i]) == val) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchIncreasedBy32(u32 val) {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PSXMu32(SearchResults[i]) - PrevMu32(SearchResults[i]) == val) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PSXMu32(g_searchResults[i]) - PrevMu32(g_searchResults[i]) == val) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDecreasedBy8(u8 val) {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu8(SearchResults[i]) - PSXMu8(SearchResults[i]) == val) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu8(g_searchResults[i]) - PSXMu8(g_searchResults[i]) == val) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDecreasedBy16(u16 val) {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu16(SearchResults[i]) - PSXMu16(SearchResults[i]) == val) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu16(g_searchResults[i]) - PSXMu16(g_searchResults[i]) == val) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDecreasedBy32(u32 val) {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu32(SearchResults[i]) - PSXMu32(SearchResults[i]) == val) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu32(g_searchResults[i]) - PSXMu32(g_searchResults[i]) == val) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchIncreased8() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu8(SearchResults[i]) < PSXMu8(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu8(g_searchResults[i]) < PSXMu8(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchIncreased16() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu16(SearchResults[i]) < PSXMu16(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu16(g_searchResults[i]) < PSXMu16(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchIncreased32() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu32(SearchResults[i]) < PSXMu32(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu32(g_searchResults[i]) < PSXMu32(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDecreased8() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu8(SearchResults[i]) > PSXMu8(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu8(g_searchResults[i]) > PSXMu8(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDecreased16() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu16(SearchResults[i]) > PSXMu16(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu16(g_searchResults[i]) > PSXMu16(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDecreased32() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu32(SearchResults[i]) > PSXMu32(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu32(g_searchResults[i]) > PSXMu32(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDifferent8() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu8(SearchResults[i]) != PSXMu8(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu8(g_searchResults[i]) != PSXMu8(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDifferent16() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu16(SearchResults[i]) != PSXMu16(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu16(g_searchResults[i]) != PSXMu16(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchDifferent32() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu32(SearchResults[i]) != PSXMu32(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu32(g_searchResults[i]) != PSXMu32(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchNoChange8() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu8(SearchResults[i]) == PSXMu8(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu8(g_searchResults[i]) == PSXMu8(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchNoChange16() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu16(SearchResults[i]) == PSXMu16(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu16(g_searchResults[i]) == PSXMu16(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }
 
 void CheatSearchNoChange32() {
     u32 i, j;
 
-    assert(prevM != NULL);  // not possible for the first search
+    assert(g_prevM != NULL);  // not possible for the first search
 
     j = 0;
 
-    for (i = 0; i < NumSearchResults; i++) {
-        if (PrevMu32(SearchResults[i]) == PSXMu32(SearchResults[i])) {
-            SearchResults[j++] = SearchResults[i];
+    for (i = 0; i < g_numSearchResults; i++) {
+        if (PrevMu32(g_searchResults[i]) == PSXMu32(g_searchResults[i])) {
+            g_searchResults[j++] = g_searchResults[i];
         }
     }
 
-    NumSearchResults = j;
+    g_numSearchResults = j;
 }

@@ -79,8 +79,8 @@ typedef uint8_t boolean;
 #endif
 
 // Local includes
-#include "debug.h"
-#include "system.h"
+#include "core/debug.h"
+#include "core/system.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -132,8 +132,8 @@ __private_extern char* PLUGLOC(char* toloc);
 
 #endif
 
-extern FILE *emuLog;
-extern int Log;
+extern FILE *g_emuLog;
+extern int g_log;
 
 void __Log(char *fmt, ...);
 
@@ -192,12 +192,12 @@ typedef struct {
 #endif
 } PcsxConfig;
 
-extern PcsxConfig Config;
-extern boolean NetOpened;
+extern PcsxConfig g_config;
+extern boolean g_netOpened;
 
 // It is safe if these overflow
-extern u32 rewind_counter;
-extern u8 vblank_count_hideafter;
+extern u32 g_rewind_counter;
+extern u8 g_vblank_count_hideafter;
 
 #define gzfreeze(ptr, size)                   \
     {                                         \
@@ -208,9 +208,9 @@ extern u8 vblank_count_hideafter;
 // Make the timing events trigger faster as we are currently assuming everything
 // takes one cycle, which is not the case on real hardware.
 // FIXME: Count the proper cycle and get rid of this
-extern u32 PsxClockSpeed;
+extern u32 g_psxClockSpeed;
 #define BIAS 2
-#define PSXCLK PsxClockSpeed /* 33.8688 MHz */
+#define PSXCLK g_psxClockSpeed /* 33.8688 MHz */
 
 enum { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };  // PSX Types
 

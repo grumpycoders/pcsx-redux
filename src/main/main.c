@@ -1,10 +1,9 @@
+#include <SDL.h>
 #include <zlib.h>
 
-#include <SDL.h>
-
+#include "core/psxcommon.h"
+#include "core/r3000a.h"
 #include "gui/gui.h"
-#include "psxcommon.h"
-#include "r3000a.h"
 
 void SysPrintf(const char *fmt, ...) {
     // print message to debugging console
@@ -42,12 +41,12 @@ void SysClose() {
 int main() {
     unsigned int texture = GUI_init();
 
-    memset(&Config, 0, sizeof(PcsxConfig));
-    Config.PsxAuto = 1;
-    Config.HLE = 0;
-    Config.SlowBoot = 0;
-    strcpy(Config.BiosDir, ".");
-    strcpy(Config.Bios, "bios.bin");
+    memset(&g_config, 0, sizeof(PcsxConfig));
+    g_config.PsxAuto = 1;
+    g_config.HLE = 0;
+    g_config.SlowBoot = 0;
+    strcpy(g_config.BiosDir, ".");
+    strcpy(g_config.Bios, "bios.bin");
 
     SetIsoFile("test.img");
     LoadPlugins();
@@ -61,9 +60,14 @@ int main() {
     CheckCdrom();
     LoadCdrom();
 
-    psxCpu = &psxInt;
-    psxCpu->Init();
-    psxCpu->Execute();
+    g_psxCpu = &g_psxInt;
+    g_psxCpu->Init();
+    g_psxCpu->Execute();
+
+    // temporary, to make sure the code doesn't get removed at link time
+    g_psxCpu = &g_psxRec;
+    g_psxCpu->Init();
+    g_psxCpu->Execute();
 
     return 0;
 }

@@ -1,7 +1,7 @@
 #ifndef __GPU_H__
 #define __GPU_H__
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 #ifdef __cplusplus
 extern "C" {
