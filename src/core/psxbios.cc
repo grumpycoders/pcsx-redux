@@ -1273,13 +1273,13 @@ void psxBios_printf() {  // 0x3f
 }
 
 void psxBios_format() {  // 0x41
-    if (strcmp(Ra0, "bu00:") == 0 && g_config.Mcd1[0] != '\0') {
-        CreateMcd(g_config.Mcd1);
-        LoadMcd(1, g_config.Mcd1);
+    if (strcmp(Ra0, "bu00:") == 0 && PCSX::g_emulator->config().Mcd1[0] != '\0') {
+        CreateMcd(PCSX::g_emulator->config().Mcd1.c_str());
+        LoadMcd(1, PCSX::g_emulator->config().Mcd1.c_str());
         v0 = 1;
-    } else if (strcmp(Ra0, "bu10:") == 0 && g_config.Mcd2[0] != '\0') {
-        CreateMcd(g_config.Mcd2);
-        LoadMcd(2, g_config.Mcd2);
+    } else if (strcmp(Ra0, "bu10:") == 0 && PCSX::g_emulator->config().Mcd2[0] != '\0') {
+        CreateMcd(PCSX::g_emulator->config().Mcd2.c_str());
+        LoadMcd(2, PCSX::g_emulator->config().Mcd2.c_str());
         v0 = 1;
     } else {
         v0 = 0;
@@ -1507,13 +1507,13 @@ void psxBios__card_info() {  // ab
         case 0x01:
         case 0x02:
         case 0x03:
-            ret = g_config.Mcd1[0] ? 0x2 : 0x8;
+            ret = PCSX::g_emulator->config().Mcd1[0] ? 0x2 : 0x8;
             break;
         case 0x10:
         case 0x11:
         case 0x12:
         case 0x13:
-            ret = g_config.Mcd2[0] ? 0x2 : 0x8;
+            ret = PCSX::g_emulator->config().Mcd2[0] ? 0x2 : 0x8;
             break;
         default:
             PSXBIOS_LOG("psxBios_%s: UNKNOWN PORT 0x%x\n", g_biosA0n[0xab], s_card_active_chan);
@@ -1522,7 +1522,7 @@ void psxBios__card_info() {  // ab
     }
 
     // COTS password option
-    if (g_config.NoMemcard) ret = 0x8;
+    if (PCSX::g_emulator->config().NoMemcard) ret = 0x8;
 
     //	DeliverEvent(0x11, 0x2); // 0xf0000011, 0x0004
     DeliverEvent(0x81, ret);  // 0xf4000001, 0x0004
@@ -1969,11 +1969,11 @@ void psxBios_open() {  // 0x32
     v0 = -1;
 
     if (!strncmp(Ra0, "bu00", 4)) {
-        buopen(1, g_mcd1Data, g_config.Mcd1);
+        buopen(1, g_mcd1Data, PCSX::g_emulator->config().Mcd1.c_str());
     }
 
     if (!strncmp(Ra0, "bu10", 4)) {
-        buopen(2, g_mcd2Data, g_config.Mcd2);
+        buopen(2, g_mcd2Data, PCSX::g_emulator->config().Mcd2.c_str());
     }
 
     pc0 = ra;
@@ -2048,7 +2048,7 @@ void psxBios_read() {  // 0x34
         ptr = g_mcd##mcd##Data + offset;                                                    \
         memcpy(ptr, Ra1, a2);                                                             \
         s_FDesc[1 + mcd].offset += a2;                                                      \
-        SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, offset, a2);                             \
+        SaveMcd(PCSX::g_emulator->config().Mcd##mcd.c_str(), g_mcd##mcd##Data, offset, a2);                             \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                 \
             v0 = 0;                                                                       \
         else                                                                              \
@@ -2234,7 +2234,7 @@ void psxBios_nextfile() {  // 43
             memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                \
             for (j = 0; j < 127; j++) chksum ^= ptr[j];                       \
             ptr[127] = chksum;                                                \
-            SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
+            SaveMcd(PCSX::g_emulator->config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
             v0 = 1;                                                        \
             break;                                                         \
         }                                                                  \
@@ -2270,7 +2270,7 @@ void psxBios_rename() {  // 44
             if ((*ptr & 0xF0) != 0x50) continue;                  \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;             \
             *ptr = (*ptr & 0xf) | 0xA0;                           \
-            SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, 128 * i, 1); \
+            SaveMcd(PCSX::g_emulator->config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i, 1); \
             PCSX::system->SysBiosPrintf("delete %s\n", ptr + 0xa);                  \
             v0 = 1;                                               \
             break;                                                \
@@ -2334,10 +2334,10 @@ void psxBios__card_write() {  // 0x4e
 
     if (port == 0) {
         memcpy(g_mcd1Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(g_config.Mcd1, g_mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        SaveMcd(PCSX::g_emulator->config().Mcd1.c_str(), g_mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     } else {
         memcpy(g_mcd2Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(g_config.Mcd2, g_mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        SaveMcd(PCSX::g_emulator->config().Mcd2.c_str(), g_mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     }
 
     DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2521,7 +2521,7 @@ void psxBiosInit() {
     biosB0[0x3d] = psxBios_putchar;
     biosB0[0x3f] = psxBios_puts;
 
-    if (!g_config.HLE) return;
+    if (!PCSX::g_emulator->config().HLE) return;
 
     for (i = 0; i < 256; i++) {
         if (biosA0[i] == NULL) biosA0[i] = psxBios_dummy;
@@ -2933,7 +2933,7 @@ void biosInterrupt() {
     if (s_pad_buf != NULL) {
         uint32_t *buf = (uint32_t *)s_pad_buf;
 
-        if (!g_config.UseNet) {
+        if (!PCSX::g_emulator->config().UseNet) {
             PAD1_startPoll(1);
             if (PAD1_poll(0x42) == 0x23) {
                 PAD1_poll(0);
@@ -2976,7 +2976,7 @@ void biosInterrupt() {
             if (NET_recvPadData(&((uint16_t *)buf)[1], 2) == -1) netError();
         }
     }
-    if (g_config.UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
+    if (PCSX::g_emulator->config().UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
         psxBios_PADpoll(1);
 
         if (NET_sendPadData(s_pad_buf1, i) == -1) netError();

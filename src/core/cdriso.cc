@@ -1998,7 +1998,7 @@ long CALLBACK ISOreadCDDA(unsigned char m, unsigned char s, unsigned char f, uns
     }
 
     // data tracks play silent (or CDDA set to silent)
-    if (ti[track].type != trackinfo::CDDA || g_config.Cdda == CDDA_DISABLED) {
+    if (ti[track].type != trackinfo::CDDA || PCSX::g_emulator->config().Cdda == PCSX::Emulator::CDDA_DISABLED) {
         memset(buffer, 0, CD_FRAMESIZE_RAW);
         return 0;
     }
@@ -2021,7 +2021,7 @@ long CALLBACK ISOreadCDDA(unsigned char m, unsigned char s, unsigned char f, uns
         return -1;
     }
 
-    if (g_config.Cdda == CDDA_ENABLED_BE || s_cddaBigEndian) {
+    if (PCSX::g_emulator->config().Cdda == PCSX::Emulator::CDDA_ENABLED_BE || s_cddaBigEndian) {
         int i;
         unsigned char tmp;
 

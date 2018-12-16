@@ -36,7 +36,7 @@ static uint32_t s_branchPC;
 // These macros are used to assemble the repassembler functions
 
 #define debugI()                                                      \
-    if (g_config.PsxOut) {                                            \
+    if (PCSX::g_emulator->config().verbose) {                                            \
         PSXCPU_LOG("%s\n", disR3000AF(g_psxRegs.code, g_psxRegs.pc)); \
     }
 
@@ -405,7 +405,7 @@ static int psxDelayBranchExec(uint32_t tar) {
 
     s_branch = 0;
     g_psxRegs.pc = tar;
-    g_psxRegs.cycle += BIAS;
+    g_psxRegs.cycle += PCSX::Emulator::BIAS;
     psxBranchTest();
     return 1;
 }
@@ -430,7 +430,7 @@ static int psxDelayBranchTest(uint32_t tar1) {
         return psxDelayBranchExec(tar2);
     }
     debugI();
-    g_psxRegs.cycle += BIAS;
+    g_psxRegs.cycle += PCSX::Emulator::BIAS;
 
     /*
      * Got a branch at tar1:
@@ -443,7 +443,7 @@ static int psxDelayBranchTest(uint32_t tar1) {
         return psxDelayBranchExec(tmp1);
     }
     debugI();
-    g_psxRegs.cycle += BIAS;
+    g_psxRegs.cycle += PCSX::Emulator::BIAS;
 
     /*
      * Got a branch at tar2:
@@ -472,7 +472,7 @@ static __inline void doBranch(uint32_t tar) {
     debugI();
 
     g_psxRegs.pc += 4;
-    g_psxRegs.cycle += BIAS;
+    g_psxRegs.cycle += PCSX::Emulator::BIAS;
 
     // check for load delay
     tmp = g_psxRegs.code >> 26;
@@ -1401,10 +1401,10 @@ static inline void execI() {
 
     debugI();
 
-    if (g_config.Debug) ProcessDebug();
+    if (PCSX::g_emulator->config().Debug) ProcessDebug();
 
     g_psxRegs.pc += 4;
-    g_psxRegs.cycle += BIAS;
+    g_psxRegs.cycle += PCSX::Emulator::BIAS;
 
     s_pPsxBSC[g_psxRegs.code >> 26]();
 }

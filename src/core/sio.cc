@@ -90,7 +90,7 @@ static int s_dongleInit;
 // Breaks Twisted Metal 2 intro
 #define SIO_INT(eCycle)                                          \
     {                                                            \
-        if (!g_config.SioIrq) {                                    \
+        if (!PCSX::g_emulator->config().SioIrq) {                                    \
             g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
             g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
             g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
@@ -103,7 +103,7 @@ static int s_dongleInit;
 
 #define SIO_INT(eCycle)                                          \
     {                                                            \
-        if (!g_config.SioIrq) {                                    \
+        if (!PCSX::g_emulator->config().SioIrq) {                                    \
             g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
             g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
             g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
@@ -166,7 +166,7 @@ void sioWrite8(unsigned char value) {
             if ((value & 0x40) == 0x40) {
                 s_padst = 2;
                 s_parp = 1;
-                if (!g_config.UseNet) {
+                if (!PCSX::g_emulator->config().UseNet) {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             s_buf[s_parp] = PAD1_poll(value);
@@ -225,7 +225,7 @@ s_buf[5]);
                                             SIO_INT(SIO_CYCLES);
                                             return;
                                     }*/
-            if (!g_config.UseNet) {
+            if (!PCSX::g_emulator->config().UseNet) {
                 switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
                         s_buf[s_parp] = PAD1_poll(value);
@@ -625,7 +625,7 @@ s_buf[5]);
         case 0x01:              // start pad
             s_statReg |= RX_RDY;  // Transfer is Ready
 
-            if (!g_config.UseNet) {
+            if (!PCSX::g_emulator->config().UseNet) {
                 switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
                         s_buf[0] = PAD1_startPoll(1);
@@ -673,12 +673,12 @@ s_buf[5]);
             s_statReg |= RX_RDY;
 
             // Chronicles of the Sword - no memcard = password options
-            if (g_config.NoMemcard || (!g_config.Mcd1[0] && !g_config.Mcd2[0])) {
+            if (PCSX::g_emulator->config().NoMemcard || (!PCSX::g_emulator->config().Mcd1[0] && !PCSX::g_emulator->config().Mcd2[0])) {
                 memset(s_buf, 0x00, 4);
             } else {
                 memcpy(s_buf, s_cardh, 4);
-                if (!g_config.Mcd1[0]) s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                if (!g_config.Mcd2[0]) s_buf[3] = 0;  // is card 2 plugged?
+                if (!PCSX::g_emulator->config().Mcd1[0]) s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
+                if (!PCSX::g_emulator->config().Mcd2[0]) s_buf[3] = 0;  // is card 2 plugged?
             }
 
             s_parp = 0;
@@ -742,11 +742,11 @@ unsigned char sioRead8() {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(g_config.Mcd1, g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            SaveMcd(PCSX::g_emulator->config().Mcd1.c_str(), g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                         case 0x2002:
                             memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(g_config.Mcd2, g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            SaveMcd(PCSX::g_emulator->config().Mcd2.c_str(), g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                     }
                 }

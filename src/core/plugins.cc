@@ -250,8 +250,6 @@ static const char *err;
             SysLibError();                 \
     }
 
-void *hGPUDriver = NULL;
-
 void CALLBACK GPU__displayText(char *pText) { PCSX::system->SysPrintf("%s\n", pText); }
 
 long CALLBACK GPU__configure(void) { return 0; }
@@ -282,17 +280,8 @@ void CALLBACK GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVe
 #define LoadGpuSymN(dest, name) LoadSym(GPU_##dest, GPU##dest, name, false);
 #endif
 
-static int LoadGPUplugin(const char *GPUdll) {
+static int LoadGPUplugin() {
 #if 0
-    void *drv;
-
-    hGPUDriver = SysLoadLibrary(GPUdll);
-    if (hGPUDriver == NULL) {
-        GPU_configure = NULL;
-        PCSX::system->SysMessage(_("Could not load GPU plugin %s!\n%s"), GPUdll, SysLibError());
-        return -1;
-    }
-    drv = hGPUDriver;
     LoadGpuSym1(init, "GPUinit");
     LoadGpuSym1(shutdown, "GPUshutdown");
     LoadGpuSym1(open, "GPUopen");
@@ -365,8 +354,6 @@ static int LoadGPUplugin(const char *GPUdll) {
     return 0;
 }
 
-void *hCDRDriver = NULL;
-
 long CALLBACK CDR__play(unsigned char *sector) { return 0; }
 long CALLBACK CDR__stop(void) { return 0; }
 
@@ -393,47 +380,10 @@ long CALLBACK CDR__setfilename(char *filename) { return 0; }
 
 #define LoadCdrSymN(dest, name) LoadSym(CDR_##dest, CDR##dest, name, false);
 
-static int LoadCDRplugin(const char *CDRdll) {
-    void *drv;
-
-    if (CDRdll == NULL) {
-        cdrIsoInit();
-        return 0;
-    }
-
-#if 0
-    hCDRDriver = SysLoadLibrary(CDRdll);
-    if (hCDRDriver == NULL) {
-        CDR_configure = NULL;
-        PCSX::system->SysMessage(_("Could not load CD-ROM plugin %s!\n%s"), CDRdll, SysLibError());
-        return -1;
-    }
-    drv = hCDRDriver;
-    LoadCdrSym1(init, "CDRinit");
-    LoadCdrSym1(shutdown, "CDRshutdown");
-    LoadCdrSym1(open, "CDRopen");
-    LoadCdrSym1(close, "CDRclose");
-    LoadCdrSym1(getTN, "CDRgetTN");
-    LoadCdrSym1(getTD, "CDRgetTD");
-    LoadCdrSym1(readTrack, "CDRreadTrack");
-    LoadCdrSym1(getBuffer, "CDRgetBuffer");
-    LoadCdrSym1(getBufferSub, "CDRgetBufferSub");
-    LoadCdrSym0(play, "CDRplay");
-    LoadCdrSym0(stop, "CDRstop");
-    LoadCdrSym0(getStatus, "CDRgetStatus");
-    LoadCdrSym0(getDriveLetter, "CDRgetDriveLetter");
-    LoadCdrSym0(configure, "CDRconfigure");
-    LoadCdrSym0(test, "CDRtest");
-    LoadCdrSym0(about, "CDRabout");
-    LoadCdrSym0(setfilename, "CDRsetfilename");
-    LoadCdrSymN(readCDDA, "CDRreadCDDA");
-    LoadCdrSymN(getTE, "CDRgetTE");
-#endif
-
+static int LoadCDRplugin() {
+    cdrIsoInit();
     return 0;
 }
-
-void *hSPUDriver = NULL;
 
 long CALLBACK SPU__configure(void) { return 0; }
 void CALLBACK SPU__about(void) {}
@@ -600,17 +550,8 @@ unsigned short CALLBACK nullSPU_readDMA(void) {
     return s;
 }
 
-static int LoadSPUplugin(const char *SPUdll) {
-    void *drv;
-
+static int LoadSPUplugin() {
 #if 0
-    hSPUDriver = SysLoadLibrary(SPUdll);
-    if (hSPUDriver == NULL) {
-        SPU_configure = NULL;
-        PCSX::system->SysMessage(_("Could not load SPU plugin %s!\n%s"), SPUdll, SysLibError());
-        return -1;
-    }
-    drv = hSPUDriver;
     LoadSpuSym1(init, "SPUinit");
     LoadSpuSym1(shutdown, "SPUshutdown");
     LoadSpuSym1(open, "SPUopen");
@@ -654,9 +595,6 @@ static int LoadSPUplugin(const char *SPUdll) {
 
     return 0;
 }
-
-void *hPAD1Driver = NULL;
-void *hPAD2Driver = NULL;
 
 static unsigned char s_buf[256];
 unsigned char stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -768,17 +706,8 @@ long CALLBACK nullPAD_readPort(PadDataS *data) {
     return 0;
 }
 
-static int LoadPAD1plugin(const char *PAD1dll) {
-    void *drv;
-
+static int LoadPAD1plugin() {
 #if 0
-    hPAD1Driver = SysLoadLibrary(PAD1dll);
-    if (hPAD1Driver == NULL) {
-        PAD1_configure = NULL;
-        PCSX::system->SysMessage(_("Could not load Controller 1 plugin %s!\n%s"), PAD1dll, SysLibError());
-        return -1;
-    }
-    drv = hPAD1Driver;
     LoadPad1Sym1(init, "PADinit");
     LoadPad1Sym1(shutdown, "PADshutdown");
     LoadPad1Sym1(open, "PADopen");
@@ -840,17 +769,8 @@ void CALLBACK PAD2__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
 
 #define LoadPad2SymN(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, false);
 
-static int LoadPAD2plugin(const char *PAD2dll) {
-    void *drv;
-
+static int LoadPAD2plugin() {
 #if 0
-    hPAD2Driver = SysLoadLibrary(PAD2dll);
-    if (hPAD2Driver == NULL) {
-        PAD2_configure = NULL;
-        PCSX::system->SysMessage(_("Could not load Controller 2 plugin %s!\n%s"), PAD2dll, SysLibError());
-        return -1;
-    }
-    drv = hPAD2Driver;
     LoadPad2Sym1(init, "PADinit");
     LoadPad2Sym1(shutdown, "PADshutdown");
     LoadPad2Sym1(open, "PADopen");
@@ -886,8 +806,6 @@ static int LoadPAD2plugin(const char *PAD2dll) {
     return 0;
 }
 
-void *hNETDriver = NULL;
-
 void CALLBACK NET__setInfo(netInfo *info) {}
 void CALLBACK NET__keypressed(int key) {}
 long CALLBACK NET__configure(void) { return 0; }
@@ -902,16 +820,8 @@ void CALLBACK NET__about(void) {}
     LoadSym(NET_##dest, NET##dest, name, false); \
     if (NET_##dest == NULL) NET_##dest = (NET##dest)NET__##dest;
 
-static int LoadNETplugin(const char *NETdll) {
-    void *drv;
-
+static int LoadNETplugin() {
 #if 0
-    hNETDriver = SysLoadLibrary(NETdll);
-    if (hNETDriver == NULL) {
-        PCSX::system->SysMessage(_("Could not load NetPlay plugin %s!\n%s"), NETdll, SysLibError());
-        return -1;
-    }
-    drv = hNETDriver;
     LoadNetSym1(init, "NETinit");
     LoadNetSym1(shutdown, "NETshutdown");
     LoadNetSym1(open, "NETopen");
@@ -934,8 +844,6 @@ static int LoadNETplugin(const char *NETdll) {
 }
 
 #ifdef ENABLE_SIO1API
-
-void *hSIO1Driver = NULL;
 
 long CALLBACK SIO1__init(void) { return 0; }
 long CALLBACK SIO1__shutdown(void) { return 0; }
@@ -981,15 +889,6 @@ void CALLBACK SIO1__registerCallback(void(CALLBACK *callback)(void)){};
     if (SIO1_##dest == NULL) SIO1_##dest = (SIO1##dest)SIO1__##dest;
 
 static int LoadSIO1plugin(const char *SIO1dll) {
-    void *drv;
-
-    hSIO1Driver = SysLoadLibrary(SIO1dll);
-    if (hSIO1Driver == NULL) {
-        PCSX::system->SysMessage(_("Could not load SIO1 plugin %s!\n%s"), SIO1dll, SysLibError());
-        return -1;
-    }
-    drv = hSIO1Driver;
-
     LoadSio1Sym0(init, "SIO1init");
     LoadSio1Sym0(shutdown, "SIO1shutdown");
     LoadSio1Sym0(open, "SIO1open");
@@ -1034,40 +933,18 @@ void CALLBACK clearDynarec(void) { g_psxCpu->Reset(); }
 
 int LoadPlugins() {
     long ret;
-    char Plugin[MAXPATHLEN];
 
     ReleasePlugins();
 
-    if (UsingIso()) {
-        LoadCDRplugin(NULL);
-    } else {
-        sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Cdr);
-        if (LoadCDRplugin(Plugin) == -1) return -1;
-    }
-
-    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Gpu);
-    if (LoadGPUplugin(Plugin) == -1) return -1;
-
-    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Spu);
-    if (LoadSPUplugin(Plugin) == -1) return -1;
-
-    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Pad1);
-    if (LoadPAD1plugin(Plugin) == -1) return -1;
-
-    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Pad2);
-    if (LoadPAD2plugin(Plugin) == -1) return -1;
-
-    if (strcmp("Disabled", g_config.Net) == 0 || strcmp("", g_config.Net) == 0)
-        g_config.UseNet = false;
-    else {
-        g_config.UseNet = true;
-        sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Net);
-        if (LoadNETplugin(Plugin) == -1) g_config.UseNet = false;
-    }
+    if (LoadCDRplugin() == -1) return -1;
+    if (LoadGPUplugin() == -1) return -1;
+    if (LoadSPUplugin() == -1) return -1;
+    if (LoadPAD1plugin() == -1) return -1;
+    if (LoadPAD2plugin() == -1) return -1;
+    if (LoadNETplugin() == -1) PCSX::g_emulator->config().UseNet = false;
 
 #ifdef ENABLE_SIO1API
-    sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Sio1);
-    if (LoadSIO1plugin(Plugin) == -1) return -1;
+    if (LoadSIO1plugin() == -1) return -1;
 #endif
 
     ret = CDR_init();
@@ -1096,7 +973,7 @@ int LoadPlugins() {
         return -1;
     }
 
-    if (g_config.UseNet) {
+    if (PCSX::g_emulator->config().UseNet) {
         ret = NET_init();
         if (ret < 0) {
             PCSX::system->SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
@@ -1117,44 +994,20 @@ int LoadPlugins() {
 }
 
 void ReleasePlugins() {
-    if (g_config.UseNet) {
+    if (PCSX::g_emulator->config().UseNet) {
         long ret = NET_close();
-        if (ret < 0) g_config.UseNet = false;
+        if (ret < 0) PCSX::g_emulator->config().UseNet = false;
     }
-    g_netOpened = false;
 
-    if (hCDRDriver != NULL || cdrIsoActive()) CDR_shutdown();
-    if (hGPUDriver != NULL) GPU_shutdown();
-    if (hSPUDriver != NULL) SPU_shutdown();
-    if (hPAD1Driver != NULL) PAD1_shutdown();
-    if (hPAD2Driver != NULL) PAD2_shutdown();
-
-    if (g_config.UseNet && hNETDriver != NULL) NET_shutdown();
-
-#if 0
-    if (hCDRDriver != NULL) PCSX::system->SysCloseLibrary(hCDRDriver);
-    hCDRDriver = NULL;
-    if (hGPUDriver != NULL) PCSX::system->SysCloseLibrary(hGPUDriver);
-    hGPUDriver = NULL;
-    if (hSPUDriver != NULL) PCSX::system->SysCloseLibrary(hSPUDriver);
-    hSPUDriver = NULL;
-    if (hPAD1Driver != NULL) PCSX::system->SysCloseLibrary(hPAD1Driver);
-    hPAD1Driver = NULL;
-    if (hPAD2Driver != NULL) PCSX::system->SysCloseLibrary(hPAD2Driver);
-    hPAD2Driver = NULL;
-
-    if (g_config.UseNet && hNETDriver != NULL) {
-        PCSX::system->SysCloseLibrary(hNETDriver);
-        hNETDriver = NULL;
-    }
+    if (CDR_shutdown) CDR_shutdown();
+    if (GPU_shutdown) GPU_shutdown();
+    if (SPU_shutdown) SPU_shutdown();
+    if (PAD1_shutdown) PAD1_shutdown();
+    if (PAD2_shutdown) PAD2_shutdown();
+    if (PCSX::g_emulator->config().UseNet && NET_shutdown) NET_shutdown();
 
 #ifdef ENABLE_SIO1API
-    if (hSIO1Driver != NULL) {
-        SIO1_shutdown();
-        PCSX::system->SysCloseLibrary(hSIO1Driver);
-        hSIO1Driver = NULL;
-    }
-#endif
+    SIO1_shutdown();
 #endif
 }
 
@@ -1198,7 +1051,5 @@ const char *GetExeFile(void) { return ExeFile; }
 const char *GetAppPath(void) { return AppPath; }
 
 const char *GetLdrFile(void) { return LdrFile; }
-
-bool UsingIso(void) { return (IsoFile[0] != '\0' || g_config.Cdr[0] == '\0'); }
 
 void SetCdOpenCaseTime(int64_t time) { cdOpenCaseTime = time; }

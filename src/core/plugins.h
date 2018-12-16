@@ -430,7 +430,6 @@ const char* GetIsoFile(void);
 const char* GetExeFile(void);
 const char* GetAppPath(void);
 const char* GetLdrFile(void);
-bool UsingIso(void);
 void SetCdOpenCaseTime(int64_t time);
 
 #endif

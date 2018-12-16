@@ -75,7 +75,7 @@ static Rcnt s_rcnts[CounterQuantity];
 static uint32_t s_hSyncCount = 0;
 static uint32_t s_spuSyncCount = 0;
 
-static uint32_t s_HSyncTotal[PSX_TYPE_PAL + 1];  // 2
+static uint32_t s_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
 uint32_t g_psxNextCounter = 0, g_psxNextsCounter = 0;
 
 /******************************************************************************/
@@ -229,11 +229,11 @@ void psxRcntUpdate() {
         s_hSyncCount++;
 
         // Update spu.
-        if (s_spuSyncCount >= s_spuUpdInterval[g_config.PsxType]) {
+        if (s_spuSyncCount >= s_spuUpdInterval[PCSX::g_emulator->config().PsxType]) {
             s_spuSyncCount = 0;
 
             if (SPU_async) {
-                SPU_async(s_spuUpdInterval[g_config.PsxType] * s_rcnts[3].target);
+                SPU_async(s_spuUpdInterval[PCSX::g_emulator->config().PsxType] * s_rcnts[3].target);
             }
         }
 
@@ -244,7 +244,7 @@ void psxRcntUpdate() {
 #endif
 
         // VSync irq.
-        if (s_hSyncCount == s_VBlankStart[g_config.PsxType]) {
+        if (s_hSyncCount == s_VBlankStart[PCSX::g_emulator->config().PsxType]) {
             GPU_vBlank(1);
 
             // For the best times. :D
@@ -252,14 +252,14 @@ void psxRcntUpdate() {
         }
 
         // Update lace. (calculated at psxHsyncCalculate() on init/defreeze)
-        if (s_hSyncCount >= s_HSyncTotal[g_config.PsxType]) {
+        if (s_hSyncCount >= s_HSyncTotal[PCSX::g_emulator->config().PsxType]) {
             s_hSyncCount = 0;
 
             GPU_vBlank(0);
             setIrq(0x01);
 
             GPU_updateLace();
-            EmuUpdate();
+            PCSX::g_emulator->EmuUpdate();
         }
     }
 
@@ -295,7 +295,7 @@ void psxRcntWmode(uint32_t index, uint32_t value) {
             break;
         case 1:
             if (value & Rc1HSyncClock) {
-                s_rcnts[index].rate = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
+                s_rcnts[index].rate = (PSXCLK / (s_frameRate[PCSX::g_emulator->config().PsxType] * s_HSyncTotal[PCSX::g_emulator->config().PsxType]));
             } else {
                 s_rcnts[index].rate = 1;
             }
@@ -338,10 +338,10 @@ uint32_t psxRcntRcount(uint32_t index) {
 
     count = _psxRcntRcount(index);
 
-    // Parasite Eve 2 fix - artificial clock jitter based on BIAS
+    // Parasite Eve 2 fix - artificial clock jitter based on PCSX::Emulator::BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
-    if (g_config.HackFix && index == 2 && s_rcnts[index].counterState == s_countToTarget &&
-        (g_config.RCntFix || ((s_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
+    if (PCSX::g_emulator->config().HackFix && index == 2 && s_rcnts[index].counterState == s_countToTarget &&
+        (PCSX::g_emulator->config().RCntFix || ((s_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
         /*
          *The problem is that...
          *
@@ -359,7 +359,7 @@ uint32_t psxRcntRcount(uint32_t index) {
         static uint32_t clast = 0xffff;
         static uint32_t cylast = 0;
         uint32_t count1 = count;
-        count /= BIAS;
+        count /= PCSX::Emulator::BIAS;
         verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (g_psxRegs.cycle - cylast));
         cylast = g_psxRegs.cycle;
         clast = count;
@@ -392,12 +392,12 @@ uint32_t psxRcntRtarget(uint32_t index) {
 /******************************************************************************/
 
 void psxHsyncCalculate() {
-    s_HSyncTotal[PSX_TYPE_NTSC] = 263;
-    s_HSyncTotal[PSX_TYPE_PAL] = 313;
-    if (g_config.VSyncWA) {
-        s_HSyncTotal[g_config.PsxType] = s_HSyncTotal[g_config.PsxType] / BIAS;
-    } else if (g_config.HackFix) {
-        s_HSyncTotal[g_config.PsxType] = s_HSyncTotal[g_config.PsxType] + 1;
+    s_HSyncTotal[PCSX::Emulator::PSX_TYPE_NTSC] = 263;
+    s_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL] = 313;
+    if (PCSX::g_emulator->config().VSyncWA) {
+        s_HSyncTotal[PCSX::g_emulator->config().PsxType] = s_HSyncTotal[PCSX::g_emulator->config().PsxType] / PCSX::Emulator::BIAS;
+    } else if (PCSX::g_emulator->config().HackFix) {
+        s_HSyncTotal[PCSX::g_emulator->config().PsxType] = s_HSyncTotal[PCSX::g_emulator->config().PsxType] + 1;
     }
 }
 
@@ -421,7 +421,7 @@ void psxRcntInit() {
     // rcnt base.
     s_rcnts[3].rate = 1;
     s_rcnts[3].mode = RcCountToTarget;
-    s_rcnts[3].target = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
+    s_rcnts[3].target = (PSXCLK / (s_frameRate[PCSX::g_emulator->config().PsxType] * s_HSyncTotal[PCSX::g_emulator->config().PsxType]));
 
     for (i = 0; i < CounterQuantity; ++i) {
         _psxRcntWcount(i, 0);
@@ -445,8 +445,8 @@ int32_t psxRcntFreeze(gzFile f, int32_t Mode) {
     if (Mode == 0) {
         psxHsyncCalculate();
         // iCB: recalculate target count in case overclock is changed
-        s_rcnts[3].target = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
-        if (s_rcnts[1].rate != 1) s_rcnts[1].rate = (PSXCLK / (s_frameRate[g_config.PsxType] * s_HSyncTotal[g_config.PsxType]));
+        s_rcnts[3].target = (PSXCLK / (s_frameRate[PCSX::g_emulator->config().PsxType] * s_HSyncTotal[PCSX::g_emulator->config().PsxType]));
+        if (s_rcnts[1].rate != 1) s_rcnts[1].rate = (PSXCLK / (s_frameRate[PCSX::g_emulator->config().PsxType] * s_HSyncTotal[PCSX::g_emulator->config().PsxType]));
     }
 
     return 0;

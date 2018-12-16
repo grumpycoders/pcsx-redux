@@ -23,30 +23,20 @@
 #include "core/psxbios.h"
 #include "core/r3000a.h"
 
-PcsxConfig g_config;
-bool g_netOpened = false;
-
-// It is safe if these overflow
-uint32_t g_rewind_counter = 0;
-uint8_t g_vblank_count_hideafter = 0;
-
-// Used for overclocking
-uint32_t g_psxClockSpeed = 33868800;
-
-int EmuInit() {
+int PCSX::Emulator::EmuInit() {
     int ret = psxInit();
-    EmuSetPGXPMode(g_config.PGXP_Mode);
+    EmuSetPGXPMode(m_config.PGXP_Mode);
     return ret;
 }
 
-void EmuReset() {
+void PCSX::Emulator::EmuReset() {
     FreeCheatSearchResults();
     FreeCheatSearchMem();
 
     psxReset();
 }
 
-void EmuShutdown() {
+void PCSX::Emulator::EmuShutdown() {
     ClearAllCheats();
     FreeCheatSearchResults();
     FreeCheatSearchMem();
@@ -58,21 +48,23 @@ void EmuShutdown() {
     CleanupMemSaveStates();
 }
 
-void EmuUpdate() {
+void PCSX::Emulator::EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!g_config.HLE || !g_hleSoftCall) PCSX::system->SysUpdate();
+    if (!m_config.HLE || !g_hleSoftCall) PCSX::system->SysUpdate();
 
     ApplyCheats();
 
-    if (g_vblank_count_hideafter) {
-        if (!(--g_vblank_count_hideafter)) {
+    if (m_vblank_count_hideafter) {
+        if (!(--m_vblank_count_hideafter)) {
             GPU_showScreenPic(NULL);
         }
     }
 
-    if (g_config.RewindInterval > 0 && !(++g_rewind_counter % g_config.RewindInterval)) {
+    if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
         CreateRewindState();
     }
 }
 
-void EmuSetPGXPMode(uint32_t pgxpMode) { psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { psxSetPGXPMode(pgxpMode); }
+
+PCSX::Emulator * PCSX::g_emulator = NULL;

@@ -34,7 +34,7 @@ psxRegisters g_psxRegs;
 int psxInit() {
     PCSX::system->SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
-    if (g_config.Cpu == CPU_INTERPRETER) {
+    if (PCSX::g_emulator->config().Cpu == PCSX::Emulator::CPU_INTERPRETER) {
         g_psxCpu = &g_psxInt;
     } else
         g_psxCpu = &g_psxRec;
@@ -61,7 +61,7 @@ void psxReset() {
     psxHwReset();
     psxBiosInit();
 
-    if (!g_config.HLE) psxExecuteBios();
+    if (!PCSX::g_emulator->config().HLE) psxExecuteBios();
 
     EMU_LOG("*BIOS END*\n");
 }
@@ -94,7 +94,7 @@ void psxException(uint32_t code, uint32_t bd) {
     // Set the Status
     g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & ~0x3f) | ((g_psxRegs.CP0.n.Status & 0xf) << 2);
 
-    if (g_config.HLE) psxBiosException();
+    if (PCSX::g_emulator->config().HLE) psxBiosException();
 }
 
 void psxBranchTest() {
@@ -138,7 +138,7 @@ void psxBranchTest() {
     if ((g_psxRegs.cycle - g_psxNextsCounter) >= g_psxNextCounter) psxRcntUpdate();
 
     if (g_psxRegs.interrupt) {
-        if ((g_psxRegs.interrupt & (1 << PSXINT_SIO)) && !g_config.SioIrq) {  // sio
+        if ((g_psxRegs.interrupt & (1 << PSXINT_SIO)) && !PCSX::g_emulator->config().SioIrq) {  // sio
             if ((g_psxRegs.cycle - g_psxRegs.intCycle[PSXINT_SIO].sCycle) >= g_psxRegs.intCycle[PSXINT_SIO].cycle) {
                 g_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
                 sioInterrupt();
@@ -222,7 +222,7 @@ void psxBranchTest() {
 }
 
 void psxJumpTest() {
-    if (!g_config.HLE && g_config.PsxOut) {
+    if (!PCSX::g_emulator->config().HLE && PCSX::g_emulator->config().verbose) {
         uint32_t call = g_psxRegs.GPR.n.t1 & 0xff;
         switch (g_psxRegs.pc & 0x1fffff) {
             case 0xa0:

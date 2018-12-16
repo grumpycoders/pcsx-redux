@@ -38,6 +38,8 @@
 #include <time.h>
 #include <zlib.h>
 
+#include <string>
+
 #ifndef MAXPATHLEN
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -66,64 +68,87 @@
 #define _(msgid) msgid
 #define N_(msgid) msgid
 
-typedef struct {
-    char Gpu[MAXPATHLEN];
-    char Spu[MAXPATHLEN];
-    char Cdr[MAXPATHLEN];
-    char Pad1[MAXPATHLEN];
-    char Pad2[MAXPATHLEN];
-    char Net[MAXPATHLEN];
-    char Sio1[MAXPATHLEN];
-    char Mcd1[MAXPATHLEN];
-    char Mcd2[MAXPATHLEN];
-    char Bios[MAXPATHLEN];
-    char BiosDir[MAXPATHLEN];
-    char PluginsDir[MAXPATHLEN];
-    char PatchesDir[MAXPATHLEN];
-    char IsoImgDir[MAXPATHLEN];
-    char PsxExeName[12];
-    bool Xa;
-    bool SioIrq;
-    bool Mdec;
-    bool PsxAuto;
-    uint8_t Cdda;
-    bool HLE;
-    bool SlowBoot;
-    bool Debug;
-    bool PsxOut;
-    bool SpuIrq;
-    bool RCntFix;
-    bool UseNet;
-    bool VSyncWA;
-    bool NoMemcard;
-    bool PerGameMcd;
-    bool Widescreen;
-    bool HideCursor;
-    bool SaveWindowPos;
-    int32_t WindowPos[2];
-    uint8_t Cpu;      // CPU_DYNAREC or CPU_INTERPRETER
-    uint8_t PsxType;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
-    uint32_t RewindCount;
-    uint32_t RewindInterval;
-    uint32_t AltSpeed1;  // Percent relative to natural speed.
-    uint32_t AltSpeed2;
-    uint8_t HackFix;
-    uint8_t MemHack;
-    bool OverClock;  // enable overclocking
-    float PsxClock;
-    // PGXP variables
-    bool PGXP_GTE;
-    bool PGXP_Cache;
-    bool PGXP_Texture;
-    uint32_t PGXP_Mode;
-} PcsxConfig;
+namespace PCSX {
 
-extern PcsxConfig g_config;
-extern bool g_netOpened;
+class Emulator;    
+extern Emulator* g_emulator;
 
-// It is safe if these overflow
-extern uint32_t g_rewind_counter;
-extern uint8_t g_vblank_count_hideafter;
+class Emulator {
+  public:
+    Emulator() {
+        assert(!g_emulator); 
+        g_emulator = this;
+    }
+    class PcsxConfig {
+      public:
+        std::string Mcd1;
+        std::string Mcd2;
+        std::string Bios;
+        std::string BiosDir;
+        std::string PatchesDir;
+        std::string PsxExeName;
+        bool Xa = false;
+        bool SioIrq = false;
+        bool Mdec = false;
+        bool PsxAuto = false;
+        uint8_t Cdda = 0;
+        bool HLE = false;
+        bool SlowBoot = false;
+        bool Debug = false;
+        bool verbose = false;
+        bool SpuIrq = false;
+        bool RCntFix = false;
+        bool UseNet = false;
+        bool VSyncWA = false;
+        bool NoMemcard = false;
+        bool PerGameMcd = false;
+        bool Widescreen = false;
+        bool HideCursor = false;
+        bool SaveWindowPos = false;
+        int32_t WindowPos[2] = {0, 0};
+        uint8_t Cpu = 0;      // CPU_DYNAREC or CPU_INTERPRETER
+        uint8_t PsxType = 0;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
+        uint32_t RewindCount = 0;
+        uint32_t RewindInterval = 0;
+        uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
+        uint32_t AltSpeed2 = 0;
+        uint8_t HackFix = 0;
+        uint8_t MemHack = 0;
+        bool OverClock = false;  // enable overclocking
+        float PsxClock = 0.0f;
+        // PGXP variables
+        bool PGXP_GTE = false;
+        bool PGXP_Cache = false;
+        bool PGXP_Texture = false;
+        uint32_t PGXP_Mode = 0;
+    };
+
+    // It is safe if these overflow
+    uint32_t m_rewind_counter = 0;
+    uint8_t m_vblank_count_hideafter = 0;
+
+    // Used for overclocking
+    // Make the timing events trigger faster as we are currently assuming everything
+    // takes one cycle, which is not the case on real hardware.
+    // FIXME: Count the proper cycle and get rid of this
+    uint32_t m_psxClockSpeed = 33868800;
+    enum { BIAS = 2 };
+    enum { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };  // PSX Types
+    enum { CPU_DYNAREC = 0, CPU_INTERPRETER };  // CPU Types
+    enum { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
+
+    int EmuInit();
+    void EmuReset();
+    void EmuShutdown();
+    void EmuUpdate();
+    void EmuSetPGXPMode(uint32_t pgxpMode);
+
+    PcsxConfig& config() { return m_config; }
+
+  private:
+    PcsxConfig m_config;
+};
+}  // namespace PCSX
 
 #define gzfreeze(ptr, size)                   \
     {                                         \
@@ -131,23 +156,6 @@ extern uint8_t g_vblank_count_hideafter;
         if (Mode == 0) gzread(f, ptr, size);  \
     }
 
-// Make the timing events trigger faster as we are currently assuming everything
-// takes one cycle, which is not the case on real hardware.
-// FIXME: Count the proper cycle and get rid of this
-extern uint32_t g_psxClockSpeed;
-#define BIAS 2
-#define PSXCLK g_psxClockSpeed /* 33.8688 MHz */
-
-enum { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };  // PSX Types
-
-enum { CPU_DYNAREC = 0, CPU_INTERPRETER };  // CPU Types
-
-enum { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
-
-int EmuInit();
-void EmuReset();
-void EmuShutdown();
-void EmuUpdate();
-void EmuSetPGXPMode(uint32_t pgxpMode);
+#define PSXCLK PCSX::g_emulator->m_psxClockSpeed /* 33.8688 MHz */
 
 #endif

@@ -125,7 +125,7 @@ enum seeked_state {
     SEEK_DONE = 1,
 };
 
-static struct CdrStat stat;
+static struct CdrStat cdr_stat;
 
 unsigned int msf2sec(const uint8_t *msf);
 void sec2msf(unsigned int s, uint8_t *msf);
@@ -209,7 +209,7 @@ extern SPUregisterCallback SPU_registerCallback;
 #define StopCdda()                        \
     {                                     \
         if (g_cdr.Play) {                   \
-            if (!g_config.Cdda) CDR_stop(); \
+            if (!PCSX::g_emulator->config().Cdda) CDR_stop(); \
             g_cdr.StatP &= ~STATUS_PLAY;    \
             g_cdr.Play = false;             \
             g_cdr.FastForward = 0;          \
@@ -290,9 +290,9 @@ void cdrLidSeekInterrupt() {
         case DRIVESTATE_STANDBY:
             g_cdr.StatP &= ~STATUS_SEEK;
 
-            if (CDR_getStatus(&stat) == -1) return;
+            if (CDR_getStatus(&cdr_stat) == -1) return;
 
-            if (stat.Status & STATUS_SHELLOPEN) {
+            if (cdr_stat.Status & STATUS_SHELLOPEN) {
                 StopCdda();
                 g_cdr.DriveState = DRIVESTATE_LID_OPEN;
                 CDRLID_INT(0x800);
@@ -300,7 +300,7 @@ void cdrLidSeekInterrupt() {
             break;
 
         case DRIVESTATE_LID_OPEN:
-            if (CDR_getStatus(&stat) == -1) stat.Status &= ~STATUS_SHELLOPEN;
+            if (CDR_getStatus(&cdr_stat) == -1) cdr_stat.Status &= ~STATUS_SHELLOPEN;
 
             // 02, 12, 10
             if (!(g_cdr.StatP & STATUS_SHELLOPEN)) {
@@ -315,7 +315,7 @@ void cdrLidSeekInterrupt() {
                 break;
             } else if (g_cdr.StatP & STATUS_ROTATING) {
                 g_cdr.StatP &= ~STATUS_ROTATING;
-            } else if (!(stat.Status & STATUS_SHELLOPEN)) {
+            } else if (!(cdr_stat.Status & STATUS_SHELLOPEN)) {
                 // closed now
                 CheckCdrom();
 
@@ -649,7 +649,7 @@ void cdrInterrupt() {
             ReadTrack(g_cdr.SetSectorPlay);
             g_cdr.TrackChanged = false;
 
-            if (g_config.Cdda != CDDA_DISABLED) CDR_play(g_cdr.SetSectorPlay);
+            if (PCSX::g_emulator->config().Cdda != PCSX::Emulator::CDDA_DISABLED) CDR_play(g_cdr.SetSectorPlay);
 
             // Vib Ribbon: gameplay checks flag
             g_cdr.StatP &= ~STATUS_SEEK;
@@ -891,10 +891,10 @@ void cdrInterrupt() {
             g_cdr.Result[3] = 0;
 
             // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
-            if (CDR_getStatus(&stat) == -1 || stat.Type == 0 || stat.Type == 0xff) {
+            if (CDR_getStatus(&cdr_stat) == -1 || cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
                 g_cdr.Result[1] = 0xc0;
             } else {
-                if (stat.Type == 2) g_cdr.Result[1] |= 0x10;
+                if (cdr_stat.Type == 2) g_cdr.Result[1] |= 0x10;
                 if (g_cdromId[0] == '\0') g_cdr.Result[1] |= 0x80;
             }
             g_cdr.Result[0] |= (g_cdr.Result[1] >> 4) & 0x08;
@@ -1075,7 +1075,7 @@ void cdrReadInterrupt() {
     }
 
     if ((psxHu32ref(0x1070) & psxHu32ref(0x1074) & SWAP32((uint32_t)0x4)) && !g_cdr.ReadRescheduled) {
-        // HACK: with BIAS 2, emulated CPU is often slower than real thing,
+        // HACK: with PCSX::Emulator::BIAS 2, emulated CPU is often slower than real thing,
         // game may be unfinished with prev data read, so reschedule
         // (Brave Fencer Musashi)
         CDREAD_INT(cdReadTime / 2);
@@ -1109,7 +1109,7 @@ void cdrReadInterrupt() {
 
     CDR_LOG("cdrReadInterrupt() Log: cdr.Transfer %x:%x:%x\n", g_cdr.Transfer[0], g_cdr.Transfer[1], g_cdr.Transfer[2]);
 
-    if ((!g_cdr.Muted) && (g_cdr.Mode & MODE_STRSND) && (!g_config.Xa) && (g_cdr.FirstSector != -1)) {  // CD-XA
+    if ((!g_cdr.Muted) && (g_cdr.Mode & MODE_STRSND) && (!PCSX::g_emulator->config().Xa) && (g_cdr.FirstSector != -1)) {  // CD-XA
         // Firemen 2: Multi-XA files - briefings, cutscenes
         if (g_cdr.FirstSector == 1 && (g_cdr.Mode & MODE_SF) == 0) {
             g_cdr.File = g_cdr.Transfer[4 + 0];
@@ -1464,7 +1464,7 @@ void cdrReset() {
 int cdrFreeze(gzFile f, int Mode) {
     uint8_t tmpp[3];
 
-    if (Mode == 0 && g_config.Cdda != CDDA_DISABLED) CDR_stop();
+    if (Mode == 0 && PCSX::g_emulator->config().Cdda != PCSX::Emulator::CDDA_DISABLED) CDR_stop();
 
     gzfreeze(&g_cdr, sizeof(g_cdr));
 
@@ -1480,7 +1480,7 @@ int cdrFreeze(gzFile f, int Mode) {
 
         if (g_cdr.Play) {
             Find_CurTrack(g_cdr.SetSectorPlay);
-            if (g_config.Cdda != CDDA_DISABLED) CDR_play(g_cdr.SetSectorPlay);
+            if (PCSX::g_emulator->config().Cdda != PCSX::Emulator::CDDA_DISABLED) CDR_play(g_cdr.SetSectorPlay);
         }
     }
 

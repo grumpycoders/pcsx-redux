@@ -216,7 +216,7 @@ void BuildPPFCache() {
     buffer[10] = g_cdromId[8];
     buffer[11] = '\0';
 
-    sprintf(szPPF, "%s/%s", g_config.PatchesDir, buffer);
+    sprintf(szPPF, "%s/%s", PCSX::g_emulator->config().PatchesDir.c_str(), buffer);
 
     ppffile = fopen(szPPF, "rb");
     if (ppffile == NULL) return;
@@ -371,7 +371,7 @@ int LoadSBI(const char *filename) {
         buffer[14] = 'i';
         buffer[15] = '\0';
 
-        sprintf(sbifile, "%s%s", g_config.PatchesDir, buffer);
+        sprintf(sbifile, "%s%s", PCSX::g_emulator->config().PatchesDir.c_str(), buffer);
         filename = sbifile;
     }
 

@@ -113,7 +113,7 @@ static void iPushReg(int reg) {
 }
 
 static void iStoreCycle() {
-    s_count = ((s_pc - s_old_pc) / 4) * BIAS;
+    s_count = ((s_pc - s_old_pc) / 4) * PCSX::Emulator::BIAS;
     ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
 }
 
@@ -166,7 +166,7 @@ static void SetBranch() {
         iFlushRegs();
         MOV32ItoM((uint32_t)&g_psxRegs.code, g_psxRegs.code);
         /* store cycle */
-        s_count = ((s_pc - s_old_pc) / 4) * BIAS;
+        s_count = ((s_pc - s_old_pc) / 4) * PCSX::Emulator::BIAS;
         ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
         if (s_resp) ADD32ItoR(ESP, s_resp);
 
@@ -213,7 +213,7 @@ static void iJump(uint32_t branchPC) {
         iFlushRegs();
         MOV32ItoM((uint32_t)&g_psxRegs.code, g_psxRegs.code);
         /* store cycle */
-        s_count = ((s_pc - s_old_pc) / 4) * BIAS;
+        s_count = ((s_pc - s_old_pc) / 4) * PCSX::Emulator::BIAS;
         ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
         if (s_resp) ADD32ItoR(ESP, s_resp);
 
@@ -268,7 +268,7 @@ static void iBranch(uint32_t branchPC, int savectx) {
         iFlushRegs();
         MOV32ItoM((uint32_t)&g_psxRegs.code, g_psxRegs.code);
         /* store cycle */
-        s_count = (((s_pc + 4) - s_old_pc) / 4) * BIAS;
+        s_count = (((s_pc + 4) - s_old_pc) / 4) * PCSX::Emulator::BIAS;
         ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
         if (s_resp) ADD32ItoR(ESP, s_resp);
 

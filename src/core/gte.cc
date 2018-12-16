@@ -461,10 +461,10 @@ static int docop2(int op) {
             h_over_sz3 = Lm_E(gte_divide(H, SZ3));
             SXY0 = SXY1;
             SXY1 = SXY2;
-            SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)) >> 16);
+            SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)) >> 16);
             SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
 
-            PGXP_pushSXYZ2s(Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)),
+            PGXP_pushSXYZ2s(Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)),
                             Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), max(SZ3, H / 2), SXY2);
 
             // PGXP_RTPS(0, SXY2);
@@ -802,7 +802,7 @@ static int docop2(int op) {
                 h_over_sz3 = Lm_E(gte_divide(H, SZ3));
                 SXY0 = SXY1;
                 SXY1 = SXY2;
-                SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)) >> 16);
+                SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)) >> 16);
                 SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
 
                 // float tempMx = MAC1;
@@ -812,7 +812,7 @@ static int docop2(int op) {
                 // float tempMz = MAC3;
                 // float tempZ = SZ3;
                 //
-                PGXP_pushSXYZ2s(Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) * (g_config.Widescreen ? 0.75 : 1)),
+                PGXP_pushSXYZ2s(Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)),
                                 Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), max(SZ3, H / 2), SXY2);
 
                 // PGXP_RTPS(v, SXY2);

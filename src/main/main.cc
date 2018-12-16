@@ -58,23 +58,23 @@ class SystemImpl : public PCSX::System {
 
 int main(int argc, char *argv[]) {
     unsigned int texture = GUI_init();
+    PCSX::Emulator emulator;
 
     PCSX::system = new SystemImpl;
 
-    memset(&g_config, 0, sizeof(PcsxConfig));
-    g_config.PsxAuto = 1;
-    g_config.HLE = 0;
-    g_config.SlowBoot = 0;
-    strcpy(g_config.BiosDir, ".");
-    strcpy(g_config.Bios, "bios.bin");
+    emulator.config().PsxAuto = true;
+    emulator.config().HLE = false;
+    emulator.config().SlowBoot = false;
+    emulator.config().BiosDir = ".";
+    emulator.config().Bios = "bios.bin";
 
     SetIsoFile("test.img");
     LoadPlugins();
 
     GPU_open(texture);
 
-    EmuInit();
-    EmuReset();
+    emulator.EmuInit();
+    emulator.EmuReset();
 
     CDR_open();
     CheckCdrom();
