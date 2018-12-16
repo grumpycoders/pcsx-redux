@@ -29,7 +29,7 @@ extern "C" {
 #include "psxmem.h"
 #include "r3000a.h"
 
-extern u32 psxNextCounter, psxNextsCounter;
+extern u32 g_psxNextCounter, g_psxNextsCounter;
 
 void psxRcntInit();
 void psxRcntUpdate();

@@ -148,7 +148,7 @@ void psxBranchTest() {
 	}
 #endif
 
-    if ((g_psxRegs.cycle - psxNextsCounter) >= psxNextCounter) psxRcntUpdate();
+    if ((g_psxRegs.cycle - g_psxNextsCounter) >= g_psxNextCounter) psxRcntUpdate();
 
     if (g_psxRegs.interrupt) {
         if ((g_psxRegs.interrupt & (1 << PSXINT_SIO)) && !g_config.SioIrq) {  // sio
