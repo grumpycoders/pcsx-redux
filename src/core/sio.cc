@@ -51,8 +51,8 @@
 
 // *** FOR WORKS ON PADS AND MEMORY CARDS *****
 
-void LoadDongle(char *str);
-void SaveDongle(char *str);
+void LoadDongle(const char *str);
+void SaveDongle(const char *str);
 
 #define BUFFER_SIZE 0x1010
 
@@ -1166,7 +1166,7 @@ void ConvertMcd(const char *mcd, const char *data) {
 }
 
 void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
-    unsigned char *data = NULL, *ptr, *str, *sstr;
+    char *data = NULL, *ptr, *str, *sstr;
     unsigned short clut[16];
     unsigned short c;
     int i, x;
@@ -1285,7 +1285,7 @@ int sioFreeze(gzFile f, int Mode) {
     return 0;
 }
 
-void LoadDongle(char *str) {
+void LoadDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "r+b");
@@ -1317,7 +1317,7 @@ void LoadDongle(char *str) {
     }
 }
 
-void SaveDongle(char *str) {
+void SaveDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "wb");
