@@ -159,7 +159,7 @@
     <ClCompile Include="..\..\src\core\psxmem.cc" />
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
-    <ClCompile Include="..\..\src\core\socket.c" />
+    <ClCompile Include="..\..\src\core\socket.cc" />
     <ClCompile Include="..\..\src\core\spu.c" />
   </ItemGroup>
   <ItemGroup>
