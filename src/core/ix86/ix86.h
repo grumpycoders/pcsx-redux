@@ -110,7 +110,7 @@ extern u8* g_j8Ptr[32];
 extern u32* g_j32Ptr[32];
 
 void x86Init();
-void x86SetPtr(char* ptr);
+void x86SetPtr(s8* ptr);
 void x86Shutdown();
 
 void x86SetJ8(u8* j8);

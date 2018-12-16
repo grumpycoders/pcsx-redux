@@ -33,7 +33,7 @@ u32* g_j32Ptr[32];
 
 void x86Init() {}
 
-void x86SetPtr(char* ptr) { g_x86Ptr = ptr; }
+void x86SetPtr(s8* ptr) { g_x86Ptr = ptr; }
 
 void x86Shutdown() {}
 
@@ -71,7 +71,7 @@ void x86Align(int bytes) {
     {                      \
         write8(cc);        \
         write8(to);        \
-        return g_x86Ptr - 1; \
+        return reinterpret_cast<u8 *>(g_x86Ptr - 1); \
     }
 
 #define J32Rel(cc, to)             \
@@ -79,7 +79,7 @@ void x86Align(int bytes) {
         write8(0x0F);              \
         write8(cc);                \
         write32(to);               \
-        return (u32*)(g_x86Ptr - 4); \
+        return reinterpret_cast<u32*>(g_x86Ptr - 4); \
     }
 
 #define CMOV32RtoR(cc, to, from) \
@@ -688,14 +688,14 @@ void NEG32R(int from) {
 u8* JMP8(u8 to) {
     write8(0xEB);
     write8(to);
-    return g_x86Ptr - 1;
+    return reinterpret_cast<u8*>(g_x86Ptr - 1);
 }
 
 /* jmp rel32 */
 u32* JMP32(u32 to) {
     write8(0xE9);
     write32(to);
-    return (u32*)(g_x86Ptr - 4);
+    return reinterpret_cast<u32*>(g_x86Ptr - 4);
 }
 
 /* jmp r32 */
