@@ -282,13 +282,13 @@ PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
         case fOp_CPU_Rt:
             return &g_CPU_reg[rt(instr)];
         case fOp_GTE_Dd:
-            return &GTE_data_reg[rd(instr)];
+            return &g_GTE_data_reg[rd(instr)];
         case fOp_GTE_Dt:
-            return &GTE_data_reg[rt(instr)];
+            return &g_GTE_data_reg[rt(instr)];
         case fOp_GTE_Cd:
-            return &GTE_ctrl_reg[rd(instr)];
+            return &g_GTE_ctrl_reg[rd(instr)];
         case fOp_GTE_Ct:
-            return &GTE_ctrl_reg[rt(instr)];
+            return &g_GTE_ctrl_reg[rt(instr)];
         case fOp_CP0_Dd:
             return &g_CP0_reg[rd(instr)];
         case fOp_CP0_Cd:
@@ -383,22 +383,22 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Dd:
-                    pReg = &GTE_data_reg[rd(instr)];
+                    pReg = &g_GTE_data_reg[rd(instr)];
                     sprintf(szOpdName, "GTE_Dd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Dt:
-                    pReg = &GTE_data_reg[rt(instr)];
+                    pReg = &g_GTE_data_reg[rt(instr)];
                     sprintf(szOpdName, "GTE_Dt[%d]", rt(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Cd:
-                    pReg = &GTE_ctrl_reg[rd(instr)];
+                    pReg = &g_GTE_ctrl_reg[rd(instr)];
                     sprintf(szOpdName, "GTE_Cd[%d]", rd(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;
                 case fOp_GTE_Ct:
-                    pReg = &GTE_ctrl_reg[rt(instr)];
+                    pReg = &g_GTE_ctrl_reg[rt(instr)];
                     sprintf(szOpdName, "GTE_Ct[%d]", rt(instr));
                     psx_reg = psx_regs[regIdx++];
                     break;

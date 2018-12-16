@@ -25,26 +25,25 @@
  *      Author: iCatButler
  ***************************************************************************/
 
-#include "pgxp_gte.h"
-#include "pgxp_cpu.h"
-#include "pgxp_debug.h"
-#include "pgxp_mem.h"
-#include "pgxp_value.h"
-
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
+#include "core/pgxp_cpu.h"
+#include "core/pgxp_debug.h"
+#include "core/pgxp_gte.h"
+#include "core/pgxp_mem.h"
+#include "core/pgxp_value.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
 
 // GTE registers
-PGXP_value GTE_data_reg_mem[32];
-PGXP_value GTE_ctrl_reg_mem[32];
+static PGXP_value s_GTE_data_reg_mem[32];
+static PGXP_value s_GTE_ctrl_reg_mem[32];
 
-PGXP_value* GTE_data_reg = GTE_data_reg_mem;
-PGXP_value* GTE_ctrl_reg = GTE_ctrl_reg_mem;
+PGXP_value* g_GTE_data_reg = s_GTE_data_reg_mem;
+PGXP_value* g_GTE_ctrl_reg = s_GTE_ctrl_reg_mem;
 
 void PGXP_InitGTE() {
-    memset(GTE_data_reg_mem, 0, sizeof(GTE_data_reg_mem));
-    memset(GTE_ctrl_reg_mem, 0, sizeof(GTE_ctrl_reg_mem));
+    memset(s_GTE_data_reg_mem, 0, sizeof(s_GTE_data_reg_mem));
+    memset(s_GTE_ctrl_reg_mem, 0, sizeof(s_GTE_ctrl_reg_mem));
 }
 
 // Instruction register decoding
@@ -56,17 +55,17 @@ void PGXP_InitGTE() {
 #define rs(_instr) ((_instr >> 21) & 0x1F)  // The rs part of the instruction register
 #define imm(_instr) (_instr & 0xFFFF)       // The immediate part of the instruction register
 
-#define SX0 (GTE_data_reg[12].x)
-#define SY0 (GTE_data_reg[12].y)
-#define SX1 (GTE_data_reg[13].x)
-#define SY1 (GTE_data_reg[13].y)
-#define SX2 (GTE_data_reg[14].x)
-#define SY2 (GTE_data_reg[14].y)
+#define SX0 (g_GTE_data_reg[12].x)
+#define SY0 (g_GTE_data_reg[12].y)
+#define SX1 (g_GTE_data_reg[13].x)
+#define SY1 (g_GTE_data_reg[13].y)
+#define SX2 (g_GTE_data_reg[14].x)
+#define SY2 (g_GTE_data_reg[14].y)
 
-#define SXY0 (GTE_data_reg[12])
-#define SXY1 (GTE_data_reg[13])
-#define SXY2 (GTE_data_reg[14])
-#define SXYP (GTE_data_reg[15])
+#define SXY0 (g_GTE_data_reg[12])
+#define SXY1 (g_GTE_data_reg[13])
+#define SXY2 (g_GTE_data_reg[14])
+#define SXYP (g_GTE_data_reg[15])
 
 void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
     static unsigned int uCount = 0;
@@ -205,11 +204,11 @@ float PGXP_NCLIP() {
 static PGXP_value PGXP_MFC2_int(u32 reg) {
     switch (reg) {
         case 15:
-            GTE_data_reg[reg] = SXYP = SXY2;
+            g_GTE_data_reg[reg] = SXYP = SXY2;
             break;
     }
 
-    return GTE_data_reg[reg];
+    return g_GTE_data_reg[reg];
 }
 
 static void PGXP_MTC2_int(PGXP_value value, u32 reg) {
@@ -226,7 +225,7 @@ static void PGXP_MTC2_int(PGXP_value value, u32 reg) {
             return;
     }
 
-    GTE_data_reg[reg] = value;
+    g_GTE_data_reg[reg] = value;
 }
 
 ////////////////////////////////////
@@ -235,7 +234,7 @@ static void PGXP_MTC2_int(PGXP_value value, u32 reg) {
 
 void MFC2(int reg) {
     psx_value val;
-    val.d = GTE_data_reg[reg].value;
+    val.d = g_GTE_data_reg[reg].value;
     switch (reg) {
         case 1:
         case 3:
@@ -244,8 +243,8 @@ void MFC2(int reg) {
         case 9:
         case 10:
         case 11:
-            GTE_data_reg[reg].value = (s32)val.sw.l;
-            GTE_data_reg[reg].y = 0.f;
+            g_GTE_data_reg[reg].value = (s32)val.sw.l;
+            g_GTE_data_reg[reg].y = 0.f;
             break;
 
         case 7:
@@ -253,12 +252,12 @@ void MFC2(int reg) {
         case 17:
         case 18:
         case 19:
-            GTE_data_reg[reg].value = (u32)val.w.l;
-            GTE_data_reg[reg].y = 0.f;
+            g_GTE_data_reg[reg].value = (u32)val.w.l;
+            g_GTE_data_reg[reg].y = 0.f;
             break;
 
         case 15:
-            GTE_data_reg[reg] = SXY2;
+            g_GTE_data_reg[reg] = SXY2;
             break;
 
         case 28:
@@ -271,9 +270,9 @@ void MFC2(int reg) {
 
 void PGXP_GTE_MFC2(u32 instr, u32 rtVal, u32 rdVal) {
     // CPU[Rt] = GTE_D[Rd]
-    Validate(&GTE_data_reg[rd(instr)], rdVal);
+    Validate(&g_GTE_data_reg[rd(instr)], rdVal);
     // MFC2(rd(instr));
-    g_CPU_reg[rt(instr)] = GTE_data_reg[rd(instr)];
+    g_CPU_reg[rt(instr)] = g_GTE_data_reg[rd(instr)];
     g_CPU_reg[rt(instr)].value = rtVal;
 }
 
@@ -281,21 +280,21 @@ void PGXP_GTE_MTC2(u32 instr, u32 rdVal, u32 rtVal) {
     // GTE_D[Rd] = CPU[Rt]
     Validate(&g_CPU_reg[rt(instr)], rtVal);
     PGXP_MTC2_int(g_CPU_reg[rt(instr)], rd(instr));
-    GTE_data_reg[rd(instr)].value = rdVal;
+    g_GTE_data_reg[rd(instr)].value = rdVal;
 }
 
 void PGXP_GTE_CFC2(u32 instr, u32 rtVal, u32 rdVal) {
     // CPU[Rt] = GTE_C[Rd]
-    Validate(&GTE_ctrl_reg[rd(instr)], rdVal);
-    g_CPU_reg[rt(instr)] = GTE_ctrl_reg[rd(instr)];
+    Validate(&g_GTE_ctrl_reg[rd(instr)], rdVal);
+    g_CPU_reg[rt(instr)] = g_GTE_ctrl_reg[rd(instr)];
     g_CPU_reg[rt(instr)].value = rtVal;
 }
 
 void PGXP_GTE_CTC2(u32 instr, u32 rdVal, u32 rtVal) {
     // GTE_C[Rd] = CPU[Rt]
     Validate(&g_CPU_reg[rt(instr)], rtVal);
-    GTE_ctrl_reg[rd(instr)] = g_CPU_reg[rt(instr)];
-    GTE_ctrl_reg[rd(instr)].value = rdVal;
+    g_GTE_ctrl_reg[rd(instr)] = g_CPU_reg[rt(instr)];
+    g_GTE_ctrl_reg[rd(instr)].value = rdVal;
 }
 
 ////////////////////////////////////
@@ -310,6 +309,6 @@ void PGXP_GTE_LWC2(u32 instr, u32 rtVal, u32 addr) {
 
 void PGXP_GTE_SWC2(u32 instr, u32 rtVal, u32 addr) {
     //  Mem[addr] = GTE_D[Rt]
-    Validate(&GTE_data_reg[rt(instr)], rtVal);
-    WriteMem(&GTE_data_reg[rt(instr)], addr);
+    Validate(&g_GTE_data_reg[rt(instr)], rtVal);
+    WriteMem(&g_GTE_data_reg[rt(instr)], addr);
 }
