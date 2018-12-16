@@ -32,20 +32,20 @@
 #endif
 #include <zlib.h>
 
-#include "cdriso.h"
-#include "cdrom.h"
-#include "ecm.h"
-#include "plugins.h"
-#include "ppf.h"
-#include "psxcommon.h"
+#include "core/cdriso.h"
+#include "core/cdrom.h"
+#include "core/ecm.h"
+#include "core/plugins.h"
+#include "core/ppf.h"
+#include "core/psxcommon.h"
 
 #ifdef ENABLE_CCDDA
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/mathematics.h>
 #include <libavutil/opt.h>
 #include <libavutil/timestamp.h>
 #include <libswresample/swresample.h>
-#include "libavcodec/avcodec.h"
-#include "libavformat/avformat.h"
-#include "libavutil/mathematics.h"
 
 #endif
 

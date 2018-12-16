@@ -16,11 +16,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
-
-#include "cheat.h"
+#include "core/cheat.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
 
 Cheat *g_cheats = NULL;
 int g_numCheats = 0;

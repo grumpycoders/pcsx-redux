@@ -19,6 +19,10 @@
 #ifndef CHEAT_H
 #define CHEAT_H
 
+#include <stdint.h>
+
+#include "core/psxcommon.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
