@@ -440,7 +440,7 @@ void FreeCheatSearchMem() {
 
 void CheatSearchBackupMemory() {
     if (g_prevM != NULL) {
-        memcpy(g_prevM, psxM, 0x200000);
+        memcpy(g_prevM, g_psxM, 0x200000);
     }
 }
 

@@ -438,7 +438,7 @@ static void LoadLibPS() {
 
     if (f != NULL) {
         fseek(f, 0x800, SEEK_SET);
-        fread(psxM + 0x10000, 0x61000, 1, f);
+        fread(g_psxM + 0x10000, 0x61000, 1, f);
         fclose(f);
     }
 }
@@ -561,8 +561,8 @@ static int LoadBin(unsigned long addr, char *filename) {
         len = ftell(f);
         fseek(f, 0, SEEK_SET);
         if (len + mem < 0x00200000) {
-            if (psxM) {
-                int readsize = fread(psxM + mem, len, 1, f);
+            if (g_psxM) {
+                int readsize = fread(g_psxM + mem, len, 1, f);
                 if (readsize == len) result = 0;
             }
         }
@@ -711,9 +711,9 @@ int SaveStateGz(gzFile f, long *gzsize) {
 
     if (g_config.HLE) psxBiosFreeze(1);
 
-    gzwrite(f, psxM, 0x00200000);
-    gzwrite(f, psxR, 0x00080000);
-    gzwrite(f, psxH, 0x00010000);
+    gzwrite(f, g_psxM, 0x00200000);
+    gzwrite(f, g_psxR, 0x00080000);
+    gzwrite(f, g_psxH, 0x00010000);
     gzwrite(f, (void *)&g_psxRegs, sizeof(g_psxRegs));
 
     // gpu
@@ -778,9 +778,9 @@ int LoadStateGz(gzFile f) {
     psxCpu->Reset();
     gzseek(f, SZ_GPUPIC, SEEK_CUR);
 
-    gzread(f, psxM, 0x00200000);
-    gzread(f, psxR, 0x00080000);
-    gzread(f, psxH, 0x00010000);
+    gzread(f, g_psxM, 0x00200000);
+    gzread(f, g_psxR, 0x00080000);
+    gzread(f, g_psxH, 0x00010000);
     gzread(f, (void *)&g_psxRegs, sizeof(g_psxRegs));
 
     if (g_config.HLE) psxBiosFreeze(0);

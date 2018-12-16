@@ -35,7 +35,7 @@ void psxHwReset() {
     if (g_config.SioIrq) psxHu32ref(0x1070) |= SWAP32(0x80);
     if (g_config.SpuIrq) psxHu32ref(0x1070) |= SWAP32(0x200);
 
-    memset(psxH, 0, 0x10000);
+    memset(g_psxH, 0, 0x10000);
 
     mdecInit();  // initialize mdec decoder
     cdrReset();

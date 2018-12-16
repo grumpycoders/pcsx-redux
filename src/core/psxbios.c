@@ -1146,7 +1146,7 @@ void psxBios_malloc() {  // 0x33
     }
 
     // return pointer to allocated memory
-    v0 = ((unsigned long)chunk - (unsigned long)psxM) + 4;
+    v0 = ((unsigned long)chunk - (unsigned long)g_psxM) + 4;
     v0 |= 0x80000000;
     SysPrintf("malloc %x,%x\n", v0, a0);
     pc0 = ra;
@@ -1206,7 +1206,7 @@ void psxBios_InitHeap() {  // 0x39
     s_heap_end = (u32 *)((u8 *)s_heap_addr + size);
     *s_heap_addr = SWAP32(size | 1);
 
-    SysPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uptr)s_heap_addr - (uptr)psxM, size);
+    SysPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uptr)s_heap_addr - (uptr)g_psxM, size);
 
     pc0 = ra;
 }
@@ -3001,7 +3001,7 @@ void psxBiosInit() {
     /**/
     base = 0x1000;
     size = sizeof(EvCB) * 32;
-    s_Event = (void *)&psxR[base];
+    s_Event = (void *)&g_psxR[base];
     base += size * 6;
     memset(s_Event, 0, size * 6);
     s_HwEV = s_Event;
@@ -3011,10 +3011,10 @@ void psxBiosInit() {
     s_SwEV = s_Event + 32 * 4;
     s_ThEV = s_Event + 32 * 5;
 
-    ptr = (u32 *)&psxM[0x0874];  // b0 table
+    ptr = (u32 *)&g_psxM[0x0874];  // b0 table
     ptr[0] = SWAPu32(0x4c54 - 0x884);
 
-    ptr = (u32 *)&psxM[0x0674];  // c0 table
+    ptr = (u32 *)&g_psxM[0x0674];  // c0 table
     ptr[6] = SWAPu32(0xc80);
 
     memset(s_SysIntRP, 0, sizeof(s_SysIntRP));
@@ -3036,7 +3036,7 @@ void psxBiosInit() {
     psxMu32ref(0x0150) = SWAPu32(0x160);
     psxMu32ref(0x0154) = SWAPu32(0x320);
     psxMu32ref(0x0160) = SWAPu32(0x248);
-    strcpy((char *)&psxM[0x248], "bu");
+    strcpy((char *)&g_psxM[0x248], "bu");
     /*	psxMu32ref(0x0ca8) = SWAPu32(0x1f410004);
             psxMu32ref(0x0cf0) = SWAPu32(0x3c020000);
             psxMu32ref(0x0cf4) = SWAPu32(0x2442641c);
@@ -3063,9 +3063,9 @@ void psxBiosInit() {
 
     // fonts
     len = 0x80000 - 0x66000;
-    uncompress((Bytef *)(psxR + 0x66000), &len, font_8140, sizeof(font_8140));
+    uncompress((Bytef *)(g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));
     len = 0x80000 - 0x69d68;
-    uncompress((Bytef *)(psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
+    uncompress((Bytef *)(g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
 
     // memory size 2 MB
     psxHu32ref(0x1060) = SWAPu32(0x00000b88);
@@ -3256,8 +3256,8 @@ void psxBiosException() {
 
 #define bfreeze(ptr, size)                             \
     {                                                  \
-        if (Mode == 1) memcpy(&psxR[base], ptr, size); \
-        if (Mode == 0) memcpy(ptr, &psxR[base], size); \
+        if (Mode == 1) memcpy(&g_psxR[base], ptr, size); \
+        if (Mode == 0) memcpy(ptr, &g_psxR[base], size); \
         base += size;                                  \
     }
 
@@ -3268,12 +3268,12 @@ void psxBiosException() {
     {                                                         \
         if (Mode == 1) {                                      \
             if (ptr)                                          \
-                psxRu32ref(base) = SWAPu32((s8 *)(ptr)-psxM); \
+                psxRu32ref(base) = SWAPu32((s8 *)(ptr)-g_psxM); \
             else                                              \
                 psxRu32ref(base) = 0;                         \
         } else {                                              \
             if (psxRu32(base) != 0)                           \
-                ptr = (type *)(psxM + psxRu32(base));         \
+                ptr = (type *)(g_psxM + psxRu32(base));         \
             else                                              \
                 (ptr) = NULL;                                 \
         }                                                     \

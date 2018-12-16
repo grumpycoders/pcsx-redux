@@ -1309,7 +1309,7 @@ static void recLB() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVSX32M8toR(EAX, (u32)&psxM[addr & 0x1fffff]);
+            MOVSX32M8toR(EAX, (u32)&g_psxM[addr & 0x1fffff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1317,7 +1317,7 @@ static void recLB() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVSX32M8toR(EAX, (u32)&psxH[addr & 0xfff]);
+            MOVSX32M8toR(EAX, (u32)&g_psxH[addr & 0xfff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1354,7 +1354,7 @@ static void recLBU() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVZX32M8toR(EAX, (u32)&psxM[addr & 0x1fffff]);
+            MOVZX32M8toR(EAX, (u32)&g_psxM[addr & 0x1fffff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1362,7 +1362,7 @@ static void recLBU() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVZX32M8toR(EAX, (u32)&psxH[addr & 0xfff]);
+            MOVZX32M8toR(EAX, (u32)&g_psxH[addr & 0xfff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1399,7 +1399,7 @@ static void recLH() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVSX32M16toR(EAX, (u32)&psxM[addr & 0x1fffff]);
+            MOVSX32M16toR(EAX, (u32)&g_psxM[addr & 0x1fffff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1407,7 +1407,7 @@ static void recLH() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVSX32M16toR(EAX, (u32)&psxH[addr & 0xfff]);
+            MOVSX32M16toR(EAX, (u32)&g_psxH[addr & 0xfff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1444,7 +1444,7 @@ static void recLHU() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVZX32M16toR(EAX, (u32)&psxM[addr & 0x1fffff]);
+            MOVZX32M16toR(EAX, (u32)&g_psxM[addr & 0x1fffff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1452,7 +1452,7 @@ static void recLHU() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOVZX32M16toR(EAX, (u32)&psxH[addr & 0xfff]);
+            MOVZX32M16toR(EAX, (u32)&g_psxH[addr & 0xfff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1544,7 +1544,7 @@ static void recLW() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (u32)&psxM[addr & 0x1fffff]);
+            MOV32MtoR(EAX, (u32)&g_psxM[addr & 0x1fffff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1552,7 +1552,7 @@ static void recLW() {
             if (!_Rt_) return;
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (u32)&psxH[addr & 0xfff]);
+            MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xfff]);
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
@@ -1586,7 +1586,7 @@ static void recLW() {
                     if (!_Rt_) return;
                     s_iRegs[_Rt_].state = ST_UNK;
 
-                    MOV32MtoR(EAX, (u32)&psxH[addr & 0xffff]);
+                    MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xffff]);
                     MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
                     return;
 
@@ -1642,7 +1642,7 @@ void recLWL() {
         int t = addr >> 16;
 
         if ((t & 0x1fe0) == 0) {
-            MOV32MtoR(EAX, (u32)&psxM[addr & 0x1ffffc]);
+            MOV32MtoR(EAX, (u32)&g_psxM[addr & 0x1ffffc]);
             iLWLk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
@@ -1650,7 +1650,7 @@ void recLWL() {
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
-            MOV32MtoR(EAX, (u32)&psxH[addr & 0xffc]);
+            MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xffc]);
             iLWLk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
@@ -1725,7 +1725,7 @@ static void recLWBlock(int count) {
 					return;
 				s_iRegs[_fRt_(*code)].state = ST_UNK;
 
-				MOV32MtoR(EAX, (u32)&psxM[addr & 0x1fffff]);
+				MOV32MtoR(EAX, (u32)&g_psxM[addr & 0x1fffff]);
 				MOV32RtoM((u32)&g_psxRegs.GPR.r[_fRt_(*code)], EAX);
 			}
 			return;
@@ -1736,7 +1736,7 @@ static void recLWBlock(int count) {
 					return;
 				s_iRegs[_fRt_(*code)].state = ST_UNK;
 
-				MOV32MtoR(EAX, (u32)&psxH[addr & 0xfff]);
+				MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xfff]);
 				MOV32RtoM((u32)&g_psxRegs.GPR.r[_fRt_(*code)], EAX);
 			}
 			return;
@@ -1797,7 +1797,7 @@ void recLWR() {
         int t = addr >> 16;
 
         if ((t & 0x1fe0) == 0) {
-            MOV32MtoR(EAX, (u32)&psxM[addr & 0x1ffffc]);
+            MOV32MtoR(EAX, (u32)&g_psxM[addr & 0x1ffffc]);
             iLWRk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
@@ -1805,7 +1805,7 @@ void recLWR() {
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
-            MOV32MtoR(EAX, (u32)&psxH[addr & 0xffc]);
+            MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xffc]);
             iLWRk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
@@ -1865,10 +1865,10 @@ static void recSB() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                MOV8ItoM((u32)&psxM[addr & 0x1fffff], (u8)s_iRegs[_Rt_].k);
+                MOV8ItoM((u32)&g_psxM[addr & 0x1fffff], (u8)s_iRegs[_Rt_].k);
             } else {
                 MOV8MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                MOV8RtoM((u32)&psxM[addr & 0x1fffff], EAX);
+                MOV8RtoM((u32)&g_psxM[addr & 0x1fffff], EAX);
             }
 
             PUSH32I(1);
@@ -1880,10 +1880,10 @@ static void recSB() {
 
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (IsConst(_Rt_)) {
-                MOV8ItoM((u32)&psxH[addr & 0xfff], (u8)s_iRegs[_Rt_].k);
+                MOV8ItoM((u32)&g_psxH[addr & 0xfff], (u8)s_iRegs[_Rt_].k);
             } else {
                 MOV8MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                MOV8RtoM((u32)&psxH[addr & 0xfff], EAX);
+                MOV8RtoM((u32)&g_psxH[addr & 0xfff], EAX);
             }
             return;
         }
@@ -1912,10 +1912,10 @@ static void recSH() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                MOV16ItoM((u32)&psxM[addr & 0x1fffff], (u16)s_iRegs[_Rt_].k);
+                MOV16ItoM((u32)&g_psxM[addr & 0x1fffff], (u16)s_iRegs[_Rt_].k);
             } else {
                 MOV16MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                MOV16RtoM((u32)&psxM[addr & 0x1fffff], EAX);
+                MOV16RtoM((u32)&g_psxM[addr & 0x1fffff], EAX);
             }
 
             PUSH32I(1);
@@ -1927,10 +1927,10 @@ static void recSH() {
 
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (IsConst(_Rt_)) {
-                MOV16ItoM((u32)&psxH[addr & 0xfff], (u16)s_iRegs[_Rt_].k);
+                MOV16ItoM((u32)&g_psxH[addr & 0xfff], (u16)s_iRegs[_Rt_].k);
             } else {
                 MOV16MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                MOV16RtoM((u32)&psxH[addr & 0xfff], EAX);
+                MOV16RtoM((u32)&g_psxH[addr & 0xfff], EAX);
             }
             return;
         }
@@ -1974,10 +1974,10 @@ static void recSW() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                MOV32ItoM((u32)&psxM[addr & 0x1fffff], s_iRegs[_Rt_].k);
+                MOV32ItoM((u32)&g_psxM[addr & 0x1fffff], s_iRegs[_Rt_].k);
             } else {
                 MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                MOV32RtoM((u32)&psxM[addr & 0x1fffff], EAX);
+                MOV32RtoM((u32)&g_psxM[addr & 0x1fffff], EAX);
             }
 
             PUSH32I(1);
@@ -1989,10 +1989,10 @@ static void recSW() {
 
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (IsConst(_Rt_)) {
-                MOV32ItoM((u32)&psxH[addr & 0xfff], s_iRegs[_Rt_].k);
+                MOV32ItoM((u32)&g_psxH[addr & 0xfff], s_iRegs[_Rt_].k);
             } else {
                 MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                MOV32RtoM((u32)&psxH[addr & 0xfff], EAX);
+                MOV32RtoM((u32)&g_psxH[addr & 0xfff], EAX);
             }
             return;
         }
@@ -2015,10 +2015,10 @@ static void recSW() {
                 case 0x1f801074:
                 case 0x1f8010f0:
                     if (IsConst(_Rt_)) {
-                        MOV32ItoM((u32)&psxH[addr & 0xffff], s_iRegs[_Rt_].k);
+                        MOV32ItoM((u32)&g_psxH[addr & 0xffff], s_iRegs[_Rt_].k);
                     } else {
                         MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_Rt_]);
-                        MOV32RtoM((u32)&psxH[addr & 0xffff], EAX);
+                        MOV32RtoM((u32)&g_psxH[addr & 0xffff], EAX);
                     }
                     return;
 
@@ -2078,10 +2078,10 @@ static void recSWBlock(int count) {
 		if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
 			for (i = 0; i < count; i++, code++, addr += 4) {
 				if (IsConst(_fRt_(*code))) {
-					MOV32ItoM((u32)&psxM[addr & 0x1fffff], s_iRegs[_fRt_(*code)].k);
+					MOV32ItoM((u32)&g_psxM[addr & 0x1fffff], s_iRegs[_fRt_(*code)].k);
 				} else {
 					MOV32MtoR(EAX, (u32)&g_psxRegs.GPR.r[_fRt_(*code)]);
-					MOV32RtoM((u32)&psxM[addr & 0x1fffff], EAX);
+					MOV32RtoM((u32)&g_psxM[addr & 0x1fffff], EAX);
 				}
 			}
 			return;
@@ -2092,7 +2092,7 @@ static void recSWBlock(int count) {
 					return;
 				s_iRegs[_fRt_(*code)].state = ST_UNK;
 
-				MOV32MtoR(EAX, (u32)&psxH[addr & 0xfff]);
+				MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xfff]);
 				MOV32RtoM((u32)&g_psxRegs.GPR.r[_fRt_(*code)], EAX);
 			}
 			return;
@@ -2155,16 +2155,16 @@ void recSWL() {
 
 #if 0
 		if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
-			MOV32MtoR(EAX, (u32)&psxM[addr & 0x1ffffc]);
+			MOV32MtoR(EAX, (u32)&g_psxM[addr & 0x1ffffc]);
 			iSWLk(addr & 3);
-			MOV32RtoM((u32)&psxM[addr & 0x1ffffc], EAX);
+			MOV32RtoM((u32)&g_psxM[addr & 0x1ffffc], EAX);
 			return;
 		}
 #endif
         if (t == 0x1f80 && addr < 0x1f801000) {
-            MOV32MtoR(EAX, (u32)&psxH[addr & 0xffc]);
+            MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xffc]);
             iSWLk(addr & 3);
-            MOV32RtoM((u32)&psxH[addr & 0xffc], EAX);
+            MOV32RtoM((u32)&g_psxH[addr & 0xffc], EAX);
             return;
         }
     }
@@ -2238,16 +2238,16 @@ void recSWR() {
 
 #if 0
 		if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
-			MOV32MtoR(EAX, (u32)&psxM[addr & 0x1ffffc]);
+			MOV32MtoR(EAX, (u32)&g_psxM[addr & 0x1ffffc]);
 			iSWRk(addr & 3);
-			MOV32RtoM((u32)&psxM[addr & 0x1ffffc], EAX);
+			MOV32RtoM((u32)&g_psxM[addr & 0x1ffffc], EAX);
 			return;
 		}
 #endif
         if (t == 0x1f80 && addr < 0x1f801000) {
-            MOV32MtoR(EAX, (u32)&psxH[addr & 0xffc]);
+            MOV32MtoR(EAX, (u32)&g_psxH[addr & 0xffc]);
             iSWRk(addr & 3);
-            MOV32RtoM((u32)&psxH[addr & 0xffc], EAX);
+            MOV32RtoM((u32)&g_psxH[addr & 0xffc], EAX);
             return;
         }
     }
