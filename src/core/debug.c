@@ -490,11 +490,11 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s211 %02X(%2.2s)=%08X\r\n", reply, i, disRNameGPR[i], g_psxRegs.GPR.r[i]);
+                        sprintf(reply, "%s211 %02X(%2.2s)=%08X\r\n", reply, i, g_disRNameGPR[i], g_psxRegs.GPR.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "211 %02X(%2.2s)=%08X\r\n", code, disRNameGPR[code], g_psxRegs.GPR.r[code]);
+                        sprintf(reply, "211 %02X(%2.2s)=%08X\r\n", code, g_disRNameGPR[code], g_psxRegs.GPR.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid GPR register: %X\r\n", code);
                     }
@@ -513,11 +513,11 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s213 %02X(%8.8s)=%08X\r\n", reply, i, disRNameCP0[i], g_psxRegs.CP0.r[i]);
+                        sprintf(reply, "%s213 %02X(%8.8s)=%08X\r\n", reply, i, g_disRNameCP0[i], g_psxRegs.CP0.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "213 %02X(%8.8s)=%08X\r\n", code, disRNameCP0[code], g_psxRegs.CP0.r[code]);
+                        sprintf(reply, "213 %02X(%8.8s)=%08X\r\n", code, g_disRNameCP0[code], g_psxRegs.CP0.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP0 register: %X\r\n", code);
                     }
@@ -533,11 +533,11 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s214 %02X(%6.6s)=%08X\r\n", reply, i, disRNameCP2C[i], g_psxRegs.CP2C.r[i]);
+                        sprintf(reply, "%s214 %02X(%6.6s)=%08X\r\n", reply, i, g_disRNameCP2C[i], g_psxRegs.CP2C.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "214 %02X(%6.6s)=%08X\r\n", code, disRNameCP2C[code], g_psxRegs.CP2C.r[code]);
+                        sprintf(reply, "214 %02X(%6.6s)=%08X\r\n", code, g_disRNameCP2C[code], g_psxRegs.CP2C.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP2C register: %X\r\n", code);
                     }
@@ -553,11 +553,11 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s215 %02X(%4.4s)=%08X\r\n", reply, i, disRNameCP2D[i], g_psxRegs.CP2D.r[i]);
+                        sprintf(reply, "%s215 %02X(%4.4s)=%08X\r\n", reply, i, g_disRNameCP2D[i], g_psxRegs.CP2D.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "215 %02X(%4.4s)=%08X\r\n", code, disRNameCP2D[code], g_psxRegs.CP2D.r[code]);
+                        sprintf(reply, "215 %02X(%4.4s)=%08X\r\n", code, g_disRNameCP2D[code], g_psxRegs.CP2D.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP2D register: %X\r\n", code);
                     }

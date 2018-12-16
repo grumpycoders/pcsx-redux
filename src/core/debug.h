@@ -20,7 +20,7 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +39,10 @@ void DebugCheckBP(u32 address, enum breakpoint_types type);
 void PauseDebugger();
 void ResumeDebugger();
 
-extern char *disRNameGPR[];
-extern char *disRNameCP2D[];
-extern char *disRNameCP2C[];
-extern char *disRNameCP0[];
+extern const char *g_disRNameGPR[];
+extern const char *g_disRNameCP2D[];
+extern const char *g_disRNameCP2C[];
+extern const char *g_disRNameCP0[];
 
 char *disR3000AF(u32 code, u32 pc);
 
