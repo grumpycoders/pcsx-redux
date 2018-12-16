@@ -160,7 +160,7 @@
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\socket.cc" />
-    <ClCompile Include="..\..\src\core\spu.c" />
+    <ClCompile Include="..\..\src\core\spu.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\cdriso.h" />
