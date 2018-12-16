@@ -21,13 +21,13 @@
  * Functions for PSX hardware control.
  */
 
-#include "psxhw.h"
-#include "cdrom.h"
-#include "gpu.h"
-#include "mdec.h"
+#include "core/cdrom.h"
+#include "core/gpu.h"
+#include "core/mdec.h"
+#include "core/psxhw.h"
 
 // Vampire Hunter D hack
-boolean dmaGpuListHackEn = FALSE;
+boolean g_dmaGpuListHackEn = FALSE;
 
 static inline void setIrq(u32 irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
 
@@ -695,12 +695,12 @@ void psxHwWrite32(u32 add, u32 value) {
              * it is incompletele and still beign built by the game.
              * Maybe it is ready when some signal comes in or within given delay?
              */
-            if (dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
+            if (g_dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
                 psxDma2(SWAPu32(HW_DMA2_MADR), SWAPu32(HW_DMA2_BCR), SWAPu32(value));
                 return;
             }
             DmaExec(2);  // DMA2 chcr (GPU DMA)
-            if (g_config.HackFix && HW_DMA2_CHCR == 0x1000401) dmaGpuListHackEn = TRUE;
+            if (g_config.HackFix && HW_DMA2_CHCR == 0x1000401) g_dmaGpuListHackEn = TRUE;
             return;
 
 #ifdef PSXHW_LOG
@@ -802,7 +802,7 @@ void psxHwWrite32(u32 add, u32 value) {
 #ifdef PSXHW_LOG
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
 #endif
-            if (value & 0x8000000) dmaGpuListHackEn = FALSE;
+            if (value & 0x8000000) g_dmaGpuListHackEn = FALSE;
             GPU_writeStatus(value);
             return;
 
