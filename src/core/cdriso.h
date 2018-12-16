@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,10 +1,9 @@
+#include <SDL.h>
 #include <zlib.h>
 
-#include <SDL.h>
-
+#include "core/psxcommon.h"
+#include "core/r3000a.h"
 #include "gui/gui.h"
-#include "psxcommon.h"
-#include "r3000a.h"
 
 void SysPrintf(const char *fmt, ...) {
     // print message to debugging console
@@ -65,6 +64,7 @@ int main() {
     g_psxCpu->Init();
     g_psxCpu->Execute();
 
+    // temporary, to make sure the code doesn't get removed at link time
     g_psxCpu = &g_psxRec;
     g_psxCpu->Init();
     g_psxCpu->Execute();

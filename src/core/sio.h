@@ -20,15 +20,15 @@
 #ifndef _SIO_H_
 #define _SIO_H_
 
+#include "core/plugins.h"
+#include "core/psemu_plugin_defs.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "plugins.h"
-#include "psemu_plugin_defs.h"
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
 
 #define MCD_SECT_SIZE (8 * 16)
 #define MCD_SIZE (1024 * MCD_SECT_SIZE)

@@ -20,11 +20,11 @@
 #ifndef __PSXMEMORY_H__
 #define __PSXMEMORY_H__
 
+#include "core/psxcommon.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "psxcommon.h"
 
 #if defined(__BIGENDIAN__)
 

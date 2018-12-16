@@ -20,14 +20,14 @@
 #ifndef __PSXDMA_H__
 #define __PSXDMA_H__
 
+#include "core/psxcommon.h"
+#include "core/psxhw.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "psxcommon.h"
-#include "psxhw.h"
-#include "psxmem.h"
-#include "r3000a.h"
 
 #define GPUDMA_INT(eCycle)                                      \
     {                                                           \

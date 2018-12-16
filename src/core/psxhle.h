@@ -20,13 +20,13 @@
 #ifndef __PSXHLE_H__
 #define __PSXHLE_H__
 
+#include "core/plugins.h"
+#include "core/psxcommon.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "plugins.h"
-#include "psxcommon.h"
-#include "r3000a.h"
 
 extern void (*psxHLEt[256])();
 

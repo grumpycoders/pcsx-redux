@@ -62,7 +62,7 @@ static u32 gpuDmaChainSize(u32 addr) {
 
     s_lUsedAddr[0] = s_lUsedAddr[1] = s_lUsedAddr[2] = 0xffffff;
 
-    // initial linked list ptr (word)
+    // initial linked list s_ptr (word)
     size = 1;
 
     do {

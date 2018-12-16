@@ -20,15 +20,15 @@
 #ifndef __PSXBIOS_H__
 #define __PSXBIOS_H__
 
+#include "core/misc.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+#include "core/sio.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "misc.h"
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
-#include "sio.h"
 
 extern const char *g_biosA0n[256];
 extern const char *g_biosB0n[256];

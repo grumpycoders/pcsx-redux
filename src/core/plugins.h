@@ -20,7 +20,7 @@
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 #ifndef _WIN32
 
@@ -38,6 +38,11 @@ typedef long (*SIO1open)(unsigned long*);
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+
+#include "core/decode_xa.h"
+#include "core/psemu_plugin_defs.h"
+#include "core/spu.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,11 +54,6 @@ typedef long(CALLBACK* NETopen)(HWND);
 typedef long(CALLBACK* SIO1open)(HWND);
 
 #endif
-
-#include "spu.h"
-
-#include "decode_xa.h"
-#include "psemu_plugin_defs.h"
 
 int LoadPlugins();
 void ReleasePlugins();

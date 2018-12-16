@@ -20,15 +20,15 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 
+#include "core/coff.h"
+#include "core/plugins.h"
+#include "core/psxcommon.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "coff.h"
-#include "plugins.h"
-#include "psxcommon.h"
-#include "psxmem.h"
-#include "r3000a.h"
 
 #undef s_addr
 

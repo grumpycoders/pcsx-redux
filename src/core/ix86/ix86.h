@@ -26,14 +26,14 @@
 #ifndef __IX86_H__
 #define __IX86_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // include basic types
 #include "core/psxcommon.h"
 #include "core/psxhle.h"
 #include "core/r3000a.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // x86Flags defines
 #define X86FLAG_FPU 0x00000001

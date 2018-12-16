@@ -79,8 +79,8 @@ typedef uint8_t boolean;
 #endif
 
 // Local includes
-#include "debug.h"
-#include "system.h"
+#include "core/debug.h"
+#include "core/system.h"
 
 #ifdef __cplusplus
 extern "C" {

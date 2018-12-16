@@ -49,7 +49,7 @@ static u32 *s_psxRecLUT;
 static const size_t RECMEM_SIZE = 8 * 1024 * 1024;
 
 static char *s_recMem; /* the recompiled blocks will be here */
-static char *s_recRAM; /* and the ptr to the blocks here */
+static char *s_recRAM; /* and the s_ptr to the blocks here */
 static char *s_recROM; /* and here */
 
 static u32 s_pc;      /* recompiler pc */

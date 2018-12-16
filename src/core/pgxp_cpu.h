@@ -28,7 +28,7 @@
 #ifndef _PGXP_CPU_H_
 #define _PGXP_CPU_H_
 
-#include "psxcommon.h"
+#include "core/psxcommon.h"
 
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;

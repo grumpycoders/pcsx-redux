@@ -20,14 +20,14 @@
 #ifndef __R3000A_H__
 #define __R3000A_H__
 
+#include "core/psxbios.h"
+#include "core/psxcommon.h"
+#include "core/psxcounters.h"
+#include "core/psxmem.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "psxbios.h"
-#include "psxcommon.h"
-#include "psxcounters.h"
-#include "psxmem.h"
 
 typedef struct {
     int (*Init)();
