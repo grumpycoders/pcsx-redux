@@ -130,7 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\core\cdriso.c" />
+    <ClCompile Include="..\..\src\core\cdriso.cc" />
     <ClCompile Include="..\..\src\core\cdrom.c" />
     <ClCompile Include="..\..\src\core\cheat.c" />
     <ClCompile Include="..\..\src\core\debug.c" />
