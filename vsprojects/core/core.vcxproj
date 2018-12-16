@@ -142,7 +142,7 @@
     <ClCompile Include="..\..\src\core\ix86\ix86.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\misc.cc" />
-    <ClCompile Include="..\..\src\core\pgxp_cpu.c" />
+    <ClCompile Include="..\..\src\core\pgxp_cpu.cc" />
     <ClCompile Include="..\..\src\core\pgxp_debug.c" />
     <ClCompile Include="..\..\src\core\pgxp_gte.c" />
     <ClCompile Include="..\..\src\core\pgxp_mem.c" />
