@@ -30,7 +30,7 @@ static void hleDummy() {
 }
 
 static void hleA0() {
-    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+    uint32_t call = g_psxRegs.GPR.n.t1 & 0xff;
 
     if (biosA0[call]) biosA0[call]();
 
@@ -38,7 +38,7 @@ static void hleA0() {
 }
 
 static void hleB0() {
-    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+    uint32_t call = g_psxRegs.GPR.n.t1 & 0xff;
 
     if (biosB0[call]) biosB0[call]();
 
@@ -46,7 +46,7 @@ static void hleB0() {
 }
 
 static void hleC0() {
-    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+    uint32_t call = g_psxRegs.GPR.n.t1 & 0xff;
 
     if (biosC0[call]) biosC0[call]();
 
@@ -62,17 +62,17 @@ static void hleBootstrap() {  // 0xbfc00000
 }
 
 typedef struct {
-    u32 _pc0;
-    u32 gp0;
-    u32 t_addr;
-    u32 t_size;
-    u32 d_addr;
-    u32 d_size;
-    u32 b_addr;
-    u32 b_size;
-    u32 S_addr;
-    u32 s_size;
-    u32 _sp, _fp, _gp, ret, base;
+    uint32_t _pc0;
+    uint32_t gp0;
+    uint32_t t_addr;
+    uint32_t t_size;
+    uint32_t d_addr;
+    uint32_t d_size;
+    uint32_t b_addr;
+    uint32_t b_size;
+    uint32_t S_addr;
+    uint32_t s_size;
+    uint32_t _sp, _fp, _gp, ret, base;
 } EXEC;
 
 static void hleExecRet() {

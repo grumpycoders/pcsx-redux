@@ -774,7 +774,7 @@ unsigned char sioRead8() {
 }
 
 unsigned short sioReadStat16() {
-    u16 hard;
+    uint16_t hard;
 
     hard = s_statReg;
 
@@ -1293,25 +1293,25 @@ void LoadDongle(const char *str) {
         fread(s_dongleData, 1, DONGLE_SIZE, f);
         fclose(f);
     } else {
-        u32 *ptr, lcv;
+        uint32_t *ptr, lcv;
 
         ptr = (unsigned int *)s_dongleData;
 
         // create temp data
-        ptr[0] = (u32)0x02015447;
-        ptr[1] = (u32)7;
-        ptr[2] = (u32)1;
-        ptr[3] = (u32)0;
+        ptr[0] = (uint32_t)0x02015447;
+        ptr[1] = (uint32_t)7;
+        ptr[2] = (uint32_t)1;
+        ptr[3] = (uint32_t)0;
 
         for (lcv = 4; lcv < 0x6c / 4; lcv++) {
             ptr[lcv] = 0;
         }
 
-        ptr[lcv] = (u32)0x02000100;
+        ptr[lcv] = (uint32_t)0x02000100;
         lcv++;
 
         while (lcv < 0x1000 / 4) {
-            ptr[lcv] = (u32)0xffffffff;
+            ptr[lcv] = (uint32_t)0xffffffff;
             lcv++;
         }
     }

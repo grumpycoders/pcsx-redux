@@ -239,7 +239,7 @@ static PGXP_CPU_OpData PGXP_COP0_LUT[32] = {
     PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL,
     PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL, PGXP_Data_NULL};
 
-PGXP_CPU_OpData GetOpData(u32 instr) {
+PGXP_CPU_OpData GetOpData(uint32_t instr) {
     PGXP_CPU_OpData pOpData = PGXP_Data_ERROR;
     switch (op(instr)) {
         case 0:
@@ -264,7 +264,7 @@ PGXP_CPU_OpData GetOpData(u32 instr) {
     return pOpData;
 }
 
-PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
+PGXP_value* GetReg(uint32_t instr, uint32_t flag, uint32_t psxValue) {
     // iCB Hack: reorder Rs and Rt for SLLV SRLV and SRAV
     if ((op(instr) == 0) && (func(instr) > 3) && (func(instr) < 8))
         flag = (flag == fOp_CPU_Rs) ? fOp_CPU_Rt : ((flag == fOp_CPU_Rt) ? fOp_CPU_Rs : flag);
@@ -300,12 +300,12 @@ PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
     }
 }
 
-void ForceValues(u32 instr, u32 flags, psx_value* psx_regs, u32 startIdx) {
+void ForceValues(uint32_t instr, uint32_t flags, psx_value* psx_regs, uint32_t startIdx) {
     PGXP_value* pReg = NULL;
-    u32 regIdx = startIdx;
+    uint32_t regIdx = startIdx;
 
-    for (u32 opdIdx = 0; opdIdx < 14; opdIdx++) {
-        u32 flag = 1 << opdIdx;
+    for (uint32_t opdIdx = 0; opdIdx < 14; opdIdx++) {
+        uint32_t flag = 1 << opdIdx;
 
         // iCB: Skip Load operations as data at address is unknown
         if ((flags & flag) && (flag != fOp_Ad)) {
@@ -319,12 +319,12 @@ void ForceValues(u32 instr, u32 flags, psx_value* psx_regs, u32 startIdx) {
     }
 }
 
-void TestValues(u32 instr, u32 flags, psx_value* psx_regs, u32* test_flags, u32 startIdx) {
+void TestValues(uint32_t instr, uint32_t flags, psx_value* psx_regs, uint32_t* test_flags, uint32_t startIdx) {
     PGXP_value* pReg = NULL;
-    u32 regIdx = startIdx;
+    uint32_t regIdx = startIdx;
 
-    for (u32 opdIdx = 0; opdIdx < 14; opdIdx++) {
-        u32 flag = 1 << opdIdx;
+    for (uint32_t opdIdx = 0; opdIdx < 14; opdIdx++) {
+        uint32_t flag = 1 << opdIdx;
 
         // iCB: Skip Store operations as data at address is unknown
         if ((flags & flag) && (flag != fOp_Ad)) {
@@ -338,17 +338,17 @@ void TestValues(u32 instr, u32 flags, psx_value* psx_regs, u32* test_flags, u32 
     }
 }
 
-void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, psx_value* psx_regs, u32 startIdx) {
+void PrintOperands(char* szBuffer, uint32_t instr, uint32_t flags, const char* szDelim, psx_value* psx_regs, uint32_t startIdx) {
     char szTempBuffer[256];
     PGXP_value* pReg = NULL;
     psx_value psx_reg;
-    u32 regIdx = startIdx;
+    uint32_t regIdx = startIdx;
     char szOpdName[16];
     const char* szPre = "";
 
     memset(szTempBuffer, 0, sizeof(szTempBuffer));
-    for (u32 opdIdx = 0; opdIdx < 14; opdIdx++) {
-        u32 flag = 1 << opdIdx;
+    for (uint32_t opdIdx = 0; opdIdx < 14; opdIdx++) {
+        uint32_t flag = 1 << opdIdx;
 
         // iCB Hack: reorder Rs and Rt for SLLV SRLV and SRAV
         if ((op(instr) == 0) && (func(instr) > 3) && (func(instr) < 8))
@@ -455,13 +455,13 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
     }
 }
 
-void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 op3, u32 op4) {
+void PGXP_CPU_DebugOutput(uint32_t eOp, uint32_t instr, uint32_t numOps, uint32_t op1, uint32_t op2, uint32_t op3, uint32_t op4) {
     char szOutputBuffer[256];
     char szInputBuffer[512];
     PGXP_CPU_OpData opData = GetOpData(instr);
-    u32 test_flags[4] = {VALID_ALL, VALID_ALL, VALID_ALL, VALID_ALL};
+    uint32_t test_flags[4] = {VALID_ALL, VALID_ALL, VALID_ALL, VALID_ALL};
     psx_value psx_regs[4];
-    u32 inIdx = 0;
+    uint32_t inIdx = 0;
     psx_regs[0].d = op1;
     psx_regs[1].d = op2;
     psx_regs[2].d = op3;
@@ -480,7 +480,7 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
     // /iCB Hack
 
     // skip output arguments to find first input
-    for (u32 opdIdx = 0; opdIdx < 12; opdIdx++) {
+    for (uint32_t opdIdx = 0; opdIdx < 12; opdIdx++) {
         if (opData.OutputFlags & (1 << opdIdx)) inIdx++;
     }
 
@@ -506,19 +506,19 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
 
     switch (numOps) {
         case 0:
-            ((void (*)(u32))opData.funcPtr)(instr);
+            ((void (*)(uint32_t))opData.funcPtr)(instr);
             break;
         case 1:
-            ((void (*)(u32, u32))opData.funcPtr)(instr, op1);
+            ((void (*)(uint32_t, uint32_t))opData.funcPtr)(instr, op1);
             break;
         case 2:
-            ((void (*)(u32, u32, u32))opData.funcPtr)(instr, op1, op2);
+            ((void (*)(uint32_t, uint32_t, uint32_t))opData.funcPtr)(instr, op1, op2);
             break;
         case 3:
-            ((void (*)(u32, u32, u32, u32))opData.funcPtr)(instr, op1, op2, op3);
+            ((void (*)(uint32_t, uint32_t, uint32_t, uint32_t))opData.funcPtr)(instr, op1, op2, op3);
             break;
         case 4:
-            ((void (*)(u32, u32, u32, u32, u32))opData.funcPtr)(instr, op1, op2, op3, op4);
+            ((void (*)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t))opData.funcPtr)(instr, op1, op2, op3, op4);
             break;
     }
 
@@ -544,37 +544,37 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
 #endif  // PGXP_OUTPUT_ALL
 }
 
-void PGXP_psxTraceOp(u32 eOp, u32 instr) {
+void PGXP_psxTraceOp(uint32_t eOp, uint32_t instr) {
     // PGXP_CPU_OpData opData = GetOpData(instr);
     // if (opData.funcPtr && (opData.numArgs == 0))
-    //	((void(*)(u32))opData.funcPtr)(instr);
+    //	((void(*)(uint32_t))opData.funcPtr)(instr);
     PGXP_CPU_DebugOutput(eOp, instr, 0, 0, 0, 0, 0);
 }
 
-void PGXP_psxTraceOp1(u32 eOp, u32 instr, u32 op1) {
+void PGXP_psxTraceOp1(uint32_t eOp, uint32_t instr, uint32_t op1) {
     // PGXP_CPU_OpData opData = GetOpData(instr);
     // if (opData.funcPtr && (opData.numArgs == 1))
-    //	((void(*)(u32, u32))opData.funcPtr)(instr, op1);
+    //	((void(*)(uint32_t, uint32_t))opData.funcPtr)(instr, op1);
     PGXP_CPU_DebugOutput(eOp, instr, 1, op1, 0, 0, 0);
 }
 
-void PGXP_psxTraceOp2(u32 eOp, u32 instr, u32 op1, u32 op2) {
+void PGXP_psxTraceOp2(uint32_t eOp, uint32_t instr, uint32_t op1, uint32_t op2) {
     // PGXP_CPU_OpData opData = GetOpData(instr);
     // if (opData.funcPtr && (opData.numArgs == 2))
-    //	((void(*)(u32, u32, u32))opData.funcPtr)(instr, op1, op2);
+    //	((void(*)(uint32_t, uint32_t, uint32_t))opData.funcPtr)(instr, op1, op2);
     PGXP_CPU_DebugOutput(eOp, instr, 2, op1, op2, 0, 0);
 }
 
-void PGXP_psxTraceOp3(u32 eOp, u32 instr, u32 op1, u32 op2, u32 op3) {
+void PGXP_psxTraceOp3(uint32_t eOp, uint32_t instr, uint32_t op1, uint32_t op2, uint32_t op3) {
     // PGXP_CPU_OpData opData = GetOpData(instr);
     // if (opData.funcPtr && (opData.numArgs == 3))
-    //	((void(*)(u32, u32, u32, u32))opData.funcPtr)(instr, op1, op2, op3);
+    //	((void(*)(uint32_t, uint32_t, uint32_t, uint32_t))opData.funcPtr)(instr, op1, op2, op3);
     PGXP_CPU_DebugOutput(eOp, instr, 3, op1, op2, op3, 0);
 }
 
-void PGXP_psxTraceOp4(u32 eOp, u32 instr, u32 op1, u32 op2, u32 op3, u32 op4) {
+void PGXP_psxTraceOp4(uint32_t eOp, uint32_t instr, uint32_t op1, uint32_t op2, uint32_t op3, uint32_t op4) {
     // PGXP_CPU_OpData opData = GetOpData(instr);
     // if (opData.funcPtr && (opData.numArgs == 4))
-    //	((void(*)(u32, u32, u32, u32, u32))opData.funcPtr)(instr, op1, op2, op3, op4);
+    //	((void(*)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t))opData.funcPtr)(instr, op1, op2, op3, op4);
     PGXP_CPU_DebugOutput(eOp, instr, 4, op1, op2, op3, op4);
 }

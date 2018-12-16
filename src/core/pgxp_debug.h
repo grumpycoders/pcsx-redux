@@ -38,11 +38,11 @@
 #define PGXP_DEBUG_TOLERANCE 2.f
 
 // Debug wrappers
-void PGXP_psxTraceOp(u32 eOp, u32 code);
-void PGXP_psxTraceOp1(u32 eOp, u32 code, u32 op1);
-void PGXP_psxTraceOp2(u32 eOp, u32 code, u32 op1, u32 op2);
-void PGXP_psxTraceOp3(u32 eOp, u32 code, u32 op1, u32 op2, u32 op3);
-void PGXP_psxTraceOp4(u32 eOp, u32 code, u32 op1, u32 op2, u32 op3, u32 op4);
+void PGXP_psxTraceOp(uint32_t eOp, uint32_t code);
+void PGXP_psxTraceOp1(uint32_t eOp, uint32_t code, uint32_t op1);
+void PGXP_psxTraceOp2(uint32_t eOp, uint32_t code, uint32_t op1, uint32_t op2);
+void PGXP_psxTraceOp3(uint32_t eOp, uint32_t code, uint32_t op1, uint32_t op2, uint32_t op3);
+void PGXP_psxTraceOp4(uint32_t eOp, uint32_t code, uint32_t op1, uint32_t op2, uint32_t op3, uint32_t op4);
 
 extern unsigned int g_pgxp_debug;
 

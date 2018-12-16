@@ -23,7 +23,7 @@
 #include "core/psxcommon.h"
 
 typedef struct {
-    s32 y0, y1;
+    int32_t y0, y1;
 } ADPCM_Decode_t;
 
 typedef struct {
@@ -35,6 +35,6 @@ typedef struct {
     short pcm[16384];
 } xa_decode_t;
 
-s32 xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_sector);
+int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_sector);
 
 #endif

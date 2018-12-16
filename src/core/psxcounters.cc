@@ -26,9 +26,9 @@
 /******************************************************************************/
 
 typedef struct Rcnt {
-    u16 mode, target;
-    u32 rate, irq, counterState, irqState;
-    u32 cycle, cycleStart;
+    uint16_t mode, target;
+    uint32_t rate, irq, counterState, irqState;
+    uint32_t cycle, cycleStart;
 } Rcnt;
 
 enum {
@@ -57,39 +57,39 @@ enum {
 };
 
 #define CounterQuantity (4)
-// static const u32 CounterQuantity  = 4;
+// static const uint32_t CounterQuantity  = 4;
 
-static const u32 s_countToOverflow = 0;
-static const u32 s_countToTarget = 1;
+static const uint32_t s_countToOverflow = 0;
+static const uint32_t s_countToTarget = 1;
 
-static const u32 s_frameRate[] = {60, 50};
-static const u32 s_VBlankStart[] = {243, 256};
-static const u32 s_spuUpdInterval[] = {23, 22};
+static const uint32_t s_frameRate[] = {60, 50};
+static const uint32_t s_VBlankStart[] = {243, 256};
+static const uint32_t s_spuUpdInterval[] = {23, 22};
 
 #if defined(PSXHW_LOG)
 #if defined(PSXMEM_LOG) && defined(PSXDMA_LOG)  // automatic guess if we want trace level logging
-static const s32 VerboseLevel = 4;
+static const int32_t VerboseLevel = 4;
 #else
-static const s32 VerboseLevel = 0;
+static const int32_t VerboseLevel = 0;
 #endif
 #endif
-static const u16 JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
+static const uint16_t JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
 
 /******************************************************************************/
 
 static Rcnt s_rcnts[CounterQuantity];
 
-static u32 s_hSyncCount = 0;
-static u32 s_spuSyncCount = 0;
+static uint32_t s_hSyncCount = 0;
+static uint32_t s_spuSyncCount = 0;
 
-static u32 s_HSyncTotal[PSX_TYPE_PAL + 1];  // 2
-u32 g_psxNextCounter = 0, g_psxNextsCounter = 0;
+static uint32_t s_HSyncTotal[PSX_TYPE_PAL + 1];  // 2
+uint32_t g_psxNextCounter = 0, g_psxNextsCounter = 0;
 
 /******************************************************************************/
 
-static inline void setIrq(u32 irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
+static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
 
-static void verboseLog(s32 level, const char *str, ...) {
+static void verboseLog(int32_t level, const char *str, ...) {
 #ifdef PSXHW_LOG
     if (level <= VerboseLevel) {
         va_list va;
@@ -106,7 +106,7 @@ static void verboseLog(s32 level, const char *str, ...) {
 
 /******************************************************************************/
 
-static inline void _psxRcntWcount(u32 index, u32 value) {
+static inline void _psxRcntWcount(uint32_t index, uint32_t value) {
     if (value > 0xffff) {
         verboseLog(1, "[RCNT %i] wcount > 0xffff: %x\n", index, value);
         value &= 0xffff;
@@ -126,8 +126,8 @@ static inline void _psxRcntWcount(u32 index, u32 value) {
     verboseLog(5, "[RCNT %i] scount: %x\n", index, value);
 }
 
-static inline u32 _psxRcntRcount(u32 index) {
-    u32 count;
+static inline uint32_t _psxRcntRcount(uint32_t index) {
+    uint32_t count;
 
     count = g_psxRegs.cycle;
     count -= s_rcnts[index].cycleStart;
@@ -144,8 +144,8 @@ static inline u32 _psxRcntRcount(u32 index) {
 /******************************************************************************/
 
 static void psxRcntSet() {
-    s32 countToUpdate;
-    u32 i;
+    int32_t countToUpdate;
+    uint32_t i;
 
     g_psxNextsCounter = g_psxRegs.cycle;
     g_psxNextCounter = 0x7fffffff;
@@ -158,7 +158,7 @@ static void psxRcntSet() {
             break;
         }
 
-        if (countToUpdate < (s32)g_psxNextCounter) {
+        if (countToUpdate < (int32_t)g_psxNextCounter) {
             g_psxNextCounter = countToUpdate;
         }
     }
@@ -166,8 +166,8 @@ static void psxRcntSet() {
 
 /******************************************************************************/
 
-static void psxRcntReset(u32 index) {
-    u32 count;
+static void psxRcntReset(uint32_t index) {
+    uint32_t count;
 
     if (s_rcnts[index].counterState == s_countToTarget) {
         if (s_rcnts[index].mode & RcCountToTarget) {
@@ -185,7 +185,7 @@ static void psxRcntReset(u32 index) {
             if ((s_rcnts[index].mode & RcIrqRegenerate) || (!s_rcnts[index].irqState)) {
                 verboseLog(3, "[RCNT %i] irq: %x\n", index, count);
                 setIrq(s_rcnts[index].irq);
-                s_rcnts[index].irqState = TRUE;
+                s_rcnts[index].irqState = true;
             }
         }
 
@@ -202,7 +202,7 @@ static void psxRcntReset(u32 index) {
             if ((s_rcnts[index].mode & RcIrqRegenerate) || (!s_rcnts[index].irqState)) {
                 verboseLog(3, "[RCNT %i] irq: %x\n", index, count);
                 setIrq(s_rcnts[index].irq);
-                s_rcnts[index].irqState = TRUE;
+                s_rcnts[index].irqState = true;
             }
         }
 
@@ -215,7 +215,7 @@ static void psxRcntReset(u32 index) {
 }
 
 void psxRcntUpdate() {
-    u32 cycle;
+    uint32_t cycle;
 
     cycle = g_psxRegs.cycle;
 
@@ -283,7 +283,7 @@ void psxRcntUpdate() {
 
 /******************************************************************************/
 
-void psxRcntWcount(u32 index, u32 value) {
+void psxRcntWcount(uint32_t index, uint32_t value) {
     verboseLog(2, "[RCNT %i] wcount: %x\n", index, value);
 
     psxRcntUpdate();
@@ -292,13 +292,13 @@ void psxRcntWcount(u32 index, u32 value) {
     psxRcntSet();
 }
 
-void psxRcntWmode(u32 index, u32 value) {
+void psxRcntWmode(uint32_t index, uint32_t value) {
     verboseLog(1, "[RCNT %i] wmode: %x\n", index, value);
 
     psxRcntUpdate();
 
     s_rcnts[index].mode = value;
-    s_rcnts[index].irqState = FALSE;
+    s_rcnts[index].irqState = false;
 
     switch (index) {
         case 0:
@@ -333,7 +333,7 @@ void psxRcntWmode(u32 index, u32 value) {
     psxRcntSet();
 }
 
-void psxRcntWtarget(u32 index, u32 value) {
+void psxRcntWtarget(uint32_t index, uint32_t value) {
     verboseLog(1, "[RCNT %i] wtarget: %x\n", index, value);
 
     psxRcntUpdate();
@@ -346,8 +346,8 @@ void psxRcntWtarget(u32 index, u32 value) {
 
 /******************************************************************************/
 
-u32 psxRcntRcount(u32 index) {
-    u32 count;
+uint32_t psxRcntRcount(uint32_t index) {
+    uint32_t count;
 
     psxRcntUpdate();
 
@@ -371,9 +371,9 @@ u32 psxRcntRcount(u32 index) {
          *RCNT implementation here is only 99% compatible. Assumed this since easities to fix (only PE2 known to be
          *affected).
          */
-        static u32 clast = 0xffff;
-        static u32 cylast = 0;
-        u32 count1 = count;
+        static uint32_t clast = 0xffff;
+        static uint32_t cylast = 0;
+        uint32_t count1 = count;
         count /= BIAS;
         verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (g_psxRegs.cycle - cylast));
         cylast = g_psxRegs.cycle;
@@ -385,8 +385,8 @@ u32 psxRcntRcount(u32 index) {
     return count;
 }
 
-u32 psxRcntRmode(u32 index) {
-    u16 mode;
+uint32_t psxRcntRmode(uint32_t index) {
+    uint16_t mode;
 
     psxRcntUpdate();
 
@@ -398,7 +398,7 @@ u32 psxRcntRmode(u32 index) {
     return mode;
 }
 
-u32 psxRcntRtarget(u32 index) {
+uint32_t psxRcntRtarget(uint32_t index) {
     verboseLog(2, "[RCNT %i] rtarget: %x\n", index, s_rcnts[index].target);
 
     return s_rcnts[index].target;
@@ -417,7 +417,7 @@ void psxHsyncCalculate() {
 }
 
 void psxRcntInit() {
-    s32 i;
+    int32_t i;
 
     psxHsyncCalculate();
 
@@ -450,7 +450,7 @@ void psxRcntInit() {
 
 /******************************************************************************/
 
-s32 psxRcntFreeze(gzFile f, s32 Mode) {
+int32_t psxRcntFreeze(gzFile f, int32_t Mode) {
     gzfreeze(&s_rcnts, sizeof(s_rcnts));
     gzfreeze(&s_hSyncCount, sizeof(s_hSyncCount));
     gzfreeze(&s_spuSyncCount, sizeof(s_spuSyncCount));

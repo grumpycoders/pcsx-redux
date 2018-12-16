@@ -33,33 +33,33 @@
 typedef union {
 #if defined(__BIGENDIAN__)
     struct {
-        u8 h3, h2, h, l;
+        uint8_t h3, h2, h, l;
     } b;
     struct {
-        s8 h3, h2, h, l;
+        int8_t h3, h2, h, l;
     } sb;
     struct {
-        u16 h, l;
+        uint16_t h, l;
     } w;
     struct {
-        s16 h, l;
+        int16_t h, l;
     } sw;
 #else
     struct {
-        u8 l, h, h2, h3;
+        uint8_t l, h, h2, h3;
     } b;
     struct {
-        u16 l, h;
+        uint16_t l, h;
     } w;
     struct {
-        s8 l, h, h2, h3;
+        int8_t l, h, h2, h3;
     } sb;
     struct {
-        s16 l, h;
+        int16_t l, h;
     } sw;
 #endif
-    u32 d;
-    s32 sd;
+    uint32_t d;
+    int32_t sd;
 } psx_value;
 
 typedef struct PGXP_value_Tag {
@@ -109,11 +109,11 @@ typedef enum { VALID_HALF = (1 << 0) } PGXP_half_flags;
 static const PGXP_value PGXP_value_invalid_address = {0.f, 0.f, 0.f, 0, 0, 0, INVALID_ADDRESS, 0, 0};
 static const PGXP_value PGXP_value_zero = {0.f, 0.f, 0.f, 0, 0, VALID_ALL, 0, 0, 0};
 
-void SetValue(PGXP_value *pV, u32 psxV);
-void MakeValid(PGXP_value *pV, u32 psxV);
-void Validate(PGXP_value *pV, u32 psxV);
-void MaskValidate(PGXP_value *pV, u32 psxV, u32 mask, u32 validMask);
-u32 ValueToTolerance(PGXP_value *pV, u32 psxV, float tolerance);
+void SetValue(PGXP_value *pV, uint32_t psxV);
+void MakeValid(PGXP_value *pV, uint32_t psxV);
+void Validate(PGXP_value *pV, uint32_t psxV);
+void MaskValidate(PGXP_value *pV, uint32_t psxV, uint32_t mask, uint32_t validMask);
+uint32_t ValueToTolerance(PGXP_value *pV, uint32_t psxV, float tolerance);
 
 double f16Sign(double in);
 double f16Unsign(double in);
@@ -122,14 +122,14 @@ double f16Overflow(double in);
 
 typedef union {
     struct {
-        s16 x;
-        s16 y;
+        int16_t x;
+        int16_t y;
     };
     struct {
-        u16 ux;
-        u16 uy;
+        uint16_t ux;
+        uint16_t uy;
     };
-    u32 word;
+    uint32_t word;
 } low_value;
 
 #endif  //_PGX_VALUE_H_

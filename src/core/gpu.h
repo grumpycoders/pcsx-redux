@@ -5,7 +5,7 @@
 
 int gpuReadStatus();
 
-void psxDma2(u32 madr, u32 bcr, u32 chcr);
+void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void gpuInterrupt();
 
 #endif

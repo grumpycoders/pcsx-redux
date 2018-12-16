@@ -60,12 +60,12 @@
     }
 
 void psxHwReset();
-u8 psxHwRead8(u32 add);
-u16 psxHwRead16(u32 add);
-u32 psxHwRead32(u32 add);
-void psxHwWrite8(u32 add, u8 value);
-void psxHwWrite16(u32 add, u16 value);
-void psxHwWrite32(u32 add, u32 value);
+uint8_t psxHwRead8(uint32_t add);
+uint16_t psxHwRead16(uint32_t add);
+uint32_t psxHwRead32(uint32_t add);
+void psxHwWrite8(uint32_t add, uint8_t value);
+void psxHwWrite16(uint32_t add, uint16_t value);
+void psxHwWrite32(uint32_t add, uint32_t value);
 int psxHwFreeze(gzFile f, int Mode);
 
 #endif

@@ -41,21 +41,21 @@ void PGXP_InitGTE();
 // -- GTE functions
 // Transforms
 void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v);
-void PGXP_pushSXYZ2s(s64 _x, s64 _y, s64 _z, u32 v);
+void PGXP_pushSXYZ2s(int64_t _x, int64_t _y, int64_t _z, uint32_t v);
 
-void PGXP_RTPS(u32 _n, u32 _v);
+void PGXP_RTPS(uint32_t _n, uint32_t _v);
 
-int PGXP_NLCIP_valid(u32 sxy0, u32 sxy1, u32 sxy2);
+int PGXP_NLCIP_valid(uint32_t sxy0, uint32_t sxy1, uint32_t sxy2);
 float PGXP_NCLIP();
 
 // Data transfer tracking
-void PGXP_GTE_MFC2(u32 instr, u32 rtVal, u32 rdVal);  // copy GTE data reg to GPR reg (MFC2)
-void PGXP_GTE_MTC2(u32 instr, u32 rdVal, u32 rtVal);  // copy GPR reg to GTE data reg (MTC2)
-void PGXP_GTE_CFC2(u32 instr, u32 rtVal, u32 rdVal);  // copy GTE ctrl reg to GPR reg (CFC2)
-void PGXP_GTE_CTC2(u32 instr, u32 rdVal, u32 rtVal);  // copy GPR reg to GTE ctrl reg (CTC2)
+void PGXP_GTE_MFC2(uint32_t instr, uint32_t rtVal, uint32_t rdVal);  // copy GTE data reg to GPR reg (MFC2)
+void PGXP_GTE_MTC2(uint32_t instr, uint32_t rdVal, uint32_t rtVal);  // copy GPR reg to GTE data reg (MTC2)
+void PGXP_GTE_CFC2(uint32_t instr, uint32_t rtVal, uint32_t rdVal);  // copy GTE ctrl reg to GPR reg (CFC2)
+void PGXP_GTE_CTC2(uint32_t instr, uint32_t rdVal, uint32_t rtVal);  // copy GPR reg to GTE ctrl reg (CTC2)
 // Memory Access
-void PGXP_GTE_LWC2(u32 instr, u32 rtVal, u32 addr);  // copy memory to GTE reg
-void PGXP_GTE_SWC2(u32 instr, u32 rtVal, u32 addr);  // copy GTE reg to memory
+void PGXP_GTE_LWC2(uint32_t instr, uint32_t rtVal, uint32_t addr);  // copy memory to GTE reg
+void PGXP_GTE_SWC2(uint32_t instr, uint32_t rtVal, uint32_t addr);  // copy GTE reg to memory
 
 #ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))

@@ -82,7 +82,7 @@ void psxShutdown() {
     g_psxCpu->Shutdown();
 }
 
-void psxException(u32 code, u32 bd) {
+void psxException(uint32_t code, uint32_t bd) {
     // Set the Cause
     g_psxRegs.CP0.n.Cause = code;
 
@@ -112,10 +112,10 @@ void psxBranchTest() {
     // GameShark Sampler: Give VSync pin some delay before exception eats it
     if (psxHu32(0x1070) & psxHu32(0x1074)) {
         if ((g_psxRegs.CP0.n.Status & 0x401) == 0x401) {
-            u32 opcode;
+            uint32_t opcode;
 
             // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
-            opcode = SWAP32(*Read_ICache(g_psxRegs.pc, TRUE));
+            opcode = SWAP32(*Read_ICache(g_psxRegs.pc, true));
             if (((opcode >> 24) & 0xfe) != 0x4a) {
 #ifdef PSXCPU_LOG
                 PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
@@ -236,7 +236,7 @@ void psxBranchTest() {
 
 void psxJumpTest() {
     if (!g_config.HLE && g_config.PsxOut) {
-        u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+        uint32_t call = g_psxRegs.GPR.n.t1 & 0xff;
         switch (g_psxRegs.pc & 0x1fffff) {
             case 0xa0:
                 if (biosA0[call])
@@ -277,7 +277,7 @@ void psxExecuteBios() {
     while (g_psxRegs.pc != 0x80030000) g_psxCpu->ExecuteBlock();
 }
 
-void psxSetPGXPMode(u32 pgxpMode) {
+void psxSetPGXPMode(uint32_t pgxpMode) {
     g_psxCpu->SetPGXPMode(pgxpMode);
     // g_psxCpu->Reset();
 }

@@ -25,19 +25,19 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-extern u32 g_psxNextCounter, g_psxNextsCounter;
+extern uint32_t g_psxNextCounter, g_psxNextsCounter;
 
 void psxRcntInit();
 void psxRcntUpdate();
 
-void psxRcntWcount(u32 index, u32 value);
-void psxRcntWmode(u32 index, u32 value);
-void psxRcntWtarget(u32 index, u32 value);
+void psxRcntWcount(uint32_t index, uint32_t value);
+void psxRcntWmode(uint32_t index, uint32_t value);
+void psxRcntWtarget(uint32_t index, uint32_t value);
 
-u32 psxRcntRcount(u32 index);
-u32 psxRcntRmode(u32 index);
-u32 psxRcntRtarget(u32 index);
+uint32_t psxRcntRcount(uint32_t index);
+uint32_t psxRcntRmode(uint32_t index);
+uint32_t psxRcntRtarget(uint32_t index);
 
-s32 psxRcntFreeze(gzFile f, s32 Mode);
+int32_t psxRcntFreeze(gzFile f, int32_t Mode);
 
 #endif

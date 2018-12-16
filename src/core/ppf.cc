@@ -25,14 +25,14 @@
 #include "core/psxcommon.h"
 
 typedef struct tagPPF_DATA {
-    s32 addr;
-    s32 pos;
-    s32 anz;
+    int32_t addr;
+    int32_t pos;
+    int32_t anz;
     struct tagPPF_DATA *pNext;
 } PPF_DATA;
 
 typedef struct tagPPF_CACHE {
-    s32 addr;
+    int32_t addr;
     struct tagPPF_DATA *pNext;
 } PPF_CACHE;
 
@@ -44,7 +44,7 @@ static int s_iPPFNum = 0;
 static void FillPPFCache() {
     PPF_DATA *p;
     PPF_CACHE *pc;
-    s32 lastaddr;
+    int32_t lastaddr;
 
     p = s_ppfHead;
     lastaddr = -1;
@@ -138,7 +138,7 @@ void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned
     }
 }
 
-static void AddToPPF(s32 ladr, s32 pos, s32 anz, unsigned char *ppfmem) {
+static void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, unsigned char *ppfmem) {
     if (s_ppfHead == NULL) {
         s_ppfHead = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
         s_ppfHead->addr = ladr;
@@ -195,8 +195,8 @@ void BuildPPFCache() {
     unsigned char ppfmem[512];
     char szPPF[MAXPATHLEN];
     int count, seekpos, pos;
-    u32 anz;  // use 32-bit to avoid stupid overflows
-    s32 ladr, off, anx;
+    uint32_t anz;  // use 32-bit to avoid stupid overflows
+    int32_t ladr, off, anx;
 
     FreePPFCache();
 
@@ -344,7 +344,7 @@ void BuildPPFCache() {
 }
 
 // redump.org SBI files
-static u8 sbitime[256][3], sbicount;
+static uint8_t sbitime[256][3], sbicount;
 
 int LoadSBI(const char *filename) {
     FILE *sbihandle;
@@ -395,15 +395,15 @@ int LoadSBI(const char *filename) {
     return 0;
 }
 
-boolean CheckSBI(const u8 *time) {
+bool CheckSBI(const uint8_t *time) {
     int lcv;
 
     // both BCD format
     for (lcv = 0; lcv < sbicount; lcv++) {
-        if (time[0] == sbitime[lcv][0] && time[1] == sbitime[lcv][1] && time[2] == sbitime[lcv][2]) return TRUE;
+        if (time[0] == sbitime[lcv][0] && time[1] == sbitime[lcv][1] && time[2] == sbitime[lcv][2]) return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 void UnloadSBI(void) { sbicount = 0; }

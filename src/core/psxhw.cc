@@ -27,9 +27,9 @@
 #include "core/psxhw.h"
 
 // Vampire Hunter D hack
-boolean g_dmaGpuListHackEn = FALSE;
+bool g_dmaGpuListHackEn = false;
 
-static inline void setIrq(u32 irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
+static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
 
 void psxHwReset() {
     if (g_config.SioIrq) psxHu32ref(0x1070) |= SWAP32(0x80);
@@ -42,7 +42,7 @@ void psxHwReset() {
     psxRcntInit();
 }
 
-u8 psxHwRead8(u32 add) {
+uint8_t psxHwRead8(uint32_t add) {
     unsigned char hard;
 
     switch (add) {
@@ -80,7 +80,7 @@ u8 psxHwRead8(u32 add) {
     return hard;
 }
 
-u16 psxHwRead16(u32 add) {
+uint16_t psxHwRead16(uint32_t add) {
     unsigned short hard;
 
     switch (add) {
@@ -234,8 +234,8 @@ u16 psxHwRead16(u32 add) {
     return hard;
 }
 
-u32 psxHwRead32(u32 add) {
-    u32 hard;
+uint32_t psxHwRead32(uint32_t add) {
+    uint32_t hard;
 
     switch (add) {
         case 0x1f801040:
@@ -399,7 +399,7 @@ u32 psxHwRead32(u32 add) {
     return hard;
 }
 
-void psxHwWrite8(u32 add, u8 value) {
+void psxHwWrite8(uint32_t add, uint8_t value) {
     switch (add) {
         case 0x1f801040:
             sioWrite8(value);
@@ -435,7 +435,7 @@ void psxHwWrite8(u32 add, u8 value) {
 #endif
 }
 
-void psxHwWrite16(u32 add, u16 value) {
+void psxHwWrite16(uint32_t add, uint16_t value) {
     switch (add) {
         case 0x1f801040:
             sioWrite8((unsigned char)value);
@@ -600,7 +600,7 @@ void psxHwWrite16(u32 add, u16 value) {
         }                                                                                              \
     }
 
-void psxHwWrite32(u32 add, u32 value) {
+void psxHwWrite32(uint32_t add, uint32_t value) {
     switch (add) {
         case 0x1f801040:
             sioWrite8((unsigned char)value);
@@ -700,7 +700,7 @@ void psxHwWrite32(u32 add, u32 value) {
                 return;
             }
             DmaExec(2);  // DMA2 chcr (GPU DMA)
-            if (g_config.HackFix && HW_DMA2_CHCR == 0x1000401) g_dmaGpuListHackEn = TRUE;
+            if (g_config.HackFix && HW_DMA2_CHCR == 0x1000401) g_dmaGpuListHackEn = true;
             return;
 
 #ifdef PSXHW_LOG
@@ -773,7 +773,7 @@ void psxHwWrite32(u32 add, u32 value) {
             PSXHW_LOG("DMA ICR 32bit write %x\n", value);
 #endif
             {
-                u32 tmp = (~value) & SWAPu32(HW_DMA_ICR);
+                uint32_t tmp = (~value) & SWAPu32(HW_DMA_ICR);
                 HW_DMA_ICR = SWAPu32(((tmp ^ value) & 0xffffff) ^ tmp);
                 return;
             }
@@ -802,7 +802,7 @@ void psxHwWrite32(u32 add, u32 value) {
 #ifdef PSXHW_LOG
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
 #endif
-            if (value & 0x8000000) g_dmaGpuListHackEn = FALSE;
+            if (value & 0x8000000) g_dmaGpuListHackEn = false;
             GPU_writeStatus(value);
             return;
 

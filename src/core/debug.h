@@ -30,7 +30,7 @@ void StopDebugger();
 void DebugVSync();
 void ProcessDebug();
 
-void DebugCheckBP(u32 address, enum breakpoint_types type);
+void DebugCheckBP(uint32_t address, enum breakpoint_types type);
 
 void PauseDebugger();
 void ResumeDebugger();
@@ -40,7 +40,7 @@ extern const char *g_disRNameCP2D[];
 extern const char *g_disRNameCP2C[];
 extern const char *g_disRNameCP0[];
 
-char *disR3000AF(u32 code, u32 pc);
+char *disR3000AF(uint32_t code, uint32_t pc);
 
 /*
  * Specficies which logs should be activated.

@@ -40,11 +40,11 @@
 #define GPUSTATUS_DITHER 0x00000200
 
 // Taken from PEOPS SOFTGPU
-static u32 s_lUsedAddr[3];
+static uint32_t s_lUsedAddr[3];
 
-static inline boolean CheckForEndlessLoop(u32 laddr) {
-    if (laddr == s_lUsedAddr[1]) return TRUE;
-    if (laddr == s_lUsedAddr[2]) return TRUE;
+static inline bool CheckForEndlessLoop(uint32_t laddr) {
+    if (laddr == s_lUsedAddr[1]) return true;
+    if (laddr == s_lUsedAddr[2]) return true;
 
     if (laddr < s_lUsedAddr[0])
         s_lUsedAddr[1] = laddr;
@@ -53,12 +53,12 @@ static inline boolean CheckForEndlessLoop(u32 laddr) {
 
     s_lUsedAddr[0] = laddr;
 
-    return FALSE;
+    return false;
 }
 
-static u32 gpuDmaChainSize(u32 addr) {
-    u32 size;
-    u32 DMACommandCounter = 0;
+static uint32_t gpuDmaChainSize(uint32_t addr) {
+    uint32_t size;
+    uint32_t DMACommandCounter = 0;
 
     s_lUsedAddr[0] = s_lUsedAddr[1] = s_lUsedAddr[2] = 0xffffff;
 
@@ -95,16 +95,16 @@ int gpuReadStatus() {
     return hard;
 }
 
-void psxDma2(u32 madr, u32 bcr, u32 chcr) {  // GPU
-    u32 *ptr;
-    u32 size, bs;
+void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
+    uint32_t *ptr;
+    uint32_t size, bs;
 
     switch (chcr) {
         case 0x01000200:  // vram2mem
 #ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA2 GPU - vram2mem *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
 #endif
-            ptr = (u32 *)PSXM(madr);
+            ptr = (uint32_t *)PSXM(madr);
             if (ptr == NULL) {
 #ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA2 GPU - vram2mem *** NULL Pointer!!!\n");
@@ -133,7 +133,7 @@ void psxDma2(u32 madr, u32 bcr, u32 chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU mem2vram *** %lx addr = %lxh, BCR %lxh => size %d = BA(%d) * BS(%xh)\n", chcr,
                        madr, bcr, size, size / bs, size / (bcr >> 16));
 #endif
-            ptr = (u32 *)PSXM(madr);
+            ptr = (uint32_t *)PSXM(madr);
             if (ptr == NULL) {
 #ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
@@ -159,7 +159,7 @@ void psxDma2(u32 madr, u32 bcr, u32 chcr) {  // GPU
 #endif
 
             size = gpuDmaChainSize(madr);
-            GPU_dmaChain((u32 *)g_psxM, madr & 0x1fffff);
+            GPU_dmaChain((uint32_t *)g_psxM, madr & 0x1fffff);
 
             // Tekken 3 = use 1.0 only (not 1.5x)
 

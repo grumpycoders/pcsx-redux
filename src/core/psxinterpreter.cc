@@ -31,7 +31,7 @@
 
 static int s_branch = 0;
 static int s_branch2 = 0;
-static u32 s_branchPC;
+static uint32_t s_branchPC;
 
 // These macros are used to assemble the repassembler functions
 
@@ -53,8 +53,8 @@ static void (**s_pPsxCP0)() = NULL;
 static void (**s_pPsxCP2)() = NULL;
 static void (**s_pPsxCP2BSC)() = NULL;
 
-static void delayRead(int reg, u32 bpc) {
-    u32 rold, rnew;
+static void delayRead(int reg, uint32_t bpc) {
+    uint32_t rold, rnew;
 
     //	PCSX::system->SysPrintf("delayRead at %x!\n", g_psxRegs.pc);
 
@@ -73,7 +73,7 @@ static void delayRead(int reg, u32 bpc) {
     psxBranchTest();
 }
 
-static void delayWrite(int reg, u32 bpc) {
+static void delayWrite(int reg, uint32_t bpc) {
     /*	PCSX::system->SysPrintf("delayWrite at %x!\n", g_psxRegs.pc);
 
             PCSX::system->SysPrintf("%s\n", disR3000AF(g_psxRegs.code, g_psxRegs.pc-4));
@@ -89,7 +89,7 @@ static void delayWrite(int reg, u32 bpc) {
     psxBranchTest();
 }
 
-static void delayReadWrite(int reg, u32 bpc) {
+static void delayReadWrite(int reg, uint32_t bpc) {
     //	PCSX::system->SysPrintf("delayReadWrite at %x!\n", g_psxRegs.pc);
 
     // the branch delay load is skipped
@@ -108,7 +108,7 @@ static void delayReadWrite(int reg, u32 bpc) {
 #define _tRs_ ((tmp >> 21) & 0x1F)  // The rs part of the instruction register
 #define _tSa_ ((tmp >> 6) & 0x1F)   // The sa part of the instruction register
 
-int psxTestLoadDelay(int reg, u32 tmp) {
+int psxTestLoadDelay(int reg, uint32_t tmp) {
     if (tmp == 0) return 0;  // NOP
     switch (tmp >> 26) {
         case 0x00:  // SPECIAL
@@ -312,12 +312,12 @@ int psxTestLoadDelay(int reg, u32 tmp) {
     return 0;
 }
 
-void psxDelayTest(int reg, u32 bpc) {
-    u32 *code;
-    u32 tmp;
+void psxDelayTest(int reg, uint32_t bpc) {
+    uint32_t *code;
+    uint32_t tmp;
 
     // Don't execute yet - just peek
-    code = Read_ICache(bpc, TRUE);
+    code = Read_ICache(bpc, true);
 
     tmp = ((code == NULL) ? 0 : SWAP32(*code));
     s_branch = 1;
@@ -341,11 +341,11 @@ void psxDelayTest(int reg, u32 bpc) {
     psxBranchTest();
 }
 
-static u32 psxBranchNoDelay(void) {
-    u32 *code;
-    u32 temp;
+static uint32_t psxBranchNoDelay(void) {
+    uint32_t *code;
+    uint32_t temp;
 
-    code = Read_ICache(g_psxRegs.pc, TRUE);
+    code = Read_ICache(g_psxRegs.pc, true);
     g_psxRegs.code = ((code == NULL) ? 0 : SWAP32(*code));
     switch (_Op_) {
         case 0x00:  // SPECIAL
@@ -401,10 +401,10 @@ static u32 psxBranchNoDelay(void) {
             break;
     }
 
-    return (u32)-1;
+    return (uint32_t)-1;
 }
 
-static int psxDelayBranchExec(u32 tar) {
+static int psxDelayBranchExec(uint32_t tar) {
     execI();
 
     s_branch = 0;
@@ -414,11 +414,11 @@ static int psxDelayBranchExec(u32 tar) {
     return 1;
 }
 
-static int psxDelayBranchTest(u32 tar1) {
-    u32 tar2, tmp1, tmp2;
+static int psxDelayBranchTest(uint32_t tar1) {
+    uint32_t tar2, tmp1, tmp2;
 
     tar2 = psxBranchNoDelay();
-    if (tar2 == (u32)-1) return 0;
+    if (tar2 == (uint32_t)-1) return 0;
 
     debugI();
 
@@ -430,7 +430,7 @@ static int psxDelayBranchTest(u32 tar1) {
      */
     g_psxRegs.pc = tar1;
     tmp1 = psxBranchNoDelay();
-    if (tmp1 == (u32)-1) {
+    if (tmp1 == (uint32_t)-1) {
         return psxDelayBranchExec(tar2);
     }
     debugI();
@@ -443,7 +443,7 @@ static int psxDelayBranchTest(u32 tar1) {
      */
     g_psxRegs.pc = tar2;
     tmp2 = psxBranchNoDelay();
-    if (tmp2 == (u32)-1) {
+    if (tmp2 == (uint32_t)-1) {
         return psxDelayBranchExec(tmp1);
     }
     debugI();
@@ -458,9 +458,9 @@ static int psxDelayBranchTest(u32 tar1) {
     return psxDelayBranchExec(tmp2);
 }
 
-static __inline void doBranch(u32 tar) {
-    u32 *code;
-    u32 tmp;
+static __inline void doBranch(uint32_t tar) {
+    uint32_t *code;
+    uint32_t tmp;
 
     s_branch2 = s_branch = 1;
     s_branchPC = tar;
@@ -469,7 +469,7 @@ static __inline void doBranch(u32 tar) {
     if (psxDelayBranchTest(tar)) return;
 
     // branch delay slot
-    code = Read_ICache(g_psxRegs.pc, TRUE);
+    code = Read_ICache(g_psxRegs.pc, true);
 
     g_psxRegs.code = ((code == NULL) ? 0 : SWAP32(*code));
 
@@ -550,7 +550,7 @@ static void psxSLTI() {
 }  // Rt = Rs < Im		(Signed)
 static void psxSLTIU() {
     if (!_Rt_) return;
-    _rRt_ = _u32(_rRs_) < ((u32)_Imm_);
+    _rRt_ = _u32(_rRs_) < ((uint32_t)_Imm_);
 }  // Rt = Rs < Im		(Unsigned)
 
 /*********************************************************
@@ -630,17 +630,17 @@ static void psxDIVU() {
 }
 
 static void psxMULT() {
-    u64 res = (s64)((s64)_i32(_rRs_) * (s64)_i32(_rRt_));
+    uint64_t res = (int64_t)((int64_t)_i32(_rRs_) * (int64_t)_i32(_rRt_));
 
-    g_psxRegs.GPR.n.lo = (u32)(res & 0xffffffff);
-    g_psxRegs.GPR.n.hi = (u32)((res >> 32) & 0xffffffff);
+    g_psxRegs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
+    g_psxRegs.GPR.n.hi = (uint32_t)((res >> 32) & 0xffffffff);
 }
 
 static void psxMULTU() {
-    u64 res = (u64)((u64)_u32(_rRs_) * (u64)_u32(_rRt_));
+    uint64_t res = (uint64_t)((uint64_t)_u32(_rRs_) * (uint64_t)_u32(_rRt_));
 
-    g_psxRegs.GPR.n.lo = (u32)(res & 0xffffffff);
-    g_psxRegs.GPR.n.hi = (u32)((res >> 32) & 0xffffffff);
+    g_psxRegs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
+    g_psxRegs.GPR.n.hi = (uint32_t)((res >> 32) & 0xffffffff);
 }
 
 /*********************************************************
@@ -773,7 +773,7 @@ static void psxJR() {
 }
 
 static void psxJALR() {
-    u32 temp = _u32(_rRs_);
+    uint32_t temp = _u32(_rRs_);
     if (_Rd_) {
         _SetLink(_Rd_);
     }
@@ -872,13 +872,13 @@ static void psxLW() {
     }
 }
 
-extern "C" const u32 g_LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
-extern "C" const u32 g_LWL_SHIFT[4] = {24, 16, 8, 0};
+extern "C" const uint32_t g_LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
+extern "C" const uint32_t g_LWL_SHIFT[4] = {24, 16, 8, 0};
 
 static void psxLWL() {
-    u32 addr = _oB_;
-    u32 shift = addr & 3;
-    u32 mem = psxMemRead32(addr & ~3);
+    uint32_t addr = _oB_;
+    uint32_t shift = addr & 3;
+    uint32_t mem = psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
     if (s_branch == 0) {
@@ -902,13 +902,13 @@ static void psxLWL() {
     */
 }
 
-extern "C" const u32 g_LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
-extern "C" const u32 g_LWR_SHIFT[4] = {0, 8, 16, 24};
+extern "C" const uint32_t g_LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+extern "C" const uint32_t g_LWR_SHIFT[4] = {0, 8, 16, 24};
 
 static void psxLWR() {
-    u32 addr = _oB_;
-    u32 shift = addr & 3;
-    u32 mem = psxMemRead32(addr & ~3);
+    uint32_t addr = _oB_;
+    uint32_t shift = addr & 3;
+    uint32_t mem = psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
     if (s_branch == 0) {
@@ -936,13 +936,13 @@ static void psxSB() { psxMemWrite8(_oB_, _u8(_rRt_)); }
 static void psxSH() { psxMemWrite16(_oB_, _u16(_rRt_)); }
 static void psxSW() { psxMemWrite32(_oB_, _u32(_rRt_)); }
 
-extern "C" const u32 g_SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
-extern "C" const u32 g_SWL_SHIFT[4] = {24, 16, 8, 0};
+extern "C" const uint32_t g_SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
+extern "C" const uint32_t g_SWL_SHIFT[4] = {24, 16, 8, 0};
 
 static void psxSWL() {
-    u32 addr = _oB_;
-    u32 shift = addr & 3;
-    u32 mem = psxMemRead32(addr & ~3);
+    uint32_t addr = _oB_;
+    uint32_t shift = addr & 3;
+    uint32_t mem = psxMemRead32(addr & ~3);
 
     psxMemWrite32(addr & ~3, (_u32(_rRt_) >> g_SWL_SHIFT[shift]) | (mem & g_SWL_MASK[shift]));
     /*
@@ -955,13 +955,13 @@ static void psxSWL() {
     */
 }
 
-extern "C" const u32 g_SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
-extern "C" const u32 g_SWR_SHIFT[4] = {0, 8, 16, 24};
+extern "C" const uint32_t g_SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
+extern "C" const uint32_t g_SWR_SHIFT[4] = {0, 8, 16, 24};
 
 static void psxSWR() {
-    u32 addr = _oB_;
-    u32 shift = addr & 3;
-    u32 mem = psxMemRead32(addr & ~3);
+    uint32_t addr = _oB_;
+    uint32_t shift = addr & 3;
+    uint32_t mem = psxMemRead32(addr & ~3);
 
     psxMemWrite32(addr & ~3, (_u32(_rRt_) << g_SWR_SHIFT[shift]) | (mem & g_SWR_MASK[shift]));
 
@@ -1017,7 +1017,7 @@ void psxTestSWInts() {
     }
 }
 
-static __inline void MTC0(int reg, u32 val) {
+static __inline void MTC0(int reg, uint32_t val) {
     //	PCSX::system->SysPrintf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
@@ -1180,7 +1180,7 @@ void pgxpPsxNULL() {}
             psx##op();                                                     \
             return;                                                        \
         }                                                                  \
-        u32 tempInstr = g_psxRegs.code;                                    \
+        uint32_t tempInstr = g_psxRegs.code;                                    \
         psx##op();                                                         \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1); \
     }
@@ -1201,8 +1201,8 @@ void pgxpPsxNULL() {}
             psx##op();                                                            \
             return;                                                               \
         }                                                                         \
-        u32 tempInstr = g_psxRegs.code;                                           \
-        u32 temp2 = reg2;                                                         \
+        uint32_t tempInstr = g_psxRegs.code;                                           \
+        uint32_t temp2 = reg2;                                                         \
         psx##op();                                                                \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2); \
     }
@@ -1213,7 +1213,7 @@ void pgxpPsxNULL() {}
             psx##op();                                                           \
             return;                                                              \
         }                                                                        \
-        u32 tempInstr = g_psxRegs.code;                                          \
+        uint32_t tempInstr = g_psxRegs.code;                                          \
         psx##op();                                                               \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, reg2); \
     }
@@ -1224,9 +1224,9 @@ void pgxpPsxNULL() {}
             psx##op();                                                             \
             return;                                                                \
         }                                                                          \
-        u32 tempInstr = g_psxRegs.code;                                            \
-        u32 temp1 = reg1;                                                          \
-        u32 temp2 = reg2;                                                          \
+        uint32_t tempInstr = g_psxRegs.code;                                            \
+        uint32_t temp1 = reg1;                                                          \
+        uint32_t temp2 = reg2;                                                          \
         psx##op();                                                                 \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, temp1, temp2); \
     }
@@ -1237,9 +1237,9 @@ void pgxpPsxNULL() {}
             psx##op();                                                                   \
             return;                                                                      \
         }                                                                                \
-        u32 tempInstr = g_psxRegs.code;                                                  \
-        u32 temp2 = reg2;                                                                \
-        u32 temp3 = reg3;                                                                \
+        uint32_t tempInstr = g_psxRegs.code;                                                  \
+        uint32_t temp2 = reg2;                                                                \
+        uint32_t temp3 = reg3;                                                                \
         psx##op();                                                                       \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2, temp3); \
     }
@@ -1250,9 +1250,9 @@ void pgxpPsxNULL() {}
             psx##op();                                                                         \
             return;                                                                            \
         }                                                                                      \
-        u32 tempInstr = g_psxRegs.code;                                                        \
-        u32 temp3 = reg3;                                                                      \
-        u32 temp4 = reg4;                                                                      \
+        uint32_t tempInstr = g_psxRegs.code;                                                        \
+        uint32_t temp3 = reg3;                                                                      \
+        uint32_t temp4 = reg4;                                                                      \
         psx##op();                                                                             \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, reg2, temp3, temp4); \
     }
@@ -1385,7 +1385,7 @@ static void (*s_pgxpPsxBSCMem[64])() = {
 
 static int intInit() { return 0; }
 
-static void intReset() { g_psxRegs.ICache_valid = FALSE; }
+static void intReset() { g_psxRegs.ICache_valid = false; }
 
 static void intExecute() {
     for (;;) execI();
@@ -1396,13 +1396,13 @@ static void intExecuteBlock() {
     while (!s_branch2) execI();
 }
 
-static void intClear(u32 Addr, u32 Size) {}
+static void intClear(uint32_t Addr, uint32_t Size) {}
 
 static void intShutdown() {}
 
 // interpreter execution
 static inline void execI() {
-    u32 *code = Read_ICache(g_psxRegs.pc, FALSE);
+    uint32_t *code = Read_ICache(g_psxRegs.pc, false);
     g_psxRegs.code = ((code == NULL) ? 0 : SWAP32(*code));
 
     debugI();
@@ -1415,7 +1415,7 @@ static inline void execI() {
     s_pPsxBSC[g_psxRegs.code >> 26]();
 }
 
-static void intSetPGXPMode(u32 pgxpMode) {
+static void intSetPGXPMode(uint32_t pgxpMode) {
     switch (pgxpMode) {
         case 0:  // PGXP_MODE_DISABLED:
             s_pPsxBSC = s_psxBSC;

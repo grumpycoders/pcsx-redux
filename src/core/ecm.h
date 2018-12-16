@@ -68,18 +68,18 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define ECM_HEADER_SIZE 4
 
-u32 len_decoded_ecm_buffer = 0;  // same as decoded ECM file length or 2x size
-u32 len_ecm_savetable = 0;       // same as sector count of decoded ECM file or 2x count
+uint32_t len_decoded_ecm_buffer = 0;  // same as decoded ECM file length or 2x size
+uint32_t len_ecm_savetable = 0;       // same as sector count of decoded ECM file or 2x count
 
 #ifdef ENABLE_ECM_FULL  // setting this makes whole ECM to be decoded in-memory meaning buffer could eat up to 700 MB of
                         // memory
-u32 decoded_ecm_sectors = 1;  // initially sector 1 is always decoded
+uint32_t decoded_ecm_sectors = 1;  // initially sector 1 is always decoded
 #else
-u32 decoded_ecm_sectors = 0;  // disabled
+uint32_t decoded_ecm_sectors = 0;  // disabled
 #endif
 
-boolean ecm_file_detected = FALSE;
-u32 prevsector;
+bool ecm_file_detected = false;
+uint32_t prevsector;
 
 FILE* decoded_ecm = NULL;
 void* decoded_ecm_buffer;
@@ -88,8 +88,8 @@ void* decoded_ecm_buffer;
 int (*cdimg_read_func_o)(FILE* f, unsigned int base, void* dest, int sector) = NULL;
 
 typedef struct ECMFILELUT {
-    s32 sector;
-    s32 filepos;
+    int32_t sector;
+    int32_t filepos;
 } ECMFILELUT;
 
 ECMFILELUT* ecm_savetable = NULL;

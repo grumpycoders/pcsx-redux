@@ -43,80 +43,80 @@ void PGXP_InitCPU();
 // -- CPU functions
 
 // Load 32-bit word
-void PGXP_CPU_LWL(u32 instr, u32 rtVal, u32 addr);
-void PGXP_CPU_LW(u32 instr, u32 rtVal, u32 addr);
-void PGXP_CPU_LWR(u32 instr, u32 rtVal, u32 addr);
+void PGXP_CPU_LWL(uint32_t instr, uint32_t rtVal, uint32_t addr);
+void PGXP_CPU_LW(uint32_t instr, uint32_t rtVal, uint32_t addr);
+void PGXP_CPU_LWR(uint32_t instr, uint32_t rtVal, uint32_t addr);
 
 // Load 16-bit
-void PGXP_CPU_LH(u32 instr, u16 rtVal, u32 addr);
-void PGXP_CPU_LHU(u32 instr, u16 rtVal, u32 addr);
+void PGXP_CPU_LH(uint32_t instr, uint16_t rtVal, uint32_t addr);
+void PGXP_CPU_LHU(uint32_t instr, uint16_t rtVal, uint32_t addr);
 
 // Load 8-bit
-void PGXP_CPU_LB(u32 instr, u8 rtVal, u32 addr);
-void PGXP_CPU_LBU(u32 instr, u8 rtVal, u32 addr);
+void PGXP_CPU_LB(uint32_t instr, uint8_t rtVal, uint32_t addr);
+void PGXP_CPU_LBU(uint32_t instr, uint8_t rtVal, uint32_t addr);
 
 // Store 32-bit word
-void PGXP_CPU_SWL(u32 instr, u32 rtVal, u32 addr);
-void PGXP_CPU_SW(u32 instr, u32 rtVal, u32 addr);
-void PGXP_CPU_SWR(u32 instr, u32 rtVal, u32 addr);
+void PGXP_CPU_SWL(uint32_t instr, uint32_t rtVal, uint32_t addr);
+void PGXP_CPU_SW(uint32_t instr, uint32_t rtVal, uint32_t addr);
+void PGXP_CPU_SWR(uint32_t instr, uint32_t rtVal, uint32_t addr);
 
 // Store 16-bit
-void PGXP_CPU_SH(u32 instr, u16 rtVal, u32 addr);
+void PGXP_CPU_SH(uint32_t instr, uint16_t rtVal, uint32_t addr);
 
 // Store 8-bit
-void PGXP_CPU_SB(u32 instr, u8 rtVal, u32 addr);
+void PGXP_CPU_SB(uint32_t instr, uint8_t rtVal, uint32_t addr);
 
 // Arithmetic with immediate value
-void PGXP_CPU_ADDI(u32 instr, u32 rtVal, u32 rsVal);
-void PGXP_CPU_ADDIU(u32 instr, u32 rtVal, u32 rsVal);
-void PGXP_CPU_ANDI(u32 instr, u32 rtVal, u32 rsVal);
-void PGXP_CPU_ORI(u32 instr, u32 rtVal, u32 rsVal);
-void PGXP_CPU_XORI(u32 instr, u32 rtVal, u32 rsVal);
-void PGXP_CPU_SLTI(u32 instr, u32 rtVal, u32 rsVal);
-void PGXP_CPU_SLTIU(u32 instr, u32 rtVal, u32 rsVal);
+void PGXP_CPU_ADDI(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_ADDIU(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_ANDI(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_ORI(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_XORI(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_SLTI(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_SLTIU(uint32_t instr, uint32_t rtVal, uint32_t rsVal);
 
 // Load Upper
-void PGXP_CPU_LUI(u32 instr, u32 rtVal);
+void PGXP_CPU_LUI(uint32_t instr, uint32_t rtVal);
 
 // Register Arithmetic
-void PGXP_CPU_ADD(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_ADDU(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_SUB(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_SUBU(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_AND(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_OR(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_XOR(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_NOR(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_SLT(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_SLTU(u32 instr, u32 rdVal, u32 rsVal, u32 rtVal);
+void PGXP_CPU_ADD(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_ADDU(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_SUB(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_SUBU(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_AND(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_OR(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_XOR(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_NOR(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_SLT(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_SLTU(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal);
 
 // Register mult/div
-void PGXP_CPU_MULT(u32 instr, u32 hiVal, u32 loVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_MULTU(u32 instr, u32 hiVal, u32 loVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_DIV(u32 instr, u32 hiVal, u32 loVal, u32 rsVal, u32 rtVal);
-void PGXP_CPU_DIVU(u32 instr, u32 hiVal, u32 loVal, u32 rsVal, u32 rtVal);
+void PGXP_CPU_MULT(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_MULTU(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_DIV(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVal, uint32_t rtVal);
+void PGXP_CPU_DIVU(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVal, uint32_t rtVal);
 
 // Shift operations (sa)
-void PGXP_CPU_SLL(u32 instr, u32 rdVal, u32 rtVal);
-void PGXP_CPU_SRL(u32 instr, u32 rdVal, u32 rtVal);
-void PGXP_CPU_SRA(u32 instr, u32 rdVal, u32 rtVal);
+void PGXP_CPU_SLL(uint32_t instr, uint32_t rdVal, uint32_t rtVal);
+void PGXP_CPU_SRL(uint32_t instr, uint32_t rdVal, uint32_t rtVal);
+void PGXP_CPU_SRA(uint32_t instr, uint32_t rdVal, uint32_t rtVal);
 
 // Shift operations variable
-void PGXP_CPU_SLLV(u32 instr, u32 rdVal, u32 rtVal, u32 rsVal);
-void PGXP_CPU_SRLV(u32 instr, u32 rdVal, u32 rtVal, u32 rsVal);
-void PGXP_CPU_SRAV(u32 instr, u32 rdVal, u32 rtVal, u32 rsVal);
+void PGXP_CPU_SLLV(uint32_t instr, uint32_t rdVal, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_SRLV(uint32_t instr, uint32_t rdVal, uint32_t rtVal, uint32_t rsVal);
+void PGXP_CPU_SRAV(uint32_t instr, uint32_t rdVal, uint32_t rtVal, uint32_t rsVal);
 
 // Move registers
-void PGXP_CPU_MFHI(u32 instr, u32 rdVal, u32 hiVal);
-void PGXP_CPU_MTHI(u32 instr, u32 hiVal, u32 rdVal);
-void PGXP_CPU_MFLO(u32 instr, u32 rdVal, u32 loVal);
-void PGXP_CPU_MTLO(u32 instr, u32 loVal, u32 rdVal);
+void PGXP_CPU_MFHI(uint32_t instr, uint32_t rdVal, uint32_t hiVal);
+void PGXP_CPU_MTHI(uint32_t instr, uint32_t hiVal, uint32_t rdVal);
+void PGXP_CPU_MFLO(uint32_t instr, uint32_t rdVal, uint32_t loVal);
+void PGXP_CPU_MTLO(uint32_t instr, uint32_t loVal, uint32_t rdVal);
 
 // CP0 Data transfer tracking
-void PGXP_CP0_MFC0(u32 instr, u32 rtVal, u32 rdVal);
-void PGXP_CP0_MTC0(u32 instr, u32 rdVal, u32 rtVal);
-void PGXP_CP0_CFC0(u32 instr, u32 rtVal, u32 rdVal);
-void PGXP_CP0_CTC0(u32 instr, u32 rdVal, u32 rtVal);
-void PGXP_CP0_RFE(u32 instr);
+void PGXP_CP0_MFC0(uint32_t instr, uint32_t rtVal, uint32_t rdVal);
+void PGXP_CP0_MTC0(uint32_t instr, uint32_t rdVal, uint32_t rtVal);
+void PGXP_CP0_CFC0(uint32_t instr, uint32_t rtVal, uint32_t rdVal);
+void PGXP_CP0_CTC0(uint32_t instr, uint32_t rdVal, uint32_t rtVal);
+void PGXP_CP0_RFE(uint32_t instr);
 
 #endif  //_PGXP_CPU_H_

@@ -24,17 +24,17 @@
 #include "core/r3000a.h"
 
 PcsxConfig g_config;
-boolean g_netOpened = FALSE;
+bool g_netOpened = false;
 
 int g_log = 0;
 FILE *g_emuLog = NULL;
 
 // It is safe if these overflow
-u32 g_rewind_counter = 0;
-u8 g_vblank_count_hideafter = 0;
+uint32_t g_rewind_counter = 0;
+uint8_t g_vblank_count_hideafter = 0;
 
 // Used for overclocking
-u32 g_psxClockSpeed = 33868800;
+uint32_t g_psxClockSpeed = 33868800;
 
 int EmuInit() {
     int ret = psxInit();
@@ -78,7 +78,7 @@ void EmuUpdate() {
     }
 }
 
-void EmuSetPGXPMode(u32 pgxpMode) { psxSetPGXPMode(pgxpMode); }
+void EmuSetPGXPMode(uint32_t pgxpMode) { psxSetPGXPMode(pgxpMode); }
 
 void __Log(char *fmt, ...) {
     va_list list;

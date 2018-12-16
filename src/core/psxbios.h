@@ -39,6 +39,6 @@ extern void (*biosA0[256])();
 extern void (*biosB0[256])();
 extern void (*biosC0[256])();
 
-extern boolean g_hleSoftCall;
+extern bool g_hleSoftCall;
 
 #endif

@@ -127,11 +127,11 @@ enum seeked_state {
 
 static struct CdrStat stat;
 
-unsigned int msf2sec(const u8 *msf);
-void sec2msf(unsigned int s, u8 *msf);
+unsigned int msf2sec(const uint8_t *msf);
+void sec2msf(unsigned int s, uint8_t *msf);
 
 // for that weird psemu API..
-static unsigned int fsm2sec(const u8 *msf) { return ((msf[2] * 60 + msf[1]) * 75) + msf[0]; }
+static unsigned int fsm2sec(const uint8_t *msf) { return ((msf[2] * 60 + msf[1]) * 75) + msf[0]; }
 
 extern long CALLBACK ISOinit(void);
 extern void CALLBACK SPUirq(void);
@@ -211,7 +211,7 @@ extern SPUregisterCallback SPU_registerCallback;
         if (g_cdr.Play) {                   \
             if (!g_config.Cdda) CDR_stop(); \
             g_cdr.StatP &= ~STATUS_PLAY;    \
-            g_cdr.Play = FALSE;             \
+            g_cdr.Play = false;             \
             g_cdr.FastForward = 0;          \
             g_cdr.FastBackward = 0;         \
             SPU_registerCallback(SPUirq); \
@@ -226,7 +226,7 @@ extern SPUregisterCallback SPU_registerCallback;
     }
 
 static void setIrq(void) {
-    if (g_cdr.Stat & g_cdr.Reg2) psxHu32ref(0x1070) |= SWAP32((u32)0x4);
+    if (g_cdr.Stat & g_cdr.Reg2) psxHu32ref(0x1070) |= SWAP32((uint32_t)0x4);
 }
 
 static void adjustTransferIndex(void) {
@@ -275,7 +275,7 @@ void cdrDecodedBufferInterrupt() {
     */
 
     // signal CDDA data ready
-    psxHu32ref(0x1070) |= SWAP32((u32)0x200);
+    psxHu32ref(0x1070) |= SWAP32((uint32_t)0x200);
 
     // time for next full buffer
     // CDRDBUF_INT( PSXCLK / 44100 * 0x200 );
@@ -349,7 +349,7 @@ void cdrLidSeekInterrupt() {
     }
 }
 
-static void Find_CurTrack(const u8 *time) {
+static void Find_CurTrack(const uint8_t *time) {
     int current, sect;
 
     current = msf2sec(time);
@@ -364,7 +364,7 @@ static void Find_CurTrack(const u8 *time) {
 #endif
 }
 
-static void generate_subq(const u8 *time) {
+static void generate_subq(const uint8_t *time) {
     unsigned char start[3], next[3];
     unsigned int this_s, start_s, next_s, pregap;
     int relative_s;
@@ -385,10 +385,10 @@ static void generate_subq(const u8 *time) {
     start_s = fsm2sec(start);
     next_s = fsm2sec(next);
 
-    g_cdr.TrackChanged = FALSE;
+    g_cdr.TrackChanged = false;
 
     if (next_s - this_s < pregap) {
-        g_cdr.TrackChanged = TRUE;
+        g_cdr.TrackChanged = true;
         g_cdr.CurTrack++;
         start_s = next_s;
     }
@@ -411,10 +411,10 @@ static void generate_subq(const u8 *time) {
     g_cdr.subq.Absolute[2] = itob(time[2]);
 }
 
-static void ReadTrack(const u8 *time) {
+static void ReadTrack(const uint8_t *time) {
     unsigned char tmp[3];
     struct SubQ *subq;
-    u16 crc;
+    uint16_t crc;
 
     tmp[0] = itob(time[0]);
     tmp[1] = itob(time[1]);
@@ -431,8 +431,8 @@ static void ReadTrack(const u8 *time) {
 
     subq = (struct SubQ *)CDR_getBufferSub();
     if (subq != NULL && g_cdr.CurTrack == 1) {
-        crc = calcCrc((u8 *)subq + 12, 10);
-        if (crc == (((u16)subq->CRC[0] << 8) | subq->CRC[1])) {
+        crc = calcCrc((uint8_t *)subq + 12, 10);
+        if (crc == (((uint16_t)subq->CRC[0] << 8) | subq->CRC[1])) {
             g_cdr.subq.Track = subq->TrackNumber;
             g_cdr.subq.Index = subq->IndexNumber;
             memcpy(g_cdr.subq.Relative, subq->TrackRelativeAddress, 3);
@@ -536,7 +536,7 @@ void cdrPlayInterrupt() {
         }
         Find_CurTrack(g_cdr.SetSectorPlay);
         ReadTrack(g_cdr.SetSectorPlay);
-        g_cdr.TrackChanged = FALSE;
+        g_cdr.TrackChanged = false;
     }
 
     if (!g_cdr.Play) return;
@@ -545,7 +545,7 @@ void cdrPlayInterrupt() {
 #endif
     if (memcmp(g_cdr.SetSectorPlay, g_cdr.SetSectorEnd, 3) == 0) {
         StopCdda();
-        g_cdr.TrackChanged = TRUE;
+        g_cdr.TrackChanged = true;
     }
 
     if (!g_cdr.Irq && !g_cdr.Stat && (g_cdr.Mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
@@ -555,7 +555,7 @@ void cdrPlayInterrupt() {
     if (CDR_readCDDA && !g_cdr.Muted) {
         CDR_readCDDA(g_cdr.SetSectorPlay[0], g_cdr.SetSectorPlay[1], g_cdr.SetSectorPlay[2], g_cdr.Transfer);
 
-        cdrAttenuate((s16 *)g_cdr.Transfer, CD_FRAMESIZE_RAW / 4, 1);
+        cdrAttenuate((int16_t *)g_cdr.Transfer, CD_FRAMESIZE_RAW / 4, 1);
         if (SPU_playCDDAchannel) SPU_playCDDAchannel((short *)g_cdr.Transfer, CD_FRAMESIZE_RAW);
     }
 
@@ -576,7 +576,7 @@ void cdrPlayInterrupt() {
 }
 
 void cdrInterrupt() {
-    u16 Irq = g_cdr.Irq;
+    uint16_t Irq = g_cdr.Irq;
     int no_busy_error = 0;
     int start_rotating = 0;
     int error = 0;
@@ -648,7 +648,7 @@ void cdrInterrupt() {
                 CDR_LOG("PLAY track %d\n", g_cdr.CurTrack);
 #endif
 
-                if (CDR_getTD((u8)g_cdr.CurTrack, g_cdr.ResultTD) != -1) {
+                if (CDR_getTD((uint8_t)g_cdr.CurTrack, g_cdr.ResultTD) != -1) {
                     g_cdr.SetSectorPlay[0] = g_cdr.ResultTD[2];
                     g_cdr.SetSectorPlay[1] = g_cdr.ResultTD[1];
                     g_cdr.SetSectorPlay[2] = g_cdr.ResultTD[0];
@@ -667,7 +667,7 @@ void cdrInterrupt() {
             */
             Find_CurTrack(g_cdr.SetSectorPlay);
             ReadTrack(g_cdr.SetSectorPlay);
-            g_cdr.TrackChanged = FALSE;
+            g_cdr.TrackChanged = false;
 
             if (g_config.Cdda != CDDA_DISABLED) CDR_play(g_cdr.SetSectorPlay);
 
@@ -678,7 +678,7 @@ void cdrInterrupt() {
             g_cdr.StatP |= STATUS_PLAY;
 
             // BIOS player - set flag again
-            g_cdr.Play = TRUE;
+            g_cdr.Play = true;
 
             CDRMISC_INT(cdReadTime);
             start_rotating = 1;
@@ -725,7 +725,7 @@ void cdrInterrupt() {
         case CdlStop:
             if (g_cdr.Play) {
                 // grab time for current track
-                CDR_getTD((u8)(g_cdr.CurTrack), g_cdr.ResultTD);
+                CDR_getTD((uint8_t)(g_cdr.CurTrack), g_cdr.ResultTD);
 
                 g_cdr.SetSectorPlay[0] = g_cdr.ResultTD[2];
                 g_cdr.SetSectorPlay[1] = g_cdr.ResultTD[1];
@@ -780,11 +780,11 @@ void cdrInterrupt() {
             break;
 
         case CdlMute:
-            g_cdr.Muted = TRUE;
+            g_cdr.Muted = true;
             break;
 
         case CdlDemute:
-            g_cdr.Muted = FALSE;
+            g_cdr.Muted = false;
             break;
 
         case CdlSetfilter:
@@ -972,7 +972,7 @@ void cdrInterrupt() {
             // Crusaders of Might and Magic - update getlocl now
             // - fixes cutscene speech
             {
-                u8 *buf = CDR_getBuffer();
+                uint8_t *buf = CDR_getBuffer();
                 if (buf != NULL) memcpy(g_cdr.Transfer, buf, 8);
             }
 
@@ -1057,7 +1057,7 @@ finish:
             v = 32767;      \
     } while (0)
 
-void cdrAttenuate(s16 *buf, int samples, int stereo) {
+void cdrAttenuate(int16_t *buf, int samples, int stereo) {
     int i, l, r;
     int ll = g_cdr.AttenuatorLeftToLeft;
     int lr = g_cdr.AttenuatorLeftToRight;
@@ -1092,7 +1092,7 @@ void cdrAttenuate(s16 *buf, int samples, int stereo) {
 }
 
 void cdrReadInterrupt() {
-    u8 *buf;
+    uint8_t *buf;
 
     if (!g_cdr.Reading) return;
 
@@ -1101,7 +1101,7 @@ void cdrReadInterrupt() {
         return;
     }
 
-    if ((psxHu32ref(0x1070) & psxHu32ref(0x1074) & SWAP32((u32)0x4)) && !g_cdr.ReadRescheduled) {
+    if ((psxHu32ref(0x1070) & psxHu32ref(0x1074) & SWAP32((uint32_t)0x4)) && !g_cdr.ReadRescheduled) {
         // HACK: with BIAS 2, emulated CPU is often slower than real thing,
         // game may be unfinished with prev data read, so reschedule
         // (Brave Fencer Musashi)
@@ -1239,7 +1239,7 @@ unsigned char cdrRead1(void) {
 }
 
 void cdrWrite1(unsigned char rt) {
-    u8 set_loc[3];
+    uint8_t set_loc[3];
     int i;
 #ifdef CDR_LOG_IO
     CDR_LOG_IO("cdr w1: %02x\n", rt);
@@ -1408,10 +1408,10 @@ void cdrWrite3(unsigned char rt) {
     }
 }
 
-void psxDma3(u32 madr, u32 bcr, u32 chcr) {
-    u32 cdsize;
+void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    uint32_t cdsize;
     int i;
-    u8 *ptr;
+    uint8_t *ptr;
 
 #ifdef CDR_LOG
     CDR_LOG("psxDma3() Log: *** DMA 3 *** %x addr = %x size = %x\n", chcr, madr, bcr);
@@ -1446,7 +1446,7 @@ void psxDma3(u32 madr, u32 bcr, u32 chcr) {
                 }
             }
 
-            ptr = (u8 *)PSXM(madr);
+            ptr = (uint8_t *)PSXM(madr);
             if (ptr == NULL) {
 #ifdef CDR_LOG
                 CDR_LOG("psxDma3() Log: *** DMA 3 *** NULL Pointer!\n");
@@ -1495,7 +1495,7 @@ void cdrDmaInterrupt() {
 }
 
 static void getCdInfo(void) {
-    u8 tmp;
+    uint8_t tmp;
 
     CDR_getTN(g_cdr.ResultTN);
     CDR_getTD(0, g_cdr.SetSectorEnd);
@@ -1525,7 +1525,7 @@ void cdrReset() {
 }
 
 int cdrFreeze(gzFile f, int Mode) {
-    u8 tmpp[3];
+    uint8_t tmpp[3];
 
     if (Mode == 0 && g_config.Cdda != CDDA_DISABLED) CDR_stop();
 

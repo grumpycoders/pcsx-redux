@@ -26,7 +26,7 @@ void FreePPFCache();
 void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f);
 
 int LoadSBI(const char *filename);
-boolean CheckSBI(const u8 *time);
+bool CheckSBI(const uint8_t *time);
 void UnloadSBI(void);
 
 #endif

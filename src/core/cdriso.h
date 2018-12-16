@@ -25,7 +25,7 @@
 
 #include "core/psxcommon.h"
 
-int handleecm(const char* isoname, FILE* cdh, s32* accurate_length);
+int handleecm(const char* isoname, FILE* cdh, int32_t* accurate_length);
 int aropen(FILE* fparchive, const char* _fn);
 void cdrIsoInit(void);
 int cdrIsoActive(void);

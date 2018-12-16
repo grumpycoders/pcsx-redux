@@ -31,16 +31,16 @@ void spuInterrupt() {
     DMA_INTERRUPT(4);
 }
 
-void psxDma4(u32 madr, u32 bcr, u32 chcr) {  // SPU
-    u16 *ptr;
-    u32 size;
+void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
+    uint16_t *ptr;
+    uint32_t size;
 
     switch (chcr) {
         case 0x01000201:  // cpu to spu transfer
 #ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA4 SPU - mem2spu *** %x addr = %x size = %x\n", chcr, madr, bcr);
 #endif
-            ptr = (u16 *)PSXM(madr);
+            ptr = (uint16_t *)PSXM(madr);
             if (ptr == NULL) {
 #ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
@@ -51,7 +51,7 @@ void psxDma4(u32 madr, u32 bcr, u32 chcr) {  // SPU
 
             // Jungle Book - max 0.333x DMA length
             // Harry Potter and the Philosopher's Stone - max 0.5x DMA length
-            // u32 dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with both
+            // uint32_t dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with both
             // games above?
             SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 2);
             return;
@@ -60,7 +60,7 @@ void psxDma4(u32 madr, u32 bcr, u32 chcr) {  // SPU
 #ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA4 SPU - spu2mem *** %x addr = %x size = %x\n", chcr, madr, bcr);
 #endif
-            ptr = (u16 *)PSXM(madr);
+            ptr = (uint16_t *)PSXM(madr);
             if (ptr == NULL) {
 #ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA4 SPU - spu2mem *** NULL Pointer!!!\n");
@@ -92,9 +92,9 @@ void psxDma4(u32 madr, u32 bcr, u32 chcr) {  // SPU
     DMA_INTERRUPT(4);
 }
 
-void psxDma6(u32 madr, u32 bcr, u32 chcr) {
-    u32 size;
-    u32 *mem = (u32 *)PSXM(madr);
+void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    uint32_t size;
+    uint32_t *mem = (uint32_t *)PSXM(madr);
 
 #ifdef PSXDMA_LOG
     PSXDMA_LOG("*** DMA6 OT *** %x addr = %x size = %x\n", chcr, madr, bcr);

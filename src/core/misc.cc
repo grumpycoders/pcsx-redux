@@ -113,10 +113,10 @@ void mmssdd(char *b, char *p) {
     READTRACK();                  \
     memcpy(_dir + 2048, buf + 12, 2048);
 
-int GetCdromFile(u8 *mdir, u8 *time, const char *filename) {
+int GetCdromFile(uint8_t *mdir, uint8_t *time, const char *filename) {
     struct iso_directory_record *dir;
-    u8 ddir[4096];
-    u8 *buf;
+    uint8_t ddir[4096];
+    uint8_t *buf;
     int i;
 
     // only try to scan if a filename is given
@@ -154,8 +154,8 @@ int GetCdromFile(u8 *mdir, u8 *time, const char *filename) {
 int LoadCdrom() {
     EXE_HEADER tmpHead;
     struct iso_directory_record *dir;
-    u8 time[4], *buf;
-    u8 mdir[4096];
+    uint8_t time[4], *buf;
+    uint8_t mdir[4096];
     char exename[256];
 
     if (!g_config.HLE) {
@@ -237,10 +237,10 @@ int LoadCdrom() {
 
 int LoadCdromFile(const char *filename, EXE_HEADER *head) {
     struct iso_directory_record *dir;
-    u8 time[4], *buf;
-    u8 mdir[4096];
+    uint8_t time[4], *buf;
+    uint8_t mdir[4096];
     char exename[256];
-    u32 size, addr;
+    uint32_t size, addr;
     void *psxaddr;
 
     if (sscanf(filename, "cdrom:\\%255s", exename) <= 0) {
@@ -276,7 +276,7 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
 #ifdef PSXREC
     g_psxCpu->Clear(addr, size / 4);
 #endif
-    g_psxRegs.ICache_valid = FALSE;
+    g_psxRegs.ICache_valid = false;
 
     while (size) {
         incTime();
@@ -408,7 +408,7 @@ int CheckCdrom() {
 
 static int PSXGetFileType(FILE *f) {
     unsigned long current;
-    u8 mybuf[sizeof(EXE_HEADER)];  // EXE_HEADER currently biggest
+    uint8_t mybuf[sizeof(EXE_HEADER)];  // EXE_HEADER currently biggest
     EXE_HEADER *exe_hdr;
     FILHDR *coff_hdr;
     size_t amt;
@@ -453,8 +453,8 @@ int Load(const char *ExePath) {
     SCNHDR section;
     int type, i;
     int retval = 0;
-    u8 opcode;
-    u32 section_address, section_size;
+    uint8_t opcode;
+    uint32_t section_address, section_size;
     void *psxmaddr;
 
     strncpy(g_cdromId, "SLUS99999", 9);
@@ -643,7 +643,7 @@ static const char PcsxrHeader[32] = "STv4 PCSXR v" PACKAGE_VERSION;
 
 // Savestate Versioning!
 // If you make changes to the savestate version, please increment the value below.
-static const u32 SaveVersion = 0x8b410008;
+static const uint32_t SaveVersion = 0x8b410008;
 
 int SaveState(const char *file) {
     gzFile f;
@@ -662,8 +662,8 @@ int LoadState(const char *file) {
     return LoadStateGz(f);
 }
 
-static u32 s_mem_cur_save_count = 0, mem_last_save;
-static boolean s_mem_wrapped = FALSE;  // Whether we went past max count and restarted counting
+static uint32_t s_mem_cur_save_count = 0, mem_last_save;
+static bool s_mem_wrapped = false;  // Whether we went past max count and restarted counting
 
 void CreateRewindState() {
     if (g_config.RewindCount > 0) {
@@ -671,7 +671,7 @@ void CreateRewindState() {
 
         if (s_mem_cur_save_count > g_config.RewindCount) {
             s_mem_cur_save_count = 0;
-            s_mem_wrapped = TRUE;
+            s_mem_wrapped = true;
         }
     }
 }
@@ -680,7 +680,7 @@ void RewindState() {
     s_mem_cur_save_count--;
     if (s_mem_cur_save_count > g_config.RewindCount && s_mem_wrapped) {
         s_mem_cur_save_count = g_config.RewindCount;
-        s_mem_wrapped = FALSE;
+        s_mem_wrapped = false;
     } else if (s_mem_cur_save_count > g_config.RewindCount && !s_mem_wrapped) {
         s_mem_cur_save_count++;
         return;
@@ -694,8 +694,8 @@ void RewindState() {
 static GPUFreeze_t *s_gpufP = NULL;
 static SPUFreeze_t *s_spufP = NULL;
 
-int SaveStateMem(const u32 id) { return 0; }
-int LoadStateMem(const u32 id) { return 0; }
+int SaveStateMem(const uint32_t id) { return 0; }
+int LoadStateMem(const uint32_t id) { return 0; }
 void CleanupMemSaveStates() {}
 
 int SaveStateGz(gzFile f, long *gzsize) {
@@ -705,8 +705,8 @@ int SaveStateGz(gzFile f, long *gzsize) {
     // if (f == NULL) return -1;
 
     gzwrite(f, (void *)PcsxrHeader, sizeof(PcsxrHeader));
-    gzwrite(f, (void *)&SaveVersion, sizeof(u32));
-    gzwrite(f, (void *)&g_config.HLE, sizeof(boolean));
+    gzwrite(f, (void *)&SaveVersion, sizeof(uint32_t));
+    gzwrite(f, (void *)&g_config.HLE, sizeof(bool));
 
     if (gzsize) GPU_getScreenPic(pMemGpuPic);  // Not necessary with ephemeral saves
     gzwrite(f, pMemGpuPic, SZ_GPUPIC);
@@ -762,14 +762,14 @@ int LoadStateGz(gzFile f) {
     SPUFreeze_t *_spufP;
     int Size;
     char header[sizeof(PcsxrHeader)];
-    u32 version;
-    boolean hle;
+    uint32_t version;
+    bool hle;
 
     if (f == NULL) return -1;
 
     gzread(f, header, sizeof(header));
-    gzread(f, &version, sizeof(u32));
-    gzread(f, &hle, sizeof(boolean));
+    gzread(f, &version, sizeof(uint32_t));
+    gzread(f, &hle, sizeof(bool));
 
     // Compare header only "STv4 PCSXR" part no version
     if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != g_config.HLE) {
@@ -813,15 +813,15 @@ int LoadStateGz(gzFile f) {
 int CheckState(const char *file) {
     gzFile f;
     char header[sizeof(PcsxrHeader)];
-    u32 version;
-    boolean hle;
+    uint32_t version;
+    bool hle;
 
     f = gzopen(file, "rb");
     if (f == NULL) return -1;
 
     gzread(f, header, sizeof(header));
-    gzread(f, &version, sizeof(u32));
-    gzread(f, &hle, sizeof(boolean));
+    gzread(f, &version, sizeof(uint32_t));
+    gzread(f, &hle, sizeof(bool));
 
     gzclose(f);
 
@@ -954,8 +954,8 @@ static unsigned short crctab[256] = {
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
-u16 calcCrc(u8 *d, int len) {
-    u16 crc = 0;
+uint16_t calcCrc(uint8_t *d, int len) {
+    uint16_t crc = 0;
     int i;
 
     for (i = 0; i < len; i++) {

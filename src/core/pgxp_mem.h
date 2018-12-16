@@ -31,19 +31,19 @@
 #include "core/psxcommon.h"
 
 void PGXP_Init();   // initialise memory
-u8* PGXP_GetMem();  // return pointer to precision memory
-u32 PGXP_ConvertAddress(u32 addr);
+uint8_t* PGXP_GetMem();  // return pointer to precision memory
+uint32_t PGXP_ConvertAddress(uint32_t addr);
 
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;
 
-PGXP_value* PGXP_GetPtr(u32 addr);
-PGXP_value* PGXP_ReadMem(u32 addr);
+PGXP_value* PGXP_GetPtr(uint32_t addr);
+PGXP_value* PGXP_ReadMem(uint32_t addr);
 
-void ValidateAndCopyMem(PGXP_value* dest, u32 addr, u32 value);
-void ValidateAndCopyMem16(PGXP_value* dest, u32 addr, u32 value, int sign);
+void ValidateAndCopyMem(PGXP_value* dest, uint32_t addr, uint32_t value);
+void ValidateAndCopyMem16(PGXP_value* dest, uint32_t addr, uint32_t value, int sign);
 
-void WriteMem(PGXP_value* value, u32 addr);
-void WriteMem16(PGXP_value* src, u32 addr);
+void WriteMem(PGXP_value* value, uint32_t addr);
+void WriteMem16(PGXP_value* src, uint32_t addr);
 
 #endif  //_PGXP_MEM_H_

@@ -54,21 +54,21 @@ void FreeCheatSearchResults();
 void FreeCheatSearchMem();
 void CheatSearchBackupMemory();
 
-void CheatSearchEqual8(u8 val);
-void CheatSearchEqual16(u16 val);
-void CheatSearchEqual32(u32 val);
-void CheatSearchNotEqual8(u8 val);
-void CheatSearchNotEqual16(u16 val);
-void CheatSearchNotEqual32(u32 val);
-void CheatSearchRange8(u8 min, u8 max);
-void CheatSearchRange16(u16 min, u16 max);
-void CheatSearchRange32(u32 min, u32 max);
-void CheatSearchIncreasedBy8(u8 val);
-void CheatSearchIncreasedBy16(u16 val);
-void CheatSearchIncreasedBy32(u32 val);
-void CheatSearchDecreasedBy8(u8 val);
-void CheatSearchDecreasedBy16(u16 val);
-void CheatSearchDecreasedBy32(u32 val);
+void CheatSearchEqual8(uint8_t val);
+void CheatSearchEqual16(uint16_t val);
+void CheatSearchEqual32(uint32_t val);
+void CheatSearchNotEqual8(uint8_t val);
+void CheatSearchNotEqual16(uint16_t val);
+void CheatSearchNotEqual32(uint32_t val);
+void CheatSearchRange8(uint8_t min, uint8_t max);
+void CheatSearchRange16(uint16_t min, uint16_t max);
+void CheatSearchRange32(uint32_t min, uint32_t max);
+void CheatSearchIncreasedBy8(uint8_t val);
+void CheatSearchIncreasedBy16(uint16_t val);
+void CheatSearchIncreasedBy32(uint32_t val);
+void CheatSearchDecreasedBy8(uint8_t val);
+void CheatSearchDecreasedBy16(uint16_t val);
+void CheatSearchDecreasedBy32(uint32_t val);
 void CheatSearchIncreased8();
 void CheatSearchIncreased16();
 void CheatSearchIncreased32();
@@ -87,14 +87,14 @@ extern CheatCode *g_cheatCodes;
 extern int g_numCheats;
 extern int g_numCodes;
 
-extern s8 *g_prevM;
-extern u32 *g_searchResults;
+extern int8_t *g_prevM;
+extern uint32_t *g_searchResults;
 extern int g_numSearchResults;
 
 #define PREVM(mem) (&g_prevM[mem])
-#define PrevMu8(mem) (*(u8 *)PREVM(mem))
-#define PrevMu16(mem) (SWAP16(*(u16 *)PREVM(mem)))
-#define PrevMu32(mem) (SWAP32(*(u32 *)PREVM(mem)))
+#define PrevMu8(mem) (*(uint8_t *)PREVM(mem))
+#define PrevMu16(mem) (SWAP16(*(uint16_t *)PREVM(mem)))
+#define PrevMu32(mem) (SWAP32(*(uint32_t *)PREVM(mem)))
 
 // cheat types
 #define CHEAT_CONST8 0x30  /* 8-bit Constant Write */

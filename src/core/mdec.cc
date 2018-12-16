@@ -61,7 +61,7 @@
 #define RLE_VAL(a) (((int)(a) << (sizeof(int) * 8 - 10)) >> (sizeof(int) * 8 - 10))
 
 #if 0
-static void printmatrixu8(u8 *m) {
+static void printmatrixu8(uint8_t *m) {
 	int i;
 	for(i = 0; i < DSIZE2; i++) {
 		printf("%3d ",m[i]);
@@ -212,18 +212,18 @@ void idct(int *block, int used_col) {
 #define MDEC1_RESET 0x80000000
 
 struct _pending_dma1 {
-    u32 adr;
-    u32 bcr;
-    u32 chcr;
+    uint32_t adr;
+    uint32_t bcr;
+    uint32_t chcr;
 };
 
 static struct {
-    u32 reg0;
-    u32 reg1;
-    u16 *rl;
-    u16 *rl_end;
-    u8 *block_buffer_pos;
-    u8 block_buffer[16 * 16 * 3];
+    uint32_t reg0;
+    uint32_t reg1;
+    uint16_t *rl;
+    uint16_t *rl_end;
+    uint8_t *block_buffer_pos;
+    uint8_t block_buffer[16 * 16 * 3];
     struct _pending_dma1 pending_dma1;
 } mdec;
 
@@ -320,7 +320,7 @@ unsigned short *rl2blk(int *blk, unsigned short *mdec_rl) {
 #define CLAMP_SCALE8(a) (CLAMP8(SCALE8(a)))
 #define CLAMP_SCALE5(a) (CLAMP5(SCALE5(a)))
 
-static inline void putlinebw15(u16 *image, int *Yblk) {
+static inline void putlinebw15(uint16_t *image, int *Yblk) {
     int i;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
 
@@ -331,7 +331,7 @@ static inline void putlinebw15(u16 *image, int *Yblk) {
     }
 }
 
-static inline void putquadrgb15(u16 *image, int *Yblk, int Cr, int Cb) {
+static inline void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb) {
     int Y, R, G, B;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
     R = MULR(Cr);
@@ -372,7 +372,7 @@ static inline void yuv2rgb15(int *blk, unsigned short *image) {
     }
 }
 
-static inline void putlinebw24(u8 *image, int *Yblk) {
+static inline void putlinebw24(uint8_t *image, int *Yblk) {
     int i;
     unsigned char Y;
     for (i = 0; i < 8 * 3; i += 3, Yblk++) {
@@ -383,7 +383,7 @@ static inline void putlinebw24(u8 *image, int *Yblk) {
     }
 }
 
-static inline void putquadrgb24(u8 *image, int *Yblk, int Cr, int Cb) {
+static inline void putquadrgb24(uint8_t *image, int *Yblk, int Cr, int Cb) {
     int Y, R, G, B;
 
     R = MULR(Cr);
@@ -408,7 +408,7 @@ static inline void putquadrgb24(u8 *image, int *Yblk, int Cr, int Cb) {
     image[17 * 3 + 2] = CLAMP_SCALE8(Y + B);
 }
 
-static void yuv2rgb24(int *blk, u8 *image) {
+static void yuv2rgb24(int *blk, uint8_t *image) {
     int x, y;
     int *Yblk = blk + DSIZE2 * 2;
     int *Crblk = blk;
@@ -435,16 +435,16 @@ void mdecInit(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (u16 *)&g_psxM[0x100000];
+    mdec.rl = (uint16_t *)&g_psxM[0x100000];
 }
 
 // command register
-void mdecWrite0(u32 data) { mdec.reg0 = data; }
+void mdecWrite0(uint32_t data) { mdec.reg0 = data; }
 
-u32 mdecRead0(void) { return mdec.reg0; }
+uint32_t mdecRead0(void) { return mdec.reg0; }
 
 // status register
-void mdecWrite1(u32 data) {
+void mdecWrite1(uint32_t data) {
     if (data & MDEC1_RESET) {  // mdec reset
         mdec.reg0 = 0;
         mdec.reg1 = 0;
@@ -453,12 +453,12 @@ void mdecWrite1(u32 data) {
     }
 }
 
-u32 mdecRead1(void) {
-    u32 v = mdec.reg1;
+uint32_t mdecRead1(void) {
+    uint32_t v = mdec.reg1;
     return v;
 }
 
-void psxDma0(u32 adr, u32 bcr, u32 chcr) {
+void psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int cmd = mdec.reg0;
     int size;
 
@@ -473,7 +473,7 @@ void psxDma0(u32 adr, u32 bcr, u32 chcr) {
 
     switch (cmd >> 28) {
         case 0x3:  // decode
-            mdec.rl = (u16 *)PSXM(adr);
+            mdec.rl = (uint16_t *)PSXM(adr);
             /* now the mdec is busy till all data are decoded */
             mdec.reg1 |= MDEC1_BUSY;
             /* detect the end of decoding */
@@ -494,7 +494,7 @@ void psxDma0(u32 adr, u32 bcr, u32 chcr) {
 
         case 0x4:  // quantization table upload
         {
-            u8 *p = (u8 *)PSXM(adr);
+            uint8_t *p = (uint8_t *)PSXM(adr);
             // printf("uploading new quantization table\n");
             // printmatrixu8(p);
             // printmatrixu8(p + 64);
@@ -528,9 +528,9 @@ void mdec0Interrupt() {
 #define SIZE_OF_24B_BLOCK (16 * 16 * 3)
 #define SIZE_OF_16B_BLOCK (16 * 16 * 2)
 
-void psxDma1(u32 adr, u32 bcr, u32 chcr) {
+void psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int blk[DSIZE2 * 6];
-    u8 *image;
+    uint8_t *image;
     int size;
     int dmacnt;
 
@@ -549,7 +549,7 @@ void psxDma1(u32 adr, u32 bcr, u32 chcr) {
         mdec.pending_dma1.chcr = chcr;
         /* do not free the dma */
     } else {
-        image = (u8 *)PSXM(adr);
+        image = (uint8_t *)PSXM(adr);
 
         if (mdec.reg0 & MDEC0_RGB24) {
             /* 16 bits decoding
@@ -568,14 +568,14 @@ void psxDma1(u32 adr, u32 bcr, u32 chcr) {
 
             while (size >= SIZE_OF_16B_BLOCK) {
                 mdec.rl = rl2blk(blk, mdec.rl);
-                yuv2rgb15(blk, (u16 *)image);
+                yuv2rgb15(blk, (uint16_t *)image);
                 image += SIZE_OF_16B_BLOCK;
                 size -= SIZE_OF_16B_BLOCK;
             }
 
             if (size != 0) {
                 mdec.rl = rl2blk(blk, mdec.rl);
-                yuv2rgb15(blk, (u16 *)mdec.block_buffer);
+                yuv2rgb15(blk, (uint16_t *)mdec.block_buffer);
                 memcpy(image, mdec.block_buffer, size);
                 mdec.block_buffer_pos = mdec.block_buffer + size;
             }
@@ -659,19 +659,19 @@ void mdec1Interrupt() {
 }
 
 int mdecFreeze(gzFile f, int Mode) {
-    u8 *base = (u8 *)&g_psxM[0x100000];
-    u32 v;
+    uint8_t *base = (uint8_t *)&g_psxM[0x100000];
+    uint32_t v;
 
     gzfreeze(&mdec.reg0, sizeof(mdec.reg0));
     gzfreeze(&mdec.reg1, sizeof(mdec.reg1));
 
     // old code used to save raw pointers..
-    v = (u8 *)mdec.rl - base;
+    v = (uint8_t *)mdec.rl - base;
     gzfreeze(&v, sizeof(v));
-    mdec.rl = (u16 *)(base + (v & 0xffffe));
-    v = (u8 *)mdec.rl_end - base;
+    mdec.rl = (uint16_t *)(base + (v & 0xffffe));
+    v = (uint8_t *)mdec.rl_end - base;
     gzfreeze(&v, sizeof(v));
-    mdec.rl_end = (u16 *)(base + (v & 0xffffe));
+    mdec.rl_end = (uint16_t *)(base + (v & 0xffffe));
 
     v = 0;
     if (mdec.block_buffer_pos) v = mdec.block_buffer_pos - base;

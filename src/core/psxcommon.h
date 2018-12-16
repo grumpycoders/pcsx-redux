@@ -51,29 +51,6 @@
 #endif
 #endif
 
-// Define types
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-typedef intptr_t sptr;
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef uintptr_t uptr;
-
-typedef uint8_t boolean;
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0"
 #endif
@@ -85,48 +62,9 @@ typedef uint8_t boolean;
 #if defined(__linux__) || defined(__MACOSX__)
 #define strnicmp strncasecmp
 #endif
-#define __inline inline
-
-// Enables NLS/internationalization if active
-#ifdef ENABLE_NLS
-
-#include <libintl.h>
-
-#undef _
-#define _(String) gettext(String)
-#ifdef gettext_noop
-#define N_(String) gettext_noop(String)
-#else
-#define N_(String) (String)
-#endif
-
-// If running under Mac OS X, use the Localizable.strings file instead.
-#elif defined(_MACOSX)
-#ifdef PCSXRCORE
-__private_extern char* Pcsxr_locale_text(char* toloc);
-#define _(String) Pcsxr_locale_text(String)
-#define N_(String) String
-#else
-#ifndef PCSXRPLUG
-#warning please define the plug being built to use Mac OS X localization!
-#define _(msgid) msgid
-#define N_(msgid) msgid
-#else
-// Kludge to get the preprocessor to accept PCSXRPLUG as a variable.
-#define PLUGLOC_x(x, y) x##y
-#define PLUGLOC_y(x, y) PLUGLOC_x(x, y)
-#define PLUGLOC PLUGLOC_y(PCSXRPLUG, _locale_text)
-__private_extern char* PLUGLOC(char* toloc);
-#define _(String) PLUGLOC(String)
-#define N_(String) String
-#endif
-#endif
-#else
 
 #define _(msgid) msgid
 #define N_(msgid) msgid
-
-#endif
 
 extern FILE *g_emuLog;
 extern int g_log;
@@ -149,51 +87,51 @@ typedef struct {
     char PatchesDir[MAXPATHLEN];
     char IsoImgDir[MAXPATHLEN];
     char PsxExeName[12];
-    boolean Xa;
-    boolean SioIrq;
-    boolean Mdec;
-    boolean PsxAuto;
-    u8 Cdda;
-    boolean HLE;
-    boolean SlowBoot;
-    boolean Debug;
-    boolean PsxOut;
-    boolean SpuIrq;
-    boolean RCntFix;
-    boolean UseNet;
-    boolean VSyncWA;
-    boolean NoMemcard;
-    boolean PerGameMcd;
-    boolean Widescreen;
-    boolean HideCursor;
-    boolean SaveWindowPos;
-    s32 WindowPos[2];
-    u8 Cpu;      // CPU_DYNAREC or CPU_INTERPRETER
-    u8 PsxType;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
-    u32 RewindCount;
-    u32 RewindInterval;
-    u32 AltSpeed1;  // Percent relative to natural speed.
-    u32 AltSpeed2;
-    u8 HackFix;
-    u8 MemHack;
-    boolean OverClock;  // enable overclocking
+    bool Xa;
+    bool SioIrq;
+    bool Mdec;
+    bool PsxAuto;
+    uint8_t Cdda;
+    bool HLE;
+    bool SlowBoot;
+    bool Debug;
+    bool PsxOut;
+    bool SpuIrq;
+    bool RCntFix;
+    bool UseNet;
+    bool VSyncWA;
+    bool NoMemcard;
+    bool PerGameMcd;
+    bool Widescreen;
+    bool HideCursor;
+    bool SaveWindowPos;
+    int32_t WindowPos[2];
+    uint8_t Cpu;      // CPU_DYNAREC or CPU_INTERPRETER
+    uint8_t PsxType;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
+    uint32_t RewindCount;
+    uint32_t RewindInterval;
+    uint32_t AltSpeed1;  // Percent relative to natural speed.
+    uint32_t AltSpeed2;
+    uint8_t HackFix;
+    uint8_t MemHack;
+    bool OverClock;  // enable overclocking
     float PsxClock;
     // PGXP variables
-    boolean PGXP_GTE;
-    boolean PGXP_Cache;
-    boolean PGXP_Texture;
-    u32 PGXP_Mode;
+    bool PGXP_GTE;
+    bool PGXP_Cache;
+    bool PGXP_Texture;
+    uint32_t PGXP_Mode;
 #ifdef _WIN32
     char Lang[256];
 #endif
 } PcsxConfig;
 
 extern PcsxConfig g_config;
-extern boolean g_netOpened;
+extern bool g_netOpened;
 
 // It is safe if these overflow
-extern u32 g_rewind_counter;
-extern u8 g_vblank_count_hideafter;
+extern uint32_t g_rewind_counter;
+extern uint8_t g_vblank_count_hideafter;
 
 #define gzfreeze(ptr, size)                   \
     {                                         \
@@ -204,7 +142,7 @@ extern u8 g_vblank_count_hideafter;
 // Make the timing events trigger faster as we are currently assuming everything
 // takes one cycle, which is not the case on real hardware.
 // FIXME: Count the proper cycle and get rid of this
-extern u32 g_psxClockSpeed;
+extern uint32_t g_psxClockSpeed;
 #define BIAS 2
 #define PSXCLK g_psxClockSpeed /* 33.8688 MHz */
 
@@ -218,6 +156,6 @@ int EmuInit();
 void EmuReset();
 void EmuShutdown();
 void EmuUpdate();
-void EmuSetPGXPMode(u32 pgxpMode);
+void EmuSetPGXPMode(uint32_t pgxpMode);
 
 #endif

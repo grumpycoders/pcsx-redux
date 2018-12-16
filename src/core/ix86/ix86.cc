@@ -27,28 +27,28 @@
 
 #include "core/ix86/ix86.h"
 
-s8* g_x86Ptr;
-u8* g_j8Ptr[32];
-u32* g_j32Ptr[32];
+int8_t* g_x86Ptr;
+uint8_t* g_j8Ptr[32];
+uint32_t* g_j32Ptr[32];
 
 void x86Init() {}
 
-void x86SetPtr(s8* ptr) { g_x86Ptr = ptr; }
+void x86SetPtr(int8_t* ptr) { g_x86Ptr = ptr; }
 
 void x86Shutdown() {}
 
-void x86SetJ8(u8* j8) {
-    u32 jump = (g_x86Ptr - (s8*)j8) - 1;
+void x86SetJ8(uint8_t* j8) {
+    uint32_t jump = (g_x86Ptr - (int8_t*)j8) - 1;
 
     if (jump > 0x7f) printf("j8 greater than 0x7f!!\n");
-    *j8 = (u8)jump;
+    *j8 = (uint8_t)jump;
 }
 
-void x86SetJ32(u32* j32) { *j32 = (g_x86Ptr - (s8*)j32) - 4; }
+void x86SetJ32(uint32_t* j32) { *j32 = (g_x86Ptr - (int8_t*)j32) - 4; }
 
 void x86Align(int bytes) {
     // fordward align
-    g_x86Ptr = (s8*)(((u32)g_x86Ptr + bytes) & ~(bytes - 1));
+    g_x86Ptr = (int8_t*)(((uint32_t)g_x86Ptr + bytes) & ~(bytes - 1));
 }
 
 #define SIB 4
@@ -71,7 +71,7 @@ void x86Align(int bytes) {
     {                      \
         write8(cc);        \
         write8(to);        \
-        return reinterpret_cast<u8 *>(g_x86Ptr - 1); \
+        return reinterpret_cast<uint8_t *>(g_x86Ptr - 1); \
     }
 
 #define J32Rel(cc, to)             \
@@ -79,7 +79,7 @@ void x86Align(int bytes) {
         write8(0x0F);              \
         write8(cc);                \
         write32(to);               \
-        return reinterpret_cast<u32*>(g_x86Ptr - 4); \
+        return reinterpret_cast<uint32_t*>(g_x86Ptr - 4); \
     }
 
 #define CMOV32RtoR(cc, to, from) \
@@ -110,14 +110,14 @@ void MOV32RtoR(int to, int from) {
 }
 
 /* mov r32 to m32 */
-void MOV32RtoM(u32 to, int from) {
+void MOV32RtoM(uint32_t to, int from) {
     write8(0x89);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* mov m32 to r32 */
-void MOV32MtoR(int to, u32 from) {
+void MOV32MtoR(int to, uint32_t from) {
     write8(0x8B);
     ModRM(0, to, DISP32);
     write32(from);
@@ -150,13 +150,13 @@ void MOV32RtoRmS(int to, int to2, int scale, int from) {
 }
 
 /* mov imm32 to r32 */
-void MOV32ItoR(int to, u32 from) {
+void MOV32ItoR(int to, uint32_t from) {
     write8(0xB8 | to);
     write32(from);
 }
 
 /* mov imm32 to m32 */
-void MOV32ItoM(u32 to, u32 from) {
+void MOV32ItoM(uint32_t to, uint32_t from) {
     write8(0xC7);
     ModRM(0, 0, DISP32);
     write32(to);
@@ -164,7 +164,7 @@ void MOV32ItoM(u32 to, u32 from) {
 }
 
 /* mov r16 to m16 */
-void MOV16RtoM(u32 to, int from) {
+void MOV16RtoM(uint32_t to, int from) {
     write8(0x66);
     write8(0x89);
     ModRM(0, from, DISP32);
@@ -172,7 +172,7 @@ void MOV16RtoM(u32 to, int from) {
 }
 
 /* mov m16 to r16 */
-void MOV16MtoR(int to, u32 from) {
+void MOV16MtoR(int to, uint32_t from) {
     write8(0x66);
     write8(0x8B);
     ModRM(0, to, DISP32);
@@ -180,7 +180,7 @@ void MOV16MtoR(int to, u32 from) {
 }
 
 /* mov imm16 to m16 */
-void MOV16ItoM(u32 to, u16 from) {
+void MOV16ItoM(uint32_t to, uint16_t from) {
     write8(0x66);
     write8(0xC7);
     ModRM(0, 0, DISP32);
@@ -189,21 +189,21 @@ void MOV16ItoM(u32 to, u16 from) {
 }
 
 /* mov r8 to m8 */
-void MOV8RtoM(u32 to, int from) {
+void MOV8RtoM(uint32_t to, int from) {
     write8(0x88);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* mov m8 to r8 */
-void MOV8MtoR(int to, u32 from) {
+void MOV8MtoR(int to, uint32_t from) {
     write8(0x8A);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* mov imm8 to m8 */
-void MOV8ItoM(u32 to, u8 from) {
+void MOV8ItoM(uint32_t to, uint8_t from) {
     write8(0xC6);
     ModRM(0, 0, DISP32);
     write32(to);
@@ -217,7 +217,7 @@ void MOVSX32R8toR(int to, int from) {
 }
 
 /* movsx m8 to r32 */
-void MOVSX32M8toR(int to, u32 from) {
+void MOVSX32M8toR(int to, uint32_t from) {
     write16(0xBE0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -230,7 +230,7 @@ void MOVSX32R16toR(int to, int from) {
 }
 
 /* movsx m16 to r32 */
-void MOVSX32M16toR(int to, u32 from) {
+void MOVSX32M16toR(int to, uint32_t from) {
     write16(0xBF0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -243,7 +243,7 @@ void MOVZX32R8toR(int to, int from) {
 }
 
 /* movzx m8 to r32 */
-void MOVZX32M8toR(int to, u32 from) {
+void MOVZX32M8toR(int to, uint32_t from) {
     write16(0xB60F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -256,7 +256,7 @@ void MOVZX32R16toR(int to, int from) {
 }
 
 /* movzx m16 to r32 */
-void MOVZX32M16toR(int to, u32 from) {
+void MOVZX32M16toR(int to, uint32_t from) {
     write16(0xB70F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -266,42 +266,42 @@ void MOVZX32M16toR(int to, u32 from) {
 void CMOVNE32RtoR(int to, int from) { CMOV32RtoR(0x45, to, from); }
 
 /* cmovne m32 to r32*/
-void CMOVNE32MtoR(int to, u32 from) { CMOV32MtoR(0x45, to, from); }
+void CMOVNE32MtoR(int to, uint32_t from) { CMOV32MtoR(0x45, to, from); }
 
 /* cmove r32 to r32*/
 void CMOVE32RtoR(int to, int from) { CMOV32RtoR(0x44, to, from); }
 
 /* cmove m32 to r32*/
-void CMOVE32MtoR(int to, u32 from) { CMOV32MtoR(0x44, to, from); }
+void CMOVE32MtoR(int to, uint32_t from) { CMOV32MtoR(0x44, to, from); }
 
 /* cmovg r32 to r32*/
 void CMOVG32RtoR(int to, int from) { CMOV32RtoR(0x4F, to, from); }
 
 /* cmovg m32 to r32*/
-void CMOVG32MtoR(int to, u32 from) { CMOV32MtoR(0x4F, to, from); }
+void CMOVG32MtoR(int to, uint32_t from) { CMOV32MtoR(0x4F, to, from); }
 
 /* cmovge r32 to r32*/
 void CMOVGE32RtoR(int to, int from) { CMOV32RtoR(0x4D, to, from); }
 
 /* cmovge m32 to r32*/
-void CMOVGE32MtoR(int to, u32 from) { CMOV32MtoR(0x4D, to, from); }
+void CMOVGE32MtoR(int to, uint32_t from) { CMOV32MtoR(0x4D, to, from); }
 
 /* cmovl r32 to r32*/
 void CMOVL32RtoR(int to, int from) { CMOV32RtoR(0x4C, to, from); }
 
 /* cmovl m32 to r32*/
-void CMOVL32MtoR(int to, u32 from) { CMOV32MtoR(0x4C, to, from); }
+void CMOVL32MtoR(int to, uint32_t from) { CMOV32MtoR(0x4C, to, from); }
 
 /* cmovle r32 to r32*/
 void CMOVLE32RtoR(int to, int from) { CMOV32RtoR(0x4E, to, from); }
 
 /* cmovle m32 to r32*/
-void CMOVLE32MtoR(int to, u32 from) { CMOV32MtoR(0x4E, to, from); }
+void CMOVLE32MtoR(int to, uint32_t from) { CMOV32MtoR(0x4E, to, from); }
 
 // arithmic instructions
 
 /* add imm32 to r32 */
-void ADD32ItoR(int to, u32 from) {
+void ADD32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x05);
     } else {
@@ -312,7 +312,7 @@ void ADD32ItoR(int to, u32 from) {
 }
 
 /* add imm32 to m32 */
-void ADD32ItoM(u32 to, u32 from) {
+void ADD32ItoM(uint32_t to, uint32_t from) {
     write8(0x81);
     ModRM(0, 0, DISP32);
     write32(to);
@@ -326,21 +326,21 @@ void ADD32RtoR(int to, int from) {
 }
 
 /* add r32 to m32 */
-void ADD32RtoM(u32 to, int from) {
+void ADD32RtoM(uint32_t to, int from) {
     write8(0x01);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* add m32 to r32 */
-void ADD32MtoR(int to, u32 from) {
+void ADD32MtoR(int to, uint32_t from) {
     write8(0x03);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* adc imm32 to r32 */
-void ADC32ItoR(int to, u32 from) {
+void ADC32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x15);
     } else {
@@ -357,7 +357,7 @@ void ADC32RtoR(int to, int from) {
 }
 
 /* adc m32 to r32 */
-void ADC32MtoR(int to, u32 from) {
+void ADC32MtoR(int to, uint32_t from) {
     write8(0x13);
     ModRM(0, to, DISP32);
     write32(from);
@@ -367,14 +367,14 @@ void ADC32MtoR(int to, u32 from) {
 void INC32R(int to) { write8(0x40 + to); }
 
 /* inc m32 */
-void INC32M(u32 to) {
+void INC32M(uint32_t to) {
     write8(0xFF);
     ModRM(0, 0, DISP32);
     write32(to);
 }
 
 /* sub imm32 to r32 */
-void SUB32ItoR(int to, u32 from) {
+void SUB32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x2D);
     } else {
@@ -391,14 +391,14 @@ void SUB32RtoR(int to, int from) {
 }
 
 /* sub m32 to r32 */
-void SUB32MtoR(int to, u32 from) {
+void SUB32MtoR(int to, uint32_t from) {
     write8(0x2B);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* sbb imm32 to r32 */
-void SBB32ItoR(int to, u32 from) {
+void SBB32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x1D);
     } else {
@@ -415,7 +415,7 @@ void SBB32RtoR(int to, int from) {
 }
 
 /* sbb m32 to r32 */
-void SBB32MtoR(int to, u32 from) {
+void SBB32MtoR(int to, uint32_t from) {
     write8(0x1B);
     ModRM(0, to, DISP32);
     write32(from);
@@ -425,7 +425,7 @@ void SBB32MtoR(int to, u32 from) {
 void DEC32R(int to) { write8(0x48 + to); }
 
 /* dec m32 */
-void DEC32M(u32 to) {
+void DEC32M(uint32_t to) {
     write8(0xFF);
     ModRM(0, 1, DISP32);
     write32(to);
@@ -444,14 +444,14 @@ void IMUL32R(int from) {
 }
 
 /* mul eax by m32 to edx:eax */
-void MUL32M(u32 from) {
+void MUL32M(uint32_t from) {
     write8(0xF7);
     ModRM(0, 4, DISP32);
     write32(from);
 }
 
 /* imul eax by m32 to edx:eax */
-void IMUL32M(u32 from) {
+void IMUL32M(uint32_t from) {
     write8(0xF7);
     ModRM(0, 5, DISP32);
     write32(from);
@@ -476,14 +476,14 @@ void IDIV32R(int from) {
 }
 
 /* div eax by m32 to edx:eax */
-void DIV32M(u32 from) {
+void DIV32M(uint32_t from) {
     write8(0xF7);
     ModRM(0, 6, DISP32);
     write32(from);
 }
 
 /* idiv eax by m32 to edx:eax */
-void IDIV32M(u32 from) {
+void IDIV32M(uint32_t from) {
     write8(0xF7);
     ModRM(0, 7, DISP32);
     write32(from);
@@ -503,7 +503,7 @@ void RCR32ItoR(int to, int from) {
 }
 
 /* shl imm8 to r32 */
-void SHL32ItoR(int to, u8 from) {
+void SHL32ItoR(int to, uint8_t from) {
     if (from == 1) {
         write8(0xd1);
         write8(0xe0 | to);
@@ -521,7 +521,7 @@ void SHL32CLtoR(int to) {
 }
 
 /* shr imm8 to r32 */
-void SHR32ItoR(int to, u8 from) {
+void SHR32ItoR(int to, uint8_t from) {
     if (from == 1) {
         write8(0xd1);
         write8(0xe8 | to);
@@ -539,7 +539,7 @@ void SHR32CLtoR(int to) {
 }
 
 /* sar imm8 to r32 */
-void SAR32ItoR(int to, u8 from) {
+void SAR32ItoR(int to, uint8_t from) {
     write8(0xC1);
     ModRM(3, 7, to);
     write8(from);
@@ -554,7 +554,7 @@ void SAR32CLtoR(int to) {
 // logical instructions
 
 /* or imm32 to r32 */
-void OR32ItoR(int to, u32 from) {
+void OR32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x0D);
     } else {
@@ -565,7 +565,7 @@ void OR32ItoR(int to, u32 from) {
 }
 
 /* or imm32 to m32 */
-void OR32ItoM(u32 to, u32 from) {
+void OR32ItoM(uint32_t to, uint32_t from) {
     write8(0x81);
     ModRM(0, 1, DISP32);
     write32(to);
@@ -579,21 +579,21 @@ void OR32RtoR(int to, int from) {
 }
 
 /* or r32 to m32 */
-void OR32RtoM(u32 to, int from) {
+void OR32RtoM(uint32_t to, int from) {
     write8(0x09);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* or m32 to r32 */
-void OR32MtoR(int to, u32 from) {
+void OR32MtoR(int to, uint32_t from) {
     write8(0x0B);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* xor imm32 to r32 */
-void XOR32ItoR(int to, u32 from) {
+void XOR32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x35);
     } else {
@@ -604,7 +604,7 @@ void XOR32ItoR(int to, u32 from) {
 }
 
 /* xor imm32 to m32 */
-void XOR32ItoM(u32 to, u32 from) {
+void XOR32ItoM(uint32_t to, uint32_t from) {
     write8(0x81);
     ModRM(0, 6, DISP32);
     write32(to);
@@ -618,21 +618,21 @@ void XOR32RtoR(int to, int from) {
 }
 
 /* xor r32 to m32 */
-void XOR32RtoM(u32 to, int from) {
+void XOR32RtoM(uint32_t to, int from) {
     write8(0x31);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* xor m32 to r32 */
-void XOR32MtoR(int to, u32 from) {
+void XOR32MtoR(int to, uint32_t from) {
     write8(0x33);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* and imm32 to r32 */
-void AND32ItoR(int to, u32 from) {
+void AND32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x25);
     } else {
@@ -643,7 +643,7 @@ void AND32ItoR(int to, u32 from) {
 }
 
 /* and imm32 to m32 */
-void AND32ItoM(u32 to, u32 from) {
+void AND32ItoM(uint32_t to, uint32_t from) {
     write8(0x81);
     ModRM(0, 0x4, DISP32);
     write32(to);
@@ -657,14 +657,14 @@ void AND32RtoR(int to, int from) {
 }
 
 /* and r32 to m32 */
-void AND32RtoM(u32 to, int from) {
+void AND32RtoM(uint32_t to, int from) {
     write8(0x21);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* and m32 to r32 */
-void AND32MtoR(int to, u32 from) {
+void AND32MtoR(int to, uint32_t from) {
     write8(0x23);
     ModRM(0, to, DISP32);
     write32(from);
@@ -685,17 +685,17 @@ void NEG32R(int from) {
 // jump instructions
 
 /* jmp rel8 */
-u8* JMP8(u8 to) {
+uint8_t* JMP8(uint8_t to) {
     write8(0xEB);
     write8(to);
-    return reinterpret_cast<u8*>(g_x86Ptr - 1);
+    return reinterpret_cast<uint8_t*>(g_x86Ptr - 1);
 }
 
 /* jmp rel32 */
-u32* JMP32(u32 to) {
+uint32_t* JMP32(uint32_t to) {
     write8(0xE9);
     write32(to);
-    return reinterpret_cast<u32*>(g_x86Ptr - 4);
+    return reinterpret_cast<uint32_t*>(g_x86Ptr - 4);
 }
 
 /* jmp r32 */
@@ -705,94 +705,94 @@ void JMP32R(int to) {
 }
 
 /* je rel8 */
-u8* JE8(u8 to) { J8Rel(0x74, to); }
+uint8_t* JE8(uint8_t to) { J8Rel(0x74, to); }
 
 /* jz rel8 */
-u8* JZ8(u8 to) { J8Rel(0x74, to); }
+uint8_t* JZ8(uint8_t to) { J8Rel(0x74, to); }
 
 /* jg rel8 */
-u8* JG8(u8 to) { J8Rel(0x7F, to); }
+uint8_t* JG8(uint8_t to) { J8Rel(0x7F, to); }
 
 /* jge rel8 */
-u8* JGE8(u8 to) { J8Rel(0x7D, to); }
+uint8_t* JGE8(uint8_t to) { J8Rel(0x7D, to); }
 
 /* jl rel8 */
-u8* JL8(u8 to) { J8Rel(0x7C, to); }
+uint8_t* JL8(uint8_t to) { J8Rel(0x7C, to); }
 
 /* jle rel8 */
-u8* JLE8(u8 to) { J8Rel(0x7E, to); }
+uint8_t* JLE8(uint8_t to) { J8Rel(0x7E, to); }
 
 /* jne rel8 */
-u8* JNE8(u8 to) { J8Rel(0x75, to); }
+uint8_t* JNE8(uint8_t to) { J8Rel(0x75, to); }
 
 /* jnz rel8 */
-u8* JNZ8(u8 to) { J8Rel(0x75, to); }
+uint8_t* JNZ8(uint8_t to) { J8Rel(0x75, to); }
 
 /* jng rel8 */
-u8* JNG8(u8 to) { J8Rel(0x7E, to); }
+uint8_t* JNG8(uint8_t to) { J8Rel(0x7E, to); }
 
 /* jnge rel8 */
-u8* JNGE8(u8 to) { J8Rel(0x7C, to); }
+uint8_t* JNGE8(uint8_t to) { J8Rel(0x7C, to); }
 
 /* jnl rel8 */
-u8* JNL8(u8 to) { J8Rel(0x7D, to); }
+uint8_t* JNL8(uint8_t to) { J8Rel(0x7D, to); }
 
 /* jnle rel8 */
-u8* JNLE8(u8 to) { J8Rel(0x7F, to); }
+uint8_t* JNLE8(uint8_t to) { J8Rel(0x7F, to); }
 
 /* jo rel8 */
-u8* JO8(u8 to) { J8Rel(0x70, to); }
+uint8_t* JO8(uint8_t to) { J8Rel(0x70, to); }
 
 /* jno rel8 */
-u8* JNO8(u8 to) { J8Rel(0x71, to); }
+uint8_t* JNO8(uint8_t to) { J8Rel(0x71, to); }
 
 /* je rel32 */
-u32* JE32(u32 to) { J32Rel(0x84, to); }
+uint32_t* JE32(uint32_t to) { J32Rel(0x84, to); }
 
 /* jz rel32 */
-u32* JZ32(u32 to) { J32Rel(0x84, to); }
+uint32_t* JZ32(uint32_t to) { J32Rel(0x84, to); }
 
 /* jg rel32 */
-u32* JG32(u32 to) { J32Rel(0x8F, to); }
+uint32_t* JG32(uint32_t to) { J32Rel(0x8F, to); }
 
 /* jge rel32 */
-u32* JGE32(u32 to) { J32Rel(0x8D, to); }
+uint32_t* JGE32(uint32_t to) { J32Rel(0x8D, to); }
 
 /* jl rel32 */
-u32* JL32(u32 to) { J32Rel(0x8C, to); }
+uint32_t* JL32(uint32_t to) { J32Rel(0x8C, to); }
 
 /* jle rel32 */
-u32* JLE32(u32 to) { J32Rel(0x8E, to); }
+uint32_t* JLE32(uint32_t to) { J32Rel(0x8E, to); }
 
 /* jne rel32 */
-u32* JNE32(u32 to) { J32Rel(0x85, to); }
+uint32_t* JNE32(uint32_t to) { J32Rel(0x85, to); }
 
 /* jnz rel32 */
-u32* JNZ32(u32 to) { J32Rel(0x85, to); }
+uint32_t* JNZ32(uint32_t to) { J32Rel(0x85, to); }
 
 /* jng rel32 */
-u32* JNG32(u32 to) { J32Rel(0x8E, to); }
+uint32_t* JNG32(uint32_t to) { J32Rel(0x8E, to); }
 
 /* jnge rel32 */
-u32* JNGE32(u32 to) { J32Rel(0x8C, to); }
+uint32_t* JNGE32(uint32_t to) { J32Rel(0x8C, to); }
 
 /* jnl rel32 */
-u32* JNL32(u32 to) { J32Rel(0x8D, to); }
+uint32_t* JNL32(uint32_t to) { J32Rel(0x8D, to); }
 
 /* jnle rel32 */
-u32* JNLE32(u32 to) { J32Rel(0x8F, to); }
+uint32_t* JNLE32(uint32_t to) { J32Rel(0x8F, to); }
 
 /* jo rel32 */
-u32* JO32(u32 to) { J32Rel(0x80, to); }
+uint32_t* JO32(uint32_t to) { J32Rel(0x80, to); }
 
 /* jno rel32 */
-u32* JNO32(u32 to) { J32Rel(0x81, to); }
+uint32_t* JNO32(uint32_t to) { J32Rel(0x81, to); }
 
 /* call func */
-void CALLFunc(u32 func) { CALL32(func - ((u32)g_x86Ptr + 5)); }
+void CALLFunc(uint32_t func) { CALL32(func - ((uint32_t)g_x86Ptr + 5)); }
 
 /* call rel32 */
-void CALL32(u32 to) {
+void CALL32(uint32_t to) {
     write8(0xE8);
     write32(to);
 }
@@ -804,7 +804,7 @@ void CALL32R(int to) {
 }
 
 /* call m32 */
-void CALL32M(u32 to) {
+void CALL32M(uint32_t to) {
     write8(0xFF);
     ModRM(0, 2, DISP32);
     write32(to);
@@ -813,7 +813,7 @@ void CALL32M(u32 to) {
 // misc instructions
 
 /* cmp imm32 to r32 */
-void CMP32ItoR(int to, u32 from) {
+void CMP32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0x3D);
     } else {
@@ -824,7 +824,7 @@ void CMP32ItoR(int to, u32 from) {
 }
 
 /* cmp imm32 to m32 */
-void CMP32ItoM(u32 to, u32 from) {
+void CMP32ItoM(uint32_t to, uint32_t from) {
     write8(0x81);
     ModRM(0, 7, DISP32);
     write32(to);
@@ -838,14 +838,14 @@ void CMP32RtoR(int to, int from) {
 }
 
 /* cmp m32 to r32 */
-void CMP32MtoR(int to, u32 from) {
+void CMP32MtoR(int to, uint32_t from) {
     write8(0x3B);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* test imm32 to r32 */
-void TEST32ItoR(int to, u32 from) {
+void TEST32ItoR(int to, uint32_t from) {
     if (to == EAX) {
         write8(0xA9);
     } else {
@@ -891,14 +891,14 @@ void CDQ() { write8(0x99); }
 void PUSH32R(int from) { write8(0x50 | from); }
 
 /* push m32 */
-void PUSH32M(u32 from) {
+void PUSH32M(uint32_t from) {
     write8(0xFF);
     ModRM(0, 6, DISP32);
     write32(from);
 }
 
 /* push imm32 */
-void PUSH32I(u32 from) {
+void PUSH32I(uint32_t from) {
     write8(0x68);
     write32(from);
 }
@@ -921,7 +921,7 @@ void RET() { write8(0xC3); }
 
 // Added:basara 14.01.2003
 /* compare m32 to fpu reg stack */
-void FCOMP32(u32 from) {
+void FCOMP32(uint32_t from) {
     write8(0xD8);
     ModRM(0, 0x3, DISP32);
     write32(from);
@@ -930,28 +930,28 @@ void FCOMP32(u32 from) {
 void FNSTSWtoAX() { write16(0xE0DF); }
 
 /* fild m32 to fpu reg stack */
-void FILD32(u32 from) {
+void FILD32(uint32_t from) {
     write8(0xDB);
     ModRM(0, 0x0, DISP32);
     write32(from);
 }
 
 /* fistp m32 from fpu reg stack */
-void FISTP32(u32 from) {
+void FISTP32(uint32_t from) {
     write8(0xDB);
     ModRM(0, 0x3, DISP32);
     write32(from);
 }
 
 /* fld m32 to fpu reg stack */
-void FLD32(u32 from) {
+void FLD32(uint32_t from) {
     write8(0xD9);
     ModRM(0, 0x0, DISP32);
     write32(from);
 }
 
 /* fstp m32 from fpu reg stack */
-void FSTP32(u32 to) {
+void FSTP32(uint32_t to) {
     write8(0xD9);
     ModRM(0, 0x3, DISP32);
     write32(to);
@@ -960,14 +960,14 @@ void FSTP32(u32 to) {
 //
 
 /* fldcw fpu control word from m16 */
-void FLDCW(u32 from) {
+void FLDCW(uint32_t from) {
     write8(0xD9);
     ModRM(0, 0x5, DISP32);
     write32(from);
 }
 
 /* fnstcw fpu control word to m16 */
-void FNSTCW(u32 to) {
+void FNSTCW(uint32_t to) {
     write8(0xD9);
     ModRM(0, 0x7, DISP32);
     write32(to);
@@ -976,28 +976,28 @@ void FNSTCW(u32 to) {
 //
 
 /* fadd m32 to fpu reg stack */
-void FADD32(u32 from) {
+void FADD32(uint32_t from) {
     write8(0xD8);
     ModRM(0, 0x0, DISP32);
     write32(from);
 }
 
 /* fsub m32 to fpu reg stack */
-void FSUB32(u32 from) {
+void FSUB32(uint32_t from) {
     write8(0xD8);
     ModRM(0, 0x4, DISP32);
     write32(from);
 }
 
 /* fmul m32 to fpu reg stack */
-void FMUL32(u32 from) {
+void FMUL32(uint32_t from) {
     write8(0xD8);
     ModRM(0, 0x1, DISP32);
     write32(from);
 }
 
 /* fdiv m32 to fpu reg stack */
-void FDIV32(u32 from) {
+void FDIV32(uint32_t from) {
     write8(0xD8);
     ModRM(0, 0x6, DISP32);
     write32(from);
@@ -1019,14 +1019,14 @@ void FCHS() { write16(0xE0D9); }
 // r64 = mm
 
 /* movq m64 to r64 */
-void MOVQMtoR(int to, u32 from) {
+void MOVQMtoR(int to, uint32_t from) {
     write16(0x6F0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* movq r64 to m64 */
-void MOVQRtoM(u32 to, int from) {
+void MOVQRtoM(uint32_t to, int from) {
     write16(0x7F0F);
     ModRM(0, from, DISP32);
     write32(to);
@@ -1063,14 +1063,14 @@ void PSLLQRtoR(int to, int from) {
 }
 
 /* psllq m64 to r64 */
-void PSLLQMtoR(int to, u32 from) {
+void PSLLQMtoR(int to, uint32_t from) {
     write16(0xF30F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* psllq imm8 to r64 */
-void PSLLQItoR(int to, u8 from) {
+void PSLLQItoR(int to, uint8_t from) {
     write16(0x730F);
     ModRM(3, 6, to);
     write8(from);
@@ -1083,14 +1083,14 @@ void PSRLQRtoR(int to, int from) {
 }
 
 /* psrlq m64 to r64 */
-void PSRLQMtoR(int to, u32 from) {
+void PSRLQMtoR(int to, uint32_t from) {
     write16(0xD30F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* psrlq imm8 to r64 */
-void PSRLQItoR(int to, u8 from) {
+void PSRLQItoR(int to, uint8_t from) {
     write16(0x730F);
     ModRM(3, 2, to);
     write8(from);
@@ -1103,7 +1103,7 @@ void PADDUSBRtoR(int to, int from) {
 }
 
 /* paddusb m64 to r64 */
-void PADDUSBMtoR(int to, u32 from) {
+void PADDUSBMtoR(int to, uint32_t from) {
     write16(0xDC0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1116,7 +1116,7 @@ void PADDUSWRtoR(int to, int from) {
 }
 
 /* paddusw m64 to r64 */
-void PADDUSWMtoR(int to, u32 from) {
+void PADDUSWMtoR(int to, uint32_t from) {
     write16(0xDD0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1129,7 +1129,7 @@ void PADDBRtoR(int to, int from) {
 }
 
 /* paddb m64 to r64 */
-void PADDBMtoR(int to, u32 from) {
+void PADDBMtoR(int to, uint32_t from) {
     write16(0xFC0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1142,7 +1142,7 @@ void PADDWRtoR(int to, int from) {
 }
 
 /* paddw m64 to r64 */
-void PADDWMtoR(int to, u32 from) {
+void PADDWMtoR(int to, uint32_t from) {
     write16(0xFD0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1155,7 +1155,7 @@ void PADDDRtoR(int to, int from) {
 }
 
 /* paddd m64 to r64 */
-void PADDDMtoR(int to, u32 from) {
+void PADDDMtoR(int to, uint32_t from) {
     write16(0xFE0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1222,8 +1222,8 @@ void PSUBDRtoR(int to, int from) {
 
 // changed:basara
 // P.s.It's sux.Don't use it offten.
-void MOVQ64ItoR(int reg, u64 i) {
-    MOVQMtoR(reg, (u32)(g_x86Ptr) + 2 + 7);
+void MOVQ64ItoR(int reg, uint64_t i) {
+    MOVQMtoR(reg, (uint32_t)(g_x86Ptr) + 2 + 7);
     JMP8(8);
     write64(i);
 }
@@ -1315,42 +1315,42 @@ void PSRADItoR(int to, int from) {
 }
 
 /* por m64 to r64 */
-void PORMtoR(int to, u32 from) {
+void PORMtoR(int to, uint32_t from) {
     write16(0xEB0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* pxor m64 to r64 */
-void PXORMtoR(int to, u32 from) {
+void PXORMtoR(int to, uint32_t from) {
     write16(0xEF0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* pand m64 to r64 */
-void PANDMtoR(int to, u32 from) {
+void PANDMtoR(int to, uint32_t from) {
     write16(0xDB0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* pandn m64 to r64 */
-void PANDNMtoR(int to, u32 from) {
+void PANDNMtoR(int to, uint32_t from) {
     write16(0xDF0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* movd m32 to r64 */
-void MOVDMtoR(int to, u32 from) {
+void MOVDMtoR(int to, uint32_t from) {
     write16(0x6E0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* movq r64 to m32 */
-void MOVDRtoM(u32 to, int from) {
+void MOVDRtoM(uint32_t to, int from) {
     write16(0x7E0F);
     ModRM(0, from, DISP32);
     write32(to);

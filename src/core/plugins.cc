@@ -28,7 +28,7 @@ static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
 static char AppPath[MAXPATHLEN] = "";  // Application path(== pcsxr.exe directory)
 static char LdrFile[MAXPATHLEN] = "";  // bin-load file
-static s64 cdOpenCaseTime = 0;
+static int64_t cdOpenCaseTime = 0;
 
 GPUupdateLace GPU_updateLace;
 GPUinit GPU_init;
@@ -267,19 +267,19 @@ void CALLBACK GPU__hSync(int val) {}
 void CALLBACK GPU__vBlank(int val) {}
 void CALLBACK GPU__visualVibration(unsigned long iSmall, unsigned long iBig) {}
 void CALLBACK GPU__cursor(int player, int x, int y) {}
-void CALLBACK GPU__addVertex(short sx, short sy, s64 fx, s64 fy, s64 fz) {}
+void CALLBACK GPU__addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
 void CALLBACK GPU__setSpeed(float newSpeed) {}
 void CALLBACK GPU__pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
 void CALLBACK GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
 
 #if 0
-#define LoadGpuSym1(dest, name) LoadSym(GPU_##dest, GPU##dest, name, TRUE);
+#define LoadGpuSym1(dest, name) LoadSym(GPU_##dest, GPU##dest, name, true);
 
 #define LoadGpuSym0(dest, name)                  \
-    LoadSym(GPU_##dest, GPU##dest, name, FALSE); \
+    LoadSym(GPU_##dest, GPU##dest, name, false); \
     if (GPU_##dest == NULL) GPU_##dest = (GPU##dest)GPU__##dest;
 
-#define LoadGpuSymN(dest, name) LoadSym(GPU_##dest, GPU##dest, name, FALSE);
+#define LoadGpuSymN(dest, name) LoadSym(GPU_##dest, GPU##dest, name, false);
 #endif
 
 static int LoadGPUplugin(const char *GPUdll) {
@@ -371,7 +371,7 @@ long CALLBACK CDR__play(unsigned char *sector) { return 0; }
 long CALLBACK CDR__stop(void) { return 0; }
 
 long CALLBACK CDR__getStatus(struct CdrStat *stat) {
-    if (cdOpenCaseTime < 0 || cdOpenCaseTime > (s64)time(NULL))
+    if (cdOpenCaseTime < 0 || cdOpenCaseTime > (int64_t)time(NULL))
         stat->Status = 0x10;
     else
         stat->Status = 0;
@@ -385,13 +385,13 @@ long CALLBACK CDR__test(void) { return 0; }
 void CALLBACK CDR__about(void) {}
 long CALLBACK CDR__setfilename(char *filename) { return 0; }
 
-#define LoadCdrSym1(dest, name) LoadSym(CDR_##dest, CDR##dest, name, TRUE);
+#define LoadCdrSym1(dest, name) LoadSym(CDR_##dest, CDR##dest, name, true);
 
 #define LoadCdrSym0(dest, name)                  \
-    LoadSym(CDR_##dest, CDR##dest, name, FALSE); \
+    LoadSym(CDR_##dest, CDR##dest, name, false); \
     if (CDR_##dest == NULL) CDR_##dest = (CDR##dest)CDR__##dest;
 
-#define LoadCdrSymN(dest, name) LoadSym(CDR_##dest, CDR##dest, name, FALSE);
+#define LoadCdrSymN(dest, name) LoadSym(CDR_##dest, CDR##dest, name, false);
 
 static int LoadCDRplugin(const char *CDRdll) {
     void *drv;
@@ -439,13 +439,13 @@ long CALLBACK SPU__configure(void) { return 0; }
 void CALLBACK SPU__about(void) {}
 long CALLBACK SPU__test(void) { return 0; }
 
-//#define LoadSpuSym1(dest, name) LoadSym(SPU_##dest, SPU##dest, name, TRUE);
+//#define LoadSpuSym1(dest, name) LoadSym(SPU_##dest, SPU##dest, name, true);
 
 #define LoadSpuSym0(dest, name)                  \
-    LoadSym(SPU_##dest, SPU##dest, name, FALSE); \
+    LoadSym(SPU_##dest, SPU##dest, name, false); \
     if (SPU_##dest == NULL) SPU_##dest = (SPU##dest)SPU__##dest;
 
-#define LoadSpuSymN(dest, name) LoadSym(SPU_##dest, SPU##dest, name, FALSE);
+#define LoadSpuSymN(dest, name) LoadSym(SPU_##dest, SPU##dest, name, false);
 
 #include <stdlib.h>
 #include <string.h>
@@ -581,7 +581,7 @@ long CALLBACK nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
     return 1;
 }
 
-void CALLBACK nullSPU_async(u32 length) {}
+void CALLBACK nullSPU_async(uint32_t length) {}
 
 void(CALLBACK *nullSPU_irqcallback)(void);
 
@@ -751,12 +751,12 @@ long CALLBACK PAD1__keypressed() { return 0; }
 void CALLBACK PAD1__registerVibration(void(CALLBACK *callback)(uint32_t, uint32_t)) {}
 void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
 
-#define LoadPad1Sym1(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, TRUE);
+#define LoadPad1Sym1(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, true);
 
-#define LoadPad1SymN(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, FALSE);
+#define LoadPad1SymN(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, false);
 
 #define LoadPad1Sym0(dest, name)                  \
-    LoadSym(PAD1_##dest, PAD##dest, name, FALSE); \
+    LoadSym(PAD1_##dest, PAD##dest, name, false); \
     if (PAD1_##dest == NULL) PAD1_##dest = (PAD##dest)PAD1__##dest;
 
 long CALLBACK nullPAD_init(long flags) { return 0; }
@@ -832,13 +832,13 @@ long CALLBACK PAD2__keypressed() { return 0; }
 void CALLBACK PAD2__registerVibration(void(CALLBACK *callback)(uint32_t, uint32_t)) {}
 void CALLBACK PAD2__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
 
-#define LoadPad2Sym1(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, TRUE);
+#define LoadPad2Sym1(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, true);
 
 #define LoadPad2Sym0(dest, name)                  \
-    LoadSym(PAD2_##dest, PAD##dest, name, FALSE); \
+    LoadSym(PAD2_##dest, PAD##dest, name, false); \
     if (PAD2_##dest == NULL) PAD2_##dest = (PAD##dest)PAD2__##dest;
 
-#define LoadPad2SymN(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, FALSE);
+#define LoadPad2SymN(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, false);
 
 static int LoadPAD2plugin(const char *PAD2dll) {
     void *drv;
@@ -894,12 +894,12 @@ long CALLBACK NET__configure(void) { return 0; }
 long CALLBACK NET__test(void) { return 0; }
 void CALLBACK NET__about(void) {}
 
-#define LoadNetSym1(dest, name) LoadSym(NET_##dest, NET##dest, name, TRUE);
+#define LoadNetSym1(dest, name) LoadSym(NET_##dest, NET##dest, name, true);
 
-#define LoadNetSymN(dest, name) LoadSym(NET_##dest, NET##dest, name, FALSE);
+#define LoadNetSymN(dest, name) LoadSym(NET_##dest, NET##dest, name, false);
 
 #define LoadNetSym0(dest, name)                  \
-    LoadSym(NET_##dest, NET##dest, name, FALSE); \
+    LoadSym(NET_##dest, NET##dest, name, false); \
     if (NET_##dest == NULL) NET_##dest = (NET##dest)NET__##dest;
 
 static int LoadNETplugin(const char *NETdll) {
@@ -947,37 +947,37 @@ void CALLBACK SIO1__about(void) {}
 void CALLBACK SIO1__pause(void) {}
 void CALLBACK SIO1__resume(void) {}
 long CALLBACK SIO1__keypressed(int key) { return 0; }
-void CALLBACK SIO1__writeData8(u8 val) {}
-void CALLBACK SIO1__writeData16(u16 val) {}
-void CALLBACK SIO1__writeData32(u32 val) {}
-void CALLBACK SIO1__writeStat16(u16 val) {}
-void CALLBACK SIO1__writeStat32(u32 val) {}
-void CALLBACK SIO1__writeMode16(u16 val) {}
-void CALLBACK SIO1__writeMode32(u32 val) {}
-void CALLBACK SIO1__writeCtrl16(u16 val) {}
-void CALLBACK SIO1__writeCtrl32(u32 val) {}
-void CALLBACK SIO1__writeBaud16(u16 val) {}
-void CALLBACK SIO1__writeBaud32(u32 val) {}
-u8 CALLBACK SIO1__readData8(void) { return 0; }
-u16 CALLBACK SIO1__readData16(void) { return 0; }
-u32 CALLBACK SIO1__readData32(void) { return 0; }
-u16 CALLBACK SIO1__readStat16(void) { return 0; }
-u32 CALLBACK SIO1__readStat32(void) { return 0; }
-u16 CALLBACK SIO1__readMode16(void) { return 0; }
-u32 CALLBACK SIO1__readMode32(void) { return 0; }
-u16 CALLBACK SIO1__readCtrl16(void) { return 0; }
-u32 CALLBACK SIO1__readCtrl32(void) { return 0; }
-u16 CALLBACK SIO1__readBaud16(void) { return 0; }
-u32 CALLBACK SIO1__readBaud32(void) { return 0; }
+void CALLBACK SIO1__writeData8(uint8_t val) {}
+void CALLBACK SIO1__writeData16(uint16_t val) {}
+void CALLBACK SIO1__writeData32(uint32_t val) {}
+void CALLBACK SIO1__writeStat16(uint16_t val) {}
+void CALLBACK SIO1__writeStat32(uint32_t val) {}
+void CALLBACK SIO1__writeMode16(uint16_t val) {}
+void CALLBACK SIO1__writeMode32(uint32_t val) {}
+void CALLBACK SIO1__writeCtrl16(uint16_t val) {}
+void CALLBACK SIO1__writeCtrl32(uint32_t val) {}
+void CALLBACK SIO1__writeBaud16(uint16_t val) {}
+void CALLBACK SIO1__writeBaud32(uint32_t val) {}
+uint8_t CALLBACK SIO1__readData8(void) { return 0; }
+uint16_t CALLBACK SIO1__readData16(void) { return 0; }
+uint32_t CALLBACK SIO1__readData32(void) { return 0; }
+uint16_t CALLBACK SIO1__readStat16(void) { return 0; }
+uint32_t CALLBACK SIO1__readStat32(void) { return 0; }
+uint16_t CALLBACK SIO1__readMode16(void) { return 0; }
+uint32_t CALLBACK SIO1__readMode32(void) { return 0; }
+uint16_t CALLBACK SIO1__readCtrl16(void) { return 0; }
+uint32_t CALLBACK SIO1__readCtrl32(void) { return 0; }
+uint16_t CALLBACK SIO1__readBaud16(void) { return 0; }
+uint32_t CALLBACK SIO1__readBaud32(void) { return 0; }
 void CALLBACK SIO1__update(uint32_t t){};
 void CALLBACK SIO1__registerCallback(void(CALLBACK *callback)(void)){};
 
-#define LoadSio1Sym1(dest, name) LoadSym(SIO1_##dest, SIO1##dest, name, TRUE);
+#define LoadSio1Sym1(dest, name) LoadSym(SIO1_##dest, SIO1##dest, name, true);
 
-#define LoadSio1SymN(dest, name) LoadSym(SIO1_##dest, SIO1##dest, name, FALSE);
+#define LoadSio1SymN(dest, name) LoadSym(SIO1_##dest, SIO1##dest, name, false);
 
 #define LoadSio1Sym0(dest, name)                   \
-    LoadSym(SIO1_##dest, SIO1##dest, name, FALSE); \
+    LoadSym(SIO1_##dest, SIO1##dest, name, false); \
     if (SIO1_##dest == NULL) SIO1_##dest = (SIO1##dest)SIO1__##dest;
 
 static int LoadSIO1plugin(const char *SIO1dll) {
@@ -1058,11 +1058,11 @@ int LoadPlugins() {
     if (LoadPAD2plugin(Plugin) == -1) return -1;
 
     if (strcmp("Disabled", g_config.Net) == 0 || strcmp("", g_config.Net) == 0)
-        g_config.UseNet = FALSE;
+        g_config.UseNet = false;
     else {
-        g_config.UseNet = TRUE;
+        g_config.UseNet = true;
         sprintf(Plugin, "%s/%s", g_config.PluginsDir, g_config.Net);
-        if (LoadNETplugin(Plugin) == -1) g_config.UseNet = FALSE;
+        if (LoadNETplugin(Plugin) == -1) g_config.UseNet = false;
     }
 
 #ifdef ENABLE_SIO1API
@@ -1119,9 +1119,9 @@ int LoadPlugins() {
 void ReleasePlugins() {
     if (g_config.UseNet) {
         long ret = NET_close();
-        if (ret < 0) g_config.UseNet = FALSE;
+        if (ret < 0) g_config.UseNet = false;
     }
-    g_netOpened = FALSE;
+    g_netOpened = false;
 
     if (hCDRDriver != NULL || cdrIsoActive()) CDR_shutdown();
     if (hGPUDriver != NULL) GPU_shutdown();
@@ -1199,6 +1199,6 @@ const char *GetAppPath(void) { return AppPath; }
 
 const char *GetLdrFile(void) { return LdrFile; }
 
-boolean UsingIso(void) { return (IsoFile[0] != '\0' || g_config.Cdr[0] == '\0'); }
+bool UsingIso(void) { return (IsoFile[0] != '\0' || g_config.Cdr[0] == '\0'); }
 
-void SetCdOpenCaseTime(s64 time) { cdOpenCaseTime = time; }
+void SetCdOpenCaseTime(int64_t time) { cdOpenCaseTime = time; }
