@@ -40,7 +40,7 @@ typedef struct {
 } R3000Acpu;
 
 extern R3000Acpu *psxCpu;
-extern R3000Acpu psxInt;
+extern R3000Acpu g_psxInt;
 extern R3000Acpu g_psxRec;
 #define PSXREC
 

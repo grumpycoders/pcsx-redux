@@ -190,7 +190,6 @@
     <ClInclude Include="..\..\src\core\psxdma.h" />
     <ClInclude Include="..\..\src\core\psxhle.h" />
     <ClInclude Include="..\..\src\core\psxhw.h" />
-    <ClInclude Include="..\..\src\core\psxinterpreter_pgxp.h" />
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />
     <ClInclude Include="..\..\src\core\sio.h" />

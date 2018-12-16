@@ -863,11 +863,11 @@ int RecvPcsxInfo() {
         psxCpu->Shutdown();
 #ifdef PSXREC
         if (g_config.Cpu == CPU_INTERPRETER)
-            psxCpu = &psxInt;
+            psxCpu = &g_psxInt;
         else
             psxCpu = &g_psxRec;
 #else
-        psxCpu = &psxInt;
+        psxCpu = &g_psxInt;
 #endif
         if (psxCpu->Init() == -1) {
             SysClose();

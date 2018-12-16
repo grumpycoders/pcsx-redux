@@ -61,7 +61,7 @@ int main() {
     CheckCdrom();
     LoadCdrom();
 
-    psxCpu = &psxInt;
+    psxCpu = &g_psxInt;
     psxCpu->Init();
     psxCpu->Execute();
 

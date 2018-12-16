@@ -36,11 +36,11 @@ int psxInit() {
 
 #ifdef PSXREC
     if (g_config.Cpu == CPU_INTERPRETER) {
-        psxCpu = &psxInt;
+        psxCpu = &g_psxInt;
     } else
         psxCpu = &g_psxRec;
 #else
-    psxCpu = &psxInt;
+    psxCpu = &g_psxInt;
 #endif
 
     g_log = 0;

@@ -1620,8 +1620,8 @@ static void recLW() {
     s_resp += 4;
 }
 
-extern u32 LWL_MASK[4];
-extern u32 LWL_SHIFT[4];
+extern const u32 LWL_MASK[4];
+extern const u32 LWL_SHIFT[4];
 
 void iLWLk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -1775,8 +1775,8 @@ static void recLWBlock(int count) {
 }
 #endif
 
-extern u32 LWR_MASK[4];
-extern u32 LWR_SHIFT[4];
+extern const u32 LWR_MASK[4];
+extern const u32 LWR_SHIFT[4];
 
 void iLWRk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2132,8 +2132,8 @@ static void recSWBlock(int count) {
 }
 #endif
 
-extern u32 SWL_MASK[4];
-extern u32 SWL_SHIFT[4];
+extern const u32 SWL_MASK[4];
+extern const u32 SWL_SHIFT[4];
 
 void iSWLk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -2215,8 +2215,8 @@ void recSWL() {
     s_resp += 8;
 }
 
-extern u32 SWR_MASK[4];
-extern u32 SWR_SHIFT[4];
+extern const u32 SWR_MASK[4];
+extern const u32 SWR_SHIFT[4];
 
 void iSWRk(u32 shift) {
     if (IsConst(_Rt_)) {
@@ -3394,7 +3394,7 @@ static void recSetPGXPMode(u32 pgxpMode) {
     }
 
     // set interpreter mode too
-    psxInt.SetPGXPMode(pgxpMode);
+    g_psxInt.SetPGXPMode(pgxpMode);
     // reset to ensure new func tables are used
     recReset();
 }
