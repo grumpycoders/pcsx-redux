@@ -236,7 +236,7 @@ static const char *err;
     {                                                         \
         err = SysLibError();                                  \
         if (err != NULL) {                                    \
-            SysMessage(_("Error loading %s: %s"), func, err); \
+            PCSX::system->SysMessage(_("Error loading %s: %s"), func, err); \
             return -1;                                        \
         }                                                     \
     }
@@ -252,7 +252,7 @@ static const char *err;
 
 void *hGPUDriver = NULL;
 
-void CALLBACK GPU__displayText(char *pText) { SysPrintf("%s\n", pText); }
+void CALLBACK GPU__displayText(char *pText) { PCSX::system->SysPrintf("%s\n", pText); }
 
 long CALLBACK GPU__configure(void) { return 0; }
 long CALLBACK GPU__test(void) { return 0; }
@@ -289,7 +289,7 @@ static int LoadGPUplugin(const char *GPUdll) {
     hGPUDriver = SysLoadLibrary(GPUdll);
     if (hGPUDriver == NULL) {
         GPU_configure = NULL;
-        SysMessage(_("Could not load GPU plugin %s!\n%s"), GPUdll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load GPU plugin %s!\n%s"), GPUdll, SysLibError());
         return -1;
     }
     drv = hGPUDriver;
@@ -405,7 +405,7 @@ static int LoadCDRplugin(const char *CDRdll) {
     hCDRDriver = SysLoadLibrary(CDRdll);
     if (hCDRDriver == NULL) {
         CDR_configure = NULL;
-        SysMessage(_("Could not load CD-ROM plugin %s!\n%s"), CDRdll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load CD-ROM plugin %s!\n%s"), CDRdll, SysLibError());
         return -1;
     }
     drv = hCDRDriver;
@@ -607,7 +607,7 @@ static int LoadSPUplugin(const char *SPUdll) {
     hSPUDriver = SysLoadLibrary(SPUdll);
     if (hSPUDriver == NULL) {
         SPU_configure = NULL;
-        SysMessage(_("Could not load SPU plugin %s!\n%s"), SPUdll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load SPU plugin %s!\n%s"), SPUdll, SysLibError());
         return -1;
     }
     drv = hSPUDriver;
@@ -775,7 +775,7 @@ static int LoadPAD1plugin(const char *PAD1dll) {
     hPAD1Driver = SysLoadLibrary(PAD1dll);
     if (hPAD1Driver == NULL) {
         PAD1_configure = NULL;
-        SysMessage(_("Could not load Controller 1 plugin %s!\n%s"), PAD1dll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load Controller 1 plugin %s!\n%s"), PAD1dll, SysLibError());
         return -1;
     }
     drv = hPAD1Driver;
@@ -847,7 +847,7 @@ static int LoadPAD2plugin(const char *PAD2dll) {
     hPAD2Driver = SysLoadLibrary(PAD2dll);
     if (hPAD2Driver == NULL) {
         PAD2_configure = NULL;
-        SysMessage(_("Could not load Controller 2 plugin %s!\n%s"), PAD2dll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load Controller 2 plugin %s!\n%s"), PAD2dll, SysLibError());
         return -1;
     }
     drv = hPAD2Driver;
@@ -908,7 +908,7 @@ static int LoadNETplugin(const char *NETdll) {
 #if 0
     hNETDriver = SysLoadLibrary(NETdll);
     if (hNETDriver == NULL) {
-        SysMessage(_("Could not load NetPlay plugin %s!\n%s"), NETdll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load NetPlay plugin %s!\n%s"), NETdll, SysLibError());
         return -1;
     }
     drv = hNETDriver;
@@ -985,7 +985,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
 
     hSIO1Driver = SysLoadLibrary(SIO1dll);
     if (hSIO1Driver == NULL) {
-        SysMessage(_("Could not load SIO1 plugin %s!\n%s"), SIO1dll, SysLibError());
+        PCSX::system->SysMessage(_("Could not load SIO1 plugin %s!\n%s"), SIO1dll, SysLibError());
         return -1;
     }
     drv = hSIO1Driver;
@@ -1072,34 +1072,34 @@ int LoadPlugins() {
 
     ret = CDR_init();
     if (ret < 0) {
-        SysMessage(_("Error initializing CD-ROM plugin: %d"), ret);
+        PCSX::system->SysMessage(_("Error initializing CD-ROM plugin: %d"), ret);
         return -1;
     }
     ret = GPU_init();
     if (ret < 0) {
-        SysMessage(_("Error initializing GPU plugin: %d"), ret);
+        PCSX::system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
     ret = SPU_init();
     if (ret < 0) {
-        SysMessage(_("Error initializing SPU plugin: %d"), ret);
+        PCSX::system->SysMessage(_("Error initializing SPU plugin: %d"), ret);
         return -1;
     }
     ret = PAD1_init(1);
     if (ret < 0) {
-        SysMessage(_("Error initializing Controller 1 plugin: %d"), ret);
+        PCSX::system->SysMessage(_("Error initializing Controller 1 plugin: %d"), ret);
         return -1;
     }
     ret = PAD2_init(2);
     if (ret < 0) {
-        SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
+        PCSX::system->SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
         return -1;
     }
 
     if (g_config.UseNet) {
         ret = NET_init();
         if (ret < 0) {
-            SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
+            PCSX::system->SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
             return -1;
         }
     }
@@ -1107,12 +1107,12 @@ int LoadPlugins() {
 #ifdef ENABLE_SIO1API
     ret = SIO1_init();
     if (ret < 0) {
-        SysMessage(_("Error initializing SIO1 plugin: %d"), ret);
+        PCSX::system->SysMessage(_("Error initializing SIO1 plugin: %d"), ret);
         return -1;
     }
 #endif
 
-    SysPrintf("%s", _("Plugins loaded.\n"));
+    PCSX::system->SysPrintf("%s", _("Plugins loaded.\n"));
     return 0;
 }
 
@@ -1132,26 +1132,26 @@ void ReleasePlugins() {
     if (g_config.UseNet && hNETDriver != NULL) NET_shutdown();
 
 #if 0
-    if (hCDRDriver != NULL) SysCloseLibrary(hCDRDriver);
+    if (hCDRDriver != NULL) PCSX::system->SysCloseLibrary(hCDRDriver);
     hCDRDriver = NULL;
-    if (hGPUDriver != NULL) SysCloseLibrary(hGPUDriver);
+    if (hGPUDriver != NULL) PCSX::system->SysCloseLibrary(hGPUDriver);
     hGPUDriver = NULL;
-    if (hSPUDriver != NULL) SysCloseLibrary(hSPUDriver);
+    if (hSPUDriver != NULL) PCSX::system->SysCloseLibrary(hSPUDriver);
     hSPUDriver = NULL;
-    if (hPAD1Driver != NULL) SysCloseLibrary(hPAD1Driver);
+    if (hPAD1Driver != NULL) PCSX::system->SysCloseLibrary(hPAD1Driver);
     hPAD1Driver = NULL;
-    if (hPAD2Driver != NULL) SysCloseLibrary(hPAD2Driver);
+    if (hPAD2Driver != NULL) PCSX::system->SysCloseLibrary(hPAD2Driver);
     hPAD2Driver = NULL;
 
     if (g_config.UseNet && hNETDriver != NULL) {
-        SysCloseLibrary(hNETDriver);
+        PCSX::system->SysCloseLibrary(hNETDriver);
         hNETDriver = NULL;
     }
 
 #ifdef ENABLE_SIO1API
     if (hSIO1Driver != NULL) {
         SIO1_shutdown();
-        SysCloseLibrary(hSIO1Driver);
+        PCSX::system->SysCloseLibrary(hSIO1Driver);
         hSIO1Driver = NULL;
     }
 #endif

@@ -54,10 +54,10 @@ static void hleC0() {
 }
 
 static void hleBootstrap() {  // 0xbfc00000
-    SysPrintf("hleBootstrap\n");
+    PCSX::system->SysBiosPrintf("hleBootstrap\n");
     CheckCdrom();
     LoadCdrom();
-    SysPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", g_cdromLabel, (unsigned int)g_psxRegs.pc,
+    PCSX::system->SysBiosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", g_cdromLabel, (unsigned int)g_psxRegs.pc,
               (unsigned int)g_psxRegs.GPR.n.sp);
 }
 
@@ -78,7 +78,7 @@ typedef struct {
 static void hleExecRet() {
     EXEC *header = (EXEC *)PSXM(g_psxRegs.GPR.n.s0);
 
-    SysPrintf("ExecRet %x: %x\n", g_psxRegs.GPR.n.s0, header->ret);
+    PCSX::system->SysBiosPrintf("ExecRet %x: %x\n", g_psxRegs.GPR.n.s0, header->ret);
 
     g_psxRegs.GPR.n.ra = header->ret;
     g_psxRegs.GPR.n.sp = header->_sp;

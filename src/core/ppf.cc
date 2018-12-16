@@ -225,7 +225,7 @@ void BuildPPFCache() {
     fread(buffer, 3, 1, ppffile);
 
     if (strcmp(buffer, "PPF") != 0) {
-        SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
+        PCSX::system->SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
         fclose(ppffile);
         return;
     }
@@ -301,7 +301,7 @@ void BuildPPFCache() {
 
         default:
             fclose(ppffile);
-            SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
+            PCSX::system->SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
             return;
     }
 
@@ -340,7 +340,7 @@ void BuildPPFCache() {
 
     FillPPFCache();  // build address array
 
-    SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
+    PCSX::system->SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
 }
 
 // redump.org SBI files
@@ -390,7 +390,7 @@ int LoadSBI(const char *filename) {
 
     fclose(sbihandle);
 
-    SysPrintf(_("Loaded SBI file: %s.\n"), filename);
+    PCSX::system->SysPrintf(_("Loaded SBI file: %s.\n"), filename);
 
     return 0;
 }

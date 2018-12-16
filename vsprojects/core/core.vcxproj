@@ -161,6 +161,7 @@
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\socket.cc" />
     <ClCompile Include="..\..\src\core\spu.cc" />
+    <ClCompile Include="..\..\src\core\system.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\cdriso.h" />

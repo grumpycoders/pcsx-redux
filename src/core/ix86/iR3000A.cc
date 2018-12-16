@@ -48,7 +48,7 @@ static u32 *s_psxRecLUT;
 
 static const size_t RECMEM_SIZE = 8 * 1024 * 1024;
 
-static s8 *s_recMem; /* the recompiled blocks will be here */
+static s8 *s_recMem;   /* the recompiled blocks will be here */
 static char *s_recRAM; /* and the s_ptr to the blocks here */
 static char *s_recROM; /* and here */
 
@@ -316,6 +316,13 @@ const char txt0[] = "EAX = %x : ECX = %x : EDX = %x\n";
 const char txt1[] = "EAX = %x\n";
 const char txt2[] = "M32 = %x\n";
 
+static void SysBiosPrintfWrapper(const char *fmt, ...) {
+    va_list a;
+    va_start(a, fmt);
+    PCSX::system->SysBiosPrintf(fmt, a);
+    va_end(a);
+}
+
 void iLogX86() {
     PUSHA32();
 
@@ -323,7 +330,7 @@ void iLogX86() {
     PUSH32R(ECX);
     PUSH32R(EAX);
     PUSH32M((u32)&txt0);
-    CALLFunc((u32)SysPrintf);
+    CALLFunc((u32)SysBiosPrintfWrapper);
     ADD32ItoR(ESP, 4 * 4);
 
     POPA32();
@@ -332,14 +339,14 @@ void iLogX86() {
 void iLogEAX() {
     PUSH32R(EAX);
     PUSH32M((u32)&txt1);
-    CALLFunc((u32)SysPrintf);
+    CALLFunc((u32)SysBiosPrintfWrapper);
     ADD32ItoR(ESP, 4 * 2);
 }
 
 void iLogM32(u32 mem) {
     PUSH32M(mem);
     PUSH32M((u32)&txt2);
-    CALLFunc((u32)SysPrintf);
+    CALLFunc((u32)SysBiosPrintfWrapper);
     ADD32ItoR(ESP, 4 * 2);
 }
 
@@ -360,9 +367,9 @@ void iDumpBlock(s8 *ptr) {
     FILE *f;
     u32 i;
 
-    SysPrintf("dump1 %x:%x, %x\n", g_psxRegs.pc, s_pc, g_psxRegs.cycle);
+    PCSX::system->SysPrintf("dump1 %x:%x, %x\n", g_psxRegs.pc, s_pc, g_psxRegs.cycle);
 
-    for (i = g_psxRegs.pc; i < s_pc; i += 4) SysPrintf("%s\n", disR3000AF(PSXMu32(i), i));
+    for (i = g_psxRegs.pc; i < s_pc; i += 4) PCSX::system->SysPrintf("%s\n", disR3000AF(PSXMu32(i), i));
 
     fflush(stdout);
     f = fopen("dump1", "w");
@@ -412,7 +419,8 @@ static int recInit() {
     s_psxRecLUT = (u32 *)malloc(0x010000 * 4);
 
 #ifndef _WIN32
-    recMem = (s8 *)mmap(0, RECMEM_SIZE + 0x1000, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    recMem =
+        (s8 *)mmap(0, RECMEM_SIZE + 0x1000, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #else
     s_recMem = (s8 *)VirtualAlloc(NULL, RECMEM_SIZE + 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
@@ -420,7 +428,7 @@ static int recInit() {
     s_recRAM = (char *)malloc(0x200000);
     s_recROM = (char *)malloc(0x080000);
     if (s_recRAM == NULL || s_recROM == NULL || s_recMem == NULL || s_psxRecLUT == NULL) {
-        SysMessage("Error allocating memory");
+        PCSX::system->SysMessage("Error allocating memory");
         return -1;
     }
 
@@ -461,10 +469,10 @@ static void recShutdown() {
 }
 
 static void recError() {
-    SysReset();
+    PCSX::system->SysReset();
     // ClosePlugins();
-    SysMessage("Unrecoverable error while running recompiler\n");
-    SysRunGui();
+    PCSX::system->SysMessage("Unrecoverable error while running recompiler\n");
+    PCSX::system->SysRunGui();
 }
 
 __inline static void execute() {
@@ -512,7 +520,7 @@ static void recClear(u32 Addr, u32 Size) {
 }
 
 static void recNULL() {
-    //	SysMessage("recUNK: %8.8x\n", g_psxRegs.code);
+    //	PCSX::system->SysMessage("recUNK: %8.8x\n", g_psxRegs.code);
 }
 
 /*********************************************************
@@ -1317,7 +1325,7 @@ static void recLB() {
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
-        //		SysPrintf("unhandled r8 %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled r8 %x\n", addr);
     }
 
     iPushOfB();
@@ -1362,7 +1370,7 @@ static void recLBU() {
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
-        //		SysPrintf("unhandled r8u %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled r8u %x\n", addr);
     }
 
     iPushOfB();
@@ -1407,7 +1415,7 @@ static void recLH() {
             MOV32RtoM((u32)&g_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
-        //		SysPrintf("unhandled r16 %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled r16 %x\n", addr);
     }
 
     iPushOfB();
@@ -1507,7 +1515,7 @@ static void recLHU() {
                     return;
             }
         }
-        //		SysPrintf("unhandled r16u %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled r16u %x\n", addr);
     }
 
     iPushOfB();
@@ -1603,7 +1611,7 @@ static void recLW() {
                     return;
             }
         }
-        //		SysPrintf("unhandled r32 %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled r32 %x\n", addr);
     }
 
     iPushOfB();
@@ -1739,7 +1747,7 @@ static void recLWBlock(int count) {
 		}
 	}
 
-	SysPrintf("recLWBlock %d: %d\n", count, IsConst(_Rs_));
+	PCSX::system->SysPrintf("recLWBlock %d: %d\n", count, IsConst(_Rs_));
 	iPushOfB();
 	CALLFunc((u32)psxMemPointer);
 //	ADD32ItoR(ESP, 4);
@@ -1883,7 +1891,7 @@ static void recSB() {
             }
             return;
         }
-        //		SysPrintf("unhandled w8 %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled w8 %x\n", addr);
     }
 
     if (IsConst(_Rt_)) {
@@ -1945,7 +1953,7 @@ static void recSH() {
                 return;
             }
         }
-        //		SysPrintf("unhandled w16 %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled w16 %x\n", addr);
     }
 
     if (IsConst(_Rt_)) {
@@ -2043,7 +2051,7 @@ static void recSW() {
                     return;
             }
         }
-        //		SysPrintf("unhandled w32 %x\n", addr);
+        //		PCSX::system->SysPrintf("unhandled w32 %x\n", addr);
     }
 
     if (IsConst(_Rt_)) {
@@ -2095,7 +2103,7 @@ static void recSWBlock(int count) {
 		}
 	}
 
-	SysPrintf("recSWBlock %d: %d\n", count, IsConst(_Rs_));
+	PCSX::system->SysPrintf("recSWBlock %d: %d\n", count, IsConst(_Rs_));
 	iPushOfB();
 	CALLFunc((u32)psxMemPointer);
 //	ADD32ItoR(ESP, 4);

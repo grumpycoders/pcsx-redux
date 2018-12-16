@@ -318,23 +318,23 @@ void StartDebugger() {
 
     s_memoryMap = (u8 *)malloc(0x200000);
     if (s_memoryMap == NULL) {
-        SysMessage("%s", _("Error allocating memory"));
+        PCSX::system->SysMessage("%s", _("Error allocating memory"));
         return;
     }
 
     if (StartServer() == -1) {
-        SysPrintf("%s", _("Unable to start debug server.\n"));
+        PCSX::system->SysPrintf("%s", _("Unable to start debug server.\n"));
         return;
     }
 
-    SysPrintf("%s", _("Debugger started.\n"));
+    PCSX::system->SysPrintf("%s", _("Debugger started.\n"));
     s_debugger_active = 1;
 }
 
 void StopDebugger() {
     if (s_debugger_active) {
         StopServer();
-        SysPrintf("%s", _("Debugger stopped.\n"));
+        PCSX::system->SysPrintf("%s", _("Debugger stopped.\n"));
     }
 
     if (s_memoryMap != NULL) {
@@ -363,7 +363,7 @@ void DebugVSync() {
     if (s_reset) {
         s_resetting = 1;
         CheckCdrom();
-        SysReset();
+        PCSX::system->SysReset();
         if (s_reset == 2) LoadCdrom();
         s_reset = s_resetting = 0;
         return;
@@ -431,7 +431,7 @@ void ProcessDebug() {
         GetClient();
         ProcessCommands();
         GPU_updateLace();
-        SysUpdate();
+        PCSX::system->SysUpdate();
     }
 }
 

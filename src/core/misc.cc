@@ -246,7 +246,7 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
     if (sscanf(filename, "cdrom:\\%255s", exename) <= 0) {
         // Some games omit backslash (NFS4)
         if (sscanf(filename, "cdrom:%255s", exename) <= 0) {
-            SysPrintf("LoadCdromFile: EXE NAME PARSING ERROR (%s (%u))\n", filename, strlen(filename));
+            PCSX::system->SysPrintf("LoadCdromFile: EXE NAME PARSING ERROR (%s (%u))\n", filename, strlen(filename));
             exit(1);
         }
     }
@@ -377,9 +377,9 @@ int CheckCdrom() {
     if (g_cdromLabel[0] == ' ') {
         strncpy(g_cdromLabel, g_cdromId, 9);
     }
-    SysPrintf(_("CD-ROM Label: %.32s\n"), g_cdromLabel);
-    SysPrintf(_("CD-ROM ID: %.9s\n"), g_cdromId);
-    SysPrintf(_("CD-ROM EXE Name: %.255s\n"), exename);
+    PCSX::system->SysPrintf(_("CD-ROM Label: %.32s\n"), g_cdromLabel);
+    PCSX::system->SysPrintf(_("CD-ROM ID: %.9s\n"), g_cdromId);
+    PCSX::system->SysPrintf(_("CD-ROM EXE Name: %.255s\n"), exename);
 
     memset(g_config.PsxExeName, 0, sizeof(g_config.PsxExeName));
     strncpy(g_config.PsxExeName, exename, 11);
@@ -462,7 +462,7 @@ int Load(const char *ExePath) {
 
     tmpFile = fopen(ExePath, "rb");
     if (tmpFile == NULL) {
-        SysPrintf(_("Error opening file: %s.\n"), ExePath);
+        PCSX::system->SysPrintf(_("Error opening file: %s.\n"), ExePath);
         retval = -1;
     } else {
         LoadLibPS();
@@ -505,7 +505,7 @@ int Load(const char *ExePath) {
                         case 0: /* End of file */
                             break;
                         default:
-                            SysPrintf(_("Unknown CPE opcode %02x at position %08x.\n"), opcode, ftell(tmpFile) - 1);
+                            PCSX::system->SysPrintf(_("Unknown CPE opcode %02x at position %08x.\n"), opcode, ftell(tmpFile) - 1);
                             retval = -1;
                             break;
                     }
@@ -535,7 +535,7 @@ int Load(const char *ExePath) {
                 break;
 
             case INVALID_EXE:
-                SysPrintf("%s", _("This file does not appear to be a valid PSX file.\n"));
+                PCSX::system->SysPrintf("%s", _("This file does not appear to be a valid PSX file.\n"));
                 retval = -1;
                 break;
         }
@@ -572,9 +572,9 @@ static int LoadBin(unsigned long addr, char *filename) {
     }
 
     if (result == 0)
-        SysPrintf(_("ng Load Bin file: [0x%08x] : %s\n"), addr, filename);
+        PCSX::system->SysPrintf(_("ng Load Bin file: [0x%08x] : %s\n"), addr, filename);
     else
-        SysPrintf(_("ok Load Bin file: [0x%08x] : %s\n"), addr, filename);
+        PCSX::system->SysPrintf(_("ok Load Bin file: [0x%08x] : %s\n"), addr, filename);
 
     return result;
 }
@@ -585,7 +585,7 @@ int LoadLdrFile(const char *LdrPath) {
 
     tmpFile = fopen(LdrPath, "rt");
     if (tmpFile == NULL) {
-        SysPrintf(_("Error opening file: %s.\n"), LdrPath);
+        PCSX::system->SysPrintf(_("Error opening file: %s.\n"), LdrPath);
         retval = -1;
     } else {
         int index = 0;
@@ -729,7 +729,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
         s_spufP = (SPUFreeze_t *)malloc(offsetof(SPUFreeze_t, SPUPorts));  // only first 3 elements (up to Size)
         SPU_freeze(2, s_spufP);
         Size = s_spufP->Size;
-        SysPrintf("SPUFreezeSize %i/(%i)\n", Size, offsetof(SPUFreeze_t, SPUPorts));
+        PCSX::system->SysPrintf("SPUFreezeSize %i/(%i)\n", Size, offsetof(SPUFreeze_t, SPUPorts));
         free(s_spufP);
         s_spufP = (SPUFreeze_t *)malloc(Size);
         s_spufP->Size = Size;
@@ -857,7 +857,7 @@ int RecvPcsxInfo() {
     NET_recvData(&g_config.RCntFix, sizeof(g_config.RCntFix), PSE_NET_BLOCKING);
     NET_recvData(&g_config.PsxType, sizeof(g_config.PsxType), PSE_NET_BLOCKING);
 
-    SysUpdate();
+    PCSX::system->SysUpdate();
 
     tmp = g_config.Cpu;
     NET_recvData(&g_config.Cpu, sizeof(g_config.Cpu), PSE_NET_BLOCKING);
@@ -872,7 +872,7 @@ int RecvPcsxInfo() {
         g_psxCpu = &g_psxInt;
 #endif
         if (g_psxCpu->Init() == -1) {
-            SysClose();
+            PCSX::system->SysClose();
             return -1;
         }
         g_psxCpu->Reset();

@@ -63,7 +63,7 @@ void EmuShutdown() {
 
 void EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!g_config.HLE || !g_hleSoftCall) SysUpdate();
+    if (!g_config.HLE || !g_hleSoftCall) PCSX::system->SysUpdate();
 
     ApplyCheats();
 
@@ -91,7 +91,7 @@ void __Log(char *fmt, ...) {
     vfprintf(g_emuLog, fmt, list);
 #else
     vsprintf(tmp, fmt, list);
-    SysPrintf(tmp);
+    PCSX::system->SysPrintf(tmp);
 #endif
     va_end(list);
 }

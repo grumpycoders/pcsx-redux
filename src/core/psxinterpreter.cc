@@ -56,7 +56,7 @@ static void (**s_pPsxCP2BSC)() = NULL;
 static void delayRead(int reg, u32 bpc) {
     u32 rold, rnew;
 
-    //	SysPrintf("delayRead at %x!\n", g_psxRegs.pc);
+    //	PCSX::system->SysPrintf("delayRead at %x!\n", g_psxRegs.pc);
 
     rold = g_psxRegs.GPR.r[reg];
     s_pPsxBSC[g_psxRegs.code >> 26]();  // branch delay load
@@ -74,10 +74,10 @@ static void delayRead(int reg, u32 bpc) {
 }
 
 static void delayWrite(int reg, u32 bpc) {
-    /*	SysPrintf("delayWrite at %x!\n", g_psxRegs.pc);
+    /*	PCSX::system->SysPrintf("delayWrite at %x!\n", g_psxRegs.pc);
 
-            SysPrintf("%s\n", disR3000AF(g_psxRegs.code, g_psxRegs.pc-4));
-            SysPrintf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
+            PCSX::system->SysPrintf("%s\n", disR3000AF(g_psxRegs.code, g_psxRegs.pc-4));
+            PCSX::system->SysPrintf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
 
     // no changes from normal behavior
 
@@ -90,7 +90,7 @@ static void delayWrite(int reg, u32 bpc) {
 }
 
 static void delayReadWrite(int reg, u32 bpc) {
-    //	SysPrintf("delayReadWrite at %x!\n", g_psxRegs.pc);
+    //	PCSX::system->SysPrintf("delayReadWrite at %x!\n", g_psxRegs.pc);
 
     // the branch delay load is skipped
 
@@ -739,7 +739,7 @@ static void psxSYSCALL() {
 }
 
 static void psxRFE() {
-    //	SysPrintf("psxRFE\n");
+    //	PCSX::system->SysPrintf("psxRFE\n");
     g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & 0xfffffff0) | ((g_psxRegs.CP0.n.Status & 0x3c) >> 2);
 }
 
@@ -1018,7 +1018,7 @@ void psxTestSWInts() {
 }
 
 static __inline void MTC0(int reg, u32 val) {
-    //	SysPrintf("MTC0 %d: %x\n", reg, val);
+    //	PCSX::system->SysPrintf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
             g_psxRegs.CP0.r[12] = val;

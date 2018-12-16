@@ -4,42 +4,58 @@
 #include "core/r3000a.h"
 #include "gui/gui.h"
 
-    void
-    SysPrintf(const char *fmt, ...) {
-    // print message to debugging console
-    va_list a;
-    va_start(a, fmt);
-    vprintf(fmt, a);
-    va_end(a);
-}
+class SystemImpl : public PCSX::System {
+    virtual void SysPrintf(const char *fmt, ...) override {
+        // print message to debugging console
+        va_list a;
+        va_start(a, fmt);
+        vprintf(fmt, a);
+        va_end(a);
+    }
 
-void SysMessage(const char *fmt, ...) {
-    // display message to user as a pop-up
-    va_list a;
-    va_start(a, fmt);
-    vprintf(fmt, a);
-    va_end(a);
-}
+    virtual void SysBiosPrintf(const char *fmt, ...) override {
+        // print message to debugging console
+        va_list a;
+        va_start(a, fmt);
+        vprintf(fmt, a);
+        va_end(a);
+    }
 
-void SysUpdate() {
-    // called on vblank to update states
-    GUI_flip();
-}
+    virtual void SysBiosPrintf(const char *fmt, va_list a) override {
+        // print message to debugging console
+        vprintf(fmt, a);
+    }
 
-void SysRunGui() {
-    // called when the UI needs to show up
-}
+    virtual void SysMessage(const char *fmt, ...) override {
+        // display message to user as a pop-up
+        va_list a;
+        va_start(a, fmt);
+        vprintf(fmt, a);
+        va_end(a);
+    }
 
-void SysReset() {
-    // debugger is requesting a reset
-}
+    virtual void SysUpdate() override {
+        // called on vblank to update states
+        GUI_flip();
+    }
 
-void SysClose() {
-    // emulator is requesting a shutdown of the emulation
-}
+    virtual void SysRunGui() override {
+        // called when the UI needs to show up
+    }
+
+    virtual void SysReset() override {
+        // debugger is requesting a reset
+    }
+
+    virtual void SysClose() override {
+        // emulator is requesting a shutdown of the emulation
+    }
+};
 
 int main(int argc, char *argv[]) {
     unsigned int texture = GUI_init();
+
+    PCSX::system = new SystemImpl;
 
     memset(&g_config, 0, sizeof(PcsxConfig));
     g_config.PsxAuto = 1;

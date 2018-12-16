@@ -85,7 +85,7 @@ int psxMemInit() {
     g_psxR = (s8 *)malloc(0x00080000);
 
     if (g_psxMemRLUT == NULL || g_psxMemWLUT == NULL || g_psxM == NULL || g_psxP == NULL || g_psxH == NULL) {
-        SysMessage("%s", _("Error allocating memory!"));
+        PCSX::system->SysMessage("%s", _("Error allocating memory!"));
         return -1;
     }
 
@@ -133,14 +133,14 @@ void psxMemReset() {
 
         f = fopen(bios, "rb");
         if (f == NULL) {
-            SysMessage(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
+            PCSX::system->SysMessage(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
             memset(g_psxR, 0, 0x80000);
             g_config.HLE = TRUE;
         } else {
             fread(g_psxR, 1, 0x80000, f);
             fclose(f);
             g_config.HLE = FALSE;
-            SysPrintf(_("Loaded BIOS: %s\n"), bios);
+            PCSX::system->SysPrintf(_("Loaded BIOS: %s\n"), bios);
         }
     } else
         g_config.HLE = TRUE;
@@ -314,7 +314,7 @@ void psxMemWrite32(u32 mem, u32 value) {
         g_psxRegs.cycle += 1;
     }
 
-    //	if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) SysPrintf("t2fix!!\n");
+    //	if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::system->SysPrintf("t2fix!!\n");
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
         if ((mem & 0xffff) < 0x400)

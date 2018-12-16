@@ -1113,7 +1113,7 @@ void psxBios_malloc() {  // 0x33
 
     // exit on uninitialized heap
     if (chunk == NULL) {
-        SysPrintf("malloc %x,%x: Uninitialized Heap!\n", v0, a0);
+        PCSX::system->SysBiosPrintf("malloc %x,%x: Uninitialized Heap!\n", v0, a0);
         v0 = 0;
         pc0 = ra;
         return;
@@ -1128,7 +1128,7 @@ void psxBios_malloc() {  // 0x33
 
     // catch out of memory
     if (chunk >= s_heap_end) {
-        SysPrintf("malloc %x,%x: Out of memory error!\n", v0, a0);
+        PCSX::system->SysBiosPrintf("malloc %x,%x: Out of memory error!\n", v0, a0);
         v0 = 0;
         pc0 = ra;
         return;
@@ -1148,7 +1148,7 @@ void psxBios_malloc() {  // 0x33
     // return pointer to allocated memory
     v0 = ((unsigned long)chunk - (unsigned long)g_psxM) + 4;
     v0 |= 0x80000000;
-    SysPrintf("malloc %x,%x\n", v0, a0);
+    PCSX::system->SysBiosPrintf("malloc %x,%x\n", v0, a0);
     pc0 = ra;
 }
 
@@ -1158,7 +1158,7 @@ void psxBios_free() {  // 0x34
     PSXBIOS_LOG("psxBios_%s\n", g_biosA0n[0x34]);
 #endif
 
-    SysPrintf("free %x: %x bytes\n", a0, *(u32 *)(Ra0 - 4));
+    PCSX::system->SysBiosPrintf("free %x: %x bytes\n", a0, *(u32 *)(Ra0 - 4));
 
     *(u32 *)(Ra0 - 4) |= 1;  // set chunk to free
     pc0 = ra;
@@ -1206,7 +1206,7 @@ void psxBios_InitHeap() {  // 0x39
     s_heap_end = (u32 *)((u8 *)s_heap_addr + size);
     *s_heap_addr = SWAP32(size | 1);
 
-    SysPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uptr)s_heap_addr - (uptr)g_psxM, size);
+    PCSX::system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uptr)s_heap_addr - (uptr)g_psxM, size);
 
     pc0 = ra;
 }
@@ -1302,7 +1302,7 @@ void psxBios_printf() {  // 0x3f
 #ifdef PSXBIOS_LOG
     PSXBIOS_LOG("psxBios_%s: %s\n", g_biosA0n[0x3f], tmp);
 #else
-    SysPrintf("%s", tmp);
+    PCSX::system->SysBiosPrintf("%s", tmp);
 #endif
 
     pc0 = ra;
@@ -1534,16 +1534,16 @@ void psxBios_SetMem() {  // 9f
         case 2:
             psxHu32ref(0x1060) = SWAP32(newMem);
             psxMu32ref(0x060) = a0;
-            SysPrintf("Change effective memory : %d MBytes\n", a0);
+            PCSX::system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
             break;
 
         case 8:
             psxHu32ref(0x1060) = SWAP32(newMem | 0x300);
             psxMu32ref(0x060) = a0;
-            SysPrintf("Change effective memory : %d MBytes\n", a0);
+            PCSX::system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
 
         default:
-            SysPrintf("Effective memory must be 2/8 MBytes\n");
+            PCSX::system->SysBiosPrintf("Effective memory must be 2/8 MBytes\n");
             break;
     }
 
@@ -2014,7 +2014,7 @@ static void buopen(int mcd, char *ptr, const char *cfg) {
         if ((*fptr & 0xF0) != 0x50) continue;
         if (strcmp(s_FDesc[1 + mcd].name, fptr + 0xa)) continue;
         s_FDesc[1 + mcd].mcfile = i;
-        SysPrintf("open %s\n", fptr + 0xa);
+        PCSX::system->SysBiosPrintf("open %s\n", fptr + 0xa);
         v0 = 1 + mcd;
         break;
     }
@@ -2054,7 +2054,7 @@ static void buopen(int mcd, char *ptr, const char *cfg) {
             pptr[8] = pptr[9] = 0xff;
             for (j = 0, checksum = 0; j < 127; j++) checksum ^= pptr[j];
             pptr[127] = checksum;
-            SysPrintf("openC %s %d\n", ptr, nblk);
+            PCSX::system->SysBiosPrintf("openC %s %d\n", ptr, nblk);
             v0 = 1 + mcd;
             /* just go ahead and resave them all */
             SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
@@ -2115,7 +2115,7 @@ void psxBios_lseek() {  // 0x33
 
 #define buread(mcd)                                                                          \
     {                                                                                        \
-        SysPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
+        PCSX::system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
                   g_mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
         ptr = g_mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;         \
         memcpy(Ra1, ptr, a2);                                                                \
@@ -2156,7 +2156,7 @@ void psxBios_read() {  // 0x34
 #define buwrite(mcd)                                                                      \
     {                                                                                     \
         u32 offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;               \
-        SysPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
+        PCSX::system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
         ptr = g_mcd##mcd##Data + offset;                                                    \
         memcpy(ptr, Ra1, a2);                                                             \
         s_FDesc[1 + mcd].offset += a2;                                                      \
@@ -2180,7 +2180,7 @@ void psxBios_write() {  // 0x35/0x03
         char *ptr = Ra1;
 
         while (a2 > 0) {
-            SysPrintf("%c", *ptr++);
+            PCSX::system->SysBiosPrintf("%c", *ptr++);
             a2--;
         }
         pc0 = ra;
@@ -2228,7 +2228,7 @@ void psxBios_putchar() {  // 3d
 #ifdef PSXBIOS_LOG
     PSXBIOS_LOG("psxBios_%s: %x (%c)\n", g_biosB0n[0x3d], a0, logchar);
 #else
-    SysPrintf("%c", (char)a0);
+    PCSX::system->SysBiosPrintf("%c", (char)a0);
 #endif
     if ((a0 == 0xa && psxstrbuf_count >= 2) || psxstrbuf_count >= PSXSTRBUFMAX) {
         psxstrbuf[psxstrbuf_count++] = '\0';
@@ -2245,7 +2245,7 @@ void psxBios_puts() {  // 3e/3f
 #ifdef PSXBIOS_LOG
     PSXBIOS_LOG("psxBios_%s: %s\n", g_biosB0n[0x3f], Ra0);
 #else
-    SysPrintf("%s", Ra0);
+    PCSX::system->SysBiosPrintf("%s", Ra0);
 #endif
     pc0 = ra;
 }
@@ -2284,7 +2284,7 @@ int nfile;
                     match = 0;                                                                \
                     break;                                                                    \
                 }                                                                             \
-            SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match); \
+            PCSX::system->SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match); \
             if (match == 0) {                                                                 \
                 continue;                                                                     \
             }                                                                                 \
@@ -2403,7 +2403,7 @@ void psxBios_rename() {  // 44
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;             \
             *ptr = (*ptr & 0xf) | 0xA0;                           \
             SaveMcd(g_config.Mcd##mcd, g_mcd##mcd##Data, 128 * i, 1); \
-            SysPrintf("delete %s\n", ptr + 0xa);                  \
+            PCSX::system->SysBiosPrintf("delete %s\n", ptr + 0xa);                  \
             v0 = 1;                                               \
             break;                                                \
         }                                                         \

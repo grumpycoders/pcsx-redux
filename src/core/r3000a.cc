@@ -32,7 +32,7 @@ R3000Acpu *g_psxCpu = NULL;
 psxRegisters g_psxRegs;
 
 int psxInit() {
-    SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
+    PCSX::system->SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
 #ifdef PSXREC
     if (g_config.Cpu == CPU_INTERPRETER) {
@@ -91,7 +91,7 @@ void psxException(u32 code, u32 bd) {
 #ifdef PSXCPU_LOG
         PSXCPU_LOG("bd set!!!\n");
 #endif
-        SysPrintf("bd set!!!\n");
+        PCSX::system->SysPrintf("bd set!!!\n");
         g_psxRegs.CP0.n.Cause |= 0x80000000;
         g_psxRegs.CP0.n.EPC = (g_psxRegs.pc - 4);
     } else
