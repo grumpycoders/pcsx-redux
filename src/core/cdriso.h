@@ -34,8 +34,8 @@ int aropen(FILE* fparchive, const char* _fn);
 void cdrIsoInit(void);
 int cdrIsoActive(void);
 
-extern unsigned int cdrIsoMultidiskCount;
-extern unsigned int cdrIsoMultidiskSelect;
+extern unsigned int g_cdrIsoMultidiskCount;
+extern unsigned int g_cdrIsoMultidiskSelect;
 
 #ifdef __cplusplus
 }

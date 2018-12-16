@@ -110,7 +110,7 @@ typedef struct {
     unsigned char TrackChanged;
 } cdrStruct;
 
-extern cdrStruct cdr;
+extern cdrStruct g_cdr;
 
 void cdrReset();
 void cdrAttenuate(s16 *buf, int samples, int stereo);
