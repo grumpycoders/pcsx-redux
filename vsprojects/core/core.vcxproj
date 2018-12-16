@@ -132,7 +132,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\core\cdriso.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
-    <ClCompile Include="..\..\src\core\cheat.c" />
+    <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.c" />
     <ClCompile Include="..\..\src\core\decode_xa.c" />
     <ClCompile Include="..\..\src\core\disr3000a.c" />
