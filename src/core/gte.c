@@ -5,10 +5,10 @@
  *
  */
 
-#include "gte.h"
-#include "pgxp_debug.h"
-#include "pgxp_gte.h"
-#include "psxmem.h"
+#include "core/gte.h"
+#include "core/pgxp_debug.h"
+#include "core/pgxp_gte.h"
+#include "core/psxmem.h"
 
 #define GTE_SF(op) ((op >> 19) & 1)
 #define GTE_MX(op) ((op >> 17) & 3)
@@ -139,9 +139,9 @@
 #define CV2(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
 #define CV3(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
 
-static int m_sf;
-static s64 m_mac0;
-static s64 m_mac3;
+static int s_sf;
+static s64 s_mac0;
+static s64 s_mac3;
 
 static u32 gte_leadingzerocount(u32 lzcs) {
     u32 lzcr = 0;
@@ -156,7 +156,7 @@ static u32 gte_leadingzerocount(u32 lzcs) {
     return lzcr;
 }
 
-s32 LIM(s32 value, s32 max, s32 min, u32 flag) {
+static s32 LIM(s32 value, s32 max, s32 min, u32 flag) {
     if (value > max) {
         FLAG |= flag;
         return max;
@@ -279,15 +279,15 @@ static inline s64 gte_shift(s64 a, int sf) {
     return a;
 }
 
-s32 BOUNDS(/*int44*/ s64 value, int max_flag, int min_flag) {
+static s32 BOUNDS(/*int44*/ s64 value, int max_flag, int min_flag) {
     if (value /*.positive_overflow()*/ > S64(0x7ffffffffff)) FLAG |= max_flag;
 
     if (value /*.negative_overflow()*/ < S64(-0x80000000000)) FLAG |= min_flag;
 
-    return gte_shift(value /*.value()*/, m_sf);
+    return gte_shift(value /*.value()*/, s_sf);
 }
 
-u32 gte_divide(u16 numerator, u16 denominator) {
+static u32 gte_divide(u16 numerator, u16 denominator) {
     if (numerator < (denominator * 2)) {
         static u8 table[] = {
             0xff, 0xfd, 0xfb, 0xf9, 0xf7, 0xf5, 0xf3, 0xf1, 0xef, 0xee, 0xec, 0xea, 0xe8, 0xe6, 0xe4, 0xe3, 0xe1, 0xdf,
@@ -321,17 +321,17 @@ u32 gte_divide(u16 numerator, u16 denominator) {
 
 /* Setting bits 12 & 19-22 in FLAG does not set bit 31 */
 
-s32 A1(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
-s32 A2(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
-s32 A3(/*int44*/ s64 a) {
-    m_mac3 = a;
+static s32 A1(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
+static s32 A2(/*int44*/ s64 a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
+static s32 A3(/*int44*/ s64 a) {
+    s_mac3 = a;
     return BOUNDS(a, (1 << 31) | (1 << 28), (1 << 31) | (1 << 25));
 }
-s32 Lm_B1(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 24)); }
-s32 Lm_B2(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 23)); }
-s32 Lm_B3(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 22)); }
+static s32 Lm_B1(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 24)); }
+static s32 Lm_B2(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 31) | (1 << 23)); }
+static s32 Lm_B3(s32 a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (1 << 22)); }
 
-s32 Lm_B3_sf(s64 value, int sf, int lm) {
+static s32 Lm_B3_sf(s64 value, int sf, int lm) {
     s32 value_sf = gte_shift(value, sf);
     s32 value_12 = gte_shift(value, 1);
     int max = 0x7fff;
@@ -348,12 +348,12 @@ s32 Lm_B3_sf(s64 value, int sf, int lm) {
     return value_sf;
 }
 
-s32 Lm_C1(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 21)); }
-s32 Lm_C2(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 20)); }
-s32 Lm_C3(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 19)); }
-s32 Lm_D(s64 a, int sf) { return LIM(gte_shift(a, sf), 0xffff, 0x0000, (1 << 31) | (1 << 18)); }
+static s32 Lm_C1(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 21)); }
+static s32 Lm_C2(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 20)); }
+static s32 Lm_C3(s32 a) { return LIM(a, 0x00ff, 0x0000, (1 << 19)); }
+static s32 Lm_D(s64 a, int sf) { return LIM(gte_shift(a, sf), 0xffff, 0x0000, (1 << 31) | (1 << 18)); }
 
-u32 Lm_E(u32 result) {
+static u32 Lm_E(u32 result) {
     if (result == 0xffffffff) {
         FLAG |= (1 << 31) | (1 << 17);
         return 0x1ffff;
@@ -364,8 +364,8 @@ u32 Lm_E(u32 result) {
     return result;
 }
 
-s64 F(s64 a) {
-    m_mac0 = a;
+static s64 F(s64 a) {
+    s_mac0 = a;
 
     if (a > S64(0x7fffffff)) FLAG |= (1 << 31) | (1 << 16);
 
@@ -374,7 +374,7 @@ s64 F(s64 a) {
     return a;
 }
 
-s32 Lm_G1(s64 a) {
+static s32 Lm_G1(s64 a) {
     if (a > 0x3ff) {
         FLAG |= (1 << 31) | (1 << 14);
         return 0x3ff;
@@ -387,7 +387,7 @@ s32 Lm_G1(s64 a) {
     return a;
 }
 
-s32 Lm_G2(s64 a) {
+static s32 Lm_G2(s64 a) {
     if (a > 0x3ff) {
         FLAG |= (1 << 31) | (1 << 13);
         return 0x3ff;
@@ -401,7 +401,7 @@ s32 Lm_G2(s64 a) {
     return a;
 }
 
-s32 Lm_G1_ia(s64 a) {
+static s32 Lm_G1_ia(s64 a) {
     if (a > 0x3ffffff) return 0x3ffffff;
 
     if (a < -0x4000000) return -0x4000000;
@@ -409,7 +409,7 @@ s32 Lm_G1_ia(s64 a) {
     return a;
 }
 
-s32 Lm_G2_ia(s64 a) {
+static s32 Lm_G2_ia(s64 a) {
     if (a > 0x3ffffff) return 0x3ffffff;
 
     if (a < -0x4000000) return -0x4000000;
@@ -417,7 +417,7 @@ s32 Lm_G2_ia(s64 a) {
     return a;
 }
 
-s32 Lm_H(s64 value, int sf) {
+static s32 Lm_H(s64 value, int sf) {
     s64 value_sf = gte_shift(value, sf);
     s32 value_12 = gte_shift(value, 1);
     int max = 0x1000;
@@ -432,7 +432,7 @@ s32 Lm_H(s64 value, int sf) {
     return value_12;
 }
 
-int docop2(int op) {
+static int docop2(int op) {
     int v;
     int lm;
     int cv;
@@ -440,7 +440,7 @@ int docop2(int op) {
     s32 h_over_sz3 = 0;
 
     lm = GTE_LM(gteop);
-    m_sf = GTE_SF(gteop);
+    s_sf = GTE_SF(gteop);
 
     FLAG = 0;
 
@@ -456,11 +456,11 @@ int docop2(int op) {
             MAC3 = A3(/*int44*/ (s64)((s64)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
             IR1 = Lm_B1(MAC1, lm);
             IR2 = Lm_B2(MAC2, lm);
-            IR3 = Lm_B3_sf(m_mac3, m_sf, lm);
+            IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
             SZ0 = SZ1;
             SZ1 = SZ2;
             SZ2 = SZ3;
-            SZ3 = Lm_D(m_mac3, 1);
+            SZ3 = Lm_D(s_mac3, 1);
             h_over_sz3 = Lm_E(gte_divide(H, SZ3));
             SXY0 = SXY1;
             SXY1 = SXY2;
@@ -473,7 +473,7 @@ int docop2(int op) {
             // PGXP_RTPS(0, SXY2);
 
             MAC0 = F((s64)DQB + ((s64)DQA * h_over_sz3));
-            IR0 = Lm_H(m_mac0, 1);
+            IR0 = Lm_H(s_mac0, 1);
             return 1;
 
         case 0x06:
@@ -827,7 +827,7 @@ int docop2(int op) {
 #endif
 
             MAC0 = F((s64)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
-            OTZ = Lm_D(m_mac0, 1);
+            OTZ = Lm_D(s_mac0, 1);
             return 1;
 
         case 0x2e:
@@ -836,7 +836,7 @@ int docop2(int op) {
 #endif
 
             MAC0 = F((s64)(ZSF4 * SZ0) + (ZSF4 * SZ1) + (ZSF4 * SZ2) + (ZSF4 * SZ3));
-            OTZ = Lm_D(m_mac0, 1);
+            OTZ = Lm_D(s_mac0, 1);
             return 1;
 
         case 0x30:
@@ -850,11 +850,11 @@ int docop2(int op) {
                 MAC3 = A3(/*int44*/ (s64)((s64)TRZ << 12) + (R31 * VX(v)) + (R32 * VY(v)) + (R33 * VZ(v)));
                 IR1 = Lm_B1(MAC1, lm);
                 IR2 = Lm_B2(MAC2, lm);
-                IR3 = Lm_B3_sf(m_mac3, m_sf, lm);
+                IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
                 SZ0 = SZ1;
                 SZ1 = SZ2;
                 SZ2 = SZ3;
-                SZ3 = Lm_D(m_mac3, 1);
+                SZ3 = Lm_D(s_mac3, 1);
                 h_over_sz3 = Lm_E(gte_divide(H, SZ3));
                 SXY0 = SXY1;
                 SXY1 = SXY2;
@@ -875,7 +875,7 @@ int docop2(int op) {
             }
 
             MAC0 = F((s64)DQB + ((s64)DQA * h_over_sz3));
-            IR0 = Lm_H(m_mac0, 1);
+            IR0 = Lm_H(s_mac0, 1);
             return 1;
 
         case 0x3d:
@@ -902,9 +902,9 @@ int docop2(int op) {
             GTE_LOG("%08x GTE: GPL|", op);
 #endif
 
-            MAC1 = A1(gte_shift(MAC1, -m_sf) + (IR0 * IR1));
-            MAC2 = A2(gte_shift(MAC2, -m_sf) + (IR0 * IR2));
-            MAC3 = A3(gte_shift(MAC3, -m_sf) + (IR0 * IR3));
+            MAC1 = A1(gte_shift(MAC1, -s_sf) + (IR0 * IR1));
+            MAC2 = A2(gte_shift(MAC2, -s_sf) + (IR0 * IR2));
+            MAC3 = A3(gte_shift(MAC3, -s_sf) + (IR0 * IR3));
             IR1 = Lm_B1(MAC1, lm);
             IR2 = Lm_B2(MAC2, lm);
             IR3 = Lm_B3(MAC3, lm);
