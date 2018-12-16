@@ -155,7 +155,7 @@
     <ClCompile Include="..\..\src\core\psxdma.cc" />
     <ClCompile Include="..\..\src\core\psxhle.cc" />
     <ClCompile Include="..\..\src\core\psxhw.cc" />
-    <ClCompile Include="..\..\src\core\psxinterpreter.c" />
+    <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
     <ClCompile Include="..\..\src\core\psxmem.c" />
     <ClCompile Include="..\..\src\core\r3000a.c" />
     <ClCompile Include="..\..\src\core\sio.c" />

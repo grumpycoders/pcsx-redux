@@ -872,8 +872,8 @@ static void psxLW() {
     }
 }
 
-const u32 LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
-const u32 LWL_SHIFT[4] = {24, 16, 8, 0};
+extern "C" const u32 LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
+extern "C" const u32 LWL_SHIFT[4] = {24, 16, 8, 0};
 
 static void psxLWL() {
     u32 addr = _oB_;
@@ -902,8 +902,8 @@ static void psxLWL() {
     */
 }
 
-const u32 LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
-const u32 LWR_SHIFT[4] = {0, 8, 16, 24};
+extern "C" const u32 LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+extern "C" const u32 LWR_SHIFT[4] = {0, 8, 16, 24};
 
 static void psxLWR() {
     u32 addr = _oB_;
@@ -936,8 +936,8 @@ static void psxSB() { psxMemWrite8(_oB_, _u8(_rRt_)); }
 static void psxSH() { psxMemWrite16(_oB_, _u16(_rRt_)); }
 static void psxSW() { psxMemWrite32(_oB_, _u32(_rRt_)); }
 
-const u32 SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
-const u32 SWL_SHIFT[4] = {24, 16, 8, 0};
+extern "C" const u32 SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
+extern "C" const u32 SWL_SHIFT[4] = {24, 16, 8, 0};
 
 static void psxSWL() {
     u32 addr = _oB_;
@@ -955,8 +955,8 @@ static void psxSWL() {
     */
 }
 
-const u32 SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
-const u32 SWR_SHIFT[4] = {0, 8, 16, 24};
+extern "C" const u32 SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
+extern "C" const u32 SWR_SHIFT[4] = {0, 8, 16, 24};
 
 static void psxSWR() {
     u32 addr = _oB_;
