@@ -243,7 +243,7 @@ void psxJumpTest() {
                     biosA0[call]();
                 else if (call != 0x28 && call != 0xe) {
 #ifdef PSXBIOS_LOG
-                    PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", biosA0n[call], call, g_psxRegs.GPR.n.a0,
+                    PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", g_biosA0n[call], call, g_psxRegs.GPR.n.a0,
                                 g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
 #endif
                 }
@@ -253,7 +253,7 @@ void psxJumpTest() {
                     biosB0[call]();
                 else if (call != 0x17 && call != 0xb) {
 #ifdef PSXBIOS_LOG
-                    PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", biosB0n[call], call, g_psxRegs.GPR.n.a0,
+                    PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", g_biosB0n[call], call, g_psxRegs.GPR.n.a0,
                                 g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
 #endif
                 }
@@ -263,7 +263,7 @@ void psxJumpTest() {
                     biosC0[call]();
                 else {
 #ifdef PSXBIOS_LOG
-                    PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", biosC0n[call], call, g_psxRegs.GPR.n.a0,
+                    PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", g_biosC0n[call], call, g_psxRegs.GPR.n.a0,
                                 g_psxRegs.GPR.n.a1, g_psxRegs.GPR.n.a2, g_psxRegs.GPR.n.a3);
 #endif
                 }
