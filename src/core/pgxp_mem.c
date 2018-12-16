@@ -1,15 +1,15 @@
-#include "pgxp_mem.h"
-#include "pgxp_cpu.h"
-#include "pgxp_gte.h"
-#include "pgxp_value.h"
+#include "core/pgxp_cpu.h"
+#include "core/pgxp_gte.h"
+#include "core/pgxp_mem.h"
+#include "core/pgxp_value.h"
 
-PGXP_value Mem[3 * 2048 * 1024 / 4];  // mirror 2MB in 32-bit words * 3
-const u32 UserMemOffset = 0;
-const u32 ScratchOffset = 2048 * 1024 / 4;
-const u32 RegisterOffset = 2 * 2048 * 1024 / 4;
-const u32 InvalidAddress = 3 * 2048 * 1024 / 4;
+static PGXP_value s_mem[3 * 2048 * 1024 / 4];  // mirror 2MB in 32-bit words * 3
+static const u32 s_userMemOffset = 0;
+static const u32 s_scratchOffset = 2048 * 1024 / 4;
+static const u32 s_registerOffset = 2 * 2048 * 1024 / 4;
+static const u32 s_invalidAddress = 3 * 2048 * 1024 / 4;
 
-void PGXP_InitMem() { memset(Mem, 0, sizeof(Mem)); }
+void PGXP_InitMem() { memset(s_mem, 0, sizeof(s_mem)); }
 
 void PGXP_Init() {
     PGXP_InitMem();
@@ -18,7 +18,7 @@ void PGXP_Init() {
 }
 
 char* PGXP_GetMem() {
-    return (char*)(Mem);  // Config.PGXP_GTE ? (char*)(Mem) : NULL;
+    return (char*)(s_mem);  // Config.PGXP_GTE ? (char*)(s_mem) : NULL;
 }
 
 /*  Playstation Memory Map (from Playstation doc by Joshua Walker)
@@ -79,7 +79,7 @@ u32 PGXP_ConvertAddress(u32 addr) {
         case 0x00:
             // RAM further mirrored over 8MB
             paddr = ((paddr & 0x7FFFFF) % 0x200000) >> 2;
-            paddr = UserMemOffset + paddr;
+            paddr = s_userMemOffset + paddr;
             break;
         default:
             if ((paddr >> 20) == 0x1f8) {
@@ -87,17 +87,17 @@ u32 PGXP_ConvertAddress(u32 addr) {
                     //	paddr = ((paddr & 0xFFFF) - 0x1000);
                     //	paddr = (paddr % 0x2000) >> 2;
                     paddr = ((paddr & 0xFFFF) - 0x1000) >> 2;
-                    paddr = RegisterOffset + paddr;
+                    paddr = s_registerOffset + paddr;
                     break;
                 } else {
                     // paddr = ((paddr & 0xFFF) % 0x400) >> 2;
                     paddr = (paddr & 0x3FF) >> 2;
-                    paddr = ScratchOffset + paddr;
+                    paddr = s_scratchOffset + paddr;
                     break;
                 }
             }
 
-            paddr = InvalidAddress;
+            paddr = s_invalidAddress;
             break;
     }
 
@@ -108,17 +108,17 @@ u32 PGXP_ConvertAddress(u32 addr) {
     return paddr;
 }
 
-PGXP_value* GetPtr(u32 addr) {
+PGXP_value* PGXP_GetPtr(u32 addr) {
     addr = PGXP_ConvertAddress(addr);
 
-    if (addr != InvalidAddress) return &Mem[addr];
+    if (addr != s_invalidAddress) return &s_mem[addr];
     return NULL;
 }
 
-PGXP_value* ReadMem(u32 addr) { return GetPtr(addr); }
+PGXP_value* PGXP_ReadMem(u32 addr) { return PGXP_GetPtr(addr); }
 
 void ValidateAndCopyMem(PGXP_value* dest, u32 addr, u32 value) {
-    PGXP_value* pMem = GetPtr(addr);
+    PGXP_value* pMem = PGXP_GetPtr(addr);
     if (pMem != NULL) {
         Validate(pMem, value);
         *dest = *pMem;
@@ -131,7 +131,7 @@ void ValidateAndCopyMem(PGXP_value* dest, u32 addr, u32 value) {
 void ValidateAndCopyMem16(PGXP_value* dest, u32 addr, u32 value, int sign) {
     u32 validMask = 0;
     psx_value val, mask;
-    PGXP_value* pMem = GetPtr(addr);
+    PGXP_value* pMem = PGXP_GetPtr(addr);
     if (pMem != NULL) {
         mask.d = val.d = 0;
         // determine if high or low word
@@ -168,13 +168,13 @@ void ValidateAndCopyMem16(PGXP_value* dest, u32 addr, u32 value, int sign) {
 }
 
 void WriteMem(PGXP_value* value, u32 addr) {
-    PGXP_value* pMem = GetPtr(addr);
+    PGXP_value* pMem = PGXP_GetPtr(addr);
 
     if (pMem) *pMem = *value;
 }
 
 void WriteMem16(PGXP_value* src, u32 addr) {
-    PGXP_value* dest = GetPtr(addr);
+    PGXP_value* dest = PGXP_GetPtr(addr);
     psx_value* pVal = NULL;
 
     if (dest) {

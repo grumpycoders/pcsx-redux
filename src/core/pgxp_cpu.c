@@ -36,7 +36,7 @@ void InvalidLoad(u32 addr, u32 code, u32 value) {
 
     // p.valid = 0;
     // p.count = value;
-    pD = ReadMem(addr);
+    pD = PGXP_ReadMem(addr);
 
     if (pD) {
         p.count = addr;
@@ -57,7 +57,7 @@ void InvalidStore(u32 addr, u32 code, u32 value) {
     PGXP_value* pD = NULL;
     PGXP_value p;
 
-    pD = ReadMem(addr);
+    pD = PGXP_ReadMem(addr);
 
     p.x = p.y = -2337;
 

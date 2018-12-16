@@ -294,7 +294,7 @@ PGXP_value* GetReg(u32 instr, u32 flag, u32 psxValue) {
         case fOp_CP0_Cd:
             return &g_CP0_reg[rd(instr)];
         case fOp_Ad:
-            return GetPtr(psxValue);
+            return PGXP_GetPtr(psxValue);
         default:
             return NULL;
     }
@@ -435,7 +435,7 @@ void PrintOperands(char* szBuffer, u32 instr, u32 flags, const char* szDelim, ps
                         pReg->compFlags[0], pReg->compFlags[1], pReg->compFlags[2], pReg->compFlags[3]);
                 strcat(szBuffer, szTempBuffer);
             } else if (flag == fOp_Ad) {
-                pReg = GetPtr(psx_reg.d);
+                pReg = PGXP_GetPtr(psx_reg.d);
                 if (pReg)
                     sprintf(szTempBuffer, "%s %s [%x(%d, %d) (%x) %x(%.2f, %.2f, %.2f)%x : %x:%x:%x:%x] ", szPre,
                             szOpdName, psx_reg.d, psx_reg.sw.l, psx_reg.sw.h, PGXP_ConvertAddress(psx_reg.d),
