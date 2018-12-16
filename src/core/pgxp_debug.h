@@ -44,7 +44,7 @@ void PGXP_psxTraceOp2(u32 eOp, u32 code, u32 op1, u32 op2);
 void PGXP_psxTraceOp3(u32 eOp, u32 code, u32 op1, u32 op2, u32 op3);
 void PGXP_psxTraceOp4(u32 eOp, u32 code, u32 op1, u32 op2, u32 op3, u32 op4);
 
-extern unsigned int pgxp_debug;
+extern unsigned int g_pgxp_debug;
 
 // Op flags
 enum PGXP_DBG_Enum {

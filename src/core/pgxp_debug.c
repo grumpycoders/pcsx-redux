@@ -1,10 +1,10 @@
-#include "pgxp_debug.h"
-#include "pgxp_cpu.h"
-#include "pgxp_gte.h"
-#include "pgxp_mem.h"
-#include "pgxp_value.h"
+#include "core/pgxp_cpu.h"
+#include "core/pgxp_debug.h"
+#include "core/pgxp_gte.h"
+#include "core/pgxp_mem.h"
+#include "core/pgxp_value.h"
 
-unsigned int pgxp_debug = 0;
+unsigned int g_pgxp_debug = 0;
 
 // Instruction register decoding
 #define op(_instr) (_instr >> 26)           // The op part of the instruction register
@@ -490,7 +490,7 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
 
 #ifdef PGXP_OUTPUT_ALL
     // reset buffers
-    if (pgxp_debug) {
+    if (g_pgxp_debug) {
         memset(szInputBuffer, 0, sizeof(szInputBuffer));
         memset(szOutputBuffer, 0, sizeof(szOutputBuffer));
 
@@ -528,7 +528,7 @@ void PGXP_CPU_DebugOutput(u32 eOp, u32 instr, u32 numOps, u32 op1, u32 op2, u32 
 
 #ifdef PGXP_OUTPUT_ALL
     // Print operation details
-    if (pgxp_debug) {
+    if (g_pgxp_debug) {
         sprintf(szOutputBuffer, "%s %x %x: ", opData.szOpName, op(instr), func(instr));
         // Print outputs
         PrintOperands(szOutputBuffer, instr, opData.OutputFlags, "/", psx_regs, 0);
