@@ -21,8 +21,8 @@
  * Plugin library callback/access functions.
  */
 
-#include "plugins.h"
-#include "cdriso.h"
+#include "core/cdriso.h"
+#include "core/plugins.h"
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
