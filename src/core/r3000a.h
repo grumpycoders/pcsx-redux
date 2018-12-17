@@ -266,7 +266,7 @@ class R3000Acpu {
     const std::string &getName() { return m_name; }
 
    public:
-    int psxInit();
+    static int psxInit();
     void psxReset();
     void psxShutdown();
     void psxException(uint32_t code, uint32_t bd);
@@ -315,6 +315,12 @@ class X86DynaRecCPU : public InterpretedCPU {
     virtual void Clear(uint32_t Addr, uint32_t Size) final;
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
+};
+
+class Cpus {
+   public:
+    static R3000Acpu *Interpreted();
+    static R3000Acpu *DynaRec();
 };
 
 /*

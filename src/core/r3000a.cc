@@ -31,18 +31,19 @@
 int PCSX::R3000Acpu::psxInit() {
     PCSX::system->SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
-    #if 0
-    if (PCSX::g_emulator->config().Cpu == PCSX::Emulator::CPU_INTERPRETER) {
-        PCSX::g_emulator->m_psxCpu = &g_psxInt;
-    } else
-        PCSX::g_emulator->m_psxCpu = &g_psxRec;
-#endif
+    if (PCSX::g_emulator->config().Cpu == PCSX::Emulator::CPU_DYNAREC) {
+        PCSX::g_emulator->m_psxCpu = PCSX::Cpus::DynaRec();
+    }
+
+    if (!PCSX::g_emulator) {
+        PCSX::g_emulator->m_psxCpu = PCSX::Cpus::Interpreted();
+    }
 
     if (psxMemInit() == -1) return -1;
     PGXP_Init();
     PauseDebugger();
 
-    return Init();
+    return PCSX::g_emulator->m_psxCpu->Init();
 }
 
 void PCSX::R3000Acpu::psxReset() {
@@ -260,4 +261,13 @@ void PCSX::R3000Acpu::psxExecuteBios() {
 void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
     SetPGXPMode(pgxpMode);
     // PCSX::g_emulator->m_psxCpu->Reset();
+}
+
+static PCSX::InterpretedCPU s_cpuInt;
+PCSX::R3000Acpu* PCSX::Cpus::Interpreted() { return &s_cpuInt; }
+
+static PCSX::X86DynaRecCPU s_cpuX86DynRec;
+PCSX::R3000Acpu* PCSX::Cpus::DynaRec() {
+    if (s_cpuX86DynRec.Implemented()) return &s_cpuX86DynRec;
+    return NULL;
 }

@@ -67,11 +67,11 @@ int main(int argc, char *argv[]) {
     emulator.config().SlowBoot = false;
     emulator.config().BiosDir = ".";
     emulator.config().Bios = "bios.bin";
+    emulator.config().Cpu = PCSX::Emulator::CPU_DYNAREC;
 
     SetIsoFile("test.img");
     LoadPlugins();
 
-    PCSX::g_emulator->m_psxCpu = new PCSX::X86DynaRecCPU();
     emulator.EmuInit();
     emulator.EmuReset();
 
@@ -80,7 +80,6 @@ int main(int argc, char *argv[]) {
     CheckCdrom();
     LoadCdrom();
 
-    PCSX::g_emulator->m_psxCpu->Init();
     PCSX::g_emulator->m_psxCpu->Execute();
 
     return 0;

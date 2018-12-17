@@ -151,7 +151,7 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
-    R3000Acpu* m_psxCpu;
+    R3000Acpu* m_psxCpu = NULL;
 
   private:
     PcsxConfig m_config;

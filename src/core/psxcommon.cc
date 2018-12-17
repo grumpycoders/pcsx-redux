@@ -24,7 +24,7 @@
 #include "core/r3000a.h"
 
 int PCSX::Emulator::EmuInit() {
-    int ret = PCSX::g_emulator->m_psxCpu->psxInit();
+    int ret = PCSX::R3000Acpu::psxInit();
     EmuSetPGXPMode(m_config.PGXP_Mode);
     return ret;
 }

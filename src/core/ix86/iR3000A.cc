@@ -495,8 +495,7 @@ __inline static void execute() {
 
     if (p != NULL) {
         recFunc = (void (**)())(uint32_t)p;
-    }
-    else {
+    } else {
         recError();
         return;
     }
