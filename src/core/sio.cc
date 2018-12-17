@@ -91,9 +91,10 @@ static int s_dongleInit;
 #define SIO_INT(eCycle)                                          \
     {                                                            \
         if (!PCSX::g_emulator->config().SioIrq) {                                    \
-            g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
-            g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
-            g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);              \
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;         \
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle; \
         }                                                        \
                                                                  \
         s_statReg &= ~RX_RDY;                                      \
@@ -104,19 +105,20 @@ static int s_dongleInit;
 #define SIO_INT(eCycle)                                          \
     {                                                            \
         if (!PCSX::g_emulator->config().SioIrq) {                                    \
-            g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
-            g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
-            g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);              \
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;         \
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle; \
         }                                                        \
     }
 
 // clk cycle byte
-// 4us * 8bits = (PSXCLK / 1000000) * 32; (linuzappz)
+// 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (s_baudReg * 8)
 
 // rely on this for now - someone's actual testing
-//#define SIO_CYCLES (PSXCLK / 57600)
+//#define SIO_CYCLES (PCSX::g_emulator->m_psxClockSpeed / 57600)
 // PCSX 1.9.91
 //#define SIO_CYCLES 200
 // PCSX 1.9.91
@@ -722,7 +724,7 @@ void sioWriteCtrl16(unsigned short value) {
         s_mcdst = 0;
         s_parp = 0;
         s_statReg = TX_RDY | TX_EMPTY;
-        g_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
+        PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
     }
 }
 
@@ -771,7 +773,7 @@ unsigned short sioReadStat16() {
 
 #if 0
 	// wait for IRQ first
-	if( g_psxRegs.interrupt & (1 << PSXINT_SIO) )
+	if( PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
 	{
 		hard &= ~TX_RDY;
 		hard &= ~RX_RDY;
@@ -799,7 +801,7 @@ void netError() {
 }
 
 void sioInterrupt() {
-    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", g_psxRegs.CP0.n.Status);
+    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
     //	PCSX::system->SysPrintf("Sio Interrupt\n");
     s_statReg |= IRQ;
     psxHu32ref(0x1070) |= SWAPu32(0x80);

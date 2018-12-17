@@ -24,7 +24,7 @@
 #include "core/r3000a.h"
 
 int PCSX::Emulator::EmuInit() {
-    int ret = psxInit();
+    int ret = PCSX::g_emulator->m_psxCpu->psxInit();
     EmuSetPGXPMode(m_config.PGXP_Mode);
     return ret;
 }
@@ -33,7 +33,7 @@ void PCSX::Emulator::EmuReset() {
     FreeCheatSearchResults();
     FreeCheatSearchMem();
 
-    psxReset();
+    PCSX::g_emulator->m_psxCpu->psxReset();
 }
 
 void PCSX::Emulator::EmuShutdown() {
@@ -43,7 +43,7 @@ void PCSX::Emulator::EmuShutdown() {
 
     FreePPFCache();
 
-    psxShutdown();
+    PCSX::g_emulator->m_psxCpu->psxShutdown();
 
     CleanupMemSaveStates();
 }
@@ -65,6 +65,6 @@ void PCSX::Emulator::EmuUpdate() {
     }
 }
 
-void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { PCSX::g_emulator->m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
 PCSX::Emulator * PCSX::g_emulator = NULL;

@@ -357,39 +357,39 @@ const char *g_biosC0n[256] = {
     "PatchAOTable",
 };
 
-//#define r0 (g_psxRegs.GPR.n.r0)
-#define at (g_psxRegs.GPR.n.at)
-#define v0 (g_psxRegs.GPR.n.v0)
-#define v1 (g_psxRegs.GPR.n.v1)
-#define a0 (g_psxRegs.GPR.n.a0)
-#define a1 (g_psxRegs.GPR.n.a1)
-#define a2 (g_psxRegs.GPR.n.a2)
-#define a3 (g_psxRegs.GPR.n.a3)
-#define t0 (g_psxRegs.GPR.n.t0)
-#define t1 (g_psxRegs.GPR.n.t1)
-#define t2 (g_psxRegs.GPR.n.t2)
-#define t3 (g_psxRegs.GPR.n.t3)
-#define t4 (g_psxRegs.GPR.n.t4)
-#define t5 (g_psxRegs.GPR.n.t5)
-#define t6 (g_psxRegs.GPR.n.t6)
-#define t7 (g_psxRegs.GPR.n.t7)
-#define t8 (g_psxRegs.GPR.n.t8)
-#define t9 (g_psxRegs.GPR.n.t9)
-#define s0 (g_psxRegs.GPR.n.s0)
-#define s1 (g_psxRegs.GPR.n.s1)
-#define s2 (g_psxRegs.GPR.n.s2)
-#define s3 (g_psxRegs.GPR.n.s3)
-#define s4 (g_psxRegs.GPR.n.s4)
-#define s5 (g_psxRegs.GPR.n.s5)
-#define s6 (g_psxRegs.GPR.n.s6)
-#define s7 (g_psxRegs.GPR.n.s7)
-#define k0 (g_psxRegs.GPR.n.k0)
-#define k1 (g_psxRegs.GPR.n.k1)
-#define gp (g_psxRegs.GPR.n.gp)
-#define sp (g_psxRegs.GPR.n.sp)
-#define fp (g_psxRegs.GPR.n.s8)
-#define ra (g_psxRegs.GPR.n.ra)
-#define pc0 (g_psxRegs.pc)
+//#define r0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.r0)
+#define at (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.at)
+#define v0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.v0)
+#define v1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.v1)
+#define a0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a0)
+#define a1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a1)
+#define a2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a2)
+#define a3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a3)
+#define t0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t0)
+#define t1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t1)
+#define t2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t2)
+#define t3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t3)
+#define t4 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t4)
+#define t5 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t5)
+#define t6 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t6)
+#define t7 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t7)
+#define t8 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t8)
+#define t9 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t9)
+#define s0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s0)
+#define s1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s1)
+#define s2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s2)
+#define s3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s3)
+#define s4 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s4)
+#define s5 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s5)
+#define s6 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s6)
+#define s7 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s7)
+#define k0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.k0)
+#define k1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.k1)
+#define gp (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.gp)
+#define sp (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp)
+#define fp (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s8)
+#define ra (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.ra)
+#define pc0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.pc)
 
 #define Ra0 (assert(PSXM(a0) != NULL), (char *)PSXM(a0))
 #define Ra1 (assert(PSXM(a1) != NULL), (char *)PSXM(a1))
@@ -490,7 +490,7 @@ static inline void softCall(uint32_t pc) {
 
     g_hleSoftCall = true;
 
-    while (pc0 != 0x80001000) g_psxCpu->ExecuteBlock();
+    while (pc0 != 0x80001000) PCSX::g_emulator->m_psxCpu->ExecuteBlock();
 
     g_hleSoftCall = false;
 }
@@ -502,7 +502,7 @@ static inline void softCall2(uint32_t pc) {
 
     g_hleSoftCall = true;
 
-    while (pc0 != 0x80001000) g_psxCpu->ExecuteBlock();
+    while (pc0 != 0x80001000) PCSX::g_emulator->m_psxCpu->ExecuteBlock();
     ra = sra;
 
     g_hleSoftCall = false;
@@ -519,16 +519,16 @@ static inline void DeliverEvent(uint32_t ev, uint32_t spec) {
 }
 
 static inline void SaveRegs() {
-    memcpy(s_regs, g_psxRegs.GPR.r, 32 * 4);
-    s_regs[32] = g_psxRegs.GPR.n.lo;
-    s_regs[33] = g_psxRegs.GPR.n.hi;
-    s_regs[34] = g_psxRegs.pc;
+    memcpy(s_regs, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, 32 * 4);
+    s_regs[32] = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo;
+    s_regs[33] = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi;
+    s_regs[34] = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
 }
 
 static inline void LoadRegs() {
-    memcpy(g_psxRegs.GPR.r, s_regs, 32 * 4);
-    g_psxRegs.GPR.n.lo = s_regs[32];
-    g_psxRegs.GPR.n.hi = s_regs[33];
+    memcpy(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, s_regs, 32 * 4);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo = s_regs[32];
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi = s_regs[33];
 }
 
 /*                                           *
@@ -587,7 +587,7 @@ void psxBios_setjmp() {  // 0x13
     jmp_buf[1] = sp;
     jmp_buf[2] = fp;
     for (i = 0; i < 8; i++)  // s0-s7
-        jmp_buf[3 + i] = g_psxRegs.GPR.r[16 + i];
+        jmp_buf[3 + i] = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[16 + i];
     jmp_buf[11] = gp;
 
     v0 = 0;
@@ -604,7 +604,7 @@ void psxBios_longjmp() {  // 0x14
     sp = jmp_buf[1];         /* sp */
     fp = jmp_buf[2];         /* fp */
     for (i = 0; i < 8; i++)  // s0-s7
-        g_psxRegs.GPR.r[16 + i] = jmp_buf[3 + i];
+        PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[16 + i] = jmp_buf[3 + i];
     gp = jmp_buf[11]; /* gp */
 
     v0 = a1;
@@ -1342,7 +1342,7 @@ void psxBios_Exec() {  // 43
 void psxBios_FlushCache() {  // 44
     PSXBIOS_LOG("psxBios_%s\n", g_biosA0n[0x44]);
 
-    g_psxRegs.ICache_valid = false;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = false;
 
     pc0 = ra;
 }
@@ -1803,10 +1803,10 @@ void psxBios_ChangeTh() {  // 10
         if (s_Thread[s_CurThread].status == 2) {
             s_Thread[s_CurThread].status = 1;
             s_Thread[s_CurThread].func = ra;
-            memcpy(s_Thread[s_CurThread].reg, g_psxRegs.GPR.r, 32 * 4);
+            memcpy(s_Thread[s_CurThread].reg, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, 32 * 4);
         }
 
-        memcpy(g_psxRegs.GPR.r, s_Thread[th].reg, 32 * 4);
+        memcpy(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, s_Thread[th].reg, 32 * 4);
         pc0 = s_Thread[th].func;
         s_Thread[th].status = 2;
         s_CurThread = th;
@@ -1829,7 +1829,7 @@ void psxBios_StartPAD() {  // 13
     PSXBIOS_LOG("psxBios_%s\n", g_biosB0n[0x13]);
 
     psxHwWrite16(0x1f801074, (unsigned short)(psxHwRead16(0x1f801074) | 0x1));
-    g_psxRegs.CP0.n.Status |= 0x401;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
     pc0 = ra;
 }
 
@@ -1847,7 +1847,7 @@ void psxBios_PAD_init() {  // 15
     psxHwWrite16(0x1f801074, (uint16_t)(psxHwRead16(0x1f801074) | 0x1));
     s_pad_buf = (int *)Ra1;
     *s_pad_buf = -1;
-    g_psxRegs.CP0.n.Status |= 0x401;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
     pc0 = ra;
 }
 
@@ -1861,10 +1861,10 @@ void psxBios_PAD_dr() {  // 16
 void psxBios_ReturnFromException() {  // 17
     LoadRegs();
 
-    pc0 = g_psxRegs.CP0.n.EPC;
-    if (g_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
+    pc0 = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.EPC;
+    if (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
 
-    g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & 0xfffffff0) | ((g_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
 }
 
 void psxBios_ResetEntryInt() {  // 18
@@ -2489,7 +2489,7 @@ void psxBios_ChangeClearRCnt() {  // 0a
     v0 = *ptr;
     *ptr = a1;
 
-    //	g_psxRegs.CP0.n.Status|= 0x404;
+    //	PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status|= 0x404;
     pc0 = ra;
 }
 
@@ -3017,7 +3017,7 @@ void biosInterrupt() {
 void psxBiosException() {
     int i;
 
-    switch (g_psxRegs.CP0.n.Cause & 0x3c) {
+    switch (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Cause & 0x3c) {
         case 0x00:  // Interrupt
 			PSXCPU_LOG("interrupt\n");
             SaveRegs();
@@ -3044,7 +3044,7 @@ void psxBiosException() {
                 sp = s_jmp_int[1];
                 fp = s_jmp_int[2];
                 for (i = 0; i < 8; i++)  // s0-s7
-                    g_psxRegs.GPR.r[16 + i] = s_jmp_int[3 + i];
+                    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[16 + i] = s_jmp_int[3 + i];
                 gp = s_jmp_int[11];
 
                 v0 = 1;
@@ -3058,17 +3058,17 @@ void psxBiosException() {
             PSXCPU_LOG("syscall exp %x\n", a0);
             switch (a0) {
                 case 1:  // EnterCritical - disable irq's
-                    g_psxRegs.CP0.n.Status &= ~0x404;
+                    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status &= ~0x404;
                     v0 = 1;  // HDHOSHY experimental patch: Spongebob, Coldblood, fearEffect, Medievil2, Martian Gothic
                     break;
 
                 case 2:  // ExitCritical - enable irq's
-                    g_psxRegs.CP0.n.Status |= 0x404;
+                    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status |= 0x404;
                     break;
             }
-            pc0 = g_psxRegs.CP0.n.EPC + 4;
+            pc0 = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.EPC + 4;
 
-            g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & 0xfffffff0) | ((g_psxRegs.CP0.n.Status & 0x3c) >> 2);
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
             return;
 
         default:
@@ -3076,10 +3076,10 @@ void psxBiosException() {
             break;
     }
 
-    pc0 = g_psxRegs.CP0.n.EPC;
-    if (g_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
+    pc0 = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.EPC;
+    if (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
 
-    g_psxRegs.CP0.n.Status = (g_psxRegs.CP0.n.Status & 0xfffffff0) | ((g_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
 }
 
 #define bfreeze(ptr, size)                             \

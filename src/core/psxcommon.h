@@ -73,12 +73,21 @@ namespace PCSX {
 class Emulator;    
 extern Emulator* g_emulator;
 
+class R3000Acpu;
+
 class Emulator {
   public:
     Emulator() {
         assert(!g_emulator); 
         g_emulator = this;
     }
+    ~Emulator() {
+        assert(g_emulator == this);
+        g_emulator = NULL;
+    }
+    enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                      // PSX Types
+    enum CPUType   { CPU_DYNAREC = 0, CPU_INTERPRETER };                     // CPU Types
+    enum CDDAType  { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
     class PcsxConfig {
       public:
         std::string Mcd1;
@@ -91,7 +100,7 @@ class Emulator {
         bool SioIrq = false;
         bool Mdec = false;
         bool PsxAuto = false;
-        uint8_t Cdda = 0;
+        CDDAType Cdda = CDDA_ENABLED_LE;
         bool HLE = false;
         bool SlowBoot = false;
         bool Debug = false;
@@ -106,8 +115,8 @@ class Emulator {
         bool HideCursor = false;
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
-        uint8_t Cpu = 0;      // CPU_DYNAREC or CPU_INTERPRETER
-        uint8_t PsxType = 0;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
+        CPUType Cpu = CPU_DYNAREC;  // CPU_DYNAREC or CPU_INTERPRETER
+        VideoType Video = PSX_TYPE_NTSC;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
         uint32_t RewindCount = 0;
         uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
@@ -131,11 +140,8 @@ class Emulator {
     // Make the timing events trigger faster as we are currently assuming everything
     // takes one cycle, which is not the case on real hardware.
     // FIXME: Count the proper cycle and get rid of this
-    uint32_t m_psxClockSpeed = 33868800;
+    uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
     enum { BIAS = 2 };
-    enum { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };  // PSX Types
-    enum { CPU_DYNAREC = 0, CPU_INTERPRETER };  // CPU Types
-    enum { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
 
     int EmuInit();
     void EmuReset();
@@ -144,6 +150,8 @@ class Emulator {
     void EmuSetPGXPMode(uint32_t pgxpMode);
 
     PcsxConfig& config() { return m_config; }
+
+    R3000Acpu* m_psxCpu;
 
   private:
     PcsxConfig m_config;
@@ -155,7 +163,5 @@ class Emulator {
         if (Mode == 1) gzwrite(f, ptr, size); \
         if (Mode == 0) gzread(f, ptr, size);  \
     }
-
-#define PSXCLK PCSX::g_emulator->m_psxClockSpeed /* 33.8688 MHz */
 
 #endif

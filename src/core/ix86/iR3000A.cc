@@ -29,6 +29,14 @@
 #include "core/pgxp_gte.h"
 #include "core/psxcommon.h"
 
+bool PCSX::X86DynaRecCPU::Implemented() { return true; }
+
+void psxBranchTestWrapper() { PCSX::g_emulator->m_psxCpu->psxBranchTest(); }
+void psxDelayTestWrapper(int reg, uint32_t bpc) { PCSX::g_emulator->m_psxCpu->psxDelayTest(reg, bpc); }
+void psxExceptionWrapper(uint32_t c, uint32_t bd) { PCSX::g_emulator->m_psxCpu->psxException(c, bd); }
+void psxTestSWIntsWrapper() { PCSX::g_emulator->m_psxCpu->psxTestSWInts(); }
+void recClearWrapper(uint32_t a, uint32_t s) { PCSX::g_emulator->m_psxCpu->Clear(a, s); }
+
 #ifndef MAP_ANONYMOUS
 #ifdef MAP_ANON
 #define MAP_ANONYMOUS MAP_ANON
@@ -48,14 +56,14 @@ static uint32_t *s_psxRecLUT;
 
 static const size_t RECMEM_SIZE = 8 * 1024 * 1024;
 
-static int8_t *s_recMem;   /* the recompiled blocks will be here */
-static char *s_recRAM; /* and the s_ptr to the blocks here */
-static char *s_recROM; /* and here */
+static int8_t *s_recMem; /* the recompiled blocks will be here */
+static char *s_recRAM;   /* and the s_ptr to the blocks here */
+static char *s_recROM;   /* and here */
 
 static uint32_t s_pc;     /* recompiler pc */
 static uint32_t s_old_pc; /* recompiler oldpc */
 static uint32_t s_count;  /* recompiler intruction count */
-static int s_branch; /* set for branch */
+static int s_branch;      /* set for branch */
 static uint32_t s_target; /* branch target */
 static uint32_t s_resp;
 
@@ -75,8 +83,6 @@ enum { ST_UNK = 0, ST_CONST = 1, ST_MAPPED = 2 };
 
 ///
 
-static void recReset();
-
 static void (**s_pRecBSC)();
 static void (**s_pRecSPC)();
 static void (**s_pRecREG)();
@@ -93,7 +99,7 @@ static void MapConst(int reg, uint32_t _const) {
 
 static void iFlushReg(int reg) {
     if (IsConst(reg)) {
-        MOV32ItoM((uint32_t)&g_psxRegs.GPR.r[reg], s_iRegs[reg].k);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[reg], s_iRegs[reg].k);
     }
     s_iRegs[reg].state = ST_UNK;
 }
@@ -108,13 +114,13 @@ static void iPushReg(int reg) {
     if (IsConst(reg)) {
         PUSH32I(s_iRegs[reg].k);
     } else {
-        PUSH32M((uint32_t)&g_psxRegs.GPR.r[reg]);
+        PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[reg]);
     }
 }
 
 static void iStoreCycle() {
     s_count = ((s_pc - s_old_pc) / 4) * PCSX::Emulator::BIAS;
-    ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
+    ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle, s_count);
 }
 
 static void iRet() {
@@ -125,7 +131,7 @@ static void iRet() {
 
 static int iLoadTest() {
     // check for load delay
-    uint32_t tmp = g_psxRegs.code >> 26;
+    uint32_t tmp = PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26;
     switch (tmp) {
         case 0x10:  // COP0
             switch (_Rs_) {
@@ -159,26 +165,26 @@ static int iLoadTest() {
 /* set a pending branch */
 static void SetBranch() {
     s_branch = 1;
-    g_psxRegs.code = PSXMu32(s_pc);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.code = PSXMu32(s_pc);
     s_pc += 4;
 
     if (iLoadTest() == 1) {
         iFlushRegs();
-        MOV32ItoM((uint32_t)&g_psxRegs.code, g_psxRegs.code);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code, PCSX::g_emulator->m_psxCpu->m_psxRegs.code);
         /* store cycle */
         s_count = ((s_pc - s_old_pc) / 4) * PCSX::Emulator::BIAS;
-        ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
+        ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle, s_count);
         if (s_resp) ADD32ItoR(ESP, s_resp);
 
         PUSH32M((uint32_t)&s_target);
         PUSH32I(_Rt_);
-        CALLFunc((uint32_t)psxDelayTest);
+        CALLFunc((uint32_t)psxDelayTestWrapper);
         ADD32ItoR(ESP, 2 * 4);
 
         RET();
         return;
     }
-    switch (g_psxRegs.code >> 26) {
+    switch (PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) {
         // Lode Runner (jr - beq)
 
         // bltz - bgez - bltzal - bgezal / beq - bne - blez - bgtz
@@ -190,15 +196,15 @@ static void SetBranch() {
             break;
 
         default:
-            s_pRecBSC[g_psxRegs.code >> 26]();
+            s_pRecBSC[PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26]();
             break;
     }
 
     iFlushRegs();
     iStoreCycle();
     MOV32MtoR(EAX, (uint32_t)&s_target);
-    MOV32RtoM((uint32_t)&g_psxRegs.pc, EAX);
-    CALLFunc((uint32_t)psxBranchTest);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, EAX);
+    CALLFunc((uint32_t)psxBranchTestWrapper);
 
     if (s_resp) ADD32ItoR(ESP, s_resp);
     RET();
@@ -206,37 +212,37 @@ static void SetBranch() {
 
 static void iJump(uint32_t branchPC) {
     s_branch = 1;
-    g_psxRegs.code = PSXMu32(s_pc);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.code = PSXMu32(s_pc);
     s_pc += 4;
 
     if (iLoadTest() == 1) {
         iFlushRegs();
-        MOV32ItoM((uint32_t)&g_psxRegs.code, g_psxRegs.code);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code, PCSX::g_emulator->m_psxCpu->m_psxRegs.code);
         /* store cycle */
         s_count = ((s_pc - s_old_pc) / 4) * PCSX::Emulator::BIAS;
-        ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
+        ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle, s_count);
         if (s_resp) ADD32ItoR(ESP, s_resp);
 
         PUSH32I(branchPC);
         PUSH32I(_Rt_);
-        CALLFunc((uint32_t)psxDelayTest);
+        CALLFunc((uint32_t)psxDelayTestWrapper);
         ADD32ItoR(ESP, 2 * 4);
 
         RET();
         return;
     }
 
-    s_pRecBSC[g_psxRegs.code >> 26]();
+    s_pRecBSC[PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26]();
 
     iFlushRegs();
     iStoreCycle();
-    MOV32ItoM((uint32_t)&g_psxRegs.pc, branchPC);
-    CALLFunc((uint32_t)psxBranchTest);
+    MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, branchPC);
+    CALLFunc((uint32_t)psxBranchTestWrapper);
 
     if (s_resp) ADD32ItoR(ESP, s_resp);
 
     // maybe just happened an interruption, check so
-    CMP32ItoM((uint32_t)&g_psxRegs.pc, branchPC);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, branchPC);
     g_j8Ptr[0] = JE8(0);
     RET();
 
@@ -260,21 +266,21 @@ static void iBranch(uint32_t branchPC, int savectx) {
     }
 
     s_branch = 1;
-    g_psxRegs.code = PSXMu32(s_pc);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.code = PSXMu32(s_pc);
 
     // the delay test is only made when the branch is taken
     // savectx == 0 will mean that :)
     if (savectx == 0 && iLoadTest() == 1) {
         iFlushRegs();
-        MOV32ItoM((uint32_t)&g_psxRegs.code, g_psxRegs.code);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code, PCSX::g_emulator->m_psxCpu->m_psxRegs.code);
         /* store cycle */
         s_count = (((s_pc + 4) - s_old_pc) / 4) * PCSX::Emulator::BIAS;
-        ADD32ItoM((uint32_t)&g_psxRegs.cycle, s_count);
+        ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle, s_count);
         if (s_resp) ADD32ItoR(ESP, s_resp);
 
         PUSH32I(branchPC);
         PUSH32I(_Rt_);
-        CALLFunc((uint32_t)psxDelayTest);
+        CALLFunc((uint32_t)psxDelayTestWrapper);
         ADD32ItoR(ESP, 2 * 4);
 
         RET();
@@ -282,17 +288,17 @@ static void iBranch(uint32_t branchPC, int savectx) {
     }
 
     s_pc += 4;
-    s_pRecBSC[g_psxRegs.code >> 26]();
+    s_pRecBSC[PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26]();
 
     iFlushRegs();
     iStoreCycle();
-    MOV32ItoM((uint32_t)&g_psxRegs.pc, branchPC);
-    CALLFunc((uint32_t)psxBranchTest);
+    MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, branchPC);
+    CALLFunc((uint32_t)psxBranchTestWrapper);
 
     if (s_resp) ADD32ItoR(ESP, s_resp);
 
     // maybe just happened an interruption, check so
-    CMP32ItoM((uint32_t)&g_psxRegs.pc, branchPC);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, branchPC);
     g_j8Ptr[1] = JE8(0);
     RET();
 
@@ -354,10 +360,10 @@ void iLogM32(uint32_t mem) {
 static void iDumpRegs() {
 	int i, j;
 
-	printf("%x %x\n", g_psxRegs.pc, g_psxRegs.cycle);
+	printf("%x %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);
 	for (i = 0; i < 4; i++) {
 		for (j = 0; j < 8; j++)
-			printf("%x ", g_psxRegs.GPR.r[j * i]);
+			printf("%x ", PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[j * i]);
 		printf("\n");
 	}
 }
@@ -367,9 +373,11 @@ void iDumpBlock(int8_t *ptr) {
     FILE *f;
     uint32_t i;
 
-    PCSX::system->SysPrintf("dump1 %x:%x, %x\n", g_psxRegs.pc, s_pc, g_psxRegs.cycle);
+    PCSX::system->SysPrintf("dump1 %x:%x, %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, s_pc,
+                            PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);
 
-    for (i = g_psxRegs.pc; i < s_pc; i += 4) PCSX::system->SysPrintf("%s\n", disR3000AF(PSXMu32(i), i));
+    for (i = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc; i < s_pc; i += 4)
+        PCSX::system->SysPrintf("%s\n", disR3000AF(PSXMu32(i), i));
 
     fflush(stdout);
     f = fopen("dump1", "w");
@@ -379,44 +387,47 @@ void iDumpBlock(int8_t *ptr) {
     fflush(stdout);
 }
 
-#define REC_FUNC(f)                                           \
-    void psx##f();                                            \
-    static void rec##f() {                                    \
-        iFlushRegs();                                         \
-        MOV32ItoM((uint32_t)&g_psxRegs.code, (uint32_t)g_psxRegs.code); \
-        MOV32ItoM((uint32_t)&g_psxRegs.pc, (uint32_t)s_pc);             \
-        CALLFunc((uint32_t)psx##f);                                \
-        /*	branch = 2; */                                     \
+#define REC_FUNC(f)                                                                     \
+    void psx##f();                                                                      \
+    static void rec##f() {                                                              \
+        iFlushRegs();                                                                   \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code,                \
+                  (uint32_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.code);                \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, (uint32_t)s_pc); \
+        CALLFunc((uint32_t)psx##f);                                                     \
+        /*	branch = 2; */                                                               \
     }
 
-#define REC_SYS(f)                                            \
-    void psx##f();                                            \
-    static void rec##f() {                                    \
-        iFlushRegs();                                         \
-        MOV32ItoM((uint32_t)&g_psxRegs.code, (uint32_t)g_psxRegs.code); \
-        MOV32ItoM((uint32_t)&g_psxRegs.pc, (uint32_t)s_pc);             \
-        CALLFunc((uint32_t)psx##f);                                \
-        branch = 2;                                           \
-        iRet();                                               \
+#define REC_SYS(f)                                                                      \
+    void psx##f();                                                                      \
+    static void rec##f() {                                                              \
+        iFlushRegs();                                                                   \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code,                \
+                  (uint32_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.code);                \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, (uint32_t)s_pc); \
+        CALLFunc((uint32_t)psx##f);                                                     \
+        branch = 2;                                                                     \
+        iRet();                                                                         \
     }
 
-#define REC_BRANCH(f)                                         \
-    void psx##f();                                            \
-    static void rec##f() {                                    \
-        iFlushRegs();                                         \
-        MOV32ItoM((uint32_t)&g_psxRegs.code, (uint32_t)g_psxRegs.code); \
-        MOV32ItoM((uint32_t)&g_psxRegs.pc, (uint32_t)s_pc);             \
-        CALLFunc((uint32_t)psx##f);                                \
-        branch = 2;                                           \
-        iRet();                                               \
+#define REC_BRANCH(f)                                                                   \
+    void psx##f();                                                                      \
+    static void rec##f() {                                                              \
+        iFlushRegs();                                                                   \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code,                \
+                  (uint32_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.code);                \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, (uint32_t)s_pc); \
+        CALLFunc((uint32_t)psx##f);                                                     \
+        branch = 2;                                                                     \
+        iRet();                                                                         \
     }
 
 static void recRecompile();
 
-static int recInit() {
+bool PCSX::X86DynaRecCPU::Init() {
     int i;
 
-    s_psxRecLUT = (uint32_t *)malloc(0x010000 * 4);
+    s_psxRecLUT = (uint32_t *)calloc(0x010000, 4);
 
 #ifndef _WIN32
     recMem =
@@ -425,8 +436,8 @@ static int recInit() {
     s_recMem = (int8_t *)VirtualAlloc(NULL, RECMEM_SIZE + 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
 
-    s_recRAM = (char *)malloc(0x200000);
-    s_recROM = (char *)malloc(0x080000);
+    s_recRAM = (char *)calloc(0x200000, 1);
+    s_recROM = (char *)calloc(0x080000, 1);
     if (s_recRAM == NULL || s_recROM == NULL || s_recMem == NULL || s_psxRecLUT == NULL) {
         PCSX::system->SysMessage("Error allocating memory");
         return -1;
@@ -443,7 +454,7 @@ static int recInit() {
     return 0;
 }
 
-static void recReset() {
+void PCSX::X86DynaRecCPU::Reset() {
     memset(s_recRAM, 0, 0x200000);
     memset(s_recROM, 0, 0x080000);
 
@@ -455,7 +466,7 @@ static void recReset() {
     s_iRegs[0].k = 0;
 }
 
-static void recShutdown() {
+void PCSX::X86DynaRecCPU::Shutdown() {
     if (s_recMem == NULL) return;
     free(s_psxRecLUT);
 #ifndef _WIN32
@@ -478,10 +489,13 @@ static void recError() {
 __inline static void execute() {
     void (**recFunc)() = NULL;
     char *p;
+    uint32_t pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
 
-    p = (char *)PC_REC(g_psxRegs.pc);
-    if (p != NULL)
+    p = (char *)PC_REC(PCSX::g_emulator->m_psxCpu->m_psxRegs.pc);
+
+    if (p != NULL) {
         recFunc = (void (**)())(uint32_t)p;
+    }
     else {
         recError();
         return;
@@ -493,13 +507,13 @@ __inline static void execute() {
     (*recFunc)();
 }
 
-static void recExecute() {
+void PCSX::X86DynaRecCPU::Execute() {
     for (;;) execute();
 }
 
-static void recExecuteBlock() { execute(); }
+void PCSX::X86DynaRecCPU::ExecuteBlock() { execute(); }
 
-static void recClear(uint32_t Addr, uint32_t Size) {
+void PCSX::X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
     uint32_t bank, offset;
 
     bank = Addr >> 24;
@@ -520,7 +534,7 @@ static void recClear(uint32_t Addr, uint32_t Size) {
 }
 
 static void recNULL() {
-    //	PCSX::system->SysMessage("recUNK: %8.8x\n", g_psxRegs.code);
+    //	PCSX::system->SysMessage("recUNK: %8.8x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.code);
 }
 
 /*********************************************************
@@ -537,7 +551,7 @@ static void recCOP0() { s_pRecCP0[_Rs_](); }
 
 // REC_SYS(COP2);
 static void recCOP2() {
-    MOV32MtoR(EAX, (uint32_t)&g_psxRegs.CP0.n.Status);
+    MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
     AND32ItoR(EAX, 0x40000000);
     g_j8Ptr[31] = JZ8(0);
 
@@ -574,11 +588,11 @@ static void recADDIU() {
             s_iRegs[_Rt_].k += _Imm_;
         } else {
             if (_Imm_ == 1) {
-                INC32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                INC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
             } else if (_Imm_ == -1) {
-                DEC32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                DEC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
             } else if (_Imm_) {
-                ADD32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], _Imm_);
+                ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Imm_);
             }
         }
     } else {
@@ -587,7 +601,7 @@ static void recADDIU() {
         } else {
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             if (_Imm_ == 1) {
                 INC32R(EAX);
             } else if (_Imm_ == -1) {
@@ -595,7 +609,7 @@ static void recADDIU() {
             } else if (_Imm_) {
                 ADD32ItoR(EAX, _Imm_);
             }
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
         }
     }
 }
@@ -611,11 +625,11 @@ static void recADDI() {
             s_iRegs[_Rt_].k += _Imm_;
         } else {
             if (_Imm_ == 1) {
-                INC32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                INC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
             } else if (_Imm_ == -1) {
-                DEC32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                DEC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
             } else if (_Imm_) {
-                ADD32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], _Imm_);
+                ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Imm_);
             }
         }
     } else {
@@ -624,7 +638,7 @@ static void recADDI() {
         } else {
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             if (_Imm_ == 1) {
                 INC32R(EAX);
             } else if (_Imm_ == -1) {
@@ -632,7 +646,7 @@ static void recADDI() {
             } else if (_Imm_) {
                 ADD32ItoR(EAX, _Imm_);
             }
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
         }
     }
 }
@@ -648,11 +662,11 @@ static void recSLTI() {
     } else {
         s_iRegs[_Rt_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         CMP32ItoR(EAX, _Imm_);
         SETL8R(EAX);
         AND32ItoR(EAX, 0xff);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
 }
 
@@ -667,11 +681,11 @@ static void recSLTIU() {
     } else {
         s_iRegs[_Rt_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         CMP32ItoR(EAX, _Imm_);
         SETB8R(EAX);
         AND32ItoR(EAX, 0xff);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
 }
 
@@ -685,7 +699,7 @@ static void recANDI() {
         if (IsConst(_Rt_)) {
             s_iRegs[_Rt_].k &= _ImmU_;
         } else {
-            AND32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], _ImmU_);
+            AND32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _ImmU_);
         }
     } else {
         if (IsConst(_Rs_)) {
@@ -693,9 +707,9 @@ static void recANDI() {
         } else {
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             AND32ItoR(EAX, _ImmU_);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
         }
     }
 }
@@ -710,7 +724,7 @@ static void recORI() {
         if (IsConst(_Rt_)) {
             s_iRegs[_Rt_].k |= _ImmU_;
         } else {
-            OR32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], _ImmU_);
+            OR32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _ImmU_);
         }
     } else {
         if (IsConst(_Rs_)) {
@@ -718,9 +732,9 @@ static void recORI() {
         } else {
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             if (_ImmU_) OR32ItoR(EAX, _ImmU_);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
         }
     }
 }
@@ -735,7 +749,7 @@ static void recXORI() {
         if (IsConst(_Rt_)) {
             s_iRegs[_Rt_].k ^= _ImmU_;
         } else {
-            XOR32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], _ImmU_);
+            XOR32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _ImmU_);
         }
     } else {
         if (IsConst(_Rs_)) {
@@ -743,9 +757,9 @@ static void recXORI() {
         } else {
             s_iRegs[_Rt_].state = ST_UNK;
 
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             XOR32ItoR(EAX, _ImmU_);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
         }
     }
 }
@@ -762,7 +776,7 @@ static void recLUI() {
     // Rt = Imm << 16
     if (!_Rt_) return;
 
-    MapConst(_Rt_, g_psxRegs.code << 16);
+    MapConst(_Rt_, PCSX::g_emulator->m_psxCpu->m_psxRegs.code << 16);
 }
 //#endif
 // End of Load Higher .....
@@ -797,14 +811,14 @@ static void recADDU() {
 
         if (_Rt_ == _Rd_) {
             if (s_iRegs[_Rs_].k == 1) {
-                INC32M((uint32_t)&g_psxRegs.GPR.r[_Rd_]);
+                INC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]);
             } else if (s_iRegs[_Rs_].k == -1) {
-                DEC32M((uint32_t)&g_psxRegs.GPR.r[_Rd_]);
+                DEC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]);
             } else if (s_iRegs[_Rs_].k) {
-                ADD32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], s_iRegs[_Rs_].k);
+                ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], s_iRegs[_Rs_].k);
             }
         } else {
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
             if (s_iRegs[_Rs_].k == 1) {
                 INC32R(EAX);
             } else if (s_iRegs[_Rs_].k == 0xffffffff) {
@@ -812,21 +826,21 @@ static void recADDU() {
             } else if (s_iRegs[_Rs_].k) {
                 ADD32ItoR(EAX, s_iRegs[_Rs_].k);
             }
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         }
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
         if (_Rs_ == _Rd_) {
             if (s_iRegs[_Rt_].k == 1) {
-                INC32M((uint32_t)&g_psxRegs.GPR.r[_Rd_]);
+                INC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]);
             } else if (s_iRegs[_Rt_].k == -1) {
-                DEC32M((uint32_t)&g_psxRegs.GPR.r[_Rd_]);
+                DEC32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]);
             } else if (s_iRegs[_Rt_].k) {
-                ADD32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], s_iRegs[_Rt_].k);
+                ADD32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], s_iRegs[_Rt_].k);
             }
         } else {
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             if (s_iRegs[_Rt_].k == 1) {
                 INC32R(EAX);
             } else if (s_iRegs[_Rt_].k == 0xffffffff) {
@@ -834,21 +848,21 @@ static void recADDU() {
             } else if (s_iRegs[_Rt_].k) {
                 ADD32ItoR(EAX, s_iRegs[_Rt_].k);
             }
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         }
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
         if (_Rs_ == _Rd_) {  // Rd+= Rt
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-            ADD32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+            ADD32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         } else if (_Rt_ == _Rd_) {  // Rd+= Rs
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            ADD32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            ADD32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         } else {  // Rd = Rs + Rt
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            ADD32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            ADD32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         }
     }
 }
@@ -870,20 +884,20 @@ static void recSUBU() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-        SUB32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        SUB32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SUB32ItoR(EAX, s_iRegs[_Rt_].k);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        SUB32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        SUB32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -904,35 +918,35 @@ static void recAND() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         if (_Rd_ == _Rt_) {  // Rd&= Rs
-            AND32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], s_iRegs[_Rs_].k);
+            AND32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], s_iRegs[_Rs_].k);
         } else {
             MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-            AND32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            AND32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         }
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
         if (_Rd_ == _Rs_) {  // Rd&= kRt
-            AND32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], s_iRegs[_Rt_].k);
+            AND32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], s_iRegs[_Rt_].k);
         } else {  // Rd = Rs & kRt
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             AND32ItoR(EAX, s_iRegs[_Rt_].k);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         }
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
         if (_Rs_ == _Rd_) {  // Rd&= Rt
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-            AND32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+            AND32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         } else if (_Rt_ == _Rd_) {  // Rd&= Rs
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            AND32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            AND32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         } else {  // Rd = Rs & Rt
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            AND32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            AND32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
         }
     }
 }
@@ -949,20 +963,20 @@ static void recOR() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-        OR32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        OR32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         OR32ItoR(EAX, s_iRegs[_Rt_].k);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        OR32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        OR32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -978,20 +992,20 @@ static void recXOR() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-        XOR32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        XOR32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         XOR32ItoR(EAX, s_iRegs[_Rt_].k);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        XOR32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        XOR32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -1007,23 +1021,23 @@ static void recNOR() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-        OR32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        OR32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         NOT32R(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         OR32ItoR(EAX, s_iRegs[_Rt_].k);
         NOT32R(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        OR32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        OR32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         NOT32R(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -1039,26 +1053,26 @@ static void recSLT() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-        CMP32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        CMP32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         SETL8R(EAX);
         AND32ItoR(EAX, 0xff);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         CMP32ItoR(EAX, s_iRegs[_Rt_].k);
         SETL8R(EAX);
         AND32ItoR(EAX, 0xff);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        CMP32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        CMP32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         SETL8R(EAX);
         AND32ItoR(EAX, 0xff);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -1074,26 +1088,26 @@ static void recSLTU() {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);
-        CMP32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        CMP32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         SBB32RtoR(EAX, EAX);
         NEG32R(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         CMP32ItoR(EAX, s_iRegs[_Rt_].k);
         SBB32RtoR(EAX, EAX);
         NEG32R(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        CMP32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        CMP32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         SBB32RtoR(EAX, EAX);
         NEG32R(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 //#endif
@@ -1116,24 +1130,24 @@ static void recMULT() {
 
     if ((IsConst(_Rs_) && s_iRegs[_Rs_].k == 0) || (IsConst(_Rt_) && s_iRegs[_Rt_].k == 0)) {
         XOR32RtoR(EAX, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
         return;
     }
 
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);  // printf("multrsk %x\n", s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
     }
     if (IsConst(_Rt_)) {
         MOV32ItoR(EDX, s_iRegs[_Rt_].k);  // printf("multrtk %x\n", s_iRegs[_Rt_].k);
         IMUL32R(EDX);
     } else {
-        IMUL32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        IMUL32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EDX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EDX);
 }
 
 static void recMULTU() {
@@ -1143,24 +1157,24 @@ static void recMULTU() {
 
     if ((IsConst(_Rs_) && s_iRegs[_Rs_].k == 0) || (IsConst(_Rt_) && s_iRegs[_Rt_].k == 0)) {
         XOR32RtoR(EAX, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
         return;
     }
 
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);  // printf("multursk %x\n", s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
     }
     if (IsConst(_Rt_)) {
         MOV32ItoR(EDX, s_iRegs[_Rt_].k);  // printf("multurtk %x\n", s_iRegs[_Rt_].k);
         MUL32R(EDX);
     } else {
-        MUL32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MUL32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EDX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EDX);
 }
 
 static void recDIV() {
@@ -1170,42 +1184,42 @@ static void recDIV() {
 
     if (IsConst(_Rt_)) {
         if (s_iRegs[_Rt_].k == 0) {
-            MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.lo, 0xffffffff);
+            MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, 0xffffffff);
             if (IsConst(_Rs_)) {
-                MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
+                MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
             } else {
-                MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-                MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+                MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+                MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
             }
             return;
         }
         MOV32ItoR(ECX, s_iRegs[_Rt_].k);  // printf("divrtk %x\n", s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         CMP32ItoR(ECX, 0);
         g_j8Ptr[0] = JE8(0);
     }
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);  // printf("divrsk %x\n", s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
     }
     CDQ();
     IDIV32R(ECX);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EDX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EDX);
 
     if (!IsConst(_Rt_)) {
         g_j8Ptr[1] = JMP8(1);
 
         x86SetJ8(g_j8Ptr[0]);
 
-        MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.lo, 0xffffffff);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, 0xffffffff);
         if (IsConst(_Rs_)) {
-            MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
+            MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
         } else {
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
         }
 
         x86SetJ8(g_j8Ptr[1]);
@@ -1219,42 +1233,42 @@ static void recDIVU() {
 
     if (IsConst(_Rt_)) {
         if (s_iRegs[_Rt_].k == 0) {
-            MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.lo, 0xffffffff);
+            MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, 0xffffffff);
             if (IsConst(_Rs_)) {
-                MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
+                MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
             } else {
-                MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-                MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+                MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+                MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
             }
             return;
         }
         MOV32ItoR(ECX, s_iRegs[_Rt_].k);  // printf("divurtk %x\n", s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         CMP32ItoR(ECX, 0);
         g_j8Ptr[0] = JE8(0);
     }
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k);  // printf("divursk %x\n", s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
     }
     XOR32RtoR(EDX, EDX);
     DIV32R(ECX);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EDX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EDX);
 
     if (!IsConst(_Rt_)) {
         g_j8Ptr[1] = JMP8(1);
 
         x86SetJ8(g_j8Ptr[0]);
 
-        MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.lo, 0xffffffff);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, 0xffffffff);
         if (IsConst(_Rs_)) {
-            MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
+            MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
         } else {
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
         }
 
         x86SetJ8(g_j8Ptr[1]);
@@ -1284,11 +1298,11 @@ static void iPushOfB() {
         PUSH32I(s_iRegs[_Rs_].k + _Imm_);
     } else {
         if (_Imm_) {
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
             ADD32ItoR(EAX, _Imm_);
             PUSH32R(EAX);
         } else {
-            PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+            PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         }
     }
 }
@@ -1314,7 +1328,7 @@ static void recLB() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVSX32M8toR(EAX, (uint32_t)&g_psxM[addr & 0x1fffff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1322,7 +1336,7 @@ static void recLB() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVSX32M8toR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         //		PCSX::system->SysPrintf("unhandled r8 %x\n", addr);
@@ -1333,7 +1347,7 @@ static void recLB() {
     if (_Rt_) {
         s_iRegs[_Rt_].state = ST_UNK;
         MOVSX32R8toR(EAX, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
     //	ADD32ItoR(ESP, 4);
     s_resp += 4;
@@ -1359,7 +1373,7 @@ static void recLBU() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVZX32M8toR(EAX, (uint32_t)&g_psxM[addr & 0x1fffff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1367,7 +1381,7 @@ static void recLBU() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVZX32M8toR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         //		PCSX::system->SysPrintf("unhandled r8u %x\n", addr);
@@ -1378,7 +1392,7 @@ static void recLBU() {
     if (_Rt_) {
         s_iRegs[_Rt_].state = ST_UNK;
         MOVZX32R8toR(EAX, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
     //	ADD32ItoR(ESP, 4);
     s_resp += 4;
@@ -1404,7 +1418,7 @@ static void recLH() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVSX32M16toR(EAX, (uint32_t)&g_psxM[addr & 0x1fffff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1412,7 +1426,7 @@ static void recLH() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVSX32M16toR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         //		PCSX::system->SysPrintf("unhandled r16 %x\n", addr);
@@ -1423,7 +1437,7 @@ static void recLH() {
     if (_Rt_) {
         s_iRegs[_Rt_].state = ST_UNK;
         MOVSX32R16toR(EAX, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
     //	ADD32ItoR(ESP, 4);
     s_resp += 4;
@@ -1449,7 +1463,7 @@ static void recLHU() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVZX32M16toR(EAX, (uint32_t)&g_psxM[addr & 0x1fffff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1457,7 +1471,7 @@ static void recLHU() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOVZX32M16toR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80) {
@@ -1468,7 +1482,7 @@ static void recLHU() {
                 PUSH32I(addr);
                 CALL32M((uint32_t)&SPU_readRegister);
                 MOVZX32R16toR(EAX, EAX);
-                MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
 #ifndef __WIN32__
                 s_resp += 4;
 #endif
@@ -1484,7 +1498,7 @@ static void recLHU() {
                     PUSH32I((addr >> 4) & 0x3);
                     CALLFunc((uint32_t)psxRcntRcount);
                     MOVZX32R16toR(EAX, EAX);
-                    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
                     s_resp += 4;
                     return;
 
@@ -1497,7 +1511,7 @@ static void recLHU() {
                     PUSH32I((addr >> 4) & 0x3);
                     CALLFunc((uint32_t)psxRcntRmode);
                     MOVZX32R16toR(EAX, EAX);
-                    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
                     s_resp += 4;
                     return;
 
@@ -1510,7 +1524,7 @@ static void recLHU() {
                     PUSH32I((addr >> 4) & 0x3);
                     CALLFunc((uint32_t)psxRcntRtarget);
                     MOVZX32R16toR(EAX, EAX);
-                    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
                     s_resp += 4;
                     return;
             }
@@ -1523,7 +1537,7 @@ static void recLHU() {
     if (_Rt_) {
         s_iRegs[_Rt_].state = ST_UNK;
         MOVZX32R16toR(EAX, EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
     //	ADD32ItoR(ESP, 4);
     s_resp += 4;
@@ -1549,7 +1563,7 @@ static void recLW() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOV32MtoR(EAX, (uint32_t)&g_psxM[addr & 0x1fffff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1557,7 +1571,7 @@ static void recLW() {
             s_iRegs[_Rt_].state = ST_UNK;
 
             MOV32MtoR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80) {
@@ -1591,7 +1605,7 @@ static void recLW() {
                     s_iRegs[_Rt_].state = ST_UNK;
 
                     MOV32MtoR(EAX, (uint32_t)&g_psxH[addr & 0xffff]);
-                    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
                     return;
 
                 case 0x1f801810:
@@ -1599,7 +1613,7 @@ static void recLW() {
                     s_iRegs[_Rt_].state = ST_UNK;
 
                     CALL32M((uint32_t)&GPU_readData);
-                    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
                     return;
 
                 case 0x1f801814:
@@ -1607,7 +1621,7 @@ static void recLW() {
                     s_iRegs[_Rt_].state = ST_UNK;
 
                     CALL32M((uint32_t)&GPU_readStatus);
-                    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+                    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
                     return;
             }
         }
@@ -1618,7 +1632,7 @@ static void recLW() {
     CALLFunc((uint32_t)psxMemRead32);
     if (_Rt_) {
         s_iRegs[_Rt_].state = ST_UNK;
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     }
     //	ADD32ItoR(ESP, 4);
     s_resp += 4;
@@ -1631,7 +1645,7 @@ void iLWLk(uint32_t shift) {
     if (IsConst(_Rt_)) {
         MOV32ItoR(ECX, s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     AND32ItoR(ECX, g_LWL_MASK[shift]);
     SHL32ItoR(EAX, g_LWL_SHIFT[shift]);
@@ -1650,7 +1664,7 @@ void recLWL() {
             iLWLk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1658,7 +1672,7 @@ void recLWL() {
             iLWLk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
     }
@@ -1666,7 +1680,7 @@ void recLWL() {
     if (IsConst(_Rs_))
         MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);
     else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         if (_Imm_) ADD32ItoR(EAX, _Imm_);
     }
     PUSH32R(EAX);
@@ -1688,14 +1702,14 @@ void recLWL() {
         if (IsConst(_Rt_)) {
             MOV32ItoR(EDX, s_iRegs[_Rt_].k);
         } else {
-            MOV32MtoR(EDX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+            MOV32MtoR(EDX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         }
         AND32RtoR(EDX, ECX);  // _rRt_ & g_LWL_MASK[shift]
 
         OR32RtoR(EAX, EDX);
 
         s_iRegs[_Rt_].state = ST_UNK;
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     } else {
         //		ADD32ItoR(ESP, 8);
         s_resp += 8;
@@ -1730,7 +1744,7 @@ static void recLWBlock(int count) {
 				s_iRegs[_fRt_(*code)].state = ST_UNK;
 
 				MOV32MtoR(EAX, (uint32_t)&g_psxM[addr & 0x1fffff]);
-				MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_fRt_(*code)], EAX);
+				MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_fRt_(*code)], EAX);
 			}
 			return;
 		}
@@ -1741,7 +1755,7 @@ static void recLWBlock(int count) {
 				s_iRegs[_fRt_(*code)].state = ST_UNK;
 
 				MOV32MtoR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-				MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_fRt_(*code)], EAX);
+				MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_fRt_(*code)], EAX);
 			}
 			return;
 		}
@@ -1762,7 +1776,7 @@ static void recLWBlock(int count) {
 			s_iRegs[_fRt_(*code)].state = ST_UNK;
 
 			MOV32RmStoR(EDX, EAX, ECX, 2);
-			MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_fRt_(*code)], EDX);
+			MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_fRt_(*code)], EDX);
 		}
 		if (i != (count - 1))
 			INC32R(ECX);
@@ -1770,7 +1784,7 @@ static void recLWBlock(int count) {
 	g_j32Ptr[5] = JMP32(0);
 	x86SetJ32(g_j32Ptr[4]);
 	for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
-		g_psxRegs.code = *code;
+		PCSX::g_emulator->m_psxCpu->m_psxRegs.code = *code;
 		recLW();
 	}
 	ADD32ItoR(ESP, s_resp);
@@ -1786,7 +1800,7 @@ void iLWRk(uint32_t shift) {
     if (IsConst(_Rt_)) {
         MOV32ItoR(ECX, s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     AND32ItoR(ECX, g_LWR_MASK[shift]);
     SHR32ItoR(EAX, g_LWR_SHIFT[shift]);
@@ -1805,7 +1819,7 @@ void recLWR() {
             iLWRk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
@@ -1813,7 +1827,7 @@ void recLWR() {
             iLWRk(addr & 3);
 
             s_iRegs[_Rt_].state = ST_UNK;
-            MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+            MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
             return;
         }
     }
@@ -1821,7 +1835,7 @@ void recLWR() {
     if (IsConst(_Rs_))
         MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);
     else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         if (_Imm_) ADD32ItoR(EAX, _Imm_);
     }
     PUSH32R(EAX);
@@ -1844,14 +1858,14 @@ void recLWR() {
         if (IsConst(_Rt_)) {
             MOV32ItoR(EDX, s_iRegs[_Rt_].k);
         } else {
-            MOV32MtoR(EDX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+            MOV32MtoR(EDX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         }
         AND32RtoR(EDX, ECX);  // _rRt_ & g_LWR_MASK[shift]
 
         OR32RtoR(EAX, EDX);
 
         s_iRegs[_Rt_].state = ST_UNK;
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
     } else {
         //		ADD32ItoR(ESP, 8);
         s_resp += 8;
@@ -1871,13 +1885,13 @@ static void recSB() {
             if (IsConst(_Rt_)) {
                 MOV8ItoM((uint32_t)&g_psxM[addr & 0x1fffff], (uint8_t)s_iRegs[_Rt_].k);
             } else {
-                MOV8MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                MOV8MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 MOV8RtoM((uint32_t)&g_psxM[addr & 0x1fffff], EAX);
             }
 
             PUSH32I(1);
             PUSH32I(addr & ~3);
-            CALLFunc((uint32_t)&recClear);
+            CALLFunc((uint32_t)&recClearWrapper);
             s_resp += 8;
             return;
         }
@@ -1886,7 +1900,7 @@ static void recSB() {
             if (IsConst(_Rt_)) {
                 MOV8ItoM((uint32_t)&g_psxH[addr & 0xfff], (uint8_t)s_iRegs[_Rt_].k);
             } else {
-                MOV8MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                MOV8MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 MOV8RtoM((uint32_t)&g_psxH[addr & 0xfff], EAX);
             }
             return;
@@ -1897,7 +1911,7 @@ static void recSB() {
     if (IsConst(_Rt_)) {
         PUSH32I(s_iRegs[_Rt_].k);
     } else {
-        PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     iPushOfB();
     CALLFunc((uint32_t)psxMemWrite8);
@@ -1918,13 +1932,13 @@ static void recSH() {
             if (IsConst(_Rt_)) {
                 MOV16ItoM((uint32_t)&g_psxM[addr & 0x1fffff], (uint16_t)s_iRegs[_Rt_].k);
             } else {
-                MOV16MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                MOV16MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 MOV16RtoM((uint32_t)&g_psxM[addr & 0x1fffff], EAX);
             }
 
             PUSH32I(1);
             PUSH32I(addr & ~3);
-            CALLFunc((uint32_t)&recClear);
+            CALLFunc((uint32_t)&recClearWrapper);
             s_resp += 8;
             return;
         }
@@ -1933,7 +1947,7 @@ static void recSH() {
             if (IsConst(_Rt_)) {
                 MOV16ItoM((uint32_t)&g_psxH[addr & 0xfff], (uint16_t)s_iRegs[_Rt_].k);
             } else {
-                MOV16MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                MOV16MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 MOV16RtoM((uint32_t)&g_psxH[addr & 0xfff], EAX);
             }
             return;
@@ -1943,7 +1957,7 @@ static void recSH() {
                 if (IsConst(_Rt_)) {
                     PUSH32I(s_iRegs[_Rt_].k);
                 } else {
-                    PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                    PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 }
                 PUSH32I(addr);
                 CALL32M((uint32_t)&SPU_writeRegister);
@@ -1959,7 +1973,7 @@ static void recSH() {
     if (IsConst(_Rt_)) {
         PUSH32I(s_iRegs[_Rt_].k);
     } else {
-        PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     iPushOfB();
     CALLFunc((uint32_t)psxMemWrite16);
@@ -1980,13 +1994,13 @@ static void recSW() {
             if (IsConst(_Rt_)) {
                 MOV32ItoM((uint32_t)&g_psxM[addr & 0x1fffff], s_iRegs[_Rt_].k);
             } else {
-                MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 MOV32RtoM((uint32_t)&g_psxM[addr & 0x1fffff], EAX);
             }
 
             PUSH32I(1);
             PUSH32I(addr);
-            CALLFunc((uint32_t)&recClear);
+            CALLFunc((uint32_t)&recClearWrapper);
             s_resp += 8;
             return;
         }
@@ -1995,7 +2009,7 @@ static void recSW() {
             if (IsConst(_Rt_)) {
                 MOV32ItoM((uint32_t)&g_psxH[addr & 0xfff], s_iRegs[_Rt_].k);
             } else {
-                MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                 MOV32RtoM((uint32_t)&g_psxH[addr & 0xfff], EAX);
             }
             return;
@@ -2021,7 +2035,7 @@ static void recSW() {
                     if (IsConst(_Rt_)) {
                         MOV32ItoM((uint32_t)&g_psxH[addr & 0xffff], s_iRegs[_Rt_].k);
                     } else {
-                        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                         MOV32RtoM((uint32_t)&g_psxH[addr & 0xffff], EAX);
                     }
                     return;
@@ -2030,7 +2044,7 @@ static void recSW() {
                     if (IsConst(_Rt_)) {
                         PUSH32I(s_iRegs[_Rt_].k);
                     } else {
-                        PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                        PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                     }
                     CALL32M((uint32_t)&GPU_writeData);
 #ifndef __WIN32__
@@ -2042,7 +2056,7 @@ static void recSW() {
                     if (IsConst(_Rt_)) {
                         PUSH32I(s_iRegs[_Rt_].k);
                     } else {
-                        PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+                        PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
                     }
                     CALL32M((uint32_t)&GPU_writeStatus);
 #ifndef __WIN32__
@@ -2057,7 +2071,7 @@ static void recSW() {
     if (IsConst(_Rt_)) {
         PUSH32I(s_iRegs[_Rt_].k);
     } else {
-        PUSH32M((uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     iPushOfB();
     CALLFunc((uint32_t)psxMemWrite32);
@@ -2084,7 +2098,7 @@ static void recSWBlock(int count) {
 				if (IsConst(_fRt_(*code))) {
 					MOV32ItoM((uint32_t)&g_psxM[addr & 0x1fffff], s_iRegs[_fRt_(*code)].k);
 				} else {
-					MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_fRt_(*code)]);
+					MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_fRt_(*code)]);
 					MOV32RtoM((uint32_t)&g_psxM[addr & 0x1fffff], EAX);
 				}
 			}
@@ -2097,7 +2111,7 @@ static void recSWBlock(int count) {
 				s_iRegs[_fRt_(*code)].state = ST_UNK;
 
 				MOV32MtoR(EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-				MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_fRt_(*code)], EAX);
+				MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_fRt_(*code)], EAX);
 			}
 			return;
 		}
@@ -2118,7 +2132,7 @@ static void recSWBlock(int count) {
 		if (IsConst(_fRt_(*code))) {
 			MOV32ItoR(EDX, s_iRegs[_fRt_(*code)].k);
 		} else {
-			MOV32MtoR(EDX, (uint32_t)&g_psxRegs.GPR.r[_fRt_(*code)]);
+			MOV32MtoR(EDX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_fRt_(*code)]);
 		}
 		MOV32RtoRmS(EAX, ECX, 2, EDX);
 		if (i != (count - 1))
@@ -2127,7 +2141,7 @@ static void recSWBlock(int count) {
 	g_j32Ptr[5] = JMP32(0);
 	x86SetJ32(g_j32Ptr[4]);
 	for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
-		g_psxRegs.code = *code;
+		PCSX::g_emulator->m_psxCpu->m_psxRegs.code = *code;
 		recSW();
 	}
 	ADD32ItoR(ESP, s_resp);
@@ -2143,7 +2157,7 @@ void iSWLk(uint32_t shift) {
     if (IsConst(_Rt_)) {
         MOV32ItoR(ECX, s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     SHR32ItoR(ECX, g_SWL_SHIFT[shift]);
     AND32ItoR(EAX, g_SWL_MASK[shift]);
@@ -2176,7 +2190,7 @@ void recSWL() {
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         if (_Imm_) ADD32ItoR(EAX, _Imm_);
     }
     PUSH32R(EAX);
@@ -2198,7 +2212,7 @@ void recSWL() {
     if (IsConst(_Rt_)) {
         MOV32ItoR(EDX, s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(EDX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EDX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     SHR32CLtoR(EDX);  // _rRt_ >> g_SWL_SHIFT[shift]
 
@@ -2208,7 +2222,7 @@ void recSWL() {
     if (IsConst(_Rs_))
         MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);
     else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         if (_Imm_) ADD32ItoR(EAX, _Imm_);
     }
     AND32ItoR(EAX, ~3);
@@ -2226,7 +2240,7 @@ void iSWRk(uint32_t shift) {
     if (IsConst(_Rt_)) {
         MOV32ItoR(ECX, s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     SHL32ItoR(ECX, g_SWR_SHIFT[shift]);
     AND32ItoR(EAX, g_SWR_MASK[shift]);
@@ -2259,7 +2273,7 @@ void recSWR() {
     if (IsConst(_Rs_)) {
         MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         if (_Imm_) ADD32ItoR(EAX, _Imm_);
     }
     PUSH32R(EAX);
@@ -2281,7 +2295,7 @@ void recSWR() {
     if (IsConst(_Rt_)) {
         MOV32ItoR(EDX, s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(EDX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EDX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     SHL32CLtoR(EDX);  // _rRt_ << g_SWR_SHIFT[shift]
 
@@ -2291,7 +2305,7 @@ void recSWR() {
     if (IsConst(_Rs_))
         MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);
     else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         if (_Imm_) ADD32ItoR(EAX, _Imm_);
     }
     AND32ItoR(EAX, ~3);
@@ -2317,9 +2331,9 @@ static void recSLL() {
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         if (_Sa_) SHL32ItoR(EAX, _Sa_);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -2334,9 +2348,9 @@ static void recSRL() {
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         if (_Sa_) SHR32ItoR(EAX, _Sa_);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -2351,9 +2365,9 @@ static void recSRA() {
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         if (_Sa_) SAR32ItoR(EAX, _Sa_);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 //#endif
@@ -2373,24 +2387,24 @@ static void recSLLV() {
     } else if (IsConst(_Rs_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         MOV32ItoR(ECX, s_iRegs[_Rs_].k);
         SHL32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rt_].k);
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SHL32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SHL32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -2405,24 +2419,24 @@ static void recSRLV() {
     } else if (IsConst(_Rs_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         MOV32ItoR(ECX, s_iRegs[_Rs_].k);
         SHR32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rt_].k);
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SHR32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SHR32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 
@@ -2437,24 +2451,24 @@ static void recSRAV() {
     } else if (IsConst(_Rs_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         MOV32ItoR(ECX, s_iRegs[_Rs_].k);
         SAR32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else if (IsConst(_Rt_)) {
         s_iRegs[_Rd_].state = ST_UNK;
 
         MOV32ItoR(EAX, s_iRegs[_Rt_].k);
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SAR32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     } else {
         s_iRegs[_Rd_].state = ST_UNK;
 
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
-        MOV32MtoR(ECX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(ECX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         SAR32CLtoR(EAX);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
     }
 }
 //#endif
@@ -2469,10 +2483,10 @@ static void recSYSCALL() {
     iFlushRegs();
 
     MOV32ItoR(EAX, s_pc - 4);
-    MOV32RtoM((uint32_t)&g_psxRegs.pc, EAX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, EAX);
     PUSH32I(s_branch == 1 ? 1 : 0);
     PUSH32I(0x20);
-    CALLFunc((uint32_t)psxException);
+    CALLFunc((uint32_t)psxExceptionWrapper);
     ADD32ItoR(ESP, 8);
 
     s_branch = 2;
@@ -2492,18 +2506,18 @@ static void recMFHI() {
     if (!_Rd_) return;
 
     s_iRegs[_Rd_].state = ST_UNK;
-    MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.n.hi);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+    MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
 }
 
 static void recMTHI() {
     // Hi = Rs
 
     if (IsConst(_Rs_)) {
-        MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.hi, EAX);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, EAX);
     }
 }
 
@@ -2512,18 +2526,18 @@ static void recMFLO() {
     if (!_Rd_) return;
 
     s_iRegs[_Rd_].state = ST_UNK;
-    MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.n.lo);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rd_], EAX);
+    MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_], EAX);
 }
 
 static void recMTLO() {
     // Lo = Rs
 
     if (IsConst(_Rs_)) {
-        MOV32ItoM((uint32_t)&g_psxRegs.GPR.n.lo, s_iRegs[_Rs_].k);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        MOV32RtoM((uint32_t)&g_psxRegs.GPR.n.lo, EAX);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, EAX);
     }
 }
 //#endif
@@ -2548,7 +2562,7 @@ static void recBLTZ() {
 
     //	iFlushRegs();
 
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
@@ -2562,7 +2576,7 @@ static void recBLTZ() {
         }
     }
 
-    CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], 0);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], 0);
     g_j32Ptr[4] = JL32(0);
 
     iBranch(s_pc + 4, 1);
@@ -2578,7 +2592,7 @@ static void recBGTZ() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
@@ -2592,7 +2606,7 @@ static void recBGTZ() {
         }
     }
 
-    CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], 0);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], 0);
     g_j32Ptr[4] = JG32(0);
 
     iBranch(s_pc + 4, 1);
@@ -2608,13 +2622,13 @@ static void recBLTZAL() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
     if (IsConst(_Rs_)) {
         if ((int32_t)s_iRegs[_Rs_].k < 0) {
-            MOV32ItoM((uint32_t)&g_psxRegs.GPR.r[31], s_pc + 4);
+            MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[31], s_pc + 4);
             iJump(bpc);
             return;
         } else {
@@ -2623,14 +2637,14 @@ static void recBLTZAL() {
         }
     }
 
-    CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], 0);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], 0);
     g_j32Ptr[4] = JL32(0);
 
     iBranch(s_pc + 4, 1);
 
     x86SetJ32(g_j32Ptr[4]);
 
-    MOV32ItoM((uint32_t)&g_psxRegs.GPR.r[31], s_pc + 4);
+    MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[31], s_pc + 4);
     iBranch(bpc, 0);
     s_pc += 4;
 }
@@ -2640,13 +2654,13 @@ static void recBGEZAL() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
     if (IsConst(_Rs_)) {
         if ((int32_t)s_iRegs[_Rs_].k >= 0) {
-            MOV32ItoM((uint32_t)&g_psxRegs.GPR.r[31], s_pc + 4);
+            MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[31], s_pc + 4);
             iJump(bpc);
             return;
         } else {
@@ -2655,14 +2669,14 @@ static void recBGEZAL() {
         }
     }
 
-    CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], 0);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], 0);
     g_j32Ptr[4] = JGE32(0);
 
     iBranch(s_pc + 4, 1);
 
     x86SetJ32(g_j32Ptr[4]);
 
-    MOV32ItoM((uint32_t)&g_psxRegs.GPR.r[31], s_pc + 4);
+    MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[31], s_pc + 4);
     iBranch(bpc, 0);
     s_pc += 4;
 }
@@ -2687,7 +2701,7 @@ static void recJR() {
     if (IsConst(_Rs_)) {
         MOV32ItoM((uint32_t)&s_target, s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         MOV32RtoM((uint32_t)&s_target, EAX);
     }
 
@@ -2700,7 +2714,7 @@ static void recJALR() {
     if (IsConst(_Rs_)) {
         MOV32ItoM((uint32_t)&s_target, s_iRegs[_Rs_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
         MOV32RtoM((uint32_t)&s_target, EAX);
     }
 
@@ -2716,7 +2730,7 @@ static void recBEQ() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
@@ -2732,12 +2746,12 @@ static void recBEQ() {
                 return;
             }
         } else if (IsConst(_Rs_)) {
-            CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], s_iRegs[_Rs_].k);
+            CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], s_iRegs[_Rs_].k);
         } else if (IsConst(_Rt_)) {
-            CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], s_iRegs[_Rt_].k);
+            CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], s_iRegs[_Rt_].k);
         } else {
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-            CMP32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+            CMP32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         }
 
         g_j32Ptr[4] = JE32(0);
@@ -2756,7 +2770,7 @@ static void recBNE() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
@@ -2769,12 +2783,12 @@ static void recBNE() {
             return;
         }
     } else if (IsConst(_Rs_)) {
-        CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], s_iRegs[_Rs_].k);
+        CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], s_iRegs[_Rs_].k);
     } else if (IsConst(_Rt_)) {
-        CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], s_iRegs[_Rt_].k);
+        CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], s_iRegs[_Rt_].k);
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]);
-        CMP32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]);
+        CMP32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
     }
     g_j32Ptr[4] = JNE32(0);
 
@@ -2791,7 +2805,7 @@ static void recBLEZ() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
@@ -2805,7 +2819,7 @@ static void recBLEZ() {
         }
     }
 
-    CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], 0);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], 0);
     g_j32Ptr[4] = JLE32(0);
 
     iBranch(s_pc + 4, 1);
@@ -2821,7 +2835,7 @@ static void recBGEZ() {
     uint32_t bpc = _Imm_ * 4 + s_pc;
 
     //	iFlushRegs();
-    if (bpc == s_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    if (bpc == s_pc + 4 && PCSX::g_emulator->m_psxCpu->psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
         return;
     }
 
@@ -2835,7 +2849,7 @@ static void recBGEZ() {
         }
     }
 
-    CMP32ItoM((uint32_t)&g_psxRegs.GPR.r[_Rs_], 0);
+    CMP32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], 0);
     g_j32Ptr[4] = JGE32(0);
 
     iBranch(s_pc + 4, 1);
@@ -2858,8 +2872,8 @@ static void recMFC0() {
     if (!_Rt_) return;
 
     s_iRegs[_Rt_].state = ST_UNK;
-    MOV32MtoR(EAX, (uint32_t)&g_psxRegs.CP0.r[_Rd_]);
-    MOV32RtoM((uint32_t)&g_psxRegs.GPR.r[_Rt_], EAX);
+    MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], EAX);
 }
 
 static void recCFC0() {
@@ -2875,29 +2889,29 @@ static void recMTC0() {
     if (IsConst(_Rt_)) {
         switch (_Rd_) {
             case 12:
-                MOV32ItoM((uint32_t)&g_psxRegs.CP0.r[_Rd_], s_iRegs[_Rt_].k);
+                MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_], s_iRegs[_Rt_].k);
                 break;
             case 13:
-                MOV32ItoM((uint32_t)&g_psxRegs.CP0.r[_Rd_], s_iRegs[_Rt_].k & ~(0xfc00));
+                MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_], s_iRegs[_Rt_].k & ~(0xfc00));
                 break;
             default:
-                MOV32ItoM((uint32_t)&g_psxRegs.CP0.r[_Rd_], s_iRegs[_Rt_].k);
+                MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_], s_iRegs[_Rt_].k);
                 break;
         }
     } else {
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rt_]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]);
         switch (_Rd_) {
             case 13:
                 AND32ItoR(EAX, ~(0xfc00));
                 break;
         }
-        MOV32RtoM((uint32_t)&g_psxRegs.CP0.r[_Rd_], EAX);
+        MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_], EAX);
     }
 
     if (_Rd_ == 12 || _Rd_ == 13) {
         iFlushRegs();
-        MOV32ItoM((uint32_t)&g_psxRegs.pc, (uint32_t)s_pc);
-        CALLFunc((uint32_t)psxTestSWInts);
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, (uint32_t)s_pc);
+        CALLFunc((uint32_t)psxTestSWIntsWrapper);
         if (s_branch == 0) {
             s_branch = 2;
             iRet();
@@ -2912,17 +2926,17 @@ static void recCTC0() {
 }
 
 static void recRFE() {
-    MOV32MtoR(EAX, (uint32_t)&g_psxRegs.CP0.n.Status);
+    MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
     MOV32RtoR(ECX, EAX);
     AND32ItoR(EAX, 0xfffffff0);
     AND32ItoR(ECX, 0x3c);
     SHR32ItoR(ECX, 2);
     OR32RtoR(EAX, ECX);
-    MOV32RtoM((uint32_t)&g_psxRegs.CP0.n.Status, EAX);
+    MOV32RtoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status, EAX);
 
     iFlushRegs();
-    MOV32ItoM((uint32_t)&g_psxRegs.pc, (uint32_t)s_pc);
-    CALLFunc((uint32_t)psxTestSWInts);
+    MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, (uint32_t)s_pc);
+    CALLFunc((uint32_t)psxTestSWIntsWrapper);
     if (s_branch == 0) {
         s_branch = 2;
         iRet();
@@ -2937,7 +2951,7 @@ static void recRFE() {
 static void recHLE() {
     iFlushRegs();
 
-    MOV32ItoR(EAX, (uint32_t)psxHLEt[g_psxRegs.code & 0xffff]);
+    MOV32ItoR(EAX, (uint32_t)psxHLEt[PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0xffff]);
     CALL32R(EAX);
     s_branch = 2;
     iRet();
@@ -2964,23 +2978,23 @@ void pgxpRecNULL() {}
 #define PGXP_REC_FUNC_PASS(pu, op) \
     static void pgxpRec##op() { rec##op(); }
 
-#define PGXP_REC_FUNC(pu, op)                      \
-    static void pgxpRec##op() {                    \
-        PUSH32I(g_psxRegs.code);                   \
-        PGXP_DBG_OP_E(op)                          \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, )); \
-        s_resp += 4;                               \
-        rec##op();                                 \
+#define PGXP_REC_FUNC(pu, op)                                \
+    static void pgxpRec##op() {                              \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
+        PGXP_DBG_OP_E(op)                                    \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, ));      \
+        s_resp += 4;                                         \
+        rec##op();                                           \
     }
 
-#define PGXP_REC_FUNC_1(pu, op, reg1)               \
-    static void pgxpRec##op() {                     \
-        reg1;                                       \
-        PUSH32I(g_psxRegs.code);                    \
-        PGXP_DBG_OP_E(op)                           \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 1)); \
-        s_resp += 8;                                \
-        rec##op();                                  \
+#define PGXP_REC_FUNC_1(pu, op, reg1)                        \
+    static void pgxpRec##op() {                              \
+        reg1;                                                \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
+        PGXP_DBG_OP_E(op)                                    \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 1));     \
+        s_resp += 8;                                         \
+        rec##op();                                           \
     }
 
 #define PGXP_REC_FUNC_2_2(pu, op, test, nReg, reg1, reg2, reg3, reg4) \
@@ -2994,94 +3008,94 @@ void pgxpRecNULL() {}
         rec##op();                                                    \
         reg3;                                                         \
         reg4;                                                         \
-        PUSH32I(g_psxRegs.code);                                      \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code);          \
         PGXP_DBG_OP_E(op)                                             \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, nReg));                \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, nReg));           \
         s_resp += (4 * nReg) + 4;                                     \
     }
 
-#define PGXP_REC_FUNC_2(pu, op, reg1, reg2)         \
-    static void pgxpRec##op() {                     \
-        reg1;                                       \
-        reg2;                                       \
-        PUSH32I(g_psxRegs.code);                    \
-        PGXP_DBG_OP_E(op)                           \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2)); \
-        s_resp += 12;                               \
-        rec##op();                                  \
+#define PGXP_REC_FUNC_2(pu, op, reg1, reg2)                  \
+    static void pgxpRec##op() {                              \
+        reg1;                                                \
+        reg2;                                                \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
+        PGXP_DBG_OP_E(op)                                    \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));     \
+        s_resp += 12;                                        \
+        rec##op();                                           \
     }
 
 static uint32_t gTempAddr = 0;
-#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)               \
-    static void pgxpRec##op() {                          \
-        if (IsConst(_Rs_)) {                             \
-            MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);     \
-        } else {                                         \
-            MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[_Rs_]); \
-            if (_Imm_) {                                 \
-                ADD32ItoR(EAX, _Imm_);                   \
-            }                                            \
-        }                                                \
-        MOV32RtoM((uint32_t)&gTempAddr, EAX);                 \
-        rec##op();                                       \
-        PUSH32M((uint32_t)&gTempAddr);                        \
-        reg1;                                            \
-        PUSH32I(g_psxRegs.code);                         \
-        PGXP_DBG_OP_E(op)                                \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));      \
-        s_resp += 12;                                    \
+#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)                                                \
+    static void pgxpRec##op() {                                                           \
+        if (IsConst(_Rs_)) {                                                              \
+            MOV32ItoR(EAX, s_iRegs[_Rs_].k + _Imm_);                                      \
+        } else {                                                                          \
+            MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]); \
+            if (_Imm_) {                                                                  \
+                ADD32ItoR(EAX, _Imm_);                                                    \
+            }                                                                             \
+        }                                                                                 \
+        MOV32RtoM((uint32_t)&gTempAddr, EAX);                                             \
+        rec##op();                                                                        \
+        PUSH32M((uint32_t)&gTempAddr);                                                    \
+        reg1;                                                                             \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code);                              \
+        PGXP_DBG_OP_E(op)                                                                 \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));                                  \
+        s_resp += 12;                                                                     \
     }
 
-#define CPU_REG_NC(idx) MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[idx])
+#define CPU_REG_NC(idx) MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[idx])
 
 #define CPU_REG(idx)                    \
     if (IsConst(idx))                   \
         MOV32ItoR(EAX, s_iRegs[idx].k); \
     else                                \
-        MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[idx]);
+        MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[idx]);
 
-#define CP0_REG(idx) MOV32MtoR(EAX, (uint32_t)&g_psxRegs.CP0.r[idx])
-#define GTE_DATA_REG(idx) MOV32MtoR(EAX, (uint32_t)&g_psxRegs.CP2D.r[idx])
-#define GTE_CTRL_REG(idx) MOV32MtoR(EAX, (uint32_t)&g_psxRegs.CP2C.r[idx])
+#define CP0_REG(idx) MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[idx])
+#define GTE_DATA_REG(idx) MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[idx])
+#define GTE_CTRL_REG(idx) MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.r[idx])
 
 static uint32_t gTempInstr = 0;
 static uint32_t gTempReg1 = 0;
 static uint32_t gTempReg2 = 0;
-#define PGXP_REC_FUNC_R1_1(pu, op, test, reg1, reg2) \
-    static void pgxpRec##op() {                      \
-        if (test) {                                  \
-            rec##op();                               \
-            return;                                  \
-        }                                            \
-        reg1;                                        \
-        MOV32RtoM((uint32_t)&gTempReg1, EAX);             \
-        rec##op();                                   \
-        PUSH32M((uint32_t)&gTempReg1);                    \
-        reg2;                                        \
-        PUSH32I(g_psxRegs.code);                     \
-        PGXP_DBG_OP_E(op)                            \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));  \
-        s_resp += 12;                                \
+#define PGXP_REC_FUNC_R1_1(pu, op, test, reg1, reg2)         \
+    static void pgxpRec##op() {                              \
+        if (test) {                                          \
+            rec##op();                                       \
+            return;                                          \
+        }                                                    \
+        reg1;                                                \
+        MOV32RtoM((uint32_t)&gTempReg1, EAX);                \
+        rec##op();                                           \
+        PUSH32M((uint32_t)&gTempReg1);                       \
+        reg2;                                                \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
+        PGXP_DBG_OP_E(op)                                    \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));     \
+        s_resp += 12;                                        \
     }
 
-#define PGXP_REC_FUNC_R2_1(pu, op, test, reg1, reg2, reg3) \
-    static void pgxpRec##op() {                            \
-        if (test) {                                        \
-            rec##op();                                     \
-            return;                                        \
-        }                                                  \
-        reg1;                                              \
-        MOV32RtoM((uint32_t)&gTempReg1, EAX);                   \
-        reg2;                                              \
-        MOV32RtoM((uint32_t)&gTempReg2, EAX);                   \
-        rec##op();                                         \
-        PUSH32M((uint32_t)&gTempReg1);                          \
-        PUSH32M((uint32_t)&gTempReg2);                          \
-        reg3;                                              \
-        PUSH32I(g_psxRegs.code);                           \
-        PGXP_DBG_OP_E(op)                                  \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 3));        \
-        s_resp += 16;                                      \
+#define PGXP_REC_FUNC_R2_1(pu, op, test, reg1, reg2, reg3)   \
+    static void pgxpRec##op() {                              \
+        if (test) {                                          \
+            rec##op();                                       \
+            return;                                          \
+        }                                                    \
+        reg1;                                                \
+        MOV32RtoM((uint32_t)&gTempReg1, EAX);                \
+        reg2;                                                \
+        MOV32RtoM((uint32_t)&gTempReg2, EAX);                \
+        rec##op();                                           \
+        PUSH32M((uint32_t)&gTempReg1);                       \
+        PUSH32M((uint32_t)&gTempReg2);                       \
+        reg3;                                                \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
+        PGXP_DBG_OP_E(op)                                    \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 3));     \
+        s_resp += 16;                                        \
     }
 
 #define PGXP_REC_FUNC_R2_2(pu, op, test, reg1, reg2, reg3, reg4) \
@@ -3091,17 +3105,17 @@ static uint32_t gTempReg2 = 0;
             return;                                              \
         }                                                        \
         reg1;                                                    \
-        MOV32RtoM((uint32_t)&gTempReg1, EAX);                         \
+        MOV32RtoM((uint32_t)&gTempReg1, EAX);                    \
         reg2;                                                    \
-        MOV32RtoM((uint32_t)&gTempReg2, EAX);                         \
+        MOV32RtoM((uint32_t)&gTempReg2, EAX);                    \
         rec##op();                                               \
-        PUSH32M((uint32_t)&gTempReg1);                                \
-        PUSH32M((uint32_t)&gTempReg2);                                \
+        PUSH32M((uint32_t)&gTempReg1);                           \
+        PUSH32M((uint32_t)&gTempReg2);                           \
         reg3;                                                    \
         reg4;                                                    \
-        PUSH32I(g_psxRegs.code);                                 \
+        PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code);     \
         PGXP_DBG_OP_E(op)                                        \
-        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 4));              \
+        CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 4));         \
         s_resp += 20;                                            \
     }
 
@@ -3112,12 +3126,12 @@ static uint32_t gTempReg2 = 0;
 //	if (IsConst(reg1))	\
 //		MOV32ItoR(EAX, s_iRegs[reg1].k);	\
 //	else\
-//		MOV32MtoR(EAX, (uint32_t)&g_psxRegs.GPR.r[reg1]);\
+//		MOV32MtoR(EAX, (uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[reg1]);\
 //	MOV32RtoM((uint32_t)&gTempReg, EAX);\
 //	rec##op();\
 //	PUSH32M((uint32_t)&gTempReg);\
 //	reg2;\
-//	PUSH32I(g_psxRegs.code);	\
+//	PUSH32I(PCSX::g_emulator->m_psxCpu->m_psxRegs.code);	\
 //	CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2)); \
 //	s_resp += 12; \
 //}
@@ -3147,14 +3161,18 @@ PGXP_REC_FUNC_R2_1(CPU, SLT, !_Rd_, CPU_REG(_Rt_), CPU_REG(_Rs_), iPushReg(_Rd_)
 PGXP_REC_FUNC_R2_1(CPU, SLTU, !_Rd_, CPU_REG(_Rt_), CPU_REG(_Rs_), iPushReg(_Rd_))
 
 // Hi/Lo = Rs op Rt
-PGXP_REC_FUNC_R2_2(CPU, MULT, 0, CPU_REG(_Rt_), CPU_REG(_Rs_), PUSH32M((uint32_t)&g_psxRegs.GPR.n.lo),
-                   PUSH32M((uint32_t)&g_psxRegs.GPR.n.hi))
-PGXP_REC_FUNC_R2_2(CPU, MULTU, 0, CPU_REG(_Rt_), CPU_REG(_Rs_), PUSH32M((uint32_t)&g_psxRegs.GPR.n.lo),
-                   PUSH32M((uint32_t)&g_psxRegs.GPR.n.hi))
-PGXP_REC_FUNC_R2_2(CPU, DIV, 0, CPU_REG(_Rt_), CPU_REG(_Rs_), PUSH32M((uint32_t)&g_psxRegs.GPR.n.lo),
-                   PUSH32M((uint32_t)&g_psxRegs.GPR.n.hi))
-PGXP_REC_FUNC_R2_2(CPU, DIVU, 0, CPU_REG(_Rt_), CPU_REG(_Rs_), PUSH32M((uint32_t)&g_psxRegs.GPR.n.lo),
-                   PUSH32M((uint32_t)&g_psxRegs.GPR.n.hi))
+PGXP_REC_FUNC_R2_2(CPU, MULT, 0, CPU_REG(_Rt_), CPU_REG(_Rs_),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi))
+PGXP_REC_FUNC_R2_2(CPU, MULTU, 0, CPU_REG(_Rt_), CPU_REG(_Rs_),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi))
+PGXP_REC_FUNC_R2_2(CPU, DIV, 0, CPU_REG(_Rt_), CPU_REG(_Rs_),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi))
+PGXP_REC_FUNC_R2_2(CPU, DIVU, 0, CPU_REG(_Rt_), CPU_REG(_Rs_),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi))
 
 PGXP_REC_FUNC_ADDR_1(CPU, SB, iPushReg(_Rt_))
 PGXP_REC_FUNC_ADDR_1(CPU, SH, iPushReg(_Rt_))
@@ -3181,24 +3199,26 @@ PGXP_REC_FUNC_R2_1(CPU, SRLV, !_Rd_, CPU_REG(_Rs_), CPU_REG(_Rt_), iPushReg(_Rd_
 PGXP_REC_FUNC_R2_1(CPU, SRAV, !_Rd_, CPU_REG(_Rs_), CPU_REG(_Rt_), iPushReg(_Rd_))
 
 PGXP_REC_FUNC_R1_1(CPU, MFHI, !_Rd_, CPU_REG_NC(33), iPushReg(_Rd_))
-PGXP_REC_FUNC_R1_1(CPU, MTHI, 0, CPU_REG(_Rd_), PUSH32M((uint32_t)&g_psxRegs.GPR.n.hi))
+PGXP_REC_FUNC_R1_1(CPU, MTHI, 0, CPU_REG(_Rd_), PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi))
 PGXP_REC_FUNC_R1_1(CPU, MFLO, !_Rd_, CPU_REG_NC(32), iPushReg(_Rd_))
-PGXP_REC_FUNC_R1_1(CPU, MTLO, 0, CPU_REG(_Rd_), PUSH32M((uint32_t)&g_psxRegs.GPR.n.lo))
+PGXP_REC_FUNC_R1_1(CPU, MTLO, 0, CPU_REG(_Rd_), PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo))
 
 // COP2 (GTE)
 PGXP_REC_FUNC_R1_1(GTE, MFC2, !_Rt_, GTE_DATA_REG(_Rd_), iPushReg(_Rt_))
 PGXP_REC_FUNC_R1_1(GTE, CFC2, !_Rt_, GTE_CTRL_REG(_Rd_), iPushReg(_Rt_))
-PGXP_REC_FUNC_R1_1(GTE, MTC2, 0, CPU_REG(_Rt_), PUSH32M((uint32_t)&g_psxRegs.CP2D.r[_Rd_]))
-PGXP_REC_FUNC_R1_1(GTE, CTC2, 0, CPU_REG(_Rt_), PUSH32M((uint32_t)&g_psxRegs.CP2C.r[_Rd_]))
+PGXP_REC_FUNC_R1_1(GTE, MTC2, 0, CPU_REG(_Rt_), PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]))
+PGXP_REC_FUNC_R1_1(GTE, CTC2, 0, CPU_REG(_Rt_), PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.r[_Rd_]))
 
-PGXP_REC_FUNC_ADDR_1(GTE, LWC2, PUSH32M((uint32_t)&g_psxRegs.CP2D.r[_Rt_]))
-PGXP_REC_FUNC_ADDR_1(GTE, SWC2, PUSH32M((uint32_t)&g_psxRegs.CP2D.r[_Rt_]))
+PGXP_REC_FUNC_ADDR_1(GTE, LWC2, PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]))
+PGXP_REC_FUNC_ADDR_1(GTE, SWC2, PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]))
 
 // COP0
 PGXP_REC_FUNC_R1_1(CP0, MFC0, !_Rd_, CP0_REG(_Rd_), iPushReg(_Rt_))
 PGXP_REC_FUNC_R1_1(CP0, CFC0, !_Rd_, CP0_REG(_Rd_), iPushReg(_Rt_))
-PGXP_REC_FUNC_R1_1(CP0, MTC0, !_Rt_, CPU_REG(_Rt_), PUSH32M((uint32_t)&g_psxRegs.CP0.r[_Rd_]))
-PGXP_REC_FUNC_R1_1(CP0, CTC0, !_Rt_, CPU_REG(_Rt_), PUSH32M((uint32_t)&g_psxRegs.CP0.r[_Rd_]))
+PGXP_REC_FUNC_R1_1(CP0, MTC0, !_Rt_, CPU_REG(_Rt_),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]))
+PGXP_REC_FUNC_R1_1(CP0, CTC0, !_Rt_, CPU_REG(_Rt_),
+                   PUSH32M((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]))
 PGXP_REC_FUNC(CP0, RFE)
 
 // End of PGXP wrappers
@@ -3297,21 +3317,21 @@ static void recRecompile() {
     s_resp = 0;
 
     /* if g_x86Ptr reached the mem limit reset whole mem */
-    if (((uint32_t)g_x86Ptr - (uint32_t)s_recMem) >= (RECMEM_SIZE - 0x10000)) recReset();
+    if (((uint32_t)g_x86Ptr - (uint32_t)s_recMem) >= (RECMEM_SIZE - 0x10000)) PCSX::g_emulator->m_psxCpu->Reset();
 
     x86Align(32);
     ptr = g_x86Ptr;
 
-    PC_REC32(g_psxRegs.pc) = (uint32_t)g_x86Ptr;
-    s_pc = g_psxRegs.pc;
+    PC_REC32(PCSX::g_emulator->m_psxCpu->m_psxRegs.pc) = (uint32_t)g_x86Ptr;
+    s_pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
     s_old_pc = s_pc;
 
     for (s_count = 0; s_count < DYNAREC_BLOCK;) {
         p = (char *)PSXM(s_pc);
         if (p == NULL) recError();
-        g_psxRegs.code = *(uint32_t *)p;
+        PCSX::g_emulator->m_psxCpu->m_psxRegs.code = *(uint32_t *)p;
         /*
-                        if ((g_psxRegs.code >> 26) == 0x23) { // LW
+                        if ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0x23) { // LW
                                 int i;
                                 uint32_t code;
 
@@ -3331,7 +3351,7 @@ static void recRecompile() {
                                 }
                         }
 
-                        if ((g_psxRegs.code >> 26) == 0x2b) { // SW
+                        if ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0x2b) { // SW
                                 int i;
                                 uint32_t code;
 
@@ -3353,7 +3373,7 @@ static void recRecompile() {
 
         s_pc += 4;
         s_count++;
-        s_pRecBSC[g_psxRegs.code >> 26]();
+        s_pRecBSC[PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26]();
 
         if (s_branch) {
             s_branch = 0;
@@ -3364,12 +3384,12 @@ static void recRecompile() {
 
     iFlushRegs();
 
-    MOV32ItoM((uint32_t)&g_psxRegs.pc, s_pc);
+    MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, s_pc);
 
     iRet();
 }
 
-static void recSetPGXPMode(uint32_t pgxpMode) {
+void PCSX::X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
     switch (pgxpMode) {
         case 0:  // PGXP_MODE_DISABLED:
             s_pRecBSC = s_recBSC;
@@ -3398,11 +3418,20 @@ static void recSetPGXPMode(uint32_t pgxpMode) {
     }
 
     // set interpreter mode too
-    g_psxInt.SetPGXPMode(pgxpMode);
+    InterpretedCPU::SetPGXPMode(pgxpMode);
     // reset to ensure new func tables are used
-    recReset();
+    Reset();
 }
 
-R3000Acpu g_psxRec = {recInit, recReset, recExecute, recExecuteBlock, recClear, recShutdown, recSetPGXPMode};
+#else
+
+    virtual bool PCSX::X86DynaRecCPU::Implemented() { return false; }
+    virtual bool Init() final { return false; }
+    virtual void Reset() final { assert(0); }
+    virtual void Execute() final { assert(0); }
+    virtual void ExecuteBlock() final { assert(0); }
+    virtual void Clear(uint32_t Addr, uint32_t Size) final { assert(0); }
+    virtual void Shutdown() final { assert(0); }
+    virtual void SetPGXPMode(uint32_t pgxpMode) final { assert(0); }
 
 #endif

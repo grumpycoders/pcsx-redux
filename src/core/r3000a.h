@@ -25,19 +25,7 @@
 #include "core/psxcounters.h"
 #include "core/psxmem.h"
 
-typedef struct {
-    int (*Init)();
-    void (*Reset)();
-    void (*Execute)();      /* executes up to a break */
-    void (*ExecuteBlock)(); /* executes up to a jump */
-    void (*Clear)(uint32_t Addr, uint32_t Size);
-    void (*Shutdown)();
-    void (*SetPGXPMode)(uint32_t pgxpMode);
-} R3000Acpu;
-
-extern R3000Acpu *g_psxCpu;
-extern R3000Acpu g_psxInt;
-extern R3000Acpu g_psxRec;
+namespace PCSX {
 
 typedef union {
 #if defined(__BIGENDIAN__)
@@ -73,8 +61,11 @@ typedef union {
 
 typedef union {
     struct {
-        uint32_t r0, at, v0, v1, a0, a1, a2, a3, t0, t1, t2, t3, t4, t5, t6, t7, s0, s1, s2, s3, s4, s5, s6, s7, t8, t9, k0,
-            k1, gp, sp, s8, ra, lo, hi;
+        uint32_t r0, at, v0, v1, a0, a1, a2, a3;
+        uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
+        uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
+        uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
+        uint32_t lo, hi;
     } n;
     uint32_t r[34]; /* Lo, Hi in r[32] and r[33] */
     PAIR p[34];
@@ -82,9 +73,10 @@ typedef union {
 
 typedef union {
     struct {
-        uint32_t Index, Random, EntryLo0, BPC, Context, BDA, PIDMask, DCIC, BadVAddr, BDAM, EntryHi, BPCM, Status, Cause,
-            EPC, PRid, Config, LLAddr, WatchLO, WatchHI, XContext, Reserved1, Reserved2, Reserved3, Reserved4,
-            Reserved5, ECC, CacheErr, TagLo, TagHi, ErrorEPC, Reserved6;
+        uint32_t Index, Random, EntryLo0, BPC, Context, BDA, PIDMask, DCIC;
+        uint32_t BadVAddr, BDAM, EntryHi, BPCM, Status, Cause, EPC, PRid;
+        uint32_t Config, LLAddr, WatchLO, WatchHI, XContext, Reserved1, Reserved2, Reserved3;
+        uint32_t Reserved4, Reserved5, ECC, CacheErr, TagLo, TagHi, ErrorEPC, Reserved6;
     } n;
     uint32_t r[32];
 } psxCP0Regs;
@@ -171,8 +163,8 @@ typedef struct {
     psxCP0Regs CP0;  /* Coprocessor0 Registers */
     psxCP2Data CP2D; /* Cop2 data registers */
     psxCP2Ctrl CP2C; /* Cop2 control registers */
-    uint32_t pc;          /* Program counter */
-    uint32_t code;        /* The instruction */
+    uint32_t pc;     /* Program counter */
+    uint32_t code;   /* The instruction */
     uint32_t cycle;
     uint32_t interrupt;
     struct {
@@ -183,7 +175,147 @@ typedef struct {
     bool ICache_valid;
 } psxRegisters;
 
-extern psxRegisters g_psxRegs;
+// U64 and S64 are used to wrap long integer constants.
+#define U64(val) val##ULL
+#define S64(val) val##LL
+
+#if defined(__BIGENDIAN__)
+
+#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
+#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
+
+#define _i16(x) reinterpret_cast<int16_t *>(&x)[1]
+#define _u16(x) reinterpret_cast<uint16_t *>(&x)[1]
+
+#define _i8(x) reinterpret_cast<int8_t *>(&x)[3]
+#define _u8(x) reinterpret_cast<uint8_t *>(&x)[3]
+
+#else
+
+#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
+#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
+
+#define _i16(x) reinterpret_cast<int16_t *>(&x)[0]
+#define _u16(x) reinterpret_cast<uint16_t *>(&x)[0]
+
+#define _i8(x) reinterpret_cast<int8_t *>(&x)[0]
+#define _u8(x) reinterpret_cast<uint8_t *>(&x)[0]
+
+#endif
+
+/**** R3000A Instruction Macros ****/
+#define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
+
+#define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
+#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
+#define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
+#define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
+#define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
+#define _fSa_(code) ((code >> 6) & 0x1F)     // The sa part of the instruction register
+#define _fIm_(code) ((uint16_t)code)         // The immediate part of the instruction register
+#define _fTarget_(code) (code & 0x03ffffff)  // The target part of the instruction register
+
+#define _fImm_(code) ((int16_t)code)   // sign-extended immediate
+#define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
+#define _fImmLU_(code) (code << 16)    // LUI
+
+#define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Rd_ _fRd_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Rt_ _fRt_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Rs_ _fRs_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Sa_ _fSa_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Im_ _fIm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Target_ _fTarget_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+
+#define _Imm_ _fImm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _ImmU_ _fImmU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _ImmLU_ _fImmLU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+
+#define _rRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
+#define _rRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
+#define _rRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
+#define _rSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
+#define _rFs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
+
+#define _c2dRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
+#define _c2dRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
+#define _c2dRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
+#define _c2dSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
+
+#define _rHi_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
+#define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
+
+#define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
+#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
+
+#define _SetLink(x) \
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4;  // Sets the return address in the link register
+
+class R3000Acpu {
+   public:
+    virtual bool Init() { return false; }
+    virtual void Reset() { assert(0); }
+    virtual void Execute() { assert(0); }       /* executes up to a break */
+    virtual void ExecuteBlock() { assert(0); }; /* executes up to a jump */
+    virtual void Clear(uint32_t Addr, uint32_t Size) { assert(0); }
+    virtual void Shutdown() { assert(0); }
+    virtual void SetPGXPMode(uint32_t pgxpMode) { assert(0); }
+    virtual bool Implemented() { return false; }
+
+    const std::string &getName() { return m_name; }
+
+   public:
+    int psxInit();
+    void psxReset();
+    void psxShutdown();
+    void psxException(uint32_t code, uint32_t bd);
+    void psxBranchTest();
+    void psxExecuteBios();
+    int psxTestLoadDelay(int reg, uint32_t tmp);
+    void psxDelayTest(int reg, uint32_t bpc);
+    void psxTestSWInts();
+    void psxJumpTest();
+
+    void psxSetPGXPMode(uint32_t pgxpMode);
+
+    psxRegisters m_psxRegs;
+
+   protected:
+    R3000Acpu(const std::string &name) : m_name(name) {}
+
+   private:
+    const std::string m_name;
+};
+
+class InterpretedCPU : public R3000Acpu {
+   public:
+    InterpretedCPU() : R3000Acpu("Interpreted") {}
+    virtual bool Implemented() override { return true; }
+    virtual bool Init() override;
+    virtual void Reset() override;
+    virtual void Execute() override;
+    virtual void ExecuteBlock() override;
+    virtual void Clear(uint32_t Addr, uint32_t Size) override;
+    virtual void Shutdown() override;
+    virtual void SetPGXPMode(uint32_t pgxpMode) override;
+
+   protected:
+    InterpretedCPU(const std::string &name) : R3000Acpu(name) {}
+};
+
+class X86DynaRecCPU : public InterpretedCPU {
+   public:
+    X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
+    virtual bool Implemented() final;
+    virtual bool Init() final;
+    virtual void Reset() final;
+    virtual void Execute() final;
+    virtual void ExecuteBlock() final;
+    virtual void Clear(uint32_t Addr, uint32_t Size) final;
+    virtual void Shutdown() final;
+    virtual void SetPGXPMode(uint32_t pgxpMode) final;
+};
 
 /*
 Formula One 2001
@@ -203,15 +335,17 @@ static inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
     pc_offset = pc & 0xffffff;
     pc_cache = pc & 0xfff;
 
-    IAddr = g_psxRegs.ICache_Addr;
-    ICode = g_psxRegs.ICache_Code;
+    IAddr = PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Addr;
+    ICode = PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Code;
 
     // clear I-cache
-    if (!g_psxRegs.ICache_valid) {
-        memset(g_psxRegs.ICache_Addr, 0xff, sizeof(g_psxRegs.ICache_Addr));
-        memset(g_psxRegs.ICache_Code, 0xff, sizeof(g_psxRegs.ICache_Code));
+    if (!PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid) {
+        memset(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Addr, 0xff,
+               sizeof(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Addr));
+        memset(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Code, 0xff,
+               sizeof(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Code));
 
-        g_psxRegs.ICache_valid = true;
+        PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = true;
     }
 
     // uncached
@@ -258,93 +392,6 @@ static inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
     return (uint32_t *)PSXM(pc);
 }
 
-// U64 and S64 are used to wrap long integer constants.
-#define U64(val) val##ULL
-#define S64(val) val##LL
-
-#if defined(__BIGENDIAN__)
-
-#define _i32(x) *(int32_t *)&x
-#define _u32(x) x
-
-#define _i16(x) (((short *)&x)[1])
-#define _u16(x) (((unsigned short *)&x)[1])
-
-#define _i8(x) (((char *)&x)[3])
-#define _u8(x) (((unsigned char *)&x)[3])
-
-#else
-
-#define _i32(x) *(int32_t *)&x
-#define _u32(x) x
-
-#define _i16(x) *(short *)&x
-#define _u16(x) *(unsigned short *)&x
-
-#define _i8(x) *(char *)&x
-#define _u8(x) *(unsigned char *)&x
-
-#endif
-
-/**** R3000A Instruction Macros ****/
-#define _PC_ g_psxRegs.pc  // The next PC to be executed
-
-#define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
-#define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
-#define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
-#define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
-#define _fSa_(code) ((code >> 6) & 0x1F)     // The sa part of the instruction register
-#define _fIm_(code) ((uint16_t)code)              // The immediate part of the instruction register
-#define _fTarget_(code) (code & 0x03ffffff)  // The target part of the instruction register
-
-#define _fImm_(code) ((int16_t)code)       // sign-extended immediate
-#define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
-#define _fImmLU_(code) (code << 16)    // LUI
-
-#define _Op_ _fOp_(g_psxRegs.code)
-#define _Funct_ _fFunct_(g_psxRegs.code)
-#define _Rd_ _fRd_(g_psxRegs.code)
-#define _Rt_ _fRt_(g_psxRegs.code)
-#define _Rs_ _fRs_(g_psxRegs.code)
-#define _Sa_ _fSa_(g_psxRegs.code)
-#define _Im_ _fIm_(g_psxRegs.code)
-#define _Target_ _fTarget_(g_psxRegs.code)
-
-#define _Imm_ _fImm_(g_psxRegs.code)
-#define _ImmU_ _fImmU_(g_psxRegs.code)
-#define _ImmLU_ _fImmLU_(g_psxRegs.code)
-
-#define _rRs_ g_psxRegs.GPR.r[_Rs_]  // Rs register
-#define _rRt_ g_psxRegs.GPR.r[_Rt_]  // Rt register
-#define _rRd_ g_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ g_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ g_psxRegs.CP0.r[_Rd_]  // Fs register
-
-#define _c2dRs_ g_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
-#define _c2dRt_ g_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
-#define _c2dRd_ g_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ g_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
-
-#define _rHi_ g_psxRegs.GPR.n.hi  // The HI register
-#define _rLo_ g_psxRegs.GPR.n.lo  // The LO register
-
-#define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
-#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)                // Calculates the target during a branch instruction
-
-#define _SetLink(x) g_psxRegs.GPR.r[x] = _PC_ + 4;  // Sets the return address in the link register
-
-int psxInit();
-void psxReset();
-void psxShutdown();
-void psxException(uint32_t code, uint32_t bd);
-void psxBranchTest();
-void psxExecuteBios();
-int psxTestLoadDelay(int reg, uint32_t tmp);
-void psxDelayTest(int reg, uint32_t bpc);
-void psxTestSWInts();
-void psxJumpTest();
-
-void psxSetPGXPMode(uint32_t pgxpMode);
+}  // namespace PCSX
 
 #endif

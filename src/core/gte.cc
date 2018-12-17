@@ -17,127 +17,127 @@
 #define GTE_LM(op) ((op >> 10) & 1)
 #define GTE_FUNCT(op) (op & 63)
 
-#define gteop (g_psxRegs.code & 0x1ffffff)
+#define gteop (PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x1ffffff)
 
-#define VX0 (g_psxRegs.CP2D.p[0].sw.l)
-#define VY0 (g_psxRegs.CP2D.p[0].sw.h)
-#define VZ0 (g_psxRegs.CP2D.p[1].sw.l)
-#define VX1 (g_psxRegs.CP2D.p[2].w.l)
-#define VY1 (g_psxRegs.CP2D.p[2].w.h)
-#define VZ1 (g_psxRegs.CP2D.p[3].w.l)
-#define VX2 (g_psxRegs.CP2D.p[4].w.l)
-#define VY2 (g_psxRegs.CP2D.p[4].w.h)
-#define VZ2 (g_psxRegs.CP2D.p[5].w.l)
-#define R (g_psxRegs.CP2D.p[6].b.l)
-#define G (g_psxRegs.CP2D.p[6].b.h)
-#define B (g_psxRegs.CP2D.p[6].b.h2)
-#define CODE (g_psxRegs.CP2D.p[6].b.h3)
-#define OTZ (g_psxRegs.CP2D.p[7].w.l)
-#define IR0 (g_psxRegs.CP2D.p[8].sw.l)
-#define IR1 (g_psxRegs.CP2D.p[9].sw.l)
-#define IR2 (g_psxRegs.CP2D.p[10].sw.l)
-#define IR3 (g_psxRegs.CP2D.p[11].sw.l)
-#define SXY0 (g_psxRegs.CP2D.p[12].d)
-#define SX0 (g_psxRegs.CP2D.p[12].sw.l)
-#define SY0 (g_psxRegs.CP2D.p[12].sw.h)
-#define SXY1 (g_psxRegs.CP2D.p[13].d)
-#define SX1 (g_psxRegs.CP2D.p[13].sw.l)
-#define SY1 (g_psxRegs.CP2D.p[13].sw.h)
-#define SXY2 (g_psxRegs.CP2D.p[14].d)
-#define SX2 (g_psxRegs.CP2D.p[14].sw.l)
-#define SY2 (g_psxRegs.CP2D.p[14].sw.h)
-#define SXYP (g_psxRegs.CP2D.p[15].d)
-#define SXP (g_psxRegs.CP2D.p[15].sw.l)
-#define SYP (g_psxRegs.CP2D.p[15].sw.h)
-#define SZ0 (g_psxRegs.CP2D.p[16].w.l)
-#define SZ1 (g_psxRegs.CP2D.p[17].w.l)
-#define SZ2 (g_psxRegs.CP2D.p[18].w.l)
-#define SZ3 (g_psxRegs.CP2D.p[19].w.l)
-#define RGB0 (g_psxRegs.CP2D.p[20].d)
-#define R0 (g_psxRegs.CP2D.p[20].b.l)
-#define G0 (g_psxRegs.CP2D.p[20].b.h)
-#define B0 (g_psxRegs.CP2D.p[20].b.h2)
-#define CD0 (g_psxRegs.CP2D.p[20].b.h3)
-#define RGB1 (g_psxRegs.CP2D.p[21].d)
-#define R1 (g_psxRegs.CP2D.p[21].b.l)
-#define G1 (g_psxRegs.CP2D.p[21].b.h)
-#define B1 (g_psxRegs.CP2D.p[21].b.h2)
-#define CD1 (g_psxRegs.CP2D.p[21].b.h3)
-#define RGB2 (g_psxRegs.CP2D.p[22].d)
-#define R2 (g_psxRegs.CP2D.p[22].b.l)
-#define G2 (g_psxRegs.CP2D.p[22].b.h)
-#define B2 (g_psxRegs.CP2D.p[22].b.h2)
-#define CD2 (g_psxRegs.CP2D.p[22].b.h3)
-#define RES1 (g_psxRegs.CP2D.p[23].d)
-#define MAC0 (g_psxRegs.CP2D.p[24].sd)
-#define MAC1 (g_psxRegs.CP2D.p[25].sd)
-#define MAC2 (g_psxRegs.CP2D.p[26].sd)
-#define MAC3 (g_psxRegs.CP2D.p[27].sd)
-#define IRGB (g_psxRegs.CP2D.p[28].d)
-#define ORGB (g_psxRegs.CP2D.p[29].d)
-#define LZCS (g_psxRegs.CP2D.p[30].d)
-#define LZCR (g_psxRegs.CP2D.p[31].d)
+#define VX0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[0].sw.l)
+#define VY0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[0].sw.h)
+#define VZ0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[1].sw.l)
+#define VX1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[2].w.l)
+#define VY1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[2].w.h)
+#define VZ1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[3].w.l)
+#define VX2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[4].w.l)
+#define VY2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[4].w.h)
+#define VZ2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[5].w.l)
+#define R (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[6].b.l)
+#define G (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[6].b.h)
+#define B (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[6].b.h2)
+#define CODE (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[6].b.h3)
+#define OTZ (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[7].w.l)
+#define IR0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[8].sw.l)
+#define IR1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[9].sw.l)
+#define IR2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[10].sw.l)
+#define IR3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[11].sw.l)
+#define SXY0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[12].d)
+#define SX0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[12].sw.l)
+#define SY0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[12].sw.h)
+#define SXY1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[13].d)
+#define SX1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[13].sw.l)
+#define SY1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[13].sw.h)
+#define SXY2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[14].d)
+#define SX2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[14].sw.l)
+#define SY2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[14].sw.h)
+#define SXYP (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[15].d)
+#define SXP (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[15].sw.l)
+#define SYP (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[15].sw.h)
+#define SZ0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[16].w.l)
+#define SZ1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[17].w.l)
+#define SZ2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[18].w.l)
+#define SZ3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[19].w.l)
+#define RGB0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[20].d)
+#define R0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[20].b.l)
+#define G0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[20].b.h)
+#define B0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[20].b.h2)
+#define CD0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[20].b.h3)
+#define RGB1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[21].d)
+#define R1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[21].b.l)
+#define G1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[21].b.h)
+#define B1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[21].b.h2)
+#define CD1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[21].b.h3)
+#define RGB2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[22].d)
+#define R2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[22].b.l)
+#define G2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[22].b.h)
+#define B2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[22].b.h2)
+#define CD2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[22].b.h3)
+#define RES1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[23].d)
+#define MAC0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[24].sd)
+#define MAC1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[25].sd)
+#define MAC2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[26].sd)
+#define MAC3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[27].sd)
+#define IRGB (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[28].d)
+#define ORGB (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[29].d)
+#define LZCS (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[30].d)
+#define LZCR (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[31].d)
 
-#define R11 (g_psxRegs.CP2C.p[0].sw.l)
-#define R12 (g_psxRegs.CP2C.p[0].sw.h)
-#define R13 (g_psxRegs.CP2C.p[1].sw.l)
-#define R21 (g_psxRegs.CP2C.p[1].sw.h)
-#define R22 (g_psxRegs.CP2C.p[2].sw.l)
-#define R23 (g_psxRegs.CP2C.p[2].sw.h)
-#define R31 (g_psxRegs.CP2C.p[3].sw.l)
-#define R32 (g_psxRegs.CP2C.p[3].sw.h)
-#define R33 (g_psxRegs.CP2C.p[4].sw.l)
-#define TRX (g_psxRegs.CP2C.p[5].sd)
-#define TRY (g_psxRegs.CP2C.p[6].sd)
-#define TRZ (g_psxRegs.CP2C.p[7].sd)
-#define L11 (g_psxRegs.CP2C.p[8].sw.l)
-#define L12 (g_psxRegs.CP2C.p[8].sw.h)
-#define L13 (g_psxRegs.CP2C.p[9].sw.l)
-#define L21 (g_psxRegs.CP2C.p[9].sw.h)
-#define L22 (g_psxRegs.CP2C.p[10].sw.l)
-#define L23 (g_psxRegs.CP2C.p[10].sw.h)
-#define L31 (g_psxRegs.CP2C.p[11].sw.l)
-#define L32 (g_psxRegs.CP2C.p[11].sw.h)
-#define L33 (g_psxRegs.CP2C.p[12].sw.l)
-#define RBK (g_psxRegs.CP2C.p[13].sd)
-#define GBK (g_psxRegs.CP2C.p[14].sd)
-#define BBK (g_psxRegs.CP2C.p[15].sd)
-#define LR1 (g_psxRegs.CP2C.p[16].sw.l)
-#define LR2 (g_psxRegs.CP2C.p[16].sw.h)
-#define LR3 (g_psxRegs.CP2C.p[17].sw.l)
-#define LG1 (g_psxRegs.CP2C.p[17].sw.h)
-#define LG2 (g_psxRegs.CP2C.p[18].sw.l)
-#define LG3 (g_psxRegs.CP2C.p[18].sw.h)
-#define LB1 (g_psxRegs.CP2C.p[19].sw.l)
-#define LB2 (g_psxRegs.CP2C.p[19].sw.h)
-#define LB3 (g_psxRegs.CP2C.p[20].sw.l)
-#define RFC (g_psxRegs.CP2C.p[21].sd)
-#define GFC (g_psxRegs.CP2C.p[22].sd)
-#define BFC (g_psxRegs.CP2C.p[23].sd)
-#define OFX (g_psxRegs.CP2C.p[24].sd)
-#define OFY (g_psxRegs.CP2C.p[25].sd)
-#define H (g_psxRegs.CP2C.p[26].sw.l)
-#define DQA (g_psxRegs.CP2C.p[27].sw.l)
-#define DQB (g_psxRegs.CP2C.p[28].sd)
-#define ZSF3 (g_psxRegs.CP2C.p[29].sw.l)
-#define ZSF4 (g_psxRegs.CP2C.p[30].sw.l)
-#define FLAG (g_psxRegs.CP2C.p[31].d)
+#define R11 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[0].sw.l)
+#define R12 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[0].sw.h)
+#define R13 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[1].sw.l)
+#define R21 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[1].sw.h)
+#define R22 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[2].sw.l)
+#define R23 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[2].sw.h)
+#define R31 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[3].sw.l)
+#define R32 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[3].sw.h)
+#define R33 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[4].sw.l)
+#define TRX (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[5].sd)
+#define TRY (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[6].sd)
+#define TRZ (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[7].sd)
+#define L11 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[8].sw.l)
+#define L12 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[8].sw.h)
+#define L13 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[9].sw.l)
+#define L21 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[9].sw.h)
+#define L22 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[10].sw.l)
+#define L23 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[10].sw.h)
+#define L31 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[11].sw.l)
+#define L32 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[11].sw.h)
+#define L33 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[12].sw.l)
+#define RBK (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[13].sd)
+#define GBK (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[14].sd)
+#define BBK (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[15].sd)
+#define LR1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[16].sw.l)
+#define LR2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[16].sw.h)
+#define LR3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[17].sw.l)
+#define LG1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[17].sw.h)
+#define LG2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[18].sw.l)
+#define LG3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[18].sw.h)
+#define LB1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[19].sw.l)
+#define LB2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[19].sw.h)
+#define LB3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[20].sw.l)
+#define RFC (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[21].sd)
+#define GFC (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[22].sd)
+#define BFC (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[23].sd)
+#define OFX (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[24].sd)
+#define OFY (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[25].sd)
+#define H (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[26].sw.l)
+#define DQA (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[27].sw.l)
+#define DQB (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[28].sd)
+#define ZSF3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[29].sw.l)
+#define ZSF4 (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[30].sw.l)
+#define FLAG (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[31].d)
 
-#define VX(n) (n < 3 ? g_psxRegs.CP2D.p[n << 1].sw.l : IR1)
-#define VY(n) (n < 3 ? g_psxRegs.CP2D.p[n << 1].sw.h : IR2)
-#define VZ(n) (n < 3 ? g_psxRegs.CP2D.p[(n << 1) + 1].sw.l : IR3)
-#define MX11(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3)].sw.l : -R << 4)
-#define MX12(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3)].sw.h : R << 4)
-#define MX13(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 1].sw.l : IR0)
-#define MX21(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 1].sw.h : R13)
-#define MX22(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 2].sw.l : R13)
-#define MX23(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 2].sw.h : R13)
-#define MX31(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 3].sw.l : R22)
-#define MX32(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 3].sw.h : R22)
-#define MX33(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 4].sw.l : R22)
-#define CV1(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 5].sd : 0)
-#define CV2(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
-#define CV3(n) (n < 3 ? g_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
+#define VX(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.l : IR1)
+#define VY(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.h : IR2)
+#define VZ(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[(n << 1) + 1].sw.l : IR3)
+#define MX11(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3)].sw.l : -R << 4)
+#define MX12(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3)].sw.h : R << 4)
+#define MX13(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 1].sw.l : IR0)
+#define MX21(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 1].sw.h : R13)
+#define MX22(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 2].sw.l : R13)
+#define MX23(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 2].sw.h : R13)
+#define MX31(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 3].sw.l : R22)
+#define MX32(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 3].sw.h : R22)
+#define MX33(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 4].sw.l : R22)
+#define CV1(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 5].sd : 0)
+#define CV2(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
+#define CV3(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
 
 static int s_sf;
 static int64_t s_mac0;
@@ -177,7 +177,7 @@ static uint32_t MFC2(int reg) {
         case 9:
         case 10:
         case 11:
-            g_psxRegs.CP2D.p[reg].d = (int32_t)g_psxRegs.CP2D.p[reg].sw.l;
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = (int32_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].sw.l;
             break;
 
         case 7:
@@ -185,21 +185,21 @@ static uint32_t MFC2(int reg) {
         case 17:
         case 18:
         case 19:
-            g_psxRegs.CP2D.p[reg].d = (uint32_t)g_psxRegs.CP2D.p[reg].w.l;
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = (uint32_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].w.l;
             break;
 
         case 15:
-            g_psxRegs.CP2D.p[reg].d = SXY2;
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = SXY2;
             break;
 
         case 28:
         case 29:
-            g_psxRegs.CP2D.p[reg].d =
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d =
                 LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7, 0x1f, 0, 0) << 10);
             break;
     }
 
-    return g_psxRegs.CP2D.p[reg].d;
+    return PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d;
 }
 
 static void MTC2(uint32_t value, int reg) {
@@ -224,7 +224,7 @@ static void MTC2(uint32_t value, int reg) {
             return;
     }
 
-    g_psxRegs.CP2D.p[reg].d = value;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = value;
 }
 
 static void CTC2(uint32_t value, int reg) {
@@ -245,26 +245,26 @@ static void CTC2(uint32_t value, int reg) {
             break;
     }
 
-    g_psxRegs.CP2C.p[reg].d = value;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[reg].d = value;
 }
 
 void gteMFC2() {
     // CPU[Rt] = GTE_D[Rd]
     if (!_Rt_) return;
-    g_psxRegs.GPR.r[_Rt_] = MFC2(_Rd_);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_] = MFC2(_Rd_);
 }
 
 void gteCFC2() {
     // CPU[Rt] = GTE_C[Rd]
     if (!_Rt_) return;
-    g_psxRegs.GPR.r[_Rt_] = g_psxRegs.CP2C.p[_Rd_].d;
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_] = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
 }
 
-void gteMTC2() { MTC2(g_psxRegs.GPR.r[_Rt_], _Rd_); }
+void gteMTC2() { MTC2(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
 
-void gteCTC2() { CTC2(g_psxRegs.GPR.r[_Rt_], _Rd_); }
+void gteCTC2() { CTC2(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
 
-#define _oB_ (g_psxRegs.GPR.r[_Rs_] + _Imm_)
+#define _oB_ (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
 
 void gteLWC2() { MTC2(psxMemRead32(_oB_), _Rt_); }
 

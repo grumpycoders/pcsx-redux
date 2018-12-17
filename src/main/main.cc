@@ -5,7 +5,7 @@
 #include "gui/gui.h"
 
 class SystemImpl : public PCSX::System {
-    virtual void SysPrintf(const char *fmt, ...) override {
+    virtual void SysPrintf(const char *fmt, ...) final {
         // print message to debugging console
         va_list a;
         va_start(a, fmt);
@@ -13,7 +13,7 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void SysBiosPrintf(const char *fmt, ...) override {
+    virtual void SysBiosPrintf(const char *fmt, ...) final {
         // print message to debugging console
         va_list a;
         va_start(a, fmt);
@@ -21,12 +21,12 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void SysBiosPrintf(const char *fmt, va_list a) override {
+    virtual void SysBiosPrintf(const char *fmt, va_list a) final {
         // print message to debugging console
         vprintf(fmt, a);
     }
 
-    virtual void SysMessage(const char *fmt, ...) override {
+    virtual void SysMessage(const char *fmt, ...) final {
         // display message to user as a pop-up
         va_list a;
         va_start(a, fmt);
@@ -34,24 +34,24 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void SysLog(const char *facility, const char *fmt, va_list a) override {
+    virtual void SysLog(const char *facility, const char *fmt, va_list a) final {
         vprintf(fmt, a);
     }
 
-    virtual void SysUpdate() override {
+    virtual void SysUpdate() final {
         // called on vblank to update states
         GUI_flip();
     }
 
-    virtual void SysRunGui() override {
+    virtual void SysRunGui() final {
         // called when the UI needs to show up
     }
 
-    virtual void SysReset() override {
+    virtual void SysReset() final {
         // debugger is requesting a reset
     }
 
-    virtual void SysClose() override {
+    virtual void SysClose() final {
         // emulator is requesting a shutdown of the emulation
     }
 };
@@ -71,23 +71,17 @@ int main(int argc, char *argv[]) {
     SetIsoFile("test.img");
     LoadPlugins();
 
-    GPU_open(texture);
-
+    PCSX::g_emulator->m_psxCpu = new PCSX::X86DynaRecCPU();
     emulator.EmuInit();
     emulator.EmuReset();
 
+    GPU_open(texture);
     CDR_open();
     CheckCdrom();
     LoadCdrom();
 
-    g_psxCpu = &g_psxInt;
-    g_psxCpu->Init();
-    g_psxCpu->Execute();
-
-    // temporary, to make sure the code doesn't get removed at link time
-    g_psxCpu = &g_psxRec;
-    g_psxCpu->Init();
-    g_psxCpu->Execute();
+    PCSX::g_emulator->m_psxCpu->Init();
+    PCSX::g_emulator->m_psxCpu->Execute();
 
     return 0;
 }

@@ -27,7 +27,7 @@
     void gte##f();                                        \
     static void rec##f() {                                \
         iFlushRegs();                                     \
-        MOV32ItoM((uint32_t)&g_psxRegs.code, (uint32_t)g_psxRegs.code); \
+        MOV32ItoM((uint32_t)&PCSX::g_emulator->m_psxCpu->m_psxRegs.code, (uint32_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
         CALLFunc((uint32_t)gte##f);                            \
         /*	branch = 2; */                                 \
     }

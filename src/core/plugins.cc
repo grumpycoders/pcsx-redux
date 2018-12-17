@@ -929,7 +929,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
 
 #endif
 
-void CALLBACK clearDynarec(void) { g_psxCpu->Reset(); }
+void CALLBACK clearDynarec(void) { PCSX::g_emulator->m_psxCpu->Reset(); }
 
 int LoadPlugins() {
     long ret;
