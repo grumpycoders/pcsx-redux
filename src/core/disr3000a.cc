@@ -97,16 +97,16 @@ typedef char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
 #define _OfB_ _Im_, _nRs_
 
 #define dName(i) sprintf(s_ostr, "%s %-7s,", s_ostr, i)
-#define dGPR(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[i], g_disRNameGPR[i])
-#define dCP0(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[i], g_disRNameCP0[i])
-#define dCP2D(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[i], g_disRNameCP2D[i])
-#define dCP2C(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.r[i], g_disRNameCP2C[i])
-#define dHI() sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi, "hi")
-#define dLO() sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo, "lo")
+#define dGPR(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[i], g_disRNameGPR[i])
+#define dCP0(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[i], g_disRNameCP0[i])
+#define dCP2D(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[i], g_disRNameCP2D[i])
+#define dCP2C(i) sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[i], g_disRNameCP2C[i])
+#define dHI() sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi, "hi")
+#define dLO() sprintf(s_ostr, "%s %8.8x (%s),", s_ostr, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, "lo")
 #define dImm() sprintf(s_ostr, "%s %4.4x (%d),", s_ostr, _Im_, _Im_)
 #define dTarget() sprintf(s_ostr, "%s %8.8x,", s_ostr, _Target_)
 #define dSa() sprintf(s_ostr, "%s %2.2x (%d),", s_ostr, _Sa_, _Sa_)
-#define dOfB() sprintf(s_ostr, "%s %4.4x (%8.8x (%s)),", s_ostr, _Im_, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_], g_disRNameGPR[_Rs_])
+#define dOfB() sprintf(s_ostr, "%s %4.4x (%8.8x (%s)),", s_ostr, _Im_, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], g_disRNameGPR[_Rs_])
 #define dOffset() sprintf(s_ostr, "%s %8.8x,", s_ostr, _Branch_)
 #define dCode() sprintf(s_ostr, "%s %8.8x,", s_ostr, (code >> 6) & 0xffffff)
 

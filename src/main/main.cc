@@ -58,29 +58,28 @@ class SystemImpl : public PCSX::System {
 
 int main(int argc, char *argv[]) {
     unsigned int texture = GUI_init();
-    PCSX::Emulator emulator;
 
-    PCSX::system = new SystemImpl;
+    PCSX::g_system = new SystemImpl;
 
-    emulator.config().PsxAuto = true;
-    emulator.config().HLE = false;
-    emulator.config().SlowBoot = false;
-    emulator.config().BiosDir = ".";
-    emulator.config().Bios = "bios.bin";
-    emulator.config().Cpu = PCSX::Emulator::CPU_DYNAREC;
+    PCSX::g_emulator.config().PsxAuto = true;
+    PCSX::g_emulator.config().HLE = false;
+    PCSX::g_emulator.config().SlowBoot = false;
+    PCSX::g_emulator.config().BiosDir = ".";
+    PCSX::g_emulator.config().Bios = "bios.bin";
+    PCSX::g_emulator.config().Cpu = PCSX::Emulator::CPU_DYNAREC;
 
     SetIsoFile("test.img");
     LoadPlugins();
 
-    emulator.EmuInit();
-    emulator.EmuReset();
+    PCSX::g_emulator.EmuInit();
+    PCSX::g_emulator.EmuReset();
 
     GPU_open(texture);
     CDR_open();
     CheckCdrom();
     LoadCdrom();
 
-    PCSX::g_emulator->m_psxCpu->Execute();
+    PCSX::g_emulator.m_psxCpu->Execute();
 
     return 0;
 }

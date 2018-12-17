@@ -204,7 +204,7 @@ typedef struct {
 #endif
 
 /**** R3000A Instruction Macros ****/
-#define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
+#define _PC_ PCSX::g_emulator.m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
 #define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
@@ -219,38 +219,38 @@ typedef struct {
 #define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
 #define _fImmLU_(code) (code << 16)    // LUI
 
-#define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Rd_ _fRd_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Rt_ _fRt_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Rs_ _fRs_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Sa_ _fSa_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Im_ _fIm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _Target_ _fTarget_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Op_ _fOp_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Funct_ _fFunct_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Rd_ _fRd_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Rt_ _fRt_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Rs_ _fRs_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Sa_ _fSa_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Im_ _fIm_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Target_ _fTarget_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
 
-#define _Imm_ _fImm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _ImmU_ _fImmU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
-#define _ImmLU_ _fImmLU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Imm_ _fImm_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _ImmU_ _fImmU_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _ImmLU_ _fImmLU_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
 
-#define _rRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
-#define _rRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
-#define _rRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
+#define _rRs_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
+#define _rRt_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
+#define _rRd_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
+#define _rSa_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
+#define _rFs_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
 
-#define _c2dRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
-#define _c2dRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
-#define _c2dRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
+#define _c2dRs_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
+#define _c2dRt_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
+#define _c2dRd_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
+#define _c2dSa_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
 
-#define _rHi_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
-#define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
+#define _rHi_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
+#define _rLo_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 
 #define _SetLink(x) \
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4;  // Sets the return address in the link register
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4;  // Sets the return address in the link register
 
 class R3000Acpu {
    public:
@@ -341,17 +341,17 @@ static inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
     pc_offset = pc & 0xffffff;
     pc_cache = pc & 0xfff;
 
-    IAddr = PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Addr;
-    ICode = PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Code;
+    IAddr = PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_Addr;
+    ICode = PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_Code;
 
     // clear I-cache
-    if (!PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid) {
-        memset(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Addr, 0xff,
-               sizeof(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Addr));
-        memset(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Code, 0xff,
-               sizeof(PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_Code));
+    if (!PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid) {
+        memset(PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_Addr, 0xff,
+               sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_Addr));
+        memset(PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_Code, 0xff,
+               sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_Code));
 
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = true;
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = true;
     }
 
     // uncached

@@ -357,39 +357,39 @@ const char *g_biosC0n[256] = {
     "PatchAOTable",
 };
 
-//#define r0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.r0)
-#define at (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.at)
-#define v0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.v0)
-#define v1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.v1)
-#define a0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a0)
-#define a1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a1)
-#define a2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a2)
-#define a3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.a3)
-#define t0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t0)
-#define t1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t1)
-#define t2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t2)
-#define t3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t3)
-#define t4 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t4)
-#define t5 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t5)
-#define t6 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t6)
-#define t7 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t7)
-#define t8 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t8)
-#define t9 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.t9)
-#define s0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s0)
-#define s1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s1)
-#define s2 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s2)
-#define s3 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s3)
-#define s4 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s4)
-#define s5 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s5)
-#define s6 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s6)
-#define s7 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s7)
-#define k0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.k0)
-#define k1 (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.k1)
-#define gp (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.gp)
-#define sp (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp)
-#define fp (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.s8)
-#define ra (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.ra)
-#define pc0 (PCSX::g_emulator->m_psxCpu->m_psxRegs.pc)
+//#define r0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.r0)
+#define at (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.at)
+#define v0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.v0)
+#define v1 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.v1)
+#define a0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.a0)
+#define a1 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.a1)
+#define a2 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.a2)
+#define a3 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.a3)
+#define t0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t0)
+#define t1 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1)
+#define t2 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t2)
+#define t3 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t3)
+#define t4 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t4)
+#define t5 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t5)
+#define t6 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t6)
+#define t7 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t7)
+#define t8 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t8)
+#define t9 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t9)
+#define s0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0)
+#define s1 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s1)
+#define s2 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s2)
+#define s3 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s3)
+#define s4 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s4)
+#define s5 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s5)
+#define s6 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s6)
+#define s7 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s7)
+#define k0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.k0)
+#define k1 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.k1)
+#define gp (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp)
+#define sp (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp)
+#define fp (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s8)
+#define ra (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra)
+#define pc0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.pc)
 
 #define Ra0 (assert(PSXM(a0) != NULL), (char *)PSXM(a0))
 #define Ra1 (assert(PSXM(a1) != NULL), (char *)PSXM(a1))
@@ -490,7 +490,7 @@ static inline void softCall(uint32_t pc) {
 
     g_hleSoftCall = true;
 
-    while (pc0 != 0x80001000) PCSX::g_emulator->m_psxCpu->ExecuteBlock();
+    while (pc0 != 0x80001000) PCSX::g_emulator.m_psxCpu->ExecuteBlock();
 
     g_hleSoftCall = false;
 }
@@ -502,7 +502,7 @@ static inline void softCall2(uint32_t pc) {
 
     g_hleSoftCall = true;
 
-    while (pc0 != 0x80001000) PCSX::g_emulator->m_psxCpu->ExecuteBlock();
+    while (pc0 != 0x80001000) PCSX::g_emulator.m_psxCpu->ExecuteBlock();
     ra = sra;
 
     g_hleSoftCall = false;
@@ -519,16 +519,16 @@ static inline void DeliverEvent(uint32_t ev, uint32_t spec) {
 }
 
 static inline void SaveRegs() {
-    memcpy(s_regs, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, 32 * 4);
-    s_regs[32] = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo;
-    s_regs[33] = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi;
-    s_regs[34] = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
+    memcpy(s_regs, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r, 32 * 4);
+    s_regs[32] = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo;
+    s_regs[33] = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi;
+    s_regs[34] = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
 }
 
 static inline void LoadRegs() {
-    memcpy(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, s_regs, 32 * 4);
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo = s_regs[32];
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi = s_regs[33];
+    memcpy(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r, s_regs, 32 * 4);
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo = s_regs[32];
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi = s_regs[33];
 }
 
 /*                                           *
@@ -587,7 +587,7 @@ void psxBios_setjmp() {  // 0x13
     jmp_buf[1] = sp;
     jmp_buf[2] = fp;
     for (i = 0; i < 8; i++)  // s0-s7
-        jmp_buf[3 + i] = PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[16 + i];
+        jmp_buf[3 + i] = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[16 + i];
     jmp_buf[11] = gp;
 
     v0 = 0;
@@ -604,7 +604,7 @@ void psxBios_longjmp() {  // 0x14
     sp = jmp_buf[1];         /* sp */
     fp = jmp_buf[2];         /* fp */
     for (i = 0; i < 8; i++)  // s0-s7
-        PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[16 + i] = jmp_buf[3 + i];
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[16 + i] = jmp_buf[3 + i];
     gp = jmp_buf[11]; /* gp */
 
     v0 = a1;
@@ -1090,7 +1090,7 @@ void psxBios_malloc() {  // 0x33
 
     // exit on uninitialized heap
     if (chunk == NULL) {
-        PCSX::system->SysBiosPrintf("malloc %x,%x: Uninitialized Heap!\n", v0, a0);
+        PCSX::g_system->SysBiosPrintf("malloc %x,%x: Uninitialized Heap!\n", v0, a0);
         v0 = 0;
         pc0 = ra;
         return;
@@ -1105,7 +1105,7 @@ void psxBios_malloc() {  // 0x33
 
     // catch out of memory
     if (chunk >= s_heap_end) {
-        PCSX::system->SysBiosPrintf("malloc %x,%x: Out of memory error!\n", v0, a0);
+        PCSX::g_system->SysBiosPrintf("malloc %x,%x: Out of memory error!\n", v0, a0);
         v0 = 0;
         pc0 = ra;
         return;
@@ -1125,14 +1125,14 @@ void psxBios_malloc() {  // 0x33
     // return pointer to allocated memory
     v0 = ((unsigned long)chunk - (unsigned long)g_psxM) + 4;
     v0 |= 0x80000000;
-    PCSX::system->SysBiosPrintf("malloc %x,%x\n", v0, a0);
+    PCSX::g_system->SysBiosPrintf("malloc %x,%x\n", v0, a0);
     pc0 = ra;
 }
 
 void psxBios_free() {  // 0x34
     PSXBIOS_LOG("psxBios_%s\n", g_biosA0n[0x34]);
 
-    PCSX::system->SysBiosPrintf("free %x: %x bytes\n", a0, *(uint32_t *)(Ra0 - 4));
+    PCSX::g_system->SysBiosPrintf("free %x: %x bytes\n", a0, *(uint32_t *)(Ra0 - 4));
 
     *(uint32_t *)(Ra0 - 4) |= 1;  // set chunk to free
     pc0 = ra;
@@ -1174,7 +1174,7 @@ void psxBios_InitHeap() {  // 0x39
     s_heap_end = (uint32_t *)((uint8_t *)s_heap_addr + size);
     *s_heap_addr = SWAP32(size | 1);
 
-    PCSX::system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uintptr_t)s_heap_addr - (uintptr_t)g_psxM, size);
+    PCSX::g_system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uintptr_t)s_heap_addr - (uintptr_t)g_psxM, size);
 
     pc0 = ra;
 }
@@ -1267,19 +1267,19 @@ void psxBios_printf() {  // 0x3f
 
     memcpy(Rsp, save, 4 * 4);
 
-    PCSX::system->SysBiosPrintf("%s", tmp);
+    PCSX::g_system->SysBiosPrintf("%s", tmp);
 
     pc0 = ra;
 }
 
 void psxBios_format() {  // 0x41
-    if (strcmp(Ra0, "bu00:") == 0 && PCSX::g_emulator->config().Mcd1[0] != '\0') {
-        CreateMcd(PCSX::g_emulator->config().Mcd1.c_str());
-        LoadMcd(1, PCSX::g_emulator->config().Mcd1.c_str());
+    if (strcmp(Ra0, "bu00:") == 0 && PCSX::g_emulator.config().Mcd1[0] != '\0') {
+        CreateMcd(PCSX::g_emulator.config().Mcd1.c_str());
+        LoadMcd(1, PCSX::g_emulator.config().Mcd1.c_str());
         v0 = 1;
-    } else if (strcmp(Ra0, "bu10:") == 0 && PCSX::g_emulator->config().Mcd2[0] != '\0') {
-        CreateMcd(PCSX::g_emulator->config().Mcd2.c_str());
-        LoadMcd(2, PCSX::g_emulator->config().Mcd2.c_str());
+    } else if (strcmp(Ra0, "bu10:") == 0 && PCSX::g_emulator.config().Mcd2[0] != '\0') {
+        CreateMcd(PCSX::g_emulator.config().Mcd2.c_str());
+        LoadMcd(2, PCSX::g_emulator.config().Mcd2.c_str());
         v0 = 1;
     } else {
         v0 = 0;
@@ -1342,7 +1342,7 @@ void psxBios_Exec() {  // 43
 void psxBios_FlushCache() {  // 44
     PSXBIOS_LOG("psxBios_%s\n", g_biosA0n[0x44]);
 
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = false;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = false;
 
     pc0 = ra;
 }
@@ -1480,16 +1480,16 @@ void psxBios_SetMem() {  // 9f
         case 2:
             psxHu32ref(0x1060) = SWAP32(newMem);
             psxMu32ref(0x060) = a0;
-            PCSX::system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
+            PCSX::g_system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
             break;
 
         case 8:
             psxHu32ref(0x1060) = SWAP32(newMem | 0x300);
             psxMu32ref(0x060) = a0;
-            PCSX::system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
+            PCSX::g_system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
 
         default:
-            PCSX::system->SysBiosPrintf("Effective memory must be 2/8 MBytes\n");
+            PCSX::g_system->SysBiosPrintf("Effective memory must be 2/8 MBytes\n");
             break;
     }
 
@@ -1507,13 +1507,13 @@ void psxBios__card_info() {  // ab
         case 0x01:
         case 0x02:
         case 0x03:
-            ret = PCSX::g_emulator->config().Mcd1[0] ? 0x2 : 0x8;
+            ret = PCSX::g_emulator.config().Mcd1[0] ? 0x2 : 0x8;
             break;
         case 0x10:
         case 0x11:
         case 0x12:
         case 0x13:
-            ret = PCSX::g_emulator->config().Mcd2[0] ? 0x2 : 0x8;
+            ret = PCSX::g_emulator.config().Mcd2[0] ? 0x2 : 0x8;
             break;
         default:
             PSXBIOS_LOG("psxBios_%s: UNKNOWN PORT 0x%x\n", g_biosA0n[0xab], s_card_active_chan);
@@ -1522,7 +1522,7 @@ void psxBios__card_info() {  // ab
     }
 
     // COTS password option
-    if (PCSX::g_emulator->config().NoMemcard) ret = 0x8;
+    if (PCSX::g_emulator.config().NoMemcard) ret = 0x8;
 
     //	DeliverEvent(0x11, 0x2); // 0xf0000011, 0x0004
     DeliverEvent(0x81, ret);  // 0xf4000001, 0x0004
@@ -1803,10 +1803,10 @@ void psxBios_ChangeTh() {  // 10
         if (s_Thread[s_CurThread].status == 2) {
             s_Thread[s_CurThread].status = 1;
             s_Thread[s_CurThread].func = ra;
-            memcpy(s_Thread[s_CurThread].reg, PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, 32 * 4);
+            memcpy(s_Thread[s_CurThread].reg, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r, 32 * 4);
         }
 
-        memcpy(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r, s_Thread[th].reg, 32 * 4);
+        memcpy(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r, s_Thread[th].reg, 32 * 4);
         pc0 = s_Thread[th].func;
         s_Thread[th].status = 2;
         s_CurThread = th;
@@ -1829,7 +1829,7 @@ void psxBios_StartPAD() {  // 13
     PSXBIOS_LOG("psxBios_%s\n", g_biosB0n[0x13]);
 
     psxHwWrite16(0x1f801074, (unsigned short)(psxHwRead16(0x1f801074) | 0x1));
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
     pc0 = ra;
 }
 
@@ -1847,7 +1847,7 @@ void psxBios_PAD_init() {  // 15
     psxHwWrite16(0x1f801074, (uint16_t)(psxHwRead16(0x1f801074) | 0x1));
     s_pad_buf = (int *)Ra1;
     *s_pad_buf = -1;
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
     pc0 = ra;
 }
 
@@ -1861,10 +1861,10 @@ void psxBios_PAD_dr() {  // 16
 void psxBios_ReturnFromException() {  // 17
     LoadRegs();
 
-    pc0 = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.EPC;
-    if (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
+    pc0 = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.EPC;
+    if (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
 
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
 }
 
 void psxBios_ResetEntryInt() {  // 18
@@ -1909,7 +1909,7 @@ static void buopen(int mcd, char *ptr, const char *cfg) {
         if ((*fptr & 0xF0) != 0x50) continue;
         if (strcmp(s_FDesc[1 + mcd].name, fptr + 0xa)) continue;
         s_FDesc[1 + mcd].mcfile = i;
-        PCSX::system->SysBiosPrintf("open %s\n", fptr + 0xa);
+        PCSX::g_system->SysBiosPrintf("open %s\n", fptr + 0xa);
         v0 = 1 + mcd;
         break;
     }
@@ -1949,7 +1949,7 @@ static void buopen(int mcd, char *ptr, const char *cfg) {
             pptr[8] = pptr[9] = 0xff;
             for (j = 0, checksum = 0; j < 127; j++) checksum ^= pptr[j];
             pptr[127] = checksum;
-            PCSX::system->SysBiosPrintf("openC %s %d\n", ptr, nblk);
+            PCSX::g_system->SysBiosPrintf("openC %s %d\n", ptr, nblk);
             v0 = 1 + mcd;
             /* just go ahead and resave them all */
             SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
@@ -1969,11 +1969,11 @@ void psxBios_open() {  // 0x32
     v0 = -1;
 
     if (!strncmp(Ra0, "bu00", 4)) {
-        buopen(1, g_mcd1Data, PCSX::g_emulator->config().Mcd1.c_str());
+        buopen(1, g_mcd1Data, PCSX::g_emulator.config().Mcd1.c_str());
     }
 
     if (!strncmp(Ra0, "bu10", 4)) {
-        buopen(2, g_mcd2Data, PCSX::g_emulator->config().Mcd2.c_str());
+        buopen(2, g_mcd2Data, PCSX::g_emulator.config().Mcd2.c_str());
     }
 
     pc0 = ra;
@@ -2005,7 +2005,7 @@ void psxBios_lseek() {  // 0x33
 
 #define buread(mcd)                                                                          \
     {                                                                                        \
-        PCSX::system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
+        PCSX::g_system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
                   g_mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
         ptr = g_mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;         \
         memcpy(Ra1, ptr, a2);                                                                \
@@ -2044,11 +2044,11 @@ void psxBios_read() {  // 0x34
 #define buwrite(mcd)                                                                      \
     {                                                                                     \
         uint32_t offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;               \
-        PCSX::system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
+        PCSX::g_system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
         ptr = g_mcd##mcd##Data + offset;                                                    \
         memcpy(ptr, Ra1, a2);                                                             \
         s_FDesc[1 + mcd].offset += a2;                                                      \
-        SaveMcd(PCSX::g_emulator->config().Mcd##mcd.c_str(), g_mcd##mcd##Data, offset, a2);                             \
+        SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(), g_mcd##mcd##Data, offset, a2);                             \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                 \
             v0 = 0;                                                                       \
         else                                                                              \
@@ -2068,7 +2068,7 @@ void psxBios_write() {  // 0x35/0x03
         char *ptr = Ra1;
 
         while (a2 > 0) {
-            PCSX::system->SysBiosPrintf("%c", *ptr++);
+            PCSX::g_system->SysBiosPrintf("%c", *ptr++);
             a2--;
         }
         pc0 = ra;
@@ -2109,7 +2109,7 @@ void psxBios_putchar() {  // 3d
     char logchar = (a0 == 0xa ? '>' : (char)a0);
     if (psxstrbuf_count < PSXSTRBUFMAX) psxstrbuf[psxstrbuf_count++] = logchar;
 
-    PCSX::system->SysBiosPrintf("%c", (char)a0);
+    PCSX::g_system->SysBiosPrintf("%c", (char)a0);
     if ((a0 == 0xa && psxstrbuf_count >= 2) || psxstrbuf_count >= PSXSTRBUFMAX) {
         psxstrbuf[psxstrbuf_count++] = '\0';
         PSXBIOS_LOG("psxBios_%s: string_[%d]_cr: %s\n", g_biosB0n[0x3d], psxstrbuf_count, psxstrbuf);
@@ -2120,7 +2120,7 @@ void psxBios_putchar() {  // 3d
 }
 
 void psxBios_puts() {  // 3e/3f
-    PCSX::system->SysBiosPrintf("%s", Ra0);
+    PCSX::g_system->SysBiosPrintf("%s", Ra0);
     pc0 = ra;
 }
 
@@ -2158,7 +2158,7 @@ int nfile;
                     match = 0;                                                                \
                     break;                                                                    \
                 }                                                                             \
-            PCSX::system->SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match); \
+            PCSX::g_system->SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match); \
             if (match == 0) {                                                                 \
                 continue;                                                                     \
             }                                                                                 \
@@ -2234,7 +2234,7 @@ void psxBios_nextfile() {  // 43
             memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                \
             for (j = 0; j < 127; j++) chksum ^= ptr[j];                       \
             ptr[127] = chksum;                                                \
-            SaveMcd(PCSX::g_emulator->config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
+            SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
             v0 = 1;                                                        \
             break;                                                         \
         }                                                                  \
@@ -2270,8 +2270,8 @@ void psxBios_rename() {  // 44
             if ((*ptr & 0xF0) != 0x50) continue;                  \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;             \
             *ptr = (*ptr & 0xf) | 0xA0;                           \
-            SaveMcd(PCSX::g_emulator->config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i, 1); \
-            PCSX::system->SysBiosPrintf("delete %s\n", ptr + 0xa);                  \
+            SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i, 1); \
+            PCSX::g_system->SysBiosPrintf("delete %s\n", ptr + 0xa);                  \
             v0 = 1;                                               \
             break;                                                \
         }                                                         \
@@ -2334,10 +2334,10 @@ void psxBios__card_write() {  // 0x4e
 
     if (port == 0) {
         memcpy(g_mcd1Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(PCSX::g_emulator->config().Mcd1.c_str(), g_mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), g_mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     } else {
         memcpy(g_mcd2Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-        SaveMcd(PCSX::g_emulator->config().Mcd2.c_str(), g_mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+        SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), g_mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
     }
 
     DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2489,7 +2489,7 @@ void psxBios_ChangeClearRCnt() {  // 0a
     v0 = *ptr;
     *ptr = a1;
 
-    //	PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status|= 0x404;
+    //	PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status|= 0x404;
     pc0 = ra;
 }
 
@@ -2521,7 +2521,7 @@ void psxBiosInit() {
     biosB0[0x3d] = psxBios_putchar;
     biosB0[0x3f] = psxBios_puts;
 
-    if (!PCSX::g_emulator->config().HLE) return;
+    if (!PCSX::g_emulator.config().HLE) return;
 
     for (i = 0; i < 256; i++) {
         if (biosA0[i] == NULL) biosA0[i] = psxBios_dummy;
@@ -2933,7 +2933,7 @@ void biosInterrupt() {
     if (s_pad_buf != NULL) {
         uint32_t *buf = (uint32_t *)s_pad_buf;
 
-        if (!PCSX::g_emulator->config().UseNet) {
+        if (!PCSX::g_emulator.config().UseNet) {
             PAD1_startPoll(1);
             if (PAD1_poll(0x42) == 0x23) {
                 PAD1_poll(0);
@@ -2976,7 +2976,7 @@ void biosInterrupt() {
             if (NET_recvPadData(&((uint16_t *)buf)[1], 2) == -1) netError();
         }
     }
-    if (PCSX::g_emulator->config().UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
+    if (PCSX::g_emulator.config().UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
         psxBios_PADpoll(1);
 
         if (NET_sendPadData(s_pad_buf1, i) == -1) netError();
@@ -3017,7 +3017,7 @@ void biosInterrupt() {
 void psxBiosException() {
     int i;
 
-    switch (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Cause & 0x3c) {
+    switch (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Cause & 0x3c) {
         case 0x00:  // Interrupt
 			PSXCPU_LOG("interrupt\n");
             SaveRegs();
@@ -3044,7 +3044,7 @@ void psxBiosException() {
                 sp = s_jmp_int[1];
                 fp = s_jmp_int[2];
                 for (i = 0; i < 8; i++)  // s0-s7
-                    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[16 + i] = s_jmp_int[3 + i];
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[16 + i] = s_jmp_int[3 + i];
                 gp = s_jmp_int[11];
 
                 v0 = 1;
@@ -3058,17 +3058,17 @@ void psxBiosException() {
             PSXCPU_LOG("syscall exp %x\n", a0);
             switch (a0) {
                 case 1:  // EnterCritical - disable irq's
-                    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status &= ~0x404;
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status &= ~0x404;
                     v0 = 1;  // HDHOSHY experimental patch: Spongebob, Coldblood, fearEffect, Medievil2, Martian Gothic
                     break;
 
                 case 2:  // ExitCritical - enable irq's
-                    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status |= 0x404;
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status |= 0x404;
                     break;
             }
-            pc0 = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.EPC + 4;
+            pc0 = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.EPC + 4;
 
-            PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
             return;
 
         default:
@@ -3076,10 +3076,10 @@ void psxBiosException() {
             break;
     }
 
-    pc0 = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.EPC;
-    if (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
+    pc0 = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.EPC;
+    if (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Cause & 0x80000000) pc0 += 4;
 
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
 }
 
 #define bfreeze(ptr, size)                             \

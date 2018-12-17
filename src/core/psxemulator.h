@@ -56,8 +56,8 @@
 #define PACKAGE_VERSION "0"
 #endif
 
-// Local includes
-#include "core/debug.h"
+// Local includes - anything else is forbidden
+#include "core/logger.h"
 #include "core/system.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
@@ -69,21 +69,11 @@
 
 namespace PCSX {
 
-class Emulator;    
-extern Emulator* g_emulator;
-
 class R3000Acpu;
+class System;
 
 class Emulator {
   public:
-    Emulator() {
-        assert(!g_emulator); 
-        g_emulator = this;
-    }
-    ~Emulator() {
-        assert(g_emulator == this);
-        g_emulator = NULL;
-    }
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                      // PSX Types
     enum CPUType   { CPU_DYNAREC = 0, CPU_INTERPRETER };                     // CPU Types
     enum CDDAType  { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
@@ -155,6 +145,9 @@ class Emulator {
   private:
     PcsxConfig m_config;
 };
+
+extern Emulator g_emulator;
+
 }  // namespace PCSX
 
 #define gzfreeze(ptr, size)                   \

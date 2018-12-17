@@ -24,6 +24,7 @@
 #include "core/r3000a.h"
 
 int PCSX::Emulator::EmuInit() {
+    assert(g_system);
     int ret = PCSX::R3000Acpu::psxInit();
     EmuSetPGXPMode(m_config.PGXP_Mode);
     return ret;
@@ -33,7 +34,7 @@ void PCSX::Emulator::EmuReset() {
     FreeCheatSearchResults();
     FreeCheatSearchMem();
 
-    PCSX::g_emulator->m_psxCpu->psxReset();
+    PCSX::g_emulator.m_psxCpu->psxReset();
 }
 
 void PCSX::Emulator::EmuShutdown() {
@@ -43,14 +44,14 @@ void PCSX::Emulator::EmuShutdown() {
 
     FreePPFCache();
 
-    PCSX::g_emulator->m_psxCpu->psxShutdown();
+    PCSX::g_emulator.m_psxCpu->psxShutdown();
 
     CleanupMemSaveStates();
 }
 
 void PCSX::Emulator::EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!m_config.HLE || !g_hleSoftCall) PCSX::system->SysUpdate();
+    if (!m_config.HLE || !g_hleSoftCall) PCSX::g_system->SysUpdate();
 
     ApplyCheats();
 
@@ -65,6 +66,6 @@ void PCSX::Emulator::EmuUpdate() {
     }
 }
 
-void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { PCSX::g_emulator->m_psxCpu->psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { PCSX::g_emulator.m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
-PCSX::Emulator * PCSX::g_emulator = NULL;
+PCSX::Emulator PCSX::g_emulator;

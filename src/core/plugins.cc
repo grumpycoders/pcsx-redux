@@ -236,7 +236,7 @@ static const char *err;
     {                                                         \
         err = SysLibError();                                  \
         if (err != NULL) {                                    \
-            PCSX::system->SysMessage(_("Error loading %s: %s"), func, err); \
+            PCSX::g_system->SysMessage(_("Error loading %s: %s"), func, err); \
             return -1;                                        \
         }                                                     \
     }
@@ -250,7 +250,7 @@ static const char *err;
             SysLibError();                 \
     }
 
-void CALLBACK GPU__displayText(char *pText) { PCSX::system->SysPrintf("%s\n", pText); }
+void CALLBACK GPU__displayText(char *pText) { PCSX::g_system->SysPrintf("%s\n", pText); }
 
 long CALLBACK GPU__configure(void) { return 0; }
 long CALLBACK GPU__test(void) { return 0; }
@@ -929,7 +929,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
 
 #endif
 
-void CALLBACK clearDynarec(void) { PCSX::g_emulator->m_psxCpu->Reset(); }
+void CALLBACK clearDynarec(void) { PCSX::g_emulator.m_psxCpu->Reset(); }
 
 int LoadPlugins() {
     long ret;
@@ -941,7 +941,7 @@ int LoadPlugins() {
     if (LoadSPUplugin() == -1) return -1;
     if (LoadPAD1plugin() == -1) return -1;
     if (LoadPAD2plugin() == -1) return -1;
-    if (LoadNETplugin() == -1) PCSX::g_emulator->config().UseNet = false;
+    if (LoadNETplugin() == -1) PCSX::g_emulator.config().UseNet = false;
 
 #ifdef ENABLE_SIO1API
     if (LoadSIO1plugin() == -1) return -1;
@@ -949,34 +949,34 @@ int LoadPlugins() {
 
     ret = CDR_init();
     if (ret < 0) {
-        PCSX::system->SysMessage(_("Error initializing CD-ROM plugin: %d"), ret);
+        PCSX::g_system->SysMessage(_("Error initializing CD-ROM plugin: %d"), ret);
         return -1;
     }
     ret = GPU_init();
     if (ret < 0) {
-        PCSX::system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
+        PCSX::g_system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
     ret = SPU_init();
     if (ret < 0) {
-        PCSX::system->SysMessage(_("Error initializing SPU plugin: %d"), ret);
+        PCSX::g_system->SysMessage(_("Error initializing SPU plugin: %d"), ret);
         return -1;
     }
     ret = PAD1_init(1);
     if (ret < 0) {
-        PCSX::system->SysMessage(_("Error initializing Controller 1 plugin: %d"), ret);
+        PCSX::g_system->SysMessage(_("Error initializing Controller 1 plugin: %d"), ret);
         return -1;
     }
     ret = PAD2_init(2);
     if (ret < 0) {
-        PCSX::system->SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
+        PCSX::g_system->SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
         return -1;
     }
 
-    if (PCSX::g_emulator->config().UseNet) {
+    if (PCSX::g_emulator.config().UseNet) {
         ret = NET_init();
         if (ret < 0) {
-            PCSX::system->SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
+            PCSX::g_system->SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
             return -1;
         }
     }
@@ -984,19 +984,19 @@ int LoadPlugins() {
 #ifdef ENABLE_SIO1API
     ret = SIO1_init();
     if (ret < 0) {
-        PCSX::system->SysMessage(_("Error initializing SIO1 plugin: %d"), ret);
+        PCSX::g_system->SysMessage(_("Error initializing SIO1 plugin: %d"), ret);
         return -1;
     }
 #endif
 
-    PCSX::system->SysPrintf("%s", _("Plugins loaded.\n"));
+    PCSX::g_system->SysPrintf("%s", _("Plugins loaded.\n"));
     return 0;
 }
 
 void ReleasePlugins() {
-    if (PCSX::g_emulator->config().UseNet) {
+    if (PCSX::g_emulator.config().UseNet) {
         long ret = NET_close();
-        if (ret < 0) PCSX::g_emulator->config().UseNet = false;
+        if (ret < 0) PCSX::g_emulator.config().UseNet = false;
     }
 
     if (CDR_shutdown) CDR_shutdown();
@@ -1004,7 +1004,7 @@ void ReleasePlugins() {
     if (SPU_shutdown) SPU_shutdown();
     if (PAD1_shutdown) PAD1_shutdown();
     if (PAD2_shutdown) PAD2_shutdown();
-    if (PCSX::g_emulator->config().UseNet && NET_shutdown) NET_shutdown();
+    if (PCSX::g_emulator.config().UseNet && NET_shutdown) NET_shutdown();
 
 #ifdef ENABLE_SIO1API
     SIO1_shutdown();

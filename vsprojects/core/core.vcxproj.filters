@@ -111,10 +111,10 @@
     <ClCompile Include="..\..\src\core\spu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\system.cc">
+    <ClCompile Include="..\..\src\core\psxemulator.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\psxemulator.cc">
+    <ClCompile Include="..\..\src\core\system.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -219,6 +219,9 @@
       <Filter>Header Files\ix86</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\psxemulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

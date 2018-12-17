@@ -216,7 +216,7 @@ void BuildPPFCache() {
     buffer[10] = g_cdromId[8];
     buffer[11] = '\0';
 
-    sprintf(szPPF, "%s/%s", PCSX::g_emulator->config().PatchesDir.c_str(), buffer);
+    sprintf(szPPF, "%s/%s", PCSX::g_emulator.config().PatchesDir.c_str(), buffer);
 
     ppffile = fopen(szPPF, "rb");
     if (ppffile == NULL) return;
@@ -225,7 +225,7 @@ void BuildPPFCache() {
     fread(buffer, 3, 1, ppffile);
 
     if (strcmp(buffer, "PPF") != 0) {
-        PCSX::system->SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
+        PCSX::g_system->SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
         fclose(ppffile);
         return;
     }
@@ -301,7 +301,7 @@ void BuildPPFCache() {
 
         default:
             fclose(ppffile);
-            PCSX::system->SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
+            PCSX::g_system->SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
             return;
     }
 
@@ -340,7 +340,7 @@ void BuildPPFCache() {
 
     FillPPFCache();  // build address array
 
-    PCSX::system->SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
+    PCSX::g_system->SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
 }
 
 // redump.org SBI files
@@ -371,7 +371,7 @@ int LoadSBI(const char *filename) {
         buffer[14] = 'i';
         buffer[15] = '\0';
 
-        sprintf(sbifile, "%s%s", PCSX::g_emulator->config().PatchesDir.c_str(), buffer);
+        sprintf(sbifile, "%s%s", PCSX::g_emulator.config().PatchesDir.c_str(), buffer);
         filename = sbifile;
     }
 
@@ -390,7 +390,7 @@ int LoadSBI(const char *filename) {
 
     fclose(sbihandle);
 
-    PCSX::system->SysPrintf(_("Loaded SBI file: %s.\n"), filename);
+    PCSX::g_system->SysPrintf(_("Loaded SBI file: %s.\n"), filename);
 
     return 0;
 }

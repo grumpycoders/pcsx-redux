@@ -175,6 +175,7 @@
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\ix86\iGte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
+    <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
     <ClInclude Include="..\..\src\core\pgxp_cpu.h" />

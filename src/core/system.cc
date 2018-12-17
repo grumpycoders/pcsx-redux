@@ -21,4 +21,4 @@
 
 #include "core/system.h"
 
-PCSX::System* PCSX::system = NULL;
+PCSX::System* PCSX::g_system = NULL;

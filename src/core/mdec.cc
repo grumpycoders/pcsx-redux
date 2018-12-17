@@ -21,7 +21,7 @@
 #include "core/mdec.h"
 
 /* memory speed is 1 byte per MDEC_BIAS psx clock
- * That mean (PCSX::g_emulator->m_psxClockSpeed / MDEC_BIAS) B/s
+ * That mean (PCSX::g_emulator.m_psxClockSpeed / MDEC_BIAS) B/s
  * MDEC_BIAS = 2.0 => ~16MB/s
  * MDEC_BIAS = 3.0 => ~11MB/s
  * and so on ...
@@ -355,7 +355,7 @@ static inline void yuv2rgb15(int *blk, unsigned short *image) {
     int *Crblk = blk;
     int *Cbblk = blk + DSIZE2;
 
-    if (!PCSX::g_emulator->config().Mdec) {
+    if (!PCSX::g_emulator.config().Mdec) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 24) {
             if (y == 8) Yblk += DSIZE2;
             for (x = 0; x < 4; x++, image += 2, Crblk++, Cbblk++, Yblk += 2) {
@@ -414,7 +414,7 @@ static void yuv2rgb24(int *blk, uint8_t *image) {
     int *Crblk = blk;
     int *Cbblk = blk + DSIZE2;
 
-    if (!PCSX::g_emulator->config().Mdec) {
+    if (!PCSX::g_emulator.config().Mdec) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
             if (y == 8) Yblk += DSIZE2;
             for (x = 0; x < 4; x++, image += 6, Crblk++, Cbblk++, Yblk += 2) {

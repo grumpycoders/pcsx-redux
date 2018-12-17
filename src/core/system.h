@@ -44,6 +44,6 @@ class System {
     virtual void SysClose() = 0;
 };
 
-extern System *system;
+extern System *g_system;
 
 }  // namespace PCSX
