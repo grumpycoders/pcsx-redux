@@ -330,12 +330,12 @@ void PCSX::R3000Acpu::psxDelayTest(int reg, uint32_t bpc) {
             delayWrite(reg, bpc);
             return;
     }
-    s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26]();
+    s_pPsxBSC[m_psxRegs.code >> 26]();
 
     s_branch = 0;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = bpc;
+    m_psxRegs.pc = bpc;
 
-    PCSX::g_emulator.m_psxCpu->psxBranchTest();
+    psxBranchTest();
 }
 
 static uint32_t psxBranchNoDelay(void) {
@@ -1009,8 +1009,8 @@ static void psxCFC0() {
 void PCSX::R3000Acpu::psxTestSWInts() {
     // the next code is untested, if u know please
     // tell me if it works ok or not (linuzappz)
-    if (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Cause & PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x0300 && PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x1) {
-        PCSX::g_emulator.m_psxCpu->psxException(PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Cause, s_branch);
+    if (m_psxRegs.CP0.n.Cause & m_psxRegs.CP0.n.Status & 0x0300 && m_psxRegs.CP0.n.Status & 0x1) {
+        psxException(m_psxRegs.CP0.n.Cause, s_branch);
     }
 }
 

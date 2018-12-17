@@ -21,8 +21,8 @@
 #define __R3000A_H__
 
 #include "core/psxbios.h"
-#include "core/psxemulator.h"
 #include "core/psxcounters.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 
 namespace PCSX {
@@ -272,7 +272,7 @@ class R3000Acpu {
     void psxException(uint32_t code, uint32_t bd);
     void psxBranchTest();
     void psxExecuteBios();
-    int psxTestLoadDelay(int reg, uint32_t tmp);
+    static int psxTestLoadDelay(int reg, uint32_t tmp);
     void psxDelayTest(int reg, uint32_t bpc);
     void psxTestSWInts();
     void psxJumpTest();
@@ -304,23 +304,13 @@ class InterpretedCPU : public R3000Acpu {
     InterpretedCPU(const std::string &name) : R3000Acpu(name) {}
 };
 
-class X86DynaRecCPU : public InterpretedCPU {
-   public:
-    X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
-    virtual bool Implemented() final;
-    virtual bool Init() final;
-    virtual void Reset() final;
-    virtual void Execute() final;
-    virtual void ExecuteBlock() final;
-    virtual void Clear(uint32_t Addr, uint32_t Size) final;
-    virtual void Shutdown() final;
-    virtual void SetPGXPMode(uint32_t pgxpMode) final;
-};
-
 class Cpus {
    public:
     static R3000Acpu *Interpreted();
     static R3000Acpu *DynaRec();
+
+   private:
+    static R3000Acpu *getX86DynaRec();
 };
 
 /*

@@ -21,6 +21,9 @@
  * i386 assembly functions for R3000A core.
  */
 
+#include "core/r3000a.h"
+#include "core/psxemulator.h"
+
 #if defined(__i386__) || defined(_M_IX86)
 
 #include "core/debug.h"
@@ -28,9 +31,19 @@
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
-#include "core/psxemulator.h"
 
-bool PCSX::X86DynaRecCPU::Implemented() { return true; }
+class X86DynaRecCPU : public PCSX::InterpretedCPU {
+   public:
+    X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
+    virtual bool Implemented() final { return true; }
+    virtual bool Init() final;
+    virtual void Reset() final;
+    virtual void Execute() final;
+    virtual void ExecuteBlock() final;
+    virtual void Clear(uint32_t Addr, uint32_t Size);
+    virtual void Shutdown() final;
+    virtual void SetPGXPMode(uint32_t pgxpMode) final;
+};
 
 void psxBranchTestWrapper() { PCSX::g_emulator.m_psxCpu->psxBranchTest(); }
 void psxDelayTestWrapper(int reg, uint32_t bpc) { PCSX::g_emulator.m_psxCpu->psxDelayTest(reg, bpc); }
@@ -425,7 +438,7 @@ void iDumpBlock(int8_t *ptr) {
 
 static void recRecompile();
 
-bool PCSX::X86DynaRecCPU::Init() {
+bool X86DynaRecCPU::Init() {
     int i;
 
     s_psxRecLUT = (uint32_t *)calloc(0x010000, 4);
@@ -455,7 +468,7 @@ bool PCSX::X86DynaRecCPU::Init() {
     return 0;
 }
 
-void PCSX::X86DynaRecCPU::Reset() {
+void X86DynaRecCPU::Reset() {
     memset(s_recRAM, 0, 0x200000);
     memset(s_recROM, 0, 0x080000);
 
@@ -467,7 +480,7 @@ void PCSX::X86DynaRecCPU::Reset() {
     s_iRegs[0].k = 0;
 }
 
-void PCSX::X86DynaRecCPU::Shutdown() {
+void X86DynaRecCPU::Shutdown() {
     if (s_recMem == NULL) return;
     free(s_psxRecLUT);
 #ifndef _WIN32
@@ -507,13 +520,13 @@ __inline static void execute() {
     (*recFunc)();
 }
 
-void PCSX::X86DynaRecCPU::Execute() {
+void X86DynaRecCPU::Execute() {
     for (;;) execute();
 }
 
-void PCSX::X86DynaRecCPU::ExecuteBlock() { execute(); }
+void X86DynaRecCPU::ExecuteBlock() { execute(); }
 
-void PCSX::X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
+void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
     uint32_t bank, offset;
 
     bank = Addr >> 24;
@@ -3389,7 +3402,7 @@ static void recRecompile() {
     iRet();
 }
 
-void PCSX::X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
+void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
     switch (pgxpMode) {
         case 0:  // PGXP_MODE_DISABLED:
             s_pRecBSC = s_recBSC;
@@ -3425,13 +3438,26 @@ void PCSX::X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
 
 #else
 
-virtual bool PCSX::X86DynaRecCPU::Implemented() { return false; }
-virtual bool Init() final { return false; }
-virtual void Reset() final { assert(0); }
-virtual void Execute() final { assert(0); }
-virtual void ExecuteBlock() final { assert(0); }
-virtual void Clear(uint32_t Addr, uint32_t Size) final { assert(0); }
-virtual void Shutdown() final { assert(0); }
-virtual void SetPGXPMode(uint32_t pgxpMode) final { assert(0); }
+namespace {
+
+class X86DynaRecCPU : public PCSX::InterpretedCPU {
+   public:
+    X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
+    virtual bool Implemented() final { return false; }
+    virtual bool Init() final { return false; }
+    virtual void Reset() final { assert(0); }
+    virtual void Execute() final { assert(0); }
+    virtual void ExecuteBlock() final { assert(0); }
+    virtual void Clear(uint32_t Addr, uint32_t Size) final { assert(0); }
+    virtual void Shutdown() final { assert(0); }
+    virtual void SetPGXPMode(uint32_t pgxpMode) final { assert(0); }
+};
+
+}  // namespace
 
 #endif
+
+PCSX::R3000Acpu *PCSX::Cpus::getX86DynaRec() {
+    static X86DynaRecCPU cpu;
+    return &cpu;
+}

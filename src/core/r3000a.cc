@@ -274,8 +274,7 @@ void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
 static PCSX::InterpretedCPU s_cpuInt;
 PCSX::R3000Acpu* PCSX::Cpus::Interpreted() { return &s_cpuInt; }
 
-static PCSX::X86DynaRecCPU s_cpuX86DynRec;
 PCSX::R3000Acpu* PCSX::Cpus::DynaRec() {
-    if (s_cpuX86DynRec.Implemented()) return &s_cpuX86DynRec;
+    if (getX86DynaRec()->Implemented()) return getX86DynaRec();
     return NULL;
 }
