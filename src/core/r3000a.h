@@ -21,7 +21,7 @@
 #define __R3000A_H__
 
 #include "core/psxbios.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxcounters.h"
 #include "core/psxmem.h"
 

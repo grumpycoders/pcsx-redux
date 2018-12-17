@@ -20,7 +20,7 @@
 #ifndef __PSXMEMORY_H__
 #define __PSXMEMORY_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 #if defined(__BIGENDIAN__)
 

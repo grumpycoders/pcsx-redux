@@ -20,7 +20,7 @@
 #ifndef __GTE_H__
 #define __GTE_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 
 void gteMFC2();

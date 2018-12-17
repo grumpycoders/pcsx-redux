@@ -21,7 +21,7 @@
 #define __PSXHLE_H__
 
 #include "core/plugins.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 
 extern void (*psxHLEt[256])();

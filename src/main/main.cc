@@ -1,6 +1,6 @@
 #include <SDL.h>
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
 

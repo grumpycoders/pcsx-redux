@@ -19,7 +19,7 @@
 
 #include "core/cheat.h"
 #include "core/ppf.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxbios.h"
 #include "core/r3000a.h"
 

@@ -21,7 +21,7 @@
 #define __PSXBIOS_H__
 
 #include "core/misc.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sio.h"

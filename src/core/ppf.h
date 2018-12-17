@@ -19,7 +19,7 @@
 #ifndef __PPF_H__
 #define __PPF_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 void BuildPPFCache();
 void FreePPFCache();

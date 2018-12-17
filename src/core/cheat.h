@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 #define all_extension_cht "*.cht"
 #define dot_extension_cht ".cht"

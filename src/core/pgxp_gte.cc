@@ -30,7 +30,7 @@
 #include "core/pgxp_gte.h"
 #include "core/pgxp_mem.h"
 #include "core/pgxp_value.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 

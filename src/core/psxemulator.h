@@ -22,8 +22,7 @@
  * emulator core.
  */
 
-#ifndef __PSXCOMMON_H__
-#define __PSXCOMMON_H__
+#pragma once
 
 // System includes
 #include <assert.h>
@@ -163,5 +162,3 @@ class Emulator {
         if (Mode == 1) gzwrite(f, ptr, size); \
         if (Mode == 0) gzread(f, ptr, size);  \
     }
-
-#endif

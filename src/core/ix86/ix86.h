@@ -27,7 +27,7 @@
 #define __IX86_H__
 
 // include basic types
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxhle.h"
 #include "core/r3000a.h"
 

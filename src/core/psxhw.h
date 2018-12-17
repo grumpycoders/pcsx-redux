@@ -20,7 +20,7 @@
 #ifndef __PSXHW_H__
 #define __PSXHW_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxcounters.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"

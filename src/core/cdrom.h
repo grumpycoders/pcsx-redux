@@ -22,7 +22,7 @@
 
 #include "core/decode_xa.h"
 #include "core/plugins.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"

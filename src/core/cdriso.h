@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 int handleecm(const char* isoname, FILE* cdh, int32_t* accurate_length);
 int aropen(FILE* fparchive, const char* _fn);

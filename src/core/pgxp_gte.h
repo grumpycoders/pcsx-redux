@@ -28,7 +28,7 @@
 #ifndef _PGXP_GTE_H_
 #define _PGXP_GTE_H_
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 struct PGXP_value_Tag;
 typedef struct PGXP_value_Tag PGXP_value;

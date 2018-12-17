@@ -29,7 +29,7 @@
 #ifndef __ECOFF_H__
 #define __ECOFF_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 /*
  * Some ECOFF definitions.

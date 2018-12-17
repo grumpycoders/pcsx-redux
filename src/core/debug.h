@@ -20,7 +20,7 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/system.h"
 
 enum breakpoint_types { BE, BR1, BR2, BR4, BW1, BW2, BW4 };

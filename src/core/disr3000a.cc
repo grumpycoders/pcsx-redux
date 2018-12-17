@@ -21,7 +21,7 @@
  * R3000A disassembler.
  */
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 static char s_ostr[512];
 

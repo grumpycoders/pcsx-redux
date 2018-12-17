@@ -22,7 +22,7 @@
 
 #include "core/cdrom.h"
 #include "core/ppf.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 typedef struct tagPPF_DATA {
     int32_t addr;

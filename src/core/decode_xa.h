@@ -20,7 +20,7 @@
 #ifndef __DECODE_XA_H__
 #define __DECODE_XA_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 typedef struct {
     int32_t y0, y1;

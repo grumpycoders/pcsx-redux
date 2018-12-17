@@ -28,7 +28,7 @@
 #ifndef _PGXP_MEM_H_
 #define _PGXP_MEM_H_
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 void PGXP_Init();   // initialise memory
 uint8_t* PGXP_GetMem();  // return pointer to precision memory

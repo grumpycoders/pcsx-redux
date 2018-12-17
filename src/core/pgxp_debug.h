@@ -28,7 +28,7 @@
 #ifndef _PGXP_DEBUG_H_
 #define _PGXP_DEBUG_H_
 
-#include "psxcommon.h"
+#include "psxemulator.h"
 
 //#define PGXP_CPU_DEBUG
 //#define PGXP_OUTPUT_ALL

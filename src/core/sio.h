@@ -22,7 +22,7 @@
 
 #include "core/plugins.h"
 #include "core/psemu_plugin_defs.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 

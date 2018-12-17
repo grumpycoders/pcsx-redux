@@ -19,7 +19,7 @@
 #include <winsock2.h>
 #endif
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/socket.h"
 
 #ifndef _WIN32

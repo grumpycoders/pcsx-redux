@@ -20,7 +20,7 @@
 #ifndef __MDEC_H__
 #define __MDEC_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"

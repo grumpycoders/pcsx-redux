@@ -20,7 +20,7 @@
 #ifndef __PSXDMA_H__
 #define __PSXDMA_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"

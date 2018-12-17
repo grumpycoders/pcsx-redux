@@ -25,7 +25,7 @@
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxhle.h"
 #include "core/r3000a.h"
 

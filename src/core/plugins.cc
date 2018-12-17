@@ -401,7 +401,7 @@ long CALLBACK SPU__test(void) { return 0; }
 #include <string.h>
 
 #include "decode_xa.h"
-#include "psxcommon.h"
+#include "psxemulator.h"
 
 int iSoundMuted = 1;
 

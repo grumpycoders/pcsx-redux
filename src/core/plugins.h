@@ -20,7 +20,7 @@
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 #ifndef _WIN32
 

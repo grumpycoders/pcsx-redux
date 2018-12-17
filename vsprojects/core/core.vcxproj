@@ -150,7 +150,7 @@
     <ClCompile Include="..\..\src\core\plugins.cc" />
     <ClCompile Include="..\..\src\core\ppf.cc" />
     <ClCompile Include="..\..\src\core\psxbios.cc" />
-    <ClCompile Include="..\..\src\core\psxcommon.cc" />
+    <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
     <ClCompile Include="..\..\src\core\psxhle.cc" />
@@ -186,7 +186,7 @@
     <ClInclude Include="..\..\src\core\ppf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
     <ClInclude Include="..\..\src\core\psxbios.h" />
-    <ClInclude Include="..\..\src\core\psxcommon.h" />
+    <ClInclude Include="..\..\src\core\psxemulator.h" />
     <ClInclude Include="..\..\src\core\psxcounters.h" />
     <ClInclude Include="..\..\src\core\psxdma.h" />
     <ClInclude Include="..\..\src\core\psxhle.h" />

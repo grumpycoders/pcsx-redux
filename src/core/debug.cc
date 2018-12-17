@@ -16,7 +16,7 @@
  */
 
 #include "core/debug.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/socket.h"
 

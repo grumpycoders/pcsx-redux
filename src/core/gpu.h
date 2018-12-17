@@ -1,7 +1,7 @@
 #ifndef __GPU_H__
 #define __GPU_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 int gpuReadStatus();
 
