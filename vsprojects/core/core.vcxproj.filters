@@ -212,9 +212,6 @@
     <ClInclude Include="..\..\src\core\system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\ix86\iGte.h">
-      <Filter>Header Files\ix86</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\ix86\ix86.h">
       <Filter>Header Files\ix86</Filter>
     </ClInclude>
