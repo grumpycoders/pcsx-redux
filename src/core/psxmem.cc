@@ -21,23 +21,10 @@
  * PSX memory functions.
  */
 
-#ifndef _WIN32
-#include <sys/mman.h>
-#else
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 #include "core/debug.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-
-#ifndef MAP_ANONYMOUS
-#ifdef MAP_ANON
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-#endif
 
 int8_t *g_psxM = NULL;  // Kernel & User Memory (2 Meg)
 int8_t *g_psxP = NULL;  // Parallel Port (64K)
@@ -69,21 +56,15 @@ uint8_t **g_psxMemRLUT = NULL;
 int psxMemInit() {
     int i;
 
-    g_psxMemRLUT = (uint8_t **)malloc(0x10000 * sizeof(void *));
-    g_psxMemWLUT = (uint8_t **)malloc(0x10000 * sizeof(void *));
-    memset(g_psxMemRLUT, 0, 0x10000 * sizeof(void *));
-    memset(g_psxMemWLUT, 0, 0x10000 * sizeof(void *));
+    g_psxMemRLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
+    g_psxMemWLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-#ifndef _WIN32
-    g_psxM = mmap(0, 0x00220000, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-#else
-    g_psxM = ((int8_t *)VirtualAlloc(NULL, 0x00220000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
-#endif
+    g_psxM = (int8_t*)calloc(0x00220000, 1);
 
     g_psxP = &g_psxM[0x200000];
     g_psxH = &g_psxM[0x210000];
 
-    g_psxR = (int8_t *)malloc(0x00080000);
+    g_psxR = (int8_t *)calloc(0x00080000, 1);
 
     if (g_psxMemRLUT == NULL || g_psxMemWLUT == NULL || g_psxM == NULL || g_psxP == NULL || g_psxH == NULL) {
         PCSX::g_system->SysMessage("%s", _("Error allocating memory!"));
