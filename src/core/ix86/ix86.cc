@@ -1247,36 +1247,36 @@ void PCSX::ix86::PCMPGTDRtoR(mmxRegister to, mmxRegister from) {
 }
 
 // Basara:Added 10.01.2003
-void PCSX::ix86::PSRLWItoR(mmxRegister to, mmxRegister from) {
+void PCSX::ix86::PSRLWItoR(mmxRegister to, uint8_t from) {
     write16(0x710f);
     ModRM(2, 2, to);
     write8(from);
 }
-void PCSX::ix86::PSRLDItoR(mmxRegister to, mmxRegister from) {
+void PCSX::ix86::PSRLDItoR(mmxRegister to, uint8_t from) {
     write16(0x720f);
     ModRM(2, 2, to);
     write8(from);
 }
 
-void PCSX::ix86::PSLLWItoR(mmxRegister to, mmxRegister from) {
+void PCSX::ix86::PSLLWItoR(mmxRegister to, uint8_t from) {
     write16(0x710f);
     ModRM(3, 6, to);
     write8(from);
 }
 
-void PCSX::ix86::PSLLDItoR(mmxRegister to, mmxRegister from) {
+void PCSX::ix86::PSLLDItoR(mmxRegister to, uint8_t from) {
     write16(0x720f);
     ModRM(3, 6, to);
     write8(from);
 }
 
-void PCSX::ix86::PSRAWItoR(mmxRegister to, mmxRegister from) {
+void PCSX::ix86::PSRAWItoR(mmxRegister to, uint8_t from) {
     write16(0x710f);
     ModRM(3, 4, to);
     write8(from);
 }
 
-void PCSX::ix86::PSRADItoR(mmxRegister to, mmxRegister from) {
+void PCSX::ix86::PSRADItoR(mmxRegister to, uint8_t from) {
     write16(0x720f);
     ModRM(3, 4, to);
     write8(from);

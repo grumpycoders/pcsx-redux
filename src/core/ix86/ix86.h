@@ -602,12 +602,12 @@ class ix86 {
     void PCMPGTWRtoR(mmxRegister to, mmxRegister from);
     void PCMPGTDRtoR(mmxRegister to, mmxRegister from);
 
-    void PSRLWItoR(mmxRegister to, mmxRegister from);
-    void PSRLDItoR(mmxRegister to, mmxRegister from);
-    void PSLLWItoR(mmxRegister to, mmxRegister from);
-    void PSLLDItoR(mmxRegister to, mmxRegister from);
-    void PSRAWItoR(mmxRegister to, mmxRegister from);
-    void PSRADItoR(mmxRegister to, mmxRegister from);
+    void PSRLWItoR(mmxRegister to, uint8_t from);
+    void PSRLDItoR(mmxRegister to, uint8_t from);
+    void PSLLWItoR(mmxRegister to, uint8_t from);
+    void PSLLDItoR(mmxRegister to, uint8_t from);
+    void PSRAWItoR(mmxRegister to, uint8_t from);
+    void PSRADItoR(mmxRegister to, uint8_t from);
 
     // Added:basara 11.01.2003
     void FCOMP32(uint32_t from);
