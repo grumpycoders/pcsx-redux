@@ -615,20 +615,20 @@ class ix86 {
     void SETNZ8R(mainRegister to);
 
     // Added:basara 14.01.2003
-    void PFCMPEQMtoR(sseRegister to, sseRegister from);
-    void PFCMPGTMtoR(sseRegister to, sseRegister from);
-    void PFCMPGEMtoR(sseRegister to, sseRegister from);
+    void PFCMPEQMtoR(sseRegister to, uint32_t from);
+    void PFCMPGTMtoR(sseRegister to, uint32_t from);
+    void PFCMPGEMtoR(sseRegister to, uint32_t from);
 
-    void PFADDMtoR(sseRegister to, sseRegister from);
+    void PFADDMtoR(sseRegister to, uint32_t from);
     void PFADDRtoR(sseRegister to, sseRegister from);
 
-    void PFSUBMtoR(sseRegister to, sseRegister from);
+    void PFSUBMtoR(sseRegister to, uint32_t from);
     void PFSUBRtoR(sseRegister to, sseRegister from);
 
-    void PFMULMtoR(sseRegister to, sseRegister from);
+    void PFMULMtoR(sseRegister to, uint32_t from);
     void PFMULRtoR(sseRegister to, sseRegister from);
 
-    void PFRCPMtoR(sseRegister to, sseRegister from);
+    void PFRCPMtoR(sseRegister to, uint32_t from);
     void PFRCPRtoR(sseRegister to, sseRegister from);
     void PFRCPIT1RtoR(sseRegister to, sseRegister from);
     void PFRCPIT2RtoR(sseRegister to, sseRegister from);
@@ -636,14 +636,14 @@ class ix86 {
     void PFRSQRTRtoR(sseRegister to, sseRegister from);
     void PFRSQIT1RtoR(sseRegister to, sseRegister from);
 
-    void PF2IDMtoR(sseRegister to, sseRegister from);
+    void PF2IDMtoR(sseRegister to, uint32_t from);
     void PF2IDRtoR(sseRegister to, sseRegister from);
-    void PI2FDMtoR(sseRegister to, sseRegister from);
+    void PI2FDMtoR(sseRegister to, uint32_t from);
     void PI2FDRtoR(sseRegister to, sseRegister from);
 
-    void PFMAXMtoR(sseRegister to, sseRegister from);
+    void PFMAXMtoR(sseRegister to, uint32_t from);
     void PFMAXRtoR(sseRegister to, sseRegister from);
-    void PFMINMtoR(sseRegister to, sseRegister from);
+    void PFMINMtoR(sseRegister to, uint32_t from);
     void PFMINRtoR(sseRegister to, sseRegister from);
 
     void MOVDMtoR(mmxRegister to, uint32_t from);

@@ -1409,28 +1409,28 @@ void PCSX::ix86::ANDPSRtoR(sseRegister to, sseRegister from) {
         3DNOW intructions
 */
 
-void PCSX::ix86::PFCMPEQMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFCMPEQMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0xb0);
 }
 
-void PCSX::ix86::PFCMPGTMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFCMPGTMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0xa0);
 }
 
-void PCSX::ix86::PFCMPGEMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFCMPGEMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x90);
 }
 
-void PCSX::ix86::PFADDMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFADDMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1443,7 +1443,7 @@ void PCSX::ix86::PFADDRtoR(sseRegister to, sseRegister from) {
     write8(0x9e);
 }
 
-void PCSX::ix86::PFSUBMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFSUBMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1456,7 +1456,7 @@ void PCSX::ix86::PFSUBRtoR(sseRegister to, sseRegister from) {
     write8(0x9a);
 }
 
-void PCSX::ix86::PFMULMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFMULMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1469,7 +1469,7 @@ void PCSX::ix86::PFMULRtoR(sseRegister to, sseRegister from) {
     write8(0xb4);
 }
 
-void PCSX::ix86::PFRCPMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFRCPMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1506,7 +1506,7 @@ void PCSX::ix86::PFRSQIT1RtoR(sseRegister to, sseRegister from) {
     write8(0xa7);
 }
 
-void PCSX::ix86::PF2IDMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PF2IDMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1519,7 +1519,7 @@ void PCSX::ix86::PF2IDRtoR(sseRegister to, sseRegister from) {
     write8(0x1d);
 }
 
-void PCSX::ix86::PI2FDMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PI2FDMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1536,7 +1536,7 @@ void PCSX::ix86::PI2FDRtoR(sseRegister to, sseRegister from) {
         3DNOW Extension intructions
 */
 
-void PCSX::ix86::PFMAXMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFMAXMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1549,7 +1549,7 @@ void PCSX::ix86::PFMAXRtoR(sseRegister to, sseRegister from) {
     write8(0xa4);
 }
 
-void PCSX::ix86::PFMINMtoR(sseRegister to, sseRegister from) {
+void PCSX::ix86::PFMINMtoR(sseRegister to, uint32_t from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
