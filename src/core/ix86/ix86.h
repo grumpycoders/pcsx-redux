@@ -107,16 +107,12 @@ class ix86 {
         XMM7 = 7,
     };
 
-    int8_t* m_x86Ptr;
-    uint8_t* m_j8Ptr[32];
-    uint32_t* m_j32Ptr[32];
-
-    void x86Init();
-    void x86SetPtr(int8_t* ptr);
+    void x86Init(int8_t* ptr);
     void x86Shutdown();
+    int8_t* x86GetPtr() { return m_x86Ptr; }
 
-    void x86SetJ8(uint8_t* j8);
-    void x86SetJ32(uint32_t* j32);
+    void x86SetJ8(unsigned slot);
+    void x86SetJ32(unsigned slot);
     void x86Align(unsigned bytes);
 
     /********************/
@@ -348,70 +344,70 @@ class ix86 {
     ////////////////////////////////////
 
     /* jmp rel8 */
-    uint8_t* JMP8(uint8_t to);
+    unsigned JMP8(uint8_t to);
 
     /* jmp rel32 */
-    uint32_t* JMP32(uint32_t to);
+    unsigned JMP32(uint32_t to);
     /* jmp r32 */
     void JMP32R(mainRegister to);
 
     /* je rel8 */
-    uint8_t* JE8(uint8_t to);
+    unsigned JE8(uint8_t to);
     /* jz rel8 */
-    uint8_t* JZ8(uint8_t to);
+    unsigned JZ8(uint8_t to);
     /* jg rel8 */
-    uint8_t* JG8(uint8_t to);
+    unsigned JG8(uint8_t to);
     /* jge rel8 */
-    uint8_t* JGE8(uint8_t to);
+    unsigned JGE8(uint8_t to);
     /* jl rel8 */
-    uint8_t* JL8(uint8_t to);
+    unsigned JL8(uint8_t to);
     /* jle rel8 */
-    uint8_t* JLE8(uint8_t to);
+    unsigned JLE8(uint8_t to);
     /* jne rel8 */
-    uint8_t* JNE8(uint8_t to);
+    unsigned JNE8(uint8_t to);
     /* jnz rel8 */
-    uint8_t* JNZ8(uint8_t to);
+    unsigned JNZ8(uint8_t to);
     /* jng rel8 */
-    uint8_t* JNG8(uint8_t to);
+    unsigned JNG8(uint8_t to);
     /* jnge rel8 */
-    uint8_t* JNGE8(uint8_t to);
+    unsigned JNGE8(uint8_t to);
     /* jnl rel8 */
-    uint8_t* JNL8(uint8_t to);
+    unsigned JNL8(uint8_t to);
     /* jnle rel8 */
-    uint8_t* JNLE8(uint8_t to);
+    unsigned JNLE8(uint8_t to);
     /* jo rel8 */
-    uint8_t* JO8(uint8_t to);
+    unsigned JO8(uint8_t to);
     /* jno rel8 */
-    uint8_t* JNO8(uint8_t to);
+    unsigned JNO8(uint8_t to);
 
     /* je rel32 */
-    uint32_t* JE32(uint32_t to);
+    unsigned JE32(uint32_t to);
     /* jz rel32 */
-    uint32_t* JZ32(uint32_t to);
+    unsigned JZ32(uint32_t to);
     /* jg rel32 */
-    uint32_t* JG32(uint32_t to);
+    unsigned JG32(uint32_t to);
     /* jge rel32 */
-    uint32_t* JGE32(uint32_t to);
+    unsigned JGE32(uint32_t to);
     /* jl rel32 */
-    uint32_t* JL32(uint32_t to);
+    unsigned JL32(uint32_t to);
     /* jle rel32 */
-    uint32_t* JLE32(uint32_t to);
+    unsigned JLE32(uint32_t to);
     /* jne rel32 */
-    uint32_t* JNE32(uint32_t to);
+    unsigned JNE32(uint32_t to);
     /* jnz rel32 */
-    uint32_t* JNZ32(uint32_t to);
+    unsigned JNZ32(uint32_t to);
     /* jng rel32 */
-    uint32_t* JNG32(uint32_t to);
+    unsigned JNG32(uint32_t to);
     /* jnge rel32 */
-    uint32_t* JNGE32(uint32_t to);
+    unsigned JNGE32(uint32_t to);
     /* jnl rel32 */
-    uint32_t* JNL32(uint32_t to);
+    unsigned JNL32(uint32_t to);
     /* jnle rel32 */
-    uint32_t* JNLE32(uint32_t to);
+    unsigned JNLE32(uint32_t to);
     /* jo rel32 */
-    uint32_t* JO32(uint32_t to);
+    unsigned JO32(uint32_t to);
     /* jno rel32 */
-    uint32_t* JNO32(uint32_t to);
+    unsigned JNO32(uint32_t to);
 
     /* call func */
     void CALLFunc(uint32_t func);  // based on CALL32
@@ -690,16 +686,32 @@ class ix86 {
         write8(cc);
         write8((0xC0) | (to));
     }
-    uint8_t* J8Rel(uint8_t cc, uint8_t to) {
+    unsigned J8Rel(uint8_t cc, uint8_t to) {
         write8(cc);
         write8(to);
-        return reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
+        uint8_t* ptr = reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
+        for (unsigned i = 0; i < sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]); i++) {
+            if (m_j8Ptr[i] == NULL) {
+                m_j8Ptr[i] = ptr;
+                return i;
+            }
+        }
+
+        assert(0);
     }
-    uint32_t* J32Rel(uint8_t cc, uint32_t to) {
+    unsigned J32Rel(uint8_t cc, uint32_t to) {
         write8(0x0F);
         write8(cc);
         write32(to);
-        return reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
+        uint32_t* ptr = reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
+        for (unsigned i = 0; i < sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]); i++) {
+            if (m_j32Ptr[i] == NULL) {
+                m_j32Ptr[i] = ptr;
+                return i;
+            }
+        }
+
+        assert(0);
     }
     void CMOV32RtoR(uint8_t cc, mainRegister to, mainRegister from) {
         write8(0x0F);
@@ -712,6 +724,10 @@ class ix86 {
         ModRM(0, to, DISP32);
         write32(from);
     }
+
+    int8_t* m_x86Ptr;
+    uint8_t* m_j8Ptr[32];
+    uint32_t* m_j32Ptr[32];
 };
 
 }  // namespace PCSX

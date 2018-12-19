@@ -25,20 +25,28 @@
 
 #include "core/ix86/ix86.h"
 
-void PCSX::ix86::x86Init() {}
-
-void PCSX::ix86::x86SetPtr(int8_t* ptr) { m_x86Ptr = ptr; }
+void PCSX::ix86::x86Init(int8_t* ptr) {
+    m_x86Ptr = ptr;
+    memset(m_j8Ptr, 0, sizeof(m_j8Ptr));
+    memset(m_j32Ptr, 0, sizeof(m_j32Ptr));
+}
 
 void PCSX::ix86::x86Shutdown() {}
 
-void PCSX::ix86::x86SetJ8(uint8_t* j8) {
+void PCSX::ix86::x86SetJ8(unsigned slot) {
+    uint8_t* j8 = m_j8Ptr[slot];
+    m_j8Ptr[slot] = NULL;
     uint32_t jump = (m_x86Ptr - (int8_t*)j8) - 1;
 
     if (jump > 0x7f) printf("j8 greater than 0x7f!!\n");
     *j8 = (uint8_t)jump;
 }
 
-void PCSX::ix86::x86SetJ32(uint32_t* j32) { *j32 = (m_x86Ptr - (int8_t*)j32) - 4; }
+void PCSX::ix86::x86SetJ32(unsigned slot) {
+    uint32_t* j32 = m_j32Ptr[slot];
+    m_j32Ptr[slot] = NULL;
+    *j32 = (m_x86Ptr - (int8_t*)j32) - 4;
+}
 
 void PCSX::ix86::x86Align(unsigned bytes) {
     // fordward align
@@ -455,11 +463,11 @@ void PCSX::ix86::SHL32ItoR(mainRegister to, uint8_t from) {
     if (from == 1) {
         write8(0xd1);
         write8(0xe0 | to);
-        return;
+    } else {
+        write8(0xC1);
+        ModRM(3, 4, to);
+        write8(from);
     }
-    write8(0xC1);
-    ModRM(3, 4, to);
-    write8(from);
 }
 
 /* shl cl to r32 */
@@ -473,11 +481,11 @@ void PCSX::ix86::SHR32ItoR(mainRegister to, uint8_t from) {
     if (from == 1) {
         write8(0xd1);
         write8(0xe8 | to);
-        return;
+    } else {
+        write8(0xC1);
+        ModRM(3, 5, to);
+        write8(from);
     }
-    write8(0xC1);
-    ModRM(3, 5, to);
-    write8(from);
 }
 
 /* shr cl to r32 */
@@ -633,17 +641,33 @@ void PCSX::ix86::NEG32R(mainRegister from) {
 // jump instructions
 
 /* jmp rel8 */
-uint8_t* PCSX::ix86::JMP8(uint8_t to) {
+unsigned PCSX::ix86::JMP8(uint8_t to) {
     write8(0xEB);
     write8(to);
-    return reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
+    uint8_t* ptr = reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
+    for (unsigned i = 0; i < sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]); i++) {
+        if (m_j8Ptr[i] == NULL) {
+            m_j8Ptr[i] = ptr;
+            return i;
+        }
+    }
+
+    assert(0);
 }
 
 /* jmp rel32 */
-uint32_t* PCSX::ix86::JMP32(uint32_t to) {
+unsigned PCSX::ix86::JMP32(uint32_t to) {
     write8(0xE9);
     write32(to);
-    return reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
+    uint32_t* ptr = reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
+    for (unsigned i = 0; i < sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]); i++) {
+        if (m_j32Ptr[i] == NULL) {
+            m_j32Ptr[i] = ptr;
+            return i;
+        }
+    }
+
+    assert(0);
 }
 
 /* jmp r32 */
@@ -653,88 +677,88 @@ void PCSX::ix86::JMP32R(mainRegister to) {
 }
 
 /* je rel8 */
-uint8_t* PCSX::ix86::JE8(uint8_t to) { return J8Rel(0x74, to); }
+unsigned PCSX::ix86::JE8(uint8_t to) { return J8Rel(0x74, to); }
 
 /* jz rel8 */
-uint8_t* PCSX::ix86::JZ8(uint8_t to) { return J8Rel(0x74, to); }
+unsigned PCSX::ix86::JZ8(uint8_t to) { return J8Rel(0x74, to); }
 
 /* jg rel8 */
-uint8_t* PCSX::ix86::JG8(uint8_t to) { return J8Rel(0x7F, to); }
+unsigned PCSX::ix86::JG8(uint8_t to) { return J8Rel(0x7F, to); }
 
 /* jge rel8 */
-uint8_t* PCSX::ix86::JGE8(uint8_t to) { return J8Rel(0x7D, to); }
+unsigned PCSX::ix86::JGE8(uint8_t to) { return J8Rel(0x7D, to); }
 
 /* jl rel8 */
-uint8_t* PCSX::ix86::JL8(uint8_t to) { return J8Rel(0x7C, to); }
+unsigned PCSX::ix86::JL8(uint8_t to) { return J8Rel(0x7C, to); }
 
 /* jle rel8 */
-uint8_t* PCSX::ix86::JLE8(uint8_t to) { return J8Rel(0x7E, to); }
+unsigned PCSX::ix86::JLE8(uint8_t to) { return J8Rel(0x7E, to); }
 
 /* jne rel8 */
-uint8_t* PCSX::ix86::JNE8(uint8_t to) { return J8Rel(0x75, to); }
+unsigned PCSX::ix86::JNE8(uint8_t to) { return J8Rel(0x75, to); }
 
 /* jnz rel8 */
-uint8_t* PCSX::ix86::JNZ8(uint8_t to) { return J8Rel(0x75, to); }
+unsigned PCSX::ix86::JNZ8(uint8_t to) { return J8Rel(0x75, to); }
 
 /* jng rel8 */
-uint8_t* PCSX::ix86::JNG8(uint8_t to) { return J8Rel(0x7E, to); }
+unsigned PCSX::ix86::JNG8(uint8_t to) { return J8Rel(0x7E, to); }
 
 /* jnge rel8 */
-uint8_t* PCSX::ix86::JNGE8(uint8_t to) { return J8Rel(0x7C, to); }
+unsigned PCSX::ix86::JNGE8(uint8_t to) { return J8Rel(0x7C, to); }
 
 /* jnl rel8 */
-uint8_t* PCSX::ix86::JNL8(uint8_t to) { return J8Rel(0x7D, to); }
+unsigned PCSX::ix86::JNL8(uint8_t to) { return J8Rel(0x7D, to); }
 
 /* jnle rel8 */
-uint8_t* PCSX::ix86::JNLE8(uint8_t to) { return J8Rel(0x7F, to); }
+unsigned PCSX::ix86::JNLE8(uint8_t to) { return J8Rel(0x7F, to); }
 
 /* jo rel8 */
-uint8_t* PCSX::ix86::JO8(uint8_t to) { return J8Rel(0x70, to); }
+unsigned PCSX::ix86::JO8(uint8_t to) { return J8Rel(0x70, to); }
 
 /* jno rel8 */
-uint8_t* PCSX::ix86::JNO8(uint8_t to) { return J8Rel(0x71, to); }
+unsigned PCSX::ix86::JNO8(uint8_t to) { return J8Rel(0x71, to); }
 
 /* je rel32 */
-uint32_t* PCSX::ix86::JE32(uint32_t to) { return J32Rel(0x84, to); }
+unsigned PCSX::ix86::JE32(uint32_t to) { return J32Rel(0x84, to); }
 
 /* jz rel32 */
-uint32_t* PCSX::ix86::JZ32(uint32_t to) { return J32Rel(0x84, to); }
+unsigned PCSX::ix86::JZ32(uint32_t to) { return J32Rel(0x84, to); }
 
 /* jg rel32 */
-uint32_t* PCSX::ix86::JG32(uint32_t to) { return J32Rel(0x8F, to); }
+unsigned PCSX::ix86::JG32(uint32_t to) { return J32Rel(0x8F, to); }
 
 /* jge rel32 */
-uint32_t* PCSX::ix86::JGE32(uint32_t to) { return J32Rel(0x8D, to); }
+unsigned PCSX::ix86::JGE32(uint32_t to) { return J32Rel(0x8D, to); }
 
 /* jl rel32 */
-uint32_t* PCSX::ix86::JL32(uint32_t to) { return J32Rel(0x8C, to); }
+unsigned PCSX::ix86::JL32(uint32_t to) { return J32Rel(0x8C, to); }
 
 /* jle rel32 */
-uint32_t* PCSX::ix86::JLE32(uint32_t to) { return J32Rel(0x8E, to); }
+unsigned PCSX::ix86::JLE32(uint32_t to) { return J32Rel(0x8E, to); }
 
 /* jne rel32 */
-uint32_t* PCSX::ix86::JNE32(uint32_t to) { return J32Rel(0x85, to); }
+unsigned PCSX::ix86::JNE32(uint32_t to) { return J32Rel(0x85, to); }
 
 /* jnz rel32 */
-uint32_t* PCSX::ix86::JNZ32(uint32_t to) { return J32Rel(0x85, to); }
+unsigned PCSX::ix86::JNZ32(uint32_t to) { return J32Rel(0x85, to); }
 
 /* jng rel32 */
-uint32_t* PCSX::ix86::JNG32(uint32_t to) { return J32Rel(0x8E, to); }
+unsigned PCSX::ix86::JNG32(uint32_t to) { return J32Rel(0x8E, to); }
 
 /* jnge rel32 */
-uint32_t* PCSX::ix86::JNGE32(uint32_t to) { return J32Rel(0x8C, to); }
+unsigned PCSX::ix86::JNGE32(uint32_t to) { return J32Rel(0x8C, to); }
 
 /* jnl rel32 */
-uint32_t* PCSX::ix86::JNL32(uint32_t to) { return J32Rel(0x8D, to); }
+unsigned PCSX::ix86::JNL32(uint32_t to) { return J32Rel(0x8D, to); }
 
 /* jnle rel32 */
-uint32_t* PCSX::ix86::JNLE32(uint32_t to) { return J32Rel(0x8F, to); }
+unsigned PCSX::ix86::JNLE32(uint32_t to) { return J32Rel(0x8F, to); }
 
 /* jo rel32 */
-uint32_t* PCSX::ix86::JO32(uint32_t to) { return J32Rel(0x80, to); }
+unsigned PCSX::ix86::JO32(uint32_t to) { return J32Rel(0x80, to); }
 
 /* jno rel32 */
-uint32_t* PCSX::ix86::JNO32(uint32_t to) { return J32Rel(0x81, to); }
+unsigned PCSX::ix86::JNO32(uint32_t to) { return J32Rel(0x81, to); }
 
 /* call func */
 void PCSX::ix86::CALLFunc(uint32_t func) { CALL32(func - ((uint32_t)m_x86Ptr + 5)); }
@@ -1113,14 +1137,10 @@ void PCSX::ix86::PADDDMtoR(mmxRegister to, uint32_t from) {
 void PCSX::ix86::EMMS() {
     // use femms if we have 3dnow
     write16(0x0e0f);
-    return;
 }
 
 /* femms */
-void PCSX::ix86::FEMMS() {
-    write16(0x770F);
-    return;
-}
+void PCSX::ix86::FEMMS() { write16(0x770F); }
 
 // Basara:changed
 void PCSX::ix86::PADDSBRtoR(mmxRegister to, mmxRegister from) {

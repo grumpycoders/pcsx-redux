@@ -260,12 +260,12 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
 
     void recRecompile();
 
-#define CP2_FUNC(f)                                                     \
-    void rec##f() {                                                     \
-        iFlushRegs();                                                   \
+#define CP2_FUNC(f)                                                         \
+    void rec##f() {                                                         \
+        iFlushRegs();                                                       \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
         gen.CALLFunc((uint32_t)gte##f);                                     \
-        /*	branch = 2; */                                               \
+        /*	branch = 2; */                                                   \
     }
 
     CP2_FUNC(MFC2);
@@ -310,8 +310,8 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
 // Choose between debug and direct function
 #ifdef PGXP_CPU_DEBUG
 #define PGXP_REC_FUNC_OP(pu, op, nReg) PGXP_psxTraceOp##nReg
-#define PGXP_DBG_OP_E(op) \
-    gen.PUSH32I(DBG_E_##op);  \
+#define PGXP_DBG_OP_E(op)    \
+    gen.PUSH32I(DBG_E_##op); \
     m_resp += 4;
 #else
 #define PGXP_REC_FUNC_OP(pu, op, nReg) PGXP_##pu##_##op
@@ -321,23 +321,23 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
 #define PGXP_REC_FUNC_PASS(pu, op) \
     void pgxpRec##op() { rec##op(); }
 
-#define PGXP_REC_FUNC(pu, op)                           \
-    void pgxpRec##op() {                                \
+#define PGXP_REC_FUNC(pu, op)                               \
+    void pgxpRec##op() {                                    \
         gen.PUSH32I(m_psxRegs.code);                        \
-        PGXP_DBG_OP_E(op)                               \
+        PGXP_DBG_OP_E(op)                                   \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, )); \
-        m_resp += 4;                                    \
-        rec##op();                                      \
+        m_resp += 4;                                        \
+        rec##op();                                          \
     }
 
-#define PGXP_REC_FUNC_1(pu, op, reg1)                    \
-    void pgxpRec##op() {                                 \
-        reg1;                                            \
+#define PGXP_REC_FUNC_1(pu, op, reg1)                        \
+    void pgxpRec##op() {                                     \
+        reg1;                                                \
         gen.PUSH32I(m_psxRegs.code);                         \
-        PGXP_DBG_OP_E(op)                                \
+        PGXP_DBG_OP_E(op)                                    \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 1)); \
-        m_resp += 8;                                     \
-        rec##op();                                       \
+        m_resp += 8;                                         \
+        rec##op();                                           \
     }
 
 #define PGXP_REC_FUNC_2_2(pu, op, test, nReg, reg1, reg2, reg3, reg4) \
@@ -351,90 +351,90 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         rec##op();                                                    \
         reg3;                                                         \
         reg4;                                                         \
-        gen.PUSH32I(m_psxRegs.code);                                      \
+        gen.PUSH32I(m_psxRegs.code);                                  \
         PGXP_DBG_OP_E(op)                                             \
-        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, nReg));           \
+        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, nReg));       \
         m_resp += (4 * nReg) + 4;                                     \
     }
 
-#define PGXP_REC_FUNC_2(pu, op, reg1, reg2)              \
-    void pgxpRec##op() {                                 \
-        reg1;                                            \
-        reg2;                                            \
+#define PGXP_REC_FUNC_2(pu, op, reg1, reg2)                  \
+    void pgxpRec##op() {                                     \
+        reg1;                                                \
+        reg2;                                                \
         gen.PUSH32I(m_psxRegs.code);                         \
-        PGXP_DBG_OP_E(op)                                \
+        PGXP_DBG_OP_E(op)                                    \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2)); \
-        m_resp += 12;                                    \
-        rec##op();                                       \
+        m_resp += 12;                                        \
+        rec##op();                                           \
     }
 
-#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)                    \
-    void pgxpRec##op() {                                      \
-        if (IsConst(_Rs_)) {                                  \
+#define PGXP_REC_FUNC_ADDR_1(pu, op, reg1)                                    \
+    void pgxpRec##op() {                                                      \
+        if (IsConst(_Rs_)) {                                                  \
             gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k + _Imm_);          \
-        } else {                                              \
+        } else {                                                              \
             gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]); \
-            if (_Imm_) {                                      \
+            if (_Imm_) {                                                      \
                 gen.ADD32ItoR(PCSX::ix86::EAX, _Imm_);                        \
-            }                                                 \
-        }                                                     \
+            }                                                                 \
+        }                                                                     \
         gen.MOV32RtoM((uint32_t)&m_tempAddr, PCSX::ix86::EAX);                \
-        rec##op();                                            \
-        gen.PUSH32M((uint32_t)&m_tempAddr);                       \
-        reg1;                                                 \
-        gen.PUSH32I(m_psxRegs.code);                              \
-        PGXP_DBG_OP_E(op)                                     \
-        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));      \
-        m_resp += 12;                                         \
+        rec##op();                                                            \
+        gen.PUSH32M((uint32_t)&m_tempAddr);                                   \
+        reg1;                                                                 \
+        gen.PUSH32I(m_psxRegs.code);                                          \
+        PGXP_DBG_OP_E(op)                                                     \
+        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));                  \
+        m_resp += 12;                                                         \
     }
 
 #define CPU_REG_NC(idx) gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[idx])
 
-#define CPU_REG(idx)                    \
-    if (IsConst(idx))                   \
+#define CPU_REG(idx)                                    \
+    if (IsConst(idx))                                   \
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[idx].k); \
-    else                                \
+    else                                                \
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[idx]);
 
 #define CP0_REG(idx) gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.r[idx])
 #define GTE_DATA_REG(idx) gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP2D.r[idx])
 #define GTE_CTRL_REG(idx) gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP2C.r[idx])
 
-#define PGXP_REC_FUNC_R1_1(pu, op, test, reg1, reg2)     \
-    void pgxpRec##op() {                                 \
-        if (test) {                                      \
-            rec##op();                                   \
-            return;                                      \
-        }                                                \
-        reg1;                                            \
-        gen.MOV32RtoM((uint32_t)&m_tempReg1, PCSX::ix86::EAX);           \
-        rec##op();                                       \
-        gen.PUSH32M((uint32_t)&m_tempReg1);                  \
-        reg2;                                            \
-        gen.PUSH32I(m_psxRegs.code);                         \
-        PGXP_DBG_OP_E(op)                                \
-        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2)); \
-        m_resp += 12;                                    \
+#define PGXP_REC_FUNC_R1_1(pu, op, test, reg1, reg2)           \
+    void pgxpRec##op() {                                       \
+        if (test) {                                            \
+            rec##op();                                         \
+            return;                                            \
+        }                                                      \
+        reg1;                                                  \
+        gen.MOV32RtoM((uint32_t)&m_tempReg1, PCSX::ix86::EAX); \
+        rec##op();                                             \
+        gen.PUSH32M((uint32_t)&m_tempReg1);                    \
+        reg2;                                                  \
+        gen.PUSH32I(m_psxRegs.code);                           \
+        PGXP_DBG_OP_E(op)                                      \
+        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));   \
+        m_resp += 12;                                          \
     }
 
-#define PGXP_REC_FUNC_R2_1(pu, op, test, reg1, reg2, reg3) \
-    void pgxpRec##op() {                                   \
-        if (test) {                                        \
-            rec##op();                                     \
-            return;                                        \
-        }                                                  \
-        reg1;                                              \
-        gen.MOV32RtoM((uint32_t)&m_tempReg1, PCSX::ix86::EAX);             \
-        reg2;                                              \
-        gen.MOV32RtoM((uint32_t)&m_tempReg2, PCSX::ix86::EAX);             \
-        rec##op();                                         \
+#define PGXP_REC_FUNC_R2_1(pu, op, test, reg1, reg2, reg3)     \
+    void pgxpRec##op() {                                       \
+        if (test) {                                            \
+            rec##op();                                         \
+            return;                                            \
+        }                                                      \
+        reg1;                                                  \
+        gen.MOV32RtoM((uint32_t)&m_tempReg1, PCSX::ix86::EAX); \
+        reg2;                                                  \
+        gen.MOV32RtoM((uint32_t)&m_tempReg2, PCSX::ix86::EAX); \
+        rec##op();                                             \
         gen.PUSH32M((uint32_t)&m_tempReg1);                    \
         gen.PUSH32M((uint32_t)&m_tempReg2);                    \
-        reg3;                                              \
+        reg3;                                                  \
         gen.PUSH32I(m_psxRegs.code);                           \
-        PGXP_DBG_OP_E(op)                                  \
+        PGXP_DBG_OP_E(op)                                      \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 3));   \
-        m_resp += 16;                                      \
+        m_resp += 16;                                          \
     }
 
 #define PGXP_REC_FUNC_R2_2(pu, op, test, reg1, reg2, reg3, reg4) \
@@ -444,17 +444,17 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
             return;                                              \
         }                                                        \
         reg1;                                                    \
-        gen.MOV32RtoM((uint32_t)&m_tempReg1, PCSX::ix86::EAX);                   \
+        gen.MOV32RtoM((uint32_t)&m_tempReg1, PCSX::ix86::EAX);   \
         reg2;                                                    \
-        gen.MOV32RtoM((uint32_t)&m_tempReg2, PCSX::ix86::EAX);                   \
+        gen.MOV32RtoM((uint32_t)&m_tempReg2, PCSX::ix86::EAX);   \
         rec##op();                                               \
-        gen.PUSH32M((uint32_t)&m_tempReg1);                          \
-        gen.PUSH32M((uint32_t)&m_tempReg2);                          \
+        gen.PUSH32M((uint32_t)&m_tempReg1);                      \
+        gen.PUSH32M((uint32_t)&m_tempReg2);                      \
         reg3;                                                    \
         reg4;                                                    \
-        gen.PUSH32I(m_psxRegs.code);                                 \
+        gen.PUSH32I(m_psxRegs.code);                             \
         PGXP_DBG_OP_E(op)                                        \
-        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 4));         \
+        gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 4));     \
         m_resp += 20;                                            \
     }
 
@@ -713,16 +713,16 @@ void X86DynaRecCPU::iJump(uint32_t branchPC) {
 
     // maybe just happened an interruption, check so
     gen.CMP32ItoM((uint32_t)&m_psxRegs.pc, branchPC);
-    gen.m_j8Ptr[0] = gen.JE8(0);
+    unsigned slot1 = gen.JE8(0);
     gen.RET();
 
-    gen.x86SetJ8(gen.m_j8Ptr[0]);
+    gen.x86SetJ8(slot1);
     gen.MOV32MtoR(PCSX::ix86::EAX, PC_REC(branchPC));
     gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-    gen.m_j8Ptr[1] = gen.JNE8(0);
+    unsigned slot2 = gen.JNE8(0);
     gen.RET();
 
-    gen.x86SetJ8(gen.m_j8Ptr[1]);
+    gen.x86SetJ8(slot2);
     gen.RET();
     gen.JMP32R(PCSX::ix86::EAX);
 }
@@ -770,16 +770,16 @@ void X86DynaRecCPU::iBranch(uint32_t branchPC, int savectx) {
 
     // maybe just happened an interruption, check so
     gen.CMP32ItoM((uint32_t)&m_psxRegs.pc, branchPC);
-    gen.m_j8Ptr[1] = gen.JE8(0);
+    unsigned slot1 = gen.JE8(0);
     gen.RET();
 
-    gen.x86SetJ8(gen.m_j8Ptr[1]);
+    gen.x86SetJ8(slot1);
     gen.MOV32MtoR(PCSX::ix86::EAX, PC_REC(branchPC));
     gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-    gen.m_j8Ptr[2] = gen.JNE8(0);
+    unsigned slot2 = gen.JNE8(0);
     gen.RET();
 
-    gen.x86SetJ8(gen.m_j8Ptr[2]);
+    gen.x86SetJ8(slot2);
     gen.JMP32R(PCSX::ix86::EAX);
 
     m_pc -= 4;
@@ -836,42 +836,42 @@ void X86DynaRecCPU::iDumpBlock(int8_t *ptr) {
 
     fflush(stdout);
     f = fopen("dump1", "w");
-    fwrite(ptr, 1, (uint32_t)gen.m_x86Ptr - (uint32_t)ptr, f);
+    fwrite(ptr, 1, (uint32_t)gen.x86GetPtr() - (uint32_t)ptr, f);
     fclose(f);
     system("ndisasmw -u dump1");
     fflush(stdout);
 }
 
-#define REC_FUNC(f)                                                     \
-    void psx##f();                                                      \
-    void rec##f() {                                                     \
-        iFlushRegs();                                                   \
+#define REC_FUNC(f)                                                         \
+    void psx##f();                                                          \
+    void rec##f() {                                                         \
+        iFlushRegs();                                                       \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);             \
         gen.CALLFunc((uint32_t)psx##f);                                     \
-        /*	branch = 2; */                                              \
+        /*	branch = 2; */                                                   \
     }
 
-#define REC_SYS(f)                                                      \
-    void psx##f();                                                      \
-    void rec##f() {                                                     \
-        iFlushRegs();                                                   \
+#define REC_SYS(f)                                                          \
+    void psx##f();                                                          \
+    void rec##f() {                                                         \
+        iFlushRegs();                                                       \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);             \
         gen.CALLFunc((uint32_t)psx##f);                                     \
-        branch = 2;                                                     \
-        iRet();                                                         \
+        branch = 2;                                                         \
+        iRet();                                                             \
     }
 
-#define REC_BRANCH(f)                                                   \
-    void psx##f();                                                      \
-    void rec##f() {                                                     \
-        iFlushRegs();                                                   \
+#define REC_BRANCH(f)                                                       \
+    void psx##f();                                                          \
+    void rec##f() {                                                         \
+        iFlushRegs();                                                       \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);             \
         gen.CALLFunc((uint32_t)psx##f);                                     \
-        branch = 2;                                                     \
-        iRet();                                                         \
+        branch = 2;                                                         \
+        iRet();                                                             \
     }
 
 bool X86DynaRecCPU::Init() {
@@ -899,7 +899,7 @@ bool X86DynaRecCPU::Init() {
 
     for (i = 0; i < 0x08; i++) m_psxRecLUT[i + 0xbfc0] = (uintptr_t)&m_recROM[i << 16];
 
-    gen.x86Init();
+    gen.x86Init(m_recMem);
 
     return true;
 }
@@ -908,7 +908,7 @@ void X86DynaRecCPU::Reset() {
     memset(m_recRAM, 0, 0x200000);
     memset(m_recROM, 0, 0x080000);
 
-    gen.x86SetPtr(m_recMem);
+    gen.x86Init(m_recMem);
 
     m_branch = 0;
     memset(m_iRegs, 0, sizeof(m_iRegs));
@@ -1011,12 +1011,12 @@ void X86DynaRecCPU::recCOP0() {
 void X86DynaRecCPU::recCOP2() {
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32ItoR(PCSX::ix86::EAX, 0x40000000);
-    gen.m_j8Ptr[31] = gen.JZ8(0);
+    unsigned slot = gen.JZ8(0);
 
     func_t func = m_pRecCP2[_Funct_];
     (*this.*func)();
 
-    gen.x86SetJ8(gen.m_j8Ptr[31]);
+    gen.x86SetJ8(slot);
 }
 
 void X86DynaRecCPU::recBASIC() {
@@ -1622,6 +1622,7 @@ void X86DynaRecCPU::recDIV() {
     // Lo/Hi = Rs / Rt (signed)
 
     //	iFlushRegs();
+    unsigned slot1;
 
     if (IsConst(_Rt_)) {
         if (m_iRegs[_Rt_].k == 0) {
@@ -1638,7 +1639,7 @@ void X86DynaRecCPU::recDIV() {
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.CMP32ItoR(PCSX::ix86::ECX, 0);
-        gen.m_j8Ptr[0] = gen.JE8(0);
+        slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);  // printf("divrsk %x\n", m_iRegs[_Rs_].k);
@@ -1651,9 +1652,9 @@ void X86DynaRecCPU::recDIV() {
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EDX);
 
     if (!IsConst(_Rt_)) {
-        gen.m_j8Ptr[1] = gen.JMP8(1);
+        unsigned slot2 = gen.JMP8(1);
 
-        gen.x86SetJ8(gen.m_j8Ptr[0]);
+        gen.x86SetJ8(slot1);
 
         gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
         if (IsConst(_Rs_)) {
@@ -1663,7 +1664,7 @@ void X86DynaRecCPU::recDIV() {
             gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
         }
 
-        gen.x86SetJ8(gen.m_j8Ptr[1]);
+        gen.x86SetJ8(slot2);
     }
 }
 
@@ -1671,6 +1672,7 @@ void X86DynaRecCPU::recDIVU() {
     // Lo/Hi = Rs / Rt (unsigned)
 
     //	iFlushRegs();
+    unsigned slot1;
 
     if (IsConst(_Rt_)) {
         if (m_iRegs[_Rt_].k == 0) {
@@ -1687,7 +1689,7 @@ void X86DynaRecCPU::recDIVU() {
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.CMP32ItoR(PCSX::ix86::ECX, 0);
-        gen.m_j8Ptr[0] = gen.JE8(0);
+        slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);  // printf("divursk %x\n", m_iRegs[_Rs_].k);
@@ -1700,9 +1702,9 @@ void X86DynaRecCPU::recDIVU() {
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EDX);
 
     if (!IsConst(_Rt_)) {
-        gen.m_j8Ptr[1] = gen.JMP8(1);
+        unsigned slot2 = gen.JMP8(1);
 
-        gen.x86SetJ8(gen.m_j8Ptr[0]);
+        gen.x86SetJ8(slot1);
 
         gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
         if (IsConst(_Rs_)) {
@@ -1712,7 +1714,7 @@ void X86DynaRecCPU::recDIVU() {
             gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
         }
 
-        gen.x86SetJ8(gen.m_j8Ptr[1]);
+        gen.x86SetJ8(slot2);
     }
 }
 // End of * Register mult/div & Register trap logic
@@ -2957,11 +2959,11 @@ void X86DynaRecCPU::recBLTZ() {
     }
 
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    gen.m_j32Ptr[4] = gen.JL32(0);
+    unsigned slot = gen.JL32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     iBranch(bpc, 0);
     m_pc += 4;
@@ -2987,11 +2989,11 @@ void X86DynaRecCPU::recBGTZ() {
     }
 
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    gen.m_j32Ptr[4] = gen.JG32(0);
+    unsigned slot = gen.JG32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     iBranch(bpc, 0);
     m_pc += 4;
@@ -3018,11 +3020,11 @@ void X86DynaRecCPU::recBLTZAL() {
     }
 
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    gen.m_j32Ptr[4] = gen.JL32(0);
+    unsigned slot = gen.JL32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);
     iBranch(bpc, 0);
@@ -3050,11 +3052,11 @@ void X86DynaRecCPU::recBGEZAL() {
     }
 
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    gen.m_j32Ptr[4] = gen.JGE32(0);
+    unsigned slot = gen.JGE32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);
     iBranch(bpc, 0);
@@ -3134,11 +3136,11 @@ void X86DynaRecCPU::recBEQ() {
             gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         }
 
-        gen.m_j32Ptr[4] = gen.JE32(0);
+        unsigned slot = gen.JE32(0);
 
         iBranch(m_pc + 4, 1);
 
-        gen.x86SetJ32(gen.m_j32Ptr[4]);
+        gen.x86SetJ32(slot);
 
         iBranch(bpc, 0);
         m_pc += 4;
@@ -3170,11 +3172,11 @@ void X86DynaRecCPU::recBNE() {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
     }
-    gen.m_j32Ptr[4] = gen.JNE32(0);
+    unsigned slot = gen.JNE32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     iBranch(bpc, 0);
     m_pc += 4;
@@ -3200,11 +3202,11 @@ void X86DynaRecCPU::recBLEZ() {
     }
 
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    gen.m_j32Ptr[4] = gen.JLE32(0);
+    unsigned slot = gen.JLE32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     iBranch(bpc, 0);
     m_pc += 4;
@@ -3230,11 +3232,11 @@ void X86DynaRecCPU::recBGEZ() {
     }
 
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    gen.m_j32Ptr[4] = gen.JGE32(0);
+    unsigned slot = gen.JGE32(0);
 
     iBranch(m_pc + 4, 1);
 
-    gen.x86SetJ32(gen.m_j32Ptr[4]);
+    gen.x86SetJ32(slot);
 
     iBranch(bpc, 0);
     m_pc += 4;
@@ -3394,22 +3396,22 @@ const func_t X86DynaRecCPU::m_recCP2BSC[32] = {
 
 // Trace all functions using PGXP
 const func_t X86DynaRecCPU::m_pgxpRecBSC[64] = {
-    &recSPECIAL,  &recREGIMM,    &recJ,        &recJAL,       // 00
-    &recBEQ,      &recBNE,       &recBLEZ,     &recBGTZ,      // 04
-    &pgxpRecADDI, &pgxpRecADDIU, &pgxpRecSLTI, &pgxpRecSLTIU, // 08
-    &pgxpRecANDI, &pgxpRecORI,   &pgxpRecXORI, &pgxpRecLUI,   // 0c
-    &recCOP0,     &recNULL,      &recCOP2,     &recNULL,      // 10
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,      // 14
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,      // 18
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,      // 1c
-    &pgxpRecLB,   &pgxpRecLH,    &pgxpRecLWL,  &pgxpRecLW,    // 20
-    &pgxpRecLBU,  &pgxpRecLHU,   &pgxpRecLWR,  &pgxpRecNULL,  // 24
-    &pgxpRecSB,   &pgxpRecSH,    &pgxpRecSWL,  &pgxpRecSW,    // 28
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecSWR,  &pgxpRecNULL,  // 2c
-    &recNULL,     &recNULL,      &pgxpRecLWC2, &recNULL,      // 30
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,      // 34
-    &recNULL,     &recNULL,      &pgxpRecSWC2, &recHLE,       // 38
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,      // 3c
+    &recSPECIAL,  &recREGIMM,    &recJ,        &recJAL,        // 00
+    &recBEQ,      &recBNE,       &recBLEZ,     &recBGTZ,       // 04
+    &pgxpRecADDI, &pgxpRecADDIU, &pgxpRecSLTI, &pgxpRecSLTIU,  // 08
+    &pgxpRecANDI, &pgxpRecORI,   &pgxpRecXORI, &pgxpRecLUI,    // 0c
+    &recCOP0,     &recNULL,      &recCOP2,     &recNULL,       // 10
+    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 14
+    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 18
+    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 1c
+    &pgxpRecLB,   &pgxpRecLH,    &pgxpRecLWL,  &pgxpRecLW,     // 20
+    &pgxpRecLBU,  &pgxpRecLHU,   &pgxpRecLWR,  &pgxpRecNULL,   // 24
+    &pgxpRecSB,   &pgxpRecSH,    &pgxpRecSWL,  &pgxpRecSW,     // 28
+    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecSWR,  &pgxpRecNULL,   // 2c
+    &recNULL,     &recNULL,      &pgxpRecLWC2, &recNULL,       // 30
+    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 34
+    &recNULL,     &recNULL,      &pgxpRecSWC2, &recHLE,        // 38
+    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 3c
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecSPC[64] = {
@@ -3472,12 +3474,12 @@ void X86DynaRecCPU::recRecompile() {
     m_resp = 0;
 
     /* if gen.m_x86Ptr reached the mem limit reset whole mem */
-    if (((uint32_t)gen.m_x86Ptr - (uint32_t)m_recMem) >= (RECMEM_SIZE - 0x10000)) Reset();
+    if (((uint32_t)gen.x86GetPtr() - (uint32_t)m_recMem) >= (RECMEM_SIZE - 0x10000)) Reset();
 
     gen.x86Align(32);
-    ptr = gen.m_x86Ptr;
+    ptr = gen.x86GetPtr();
 
-    PC_REC32(m_psxRegs.pc) = (uint32_t)gen.m_x86Ptr;
+    PC_REC32(m_psxRegs.pc) = (uint32_t)gen.x86GetPtr();
     m_pc = m_psxRegs.pc;
     m_old_pc = m_pc;
 
