@@ -21,17 +21,18 @@
  * i386 assembly functions for R3000A core.
  */
 
-#include "core/psxemulator.h"
-#include "core/r3000a.h"
-
-#if defined(__i386__) || defined(_M_IX86)
-
 #include "core/debug.h"
 #include "core/gte.h"
 #include "core/ix86/ix86.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
+
+namespace {
+
+#if defined(__i386__) || defined(_M_IX86)
 
 #ifndef _WIN32
 #ifndef MAP_ANONYMOUS
@@ -3573,8 +3574,6 @@ void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
 
 #else
 
-namespace {
-
 class X86DynaRecCPU : public PCSX::InterpretedCPU {
    public:
     X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
@@ -3588,9 +3587,9 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     virtual void SetPGXPMode(uint32_t pgxpMode) final { assert(0); }
 };
 
-}  // namespace
-
 #endif
+
+}  // namespace
 
 PCSX::R3000Acpu *PCSX::Cpus::getX86DynaRec() {
     static X86DynaRecCPU cpu;
