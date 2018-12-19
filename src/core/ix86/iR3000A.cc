@@ -888,7 +888,7 @@ bool X86DynaRecCPU::Init() {
     m_recROM = (char *)calloc(0x080000, 1);
     if (m_recRAM == NULL || m_recROM == NULL || m_recMem == NULL || m_psxRecLUT == NULL) {
         PCSX::g_system->SysMessage("Error allocating memory");
-        return -1;
+        return false;
     }
 
     for (i = 0; i < 0x80; i++) m_psxRecLUT[i + 0x0000] = (uintptr_t)&m_recRAM[(i & 0x1f) << 16];
@@ -899,7 +899,7 @@ bool X86DynaRecCPU::Init() {
 
     x86Init();
 
-    return 0;
+    return true;
 }
 
 void X86DynaRecCPU::Reset() {
