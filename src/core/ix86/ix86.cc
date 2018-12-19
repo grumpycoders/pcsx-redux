@@ -967,143 +967,143 @@ void PCSX::ix86::FCHS() { write16(0xE0D9); }
 // r64 = mm
 
 /* movq m64 to r64 */
-void PCSX::ix86::MOVQMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::MOVQMtoR(mmxRegister to, uint32_t from) {
     write16(0x6F0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* movq r64 to m64 */
-void PCSX::ix86::MOVQRtoM(uint32_t to, mainRegister from) {
+void PCSX::ix86::MOVQRtoM(uint32_t to, mmxRegister from) {
     write16(0x7F0F);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* pand r64 to r64 */
-void PCSX::ix86::PANDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PANDRtoR(mmxRegister to, mmxRegister from) {
     write16(0xDB0F);
     ModRM(3, to, from);
 }
 
 /* pand r64 to r64 */
-void PCSX::ix86::PANDNRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PANDNRtoR(mmxRegister to, mmxRegister from) {
     write16(0xDF0F);
     ModRM(3, to, from);
 }
 
 /* por r64 to r64 */
-void PCSX::ix86::PORRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PORRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEB0F);
     ModRM(3, to, from);
 }
 
 /* pxor r64 to r64 */
-void PCSX::ix86::PXORRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PXORRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEF0F);
     ModRM(3, to, from);
 }
 
 /* psllq r64 to r64 */
-void PCSX::ix86::PSLLQRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSLLQRtoR(mmxRegister to, mmxRegister from) {
     write16(0xF30F);
     ModRM(3, to, from);
 }
 
 /* psllq m64 to r64 */
-void PCSX::ix86::PSLLQMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PSLLQMtoR(mmxRegister to, uint32_t from) {
     write16(0xF30F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* psllq imm8 to r64 */
-void PCSX::ix86::PSLLQItoR(mainRegister to, uint8_t from) {
+void PCSX::ix86::PSLLQItoR(mmxRegister to, uint8_t from) {
     write16(0x730F);
     ModRM(3, 6, to);
     write8(from);
 }
 
 /* psrlq r64 to r64 */
-void PCSX::ix86::PSRLQRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSRLQRtoR(mmxRegister to, mmxRegister from) {
     write16(0xD30F);
     ModRM(3, to, from);
 }
 
 /* psrlq m64 to r64 */
-void PCSX::ix86::PSRLQMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PSRLQMtoR(mmxRegister to, uint32_t from) {
     write16(0xD30F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* psrlq imm8 to r64 */
-void PCSX::ix86::PSRLQItoR(mainRegister to, uint8_t from) {
+void PCSX::ix86::PSRLQItoR(mmxRegister to, uint8_t from) {
     write16(0x730F);
     ModRM(3, 2, to);
     write8(from);
 }
 
 /* paddusb r64 to r64 */
-void PCSX::ix86::PADDUSBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDUSBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xDC0F);
     ModRM(3, to, from);
 }
 
 /* paddusb m64 to r64 */
-void PCSX::ix86::PADDUSBMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PADDUSBMtoR(mmxRegister to, uint32_t from) {
     write16(0xDC0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* paddusw r64 to r64 */
-void PCSX::ix86::PADDUSWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDUSWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xDD0F);
     ModRM(3, to, from);
 }
 
 /* paddusw m64 to r64 */
-void PCSX::ix86::PADDUSWMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PADDUSWMtoR(mmxRegister to, uint32_t from) {
     write16(0xDD0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* paddb r64 to r64 */
-void PCSX::ix86::PADDBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xFC0F);
     ModRM(3, to, from);
 }
 
 /* paddb m64 to r64 */
-void PCSX::ix86::PADDBMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PADDBMtoR(mmxRegister to, uint32_t from) {
     write16(0xFC0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* paddw r64 to r64 */
-void PCSX::ix86::PADDWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xFD0F);
     ModRM(3, to, from);
 }
 
 /* paddw m64 to r64 */
-void PCSX::ix86::PADDWMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PADDWMtoR(mmxRegister to, uint32_t from) {
     write16(0xFD0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* paddd r64 to r64 */
-void PCSX::ix86::PADDDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDDRtoR(mmxRegister to, mmxRegister from) {
     write16(0xFE0F);
     ModRM(3, to, from);
 }
 
 /* paddd m64 to r64 */
-void PCSX::ix86::PADDDMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PADDDMtoR(mmxRegister to, uint32_t from) {
     write16(0xFE0F);
     ModRM(0, to, DISP32);
     write32(from);
@@ -1123,210 +1123,210 @@ void PCSX::ix86::FEMMS() {
 }
 
 // Basara:changed
-void PCSX::ix86::PADDSBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDSBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEC0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PADDSWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDSWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xED0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PADDSDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PADDSDRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEE0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBSBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBSBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xE80F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBSWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBSWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xE90F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBSDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBSDRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEA0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xF80F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xF90F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBDRtoR(mmxRegister to, mmxRegister from) {
     write16(0xFA0F);
     ModRM(3, to, from);
 }
 
 // changed:basara
 // P.s.It's sux.Don't use it offten.
-void PCSX::ix86::MOVQ64ItoR(mainRegister reg, uint64_t i) {
+void PCSX::ix86::MOVQ64ItoR(mmxRegister reg, uint64_t i) {
     MOVQMtoR(reg, (uint32_t)(m_x86Ptr) + 2 + 7);
     JMP8(8);
     write64(i);
 }
 
-void PCSX::ix86::PSUBUSBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBUSBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xD80F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PSUBUSWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSUBUSWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xD90F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PMAXSWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PMAXSWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEE0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PMINSWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PMINSWRtoR(mmxRegister to, mmxRegister from) {
     write16(0xEA0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PCMPEQBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PCMPEQBRtoR(mmxRegister to, mmxRegister from) {
     write16(0x740F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PCMPEQWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PCMPEQWRtoR(mmxRegister to, mmxRegister from) {
     write16(0x750F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PCMPEQDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PCMPEQDRtoR(mmxRegister to, mmxRegister from) {
     write16(0x760F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PCMPGTBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PCMPGTBRtoR(mmxRegister to, mmxRegister from) {
     write16(0x640F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PCMPGTWRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PCMPGTWRtoR(mmxRegister to, mmxRegister from) {
     write16(0x650F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PCMPGTDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PCMPGTDRtoR(mmxRegister to, mmxRegister from) {
     write16(0x660F);
     ModRM(3, to, from);
 }
 
 // Basara:Added 10.01.2003
-void PCSX::ix86::PSRLWItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSRLWItoR(mmxRegister to, mmxRegister from) {
     write16(0x710f);
     ModRM(2, 2, to);
     write8(from);
 }
-void PCSX::ix86::PSRLDItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSRLDItoR(mmxRegister to, mmxRegister from) {
     write16(0x720f);
     ModRM(2, 2, to);
     write8(from);
 }
 
-void PCSX::ix86::PSLLWItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSLLWItoR(mmxRegister to, mmxRegister from) {
     write16(0x710f);
     ModRM(3, 6, to);
     write8(from);
 }
 
-void PCSX::ix86::PSLLDItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSLLDItoR(mmxRegister to, mmxRegister from) {
     write16(0x720f);
     ModRM(3, 6, to);
     write8(from);
 }
 
-void PCSX::ix86::PSRAWItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSRAWItoR(mmxRegister to, mmxRegister from) {
     write16(0x710f);
     ModRM(3, 4, to);
     write8(from);
 }
 
-void PCSX::ix86::PSRADItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PSRADItoR(mmxRegister to, mmxRegister from) {
     write16(0x720f);
     ModRM(3, 4, to);
     write8(from);
 }
 
 /* por m64 to r64 */
-void PCSX::ix86::PORMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PORMtoR(mmxRegister to, uint32_t from) {
     write16(0xEB0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* pxor m64 to r64 */
-void PCSX::ix86::PXORMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PXORMtoR(mmxRegister to, uint32_t from) {
     write16(0xEF0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* pand m64 to r64 */
-void PCSX::ix86::PANDMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PANDMtoR(mmxRegister to, uint32_t from) {
     write16(0xDB0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* pandn m64 to r64 */
-void PCSX::ix86::PANDNMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::PANDNMtoR(mmxRegister to, uint32_t from) {
     write16(0xDF0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* movd m32 to r64 */
-void PCSX::ix86::MOVDMtoR(mainRegister to, uint32_t from) {
+void PCSX::ix86::MOVDMtoR(mmxRegister to, uint32_t from) {
     write16(0x6E0F);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
 /* movq r64 to m32 */
-void PCSX::ix86::MOVDRtoM(uint32_t to, mainRegister from) {
+void PCSX::ix86::MOVDRtoM(uint32_t to, mmxRegister from) {
     write16(0x7E0F);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
 /* movd r32 to r64 */
-void PCSX::ix86::MOVD32RtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::MOVD32RtoR(mmxRegister to, mainRegister from) {
     write16(0x6E0F);
     ModRM(3, to, from);
 }
 
 /* movq r64 to r32 */
-void PCSX::ix86::MOVD64RtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::MOVD64RtoR(mainRegister to, mmxRegister from) {
     write16(0x7E0F);
     ModRM(3, from, to);
 }
 
-void PCSX::ix86::MOVQRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::MOVQRtoR(mmxRegister to, mmxRegister from) {
     write16(0x6F0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PUNPCKHDQRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PUNPCKHDQRtoR(mmxRegister to, mmxRegister from) {
     write16(0x6A0F);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::PUNPCKLDQRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PUNPCKLDQRtoR(mmxRegister to, mmxRegister from) {
     write16(0x620F);
     ModRM(3, to, from);
 }
@@ -1335,52 +1335,52 @@ void PCSX::ix86::PUNPCKLDQRtoR(mainRegister to, mainRegister from) {
 //	SSE	intructions
 //////////////////////////////////////////////////////////////////////////
 
-void PCSX::ix86::MOVAPSMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::MOVAPSMtoR(sseRegister to, sseRegister from) {
     write16(0x280f);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
-void PCSX::ix86::MOVAPSRtoM(mainRegister to, mainRegister from) {
+void PCSX::ix86::MOVAPSRtoM(sseRegister to, sseRegister from) {
     write16(0x2b0f);
     ModRM(0, from, DISP32);
     write32(to);
 }
 
-void PCSX::ix86::MOVAPSRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::MOVAPSRtoR(sseRegister to, sseRegister from) {
     write16(0x290f);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::ORPSMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::ORPSMtoR(sseRegister to, sseRegister from) {
     write16(0x560f);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
-void PCSX::ix86::ORPSRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::ORPSRtoR(sseRegister to, sseRegister from) {
     write16(0x560f);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::XORPSMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::XORPSMtoR(sseRegister to, sseRegister from) {
     write16(0x570f);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
-void PCSX::ix86::XORPSRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::XORPSRtoR(sseRegister to, sseRegister from) {
     write16(0x570f);
     ModRM(3, to, from);
 }
 
-void PCSX::ix86::ANDPSMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::ANDPSMtoR(sseRegister to, sseRegister from) {
     write16(0x540f);
     ModRM(0, to, DISP32);
     write32(from);
 }
 
-void PCSX::ix86::ANDPSRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::ANDPSRtoR(sseRegister to, sseRegister from) {
     write16(0x540f);
     ModRM(3, to, from);
 }
@@ -1389,124 +1389,124 @@ void PCSX::ix86::ANDPSRtoR(mainRegister to, mainRegister from) {
         3DNOW intructions
 */
 
-void PCSX::ix86::PFCMPEQMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFCMPEQMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0xb0);
 }
 
-void PCSX::ix86::PFCMPGTMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFCMPGTMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0xa0);
 }
 
-void PCSX::ix86::PFCMPGEMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFCMPGEMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x90);
 }
 
-void PCSX::ix86::PFADDMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFADDMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x9e);
 }
 
-void PCSX::ix86::PFADDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFADDRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x9e);
 }
 
-void PCSX::ix86::PFSUBMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFSUBMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x9a);
 }
 
-void PCSX::ix86::PFSUBRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFSUBRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x9a);
 }
 
-void PCSX::ix86::PFMULMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFMULMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0xb4);
 }
 
-void PCSX::ix86::PFMULRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFMULRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0xb4);
 }
 
-void PCSX::ix86::PFRCPMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFRCPMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x96);
 }
 
-void PCSX::ix86::PFRCPRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFRCPRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x96);
 }
 
-void PCSX::ix86::PFRCPIT1RtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFRCPIT1RtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0xa6);
 }
 
-void PCSX::ix86::PFRCPIT2RtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFRCPIT2RtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0xb6);
 }
 
-void PCSX::ix86::PFRSQRTRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFRSQRTRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x97);
 }
 
-void PCSX::ix86::PFRSQIT1RtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFRSQIT1RtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0xa7);
 }
 
-void PCSX::ix86::PF2IDMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PF2IDMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x1d);
 }
 
-void PCSX::ix86::PF2IDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PF2IDRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x1d);
 }
 
-void PCSX::ix86::PI2FDMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PI2FDMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x0d);
 }
 
-void PCSX::ix86::PI2FDRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PI2FDRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x0d);
@@ -1516,27 +1516,27 @@ void PCSX::ix86::PI2FDRtoR(mainRegister to, mainRegister from) {
         3DNOW Extension intructions
 */
 
-void PCSX::ix86::PFMAXMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFMAXMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0xa4);
 }
 
-void PCSX::ix86::PFMAXRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFMAXRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0xa4);
 }
 
-void PCSX::ix86::PFMINMtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFMINMtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(0, to, DISP32);
     write32(from);
     write8(0x94);
 }
 
-void PCSX::ix86::PFMINRtoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::PFMINRtoR(sseRegister to, sseRegister from) {
     write16(0x0f0f);
     ModRM(3, to, from);
     write8(0x94);

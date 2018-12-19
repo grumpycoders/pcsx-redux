@@ -511,66 +511,66 @@ class ix86 {
     // r64 = mm
 
     /* movq m64 to r64 */
-    void MOVQMtoR(mainRegister to, uint32_t from);
+    void MOVQMtoR(mmxRegister to, uint32_t from);
     /* movq r64 to m64 */
-    void MOVQRtoM(uint32_t to, mainRegister from);
+    void MOVQRtoM(uint32_t to, mmxRegister from);
 
     /* pand r64 to r64 */
-    void PANDRtoR(mainRegister to, mainRegister from);
+    void PANDRtoR(mmxRegister to, mmxRegister from);
     /* pand m64 to r64 */
-    void PANDMtoR(mainRegister to, uint32_t from);
+    void PANDMtoR(mmxRegister to, uint32_t from);
 
     /* pandn r64 to r64 */
-    void PANDNRtoR(mainRegister to, mainRegister from);
+    void PANDNRtoR(mmxRegister to, mmxRegister from);
 
     /* pandn r64 to r64 */
-    void PANDNMtoR(mainRegister to, uint32_t from);
+    void PANDNMtoR(mmxRegister to, uint32_t from);
 
     /* por r64 to r64 */
-    void PORRtoR(mainRegister to, mainRegister from);
+    void PORRtoR(mmxRegister to, mmxRegister from);
     /* por m64 to r64 */
-    void PORMtoR(mainRegister to, uint32_t from);
+    void PORMtoR(mmxRegister to, uint32_t from);
 
     /* pxor r64 to r64 */
-    void PXORRtoR(mainRegister to, mainRegister from);
+    void PXORRtoR(mmxRegister to, mmxRegister from);
     /* pxor m64 to r64 */
-    void PXORMtoR(mainRegister to, uint32_t from);
+    void PXORMtoR(mmxRegister to, uint32_t from);
 
     /* psllq r64 to r64 */
-    void PSLLQRtoR(mainRegister to, mainRegister from);
+    void PSLLQRtoR(mmxRegister to, mmxRegister from);
     /* psllq m64 to r64 */
-    void PSLLQMtoR(mainRegister to, uint32_t from);
+    void PSLLQMtoR(mmxRegister to, uint32_t from);
     /* psllq imm8 to r64 */
-    void PSLLQItoR(mainRegister to, uint8_t from);
+    void PSLLQItoR(mmxRegister to, uint8_t from);
 
     /* psrlq r64 to r64 */
-    void PSRLQRtoR(mainRegister to, mainRegister from);
+    void PSRLQRtoR(mmxRegister to, mmxRegister from);
     /* psrlq m64 to r64 */
-    void PSRLQMtoR(mainRegister to, uint32_t from);
+    void PSRLQMtoR(mmxRegister to, uint32_t from);
     /* psrlq imm8 to r64 */
-    void PSRLQItoR(mainRegister to, uint8_t from);
+    void PSRLQItoR(mmxRegister to, uint8_t from);
 
     /* paddusb r64 to r64 */
-    void PADDUSBRtoR(mainRegister to, mainRegister from);
+    void PADDUSBRtoR(mmxRegister to, mmxRegister from);
     /* paddusb m64 to r64 */
-    void PADDUSBMtoR(mainRegister to, uint32_t from);
+    void PADDUSBMtoR(mmxRegister to, uint32_t from);
     /* paddusw r64 to r64 */
-    void PADDUSWRtoR(mainRegister to, mainRegister from);
+    void PADDUSWRtoR(mmxRegister to, mmxRegister from);
     /* paddusw m64 to r64 */
-    void PADDUSWMtoR(mainRegister to, uint32_t from);
+    void PADDUSWMtoR(mmxRegister to, uint32_t from);
 
     /* paddb r64 to r64 */
-    void PADDBRtoR(mainRegister to, mainRegister from);
+    void PADDBRtoR(mmxRegister to, mmxRegister from);
     /* paddb m64 to r64 */
-    void PADDBMtoR(mainRegister to, uint32_t from);
+    void PADDBMtoR(mmxRegister to, uint32_t from);
     /* paddw r64 to r64 */
-    void PADDWRtoR(mainRegister to, mainRegister from);
+    void PADDWRtoR(mmxRegister to, mmxRegister from);
     /* paddw m64 to r64 */
-    void PADDWMtoR(mainRegister to, uint32_t from);
+    void PADDWMtoR(mmxRegister to, uint32_t from);
     /* paddd r64 to r64 */
-    void PADDDRtoR(mainRegister to, mainRegister from);
+    void PADDDRtoR(mmxRegister to, mmxRegister from);
     /* paddd m64 to r64 */
-    void PADDDMtoR(mainRegister to, uint32_t from);
+    void PADDDMtoR(mmxRegister to, uint32_t from);
 
     /* emms */
     void EMMS();
@@ -579,39 +579,39 @@ class ix86 {
     void RCR32ItoR(mainRegister to, mainRegister from);
 
     // Basara:changed
-    void PADDSBRtoR(mainRegister to, mainRegister from);
-    void PADDSWRtoR(mainRegister to, mainRegister from);
-    void PADDSDRtoR(mainRegister to, mainRegister from);
-    void PSUBSBRtoR(mainRegister to, mainRegister from);
-    void PSUBSWRtoR(mainRegister to, mainRegister from);
-    void PSUBSDRtoR(mainRegister to, mainRegister from);
+    void PADDSBRtoR(mmxRegister to, mmxRegister from);
+    void PADDSWRtoR(mmxRegister to, mmxRegister from);
+    void PADDSDRtoR(mmxRegister to, mmxRegister from);
+    void PSUBSBRtoR(mmxRegister to, mmxRegister from);
+    void PSUBSWRtoR(mmxRegister to, mmxRegister from);
+    void PSUBSDRtoR(mmxRegister to, mmxRegister from);
 
-    void PSUBBRtoR(mainRegister to, mainRegister from);
-    void PSUBWRtoR(mainRegister to, mainRegister from);
-    void PSUBDRtoR(mainRegister to, mainRegister from);
+    void PSUBBRtoR(mmxRegister to, mmxRegister from);
+    void PSUBWRtoR(mmxRegister to, mmxRegister from);
+    void PSUBDRtoR(mmxRegister to, mmxRegister from);
 
-    void MOVQ64ItoR(mainRegister reg, uint64_t i);  // Prototype.Todo add all consts to end of block.not after jr $+8
+    void MOVQ64ItoR(mmxRegister reg, uint64_t i);  // Prototype.Todo add all consts to end of block.not after jr $+8
 
-    void PSUBUSBRtoR(mainRegister to, mainRegister from);
-    void PSUBUSWRtoR(mainRegister to, mainRegister from);
+    void PSUBUSBRtoR(mmxRegister to, mmxRegister from);
+    void PSUBUSWRtoR(mmxRegister to, mmxRegister from);
 
-    void PMAXSWRtoR(mainRegister to, mainRegister from);
-    void PMINSWRtoR(mainRegister to, mainRegister from);
+    void PMAXSWRtoR(mmxRegister to, mmxRegister from);
+    void PMINSWRtoR(mmxRegister to, mmxRegister from);
 
-    void PCMPEQBRtoR(mainRegister to, mainRegister from);
-    void PCMPEQWRtoR(mainRegister to, mainRegister from);
-    void PCMPEQDRtoR(mainRegister to, mainRegister from);
+    void PCMPEQBRtoR(mmxRegister to, mmxRegister from);
+    void PCMPEQWRtoR(mmxRegister to, mmxRegister from);
+    void PCMPEQDRtoR(mmxRegister to, mmxRegister from);
 
-    void PCMPGTBRtoR(mainRegister to, mainRegister from);
-    void PCMPGTWRtoR(mainRegister to, mainRegister from);
-    void PCMPGTDRtoR(mainRegister to, mainRegister from);
+    void PCMPGTBRtoR(mmxRegister to, mmxRegister from);
+    void PCMPGTWRtoR(mmxRegister to, mmxRegister from);
+    void PCMPGTDRtoR(mmxRegister to, mmxRegister from);
 
-    void PSRLWItoR(mainRegister to, mainRegister from);
-    void PSRLDItoR(mainRegister to, mainRegister from);
-    void PSLLWItoR(mainRegister to, mainRegister from);
-    void PSLLDItoR(mainRegister to, mainRegister from);
-    void PSRAWItoR(mainRegister to, mainRegister from);
-    void PSRADItoR(mainRegister to, mainRegister from);
+    void PSRLWItoR(mmxRegister to, mmxRegister from);
+    void PSRLDItoR(mmxRegister to, mmxRegister from);
+    void PSLLWItoR(mmxRegister to, mmxRegister from);
+    void PSLLDItoR(mmxRegister to, mmxRegister from);
+    void PSRAWItoR(mmxRegister to, mmxRegister from);
+    void PSRADItoR(mmxRegister to, mmxRegister from);
 
     // Added:basara 11.01.2003
     void FCOMP32(uint32_t from);
@@ -619,65 +619,65 @@ class ix86 {
     void SETNZ8R(mainRegister to);
 
     // Added:basara 14.01.2003
-    void PFCMPEQMtoR(mainRegister to, mainRegister from);
-    void PFCMPGTMtoR(mainRegister to, mainRegister from);
-    void PFCMPGEMtoR(mainRegister to, mainRegister from);
+    void PFCMPEQMtoR(sseRegister to, sseRegister from);
+    void PFCMPGTMtoR(sseRegister to, sseRegister from);
+    void PFCMPGEMtoR(sseRegister to, sseRegister from);
 
-    void PFADDMtoR(mainRegister to, mainRegister from);
-    void PFADDRtoR(mainRegister to, mainRegister from);
+    void PFADDMtoR(sseRegister to, sseRegister from);
+    void PFADDRtoR(sseRegister to, sseRegister from);
 
-    void PFSUBMtoR(mainRegister to, mainRegister from);
-    void PFSUBRtoR(mainRegister to, mainRegister from);
+    void PFSUBMtoR(sseRegister to, sseRegister from);
+    void PFSUBRtoR(sseRegister to, sseRegister from);
 
-    void PFMULMtoR(mainRegister to, mainRegister from);
-    void PFMULRtoR(mainRegister to, mainRegister from);
+    void PFMULMtoR(sseRegister to, sseRegister from);
+    void PFMULRtoR(sseRegister to, sseRegister from);
 
-    void PFRCPMtoR(mainRegister to, mainRegister from);
-    void PFRCPRtoR(mainRegister to, mainRegister from);
-    void PFRCPIT1RtoR(mainRegister to, mainRegister from);
-    void PFRCPIT2RtoR(mainRegister to, mainRegister from);
+    void PFRCPMtoR(sseRegister to, sseRegister from);
+    void PFRCPRtoR(sseRegister to, sseRegister from);
+    void PFRCPIT1RtoR(sseRegister to, sseRegister from);
+    void PFRCPIT2RtoR(sseRegister to, sseRegister from);
 
-    void PFRSQRTRtoR(mainRegister to, mainRegister from);
-    void PFRSQIT1RtoR(mainRegister to, mainRegister from);
+    void PFRSQRTRtoR(sseRegister to, sseRegister from);
+    void PFRSQIT1RtoR(sseRegister to, sseRegister from);
 
-    void PF2IDMtoR(mainRegister to, mainRegister from);
-    void PF2IDRtoR(mainRegister to, mainRegister from);
-    void PI2FDMtoR(mainRegister to, mainRegister from);
-    void PI2FDRtoR(mainRegister to, mainRegister from);
+    void PF2IDMtoR(sseRegister to, sseRegister from);
+    void PF2IDRtoR(sseRegister to, sseRegister from);
+    void PI2FDMtoR(sseRegister to, sseRegister from);
+    void PI2FDRtoR(sseRegister to, sseRegister from);
 
-    void PFMAXMtoR(mainRegister to, mainRegister from);
-    void PFMAXRtoR(mainRegister to, mainRegister from);
-    void PFMINMtoR(mainRegister to, mainRegister from);
-    void PFMINRtoR(mainRegister to, mainRegister from);
+    void PFMAXMtoR(sseRegister to, sseRegister from);
+    void PFMAXRtoR(sseRegister to, sseRegister from);
+    void PFMINMtoR(sseRegister to, sseRegister from);
+    void PFMINRtoR(sseRegister to, sseRegister from);
 
-    void MOVDMtoR(mainRegister to, uint32_t from);
-    void MOVDRtoM(uint32_t to, mainRegister from);
-    void MOVD32RtoR(mainRegister to, mainRegister from);
-    void MOVD64RtoR(mainRegister to, mainRegister from);
+    void MOVDMtoR(mmxRegister to, uint32_t from);
+    void MOVDRtoM(uint32_t to, mmxRegister from);
+    void MOVD32RtoR(mmxRegister to, mainRegister from);
+    void MOVD64RtoR(mainRegister to, mmxRegister from);
 
-    void MOVQRtoR(mainRegister to, mainRegister from);
+    void MOVQRtoR(mmxRegister to, mmxRegister from);
 
     // if to==from MMLO=MMHI
-    void PUNPCKHDQRtoR(mainRegister to, mainRegister from);
+    void PUNPCKHDQRtoR(mmxRegister to, mmxRegister from);
 
     // if to==from MMHI=MMLO
-    void PUNPCKLDQRtoR(mainRegister to, mainRegister from);
+    void PUNPCKLDQRtoR(mmxRegister to, mmxRegister from);
 
     /*
             SSE	intructions
     */
-    void MOVAPSMtoR(mainRegister to, mainRegister from);
-    void MOVAPSRtoM(mainRegister to, mainRegister from);
-    void MOVAPSRtoR(mainRegister to, mainRegister from);
+    void MOVAPSMtoR(sseRegister to, sseRegister from);
+    void MOVAPSRtoM(sseRegister to, sseRegister from);
+    void MOVAPSRtoR(sseRegister to, sseRegister from);
 
-    void ORPSMtoR(mainRegister to, mainRegister from);
-    void ORPSRtoR(mainRegister to, mainRegister from);
+    void ORPSMtoR(sseRegister to, sseRegister from);
+    void ORPSRtoR(sseRegister to, sseRegister from);
 
-    void XORPSMtoR(mainRegister to, mainRegister from);
-    void XORPSRtoR(mainRegister to, mainRegister from);
+    void XORPSMtoR(sseRegister to, sseRegister from);
+    void XORPSRtoR(sseRegister to, sseRegister from);
 
-    void ANDPSMtoR(mainRegister to, mainRegister from);
-    void ANDPSRtoR(mainRegister to, mainRegister from);
+    void ANDPSMtoR(sseRegister to, sseRegister from);
+    void ANDPSRtoR(sseRegister to, sseRegister from);
 
    private:
     static const unsigned DISP32 = 5;
