@@ -1652,7 +1652,7 @@ void X86DynaRecCPU::recDIV() {
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EDX);
 
     if (!IsConst(_Rt_)) {
-        unsigned slot2 = gen.JMP8(1);
+        unsigned slot2 = gen.JMP8(0);
 
         gen.x86SetJ8(slot1);
 
@@ -1702,7 +1702,7 @@ void X86DynaRecCPU::recDIVU() {
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EDX);
 
     if (!IsConst(_Rt_)) {
-        unsigned slot2 = gen.JMP8(1);
+        unsigned slot2 = gen.JMP8(0);
 
         gen.x86SetJ8(slot1);
 
@@ -2196,7 +2196,7 @@ void X86DynaRecCPU::recLWL() {
 
 	respsave = m_resp; m_resp = 0;
 	gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-	gen.m_j32Ptr[4] = gen.JZ32(0);
+	unsigned slot1 = gen.JZ32(0);
 	gen.XOR32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);
 	for (i = 0; i < count; i++, code++) {
 		if (_fRt_(*code)) {
@@ -2208,14 +2208,14 @@ void X86DynaRecCPU::recLWL() {
 		if (i != (count - 1))
 			gen.INC32R(PCSX::ix86::ECX);
 	}
-	gen.m_j32Ptr[5] = JMP32(0);
-	gen.x86SetJ32(gen.m_j32Ptr[4]);
+	unsigned slot2 = JMP32(0);
+	gen.x86SetJ32(slot1);
 	for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
 		m_psxRegs.code = *code;
 		recLW();
 	}
 	gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-	gen.x86SetJ32(gen.m_j32Ptr[5]);
+	gen.x86SetJ32(slot2);
 	m_resp = respsave;
 }
 #endif
@@ -2553,7 +2553,7 @@ void X86DynaRecCPU::recSW() {
 	respsave = m_resp;
 	m_resp = 0;
 	gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-	gen.m_j32Ptr[4] = gen.JZ32(0);
+	unsigned slot1 = gen.JZ32(0);
 	gen.XOR32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);
 	for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
 		if (IsConst(_fRt_(*code))) {
@@ -2565,14 +2565,14 @@ void X86DynaRecCPU::recSW() {
 		if (i != (count - 1))
 			gen.INC32R(PCSX::ix86::ECX);
 	}
-	gen.m_j32Ptr[5] = JMP32(0);
-	gen.x86SetJ32(gen.m_j32Ptr[4]);
+	unsigned slot2 = JMP32(0);
+	gen.x86SetJ32(slot1);
 	for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
 		m_psxRegs.code = *code;
 		recSW();
 	}
 	gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-	gen.x86SetJ32(gen.m_j32Ptr[5]);
+	gen.x86SetJ32(slot2);
 	m_resp = respsave;
 }
 #endif

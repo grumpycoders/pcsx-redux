@@ -687,10 +687,12 @@ class ix86 {
         write8((0xC0) | (to));
     }
     unsigned J8Rel(uint8_t cc, uint8_t to) {
+        static const unsigned arraySize = sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]);
         write8(cc);
         write8(to);
+        if (to != 0) return arraySize;
         uint8_t* ptr = reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
-        for (unsigned i = 0; i < sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]); i++) {
+        for (unsigned i = 0; i < arraySize; i++) {
             if (m_j8Ptr[i] == NULL) {
                 m_j8Ptr[i] = ptr;
                 return i;
@@ -698,13 +700,16 @@ class ix86 {
         }
 
         assert(0);
+        return arraySize;
     }
     unsigned J32Rel(uint8_t cc, uint32_t to) {
+        static const unsigned arraySize = sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]);
         write8(0x0F);
         write8(cc);
         write32(to);
+        if (to != 0) return arraySize;
         uint32_t* ptr = reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
-        for (unsigned i = 0; i < sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]); i++) {
+        for (unsigned i = 0; i < arraySize; i++) {
             if (m_j32Ptr[i] == NULL) {
                 m_j32Ptr[i] = ptr;
                 return i;
@@ -712,6 +717,7 @@ class ix86 {
         }
 
         assert(0);
+        return arraySize;
     }
     void CMOV32RtoR(uint8_t cc, mainRegister to, mainRegister from) {
         write8(0x0F);

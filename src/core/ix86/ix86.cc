@@ -34,8 +34,11 @@ void PCSX::ix86::x86Init(int8_t* ptr) {
 void PCSX::ix86::x86Shutdown() {}
 
 void PCSX::ix86::x86SetJ8(unsigned slot) {
+    static const unsigned arraySize = sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]);
+    assert(slot < arraySize);
     uint8_t* j8 = m_j8Ptr[slot];
     m_j8Ptr[slot] = NULL;
+    assert(*j8 == 0);
     uint32_t jump = (m_x86Ptr - (int8_t*)j8) - 1;
 
     if (jump > 0x7f) printf("j8 greater than 0x7f!!\n");
@@ -43,14 +46,21 @@ void PCSX::ix86::x86SetJ8(unsigned slot) {
 }
 
 void PCSX::ix86::x86SetJ32(unsigned slot) {
+    static const unsigned arraySize = sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]);
+    assert(slot < arraySize);
     uint32_t* j32 = m_j32Ptr[slot];
     m_j32Ptr[slot] = NULL;
+    assert(*j32 == 0);
     *j32 = (m_x86Ptr - (int8_t*)j32) - 4;
 }
 
 void PCSX::ix86::x86Align(unsigned bytes) {
     // fordward align
-    m_x86Ptr = (int8_t*)(((uint32_t)m_x86Ptr + bytes) & ~(bytes - 1));
+    int8_t* newPtr = (int8_t*)(((uint32_t)m_x86Ptr + bytes) & ~(bytes - 1));
+    // filling with NOPs
+    // we could be more intelligent and fill with variable-sized NOPs instead.
+    memset(m_x86Ptr, 0x90, newPtr - m_x86Ptr);
+    m_x86Ptr = newPtr;
 }
 
 /********************/
@@ -642,10 +652,12 @@ void PCSX::ix86::NEG32R(mainRegister from) {
 
 /* jmp rel8 */
 unsigned PCSX::ix86::JMP8(uint8_t to) {
+    static const unsigned arraySize = sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]);
     write8(0xEB);
     write8(to);
+    if (to != 0) return arraySize;
     uint8_t* ptr = reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
-    for (unsigned i = 0; i < sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]); i++) {
+    for (unsigned i = 0; i < arraySize; i++) {
         if (m_j8Ptr[i] == NULL) {
             m_j8Ptr[i] = ptr;
             return i;
@@ -653,14 +665,17 @@ unsigned PCSX::ix86::JMP8(uint8_t to) {
     }
 
     assert(0);
+    return arraySize;
 }
 
 /* jmp rel32 */
 unsigned PCSX::ix86::JMP32(uint32_t to) {
+    static const unsigned arraySize = sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]);
     write8(0xE9);
     write32(to);
     uint32_t* ptr = reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
-    for (unsigned i = 0; i < sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]); i++) {
+    if (to != 0) return arraySize;
+    for (unsigned i = 0; i < arraySize; i++) {
         if (m_j32Ptr[i] == NULL) {
             m_j32Ptr[i] = ptr;
             return i;
@@ -668,6 +683,7 @@ unsigned PCSX::ix86::JMP32(uint32_t to) {
     }
 
     assert(0);
+    return arraySize;
 }
 
 /* jmp r32 */
