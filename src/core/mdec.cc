@@ -267,12 +267,12 @@ unsigned short *rl2blk(int *blk, unsigned short *mdec_rl) {
         // decode blocks (Cr,Cb,Y1,Y2,Y3,Y4)
         if (i == 2) iqtab = iq_y;
 
-        rl = SWAP16(*mdec_rl);
+        rl = SWAP_LE16(*mdec_rl);
         mdec_rl++;
         q_scale = RLE_RUN(rl);
         blk[0] = SCALER(iqtab[0] * RLE_VAL(rl), AAN_EXTRA - 3);
         for (k = 0, used_col = 0;;) {
-            rl = SWAP16(*mdec_rl);
+            rl = SWAP_LE16(*mdec_rl);
             mdec_rl++;
             if (rl == MDEC_END_OF_DATA) break;
             k += RLE_RUN(rl) + 1;  // skip zero-coefficients
@@ -310,7 +310,7 @@ unsigned short *rl2blk(int *blk, unsigned short *mdec_rl) {
 #define MULG2(a, b) ((-351 * (a)-728 * (b)))
 #define MULY(a) ((a) << 10)
 
-#define MAKERGB15(r, g, b, a) (SWAP16(a | ((b) << 10) | ((g) << 5) | (r)))
+#define MAKERGB15(r, g, b, a) (SWAP_LE16(a | ((b) << 10) | ((g) << 5) | (r)))
 #define SCALE8(c) SCALER(c, 20)
 #define SCALE5(c) SCALER(c, 23)
 
@@ -327,7 +327,7 @@ static inline void putlinebw15(uint16_t *image, int *Yblk) {
     for (i = 0; i < 8; i++, Yblk++) {
         int Y = *Yblk;
         // missing rounding
-        image[i] = SWAP16((CLAMP5(Y >> 3) * 0x421) | A);
+        image[i] = SWAP_LE16((CLAMP5(Y >> 3) * 0x421) | A);
     }
 }
 
@@ -516,12 +516,12 @@ void psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
             break;
     }
 
-    HW_DMA0_CHCR &= SWAP32(~0x01000000);
+    HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(0);
 }
 
 void mdec0Interrupt() {
-    HW_DMA0_CHCR &= SWAP32(~0x01000000);
+    HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(0);
 }
 
@@ -643,17 +643,17 @@ void mdec1Interrupt() {
     /* this else if avoid to read outside memory */
     if (mdec.rl >= mdec.rl_end) {
         mdec.reg1 &= ~MDEC1_STP;
-        HW_DMA0_CHCR &= SWAP32(~0x01000000);
+        HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
         DMA_INTERRUPT(0);
         mdec.reg1 &= ~MDEC1_BUSY;
-    } else if (SWAP16(*(mdec.rl)) == MDEC_END_OF_DATA) {
+    } else if (SWAP_LE16(*(mdec.rl)) == MDEC_END_OF_DATA) {
         mdec.reg1 &= ~MDEC1_STP;
-        HW_DMA0_CHCR &= SWAP32(~0x01000000);
+        HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
         DMA_INTERRUPT(0);
         mdec.reg1 &= ~MDEC1_BUSY;
     }
 
-    HW_DMA1_CHCR &= SWAP32(~0x01000000);
+    HW_DMA1_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(1);
     return;
 }

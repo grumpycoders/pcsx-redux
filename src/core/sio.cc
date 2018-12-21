@@ -808,7 +808,7 @@ void sioInterrupt() {
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
     //  PCSX::g_system->SysPrintf("Sio Interrupt\n");
     s_statReg |= IRQ;
-    psxHu32ref(0x1070) |= SWAPu32(0x80);
+    psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0
     // Rhapsody: fixes input problems
@@ -1322,4 +1322,4 @@ void SaveDongle(const char *str) {
     }
 }
 
-void CALLBACK SIO1irq(void) { psxHu32ref(0x1070) |= SWAPu32(0x100); }
+void CALLBACK SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }

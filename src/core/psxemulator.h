@@ -69,6 +69,7 @@
 
 namespace PCSX {
 
+class Memory;
 class R3000Acpu;
 class System;
 
@@ -140,6 +141,7 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
+    Memory* m_psxMem = NULL;
     R3000Acpu* m_psxCpu = NULL;
 
   private:

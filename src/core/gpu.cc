@@ -163,11 +163,11 @@ void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             break;
     }
 
-    HW_DMA2_CHCR &= SWAP32(~0x01000000);
+    HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(2);
 }
 
 void gpuInterrupt() {
-    HW_DMA2_CHCR &= SWAP32(~0x01000000);
+    HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(2);
 }

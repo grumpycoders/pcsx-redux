@@ -93,8 +93,8 @@ extern int g_numSearchResults;
 
 #define PREVM(mem) (&g_prevM[mem])
 #define PrevMu8(mem) (*(uint8_t *)PREVM(mem))
-#define PrevMu16(mem) (SWAP16(*(uint16_t *)PREVM(mem)))
-#define PrevMu32(mem) (SWAP32(*(uint32_t *)PREVM(mem)))
+#define PrevMu16(mem) (SWAP_LE16(*(uint16_t *)PREVM(mem)))
+#define PrevMu32(mem) (SWAP_LE32(*(uint32_t *)PREVM(mem)))
 
 // cheat types
 #define CHEAT_CONST8 0x30  /* 8-bit Constant Write */

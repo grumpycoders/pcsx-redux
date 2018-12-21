@@ -251,7 +251,7 @@ void BuildPPFCache() {
                 dizyn = 0;
             } else {
                 fread(&dizlen, 4, 1, ppffile);
-                dizlen = SWAP32(dizlen);
+                dizlen = SWAP_LE32(dizlen);
                 dizyn = 1;
             }
 
@@ -282,7 +282,7 @@ void BuildPPFCache() {
             if (strcmp(".DIZ", buffer) == 0) {
                 fseek(ppffile, -2, SEEK_END);
                 fread(&dizlen, 2, 1, ppffile);
-                dizlen = SWAP32(dizlen);
+                dizlen = SWAP_LE32(dizlen);
                 dizlen += 36;
             }
 
@@ -309,7 +309,7 @@ void BuildPPFCache() {
     do {
         fseek(ppffile, seekpos, SEEK_SET);
         fread(&pos, 4, 1, ppffile);
-        pos = SWAP32(pos);
+        pos = SWAP_LE32(pos);
 
         if (method == 2) fread(buffer, 4, 1, ppffile);  // skip 4 bytes on ppf3 (no int64 support here)
 

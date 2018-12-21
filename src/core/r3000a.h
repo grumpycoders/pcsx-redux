@@ -349,7 +349,7 @@ static inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
 
     // cached - RAM
     if (pc_bank == 0x80 || pc_bank == 0x00) {
-        if (SWAP32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
+        if (SWAP_LE32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
             // Cache hit - return last opcode used
             return (uint32_t *)(ICode + pc_cache);
         } else {
@@ -362,10 +362,10 @@ static inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
                 pc_cache &= ~0xf;
 
                 // address line
-                *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP32(pc_offset + 0x0);
-                *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP32(pc_offset + 0x4);
-                *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP32(pc_offset + 0x8);
-                *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP32(pc_offset + 0xc);
+                *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
+                *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
+                *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
+                *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
 
                 // opcode line
                 pc_offset = pc & ~0xf;

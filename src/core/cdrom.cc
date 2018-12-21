@@ -231,7 +231,7 @@ extern SPUregisterCallback SPU_registerCallback;
     }
 
 static void setIrq(void) {
-    if (g_cdr.Stat & g_cdr.Reg2) psxHu32ref(0x1070) |= SWAP32((uint32_t)0x4);
+    if (g_cdr.Stat & g_cdr.Reg2) psxHu32ref(0x1070) |= SWAP_LE32((uint32_t)0x4);
 }
 
 static void adjustTransferIndex(void) {
@@ -280,7 +280,7 @@ void cdrDecodedBufferInterrupt() {
     */
 
     // signal CDDA data ready
-    psxHu32ref(0x1070) |= SWAP32((uint32_t)0x200);
+    psxHu32ref(0x1070) |= SWAP_LE32((uint32_t)0x200);
 
     // time for next full buffer
     // CDRDBUF_INT( PCSX::g_emulator.m_psxClockSpeed / 44100 * 0x200 );
@@ -1080,7 +1080,7 @@ void cdrReadInterrupt() {
         return;
     }
 
-    if ((psxHu32ref(0x1070) & psxHu32ref(0x1074) & SWAP32((uint32_t)0x4)) && !g_cdr.ReadRescheduled) {
+    if ((psxHu32ref(0x1070) & psxHu32ref(0x1074) & SWAP_LE32((uint32_t)0x4)) && !g_cdr.ReadRescheduled) {
         // HACK: with PCSX::Emulator::BIAS 2, emulated CPU is often slower than real thing,
         // game may be unfinished with prev data read, so reschedule
         // (Brave Fencer Musashi)
@@ -1428,13 +1428,13 @@ void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
             break;
     }
 
-    HW_DMA3_CHCR &= SWAP32(~0x01000000);
+    HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(3);
 }
 
 void cdrDmaInterrupt() {
-    if (HW_DMA3_CHCR & SWAP32(0x01000000)) {
-        HW_DMA3_CHCR &= SWAP32(~0x01000000);
+    if (HW_DMA3_CHCR & SWAP_LE32(0x01000000)) {
+        HW_DMA3_CHCR &= SWAP_LE32(~0x01000000);
         DMA_INTERRUPT(3);
     }
 }

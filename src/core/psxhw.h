@@ -54,9 +54,9 @@
 #define HW_DMA_ICR (psxHu32ref(0x10f4))
 
 #define DMA_INTERRUPT(n)                         \
-    if (SWAPu32(HW_DMA_ICR) & (1 << (16 + n))) { \
-        HW_DMA_ICR |= SWAP32(1 << (24 + n));     \
-        psxHu32ref(0x1070) |= SWAP32(8);         \
+    if (SWAP_LEu32(HW_DMA_ICR) & (1 << (16 + n))) { \
+        HW_DMA_ICR |= SWAP_LE32(1 << (24 + n));     \
+        psxHu32ref(0x1070) |= SWAP_LE32(8);         \
     }
 
 void psxHwReset();

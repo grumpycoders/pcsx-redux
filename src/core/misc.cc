@@ -212,13 +212,13 @@ int LoadCdrom() {
 
     memcpy(&tmpHead, buf + 12, sizeof(EXE_HEADER));
 
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP32(tmpHead.pc0);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LE32(tmpHead.pc0);
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = SWAP_LE32(tmpHead.gp0);
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = SWAP_LE32(tmpHead.s_addr);
     if (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp == 0) PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
 
-    tmpHead.t_size = SWAP32(tmpHead.t_size);
-    tmpHead.t_addr = SWAP32(tmpHead.t_addr);
+    tmpHead.t_size = SWAP_LE32(tmpHead.t_size);
+    tmpHead.t_addr = SWAP_LE32(tmpHead.t_addr);
 
     // Read the rest of the main executable
     while (tmpHead.t_size) {
@@ -426,7 +426,7 @@ static int PSXGetFileType(FILE *f) {
     if (mybuf[0] == 'C' && mybuf[1] == 'P' && mybuf[2] == 'E') return CPE_EXE;
 
     coff_hdr = (FILHDR *)mybuf;
-    if (SWAPu16(coff_hdr->f_magic) == 0x0162) return COFF_EXE;
+    if (SWAP_LEu16(coff_hdr->f_magic) == 0x0162) return COFF_EXE;
 
     return INVALID_EXE;
 }
@@ -473,11 +473,11 @@ int Load(const char *ExePath) {
             case PSX_EXE:
                 fread(&tmpHead, sizeof(EXE_HEADER), 1, tmpFile);
                 fseek(tmpFile, 0x800, SEEK_SET);
-                fread(PSXM(SWAP32(tmpHead.t_addr)), SWAP32(tmpHead.t_size), 1, tmpFile);
+                fread(PSXM(SWAP_LE32(tmpHead.t_addr)), SWAP_LE32(tmpHead.t_size), 1, tmpFile);
                 fclose(tmpFile);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP32(tmpHead.pc0);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LE32(tmpHead.pc0);
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = SWAP_LE32(tmpHead.gp0);
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = SWAP_LE32(tmpHead.s_addr);
                 if (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp == 0)
                     PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
                 retval = 0;
@@ -491,8 +491,8 @@ int Load(const char *ExePath) {
                         case 1: /* Section loading */
                             fread(&section_address, 4, 1, tmpFile);
                             fread(&section_size, 4, 1, tmpFile);
-                            section_address = SWAPu32(section_address);
-                            section_size = SWAPu32(section_size);
+                            section_address = SWAP_LEu32(section_address);
+                            section_size = SWAP_LEu32(section_size);
                             EMU_LOG("Loading %08X bytes from %08X to %08X\n", section_size, ftell(tmpFile),
                                     section_address);
                             fread(PSXM(section_address), section_size, 1, tmpFile);
@@ -500,7 +500,7 @@ int Load(const char *ExePath) {
                         case 3:                          /* register loading (PC only?) */
                             fseek(tmpFile, 2, SEEK_CUR); /* unknown field */
                             fread(&PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, 4, 1, tmpFile);
-                            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAPu32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+                            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LEu32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                             break;
                         case 0: /* End of file */
                             break;
@@ -517,20 +517,20 @@ int Load(const char *ExePath) {
                 fread(&coffHead, sizeof(coffHead), 1, tmpFile);
                 fread(&optHead, sizeof(optHead), 1, tmpFile);
 
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP32(optHead.entry);
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LE32(optHead.entry);
                 PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
 
-                for (i = 0; i < SWAP16(coffHead.f_nscns); i++) {
-                    fseek(tmpFile, sizeof(FILHDR) + SWAP16(coffHead.f_opthdr) + sizeof(section) * i, SEEK_SET);
+                for (i = 0; i < SWAP_LE16(coffHead.f_nscns); i++) {
+                    fseek(tmpFile, sizeof(FILHDR) + SWAP_LE16(coffHead.f_opthdr) + sizeof(section) * i, SEEK_SET);
                     fread(&section, sizeof(section), 1, tmpFile);
 
                     if (section.s_scnptr != 0) {
-                        fseek(tmpFile, SWAP32(section.s_scnptr), SEEK_SET);
-                        fread(PSXM(SWAP32(section.s_paddr)), SWAP32(section.s_size), 1, tmpFile);
+                        fseek(tmpFile, SWAP_LE32(section.s_scnptr), SEEK_SET);
+                        fread(PSXM(SWAP_LE32(section.s_paddr)), SWAP_LE32(section.s_size), 1, tmpFile);
                     } else {
-                        psxmaddr = PSXM(SWAP32(section.s_paddr));
+                        psxmaddr = PSXM(SWAP_LE32(section.s_paddr));
                         assert(psxmaddr != NULL);
-                        memset(psxmaddr, 0, SWAP32(section.s_size));
+                        memset(psxmaddr, 0, SWAP_LE32(section.s_size));
                     }
                 }
                 break;

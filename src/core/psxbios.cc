@@ -932,12 +932,12 @@ void psxBios_memchr() {  // 0x2e
 void psxBios_rand() {  // 0x2f
     uint32_t s = psxMu32(0x9010) * 1103515245 + 12345;
     v0 = (s >> 16) & 0x7fff;
-    psxMu32ref(0x9010) = SWAPu32(s);
+    psxMu32ref(0x9010) = SWAP_LEu32(s);
     pc0 = ra;
 }
 
 void psxBios_srand() {  // 0x30
-    psxMu32ref(0x9010) = SWAPu32(a0);
+    psxMu32ref(0x9010) = SWAP_LEu32(a0);
     pc0 = ra;
 }
 
@@ -1073,7 +1073,7 @@ void psxBios_malloc() {  // 0x33
         else {
             if (colflag == 1) {  // collection is over
                 colflag = 0;
-                *newchunk = SWAP32(dsize | 1);
+                *newchunk = SWAP_LE32(dsize | 1);
             }
         }
 
@@ -1081,7 +1081,7 @@ void psxBios_malloc() {  // 0x33
         chunk = (uint32_t *)((uintptr_t)chunk + csize + 4);
     }
     // if neccessary free memory on end of heap
-    if (colflag == 1) *newchunk = SWAP32(dsize | 1);
+    if (colflag == 1) *newchunk = SWAP_LE32(dsize | 1);
 
     chunk = s_heap_addr;
     csize = ((uint32_t)*chunk) & 0xfffffffc;
@@ -1117,9 +1117,9 @@ void psxBios_malloc() {  // 0x33
         *chunk &= 0xfffffffc;
     } else {
         // split free chunk
-        *chunk = SWAP32(dsize);
+        *chunk = SWAP_LE32(dsize);
         newchunk = (uint32_t *)((uintptr_t)chunk + dsize + 4);
-        *newchunk = SWAP32((csize - dsize - 4) & 0xfffffffc | 1);
+        *newchunk = SWAP_LE32((csize - dsize - 4) & 0xfffffffc | 1);
     }
 
     // return pointer to allocated memory
@@ -1172,7 +1172,7 @@ void psxBios_InitHeap() {  // 0x39
 
     s_heap_addr = (uint32_t *)Ra0;
     s_heap_end = (uint32_t *)((uint8_t *)s_heap_addr + size);
-    *s_heap_addr = SWAP32(size | 1);
+    *s_heap_addr = SWAP_LE32(size | 1);
 
     PCSX::g_system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uintptr_t)s_heap_addr - (uintptr_t)g_psxM,
                                   size);
@@ -1193,10 +1193,10 @@ void psxBios_printf() {  // 0x3f
     int n = 1, i = 0, j;
 
     memcpy(save, Rsp, 4 * 4);
-    psxMu32ref(sp) = SWAP32((uint32_t)a0);
-    psxMu32ref(sp + 4) = SWAP32((uint32_t)a1);
-    psxMu32ref(sp + 8) = SWAP32((uint32_t)a2);
-    psxMu32ref(sp + 12) = SWAP32((uint32_t)a3);
+    psxMu32ref(sp) = SWAP_LE32((uint32_t)a0);
+    psxMu32ref(sp + 4) = SWAP_LE32((uint32_t)a1);
+    psxMu32ref(sp + 8) = SWAP_LE32((uint32_t)a2);
+    psxMu32ref(sp + 12) = SWAP_LE32((uint32_t)a3);
 
     while (Ra0[i]) {
         switch (Ra0[i]) {
@@ -1360,7 +1360,7 @@ void psxBios_GPU_dw() {  // 0x46
     size = (a2 * a3 + 1) / 2;
     ptr = (int32_t *)PSXM(Rsp[4]);  // that is correct?
     do {
-        GPU_writeData(SWAP32(*ptr));
+        GPU_writeData(SWAP_LE32(*ptr));
         ptr++;
     } while (--size);
 
@@ -1398,7 +1398,7 @@ void psxBios_GPU_cwb() {  // 0x4a
     int32_t *ptr = (int32_t *)Ra0;
     int size = a1;
     while (size--) {
-        GPU_writeData(SWAP32(*ptr));
+        GPU_writeData(SWAP_LE32(*ptr));
         ptr++;
     }
 
@@ -1479,13 +1479,13 @@ void psxBios_SetMem() {  // 9f
 
     switch (a0) {
         case 2:
-            psxHu32ref(0x1060) = SWAP32(newMem);
+            psxHu32ref(0x1060) = SWAP_LE32(newMem);
             psxMu32ref(0x060) = a0;
             PCSX::g_system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
             break;
 
         case 8:
-            psxHu32ref(0x1060) = SWAP32(newMem | 0x300);
+            psxHu32ref(0x1060) = SWAP_LE32(newMem | 0x300);
             psxMu32ref(0x060) = a0;
             PCSX::g_system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
 
@@ -1585,9 +1585,9 @@ void psxBios_StartRCnt() {  // 04
 
     a0 &= 0x3;
     if (a0 != 3)
-        psxHu32ref(0x1074) |= SWAP32((uint32_t)((1 << (a0 + 4))));
+        psxHu32ref(0x1074) |= SWAP_LE32((uint32_t)((1 << (a0 + 4))));
     else
-        psxHu32ref(0x1074) |= SWAPu32(0x1);
+        psxHu32ref(0x1074) |= SWAP_LEu32(0x1);
     v0 = 1;
     pc0 = ra;
 }
@@ -1597,9 +1597,9 @@ void psxBios_StopRCnt() {  // 05
 
     a0 &= 0x3;
     if (a0 != 3)
-        psxHu32ref(0x1074) &= SWAP32((uint32_t)(~(1 << (a0 + 4))));
+        psxHu32ref(0x1074) &= SWAP_LE32((uint32_t)(~(1 << (a0 + 4))));
     else
-        psxHu32ref(0x1074) &= SWAPu32(~0x1);
+        psxHu32ref(0x1074) &= SWAP_LEu32(~0x1);
     pc0 = ra;
 }
 
@@ -2849,10 +2849,10 @@ void psxBiosInit() {
     s_ThEV = s_Event + 32 * 5;
 
     ptr = (uint32_t *)&g_psxM[0x0874];  // b0 table
-    ptr[0] = SWAPu32(0x4c54 - 0x884);
+    ptr[0] = SWAP_LEu32(0x4c54 - 0x884);
 
     ptr = (uint32_t *)&g_psxM[0x0674];  // c0 table
-    ptr[6] = SWAPu32(0xc80);
+    ptr[6] = SWAP_LEu32(0xc80);
 
     memset(s_SysIntRP, 0, sizeof(s_SysIntRP));
     memset(s_Thread, 0, sizeof(s_Thread));
@@ -2870,33 +2870,33 @@ void psxBiosInit() {
     memset(s_FDesc, 0, sizeof(s_FDesc));
     s_card_active_chan = 0;
 
-    psxMu32ref(0x0150) = SWAPu32(0x160);
-    psxMu32ref(0x0154) = SWAPu32(0x320);
-    psxMu32ref(0x0160) = SWAPu32(0x248);
+    psxMu32ref(0x0150) = SWAP_LEu32(0x160);
+    psxMu32ref(0x0154) = SWAP_LEu32(0x320);
+    psxMu32ref(0x0160) = SWAP_LEu32(0x248);
     strcpy((char *)&g_psxM[0x248], "bu");
-    /*  psxMu32ref(0x0ca8) = SWAPu32(0x1f410004);
-            psxMu32ref(0x0cf0) = SWAPu32(0x3c020000);
-            psxMu32ref(0x0cf4) = SWAPu32(0x2442641c);
-            psxMu32ref(0x09e0) = SWAPu32(0x43d0);
-            psxMu32ref(0x4d98) = SWAPu32(0x946f000a);
+    /*  psxMu32ref(0x0ca8) = SWAP_LEu32(0x1f410004);
+            psxMu32ref(0x0cf0) = SWAP_LEu32(0x3c020000);
+            psxMu32ref(0x0cf4) = SWAP_LEu32(0x2442641c);
+            psxMu32ref(0x09e0) = SWAP_LEu32(0x43d0);
+            psxMu32ref(0x4d98) = SWAP_LEu32(0x946f000a);
     */
     // opcode HLE
-    psxRu32ref(0x0000) = SWAPu32((0x3b << 26) | 4);
-    psxMu32ref(0x0000) = SWAPu32((0x3b << 26) | 0);
-    psxMu32ref(0x00a0) = SWAPu32((0x3b << 26) | 1);
-    psxMu32ref(0x00b0) = SWAPu32((0x3b << 26) | 2);
-    psxMu32ref(0x00c0) = SWAPu32((0x3b << 26) | 3);
-    psxMu32ref(0x4c54) = SWAPu32((0x3b << 26) | 0);
-    psxMu32ref(0x8000) = SWAPu32((0x3b << 26) | 5);
-    psxMu32ref(0x07a0) = SWAPu32((0x3b << 26) | 0);
-    psxMu32ref(0x0884) = SWAPu32((0x3b << 26) | 0);
-    psxMu32ref(0x0894) = SWAPu32((0x3b << 26) | 0);
+    psxRu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 4);
+    psxMu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 0);
+    psxMu32ref(0x00a0) = SWAP_LEu32((0x3b << 26) | 1);
+    psxMu32ref(0x00b0) = SWAP_LEu32((0x3b << 26) | 2);
+    psxMu32ref(0x00c0) = SWAP_LEu32((0x3b << 26) | 3);
+    psxMu32ref(0x4c54) = SWAP_LEu32((0x3b << 26) | 0);
+    psxMu32ref(0x8000) = SWAP_LEu32((0x3b << 26) | 5);
+    psxMu32ref(0x07a0) = SWAP_LEu32((0x3b << 26) | 0);
+    psxMu32ref(0x0884) = SWAP_LEu32((0x3b << 26) | 0);
+    psxMu32ref(0x0894) = SWAP_LEu32((0x3b << 26) | 0);
 
     // initial stack pointer for BIOS interrupt
-    psxMu32ref(0x6c80) = SWAPu32(0x000085c8);
+    psxMu32ref(0x6c80) = SWAP_LEu32(0x000085c8);
 
     // initial RNG seed
-    psxMu32ref(0x9010) = SWAPu32(0xac20cc00);
+    psxMu32ref(0x9010) = SWAP_LEu32(0xac20cc00);
 
     // fonts
     len = 0x80000 - 0x66000;
@@ -2905,7 +2905,7 @@ void psxBiosInit() {
     uncompress((Bytef *)(g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
 
     // memory size 2 MB
-    psxHu32ref(0x1060) = SWAPu32(0x00000b88);
+    psxHu32ref(0x1060) = SWAP_LEu32(0x00000b88);
 
     g_hleSoftCall = false;
 }
@@ -3103,7 +3103,7 @@ void psxBiosException() {
     {                                                               \
         if (Mode == 1) {                                            \
             if (ptr)                                                \
-                psxRu32ref(base) = SWAPu32((int8_t *)(ptr)-g_psxM); \
+                psxRu32ref(base) = SWAP_LEu32((int8_t *)(ptr)-g_psxM); \
             else                                                    \
                 psxRu32ref(base) = 0;                               \
         } else {                                                    \

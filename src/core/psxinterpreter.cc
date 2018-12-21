@@ -317,7 +317,7 @@ void PCSX::R3000Acpu::psxDelayTest(int reg, uint32_t bpc) {
     // Don't execute yet - just peek
     code = PCSX::Read_ICache(bpc, true);
 
-    tmp = ((code == NULL) ? 0 : SWAP32(*code));
+    tmp = ((code == NULL) ? 0 : SWAP_LE32(*code));
     s_branch = 1;
 
     switch (psxTestLoadDelay(reg, tmp)) {
@@ -344,7 +344,7 @@ static uint32_t psxBranchNoDelay(void) {
     uint32_t temp;
 
     code = PCSX::Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, true);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP32(*code));
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
     switch (_Op_) {
         case 0x00:  // SPECIAL
             switch (_Funct_) {
@@ -469,7 +469,7 @@ static __inline void doBranch(uint32_t tar) {
     // branch delay slot
     code = PCSX::Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, true);
 
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP32(*code));
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
 
     debugI();
 
@@ -1441,7 +1441,7 @@ static void intShutdown() {}
 // interpreter execution
 static inline void execI() {
     uint32_t *code = PCSX::Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, false);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP32(*code));
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
 
     debugI();
 

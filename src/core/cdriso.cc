@@ -785,7 +785,7 @@ static int parsemds(const char *isofile) {
 
     // check if it's a valid mds file
     fread(&i, 1, sizeof(unsigned int), fi);
-    i = SWAP32(i);
+    i = SWAP_LE32(i);
     if (i != 0x4944454D) {
         // not an valid mds file
         fclose(fi);
@@ -795,19 +795,19 @@ static int parsemds(const char *isofile) {
     // get offset to session block
     fseek(fi, 0x50, SEEK_SET);
     fread(&offset, 1, sizeof(unsigned int), fi);
-    offset = SWAP32(offset);
+    offset = SWAP_LE32(offset);
 
     // get total number of tracks
     offset += 14;
     fseek(fi, offset, SEEK_SET);
     fread(&s, 1, sizeof(unsigned short), fi);
-    s = SWAP16(s);
+    s = SWAP_LE16(s);
     numtracks = s;
 
     // get offset to track blocks
     fseek(fi, 4, SEEK_CUR);
     fread(&offset, 1, sizeof(unsigned int), fi);
-    offset = SWAP32(offset);
+    offset = SWAP_LE32(offset);
 
     // skip lead-in data
     while (1) {
@@ -836,23 +836,23 @@ static int parsemds(const char *isofile) {
         ti[i].start[2] = fgetc(fi);
 
         fread(&extra_offset, 1, sizeof(unsigned int), fi);
-        extra_offset = SWAP32(extra_offset);
+        extra_offset = SWAP_LE32(extra_offset);
 
         // get track start offset (in .mdf)
         fseek(fi, offset + 0x28, SEEK_SET);
         fread(&l, 1, sizeof(unsigned int), fi);
-        l = SWAP32(l);
+        l = SWAP_LE32(l);
         ti[i].start_offset = l;
 
         // get pregap
         fseek(fi, extra_offset, SEEK_SET);
         fread(&l, 1, sizeof(unsigned int), fi);
-        l = SWAP32(l);
+        l = SWAP_LE32(l);
         if (l != 0 && i > 1) s_pregapOffset = msf2sec(ti[i].start);
 
         // get the track length
         fread(&l, 1, sizeof(unsigned int), fi);
-        l = SWAP32(l);
+        l = SWAP_LE32(l);
         sec2msf(l, ti[i].length);
 
         offset += 0x50;
@@ -1748,7 +1748,7 @@ static long CALLBACK ISOopen(void) {
             unsigned int modeTest = 0;
             fseek(s_cdHandle, 0, SEEK_SET);
             fread(&modeTest, 4, 1, s_cdHandle);
-            if (SWAP32(modeTest) != 0xffffff00) {
+            if (SWAP_LE32(modeTest) != 0xffffff00) {
                 PCSX::g_system->SysPrintf("[2048]");
                 s_isMode1ISO = true;
             }

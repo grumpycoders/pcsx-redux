@@ -81,7 +81,7 @@ uint32_t g_psxNextCounter = 0, g_psxNextsCounter = 0;
 
 /******************************************************************************/
 
-static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAPu32(irq); }
+static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
 
 static void verboseLog(int32_t level, const char *str, ...) {
     va_list va;

@@ -27,7 +27,7 @@
 // Dma3   in CdRom.c
 
 void spuInterrupt() {
-    HW_DMA4_CHCR &= SWAP32(~0x01000000);
+    HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(4);
 }
 
@@ -76,7 +76,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             break;
     }
 
-    HW_DMA4_CHCR &= SWAP32(~0x01000000);
+    HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(4);
 }
 
@@ -89,7 +89,7 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     if (chcr == 0x11000002) {
         if (mem == NULL) {
             PSXDMA_LOG("*** DMA6 OT *** NULL Pointer!!!\n");
-            HW_DMA6_CHCR &= SWAP32(~0x01000000);
+            HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
             DMA_INTERRUPT(6);
             return;
         }
@@ -98,7 +98,7 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         size = bcr;
 
         while (bcr--) {
-            *mem-- = SWAP32((madr - 4) & 0xffffff);
+            *mem-- = SWAP_LE32((madr - 4) & 0xffffff);
             madr -= 4;
         }
         mem++;
@@ -116,11 +116,11 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         PSXDMA_LOG("*** DMA6 OT - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
     }
 
-    HW_DMA6_CHCR &= SWAP32(~0x01000000);
+    HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(6);
 }
 
 void gpuotcInterrupt() {
-    HW_DMA6_CHCR &= SWAP32(~0x01000000);
+    HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(6);
 }
