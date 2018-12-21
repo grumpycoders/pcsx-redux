@@ -33,7 +33,7 @@
 namespace PCSX {
 
 class ix86 {
-   public:
+  public:
     // x86Flags defines
     static const uint32_t X86FLAG_FPU = 0x00000001;
     static const uint32_t X86FLAG_VME = 0x00000002;
@@ -660,7 +660,7 @@ class ix86 {
     void PUNPCKLDQRtoR(mmxRegister to, mmxRegister from);
 
     /*
-            SSE	intructions
+            SSE intructions
     */
     void MOVAPSMtoR(sseRegister to, sseRegister from);
     void MOVAPSRtoM(sseRegister to, sseRegister from);
@@ -675,7 +675,7 @@ class ix86 {
     void ANDPSMtoR(sseRegister to, sseRegister from);
     void ANDPSRtoR(sseRegister to, sseRegister from);
 
-   private:
+  private:
     static const unsigned DISP32 = 5;
 
     /* private helpers */

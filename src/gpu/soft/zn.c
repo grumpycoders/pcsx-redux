@@ -161,35 +161,35 @@ long CALLBACK ZN_GPUclose()
  return GPUclose();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUshutdown()
 {
  return GPUshutdown();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 void CALLBACK ZN_GPUupdateLace(void)
 {
  GPUupdateLace();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 unsigned long CALLBACK ZN_GPUreadStatus(void)
 {
  return GPUreadStatus();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 void CALLBACK ZN_GPUwriteStatus(unsigned long gdata)
 {
  GPUwriteStatus(gdata);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUdmaSliceOut(unsigned long *baseAddrL, unsigned long addr, unsigned long iSize)
 {
@@ -197,70 +197,70 @@ long CALLBACK ZN_GPUdmaSliceOut(unsigned long *baseAddrL, unsigned long addr, un
  return 0;
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 unsigned long CALLBACK ZN_GPUreadData(void)
 {
  return GPUreadData();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 void CALLBACK ZN_GPUsetMode(unsigned long gdata)
 {
  GPUsetMode(gdata);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUgetMode(void)
 {
  return GPUgetMode();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUdmaSliceIn(unsigned long *baseAddrL, unsigned long addr, unsigned long iSize)
 {
  GPUwriteDataMem(baseAddrL+addr,iSize);
  return 0;
 }
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 void CALLBACK ZN_GPUwriteData(unsigned long gdata)
 {
  GPUwriteDataMem(&gdata,1);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUdmaChain(unsigned long * baseAddrL, unsigned long addr)
 {
  return GPUdmaChain(baseAddrL,addr);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUtest(void)
 {
  return GPUtest();
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 long CALLBACK ZN_GPUfreeze(unsigned long ulGetFreezeData,void * pF)
 {
  return GPUfreeze(ulGetFreezeData,pF);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 void CALLBACK ZN_GPUgetScreenPic(unsigned char * pMem)
 {
  GPUgetScreenPic(pMem);
 }
 
-// --------------------------------------------------- // 
+// --------------------------------------------------- //
 
 void CALLBACK ZN_GPUshowScreenPic(unsigned char * pMem)
 {

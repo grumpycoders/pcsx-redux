@@ -18,10 +18,10 @@
  ***************************************************************************/
 
 /**************************************************************************
- *	pgxp_mem.h
- *	PGXP - Parallel/Precision Geometry Xform Pipeline
+ *  pgxp_mem.h
+ *  PGXP - Parallel/Precision Geometry Xform Pipeline
  *
- *	Created on: 07 Jun 2016
+ *  Created on: 07 Jun 2016
  *      Author: iCatButler
  ***************************************************************************/
 
@@ -30,7 +30,7 @@
 
 #include "core/psxemulator.h"
 
-void PGXP_Init();   // initialise memory
+void PGXP_Init();        // initialise memory
 uint8_t* PGXP_GetMem();  // return pointer to precision memory
 uint32_t PGXP_ConvertAddress(uint32_t addr);
 

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1995
- *	Ted Lemon (hereinafter referred to as the author)
+ *  Ted Lemon (hereinafter referred to as the author)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,16 +45,16 @@ typedef struct filehdr {
 } FILHDR;
 
 typedef struct scnhdr {
-    char s_name[8]; /* section name */
-    uint32_t s_paddr;    /* physical address, aliased s_nlib */
-    uint32_t s_vaddr;    /* virtual address */
-    uint32_t s_size;     /* section size */
-    uint32_t s_scnptr;   /* file s_ptr to raw data for section */
-    uint32_t s_relptr;   /* file s_ptr to relocation */
-    uint32_t s_lnnoptr;  /* file s_ptr to gp histogram */
-    uint16_t s_nreloc;   /* number of relocation entries */
-    uint16_t s_nlnno;    /* number of gp histogram entries */
-    uint32_t s_flags;    /* flags */
+    char s_name[8];     /* section name */
+    uint32_t s_paddr;   /* physical address, aliased s_nlib */
+    uint32_t s_vaddr;   /* virtual address */
+    uint32_t s_size;    /* section size */
+    uint32_t s_scnptr;  /* file s_ptr to raw data for section */
+    uint32_t s_relptr;  /* file s_ptr to relocation */
+    uint32_t s_lnnoptr; /* file s_ptr to gp histogram */
+    uint16_t s_nreloc;  /* number of relocation entries */
+    uint16_t s_nlnno;   /* number of gp histogram entries */
+    uint32_t s_flags;   /* flags */
 } SCNHDR;
 
 typedef struct aouthdr {

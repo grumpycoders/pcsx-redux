@@ -21,8 +21,8 @@
  * Internal PSX counters.
  */
 
-#include "core/debug.h"
 #include "core/psxcounters.h"
+#include "core/debug.h"
 
 /******************************************************************************/
 
@@ -296,7 +296,9 @@ void psxRcntWmode(uint32_t index, uint32_t value) {
             break;
         case 1:
             if (value & Rc1HSyncClock) {
-                s_rcnts[index].rate = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] * s_HSyncTotal[PCSX::g_emulator.config().Video]));
+                s_rcnts[index].rate =
+                    (PCSX::g_emulator.m_psxClockSpeed /
+                     (s_frameRate[PCSX::g_emulator.config().Video] * s_HSyncTotal[PCSX::g_emulator.config().Video]));
             } else {
                 s_rcnts[index].rate = 1;
             }
@@ -361,7 +363,8 @@ uint32_t psxRcntRcount(uint32_t index) {
         static uint32_t cylast = 0;
         uint32_t count1 = count;
         count /= PCSX::Emulator::BIAS;
-        verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast, (PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle - cylast));
+        verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast,
+                   (PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle - cylast));
         cylast = PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
         clast = count;
     }
@@ -396,7 +399,8 @@ void psxHsyncCalculate() {
     s_HSyncTotal[PCSX::Emulator::PSX_TYPE_NTSC] = 263;
     s_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL] = 313;
     if (PCSX::g_emulator.config().VSyncWA) {
-        s_HSyncTotal[PCSX::g_emulator.config().Video] = s_HSyncTotal[PCSX::g_emulator.config().Video] / PCSX::Emulator::BIAS;
+        s_HSyncTotal[PCSX::g_emulator.config().Video] =
+            s_HSyncTotal[PCSX::g_emulator.config().Video] / PCSX::Emulator::BIAS;
     } else if (PCSX::g_emulator.config().HackFix) {
         s_HSyncTotal[PCSX::g_emulator.config().Video] = s_HSyncTotal[PCSX::g_emulator.config().Video] + 1;
     }
@@ -422,7 +426,8 @@ void psxRcntInit() {
     // rcnt base.
     s_rcnts[3].rate = 1;
     s_rcnts[3].mode = RcCountToTarget;
-    s_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] * s_HSyncTotal[PCSX::g_emulator.config().Video]));
+    s_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] *
+                                                             s_HSyncTotal[PCSX::g_emulator.config().Video]));
 
     for (i = 0; i < CounterQuantity; ++i) {
         _psxRcntWcount(i, 0);
@@ -446,8 +451,11 @@ int32_t psxRcntFreeze(gzFile f, int32_t Mode) {
     if (Mode == 0) {
         psxHsyncCalculate();
         // iCB: recalculate target count in case overclock is changed
-        s_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] * s_HSyncTotal[PCSX::g_emulator.config().Video]));
-        if (s_rcnts[1].rate != 1) s_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] * s_HSyncTotal[PCSX::g_emulator.config().Video]));
+        s_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] *
+                                                                 s_HSyncTotal[PCSX::g_emulator.config().Video]));
+        if (s_rcnts[1].rate != 1)
+            s_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed / (s_frameRate[PCSX::g_emulator.config().Video] *
+                                                                   s_HSyncTotal[PCSX::g_emulator.config().Video]));
     }
 
     return 0;

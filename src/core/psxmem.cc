@@ -21,9 +21,9 @@
  * PSX memory functions.
  */
 
+#include "core/psxmem.h"
 #include "core/debug.h"
 #include "core/psxhw.h"
-#include "core/psxmem.h"
 #include "core/r3000a.h"
 
 int8_t *g_psxM = NULL;  // Kernel & User Memory (2 Meg)
@@ -35,22 +35,22 @@ uint8_t **g_psxMemWLUT = NULL;
 uint8_t **g_psxMemRLUT = NULL;
 
 /*  Playstation Memory Map (from Playstation doc by Joshua Walker)
-0x0000_0000-0x0000_ffff		Kernel (64K)
-0x0001_0000-0x001f_ffff		User Memory (1.9 Meg)
+0x0000_0000-0x0000_ffff     Kernel (64K)
+0x0001_0000-0x001f_ffff     User Memory (1.9 Meg)
 
-0x1f00_0000-0x1f00_ffff		Parallel Port (64K)
+0x1f00_0000-0x1f00_ffff     Parallel Port (64K)
 
-0x1f80_0000-0x1f80_03ff		Scratch Pad (1024 bytes)
+0x1f80_0000-0x1f80_03ff     Scratch Pad (1024 bytes)
 
-0x1f80_1000-0x1f80_2fff		Hardware Registers (8K)
+0x1f80_1000-0x1f80_2fff     Hardware Registers (8K)
 
-0x1fc0_0000-0x1fc7_ffff		BIOS (512K)
+0x1fc0_0000-0x1fc7_ffff     BIOS (512K)
 
-0x8000_0000-0x801f_ffff		Kernel and User Memory Mirror (2 Meg) Cached
-0x9fc0_0000-0x9fc7_ffff		BIOS Mirror (512K) Cached
+0x8000_0000-0x801f_ffff     Kernel and User Memory Mirror (2 Meg) Cached
+0x9fc0_0000-0x9fc7_ffff     BIOS Mirror (512K) Cached
 
-0xa000_0000-0xa01f_ffff		Kernel and User Memory Mirror (2 Meg) Uncached
-0xbfc0_0000-0xbfc7_ffff		BIOS Mirror (512K) Uncached
+0xa000_0000-0xa01f_ffff     Kernel and User Memory Mirror (2 Meg) Uncached
+0xbfc0_0000-0xbfc7_ffff     BIOS Mirror (512K) Uncached
 */
 
 int psxMemInit() {
@@ -59,7 +59,7 @@ int psxMemInit() {
     g_psxMemRLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     g_psxMemWLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-    g_psxM = (int8_t*)calloc(0x00220000, 1);
+    g_psxM = (int8_t *)calloc(0x00220000, 1);
 
     g_psxP = &g_psxM[0x200000];
     g_psxH = &g_psxM[0x210000];
@@ -282,7 +282,7 @@ void psxMemWrite32(uint32_t mem, uint32_t value) {
         PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += 1;
     }
 
-    //	if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->SysPrintf("t2fix!!\n");
+    //  if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->SysPrintf("t2fix!!\n");
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
         if ((mem & 0xffff) < 0x400)

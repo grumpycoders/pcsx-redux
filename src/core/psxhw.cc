@@ -21,10 +21,10 @@
  * Functions for PSX hardware control.
  */
 
+#include "core/psxhw.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
-#include "core/psxhw.h"
 
 // Vampire Hunter D hack
 bool g_dmaGpuListHackEn = false;
@@ -552,9 +552,9 @@ void psxHwWrite32(uint32_t add, uint32_t value) {
             return;
 
 #if 0
-		case 0x1f8010d0: break; //DMA5write_madr();
-		case 0x1f8010d4: break; //DMA5write_bcr();
-		case 0x1f8010d8: break; //DMA5write_chcr(); // Not needed
+        case 0x1f8010d0: break; //DMA5write_madr();
+        case 0x1f8010d4: break; //DMA5write_bcr();
+        case 0x1f8010d8: break; //DMA5write_chcr(); // Not needed
 #endif
         case 0x1f8010e0:
             PSXHW_LOG("DMA6 MADR 32bit write %x\n", value);

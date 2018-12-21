@@ -57,8 +57,9 @@ static void hleBootstrap() {  // 0xbfc00000
     PCSX::g_system->SysBiosPrintf("hleBootstrap\n");
     CheckCdrom();
     LoadCdrom();
-    PCSX::g_system->SysBiosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", g_cdromLabel, (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
-              (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);
+    PCSX::g_system->SysBiosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", g_cdromLabel,
+                                  (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
+                                  (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);
 }
 
 typedef struct {

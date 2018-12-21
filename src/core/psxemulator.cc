@@ -17,9 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/psxemulator.h"
 #include "core/cheat.h"
 #include "core/ppf.h"
-#include "core/psxemulator.h"
 #include "core/psxbios.h"
 #include "core/r3000a.h"
 

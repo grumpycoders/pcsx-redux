@@ -1180,9 +1180,9 @@ __inline int shl10idiv(int x, int y) {
     {
    mov   eax,x
    mov   ebx,y
-   mov   edx, eax 
-   shl   eax, 10 
-   sar   edx, 22 
+   mov   edx, eax
+   shl   eax, 10
+   sar   edx, 22
    idiv  ebx
       // return result in eax
     }

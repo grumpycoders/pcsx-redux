@@ -74,9 +74,9 @@ class System;
 
 class Emulator {
   public:
-    enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                      // PSX Types
-    enum CPUType   { CPU_DYNAREC = 0, CPU_INTERPRETER };                     // CPU Types
-    enum CDDAType  { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
+    enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
+    enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
+    enum CDDAType { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
     class PcsxConfig {
       public:
         std::string Mcd1;
@@ -104,7 +104,7 @@ class Emulator {
         bool HideCursor = false;
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
-        CPUType Cpu = CPU_DYNAREC;  // CPU_DYNAREC or CPU_INTERPRETER
+        CPUType Cpu = CPU_DYNAREC;        // CPU_DYNAREC or CPU_INTERPRETER
         VideoType Video = PSX_TYPE_NTSC;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
         uint32_t RewindCount = 0;
         uint32_t RewindInterval = 0;

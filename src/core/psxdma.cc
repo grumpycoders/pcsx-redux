@@ -47,8 +47,8 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
 
             // Jungle Book - max 0.333x DMA length
             // Harry Potter and the Philosopher's Stone - max 0.5x DMA length
-            // uint32_t dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with both
-            // games above?
+            // uint32_t dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with
+            // both games above?
             SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 2);
             return;
 
@@ -111,8 +111,7 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         GPUOTCDMA_INT(size / 3);
 #endif
         return;
-    }
-    else {
+    } else {
         // Unknown option
         PSXDMA_LOG("*** DMA6 OT - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
     }

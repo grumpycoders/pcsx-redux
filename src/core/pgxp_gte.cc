@@ -18,16 +18,16 @@
  ***************************************************************************/
 
 /**************************************************************************
- *	pgxp_gte.c
- *	PGXP - Parallel/Precision Geometry Xform Pipeline
+ *  pgxp_gte.c
+ *  PGXP - Parallel/Precision Geometry Xform Pipeline
  *
- *	Created on: 12 Mar 2016
+ *  Created on: 12 Mar 2016
  *      Author: iCatButler
  ***************************************************************************/
 
+#include "core/pgxp_gte.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
-#include "core/pgxp_gte.h"
 #include "core/pgxp_mem.h"
 #include "core/pgxp_value.h"
 #include "core/psxemulator.h"
@@ -84,7 +84,7 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
     // cache value in GPU plugin
     temp.word = _v;
     if (PCSX::g_emulator.config().PGXP_Cache)
-        GPU_pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char *>(&SXY2));
+        GPU_pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char*>(&SXY2));
     else
         GPU_pgxpCacheVertex(0, 0, NULL);
 
@@ -129,10 +129,10 @@ void PGXP_RTPS(uint32_t _n, uint32_t _v) {
     float IR2 = max(min(MAC2, 0x7fff), -0x8000);
     float IR3 = max(min(MAC3, 0x7fff), -0x8000);
 
-    float H = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[26].sw.l;           // Near plane
-    float F = 0xFFFF;                            // Far plane?
+    float H = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[26].sw.l;  // Near plane
+    float F = 0xFFFF;                                                // Far plane?
     float SZ3 = max(min(MAC3, 0xffff), 0x0000);  // Clamp SZ3 to near plane because we have no clipping (no proper Z)
-    //	float h_over_sz3 = H / SZ3;
+    //  float h_over_sz3 = H / SZ3;
 
     // Offsets with 16-bit shift
     float OFX = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[24].sd / (float)(1 << 16);
@@ -156,10 +156,10 @@ void PGXP_RTPS(uint32_t _n, uint32_t _v) {
     // float ftolerance = 5.f;
 
     // if ((fabs(sx - sx2) > ftolerance) ||
-    //	(fabs(sy - sy2) > ftolerance) ||
-    //	(fabs(sw - sz2) > ftolerance))
+    //  (fabs(sy - sy2) > ftolerance) ||
+    //  (fabs(sw - sz2) > ftolerance))
     //{
-    //	float r = 5;
+    //  float r = 5;
     //}
 
     PGXP_pushSXYZ2f(sx, sy, sw, _v);
@@ -171,7 +171,8 @@ int PGXP_NLCIP_valid(uint32_t sxy0, uint32_t sxy1, uint32_t sxy2) {
     Validate(&SXY0, sxy0);
     Validate(&SXY1, sxy1);
     Validate(&SXY2, sxy2);
-    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && PCSX::g_emulator.config().PGXP_GTE && (PCSX::g_emulator.config().PGXP_Mode > 0))
+    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && PCSX::g_emulator.config().PGXP_GTE &&
+        (PCSX::g_emulator.config().PGXP_Mode > 0))
         return 1;
     return 0;
 }
@@ -260,7 +261,8 @@ void MFC2(int reg) {
 
         case 28:
         case 29:
-            //	PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7,
+            //  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0,
+            //  0) << 5) | (LIM(IR3 >> 7,
             // 0x1f, 0, 0) << 10);
             break;
     }

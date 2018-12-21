@@ -160,7 +160,8 @@ void SaveCheats(const char *filename) {
 
         // write all cheat codes
         for (j = 0; j < g_cheats[i].n; j++) {
-            fprintf(fp, "%.8X %.4X\n", g_cheatCodes[g_cheats[i].First + j].Addr, g_cheatCodes[g_cheats[i].First + j].Val);
+            fprintf(fp, "%.8X %.4X\n", g_cheatCodes[g_cheats[i].First + j].Addr,
+                    g_cheatCodes[g_cheats[i].First + j].Val);
         }
 
         fprintf(fp, "\n");

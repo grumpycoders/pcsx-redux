@@ -1,6 +1,6 @@
+#include "core/pgxp_mem.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_gte.h"
-#include "core/pgxp_mem.h"
 #include "core/pgxp_value.h"
 
 static PGXP_value s_mem[3 * 2048 * 1024 / 4];  // mirror 2MB in 32-bit words * 3
@@ -22,22 +22,22 @@ uint8_t* PGXP_GetMem() {
 }
 
 /*  Playstation Memory Map (from Playstation doc by Joshua Walker)
-0x0000_0000-0x0000_ffff		Kernel (64K)
-0x0001_0000-0x001f_ffff		User Memory (1.9 Meg)
+0x0000_0000-0x0000_ffff     Kernel (64K)
+0x0001_0000-0x001f_ffff     User Memory (1.9 Meg)
 
-0x1f00_0000-0x1f00_ffff		Parallel Port (64K)
+0x1f00_0000-0x1f00_ffff     Parallel Port (64K)
 
-0x1f80_0000-0x1f80_03ff		Scratch Pad (1024 bytes)
+0x1f80_0000-0x1f80_03ff     Scratch Pad (1024 bytes)
 
-0x1f80_1000-0x1f80_2fff		Hardware Registers (8K)
+0x1f80_1000-0x1f80_2fff     Hardware Registers (8K)
 
-0x1fc0_0000-0x1fc7_ffff		BIOS (512K)
+0x1fc0_0000-0x1fc7_ffff     BIOS (512K)
 
-0x8000_0000-0x801f_ffff		Kernel and User Memory Mirror (2 Meg) Cached
-0x9fc0_0000-0x9fc7_ffff		BIOS Mirror (512K) Cached
+0x8000_0000-0x801f_ffff     Kernel and User Memory Mirror (2 Meg) Cached
+0x9fc0_0000-0x9fc7_ffff     BIOS Mirror (512K) Cached
 
-0xa000_0000-0xa01f_ffff		Kernel and User Memory Mirror (2 Meg) Uncached
-0xbfc0_0000-0xbfc7_ffff		BIOS Mirror (512K) Uncached
+0xa000_0000-0xa01f_ffff     Kernel and User Memory Mirror (2 Meg) Uncached
+0xbfc0_0000-0xbfc7_ffff     BIOS Mirror (512K) Uncached
 */
 void ValidateAddress(uint32_t addr) {
     int* pi = NULL;
@@ -63,7 +63,7 @@ void ValidateAddress(uint32_t addr) {
     else if (addr == 0xfffe0130) {
     }  // Used for cache flushing
     else {
-        //	*pi = 5;
+        //  *pi = 5;
     }
 }
 
@@ -84,8 +84,8 @@ uint32_t PGXP_ConvertAddress(uint32_t addr) {
         default:
             if ((paddr >> 20) == 0x1f8) {
                 if (paddr >= 0x1f801000) {
-                    //	paddr = ((paddr & 0xFFFF) - 0x1000);
-                    //	paddr = (paddr % 0x2000) >> 2;
+                    //  paddr = ((paddr & 0xFFFF) - 0x1000);
+                    //  paddr = (paddr % 0x2000) >> 2;
                     paddr = ((paddr & 0xFFFF) - 0x1000) >> 2;
                     paddr = s_registerOffset + paddr;
                     break;

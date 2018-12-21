@@ -174,7 +174,8 @@ static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {
 
                     for (k = 0; k < 7; k++, sound_datap2 += 16) {
                         *(datap++) = (uint16_t)(sound_datap2[0] & 0x0f) | ((uint16_t)(sound_datap2[4] & 0x0f) << 4) |
-                                     ((uint16_t)(sound_datap2[8] & 0x0f) << 8) | ((uint16_t)(sound_datap2[12] & 0x0f) << 12);
+                                     ((uint16_t)(sound_datap2[8] & 0x0f) << 8) |
+                                     ((uint16_t)(sound_datap2[12] & 0x0f) << 12);
                     }
                     ADPCM_DecodeBlock16(&xdp->left, sound_groupsp[s_headtable[i] + 0], data, destp + 0, 2);
 
@@ -182,7 +183,8 @@ static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {
                     sound_datap2 = sound_datap + i;
                     for (k = 0; k < 7; k++, sound_datap2 += 16) {
                         *(datap++) = (uint16_t)(sound_datap2[0] >> 4) | ((uint16_t)(sound_datap2[4] >> 4) << 4) |
-                                     ((uint16_t)(sound_datap2[8] >> 4) << 8) | ((uint16_t)(sound_datap2[12] >> 4) << 12);
+                                     ((uint16_t)(sound_datap2[8] >> 4) << 8) |
+                                     ((uint16_t)(sound_datap2[12] >> 4) << 12);
                     }
                     ADPCM_DecodeBlock16(&xdp->right, sound_groupsp[s_headtable[i] + 1], data, destp + 1, 2);
 
@@ -226,7 +228,8 @@ static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {
                     sound_datap2 = sound_datap + i;
                     for (k = 0; k < 7; k++, sound_datap2 += 16) {
                         *(datap++) = (uint16_t)(sound_datap2[0] & 0x0f) | ((uint16_t)(sound_datap2[4] & 0x0f) << 4) |
-                                     ((uint16_t)(sound_datap2[8] & 0x0f) << 8) | ((uint16_t)(sound_datap2[12] & 0x0f) << 12);
+                                     ((uint16_t)(sound_datap2[8] & 0x0f) << 8) |
+                                     ((uint16_t)(sound_datap2[12] & 0x0f) << 12);
                     }
                     ADPCM_DecodeBlock16(&xdp->left, sound_groupsp[s_headtable[i] + 0], data, destp, 1);
 
@@ -236,7 +239,8 @@ static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {
                     sound_datap2 = sound_datap + i;
                     for (k = 0; k < 7; k++, sound_datap2 += 16) {
                         *(datap++) = (uint16_t)(sound_datap2[0] >> 4) | ((uint16_t)(sound_datap2[4] >> 4) << 4) |
-                                     ((uint16_t)(sound_datap2[8] >> 4) << 8) | ((uint16_t)(sound_datap2[12] >> 4) << 12);
+                                     ((uint16_t)(sound_datap2[8] >> 4) << 8) |
+                                     ((uint16_t)(sound_datap2[12] >> 4) << 12);
                     }
                     ADPCM_DecodeBlock16(&xdp->left, sound_groupsp[s_headtable[i] + 1], data, destp, 1);
 
@@ -351,7 +355,7 @@ int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_
 "nsamples" is the number of 16 bit samples
 every sample is 2 bytes in mono and 4 bytes in stereo
 
-xa_decode_t	xa;
+xa_decode_t xa;
 
         sectorp = read_first_sector();
         xa_decode_sector( &xa, sectorp, 1 );

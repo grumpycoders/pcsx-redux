@@ -134,8 +134,8 @@ void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             GPU_writeDataMem(ptr, size);
 
 #if 0
-			// already 32-bit word size ((size * 4) / 4)
-			GPUDMA_INT(size);
+            // already 32-bit word size ((size * 4) / 4)
+            GPUDMA_INT(size);
 #else
             // X-Files video interlace. Experimental delay depending of BS.
             GPUDMA_INT((7 * size) / bs);

@@ -241,7 +241,8 @@ void PGXP_CPU_ADD(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -284,7 +285,8 @@ void PGXP_CPU_SUB(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -327,7 +329,8 @@ void PGXP_CPU_AND(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -336,7 +339,7 @@ void PGXP_CPU_AND(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
     vals.d = rsVal;
     valt.d = rtVal;
 
-    //	g_CPU_reg[rd(instr)].valid = g_CPU_reg[rs(instr)].valid && g_CPU_reg[rt(instr)].valid;
+    //  g_CPU_reg[rd(instr)].valid = g_CPU_reg[rs(instr)].valid && g_CPU_reg[rt(instr)].valid;
     ret.flags = VALID_01;
 
     if (vald.w.l == 0) {
@@ -375,7 +378,7 @@ void PGXP_CPU_AND(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
 
     // iCB Hack: Force validity if even one half is valid
     // if ((ret.hFlags & VALID_HALF) || (ret.lFlags & VALID_HALF))
-    //	ret.valid = 1;
+    //  ret.valid = 1;
     // /iCB Hack
 
     // Get a valid W
@@ -413,7 +416,8 @@ void PGXP_CPU_SLT(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -437,7 +441,8 @@ void PGXP_CPU_SLTU(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVa
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -464,7 +469,8 @@ void PGXP_CPU_MULT(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVa
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -509,7 +515,8 @@ void PGXP_CPU_MULTU(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsV
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     // iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -555,7 +562,8 @@ void PGXP_CPU_DIV(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVal
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     //// iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -586,7 +594,8 @@ void PGXP_CPU_DIVU(uint32_t instr, uint32_t hiVal, uint32_t loVal, uint32_t rsVa
     Validate(&g_CPU_reg[rt(instr)], rtVal);
 
     //// iCB: Only require one valid input
-    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) != ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
+    if (((g_CPU_reg[rt(instr)].flags & VALID_01) != VALID_01) !=
+        ((g_CPU_reg[rs(instr)].flags & VALID_01) != VALID_01)) {
         MakeValid(&g_CPU_reg[rs(instr)], rsVal);
         MakeValid(&g_CPU_reg[rt(instr)], rtVal);
     }
@@ -670,7 +679,7 @@ void PGXP_CPU_SLL(uint32_t instr, uint32_t rdVal, uint32_t rtVal) {
         } else if (sh < 16) {
             y += f16Unsign(x) / (1 << (16 - sh));
             // if (in.x < 0)
-            //	y += 1 << (16 - sh);
+            //  y += 1 << (16 - sh);
         } else {
             y += x * (1 << (sh - 16));
         }
@@ -703,37 +712,37 @@ void PGXP_CPU_SRL(uint32_t instr, uint32_t rdVal, uint32_t rtVal) {
     ret = g_CPU_reg[rt(instr)];
 
 #if 0
-	double x = f16Unsign(g_CPU_reg[rt(instr)].x);
-	double y = f16Unsign(g_CPU_reg[rt(instr)].y);
-	if (sh >= 32)
-	{
-		x = y = 0.f;
-	}
-	else if (sh >= 16)
-	{
-		x = y / (1 << (sh - 16));
-		x = f16Sign(x);
-		y = (y < 0) ? -1.f : 0.f;	// sign extend
-	}
-	else
-	{
-		x = x / (1 << sh);
+    double x = f16Unsign(g_CPU_reg[rt(instr)].x);
+    double y = f16Unsign(g_CPU_reg[rt(instr)].y);
+    if (sh >= 32)
+    {
+        x = y = 0.f;
+    }
+    else if (sh >= 16)
+    {
+        x = y / (1 << (sh - 16));
+        x = f16Sign(x);
+        y = (y < 0) ? -1.f : 0.f;   // sign extend
+    }
+    else
+    {
+        x = x / (1 << sh);
 
-		// check for potential sign extension in overflow
-		psx_value valt;
-		valt.d = rtVal;
-		uint16_t mask = 0xFFFF >> (16 - sh);
-		if ((valt.w.h & mask) == mask)
-			x += mask << (16 - sh);
-		else if ((valt.w.h & mask) == 0)
-			x = x;
-		else
-			x += y * (1 << (16 - sh));//f16Overflow(y);	
+        // check for potential sign extension in overflow
+        psx_value valt;
+        valt.d = rtVal;
+        uint16_t mask = 0xFFFF >> (16 - sh);
+        if ((valt.w.h & mask) == mask)
+            x += mask << (16 - sh);
+        else if ((valt.w.h & mask) == 0)
+            x = x;
+        else
+            x += y * (1 << (16 - sh));//f16Overflow(y);
 
-		y = y / (1 << sh);
-		x = f16Sign(x);
-		y = f16Sign(y);
-	}
+        y = y / (1 << sh);
+        x = f16Sign(x);
+        y = f16Sign(y);
+    }
 #else
     double x = g_CPU_reg[rt(instr)].x, y = f16Unsign(g_CPU_reg[rt(instr)].y);
 
@@ -791,38 +800,38 @@ void PGXP_CPU_SRA(uint32_t instr, uint32_t rdVal, uint32_t rtVal) {
     ret = g_CPU_reg[rt(instr)];
 
 #if 0
-	double x = f16Unsign(g_CPU_reg[rt(instr)].x);
-	double y = (g_CPU_reg[rt(instr)].y);
-	if (sh >= 32)
-	{
-		// sign extend
-		x = y = (y < 0) ? -1.f : 0.f;
-	}
-	else if (sh >= 16)
-	{
-		x = y / (1 << (sh - 16));
-		x = f16Sign(x);
-		y = (y < 0) ? -1.f : 0.f;	// sign extend
-	}
-	else
-	{
-		x = x / (1 << sh);
-		
-		// check for potential sign extension in overflow
-		psx_value valt;
-		valt.d = rtVal;
-		uint16_t mask = 0xFFFF >> (16 - sh);
-		if ((valt.w.h & mask) == mask)
-			x += mask << (16 - sh);
-		else if ((valt.w.h & mask) == 0)
-			x = x;
-		else
-			x += y * (1 << (16 - sh));//f16Overflow(y);	
+    double x = f16Unsign(g_CPU_reg[rt(instr)].x);
+    double y = (g_CPU_reg[rt(instr)].y);
+    if (sh >= 32)
+    {
+        // sign extend
+        x = y = (y < 0) ? -1.f : 0.f;
+    }
+    else if (sh >= 16)
+    {
+        x = y / (1 << (sh - 16));
+        x = f16Sign(x);
+        y = (y < 0) ? -1.f : 0.f;   // sign extend
+    }
+    else
+    {
+        x = x / (1 << sh);
 
-		y = y / (1 << sh);
-		x = f16Sign(x);
-		y = f16Sign(y);
-	}
+        // check for potential sign extension in overflow
+        psx_value valt;
+        valt.d = rtVal;
+        uint16_t mask = 0xFFFF >> (16 - sh);
+        if ((valt.w.h & mask) == mask)
+            x += mask << (16 - sh);
+        else if ((valt.w.h & mask) == 0)
+            x = x;
+        else
+            x += y * (1 << (16 - sh));//f16Overflow(y);
+
+        y = y / (1 << sh);
+        x = f16Sign(x);
+        y = f16Sign(y);
+    }
 
 #else
     double x = g_CPU_reg[rt(instr)].x, y = g_CPU_reg[rt(instr)].y;
@@ -934,7 +943,7 @@ void PGXP_CPU_SLLV(uint32_t instr, uint32_t rdVal, uint32_t rtVal, uint32_t rsVa
         } else if (sh < 16) {
             y += f16Unsign(x) / (1 << (16 - sh));
             // if (in.x < 0)
-            //	y += 1 << (16 - sh);
+            //  y += 1 << (16 - sh);
         } else {
             y += x * (1 << (sh - 16));
         }
@@ -967,37 +976,37 @@ void PGXP_CPU_SRLV(uint32_t instr, uint32_t rdVal, uint32_t rtVal, uint32_t rsVa
     ret = g_CPU_reg[rt(instr)];
 
 #if 0
-	double x = f16Unsign(g_CPU_reg[rt(instr)].x);
-	double y = f16Unsign(g_CPU_reg[rt(instr)].y);
-	if (sh >= 32)
-	{
-		x = y = 0.f;
-	}
-	else if (sh >= 16)
-	{
-		x = y / (1 << (sh - 16));
-		x = f16Sign(x);
-		y = (y < 0) ? -1.f : 0.f;	// sign extend
-	}
-	else
-	{
-		x = x / (1 << sh);
-		
-		// check for potential sign extension in overflow
-		psx_value valt;
-		valt.d = rtVal;
-		uint16_t mask = 0xFFFF >> (16 - sh);
-		if ((valt.w.h & mask) == mask)
-			x += mask << (16 - sh);
-		else if ((valt.w.h & mask) == 0)
-			x = x;
-		else
-			x += y * (1 << (16 - sh));//f16Overflow(y);	
+    double x = f16Unsign(g_CPU_reg[rt(instr)].x);
+    double y = f16Unsign(g_CPU_reg[rt(instr)].y);
+    if (sh >= 32)
+    {
+        x = y = 0.f;
+    }
+    else if (sh >= 16)
+    {
+        x = y / (1 << (sh - 16));
+        x = f16Sign(x);
+        y = (y < 0) ? -1.f : 0.f;   // sign extend
+    }
+    else
+    {
+        x = x / (1 << sh);
 
-		y = y / (1 << sh);
-		x = f16Sign(x);
-		y = f16Sign(y);
-	}
+        // check for potential sign extension in overflow
+        psx_value valt;
+        valt.d = rtVal;
+        uint16_t mask = 0xFFFF >> (16 - sh);
+        if ((valt.w.h & mask) == mask)
+            x += mask << (16 - sh);
+        else if ((valt.w.h & mask) == 0)
+            x = x;
+        else
+            x += y * (1 << (16 - sh));//f16Overflow(y);
+
+        y = y / (1 << sh);
+        x = f16Sign(x);
+        y = f16Sign(y);
+    }
 
 #else
     double x = g_CPU_reg[rt(instr)].x, y = f16Unsign(g_CPU_reg[rt(instr)].y);
@@ -1058,37 +1067,37 @@ void PGXP_CPU_SRAV(uint32_t instr, uint32_t rdVal, uint32_t rtVal, uint32_t rsVa
 
     ret = g_CPU_reg[rt(instr)];
 #if 0
-	double x = f16Unsign(g_CPU_reg[rt(instr)].x);
-	double y = f16Unsign(g_CPU_reg[rt(instr)].y);
-	if (sh >= 32)
-	{
-		x = y = 0.f;
-	}
-	else if (sh >= 16)
-	{
-		x = y / (1 << (sh - 16));
-		x = f16Sign(x);
-		y = (y < 0) ? -1.f : 0.f;	// sign extend
-	}
-	else
-	{
-		x = x / (1 << sh);
-		
-		// check for potential sign extension in overflow
-		psx_value valt;
-		valt.d = rtVal;
-		uint16_t mask = 0xFFFF >> (16 - sh);
-		if ((valt.w.h & mask) == mask)
-			x += mask << (16 - sh);
-		else if ((valt.w.h & mask) == 0)
-			x = x;
-		else
-			x += y * (1 << (16 - sh));//f16Overflow(y);	
+    double x = f16Unsign(g_CPU_reg[rt(instr)].x);
+    double y = f16Unsign(g_CPU_reg[rt(instr)].y);
+    if (sh >= 32)
+    {
+        x = y = 0.f;
+    }
+    else if (sh >= 16)
+    {
+        x = y / (1 << (sh - 16));
+        x = f16Sign(x);
+        y = (y < 0) ? -1.f : 0.f;   // sign extend
+    }
+    else
+    {
+        x = x / (1 << sh);
 
-		y = y / (1 << sh);
-		x = f16Sign(x);
-		y = f16Sign(y);
-	}
+        // check for potential sign extension in overflow
+        psx_value valt;
+        valt.d = rtVal;
+        uint16_t mask = 0xFFFF >> (16 - sh);
+        if ((valt.w.h & mask) == mask)
+            x += mask << (16 - sh);
+        else if ((valt.w.h & mask) == 0)
+            x = x;
+        else
+            x += y * (1 << (16 - sh));//f16Overflow(y);
+
+        y = y / (1 << sh);
+        x = f16Sign(x);
+        y = f16Sign(y);
+    }
 
 #else
     double x = g_CPU_reg[rt(instr)].x, y = g_CPU_reg[rt(instr)].y;

@@ -84,7 +84,7 @@ LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
             if (!iUseScanLines) break;
             if (!iWindowMode) break;
             if (bIsFirstFrame) break;
-            //MoveScanLineArea(hwnd);
+            // MoveScanLineArea(hwnd);
         } break;
         //--------------------------------------------------//
         case WM_KEYDOWN:  // keydown
@@ -118,7 +118,7 @@ LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
             if (wParam == (WPARAM)szGPUKeys[6]) {
 #if 0
-				                if (RECORD_RECORDING == TRUE) {
+                                if (RECORD_RECORDING == TRUE) {
                     RECORD_RECORDING = FALSE;
                     RECORD_Stop();
                 } else {
@@ -170,7 +170,7 @@ LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
 void SetKeyHandler(void) {
 #if 0
-				 if(!wpOrgWndProc)                                     // setup keyhandler
+                 if(!wpOrgWndProc)                                     // setup keyhandler
   {
    wpOrgWndProc = (WNDPROC)GetWindowLong(textureId, GWL_WNDPROC );
    SetWindowLong(textureId, GWL_WNDPROC, (long)KeyWndProc);
@@ -183,7 +183,7 @@ void SetKeyHandler(void) {
 
 void ReleaseKeyHandler(void) {
 #if 0
-				 if(wpOrgWndProc)
+                 if(wpOrgWndProc)
   SetWindowLong(textureId,GWL_WNDPROC,              // set old proc
                 (long)wpOrgWndProc);
  wpOrgWndProc = 0;

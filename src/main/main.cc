@@ -34,9 +34,7 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void SysLog(const char *facility, const char *fmt, va_list a) final {
-        vprintf(fmt, a);
-    }
+    virtual void SysLog(const char *facility, const char *fmt, va_list a) final { vprintf(fmt, a); }
 
     virtual void SysUpdate() final {
         // called on vblank to update states

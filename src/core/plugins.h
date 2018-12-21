@@ -38,7 +38,6 @@ typedef long (*SIO1open)(unsigned long*);
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-
 #include "core/decode_xa.h"
 #include "core/psemu_plugin_defs.h"
 #include "core/spu.h"
@@ -50,7 +49,6 @@ typedef long(CALLBACK* SPUopen)(HWND);
 typedef long(CALLBACK* PADopen)(HWND);
 typedef long(CALLBACK* NETopen)(HWND);
 typedef long(CALLBACK* SIO1open)(HWND);
-
 }
 
 #endif

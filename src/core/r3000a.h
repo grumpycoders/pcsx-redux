@@ -253,7 +253,7 @@ typedef struct {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4;  // Sets the return address in the link register
 
 class R3000Acpu {
-   public:
+  public:
     virtual bool Init() { return false; }
     virtual void Reset() { assert(0); }
     virtual void Execute() { assert(0); }       /* executes up to a break */
@@ -265,7 +265,7 @@ class R3000Acpu {
 
     const std::string &getName() { return m_name; }
 
-   public:
+  public:
     static int psxInit();
     void psxReset();
     void psxShutdown();
@@ -281,15 +281,15 @@ class R3000Acpu {
 
     psxRegisters m_psxRegs;
 
-   protected:
+  protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
 
-   private:
+  private:
     const std::string m_name;
 };
 
 class InterpretedCPU : public R3000Acpu {
-   public:
+  public:
     InterpretedCPU() : R3000Acpu("Interpreted") {}
     virtual bool Implemented() override { return true; }
     virtual bool Init() override;
@@ -300,16 +300,16 @@ class InterpretedCPU : public R3000Acpu {
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
 
-   protected:
+  protected:
     InterpretedCPU(const std::string &name) : R3000Acpu(name) {}
 };
 
 class Cpus {
-   public:
+  public:
     static R3000Acpu *Interpreted();
     static R3000Acpu *DynaRec();
 
-   private:
+  private:
     static R3000Acpu *getX86DynaRec();
 };
 

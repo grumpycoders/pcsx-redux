@@ -99,7 +99,6 @@ void CALLBACK softGPUhSync(int val);
 void CALLBACK softGPUvSync(int val);
 void CALLBACK softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void CALLBACK softGPUvBlank(int val);
-
 }
 
 CDRinit CDR_init;
@@ -232,13 +231,13 @@ SIO1registerCallback SIO1_registerCallback;
 
 static const char *err;
 
-#define CheckErr(func)                                        \
-    {                                                         \
-        err = SysLibError();                                  \
-        if (err != NULL) {                                    \
+#define CheckErr(func)                                                        \
+    {                                                                         \
+        err = SysLibError();                                                  \
+        if (err != NULL) {                                                    \
             PCSX::g_system->SysMessage(_("Error loading %s: %s"), func, err); \
-            return -1;                                        \
-        }                                                     \
+            return -1;                                                        \
+        }                                                                     \
     }
 
 #define LoadSym(dest, src, name, checkerr) \
@@ -515,18 +514,18 @@ void CALLBACK nullSPU_about(void) {}
 
 long CALLBACK nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
 #if 0
-	if( ulFreezeMode == 1 )
-	{
-		memcpy(pF->cSPURam, spumem, 512*1024);
-		memcpy(pF->cSPUPort, spureg, 0x200);
-		pF->Addr = spu_sbaddr;
-	}
-	else
-	{
-		memcpy(spumem, pF->cSPURam, 512*1024);
-		memcpy(spureg, pF->cSPUPort, 0x200);
-		spu_sbaddr = pF->Addr;
-	}
+    if( ulFreezeMode == 1 )
+    {
+        memcpy(pF->cSPURam, spumem, 512*1024);
+        memcpy(pF->cSPUPort, spureg, 0x200);
+        pF->Addr = spu_sbaddr;
+    }
+    else
+    {
+        memcpy(spumem, pF->cSPURam, 512*1024);
+        memcpy(spureg, pF->cSPUPort, 0x200);
+        spu_sbaddr = pF->Addr;
+    }
 #endif
     return 1;
 }

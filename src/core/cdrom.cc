@@ -158,73 +158,73 @@ extern SPUregisterCallback SPU_registerCallback;
 #define H_CDRight 0x1f801db2
 
 // cdrInterrupt
-#define CDR_INT(eCycle)                                      \
-    {                                                        \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDR);              \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDR].cycle = eCycle;         \
+#define CDR_INT(eCycle)                                                                 \
+    {                                                                                   \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDR);      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDR].cycle = eCycle; \
         PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDR].sCycle =        \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
     }
 
 // cdrReadInterrupt
-#define CDREAD_INT(eCycle)                                      \
-    {                                                           \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDREAD);              \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDREAD].cycle = eCycle;         \
+#define CDREAD_INT(eCycle)                                                                 \
+    {                                                                                      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDREAD);      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDREAD].cycle = eCycle; \
         PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDREAD].sCycle =        \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                    \
     }
 
 // cdrDecodedBufferInterrupt
-#define CDRDBUF_INT(eCycle)                                      \
-    {                                                            \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRDBUF);              \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDBUF].cycle = eCycle;         \
+#define CDRDBUF_INT(eCycle)                                                                 \
+    {                                                                                       \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRDBUF);      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDBUF].cycle = eCycle; \
         PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDBUF].sCycle =        \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                     \
     }
 
 // cdrLidSeekInterrupt
-#define CDRLID_INT(eCycle)                                      \
-    {                                                           \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRLID);              \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRLID].cycle = eCycle;         \
+#define CDRLID_INT(eCycle)                                                                 \
+    {                                                                                      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRLID);      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRLID].cycle = eCycle; \
         PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRLID].sCycle =        \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                    \
     }
 
 // cdrPlayInterrupt
-#define CDRMISC_INT(eCycle)                                      \
-    {                                                            \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRPLAY);              \
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRPLAY].cycle = eCycle;         \
+#define CDRMISC_INT(eCycle)                                                                 \
+    {                                                                                       \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRPLAY);      \
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRPLAY].cycle = eCycle; \
         PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRPLAY].sCycle =        \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                     \
     }
 
-#define StopReading()                                   \
-    {                                                   \
-        if (g_cdr.Reading) {                              \
-            g_cdr.Reading = 0;                            \
+#define StopReading()                                                                      \
+    {                                                                                      \
+        if (g_cdr.Reading) {                                                               \
+            g_cdr.Reading = 0;                                                             \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_CDREAD); \
-        }                                               \
-        g_cdr.StatP &= ~(STATUS_READ | STATUS_SEEK);      \
+        }                                                                                  \
+        g_cdr.StatP &= ~(STATUS_READ | STATUS_SEEK);                                       \
     }
 
-#define StopCdda()                        \
-    {                                     \
-        if (g_cdr.Play) {                   \
+#define StopCdda()                                           \
+    {                                                        \
+        if (g_cdr.Play) {                                    \
             if (!PCSX::g_emulator.config().Cdda) CDR_stop(); \
-            g_cdr.StatP &= ~STATUS_PLAY;    \
-            g_cdr.Play = false;             \
-            g_cdr.FastForward = 0;          \
-            g_cdr.FastBackward = 0;         \
-            SPU_registerCallback(SPUirq); \
-        }                                 \
+            g_cdr.StatP &= ~STATUS_PLAY;                     \
+            g_cdr.Play = false;                              \
+            g_cdr.FastForward = 0;                           \
+            g_cdr.FastBackward = 0;                          \
+            SPU_registerCallback(SPUirq);                    \
+        }                                                    \
     }
 
-#define SetResultSize(size)  \
-    {                        \
+#define SetResultSize(size)    \
+    {                          \
         g_cdr.ResultP = 0;     \
         g_cdr.ResultC = size;  \
         g_cdr.ResultReady = 1; \
@@ -256,7 +256,7 @@ static void adjustTransferIndex(void) {
 // FIXME: do this in SPU instead
 void cdrDecodedBufferInterrupt() {
 #if 0
-	return;
+    return;
 #endif
 
     // ISO reader only
@@ -625,7 +625,8 @@ void cdrInterrupt() {
             // - Pause player, hit Track 01/02/../xx (Setloc issued!!)
 
             if (g_cdr.ParamC == 0 || g_cdr.Param[0] == 0) {
-                CDR_LOG("PLAY Resume @ %d:%d:%d\n", g_cdr.SetSectorPlay[0], g_cdr.SetSectorPlay[1], g_cdr.SetSectorPlay[2]);
+                CDR_LOG("PLAY Resume @ %d:%d:%d\n", g_cdr.SetSectorPlay[0], g_cdr.SetSectorPlay[1],
+                        g_cdr.SetSectorPlay[2]);
             } else {
                 int track = btoi(g_cdr.Param[0]);
 
@@ -1114,14 +1115,16 @@ void cdrReadInterrupt() {
 
     CDR_LOG("cdrReadInterrupt() Log: cdr.Transfer %x:%x:%x\n", g_cdr.Transfer[0], g_cdr.Transfer[1], g_cdr.Transfer[2]);
 
-    if ((!g_cdr.Muted) && (g_cdr.Mode & MODE_STRSND) && (!PCSX::g_emulator.config().Xa) && (g_cdr.FirstSector != -1)) {  // CD-XA
+    if ((!g_cdr.Muted) && (g_cdr.Mode & MODE_STRSND) && (!PCSX::g_emulator.config().Xa) &&
+        (g_cdr.FirstSector != -1)) {  // CD-XA
         // Firemen 2: Multi-XA files - briefings, cutscenes
         if (g_cdr.FirstSector == 1 && (g_cdr.Mode & MODE_SF) == 0) {
             g_cdr.File = g_cdr.Transfer[4 + 0];
             g_cdr.Channel = g_cdr.Transfer[4 + 1];
         }
 
-        if ((g_cdr.Transfer[4 + 2] & 0x4) && (g_cdr.Transfer[4 + 1] == g_cdr.Channel) && (g_cdr.Transfer[4 + 0] == g_cdr.File)) {
+        if ((g_cdr.Transfer[4 + 2] & 0x4) && (g_cdr.Transfer[4 + 1] == g_cdr.Channel) &&
+            (g_cdr.Transfer[4 + 0] == g_cdr.File)) {
             int ret = xa_decode_sector(&g_cdr.Xa, g_cdr.Transfer + 4, g_cdr.FirstSector);
             if (!ret) {
                 cdrAttenuate(g_cdr.Xa.pcm, g_cdr.Xa.nsamples, g_cdr.Xa.stereo);
@@ -1181,7 +1184,7 @@ unsigned char cdrRead0(void) {
 
     if (g_cdr.OCUP) g_cdr.Ctrl |= 0x40;
     //  else
-    //		g_cdr.Ctrl &= ~0x40;
+    //      g_cdr.Ctrl &= ~0x40;
 
     // What means the 0x10 and the 0x08 bits? I only saw it used by the bios
     g_cdr.Ctrl |= 0x18;
@@ -1334,8 +1337,8 @@ void cdrWrite3(unsigned char rt) {
         case 3:
             if (rt & 0x20) {
                 memcpy(&g_cdr.AttenuatorLeftToLeft, &g_cdr.AttenuatorLeftToLeftT, 4);
-                CDR_LOG_IO("CD-XA Volume: %02x %02x | %02x %02x\n", g_cdr.AttenuatorLeftToLeft, g_cdr.AttenuatorLeftToRight,
-                           g_cdr.AttenuatorRightToLeft, g_cdr.AttenuatorRightToRight);
+                CDR_LOG_IO("CD-XA Volume: %02x %02x | %02x %02x\n", g_cdr.AttenuatorLeftToLeft,
+                           g_cdr.AttenuatorLeftToRight, g_cdr.AttenuatorRightToLeft, g_cdr.AttenuatorRightToRight);
             }
             return;
     }

@@ -18,10 +18,10 @@
  ***************************************************************************/
 
 /**************************************************************************
- *	pgxp_gte.h
- *	PGXP - Parallel/Precision Geometry Xform Pipeline
+ *  pgxp_gte.h
+ *  PGXP - Parallel/Precision Geometry Xform Pipeline
  *
- *	Created on: 12 Mar 2016
+ *  Created on: 12 Mar 2016
  *      Author: iCatButler
  ***************************************************************************/
 

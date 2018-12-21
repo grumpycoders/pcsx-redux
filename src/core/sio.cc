@@ -88,28 +88,28 @@ static int s_dongleInit;
 
 #if 0
 // Breaks Twisted Metal 2 intro
-#define SIO_INT(eCycle)                                          \
-    {                                                            \
-        if (!PCSX::g_emulator.config().SioIrq) {                                    \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);              \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;         \
+#define SIO_INT(eCycle)                                                                     \
+    {                                                                                       \
+        if (!PCSX::g_emulator.config().SioIrq) {                                            \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
-        }                                                        \
-                                                                 \
-        s_statReg &= ~RX_RDY;                                      \
-        s_statReg &= ~TX_RDY;                                      \
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
+        }                                                                                   \
+                                                                                            \
+        s_statReg &= ~RX_RDY;                                                               \
+        s_statReg &= ~TX_RDY;                                                               \
     }
 #endif
 
-#define SIO_INT(eCycle)                                          \
-    {                                                            \
-        if (!PCSX::g_emulator.config().SioIrq) {                                    \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);              \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;         \
+#define SIO_INT(eCycle)                                                                     \
+    {                                                                                       \
+        if (!PCSX::g_emulator.config().SioIrq) {                                            \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle; \
-        }                                                        \
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
+        }                                                                                   \
     }
 
 // clk cycle byte
@@ -124,7 +124,7 @@ static int s_dongleInit;
 // PCSX 1.9.91
 //#define SIO_CYCLES 270
 // ePSXe 1.6.0
-//#define SIO_CYCLES		535
+//#define SIO_CYCLES        535
 // ePSXe 1.7.0
 //#define SIO_CYCLES 635
 
@@ -178,7 +178,7 @@ void sioWrite8(unsigned char value) {
                             break;
                     }
                 } /* else {
-//					PCSX::g_system->SysPrintf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
+//                  PCSX::g_system->SysPrintf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
 s_buf[5]);
                  }*/
 
@@ -222,7 +222,7 @@ s_buf[5]);
             return;
         case 2:
             s_parp++;
-            /*			if (s_buf[1] == 0x45) {
+            /*          if (s_buf[1] == 0x45) {
                                             s_buf[s_parp] = 0;
                                             SIO_INT(SIO_CYCLES);
                                             return;
@@ -624,7 +624,7 @@ s_buf[5]);
     }
 
     switch (value) {
-        case 0x01:              // start pad
+        case 0x01:                // start pad
             s_statReg |= RX_RDY;  // Transfer is Ready
 
             if (!PCSX::g_emulator.config().UseNet) {
@@ -675,7 +675,8 @@ s_buf[5]);
             s_statReg |= RX_RDY;
 
             // Chronicles of the Sword - no memcard = password options
-            if (PCSX::g_emulator.config().NoMemcard || (!PCSX::g_emulator.config().Mcd1[0] && !PCSX::g_emulator.config().Mcd2[0])) {
+            if (PCSX::g_emulator.config().NoMemcard ||
+                (!PCSX::g_emulator.config().Mcd1[0] && !PCSX::g_emulator.config().Mcd2[0])) {
                 memset(s_buf, 0x00, 4);
             } else {
                 memcpy(s_buf, s_cardh, 4);
@@ -734,7 +735,7 @@ unsigned char sioRead8() {
     unsigned char ret = 0;
 
     if ((s_statReg & RX_RDY) /* && (s_ctrlReg & RX_PERM)*/) {
-        //		s_statReg &= ~RX_OVERRUN;
+        //      s_statReg &= ~RX_OVERRUN;
         ret = s_buf[s_parp];
         if (s_parp == s_bufcount) {
             s_statReg &= ~RX_RDY;  // Receive is not Ready now
@@ -744,11 +745,13 @@ unsigned char sioRead8() {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128,
+                                    128);
                             break;
                         case 0x2002:
                             memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128,
+                                    128);
                             break;
                     }
                 }
@@ -761,8 +764,9 @@ unsigned char sioRead8() {
         }
     }
 
-    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg, s_buf[s_parp > 0 ? s_parp - 1 : 0],
-            s_buf[s_parp], s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
+    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg,
+            s_buf[s_parp > 0 ? s_parp - 1 : 0], s_buf[s_parp],
+            s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
     return ret;
 }
 
@@ -772,13 +776,13 @@ unsigned short sioReadStat16() {
     hard = s_statReg;
 
 #if 0
-	// wait for IRQ first
-	if( PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
-	{
-		hard &= ~TX_RDY;
-		hard &= ~RX_RDY;
-		hard &= ~TX_EMPTY;
-	}
+    // wait for IRQ first
+    if( PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
+    {
+        hard &= ~TX_RDY;
+        hard &= ~RX_RDY;
+        hard &= ~TX_EMPTY;
+    }
 #endif
 
     return hard;
@@ -802,15 +806,15 @@ void netError() {
 
 void sioInterrupt() {
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
-    //	PCSX::g_system->SysPrintf("Sio Interrupt\n");
+    //  PCSX::g_system->SysPrintf("Sio Interrupt\n");
     s_statReg |= IRQ;
     psxHu32ref(0x1070) |= SWAPu32(0x80);
 
 #if 0
-	// Rhapsody: fixes input problems
-	// Twisted Metal 2: breaks intro
-	s_statReg |= TX_RDY;
-	s_statReg |= RX_RDY;
+    // Rhapsody: fixes input problems
+    // Twisted Metal 2: breaks intro
+    s_statReg |= TX_RDY;
+    s_statReg |= RX_RDY;
 #endif
 }
 
@@ -896,12 +900,12 @@ void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size) {
     }
 
 #if 0
-	// try to create it again if we can't open it
-	f = fopen(mcd, "wb");
-	if (f != NULL) {
-		fwrite(data, 1, MCD_SIZE, f);
-		fclose(f);
-	}
+    // try to create it again if we can't open it
+    f = fopen(mcd, "wb");
+    if (f != NULL) {
+        fwrite(data, 1, MCD_SIZE, f);
+        fclose(f);
+    }
 #endif
 
     ConvertMcd(mcd, data);

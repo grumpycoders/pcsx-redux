@@ -21,13 +21,13 @@
  * R3000A CPU functions.
  */
 
+#include "core/r3000a.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
-#include "core/r3000a.h"
 
 int PCSX::R3000Acpu::psxInit() {
     PCSX::g_system->SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
@@ -114,26 +114,26 @@ void PCSX::R3000Acpu::psxBranchTest() {
     }
 
 #if 0
-	if( SPU_async )
-	{
-		static int init;
-		int elapsed;
+    if( SPU_async )
+    {
+        static int init;
+        int elapsed;
 
-		if( init == 0 ) {
-			// 10 apu cycles
-			// - Final Fantasy Tactics (distorted - dropped sound effects)
-			m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle = PCSX::g_emulator.m_psxClockSpeed / 44100 * 10;
+        if( init == 0 ) {
+            // 10 apu cycles
+            // - Final Fantasy Tactics (distorted - dropped sound effects)
+            m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle = PCSX::g_emulator.m_psxClockSpeed / 44100 * 10;
 
-			init = 1;
-		}
+            init = 1;
+        }
 
-		elapsed = m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle;
-		if (elapsed >= m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle) {
-			SPU_async( elapsed );
+        elapsed = m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle;
+        if (elapsed >= m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle) {
+            SPU_async( elapsed );
 
-			m_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle = m_psxRegs.cycle;
-		}
-	}
+            m_psxRegs.intCycle[PSXINT_SPUASYNC].sCycle = m_psxRegs.cycle;
+        }
+    }
 #endif
 
     if ((m_psxRegs.cycle - g_psxNextsCounter) >= g_psxNextCounter) psxRcntUpdate();
