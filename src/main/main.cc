@@ -68,12 +68,12 @@ int main(int argc, char *argv[]) {
 
     SetIsoFile("test.img");
     LoadPlugins();
+    GPU_open(texture);
+    CDR_open();
 
     PCSX::g_emulator.EmuInit();
     PCSX::g_emulator.EmuReset();
 
-    GPU_open(texture);
-    CDR_open();
     CheckCdrom();
     LoadCdrom();
 
