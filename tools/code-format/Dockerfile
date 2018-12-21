@@ -12,8 +12,8 @@ FROM ubuntu:18.04 AS run
 RUN apt-get -y update
 RUN apt-get -y install apt-utils
 RUN apt-get -y dist-upgrade
-RUN apt-get -y install clang-format
+RUN apt-get -y install clang-format tofrodos
 COPY --from=build /bin/tabremover /bin
 COPY run-format.sh .
 
-CMD ["bash"]
+CMD ["/run-format.sh"]
