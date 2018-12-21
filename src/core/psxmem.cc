@@ -129,12 +129,7 @@ void psxMemReset() {
 }
 
 void psxMemShutdown() {
-#ifndef _WIN32
-    munmap(g_psxM, 0x00220000);
-#else
-    VirtualFree(g_psxM, 0x00220000, MEM_RELEASE);
-#endif
-
+    free(g_psxM);
     free(g_psxR);
     free(g_psxMemRLUT);
     free(g_psxMemWLUT);
