@@ -36,9 +36,10 @@ static uint32_t s_branchPC;
 
 // These macros are used to assemble the repassembler functions
 
-#define debugI()                                                      \
-    if (PCSX::g_emulator.config().verbose) {                                            \
-        PSXCPU_LOG("%s\n", disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc)); \
+#define debugI()                                                                                                    \
+    if (PCSX::g_emulator.config().verbose) {                                                                        \
+        PSXCPU_LOG("%s\n",                                                                                          \
+                   disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc)); \
     }
 
 static inline void execI();
@@ -53,7 +54,7 @@ static void (**s_pPsxCP2BSC)() = NULL;
 static void delayRead(int reg, uint32_t bpc) {
     uint32_t rold, rnew;
 
-    //	PCSX::g_system->SysPrintf("delayRead at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+    //  PCSX::g_system->SysPrintf("delayRead at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
 
     rold = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg];
     s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26]();  // branch delay load
@@ -71,10 +72,10 @@ static void delayRead(int reg, uint32_t bpc) {
 }
 
 static void delayWrite(int reg, uint32_t bpc) {
-    /*	PCSX::g_system->SysPrintf("delayWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+    /*  PCSX::g_system->SysPrintf("delayWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
 
-            PCSX::g_system->SysPrintf("%s\n", disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc-4));
-            PCSX::g_system->SysPrintf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
+            PCSX::g_system->SysPrintf("%s\n", disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code,
+       PCSX::g_emulator.m_psxCpu->m_psxRegs.pc-4)); PCSX::g_system->SysPrintf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
 
     // no changes from normal behavior
 
@@ -87,7 +88,7 @@ static void delayWrite(int reg, uint32_t bpc) {
 }
 
 static void delayReadWrite(int reg, uint32_t bpc) {
-    //	PCSX::g_system->SysPrintf("delayReadWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+    //  PCSX::g_system->SysPrintf("delayReadWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
 
     // the branch delay load is skipped
 
@@ -524,7 +525,7 @@ static __inline void doBranch(uint32_t tar) {
 static void psxADDI() {
     if (!_Rt_) return;
     _rRt_ = _u32(_rRs_) + _Imm_;
-}  // Rt = Rs + Im 	(Exception on Integer Overflow)
+}  // Rt = Rs + Im      (Exception on Integer Overflow)
 static void psxADDIU() {
     if (!_Rt_) return;
     _rRt_ = _u32(_rRs_) + _Imm_;
@@ -544,11 +545,11 @@ static void psxXORI() {
 static void psxSLTI() {
     if (!_Rt_) return;
     _rRt_ = _i32(_rRs_) < _Imm_;
-}  // Rt = Rs < Im		(Signed)
+}  // Rt = Rs < Im              (Signed)
 static void psxSLTIU() {
     if (!_Rt_) return;
     _rRt_ = _u32(_rRs_) < ((uint32_t)_Imm_);
-}  // Rt = Rs < Im		(Unsigned)
+}  // Rt = Rs < Im              (Unsigned)
 
 /*********************************************************
  * Register arithmetic                                    *
@@ -557,7 +558,7 @@ static void psxSLTIU() {
 static void psxADD() {
     if (!_Rd_) return;
     _rRd_ = _u32(_rRs_) + _u32(_rRt_);
-}  // Rd = Rs + Rt		(Exception on Integer Overflow)
+}  // Rd = Rs + Rt              (Exception on Integer Overflow)
 static void psxADDU() {
     if (!_Rd_) return;
     _rRd_ = _u32(_rRs_) + _u32(_rRt_);
@@ -565,7 +566,7 @@ static void psxADDU() {
 static void psxSUB() {
     if (!_Rd_) return;
     _rRd_ = _u32(_rRs_) - _u32(_rRt_);
-}  // Rd = Rs - Rt		(Exception on Integer Overflow)
+}  // Rd = Rs - Rt              (Exception on Integer Overflow)
 static void psxSUBU() {
     if (!_Rd_) return;
     _rRd_ = _u32(_rRs_) - _u32(_rRt_);
@@ -589,11 +590,11 @@ static void psxNOR() {
 static void psxSLT() {
     if (!_Rd_) return;
     _rRd_ = _i32(_rRs_) < _i32(_rRt_);
-}  // Rd = Rs < Rt		(Signed)
+}  // Rd = Rs < Rt              (Signed)
 static void psxSLTU() {
     if (!_Rd_) return;
     _rRd_ = _u32(_rRs_) < _u32(_rRt_);
-}  // Rd = Rs < Rt		(Unsigned)
+}  // Rd = Rs < Rt              (Unsigned)
 
 /*********************************************************
  * Register mult/div & Register trap logic                *
@@ -652,7 +653,7 @@ static void psxMULTU() {
         doBranch(_BranchTarget_); \
     }
 
-static void psxBGEZ() { RepZBranchi32(>=) }  // Branch if Rs >= 0
+static void psxBGEZ() { RepZBranchi32(>=) }        // Branch if Rs >= 0
 static void psxBGEZAL() { RepZBranchLinki32(>=) }  // Branch if Rs >= 0 and link
 static void psxBGTZ() { RepZBranchi32(>) }         // Branch if Rs >  0
 static void psxBLEZ() { RepZBranchi32(<=) }        // Branch if Rs <= 0
@@ -736,8 +737,10 @@ static void psxSYSCALL() {
 }
 
 static void psxRFE() {
-    //	PCSX::g_system->SysPrintf("psxRFE\n");
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status = (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) | ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    //  PCSX::g_system->SysPrintf("psxRFE\n");
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status =
+        (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) |
+        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
 }
 
 /*********************************************************
@@ -1015,7 +1018,7 @@ void PCSX::R3000Acpu::psxTestSWInts() {
 }
 
 static __inline void MTC0(int reg, uint32_t val) {
-    //	PCSX::g_system->SysPrintf("MTC0 %d: %x\n", reg, val);
+    //  PCSX::g_system->SysPrintf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
             PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[12] = val;
@@ -1066,9 +1069,7 @@ static void psxCFC2() {
  * Unknow instruction (would generate an exception)       *
  * Format:  ?                                             *
  *********************************************************/
-static void psxNULL() {
-    PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.code);
-}
+static void psxNULL() { PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.code); }
 
 static void psxSPECIAL() { s_pPsxSPC[_Funct_](); }
 
@@ -1085,7 +1086,7 @@ static void psxCOP2() {
 static void psxBASIC() { s_pPsxCP2BSC[_Rs_](); }
 
 static void psxHLE() {
-    //	psxHLEt[PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0xffff]();
+    //  psxHLEt[PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0xffff]();
     psxHLEt[PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x07]();  // HDHOSHY experimental patch
 }
 
@@ -1163,10 +1164,10 @@ void pgxpPsxNULL() {}
 #define PGXP_DBG_OP_E(op)
 #endif
 
-#define PGXP_INT_FUNC(pu, op)                                         \
-    static void pgxpPsx##op() {                                       \
+#define PGXP_INT_FUNC(pu, op)                                                                    \
+    static void pgxpPsx##op() {                                                                  \
         PGXP_PSX_FUNC_OP(pu, op, )(PGXP_DBG_OP_E(op) PCSX::g_emulator.m_psxCpu->m_psxRegs.code); \
-        psx##op();                                                    \
+        psx##op();                                                                               \
     }
 
 #define PGXP_INT_FUNC_0_1(pu, op, test, nReg, reg1)                        \
@@ -1175,7 +1176,7 @@ void pgxpPsxNULL() {}
             psx##op();                                                     \
             return;                                                        \
         }                                                                  \
-        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                                    \
+        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;    \
         psx##op();                                                         \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1); \
     }
@@ -1196,8 +1197,8 @@ void pgxpPsxNULL() {}
             psx##op();                                                            \
             return;                                                               \
         }                                                                         \
-        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                                           \
-        uint32_t temp2 = reg2;                                                         \
+        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;           \
+        uint32_t temp2 = reg2;                                                    \
         psx##op();                                                                \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2); \
     }
@@ -1208,7 +1209,7 @@ void pgxpPsxNULL() {}
             psx##op();                                                           \
             return;                                                              \
         }                                                                        \
-        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                                          \
+        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;          \
         psx##op();                                                               \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, reg2); \
     }
@@ -1219,9 +1220,9 @@ void pgxpPsxNULL() {}
             psx##op();                                                             \
             return;                                                                \
         }                                                                          \
-        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                                            \
-        uint32_t temp1 = reg1;                                                          \
-        uint32_t temp2 = reg2;                                                          \
+        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;            \
+        uint32_t temp1 = reg1;                                                     \
+        uint32_t temp2 = reg2;                                                     \
         psx##op();                                                                 \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, temp1, temp2); \
     }
@@ -1232,9 +1233,9 @@ void pgxpPsxNULL() {}
             psx##op();                                                                   \
             return;                                                                      \
         }                                                                                \
-        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                                                  \
-        uint32_t temp2 = reg2;                                                                \
-        uint32_t temp3 = reg3;                                                                \
+        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                  \
+        uint32_t temp2 = reg2;                                                           \
+        uint32_t temp3 = reg3;                                                           \
         psx##op();                                                                       \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2, temp3); \
     }
@@ -1245,43 +1246,67 @@ void pgxpPsxNULL() {}
             psx##op();                                                                         \
             return;                                                                            \
         }                                                                                      \
-        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                                                        \
-        uint32_t temp3 = reg3;                                                                      \
-        uint32_t temp4 = reg4;                                                                      \
+        uint32_t tempInstr = PCSX::g_emulator.m_psxCpu->m_psxRegs.code;                        \
+        uint32_t temp3 = reg3;                                                                 \
+        uint32_t temp4 = reg4;                                                                 \
         psx##op();                                                                             \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, reg2, temp3, temp4); \
     }
 
 // Rt = Rs op imm
-PGXP_INT_FUNC_1_1(CPU, ADDI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_1_1(CPU, ADDIU, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_1_1(CPU, ANDI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_1_1(CPU, ORI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_1_1(CPU, XORI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_1_1(CPU, SLTI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_1_1(CPU, SLTIU, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, ADDI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, ADDIU, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, ANDI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, ORI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, XORI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, SLTI, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_1_1(CPU, SLTIU, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
 
 // Rt = imm
 PGXP_INT_FUNC_0_1(CPU, LUI, !_Rt_, 1, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
 
 // Rd = Rs op Rt
-PGXP_INT_FUNC_2_1(CPU, ADD, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, ADDU, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, SUB, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, SUBU, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, AND, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, OR, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, XOR, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, NOR, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, SLT, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_1(CPU, SLTU, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, ADD, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, ADDU, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, SUB, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, SUBU, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, AND, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, OR, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, XOR, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, NOR, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, SLT, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_1(CPU, SLTU, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
 
 // Hi/Lo = Rs op Rt
-PGXP_INT_FUNC_2_2(CPU, MULT, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_2(CPU, MULTU, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_],
+PGXP_INT_FUNC_2_2(CPU, MULT, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi,
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_],
                   PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_2(CPU, DIV, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_2_2(CPU, DIVU, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_2(CPU, MULTU, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi,
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_2(CPU, DIV, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi,
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_2_2(CPU, DIVU, 0, 4, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi,
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
 
 // Mem[addr] = Rt
 PGXP_INT_FUNC_1_1(CPU, SB, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _oB_)
@@ -1300,34 +1325,52 @@ PGXP_INT_FUNC_1_1(CPU, LB, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_
 PGXP_INT_FUNC_1_1(CPU, LBU, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _oB_)
 
 // Rd = Rt op Sa
-PGXP_INT_FUNC_1_1(CPU, SLL, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_1_1(CPU, SRL, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_1_1(CPU, SRA, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(CPU, SLL, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(CPU, SRL, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(CPU, SRA, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
 
 // Rd = Rt op Rs
-PGXP_INT_FUNC_2_1(CPU, SLLV, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_2_1(CPU, SRLV, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
-PGXP_INT_FUNC_2_1(CPU, SRAV, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_2_1(CPU, SLLV, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_2_1(CPU, SRLV, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
+PGXP_INT_FUNC_2_1(CPU, SRAV, !_Rd_, 3, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_])
 
-PGXP_INT_FUNC_1_1(CPU, MFHI, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi)
-PGXP_INT_FUNC_1_1(CPU, MTHI, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_])
-PGXP_INT_FUNC_1_1(CPU, MFLO, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo)
-PGXP_INT_FUNC_1_1(CPU, MTLO, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_])
+PGXP_INT_FUNC_1_1(CPU, MFHI, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi)
+PGXP_INT_FUNC_1_1(CPU, MTHI, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi,
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_])
+PGXP_INT_FUNC_1_1(CPU, MFLO, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo)
+PGXP_INT_FUNC_1_1(CPU, MTLO, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo,
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_])
 
 // COP2 (GTE)
-PGXP_INT_FUNC_1_1(GTE, MFC2, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rd_])
-PGXP_INT_FUNC_1_1(GTE, CFC2, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[_Rd_])
-PGXP_INT_FUNC_1_1(GTE, MTC2, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_1_1(GTE, CTC2, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(GTE, MFC2, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rd_])
+PGXP_INT_FUNC_1_1(GTE, CFC2, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[_Rd_])
+PGXP_INT_FUNC_1_1(GTE, MTC2, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(GTE, CTC2, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
 
 PGXP_INT_FUNC_1_1(GTE, LWC2, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rt_], _oB_)
 PGXP_INT_FUNC_1_1(GTE, SWC2, 0, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rt_], _oB_)
 
 // COP0
-PGXP_INT_FUNC_1_1(CP0, MFC0, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_])
-PGXP_INT_FUNC_1_1(CP0, CFC0, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_])
-PGXP_INT_FUNC_1_1(CP0, MTC0, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
-PGXP_INT_FUNC_1_1(CP0, CTC0, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_], PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(CP0, MFC0, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_])
+PGXP_INT_FUNC_1_1(CP0, CFC0, !_Rd_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_])
+PGXP_INT_FUNC_1_1(CP0, MTC0, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
+PGXP_INT_FUNC_1_1(CP0, CTC0, !_Rt_, 2, PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_],
+                  PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_])
 PGXP_INT_FUNC(CP0, RFE)
 
 // end of PGXP

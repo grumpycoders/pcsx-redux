@@ -159,7 +159,8 @@ int LoadCdrom() {
     char exename[256];
 
     if (!PCSX::g_emulator.config().HLE) {
-        if (!PCSX::g_emulator.config().SlowBoot) PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
+        if (!PCSX::g_emulator.config().SlowBoot)
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
         return 0;
     }
 
@@ -327,7 +328,8 @@ int CheckCdrom() {
         if (GetCdromFile(mdir, time, exename) == -1) {
             sscanf((char *)buf + 12, "BOOT = cdrom:%255s", exename);
             if (GetCdromFile(mdir, time, exename) == -1) {
-                char *ptr = strstr(reinterpret_cast<char *>(buf + 12), "cdrom:");  // possibly the executable is in some subdir
+                char *ptr =
+                    strstr(reinterpret_cast<char *>(buf + 12), "cdrom:");  // possibly the executable is in some subdir
                 if (ptr != NULL) {
                     ptr += 6;
                     while (*ptr == '\\' || *ptr == '/') ptr++;
@@ -358,10 +360,10 @@ int CheckCdrom() {
 
     if (PCSX::g_emulator.config().PsxAuto) {  // autodetect system (pal or ntsc)
         if ((g_cdromId[2] == 'e') || (g_cdromId[2] == 'E') || !strncmp(g_cdromId, "DTLS3035", 8) ||
-            !strncmp(g_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
-            !strncmp(g_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
-            !strncmp(g_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
-            PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_PAL;        // pal
+            !strncmp(g_cdromId, "PBPX95001", 9) ||                           // according to redump.org, these PAL
+            !strncmp(g_cdromId, "PBPX95007", 9) ||                           // discs have a non-standard ID;
+            !strncmp(g_cdromId, "PBPX95008", 9))                             // add more serials if they are discovered.
+            PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_PAL;  // pal
         else
             PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
     }
@@ -389,8 +391,10 @@ int CheckCdrom() {
         sprintf(mcd2path, "memcards\\games\\%s-%02d.mcd", PCSX::g_emulator.config().PsxExeName.c_str(), 2);
 #else
         // lk: dot paths should not be hardcoded here, this is for testing only
-        sprintf(mcd1path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"), PCSX::g_emulator.config().PsxExeName.c_str(), 1);
-        sprintf(mcd2path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"), PCSX::g_emulator.config().PsxExeName.c_str(), 2);
+        sprintf(mcd1path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"),
+                PCSX::g_emulator.config().PsxExeName.c_str(), 1);
+        sprintf(mcd2path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"),
+                PCSX::g_emulator.config().PsxExeName.c_str(), 2);
 #endif
         PCSX::g_emulator.config().Mcd1 = mcd1path;
         PCSX::g_emulator.config().Mcd2 = mcd2path;
@@ -474,7 +478,8 @@ int Load(const char *ExePath) {
                 PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP32(tmpHead.pc0);
                 PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = SWAP32(tmpHead.gp0);
                 PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = SWAP32(tmpHead.s_addr);
-                if (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp == 0) PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
+                if (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp == 0)
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
                 retval = 0;
                 break;
 
@@ -500,7 +505,8 @@ int Load(const char *ExePath) {
                         case 0: /* End of file */
                             break;
                         default:
-                            PCSX::g_system->SysPrintf(_("Unknown CPE opcode %02x at position %08x.\n"), opcode, ftell(tmpFile) - 1);
+                            PCSX::g_system->SysPrintf(_("Unknown CPE opcode %02x at position %08x.\n"), opcode,
+                                                      ftell(tmpFile) - 1);
                             retval = -1;
                             break;
                     }
@@ -767,7 +773,8 @@ int LoadStateGz(gzFile f) {
     gzread(f, &hle, sizeof(bool));
 
     // Compare header only "STv4 PCSXR" part no version
-    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != PCSX::g_emulator.config().HLE) {
+    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion ||
+        hle != PCSX::g_emulator.config().HLE) {
         gzclose(f);
         return -1;
     }
@@ -821,7 +828,9 @@ int CheckState(const char *file) {
     gzclose(f);
 
     // Compare header only "STv4 PCSXR" part no version
-    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion || hle != PCSX::g_emulator.config().HLE) return -1;
+    if (strncmp(PcsxrHeader, header, PCSXR_HEADER_SZ) != 0 || version != SaveVersion ||
+        hle != PCSX::g_emulator.config().HLE)
+        return -1;
 
     return 0;
 }
