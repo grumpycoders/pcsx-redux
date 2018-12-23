@@ -268,9 +268,9 @@ void gteCTC2() { CTC2(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
 
 #define _oB_ (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
 
-void gteLWC2() { MTC2(psxMemRead32(_oB_), _Rt_); }
+void gteLWC2() { MTC2(PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_), _Rt_); }
 
-void gteSWC2() { psxMemWrite32(_oB_, MFC2(_Rt_)); }
+void gteSWC2() { PCSX::g_emulator.m_psxMem->psxMemWrite32(_oB_, MFC2(_Rt_)); }
 
 static inline int64_t gte_shift(int64_t a, int sf) {
     if (sf > 0)

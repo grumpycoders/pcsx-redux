@@ -798,9 +798,9 @@ static void psxLB() {
     }
 
     if (_Rt_) {
-        _i32(_rRt_) = (signed char)psxMemRead8(_oB_);
+        _i32(_rRt_) = (signed char)PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     } else {
-        psxMemRead8(_oB_);
+        PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     }
 }
 
@@ -815,9 +815,9 @@ static void psxLBU() {
     }
 
     if (_Rt_) {
-        _u32(_rRt_) = psxMemRead8(_oB_);
+        _u32(_rRt_) = PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     } else {
-        psxMemRead8(_oB_);
+        PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     }
 }
 
@@ -832,9 +832,9 @@ static void psxLH() {
     }
 
     if (_Rt_) {
-        _i32(_rRt_) = (short)psxMemRead16(_oB_);
+        _i32(_rRt_) = (short)PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     } else {
-        psxMemRead16(_oB_);
+        PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     }
 }
 
@@ -849,9 +849,9 @@ static void psxLHU() {
     }
 
     if (_Rt_) {
-        _u32(_rRt_) = psxMemRead16(_oB_);
+        _u32(_rRt_) = PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     } else {
-        psxMemRead16(_oB_);
+        PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     }
 }
 
@@ -866,9 +866,9 @@ static void psxLW() {
     }
 
     if (_Rt_) {
-        _u32(_rRt_) = psxMemRead32(_oB_);
+        _u32(_rRt_) = PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
     } else {
-        psxMemRead32(_oB_);
+        PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
     }
 }
 
@@ -878,7 +878,7 @@ extern "C" const uint32_t g_LWL_SHIFT[4] = {24, 16, 8, 0};
 static void psxLWL() {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = psxMemRead32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
     if (s_branch == 0) {
@@ -908,7 +908,7 @@ extern "C" const uint32_t g_LWR_SHIFT[4] = {0, 8, 16, 24};
 static void psxLWR() {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = psxMemRead32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
     if (s_branch == 0) {
@@ -932,9 +932,9 @@ static void psxLWR() {
     */
 }
 
-static void psxSB() { psxMemWrite8(_oB_, _u8(_rRt_)); }
-static void psxSH() { psxMemWrite16(_oB_, _u16(_rRt_)); }
-static void psxSW() { psxMemWrite32(_oB_, _u32(_rRt_)); }
+static void psxSB() { PCSX::g_emulator.m_psxMem->psxMemWrite8(_oB_, _u8(_rRt_)); }
+static void psxSH() { PCSX::g_emulator.m_psxMem->psxMemWrite16(_oB_, _u16(_rRt_)); }
+static void psxSW() { PCSX::g_emulator.m_psxMem->psxMemWrite32(_oB_, _u32(_rRt_)); }
 
 extern "C" const uint32_t g_SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
 extern "C" const uint32_t g_SWL_SHIFT[4] = {24, 16, 8, 0};
@@ -942,9 +942,10 @@ extern "C" const uint32_t g_SWL_SHIFT[4] = {24, 16, 8, 0};
 static void psxSWL() {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = psxMemRead32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
-    psxMemWrite32(addr & ~3, (_u32(_rRt_) >> g_SWL_SHIFT[shift]) | (mem & g_SWL_MASK[shift]));
+    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
+                                             (_u32(_rRt_) >> g_SWL_SHIFT[shift]) | (mem & g_SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
 
@@ -961,9 +962,10 @@ extern "C" const uint32_t g_SWR_SHIFT[4] = {0, 8, 16, 24};
 static void psxSWR() {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = psxMemRead32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
-    psxMemWrite32(addr & ~3, (_u32(_rRt_) << g_SWR_SHIFT[shift]) | (mem & g_SWR_MASK[shift]));
+    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
+                                             (_u32(_rRt_) << g_SWR_SHIFT[shift]) | (mem & g_SWR_MASK[shift]));
 
     /*
     Mem = 1234.  Reg = abcd

@@ -40,7 +40,6 @@ int PCSX::R3000Acpu::psxInit() {
         g_emulator.m_psxCpu = Cpus::Interpreted();
     }
 
-    if (psxMemInit() == -1) return -1;
     PGXP_Init();
     PauseDebugger();
 
@@ -49,8 +48,6 @@ int PCSX::R3000Acpu::psxInit() {
 
 void PCSX::R3000Acpu::psxReset() {
     Reset();
-
-    psxMemReset();
 
     memset(&m_psxRegs, 0, sizeof(m_psxRegs));
 
@@ -68,7 +65,6 @@ void PCSX::R3000Acpu::psxReset() {
 }
 
 void PCSX::R3000Acpu::psxShutdown() {
-    psxMemShutdown();
     psxBiosShutdown();
 
     Shutdown();

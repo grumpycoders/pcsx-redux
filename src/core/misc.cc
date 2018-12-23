@@ -441,7 +441,7 @@ static void LoadLibPS() {
 
     if (f != NULL) {
         fseek(f, 0x800, SEEK_SET);
-        fread(g_psxM + 0x10000, 0x61000, 1, f);
+        fread(PCSX::g_emulator.m_psxMem->g_psxM + 0x10000, 0x61000, 1, f);
         fclose(f);
     }
 }
@@ -564,8 +564,8 @@ static int LoadBin(unsigned long addr, char *filename) {
         len = ftell(f);
         fseek(f, 0, SEEK_SET);
         if (len + mem < 0x00200000) {
-            if (g_psxM) {
-                int readsize = fread(g_psxM + mem, len, 1, f);
+            if (PCSX::g_emulator.m_psxMem->g_psxM) {
+                int readsize = fread(PCSX::g_emulator.m_psxMem->g_psxM + mem, len, 1, f);
                 if (readsize == len) result = 0;
             }
         }
@@ -714,9 +714,9 @@ int SaveStateGz(gzFile f, long *gzsize) {
 
     if (PCSX::g_emulator.config().HLE) psxBiosFreeze(1);
 
-    gzwrite(f, g_psxM, 0x00200000);
-    gzwrite(f, g_psxR, 0x00080000);
-    gzwrite(f, g_psxH, 0x00010000);
+    gzwrite(f, PCSX::g_emulator.m_psxMem->g_psxM, 0x00200000);
+    gzwrite(f, PCSX::g_emulator.m_psxMem->g_psxR, 0x00080000);
+    gzwrite(f, PCSX::g_emulator.m_psxMem->g_psxH, 0x00010000);
     gzwrite(f, (void *)&PCSX::g_emulator.m_psxCpu->m_psxRegs, sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs));
 
     // gpu
@@ -782,9 +782,9 @@ int LoadStateGz(gzFile f) {
     PCSX::g_emulator.m_psxCpu->Reset();
     gzseek(f, SZ_GPUPIC, SEEK_CUR);
 
-    gzread(f, g_psxM, 0x00200000);
-    gzread(f, g_psxR, 0x00080000);
-    gzread(f, g_psxH, 0x00010000);
+    gzread(f, PCSX::g_emulator.m_psxMem->g_psxM, 0x00200000);
+    gzread(f, PCSX::g_emulator.m_psxMem->g_psxR, 0x00080000);
+    gzread(f, PCSX::g_emulator.m_psxMem->g_psxH, 0x00010000);
     gzread(f, (void *)&PCSX::g_emulator.m_psxCpu->m_psxRegs, sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs));
 
     if (PCSX::g_emulator.config().HLE) psxBiosFreeze(0);

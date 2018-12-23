@@ -435,7 +435,7 @@ void mdecInit(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (uint16_t *)&g_psxM[0x100000];
+    mdec.rl = (uint16_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
 }
 
 // command register
@@ -659,7 +659,7 @@ void mdec1Interrupt() {
 }
 
 int mdecFreeze(gzFile f, int Mode) {
-    uint8_t *base = (uint8_t *)&g_psxM[0x100000];
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     gzfreeze(&mdec.reg0, sizeof(mdec.reg0));

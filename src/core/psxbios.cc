@@ -1123,7 +1123,7 @@ void psxBios_malloc() {  // 0x33
     }
 
     // return pointer to allocated memory
-    v0 = ((unsigned long)chunk - (unsigned long)g_psxM) + 4;
+    v0 = ((unsigned long)chunk - (unsigned long)PCSX::g_emulator.m_psxMem->g_psxM) + 4;
     v0 |= 0x80000000;
     PCSX::g_system->SysBiosPrintf("malloc %x,%x\n", v0, a0);
     pc0 = ra;
@@ -1174,7 +1174,8 @@ void psxBios_InitHeap() {  // 0x39
     s_heap_end = (uint32_t *)((uint8_t *)s_heap_addr + size);
     *s_heap_addr = SWAP_LE32(size | 1);
 
-    PCSX::g_system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1, (uintptr_t)s_heap_addr - (uintptr_t)g_psxM,
+    PCSX::g_system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1,
+                                  (uintptr_t)s_heap_addr - (uintptr_t)PCSX::g_emulator.m_psxMem->g_psxM,
                                   size);
 
     pc0 = ra;
@@ -2838,7 +2839,7 @@ void psxBiosInit() {
     /**/
     base = 0x1000;
     size = sizeof(EvCB) * 32;
-    s_Event = reinterpret_cast<EvCB *>(&g_psxR[base]);
+    s_Event = reinterpret_cast<EvCB *>(&PCSX::g_emulator.m_psxMem->g_psxR[base]);
     base += size * 6;
     memset(s_Event, 0, size * 6);
     s_HwEV = s_Event;
@@ -2848,10 +2849,10 @@ void psxBiosInit() {
     s_SwEV = s_Event + 32 * 4;
     s_ThEV = s_Event + 32 * 5;
 
-    ptr = (uint32_t *)&g_psxM[0x0874];  // b0 table
+    ptr = (uint32_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x0874];  // b0 table
     ptr[0] = SWAP_LEu32(0x4c54 - 0x884);
 
-    ptr = (uint32_t *)&g_psxM[0x0674];  // c0 table
+    ptr = (uint32_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x0674];  // c0 table
     ptr[6] = SWAP_LEu32(0xc80);
 
     memset(s_SysIntRP, 0, sizeof(s_SysIntRP));
@@ -2873,7 +2874,7 @@ void psxBiosInit() {
     psxMu32ref(0x0150) = SWAP_LEu32(0x160);
     psxMu32ref(0x0154) = SWAP_LEu32(0x320);
     psxMu32ref(0x0160) = SWAP_LEu32(0x248);
-    strcpy((char *)&g_psxM[0x248], "bu");
+    strcpy((char *)&PCSX::g_emulator.m_psxMem->g_psxM[0x248], "bu");
     /*  psxMu32ref(0x0ca8) = SWAP_LEu32(0x1f410004);
             psxMu32ref(0x0cf0) = SWAP_LEu32(0x3c020000);
             psxMu32ref(0x0cf4) = SWAP_LEu32(0x2442641c);
@@ -2900,9 +2901,9 @@ void psxBiosInit() {
 
     // fonts
     len = 0x80000 - 0x66000;
-    uncompress((Bytef *)(g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));
+    uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));
     len = 0x80000 - 0x69d68;
-    uncompress((Bytef *)(g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
+    uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
 
     // memory size 2 MB
     psxHu32ref(0x1060) = SWAP_LEu32(0x00000b88);
@@ -3091,8 +3092,8 @@ void psxBiosException() {
 
 #define bfreeze(ptr, size)                               \
     {                                                    \
-        if (Mode == 1) memcpy(&g_psxR[base], ptr, size); \
-        if (Mode == 0) memcpy(ptr, &g_psxR[base], size); \
+        if (Mode == 1) memcpy(&PCSX::g_emulator.m_psxMem->g_psxR[base], ptr, size); \
+        if (Mode == 0) memcpy(ptr, &PCSX::g_emulator.m_psxMem->g_psxR[base], size); \
         base += size;                                    \
     }
 
@@ -3103,12 +3104,12 @@ void psxBiosException() {
     {                                                               \
         if (Mode == 1) {                                            \
             if (ptr)                                                \
-                psxRu32ref(base) = SWAP_LEu32((int8_t *)(ptr)-g_psxM); \
+                psxRu32ref(base) = SWAP_LEu32((int8_t *)(ptr)-PCSX::g_emulator.m_psxMem->g_psxM); \
             else                                                    \
                 psxRu32ref(base) = 0;                               \
         } else {                                                    \
             if (psxRu32(base) != 0)                                 \
-                ptr = (type *)(g_psxM + psxRu32(base));             \
+                ptr = (type *)(PCSX::g_emulator.m_psxMem->g_psxM + psxRu32(base));             \
             else                                                    \
                 (ptr) = NULL;                                       \
         }                                                           \

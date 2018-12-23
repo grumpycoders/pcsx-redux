@@ -391,7 +391,7 @@ void ProcessDebug() {
         if (s_trace && s_printpc) {
             char reply[256];
             sprintf(reply, "219 %s\r\n",
-                    disR3000AF(psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc),
+                    disR3000AF(PCSX::g_emulator.m_psxMem->psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc),
                                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc));
             WriteSocket(reply, strlen(reply));
         }
@@ -584,7 +584,7 @@ static void ProcessCommands() {
                 }
                 if (!arguments) code = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
 
-                sprintf(reply, "219 %s\r\n", disR3000AF(psxMemRead32(code), code));
+                sprintf(reply, "219 %s\r\n", disR3000AF(PCSX::g_emulator.m_psxMem->psxMemRead32(code), code));
                 break;
             case 0x121:
                 if (!arguments || sscanf(arguments, "%02X=%08X", &reg, &value) != 2) {
@@ -1122,7 +1122,7 @@ static void ProcessCommands() {
             case 0x3A1:
                 // step over (jal)
                 if (s_paused) {
-                    uint32_t opcode = psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+                    uint32_t opcode = PCSX::g_emulator.m_psxMem->psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                     if ((opcode >> 26) == 3) {
                         s_step_over = 1;
                         s_step_over_addr = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 8;

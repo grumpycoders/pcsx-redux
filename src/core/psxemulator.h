@@ -74,6 +74,9 @@ class R3000Acpu;
 class System;
 
 class Emulator {
+  private:
+    Emulator();
+    ~Emulator();
   public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
     enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
@@ -144,11 +147,16 @@ class Emulator {
     Memory* m_psxMem = NULL;
     R3000Acpu* m_psxCpu = NULL;
 
+    static Emulator& getEmulator() {
+        static Emulator emulator;
+        return emulator;
+    }
+
   private:
     PcsxConfig m_config;
 };
 
-extern Emulator g_emulator;
+extern Emulator & g_emulator;
 
 }  // namespace PCSX
 

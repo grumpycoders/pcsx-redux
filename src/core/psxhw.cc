@@ -35,7 +35,7 @@ void psxHwReset() {
     if (PCSX::g_emulator.config().SioIrq) psxHu32ref(0x1070) |= SWAP_LE32(0x80);
     if (PCSX::g_emulator.config().SpuIrq) psxHu32ref(0x1070) |= SWAP_LE32(0x200);
 
-    memset(g_psxH, 0, 0x10000);
+    memset(PCSX::g_emulator.m_psxMem->g_psxH, 0, 0x10000);
 
     mdecInit();  // initialize mdec decoder
     cdrReset();
