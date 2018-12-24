@@ -118,7 +118,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     uint32_t t;
 
     if (!PCSX::g_emulator.config().MemHack) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += 0;
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += 1;
     }
 
     t = mem >> 16;
