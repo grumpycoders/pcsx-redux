@@ -23,9 +23,15 @@
 #include "core/psxbios.h"
 #include "core/r3000a.h"
 
-PCSX::Emulator::Emulator() { m_psxMem = new PCSX::Memory(); }
+PCSX::Emulator::Emulator() {
+    m_psxMem = new PCSX::Memory();
+    m_psxCounters = new PCSX::Counters();
+}
 
-PCSX::Emulator::~Emulator() { delete m_psxMem; }
+PCSX::Emulator::~Emulator() {
+    delete m_psxMem;
+    delete m_psxCounters;
+}
 
 int PCSX::Emulator::EmuInit() {
     assert(g_system);

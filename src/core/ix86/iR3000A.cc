@@ -65,6 +65,9 @@ uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator.m_psxMem->p
 void psxMemWrite8Wrapper(uint32_t mem, uint8_t value) { PCSX::g_emulator.m_psxMem->psxMemWrite8(mem, value); }
 void psxMemWrite16Wrapper(uint32_t mem, uint16_t value) { PCSX::g_emulator.m_psxMem->psxMemWrite16(mem, value); }
 void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator.m_psxMem->psxMemWrite32(mem, value); }
+uint32_t psxRcntRcountWrapper(uint32_t index) { return PCSX::g_emulator.m_psxCounters->psxRcntRcount(index); }
+uint32_t psxRcntRmodeWrapper(uint32_t index) { return PCSX::g_emulator.m_psxCounters->psxRcntRmode(index); }
+uint32_t psxRcntRtargetWrapper(uint32_t index) { return PCSX::g_emulator.m_psxCounters->psxRcntRtarget(index); }
 
 #undef PC_REC
 #undef PC_REC8
@@ -1930,7 +1933,7 @@ void X86DynaRecCPU::recLHU() {
                     m_iRegs[_Rt_].state = ST_UNK;
 
                     gen.PUSH32I((addr >> 4) & 0x3);
-                    gen.CALLFunc((uint32_t)psxRcntRcount);
+                    gen.CALLFunc((uint32_t)psxRcntRcountWrapper);
                     gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
                     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
                     m_resp += 4;
@@ -1943,7 +1946,7 @@ void X86DynaRecCPU::recLHU() {
                     m_iRegs[_Rt_].state = ST_UNK;
 
                     gen.PUSH32I((addr >> 4) & 0x3);
-                    gen.CALLFunc((uint32_t)psxRcntRmode);
+                    gen.CALLFunc((uint32_t)psxRcntRmodeWrapper);
                     gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
                     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
                     m_resp += 4;
@@ -1956,7 +1959,7 @@ void X86DynaRecCPU::recLHU() {
                     m_iRegs[_Rt_].state = ST_UNK;
 
                     gen.PUSH32I((addr >> 4) & 0x3);
-                    gen.CALLFunc((uint32_t)psxRcntRtarget);
+                    gen.CALLFunc((uint32_t)psxRcntRtargetWrapper);
                     gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
                     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
                     m_resp += 4;

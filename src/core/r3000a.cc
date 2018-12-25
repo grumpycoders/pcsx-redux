@@ -132,7 +132,9 @@ void PCSX::R3000Acpu::psxBranchTest() {
     }
 #endif
 
-    if ((m_psxRegs.cycle - g_psxNextsCounter) >= g_psxNextCounter) psxRcntUpdate();
+    if ((m_psxRegs.cycle - PCSX::g_emulator.m_psxCounters->m_psxNextsCounter) >=
+        PCSX::g_emulator.m_psxCounters->m_psxNextCounter)
+        PCSX::g_emulator.m_psxCounters->psxRcntUpdate();
 
     if (m_psxRegs.interrupt) {
         if ((m_psxRegs.interrupt & (1 << PSXINT_SIO)) && !g_emulator.config().SioIrq) {  // sio

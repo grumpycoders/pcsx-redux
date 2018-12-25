@@ -1554,7 +1554,7 @@ void psxBios_SetRCnt() {  // 02
     if (a0 != 3) {
         uint32_t mode = 0;
 
-        psxRcntWtarget(a0, a1);
+        PCSX::g_emulator.m_psxCounters->psxRcntWtarget(a0, a1);
         if (a2 & 0x1000) mode |= 0x050;  // Interrupt Mode
         if (a2 & 0x0100) mode |= 0x008;  // Count to 0xffff
         if (a2 & 0x0010) mode |= 0x001;  // Timer stop mode
@@ -1565,7 +1565,7 @@ void psxBios_SetRCnt() {  // 02
             if (a2 & 0x0001) mode |= 0x100;
         }  // System Clock mode
 
-        psxRcntWmode(a0, mode);
+        PCSX::g_emulator.m_psxCounters->psxRcntWmode(a0, mode);
     }
     pc0 = ra;
 }
@@ -1575,7 +1575,7 @@ void psxBios_GetRCnt() {  // 03
 
     a0 &= 0x3;
     if (a0 != 3)
-        v0 = psxRcntRcount(a0);
+        v0 = PCSX::g_emulator.m_psxCounters->psxRcntRcount(a0);
     else
         v0 = 0;
     pc0 = ra;
@@ -1609,9 +1609,9 @@ void psxBios_ResetRCnt() {  // 06
 
     a0 &= 0x3;
     if (a0 != 3) {
-        psxRcntWmode(a0, 0);
-        psxRcntWtarget(a0, 0);
-        psxRcntWcount(a0, 0);
+        PCSX::g_emulator.m_psxCounters->psxRcntWmode(a0, 0);
+        PCSX::g_emulator.m_psxCounters->psxRcntWtarget(a0, 0);
+        PCSX::g_emulator.m_psxCounters->psxRcntWcount(a0, 0);
     }
     pc0 = ra;
 }

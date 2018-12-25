@@ -72,6 +72,7 @@ namespace PCSX {
 class Memory;
 class R3000Acpu;
 class System;
+class Counters;
 
 class Emulator {
   private:
@@ -146,6 +147,7 @@ class Emulator {
 
     Memory* m_psxMem = NULL;
     R3000Acpu* m_psxCpu = NULL;
+    Counters* m_psxCounters = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;
