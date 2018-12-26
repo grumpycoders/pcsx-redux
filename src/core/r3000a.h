@@ -254,13 +254,14 @@ typedef struct {
 
 class R3000Acpu {
   public:
+    virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
-    virtual void Reset() { assert(0); }
-    virtual void Execute() { assert(0); }       /* executes up to a break */
-    virtual void ExecuteBlock() { assert(0); }; /* executes up to a jump */
-    virtual void Clear(uint32_t Addr, uint32_t Size) { assert(0); }
-    virtual void Shutdown() { assert(0); }
-    virtual void SetPGXPMode(uint32_t pgxpMode) { assert(0); }
+    virtual void Reset() = 0;
+    virtual void Execute() = 0;      /* executes up to a break */
+    virtual void ExecuteBlock() = 0; /* executes up to a jump */
+    virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
+    virtual void Shutdown() = 0;
+    virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
     virtual bool Implemented() { return false; }
 
     const std::string &getName() { return m_name; }
