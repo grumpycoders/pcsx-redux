@@ -366,7 +366,7 @@ TODO:
 class InterpretedCPU : public R3000Acpu {
   public:
     InterpretedCPU() : R3000Acpu("Interpreted") {}
-    virtual bool Implemented() override { return true; }
+    virtual bool Implemented() final { return true; }
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;

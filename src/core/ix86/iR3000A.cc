@@ -86,12 +86,11 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
 
   private:
-    virtual bool Implemented() final { return true; }
     virtual bool Init() final;
     virtual void Reset() final;
     virtual void Execute() final;
     virtual void ExecuteBlock() final;
-    virtual void Clear(uint32_t Addr, uint32_t Size);
+    virtual void Clear(uint32_t Addr, uint32_t Size) final;
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
 
@@ -3551,9 +3550,9 @@ void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
 
 #else
 
-class X86DynaRecCPU : public PCSX::InterpretedCPU {
+class X86DynaRecCPU : public PCSX::R3000Acpu {
   public:
-    X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
+    X86DynaRecCPU() : R3000Acpu("x86 DynaRec") {}
     virtual bool Implemented() final { return false; }
     virtual bool Init() final { return false; }
     virtual void Reset() final { assert(0); }
