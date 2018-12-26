@@ -143,6 +143,4 @@ class Memory {
     void *psxMemPointer(uint32_t mem);
 };
 
-extern Memory g_psxMemory;
-
 }  // namespace PCSX
