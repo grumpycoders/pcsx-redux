@@ -26,11 +26,13 @@
 PCSX::Emulator::Emulator() {
     m_psxMem = new PCSX::Memory();
     m_psxCounters = new PCSX::Counters();
+    m_psxBios = PCSX::Bios::factory();
 }
 
 PCSX::Emulator::~Emulator() {
     delete m_psxMem;
     delete m_psxCounters;
+    delete m_psxBios;
 }
 
 int PCSX::Emulator::EmuInit() {
@@ -63,7 +65,7 @@ void PCSX::Emulator::EmuShutdown() {
 
 void PCSX::Emulator::EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!m_config.HLE || !g_hleSoftCall) PCSX::g_system->SysUpdate();
+    if (!m_config.HLE || !PCSX::g_emulator.m_psxBios->m_hleSoftCall) PCSX::g_system->SysUpdate();
 
     ApplyCheats();
 

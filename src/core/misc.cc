@@ -712,7 +712,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     if (gzsize) GPU_getScreenPic(pMemGpuPic);  // Not necessary with ephemeral saves
     gzwrite(f, pMemGpuPic, SZ_GPUPIC);
 
-    if (PCSX::g_emulator.config().HLE) psxBiosFreeze(1);
+    if (PCSX::g_emulator.config().HLE) PCSX::g_emulator.m_psxBios->psxBiosFreeze(1);
 
     gzwrite(f, PCSX::g_emulator.m_psxMem->g_psxM, 0x00200000);
     gzwrite(f, PCSX::g_emulator.m_psxMem->g_psxR, 0x00080000);
@@ -787,7 +787,7 @@ int LoadStateGz(gzFile f) {
     gzread(f, PCSX::g_emulator.m_psxMem->g_psxH, 0x00010000);
     gzread(f, (void *)&PCSX::g_emulator.m_psxCpu->m_psxRegs, sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs));
 
-    if (PCSX::g_emulator.config().HLE) psxBiosFreeze(0);
+    if (PCSX::g_emulator.config().HLE) PCSX::g_emulator.m_psxBios->psxBiosFreeze(0);
 
     // gpu
     if (!s_gpufP) s_gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));

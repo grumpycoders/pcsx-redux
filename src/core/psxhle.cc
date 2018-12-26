@@ -32,7 +32,7 @@ static void hleDummy() {
 static void hleA0() {
     uint32_t call = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1 & 0xff;
 
-    if (biosA0[call]) biosA0[call]();
+    PCSX::g_emulator.m_psxBios->callA0(call);
 
     PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
@@ -40,7 +40,7 @@ static void hleA0() {
 static void hleB0() {
     uint32_t call = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1 & 0xff;
 
-    if (biosB0[call]) biosB0[call]();
+    PCSX::g_emulator.m_psxBios->callB0(call);
 
     PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
@@ -48,7 +48,7 @@ static void hleB0() {
 static void hleC0() {
     uint32_t call = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1 & 0xff;
 
-    if (biosC0[call]) biosC0[call]();
+    PCSX::g_emulator.m_psxBios->callC0(call);
 
     PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
