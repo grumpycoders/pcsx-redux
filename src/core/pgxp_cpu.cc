@@ -9,8 +9,8 @@ static PGXP_value s_CPU_reg_mem[34];
 // PGXP_value CPU_Hi, CPU_Lo;
 static PGXP_value s_CP0_reg_mem[32];
 
-PGXP_value* g_CPU_reg = s_CPU_reg_mem;
-PGXP_value* g_CP0_reg = s_CP0_reg_mem;
+PGXP_value* const g_CPU_reg = s_CPU_reg_mem;
+PGXP_value* const g_CP0_reg = s_CP0_reg_mem;
 
 // Instruction register decoding
 #define op(_instr) (_instr >> 26)           // The op part of the instruction register

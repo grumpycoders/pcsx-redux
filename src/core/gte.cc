@@ -17,8 +17,6 @@
 #define GTE_LM(op) ((op >> 10) & 1)
 #define GTE_FUNCT(op) (op & 63)
 
-#define gteop (PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x1ffffff)
-
 #define VX0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[0].sw.l)
 #define VY0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[0].sw.h)
 #define VZ0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[1].sw.l)
@@ -139,10 +137,6 @@
 #define CV2(n) (n < 3 ? PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
 #define CV3(n) (n < 3 ? PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
 
-static int s_sf;
-static int64_t s_mac0;
-static int64_t s_mac3;
-
 static uint32_t gte_leadingzerocount(uint32_t lzcs) {
     uint32_t lzcr = 0;
 
@@ -168,7 +162,7 @@ static int32_t LIM(int32_t value, int32_t max, int32_t min, uint32_t flag) {
     return value;
 }
 
-static uint32_t MFC2(int reg) {
+uint32_t PCSX::GTE::MFC2_internal(int reg) {
     switch (reg) {
         case 1:
         case 3:
@@ -204,7 +198,7 @@ static uint32_t MFC2(int reg) {
     return PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[reg].d;
 }
 
-static void MTC2(uint32_t value, int reg) {
+void PCSX::GTE::MTC2_internal(uint32_t value, int reg) {
     switch (reg) {
         case 15:
             SXY0 = SXY1;
@@ -229,7 +223,7 @@ static void MTC2(uint32_t value, int reg) {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[reg].d = value;
 }
 
-static void CTC2(uint32_t value, int reg) {
+void PCSX::GTE::CTC2_internal(uint32_t value, int reg) {
     switch (reg) {
         case 4:
         case 12:
@@ -250,28 +244,6 @@ static void CTC2(uint32_t value, int reg) {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[reg].d = value;
 }
 
-void gteMFC2() {
-    // CPU[Rt] = GTE_D[Rd]
-    if (!_Rt_) return;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_] = MFC2(_Rd_);
-}
-
-void gteCFC2() {
-    // CPU[Rt] = GTE_C[Rd]
-    if (!_Rt_) return;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_] = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
-}
-
-void gteMTC2() { MTC2(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
-
-void gteCTC2() { CTC2(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
-
-#define _oB_ (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
-
-void gteLWC2() { MTC2(PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_), _Rt_); }
-
-void gteSWC2() { PCSX::g_emulator.m_psxMem->psxMemWrite32(_oB_, MFC2(_Rt_)); }
-
 static inline int64_t gte_shift(int64_t a, int sf) {
     if (sf > 0)
         return a >> 12;
@@ -281,7 +253,7 @@ static inline int64_t gte_shift(int64_t a, int sf) {
     return a;
 }
 
-static int32_t BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag) {
+int32_t PCSX::GTE::BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag) {
     if (value /*.positive_overflow()*/ > S64(0x7ffffffffff)) FLAG |= max_flag;
 
     if (value /*.negative_overflow()*/ < S64(-0x80000000000)) FLAG |= min_flag;
@@ -323,9 +295,9 @@ static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
 
 /* Setting bits 12 & 19-22 in FLAG does not set bit 31 */
 
-static int32_t A1(/*int44*/ int64_t a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
-static int32_t A2(/*int44*/ int64_t a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
-static int32_t A3(/*int44*/ int64_t a) {
+int32_t PCSX::GTE::A1(/*int44*/ int64_t a) { return BOUNDS(a, (1 << 31) | (1 << 30), (1 << 31) | (1 << 27)); }
+int32_t PCSX::GTE::A2(/*int44*/ int64_t a) { return BOUNDS(a, (1 << 31) | (1 << 29), (1 << 31) | (1 << 26)); }
+int32_t PCSX::GTE::A3(/*int44*/ int64_t a) {
     s_mac3 = a;
     return BOUNDS(a, (1 << 31) | (1 << 28), (1 << 31) | (1 << 25));
 }
@@ -366,7 +338,7 @@ static uint32_t Lm_E(uint32_t result) {
     return result;
 }
 
-static int64_t F(int64_t a) {
+int64_t PCSX::GTE::F(int64_t a) {
     s_mac0 = a;
 
     if (a > S64(0x7fffffff)) FLAG |= (1 << 31) | (1 << 16);
@@ -434,7 +406,7 @@ static int32_t Lm_H(int64_t value, int sf) {
     return value_12;
 }
 
-static int docop2(int op) {
+int PCSX::GTE::docop2(int op) {
     int v;
     int lm;
     int cv;
@@ -895,47 +867,3 @@ static int docop2(int op) {
 
     return 0;
 }
-
-void gteRTPS() { docop2(gteop); }
-
-void gteNCLIP() { docop2(gteop); }
-
-void gteOP() { docop2(gteop); }
-
-void gteDPCS() { docop2(gteop); }
-
-void gteINTPL() { docop2(gteop); }
-
-void gteMVMVA() { docop2(gteop); }
-
-void gteNCDS() { docop2(gteop); }
-
-void gteCDP() { docop2(gteop); }
-
-void gteNCDT() { docop2(gteop); }
-
-void gteNCCS() { docop2(gteop); }
-
-void gteCC() { docop2(gteop); }
-
-void gteNCS() { docop2(gteop); }
-
-void gteNCT() { docop2(gteop); }
-
-void gteSQR() { docop2(gteop); }
-
-void gteDCPL() { docop2(gteop); }
-
-void gteDPCT() { docop2(gteop); }
-
-void gteAVSZ3() { docop2(gteop); }
-
-void gteAVSZ4() { docop2(gteop); }
-
-void gteRTPT() { docop2(gteop); }
-
-void gteGPF() { docop2(gteop); }
-
-void gteGPL() { docop2(gteop); }
-
-void gteNCCT() { docop2(gteop); }

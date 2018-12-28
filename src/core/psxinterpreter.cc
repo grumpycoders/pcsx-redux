@@ -30,6 +30,36 @@
 #include "core/psxhle.h"
 #include "core/r3000a.h"
 
+void gteMFC2() { PCSX::g_emulator.m_gte->MFC2(); }
+void gteCFC2() { PCSX::g_emulator.m_gte->CFC2(); }
+void gteMTC2() { PCSX::g_emulator.m_gte->MTC2(); }
+void gteCTC2() { PCSX::g_emulator.m_gte->CTC2(); }
+void gteLWC2() { PCSX::g_emulator.m_gte->LWC2(); }
+void gteSWC2() { PCSX::g_emulator.m_gte->SWC2(); }
+
+void gteRTPS() { PCSX::g_emulator.m_gte->RTPS(); }
+void gteNCLIP() { PCSX::g_emulator.m_gte->NCLIP(); }
+void gteOP() { PCSX::g_emulator.m_gte->OP(); }
+void gteDPCS() { PCSX::g_emulator.m_gte->DPCS(); }
+void gteINTPL() { PCSX::g_emulator.m_gte->INTPL(); }
+void gteMVMVA() { PCSX::g_emulator.m_gte->MVMVA(); }
+void gteNCDS() { PCSX::g_emulator.m_gte->NCDS(); }
+void gteCDP() { PCSX::g_emulator.m_gte->CDP(); }
+void gteNCDT() { PCSX::g_emulator.m_gte->NCDT(); }
+void gteNCCS() { PCSX::g_emulator.m_gte->NCCS(); }
+void gteCC() { PCSX::g_emulator.m_gte->CC(); }
+void gteNCS() { PCSX::g_emulator.m_gte->NCS(); }
+void gteNCT() { PCSX::g_emulator.m_gte->NCT(); }
+void gteSQR() { PCSX::g_emulator.m_gte->SQR(); }
+void gteDCPL() { PCSX::g_emulator.m_gte->DCPL(); }
+void gteDPCT() { PCSX::g_emulator.m_gte->DPCT(); }
+void gteAVSZ3() { PCSX::g_emulator.m_gte->AVSZ3(); }
+void gteAVSZ4() { PCSX::g_emulator.m_gte->AVSZ4(); }
+void gteRTPT() { PCSX::g_emulator.m_gte->RTPT(); }
+void gteGPF() { PCSX::g_emulator.m_gte->GPF(); }
+void gteGPL() { PCSX::g_emulator.m_gte->GPL(); }
+void gteNCCT() { PCSX::g_emulator.m_gte->NCCT(); }
+
 static int s_branch = 0;
 static int s_branch2 = 0;
 static uint32_t s_branchPC;
@@ -1051,7 +1081,7 @@ static void psxMFC2() {
         return;
     }
 
-    gteMFC2();
+    PCSX::g_emulator.m_gte->MFC2();
 }
 
 static void psxCFC2() {
@@ -1064,7 +1094,7 @@ static void psxCFC2() {
         return;
     }
 
-    gteCFC2();
+    PCSX::g_emulator.m_gte->CFC2();
 }
 
 /*********************************************************

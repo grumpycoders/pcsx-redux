@@ -22,17 +22,20 @@
 #include "core/ppf.h"
 #include "core/psxbios.h"
 #include "core/r3000a.h"
+#include "core/gte.h"
 
 PCSX::Emulator::Emulator() {
     m_psxMem = new PCSX::Memory();
     m_psxCounters = new PCSX::Counters();
     m_psxBios = PCSX::Bios::factory();
+    m_gte = new PCSX::GTE();
 }
 
 PCSX::Emulator::~Emulator() {
     delete m_psxMem;
     delete m_psxCounters;
     delete m_psxBios;
+    delete m_gte;
 }
 
 int PCSX::Emulator::EmuInit() {

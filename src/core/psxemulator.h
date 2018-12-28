@@ -74,6 +74,7 @@ class R3000Acpu;
 class System;
 class Counters;
 class Bios;
+class GTE;
 
 class Emulator {
   private:
@@ -150,6 +151,7 @@ class Emulator {
     R3000Acpu* m_psxCpu = NULL;
     Counters* m_psxCounters = NULL;
     Bios* m_psxBios = NULL;
+    GTE* m_gte = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;
