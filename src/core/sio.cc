@@ -25,66 +25,7 @@
 
 #include "core/sio.h"
 
-// Status Flags
-#define TX_RDY 0x0001
-#define RX_RDY 0x0002
-#define TX_EMPTY 0x0004
-#define PARITY_ERR 0x0008
-#define RX_OVERRUN 0x0010
-#define FRAMING_ERR 0x0020
-#define SYNC_DETECT 0x0040
-#define DSR 0x0080
-#define CTS 0x0100
-#define IRQ 0x0200
-
-// Control Flags
-#define TX_PERM 0x0001
-#define DTR 0x0002
-#define RX_PERM 0x0004
-#define BREAK 0x0008
-#define RESET_ERR 0x0010
-#define RTS 0x0020
-#define SIO_RESET 0x0040
-
-// MCD flags
-#define MCDST_CHANGED 0x08
-
 // *** FOR WORKS ON PADS AND MEMORY CARDS *****
-
-void LoadDongle(const char *str);
-void SaveDongle(const char *str);
-
-#define BUFFER_SIZE 0x1010
-
-static unsigned char s_buf[BUFFER_SIZE];
-
-//[0] -> dummy
-//[1] -> memory card status flag
-//[2] -> card 1 id, 0x5a->plugged, any other not plugged
-//[3] -> card 2 id, 0x5d->plugged, any other not plugged
-unsigned char s_cardh[4] = {0x00, 0x08, 0x5a, 0x5d};
-
-// Transfer Ready and the Buffer is Empty
-// static unsigned short s_statReg = 0x002b;
-static unsigned short s_statReg = TX_RDY | TX_EMPTY;
-static unsigned short s_modeReg;
-static unsigned short s_ctrlReg;
-static unsigned short s_baudReg;
-
-static unsigned int s_bufcount;
-static unsigned int s_parp;
-static unsigned int s_mcdst, s_rdwr;
-static unsigned char s_adrH, s_adrL;
-static unsigned int s_padst;
-static unsigned int s_gsdonglest;
-
-char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
-
-#define DONGLE_SIZE 0x40 * 0x1000
-
-unsigned int s_dongleBank;
-unsigned char s_dongleData[DONGLE_SIZE];
-static int s_dongleInit;
 
 #if 0
 // Breaks Twisted Metal 2 intro
@@ -128,22 +69,15 @@ static int s_dongleInit;
 // ePSXe 1.7.0
 //#define SIO_CYCLES 635
 
-unsigned char reverse_8(unsigned char bits) {
-    unsigned char tmp;
-    int lcv;
+static constexpr uint8_t reverse_8(uint8_t b) {
+    constexpr uint64_t v1 = 0x0000000080200802ULL;
+    constexpr uint64_t v2 = 0x0000000884422110ULL;
+    constexpr uint64_t v3 = 0x0000000101010101ULL;
 
-    tmp = 0;
-    for (lcv = 0; lcv < 8; lcv++) {
-        tmp >>= 1;
-        tmp |= (bits & 0x80);
-
-        bits <<= 1;
-    }
-
-    return tmp;
+    return ((b * v1) & v2) * v3 >> 32;
 }
 
-void sioWrite8(unsigned char value) {
+void PCSX::SIO::sioWrite8(uint8_t value) {
     PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, s_parp, s_padst, s_mcdst);
     switch (s_padst) {
         case 1:
@@ -712,11 +646,11 @@ s_buf[5]);
     }
 }
 
-void sioWriteStat16(unsigned short value) {}
+void PCSX::SIO::sioWriteStat16(uint16_t value) {}
 
-void sioWriteMode16(unsigned short value) { s_modeReg = value; }
+void PCSX::SIO::sioWriteMode16(uint16_t value) { s_modeReg = value; }
 
-void sioWriteCtrl16(unsigned short value) {
+void PCSX::SIO::sioWriteCtrl16(uint16_t value) {
     PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, s_parp, s_padst, s_mcdst);
     s_ctrlReg = value & ~RESET_ERR;
     if (value & RESET_ERR) s_statReg &= ~IRQ;
@@ -729,9 +663,9 @@ void sioWriteCtrl16(unsigned short value) {
     }
 }
 
-void sioWriteBaud16(unsigned short value) { s_baudReg = value; }
+void PCSX::SIO::sioWriteBaud16(uint16_t value) { s_baudReg = value; }
 
-unsigned char sioRead8() {
+uint8_t PCSX::SIO::sioRead8() {
     unsigned char ret = 0;
 
     if ((s_statReg & RX_RDY) /* && (s_ctrlReg & RX_PERM)*/) {
@@ -770,7 +704,7 @@ unsigned char sioRead8() {
     return ret;
 }
 
-unsigned short sioReadStat16() {
+uint16_t PCSX::SIO::sioReadStat16() {
     uint16_t hard;
 
     hard = s_statReg;
@@ -788,13 +722,13 @@ unsigned short sioReadStat16() {
     return hard;
 }
 
-unsigned short sioReadMode16() { return s_modeReg; }
+uint16_t PCSX::SIO::sioReadMode16() { return s_modeReg; }
 
-unsigned short sioReadCtrl16() { return s_ctrlReg; }
+uint16_t PCSX::SIO::sioReadCtrl16() { return s_ctrlReg; }
 
-unsigned short sioReadBaud16() { return s_baudReg; }
+uint16_t PCSX::SIO::sioReadBaud16() { return s_baudReg; }
 
-void netError() {
+void PCSX::SIO::netError() {
     // ClosePlugins();
     PCSX::g_system->SysMessage("%s", _("Connection closed!\n"));
 
@@ -804,7 +738,7 @@ void netError() {
     PCSX::g_system->SysRunGui();
 }
 
-void sioInterrupt() {
+void PCSX::SIO::sioInterrupt() {
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
     //  PCSX::g_system->SysPrintf("Sio Interrupt\n");
     s_statReg |= IRQ;
@@ -818,7 +752,7 @@ void sioInterrupt() {
 #endif
 }
 
-void LoadMcd(int mcd, const char *str) {
+void PCSX::SIO::LoadMcd(int mcd, const char *str) {
     FILE *f;
     char *data = NULL;
     char filepath[MAXPATHLEN] = {'\0'};
@@ -871,12 +805,12 @@ void LoadMcd(int mcd, const char *str) {
     s_cardh[1] |= MCDST_CHANGED;
 }
 
-void LoadMcds(const char *mcd1, const char *mcd2) {
+void PCSX::SIO::LoadMcds(const char *mcd1, const char *mcd2) {
     LoadMcd(1, mcd1);
     LoadMcd(2, mcd2);
 }
 
-void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size) {
+void PCSX::SIO::SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t size) {
     FILE *f;
 
     f = fopen(mcd, "r+b");
@@ -911,7 +845,7 @@ void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size) {
     ConvertMcd(mcd, data);
 }
 
-void CreateMcd(const char *mcd) {
+void PCSX::SIO::CreateMcd(const char *mcd) {
     FILE *f;
     struct stat buf;
     int s = MCD_SIZE;
@@ -1062,7 +996,7 @@ void CreateMcd(const char *mcd) {
     fclose(f);
 }
 
-void ConvertMcd(const char *mcd, const char *data) {
+void PCSX::SIO::ConvertMcd(const char *mcd, const char *data) {
     FILE *f;
     int i = 0;
     int s = MCD_SIZE;
@@ -1160,7 +1094,7 @@ void ConvertMcd(const char *mcd, const char *data) {
     }
 }
 
-void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
+void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     char *data = NULL, *ptr, *str, *sstr;
     unsigned short clut[16];
     unsigned short c;
@@ -1242,7 +1176,7 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     }
 
     for (i = 0; i < Info->IconCount; i++) {
-        short *icon = &Info->Icon[i * 16 * 16];
+        uint16_t *icon = &Info->Icon[i * 16 * 16];
 
         ptr = data + block * 8192 + 128 + 128 * i;  // icon data
 
@@ -1263,7 +1197,7 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     strncpy(Info->Name, ptr, 16);
 }
 
-int sioFreeze(gzFile f, int Mode) {
+int PCSX::SIO::sioFreeze(gzFile f, int Mode) {
     gzfreeze(s_buf, sizeof(s_buf));
     gzfreeze(&s_statReg, sizeof(s_statReg));
     gzfreeze(&s_modeReg, sizeof(s_modeReg));
@@ -1280,7 +1214,7 @@ int sioFreeze(gzFile f, int Mode) {
     return 0;
 }
 
-void LoadDongle(const char *str) {
+void PCSX::SIO::LoadDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "r+b");
@@ -1312,7 +1246,7 @@ void LoadDongle(const char *str) {
     }
 }
 
-void SaveDongle(const char *str) {
+void PCSX::SIO::SaveDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "wb");
@@ -1321,5 +1255,3 @@ void SaveDongle(const char *str) {
         fclose(f);
     }
 }
-
-void CALLBACK SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }

@@ -29,6 +29,7 @@ PCSX::Emulator::Emulator() {
     m_psxCounters = new PCSX::Counters();
     m_psxBios = PCSX::Bios::factory();
     m_gte = new PCSX::GTE();
+    m_sio = new PCSX::SIO();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -36,6 +37,7 @@ PCSX::Emulator::~Emulator() {
     delete m_psxCounters;
     delete m_psxBios;
     delete m_gte;
+    delete m_sio;
 }
 
 int PCSX::Emulator::EmuInit() {

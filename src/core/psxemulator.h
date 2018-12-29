@@ -75,6 +75,7 @@ class System;
 class Counters;
 class Bios;
 class GTE;
+class SIO;
 
 class Emulator {
   private:
@@ -152,6 +153,7 @@ class Emulator {
     Counters* m_psxCounters = NULL;
     Bios* m_psxBios = NULL;
     GTE* m_gte = NULL;
+    SIO* m_sio = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

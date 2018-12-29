@@ -1276,12 +1276,12 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_format() {  // 0x41
         if (strcmp(Ra0, "bu00:") == 0 && PCSX::g_emulator.config().Mcd1[0] != '\0') {
-            CreateMcd(PCSX::g_emulator.config().Mcd1.c_str());
-            LoadMcd(1, PCSX::g_emulator.config().Mcd1.c_str());
+            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.config().Mcd1.c_str());
+            PCSX::g_emulator.m_sio->LoadMcd(1, PCSX::g_emulator.config().Mcd1.c_str());
             v0 = 1;
         } else if (strcmp(Ra0, "bu10:") == 0 && PCSX::g_emulator.config().Mcd2[0] != '\0') {
-            CreateMcd(PCSX::g_emulator.config().Mcd2.c_str());
-            LoadMcd(2, PCSX::g_emulator.config().Mcd2.c_str());
+            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.config().Mcd2.c_str());
+            PCSX::g_emulator.m_sio->LoadMcd(2, PCSX::g_emulator.config().Mcd2.c_str());
             v0 = 1;
         } else {
             v0 = 0;
@@ -1957,7 +1957,7 @@ class BiosImpl : public PCSX::Bios {
                 PCSX::g_system->SysBiosPrintf("openC %s %d\n", ptr, nblk);
                 v0 = 1 + mcd;
                 /* just go ahead and resave them all */
-                SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
+                PCSX::g_emulator.m_sio->SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
                 break;
             }
             /* shouldn't this return ENOSPC if i == 16? */
@@ -1974,11 +1974,11 @@ class BiosImpl : public PCSX::Bios {
         v0 = -1;
 
         if (!strncmp(Ra0, "bu00", 4)) {
-            buopen(1, g_mcd1Data, PCSX::g_emulator.config().Mcd1.c_str());
+            buopen(1, PCSX::g_emulator.m_sio->g_mcd1Data, PCSX::g_emulator.config().Mcd1.c_str());
         }
 
         if (!strncmp(Ra0, "bu10", 4)) {
-            buopen(2, g_mcd2Data, PCSX::g_emulator.config().Mcd2.c_str());
+            buopen(2, PCSX::g_emulator.m_sio->g_mcd2Data, PCSX::g_emulator.config().Mcd2.c_str());
         }
 
         pc0 = ra;
@@ -2011,8 +2011,8 @@ class BiosImpl : public PCSX::Bios {
 #define buread(mcd)                                                                                                  \
     {                                                                                                                \
         PCSX::g_system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
-                                      g_mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
-        ptr = g_mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;                           \
+                                      PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
+        ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;                           \
         memcpy(Ra1, ptr, a2);                                                                                        \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                                          \
             v0 = 0;                                                                                                  \
@@ -2050,10 +2050,11 @@ class BiosImpl : public PCSX::Bios {
     {                                                                                                             \
         uint32_t offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;                              \
         PCSX::g_system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
-        ptr = g_mcd##mcd##Data + offset;                                                                          \
+        ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + offset;                                                                          \
         memcpy(ptr, Ra1, a2);                                                                                     \
         s_FDesc[1 + mcd].offset += a2;                                                                            \
-        SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(), g_mcd##mcd##Data, offset, a2);                        \
+        PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(),                               \
+                                        PCSX::g_emulator.m_sio->g_mcd##mcd##Data, offset, a2);                        \
         if (s_FDesc[1 + mcd].mode & 0x8000)                                                                       \
             v0 = 0;                                                                                               \
         else                                                                                                      \
@@ -2137,7 +2138,7 @@ class BiosImpl : public PCSX::Bios {
         while (nfile < 16) {                                                                                  \
             int match = 1;                                                                                    \
                                                                                                               \
-            ptr = g_mcd##mcd##Data + 128 * (nfile + 1);                                                       \
+            ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * (nfile + 1);                                                       \
             nfile++;                                                                                          \
             if ((*ptr & 0xF0) != 0x50) continue;                                                              \
             /* Bug link files show up as free block. */                                                       \
@@ -2231,7 +2232,7 @@ class BiosImpl : public PCSX::Bios {
     {                                                                                                   \
         for (i = 1; i < 16; i++) {                                                                      \
             int namelen, j, chksum = 0;                                                                 \
-            ptr = g_mcd##mcd##Data + 128 * i;                                                           \
+            ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * i;                                                           \
             if ((*ptr & 0xF0) != 0x50) continue;                                                        \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;                                                   \
             namelen = strlen(Ra1 + 5);                                                                  \
@@ -2239,7 +2240,9 @@ class BiosImpl : public PCSX::Bios {
             memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                                             \
             for (j = 0; j < 127; j++) chksum ^= ptr[j];                                                 \
             ptr[127] = chksum;                                                                          \
-            SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i + 0xa, 0x76); \
+            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(),                     \
+                                            PCSX::g_emulator.m_sio->g_mcd##mcd##Data, \
+                                            128 * i + 0xa, 0x76); \
             v0 = 1;                                                                                     \
             break;                                                                                      \
         }                                                                                               \
@@ -2271,11 +2274,12 @@ class BiosImpl : public PCSX::Bios {
 #define budelete(mcd)                                                                          \
     {                                                                                          \
         for (i = 1; i < 16; i++) {                                                             \
-            ptr = g_mcd##mcd##Data + 128 * i;                                                  \
+            ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * i;                                                  \
             if ((*ptr & 0xF0) != 0x50) continue;                                               \
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;                                          \
             *ptr = (*ptr & 0xf) | 0xA0;                                                        \
-            SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(), g_mcd##mcd##Data, 128 * i, 1); \
+            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(),            \
+                                            PCSX::g_emulator.m_sio->g_mcd##mcd##Data, 128 * i, 1); \
             PCSX::g_system->SysBiosPrintf("delete %s\n", ptr + 0xa);                           \
             v0 = 1;                                                                            \
             break;                                                                             \
@@ -2331,18 +2335,22 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios__card_write() {  // 0x4e
         int const port = a0 >> 4;
-        uint32_t const sect = a1 % (MCD_SIZE / 8);  // roll on range 0...3FFF
+        uint32_t const sect = a1 % (PCSX::SIO::MCD_SIZE / 8);  // roll on range 0...3FFF
 
         PSXBIOS_LOG("psxBios_%s, PORT=%i, SECT=%u(%u), DEST=%p\n", B0names[0x4e], port, sect, a1, a2);
 
         s_card_active_chan = a0;
 
         if (port == 0) {
-            memcpy(g_mcd1Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-            SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), g_mcd1Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+            memcpy(PCSX::g_emulator.m_sio->g_mcd1Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
+                   PCSX::SIO::MCD_SECT_SIZE);
+            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), PCSX::g_emulator.m_sio->g_mcd1Data,
+                                            sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
         } else {
-            memcpy(g_mcd2Data + (sect * MCD_SECT_SIZE), Ra2, MCD_SECT_SIZE);
-            SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), g_mcd2Data, sect * MCD_SECT_SIZE, MCD_SECT_SIZE);
+            memcpy(PCSX::g_emulator.m_sio->g_mcd2Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
+                   PCSX::SIO::MCD_SECT_SIZE);
+            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), PCSX::g_emulator.m_sio->g_mcd2Data,
+                                            sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
         }
 
         DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2354,16 +2362,18 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios__card_read() {  // 0x4f
         int const port = a0 >> 4;
-        uint32_t const sect = a1 % (MCD_SIZE / 8);  // roll on range 0...3FFF
+        uint32_t const sect = a1 % (PCSX::SIO::MCD_SIZE / 8);  // roll on range 0...3FFF
 
         PSXBIOS_LOG("psxBios_%s, PORT=%i, SECT=%u(%u), DEST=%p\n", B0names[0x4f], port, sect, a1, a2);
 
         s_card_active_chan = a0;
 
         if (port == 0) {
-            memcpy(Ra2, g_mcd1Data + (sect * MCD_SECT_SIZE), MCD_SECT_SIZE);
+            memcpy(Ra2, PCSX::g_emulator.m_sio->g_mcd1Data + (sect * PCSX::SIO::MCD_SECT_SIZE),
+                   PCSX::SIO::MCD_SECT_SIZE);
         } else {
-            memcpy(Ra2, g_mcd2Data + (sect * MCD_SECT_SIZE), MCD_SECT_SIZE);
+            memcpy(Ra2, PCSX::g_emulator.m_sio->g_mcd2Data + (sect * PCSX::SIO::MCD_SECT_SIZE),
+                   PCSX::SIO::MCD_SECT_SIZE);
         }
 
         DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2988,19 +2998,19 @@ class BiosImpl : public PCSX::Bios {
                 data = PAD1_poll(0) << 8;
                 data |= PAD1_poll(0);
 
-                if (NET_sendPadData(&data, 2) == -1) netError();
+                if (NET_sendPadData(&data, 2) == -1) PCSX::g_emulator.m_sio->netError();
 
-                if (NET_recvPadData(&((uint16_t *)buf)[0], 1) == -1) netError();
-                if (NET_recvPadData(&((uint16_t *)buf)[1], 2) == -1) netError();
+                if (NET_recvPadData(&((uint16_t *)buf)[0], 1) == -1) PCSX::g_emulator.m_sio->netError();
+                if (NET_recvPadData(&((uint16_t *)buf)[1], 2) == -1) PCSX::g_emulator.m_sio->netError();
             }
         }
         if (PCSX::g_emulator.config().UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
             psxBios_PADpoll(1);
 
-            if (NET_sendPadData(s_pad_buf1, i) == -1) netError();
+            if (NET_sendPadData(s_pad_buf1, i) == -1) PCSX::g_emulator.m_sio->netError();
 
-            if (NET_recvPadData(s_pad_buf1, 1) == -1) netError();
-            if (NET_recvPadData(s_pad_buf2, 2) == -1) netError();
+            if (NET_recvPadData(s_pad_buf1, 1) == -1) PCSX::g_emulator.m_sio->netError();
+            if (NET_recvPadData(s_pad_buf2, 2) == -1) PCSX::g_emulator.m_sio->netError();
         } else {
             if (s_pad_buf1) {
                 psxBios_PADpoll(1);

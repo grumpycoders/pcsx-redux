@@ -398,7 +398,7 @@ int CheckCdrom() {
 #endif
         PCSX::g_emulator.config().Mcd1 = mcd1path;
         PCSX::g_emulator.config().Mcd2 = mcd2path;
-        LoadMcds(PCSX::g_emulator.config().Mcd1.c_str(), PCSX::g_emulator.config().Mcd2.c_str());
+        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.config().Mcd1.c_str(), PCSX::g_emulator.config().Mcd2.c_str());
     }
 
     BuildPPFCache();
@@ -747,7 +747,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     SPU_freeze(1, s_spufP);
     gzwrite(f, s_spufP, s_spufP->Size);
 
-    sioFreeze(f, 1);
+    PCSX::g_emulator.m_sio->sioFreeze(f, 1);
     cdrFreeze(f, 1);
     psxHwFreeze(f, 1);
     PCSX::g_emulator.m_psxCounters->psxRcntFreeze(f, 1);
@@ -801,7 +801,7 @@ int LoadStateGz(gzFile f) {
     SPU_freeze(0, _spufP);
     free(_spufP);
 
-    sioFreeze(f, 0);
+    PCSX::g_emulator.m_sio->sioFreeze(f, 0);
     cdrFreeze(f, 0);
     psxHwFreeze(f, 0);
     PCSX::g_emulator.m_psxCounters->psxRcntFreeze(f, 0);
