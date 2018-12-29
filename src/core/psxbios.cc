@@ -2008,19 +2008,39 @@ class BiosImpl : public PCSX::Bios {
         pc0 = ra;
     }
 
-#define buread(mcd)                                                                                                  \
-    {                                                                                                                \
-        PCSX::g_system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2, \
-                                      PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * s_FDesc[1 + mcd].mcfile + 0xa);                       \
-        ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;                           \
-        memcpy(Ra1, ptr, a2);                                                                                        \
-        if (s_FDesc[1 + mcd].mode & 0x8000)                                                                          \
-            v0 = 0;                                                                                                  \
-        else                                                                                                         \
-            v0 = a2;                                                                                                 \
-        s_FDesc[1 + mcd].offset += v0;                                                                               \
-        DeliverEvent(0x11, 0x2); /* 0xf0000011, 0x0004 */                                                            \
-        DeliverEvent(0x81, 0x2); /* 0xf4000001, 0x0004 */                                                            \
+    template <int mcd>
+    char *getmcdData() {
+        if (mcd == 1) {
+            return PCSX::g_emulator.m_sio->g_mcd1Data;
+        } else if (mcd == 2) {
+            return PCSX::g_emulator.m_sio->g_mcd2Data;
+        }
+        return NULL;
+    }
+
+    template <int mcd>
+    const char *getmcdName() {
+        if (mcd == 1) {
+            return PCSX::g_emulator.config().Mcd1.c_str();
+        } else if (mcd == 2) {
+            return PCSX::g_emulator.config().Mcd2.c_str();
+        }
+        return NULL;
+    }
+
+    template <int mcd>
+    void buread() {
+        PCSX::g_system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2,
+                                      getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
+        char *ptr = getmcdData<mcd>() + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
+        memcpy(Ra1, ptr, a2);
+        if (s_FDesc[1 + mcd].mode & 0x8000)
+            v0 = 0;
+        else
+            v0 = a2;
+        s_FDesc[1 + mcd].offset += v0;
+        DeliverEvent(0x11, 0x2); /* 0xf0000011, 0x0004 */
+        DeliverEvent(0x81, 0x2); /* 0xf4000001, 0x0004 */
     }
 
     /*
@@ -2028,39 +2048,36 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_read() {  // 0x34
-        char *ptr;
-
         PSXBIOS_LOG("psxBios_%s: %x, %x, %x\n", B0names[0x34], a0, a1, a2);
 
         v0 = -1;
 
         switch (a0) {
             case 2:
-                buread(1);
+                buread<1>();
                 break;
             case 3:
-                buread(2);
+                buread<2>();
                 break;
         }
 
         pc0 = ra;
     }
 
-#define buwrite(mcd)                                                                                              \
-    {                                                                                                             \
-        uint32_t offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;                              \
-        PCSX::g_system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2); \
-        ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + offset;                                                                          \
-        memcpy(ptr, Ra1, a2);                                                                                     \
-        s_FDesc[1 + mcd].offset += a2;                                                                            \
-        PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(),                               \
-                                        PCSX::g_emulator.m_sio->g_mcd##mcd##Data, offset, a2);                        \
-        if (s_FDesc[1 + mcd].mode & 0x8000)                                                                       \
-            v0 = 0;                                                                                               \
-        else                                                                                                      \
-            v0 = a2;                                                                                              \
-        DeliverEvent(0x11, 0x2); /* 0xf0000011, 0x0004 */                                                         \
-        DeliverEvent(0x81, 0x2); /* 0xf4000001, 0x0004 */                                                         \
+    template <int mcd>
+    void buwrite() {
+        uint32_t offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
+        PCSX::g_system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2);
+        char *ptr = getmcdData<mcd>() + offset;
+        memcpy(ptr, Ra1, a2);
+        s_FDesc[1 + mcd].offset += a2;
+        PCSX::g_emulator.m_sio->SaveMcd(getmcdName<mcd>(), getmcdData<mcd>(), offset, a2);
+        if (s_FDesc[1 + mcd].mode & 0x8000)
+            v0 = 0;
+        else
+            v0 = a2;
+        DeliverEvent(0x11, 0x2); /* 0xf0000011, 0x0004 */
+        DeliverEvent(0x81, 0x2); /* 0xf4000001, 0x0004 */
     }
 
     /*
@@ -2068,8 +2085,6 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_write() {  // 0x35/0x03
-        char *ptr;
-
         if (a0 == 1) {  // stdout
             char *ptr = Ra1;
 
@@ -2086,10 +2101,10 @@ class BiosImpl : public PCSX::Bios {
 
         switch (a0) {
             case 2:
-                buwrite(1);
+                buwrite<1>();
                 break;
             case 3:
-                buwrite(2);
+                buwrite<2>();
                 break;
         }
 
@@ -2106,8 +2121,7 @@ class BiosImpl : public PCSX::Bios {
         v0 = a0;
         pc0 = ra;
     }
-
-#define PSXSTRBUFMAX 255
+    static const size_t PSXSTRBUFMAX = 255;
     char psxstrbuf[PSXSTRBUFMAX + 1];
     unsigned short psxstrbuf_count = 0;
 
@@ -2133,45 +2147,45 @@ class BiosImpl : public PCSX::Bios {
     char ffile[64], *pfile;
     int nfile;
 
-#define bufile(mcd)                                                                                           \
-    {                                                                                                         \
-        while (nfile < 16) {                                                                                  \
-            int match = 1;                                                                                    \
-                                                                                                              \
-            ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * (nfile + 1);                                                       \
-            nfile++;                                                                                          \
-            if ((*ptr & 0xF0) != 0x50) continue;                                                              \
-            /* Bug link files show up as free block. */                                                       \
-            if (!ptr[0xa]) continue;                                                                          \
-            ptr += 0xa;                                                                                       \
-            if (pfile[0] == 0) {                                                                              \
-                strncpy(dir->name, ptr, sizeof(dir->name));                                                   \
-                dir->name[sizeof(dir->name) - 1] = '\0';                                                      \
-            } else                                                                                            \
-                for (i = 0; i < 20; i++) {                                                                    \
-                    if (pfile[i] == ptr[i]) {                                                                 \
-                        dir->name[i] = ptr[i];                                                                \
-                        continue;                                                                             \
-                    }                                                                                         \
-                    if (pfile[i] == '?') {                                                                    \
-                        dir->name[i] = ptr[i];                                                                \
-                        continue;                                                                             \
-                    }                                                                                         \
-                    if (pfile[i] == '*') {                                                                    \
-                        strcpy(dir->name + i, ptr + i);                                                       \
-                        break;                                                                                \
-                    }                                                                                         \
-                    match = 0;                                                                                \
-                    break;                                                                                    \
-                }                                                                                             \
-            PCSX::g_system->SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match); \
-            if (match == 0) {                                                                                 \
-                continue;                                                                                     \
-            }                                                                                                 \
-            dir->size = 8192;                                                                                 \
-            v0 = _dir;                                                                                        \
-            break;                                                                                            \
-        }                                                                                                     \
+    template <int mcd>
+    void bufile(struct DIRENTRY *dir) {
+        while (nfile < 16) {
+            int match = 1;
+
+            char *ptr = getmcdData<mcd>() + 128 * (nfile + 1);
+            nfile++;
+            if ((*ptr & 0xF0) != 0x50) continue;
+            /* Bug link files show up as free block. */
+            if (!ptr[0xa]) continue;
+            ptr += 0xa;
+            if (pfile[0] == 0) {
+                strncpy(dir->name, ptr, sizeof(dir->name));
+                dir->name[sizeof(dir->name) - 1] = '\0';
+            } else
+                for (int i = 0; i < 20; i++) {
+                    if (pfile[i] == ptr[i]) {
+                        dir->name[i] = ptr[i];
+                        continue;
+                    }
+                    if (pfile[i] == '?') {
+                        dir->name[i] = ptr[i];
+                        continue;
+                    }
+                    if (pfile[i] == '*') {
+                        strcpy(dir->name + i, ptr + i);
+                        break;
+                    }
+                    match = 0;
+                    break;
+                }
+            PCSX::g_system->SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match);
+            if (match == 0) {
+                continue;
+            }
+            dir->size = 8192;
+            v0 = a1;
+            break;
+        }
     }
 
     /*
@@ -2180,9 +2194,6 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_firstfile() {  // 42
         struct DIRENTRY *dir = (struct DIRENTRY *)Ra1;
-        uint32_t _dir = a1;
-        char *ptr;
-        int i;
 
         PSXBIOS_LOG("psxBios_%s: %s\n", B0names[0x42], Ra0);
 
@@ -2194,10 +2205,10 @@ class BiosImpl : public PCSX::Bios {
 
         if (!strncmp(Ra0, "bu00", 4)) {
             DeliverEvent(0x11, 0x2);
-            bufile(1);
+            bufile<1>(dir);
         } else if (!strncmp(Ra0, "bu10", 4)) {
             DeliverEvent(0x11, 0x2);
-            bufile(2);
+            bufile<2>(dir);
         }
 
         pc0 = ra;
@@ -2209,43 +2220,38 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_nextfile() {  // 43
         struct DIRENTRY *dir = (struct DIRENTRY *)Ra0;
-        uint32_t _dir = a0;
-        char *ptr;
-        int i;
 
         PSXBIOS_LOG("psxBios_%s: %s\n", B0names[0x43], dir->name);
 
         v0 = 0;
 
         if (!strncmp(ffile, "bu00", 4)) {
-            bufile(1);
+            bufile<1>(dir);
         }
 
         if (!strncmp(ffile, "bu10", 4)) {
-            bufile(2);
+            bufile<2>(dir);
         }
 
         pc0 = ra;
     }
 
-#define burename(mcd)                                                                                   \
-    {                                                                                                   \
-        for (i = 1; i < 16; i++) {                                                                      \
-            int namelen, j, chksum = 0;                                                                 \
-            ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * i;                                                           \
-            if ((*ptr & 0xF0) != 0x50) continue;                                                        \
-            if (strcmp(Ra0 + 5, ptr + 0xa)) continue;                                                   \
-            namelen = strlen(Ra1 + 5);                                                                  \
-            memcpy(ptr + 0xa, Ra1 + 5, namelen);                                                        \
-            memset(ptr + 0xa + namelen, 0, 0x75 - namelen);                                             \
-            for (j = 0; j < 127; j++) chksum ^= ptr[j];                                                 \
-            ptr[127] = chksum;                                                                          \
-            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(),                     \
-                                            PCSX::g_emulator.m_sio->g_mcd##mcd##Data, \
-                                            128 * i + 0xa, 0x76); \
-            v0 = 1;                                                                                     \
-            break;                                                                                      \
-        }                                                                                               \
+    template <int mcd>
+    void burename() {
+        for (int i = 1; i < 16; i++) {
+            int namelen, j, chksum = 0;
+            char *ptr = getmcdData<mcd>() + 128 * i;
+            if ((*ptr & 0xF0) != 0x50) continue;
+            if (strcmp(Ra0 + 5, ptr + 0xa)) continue;
+            namelen = strlen(Ra1 + 5);
+            memcpy(ptr + 0xa, Ra1 + 5, namelen);
+            memset(ptr + 0xa + namelen, 0, 0x75 - namelen);
+            for (j = 0; j < 127; j++) chksum ^= ptr[j];
+            ptr[127] = chksum;
+            PCSX::g_emulator.m_sio->SaveMcd(getmcdName<mcd>(), getmcdData<mcd>(), 128 * i + 0xa, 0x76);
+            v0 = 1;
+            break;
+        }
     }
 
     /*
@@ -2253,37 +2259,33 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_rename() {  // 44
-        char *ptr;
-        int i;
-
         PSXBIOS_LOG("psxBios_%s: %s,%s\n", B0names[0x44], Ra0, Ra1);
 
         v0 = 0;
 
         if (!strncmp(Ra0, "bu00", 4) && !strncmp(Ra1, "bu00", 4)) {
-            burename(1);
+            burename<1>();
         }
 
         if (!strncmp(Ra0, "bu10", 4) && !strncmp(Ra1, "bu10", 4)) {
-            burename(2);
+            burename<2>();
         }
 
         pc0 = ra;
     }
 
-#define budelete(mcd)                                                                          \
-    {                                                                                          \
-        for (i = 1; i < 16; i++) {                                                             \
-            ptr = PCSX::g_emulator.m_sio->g_mcd##mcd##Data + 128 * i;                                                  \
-            if ((*ptr & 0xF0) != 0x50) continue;                                               \
-            if (strcmp(Ra0 + 5, ptr + 0xa)) continue;                                          \
-            *ptr = (*ptr & 0xf) | 0xA0;                                                        \
-            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.config().Mcd##mcd.c_str(),            \
-                                            PCSX::g_emulator.m_sio->g_mcd##mcd##Data, 128 * i, 1); \
-            PCSX::g_system->SysBiosPrintf("delete %s\n", ptr + 0xa);                           \
-            v0 = 1;                                                                            \
-            break;                                                                             \
-        }                                                                                      \
+    template <int mcd>
+    void budelete() {
+        for (int i = 1; i < 16; i++) {
+            char *ptr = getmcdData<mcd>() + 128 * i;
+            if ((*ptr & 0xF0) != 0x50) continue;
+            if (strcmp(Ra0 + 5, ptr + 0xa)) continue;
+            *ptr = (*ptr & 0xf) | 0xA0;
+            PCSX::g_emulator.m_sio->SaveMcd(getmcdName<mcd>(), getmcdData<mcd>(), 128 * i, 1);
+            PCSX::g_system->SysBiosPrintf("delete %s\n", ptr + 0xa);
+            v0 = 1;
+            break;
+        }
     }
 
     /*
@@ -2291,19 +2293,16 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_delete() {  // 45
-        char *ptr;
-        int i;
-
         PSXBIOS_LOG("psxBios_%s: %s\n", B0names[0x45], Ra0);
 
         v0 = 0;
 
         if (!strncmp(Ra0, "bu00", 4)) {
-            budelete(1);
+            budelete<1>();
         }
 
         if (!strncmp(Ra0, "bu10", 4)) {
-            budelete(2);
+            budelete<2>();
         }
 
         pc0 = ra;
