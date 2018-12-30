@@ -32,6 +32,7 @@ PCSX::Emulator::Emulator() {
     m_gte = new PCSX::GTE();
     m_sio = new PCSX::SIO();
     m_cdrom = PCSX::CDRom::factory();
+    m_cheats = new PCSX::Cheats();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -41,6 +42,7 @@ PCSX::Emulator::~Emulator() {
     delete m_gte;
     delete m_sio;
     delete m_cdrom;
+    delete m_cheats;
 }
 
 int PCSX::Emulator::EmuInit() {
@@ -52,17 +54,17 @@ int PCSX::Emulator::EmuInit() {
 }
 
 void PCSX::Emulator::EmuReset() {
-    FreeCheatSearchResults();
-    FreeCheatSearchMem();
+    m_cheats->FreeCheatSearchResults();
+    m_cheats->FreeCheatSearchMem();
     m_psxMem->psxMemReset();
 
     PCSX::g_emulator.m_psxCpu->psxReset();
 }
 
 void PCSX::Emulator::EmuShutdown() {
-    ClearAllCheats();
-    FreeCheatSearchResults();
-    FreeCheatSearchMem();
+    m_cheats->ClearAllCheats();
+    m_cheats->FreeCheatSearchResults();
+    m_cheats->FreeCheatSearchMem();
 
     FreePPFCache();
     m_psxMem->psxMemShutdown();
@@ -75,7 +77,7 @@ void PCSX::Emulator::EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
     if (!m_config.HLE || !PCSX::g_emulator.m_psxBios->m_hleSoftCall) PCSX::g_system->SysUpdate();
 
-    ApplyCheats();
+    m_cheats->ApplyCheats();
 
     if (m_vblank_count_hideafter) {
         if (!(--m_vblank_count_hideafter)) {

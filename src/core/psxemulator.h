@@ -81,6 +81,7 @@ class Bios;
 class GTE;
 class SIO;
 class CDRom;
+class Cheats;
 
 class Emulator {
   private:
@@ -160,6 +161,7 @@ class Emulator {
     GTE* m_gte = NULL;
     SIO* m_sio = NULL;
     CDRom* m_cdrom = NULL;
+    Cheats* m_cheats = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;
