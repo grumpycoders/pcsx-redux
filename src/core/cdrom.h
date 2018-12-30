@@ -17,8 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __CDROM_H__
-#define __CDROM_H__
+#pragma once
 
 #include "core/decode_xa.h"
 #include "core/plugins.h"
@@ -27,105 +26,41 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-#define btoi(b) ((b) / 16 * 10 + (b) % 16) /* BCD to u_char */
-#define itob(i) ((i) / 10 * 16 + (i) % 10) /* u_char to BCD */
+namespace PCSX {
 
-#define MSF2SECT(m, s, f) (((m)*60 + (s)-2) * 75 + (f))
+class CDRom {
+  public:
+    virtual ~CDRom() {}
+    static CDRom* factory();
+    static inline constexpr uint8_t btoi(uint8_t b) { return ((b / 16) * 10) + (b % 16); }
+    static inline constexpr uint8_t itob(uint8_t i) { return ((i / 10) * 16) + (i % 10); }
 
-#define CD_FRAMESIZE_RAW 2352
-#define DATA_SIZE (CD_FRAMESIZE_RAW - 12)
+    static inline constexpr uint32_t MSF2SECT(uint8_t m, uint8_t s, uint8_t f) { return (m * 60 + s - 2) * 75 + f; }
+    static const ssize_t CD_FRAMESIZE_RAW = 2352;
+    static const ssize_t DATA_SIZE = CD_FRAMESIZE_RAW - 12;
+    static const ssize_t SUB_FRAMESIZE = 96;
 
-#define SUB_FRAMESIZE 96
+    virtual void reset() = 0;
+    virtual void attenuate(int16_t *buf, int samples, int stereo) = 0;
 
-typedef struct {
-    unsigned char OCUP;
-    unsigned char Reg1Mode;
-    unsigned char Reg2;
-    unsigned char CmdProcess;
-    unsigned char Ctrl;
-    unsigned char Stat;
+    virtual void interrupt() = 0;
+    virtual void readInterrupt() = 0;
+    virtual void decodedBufferInterrupt() = 0;
+    virtual void lidSeekInterrupt() = 0;
+    virtual void playInterrupt() = 0;
+    virtual void dmaInterrupt() = 0;
+    virtual void lidInterrupt() = 0;
+    virtual uint8_t read0(void) = 0;
+    virtual uint8_t read1(void) = 0;
+    virtual uint8_t read2(void) = 0;
+    virtual uint8_t read3(void) = 0;
+    virtual void write0(uint8_t rt) = 0;
+    virtual void write1(uint8_t rt) = 0;
+    virtual void write2(uint8_t rt) = 0;
+    virtual void write3(uint8_t rt) = 0;
+    virtual int freeze(gzFile f, int Mode) = 0;
 
-    unsigned char StatP;
+    virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
+};
 
-    unsigned char Transfer[CD_FRAMESIZE_RAW];
-    unsigned int transferIndex;
-
-    unsigned char Prev[4];
-    unsigned char Param[8];
-    unsigned char Result[16];
-
-    unsigned char ParamC;
-    unsigned char ParamP;
-    unsigned char ResultC;
-    unsigned char ResultP;
-    unsigned char ResultReady;
-    unsigned char Cmd;
-    unsigned char Readed;
-    unsigned char SetlocPending;
-    uint32_t Reading;
-
-    unsigned char ResultTN[6];
-    unsigned char ResultTD[4];
-    unsigned char SetSectorPlay[4];
-    unsigned char SetSectorEnd[4];
-    unsigned char SetSector[4];
-    unsigned char Track;
-    bool Play, Muted;
-    int CurTrack;
-    int Mode, File, Channel;
-    int Reset;
-    int RErr;
-    int FirstSector;
-
-    xa_decode_t Xa;
-
-    int Init;
-
-    uint16_t Irq;
-    uint8_t IrqRepeated;
-    uint32_t eCycle;
-
-    uint8_t Seeked;
-    uint8_t ReadRescheduled;
-
-    uint8_t DriveState;
-    uint8_t FastForward;
-    uint8_t FastBackward;
-
-    uint8_t AttenuatorLeftToLeft, AttenuatorLeftToRight;
-    uint8_t AttenuatorRightToRight, AttenuatorRightToLeft;
-    uint8_t AttenuatorLeftToLeftT, AttenuatorLeftToRightT;
-    uint8_t AttenuatorRightToRightT, AttenuatorRightToLeftT;
-
-    struct {
-        unsigned char Track;
-        unsigned char Index;
-        unsigned char Relative[3];
-        unsigned char Absolute[3];
-    } subq;
-    unsigned char TrackChanged;
-} cdrStruct;
-
-extern cdrStruct g_cdr;
-
-void cdrReset();
-void cdrAttenuate(int16_t *buf, int samples, int stereo);
-
-void cdrInterrupt();
-void cdrReadInterrupt();
-void cdrDecodedBufferInterrupt();
-void cdrLidSeekInterrupt();
-void cdrPlayInterrupt();
-void cdrDmaInterrupt();
-void LidInterrupt();
-unsigned char cdrRead0(void);
-unsigned char cdrRead1(void);
-unsigned char cdrRead2(void);
-unsigned char cdrRead3(void);
-void cdrWrite0(unsigned char rt);
-void cdrWrite1(unsigned char rt);
-void cdrWrite2(unsigned char rt);
-void cdrWrite3(unsigned char rt);
-int cdrFreeze(gzFile f, int Mode);
-
-#endif
+}  // namespace PCSX

@@ -62,8 +62,8 @@ static bool s_subChanMissing = false;
 static bool s_multifile = false;
 static bool s_isMode1ISO = false;  // TODO: use sector size/mode info from CUE also?
 
-static unsigned char s_cdbuffer[CD_FRAMESIZE_RAW];
-static unsigned char s_subbuffer[SUB_FRAMESIZE];
+static unsigned char s_cdbuffer[PCSX::CDRom::CD_FRAMESIZE_RAW];
+static unsigned char s_subbuffer[PCSX::CDRom::SUB_FRAMESIZE];
 
 static bool s_playing = false;
 static bool s_cddaBigEndian = false;
@@ -77,8 +77,8 @@ static unsigned int s_pregapOffset;
 
 // compressed image stuff
 static struct compr_img_t {
-    unsigned char buff_raw[16][CD_FRAMESIZE_RAW];
-    unsigned char buff_compressed[CD_FRAMESIZE_RAW * 16 + 100];
+    unsigned char buff_raw[16][PCSX::CDRom::CD_FRAMESIZE_RAW];
+    unsigned char buff_compressed[PCSX::CDRom::CD_FRAMESIZE_RAW * 16 + 100];
     unsigned int *index_table;
     unsigned int index_len;
     unsigned int block_shift;
@@ -433,7 +433,7 @@ static int parsetoc(const char *isofile) {
     memset(&ti, 0, sizeof(ti));
     s_cddaBigEndian = true;  // cdrdao uses big-endian for CD Audio
 
-    sector_size = CD_FRAMESIZE_RAW;
+    sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
     sector_offs = 2 * 75;
 
     // parse the .toc file
@@ -459,7 +459,7 @@ static int parsetoc(const char *isofile) {
                 // check if this image contains mixed subchannel data
                 token = strtok(NULL, " ");
                 if (token != NULL && !strncmp(token, "RW", 2)) {
-                    sector_size = CD_FRAMESIZE_RAW + SUB_FRAMESIZE;
+                    sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE;
                     s_subChanMixed = true;
                     if (!strncmp(token, "RW_RAW", 6)) s_subChanRaw = true;
                 }
@@ -596,7 +596,7 @@ static int parsecue(const char *isofile) {
             sector_size = 0;
             if (strstr(linebuf, "AUDIO") != NULL) {
                 ti[numtracks].type = trackinfo::CDDA;
-                sector_size = CD_FRAMESIZE_RAW;
+                sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
                 // Check if extension is mp3, etc, for compressed audio formats
                 if (s_multifile && (ti[numtracks].cddatype = get_cdda_type(filepath)) > trackinfo::BIN) {
                     int seconds = get_compressed_cdda_track_length(filepath) + 0;
@@ -605,12 +605,12 @@ static int parsecue(const char *isofile) {
                     // TODO: get frame length for compressed audio as well
                     ti[numtracks].len_decoded_buffer = 44100 * (16 / 8) * 2 * seconds;
                     strcpy(ti[numtracks].filepath, filepath);
-                    file_len = ti[numtracks].len_decoded_buffer / CD_FRAMESIZE_RAW;
+                    file_len = ti[numtracks].len_decoded_buffer / PCSX::CDRom::CD_FRAMESIZE_RAW;
 
                     // Send to decoder if not lazy decoding
                     if (!lazy_decode) {
                         PCSX::g_system->SysPrintf("\n");
-                        file_len = do_decode_cdda(&(ti[numtracks]), numtracks) / CD_FRAMESIZE_RAW;
+                        file_len = do_decode_cdda(&(ti[numtracks]), numtracks) / PCSX::CDRom::CD_FRAMESIZE_RAW;
                     }
                 }
             } else if (sscanf(linebuf, " TRACK %u MODE%u/%u", &t, &mode, &sector_size) == 3) {
@@ -627,7 +627,7 @@ static int parsecue(const char *isofile) {
                 ti[numtracks].type = numtracks == 1 ? trackinfo::DATA : trackinfo::CDDA;
             }
             if (sector_size == 0)  // TODO s_isMode1ISO?
-                sector_size = CD_FRAMESIZE_RAW;
+                sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
         } else if (!strcmp(token, "INDEX")) {
             if (sscanf(linebuf, " INDEX %02d %8s", &t, time) != 2)
                 PCSX::g_system->SysPrintf(".cue: failed to parse INDEX\n");
@@ -687,7 +687,7 @@ static int parsecue(const char *isofile) {
 
             // File length, compressed audio length will be calculated in AUDIO tag
             fseek(ti[numtracks + 1].handle, 0, SEEK_END);
-            file_len = ftell(ti[numtracks + 1].handle) / CD_FRAMESIZE_RAW;
+            file_len = ftell(ti[numtracks + 1].handle) / PCSX::CDRom::CD_FRAMESIZE_RAW;
 
             if (numtracks == 0 && strlen(isofile) >= 4 && strcmp(isofile + strlen(isofile) - 4, ".cue") == 0) {
                 // user selected .cue as image file, use its data track instead
@@ -751,7 +751,7 @@ static int parseccd(const char *isofile) {
     // Fill out the last track's end based on size
     if (numtracks >= 1) {
         fseek(s_cdHandle, 0, SEEK_END);
-        t = ftell(s_cdHandle) / CD_FRAMESIZE_RAW - msf2sec(ti[numtracks].start) + 2 * 75;
+        t = ftell(s_cdHandle) / PCSX::CDRom::CD_FRAMESIZE_RAW - msf2sec(ti[numtracks].start) + 2 * 75;
         sec2msf(t, ti[numtracks].length);
     }
 
@@ -960,10 +960,10 @@ static int handlepbp(const char *isofile) {
     // first 3 entries are special
     fseek(s_cdHandle, sizeof(toc_entry), SEEK_CUR);
     fread(&toc_entry, 1, sizeof(toc_entry), s_cdHandle);
-    numtracks = btoi(toc_entry.index1[0]);
+    numtracks = PCSX::CDRom::btoi(toc_entry.index1[0]);
 
     fread(&toc_entry, 1, sizeof(toc_entry), s_cdHandle);
-    cd_length = btoi(toc_entry.index1[0]) * 60 * 75 + btoi(toc_entry.index1[1]) * 75 + btoi(toc_entry.index1[2]);
+    cd_length = PCSX::CDRom::btoi(toc_entry.index1[0]) * 60 * 75 + PCSX::CDRom::btoi(toc_entry.index1[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index1[2]);
 
     for (i = 1; i <= numtracks; i++) {
         fread(&toc_entry, 1, sizeof(toc_entry), s_cdHandle);
@@ -971,11 +971,11 @@ static int handlepbp(const char *isofile) {
         ti[i].type = (toc_entry.type == 1) ? trackinfo::CDDA : trackinfo::DATA;
 
         ti[i].start_offset =
-            btoi(toc_entry.index0[0]) * 60 * 75 + btoi(toc_entry.index0[1]) * 75 + btoi(toc_entry.index0[2]);
+            PCSX::CDRom::btoi(toc_entry.index0[0]) * 60 * 75 + PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
         ti[i].start_offset *= 2352;
-        ti[i].start[0] = btoi(toc_entry.index1[0]);
-        ti[i].start[1] = btoi(toc_entry.index1[1]);
-        ti[i].start[2] = btoi(toc_entry.index1[2]);
+        ti[i].start[0] = PCSX::CDRom::btoi(toc_entry.index1[0]);
+        ti[i].start[1] = PCSX::CDRom::btoi(toc_entry.index1[1]);
+        ti[i].start[2] = PCSX::CDRom::btoi(toc_entry.index1[2]);
 
         if (i > 1) {
             t = msf2sec(ti[i].start) - msf2sec(ti[i - 1].start);
@@ -1148,16 +1148,16 @@ static int opensbifile(const char *isoname) {
 }
 
 static int cdread_normal(FILE *f, unsigned int base, void *dest, int sector) {
-    fseek(f, base + sector * CD_FRAMESIZE_RAW, SEEK_SET);
-    return fread(dest, 1, CD_FRAMESIZE_RAW, f);
+    fseek(f, base + sector * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_SET);
+    return fread(dest, 1, PCSX::CDRom::CD_FRAMESIZE_RAW, f);
 }
 
 static int cdread_sub_mixed(FILE *f, unsigned int base, void *dest, int sector) {
     int ret;
 
-    fseek(f, base + sector * (CD_FRAMESIZE_RAW + SUB_FRAMESIZE), SEEK_SET);
-    ret = fread(dest, 1, CD_FRAMESIZE_RAW, f);
-    fread(s_subbuffer, 1, SUB_FRAMESIZE, f);
+    fseek(f, base + sector * (PCSX::CDRom::CD_FRAMESIZE_RAW + PCSX::CDRom::SUB_FRAMESIZE), SEEK_SET);
+    ret = fread(dest, 1, PCSX::CDRom::CD_FRAMESIZE_RAW, f);
+    fread(s_subbuffer, 1, PCSX::CDRom::SUB_FRAMESIZE, f);
 
     if (s_subChanRaw) DecodeRawSubData();
 
@@ -1251,8 +1251,8 @@ static int cdread_compressed(FILE *f, unsigned int base, void *dest, int sector)
 
 finish:
     if (dest != s_cdbuffer)  // copy avoid HACK
-        memcpy(dest, compr_img->buff_raw[compr_img->sector_in_blk], CD_FRAMESIZE_RAW);
-    return CD_FRAMESIZE_RAW;
+        memcpy(dest, compr_img->buff_raw[compr_img->sector_in_blk], PCSX::CDRom::CD_FRAMESIZE_RAW);
+    return PCSX::CDRom::CD_FRAMESIZE_RAW;
 }
 
 static int cdread_2048(FILE *f, unsigned int base, void *dest, int sector) {
@@ -1275,7 +1275,7 @@ static int cdread_ecm_decode(FILE *f, unsigned int base, void *dest, int sector)
     uint32_t output_edc = 0, b = 0, writebytecount = 0, num;
     int32_t sectorcount = 0;
     int8_t type = 0;  // mode type 0 (META) or 1, 2 or 3 for CDROM type
-    uint8_t sector_buffer[CD_FRAMESIZE_RAW];
+    uint8_t sector_buffer[PCSX::CDRom::CD_FRAMESIZE_RAW];
     bool processsectors =
         (bool)decoded_ecm_sectors;          // this flag tells if to decode all sectors or just skip to wanted sector
     ECMFILELUT *pos = &(ecm_savetable[0]);  // points always to beginning of ECM DATA
@@ -1312,7 +1312,7 @@ static int cdread_ecm_decode(FILE *f, unsigned int base, void *dest, int sector)
         if (pos->filepos <= ECM_HEADER_SIZE && sector > prevsector) pos = &(ecm_savetable[prevsector]);
     }
 
-    writebytecount = pos->sector * CD_FRAMESIZE_RAW;
+    writebytecount = pos->sector * PCSX::CDRom::CD_FRAMESIZE_RAW;
     sectorcount = pos->sector;
     if (decoded_ecm_sectors) fseek(decoded_ecm, writebytecount, SEEK_SET);  // rewind to last pos
     fseek(f, /*base+*/ pos->filepos, SEEK_SET);
@@ -1341,7 +1341,7 @@ static int cdread_ecm_decode(FILE *f, unsigned int base, void *dest, int sector)
         if (num == 0xFFFFFFFF) {
             // End indicator
             len_decoded_ecm_buffer = writebytecount;
-            len_ecm_savetable = len_decoded_ecm_buffer / CD_FRAMESIZE_RAW;
+            len_ecm_savetable = len_decoded_ecm_buffer / PCSX::CDRom::CD_FRAMESIZE_RAW;
             break;
         }
         num++;
@@ -1427,7 +1427,7 @@ static int cdread_ecm_decode(FILE *f, unsigned int base, void *dest, int sector)
                     }
                     break;
             }
-            sectorcount = ((writebytecount / CD_FRAMESIZE_RAW) - 0);
+            sectorcount = ((writebytecount / PCSX::CDRom::CD_FRAMESIZE_RAW) - 0);
             num -= b;
         }
         if (type && sectorcount > 0 && ecm_savetable[sectorcount].filepos <= ECM_HEADER_SIZE) {
@@ -1439,14 +1439,14 @@ static int cdread_ecm_decode(FILE *f, unsigned int base, void *dest, int sector)
 
     if (decoded_ecm_sectors) {
         fflush(decoded_ecm);
-        fseek(decoded_ecm, -1 * CD_FRAMESIZE_RAW, SEEK_CUR);
-        num = fread(sector_buffer, 1, CD_FRAMESIZE_RAW, decoded_ecm);
+        fseek(decoded_ecm, -1 * PCSX::CDRom::CD_FRAMESIZE_RAW, SEEK_CUR);
+        num = fread(sector_buffer, 1, PCSX::CDRom::CD_FRAMESIZE_RAW, decoded_ecm);
         decoded_ecm_sectors = MAX(decoded_ecm_sectors, sectorcount);
     } else {
-        num = CD_FRAMESIZE_RAW;
+        num = PCSX::CDRom::CD_FRAMESIZE_RAW;
     }
 
-    memcpy(dest, sector_buffer, CD_FRAMESIZE_RAW);
+    memcpy(dest, sector_buffer, PCSX::CDRom::CD_FRAMESIZE_RAW);
     prevsector = sectorcount;
     // printf("OK: Frame decoded %i %i\n", sectorcount-1, writebytecount);
     return num;
@@ -1454,7 +1454,7 @@ static int cdread_ecm_decode(FILE *f, unsigned int base, void *dest, int sector)
 error_in:
 error:
 error_out:
-    // memset(dest, 0x0, CD_FRAMESIZE_RAW);
+    // memset(dest, 0x0, PCSX::CDRomCD_FRAMESIZE_RAW);
     PCSX::g_system->SysPrintf("Error decoding ECM image: WantedSector %i Type %i Base %i Sectors %i(%i) Pos %i(%li)\n",
                               sector, type, base, sectorcount, pos->sector, writebytecount, ftell(f));
     return -1;
@@ -1487,14 +1487,14 @@ int handleecm(const char *isoname, FILE *cdh, int32_t *accurate_length) {
         eccedc_init();
 
         // Reserve maximum known sector ammount for LUT (80MIN CD)
-        len_ecm_savetable = 75 * 80 * 60;  // 2*(accurate_length/CD_FRAMESIZE_RAW);
+        len_ecm_savetable = 75 * 80 * 60;  // 2*(accurate_length/PCSX::CDRomCD_FRAMESIZE_RAW);
 
         // Index 0 always points to beginning of ECM data
         ecm_savetable = (ECMFILELUT *)calloc(len_ecm_savetable, sizeof(ECMFILELUT));  // calloc returns nulled data
         ecm_savetable[0].filepos = ECM_HEADER_SIZE;
 
         if (accurate_length || decoded_ecm_sectors) {
-            uint8_t tbuf1[CD_FRAMESIZE_RAW];
+            uint8_t tbuf1[PCSX::CDRom::CD_FRAMESIZE_RAW];
             len_ecm_savetable = 0;  // indicates to cdread_ecm_decode that no lut has been built yet
             cdread_ecm_decode(cdh, 0U, tbuf1, INT_MAX);  // builds LUT completely
             if (accurate_length) *accurate_length = len_ecm_savetable;
@@ -1503,7 +1503,7 @@ int handleecm(const char *isoname, FILE *cdh, int32_t *accurate_length) {
         // Full image decoded? Needs fmemopen()
 #ifdef ENABLE_ECM_FULL
         if (decoded_ecm_sectors) {
-            len_decoded_ecm_buffer = len_ecm_savetable * CD_FRAMESIZE_RAW;
+            len_decoded_ecm_buffer = len_ecm_savetable * PCSX::CDRomCD_FRAMESIZE_RAW;
             decoded_ecm_buffer = malloc(len_decoded_ecm_buffer);
             if (decoded_ecm_buffer) {
                 // printf("Memory ok1 %u %p\n", len_decoded_ecm_buffer, decoded_ecm_buffer);
@@ -1548,7 +1548,7 @@ int aropen(FILE *fparchive, const char *_fn) {
         // r = archive_read_support_filter_all(a);
         // r = archive_read_support_format_raw(a);
         // r = archive_read_open_FILE(a, archive);
-        archive_read_open_filename(a, _fn, 75 * CD_FRAMESIZE_RAW);
+        archive_read_open_filename(a, _fn, 75 * PCSX::CDRomCD_FRAMESIZE_RAW);
         if (r != ARCHIVE_OK) {
             PCSX::g_system->SysPrintf("Archive open failed (%i).\n", r);
             archive_read_free(a);
@@ -1572,7 +1572,7 @@ int aropen(FILE *fparchive, const char *_fn) {
         a = archive_read_new();
         //      r = archive_read_support_compression_all(a);
         r = archive_read_support_format_all(a);
-        archive_read_open_filename(a, _fn, 75 * CD_FRAMESIZE_RAW);
+        archive_read_open_filename(a, _fn, 75 * PCSX::CDRomCD_FRAMESIZE_RAW);
         while ((r = archive_read_next_header(a, &ae)) == ARCHIVE_OK) {
             length_peek = archive_entry_size(ae);
             if (length_peek == length) {
@@ -1618,13 +1618,13 @@ static int cdread_archive(FILE *f, unsigned int base, void *dest, int sector) {
     }
 
     // Jump if already completely read
-    if (a != NULL /*&& (ecm_file_detected || sector*CD_FRAMESIZE_RAW <= len_uncompressed_buffer)*/) {
-        readsize = (sector + 1) * CD_FRAMESIZE_RAW;
+    if (a != NULL /*&& (ecm_file_detected || sector*PCSX::CDRomCD_FRAMESIZE_RAW <= len_uncompressed_buffer)*/) {
+        readsize = (sector + 1) * PCSX::CDRomCD_FRAMESIZE_RAW;
         for (fseek(cdimage_buffer, offset, SEEK_SET); offset < readsize;) {
             r = archive_read_data_block(a, &buff, &size, &offset);
             offset += size;
             PCSX::g_system->SysPrintf("ReadArchive seek:%u(%u) cur:%u(%u)\r", sector, readsize / 1024,
-                                      offset / CD_FRAMESIZE_RAW, offset / 1024);
+                                      offset / PCSX::CDRomCD_FRAMESIZE_RAW, offset / 1024);
             fwrite(buff, size, 1, cdimage_buffer);
             if (r != ARCHIVE_OK) {
                 // PCSX::g_system->SysPrintf("End of archive.\n");
@@ -1636,7 +1636,7 @@ static int cdread_archive(FILE *f, unsigned int base, void *dest, int sector) {
             }
         }
     } else {
-        // PCSX::g_system->SysPrintf("ReadSectorArchSector: %u(%u)\n", sector, sector*CD_FRAMESIZE_RAW);
+        // PCSX::g_system->SysPrintf("ReadSectorArchSector: %u(%u)\n", sector, sector*PCSX::CDRomCD_FRAMESIZE_RAW);
     }
 
     // TODO what causes req sector to be greater than CD size?
@@ -1917,7 +1917,7 @@ static void DecodeRawSubData(void) {
 // time: byte 0 - minute; byte 1 - second; byte 2 - frame
 // uses bcd format
 static long CALLBACK ISOreadTrack(unsigned char *time) {
-    int sector = MSF2SECT(btoi(time[0]), btoi(time[1]), btoi(time[2]));
+    int sector = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(time[0]), PCSX::CDRom::btoi(time[1]), PCSX::CDRom::btoi(time[2]));
     long ret;
 
     if (s_cdHandle == NULL) {
@@ -1936,8 +1936,8 @@ static long CALLBACK ISOreadTrack(unsigned char *time) {
     if (ret < 0) return -1;
 
     if (s_subHandle != NULL) {
-        fseek(s_subHandle, sector * SUB_FRAMESIZE, SEEK_SET);
-        fread(s_subbuffer, 1, SUB_FRAMESIZE, s_subHandle);
+        fseek(s_subHandle, sector * PCSX::CDRom::SUB_FRAMESIZE, SEEK_SET);
+        fread(s_subbuffer, 1, PCSX::CDRom::SUB_FRAMESIZE, s_subHandle);
 
         if (s_subChanRaw) DecodeRawSubData();
     }
@@ -2005,7 +2005,7 @@ long CALLBACK ISOreadCDDA(unsigned char m, unsigned char s, unsigned char f, uns
 
     // data tracks play silent (or CDDA set to silent)
     if (ti[track].type != trackinfo::CDDA || PCSX::g_emulator.config().Cdda == PCSX::Emulator::CDDA_DISABLED) {
-        memset(buffer, 0, CD_FRAMESIZE_RAW);
+        memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
         return 0;
     }
 
@@ -2022,8 +2022,8 @@ long CALLBACK ISOreadCDDA(unsigned char m, unsigned char s, unsigned char f, uns
     }
 
     ret = s_cdimg_read_func(ti[file].handle, ti[track].start_offset, buffer, s_cddaCurPos - track_start);
-    if (ret != CD_FRAMESIZE_RAW) {
-        memset(buffer, 0, CD_FRAMESIZE_RAW);
+    if (ret != PCSX::CDRom::CD_FRAMESIZE_RAW) {
+        memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
         return -1;
     }
 
@@ -2031,7 +2031,7 @@ long CALLBACK ISOreadCDDA(unsigned char m, unsigned char s, unsigned char f, uns
         int i;
         unsigned char tmp;
 
-        for (i = 0; i < CD_FRAMESIZE_RAW / 2; i++) {
+        for (i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
             tmp = buffer[i * 2];
             buffer[i * 2] = buffer[i * 2 + 1];
             buffer[i * 2 + 1] = tmp;

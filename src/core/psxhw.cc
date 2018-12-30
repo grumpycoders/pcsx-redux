@@ -38,7 +38,7 @@ void psxHwReset() {
     memset(PCSX::g_emulator.m_psxMem->g_psxH, 0, 0x10000);
 
     mdecInit();  // initialize mdec decoder
-    cdrReset();
+    PCSX::g_emulator.m_cdrom->reset();
     PCSX::g_emulator.m_psxCounters->psxRcntInit();
 }
 
@@ -55,16 +55,16 @@ uint8_t psxHwRead8(uint32_t add) {
             break;
 #endif
         case 0x1f801800:
-            hard = cdrRead0();
+            hard = PCSX::g_emulator.m_cdrom->read0();
             break;
         case 0x1f801801:
-            hard = cdrRead1();
+            hard = PCSX::g_emulator.m_cdrom->read1();
             break;
         case 0x1f801802:
-            hard = cdrRead2();
+            hard = PCSX::g_emulator.m_cdrom->read2();
             break;
         case 0x1f801803:
-            hard = cdrRead3();
+            hard = PCSX::g_emulator.m_cdrom->read3();
             break;
         default:
             hard = psxHu8(add);
@@ -310,16 +310,16 @@ void psxHwWrite8(uint32_t add, uint8_t value) {
             break;
 #endif
         case 0x1f801800:
-            cdrWrite0(value);
+            PCSX::g_emulator.m_cdrom->write0(value);
             break;
         case 0x1f801801:
-            cdrWrite1(value);
+            PCSX::g_emulator.m_cdrom->write1(value);
             break;
         case 0x1f801802:
-            cdrWrite2(value);
+            PCSX::g_emulator.m_cdrom->write2(value);
             break;
         case 0x1f801803:
-            cdrWrite3(value);
+            PCSX::g_emulator.m_cdrom->write3(value);
             break;
 
         default:
@@ -441,13 +441,15 @@ void psxHwWrite16(uint32_t add, uint16_t value) {
     PSXHW_LOG("*Known 16bit write at address %x value %x\n", add, value);
 }
 
-#define DmaExec(n)                                                                                     \
-    {                                                                                                  \
-        HW_DMA##n##_CHCR = SWAP_LEu32(value);                                                             \
-                                                                                                       \
-        if (SWAP_LEu32(HW_DMA##n##_CHCR) & 0x01000000 && SWAP_LEu32(HW_DMA_PCR) & (8 << (n * 4))) {          \
+static inline void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) { PCSX::g_emulator.m_cdrom->dma(madr, bcr, chcr); }
+
+#define DmaExec(n)                                                                                              \
+    {                                                                                                           \
+        HW_DMA##n##_CHCR = SWAP_LEu32(value);                                                                   \
+                                                                                                                \
+        if (SWAP_LEu32(HW_DMA##n##_CHCR) & 0x01000000 && SWAP_LEu32(HW_DMA_PCR) & (8 << (n * 4))) {             \
             psxDma##n(SWAP_LEu32(HW_DMA##n##_MADR), SWAP_LEu32(HW_DMA##n##_BCR), SWAP_LEu32(HW_DMA##n##_CHCR)); \
-        }                                                                                              \
+        }                                                                                                       \
     }
 
 void psxHwWrite32(uint32_t add, uint32_t value) {

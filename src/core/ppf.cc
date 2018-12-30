@@ -93,7 +93,7 @@ void FreePPFCache() {
 
 void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
-    int addr = MSF2SECT(btoi(m), btoi(s), btoi(f)), pos, anz, start;
+    int addr = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(m), PCSX::CDRom::btoi(s), PCSX::CDRom::btoi(f)), pos, anz, start;
 
     if (s_ppfCache == NULL) return;
 
@@ -124,7 +124,7 @@ void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned
     if (addr == pcpos->addr) {
         PPF_DATA *p = pcpos->pNext;
         while (p != NULL && p->addr == addr) {
-            pos = p->pos - (CD_FRAMESIZE_RAW - DATA_SIZE);
+            pos = p->pos - (PCSX::CDRom::CD_FRAMESIZE_RAW - PCSX::CDRom::DATA_SIZE);
             anz = p->anz;
             if (pos < 0) {
                 start = -pos;
@@ -316,11 +316,11 @@ void BuildPPFCache() {
         anz = fgetc(ppffile);
         fread(ppfmem, anz, 1, ppffile);
 
-        ladr = pos / CD_FRAMESIZE_RAW;
-        off = pos % CD_FRAMESIZE_RAW;
+        ladr = pos / PCSX::CDRom::CD_FRAMESIZE_RAW;
+        off = pos % PCSX::CDRom::CD_FRAMESIZE_RAW;
 
-        if (off + anz > CD_FRAMESIZE_RAW) {
-            anx = off + anz - CD_FRAMESIZE_RAW;
+        if (off + anz > PCSX::CDRom::CD_FRAMESIZE_RAW) {
+            anx = off + anz - PCSX::CDRom::CD_FRAMESIZE_RAW;
             anz -= (unsigned char)anx;
             AddToPPF(ladr + 1, 0, anx, &ppfmem[anz]);
         }

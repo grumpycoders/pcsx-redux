@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/psxemulator.h"
+#include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/ppf.h"
 #include "core/psxbios.h"
@@ -30,6 +31,7 @@ PCSX::Emulator::Emulator() {
     m_psxBios = PCSX::Bios::factory();
     m_gte = new PCSX::GTE();
     m_sio = new PCSX::SIO();
+    m_cdrom = PCSX::CDRom::factory();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -38,6 +40,7 @@ PCSX::Emulator::~Emulator() {
     delete m_psxBios;
     delete m_gte;
     delete m_sio;
+    delete m_cdrom;
 }
 
 int PCSX::Emulator::EmuInit() {

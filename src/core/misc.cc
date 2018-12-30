@@ -81,9 +81,9 @@ void mmssdd(char *b, char *p) {
 }
 
 #define incTime()            \
-    time[0] = btoi(time[0]); \
-    time[1] = btoi(time[1]); \
-    time[2] = btoi(time[2]); \
+    time[0] = PCSX::CDRom::btoi(time[0]); \
+    time[1] = PCSX::CDRom::btoi(time[1]); \
+    time[2] = PCSX::CDRom::btoi(time[2]); \
     time[2]++;               \
     if (time[2] == 75) {     \
         time[2] = 0;         \
@@ -93,9 +93,9 @@ void mmssdd(char *b, char *p) {
             time[0]++;       \
         }                    \
     }                        \
-    time[0] = itob(time[0]); \
-    time[1] = itob(time[1]); \
-    time[2] = itob(time[2]);
+    time[0] = PCSX::CDRom::itob(time[0]); \
+    time[1] = PCSX::CDRom::itob(time[1]); \
+    time[2] = PCSX::CDRom::itob(time[2]);
 
 #define READTRACK()                           \
     if (CDR_readTrack(time) == -1) return -1; \
@@ -164,9 +164,9 @@ int LoadCdrom() {
         return 0;
     }
 
-    time[0] = itob(0);
-    time[1] = itob(2);
-    time[2] = itob(0x10);
+    time[0] = PCSX::CDRom::itob(0);
+    time[1] = PCSX::CDRom::itob(2);
+    time[2] = PCSX::CDRom::itob(0x10);
 
     READTRACK();
 
@@ -252,9 +252,9 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
         }
     }
 
-    time[0] = itob(0);
-    time[1] = itob(2);
-    time[2] = itob(0x10);
+    time[0] = PCSX::CDRom::itob(0);
+    time[1] = PCSX::CDRom::itob(2);
+    time[2] = PCSX::CDRom::itob(0x10);
 
     READTRACK();
 
@@ -302,9 +302,9 @@ int CheckCdrom() {
 
     FreePPFCache();
 
-    time[0] = itob(0);
-    time[1] = itob(2);
-    time[2] = itob(0x10);
+    time[0] = PCSX::CDRom::itob(0);
+    time[1] = PCSX::CDRom::itob(2);
+    time[2] = PCSX::CDRom::itob(0x10);
 
     READTRACK();
 
@@ -748,7 +748,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     gzwrite(f, s_spufP, s_spufP->Size);
 
     PCSX::g_emulator.m_sio->sioFreeze(f, 1);
-    cdrFreeze(f, 1);
+    PCSX::g_emulator.m_cdrom->freeze(f, 1);
     psxHwFreeze(f, 1);
     PCSX::g_emulator.m_psxCounters->psxRcntFreeze(f, 1);
     mdecFreeze(f, 1);
@@ -802,7 +802,7 @@ int LoadStateGz(gzFile f) {
     free(_spufP);
 
     PCSX::g_emulator.m_sio->sioFreeze(f, 0);
-    cdrFreeze(f, 0);
+    PCSX::g_emulator.m_cdrom->freeze(f, 0);
     psxHwFreeze(f, 0);
     PCSX::g_emulator.m_psxCounters->psxRcntFreeze(f, 0);
     mdecFreeze(f, 0);

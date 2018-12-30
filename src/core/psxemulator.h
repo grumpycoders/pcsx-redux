@@ -64,6 +64,10 @@
 #define strnicmp strncasecmp
 #endif
 
+#ifdef _WIN32
+typedef intptr_t ssize_t;
+#endif
+
 #define _(msgid) msgid
 #define N_(msgid) msgid
 
@@ -76,6 +80,7 @@ class Counters;
 class Bios;
 class GTE;
 class SIO;
+class CDRom;
 
 class Emulator {
   private:
@@ -154,6 +159,7 @@ class Emulator {
     Bios* m_psxBios = NULL;
     GTE* m_gte = NULL;
     SIO* m_sio = NULL;
+    CDRom* m_cdrom = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;
