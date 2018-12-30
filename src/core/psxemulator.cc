@@ -58,7 +58,7 @@ void PCSX::Emulator::EmuReset() {
     m_cheats->FreeCheatSearchMem();
     m_psxMem->psxMemReset();
 
-    PCSX::g_emulator.m_psxCpu->psxReset();
+    m_psxCpu->psxReset();
 }
 
 void PCSX::Emulator::EmuShutdown() {
@@ -68,14 +68,14 @@ void PCSX::Emulator::EmuShutdown() {
 
     FreePPFCache();
     m_psxMem->psxMemShutdown();
-    PCSX::g_emulator.m_psxCpu->psxShutdown();
+    m_psxCpu->psxShutdown();
 
     CleanupMemSaveStates();
 }
 
 void PCSX::Emulator::EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!m_config.HLE || !PCSX::g_emulator.m_psxBios->m_hleSoftCall) PCSX::g_system->SysUpdate();
+    if (!m_config.HLE || !m_psxBios->m_hleSoftCall) PCSX::g_system->SysUpdate();
 
     m_cheats->ApplyCheats();
 
@@ -90,6 +90,6 @@ void PCSX::Emulator::EmuUpdate() {
     }
 }
 
-void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { PCSX::g_emulator.m_psxCpu->psxSetPGXPMode(pgxpMode); }
+void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
 PCSX::Emulator & PCSX::g_emulator = PCSX::Emulator::getEmulator();
