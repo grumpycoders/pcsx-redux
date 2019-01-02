@@ -66,7 +66,7 @@ void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
 #define IK1(fid) (-s_K1[fid])
 #endif
 
-static __inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_range, const void *vblockp, short *destp,
+static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_range, const void *vblockp, short *destp,
                                          int inc) {
     int i;
     int range, filterid;

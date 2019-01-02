@@ -363,6 +363,7 @@ TODO:
     const std::string m_name;
 };
 
+/* The dynarec CPU will still call into the interpreted CPU for the delay slot checks. */
 class InterpretedCPU : public R3000Acpu {
   public:
     InterpretedCPU() : R3000Acpu("Interpreted") {}

@@ -486,7 +486,7 @@ static int psxDelayBranchTest(uint32_t tar1) {
     return psxDelayBranchExec(tmp2);
 }
 
-static __inline void doBranch(uint32_t tar) {
+static inline void doBranch(uint32_t tar) {
     uint32_t *code;
     uint32_t tmp;
 
@@ -1049,7 +1049,7 @@ void PCSX::R3000Acpu::psxTestSWInts() {
     }
 }
 
-static __inline void MTC0(int reg, uint32_t val) {
+static inline void MTC0(int reg, uint32_t val) {
     //  PCSX::g_system->SysPrintf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
