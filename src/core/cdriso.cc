@@ -39,15 +39,14 @@
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 
-#ifdef ENABLE_CCDDA
+extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/mathematics.h>
 #include <libavutil/opt.h>
 #include <libavutil/timestamp.h>
 #include <libswresample/swresample.h>
-
-#endif
+}
 
 unsigned int g_cdrIsoMultidiskCount;
 unsigned int g_cdrIsoMultidiskSelect;
@@ -103,7 +102,7 @@ struct trackinfo {
     uint8_t length[3];                                          // MSF-format
     FILE *handle;                                               // for multi-track images CDDA
     enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype;  // BIN, WAV, MP3, APE
-    void *decoded_buffer;
+    char *decoded_buffer;
     uint32_t len_decoded_buffer;
     char filepath[256];
     uint32_t start_offset;  // byte offset from start of above file
@@ -155,29 +154,15 @@ static trackinfo::cddatype_t get_cdda_type(const char *str) {
     const size_t lenstr = strlen(str);
     if (strncmp((str + lenstr - 3), "bin", 3) == 0) {
         return trackinfo::BIN;
+    } else {
+        return trackinfo::CCDDA;
     }
-#ifdef ENABLE_CCDDA
-    else {
-        return CCDDA;
-    }
-#else
-    else {
-        static bool ccddaWarn = true;
-        if (ccddaWarn) {
-            PCSX::g_system->SysMessage(
-                _(" -> Compressed CDDA support is not compiled with this version. Such tracks will be silent."));
-            ccddaWarn = false;
-        }
-    }
-#endif
     return trackinfo::BIN;  // no valid extension or no support; assume bin
 }
 
 int get_compressed_cdda_track_length(const char *filepath) {
     int seconds = -1;
-#ifdef ENABLE_CCDDA
     av_log_set_level(AV_LOG_QUIET);
-    av_register_all();
 
     AVFormatContext *inAudioFormat = NULL;
     inAudioFormat = avformat_alloc_context();
@@ -185,11 +170,8 @@ int get_compressed_cdda_track_length(const char *filepath) {
     avformat_find_stream_info(inAudioFormat, NULL);
     seconds = (int)ceil((double)inAudioFormat->duration / (double)AV_TIME_BASE);
     avformat_close_input(&inAudioFormat);
-#endif
     return seconds;
 }
-
-#ifdef ENABLE_CCDDA
 
 int decode_packet(int *got_frame, AVPacket pkt, int audio_stream_idx, AVFrame *frame, AVCodecContext *audio_dec_ctx,
                   void *buf, int *size, SwrContext *swr) {
@@ -198,10 +180,18 @@ int decode_packet(int *got_frame, AVPacket pkt, int audio_stream_idx, AVFrame *f
     *got_frame = 0;
 
     if (pkt.stream_index == audio_stream_idx) {
-        ret = avcodec_decode_audio4(audio_dec_ctx, frame, got_frame, &pkt);
-        if (ret < 0) {
+        // ret = avcodec_decode_audio4(audio_dec_ctx, frame, got_frame, &pkt);
+        ret = avcodec_receive_frame(audio_dec_ctx, frame);
+        if (ret == 0) *got_frame = 1;
+        if (ret == AVERROR(EAGAIN)) ret = 0;
+        if (ret == 0) ret = avcodec_send_packet(audio_dec_ctx, &pkt);
+        if (ret == AVERROR(EAGAIN)) {
+            ret = 0;
+        } else if (ret < 0) {
             PCSX::g_system->SysPrintf(_("Error decoding audio frame\n"));
             return ret;
+        } else {
+            ret = pkt.size;
         }
 
         /* Some audio decoders decode only part of the packet, and have to be
@@ -212,7 +202,7 @@ int decode_packet(int *got_frame, AVPacket pkt, int audio_stream_idx, AVFrame *f
         decoded = FFMIN(ret, pkt.size);
 
         if (*got_frame) {
-            size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(frame->format);
+            size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(AVSampleFormat(frame->format));
             swr_convert(swr, (uint8_t **)&buf, frame->nb_samples, (const uint8_t **)frame->data, frame->nb_samples);
             (*size) += (unpadded_linesize * 2);
         }
@@ -223,8 +213,6 @@ int decode_packet(int *got_frame, AVPacket pkt, int audio_stream_idx, AVFrame *f
 int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type) {
     int ret, stream_index;
     AVStream *st;
-    AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
     AVDictionary *opts = NULL;
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
@@ -236,17 +224,26 @@ int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaTy
         stream_index = ret;
         st = fmt_ctx->streams[stream_index];
 
-        dec_ctx = st->codec;
-        dec = avcodec_find_decoder(dec_ctx->codec_id);
+        AVCodec *dec = avcodec_find_decoder(st->codecpar->codec_id);
         if (!dec) {
             PCSX::g_system->SysPrintf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
             return AVERROR(EINVAL);
         }
+
+        AVCodecContext *dec_ctx = avcodec_alloc_context3(dec);
+        if (!dec_ctx) {
+            PCSX::g_system->SysPrintf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
+            return AVERROR(EINVAL);
+        }
+        avcodec_parameters_to_context(dec_ctx, st->codecpar);
+
         /* Init the decoders, with or without reference counting */
         if ((ret = avcodec_open2(dec_ctx, dec, NULL)) < 0) {
             PCSX::g_system->SysPrintf(_("Failed to open %s codec\n"), av_get_media_type_string(type));
+            avcodec_free_context(&dec_ctx);
             return ret;
         }
+        avcodec_free_context(&dec_ctx);
         *stream_idx = stream_index;
     }
     return 0;
@@ -255,14 +252,13 @@ int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaTy
 int decode_compressed_cdda_track(char *buf, char *src_filename, int *size) {
     AVFormatContext *fmt_ctx = NULL;
     AVCodecContext *audio_dec_ctx;
+    AVCodec *audio_codec = NULL;
     AVStream *audio_stream = NULL;
     int audio_stream_idx = -1;
     AVFrame *frame = NULL;
     AVPacket pkt;
     SwrContext *resample_context;
     int ret = 0, got_frame;
-
-    av_register_all();
 
     if (avformat_open_input(&fmt_ctx, src_filename, NULL, NULL) < 0) {
         PCSX::g_system->SysPrintf(_("Could not open source file %s\n"), src_filename);
@@ -277,11 +273,26 @@ int decode_compressed_cdda_track(char *buf, char *src_filename, int *size) {
 
     if (open_codec_context(&audio_stream_idx, fmt_ctx, AVMEDIA_TYPE_AUDIO) >= 0) {
         audio_stream = fmt_ctx->streams[audio_stream_idx];
-        audio_dec_ctx = audio_stream->codec;
     }
 
     if (!audio_stream) {
         PCSX::g_system->SysPrintf(_("Could not find audio stream in the input, aborting\n"));
+        ret = -1;
+        goto end;
+    }
+
+    audio_codec = avcodec_find_decoder(audio_stream->codecpar->codec_id);
+
+    if (!audio_codec) {
+        PCSX::g_system->SysPrintf(_("Could not find audio codec for the input, aborting\n"));
+        ret = -1;
+        goto end;
+    }
+
+    audio_dec_ctx = avcodec_alloc_context3(audio_codec);
+
+    if (!audio_dec_ctx) {
+        PCSX::g_system->SysPrintf(_("Could not allocate audio codec for the input, aborting\n"));
         ret = -1;
         goto end;
     }
@@ -339,25 +350,24 @@ int decode_compressed_cdda_track(char *buf, char *src_filename, int *size) {
 
 end:
     swr_free(&resample_context);
-    avcodec_close(audio_dec_ctx);
+    if (audio_dec_ctx) {
+        avcodec_close(audio_dec_ctx);
+        avcodec_free_context(&audio_dec_ctx);
+    }
     avformat_close_input(&fmt_ctx);
     av_frame_free(&frame);
     return ret < 0;
 }
-#endif
 
 int do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
-#ifndef ENABLE_CCDDA
-    return 0;  // support is not compiled in
-#else
-    tri->decoded_buffer = malloc(tri->len_decoded_buffer);
+    tri->decoded_buffer = (char *)malloc(tri->len_decoded_buffer);
     memset(tri->decoded_buffer, 0, tri->len_decoded_buffer - 1);
 
     if (tri->decoded_buffer == NULL) {
         PCSX::g_system->SysMessage(_("Could not allocate memory to decode CDDA TRACK: %s\n"), tri->filepath);
         fclose(tri->handle);                    // encoded file handle not needed anymore
         tri->handle = fmemopen(NULL, 1, "rb");  // change handle to decoded one
-        tri->cddatype = BIN;
+        tri->cddatype = trackinfo::BIN;
         return 0;
     }
 
@@ -378,9 +388,8 @@ int do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
         tri->handle = fmemopen(tri->decoded_buffer, len, "rb");  // change handle to decoded one
         PCSX::g_system->SysPrintf(_("OK\n"), tri->filepath);
     }
-    tri->cddatype = BIN;
+    tri->cddatype = trackinfo::BIN;
     return len;
-#endif
 }
 
 // this function tries to get the .toc file of the given .bin
@@ -963,15 +972,16 @@ static int handlepbp(const char *isofile) {
     numtracks = PCSX::CDRom::btoi(toc_entry.index1[0]);
 
     fread(&toc_entry, 1, sizeof(toc_entry), s_cdHandle);
-    cd_length = PCSX::CDRom::btoi(toc_entry.index1[0]) * 60 * 75 + PCSX::CDRom::btoi(toc_entry.index1[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index1[2]);
+    cd_length = PCSX::CDRom::btoi(toc_entry.index1[0]) * 60 * 75 + PCSX::CDRom::btoi(toc_entry.index1[1]) * 75 +
+                PCSX::CDRom::btoi(toc_entry.index1[2]);
 
     for (i = 1; i <= numtracks; i++) {
         fread(&toc_entry, 1, sizeof(toc_entry), s_cdHandle);
 
         ti[i].type = (toc_entry.type == 1) ? trackinfo::CDDA : trackinfo::DATA;
 
-        ti[i].start_offset =
-            PCSX::CDRom::btoi(toc_entry.index0[0]) * 60 * 75 + PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
+        ti[i].start_offset = PCSX::CDRom::btoi(toc_entry.index0[0]) * 60 * 75 +
+                             PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
         ti[i].start_offset *= 2352;
         ti[i].start[0] = PCSX::CDRom::btoi(toc_entry.index1[0]);
         ti[i].start[1] = PCSX::CDRom::btoi(toc_entry.index1[1]);
@@ -1917,7 +1927,8 @@ static void DecodeRawSubData(void) {
 // time: byte 0 - minute; byte 1 - second; byte 2 - frame
 // uses bcd format
 static long CALLBACK ISOreadTrack(unsigned char *time) {
-    int sector = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(time[0]), PCSX::CDRom::btoi(time[1]), PCSX::CDRom::btoi(time[2]));
+    int sector =
+        PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(time[0]), PCSX::CDRom::btoi(time[1]), PCSX::CDRom::btoi(time[2]));
     long ret;
 
     if (s_cdHandle == NULL) {
