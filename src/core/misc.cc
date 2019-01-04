@@ -27,6 +27,7 @@
 #include "core/mdec.h"
 #include "core/misc.h"
 #include "core/ppf.h"
+#include "core/psxemulator.h "
 
 char g_cdromId[10] = "";
 char g_cdromLabel[33] = "";
@@ -80,29 +81,29 @@ void mmssdd(char *b, char *p) {
     p[2] = d;
 }
 
-#define incTime()            \
+#define incTime()                         \
     time[0] = PCSX::CDRom::btoi(time[0]); \
     time[1] = PCSX::CDRom::btoi(time[1]); \
     time[2] = PCSX::CDRom::btoi(time[2]); \
-    time[2]++;               \
-    if (time[2] == 75) {     \
-        time[2] = 0;         \
-        time[1]++;           \
-        if (time[1] == 60) { \
-            time[1] = 0;     \
-            time[0]++;       \
-        }                    \
-    }                        \
+    time[2]++;                            \
+    if (time[2] == 75) {                  \
+        time[2] = 0;                      \
+        time[1]++;                        \
+        if (time[1] == 60) {              \
+            time[1] = 0;                  \
+            time[0]++;                    \
+        }                                 \
+    }                                     \
     time[0] = PCSX::CDRom::itob(time[0]); \
     time[1] = PCSX::CDRom::itob(time[1]); \
     time[2] = PCSX::CDRom::itob(time[2]);
 
-#define READTRACK()                           \
-    if (CDR_readTrack(time) == -1) return -1; \
-    buf = CDR_getBuffer();                    \
-    if (buf == NULL)                          \
-        return -1;                            \
-    else                                      \
+#define READTRACK()                                                      \
+    if (!PCSX::g_emulator.m_cdrom->m_iso.readTrack(time)) return -1; \
+    buf = PCSX::g_emulator.m_cdrom->m_iso.getBuffer();                    \
+    if (buf == NULL)                                                     \
+        return -1;                                                       \
+    else                                                                 \
         CheckPPFCache(buf, time[0], time[1], time[2]);
 
 #define READDIR(_dir)             \
@@ -398,7 +399,8 @@ int CheckCdrom() {
 #endif
         PCSX::g_emulator.config().Mcd1 = mcd1path;
         PCSX::g_emulator.config().Mcd2 = mcd2path;
-        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.config().Mcd1.c_str(), PCSX::g_emulator.config().Mcd2.c_str());
+        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.config().Mcd1.c_str(),
+                                         PCSX::g_emulator.config().Mcd2.c_str());
     }
 
     BuildPPFCache();
@@ -500,7 +502,8 @@ int Load(const char *ExePath) {
                         case 3:                          /* register loading (PC only?) */
                             fseek(tmpFile, 2, SEEK_CUR); /* unknown field */
                             fread(&PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, 4, 1, tmpFile);
-                            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LEu32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+                            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc =
+                                SWAP_LEu32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                             break;
                         case 0: /* End of file */
                             break;

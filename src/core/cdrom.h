@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "core/cdriso.h"
 #include "core/decode_xa.h"
 #include "core/plugins.h"
 #include "core/psxemulator.h"
@@ -61,6 +62,10 @@ class CDRom {
     virtual int freeze(gzFile f, int Mode) = 0;
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
+
+    void setCdOpenCaseTime(int64_t time) { m_iso.setCdOpenCaseTime(time); }
+
+    CDRiso m_iso;
 };
 
 }  // namespace PCSX

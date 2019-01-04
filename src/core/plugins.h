@@ -55,8 +55,6 @@ typedef long(CALLBACK* SIO1open)(HWND);
 
 int LoadPlugins();
 void ReleasePlugins();
-int OpenPlugins();
-void ClosePlugins();
 
 typedef unsigned long(CALLBACK* PSEgetLibType)(void);
 typedef unsigned long(CALLBACK* PSEgetLibVersion)(void);
@@ -133,29 +131,11 @@ extern GPUsetSpeed GPU_setSpeed;
 extern GPUpgxpMemory GPU_pgxpMemory;
 extern GPUpgxpCacheVertex GPU_pgxpCacheVertex;
 
-// CD-ROM Functions
-typedef long(CALLBACK* CDRinit)(void);
-typedef long(CALLBACK* CDRshutdown)(void);
-typedef long(CALLBACK* CDRopen)(void);
-typedef long(CALLBACK* CDRclose)(void);
-typedef long(CALLBACK* CDRgetTN)(unsigned char*);
-typedef long(CALLBACK* CDRgetTD)(unsigned char, unsigned char*);
-typedef long(CALLBACK* CDRreadTrack)(unsigned char*);
-typedef unsigned char*(CALLBACK* CDRgetBuffer)(void);
-typedef unsigned char*(CALLBACK* CDRgetBufferSub)(void);
-typedef long(CALLBACK* CDRconfigure)(void);
-typedef long(CALLBACK* CDRtest)(void);
-typedef void(CALLBACK* CDRabout)(void);
-typedef long(CALLBACK* CDRplay)(unsigned char*);
-typedef long(CALLBACK* CDRstop)(void);
-typedef long(CALLBACK* CDRsetfilename)(char*);
 struct CdrStat {
     uint32_t Type;
     uint32_t Status;
     unsigned char Time[3];
 };
-typedef long(CALLBACK* CDRgetStatus)(struct CdrStat*);
-typedef char*(CALLBACK* CDRgetDriveLetter)(void);
 struct SubQ {
     char res0[12];
     unsigned char ControlAndADR;
@@ -167,29 +147,6 @@ struct SubQ {
     unsigned char CRC[2];
     char res1[72];
 };
-typedef long(CALLBACK* CDRreadCDDA)(unsigned char, unsigned char, unsigned char, unsigned char*);
-typedef long(CALLBACK* CDRgetTE)(unsigned char, unsigned char*, unsigned char*, unsigned char*);
-
-// CD-ROM function pointers
-extern CDRinit CDR_init;
-extern CDRshutdown CDR_shutdown;
-extern CDRopen CDR_open;
-extern CDRclose CDR_close;
-extern CDRtest CDR_test;
-extern CDRgetTN CDR_getTN;
-extern CDRgetTD CDR_getTD;
-extern CDRreadTrack CDR_readTrack;
-extern CDRgetBuffer CDR_getBuffer;
-extern CDRgetBufferSub CDR_getBufferSub;
-extern CDRplay CDR_play;
-extern CDRstop CDR_stop;
-extern CDRgetStatus CDR_getStatus;
-extern CDRgetDriveLetter CDR_getDriveLetter;
-extern CDRconfigure CDR_configure;
-extern CDRabout CDR_about;
-extern CDRsetfilename CDR_setfilename;
-extern CDRreadCDDA CDR_readCDDA;
-extern CDRgetTE CDR_getTE;
 
 // SPU Functions
 typedef long(CALLBACK* SPUinit)(void);

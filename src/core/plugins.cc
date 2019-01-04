@@ -21,14 +21,15 @@
  * Plugin library callback/access functions.
  */
 
-#include "core/plugins.h"
 #include "core/cdriso.h"
+#include "core/cdrom.h"
+#include "core/plugins.h"
+#include "core/psxemulator.h"
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
 static char AppPath[MAXPATHLEN] = "";  // Application path(== pcsxr.exe directory)
 static char LdrFile[MAXPATHLEN] = "";  // bin-load file
-static int64_t cdOpenCaseTime = 0;
 
 GPUupdateLace GPU_updateLace;
 GPUinit GPU_init;
@@ -100,26 +101,6 @@ void CALLBACK softGPUvSync(int val);
 void CALLBACK softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void CALLBACK softGPUvBlank(int val);
 }
-
-CDRinit CDR_init;
-CDRshutdown CDR_shutdown;
-CDRopen CDR_open;
-CDRclose CDR_close;
-CDRtest CDR_test;
-CDRgetTN CDR_getTN;
-CDRgetTD CDR_getTD;
-CDRreadTrack CDR_readTrack;
-CDRgetBuffer CDR_getBuffer;
-CDRplay CDR_play;
-CDRstop CDR_stop;
-CDRgetStatus CDR_getStatus;
-CDRgetDriveLetter CDR_getDriveLetter;
-CDRgetBufferSub CDR_getBufferSub;
-CDRconfigure CDR_configure;
-CDRabout CDR_about;
-CDRsetfilename CDR_setfilename;
-CDRreadCDDA CDR_readCDDA;
-CDRgetTE CDR_getTE;
 
 SPUconfigure SPU_configure;
 SPUabout SPU_about;
@@ -350,37 +331,6 @@ static int LoadGPUplugin() {
     LoadGpuSym0(test, "GPUtest");
     LoadGpuSym0(about, "GPUabout");
 
-    return 0;
-}
-
-long CALLBACK CDR__play(unsigned char *sector) { return 0; }
-long CALLBACK CDR__stop(void) { return 0; }
-
-long CALLBACK CDR__getStatus(struct CdrStat *stat) {
-    if (cdOpenCaseTime < 0 || cdOpenCaseTime > (int64_t)time(NULL))
-        stat->Status = 0x10;
-    else
-        stat->Status = 0;
-
-    return 0;
-}
-
-char *CALLBACK CDR__getDriveLetter(void) { return NULL; }
-long CALLBACK CDR__configure(void) { return 0; }
-long CALLBACK CDR__test(void) { return 0; }
-void CALLBACK CDR__about(void) {}
-long CALLBACK CDR__setfilename(char *filename) { return 0; }
-
-#define LoadCdrSym1(dest, name) LoadSym(CDR_##dest, CDR##dest, name, true);
-
-#define LoadCdrSym0(dest, name)                  \
-    LoadSym(CDR_##dest, CDR##dest, name, false); \
-    if (CDR_##dest == NULL) CDR_##dest = (CDR##dest)CDR__##dest;
-
-#define LoadCdrSymN(dest, name) LoadSym(CDR_##dest, CDR##dest, name, false);
-
-static int LoadCDRplugin() {
-    cdrIsoInit();
     return 0;
 }
 
@@ -935,7 +885,6 @@ int LoadPlugins() {
 
     ReleasePlugins();
 
-    if (LoadCDRplugin() == -1) return -1;
     if (LoadGPUplugin() == -1) return -1;
     if (LoadSPUplugin() == -1) return -1;
     if (LoadPAD1plugin() == -1) return -1;
@@ -946,11 +895,7 @@ int LoadPlugins() {
     if (LoadSIO1plugin() == -1) return -1;
 #endif
 
-    ret = CDR_init();
-    if (ret < 0) {
-        PCSX::g_system->SysMessage(_("Error initializing CD-ROM plugin: %d"), ret);
-        return -1;
-    }
+    PCSX::g_emulator.m_cdrom->m_iso.init();
     ret = GPU_init();
     if (ret < 0) {
         PCSX::g_system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
@@ -998,7 +943,7 @@ void ReleasePlugins() {
         if (ret < 0) PCSX::g_emulator.config().UseNet = false;
     }
 
-    if (CDR_shutdown) CDR_shutdown();
+    PCSX::g_emulator.m_cdrom->m_iso.shutdown();
     if (GPU_shutdown) GPU_shutdown();
     if (SPU_shutdown) SPU_shutdown();
     if (PAD1_shutdown) PAD1_shutdown();
@@ -1050,5 +995,3 @@ const char *GetExeFile(void) { return ExeFile; }
 const char *GetAppPath(void) { return AppPath; }
 
 const char *GetLdrFile(void) { return LdrFile; }
-
-void SetCdOpenCaseTime(int64_t time) { cdOpenCaseTime = time; }

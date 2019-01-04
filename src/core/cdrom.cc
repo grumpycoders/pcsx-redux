@@ -67,7 +67,7 @@ class CDRomImpl : public PCSX::CDRom {
     bool m_Play, m_Muted;
     int m_CurTrack;
     int m_Mode, m_File, m_Channel;
-    int m_RErr;
+    bool m_suceeded;
     int m_FirstSector;
 
     xa_decode_t m_Xa;
@@ -273,7 +273,7 @@ class CDRomImpl : public PCSX::CDRom {
 
     inline void StopCdda() {
         if (m_Play) {
-            if (!PCSX::g_emulator.config().Cdda) CDR_stop();
+            if (!PCSX::g_emulator.config().Cdda) m_iso.stop();
             m_StatP &= ~STATUS_PLAY;
             m_Play = false;
             m_FastForward = 0;
@@ -317,9 +317,6 @@ class CDRomImpl : public PCSX::CDRom {
     return;
 #endif
 
-        // ISO reader only
-        if (CDR_init != ISOinit) return;
-
         // check dbuf IRQ still active
         if (m_Play == 0) return;
         if ((SPU_readRegister(H_SPUctrl) & 0x40) == 0) return;
@@ -353,7 +350,7 @@ class CDRomImpl : public PCSX::CDRom {
             case DRIVESTATE_STANDBY:
                 m_StatP &= ~STATUS_SEEK;
 
-                if (CDR_getStatus(&cdr_stat) == -1) return;
+                if (!m_iso.getStatus(&cdr_stat)) return;
 
                 if (cdr_stat.Status & STATUS_SHELLOPEN) {
                     StopCdda();
@@ -363,7 +360,7 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case DRIVESTATE_LID_OPEN:
-                if (CDR_getStatus(&cdr_stat) == -1) cdr_stat.Status &= ~STATUS_SHELLOPEN;
+                if (!m_iso.getStatus(&cdr_stat)) cdr_stat.Status &= ~STATUS_SHELLOPEN;
 
                 // 02, 12, 10
                 if (!(m_StatP & STATUS_SHELLOPEN)) {
@@ -418,7 +415,7 @@ class CDRomImpl : public PCSX::CDRom {
         current = msf2sec(time);
 
         for (m_CurTrack = 1; m_CurTrack < m_ResultTN[1]; m_CurTrack++) {
-            CDR_getTD(m_CurTrack + 1, m_ResultTD);
+            m_iso.getTD(m_CurTrack + 1, m_ResultTD);
             sect = fsm2sec(m_ResultTD);
             if (sect - current >= 150) break;
         }
@@ -430,10 +427,10 @@ class CDRomImpl : public PCSX::CDRom {
         unsigned int this_s, start_s, next_s, pregap;
         int relative_s;
 
-        CDR_getTD(m_CurTrack, start);
+        m_iso.getTD(m_CurTrack, start);
         if (m_CurTrack + 1 <= m_ResultTN[1]) {
             pregap = 150;
-            CDR_getTD(m_CurTrack + 1, next);
+            m_iso.getTD(m_CurTrack + 1, next);
         } else {
             // last track - cd size
             pregap = 0;
@@ -485,10 +482,10 @@ class CDRomImpl : public PCSX::CDRom {
 
         CDR_LOG("ReadTrack *** %02x:%02x:%02x\n", tmp[0], tmp[1], tmp[2]);
 
-        m_RErr = CDR_readTrack(tmp);
+        m_suceeded = m_iso.readTrack(tmp);
         memcpy(m_Prev, tmp, 3);
 
-        subq = (struct SubQ *)CDR_getBufferSub();
+        subq = (struct SubQ *)m_iso.getBufferSub();
         if (subq != NULL && m_CurTrack == 1) {
             crc = calcCrc((uint8_t *)subq + 12, 10);
             if (crc == (((uint16_t)subq->CRC[0] << 8) | subq->CRC[1])) {
@@ -601,8 +598,8 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (!m_Play) return;
 
-        if (CDR_readCDDA && !m_Muted) {
-            CDR_readCDDA(m_SetSectorPlay[0], m_SetSectorPlay[1], m_SetSectorPlay[2], m_Transfer);
+        if (!m_Muted) {
+            m_iso.readCDDA(m_SetSectorPlay[0], m_SetSectorPlay[1], m_SetSectorPlay[2], m_Transfer);
 
             attenuate((int16_t *)m_Transfer, CD_FRAMESIZE_RAW / 4, 1);
             if (SPU_playCDDAchannel) SPU_playCDDAchannel((short *)m_Transfer, CD_FRAMESIZE_RAW);
@@ -692,7 +689,7 @@ class CDRomImpl : public PCSX::CDRom {
 
                     CDR_LOG("PLAY track %d\n", m_CurTrack);
 
-                    if (CDR_getTD((uint8_t)m_CurTrack, m_ResultTD) != -1) {
+                    if (m_iso.getTD((uint8_t)m_CurTrack, m_ResultTD)) {
                         m_SetSectorPlay[0] = m_ResultTD[2];
                         m_SetSectorPlay[1] = m_ResultTD[1];
                         m_SetSectorPlay[2] = m_ResultTD[0];
@@ -713,7 +710,7 @@ class CDRomImpl : public PCSX::CDRom {
                 ReadTrack(m_SetSectorPlay);
                 m_TrackChanged = false;
 
-                if (PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) CDR_play(m_SetSectorPlay);
+                if (PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.play(m_SetSectorPlay);
 
                 // Vib Ribbon: gameplay checks flag
                 m_StatP &= ~STATUS_SEEK;
@@ -769,7 +766,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlStop:
                 if (m_Play) {
                     // grab time for current track
-                    CDR_getTD((uint8_t)(m_CurTrack), m_ResultTD);
+                    m_iso.getTD((uint8_t)(m_CurTrack), m_ResultTD);
 
                     m_SetSectorPlay[0] = m_ResultTD[2];
                     m_SetSectorPlay[1] = m_ResultTD[1];
@@ -875,7 +872,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlGetTN:
                 SetResultSize(3);
-                if (CDR_getTN(m_ResultTN) == -1) {
+                if (!m_iso.getTN(m_ResultTN)) {
                     m_Stat = DiskError;
                     m_Result[0] |= STATUS_ERROR;
                 } else {
@@ -888,7 +885,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlGetTD:
                 m_Track = btoi(m_Param[0]);
                 SetResultSize(4);
-                if (CDR_getTD(m_Track, m_ResultTD) == -1) {
+                if (!m_iso.getTD(m_Track, m_ResultTD)) {
                     m_Stat = DiskError;
                     m_Result[0] |= STATUS_ERROR;
                 } else {
@@ -955,7 +952,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_Result[3] = 0;
 
                 // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
-                if (CDR_getStatus(&cdr_stat) == -1 || cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
+                if (!m_iso.getStatus(&cdr_stat) || cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
                     m_Result[1] = 0xc0;
                 } else {
                     if (cdr_stat.Type == 2) m_Result[1] |= 0x10;
@@ -1014,7 +1011,7 @@ class CDRomImpl : public PCSX::CDRom {
                 // Crusaders of Might and Magic - update getlocl now
                 // - fixes cutscene speech
                 {
-                    uint8_t *buf = CDR_getBuffer();
+                    uint8_t *buf = m_iso.getBuffer();
                     if (buf != NULL) memcpy(m_Transfer, buf, 8);
                 }
 
@@ -1152,10 +1149,10 @@ class CDRomImpl : public PCSX::CDRom {
 
         ReadTrack(m_SetSectorPlay);
 
-        buf = CDR_getBuffer();
-        if (buf == NULL) m_RErr = -1;
+        buf = m_iso.getBuffer();
+        if (buf == NULL) m_suceeded = false;
 
-        if (m_RErr == -1) {
+        if (!m_suceeded) {
             CDR_LOG("readInterrupt() Log: err\n");
             memset(m_Transfer, 0, DATA_SIZE);
             m_Stat = DiskError;
@@ -1497,8 +1494,8 @@ class CDRomImpl : public PCSX::CDRom {
     void getCdInfo(void) {
         uint8_t tmp;
 
-        CDR_getTN(m_ResultTN);
-        CDR_getTD(0, m_SetSectorEnd);
+        m_iso.getTN(m_ResultTN);
+        m_iso.getTD(0, m_SetSectorEnd);
         tmp = m_SetSectorEnd[0];
         m_SetSectorEnd[0] = m_SetSectorEnd[2];
         m_SetSectorEnd[2] = tmp;
@@ -1535,7 +1532,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_Play = false;
         m_Muted = false;
         m_Mode = 0;
-        m_RErr = 0;
+        m_suceeded = true;
         m_FirstSector = 0;
 
         memset(&m_Xa, 0, sizeof(m_Xa));
@@ -1585,7 +1582,7 @@ class CDRomImpl : public PCSX::CDRom {
     int freeze(gzFile f, int Mode) final {
         uint8_t tmpp[3];
 
-        if (Mode == 0 && PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) CDR_stop();
+        if (Mode == 0 && PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.stop();
 
         //gzfreeze(&m_cdr, sizeof(m_cdr));
 
@@ -1601,7 +1598,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             if (m_Play) {
                 Find_CurTrack(m_SetSectorPlay);
-                if (PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) CDR_play(m_SetSectorPlay);
+                if (PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.play(m_SetSectorPlay);
             }
         }
 
