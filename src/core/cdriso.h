@@ -25,7 +25,9 @@
 
 #include "core/psxemulator.h"
 
-int handleecm(const char* isoname, FILE* cdh, int32_t* accurate_length);
+class File;
+
+int handleecm(const char* isoname, File* cdh, int32_t* accurate_length);
 int aropen(FILE* fparchive, const char* _fn);
 void cdrIsoInit(void);
 int cdrIsoActive(void);

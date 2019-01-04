@@ -174,7 +174,6 @@
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
-    <ClInclude Include="..\..\src\core\ecm.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
