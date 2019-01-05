@@ -230,22 +230,6 @@ Error messages (5xx):
     Invalid breakpoint address.
 */
 
-static int s_debugger_active = 0, s_paused = 0, s_trace = 0, s_printpc = 0, s_reset = 0, s_resetting = 0;
-static int s_run_to = 0;
-static uint32_t s_run_to_addr = 0;
-static int s_step_over = 0;
-static uint32_t s_step_over_addr = 0;
-static int s_mapping_e = 0;
-static int s_mapping_r8 = 0, s_mapping_r16 = 0, s_mapping_r32 = 0;
-static int s_mapping_w8 = 0, s_mapping_w16 = 0, s_mapping_w32 = 0;
-static int s_breakmp_e = 0;
-static int s_breakmp_r8 = 0, s_breakmp_r16 = 0, s_breakmp_r32 = 0;
-static int s_breakmp_w8 = 0, s_breakmp_w16 = 0, s_breakmp_w32 = 0;
-
-static void ProcessCommands();
-
-static uint8_t *s_memoryMap = NULL;
-
 enum {
     MAP_EXEC = 1,
     MAP_R8 = 2,
@@ -259,15 +243,7 @@ enum {
 
 static const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
 
-struct breakpoint_t {
-    struct breakpoint_t *next, *prev;
-    int number, type;
-    uint32_t address;
-};
-
-static breakpoint_t *s_firstBP = NULL;
-
-int add_breakpoint(int type, uint32_t address) {
+int PCSX::Debug::add_breakpoint(int type, uint32_t address) {
     breakpoint_t *bp = (breakpoint_t *)malloc(sizeof(breakpoint_t));
 
     bp->type = type;
@@ -289,7 +265,7 @@ int add_breakpoint(int type, uint32_t address) {
     return bp->number;
 }
 
-void delete_breakpoint(breakpoint_t *bp) {
+void PCSX::Debug::delete_breakpoint(breakpoint_t *bp) {
     if (bp == s_firstBP) {
         if (bp->next == bp) {
             s_firstBP = NULL;
@@ -304,9 +280,11 @@ void delete_breakpoint(breakpoint_t *bp) {
     free(bp);
 }
 
-breakpoint_t *next_breakpoint(breakpoint_t *bp) { return bp->next != s_firstBP ? bp->next : 0; }
+PCSX::Debug::breakpoint_t *PCSX::Debug::next_breakpoint(breakpoint_t *bp) {
+    return bp->next != s_firstBP ? bp->next : 0;
+}
 
-breakpoint_t *find_breakpoint(int number) {
+PCSX::Debug::breakpoint_t *PCSX::Debug::find_breakpoint(int number) {
     breakpoint_t *p;
 
     for (p = s_firstBP; p; p = next_breakpoint(p)) {
@@ -316,7 +294,7 @@ breakpoint_t *find_breakpoint(int number) {
     return 0;
 }
 
-void StartDebugger() {
+void PCSX::Debug::StartDebugger() {
     if (s_debugger_active) return;
 
     s_memoryMap = (uint8_t *)malloc(0x200000);
@@ -334,7 +312,7 @@ void StartDebugger() {
     s_debugger_active = 1;
 }
 
-void StopDebugger() {
+void PCSX::Debug::StopDebugger() {
     if (s_debugger_active) {
         StopServer();
         PCSX::g_system->SysPrintf("%s", _("Debugger stopped.\n"));
@@ -350,17 +328,17 @@ void StopDebugger() {
     s_debugger_active = 0;
 }
 
-void PauseDebugger() {
+void PCSX::Debug::PauseDebugger() {
     s_trace = 0;
     s_paused = 1;
 }
 
-void ResumeDebugger() {
+void PCSX::Debug::ResumeDebugger() {
     s_trace = 0;
     s_paused = 0;
 }
 
-void DebugVSync() {
+void PCSX::Debug::DebugVSync() {
     if (!s_debugger_active || s_resetting) return;
 
     if (s_reset) {
@@ -376,14 +354,14 @@ void DebugVSync() {
     ProcessCommands();
 }
 
-void MarkMap(uint32_t address, int mask) {
+void PCSX::Debug::MarkMap(uint32_t address, int mask) {
     if ((address & 0xff000000) != 0x80000000) return;
     s_memoryMap[address & 0x001fffff] |= mask;
 }
 
-int IsMapMarked(uint32_t address, int mask) { return (s_memoryMap[address & 0x001fffff] & mask) != 0; }
+int PCSX::Debug::IsMapMarked(uint32_t address, int mask) { return (s_memoryMap[address & 0x001fffff] & mask) != 0; }
 
-void ProcessDebug() {
+void PCSX::Debug::ProcessDebug() {
     if (!s_debugger_active || s_reset || s_resetting) return;
     if (s_trace) {
         if (!(--s_trace)) {
@@ -441,7 +419,7 @@ void ProcessDebug() {
     }
 }
 
-static void ProcessCommands() {
+void PCSX::Debug::ProcessCommands() {
     int code, i, dumping;
     FILE *sfile;
     char cmd[257], *arguments, *p, reply[10240], *save, *dump = NULL;
@@ -1154,7 +1132,7 @@ static void ProcessCommands() {
     }
 }
 
-void DebugCheckBP(uint32_t address, enum breakpoint_types type) {
+void PCSX::Debug::DebugCheckBP(uint32_t address, enum breakpoint_types type) {
     breakpoint_t *bp;
     char reply[512];
 

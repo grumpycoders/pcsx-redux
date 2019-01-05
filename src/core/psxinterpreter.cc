@@ -1490,7 +1490,7 @@ inline void PCSX::InterpretedCPU::execI() {
 
     debugI();
 
-    if (PCSX::g_emulator.config().Debug) ProcessDebug();
+    if (PCSX::g_emulator.config().Debug) PCSX::g_emulator.m_debug->ProcessDebug();
 
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc += 4;
     PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;

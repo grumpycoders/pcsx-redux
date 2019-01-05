@@ -84,6 +84,7 @@ class CDRom;
 class Cheats;
 class MDEC;
 class GPU;
+class Debug;
 
 class Emulator {
   private:
@@ -167,6 +168,7 @@ class Emulator {
     Cheats* m_cheats = NULL;
     MDEC* m_mdec = NULL;
     GPU* m_gpu = NULL;
+    Debug* m_debug = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

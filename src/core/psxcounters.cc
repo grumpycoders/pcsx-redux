@@ -203,7 +203,7 @@ void PCSX::Counters::psxRcntUpdate() {
         }
     }
 
-    DebugVSync();
+    PCSX::g_emulator.m_debug->DebugVSync();
 }
 
 /******************************************************************************/

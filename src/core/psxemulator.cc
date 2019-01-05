@@ -20,6 +20,7 @@
 #include "core/psxemulator.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"
+#include "core/debug.h"
 #include "core/gpu.h"
 #include "core/gte.h"
 #include "core/mdec.h"
@@ -37,6 +38,7 @@ PCSX::Emulator::Emulator() {
     m_cheats = new PCSX::Cheats();
     m_mdec = new PCSX::MDEC();
     m_gpu = new PCSX::GPU();
+    m_debug = new PCSX::Debug();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -49,6 +51,7 @@ PCSX::Emulator::~Emulator() {
     delete m_cheats;
     delete m_mdec;
     delete m_gpu;
+    delete m_debug;
 }
 
 int PCSX::Emulator::EmuInit() {

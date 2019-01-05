@@ -60,16 +60,16 @@ const char *g_disRNameCP0[] = {
 
 // Type definition of our functions
 
-typedef char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
+typedef const char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
 
 // These macros are used to assemble the disassembler functions
 #define MakeDisFg(fn, b)                   \
-    char *fn(uint32_t code, uint32_t pc) { \
+    const char *fn(uint32_t code, uint32_t pc) { \
         b;                                 \
         return s_ostr;                     \
     }
 #define MakeDisF(fn, b)                            \
-    static char *fn(uint32_t code, uint32_t pc) {  \
+    static const char *fn(uint32_t code, uint32_t pc) {  \
         sprintf(s_ostr, "%8.8x %8.8x:", pc, code); \
         b; /*s_ostr[(strlen(s_ostr) - 1)] = 0;*/   \
         return s_ostr;                             \
