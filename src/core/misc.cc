@@ -401,7 +401,7 @@ int CheckCdrom() {
     }
 
     BuildPPFCache();
-    LoadSBI(NULL);
+    PCSX::g_emulator.m_cdrom->m_iso.LoadSBI(NULL);
 
     return 0;
 }

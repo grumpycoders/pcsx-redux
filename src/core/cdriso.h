@@ -71,6 +71,9 @@ class CDRiso {
     unsigned m_cdrIsoMultidiskCount;
     unsigned m_cdrIsoMultidiskSelect;
 
+    int LoadSBI(const char* filename);
+    bool CheckSBI(const uint8_t* time);
+
   private:
     typedef ssize_t (CDRiso::*read_func_t)(File* f, unsigned int base, void* dest, int sector);
 
@@ -163,6 +166,10 @@ class CDRiso {
     int m_numtracks = 0;
     struct trackinfo m_ti[MAXTRACKS];
 
+    
+    // redump.org SBI files
+    uint8_t sbitime[256][3], sbicount;
+
     uint32_t get32lsb(const uint8_t* src);
     void put32lsb(uint8_t* dest, uint32_t value);
     void eccedc_init();
@@ -201,6 +208,8 @@ class CDRiso {
     int aropen(FILE* fparchive, const char* _fn);
     int cdread_archive(FILE* f, unsigned int base, void* dest, int sector);
     int handlearchive(const char* isoname, int32_t* accurate_length);
+    void UnloadSBI();
+    int opensbifile(const char* isoname);
 };
 
 }  // namespace PCSX

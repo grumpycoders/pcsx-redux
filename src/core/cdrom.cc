@@ -855,7 +855,7 @@ class CDRomImpl : public PCSX::CDRom {
                 SetResultSize(8);
                 memcpy(&m_Result, &m_subq, 8);
 
-                if (!m_Play && CheckSBI(m_Result + 5)) memset(m_Result + 2, 0, 6);
+                if (!m_Play && m_iso.CheckSBI(m_Result + 5)) memset(m_Result + 2, 0, 6);
                 if (!m_Play && !m_Reading) m_Result[1] = 0;  // HACK?
                 break;
 
