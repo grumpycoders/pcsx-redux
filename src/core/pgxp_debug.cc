@@ -48,14 +48,8 @@ typedef struct {
 } PGXP_CPU_OpData;
 
 void PGXP_CPU_EMPTY() {}
-void PGXP_CPU_NULL() {
-    int* pi = NULL;
-    *pi = 5;
-}
-void PGXP_CPU_ERROR() {
-    int* pi = NULL;
-    *pi = 5;
-}
+void PGXP_CPU_NULL() { assert(0); }
+void PGXP_CPU_ERROR() { assert(0); }
 
 #define PGXP_Data_ERROR \
     { DBG_E_ERROR, 0, 0, 0, 0, "", "ERROR", (void (*)())PGXP_CPU_ERROR }

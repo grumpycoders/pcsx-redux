@@ -16,6 +16,7 @@
  */
 
 #include "core/debug.h"
+#include "core/disr3000a.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/socket.h"
@@ -234,10 +235,12 @@ static int s_run_to = 0;
 static uint32_t s_run_to_addr = 0;
 static int s_step_over = 0;
 static uint32_t s_step_over_addr = 0;
-static int s_mapping_e = 0, s_mapping_r8 = 0, s_mapping_r16 = 0, s_mapping_r32 = 0, s_mapping_w8 = 0, s_mapping_w16 = 0,
-           s_mapping_w32 = 0;
-static int s_breakmp_e = 0, s_breakmp_r8 = 0, s_breakmp_r16 = 0, s_breakmp_r32 = 0, s_breakmp_w8 = 0, s_breakmp_w16 = 0,
-           s_breakmp_w32 = 0;
+static int s_mapping_e = 0;
+static int s_mapping_r8 = 0, s_mapping_r16 = 0, s_mapping_r32 = 0;
+static int s_mapping_w8 = 0, s_mapping_w16 = 0, s_mapping_w32 = 0;
+static int s_breakmp_e = 0;
+static int s_breakmp_r8 = 0, s_breakmp_r16 = 0, s_breakmp_r32 = 0;
+static int s_breakmp_w8 = 0, s_breakmp_w16 = 0, s_breakmp_w32 = 0;
 
 static void ProcessCommands();
 
@@ -256,11 +259,11 @@ enum {
 
 static const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
 
-typedef struct breakpoint_s {
-    struct breakpoint_s *next, *prev;
+struct breakpoint_t {
+    struct breakpoint_t *next, *prev;
     int number, type;
     uint32_t address;
-} breakpoint_t;
+};
 
 static breakpoint_t *s_firstBP = NULL;
 

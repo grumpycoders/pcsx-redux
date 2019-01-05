@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,20 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+/*
+ * R3000A disassembler.
+ */
 
-#include "core/psxemulator.h"
-#include "core/system.h"
+#include <stdint.h>
 
-enum breakpoint_types { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
+extern const char *g_disRNameGPR[];
+extern const char *g_disRNameCP2D[];
+extern const char *g_disRNameCP2C[];
+extern const char *g_disRNameCP0[];
 
-void StartDebugger();
-void StopDebugger();
-
-void DebugVSync();
-void ProcessDebug();
-
-void DebugCheckBP(uint32_t address, enum breakpoint_types type);
-
-void PauseDebugger();
-void ResumeDebugger();
+char *disR3000AF(uint32_t code, uint32_t pc);

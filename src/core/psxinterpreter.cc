@@ -22,6 +22,7 @@
  */
 
 #include "core/debug.h"
+#include "core/disr3000a.h"
 #include "core/gte.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
@@ -59,6 +60,7 @@ GTE_WR(GPL);
 GTE_WR(NCCT);
 GTE_WR(MTC2);
 GTE_WR(CTC2);
+#undef GTE_WR
 
 // These macros are used to assemble the repassembler functions
 
@@ -1472,7 +1474,9 @@ const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxBSCMem[64] 
 
 bool PCSX::InterpretedCPU::Init() { return true; }
 void PCSX::InterpretedCPU::Reset() { PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = false; }
-void PCSX::InterpretedCPU::Execute() { for (;;) execI(); }
+void PCSX::InterpretedCPU::Execute() {
+    for (;;) execI();
+}
 void PCSX::InterpretedCPU::ExecuteBlock() {
     s_branch2 = 0;
     while (!s_branch2) execI();

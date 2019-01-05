@@ -21,7 +21,7 @@
  * i386 assembly functions for R3000A core.
  */
 
-#include "core/debug.h"
+#include "core/disr3000a.h"
 #include "core/gte.h"
 #include "core/ix86/ix86.h"
 #include "core/pgxp_cpu.h"

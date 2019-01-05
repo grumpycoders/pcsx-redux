@@ -550,6 +550,7 @@ class InterpretedCPU : public R3000Acpu {
     GTE_WR(NCCT);
     GTE_WR(MTC2);
     GTE_WR(CTC2);
+#undef GTE_WR
 
     static const intFunc_t s_psxBSC[64];
     static const intFunc_t s_psxSPC[64];
