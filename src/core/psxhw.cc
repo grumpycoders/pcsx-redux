@@ -27,7 +27,7 @@
 #include "core/mdec.h"
 
 // Vampire Hunter D hack
-bool g_dmaGpuListHackEn = false;
+static bool s_dmaGpuListHackEn = false;
 
 static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
 
@@ -535,12 +535,12 @@ void psxHwWrite32(uint32_t add, uint32_t value) {
              * it is incompletele and still beign built by the game.
              * Maybe it is ready when some signal comes in or within given delay?
              */
-            if (g_dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
+            if (s_dmaGpuListHackEn && value == 0x00000401 && HW_DMA2_BCR == 0x0) {
                 psxDma2(SWAP_LEu32(HW_DMA2_MADR), SWAP_LEu32(HW_DMA2_BCR), SWAP_LEu32(value));
                 return;
             }
             DmaExec(2);  // DMA2 chcr (GPU DMA)
-            if (PCSX::g_emulator.config().HackFix && HW_DMA2_CHCR == 0x1000401) g_dmaGpuListHackEn = true;
+            if (PCSX::g_emulator.config().HackFix && HW_DMA2_CHCR == 0x1000401) s_dmaGpuListHackEn = true;
             return;
         case 0x1f8010b0:
             PSXHW_LOG("DMA3 MADR 32bit write %x\n", value);
@@ -613,7 +613,7 @@ void psxHwWrite32(uint32_t add, uint32_t value) {
             return;
         case 0x1f801814:
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
-            if (value & 0x8000000) g_dmaGpuListHackEn = false;
+            if (value & 0x8000000) s_dmaGpuListHackEn = false;
             GPU_writeStatus(value);
             return;
 

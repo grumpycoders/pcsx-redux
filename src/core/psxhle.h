@@ -24,6 +24,7 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
-extern void (*psxHLEt[256])();
+typedef void (*HLE_t)();
+extern const HLE_t psxHLEt[256];
 
 #endif
