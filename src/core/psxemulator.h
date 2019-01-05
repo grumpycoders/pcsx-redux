@@ -175,6 +175,9 @@ class Emulator {
         return emulator;
     }
 
+    char m_cdromId[10] = "";
+    char m_cdromLabel[33] = "";
+
   private:
     PcsxConfig m_config;
 };

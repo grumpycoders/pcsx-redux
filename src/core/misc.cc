@@ -29,9 +29,6 @@
 #include "core/ppf.h"
 #include "core/psxemulator.h "
 
-char g_cdromId[10] = "";
-char g_cdromLabel[33] = "";
-
 // PSX Executable types
 #define PSX_EXE 1
 #define CPE_EXE 2
@@ -309,11 +306,11 @@ int CheckCdrom() {
 
     READTRACK();
 
-    memset(g_cdromLabel, 0, sizeof(g_cdromLabel));
-    memset(g_cdromId, 0, sizeof(g_cdromId));
+    memset(PCSX::g_emulator.m_cdromLabel, 0, sizeof(PCSX::g_emulator.m_cdromLabel));
+    memset(PCSX::g_emulator.m_cdromId, 0, sizeof(PCSX::g_emulator.m_cdromId));
     memset(exename, 0, sizeof(exename));
 
-    strncpy(g_cdromLabel, reinterpret_cast<char *>(buf + 52), 32);
+    strncpy(PCSX::g_emulator.m_cdromLabel, reinterpret_cast<char *>(buf + 52), 32);
 
     // skip head and sub, and go to the root directory record
     dir = (struct iso_directory_record *)&buf[12 + 156];
@@ -346,24 +343,24 @@ int CheckCdrom() {
         }
     } else if (GetCdromFile(mdir, time, "PSX.EXE;1") != -1) {
         strcpy(exename, "PSX.EXE;1");
-        strcpy(g_cdromId, "SLUS99999");
+        strcpy(PCSX::g_emulator.m_cdromId, "SLUS99999");
     } else
         return -1;  // SYSTEM.CNF and PSX.EXE not found
 
-    if (g_cdromId[0] == '\0') {
+    if (PCSX::g_emulator.m_cdromId[0] == '\0') {
         len = strlen(exename);
         c = 0;
         for (i = 0; i < len; ++i) {
-            if (exename[i] == ';' || c >= sizeof(g_cdromId) - 1) break;
-            if (isalnum(exename[i])) g_cdromId[c++] = exename[i];
+            if (exename[i] == ';' || c >= sizeof(PCSX::g_emulator.m_cdromId) - 1) break;
+            if (isalnum(exename[i])) PCSX::g_emulator.m_cdromId[c++] = exename[i];
         }
     }
 
     if (PCSX::g_emulator.config().PsxAuto) {  // autodetect system (pal or ntsc)
-        if ((g_cdromId[2] == 'e') || (g_cdromId[2] == 'E') || !strncmp(g_cdromId, "DTLS3035", 8) ||
-            !strncmp(g_cdromId, "PBPX95001", 9) ||                           // according to redump.org, these PAL
-            !strncmp(g_cdromId, "PBPX95007", 9) ||                           // discs have a non-standard ID;
-            !strncmp(g_cdromId, "PBPX95008", 9))                             // add more serials if they are discovered.
+        if ((PCSX::g_emulator.m_cdromId[2] == 'e') || (PCSX::g_emulator.m_cdromId[2] == 'E') || !strncmp(PCSX::g_emulator.m_cdromId, "DTLS3035", 8) ||
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||                           // according to redump.org, these PAL
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||                           // discs have a non-standard ID;
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))                             // add more serials if they are discovered.
             PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_PAL;  // pal
         else
             PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
@@ -375,11 +372,11 @@ int CheckCdrom() {
         PCSX::g_emulator.m_psxClockSpeed = 33868800 * PCSX::g_emulator.config().PsxClock;
     }
 
-    if (g_cdromLabel[0] == ' ') {
-        strncpy(g_cdromLabel, g_cdromId, 9);
+    if (PCSX::g_emulator.m_cdromLabel[0] == ' ') {
+        strncpy(PCSX::g_emulator.m_cdromLabel, PCSX::g_emulator.m_cdromId, 9);
     }
-    PCSX::g_system->SysPrintf(_("CD-ROM Label: %.32s\n"), g_cdromLabel);
-    PCSX::g_system->SysPrintf(_("CD-ROM ID: %.9s\n"), g_cdromId);
+    PCSX::g_system->SysPrintf(_("CD-ROM Label: %.32s\n"), PCSX::g_emulator.m_cdromLabel);
+    PCSX::g_system->SysPrintf(_("CD-ROM ID: %.9s\n"), PCSX::g_emulator.m_cdromId);
     PCSX::g_system->SysPrintf(_("CD-ROM EXE Name: %.255s\n"), exename);
 
     PCSX::g_emulator.config().PsxExeName = exename;
@@ -460,8 +457,8 @@ int Load(const char *ExePath) {
     uint32_t section_address, section_size;
     void *psxmaddr;
 
-    strncpy(g_cdromId, "SLUS99999", 9);
-    strncpy(g_cdromLabel, "SLUS_999.99", 11);
+    strncpy(PCSX::g_emulator.m_cdromId, "SLUS99999", 9);
+    strncpy(PCSX::g_emulator.m_cdromLabel, "SLUS_999.99", 11);
 
     tmpFile = fopen(ExePath, "rb");
     if (tmpFile == NULL) {
@@ -546,8 +543,8 @@ int Load(const char *ExePath) {
     }
 
     if (retval != 0) {
-        g_cdromId[0] = '\0';
-        g_cdromLabel[0] = '\0';
+        PCSX::g_emulator.m_cdromId[0] = '\0';
+        PCSX::g_emulator.m_cdromLabel[0] = '\0';
     }
 
     return retval;

@@ -732,8 +732,8 @@ void PCSX::SIO::netError() {
     // ClosePlugins();
     PCSX::g_system->SysMessage("%s", _("Connection closed!\n"));
 
-    g_cdromId[0] = '\0';
-    g_cdromLabel[0] = '\0';
+    PCSX::g_emulator.m_cdromId[0] = '\0';
+    PCSX::g_emulator.m_cdromLabel[0] = '\0';
 
     PCSX::g_system->SysRunGui();
 }

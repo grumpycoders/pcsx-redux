@@ -17,8 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __MISC_H__
-#define __MISC_H__
+#pragma once
 
 #include "core/coff.h"
 #include "core/plugins.h"
@@ -49,9 +48,6 @@ typedef struct {
     uint32_t SavedS0;
 } EXE_HEADER;
 
-extern char g_cdromId[10];
-extern char g_cdromLabel[33];
-
 int LoadCdrom();
 int LoadCdromFile(const char *filename, EXE_HEADER *head);
 int CheckCdrom();
@@ -75,5 +71,3 @@ void CleanupMemSaveStates();  // Removes all save states stored by memory funcs 
 
 void trim(char *str);
 uint16_t calcCrc(uint8_t *d, int len);
-
-#endif

@@ -955,7 +955,7 @@ class CDRomImpl : public PCSX::CDRom {
                     m_Result[1] = 0xc0;
                 } else {
                     if (cdr_stat.Type == 2) m_Result[1] |= 0x10;
-                    if (g_cdromId[0] == '\0') m_Result[1] |= 0x80;
+                    if (PCSX::g_emulator.m_cdromId[0] == '\0') m_Result[1] |= 0x80;
                 }
                 m_Result[0] |= (m_Result[1] >> 4) & 0x08;
 

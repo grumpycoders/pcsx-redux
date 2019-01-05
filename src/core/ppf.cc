@@ -200,20 +200,20 @@ void BuildPPFCache() {
 
     FreePPFCache();
 
-    if (g_cdromId[0] == '\0') return;
+    if (PCSX::g_emulator.m_cdromId[0] == '\0') return;
 
     // Generate filename in the format of SLUS_123.45
-    buffer[0] = toupper(g_cdromId[0]);
-    buffer[1] = toupper(g_cdromId[1]);
-    buffer[2] = toupper(g_cdromId[2]);
-    buffer[3] = toupper(g_cdromId[3]);
+    buffer[0] = toupper(PCSX::g_emulator.m_cdromId[0]);
+    buffer[1] = toupper(PCSX::g_emulator.m_cdromId[1]);
+    buffer[2] = toupper(PCSX::g_emulator.m_cdromId[2]);
+    buffer[3] = toupper(PCSX::g_emulator.m_cdromId[3]);
     buffer[4] = '_';
-    buffer[5] = g_cdromId[4];
-    buffer[6] = g_cdromId[5];
-    buffer[7] = g_cdromId[6];
+    buffer[5] = PCSX::g_emulator.m_cdromId[4];
+    buffer[6] = PCSX::g_emulator.m_cdromId[5];
+    buffer[7] = PCSX::g_emulator.m_cdromId[6];
     buffer[8] = '.';
-    buffer[9] = g_cdromId[7];
-    buffer[10] = g_cdromId[8];
+    buffer[9] = PCSX::g_emulator.m_cdromId[7];
+    buffer[10] = PCSX::g_emulator.m_cdromId[8];
     buffer[11] = '\0';
 
     sprintf(szPPF, "%s/%s", PCSX::g_emulator.config().PatchesDir.c_str(), buffer);
@@ -351,20 +351,20 @@ int LoadSBI(const char *filename) {
     char buffer[16], sbifile[MAXPATHLEN];
 
     if (filename == NULL) {
-        if (g_cdromId[0] == '\0') return -1;
+        if (PCSX::g_emulator.m_cdromId[0] == '\0') return -1;
 
         // Generate filename in the format of SLUS_123.45.sbi
-        buffer[0] = toupper(g_cdromId[0]);
-        buffer[1] = toupper(g_cdromId[1]);
-        buffer[2] = toupper(g_cdromId[2]);
-        buffer[3] = toupper(g_cdromId[3]);
+        buffer[0] = toupper(PCSX::g_emulator.m_cdromId[0]);
+        buffer[1] = toupper(PCSX::g_emulator.m_cdromId[1]);
+        buffer[2] = toupper(PCSX::g_emulator.m_cdromId[2]);
+        buffer[3] = toupper(PCSX::g_emulator.m_cdromId[3]);
         buffer[4] = '_';
-        buffer[5] = g_cdromId[4];
-        buffer[6] = g_cdromId[5];
-        buffer[7] = g_cdromId[6];
+        buffer[5] = PCSX::g_emulator.m_cdromId[4];
+        buffer[6] = PCSX::g_emulator.m_cdromId[5];
+        buffer[7] = PCSX::g_emulator.m_cdromId[6];
         buffer[8] = '.';
-        buffer[9] = g_cdromId[7];
-        buffer[10] = g_cdromId[8];
+        buffer[9] = PCSX::g_emulator.m_cdromId[7];
+        buffer[10] = PCSX::g_emulator.m_cdromId[8];
         buffer[11] = '.';
         buffer[12] = 's';
         buffer[13] = 'b';
