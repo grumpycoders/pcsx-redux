@@ -39,6 +39,7 @@ PCSX::Emulator::Emulator() {
     m_mdec = new PCSX::MDEC();
     m_gpu = new PCSX::GPU();
     m_debug = new PCSX::Debug();
+    m_hw = new PCSX::HW();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -52,6 +53,7 @@ PCSX::Emulator::~Emulator() {
     delete m_mdec;
     delete m_gpu;
     delete m_debug;
+    delete m_hw;
 }
 
 int PCSX::Emulator::EmuInit() {

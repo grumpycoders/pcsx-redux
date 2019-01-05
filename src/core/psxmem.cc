@@ -124,7 +124,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
         if ((mem & 0xffff) < 0x400)
             return psxHu8(mem);
         else
-            return psxHwRead8(mem);
+            return PCSX::g_emulator.m_hw->psxHwRead8(mem);
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
@@ -152,7 +152,7 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
         if ((mem & 0xffff) < 0x400)
             return psxHu16(mem);
         else
-            return psxHwRead16(mem);
+            return PCSX::g_emulator.m_hw->psxHwRead16(mem);
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
@@ -180,7 +180,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
         if ((mem & 0xffff) < 0x400)
             return psxHu32(mem);
         else
-            return psxHwRead32(mem);
+            return PCSX::g_emulator.m_hw->psxHwRead32(mem);
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
@@ -210,7 +210,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
         if ((mem & 0xffff) < 0x400)
             psxHu8(mem) = value;
         else
-            psxHwWrite8(mem, value);
+            PCSX::g_emulator.m_hw->psxHwWrite8(mem, value);
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
@@ -238,7 +238,7 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
         if ((mem & 0xffff) < 0x400)
             psxHu16ref(mem) = SWAP_LEu16(value);
         else
-            psxHwWrite16(mem, value);
+            PCSX::g_emulator.m_hw->psxHwWrite16(mem, value);
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
@@ -267,7 +267,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
         if ((mem & 0xffff) < 0x400)
             psxHu32ref(mem) = SWAP_LEu32(value);
         else
-            psxHwWrite32(mem, value);
+            PCSX::g_emulator.m_hw->psxHwWrite32(mem, value);
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {

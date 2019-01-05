@@ -27,11 +27,10 @@
 #include "core/mdec.h"
 
 // Vampire Hunter D hack
-static bool s_dmaGpuListHackEn = false;
 
 static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
 
-void psxHwReset() {
+void PCSX::HW::psxHwReset() {
     if (PCSX::g_emulator.config().SioIrq) psxHu32ref(0x1070) |= SWAP_LE32(0x80);
     if (PCSX::g_emulator.config().SpuIrq) psxHu32ref(0x1070) |= SWAP_LE32(0x200);
 
@@ -42,7 +41,7 @@ void psxHwReset() {
     PCSX::g_emulator.m_psxCounters->psxRcntInit();
 }
 
-uint8_t psxHwRead8(uint32_t add) {
+uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
     unsigned char hard;
 
     switch (add) {
@@ -76,7 +75,7 @@ uint8_t psxHwRead8(uint32_t add) {
     return hard;
 }
 
-uint16_t psxHwRead16(uint32_t add) {
+uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
     unsigned short hard;
 
     switch (add) {
@@ -183,7 +182,7 @@ uint16_t psxHwRead16(uint32_t add) {
     return hard;
 }
 
-uint32_t psxHwRead32(uint32_t add) {
+uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
     uint32_t hard;
 
     switch (add) {
@@ -299,7 +298,7 @@ uint32_t psxHwRead32(uint32_t add) {
     return hard;
 }
 
-void psxHwWrite8(uint32_t add, uint8_t value) {
+void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
     switch (add) {
         case 0x1f801040:
             PCSX::g_emulator.m_sio->sioWrite8(value);
@@ -331,7 +330,7 @@ void psxHwWrite8(uint32_t add, uint8_t value) {
     PSXHW_LOG("*Known 8bit write at address %x value %x\n", add, value);
 }
 
-void psxHwWrite16(uint32_t add, uint16_t value) {
+void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
     switch (add) {
         case 0x1f801040:
             PCSX::g_emulator.m_sio->sioWrite8((unsigned char)value);
@@ -441,19 +440,19 @@ void psxHwWrite16(uint32_t add, uint16_t value) {
     PSXHW_LOG("*Known 16bit write at address %x value %x\n", add, value);
 }
 
-static inline void psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator.m_mdec->psxDma0(madr, bcr, chcr);
 }
 
-static inline void psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator.m_mdec->psxDma1(madr, bcr, chcr);
 }
 
-static inline void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator.m_gpu->dma(madr, bcr, chcr);
 }
 
-static inline void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator.m_cdrom->dma(madr, bcr, chcr);
 }
 
@@ -466,7 +465,7 @@ static inline void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         }                                                                                                       \
     }
 
-void psxHwWrite32(uint32_t add, uint32_t value) {
+void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
     switch (add) {
         case 0x1f801040:
             PCSX::g_emulator.m_sio->sioWrite8((unsigned char)value);
@@ -678,4 +677,4 @@ void psxHwWrite32(uint32_t add, uint32_t value) {
     PSXHW_LOG("*Known 32bit write at address %x value %x\n", add, value);
 }
 
-int psxHwFreeze(gzFile f, int Mode) { return 0; }
+int PCSX::HW::psxHwFreeze(gzFile f, int Mode) { return 0; }

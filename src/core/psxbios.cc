@@ -1376,11 +1376,11 @@ class BiosImpl : public PCSX::Bios {
         GPU_writeData((a3 << 16) | (a2 & 0xffff));
         size = (a2 * a3 + 1) / 2;
         GPU_writeStatus(0x04000002);
-        psxHwWrite32(0x1f8010f4, 0);
-        psxHwWrite32(0x1f8010f0, psxHwRead32(0x1f8010f0) | 0x800);
-        psxHwWrite32(0x1f8010a0, Rsp[4]);  // might have a buggy...
-        psxHwWrite32(0x1f8010a4, ((size / 16) << 16) | 16);
-        psxHwWrite32(0x1f8010a8, 0x01000201);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f4, 0);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f0, PCSX::g_emulator.m_hw->psxHwRead32(0x1f8010f0) | 0x800);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a0, Rsp[4]);  // might have a buggy...
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a4, ((size / 16) << 16) | 16);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a8, 0x01000201);
 
         pc0 = ra;
     }
@@ -1408,16 +1408,16 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_GPU_SendPackets() {  // 4b:
         GPU_writeStatus(0x04000002);
-        psxHwWrite32(0x1f8010f4, 0);
-        psxHwWrite32(0x1f8010f0, psxHwRead32(0x1f8010f0) | 0x800);
-        psxHwWrite32(0x1f8010a0, a0);
-        psxHwWrite32(0x1f8010a4, 0);
-        psxHwWrite32(0x1f8010a8, 0x010000401);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f4, 0);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f0, PCSX::g_emulator.m_hw->psxHwRead32(0x1f8010f0) | 0x800);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a0, a0);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a4, 0);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a8, 0x010000401);
         pc0 = ra;
     }
 
     void psxBios_sys_a0_4c() {  // 0x4c GPU relate
-        psxHwWrite32(0x1f8010a8, 0x00000401);
+        PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a8, 0x00000401);
         GPU_writeData(0x0400000);
         GPU_writeData(0x0200000);
         GPU_writeData(0x0100000);
@@ -1831,7 +1831,8 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_StartPAD() {  // 13
         PSXBIOS_LOG("psxBios_%s\n", B0names[0x13]);
 
-        psxHwWrite16(0x1f801074, (unsigned short)(psxHwRead16(0x1f801074) | 0x1));
+        PCSX::g_emulator.m_hw->psxHwWrite16(0x1f801074,
+                                            (unsigned short)(PCSX::g_emulator.m_hw->psxHwRead16(0x1f801074) | 0x1));
         PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
         pc0 = ra;
     }
@@ -1847,7 +1848,8 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_PAD_init() {  // 15
         PSXBIOS_LOG("psxBios_%s\n", B0names[0x15]);
 
-        psxHwWrite16(0x1f801074, (uint16_t)(psxHwRead16(0x1f801074) | 0x1));
+        PCSX::g_emulator.m_hw->psxHwWrite16(0x1f801074,
+                                            (uint16_t)(PCSX::g_emulator.m_hw->psxHwRead16(0x1f801074) | 0x1));
         s_pad_buf = (int *)Ra1;
         *s_pad_buf = -1;
         PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
@@ -3035,7 +3037,7 @@ class BiosImpl : public PCSX::Bios {
                     if (s_RcEV[i][1].status == EvStACTIVE) {
                         softCall(s_RcEV[i][1].fhandler);
                     }
-                    psxHwWrite32(0x1f801070, ~(1 << (i + 4)));
+                    PCSX::g_emulator.m_hw->psxHwWrite32(0x1f801070, ~(1 << (i + 4)));
                 }
             }
         }
@@ -3065,7 +3067,7 @@ class BiosImpl : public PCSX::Bios {
                 if (s_jmp_int != NULL) {
                     int i;
 
-                    psxHwWrite32(0x1f801070, 0xffffffff);
+                    PCSX::g_emulator.m_hw->psxHwWrite32(0x1f801070, 0xffffffff);
 
                     ra = s_jmp_int[0];
                     sp = s_jmp_int[1];
@@ -3078,7 +3080,7 @@ class BiosImpl : public PCSX::Bios {
                     pc0 = ra;
                     return;
                 }
-                psxHwWrite16(0x1f801070, 0);
+                PCSX::g_emulator.m_hw->psxHwWrite16(0x1f801070, 0);
                 break;
 
             case 0x20:  // Syscall

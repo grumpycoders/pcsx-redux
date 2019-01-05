@@ -17,8 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PSXHW_H__
-#define __PSXHW_H__
+#pragma once
 
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
@@ -59,13 +58,26 @@
         psxHu32ref(0x1070) |= SWAP_LE32(8);         \
     }
 
-void psxHwReset();
-uint8_t psxHwRead8(uint32_t add);
-uint16_t psxHwRead16(uint32_t add);
-uint32_t psxHwRead32(uint32_t add);
-void psxHwWrite8(uint32_t add, uint8_t value);
-void psxHwWrite16(uint32_t add, uint16_t value);
-void psxHwWrite32(uint32_t add, uint32_t value);
-int psxHwFreeze(gzFile f, int Mode);
+namespace PCSX {
 
-#endif
+class HW {
+  public:
+    void psxHwReset();
+    uint8_t psxHwRead8(uint32_t add);
+    uint16_t psxHwRead16(uint32_t add);
+    uint32_t psxHwRead32(uint32_t add);
+    void psxHwWrite8(uint32_t add, uint8_t value);
+    void psxHwWrite16(uint32_t add, uint16_t value);
+    void psxHwWrite32(uint32_t add, uint32_t value);
+    int psxHwFreeze(gzFile f, int Mode);
+
+  private:
+    bool s_dmaGpuListHackEn = false;
+
+    void psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr);
+};
+
+}  // namespace PCSX

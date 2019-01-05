@@ -85,6 +85,7 @@ class Cheats;
 class MDEC;
 class GPU;
 class Debug;
+class HW;
 
 class Emulator {
   private:
@@ -169,6 +170,7 @@ class Emulator {
     MDEC* m_mdec = NULL;
     GPU* m_gpu = NULL;
     Debug* m_debug = NULL;
+    HW* m_hw = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

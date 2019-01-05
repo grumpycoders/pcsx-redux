@@ -56,7 +56,7 @@ void PCSX::R3000Acpu::psxReset() {
     m_psxRegs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
-    psxHwReset();
+    PCSX::g_emulator.m_hw->psxHwReset();
     PCSX::g_emulator.m_psxBios->psxBiosInit();
 
     if (!g_emulator.config().HLE) psxExecuteBios();
