@@ -22,6 +22,7 @@
 #include "core/cdriso.h"
 #include "core/decode_xa.h"
 #include "core/plugins.h"
+#include "core/ppf.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/psxmem.h"
@@ -66,6 +67,7 @@ class CDRom {
     void setCdOpenCaseTime(int64_t time) { m_iso.setCdOpenCaseTime(time); }
 
     CDRiso m_iso;
+    PPF m_ppf;
 };
 
 }  // namespace PCSX

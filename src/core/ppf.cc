@@ -24,24 +24,8 @@
 #include "core/cdrom.h"
 #include "core/psxemulator.h"
 
-typedef struct tagPPF_DATA {
-    int32_t addr;
-    int32_t pos;
-    int32_t anz;
-    struct tagPPF_DATA *pNext;
-} PPF_DATA;
-
-typedef struct tagPPF_CACHE {
-    int32_t addr;
-    struct tagPPF_DATA *pNext;
-} PPF_CACHE;
-
-static PPF_CACHE *s_ppfCache = NULL;
-static PPF_DATA *s_ppfHead = NULL, *s_ppfLast = NULL;
-static int s_iPPFNum = 0;
-
 // using a linked data list, and address array
-static void FillPPFCache() {
+void PCSX::PPF::FillPPFCache() {
     PPF_DATA *p;
     PPF_CACHE *pc;
     int32_t lastaddr;
@@ -75,7 +59,7 @@ static void FillPPFCache() {
     }
 }
 
-void FreePPFCache() {
+void PCSX::PPF::FreePPFCache() {
     PPF_DATA *p = s_ppfHead;
     void *pn;
 
@@ -91,7 +75,7 @@ void FreePPFCache() {
     s_ppfCache = NULL;
 }
 
-void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f) {
+void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
     int addr = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(m), PCSX::CDRom::btoi(s), PCSX::CDRom::btoi(f)), pos, anz, start;
 
@@ -138,7 +122,7 @@ void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned
     }
 }
 
-static void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, unsigned char *ppfmem) {
+void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem) {
     if (s_ppfHead == NULL) {
         s_ppfHead = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
         s_ppfHead->addr = ladr;
@@ -187,7 +171,7 @@ static void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, unsigned char *ppfm
     }
 }
 
-void BuildPPFCache() {
+void PCSX::PPF::BuildPPFCache() {
     FILE *ppffile;
     char buffer[12];
     char method, undo = 0, blockcheck = 0;

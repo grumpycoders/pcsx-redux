@@ -1161,7 +1161,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         memcpy(m_Transfer, buf, DATA_SIZE);
-        CheckPPFCache(m_Transfer, m_Prev[0], m_Prev[1], m_Prev[2]);
+        m_ppf.CheckPPFCache(m_Transfer, m_Prev[0], m_Prev[1], m_Prev[2]);
 
         CDR_LOG("readInterrupt() Log: cdr.m_Transfer %x:%x:%x\n", m_Transfer[0], m_Transfer[1],
                 m_Transfer[2]);

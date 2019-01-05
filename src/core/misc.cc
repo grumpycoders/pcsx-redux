@@ -101,7 +101,7 @@ void mmssdd(char *b, char *p) {
     if (buf == NULL)                                                     \
         return -1;                                                       \
     else                                                                 \
-        CheckPPFCache(buf, time[0], time[1], time[2]);
+        PCSX::g_emulator.m_cdrom->m_ppf.CheckPPFCache(buf, time[0], time[1], time[2]);
 
 #define READDIR(_dir)             \
     READTRACK();                  \
@@ -298,7 +298,7 @@ int CheckCdrom() {
     char exename[256];
     int i, len, c;
 
-    FreePPFCache();
+    PCSX::g_emulator.m_cdrom->m_ppf.FreePPFCache();
 
     time[0] = PCSX::CDRom::itob(0);
     time[1] = PCSX::CDRom::itob(2);
@@ -400,7 +400,7 @@ int CheckCdrom() {
                                          PCSX::g_emulator.config().Mcd2.c_str());
     }
 
-    BuildPPFCache();
+    PCSX::g_emulator.m_cdrom->m_ppf.BuildPPFCache();
     PCSX::g_emulator.m_cdrom->m_iso.LoadSBI(NULL);
 
     return 0;
