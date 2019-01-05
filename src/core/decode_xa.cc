@@ -40,13 +40,13 @@
 //============================================
 
 #ifndef FIXED
-static double s_K0[4] = {0.0, 0.9375, 1.796875, 1.53125};
+static const double s_K0[4] = {0.0, 0.9375, 1.796875, 1.53125};
 
-static double s_K1[4] = {0.0, 0.0, -0.8125, -0.859375};
+static const double s_K1[4] = {0.0, 0.0, -0.8125, -0.859375};
 #else
-static int s_K0[4] = {0.0 * (1 << SHC), 0.9375 * (1 << SHC), 1.796875 * (1 << SHC), 1.53125 * (1 << SHC)};
+static const int s_K0[4] = {0.0 * (1 << SHC), 0.9375 * (1 << SHC), 1.796875 * (1 << SHC), 1.53125 * (1 << SHC)};
 
-static int s_K1[4] = {0.0 * (1 << SHC), 0.0 * (1 << SHC), -0.8125 * (1 << SHC), -0.859375 * (1 << SHC)};
+static const int s_K1[4] = {0.0 * (1 << SHC), 0.0 * (1 << SHC), -0.8125 * (1 << SHC), -0.859375 * (1 << SHC)};
 #endif
 
 #define BLKSIZ 28 /* block size (32 - 4 nibbles) */

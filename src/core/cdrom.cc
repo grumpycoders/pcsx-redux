@@ -25,7 +25,6 @@
 #include "core/ppf.h"
 #include "core/psxdma.h"
 
-long CALLBACK ISOinit(void);
 void CALLBACK SPUirq(void);
 extern SPUregisterCallback SPU_registerCallback;
 

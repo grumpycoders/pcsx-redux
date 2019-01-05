@@ -214,7 +214,7 @@ uint32_t psxHwRead32(uint32_t add) {
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             return hard;
         case 0x1f801814:
-            hard = gpuReadStatus();
+            hard = PCSX::GPU::gpuReadStatus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             return hard;
 
@@ -447,6 +447,10 @@ static inline void psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
 
 static inline void psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator.m_mdec->psxDma1(madr, bcr, chcr);
+}
+
+static inline void psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PCSX::g_emulator.m_gpu->dma(madr, bcr, chcr);
 }
 
 static inline void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {

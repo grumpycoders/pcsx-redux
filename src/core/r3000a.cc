@@ -160,7 +160,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_GPUDMA].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_GPUDMA].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_GPUDMA);
-                gpuInterrupt();
+                PCSX::GPU::gpuInterrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_MDECOUTDMA)) {  // mdec out dma

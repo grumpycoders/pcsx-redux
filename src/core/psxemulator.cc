@@ -20,11 +20,12 @@
 #include "core/psxemulator.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"
+#include "core/gpu.h"
+#include "core/gte.h"
 #include "core/mdec.h"
 #include "core/ppf.h"
 #include "core/psxbios.h"
 #include "core/r3000a.h"
-#include "core/gte.h"
 
 PCSX::Emulator::Emulator() {
     m_psxMem = new PCSX::Memory();
@@ -35,6 +36,7 @@ PCSX::Emulator::Emulator() {
     m_cdrom = PCSX::CDRom::factory();
     m_cheats = new PCSX::Cheats();
     m_mdec = new PCSX::MDEC();
+    m_gpu = new PCSX::GPU();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -46,6 +48,7 @@ PCSX::Emulator::~Emulator() {
     delete m_cdrom;
     delete m_cheats;
     delete m_mdec;
+    delete m_gpu;
 }
 
 int PCSX::Emulator::EmuInit() {
