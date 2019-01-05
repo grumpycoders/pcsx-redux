@@ -754,7 +754,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     PCSX::g_emulator.m_cdrom->freeze(f, 1);
     psxHwFreeze(f, 1);
     PCSX::g_emulator.m_psxCounters->psxRcntFreeze(f, 1);
-    mdecFreeze(f, 1);
+    PCSX::g_emulator.m_mdec->mdecFreeze(f, 1);
 
     if (gzsize) *gzsize = gztell(f);
     gzclose(f);
@@ -808,7 +808,7 @@ int LoadStateGz(gzFile f) {
     PCSX::g_emulator.m_cdrom->freeze(f, 0);
     psxHwFreeze(f, 0);
     PCSX::g_emulator.m_psxCounters->psxRcntFreeze(f, 0);
-    mdecFreeze(f, 0);
+    PCSX::g_emulator.m_mdec->mdecFreeze(f, 0);
 
     gzclose(f);
 

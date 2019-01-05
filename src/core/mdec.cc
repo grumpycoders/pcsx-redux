@@ -20,26 +20,6 @@
 
 #include "core/mdec.h"
 
-/* memory speed is 1 byte per MDEC_BIAS psx clock
- * That mean (PCSX::g_emulator.m_psxClockSpeed / MDEC_BIAS) B/s
- * MDEC_BIAS = 2.0 => ~16MB/s
- * MDEC_BIAS = 3.0 => ~11MB/s
- * and so on ...
- * I guess I have 50 images in 50Hz ... (could be 25 images ?)
- * 320x240x24@50Hz => 11.52 MB/s
- * 320x240x24@60Hz => 13.824 MB/s
- * 320x240x16@50Hz => 7.68 MB/s
- * 320x240x16@60Hz => 9.216 MB/s
- * so 2.0 to 4.0 should be fine.
- */
-#define MDEC_BIAS 2.0f
-
-#define DSIZE 8
-#define DSIZE2 (DSIZE * DSIZE)
-
-#define SCALE(x, n) ((x) >> (n))
-#define SCALER(x, n) (((x) + ((1 << (n)) >> 1)) >> (n))
-
 #define AAN_CONST_BITS 12
 #define AAN_PRESCALE_BITS 16
 
@@ -50,36 +30,30 @@
 #define AAN_PRESCALE_SCALE (AAN_PRESCALE_SIZE - AAN_PRESCALE_BITS)
 #define AAN_EXTRA 12
 
-#define FIX_1_082392200 SCALER(18159528, AAN_CONST_SCALE)  // B6
-#define FIX_1_414213562 SCALER(23726566, AAN_CONST_SCALE)  // A4
-#define FIX_1_847759065 SCALER(31000253, AAN_CONST_SCALE)  // A2
-#define FIX_2_613125930 SCALER(43840978, AAN_CONST_SCALE)  // B2
+#define SCALE(x, n) ((x) >> (n))
+#define SCALER(x, n) (((x) + ((1 << (n)) >> 1)) >> (n))
 
 #define MULS(var, const) (SCALE((var) * (const), AAN_CONST_BITS))
 
 #define RLE_RUN(a) ((a) >> 10)
 #define RLE_VAL(a) (((int)(a) << (sizeof(int) * 8 - 10)) >> (sizeof(int) * 8 - 10))
 
-#if 0
-static void printmatrixu8(uint8_t *m) {
-        int i;
-        for(i = 0; i < DSIZE2; i++) {
-                printf("%3d ",m[i]);
-                if((i+1) % 8 == 0) printf("\n");
-        }
-}
-#endif
+#define FIX_1_082392200 SCALER(18159528, AAN_CONST_SCALE)  // B6
+#define FIX_1_414213562 SCALER(23726566, AAN_CONST_SCALE)  // A4
+#define FIX_1_847759065 SCALER(31000253, AAN_CONST_SCALE)  // A2
+#define FIX_2_613125930 SCALER(43840978, AAN_CONST_SCALE)  // B2
 
 static inline void fillcol(int *blk, int val) {
-    blk[0 * DSIZE] = blk[1 * DSIZE] = blk[2 * DSIZE] = blk[3 * DSIZE] = blk[4 * DSIZE] = blk[5 * DSIZE] =
-        blk[6 * DSIZE] = blk[7 * DSIZE] = val;
+    blk[0 * PCSX::MDEC::DSIZE] = blk[1 * PCSX::MDEC::DSIZE] = blk[2 * PCSX::MDEC::DSIZE] = blk[3 * PCSX::MDEC::DSIZE] =
+        blk[4 * PCSX::MDEC::DSIZE] = blk[5 * PCSX::MDEC::DSIZE] = blk[6 * PCSX::MDEC::DSIZE] =
+            blk[7 * PCSX::MDEC::DSIZE] = val;
 }
 
 static inline void fillrow(int *blk, int val) {
     blk[0] = blk[1] = blk[2] = blk[3] = blk[4] = blk[5] = blk[6] = blk[7] = val;
 }
 
-void idct(int *block, int used_col) {
+static void idct(int *block, int used_col) {
     int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     int z5, z10, z11, z12, z13;
     int *ptr;
@@ -88,16 +62,16 @@ void idct(int *block, int used_col) {
     // the block has only the DC coefficient
     if (used_col == -1) {
         int v = block[0];
-        for (i = 0; i < DSIZE2; i++) block[i] = v;
+        for (i = 0; i < PCSX::MDEC::DSIZE2; i++) block[i] = v;
         return;
     }
 
     // last_col keeps track of the highest column with non zero coefficients
     ptr = block;
-    for (i = 0; i < DSIZE; i++, ptr++) {
+    for (i = 0; i < PCSX::MDEC::DSIZE; i++, ptr++) {
         if ((used_col & (1 << i)) == 0) {
             // the column is empty or has only the DC coefficient
-            if (ptr[DSIZE * 0]) {
+            if (ptr[PCSX::MDEC::DSIZE * 0]) {
                 fillcol(ptr, ptr[0]);
                 used_col |= (1 << i);
             }
@@ -106,10 +80,10 @@ void idct(int *block, int used_col) {
 
         // further optimization could be made by keeping track of
         // last_row in rl2blk
-        z10 = ptr[DSIZE * 0] + ptr[DSIZE * 4];  // s04
-        z11 = ptr[DSIZE * 0] - ptr[DSIZE * 4];  // d04
-        z13 = ptr[DSIZE * 2] + ptr[DSIZE * 6];  // s26
-        z12 = MULS(ptr[DSIZE * 2] - ptr[DSIZE * 6], FIX_1_414213562) - z13;
+        z10 = ptr[PCSX::MDEC::DSIZE * 0] + ptr[PCSX::MDEC::DSIZE * 4];  // s04
+        z11 = ptr[PCSX::MDEC::DSIZE * 0] - ptr[PCSX::MDEC::DSIZE * 4];  // d04
+        z13 = ptr[PCSX::MDEC::DSIZE * 2] + ptr[PCSX::MDEC::DSIZE * 6];  // s26
+        z12 = MULS(ptr[PCSX::MDEC::DSIZE * 2] - ptr[PCSX::MDEC::DSIZE * 6], FIX_1_414213562) - z13;
         //^^^^  d26=d26*2*A4-s26
 
         tmp0 = z10 + z13;  // os07 = s04 + s26
@@ -117,10 +91,10 @@ void idct(int *block, int used_col) {
         tmp1 = z11 + z12;  // os16 = d04 + d26
         tmp2 = z11 - z12;  // os25 = d04 - d26
 
-        z13 = ptr[DSIZE * 3] + ptr[DSIZE * 5];  // s53
-        z10 = ptr[DSIZE * 3] - ptr[DSIZE * 5];  //-d53
-        z11 = ptr[DSIZE * 1] + ptr[DSIZE * 7];  // s17
-        z12 = ptr[DSIZE * 1] - ptr[DSIZE * 7];  // d17
+        z13 = ptr[PCSX::MDEC::DSIZE * 3] + ptr[PCSX::MDEC::DSIZE * 5];  // s53
+        z10 = ptr[PCSX::MDEC::DSIZE * 3] - ptr[PCSX::MDEC::DSIZE * 5];  //-d53
+        z11 = ptr[PCSX::MDEC::DSIZE * 1] + ptr[PCSX::MDEC::DSIZE * 7];  // s17
+        z12 = ptr[PCSX::MDEC::DSIZE * 1] - ptr[PCSX::MDEC::DSIZE * 7];  // d17
 
         tmp7 = z11 + z13;  // od07 = s17 + s53
 
@@ -149,21 +123,21 @@ void idct(int *block, int used_col) {
         //    tmp5 = MULS(z11 - z13, FIX_1_414213562) - tmp6;
         // od25 = (s17 - s53)*2*A4 - od16
 
-        ptr[DSIZE * 0] = (tmp0 + tmp7);  // os07 + od07
-        ptr[DSIZE * 7] = (tmp0 - tmp7);  // os07 - od07
-        ptr[DSIZE * 1] = (tmp1 + tmp6);  // os16 + od16
-        ptr[DSIZE * 6] = (tmp1 - tmp6);  // os16 - od16
-        ptr[DSIZE * 2] = (tmp2 + tmp5);  // os25 + od25
-        ptr[DSIZE * 5] = (tmp2 - tmp5);  // os25 - od25
-        ptr[DSIZE * 4] = (tmp3 + tmp4);  // os34 + od34
-        ptr[DSIZE * 3] = (tmp3 - tmp4);  // os34 - od34
+        ptr[PCSX::MDEC::DSIZE * 0] = (tmp0 + tmp7);  // os07 + od07
+        ptr[PCSX::MDEC::DSIZE * 7] = (tmp0 - tmp7);  // os07 - od07
+        ptr[PCSX::MDEC::DSIZE * 1] = (tmp1 + tmp6);  // os16 + od16
+        ptr[PCSX::MDEC::DSIZE * 6] = (tmp1 - tmp6);  // os16 - od16
+        ptr[PCSX::MDEC::DSIZE * 2] = (tmp2 + tmp5);  // os25 + od25
+        ptr[PCSX::MDEC::DSIZE * 5] = (tmp2 - tmp5);  // os25 - od25
+        ptr[PCSX::MDEC::DSIZE * 4] = (tmp3 + tmp4);  // os34 + od34
+        ptr[PCSX::MDEC::DSIZE * 3] = (tmp3 - tmp4);  // os34 - od34
     }
 
     ptr = block;
     if (used_col == 1) {
-        for (i = 0; i < DSIZE; i++) fillrow(block + DSIZE * i, block[DSIZE * i]);
+        for (i = 0; i < PCSX::MDEC::DSIZE; i++) fillrow(block + PCSX::MDEC::DSIZE * i, block[PCSX::MDEC::DSIZE * i]);
     } else {
-        for (i = 0; i < DSIZE; i++, ptr += DSIZE) {
+        for (i = 0; i < PCSX::MDEC::DSIZE; i++, ptr += PCSX::MDEC::DSIZE) {
             z10 = ptr[0] + ptr[4];
             z11 = ptr[0] - ptr[4];
             z13 = ptr[2] + ptr[6];
@@ -198,56 +172,22 @@ void idct(int *block, int used_col) {
     }
 }
 
+enum {
 // mdec0: command register
-#define MDEC0_STP 0x02000000
-#define MDEC0_RGB24 0x08000000
-#define MDEC0_SIZE_MASK 0x0000FFFF
+MDEC0_STP = 0x02000000,
+MDEC0_RGB24 = 0x08000000,
+MDEC0_SIZE_MASK = 0x0000FFFF,
 
 // mdec1: status register
-#define MDEC1_BUSY 0x20000000
-#define MDEC1_DREQ 0x18000000
-#define MDEC1_FIFO 0xc0000000
-#define MDEC1_RGB24 0x02000000
-#define MDEC1_STP 0x00800000
-#define MDEC1_RESET 0x80000000
-
-struct _pending_dma1 {
-    uint32_t adr;
-    uint32_t bcr;
-    uint32_t chcr;
+MDEC1_BUSY = 0x20000000,
+MDEC1_DREQ = 0x18000000,
+MDEC1_FIFO = 0xc0000000,
+MDEC1_RGB24 = 0x02000000,
+MDEC1_STP = 0x00800000,
+MDEC1_RESET = 0x80000000,
 };
 
-static struct {
-    uint32_t reg0;
-    uint32_t reg1;
-    uint16_t *rl;
-    uint16_t *rl_end;
-    uint8_t *block_buffer_pos;
-    uint8_t block_buffer[16 * 16 * 3];
-    struct _pending_dma1 pending_dma1;
-} mdec;
-
-static int iq_y[DSIZE2], iq_uv[DSIZE2];
-
-static int zscan[DSIZE2] = {
-    0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,   // 00
-    12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6,  7,  14, 21, 28,  // 10
-    35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,  // 20
-    58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,  // 30
-};
-
-static int aanscales[DSIZE2] = {
-    1048576, 1454417, 1370031, 1232995, 1048576, 823861,  567485, 289301,  // 00
-    1454417, 2017334, 1900287, 1710213, 1454417, 1142728, 787125, 401273,  // 08
-    1370031, 1900287, 1790031, 1610986, 1370031, 1076426, 741455, 377991,  // 10
-    1232995, 1710213, 1610986, 1449849, 1232995, 968758,  667292, 340183,  // 18
-    1048576, 1454417, 1370031, 1232995, 1048576, 823861,  567485, 289301,  // 20
-    823861,  1142728, 1076426, 968758,  823861,  647303,  445870, 227303,  // 28
-    567485,  787125,  741455,  667292,  567485,  445870,  307121, 156569,  // 30
-    289301,  401273,  377991,  340183,  289301,  227303,  156569, 79818    // 38
-};
-
-static void iqtab_init(int *iqtab, unsigned char *iq_y) {
+void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
     int i;
 
     for (i = 0; i < DSIZE2; i++) {
@@ -257,7 +197,7 @@ static void iqtab_init(int *iqtab, unsigned char *iq_y) {
 
 #define MDEC_END_OF_DATA 0xfe00
 
-unsigned short *rl2blk(int *blk, unsigned short *mdec_rl) {
+unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
     int i, k, q_scale, rl, used_col;
     int *iqtab;
 
@@ -320,7 +260,7 @@ unsigned short *rl2blk(int *blk, unsigned short *mdec_rl) {
 #define CLAMP_SCALE8(a) (CLAMP8(SCALE8(a)))
 #define CLAMP_SCALE5(a) (CLAMP5(SCALE5(a)))
 
-static inline void putlinebw15(uint16_t *image, int *Yblk) {
+inline void PCSX::MDEC::putlinebw15(uint16_t *image, int *Yblk) {
     int i;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
 
@@ -331,7 +271,7 @@ static inline void putlinebw15(uint16_t *image, int *Yblk) {
     }
 }
 
-static inline void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb) {
+inline void PCSX::MDEC::putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb) {
     int Y, R, G, B;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
     R = MULR(Cr);
@@ -349,7 +289,7 @@ static inline void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb) {
     image[17] = MAKERGB15(CLAMP_SCALE5(Y + R), CLAMP_SCALE5(Y + G), CLAMP_SCALE5(Y + B), A);
 }
 
-static inline void yuv2rgb15(int *blk, unsigned short *image) {
+inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
     int x, y;
     int *Yblk = blk + DSIZE2 * 2;
     int *Crblk = blk;
@@ -408,30 +348,30 @@ static inline void putquadrgb24(uint8_t *image, int *Yblk, int Cr, int Cb) {
     image[17 * 3 + 2] = CLAMP_SCALE8(Y + B);
 }
 
-static void yuv2rgb24(int *blk, uint8_t *image) {
+void yuv2rgb24(int *blk, uint8_t *image) {
     int x, y;
-    int *Yblk = blk + DSIZE2 * 2;
+    int *Yblk = blk + PCSX::MDEC::DSIZE2 * 2;
     int *Crblk = blk;
-    int *Cbblk = blk + DSIZE2;
+    int *Cbblk = blk + PCSX::MDEC::DSIZE2;
 
     if (!PCSX::g_emulator.config().Mdec) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
-            if (y == 8) Yblk += DSIZE2;
+            if (y == 8) Yblk += PCSX::MDEC::DSIZE2;
             for (x = 0; x < 4; x++, image += 6, Crblk++, Cbblk++, Yblk += 2) {
                 putquadrgb24(image, Yblk, *Crblk, *Cbblk);
-                putquadrgb24(image + 8 * 3, Yblk + DSIZE2, *(Crblk + 4), *(Cbblk + 4));
+                putquadrgb24(image + 8 * 3, Yblk + PCSX::MDEC::DSIZE2, *(Crblk + 4), *(Cbblk + 4));
             }
         }
     } else {
         for (y = 0; y < 16; y++, Yblk += 8, image += 16 * 3) {
-            if (y == 8) Yblk += DSIZE2;
+            if (y == 8) Yblk += PCSX::MDEC::DSIZE2;
             putlinebw24(image, Yblk);
-            putlinebw24(image + 8 * 3, Yblk + DSIZE2);
+            putlinebw24(image + 8 * 3, Yblk + PCSX::MDEC::DSIZE2);
         }
     }
 }
 
-void mdecInit(void) {
+void PCSX::MDEC::mdecInit(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
@@ -439,12 +379,12 @@ void mdecInit(void) {
 }
 
 // command register
-void mdecWrite0(uint32_t data) { mdec.reg0 = data; }
+void PCSX::MDEC::mdecWrite0(uint32_t data) { mdec.reg0 = data; }
 
-uint32_t mdecRead0(void) { return mdec.reg0; }
+uint32_t PCSX::MDEC::mdecRead0(void) { return mdec.reg0; }
 
 // status register
-void mdecWrite1(uint32_t data) {
+void PCSX::MDEC::mdecWrite1(uint32_t data) {
     if (data & MDEC1_RESET) {  // mdec reset
         mdec.reg0 = 0;
         mdec.reg1 = 0;
@@ -453,12 +393,12 @@ void mdecWrite1(uint32_t data) {
     }
 }
 
-uint32_t mdecRead1(void) {
+uint32_t PCSX::MDEC::mdecRead1(void) {
     uint32_t v = mdec.reg1;
     return v;
 }
 
-void psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
+void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int cmd = mdec.reg0;
     int size;
 
@@ -520,7 +460,7 @@ void psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     DMA_INTERRUPT(0);
 }
 
-void mdec0Interrupt() {
+void PCSX::MDEC::mdec0Interrupt() {
     HW_DMA0_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(0);
 }
@@ -528,7 +468,7 @@ void mdec0Interrupt() {
 #define SIZE_OF_24B_BLOCK (16 * 16 * 3)
 #define SIZE_OF_16B_BLOCK (16 * 16 * 2)
 
-void psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
+void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int blk[DSIZE2 * 6];
     uint8_t *image;
     int size;
@@ -615,7 +555,7 @@ void psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     }
 }
 
-void mdec1Interrupt() {
+void PCSX::MDEC::mdec1Interrupt() {
     /* Author : gschwind
      *
      * in that case we have done all decoding stuff
@@ -658,7 +598,7 @@ void mdec1Interrupt() {
     return;
 }
 
-int mdecFreeze(gzFile f, int Mode) {
+int PCSX::MDEC::mdecFreeze(gzFile f, int Mode) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
     uint32_t v;
 

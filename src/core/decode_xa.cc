@@ -52,7 +52,7 @@ static int s_K1[4] = {0.0 * (1 << SHC), 0.0 * (1 << SHC), -0.8125 * (1 << SHC), 
 #define BLKSIZ 28 /* block size (32 - 4 nibbles) */
 
 //===========================================
-void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
+static void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
     decp->y0 = 0;
     decp->y1 = 0;
 }
@@ -124,7 +124,7 @@ static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_rang
     decp->y1 = fy1;
 }
 
-static int s_headtable[4] = {0, 2, 8, 10};
+static const int s_headtable[4] = {0, 2, 8, 10};
 
 //===========================================
 static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {

@@ -20,6 +20,7 @@
 #include "core/psxemulator.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"
+#include "core/mdec.h"
 #include "core/ppf.h"
 #include "core/psxbios.h"
 #include "core/r3000a.h"
@@ -33,6 +34,7 @@ PCSX::Emulator::Emulator() {
     m_sio = new PCSX::SIO();
     m_cdrom = PCSX::CDRom::factory();
     m_cheats = new PCSX::Cheats();
+    m_mdec = new PCSX::MDEC();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -43,6 +45,7 @@ PCSX::Emulator::~Emulator() {
     delete m_sio;
     delete m_cdrom;
     delete m_cheats;
+    delete m_mdec;
 }
 
 int PCSX::Emulator::EmuInit() {

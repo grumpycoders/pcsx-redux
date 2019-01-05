@@ -37,7 +37,7 @@ void psxHwReset() {
 
     memset(PCSX::g_emulator.m_psxMem->g_psxH, 0, 0x10000);
 
-    mdecInit();  // initialize mdec decoder
+    PCSX::g_emulator.m_mdec->mdecInit();  // initialize mdec decoder
     PCSX::g_emulator.m_cdrom->reset();
     PCSX::g_emulator.m_psxCounters->psxRcntInit();
 }
@@ -219,10 +219,10 @@ uint32_t psxHwRead32(uint32_t add) {
             return hard;
 
         case 0x1f801820:
-            hard = mdecRead0();
+            hard = PCSX::g_emulator.m_mdec->mdecRead0();
             break;
         case 0x1f801824:
-            hard = mdecRead1();
+            hard = PCSX::g_emulator.m_mdec->mdecRead1();
             break;
         case 0x1f8010a0:
             PSXHW_LOG("DMA2 MADR 32bit read %x\n", psxHu32(0x10a0));
@@ -441,7 +441,17 @@ void psxHwWrite16(uint32_t add, uint16_t value) {
     PSXHW_LOG("*Known 16bit write at address %x value %x\n", add, value);
 }
 
-static inline void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) { PCSX::g_emulator.m_cdrom->dma(madr, bcr, chcr); }
+static inline void psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PCSX::g_emulator.m_mdec->psxDma0(madr, bcr, chcr);
+}
+
+static inline void psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PCSX::g_emulator.m_mdec->psxDma1(madr, bcr, chcr);
+}
+
+static inline void psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PCSX::g_emulator.m_cdrom->dma(madr, bcr, chcr);
+}
 
 #define DmaExec(n)                                                                                              \
     {                                                                                                           \
@@ -604,10 +614,10 @@ void psxHwWrite32(uint32_t add, uint32_t value) {
             return;
 
         case 0x1f801820:
-            mdecWrite0(value);
+            PCSX::g_emulator.m_mdec->mdecWrite0(value);
             break;
         case 0x1f801824:
-            mdecWrite1(value);
+            PCSX::g_emulator.m_mdec->mdecWrite1(value);
             break;
         case 0x1f801100:
             PSXHW_LOG("COUNTER 0 COUNT 32bit write %x\n", value);

@@ -167,7 +167,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_MDECOUTDMA);
-                mdec1Interrupt();
+                PCSX::g_emulator.m_mdec->mdec1Interrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_SPUDMA)) {  // spu dma
@@ -181,7 +181,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_MDECINDMA].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_MDECINDMA].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_MDECINDMA);
-                mdec0Interrupt();
+                PCSX::g_emulator.m_mdec->mdec0Interrupt();
             }
         }
 
