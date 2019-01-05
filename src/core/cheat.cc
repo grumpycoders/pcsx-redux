@@ -17,26 +17,11 @@
  */
 
 #include "core/cheat.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
-Cheat *g_cheats = NULL;
-int g_numCheats = 0;
-static int s_numCheatsAllocated = 0;
-
-CheatCode *g_cheatCodes = NULL;
-int g_numCodes = 0;
-static int s_numCodesAllocated = 0;
-
-s8 *g_prevM = NULL;
-u32 *g_searchResults = NULL;
-int g_numSearchResults = 0;
-static int s_numSearchResultsAllocated = 0;
-
-#define ALLOC_INCREMENT 100
-
-void ClearAllCheats() {
+void PCSX::Cheats::ClearAllCheats() {
     if (g_cheats != NULL) {
         for (int i = 0; i < g_numCheats; i++) {
             free(g_cheats[i].Descr);
@@ -58,7 +43,7 @@ void ClearAllCheats() {
 }
 
 // load cheats from the specific filename
-void LoadCheats(const char *filename) {
+void PCSX::Cheats::LoadCheats(const char *filename) {
     FILE *fp;
     char buf[256];
     int count = 0;
@@ -66,7 +51,7 @@ void LoadCheats(const char *filename) {
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
-        SysPrintf(_("Could not load cheats from: %s\n"), filename);
+        PCSX::g_system->SysPrintf(_("Could not load cheats from: %s\n"), filename);
         return;
     }
 
@@ -138,11 +123,11 @@ void LoadCheats(const char *filename) {
 
     fclose(fp);
 
-    SysPrintf(_("Cheats loaded from: %s\n"), filename);
+    PCSX::g_system->SysPrintf(_("Cheats loaded from: %s\n"), filename);
 }
 
 // save all cheats to the specified filename
-void SaveCheats(const char *filename) {
+void PCSX::Cheats::SaveCheats(const char *filename) {
     FILE *fp;
     int i, j;
 
@@ -160,7 +145,8 @@ void SaveCheats(const char *filename) {
 
         // write all cheat codes
         for (j = 0; j < g_cheats[i].n; j++) {
-            fprintf(fp, "%.8X %.4X\n", g_cheatCodes[g_cheats[i].First + j].Addr, g_cheatCodes[g_cheats[i].First + j].Val);
+            fprintf(fp, "%.8X %.4X\n", g_cheatCodes[g_cheats[i].First + j].Addr,
+                    g_cheatCodes[g_cheats[i].First + j].Val);
         }
 
         fprintf(fp, "\n");
@@ -168,11 +154,11 @@ void SaveCheats(const char *filename) {
 
     fclose(fp);
 
-    SysPrintf(_("Cheats saved to: %s\n"), filename);
+    PCSX::g_system->SysPrintf(_("Cheats saved to: %s\n"), filename);
 }
 
 // apply all enabled cheats
-void ApplyCheats() {
+void PCSX::Cheats::ApplyCheats() {
     int i, j, k, endindex;
 
     for (i = 0; i < g_numCheats; i++) {
@@ -184,34 +170,34 @@ void ApplyCheats() {
         endindex = g_cheats[i].First + g_cheats[i].n;
 
         for (j = g_cheats[i].First; j < endindex; j++) {
-            u8 type = (uint8_t)(g_cheatCodes[j].Addr >> 24);
-            u32 addr = (g_cheatCodes[j].Addr & 0x001FFFFF);
-            u16 val = g_cheatCodes[j].Val;
-            u32 taddr;
+            uint8_t type = (uint8_t)(g_cheatCodes[j].Addr >> 24);
+            uint32_t addr = (g_cheatCodes[j].Addr & 0x001FFFFF);
+            uint16_t val = g_cheatCodes[j].Val;
+            uint32_t taddr;
 
             switch (type) {
                 case CHEAT_CONST8:
-                    psxMu8ref(addr) = (u8)val;
+                    psxMu8ref(addr) = (uint8_t)val;
                     break;
 
                 case CHEAT_CONST16:
-                    psxMu16ref(addr) = SWAPu16(val);
+                    psxMu16ref(addr) = SWAP_LEu16(val);
                     break;
 
                 case CHEAT_INC16:
-                    psxMu16ref(addr) = SWAPu16(psxMu16(addr) + val);
+                    psxMu16ref(addr) = SWAP_LEu16(psxMu16(addr) + val);
                     break;
 
                 case CHEAT_DEC16:
-                    psxMu16ref(addr) = SWAPu16(psxMu16(addr) - val);
+                    psxMu16ref(addr) = SWAP_LEu16(psxMu16(addr) - val);
                     break;
 
                 case CHEAT_INC8:
-                    psxMu8ref(addr) += (u8)val;
+                    psxMu8ref(addr) += (uint8_t)val;
                     break;
 
                 case CHEAT_DEC8:
-                    psxMu8ref(addr) -= (u8)val;
+                    psxMu8ref(addr) -= (uint8_t)val;
                     break;
 
                 case CHEAT_SLIDE:
@@ -224,15 +210,15 @@ void ApplyCheats() {
 
                     if (type == CHEAT_CONST8) {
                         for (k = 0; k < ((addr >> 8) & 0xFF); k++) {
-                            psxMu8ref(taddr) = (u8)val;
-                            taddr += (s8)(addr & 0xFF);
-                            val += (s8)(g_cheatCodes[j - 1].Val & 0xFF);
+                            psxMu8ref(taddr) = (uint8_t)val;
+                            taddr += (int8_t)(addr & 0xFF);
+                            val += (int8_t)(g_cheatCodes[j - 1].Val & 0xFF);
                         }
                     } else if (type == CHEAT_CONST16) {
                         for (k = 0; k < ((addr >> 8) & 0xFF); k++) {
-                            psxMu16ref(taddr) = SWAPu16(val);
-                            taddr += (s8)(addr & 0xFF);
-                            val += (s8)(g_cheatCodes[j - 1].Val & 0xFF);
+                            psxMu16ref(taddr) = SWAP_LEu16(val);
+                            taddr += (int8_t)(addr & 0xFF);
+                            val += (int8_t)(g_cheatCodes[j - 1].Val & 0xFF);
                         }
                     }
                     break;
@@ -248,19 +234,19 @@ void ApplyCheats() {
                     break;
 
                 case CHEAT_EQU8:
-                    if (PSXMu8(addr) != (u8)val) j++;  // skip the next code
+                    if (PSXMu8(addr) != (uint8_t)val) j++;  // skip the next code
                     break;
 
                 case CHEAT_NOTEQU8:
-                    if (PSXMu8(addr) == (u8)val) j++;  // skip the next code
+                    if (PSXMu8(addr) == (uint8_t)val) j++;  // skip the next code
                     break;
 
                 case CHEAT_LESSTHAN8:
-                    if (PSXMu8(addr) >= (u8)val) j++;  // skip the next code
+                    if (PSXMu8(addr) >= (uint8_t)val) j++;  // skip the next code
                     break;
 
                 case CHEAT_GREATERTHAN8:
-                    if (PSXMu8(addr) <= (u8)val) j++;  // skip the next code
+                    if (PSXMu8(addr) <= (uint8_t)val) j++;  // skip the next code
                     break;
 
                 case CHEAT_EQU16:
@@ -283,7 +269,7 @@ void ApplyCheats() {
     }
 }
 
-int AddCheat(const char *descr, char *code) {
+int PCSX::Cheats::AddCheat(const char *descr, char *code) {
     int c = 1;
     char *p1, *p2;
 
@@ -351,7 +337,7 @@ int AddCheat(const char *descr, char *code) {
     return 0;
 }
 
-void RemoveCheat(int index) {
+void PCSX::Cheats::RemoveCheat(int index) {
     assert(index >= 0 && index < g_numCheats);
 
     free(g_cheats[index].Descr);
@@ -364,7 +350,7 @@ void RemoveCheat(int index) {
     g_numCheats--;
 }
 
-int EditCheat(int index, const char *descr, char *code) {
+int PCSX::Cheats::EditCheat(int index, const char *descr, char *code) {
     int c = 1;
     int prev = g_numCodes;
     char *p1, *p2;
@@ -421,7 +407,7 @@ int EditCheat(int index, const char *descr, char *code) {
     return 0;
 }
 
-void FreeCheatSearchResults() {
+void PCSX::Cheats::FreeCheatSearchResults() {
     if (g_searchResults != NULL) {
         free(g_searchResults);
     }
@@ -431,42 +417,42 @@ void FreeCheatSearchResults() {
     s_numSearchResultsAllocated = 0;
 }
 
-void FreeCheatSearchMem() {
+void PCSX::Cheats::FreeCheatSearchMem() {
     if (g_prevM != NULL) {
         free(g_prevM);
     }
     g_prevM = NULL;
 }
 
-void CheatSearchBackupMemory() {
+void PCSX::Cheats::CheatSearchBackupMemory() {
     if (g_prevM != NULL) {
-        memcpy(g_prevM, g_psxM, 0x200000);
+        memcpy(g_prevM, PCSX::g_emulator.m_psxMem->g_psxM, 0x200000);
     }
 }
 
-static void CheatSearchInitBackupMemory() {
+void PCSX::Cheats::CheatSearchInitBackupMemory() {
     if (g_prevM == NULL) {
-        g_prevM = (s8 *)malloc(0x200000);
+        g_prevM = (int8_t *)malloc(0x200000);
         CheatSearchBackupMemory();
     }
 }
 
-static void CheatSearchAddResult(u32 addr) {
+void PCSX::Cheats::CheatSearchAddResult(uint32_t addr) {
     if (g_numSearchResults >= s_numSearchResultsAllocated) {
         s_numSearchResultsAllocated += ALLOC_INCREMENT;
 
         if (g_searchResults == NULL) {
-            g_searchResults = (u32 *)malloc(sizeof(u32) * s_numSearchResultsAllocated);
+            g_searchResults = (uint32_t *)malloc(sizeof(uint32_t) * s_numSearchResultsAllocated);
         } else {
-            g_searchResults = (u32 *)realloc(g_searchResults, sizeof(u32) * s_numSearchResultsAllocated);
+            g_searchResults = (uint32_t *)realloc(g_searchResults, sizeof(uint32_t) * s_numSearchResultsAllocated);
         }
     }
 
     g_searchResults[g_numSearchResults++] = addr;
 }
 
-void CheatSearchEqual8(u8 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchEqual8(uint8_t val) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -491,8 +477,8 @@ void CheatSearchEqual8(u8 val) {
     }
 }
 
-void CheatSearchEqual16(u16 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchEqual16(uint16_t val) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -517,8 +503,8 @@ void CheatSearchEqual16(u16 val) {
     }
 }
 
-void CheatSearchEqual32(u32 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchEqual32(uint32_t val) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -543,8 +529,8 @@ void CheatSearchEqual32(u32 val) {
     }
 }
 
-void CheatSearchNotEqual8(u8 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchNotEqual8(uint8_t val) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -569,8 +555,8 @@ void CheatSearchNotEqual8(u8 val) {
     }
 }
 
-void CheatSearchNotEqual16(u16 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchNotEqual16(uint16_t val) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -595,8 +581,8 @@ void CheatSearchNotEqual16(u16 val) {
     }
 }
 
-void CheatSearchNotEqual32(u32 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchNotEqual32(uint32_t val) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -621,8 +607,8 @@ void CheatSearchNotEqual32(u32 val) {
     }
 }
 
-void CheatSearchRange8(u8 min, u8 max) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchRange8(uint8_t min, uint8_t max) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -647,8 +633,8 @@ void CheatSearchRange8(u8 min, u8 max) {
     }
 }
 
-void CheatSearchRange16(u16 min, u16 max) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchRange16(uint16_t min, uint16_t max) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -673,8 +659,8 @@ void CheatSearchRange16(u16 min, u16 max) {
     }
 }
 
-void CheatSearchRange32(u32 min, u32 max) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchRange32(uint32_t min, uint32_t max) {
+    uint32_t i, j;
 
     CheatSearchInitBackupMemory();
 
@@ -699,8 +685,8 @@ void CheatSearchRange32(u32 min, u32 max) {
     }
 }
 
-void CheatSearchIncreasedBy8(u8 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchIncreasedBy8(uint8_t val) {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -715,8 +701,8 @@ void CheatSearchIncreasedBy8(u8 val) {
     g_numSearchResults = j;
 }
 
-void CheatSearchIncreasedBy16(u16 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchIncreasedBy16(uint16_t val) {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -731,8 +717,8 @@ void CheatSearchIncreasedBy16(u16 val) {
     g_numSearchResults = j;
 }
 
-void CheatSearchIncreasedBy32(u32 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchIncreasedBy32(uint32_t val) {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -747,8 +733,8 @@ void CheatSearchIncreasedBy32(u32 val) {
     g_numSearchResults = j;
 }
 
-void CheatSearchDecreasedBy8(u8 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDecreasedBy8(uint8_t val) {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -763,8 +749,8 @@ void CheatSearchDecreasedBy8(u8 val) {
     g_numSearchResults = j;
 }
 
-void CheatSearchDecreasedBy16(u16 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDecreasedBy16(uint16_t val) {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -779,8 +765,8 @@ void CheatSearchDecreasedBy16(u16 val) {
     g_numSearchResults = j;
 }
 
-void CheatSearchDecreasedBy32(u32 val) {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDecreasedBy32(uint32_t val) {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -795,8 +781,8 @@ void CheatSearchDecreasedBy32(u32 val) {
     g_numSearchResults = j;
 }
 
-void CheatSearchIncreased8() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchIncreased8() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -811,8 +797,8 @@ void CheatSearchIncreased8() {
     g_numSearchResults = j;
 }
 
-void CheatSearchIncreased16() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchIncreased16() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -827,8 +813,8 @@ void CheatSearchIncreased16() {
     g_numSearchResults = j;
 }
 
-void CheatSearchIncreased32() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchIncreased32() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -843,8 +829,8 @@ void CheatSearchIncreased32() {
     g_numSearchResults = j;
 }
 
-void CheatSearchDecreased8() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDecreased8() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -859,8 +845,8 @@ void CheatSearchDecreased8() {
     g_numSearchResults = j;
 }
 
-void CheatSearchDecreased16() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDecreased16() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -875,8 +861,8 @@ void CheatSearchDecreased16() {
     g_numSearchResults = j;
 }
 
-void CheatSearchDecreased32() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDecreased32() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -891,8 +877,8 @@ void CheatSearchDecreased32() {
     g_numSearchResults = j;
 }
 
-void CheatSearchDifferent8() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDifferent8() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -907,8 +893,8 @@ void CheatSearchDifferent8() {
     g_numSearchResults = j;
 }
 
-void CheatSearchDifferent16() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDifferent16() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -923,8 +909,8 @@ void CheatSearchDifferent16() {
     g_numSearchResults = j;
 }
 
-void CheatSearchDifferent32() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchDifferent32() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -939,8 +925,8 @@ void CheatSearchDifferent32() {
     g_numSearchResults = j;
 }
 
-void CheatSearchNoChange8() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchNoChange8() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -955,8 +941,8 @@ void CheatSearchNoChange8() {
     g_numSearchResults = j;
 }
 
-void CheatSearchNoChange16() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchNoChange16() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 
@@ -971,8 +957,8 @@ void CheatSearchNoChange16() {
     g_numSearchResults = j;
 }
 
-void CheatSearchNoChange32() {
-    u32 i, j;
+void PCSX::Cheats::CheatSearchNoChange32() {
+    uint32_t i, j;
 
     assert(g_prevM != NULL);  // not possible for the first search
 

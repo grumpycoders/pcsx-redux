@@ -16,17 +16,37 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __PPF_H__
-#define __PPF_H__
+#pragma once
 
-#include "core/psxcommon.h"
+#include <stdint.h>
 
-void BuildPPFCache();
-void FreePPFCache();
-void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f);
+namespace PCSX {
 
-int LoadSBI(const char *filename);
-boolean CheckSBI(const u8 *time);
-void UnloadSBI(void);
+class PPF {
+  public:
+    void BuildPPFCache();
+    void FreePPFCache();
+    void CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f);
 
-#endif
+  private:
+    struct PPF_DATA {
+        int32_t addr;
+        int32_t pos;
+        int32_t anz;
+        struct PPF_DATA *pNext;
+    };
+
+    struct PPF_CACHE {
+        int32_t addr;
+        struct PPF_DATA *pNext;
+    };
+
+    PPF_CACHE *s_ppfCache = NULL;
+    PPF_DATA *s_ppfHead = NULL, *s_ppfLast = NULL;
+    int s_iPPFNum = 0;
+
+    void FillPPFCache();
+    void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem);
+};
+
+}  // namespace PCSX

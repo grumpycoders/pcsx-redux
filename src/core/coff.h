@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1995
- *	Ted Lemon (hereinafter referred to as the author)
+ *  Ted Lemon (hereinafter referred to as the author)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,43 +29,43 @@
 #ifndef __ECOFF_H__
 #define __ECOFF_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 /*
  * Some ECOFF definitions.
  */
 typedef struct filehdr {
-    u16 f_magic;  /* magic number */
-    u16 f_nscns;  /* number of sections */
-    u32 f_timdat; /* time & date stamp */
-    u32 f_symptr; /* file pointer to symbolic header */
-    u32 f_nsyms;  /* sizeof(symbolic hdr) */
-    u16 f_opthdr; /* sizeof(optional hdr) */
-    u16 f_flags;  /* flags */
+    uint16_t f_magic;  /* magic number */
+    uint16_t f_nscns;  /* number of sections */
+    uint32_t f_timdat; /* time & date stamp */
+    uint32_t f_symptr; /* file pointer to symbolic header */
+    uint32_t f_nsyms;  /* sizeof(symbolic hdr) */
+    uint16_t f_opthdr; /* sizeof(optional hdr) */
+    uint16_t f_flags;  /* flags */
 } FILHDR;
 
 typedef struct scnhdr {
-    char s_name[8]; /* section name */
-    u32 s_paddr;    /* physical address, aliased s_nlib */
-    u32 s_vaddr;    /* virtual address */
-    u32 s_size;     /* section size */
-    u32 s_scnptr;   /* file s_ptr to raw data for section */
-    u32 s_relptr;   /* file s_ptr to relocation */
-    u32 s_lnnoptr;  /* file s_ptr to gp histogram */
-    u16 s_nreloc;   /* number of relocation entries */
-    u16 s_nlnno;    /* number of gp histogram entries */
-    u32 s_flags;    /* flags */
+    char s_name[8];     /* section name */
+    uint32_t s_paddr;   /* physical address, aliased s_nlib */
+    uint32_t s_vaddr;   /* virtual address */
+    uint32_t s_size;    /* section size */
+    uint32_t s_scnptr;  /* file s_ptr to raw data for section */
+    uint32_t s_relptr;  /* file s_ptr to relocation */
+    uint32_t s_lnnoptr; /* file s_ptr to gp histogram */
+    uint16_t s_nreloc;  /* number of relocation entries */
+    uint16_t s_nlnno;   /* number of gp histogram entries */
+    uint32_t s_flags;   /* flags */
 } SCNHDR;
 
 typedef struct aouthdr {
-    u16 magic;      /* magic */
-    u16 vstamp;     /* version stamp */
-    u32 tsize;      /* text size in bytes, padded to DW bdry */
-    u32 dsize;      /* initialized data */
-    u32 bsize;      /* uninitialized data */
-    u32 entry;      /* entry pt. */
-    u32 text_start; /* base of text used for this file */
-    u32 data_start; /* base of data used for this file */
+    uint16_t magic;      /* magic */
+    uint16_t vstamp;     /* version stamp */
+    uint32_t tsize;      /* text size in bytes, padded to DW bdry */
+    uint32_t dsize;      /* initialized data */
+    uint32_t bsize;      /* uninitialized data */
+    uint32_t entry;      /* entry pt. */
+    uint32_t text_start; /* base of text used for this file */
+    uint32_t data_start; /* base of data used for this file */
 } AOUTHDR;
 
 #endif

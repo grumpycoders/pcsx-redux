@@ -88,6 +88,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -97,6 +98,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -108,6 +110,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -123,6 +126,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -150,7 +154,7 @@
     <ClCompile Include="..\..\src\core\plugins.cc" />
     <ClCompile Include="..\..\src\core\ppf.cc" />
     <ClCompile Include="..\..\src\core\psxbios.cc" />
-    <ClCompile Include="..\..\src\core\psxcommon.cc" />
+    <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
     <ClCompile Include="..\..\src\core\psxhle.cc" />
@@ -161,6 +165,7 @@
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\socket.cc" />
     <ClCompile Include="..\..\src\core\spu.cc" />
+    <ClCompile Include="..\..\src\core\system.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\cdriso.h" />
@@ -169,11 +174,11 @@
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
-    <ClInclude Include="..\..\src\core\ecm.h" />
+    <ClInclude Include="..\..\src\core\disr3000a.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
-    <ClInclude Include="..\..\src\core\ix86\iGte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
+    <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
     <ClInclude Include="..\..\src\core\pgxp_cpu.h" />
@@ -185,7 +190,7 @@
     <ClInclude Include="..\..\src\core\ppf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
     <ClInclude Include="..\..\src\core\psxbios.h" />
-    <ClInclude Include="..\..\src\core\psxcommon.h" />
+    <ClInclude Include="..\..\src\core\psxemulator.h" />
     <ClInclude Include="..\..\src\core\psxcounters.h" />
     <ClInclude Include="..\..\src\core\psxdma.h" />
     <ClInclude Include="..\..\src\core\psxhle.h" />
@@ -198,7 +203,17 @@
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\system.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets'))" />
+  </Target>
 </Project>

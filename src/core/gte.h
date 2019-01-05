@@ -17,40 +17,71 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __GTE_H__
-#define __GTE_H__
+#pragma once
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 
-void gteMFC2();
-void gteCFC2();
-void gteMTC2();
-void gteCTC2();
-void gteLWC2();
-void gteSWC2();
+#define gteoB (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
+#define gteop (PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x1ffffff)
 
-void gteRTPS();
-void gteNCLIP();
-void gteOP();
-void gteDPCS();
-void gteINTPL();
-void gteMVMVA();
-void gteNCDS();
-void gteCDP();
-void gteNCDT();
-void gteNCCS();
-void gteCC();
-void gteNCS();
-void gteNCT();
-void gteSQR();
-void gteDCPL();
-void gteDPCT();
-void gteAVSZ3();
-void gteAVSZ4();
-void gteRTPT();
-void gteGPF();
-void gteGPL();
-void gteNCCT();
+namespace PCSX {
 
-#endif
+class GTE {
+  public:
+    void MFC2() {
+        // CPU[Rt] = GTE_D[Rd]
+        if (!_Rt_) return;
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_] = MFC2_internal(_Rd_);
+    }
+    void CFC2() {
+        // CPU[Rt] = GTE_C[Rd]
+        if (!_Rt_) return;
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_] = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
+    }
+    void MTC2() { MTC2_internal(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
+    void CTC2() { CTC2_internal(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
+    void LWC2() { MTC2_internal(PCSX::g_emulator.m_psxMem->psxMemRead32(gteoB), _Rt_); }
+    void SWC2() { PCSX::g_emulator.m_psxMem->psxMemWrite32(gteoB, MFC2_internal(_Rt_)); }
+
+    void RTPS() { docop2(gteop); }
+    void NCLIP() { docop2(gteop); }
+    void OP() { docop2(gteop); }
+    void DPCS() { docop2(gteop); }
+    void INTPL() { docop2(gteop); }
+    void MVMVA() { docop2(gteop); }
+    void NCDS() { docop2(gteop); }
+    void CDP() { docop2(gteop); }
+    void NCDT() { docop2(gteop); }
+    void NCCS() { docop2(gteop); }
+    void CC() { docop2(gteop); }
+    void NCS() { docop2(gteop); }
+    void NCT() { docop2(gteop); }
+    void SQR() { docop2(gteop); }
+    void DCPL() { docop2(gteop); }
+    void DPCT() { docop2(gteop); }
+    void AVSZ3() { docop2(gteop); }
+    void AVSZ4() { docop2(gteop); }
+    void RTPT() { docop2(gteop); }
+    void GPF() { docop2(gteop); }
+    void GPL() { docop2(gteop); }
+    void NCCT() { docop2(gteop); }
+
+  private:
+    int s_sf;
+    int64_t s_mac0;
+    int64_t s_mac3;
+
+    int32_t BOUNDS(/*int44*/ int64_t value, int max_flag, int min_flag);
+    int32_t A1(/*int44*/ int64_t a);
+    int32_t A2(/*int44*/ int64_t a);
+    int32_t A3(/*int44*/ int64_t a);
+    int64_t F(int64_t a);
+    int docop2(int op);
+
+    uint32_t MFC2_internal(int reg);
+    void MTC2_internal(uint32_t value, int reg);
+    void CTC2_internal(uint32_t value, int reg);
+};
+
+}  // namespace PCSX

@@ -17,28 +17,36 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PSXBIOS_H__
-#define __PSXBIOS_H__
+#pragma once
 
 #include "core/misc.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sio.h"
 
-extern const char *g_biosA0n[256];
-extern const char *g_biosB0n[256];
-extern const char *g_biosC0n[256];
+namespace PCSX {
 
-void psxBiosInit();
-void psxBiosShutdown();
-void psxBiosException();
-void psxBiosFreeze(int Mode);
+class Bios {
+  public:
+    Bios() {}
+    virtual ~Bios() {}
+    static const char *A0names[256];
+    static const char *B0names[256];
+    static const char *C0names[256];
 
-extern void (*biosA0[256])();
-extern void (*biosB0[256])();
-extern void (*biosC0[256])();
+    virtual void psxBiosInit() = 0;
+    virtual void psxBiosShutdown() = 0;
+    virtual void psxBiosException() = 0;
+    virtual void psxBiosFreeze(int Mode) = 0;
 
-extern boolean g_hleSoftCall;
+    virtual bool callA0(unsigned index) = 0;
+    virtual bool callB0(unsigned index) = 0;
+    virtual bool callC0(unsigned index) = 0;
 
-#endif
+    bool m_hleSoftCall;
+
+    static Bios *factory();
+};
+
+}  // namespace PCSX

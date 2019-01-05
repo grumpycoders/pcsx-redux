@@ -1,73 +1,84 @@
 #include <SDL.h>
 
-#include "core/psxcommon.h"
+#include "core/cdrom.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
 
-    void
-    SysPrintf(const char *fmt, ...) {
-    // print message to debugging console
-    va_list a;
-    va_start(a, fmt);
-    vprintf(fmt, a);
-    va_end(a);
-}
+class SystemImpl : public PCSX::System {
+    virtual void SysPrintf(const char *fmt, ...) final {
+        // print message to debugging console
+        va_list a;
+        va_start(a, fmt);
+        vprintf(fmt, a);
+        va_end(a);
+    }
 
-void SysMessage(const char *fmt, ...) {
-    // display message to user as a pop-up
-    va_list a;
-    va_start(a, fmt);
-    vprintf(fmt, a);
-    va_end(a);
-}
+    virtual void SysBiosPrintf(const char *fmt, ...) final {
+        // print message to debugging console
+        va_list a;
+        va_start(a, fmt);
+        vprintf(fmt, a);
+        va_end(a);
+    }
 
-void SysUpdate() {
-    // called on vblank to update states
-    GUI_flip();
-}
+    virtual void SysBiosPrintf(const char *fmt, va_list a) final {
+        // print message to debugging console
+        vprintf(fmt, a);
+    }
 
-void SysRunGui() {
-    // called when the UI needs to show up
-}
+    virtual void SysMessage(const char *fmt, ...) final {
+        // display message to user as a pop-up
+        va_list a;
+        va_start(a, fmt);
+        vprintf(fmt, a);
+        va_end(a);
+    }
 
-void SysReset() {
-    // debugger is requesting a reset
-}
+    virtual void SysLog(const char *facility, const char *fmt, va_list a) final { vprintf(fmt, a); }
 
-void SysClose() {
-    // emulator is requesting a shutdown of the emulation
-}
+    virtual void SysUpdate() final {
+        // called on vblank to update states
+        GUI_flip();
+    }
+
+    virtual void SysRunGui() final {
+        // called when the UI needs to show up
+    }
+
+    virtual void SysReset() final {
+        // debugger is requesting a reset
+    }
+
+    virtual void SysClose() final {
+        // emulator is requesting a shutdown of the emulation
+    }
+};
 
 int main(int argc, char *argv[]) {
     unsigned int texture = GUI_init();
 
-    memset(&g_config, 0, sizeof(PcsxConfig));
-    g_config.PsxAuto = 1;
-    g_config.HLE = 0;
-    g_config.SlowBoot = 0;
-    strcpy(g_config.BiosDir, ".");
-    strcpy(g_config.Bios, "bios.bin");
+    PCSX::g_system = new SystemImpl;
+
+    PCSX::g_emulator.config().PsxAuto = true;
+    PCSX::g_emulator.config().HLE = false;
+    PCSX::g_emulator.config().SlowBoot = false;
+    PCSX::g_emulator.config().BiosDir = ".";
+    PCSX::g_emulator.config().Bios = "bios.bin";
+    PCSX::g_emulator.config().Cpu = PCSX::Emulator::CPU_DYNAREC;
 
     SetIsoFile("test.img");
     LoadPlugins();
-
     GPU_open(texture);
+    PCSX::g_emulator.m_cdrom->m_iso.open();
 
-    EmuInit();
-    EmuReset();
+    PCSX::g_emulator.EmuInit();
+    PCSX::g_emulator.EmuReset();
 
-    CDR_open();
     CheckCdrom();
     LoadCdrom();
 
-    g_psxCpu = &g_psxInt;
-    g_psxCpu->Init();
-    g_psxCpu->Execute();
-
-    // temporary, to make sure the code doesn't get removed at link time
-    g_psxCpu = &g_psxRec;
-    g_psxCpu->Init();
-    g_psxCpu->Execute();
+    PCSX::g_emulator.m_psxCpu->Execute();
 
     return 0;
 }

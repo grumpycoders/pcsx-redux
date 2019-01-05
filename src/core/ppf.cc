@@ -20,31 +20,15 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "core/cdrom.h"
 #include "core/ppf.h"
-#include "core/psxcommon.h"
-
-typedef struct tagPPF_DATA {
-    s32 addr;
-    s32 pos;
-    s32 anz;
-    struct tagPPF_DATA *pNext;
-} PPF_DATA;
-
-typedef struct tagPPF_CACHE {
-    s32 addr;
-    struct tagPPF_DATA *pNext;
-} PPF_CACHE;
-
-static PPF_CACHE *s_ppfCache = NULL;
-static PPF_DATA *s_ppfHead = NULL, *s_ppfLast = NULL;
-static int s_iPPFNum = 0;
+#include "core/cdrom.h"
+#include "core/psxemulator.h"
 
 // using a linked data list, and address array
-static void FillPPFCache() {
+void PCSX::PPF::FillPPFCache() {
     PPF_DATA *p;
     PPF_CACHE *pc;
-    s32 lastaddr;
+    int32_t lastaddr;
 
     p = s_ppfHead;
     lastaddr = -1;
@@ -75,7 +59,7 @@ static void FillPPFCache() {
     }
 }
 
-void FreePPFCache() {
+void PCSX::PPF::FreePPFCache() {
     PPF_DATA *p = s_ppfHead;
     void *pn;
 
@@ -91,9 +75,9 @@ void FreePPFCache() {
     s_ppfCache = NULL;
 }
 
-void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned char f) {
+void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
-    int addr = MSF2SECT(btoi(m), btoi(s), btoi(f)), pos, anz, start;
+    int addr = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(m), PCSX::CDRom::btoi(s), PCSX::CDRom::btoi(f)), pos, anz, start;
 
     if (s_ppfCache == NULL) return;
 
@@ -124,7 +108,7 @@ void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned
     if (addr == pcpos->addr) {
         PPF_DATA *p = pcpos->pNext;
         while (p != NULL && p->addr == addr) {
-            pos = p->pos - (CD_FRAMESIZE_RAW - DATA_SIZE);
+            pos = p->pos - (PCSX::CDRom::CD_FRAMESIZE_RAW - PCSX::CDRom::DATA_SIZE);
             anz = p->anz;
             if (pos < 0) {
                 start = -pos;
@@ -138,7 +122,7 @@ void CheckPPFCache(unsigned char *pB, unsigned char m, unsigned char s, unsigned
     }
 }
 
-static void AddToPPF(s32 ladr, s32 pos, s32 anz, unsigned char *ppfmem) {
+void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem) {
     if (s_ppfHead == NULL) {
         s_ppfHead = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
         s_ppfHead->addr = ladr;
@@ -187,7 +171,7 @@ static void AddToPPF(s32 ladr, s32 pos, s32 anz, unsigned char *ppfmem) {
     }
 }
 
-void BuildPPFCache() {
+void PCSX::PPF::BuildPPFCache() {
     FILE *ppffile;
     char buffer[12];
     char method, undo = 0, blockcheck = 0;
@@ -195,28 +179,28 @@ void BuildPPFCache() {
     unsigned char ppfmem[512];
     char szPPF[MAXPATHLEN];
     int count, seekpos, pos;
-    u32 anz;  // use 32-bit to avoid stupid overflows
-    s32 ladr, off, anx;
+    uint32_t anz;  // use 32-bit to avoid stupid overflows
+    int32_t ladr, off, anx;
 
     FreePPFCache();
 
-    if (g_cdromId[0] == '\0') return;
+    if (PCSX::g_emulator.m_cdromId[0] == '\0') return;
 
     // Generate filename in the format of SLUS_123.45
-    buffer[0] = toupper(g_cdromId[0]);
-    buffer[1] = toupper(g_cdromId[1]);
-    buffer[2] = toupper(g_cdromId[2]);
-    buffer[3] = toupper(g_cdromId[3]);
+    buffer[0] = toupper(PCSX::g_emulator.m_cdromId[0]);
+    buffer[1] = toupper(PCSX::g_emulator.m_cdromId[1]);
+    buffer[2] = toupper(PCSX::g_emulator.m_cdromId[2]);
+    buffer[3] = toupper(PCSX::g_emulator.m_cdromId[3]);
     buffer[4] = '_';
-    buffer[5] = g_cdromId[4];
-    buffer[6] = g_cdromId[5];
-    buffer[7] = g_cdromId[6];
+    buffer[5] = PCSX::g_emulator.m_cdromId[4];
+    buffer[6] = PCSX::g_emulator.m_cdromId[5];
+    buffer[7] = PCSX::g_emulator.m_cdromId[6];
     buffer[8] = '.';
-    buffer[9] = g_cdromId[7];
-    buffer[10] = g_cdromId[8];
+    buffer[9] = PCSX::g_emulator.m_cdromId[7];
+    buffer[10] = PCSX::g_emulator.m_cdromId[8];
     buffer[11] = '\0';
 
-    sprintf(szPPF, "%s/%s", g_config.PatchesDir, buffer);
+    sprintf(szPPF, "%s/%s", PCSX::g_emulator.config().PatchesDir.c_str(), buffer);
 
     ppffile = fopen(szPPF, "rb");
     if (ppffile == NULL) return;
@@ -225,7 +209,7 @@ void BuildPPFCache() {
     fread(buffer, 3, 1, ppffile);
 
     if (strcmp(buffer, "PPF") != 0) {
-        SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
+        PCSX::g_system->SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
         fclose(ppffile);
         return;
     }
@@ -251,7 +235,7 @@ void BuildPPFCache() {
                 dizyn = 0;
             } else {
                 fread(&dizlen, 4, 1, ppffile);
-                dizlen = SWAP32(dizlen);
+                dizlen = SWAP_LE32(dizlen);
                 dizyn = 1;
             }
 
@@ -282,7 +266,7 @@ void BuildPPFCache() {
             if (strcmp(".DIZ", buffer) == 0) {
                 fseek(ppffile, -2, SEEK_END);
                 fread(&dizlen, 2, 1, ppffile);
-                dizlen = SWAP32(dizlen);
+                dizlen = SWAP_LE32(dizlen);
                 dizlen += 36;
             }
 
@@ -301,7 +285,7 @@ void BuildPPFCache() {
 
         default:
             fclose(ppffile);
-            SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
+            PCSX::g_system->SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
             return;
     }
 
@@ -309,18 +293,18 @@ void BuildPPFCache() {
     do {
         fseek(ppffile, seekpos, SEEK_SET);
         fread(&pos, 4, 1, ppffile);
-        pos = SWAP32(pos);
+        pos = SWAP_LE32(pos);
 
         if (method == 2) fread(buffer, 4, 1, ppffile);  // skip 4 bytes on ppf3 (no int64 support here)
 
         anz = fgetc(ppffile);
         fread(ppfmem, anz, 1, ppffile);
 
-        ladr = pos / CD_FRAMESIZE_RAW;
-        off = pos % CD_FRAMESIZE_RAW;
+        ladr = pos / PCSX::CDRom::CD_FRAMESIZE_RAW;
+        off = pos % PCSX::CDRom::CD_FRAMESIZE_RAW;
 
-        if (off + anz > CD_FRAMESIZE_RAW) {
-            anx = off + anz - CD_FRAMESIZE_RAW;
+        if (off + anz > PCSX::CDRom::CD_FRAMESIZE_RAW) {
+            anx = off + anz - PCSX::CDRom::CD_FRAMESIZE_RAW;
             anz -= (unsigned char)anx;
             AddToPPF(ladr + 1, 0, anx, &ppfmem[anz]);
         }
@@ -340,70 +324,5 @@ void BuildPPFCache() {
 
     FillPPFCache();  // build address array
 
-    SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
+    PCSX::g_system->SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
 }
-
-// redump.org SBI files
-static u8 sbitime[256][3], sbicount;
-
-int LoadSBI(const char *filename) {
-    FILE *sbihandle;
-    char buffer[16], sbifile[MAXPATHLEN];
-
-    if (filename == NULL) {
-        if (g_cdromId[0] == '\0') return -1;
-
-        // Generate filename in the format of SLUS_123.45.sbi
-        buffer[0] = toupper(g_cdromId[0]);
-        buffer[1] = toupper(g_cdromId[1]);
-        buffer[2] = toupper(g_cdromId[2]);
-        buffer[3] = toupper(g_cdromId[3]);
-        buffer[4] = '_';
-        buffer[5] = g_cdromId[4];
-        buffer[6] = g_cdromId[5];
-        buffer[7] = g_cdromId[6];
-        buffer[8] = '.';
-        buffer[9] = g_cdromId[7];
-        buffer[10] = g_cdromId[8];
-        buffer[11] = '.';
-        buffer[12] = 's';
-        buffer[13] = 'b';
-        buffer[14] = 'i';
-        buffer[15] = '\0';
-
-        sprintf(sbifile, "%s%s", g_config.PatchesDir, buffer);
-        filename = sbifile;
-    }
-
-    sbihandle = fopen(filename, "rb");
-    if (sbihandle == NULL) return -1;
-
-    // init
-    sbicount = 0;
-
-    // 4-byte SBI header
-    fread(buffer, 1, 4, sbihandle);
-    while (!feof(sbihandle)) {
-        fread(sbitime[sbicount++], 1, 3, sbihandle);
-        fread(buffer, 1, 11, sbihandle);
-    }
-
-    fclose(sbihandle);
-
-    SysPrintf(_("Loaded SBI file: %s.\n"), filename);
-
-    return 0;
-}
-
-boolean CheckSBI(const u8 *time) {
-    int lcv;
-
-    // both BCD format
-    for (lcv = 0; lcv < sbicount; lcv++) {
-        if (time[0] == sbitime[lcv][0] && time[1] == sbitime[lcv][1] && time[2] == sbitime[lcv][2]) return TRUE;
-    }
-
-    return FALSE;
-}
-
-void UnloadSBI(void) { sbicount = 0; }

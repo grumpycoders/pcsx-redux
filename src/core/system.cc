@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2018 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,24 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __DECODE_XA_H__
-#define __DECODE_XA_H__
+#include <stddef.h>
 
-#include "core/psxemulator.h"
+#include "core/system.h"
 
-typedef struct {
-    int32_t y0, y1;
-} ADPCM_Decode_t;
-
-typedef struct {
-    int freq;
-    int nbits;
-    int stereo;
-    int nsamples;
-    ADPCM_Decode_t left, right;
-    short pcm[16384];
-} xa_decode_t;
-
-int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_sector);
-
-#endif
+PCSX::System* PCSX::g_system = NULL;

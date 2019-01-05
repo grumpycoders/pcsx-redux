@@ -18,19 +18,19 @@
  ***************************************************************************/
 
 /**************************************************************************
- *	pgxp_gte.c
- *	PGXP - Parallel/Precision Geometry Xform Pipeline
+ *  pgxp_gte.c
+ *  PGXP - Parallel/Precision Geometry Xform Pipeline
  *
- *	Created on: 12 Mar 2016
+ *  Created on: 12 Mar 2016
  *      Author: iCatButler
  ***************************************************************************/
 
+#include "core/pgxp_gte.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
-#include "core/pgxp_gte.h"
 #include "core/pgxp_mem.h"
 #include "core/pgxp_value.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
@@ -76,51 +76,49 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
 
     SXY2.x = _x;
     SXY2.y = _y;
-    SXY2.z = g_config.PGXP_Texture ? _z : 1.f;
+    SXY2.z = PCSX::g_emulator.config().PGXP_Texture ? _z : 1.f;
     SXY2.value = _v;
     SXY2.flags = VALID_ALL;
     SXY2.count = uCount++;
 
     // cache value in GPU plugin
     temp.word = _v;
-    if (g_config.PGXP_Cache)
-        GPU_pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char *>(&SXY2));
+    if (PCSX::g_emulator.config().PGXP_Cache)
+        GPU_pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char*>(&SXY2));
     else
         GPU_pgxpCacheVertex(0, 0, NULL);
 
-#ifdef GTE_LOG
     GTE_LOG("PGXP_PUSH (%f, %f) %u %u|", SXY2.x, SXY2.y, SXY2.flags, SXY2.count);
-#endif
 }
 
-void PGXP_pushSXYZ2s(s64 _x, s64 _y, s64 _z, u32 v) {
+void PGXP_pushSXYZ2s(int64_t _x, int64_t _y, int64_t _z, uint32_t v) {
     float fx = (float)(_x) / (float)(1 << 16);
     float fy = (float)(_y) / (float)(1 << 16);
     float fz = (float)(_z);
 
-    if (g_config.PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
+    if (PCSX::g_emulator.config().PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
 }
 
-#define VX(n) (g_psxRegs.CP2D.p[n << 1].sw.l)
-#define VY(n) (g_psxRegs.CP2D.p[n << 1].sw.h)
-#define VZ(n) (g_psxRegs.CP2D.p[(n << 1) + 1].sw.l)
+#define VX(n) (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.l)
+#define VY(n) (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.h)
+#define VZ(n) (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[(n << 1) + 1].sw.l)
 
-void PGXP_RTPS(u32 _n, u32 _v) {
+void PGXP_RTPS(uint32_t _n, uint32_t _v) {
     // Transform
-    float TRX = (s64)g_psxRegs.CP2C.p[5].sd;
-    float TRY = (s64)g_psxRegs.CP2C.p[6].sd;
-    float TRZ = (s64)g_psxRegs.CP2C.p[7].sd;
+    float TRX = (int64_t)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[5].sd;
+    float TRY = (int64_t)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[6].sd;
+    float TRZ = (int64_t)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[7].sd;
 
     // Rotation with 12-bit shift
-    float R11 = (float)g_psxRegs.CP2C.p[0].sw.l / (float)(1 << 12);
-    float R12 = (float)g_psxRegs.CP2C.p[0].sw.h / (float)(1 << 12);
-    float R13 = (float)g_psxRegs.CP2C.p[1].sw.l / (float)(1 << 12);
-    float R21 = (float)g_psxRegs.CP2C.p[1].sw.h / (float)(1 << 12);
-    float R22 = (float)g_psxRegs.CP2C.p[2].sw.l / (float)(1 << 12);
-    float R23 = (float)g_psxRegs.CP2C.p[2].sw.h / (float)(1 << 12);
-    float R31 = (float)g_psxRegs.CP2C.p[3].sw.l / (float)(1 << 12);
-    float R32 = (float)g_psxRegs.CP2C.p[3].sw.h / (float)(1 << 12);
-    float R33 = (float)g_psxRegs.CP2C.p[4].sw.l / (float)(1 << 12);
+    float R11 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[0].sw.l / (float)(1 << 12);
+    float R12 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[0].sw.h / (float)(1 << 12);
+    float R13 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[1].sw.l / (float)(1 << 12);
+    float R21 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[1].sw.h / (float)(1 << 12);
+    float R22 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[2].sw.l / (float)(1 << 12);
+    float R23 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[2].sw.h / (float)(1 << 12);
+    float R31 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[3].sw.l / (float)(1 << 12);
+    float R32 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[3].sw.h / (float)(1 << 12);
+    float R33 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[4].sw.l / (float)(1 << 12);
 
     // Bring vertex into view space
     float MAC1 = TRX + (R11 * VX(_n)) + (R12 * VY(_n)) + (R13 * VZ(_n));
@@ -131,20 +129,20 @@ void PGXP_RTPS(u32 _n, u32 _v) {
     float IR2 = max(min(MAC2, 0x7fff), -0x8000);
     float IR3 = max(min(MAC3, 0x7fff), -0x8000);
 
-    float H = g_psxRegs.CP2C.p[26].sw.l;           // Near plane
-    float F = 0xFFFF;                            // Far plane?
+    float H = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[26].sw.l;  // Near plane
+    float F = 0xFFFF;                                                // Far plane?
     float SZ3 = max(min(MAC3, 0xffff), 0x0000);  // Clamp SZ3 to near plane because we have no clipping (no proper Z)
-    //	float h_over_sz3 = H / SZ3;
+    //  float h_over_sz3 = H / SZ3;
 
     // Offsets with 16-bit shift
-    float OFX = (float)g_psxRegs.CP2C.p[24].sd / (float)(1 << 16);
-    float OFY = (float)g_psxRegs.CP2C.p[25].sd / (float)(1 << 16);
+    float OFX = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[24].sd / (float)(1 << 16);
+    float OFY = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[25].sd / (float)(1 << 16);
 
     float h_over_w = min(H / SZ3, (float)0x1ffff / (float)0xffff);
     h_over_w = (SZ3 == 0) ? ((float)0x1ffff / (float)0xffff) : h_over_w;
 
     // PSX Screen space X,Y,W components
-    float sx = OFX + (IR1 * h_over_w) * (g_config.Widescreen ? 0.75 : 1);
+    float sx = OFX + (IR1 * h_over_w) * (PCSX::g_emulator.config().Widescreen ? 0.75 : 1);
     float sy = OFY + (IR2 * h_over_w);
     float sw = SZ3;  // max(SZ3, 0.1);
 
@@ -158,10 +156,10 @@ void PGXP_RTPS(u32 _n, u32 _v) {
     // float ftolerance = 5.f;
 
     // if ((fabs(sx - sx2) > ftolerance) ||
-    //	(fabs(sy - sy2) > ftolerance) ||
-    //	(fabs(sw - sz2) > ftolerance))
+    //  (fabs(sy - sy2) > ftolerance) ||
+    //  (fabs(sw - sz2) > ftolerance))
     //{
-    //	float r = 5;
+    //  float r = 5;
     //}
 
     PGXP_pushSXYZ2f(sx, sy, sw, _v);
@@ -169,11 +167,12 @@ void PGXP_RTPS(u32 _n, u32 _v) {
     return;
 }
 
-int PGXP_NLCIP_valid(u32 sxy0, u32 sxy1, u32 sxy2) {
+int PGXP_NLCIP_valid(uint32_t sxy0, uint32_t sxy1, uint32_t sxy2) {
     Validate(&SXY0, sxy0);
     Validate(&SXY1, sxy1);
     Validate(&SXY2, sxy2);
-    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && g_config.PGXP_GTE && (g_config.PGXP_Mode > 0))
+    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && PCSX::g_emulator.config().PGXP_GTE &&
+        (PCSX::g_emulator.config().PGXP_Mode > 0))
         return 1;
     return 0;
 }
@@ -201,7 +200,7 @@ float PGXP_NCLIP() {
     return nclip;
 }
 
-static PGXP_value PGXP_MFC2_int(u32 reg) {
+static PGXP_value PGXP_MFC2_int(uint32_t reg) {
     switch (reg) {
         case 15:
             g_GTE_data_reg[reg] = SXYP = SXY2;
@@ -211,7 +210,7 @@ static PGXP_value PGXP_MFC2_int(u32 reg) {
     return g_GTE_data_reg[reg];
 }
 
-static void PGXP_MTC2_int(PGXP_value value, u32 reg) {
+static void PGXP_MTC2_int(PGXP_value value, uint32_t reg) {
     switch (reg) {
         case 15:
             // push FIFO
@@ -243,7 +242,7 @@ void MFC2(int reg) {
         case 9:
         case 10:
         case 11:
-            g_GTE_data_reg[reg].value = (s32)val.sw.l;
+            g_GTE_data_reg[reg].value = (int32_t)val.sw.l;
             g_GTE_data_reg[reg].y = 0.f;
             break;
 
@@ -252,7 +251,7 @@ void MFC2(int reg) {
         case 17:
         case 18:
         case 19:
-            g_GTE_data_reg[reg].value = (u32)val.w.l;
+            g_GTE_data_reg[reg].value = (uint32_t)val.w.l;
             g_GTE_data_reg[reg].y = 0.f;
             break;
 
@@ -262,13 +261,14 @@ void MFC2(int reg) {
 
         case 28:
         case 29:
-            //	g_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0, 0) << 5) | (LIM(IR3 >> 7,
+            //  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0,
+            //  0) << 5) | (LIM(IR3 >> 7,
             // 0x1f, 0, 0) << 10);
             break;
     }
 }
 
-void PGXP_GTE_MFC2(u32 instr, u32 rtVal, u32 rdVal) {
+void PGXP_GTE_MFC2(uint32_t instr, uint32_t rtVal, uint32_t rdVal) {
     // CPU[Rt] = GTE_D[Rd]
     Validate(&g_GTE_data_reg[rd(instr)], rdVal);
     // MFC2(rd(instr));
@@ -276,21 +276,21 @@ void PGXP_GTE_MFC2(u32 instr, u32 rtVal, u32 rdVal) {
     g_CPU_reg[rt(instr)].value = rtVal;
 }
 
-void PGXP_GTE_MTC2(u32 instr, u32 rdVal, u32 rtVal) {
+void PGXP_GTE_MTC2(uint32_t instr, uint32_t rdVal, uint32_t rtVal) {
     // GTE_D[Rd] = CPU[Rt]
     Validate(&g_CPU_reg[rt(instr)], rtVal);
     PGXP_MTC2_int(g_CPU_reg[rt(instr)], rd(instr));
     g_GTE_data_reg[rd(instr)].value = rdVal;
 }
 
-void PGXP_GTE_CFC2(u32 instr, u32 rtVal, u32 rdVal) {
+void PGXP_GTE_CFC2(uint32_t instr, uint32_t rtVal, uint32_t rdVal) {
     // CPU[Rt] = GTE_C[Rd]
     Validate(&g_GTE_ctrl_reg[rd(instr)], rdVal);
     g_CPU_reg[rt(instr)] = g_GTE_ctrl_reg[rd(instr)];
     g_CPU_reg[rt(instr)].value = rtVal;
 }
 
-void PGXP_GTE_CTC2(u32 instr, u32 rdVal, u32 rtVal) {
+void PGXP_GTE_CTC2(uint32_t instr, uint32_t rdVal, uint32_t rtVal) {
     // GTE_C[Rd] = CPU[Rt]
     Validate(&g_CPU_reg[rt(instr)], rtVal);
     g_GTE_ctrl_reg[rd(instr)] = g_CPU_reg[rt(instr)];
@@ -300,14 +300,14 @@ void PGXP_GTE_CTC2(u32 instr, u32 rdVal, u32 rtVal) {
 ////////////////////////////////////
 // Memory Access
 ////////////////////////////////////
-void PGXP_GTE_LWC2(u32 instr, u32 rtVal, u32 addr) {
+void PGXP_GTE_LWC2(uint32_t instr, uint32_t rtVal, uint32_t addr) {
     // GTE_D[Rt] = Mem[addr]
     PGXP_value val;
     ValidateAndCopyMem(&val, addr, rtVal);
     PGXP_MTC2_int(val, rt(instr));
 }
 
-void PGXP_GTE_SWC2(u32 instr, u32 rtVal, u32 addr) {
+void PGXP_GTE_SWC2(uint32_t instr, uint32_t rtVal, uint32_t addr) {
     //  Mem[addr] = GTE_D[Rt]
     Validate(&g_GTE_data_reg[rt(instr)], rtVal);
     WriteMem(&g_GTE_data_reg[rt(instr)], addr);

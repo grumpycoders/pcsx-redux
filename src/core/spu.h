@@ -21,10 +21,11 @@
 #define __SPU_H__
 
 #include "core/plugins.h"
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
+/*
 #define H_SPUirqAddr 0x0da4
 #define H_SPUaddr 0x0da6
 #define H_SPUdata 0x0da8
@@ -34,6 +35,7 @@
 #define H_SPUon2 0x0d8a
 #define H_SPUoff1 0x0d8c
 #define H_SPUoff2 0x0d8e
+*/
 
 void CALLBACK SPUirq(void);
 

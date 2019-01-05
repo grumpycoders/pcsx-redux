@@ -2,7 +2,7 @@
 
 #include "core/pgxp_value.h"
 
-void SetValue(PGXP_value *pV, u32 psxV) {
+void SetValue(PGXP_value *pV, uint32_t psxV) {
     psx_value psx;
     psx.d = psxV;
 
@@ -13,7 +13,7 @@ void SetValue(PGXP_value *pV, u32 psxV) {
     pV->value = psx.d;
 }
 
-void MakeValid(PGXP_value *pV, u32 psxV) {
+void MakeValid(PGXP_value *pV, uint32_t psxV) {
     psx_value psx;
     psx.d = psxV;
     if (VALID_01 != (pV->flags & VALID_01)) {
@@ -25,20 +25,20 @@ void MakeValid(PGXP_value *pV, u32 psxV) {
     }
 }
 
-void Validate(PGXP_value *pV, u32 psxV) {
+void Validate(PGXP_value *pV, uint32_t psxV) {
     // assume pV is not NULL
     pV->flags &= (pV->value == psxV) ? ALL : INV_VALID_ALL;
 }
 
-void MaskValidate(PGXP_value *pV, u32 psxV, u32 mask, u32 validMask) {
+void MaskValidate(PGXP_value *pV, uint32_t psxV, uint32_t mask, uint32_t validMask) {
     // assume pV is not NULL
     pV->flags &= ((pV->value & mask) == (psxV & mask)) ? ALL : (ALL ^ (validMask));
 }
 
-u32 ValueToTolerance(PGXP_value *pV, u32 psxV, float tolerance) {
+uint32_t ValueToTolerance(PGXP_value *pV, uint32_t psxV, float tolerance) {
     psx_value psx;
     psx.d = psxV;
-    u32 retFlags = VALID_ALL;
+    uint32_t retFlags = VALID_ALL;
 
     if (fabs(pV->x - psx.sw.l) >= tolerance) retFlags = retFlags & (VALID_1 | VALID_2 | VALID_3);
 
@@ -50,17 +50,17 @@ u32 ValueToTolerance(PGXP_value *pV, u32 psxV, float tolerance) {
 /// float logical arithmetic ///
 
 double f16Sign(double in) {
-    u32 s = in * (double)((u32)1 << 16);
-    return ((double)*((s32 *)&s)) / (double)((s32)1 << 16);
+    uint32_t s = in * (double)((uint32_t)1 << 16);
+    return ((double)*((int32_t *)&s)) / (double)((int32_t)1 << 16);
 }
 double f16Unsign(double in) { return (in >= 0) ? in : ((double)in + (double)USHRT_MAX + 1); }
 double fu16Trunc(double in) {
-    u32 u = in * (double)((u32)1 << 16);
-    return (double)u / (double)((u32)1 << 16);
+    uint32_t u = in * (double)((uint32_t)1 << 16);
+    return (double)u / (double)((uint32_t)1 << 16);
 }
 double f16Overflow(double in) {
     double out = 0;
-    s64 v = ((s64)in) >> 16;
+    int64_t v = ((int64_t)in) >> 16;
     out = v;
     return out;
 }

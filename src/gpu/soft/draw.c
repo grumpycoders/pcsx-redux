@@ -131,7 +131,6 @@ int iFVDisplay = 1;
 PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
-
 ////////////////////////////////////////////////////////////////////////
 // Win code starts here
 ////////////////////////////////////////////////////////////////////////
@@ -247,8 +246,7 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
 ////////////////////////////////////////////////////////////////////////
 
 void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
-{
-}
+{}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -367,7 +365,7 @@ void ShowGunCursor(unsigned char *surf) {
 ////////////////////////////////////////////////////////////////////////
 
 #if 0
-				void DoBufferSwap(void)  // SWAP BUFFERS
+                void DoBufferSwap(void)  // SWAP BUFFERS
 {                        // (we don't swap... we blit only)
     HRESULT ddrval;
     long x, y;
@@ -510,7 +508,7 @@ void DXSetGamma(void) {
     g = 0.5f + ((g) / 1024.0f);
 
 #if 0
-				    // some cards will cheat... so we don't trust the caps here
+                    // some cards will cheat... so we don't trust the caps here
     // if (DD_Caps.dwCaps2 & DDCAPS2_PRIMARYGAMMA)
     {
         float f;
@@ -540,7 +538,7 @@ void DXSetGamma(void) {
 ////////////////////////////////////////////////////////////////////////
 
 #if 0
-				void SetScanLineList(LPDIRECTDRAWCLIPPER Clipper) {
+                void SetScanLineList(LPDIRECTDRAWCLIPPER Clipper) {
     LPRGNDATA lpCL;
     RECT *pr;
     int y;
@@ -621,7 +619,7 @@ BOOL ReStart = FALSE;
 
 int DXinitialize() {
 #if 0
-				    LPDIRECTDRAW DD;
+                    LPDIRECTDRAW DD;
     int i;
     LPDIRECTDRAWCLIPPER Clipper;
     HRESULT h;
@@ -645,7 +643,7 @@ int DXinitialize() {
         }
     }
 
-			 // create dd
+             // create dd
  if(DirectDrawCreate(guid,&DD,0))
   {
    MessageBox(NULL, "This GPU requires DirectX!", "Error", MB_OK);
@@ -766,7 +764,7 @@ int DXinitialize() {
     dd.dwBBitMask==0x0000001f)
   {
    if(iUseNoStretchBlt < 3)
-  		BlitScreen = BlitScreen16;
+        BlitScreen = BlitScreen16;
    else if(iUseNoStretchBlt < 13)
         BlitScreen = BlitScreen16_2xSaI;
    else
@@ -776,7 +774,7 @@ int DXinitialize() {
  else
   {
    if(iUseNoStretchBlt < 3)
-	BlitScreen = BlitScreen32;
+    BlitScreen = BlitScreen32;
    else if(iUseNoStretchBlt < 11)
     BlitScreen = BlitScreen32_2xSaI;
    else if (iUseNoStretchBlt < 13)
@@ -784,7 +782,7 @@ int DXinitialize() {
    else if(iUseNoStretchBlt < 15)
     BlitScreen = BlitScreen32_3x;
    else
-	BlitScreen = BlitScreen32_hq3x;
+    BlitScreen = BlitScreen32_hq3x;
    iDesktopCol=32;
   }
 
@@ -850,44 +848,44 @@ int DXinitialize() {
     break;
    case 11:
     pExtraBltFunc=NoStretchedBlit2x;
-	InitLUTs();
-    if(iDesktopCol==15)		 p2XSaIFunc=hq2x_16;
-	else if(iDesktopCol==16) p2XSaIFunc=hq2x_16;
-	else 					 p2XSaIFunc=hq2x_32;
-	break;
+    InitLUTs();
+    if(iDesktopCol==15)      p2XSaIFunc=hq2x_16;
+    else if(iDesktopCol==16) p2XSaIFunc=hq2x_16;
+    else                     p2XSaIFunc=hq2x_32;
+    break;
    case 12:
-	pExtraBltFunc=StretchedBlit2x;
-	InitLUTs();
-    if(iDesktopCol==15)		 p2XSaIFunc=hq2x_16;
-	else if(iDesktopCol==16) p2XSaIFunc=hq2x_16;
-	else	 				 p2XSaIFunc=hq2x_32;
-	break;
+    pExtraBltFunc=StretchedBlit2x;
+    InitLUTs();
+    if(iDesktopCol==15)      p2XSaIFunc=hq2x_16;
+    else if(iDesktopCol==16) p2XSaIFunc=hq2x_16;
+    else                     p2XSaIFunc=hq2x_32;
+    break;
    case 13:
-	pExtraBltFunc=StretchedBlit3x;
-	if(iDesktopCol==15)      p2XSaIFunc=Scale3x_ex6_5;
-	else if(iDesktopCol==16) p2XSaIFunc=Scale3x_ex6_5;
-	else                     p2XSaIFunc=Scale3x_ex8;
-	break;
-   case 14:
-	pExtraBltFunc=NoStretchedBlit3x;
-	if(iDesktopCol==15)      p2XSaIFunc=Scale3x_ex6_5;
+    pExtraBltFunc=StretchedBlit3x;
+    if(iDesktopCol==15)      p2XSaIFunc=Scale3x_ex6_5;
     else if(iDesktopCol==16) p2XSaIFunc=Scale3x_ex6_5;
-	else                     p2XSaIFunc=Scale3x_ex8;
-	break;
+    else                     p2XSaIFunc=Scale3x_ex8;
+    break;
+   case 14:
+    pExtraBltFunc=NoStretchedBlit3x;
+    if(iDesktopCol==15)      p2XSaIFunc=Scale3x_ex6_5;
+    else if(iDesktopCol==16) p2XSaIFunc=Scale3x_ex6_5;
+    else                     p2XSaIFunc=Scale3x_ex8;
+    break;
    case 15:
-	pExtraBltFunc=NoStretchedBlit3x;
-	InitLUTs();
-	if(iDesktopCol==15)		 p2XSaIFunc=hq3x_16;
-	else if(iDesktopCol==16) p2XSaIFunc=hq3x_16;
-	else 					 p2XSaIFunc=hq3x_32;
-	break;
-	case 16:
-	pExtraBltFunc=StretchedBlit3x;
-	InitLUTs();
-	if(iDesktopCol==15)		 p2XSaIFunc=hq3x_16;
-	else if(iDesktopCol==16) p2XSaIFunc=hq3x_16;
-	else					 p2XSaIFunc=hq3x_32;
-	break;
+    pExtraBltFunc=NoStretchedBlit3x;
+    InitLUTs();
+    if(iDesktopCol==15)      p2XSaIFunc=hq3x_16;
+    else if(iDesktopCol==16) p2XSaIFunc=hq3x_16;
+    else                     p2XSaIFunc=hq3x_32;
+    break;
+    case 16:
+    pExtraBltFunc=StretchedBlit3x;
+    InitLUTs();
+    if(iDesktopCol==15)      p2XSaIFunc=hq3x_16;
+    else if(iDesktopCol==16) p2XSaIFunc=hq3x_16;
+    else                     p2XSaIFunc=hq3x_32;
+    break;
    default:
     pExtraBltFunc=NULL;
     p2XSaIFunc=NULL;
@@ -959,7 +957,7 @@ void DXcleanup()  // DX CLEANUP
         pSaIBigBuff = NULL;
     }
 
-				    if (!bIsFirstFrame) {
+                    if (!bIsFirstFrame) {
         if (DX.DDSHelper) IDirectDrawSurface_Release(DX.DDSHelper);
         DX.DDSHelper = 0;
         if (DX.DDSScreenPic) IDirectDrawSurface_Release(DX.DDSScreenPic);
@@ -987,7 +985,7 @@ HANDLE hGPUMenu = NULL;
 unsigned long ulInitDisplay(void) {
     textureMem = (uint32_t *)malloc(1024 * 512 * 4);
 #if 0
-				 HDC hdc;RECT r;
+                 HDC hdc;RECT r;
 
  if(iWindowMode)                                       // win mode?
   {
@@ -1056,7 +1054,7 @@ void CloseDisplay(void) {
 
 void CreatePic(unsigned char *pMem) {
 #if 0
-				    DDSURFACEDESC xddsd;
+                    DDSURFACEDESC xddsd;
     HRESULT ddrval;
     unsigned char *ps;
     int x, y;
@@ -1136,7 +1134,7 @@ void CreatePic(unsigned char *pMem) {
 
 void DestroyPic(void) {
 #if 0
-				    if (DX.DDSScreenPic) {
+                    if (DX.DDSScreenPic) {
         RECT ScreenRect = {iResX - 128, 0, iResX, 96};
         DDBLTFX ddbltfx;
 
@@ -1164,7 +1162,7 @@ void DestroyPic(void) {
 
 void DisplayPic(void) {
 #if 0
-				    RECT ScreenRect = {iResX - 128, 0, iResX, 96}, HelperRect = {0, 0, 128, 96};
+                    RECT ScreenRect = {iResX - 128, 0, iResX, 96}, HelperRect = {0, 0, 128, 96};
     if (iWindowMode) {
         POINT Point = {0, 0};
         ClientToScreen(DX.hWnd, &Point);
@@ -1186,7 +1184,7 @@ void DisplayPic(void) {
 
 void ShowGpuPic(void) {
 #if 0
-				    HRSRC hR;
+                    HRSRC hR;
     HGLOBAL hG;
     unsigned long *pRMem;
     unsigned char *pMem;
@@ -1234,7 +1232,7 @@ void ShowGpuPic(void) {
 void ShowTextGpuPic(void)  // CREATE TEXT SCREEN PIC
 {                          // gets an Text and paints
 #if 0
-				    unsigned char *pMem;
+                    unsigned char *pMem;
     BITMAPINFO bmi;  // it into a rgb24 bitmap
     HDC hdc, hdcMem;
     HBITMAP hBmp, hBmpMem;

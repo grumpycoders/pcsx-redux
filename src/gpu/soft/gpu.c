@@ -1817,14 +1817,14 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 #ifdef _WIN32
 void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
 #if 0
-				 HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
+                 HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
  int x,y,c,v,iCol;RECT r,rt;
  float XS,YS;
-                                                       
+
  //----------------------------------------------------// Pete: creating a temp surface, blitting primary surface into it, get data from temp, and finally delete temp... seems to be better in VISTA
  DDPIXELFORMAT dd;LPDIRECTDRAWSURFACE DDSSave;
 
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));             
+ memset(&xddsd, 0, sizeof(DDSURFACEDESC));
  xddsd.dwSize = sizeof(DDSURFACEDESC);
  xddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
  xddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
@@ -1857,11 +1857,11 @@ void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
    rt.left+=Point.x;rt.right+=Point.x;
    rt.top+=Point.y;rt.bottom+=Point.y;
   }
- 
+
  IDirectDrawSurface_Blt(DDSSave,&r,DX.DDSPrimary,&rt,  // and blit from primary into temp
                         DDBLT_WAIT,NULL);
 
- //----------------------------------------------------// 
+ //----------------------------------------------------//
 
  memset(&xddsd, 0, sizeof(DDSURFACEDESC));
  xddsd.dwSize   = sizeof(DDSURFACEDESC);
@@ -1875,7 +1875,7 @@ void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
  ddrval=IDirectDrawSurface_Lock(DDSSave,NULL, &xddsd, DDLOCK_WAIT|DDLOCK_READONLY, NULL);
 
  if(ddrval==DDERR_SURFACELOST) IDirectDrawSurface_Restore(DDSSave);
- 
+
  pf=pMem;
 
  if(ddrval==DD_OK)
@@ -1921,7 +1921,7 @@ void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
         }
       }
     }
-   else       
+   else
     {
      unsigned long sx;
      for(y=0;y<96;y++)
@@ -1973,7 +1973,7 @@ void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
  ddrval=IDirectDrawSurface_Lock(DX.DDSPrimary,NULL, &xddsd, DDLOCK_WAIT|DDLOCK_READONLY, NULL);
 
  if(ddrval==DDERR_SURFACELOST) IDirectDrawSurface_Restore(DX.DDSPrimary);
- 
+
  pf=pMem;
 
  if(ddrval==DD_OK)
@@ -2019,7 +2019,7 @@ void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
         }
       }
     }
-   else       
+   else
     {
      unsigned long sx;
      for(y=0;y<96;y++)

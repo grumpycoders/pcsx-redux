@@ -25,126 +25,60 @@
 
 #include "core/sio.h"
 
-// Status Flags
-#define TX_RDY 0x0001
-#define RX_RDY 0x0002
-#define TX_EMPTY 0x0004
-#define PARITY_ERR 0x0008
-#define RX_OVERRUN 0x0010
-#define FRAMING_ERR 0x0020
-#define SYNC_DETECT 0x0040
-#define DSR 0x0080
-#define CTS 0x0100
-#define IRQ 0x0200
-
-// Control Flags
-#define TX_PERM 0x0001
-#define DTR 0x0002
-#define RX_PERM 0x0004
-#define BREAK 0x0008
-#define RESET_ERR 0x0010
-#define RTS 0x0020
-#define SIO_RESET 0x0040
-
-// MCD flags
-#define MCDST_CHANGED 0x08
-
 // *** FOR WORKS ON PADS AND MEMORY CARDS *****
-
-void LoadDongle(const char *str);
-void SaveDongle(const char *str);
-
-#define BUFFER_SIZE 0x1010
-
-static unsigned char s_buf[BUFFER_SIZE];
-
-//[0] -> dummy
-//[1] -> memory card status flag
-//[2] -> card 1 id, 0x5a->plugged, any other not plugged
-//[3] -> card 2 id, 0x5d->plugged, any other not plugged
-unsigned char s_cardh[4] = {0x00, 0x08, 0x5a, 0x5d};
-
-// Transfer Ready and the Buffer is Empty
-// static unsigned short s_statReg = 0x002b;
-static unsigned short s_statReg = TX_RDY | TX_EMPTY;
-static unsigned short s_modeReg;
-static unsigned short s_ctrlReg;
-static unsigned short s_baudReg;
-
-static unsigned int s_bufcount;
-static unsigned int s_parp;
-static unsigned int s_mcdst, s_rdwr;
-static unsigned char s_adrH, s_adrL;
-static unsigned int s_padst;
-static unsigned int s_gsdonglest;
-
-char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
-
-#define DONGLE_SIZE 0x40 * 0x1000
-
-unsigned int s_dongleBank;
-unsigned char s_dongleData[DONGLE_SIZE];
-static int s_dongleInit;
 
 #if 0
 // Breaks Twisted Metal 2 intro
-#define SIO_INT(eCycle)                                          \
-    {                                                            \
-        if (!g_config.SioIrq) {                                    \
-            g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
-            g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
-            g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
-        }                                                        \
-                                                                 \
-        s_statReg &= ~RX_RDY;                                      \
-        s_statReg &= ~TX_RDY;                                      \
+#define SIO_INT(eCycle)                                                                     \
+    {                                                                                       \
+        if (!PCSX::g_emulator.config().SioIrq) {                                            \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
+        }                                                                                   \
+                                                                                            \
+        s_statReg &= ~RX_RDY;                                                               \
+        s_statReg &= ~TX_RDY;                                                               \
     }
 #endif
 
-#define SIO_INT(eCycle)                                          \
-    {                                                            \
-        if (!g_config.SioIrq) {                                    \
-            g_psxRegs.interrupt |= (1 << PSXINT_SIO);              \
-            g_psxRegs.intCycle[PSXINT_SIO].cycle = eCycle;         \
-            g_psxRegs.intCycle[PSXINT_SIO].sCycle = g_psxRegs.cycle; \
-        }                                                        \
+#define SIO_INT(eCycle)                                                                     \
+    {                                                                                       \
+        if (!PCSX::g_emulator.config().SioIrq) {                                            \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
+        }                                                                                   \
     }
 
 // clk cycle byte
-// 4us * 8bits = (PSXCLK / 1000000) * 32; (linuzappz)
+// 4us * 8bits = (PCSX::g_emulator.m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (s_baudReg * 8)
 
 // rely on this for now - someone's actual testing
-//#define SIO_CYCLES (PSXCLK / 57600)
+//#define SIO_CYCLES (PCSX::g_emulator.m_psxClockSpeed / 57600)
 // PCSX 1.9.91
 //#define SIO_CYCLES 200
 // PCSX 1.9.91
 //#define SIO_CYCLES 270
 // ePSXe 1.6.0
-//#define SIO_CYCLES		535
+//#define SIO_CYCLES        535
 // ePSXe 1.7.0
 //#define SIO_CYCLES 635
 
-unsigned char reverse_8(unsigned char bits) {
-    unsigned char tmp;
-    int lcv;
+static constexpr uint8_t reverse_8(uint8_t b) {
+    constexpr uint64_t v1 = 0x0000000080200802ULL;
+    constexpr uint64_t v2 = 0x0000000884422110ULL;
+    constexpr uint64_t v3 = 0x0000000101010101ULL;
 
-    tmp = 0;
-    for (lcv = 0; lcv < 8; lcv++) {
-        tmp >>= 1;
-        tmp |= (bits & 0x80);
-
-        bits <<= 1;
-    }
-
-    return tmp;
+    return ((b * v1) & v2) * v3 >> 32;
 }
 
-void sioWrite8(unsigned char value) {
-#ifdef PAD_LOG
+void PCSX::SIO::sioWrite8(uint8_t value) {
     PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, s_parp, s_padst, s_mcdst);
-#endif
     switch (s_padst) {
         case 1:
             SIO_INT(SIO_CYCLES);
@@ -168,7 +102,7 @@ void sioWrite8(unsigned char value) {
             if ((value & 0x40) == 0x40) {
                 s_padst = 2;
                 s_parp = 1;
-                if (!g_config.UseNet) {
+                if (!PCSX::g_emulator.config().UseNet) {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             s_buf[s_parp] = PAD1_poll(value);
@@ -178,7 +112,7 @@ void sioWrite8(unsigned char value) {
                             break;
                     }
                 } /* else {
-//					SysPrintf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
+//                  PCSX::g_system->SysPrintf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
 s_buf[5]);
                  }*/
 
@@ -222,12 +156,12 @@ s_buf[5]);
             return;
         case 2:
             s_parp++;
-            /*			if (s_buf[1] == 0x45) {
+            /*          if (s_buf[1] == 0x45) {
                                             s_buf[s_parp] = 0;
                                             SIO_INT(SIO_CYCLES);
                                             return;
                                     }*/
-            if (!g_config.UseNet) {
+            if (!PCSX::g_emulator.config().UseNet) {
                 switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
                         s_buf[s_parp] = PAD1_poll(value);
@@ -608,10 +542,7 @@ s_buf[5]);
                 s_parp++;
                 if (s_parp == s_bufcount) {
                     s_gsdonglest = 0;
-
-#ifdef GSDONGLE_LOG
-                    PAD_LOG("(gameshark dongle) DONE!!\n");
-#endif
+                    MISC_LOG("(gameshark dongle) DONE!!\n");
                 }
             } else {
                 // ERROR!!
@@ -627,10 +558,10 @@ s_buf[5]);
     }
 
     switch (value) {
-        case 0x01:              // start pad
+        case 0x01:                // start pad
             s_statReg |= RX_RDY;  // Transfer is Ready
 
-            if (!g_config.UseNet) {
+            if (!PCSX::g_emulator.config().UseNet) {
                 switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
                         s_buf[0] = PAD1_startPoll(1);
@@ -678,12 +609,13 @@ s_buf[5]);
             s_statReg |= RX_RDY;
 
             // Chronicles of the Sword - no memcard = password options
-            if (g_config.NoMemcard || (!g_config.Mcd1[0] && !g_config.Mcd2[0])) {
+            if (PCSX::g_emulator.config().NoMemcard ||
+                (!PCSX::g_emulator.config().Mcd1[0] && !PCSX::g_emulator.config().Mcd2[0])) {
                 memset(s_buf, 0x00, 4);
             } else {
                 memcpy(s_buf, s_cardh, 4);
-                if (!g_config.Mcd1[0]) s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                if (!g_config.Mcd2[0]) s_buf[3] = 0;  // is card 2 plugged?
+                if (!PCSX::g_emulator.config().Mcd1[0]) s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
+                if (!PCSX::g_emulator.config().Mcd2[0]) s_buf[3] = 0;  // is card 2 plugged?
             }
 
             s_parp = 0;
@@ -714,14 +646,12 @@ s_buf[5]);
     }
 }
 
-void sioWriteStat16(unsigned short value) {}
+void PCSX::SIO::sioWriteStat16(uint16_t value) {}
 
-void sioWriteMode16(unsigned short value) { s_modeReg = value; }
+void PCSX::SIO::sioWriteMode16(uint16_t value) { s_modeReg = value; }
 
-void sioWriteCtrl16(unsigned short value) {
-#ifdef PAD_LOG
+void PCSX::SIO::sioWriteCtrl16(uint16_t value) {
     PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, s_parp, s_padst, s_mcdst);
-#endif
     s_ctrlReg = value & ~RESET_ERR;
     if (value & RESET_ERR) s_statReg &= ~IRQ;
     if ((s_ctrlReg & SIO_RESET) || (!s_ctrlReg)) {
@@ -729,17 +659,17 @@ void sioWriteCtrl16(unsigned short value) {
         s_mcdst = 0;
         s_parp = 0;
         s_statReg = TX_RDY | TX_EMPTY;
-        g_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
+        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
     }
 }
 
-void sioWriteBaud16(unsigned short value) { s_baudReg = value; }
+void PCSX::SIO::sioWriteBaud16(uint16_t value) { s_baudReg = value; }
 
-unsigned char sioRead8() {
+uint8_t PCSX::SIO::sioRead8() {
     unsigned char ret = 0;
 
     if ((s_statReg & RX_RDY) /* && (s_ctrlReg & RX_PERM)*/) {
-        //		s_statReg &= ~RX_OVERRUN;
+        //      s_statReg &= ~RX_OVERRUN;
         ret = s_buf[s_parp];
         if (s_parp == s_bufcount) {
             s_statReg &= ~RX_RDY;  // Receive is not Ready now
@@ -749,11 +679,13 @@ unsigned char sioRead8() {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(g_config.Mcd1, g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128,
+                                    128);
                             break;
                         case 0x2002:
                             memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(g_config.Mcd2, g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128,
+                                    128);
                             break;
                     }
                 }
@@ -766,64 +698,61 @@ unsigned char sioRead8() {
         }
     }
 
-#ifdef PAD_LOG
-    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg, s_buf[s_parp > 0 ? s_parp - 1 : 0],
-            s_buf[s_parp], s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
-#endif
+    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg,
+            s_buf[s_parp > 0 ? s_parp - 1 : 0], s_buf[s_parp],
+            s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
     return ret;
 }
 
-unsigned short sioReadStat16() {
-    u16 hard;
+uint16_t PCSX::SIO::sioReadStat16() {
+    uint16_t hard;
 
     hard = s_statReg;
 
 #if 0
-	// wait for IRQ first
-	if( g_psxRegs.interrupt & (1 << PSXINT_SIO) )
-	{
-		hard &= ~TX_RDY;
-		hard &= ~RX_RDY;
-		hard &= ~TX_EMPTY;
-	}
+    // wait for IRQ first
+    if( PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
+    {
+        hard &= ~TX_RDY;
+        hard &= ~RX_RDY;
+        hard &= ~TX_EMPTY;
+    }
 #endif
 
     return hard;
 }
 
-unsigned short sioReadMode16() { return s_modeReg; }
+uint16_t PCSX::SIO::sioReadMode16() { return s_modeReg; }
 
-unsigned short sioReadCtrl16() { return s_ctrlReg; }
+uint16_t PCSX::SIO::sioReadCtrl16() { return s_ctrlReg; }
 
-unsigned short sioReadBaud16() { return s_baudReg; }
+uint16_t PCSX::SIO::sioReadBaud16() { return s_baudReg; }
 
-void netError() {
+void PCSX::SIO::netError() {
     // ClosePlugins();
-    SysMessage("%s", _("Connection closed!\n"));
+    PCSX::g_system->SysMessage("%s", _("Connection closed!\n"));
 
-    g_cdromId[0] = '\0';
-    g_cdromLabel[0] = '\0';
+    PCSX::g_emulator.m_cdromId[0] = '\0';
+    PCSX::g_emulator.m_cdromLabel[0] = '\0';
 
-    SysRunGui();
+    PCSX::g_system->SysRunGui();
 }
 
-void sioInterrupt() {
-#ifdef PAD_LOG
-    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", g_psxRegs.CP0.n.Status);
-#endif
-    //	SysPrintf("Sio Interrupt\n");
+void PCSX::SIO::sioInterrupt() {
+    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
+    //  PCSX::g_system->SysPrintf("Sio Interrupt\n");
     s_statReg |= IRQ;
-    psxHu32ref(0x1070) |= SWAPu32(0x80);
+    psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0
-	// Rhapsody: fixes input problems
-	// Twisted Metal 2: breaks intro
-	s_statReg |= TX_RDY;
-	s_statReg |= RX_RDY;
+    // Rhapsody: fixes input problems
+    // Twisted Metal 2: breaks intro
+    s_statReg |= TX_RDY;
+    s_statReg |= RX_RDY;
 #endif
 }
 
-void LoadMcd(int mcd, const char *str) {
+void PCSX::SIO::LoadMcd(int mcd, const char *str) {
     FILE *f;
     char *data = NULL;
     char filepath[MAXPATHLEN] = {'\0'};
@@ -833,7 +762,7 @@ void LoadMcd(int mcd, const char *str) {
     if (mcd == 2) data = g_mcd2Data;
 
     if (*str == 0) {
-        SysPrintf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
+        PCSX::g_system->SysPrintf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
         return;
     }
 
@@ -843,7 +772,7 @@ void LoadMcd(int mcd, const char *str) {
 
     f = fopen(filepath, "rb");
     if (f == NULL) {
-        SysPrintf(_("The memory card %s doesn't exist - creating it\n"), filepath);
+        PCSX::g_system->SysPrintf(_("The memory card %s doesn't exist - creating it\n"), filepath);
         CreateMcd(filepath);
         f = fopen(filepath, "rb");
         if (f != NULL) {
@@ -858,10 +787,10 @@ void LoadMcd(int mcd, const char *str) {
             fread(data, 1, MCD_SIZE, f);
             fclose(f);
         } else
-            SysMessage(_("Memory card %s failed to load!\n"), filepath);
+            PCSX::g_system->SysMessage(_("Memory card %s failed to load!\n"), filepath);
     } else {
         struct stat buf;
-        SysPrintf(_("Loading memory card %s\n"), filepath);
+        PCSX::g_system->SysPrintf(_("Loading memory card %s\n"), filepath);
         if (stat(filepath, &buf) != -1) {
             if (buf.st_size == MCD_SIZE + 64)
                 fseek(f, 64, SEEK_SET);
@@ -876,12 +805,12 @@ void LoadMcd(int mcd, const char *str) {
     s_cardh[1] |= MCDST_CHANGED;
 }
 
-void LoadMcds(const char *mcd1, const char *mcd2) {
+void PCSX::SIO::LoadMcds(const char *mcd1, const char *mcd2) {
     LoadMcd(1, mcd1);
     LoadMcd(2, mcd2);
 }
 
-void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size) {
+void PCSX::SIO::SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t size) {
     FILE *f;
 
     f = fopen(mcd, "r+b");
@@ -900,23 +829,23 @@ void SaveMcd(const char *mcd, const char *data, uint32_t adr, int size) {
 
         fwrite(data + adr, 1, size, f);
         fclose(f);
-        SysPrintf(_("Saving memory card %s\n"), mcd);
+        PCSX::g_system->SysPrintf(_("Saving memory card %s\n"), mcd);
         return;
     }
 
 #if 0
-	// try to create it again if we can't open it
-	f = fopen(mcd, "wb");
-	if (f != NULL) {
-		fwrite(data, 1, MCD_SIZE, f);
-		fclose(f);
-	}
+    // try to create it again if we can't open it
+    f = fopen(mcd, "wb");
+    if (f != NULL) {
+        fwrite(data, 1, MCD_SIZE, f);
+        fclose(f);
+    }
 #endif
 
     ConvertMcd(mcd, data);
 }
 
-void CreateMcd(const char *mcd) {
+void PCSX::SIO::CreateMcd(const char *mcd) {
     FILE *f;
     struct stat buf;
     int s = MCD_SIZE;
@@ -1067,7 +996,7 @@ void CreateMcd(const char *mcd) {
     fclose(f);
 }
 
-void ConvertMcd(const char *mcd, const char *data) {
+void PCSX::SIO::ConvertMcd(const char *mcd, const char *data) {
     FILE *f;
     int i = 0;
     int s = MCD_SIZE;
@@ -1165,7 +1094,7 @@ void ConvertMcd(const char *mcd, const char *data) {
     }
 }
 
-void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
+void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     char *data = NULL, *ptr, *str, *sstr;
     unsigned short clut[16];
     unsigned short c;
@@ -1247,7 +1176,7 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     }
 
     for (i = 0; i < Info->IconCount; i++) {
-        short *icon = &Info->Icon[i * 16 * 16];
+        uint16_t *icon = &Info->Icon[i * 16 * 16];
 
         ptr = data + block * 8192 + 128 + 128 * i;  // icon data
 
@@ -1268,7 +1197,7 @@ void GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     strncpy(Info->Name, ptr, 16);
 }
 
-int sioFreeze(gzFile f, int Mode) {
+int PCSX::SIO::sioFreeze(gzFile f, int Mode) {
     gzfreeze(s_buf, sizeof(s_buf));
     gzfreeze(&s_statReg, sizeof(s_statReg));
     gzfreeze(&s_modeReg, sizeof(s_modeReg));
@@ -1285,7 +1214,7 @@ int sioFreeze(gzFile f, int Mode) {
     return 0;
 }
 
-void LoadDongle(const char *str) {
+void PCSX::SIO::LoadDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "r+b");
@@ -1293,31 +1222,31 @@ void LoadDongle(const char *str) {
         fread(s_dongleData, 1, DONGLE_SIZE, f);
         fclose(f);
     } else {
-        u32 *ptr, lcv;
+        uint32_t *ptr, lcv;
 
         ptr = (unsigned int *)s_dongleData;
 
         // create temp data
-        ptr[0] = (u32)0x02015447;
-        ptr[1] = (u32)7;
-        ptr[2] = (u32)1;
-        ptr[3] = (u32)0;
+        ptr[0] = (uint32_t)0x02015447;
+        ptr[1] = (uint32_t)7;
+        ptr[2] = (uint32_t)1;
+        ptr[3] = (uint32_t)0;
 
         for (lcv = 4; lcv < 0x6c / 4; lcv++) {
             ptr[lcv] = 0;
         }
 
-        ptr[lcv] = (u32)0x02000100;
+        ptr[lcv] = (uint32_t)0x02000100;
         lcv++;
 
         while (lcv < 0x1000 / 4) {
-            ptr[lcv] = (u32)0xffffffff;
+            ptr[lcv] = (uint32_t)0xffffffff;
             lcv++;
         }
     }
 }
 
-void SaveDongle(const char *str) {
+void PCSX::SIO::SaveDongle(const char *str) {
     FILE *f;
 
     f = fopen(str, "wb");
@@ -1326,5 +1255,3 @@ void SaveDongle(const char *str) {
         fclose(f);
     }
 }
-
-void CALLBACK SIO1irq(void) { psxHu32ref(0x1070) |= SWAPu32(0x100); }

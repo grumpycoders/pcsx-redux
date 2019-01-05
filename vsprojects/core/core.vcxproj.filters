@@ -81,9 +81,6 @@
     <ClCompile Include="..\..\src\core\psxbios.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\psxcommon.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\psxcounters.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -114,6 +111,12 @@
     <ClCompile Include="..\..\src\core\spu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\psxemulator.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\system.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\cdriso.h">
@@ -132,9 +135,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\decode_xa.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\ecm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\gpu.h">
@@ -176,9 +176,6 @@
     <ClInclude Include="..\..\src\core\psxbios.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\psxcommon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\psxcounters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -212,11 +209,20 @@
     <ClInclude Include="..\..\src\core\system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\ix86\iGte.h">
-      <Filter>Header Files\ix86</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\ix86\ix86.h">
       <Filter>Header Files\ix86</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\psxemulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\disr3000a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

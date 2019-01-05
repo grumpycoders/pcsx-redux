@@ -16,103 +16,113 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef CHEAT_H
-#define CHEAT_H
+#pragma once
 
-#include <stdint.h>
+#include "core/psxemulator.h"
 
-#include "core/psxcommon.h"
+namespace PCSX {
 
-#define all_extension_cht "*.cht"
-#define dot_extension_cht ".cht"
-#define tla_extension_cht "cht"
+class Cheats {
+  public:
+    typedef struct {
+        uint32_t Addr;
+        uint16_t Val;
+    } CheatCode;
 
-typedef struct {
-    uint32_t Addr;
-    uint16_t Val;
-} CheatCode;
+    typedef struct {
+        char *Descr;
+        int First;  // index of the first cheat code
+        int n;      // number of cheat codes for this cheat
+        int Enabled;
+    } Cheat;
 
-typedef struct {
-    char *Descr;
-    int First;  // index of the first cheat code
-    int n;      // number of cheat codes for this cheat
-    int Enabled;
-} Cheat;
+    void ClearAllCheats();
 
-void ClearAllCheats();
+    void LoadCheats(const char *filename);
+    void SaveCheats(const char *filename);
 
-void LoadCheats(const char *filename);
-void SaveCheats(const char *filename);
+    void ApplyCheats();
 
-void ApplyCheats();
+    int AddCheat(const char *descr, char *code);
+    void RemoveCheat(int index);
+    int EditCheat(int index, const char *descr, char *code);
 
-int AddCheat(const char *descr, char *code);
-void RemoveCheat(int index);
-int EditCheat(int index, const char *descr, char *code);
+    void FreeCheatSearchResults();
+    void FreeCheatSearchMem();
+    void CheatSearchBackupMemory();
 
-void FreeCheatSearchResults();
-void FreeCheatSearchMem();
-void CheatSearchBackupMemory();
-
-void CheatSearchEqual8(u8 val);
-void CheatSearchEqual16(u16 val);
-void CheatSearchEqual32(u32 val);
-void CheatSearchNotEqual8(u8 val);
-void CheatSearchNotEqual16(u16 val);
-void CheatSearchNotEqual32(u32 val);
-void CheatSearchRange8(u8 min, u8 max);
-void CheatSearchRange16(u16 min, u16 max);
-void CheatSearchRange32(u32 min, u32 max);
-void CheatSearchIncreasedBy8(u8 val);
-void CheatSearchIncreasedBy16(u16 val);
-void CheatSearchIncreasedBy32(u32 val);
-void CheatSearchDecreasedBy8(u8 val);
-void CheatSearchDecreasedBy16(u16 val);
-void CheatSearchDecreasedBy32(u32 val);
-void CheatSearchIncreased8();
-void CheatSearchIncreased16();
-void CheatSearchIncreased32();
-void CheatSearchDecreased8();
-void CheatSearchDecreased16();
-void CheatSearchDecreased32();
-void CheatSearchDifferent8();
-void CheatSearchDifferent16();
-void CheatSearchDifferent32();
-void CheatSearchNoChange8();
-void CheatSearchNoChange16();
-void CheatSearchNoChange32();
-
-extern Cheat *g_cheats;
-extern CheatCode *g_cheatCodes;
-extern int g_numCheats;
-extern int g_numCodes;
-
-extern s8 *g_prevM;
-extern u32 *g_searchResults;
-extern int g_numSearchResults;
+    void CheatSearchEqual8(uint8_t val);
+    void CheatSearchEqual16(uint16_t val);
+    void CheatSearchEqual32(uint32_t val);
+    void CheatSearchNotEqual8(uint8_t val);
+    void CheatSearchNotEqual16(uint16_t val);
+    void CheatSearchNotEqual32(uint32_t val);
+    void CheatSearchRange8(uint8_t min, uint8_t max);
+    void CheatSearchRange16(uint16_t min, uint16_t max);
+    void CheatSearchRange32(uint32_t min, uint32_t max);
+    void CheatSearchIncreasedBy8(uint8_t val);
+    void CheatSearchIncreasedBy16(uint16_t val);
+    void CheatSearchIncreasedBy32(uint32_t val);
+    void CheatSearchDecreasedBy8(uint8_t val);
+    void CheatSearchDecreasedBy16(uint16_t val);
+    void CheatSearchDecreasedBy32(uint32_t val);
+    void CheatSearchIncreased8();
+    void CheatSearchIncreased16();
+    void CheatSearchIncreased32();
+    void CheatSearchDecreased8();
+    void CheatSearchDecreased16();
+    void CheatSearchDecreased32();
+    void CheatSearchDifferent8();
+    void CheatSearchDifferent16();
+    void CheatSearchDifferent32();
+    void CheatSearchNoChange8();
+    void CheatSearchNoChange16();
+    void CheatSearchNoChange32();
 
 #define PREVM(mem) (&g_prevM[mem])
-#define PrevMu8(mem) (*(u8 *)PREVM(mem))
-#define PrevMu16(mem) (SWAP16(*(u16 *)PREVM(mem)))
-#define PrevMu32(mem) (SWAP32(*(u32 *)PREVM(mem)))
+#define PrevMu8(mem) (*(uint8_t *)PREVM(mem))
+#define PrevMu16(mem) (SWAP_LE16(*(uint16_t *)PREVM(mem)))
+#define PrevMu32(mem) (SWAP_LE32(*(uint32_t *)PREVM(mem)))
 
-// cheat types
-#define CHEAT_CONST8 0x30  /* 8-bit Constant Write */
-#define CHEAT_CONST16 0x80 /* 16-bit Constant Write */
-#define CHEAT_INC16 0x10   /* 16-bit Increment */
-#define CHEAT_DEC16 0x11   /* 16-bit Decrement */
-#define CHEAT_INC8 0x20    /* 8-bit Increment */
-#define CHEAT_DEC8 0x21    /* 8-bit Decrement */
-#define CHEAT_SLIDE 0x50   /* Slide Codes */
-#define CHEAT_MEMCPY 0xC2  /* Memory Copy */
+    // cheat types
+    enum {
+        CHEAT_CONST8 = 0x30,  /* 8-bit Constant Write */
+        CHEAT_CONST16 = 0x80, /* 16-bit Constant Write */
+        CHEAT_INC16 = 0x10,   /* 16-bit Increment */
+        CHEAT_DEC16 = 0x11,   /* 16-bit Decrement */
+        CHEAT_INC8 = 0x20,    /* 8-bit Increment */
+        CHEAT_DEC8 = 0x21,    /* 8-bit Decrement */
+        CHEAT_SLIDE = 0x50,   /* Slide Codes */
+        CHEAT_MEMCPY = 0xC2,  /* Memory Copy */
 
-#define CHEAT_EQU8 0xE0          /* 8-bit Equal To */
-#define CHEAT_NOTEQU8 0xE1       /* 8-bit Not Equal To */
-#define CHEAT_LESSTHAN8 0xE2     /* 8-bit Less Than */
-#define CHEAT_GREATERTHAN8 0xE3  /* 8-bit Greater Than */
-#define CHEAT_EQU16 0xD0         /* 16-bit Equal To */
-#define CHEAT_NOTEQU16 0xD1      /* 16-bit Not Equal To */
-#define CHEAT_LESSTHAN16 0xD2    /* 16-bit Less Than */
-#define CHEAT_GREATERTHAN16 0xD3 /* 16-bit Greater Than */
+        CHEAT_EQU8 = 0xE0,          /* 8-bit Equal To */
+        CHEAT_NOTEQU8 = 0xE1,       /* 8-bit Not Equal To */
+        CHEAT_LESSTHAN8 = 0xE2,     /* 8-bit Less Than */
+        CHEAT_GREATERTHAN8 = 0xE3,  /* 8-bit Greater Than */
+        CHEAT_EQU16 = 0xD0,         /* 16-bit Equal To */
+        CHEAT_NOTEQU16 = 0xD1,      /* 16-bit Not Equal To */
+        CHEAT_LESSTHAN16 = 0xD2,    /* 16-bit Less Than */
+        CHEAT_GREATERTHAN16 = 0xD3, /* 16-bit Greater Than */
+    };
 
-#endif
+    private:
+    Cheat *g_cheats = NULL;
+    CheatCode *g_cheatCodes = NULL;
+    int g_numCodes = 0;
+
+    int8_t *g_prevM = NULL;
+    uint32_t *g_searchResults = NULL;
+    int g_numSearchResults = 0;
+
+    int g_numCheats = 0;
+    int s_numCheatsAllocated = 0;
+    int s_numCodesAllocated = 0;
+    int s_numSearchResultsAllocated = 0;
+
+    static const unsigned ALLOC_INCREMENT = 100;
+
+    void CheatSearchInitBackupMemory();
+    void CheatSearchAddResult(uint32_t addr);
+};
+
+}  // namespace PCSX

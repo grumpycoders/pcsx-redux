@@ -20,7 +20,7 @@
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
 
-#include "core/psxcommon.h"
+#include "core/psxemulator.h"
 
 #ifndef _WIN32
 
@@ -38,7 +38,6 @@ typedef long (*SIO1open)(unsigned long*);
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-
 #include "core/decode_xa.h"
 #include "core/psemu_plugin_defs.h"
 #include "core/spu.h"
@@ -50,15 +49,12 @@ typedef long(CALLBACK* SPUopen)(HWND);
 typedef long(CALLBACK* PADopen)(HWND);
 typedef long(CALLBACK* NETopen)(HWND);
 typedef long(CALLBACK* SIO1open)(HWND);
-
 }
 
 #endif
 
 int LoadPlugins();
 void ReleasePlugins();
-int OpenPlugins();
-void ClosePlugins();
 
 typedef unsigned long(CALLBACK* PSEgetLibType)(void);
 typedef unsigned long(CALLBACK* PSEgetLibVersion)(void);
@@ -97,7 +93,7 @@ typedef void(CALLBACK* GPUhSync)(int);
 typedef void(CALLBACK* GPUvBlank)(int);
 typedef void(CALLBACK* GPUvisualVibration)(uint32_t, uint32_t);
 typedef void(CALLBACK* GPUcursor)(int, int, int);
-typedef void(CALLBACK* GPUaddVertex)(short, short, s64, s64, s64);
+typedef void(CALLBACK* GPUaddVertex)(short, short, int64_t, int64_t, int64_t);
 typedef void(CALLBACK* GPUsetSpeed)(float);  // 1.0 = natural speed
 typedef void(CALLBACK* GPUpgxpMemory)(unsigned int, unsigned char*);
 typedef void(CALLBACK* GPUpgxpCacheVertex)(short sx, short sy, const unsigned char* _pVertex);
@@ -135,29 +131,11 @@ extern GPUsetSpeed GPU_setSpeed;
 extern GPUpgxpMemory GPU_pgxpMemory;
 extern GPUpgxpCacheVertex GPU_pgxpCacheVertex;
 
-// CD-ROM Functions
-typedef long(CALLBACK* CDRinit)(void);
-typedef long(CALLBACK* CDRshutdown)(void);
-typedef long(CALLBACK* CDRopen)(void);
-typedef long(CALLBACK* CDRclose)(void);
-typedef long(CALLBACK* CDRgetTN)(unsigned char*);
-typedef long(CALLBACK* CDRgetTD)(unsigned char, unsigned char*);
-typedef long(CALLBACK* CDRreadTrack)(unsigned char*);
-typedef unsigned char*(CALLBACK* CDRgetBuffer)(void);
-typedef unsigned char*(CALLBACK* CDRgetBufferSub)(void);
-typedef long(CALLBACK* CDRconfigure)(void);
-typedef long(CALLBACK* CDRtest)(void);
-typedef void(CALLBACK* CDRabout)(void);
-typedef long(CALLBACK* CDRplay)(unsigned char*);
-typedef long(CALLBACK* CDRstop)(void);
-typedef long(CALLBACK* CDRsetfilename)(char*);
 struct CdrStat {
     uint32_t Type;
     uint32_t Status;
     unsigned char Time[3];
 };
-typedef long(CALLBACK* CDRgetStatus)(struct CdrStat*);
-typedef char*(CALLBACK* CDRgetDriveLetter)(void);
 struct SubQ {
     char res0[12];
     unsigned char ControlAndADR;
@@ -169,29 +147,6 @@ struct SubQ {
     unsigned char CRC[2];
     char res1[72];
 };
-typedef long(CALLBACK* CDRreadCDDA)(unsigned char, unsigned char, unsigned char, unsigned char*);
-typedef long(CALLBACK* CDRgetTE)(unsigned char, unsigned char*, unsigned char*, unsigned char*);
-
-// CD-ROM function pointers
-extern CDRinit CDR_init;
-extern CDRshutdown CDR_shutdown;
-extern CDRopen CDR_open;
-extern CDRclose CDR_close;
-extern CDRtest CDR_test;
-extern CDRgetTN CDR_getTN;
-extern CDRgetTD CDR_getTD;
-extern CDRreadTrack CDR_readTrack;
-extern CDRgetBuffer CDR_getBuffer;
-extern CDRgetBufferSub CDR_getBufferSub;
-extern CDRplay CDR_play;
-extern CDRstop CDR_stop;
-extern CDRgetStatus CDR_getStatus;
-extern CDRgetDriveLetter CDR_getDriveLetter;
-extern CDRconfigure CDR_configure;
-extern CDRabout CDR_about;
-extern CDRsetfilename CDR_setfilename;
-extern CDRreadCDDA CDR_readCDDA;
-extern CDRgetTE CDR_getTE;
 
 // SPU Functions
 typedef long(CALLBACK* SPUinit)(void);
@@ -357,28 +312,28 @@ typedef void(CALLBACK* SIO1about)(void);
 typedef void(CALLBACK* SIO1pause)(void);
 typedef void(CALLBACK* SIO1resume)(void);
 typedef long(CALLBACK* SIO1keypressed)(int);
-typedef void(CALLBACK* SIO1writeData8)(u8);
-typedef void(CALLBACK* SIO1writeData16)(u16);
-typedef void(CALLBACK* SIO1writeData32)(u32);
-typedef void(CALLBACK* SIO1writeStat16)(u16);
-typedef void(CALLBACK* SIO1writeStat32)(u32);
-typedef void(CALLBACK* SIO1writeMode16)(u16);
-typedef void(CALLBACK* SIO1writeMode32)(u32);
-typedef void(CALLBACK* SIO1writeCtrl16)(u16);
-typedef void(CALLBACK* SIO1writeCtrl32)(u32);
-typedef void(CALLBACK* SIO1writeBaud16)(u16);
-typedef void(CALLBACK* SIO1writeBaud32)(u32);
-typedef u8(CALLBACK* SIO1readData8)(void);
-typedef u16(CALLBACK* SIO1readData16)(void);
-typedef u32(CALLBACK* SIO1readData32)(void);
-typedef u16(CALLBACK* SIO1readStat16)(void);
-typedef u32(CALLBACK* SIO1readStat32)(void);
-typedef u16(CALLBACK* SIO1readMode16)(void);
-typedef u32(CALLBACK* SIO1readMode32)(void);
-typedef u16(CALLBACK* SIO1readCtrl16)(void);
-typedef u32(CALLBACK* SIO1readCtrl32)(void);
-typedef u16(CALLBACK* SIO1readBaud16)(void);
-typedef u32(CALLBACK* SIO1readBaud32)(void);
+typedef void(CALLBACK* SIO1writeData8)(uint8_t);
+typedef void(CALLBACK* SIO1writeData16)(uint16_t);
+typedef void(CALLBACK* SIO1writeData32)(uint32_t);
+typedef void(CALLBACK* SIO1writeStat16)(uint16_t);
+typedef void(CALLBACK* SIO1writeStat32)(uint32_t);
+typedef void(CALLBACK* SIO1writeMode16)(uint16_t);
+typedef void(CALLBACK* SIO1writeMode32)(uint32_t);
+typedef void(CALLBACK* SIO1writeCtrl16)(uint16_t);
+typedef void(CALLBACK* SIO1writeCtrl32)(uint32_t);
+typedef void(CALLBACK* SIO1writeBaud16)(uint16_t);
+typedef void(CALLBACK* SIO1writeBaud32)(uint32_t);
+typedef uint8_t(CALLBACK* SIO1readData8)(void);
+typedef uint16_t(CALLBACK* SIO1readData16)(void);
+typedef uint32_t(CALLBACK* SIO1readData32)(void);
+typedef uint16_t(CALLBACK* SIO1readStat16)(void);
+typedef uint32_t(CALLBACK* SIO1readStat32)(void);
+typedef uint16_t(CALLBACK* SIO1readMode16)(void);
+typedef uint32_t(CALLBACK* SIO1readMode32)(void);
+typedef uint16_t(CALLBACK* SIO1readCtrl16)(void);
+typedef uint32_t(CALLBACK* SIO1readCtrl32)(void);
+typedef uint16_t(CALLBACK* SIO1readBaud16)(void);
+typedef uint32_t(CALLBACK* SIO1readBaud32)(void);
 typedef void(CALLBACK* SIO1update)(uint32_t);
 typedef void(CALLBACK* SIO1registerCallback)(void(CALLBACK* callback)(void));
 
@@ -430,7 +385,6 @@ const char* GetIsoFile(void);
 const char* GetExeFile(void);
 const char* GetAppPath(void);
 const char* GetLdrFile(void);
-boolean UsingIso(void);
-void SetCdOpenCaseTime(s64 time);
+void SetCdOpenCaseTime(int64_t time);
 
 #endif

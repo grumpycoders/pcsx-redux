@@ -1,4 +1,5 @@
 /***************************************************************************
+ *   Copyright (C) 2018 PCSX-Redux authors                                 *
  *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,19 +18,32 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __SYSTEM_H__
-#define __SYSTEM_H__
+#pragma once
 
-int SysInit();                                 // Init mem and plugins
-void SysReset();                               // Resets mem
-void SysPrintf(const char *fmt, ...);          // Printf used by bios syscalls
-void SysMessage(const char *fmt, ...);         // Message used to print msg to users
-void *SysLoadLibrary(const char *lib);         // Loads Library
-void *SysLoadSym(void *lib, const char *sym);  // Loads Symbol from Library
-const char *SysLibError();                     // Gets previous error loading sysbols
-void SysCloseLibrary(void *lib);               // Closes Library
-void SysUpdate();                              // Called on VBlank (to update i.e. pads)
-void SysRunGui();                              // Returns to the Gui
-void SysClose();                               // Close mem and plugins
+namespace PCSX {
 
-#endif
+class System {
+  public:
+    // Requests a system reset
+    virtual void SysReset() = 0;
+    // Printf used by bios syscalls
+    virtual void SysBiosPrintf(const char *fmt, ...) = 0;
+    virtual void SysBiosPrintf(const char *fmt, va_list va) = 0;
+    // Printf used by the code in general, to indicate errors most of the time
+    // TODO: convert them all to logs
+    virtual void SysPrintf(const char *fmt, ...) = 0;
+    // Add a log line
+    virtual void SysLog(const char *facility, const char *fmt, va_list a) = 0;
+    // Message used to print msg to users
+    virtual void SysMessage(const char *fmt, ...) = 0;
+    // Called on VBlank (to update i.e. pads)
+    virtual void SysUpdate() = 0;
+    // Returns to the Gui
+    virtual void SysRunGui() = 0;
+    // Close mem and plugins
+    virtual void SysClose() = 0;
+};
+
+extern System *g_system;
+
+}  // namespace PCSX

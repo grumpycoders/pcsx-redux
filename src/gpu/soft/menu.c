@@ -119,7 +119,7 @@ void DisplayText(void)  // DISPLAY TEXT
  hFO=(HFONT)SelectObject(hdc,hGFont);
 
  SetTextColor(hdc,RGB(0,255,0));
- if(bTransparent) 
+ if(bTransparent)
       SetBkMode(hdc,TRANSPARENT);
  else SetBkColor(hdc,RGB(0,0,0));
 

@@ -114,7 +114,7 @@ typedef struct PSXRECTTAG {
 #ifdef _WIN32
 
 #if 0
-				typedef struct SDXTAG
+                typedef struct SDXTAG
 {
  LPDIRECTDRAW                   DD;
 

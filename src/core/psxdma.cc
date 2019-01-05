@@ -27,51 +27,41 @@
 // Dma3   in CdRom.c
 
 void spuInterrupt() {
-    HW_DMA4_CHCR &= SWAP32(~0x01000000);
+    HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(4);
 }
 
-void psxDma4(u32 madr, u32 bcr, u32 chcr) {  // SPU
-    u16 *ptr;
-    u32 size;
+void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
+    uint16_t *ptr;
+    uint32_t size;
 
     switch (chcr) {
         case 0x01000201:  // cpu to spu transfer
-#ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA4 SPU - mem2spu *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
-            ptr = (u16 *)PSXM(madr);
+            ptr = (uint16_t *)PSXM(madr);
             if (ptr == NULL) {
-#ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
-#endif
                 break;
             }
             SPU_writeDMAMem(ptr, (bcr >> 16) * (bcr & 0xffff) * 2);
 
             // Jungle Book - max 0.333x DMA length
             // Harry Potter and the Philosopher's Stone - max 0.5x DMA length
-            // u32 dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with both
-            // games above?
+            // uint32_t dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with
+            // both games above?
             SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 2);
             return;
 
         case 0x01000200:  // spu to cpu transfer
-#ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA4 SPU - spu2mem *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
-            ptr = (u16 *)PSXM(madr);
+            ptr = (uint16_t *)PSXM(madr);
             if (ptr == NULL) {
-#ifdef PSXDMA_LOG
                 PSXDMA_LOG("*** DMA4 SPU - spu2mem *** NULL Pointer!!!\n");
-#endif
                 break;
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
             SPU_readDMAMem(ptr, size);
-#ifdef PSXREC
-            g_psxCpu->Clear(madr, size);
-#endif
+            PCSX::g_emulator.m_psxCpu->Clear(madr, size);
 
 #if 1
             SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 2);
@@ -81,31 +71,25 @@ void psxDma4(u32 madr, u32 bcr, u32 chcr) {  // SPU
 #endif
             return;
 
-#ifdef PSXDMA_LOG
         default:
             PSXDMA_LOG("*** DMA4 SPU - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
             break;
-#endif
     }
 
-    HW_DMA4_CHCR &= SWAP32(~0x01000000);
+    HW_DMA4_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(4);
 }
 
-void psxDma6(u32 madr, u32 bcr, u32 chcr) {
-    u32 size;
-    u32 *mem = (u32 *)PSXM(madr);
+void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    uint32_t size;
+    uint32_t *mem = (uint32_t *)PSXM(madr);
 
-#ifdef PSXDMA_LOG
     PSXDMA_LOG("*** DMA6 OT *** %x addr = %x size = %x\n", chcr, madr, bcr);
-#endif
 
     if (chcr == 0x11000002) {
         if (mem == NULL) {
-#ifdef PSXDMA_LOG
             PSXDMA_LOG("*** DMA6 OT *** NULL Pointer!!!\n");
-#endif
-            HW_DMA6_CHCR &= SWAP32(~0x01000000);
+            HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
             DMA_INTERRUPT(6);
             return;
         }
@@ -114,7 +98,7 @@ void psxDma6(u32 madr, u32 bcr, u32 chcr) {
         size = bcr;
 
         while (bcr--) {
-            *mem-- = SWAP32((madr - 4) & 0xffffff);
+            *mem-- = SWAP_LE32((madr - 4) & 0xffffff);
             madr -= 4;
         }
         mem++;
@@ -127,19 +111,16 @@ void psxDma6(u32 madr, u32 bcr, u32 chcr) {
         GPUOTCDMA_INT(size / 3);
 #endif
         return;
-    }
-#ifdef PSXDMA_LOG
-    else {
+    } else {
         // Unknown option
         PSXDMA_LOG("*** DMA6 OT - unknown *** %x addr = %x size = %x\n", chcr, madr, bcr);
     }
-#endif
 
-    HW_DMA6_CHCR &= SWAP32(~0x01000000);
+    HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(6);
 }
 
 void gpuotcInterrupt() {
-    HW_DMA6_CHCR &= SWAP32(~0x01000000);
+    HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(6);
 }

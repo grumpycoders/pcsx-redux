@@ -24,70 +24,71 @@
 #include "core/psxhle.h"
 
 static void hleDummy() {
-    g_psxRegs.pc = g_psxRegs.GPR.n.ra;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
 
-    psxBranchTest();
+    PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
 
 static void hleA0() {
-    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+    uint32_t call = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1 & 0xff;
 
-    if (biosA0[call]) biosA0[call]();
+    PCSX::g_emulator.m_psxBios->callA0(call);
 
-    psxBranchTest();
+    PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
 
 static void hleB0() {
-    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+    uint32_t call = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1 & 0xff;
 
-    if (biosB0[call]) biosB0[call]();
+    PCSX::g_emulator.m_psxBios->callB0(call);
 
-    psxBranchTest();
+    PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
 
 static void hleC0() {
-    u32 call = g_psxRegs.GPR.n.t1 & 0xff;
+    uint32_t call = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.t1 & 0xff;
 
-    if (biosC0[call]) biosC0[call]();
+    PCSX::g_emulator.m_psxBios->callC0(call);
 
-    psxBranchTest();
+    PCSX::g_emulator.m_psxCpu->psxBranchTest();
 }
 
 static void hleBootstrap() {  // 0xbfc00000
-    SysPrintf("hleBootstrap\n");
+    PCSX::g_system->SysBiosPrintf("hleBootstrap\n");
     CheckCdrom();
     LoadCdrom();
-    SysPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", g_cdromLabel, (unsigned int)g_psxRegs.pc,
-              (unsigned int)g_psxRegs.GPR.n.sp);
+    PCSX::g_system->SysBiosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", PCSX::g_emulator.m_cdromLabel,
+                                  (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
+                                  (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);
 }
 
 typedef struct {
-    u32 _pc0;
-    u32 gp0;
-    u32 t_addr;
-    u32 t_size;
-    u32 d_addr;
-    u32 d_size;
-    u32 b_addr;
-    u32 b_size;
-    u32 S_addr;
-    u32 s_size;
-    u32 _sp, _fp, _gp, ret, base;
+    uint32_t _pc0;
+    uint32_t gp0;
+    uint32_t t_addr;
+    uint32_t t_size;
+    uint32_t d_addr;
+    uint32_t d_size;
+    uint32_t b_addr;
+    uint32_t b_size;
+    uint32_t S_addr;
+    uint32_t s_size;
+    uint32_t _sp, _fp, _gp, ret, base;
 } EXEC;
 
 static void hleExecRet() {
-    EXEC *header = (EXEC *)PSXM(g_psxRegs.GPR.n.s0);
+    EXEC *header = (EXEC *)PSXM(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0);
 
-    SysPrintf("ExecRet %x: %x\n", g_psxRegs.GPR.n.s0, header->ret);
+    PCSX::g_system->SysBiosPrintf("ExecRet %x: %x\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0, header->ret);
 
-    g_psxRegs.GPR.n.ra = header->ret;
-    g_psxRegs.GPR.n.sp = header->_sp;
-    g_psxRegs.GPR.n.s8 = header->_fp;
-    g_psxRegs.GPR.n.gp = header->_gp;
-    g_psxRegs.GPR.n.s0 = header->base;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra = header->ret;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = header->_sp;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s8 = header->_fp;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = header->_gp;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0 = header->base;
 
-    g_psxRegs.GPR.n.v0 = 1;
-    g_psxRegs.pc = g_psxRegs.GPR.n.ra;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.v0 = 1;
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
 }
 
-void (*psxHLEt[256])() = {hleDummy, hleA0, hleB0, hleC0, hleBootstrap, hleExecRet, hleDummy, hleDummy};
+const HLE_t psxHLEt[256] = {hleDummy, hleA0, hleB0, hleC0, hleBootstrap, hleExecRet, hleDummy, hleDummy};

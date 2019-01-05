@@ -46,7 +46,7 @@
 // this warning might be returned as undefined warning but allowing driver to continue
 #define PSE_GPU_WARN 20
 
-//  GPU_Query		- will be implemented soon
+//  GPU_Query       - will be implemented soon
 
 typedef struct {
     uint32_t flags;
@@ -63,11 +63,11 @@ typedef struct {
 // gpuQueryS.status
 #define PSE_GPU_STATUS_WINDOWWRONG 1  // this driver cannot operate in this windowed mode
 
-//  GPU_Query	End	- will be implemented in v2
+//  GPU_Query   End - will be implemented in v2
 
 /*         CDR PlugIn          */
 
-//	CDR_Test return values
+//  CDR_Test return values
 
 // sucess, everything configured, and went OK.
 #define PSE_CDR_ERR_SUCCESS 0
@@ -114,14 +114,14 @@ typedef struct {
 
   functions that must be exported from PAD Plugin
 
-  long	PADinit(long flags);	// called only once when PSEmu Starts
-  void	PADshutdown(void);		// called when PSEmu exits
-  long	PADopen(PadInitS *);	// called when PSEmu is running program
-  long	PADclose(void);
-  long	PADconfigure(void);
+  long  PADinit(long flags);    // called only once when PSEmu Starts
+  void  PADshutdown(void);      // called when PSEmu exits
+  long  PADopen(PadInitS *);    // called when PSEmu is running program
+  long  PADclose(void);
+  long  PADconfigure(void);
   void  PADabout(void);
-  long  PADtest(void);			// called from Configure Dialog and after PADopen();
-  long	PADquery(void);
+  long  PADtest(void);          // called from Configure Dialog and after PADopen();
+  long  PADquery(void);
 
   unsigned char PADstartPoll(int);
   unsigned char PADpoll(unsigned char);
@@ -200,8 +200,8 @@ typedef struct {
 
 typedef struct {
         char EmuName[32];
-        char CdromID[9];	// ie. 'SCPH12345', no \0 trailing character
-        char g_cdromLabel[11];
+        char CdromID[9];    // ie. 'SCPH12345', no \0 trailing character
+        char PCSX::g_emulator.m_cdromLabel[11];
         void *psxMem;
         GPUshowScreenPic GPU_showScreenPic;
         GPUdisplayText GPU_displayText;
@@ -211,7 +211,7 @@ typedef struct {
         char CDRpath[256];
         char MCD1path[256];
         char MCD2path[256];
-        char BIOSpath[256];	// 'HLE' for internal bios
+        char BIOSpath[256]; // 'HLE' for internal bios
         char Unused[1024];
 } netInfo;
 

@@ -41,7 +41,7 @@
 #include "stdafx.h"
 
 #if 0
-				extern BOOL RECORD_RECORDING = FALSE;
+                extern BOOL RECORD_RECORDING = FALSE;
 BITMAPINFOHEADER RECORD_BI = {40, 0, 0, 1, 16, 0, 0, 2048, 2048, 0, 0};
 unsigned char RECORD_BUFFER[1600 * 1200 * 3];
 unsigned long RECORD_INDEX;

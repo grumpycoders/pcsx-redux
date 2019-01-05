@@ -684,35 +684,35 @@ void RefreshCodec(HWND hW) {
 #if 0
    char buffer[255];
 union {
-	char chFCC[5];
-	DWORD dwFCC;
-	} fcc;
+    char chFCC[5];
+    DWORD dwFCC;
+    } fcc;
 ICINFO icinfo;
 memset(&icinfo,0,sizeof(icinfo));
 icinfo.dwSize = sizeof(icinfo);
 strcpy(fcc.chFCC,"VIDC");
 RECORD_COMPRESSION1.hic = ICOpen(fcc.dwFCC,RECORD_COMPRESSION1.fccHandler,ICMODE_QUERY);
 if(RECORD_COMPRESSION1.hic)
-	{
-	ICGetInfo(RECORD_COMPRESSION1.hic,&icinfo,sizeof(icinfo));
-	ICClose(RECORD_COMPRESSION1.hic);
-	wsprintf(buffer,"16 bit Compression: %ws",icinfo.szDescription);
-	}
+    {
+    ICGetInfo(RECORD_COMPRESSION1.hic,&icinfo,sizeof(icinfo));
+    ICClose(RECORD_COMPRESSION1.hic);
+    wsprintf(buffer,"16 bit Compression: %ws",icinfo.szDescription);
+    }
 else
-	wsprintf(buffer,"16 bit Compression: Full Frames (Uncompressed)");
+    wsprintf(buffer,"16 bit Compression: Full Frames (Uncompressed)");
 SetDlgItemText(hW,IDC_COMPRESSION1,buffer);
 
 memset(&icinfo,0,sizeof(icinfo));
 icinfo.dwSize = sizeof(icinfo);
 RECORD_COMPRESSION2.hic = ICOpen(fcc.dwFCC,RECORD_COMPRESSION2.fccHandler,ICMODE_QUERY);
 if(RECORD_COMPRESSION2.hic)
-	{
-	ICGetInfo(RECORD_COMPRESSION2.hic,&icinfo,sizeof(icinfo));
-	ICClose(RECORD_COMPRESSION2.hic);
-	wsprintf(buffer,"24 bit Compression: %ws",icinfo.szDescription);
-	}
+    {
+    ICGetInfo(RECORD_COMPRESSION2.hic,&icinfo,sizeof(icinfo));
+    ICClose(RECORD_COMPRESSION2.hic);
+    wsprintf(buffer,"24 bit Compression: %ws",icinfo.szDescription);
+    }
 else
-	wsprintf(buffer,"24 bit Compression: Full Frames (Uncompressed)");
+    wsprintf(buffer,"24 bit Compression: Full Frames (Uncompressed)");
 SetDlgItemText(hW,IDC_COMPRESSION2,buffer);
 #endif
 }
@@ -723,7 +723,7 @@ BOOL CALLBACK RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
    case WM_INITDIALOG:
     {
-	 HWND hWC;
+     HWND hWC;
      CheckDlgButton(hW,IDC_REC_MODE1,RECORD_RECORDING_MODE==0);
      CheckDlgButton(hW,IDC_REC_MODE2,RECORD_RECORDING_MODE==1);
      hWC = GetDlgItem(hW,IDC_VIDEO_SIZE);
@@ -757,59 +757,59 @@ BOOL CALLBACK RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam)
      switch(LOWORD(wParam))
       {
        case IDC_RECCFG:
-	    {
-		if(IsDlgButtonChecked(hW,IDC_COMPRESSION1))
-			{
-			BITMAPINFOHEADER bitmap = {40,640,480,1,16,0,640*480*2,2048,2048,0,0};
-			if(!ICCompressorChoose(hW,ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,&bitmap,NULL,&RECORD_COMPRESSION1,"16 bit Compression")) return TRUE;
-			if(RECORD_COMPRESSION1.cbState>sizeof(RECORD_COMPRESSION_STATE1))
-				{
-				memset(&RECORD_COMPRESSION1,0,sizeof(RECORD_COMPRESSION1));
-				memset(&RECORD_COMPRESSION_STATE1,0,sizeof(RECORD_COMPRESSION_STATE1));
-				RECORD_COMPRESSION1.cbSize	= sizeof(RECORD_COMPRESSION1);
-				}
-			else
-				{
-				if(RECORD_COMPRESSION1.lpState!=RECORD_COMPRESSION_STATE1)
-					memcpy(RECORD_COMPRESSION_STATE1,RECORD_COMPRESSION1.lpState,RECORD_COMPRESSION1.cbState);
-				}
-			RECORD_COMPRESSION1.lpState = RECORD_COMPRESSION_STATE1;
-			}
-		else
-			{
-			BITMAPINFOHEADER bitmap = {40,640,480,1,24,0,640*480*3,2048,2048,0,0};
-			if(!ICCompressorChoose(hW,ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,&bitmap,NULL,&RECORD_COMPRESSION2,"24 bit Compression")) return TRUE;
-			if(RECORD_COMPRESSION2.cbState>sizeof(RECORD_COMPRESSION_STATE2))
-				{
-				memset(&RECORD_COMPRESSION2,0,sizeof(RECORD_COMPRESSION2));
-				memset(&RECORD_COMPRESSION_STATE2,0,sizeof(RECORD_COMPRESSION_STATE2));
-				RECORD_COMPRESSION2.cbSize	= sizeof(RECORD_COMPRESSION2);
-				}
-			else
-				{
-				if(RECORD_COMPRESSION2.lpState!=RECORD_COMPRESSION_STATE2)
-					memcpy(RECORD_COMPRESSION_STATE2,RECORD_COMPRESSION2.lpState,RECORD_COMPRESSION2.cbState);
-				}
-			RECORD_COMPRESSION2.lpState = RECORD_COMPRESSION_STATE2;
-			}
-		RefreshCodec(hW);
-		return TRUE;
-		}
+        {
+        if(IsDlgButtonChecked(hW,IDC_COMPRESSION1))
+            {
+            BITMAPINFOHEADER bitmap = {40,640,480,1,16,0,640*480*2,2048,2048,0,0};
+            if(!ICCompressorChoose(hW,ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,&bitmap,NULL,&RECORD_COMPRESSION1,"16 bit Compression")) return TRUE;
+            if(RECORD_COMPRESSION1.cbState>sizeof(RECORD_COMPRESSION_STATE1))
+                {
+                memset(&RECORD_COMPRESSION1,0,sizeof(RECORD_COMPRESSION1));
+                memset(&RECORD_COMPRESSION_STATE1,0,sizeof(RECORD_COMPRESSION_STATE1));
+                RECORD_COMPRESSION1.cbSize  = sizeof(RECORD_COMPRESSION1);
+                }
+            else
+                {
+                if(RECORD_COMPRESSION1.lpState!=RECORD_COMPRESSION_STATE1)
+                    memcpy(RECORD_COMPRESSION_STATE1,RECORD_COMPRESSION1.lpState,RECORD_COMPRESSION1.cbState);
+                }
+            RECORD_COMPRESSION1.lpState = RECORD_COMPRESSION_STATE1;
+            }
+        else
+            {
+            BITMAPINFOHEADER bitmap = {40,640,480,1,24,0,640*480*3,2048,2048,0,0};
+            if(!ICCompressorChoose(hW,ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,&bitmap,NULL,&RECORD_COMPRESSION2,"24 bit Compression")) return TRUE;
+            if(RECORD_COMPRESSION2.cbState>sizeof(RECORD_COMPRESSION_STATE2))
+                {
+                memset(&RECORD_COMPRESSION2,0,sizeof(RECORD_COMPRESSION2));
+                memset(&RECORD_COMPRESSION_STATE2,0,sizeof(RECORD_COMPRESSION_STATE2));
+                RECORD_COMPRESSION2.cbSize  = sizeof(RECORD_COMPRESSION2);
+                }
+            else
+                {
+                if(RECORD_COMPRESSION2.lpState!=RECORD_COMPRESSION_STATE2)
+                    memcpy(RECORD_COMPRESSION_STATE2,RECORD_COMPRESSION2.lpState,RECORD_COMPRESSION2.cbState);
+                }
+            RECORD_COMPRESSION2.lpState = RECORD_COMPRESSION_STATE2;
+            }
+        RefreshCodec(hW);
+        return TRUE;
+        }
        case IDCANCEL: EndDialog(hW,FALSE);return TRUE;
 
-       case IDOK:     
+       case IDOK:
         {
-		HWND hWC;
-		if(IsDlgButtonChecked(hW,IDC_REC_MODE1))	RECORD_RECORDING_MODE = 0;
-		else										RECORD_RECORDING_MODE = 1;
-		hWC = GetDlgItem(hW,IDC_VIDEO_SIZE);
-		RECORD_VIDEO_SIZE = ComboBox_GetCurSel(hWC);
-		RECORD_RECORDING_WIDTH = GetDlgItemInt(hW,IDC_REC_WIDTH,NULL,FALSE);
-		RECORD_RECORDING_HEIGHT = GetDlgItemInt(hW,IDC_REC_HEIGHT,NULL,FALSE);
-		hWC = GetDlgItem(hW,IDC_FRAME_RATE);
-		RECORD_FRAME_RATE_SCALE = ComboBox_GetCurSel(hWC);
-		if(IsDlgButtonChecked(hW,IDC_COMPRESSION1))	RECORD_COMPRESSION_MODE = 0;
-		else										RECORD_COMPRESSION_MODE = 1;
+        HWND hWC;
+        if(IsDlgButtonChecked(hW,IDC_REC_MODE1))    RECORD_RECORDING_MODE = 0;
+        else                                        RECORD_RECORDING_MODE = 1;
+        hWC = GetDlgItem(hW,IDC_VIDEO_SIZE);
+        RECORD_VIDEO_SIZE = ComboBox_GetCurSel(hWC);
+        RECORD_RECORDING_WIDTH = GetDlgItemInt(hW,IDC_REC_WIDTH,NULL,FALSE);
+        RECORD_RECORDING_HEIGHT = GetDlgItemInt(hW,IDC_REC_HEIGHT,NULL,FALSE);
+        hWC = GetDlgItem(hW,IDC_FRAME_RATE);
+        RECORD_FRAME_RATE_SCALE = ComboBox_GetCurSel(hWC);
+        if(IsDlgButtonChecked(hW,IDC_COMPRESSION1)) RECORD_COMPRESSION_MODE = 0;
+        else                                        RECORD_COMPRESSION_MODE = 1;
         EndDialog(hW,TRUE);
         return TRUE;
         }
@@ -1030,7 +1030,7 @@ void ReadConfig(void) {
     RegQueryValueEx(myKey, xa, 0, &type, (LPBYTE)&xb, &size);
 
 #if 0
-				            GetDWORD("RecordingMode", RECORD_RECORDING_MODE);
+                            GetDWORD("RecordingMode", RECORD_RECORDING_MODE);
             GetDWORD("RecordingVideoSize", RECORD_VIDEO_SIZE);
             GetDWORD("RecordingWidth", RECORD_RECORDING_WIDTH);
             GetDWORD("RecordingHeight", RECORD_RECORDING_HEIGHT);
@@ -1164,7 +1164,7 @@ void WriteConfig(void) {
     RegSetValueEx(myKey, "GuiDev", 0, REG_BINARY, (LPBYTE)&guiDev, sizeof(GUID));
 
 #if 0
-				    //
+                    //
     // Recording options
     //
     if (RECORD_COMPRESSION1.cbState > sizeof(RECORD_COMPRESSION_STATE1) ||
@@ -1209,10 +1209,10 @@ HWND gHWND;
 
 #if 0
 static HRESULT WINAPI Enum3DDevicesCallback( GUID* pGUID, LPSTR strDesc,
-                                LPSTR strName, LPD3DDEVICEDESC pHALDesc, 
+                                LPSTR strName, LPD3DDEVICEDESC pHALDesc,
                                 LPD3DDEVICEDESC pHELDesc, LPVOID pvContext )
 {
-				BOOL IsHardware;
+                BOOL IsHardware;
 
  // Check params
  if( NULL==pGUID || NULL==pHALDesc || NULL==pHELDesc)
@@ -1224,7 +1224,7 @@ static HRESULT WINAPI Enum3DDevicesCallback( GUID* pGUID, LPSTR strDesc,
 
  IsHardware = ( 0 != pHALDesc->dwFlags );
  if(!IsHardware) return D3DENUMRET_OK;
- 
+
  bDeviceOK=TRUE;
 
     return D3DENUMRET_OK;
@@ -1237,7 +1237,7 @@ static BOOL WINAPI DirectDrawEnumCallbackEx(GUID FAR *pGUID, LPSTR strDesc, LPST
     // can be extracted from it.
 
 #if 0
-				 LPDIRECTDRAW pDD;
+                 LPDIRECTDRAW pDD;
  LPDIRECTDRAW4 g_pDD;
  LPDIRECT3D3 pD3D;
 
@@ -1299,7 +1299,7 @@ void DoDevEnum(HWND hW) {
  HMODULE hDDrawDLL = GetModuleHandle("DDRAW.DLL");
  if(NULL == hDDrawDLL) return;
 
- gHWND=hW;   
+ gHWND=hW;
 
  pDDrawEnumFn = (LPDIRECTDRAWENUMERATEEX)
    GetProcAddress( hDDrawDLL, "DirectDrawEnumerateExA" );
@@ -1420,7 +1420,7 @@ static HRESULT WINAPI EnumDisplayModesCallback( DDSURFACEDESC2* pddsd,
                                                 VOID* pvContext )
 {
  if(NULL==pddsd) return DDENUMRET_CANCEL;
-       
+
  if(pddsd->ddpfPixelFormat.dwRGBBitCount==(unsigned int)iColDepth &&
     pddsd->dwWidth==(unsigned int)iResX &&
     pddsd->dwHeight==(unsigned int)iResY)

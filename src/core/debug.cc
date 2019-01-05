@@ -16,7 +16,8 @@
  */
 
 #include "core/debug.h"
-#include "core/psxcommon.h"
+#include "core/disr3000a.h"
+#include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/socket.h"
 
@@ -229,20 +230,6 @@ Error messages (5xx):
     Invalid breakpoint address.
 */
 
-static int s_debugger_active = 0, s_paused = 0, s_trace = 0, s_printpc = 0, s_reset = 0, s_resetting = 0;
-static int s_run_to = 0;
-static u32 s_run_to_addr = 0;
-static int s_step_over = 0;
-static u32 s_step_over_addr = 0;
-static int s_mapping_e = 0, s_mapping_r8 = 0, s_mapping_r16 = 0, s_mapping_r32 = 0, s_mapping_w8 = 0, s_mapping_w16 = 0,
-           s_mapping_w32 = 0;
-static int s_breakmp_e = 0, s_breakmp_r8 = 0, s_breakmp_r16 = 0, s_breakmp_r32 = 0, s_breakmp_w8 = 0, s_breakmp_w16 = 0,
-           s_breakmp_w32 = 0;
-
-static void ProcessCommands();
-
-static u8 *s_memoryMap = NULL;
-
 enum {
     MAP_EXEC = 1,
     MAP_R8 = 2,
@@ -256,15 +243,7 @@ enum {
 
 static const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
 
-typedef struct breakpoint_s {
-    struct breakpoint_s *next, *prev;
-    int number, type;
-    u32 address;
-} breakpoint_t;
-
-static breakpoint_t *s_firstBP = NULL;
-
-int add_breakpoint(int type, u32 address) {
+int PCSX::Debug::add_breakpoint(int type, uint32_t address) {
     breakpoint_t *bp = (breakpoint_t *)malloc(sizeof(breakpoint_t));
 
     bp->type = type;
@@ -286,7 +265,7 @@ int add_breakpoint(int type, u32 address) {
     return bp->number;
 }
 
-void delete_breakpoint(breakpoint_t *bp) {
+void PCSX::Debug::delete_breakpoint(breakpoint_t *bp) {
     if (bp == s_firstBP) {
         if (bp->next == bp) {
             s_firstBP = NULL;
@@ -301,9 +280,11 @@ void delete_breakpoint(breakpoint_t *bp) {
     free(bp);
 }
 
-breakpoint_t *next_breakpoint(breakpoint_t *bp) { return bp->next != s_firstBP ? bp->next : 0; }
+PCSX::Debug::breakpoint_t *PCSX::Debug::next_breakpoint(breakpoint_t *bp) {
+    return bp->next != s_firstBP ? bp->next : 0;
+}
 
-breakpoint_t *find_breakpoint(int number) {
+PCSX::Debug::breakpoint_t *PCSX::Debug::find_breakpoint(int number) {
     breakpoint_t *p;
 
     for (p = s_firstBP; p; p = next_breakpoint(p)) {
@@ -313,28 +294,28 @@ breakpoint_t *find_breakpoint(int number) {
     return 0;
 }
 
-void StartDebugger() {
+void PCSX::Debug::StartDebugger() {
     if (s_debugger_active) return;
 
-    s_memoryMap = (u8 *)malloc(0x200000);
+    s_memoryMap = (uint8_t *)malloc(0x200000);
     if (s_memoryMap == NULL) {
-        SysMessage("%s", _("Error allocating memory"));
+        PCSX::g_system->SysMessage("%s", _("Error allocating memory"));
         return;
     }
 
     if (StartServer() == -1) {
-        SysPrintf("%s", _("Unable to start debug server.\n"));
+        PCSX::g_system->SysPrintf("%s", _("Unable to start debug server.\n"));
         return;
     }
 
-    SysPrintf("%s", _("Debugger started.\n"));
+    PCSX::g_system->SysPrintf("%s", _("Debugger started.\n"));
     s_debugger_active = 1;
 }
 
-void StopDebugger() {
+void PCSX::Debug::StopDebugger() {
     if (s_debugger_active) {
         StopServer();
-        SysPrintf("%s", _("Debugger stopped.\n"));
+        PCSX::g_system->SysPrintf("%s", _("Debugger stopped.\n"));
     }
 
     if (s_memoryMap != NULL) {
@@ -347,23 +328,23 @@ void StopDebugger() {
     s_debugger_active = 0;
 }
 
-void PauseDebugger() {
+void PCSX::Debug::PauseDebugger() {
     s_trace = 0;
     s_paused = 1;
 }
 
-void ResumeDebugger() {
+void PCSX::Debug::ResumeDebugger() {
     s_trace = 0;
     s_paused = 0;
 }
 
-void DebugVSync() {
+void PCSX::Debug::DebugVSync() {
     if (!s_debugger_active || s_resetting) return;
 
     if (s_reset) {
         s_resetting = 1;
         CheckCdrom();
-        SysReset();
+        PCSX::g_system->SysReset();
         if (s_reset == 2) LoadCdrom();
         s_reset = s_resetting = 0;
         return;
@@ -373,14 +354,14 @@ void DebugVSync() {
     ProcessCommands();
 }
 
-void MarkMap(u32 address, int mask) {
+void PCSX::Debug::MarkMap(uint32_t address, int mask) {
     if ((address & 0xff000000) != 0x80000000) return;
     s_memoryMap[address & 0x001fffff] |= mask;
 }
 
-int IsMapMarked(u32 address, int mask) { return (s_memoryMap[address & 0x001fffff] & mask) != 0; }
+int PCSX::Debug::IsMapMarked(uint32_t address, int mask) { return (s_memoryMap[address & 0x001fffff] & mask) != 0; }
 
-void ProcessDebug() {
+void PCSX::Debug::ProcessDebug() {
     if (!s_debugger_active || s_reset || s_resetting) return;
     if (s_trace) {
         if (!(--s_trace)) {
@@ -390,40 +371,43 @@ void ProcessDebug() {
     if (!s_paused) {
         if (s_trace && s_printpc) {
             char reply[256];
-            sprintf(reply, "219 %s\r\n", disR3000AF(psxMemRead32(g_psxRegs.pc), g_psxRegs.pc));
+            sprintf(reply, "219 %s\r\n",
+                    disR3000AF(PCSX::g_emulator.m_psxMem->psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc),
+                               PCSX::g_emulator.m_psxCpu->m_psxRegs.pc));
             WriteSocket(reply, strlen(reply));
         }
 
         if (s_step_over) {
-            if (g_psxRegs.pc == s_step_over_addr) {
+            if (PCSX::g_emulator.m_psxCpu->m_psxRegs.pc == s_step_over_addr) {
                 char reply[256];
                 s_step_over = 0;
                 s_step_over_addr = 0;
-                sprintf(reply, "050 @%08X\r\n", g_psxRegs.pc);
+                sprintf(reply, "050 @%08X\r\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                 WriteSocket(reply, strlen(reply));
                 s_paused = 1;
             }
         }
 
         if (s_run_to) {
-            if (g_psxRegs.pc == s_run_to_addr) {
+            if (PCSX::g_emulator.m_psxCpu->m_psxRegs.pc == s_run_to_addr) {
                 char reply[256];
                 s_run_to = 0;
                 s_run_to_addr = 0;
-                sprintf(reply, "040 @%08X\r\n", g_psxRegs.pc);
+                sprintf(reply, "040 @%08X\r\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                 WriteSocket(reply, strlen(reply));
                 s_paused = 1;
             }
         }
 
-        DebugCheckBP(g_psxRegs.pc, BE);
+        DebugCheckBP(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, BE);
     }
     if (s_mapping_e) {
-        MarkMap(g_psxRegs.pc, MAP_EXEC);
-        if ((g_psxRegs.code >> 26) == 3) {
+        MarkMap(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, MAP_EXEC);
+        if ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 3) {
             MarkMap(_JumpTarget_, MAP_EXEC_JAL);
         }
-        if (((g_psxRegs.code >> 26) == 0) && ((g_psxRegs.code & 0x3F) == 9)) {
+        if (((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+            ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9)) {
             MarkMap(_Rd_, MAP_EXEC_JAL);
         }
     }
@@ -431,15 +415,15 @@ void ProcessDebug() {
         GetClient();
         ProcessCommands();
         GPU_updateLace();
-        SysUpdate();
+        PCSX::g_system->SysUpdate();
     }
 }
 
-static void ProcessCommands() {
+void PCSX::Debug::ProcessCommands() {
     int code, i, dumping;
     FILE *sfile;
     char cmd[257], *arguments, *p, reply[10240], *save, *dump = NULL;
-    u32 reg, value, size = 0, address;
+    uint32_t reg, value, size = 0, address;
     breakpoint_t *bp;
 
     if (!HasClient()) return;
@@ -478,7 +462,7 @@ static void ProcessCommands() {
                 sprintf(reply, "203 %i\r\n", s_paused ? 1 : s_trace ? 2 : 0);
                 break;
             case 0x110:
-                sprintf(reply, "210 PC=%08X\r\n", g_psxRegs.pc);
+                sprintf(reply, "210 PC=%08X\r\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                 break;
             case 0x111:
                 if (arguments) {
@@ -490,18 +474,21 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s211 %02X(%2.2s)=%08X\r\n", reply, i, g_disRNameGPR[i], g_psxRegs.GPR.r[i]);
+                        sprintf(reply, "%s211 %02X(%2.2s)=%08X\r\n", reply, i, g_disRNameGPR[i],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "211 %02X(%2.2s)=%08X\r\n", code, g_disRNameGPR[code], g_psxRegs.GPR.r[code]);
+                        sprintf(reply, "211 %02X(%2.2s)=%08X\r\n", code, g_disRNameGPR[code],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid GPR register: %X\r\n", code);
                     }
                 }
                 break;
             case 0x112:
-                sprintf(reply, "212 LO=%08X HI=%08X\r\n", g_psxRegs.GPR.n.lo, g_psxRegs.GPR.n.hi);
+                sprintf(reply, "212 LO=%08X HI=%08X\r\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo,
+                        PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi);
                 break;
             case 0x113:
                 if (arguments) {
@@ -513,11 +500,13 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s213 %02X(%8.8s)=%08X\r\n", reply, i, g_disRNameCP0[i], g_psxRegs.CP0.r[i]);
+                        sprintf(reply, "%s213 %02X(%8.8s)=%08X\r\n", reply, i, g_disRNameCP0[i],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "213 %02X(%8.8s)=%08X\r\n", code, g_disRNameCP0[code], g_psxRegs.CP0.r[code]);
+                        sprintf(reply, "213 %02X(%8.8s)=%08X\r\n", code, g_disRNameCP0[code],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP0 register: %X\r\n", code);
                     }
@@ -533,11 +522,13 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s214 %02X(%6.6s)=%08X\r\n", reply, i, g_disRNameCP2C[i], g_psxRegs.CP2C.r[i]);
+                        sprintf(reply, "%s214 %02X(%6.6s)=%08X\r\n", reply, i, g_disRNameCP2C[i],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "214 %02X(%6.6s)=%08X\r\n", code, g_disRNameCP2C[code], g_psxRegs.CP2C.r[code]);
+                        sprintf(reply, "214 %02X(%6.6s)=%08X\r\n", code, g_disRNameCP2C[code],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP2C register: %X\r\n", code);
                     }
@@ -553,11 +544,13 @@ static void ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s215 %02X(%4.4s)=%08X\r\n", reply, i, g_disRNameCP2D[i], g_psxRegs.CP2D.r[i]);
+                        sprintf(reply, "%s215 %02X(%4.4s)=%08X\r\n", reply, i, g_disRNameCP2D[i],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "215 %02X(%4.4s)=%08X\r\n", code, g_disRNameCP2D[code], g_psxRegs.CP2D.r[code]);
+                        sprintf(reply, "215 %02X(%4.4s)=%08X\r\n", code, g_disRNameCP2D[code],
+                                PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP2D register: %X\r\n", code);
                     }
@@ -570,9 +563,9 @@ static void ProcessCommands() {
                         break;
                     }
                 }
-                if (!arguments) code = g_psxRegs.pc;
+                if (!arguments) code = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
 
-                sprintf(reply, "219 %s\r\n", disR3000AF(psxMemRead32(code), code));
+                sprintf(reply, "219 %s\r\n", disR3000AF(PCSX::g_emulator.m_psxMem->psxMemRead32(code), code));
                 break;
             case 0x121:
                 if (!arguments || sscanf(arguments, "%02X=%08X", &reg, &value) != 2) {
@@ -581,7 +574,7 @@ static void ProcessCommands() {
                 }
 
                 if (reg < 32) {
-                    g_psxRegs.GPR.r[reg] = value;
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg] = value;
                     sprintf(reply, "221 %02X=%08X\r\n", reg, value);
                 } else {
                     sprintf(reply, "512 Invalid GPR register: %02X\r\n", reg);
@@ -601,8 +594,9 @@ static void ProcessCommands() {
                 if (sscanf(arguments + 3, "%08X", &value) != 1) {
                     sprintf(reply, "500 Malformed 122 command '%s'\r\n", arguments);
                 } else {
-                    g_psxRegs.GPR.r[reg] = value;
-                    sprintf(reply, "222 LO=%08X HI=%08X\r\n", g_psxRegs.GPR.n.lo, g_psxRegs.GPR.n.hi);
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg] = value;
+                    sprintf(reply, "222 LO=%08X HI=%08X\r\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo,
+                            PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi);
                 }
                 break;
             case 0x123:
@@ -612,7 +606,7 @@ static void ProcessCommands() {
                 }
 
                 if (reg < 32) {
-                    g_psxRegs.CP0.r[reg] = value;
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[reg] = value;
                     sprintf(reply, "223 %02X=%08X\r\n", reg, value);
                 } else {
                     sprintf(reply, "512 Invalid COP0 register: %02X\r\n", reg);
@@ -625,7 +619,7 @@ static void ProcessCommands() {
                 }
 
                 if (reg < 32) {
-                    g_psxRegs.CP2C.r[reg] = value;
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[reg] = value;
                     sprintf(reply, "224 %02X=%08X\r\n", reg, value);
                 } else {
                     sprintf(reply, "512 Invalid COP2C register: %02X\r\n", reg);
@@ -638,7 +632,7 @@ static void ProcessCommands() {
                 }
 
                 if (reg < 32) {
-                    g_psxRegs.CP2D.r[reg] = value;
+                    PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[reg] = value;
                     sprintf(reply, "225 %02X=%08X\r\n", reg, value);
                 } else {
                     sprintf(reply, "512 Invalid COP2D register: %02X\r\n", reg);
@@ -943,7 +937,8 @@ static void ProcessCommands() {
                     }
                 } else {
                     if ((bp = find_breakpoint(code))) {
-                        sprintf(reply, "400 %X@%08X-%s\r\n", bp->number, bp->address, s_breakpoint_type_names[bp->type]);
+                        sprintf(reply, "400 %X@%08X-%s\r\n", bp->number, bp->address,
+                                s_breakpoint_type_names[bp->type]);
                     } else {
                         sprintf(reply, "530 Invalid breakpoint number: %X\r\n", code);
                     }
@@ -1108,13 +1103,13 @@ static void ProcessCommands() {
             case 0x3A1:
                 // step over (jal)
                 if (s_paused) {
-                    u32 opcode = psxMemRead32(g_psxRegs.pc);
+                    uint32_t opcode = PCSX::g_emulator.m_psxMem->psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                     if ((opcode >> 26) == 3) {
                         s_step_over = 1;
-                        s_step_over_addr = g_psxRegs.pc + 8;
+                        s_step_over_addr = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 8;
                         s_paused = 0;
 
-                        sprintf(reply, "4A1 step over addr %08X\r\n", g_psxRegs.pc);
+                        sprintf(reply, "4A1 step over addr %08X\r\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
                     } else {
                         s_trace = 1;
                         s_paused = 0;
@@ -1137,7 +1132,7 @@ static void ProcessCommands() {
     }
 }
 
-void DebugCheckBP(u32 address, enum breakpoint_types type) {
+void PCSX::Debug::DebugCheckBP(uint32_t address, enum breakpoint_types type) {
     breakpoint_t *bp;
     char reply[512];
 
@@ -1145,7 +1140,7 @@ void DebugCheckBP(u32 address, enum breakpoint_types type) {
 
     for (bp = s_firstBP; bp; bp = next_breakpoint(bp)) {
         if ((bp->type == type) && (bp->address == address)) {
-            sprintf(reply, "030 %X@%08X\r\n", bp->number, g_psxRegs.pc);
+            sprintf(reply, "030 %X@%08X\r\n", bp->number, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
             return;
@@ -1153,49 +1148,49 @@ void DebugCheckBP(u32 address, enum breakpoint_types type) {
     }
     if (s_breakmp_e && type == BE) {
         if (!IsMapMarked(address, MAP_EXEC)) {
-            sprintf(reply, "010 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "010 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
     }
     if (s_breakmp_r8 && type == BR1) {
         if (!IsMapMarked(address, MAP_R8)) {
-            sprintf(reply, "011 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "011 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
     }
     if (s_breakmp_r16 && type == BR2) {
         if (!IsMapMarked(address, MAP_R16)) {
-            sprintf(reply, "012 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "012 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
     }
     if (s_breakmp_r32 && type == BR4) {
         if (!IsMapMarked(address, MAP_R32)) {
-            sprintf(reply, "013 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "013 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
     }
     if (s_breakmp_w8 && type == BW1) {
         if (!IsMapMarked(address, MAP_W8)) {
-            sprintf(reply, "014 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "014 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
     }
     if (s_breakmp_w16 && type == BW2) {
         if (!IsMapMarked(address, MAP_W16)) {
-            sprintf(reply, "015 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "015 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
     }
     if (s_breakmp_w32 && type == BW4) {
         if (!IsMapMarked(address, MAP_W32)) {
-            sprintf(reply, "016 %08X@%08X\r\n", address, g_psxRegs.pc);
+            sprintf(reply, "016 %08X@%08X\r\n", address, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
             WriteSocket(reply, strlen(reply));
             s_paused = 1;
         }
