@@ -127,17 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\gpu\soft\cfg.c" />
-    <ClCompile Include="..\..\src\gpu\soft\draw.c" />
-    <ClCompile Include="..\..\src\gpu\soft\DrawString.c" />
-    <ClCompile Include="..\..\src\gpu\soft\fps.c" />
-    <ClCompile Include="..\..\src\gpu\soft\gpu.c" />
-    <ClCompile Include="..\..\src\gpu\soft\key.c" />
-    <ClCompile Include="..\..\src\gpu\soft\menu.c" />
-    <ClCompile Include="..\..\src\gpu\soft\prim.c" />
-    <ClCompile Include="..\..\src\gpu\soft\record.c" />
-    <ClCompile Include="..\..\src\gpu\soft\soft.c" />
-    <ClCompile Include="..\..\src\gpu\soft\zn.c" />
+    <ClCompile Include="..\..\src\gpu\soft\cfg.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\draw.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\DrawString.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\fps.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\gpu.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\key.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\menu.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\prim.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\record.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\soft.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\zn.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gpu\soft\cfg.h" />

@@ -480,7 +480,7 @@ void ShowGunCursor(unsigned char *surf) {
 }
 #else
 
-static uint32_t *textureMem = NULL;
+static uint8_t *textureMem = NULL;
 
 void DoBufferSwap() {
     LONG x, y;
@@ -983,7 +983,7 @@ DWORD dwGPUStyle = 0;  // vars to store some wimdows stuff
 HANDLE hGPUMenu = NULL;
 
 unsigned long ulInitDisplay(void) {
-    textureMem = (uint32_t *)malloc(1024 * 512 * 4);
+    textureMem = (uint8_t *)malloc(1024 * 512 * 4);
 #if 0
                  HDC hdc;RECT r;
 

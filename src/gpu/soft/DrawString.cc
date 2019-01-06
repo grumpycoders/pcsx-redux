@@ -12,7 +12,7 @@ static void drawChar15(char *ptr, int lPitch, char c, int mw, int mh, int mode) 
     int x, y, w, h;
     int fx, fy;
     unsigned short *optr;
-    char *fptr;
+    unsigned char *fptr;
 
     if (mw > CHAR_W)
         w = CHAR_W;
@@ -43,7 +43,7 @@ static void drawChar16(char *ptr, int lPitch, char c, int mw, int mh, int mode) 
     int x, y, w, h;
     int fx, fy;
     unsigned short *optr;
-    char *fptr;
+    unsigned char *fptr;
 
     if (mw > CHAR_W)
         w = CHAR_W;
@@ -74,7 +74,7 @@ static void drawChar24(char *ptr, int lPitch, char c, int mw, int mh, int mode) 
     int x, y, w, h;
     int fx, fy;
     unsigned char *optr;
-    char *fptr;
+    unsigned char *fptr;
 
     if (mw > CHAR_W)
         w = CHAR_W;
@@ -107,7 +107,7 @@ static void drawChar32(char *ptr, int lPitch, char c, int mw, int mh, int mode) 
     int x, y, w, h;
     int fx, fy;
     unsigned long *optr;
-    char *fptr;
+    unsigned char *fptr;
 
     if (mw > CHAR_W)
         w = CHAR_W;

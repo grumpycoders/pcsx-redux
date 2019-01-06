@@ -111,44 +111,6 @@ typedef struct PSXRECTTAG {
     short y1;
 } PSXRect_t;
 
-#ifdef _WIN32
-
-#if 0
-                typedef struct SDXTAG
-{
- LPDIRECTDRAW                   DD;
-
- LPDIRECTDRAWSURFACE            DDSPrimary;
- LPDIRECTDRAWSURFACE            DDSRender;
- LPDIRECTDRAWSURFACE            DDSHelper;
- LPDIRECTDRAWSURFACE            DDSScreenPic;
- HWND                           hWnd;
-} sDX;
-
-#endif  // 0
-
-#else
-// linux defines for some windows stuff
-
-#define FALSE 0
-#define TRUE 1
-#define BOOL unsigned short
-#define LOWORD(l) ((unsigned short)(l))
-#define HIWORD(l) ((unsigned short)(((unsigned long)(l) >> 16) & 0xFFFF))
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#define DWORD unsigned long
-#define __int64 long long int
-
-typedef struct RECTTAG {
-    int left;
-    int top;
-    int right;
-    int bottom;
-} RECT;
-
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 
 typedef struct TWINTAG {
@@ -186,18 +148,12 @@ extern HINSTANCE hInst;
 
 // draw.c
 
-#ifndef _IN_DRAW
-
-#ifdef _WIN32
 // extern sDX            DX;
 extern unsigned int textureId;
 extern GUID guiDev;
 extern int iRefreshRate;
 extern BOOL bVsync;
 extern BOOL bVsync_Key;
-#else
-extern char *pCaptionText;
-#endif
 
 extern int iResX;
 extern int iResY;
@@ -226,16 +182,10 @@ extern int iFVDisplay;
 extern PSXPoint_t ptCursorPoint[];
 extern unsigned short usCursorActive;
 
-#ifdef _WIN32
 extern int iSysMemory;
 extern int iFPSEInterface;
-#endif
-
-#endif
 
 // prim.c
-
-#ifndef _IN_PRIMDRAW
 
 extern BOOL bUsingTWin;
 extern TWin_t TWin;
@@ -255,12 +205,7 @@ extern long drawY;
 extern long drawW;
 extern long drawH;
 
-#endif
-
 // gpu.c
-
-#ifndef _IN_GPU
-
 extern VRAMLoad_t VRAMWrite;
 extern VRAMLoad_t VRAMRead;
 extern DATAREGISTERMODES DataWriteMode;
@@ -295,38 +240,17 @@ extern unsigned long ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
 
-#endif
-
 // menu.c
-
-#ifndef _IN_MENU
-
 extern unsigned long dwCoreFlags;
-
-#ifdef _WIN32
 extern HFONT hGFont;
 extern int iMPos;
 extern BOOL bTransparent;
-#endif
-
-#endif
 
 // key.c
-
-#ifndef _IN_KEY
-
 extern unsigned long ulKeybits;
-
-#ifdef _WIN32
 extern char szGPUKeys[];
-#endif
-
-#endif
 
 // fps.c
-
-#ifndef _IN_FPS
-
 extern BOOL bInitCap;
 extern int UseFrameLimit;
 extern int UseFrameSkip;
@@ -335,36 +259,18 @@ extern int iFrameLimit;
 extern float fFrameRateHz;
 extern float fps_skip;
 extern float fps_cur;
-#ifdef _WIN32
 extern BOOL IsPerformanceCounter;
 extern int iStopSaver;
-#endif
 extern BOOL bSSSPSXLimit;
-
-#endif
 
 // key.c
 
-#ifndef _IN_KEY
-
-#endif
-
 // cfg.c
-
-#ifndef _IN_CFG
-
 extern char *pConfigFile;
 
-#endif
-
 // zn.c
-
-#ifndef _IN_ZN
-
 extern unsigned long dwGPUVersion;
 extern int iGPUHeight;
 extern int iGPUHeightMask;
 extern int GlobalTextIL;
 extern int iTileCheat;
-
-#endif

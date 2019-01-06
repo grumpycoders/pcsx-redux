@@ -365,7 +365,7 @@ BOOL SoftDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 // init dlg
 ////////////////////////////////////////////////////////////////////////
 
-void ComboBoxAddRes(HWND hWC, char *cs) {
+void ComboBoxAddRes(HWND hWC, const char *cs) {
     int i = ComboBox_FindString(hWC, -1, cs);
     if (i != CB_ERR) return;
     ComboBox_AddString(hWC, cs);
@@ -1463,6 +1463,7 @@ BOOL bTestModes(void) {
 
  return bDeviceOK;
 #endif
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////

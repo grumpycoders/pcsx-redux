@@ -151,7 +151,7 @@ const unsigned char revision = 1;
 const unsigned char build = 18;  // increase that with each version
 
 #ifdef _WIN32
-static char *libraryName = "P.E.Op.S. Soft Driver";
+static const char *libraryName = "P.E.Op.S. Soft Driver";
 #else
 #ifndef _SDL
 static char *libraryName = "P.E.Op.S. SoftX Driver";
@@ -162,7 +162,7 @@ static char *libraryInfo = "P.E.Op.S. SoftSDL Driver V1.18\nCoded by Pete Berner
 #endif
 #endif
 
-static char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
+static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
 
 ////////////////////////////////////////////////////////////////////////
 // memory image of the PSX vram
@@ -275,7 +275,7 @@ void GPUdebugSetPC(unsigned long addr)
 #include <time.h>
 time_t tStart;
 
-void softGPUdisplayText(char *pText)  // some debug func
+extern "C" void softGPUdisplayText(char *pText)  // some debug func
 {
     if (!pText) {
         szDebugText[0] = 0;
@@ -288,7 +288,7 @@ void softGPUdisplayText(char *pText)  // some debug func
 
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
+extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
 {
     dwCoreFlags = dwFlags;
     BuildDispMenu(0);
@@ -298,7 +298,7 @@ void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
 // stuff to make this a true PDK module
 ////////////////////////////////////////////////////////////////////////
 
-char *PSEgetLibName(void) { return libraryName; }
+const char *PSEgetLibName(void) { return libraryName; }
 
 unsigned long PSEgetLibType(void) { return PSE_LT_GPU; }
 
@@ -393,7 +393,7 @@ void DoTextSnapShot(int iNum) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUmakeSnapshot(void)  // snapshot of whole vram
+extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 {
     FILE *bmpfile;
     char filename[256];
@@ -469,7 +469,7 @@ void softGPUmakeSnapshot(void)  // snapshot of whole vram
 // INIT, will be called after lib load... well, just do some var init...
 ////////////////////////////////////////////////////////////////////////
 
-long softGPUinit()  // GPU INIT
+extern "C" long softGPUinit()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(unsigned long));  // init save state scontrol field
 
@@ -535,7 +535,7 @@ long softGPUinit()  // GPU INIT
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-long softGPUopen(unsigned int textureIdGPU)  // GPU OPEN
+extern "C" long softGPUopen(unsigned int textureIdGPU)  // GPU OPEN
 {
     textureId = textureIdGPU;  // store hwnd
 
@@ -591,7 +591,7 @@ long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-long softGPUclose()  // GPU CLOSE
+extern "C" long softGPUclose()  // GPU CLOSE
 {
 #if 0
     if (RECORD_RECORDING == TRUE) {
@@ -616,7 +616,7 @@ long softGPUclose()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-long softGPUshutdown()  // GPU SHUTDOWN
+extern "C" long softGPUshutdown()  // GPU SHUTDOWN
 {
     // screensaver: release the handle for kernel32.dll
     FreeKernel32();
@@ -839,7 +839,7 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 // gun cursor func: player=0-7, x=0-511, y=0-255
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUcursor(int iPlayer, int x, int y) {
+extern "C" void softGPUcursor(int iPlayer, int x, int y) {
     if (iPlayer < 0) return;
     if (iPlayer > 7) return;
 
@@ -858,7 +858,7 @@ void softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called evry VSync
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUupdateLace(void)  // VSYNC
+extern "C" void softGPUupdateLace(void)  // VSYNC
 {
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
@@ -901,7 +901,7 @@ void softGPUupdateLace(void)  // VSYNC
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-unsigned long softGPUreadStatus(void)  // READ STATUS
+extern "C" unsigned long softGPUreadStatus(void)  // READ STATUS
 {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
@@ -937,7 +937,7 @@ unsigned long softGPUreadStatus(void)  // READ STATUS
 // these are always single packet commands.
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUwriteStatus(unsigned long gdata)  // WRITE STATUS
+extern "C" void softGPUwriteStatus(unsigned long gdata)  // WRITE STATUS
 {
     unsigned long lCommand = (gdata >> 24) & 0xff;
 
@@ -1218,7 +1218,7 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUreadDataMem(unsigned long *pMem, int iSize) {
+extern "C" void softGPUreadDataMem(unsigned long *pMem, int iSize) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) return;
@@ -1281,7 +1281,7 @@ ENDREAD:
 
 ////////////////////////////////////////////////////////////////////////
 
-unsigned long softGPUreadData(void) {
+extern "C" unsigned long softGPUreadData(void) {
     unsigned long l;
     softGPUreadDataMem(&l, 1);
     return lGPUdataRet;
@@ -1360,7 +1360,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-void softGPUwriteDataMem(unsigned long *pMem, int iSize) {
+extern "C" void softGPUwriteDataMem(unsigned long *pMem, int iSize) {
     unsigned char command;
     unsigned long gdata = 0;
     int i = 0;
@@ -1474,19 +1474,19 @@ ENDVRAM:
 
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUwriteData(unsigned long gdata) { softGPUwriteDataMem(&gdata, 1); }
+extern "C" void softGPUwriteData(unsigned long gdata) { softGPUwriteDataMem(&gdata, 1); }
 
 ////////////////////////////////////////////////////////////////////////
 // this functions will be removed soon (or 'soonish')... not really needed, but some emus want them
 ////////////////////////////////////////////////////////////////////////
 
-void softGPUsetMode(unsigned long gdata) {
+extern "C" void softGPUsetMode(unsigned long gdata) {
     // Peops does nothing here...
     // DataWriteMode=(gdata&1)?DR_VRAMTRANSFER:DR_NORMAL;
     // DataReadMode =(gdata&2)?DR_VRAMTRANSFER:DR_NORMAL;
 }
 
-long softGPUgetMode(void) {
+extern "C" long softGPUgetMode(void) {
     long iT = 0;
 
     if (DataWriteMode == DR_VRAMTRANSFER) iT |= 0x1;
@@ -1498,7 +1498,7 @@ long softGPUgetMode(void) {
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
 
-long softGPUconfigure(void) {
+extern "C" long softGPUconfigure(void) {
 #ifdef _WIN32
     HWND hWP = GetActiveWindow();
 
@@ -1551,7 +1551,7 @@ __inline BOOL CheckForEndlessLoop(unsigned long laddr) {
     return FALSE;
 }
 
-long softGPUdmaChain(unsigned long *baseAddrL, unsigned long addr) {
+extern "C" long softGPUdmaChain(unsigned long *baseAddrL, unsigned long addr) {
     unsigned long dmaMem;
     unsigned char *baseAddrB;
     short count;
@@ -1601,7 +1601,7 @@ BOOL AboutDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 #endif
 
-void softGPUabout(void)  // ABOUT
+extern "C" void softGPUabout(void)  // ABOUT
 {
 #ifdef _WIN32
     HWND hWP = GetActiveWindow();  // to be sure
@@ -1618,7 +1618,7 @@ void softGPUabout(void)  // ABOUT
 // We are ever fine ;)
 ////////////////////////////////////////////////////////////////////////
 
-long softGPUtest(void) {
+extern "C" long softGPUtest(void) {
     // if test fails this function should return negative value for error (unable to continue)
     // and positive value for warning (can continue but output might be crappy)
     return 0;
@@ -1637,7 +1637,7 @@ typedef struct GPUFREEZETAG {
 
 ////////////////////////////////////////////////////////////////////////
 
-long softGPUfreeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
+extern "C" long softGPUfreeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
     //----------------------------------------------------//
     if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
     {
@@ -1815,7 +1815,7 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 // rendered picture
 
 #ifdef _WIN32
-void softGPUgetScreenPic(unsigned char *pMem) {
+extern "C" void softGPUgetScreenPic(unsigned char *pMem) {
 #if 0
                  HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
  int x,y,c,v,iCol;RECT r,rt;
@@ -2209,7 +2209,7 @@ void GPUgetScreenPic(unsigned char *pMem) {
 // release your picture data and stop displaying
 // the screen pic
 
-void softGPUshowScreenPic(unsigned char *pMem) {
+extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
     DestroyPic();           // destroy old pic data
     if (pMem == 0) return;  // done
     CreatePic(pMem);        // create new pic... don't free pMem or something like that... just read from it
@@ -2239,7 +2239,7 @@ void GPUsetframelimit(unsigned long option) {
 
 #ifdef _WIN32
 
-void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
+extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
     int iVibVal;
 
     if (PreviousPSXDisplay.DisplayMode.x)  // calc min "shake pixel" from screen width
