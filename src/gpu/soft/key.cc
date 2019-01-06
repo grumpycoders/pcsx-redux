@@ -51,15 +51,15 @@
 
 #define _IN_KEY
 
-#include "draw.h"
-#include "externals.h"
-#include "gpu.h"
-#include "key.h"
-#include "menu.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/key.h"
+#include "gpu/soft/menu.h"
 
 #ifdef _WIN32
 
-#include "record.h"
+#include "gpu/soft/record.h"
 
 ////////////////////////////////////////////////////////////////////////
 // KeyBoard handler stuff

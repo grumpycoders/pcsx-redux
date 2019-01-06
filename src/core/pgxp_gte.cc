@@ -25,6 +25,7 @@
  *      Author: iCatButler
  ***************************************************************************/
 
+#include "core/gpu.h"
 #include "core/pgxp_gte.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
@@ -83,10 +84,11 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
 
     // cache value in GPU plugin
     temp.word = _v;
-    if (PCSX::g_emulator.config().PGXP_Cache)
-        GPU_pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char*>(&SXY2));
-    else
-        GPU_pgxpCacheVertex(0, 0, NULL);
+    if (PCSX::g_emulator.config().PGXP_Cache) {
+        PCSX::g_emulator.m_gpu->pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char*>(&SXY2));
+    } else {
+        PCSX::g_emulator.m_gpu->pgxpCacheVertex(0, 0, NULL);
+    }
 
     GTE_LOG("PGXP_PUSH (%f, %f) %u %u|", SXY2.x, SXY2.y, SXY2.flags, SXY2.count);
 }

@@ -71,16 +71,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -147,6 +147,7 @@
     <ClInclude Include="..\..\src\gpu\soft\externals.h" />
     <ClInclude Include="..\..\src\gpu\soft\fps.h" />
     <ClInclude Include="..\..\src\gpu\soft\gpu.h" />
+    <ClInclude Include="..\..\src\gpu\soft\interface.h" />
     <ClInclude Include="..\..\src\gpu\soft\interp.h" />
     <ClInclude Include="..\..\src\gpu\soft\key.h" />
     <ClInclude Include="..\..\src\gpu\soft\menu.h" />

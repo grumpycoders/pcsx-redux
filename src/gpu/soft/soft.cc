@@ -74,13 +74,13 @@
 
 #define _IN_SOFT
 
-#include "externals.h"
-#include "soft.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/soft.h"
 
 //#define VC_INLINE
-#include "gpu.h"
-#include "menu.h"
-#include "prim.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/menu.h"
+#include "gpu/soft/prim.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
 // "NO EDGE BUFFER" POLY VERSION... FUNCS BASED ON FATMAP.TXT FROM MRI / Doomsday

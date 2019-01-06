@@ -85,10 +85,10 @@
 
 #define _IN_PRIMDRAW
 
-#include "draw.h"
-#include "externals.h"
-#include "gpu.h"
-#include "soft.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/soft.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals

@@ -24,6 +24,7 @@
 #include <stddef.h>
 
 #include "core/cdrom.h"
+#include "core/gpu.h"
 #include "core/mdec.h"
 #include "core/misc.h"
 #include "core/ppf.h"
@@ -95,12 +96,12 @@ void mmssdd(char *b, char *p) {
     time[1] = PCSX::CDRom::itob(time[1]); \
     time[2] = PCSX::CDRom::itob(time[2]);
 
-#define READTRACK()                                                      \
+#define READTRACK()                                                  \
     if (!PCSX::g_emulator.m_cdrom->m_iso.readTrack(time)) return -1; \
-    buf = PCSX::g_emulator.m_cdrom->m_iso.getBuffer();                    \
-    if (buf == NULL)                                                     \
-        return -1;                                                       \
-    else                                                                 \
+    buf = PCSX::g_emulator.m_cdrom->m_iso.getBuffer();               \
+    if (buf == NULL)                                                 \
+        return -1;                                                   \
+    else                                                             \
         PCSX::g_emulator.m_cdrom->m_ppf.CheckPPFCache(buf, time[0], time[1], time[2]);
 
 #define READDIR(_dir)             \
@@ -357,10 +358,11 @@ int CheckCdrom() {
     }
 
     if (PCSX::g_emulator.config().PsxAuto) {  // autodetect system (pal or ntsc)
-        if ((PCSX::g_emulator.m_cdromId[2] == 'e') || (PCSX::g_emulator.m_cdromId[2] == 'E') || !strncmp(PCSX::g_emulator.m_cdromId, "DTLS3035", 8) ||
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||                           // according to redump.org, these PAL
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||                           // discs have a non-standard ID;
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))                             // add more serials if they are discovered.
+        if ((PCSX::g_emulator.m_cdromId[2] == 'e') || (PCSX::g_emulator.m_cdromId[2] == 'E') ||
+            !strncmp(PCSX::g_emulator.m_cdromId, "DTLS3035", 8) ||
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||          // according to redump.org, these PAL
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||          // discs have a non-standard ID;
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))            // add more serials if they are discovered.
             PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_PAL;  // pal
         else
             PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
@@ -692,7 +694,7 @@ void RewindState() {
     LoadStateMem(s_mem_cur_save_count);
 }
 
-static GPUFreeze_t *s_gpufP = NULL;
+static PCSX::GPU::GPUFreeze_t *s_gpufP = NULL;
 static SPUFreeze_t *s_spufP = NULL;
 
 int SaveStateMem(const uint32_t id) { return 0; }
@@ -709,7 +711,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     gzwrite(f, (void *)&SaveVersion, sizeof(uint32_t));
     gzwrite(f, (void *)&PCSX::g_emulator.config().HLE, sizeof(bool));
 
-    if (gzsize) GPU_getScreenPic(pMemGpuPic);  // Not necessary with ephemeral saves
+    if (gzsize) PCSX::g_emulator.m_gpu->getScreenPic(pMemGpuPic);  // Not necessary with ephemeral saves
     gzwrite(f, pMemGpuPic, SZ_GPUPIC);
 
     if (PCSX::g_emulator.config().HLE) PCSX::g_emulator.m_psxBios->psxBiosFreeze(1);
@@ -720,10 +722,10 @@ int SaveStateGz(gzFile f, long *gzsize) {
     gzwrite(f, (void *)&PCSX::g_emulator.m_psxCpu->m_psxRegs, sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs));
 
     // gpu
-    if (!s_gpufP) s_gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
+    if (!s_gpufP) s_gpufP = (PCSX::GPU::GPUFreeze_t *)malloc(sizeof(PCSX::GPU::GPUFreeze_t));
     s_gpufP->ulFreezeVersion = 1;
-    GPU_freeze(1, s_gpufP);
-    gzwrite(f, s_gpufP, sizeof(GPUFreeze_t));
+    PCSX::g_emulator.m_gpu->freeze(1, s_gpufP);
+    gzwrite(f, s_gpufP, sizeof(PCSX::GPU::GPUFreeze_t));
 
     // SPU Plugin cannot change during run, so we query size info just once per session
     if (!s_spufP) {
@@ -790,9 +792,9 @@ int LoadStateGz(gzFile f) {
     if (PCSX::g_emulator.config().HLE) PCSX::g_emulator.m_psxBios->psxBiosFreeze(0);
 
     // gpu
-    if (!s_gpufP) s_gpufP = (GPUFreeze_t *)malloc(sizeof(GPUFreeze_t));
-    gzread(f, s_gpufP, sizeof(GPUFreeze_t));
-    GPU_freeze(0, s_gpufP);
+    if (!s_gpufP) s_gpufP = (PCSX::GPU::GPUFreeze_t *)malloc(sizeof(PCSX::GPU::GPUFreeze_t));
+    gzread(f, s_gpufP, sizeof(PCSX::GPU::GPUFreeze_t));
+    PCSX::g_emulator.m_gpu->freeze(0, s_gpufP);
 
     // spu
     gzread(f, &Size, 4);

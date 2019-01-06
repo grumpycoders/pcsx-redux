@@ -28,7 +28,7 @@
 
 #define _IN_ZN
 
-#include "externals.h"
+#include "gpu/soft/externals.h"
 
 // --------------------------------------------------- //
 // - psx gpu plugin interface prototypes-------------- //

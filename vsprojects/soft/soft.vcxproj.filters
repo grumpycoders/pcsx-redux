@@ -98,5 +98,8 @@
     <ClInclude Include="..\..\src\gpu\soft\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gpu\soft\interface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

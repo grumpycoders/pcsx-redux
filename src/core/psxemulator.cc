@@ -28,6 +28,8 @@
 #include "core/psxbios.h"
 #include "core/r3000a.h"
 
+#include "gpu/soft/interface.h"
+
 PCSX::Emulator::Emulator() {
     m_psxMem = new PCSX::Memory();
     m_psxCounters = new PCSX::Counters();
@@ -37,7 +39,7 @@ PCSX::Emulator::Emulator() {
     m_cdrom = PCSX::CDRom::factory();
     m_cheats = new PCSX::Cheats();
     m_mdec = new PCSX::MDEC();
-    m_gpu = new PCSX::GPU();
+    m_gpu = new PCSX::SoftGPU();
     m_debug = new PCSX::Debug();
     m_hw = new PCSX::HW();
 }
@@ -92,7 +94,7 @@ void PCSX::Emulator::EmuUpdate() {
 
     if (m_vblank_count_hideafter) {
         if (!(--m_vblank_count_hideafter)) {
-            GPU_showScreenPic(NULL);
+            PCSX::g_emulator.m_gpu->showScreenPic(NULL);
         }
     }
 

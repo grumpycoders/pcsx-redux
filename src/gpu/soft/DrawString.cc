@@ -1,6 +1,6 @@
 
-#include "DrawString.h"
-#include "DrawStringFont.h"
+#include "gpu/soft/DrawString.h"
+#include "gpu/soft/DrawStringFont.h"
 
 #define CHAR_W 10
 #define CHAR_H 14

@@ -126,18 +126,19 @@
 #define _IN_GPU
 
 #ifdef _WIN32
-#include "record.h"
+#include "gpu/soft/record.h"
 #endif
 
-#include "cfg.h"
-#include "draw.h"
-#include "externals.h"
-#include "fps.h"
-#include "gpu.h"
-#include "key.h"
-#include "menu.h"
-#include "prim.h"
-#include "psemu.h"
+#include "gpu/soft/cfg.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/fps.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/interface.h"
+#include "gpu/soft/key.h"
+#include "gpu/soft/menu.h"
+#include "gpu/soft/prim.h"
+#include "gpu/soft/psemu.h"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>
@@ -181,7 +182,6 @@ signed long *psxVsl;
 // GPU globals
 ////////////////////////////////////////////////////////////////////////
 
-static long lGPUdataRet;
 long lGPUstatusRet;
 char szDispBuf[64];
 char szMenuBuf[36];
@@ -469,7 +469,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 // INIT, will be called after lib load... well, just do some var init...
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long softGPUinit()  // GPU INIT
+long PCSX::SoftGPU::init()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(unsigned long));  // init save state scontrol field
 
@@ -535,7 +535,7 @@ extern "C" long softGPUinit()  // GPU INIT
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-extern "C" long softGPUopen(unsigned int textureIdGPU)  // GPU OPEN
+long PCSX::SoftGPU::open(unsigned int textureIdGPU)  // GPU OPEN
 {
     textureId = textureIdGPU;  // store hwnd
 
@@ -591,7 +591,7 @@ long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long softGPUclose()  // GPU CLOSE
+long PCSX::SoftGPU::close()  // GPU CLOSE
 {
 #if 0
     if (RECORD_RECORDING == TRUE) {
@@ -616,7 +616,7 @@ extern "C" long softGPUclose()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long softGPUshutdown()  // GPU SHUTDOWN
+long PCSX::SoftGPU::shutdown()  // GPU SHUTDOWN
 {
     // screensaver: release the handle for kernel32.dll
     FreeKernel32();
@@ -827,9 +827,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 #ifdef _WIN32
 void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 {
-    softGPUclose();
+//    softGPUclose();
     iWindowMode = !iWindowMode;
-    softGPUopen(textureId);
+//    softGPUopen(textureId);
     bChangeWinMode = FALSE;
     bDoVSyncUpdate = TRUE;
 }
@@ -858,7 +858,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called evry VSync
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUupdateLace(void)  // VSYNC
+void PCSX::SoftGPU::updateLace()  // VSYNC
 {
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
@@ -901,7 +901,7 @@ extern "C" void softGPUupdateLace(void)  // VSYNC
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" unsigned long softGPUreadStatus(void)  // READ STATUS
+uint32_t PCSX::SoftGPU::readStatus(void)  // READ STATUS
 {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
@@ -937,7 +937,7 @@ extern "C" unsigned long softGPUreadStatus(void)  // READ STATUS
 // these are always single packet commands.
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUwriteStatus(unsigned long gdata)  // WRITE STATUS
+void PCSX::SoftGPU::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
     unsigned long lCommand = (gdata >> 24) & 0xff;
 
@@ -1218,7 +1218,7 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUreadDataMem(unsigned long *pMem, int iSize) {
+void PCSX::SoftGPU::readDataMem(uint32_t *pMem, int iSize) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) return;
@@ -1277,14 +1277,6 @@ extern "C" void softGPUreadDataMem(unsigned long *pMem, int iSize) {
 
 ENDREAD:
     GPUIsIdle;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-extern "C" unsigned long softGPUreadData(void) {
-    unsigned long l;
-    softGPUreadDataMem(&l, 1);
-    return lGPUdataRet;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1360,7 +1352,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-extern "C" void softGPUwriteDataMem(unsigned long *pMem, int iSize) {
+void PCSX::SoftGPU::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     unsigned long gdata = 0;
     int i = 0;
@@ -1473,10 +1465,6 @@ ENDVRAM:
 }
 
 ////////////////////////////////////////////////////////////////////////
-
-extern "C" void softGPUwriteData(unsigned long gdata) { softGPUwriteDataMem(&gdata, 1); }
-
-////////////////////////////////////////////////////////////////////////
 // this functions will be removed soon (or 'soonish')... not really needed, but some emus want them
 ////////////////////////////////////////////////////////////////////////
 
@@ -1551,7 +1539,7 @@ __inline BOOL CheckForEndlessLoop(unsigned long laddr) {
     return FALSE;
 }
 
-extern "C" long softGPUdmaChain(unsigned long *baseAddrL, unsigned long addr) {
+long PCSX::SoftGPU::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
     unsigned long dmaMem;
     unsigned char *baseAddrB;
     short count;
@@ -1566,13 +1554,13 @@ extern "C" long softGPUdmaChain(unsigned long *baseAddrL, unsigned long addr) {
     do {
         if (iGPUHeight == 512) addr &= 0x1FFFFC;
         if (DMACommandCounter++ > 2000000) break;
-        if (CheckForEndlessLoop(addr)) break;
+        if (::CheckForEndlessLoop(addr)) break;
 
         count = baseAddrB[addr + 3];
 
         dmaMem = addr + 4;
 
-        if (count > 0) softGPUwriteDataMem(&baseAddrL[dmaMem >> 2], count);
+        if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count);
 
         addr = baseAddrL[addr >> 2] & 0xffffff;
     } while (addr != 0xffffff);
@@ -1637,7 +1625,7 @@ typedef struct GPUFREEZETAG {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long softGPUfreeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
+long PCSX::SoftGPU::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
     //----------------------------------------------------//
     if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
     {
@@ -1669,15 +1657,15 @@ extern "C" long softGPUfreeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
 
     // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT
 
-    softGPUwriteStatus(ulStatusControl[0]);
-    softGPUwriteStatus(ulStatusControl[1]);
-    softGPUwriteStatus(ulStatusControl[2]);
-    softGPUwriteStatus(ulStatusControl[3]);
-    softGPUwriteStatus(ulStatusControl[8]);  // try to repair things
-    softGPUwriteStatus(ulStatusControl[6]);
-    softGPUwriteStatus(ulStatusControl[7]);
-    softGPUwriteStatus(ulStatusControl[5]);
-    softGPUwriteStatus(ulStatusControl[4]);
+    writeStatus(ulStatusControl[0]);
+    writeStatus(ulStatusControl[1]);
+    writeStatus(ulStatusControl[2]);
+    writeStatus(ulStatusControl[3]);
+    writeStatus(ulStatusControl[8]);  // try to repair things
+    writeStatus(ulStatusControl[6]);
+    writeStatus(ulStatusControl[7]);
+    writeStatus(ulStatusControl[5]);
+    writeStatus(ulStatusControl[4]);
 
     return 1;
 }

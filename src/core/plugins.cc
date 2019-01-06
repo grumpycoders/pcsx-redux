@@ -21,15 +21,18 @@
  * Plugin library callback/access functions.
  */
 
+#include "core/plugins.h"
 #include "core/cdriso.h"
 #include "core/cdrom.h"
-#include "core/plugins.h"
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
 static char AppPath[MAXPATHLEN] = "";  // Application path(== pcsxr.exe directory)
 static char LdrFile[MAXPATHLEN] = "";  // bin-load file
+
+#if 0
 
 GPUupdateLace GPU_updateLace;
 GPUinit GPU_init;
@@ -101,6 +104,8 @@ void softGPUvSync(int val);
 void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
 void softGPUvBlank(int val);
 }
+
+#endif
 
 SPUconfigure SPU_configure;
 SPUabout SPU_about;
@@ -230,26 +235,6 @@ static const char *err;
             SysLibError();                 \
     }
 
-void GPU__displayText(char *pText) { PCSX::g_system->SysPrintf("%s\n", pText); }
-
-long GPU__configure(void) { return 0; }
-long GPU__test(void) { return 0; }
-void GPU__about(void) {}
-void GPU__makeSnapshot(void) {}
-void GPU__toggleDebug(void) {}
-void GPU__keypressed(int key) {}
-long GPU__getScreenPic(unsigned char *pMem) { return -1; }
-long GPU__showScreenPic(unsigned char *pMem) { return -1; }
-void GPU__clearDynarec(void(*callback)(void)) {}
-void GPU__hSync(int val) {}
-void GPU__vBlank(int val) {}
-void GPU__visualVibration(unsigned long iSmall, unsigned long iBig) {}
-void GPU__cursor(int player, int x, int y) {}
-void GPU__addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
-void GPU__setSpeed(float newSpeed) {}
-void GPU__pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
-void GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
-
 #if 0
 #define LoadGpuSym1(dest, name) LoadSym(GPU_##dest, GPU##dest, name, true);
 
@@ -295,6 +280,8 @@ static int LoadGPUplugin() {
     LoadGpuSym0(about, "GPUabout");
 #endif
 
+#if 0
+
 #define LoadGpuSymD(s, x) GPU_##s = GPU__##s;
 #define LoadGpuSym0(s, x) GPU_##s = softGPU##s
 #define LoadGpuSym1(s, x) GPU_##s = softGPU##s
@@ -330,6 +317,8 @@ static int LoadGPUplugin() {
     LoadGpuSym0(configure, "GPUconfigure");
     LoadGpuSym0(test, "GPUtest");
     LoadGpuSym0(about, "GPUabout");
+
+#endif
 
     return 0;
 }
@@ -482,9 +471,9 @@ long nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
 
 void nullSPU_async(uint32_t length) {}
 
-void(*nullSPU_irqcallback)(void);
+void (*nullSPU_irqcallback)(void);
 
-void nullSPU_registerCallback(void(*callback)(void)) { nullSPU_irqcallback = callback; }
+void nullSPU_registerCallback(void (*callback)(void)) { nullSPU_irqcallback = callback; }
 
 void nullSPU_writeDMA(unsigned short val) {
     spumem[spu_sbaddr >> 1] = val;
@@ -635,8 +624,8 @@ void PAD1__about(void) {}
 long PAD1__test(void) { return 0; }
 long PAD1__query(void) { return 3; }
 long PAD1__keypressed() { return 0; }
-void PAD1__registerVibration(void(*callback)(uint32_t, uint32_t)) {}
-void PAD1__registerCursor(void(*callback)(int, int, int)) {}
+void PAD1__registerVibration(void (*callback)(uint32_t, uint32_t)) {}
+void PAD1__registerCursor(void (*callback)(int, int, int)) {}
 
 #define LoadPad1Sym1(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, true);
 
@@ -707,8 +696,8 @@ void PAD2__about(void) {}
 long PAD2__test(void) { return 0; }
 long PAD2__query(void) { return PSE_PAD_USE_PORT1 | PSE_PAD_USE_PORT2; }
 long PAD2__keypressed() { return 0; }
-void PAD2__registerVibration(void(*callback)(uint32_t, uint32_t)) {}
-void PAD2__registerCursor(void(*callback)(int, int, int)) {}
+void PAD2__registerVibration(void (*callback)(uint32_t, uint32_t)) {}
+void PAD2__registerCursor(void (*callback)(int, int, int)) {}
 
 #define LoadPad2Sym1(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, true);
 
@@ -827,7 +816,7 @@ uint32_t SIO1__readCtrl32(void) { return 0; }
 uint16_t SIO1__readBaud16(void) { return 0; }
 uint32_t SIO1__readBaud32(void) { return 0; }
 void SIO1__update(uint32_t t){};
-void SIO1__registerCallback(void(*callback)(void)){};
+void SIO1__registerCallback(void (*callback)(void)){};
 
 #define LoadSio1Sym1(dest, name) LoadSym(SIO1_##dest, SIO1##dest, name, true);
 
@@ -896,7 +885,7 @@ int LoadPlugins() {
 #endif
 
     PCSX::g_emulator.m_cdrom->m_iso.init();
-    ret = GPU_init();
+    ret = PCSX::g_emulator.m_gpu->init();
     if (ret < 0) {
         PCSX::g_system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
@@ -944,7 +933,7 @@ void ReleasePlugins() {
     }
 
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
-    if (GPU_shutdown) GPU_shutdown();
+    PCSX::g_emulator.m_gpu->shutdown();
     if (SPU_shutdown) SPU_shutdown();
     if (PAD1_shutdown) PAD1_shutdown();
     if (PAD2_shutdown) PAD2_shutdown();

@@ -21,6 +21,7 @@
  * Internal PSX counters.
  */
 
+#include "core/gpu.h"
 #include "core/psxcounters.h"
 #include "core/debug.h"
 
@@ -163,7 +164,7 @@ void PCSX::Counters::psxRcntUpdate() {
     if (cycle - m_rcnts[3].cycleStart >= m_rcnts[3].cycle) {
         psxRcntReset(3);
 
-        GPU_hSync(m_hSyncCount);
+        PCSX::g_emulator.m_gpu->hSync(m_hSyncCount);
 
         m_spuSyncCount++;
         m_hSyncCount++;
@@ -185,7 +186,7 @@ void PCSX::Counters::psxRcntUpdate() {
 
         // VSync irq.
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator.config().Video]) {
-            GPU_vBlank(1);
+            PCSX::g_emulator.m_gpu->vBlank(1);
 
             // For the best times. :D
             // setIrq( 0x01 );
@@ -195,10 +196,10 @@ void PCSX::Counters::psxRcntUpdate() {
         if (m_hSyncCount >= m_HSyncTotal[PCSX::g_emulator.config().Video]) {
             m_hSyncCount = 0;
 
-            GPU_vBlank(0);
+            PCSX::g_emulator.m_gpu->vBlank(0);
             setIrq(0x01);
 
-            GPU_updateLace();
+            PCSX::g_emulator.m_gpu->updateLace();
             PCSX::g_emulator.EmuUpdate();
         }
     }

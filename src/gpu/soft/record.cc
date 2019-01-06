@@ -31,13 +31,13 @@
 //
 //*************************************************************************//
 
-#include "record.h"
+#include "gpu/soft/record.h"
 #include <direct.h>
 #include <math.h>
 #include <stdio.h>
 //#include <vfw.h>
-#include "externals.h"
-#include "gpu.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
 #include "stdafx.h"
 
 #if 0

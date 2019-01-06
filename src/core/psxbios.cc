@@ -21,6 +21,7 @@
  * Internal simulated HLE BIOS.
  */
 
+#include "core/gpu.h"
 #include "core/psxbios.h"
 #include "core/psxhw.h"
 
@@ -1355,13 +1356,13 @@ class BiosImpl : public PCSX::Bios {
 
         PSXBIOS_LOG("psxBios_%s\n", A0names[0x46]);
 
-        GPU_writeData(0xa0000000);
-        GPU_writeData((a1 << 16) | (a0 & 0xffff));
-        GPU_writeData((a3 << 16) | (a2 & 0xffff));
+        PCSX::g_emulator.m_gpu->writeData(0xa0000000);
+        PCSX::g_emulator.m_gpu->writeData((a1 << 16) | (a0 & 0xffff));
+        PCSX::g_emulator.m_gpu->writeData((a3 << 16) | (a2 & 0xffff));
         size = (a2 * a3 + 1) / 2;
         ptr = (int32_t *)PSXM(Rsp[4]);  // that is correct?
         do {
-            GPU_writeData(SWAP_LE32(*ptr));
+            PCSX::g_emulator.m_gpu->writeData(SWAP_LE32(*ptr));
             ptr++;
         } while (--size);
 
@@ -1371,11 +1372,11 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_mem2vram() {  // 0x47
         int size;
 
-        GPU_writeData(0xa0000000);
-        GPU_writeData((a1 << 16) | (a0 & 0xffff));
-        GPU_writeData((a3 << 16) | (a2 & 0xffff));
+        PCSX::g_emulator.m_gpu->writeData(0xa0000000);
+        PCSX::g_emulator.m_gpu->writeData((a1 << 16) | (a0 & 0xffff));
+        PCSX::g_emulator.m_gpu->writeData((a3 << 16) | (a2 & 0xffff));
         size = (a2 * a3 + 1) / 2;
-        GPU_writeStatus(0x04000002);
+        PCSX::g_emulator.m_gpu->writeStatus(0x04000002);
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f4, 0);
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f0, PCSX::g_emulator.m_hw->psxHwRead32(0x1f8010f0) | 0x800);
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a0, Rsp[4]);  // might have a buggy...
@@ -1386,12 +1387,12 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_SendGPU() {  // 0x48
-        GPU_writeStatus(a0);
+        PCSX::g_emulator.m_gpu->writeStatus(a0);
         pc0 = ra;
     }
 
     void psxBios_GPU_cw() {  // 0x49
-        GPU_writeData(a0);
+        PCSX::g_emulator.m_gpu->writeData(a0);
         pc0 = ra;
     }
 
@@ -1399,7 +1400,7 @@ class BiosImpl : public PCSX::Bios {
         int32_t *ptr = (int32_t *)Ra0;
         int size = a1;
         while (size--) {
-            GPU_writeData(SWAP_LE32(*ptr));
+            PCSX::g_emulator.m_gpu->writeData(SWAP_LE32(*ptr));
             ptr++;
         }
 
@@ -1407,7 +1408,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_GPU_SendPackets() {  // 4b:
-        GPU_writeStatus(0x04000002);
+        PCSX::g_emulator.m_gpu->writeStatus(0x04000002);
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f4, 0);
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010f0, PCSX::g_emulator.m_hw->psxHwRead32(0x1f8010f0) | 0x800);
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a0, a0);
@@ -1418,15 +1419,15 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_sys_a0_4c() {  // 0x4c GPU relate
         PCSX::g_emulator.m_hw->psxHwWrite32(0x1f8010a8, 0x00000401);
-        GPU_writeData(0x0400000);
-        GPU_writeData(0x0200000);
-        GPU_writeData(0x0100000);
+        PCSX::g_emulator.m_gpu->writeData(0x0400000);
+        PCSX::g_emulator.m_gpu->writeData(0x0200000);
+        PCSX::g_emulator.m_gpu->writeData(0x0100000);
 
         pc0 = ra;
     }
 
     void psxBios_GPU_GetGPUStatus() {  // 0x4d
-        v0 = GPU_readStatus();
+        v0 = PCSX::g_emulator.m_gpu->readStatus();
         pc0 = ra;
     }
 
@@ -2087,7 +2088,7 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_write() {  // 0x35/0x03
-        if (a0 == 1) {  // stdout
+        if (a0 == 1) {      // stdout
             char *ptr = Ra1;
 
             while (a2 > 0) {

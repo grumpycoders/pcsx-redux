@@ -22,6 +22,7 @@
  */
 
 #include "core/disr3000a.h"
+#include "core/gpu.h"
 #include "core/gte.h"
 #include "core/ix86/ix86.h"
 #include "core/pgxp_cpu.h"
@@ -62,6 +63,11 @@ void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator.m_psx
 uint32_t psxRcntRcountWrapper(uint32_t index) { return PCSX::g_emulator.m_psxCounters->psxRcntRcount(index); }
 uint32_t psxRcntRmodeWrapper(uint32_t index) { return PCSX::g_emulator.m_psxCounters->psxRcntRmode(index); }
 uint32_t psxRcntRtargetWrapper(uint32_t index) { return PCSX::g_emulator.m_psxCounters->psxRcntRtarget(index); }
+
+unsigned long GPU_readDataWrapper() { return PCSX::g_emulator.m_gpu->readData(); }
+unsigned long GPU_readStatusWrapper() { return PCSX::g_emulator.m_gpu->readStatus(); }
+void GPU_writeDataWrapper(uint32_t gdata) { PCSX::g_emulator.m_gpu->writeData(gdata); }
+void GPU_writeStatusWrapper(unsigned long gdata) { PCSX::g_emulator.m_gpu->writeStatus(gdata); }
 
 #undef PC_REC
 #undef PC_REC8
@@ -270,7 +276,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     void recRecompile();
 
 #define CP2_FUNC(f)                                                         \
-    static void gte##f##Wrapper() { PCSX::g_emulator.m_gte->f(); }     \
+    static void gte##f##Wrapper() { PCSX::g_emulator.m_gte->f(); }          \
     void rec##f() {                                                         \
         iFlushRegs();                                                       \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
@@ -2060,7 +2066,7 @@ void X86DynaRecCPU::recLW() {
                     if (!_Rt_) return;
                     m_iRegs[_Rt_].state = ST_UNK;
 
-                    gen.CALL32M((uint32_t)&GPU_readData);
+                    gen.CALLFunc((uint32_t)&GPU_readDataWrapper);
                     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
                     return;
 
@@ -2068,7 +2074,7 @@ void X86DynaRecCPU::recLW() {
                     if (!_Rt_) return;
                     m_iRegs[_Rt_].state = ST_UNK;
 
-                    gen.CALL32M((uint32_t)&GPU_readStatus);
+                    gen.CALLFunc((uint32_t)&GPU_readStatusWrapper);
                     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
                     return;
             }
@@ -2489,7 +2495,7 @@ void X86DynaRecCPU::recSW() {
                     } else {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
-                    gen.CALL32M((uint32_t)&GPU_writeData);
+                    gen.CALLFunc((uint32_t)GPU_writeDataWrapper);
                     m_resp += 4;
                     return;
 
@@ -2499,7 +2505,7 @@ void X86DynaRecCPU::recSW() {
                     } else {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
-                    gen.CALL32M((uint32_t)&GPU_writeStatus);
+                    gen.CALLFunc((uint32_t)&GPU_writeStatusWrapper);
                     m_resp += 4;
                     return;
             }

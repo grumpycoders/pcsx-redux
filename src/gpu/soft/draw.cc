@@ -104,11 +104,11 @@
 
 #define _IN_DRAW
 
-#include "draw.h"
-#include "externals.h"
-#include "gpu.h"
-#include "menu.h"
-#include "prim.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/menu.h"
+#include "gpu/soft/prim.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
 // misc globals
@@ -1324,7 +1324,7 @@ static int bModeChanged = 0;
 #ifdef USE_DGA2
 
 #include <X11/extensions/xf86dga.h>
-#include "DrawString.h"
+#include "gpu/soft/DrawString.h"
 XDGADevice *dgaDev;
 static XDGAMode *dgaModes;
 static int dgaNModes = 0;

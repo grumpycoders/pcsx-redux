@@ -100,12 +100,12 @@
 
 #include <stdio.h>
 //#include <vfw.h>
-#include "record.h"
+#include "gpu/soft/record.h"
 #include "stdafx.h"
 
-#include "cfg.h"
-#include "externals.h"
-#include "gpu.h"
+#include "gpu/soft/cfg.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
 
 //-------------------------------------------------------------------------// linux headers
 #else
@@ -116,9 +116,9 @@
 #define MAKELONG(low, high) \
     ((unsigned long)(((unsigned short)(low)) | (((unsigned long)((unsigned short)(high))) << 16)))
 
-#include "cfg.h"
-#include "externals.h"
-#include "gpu.h"
+#include "gpu/soft/cfg.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
 
 #endif
 

@@ -59,6 +59,7 @@ typedef unsigned long(* PSEgetLibType)(void);
 typedef unsigned long(* PSEgetLibVersion)(void);
 typedef char*(* PSEgetLibName)(void);
 
+#if 0
 // GPU Functions
 typedef long(* GPUinit)(void);
 typedef long(* GPUshutdown)(void);
@@ -78,12 +79,6 @@ typedef void(* GPUmakeSnapshot)(void);
 typedef void(* GPUtoggleDebug)(void);
 typedef void(* GPUkeypressed)(int);
 typedef void(* GPUdisplayText)(char*);
-typedef struct {
-    uint32_t ulFreezeVersion;
-    uint32_t ulStatus;
-    uint32_t ulControl[256];
-    unsigned char psxVRam[1024 * 512 * 2];
-} GPUFreeze_t;
 typedef long(* GPUfreeze)(uint32_t, GPUFreeze_t*);
 typedef long(* GPUgetScreenPic)(unsigned char*);
 typedef long(* GPUshowScreenPic)(unsigned char*);
@@ -96,7 +91,9 @@ typedef void(* GPUaddVertex)(short, short, int64_t, int64_t, int64_t);
 typedef void(* GPUsetSpeed)(float);  // 1.0 = natural speed
 typedef void(* GPUpgxpMemory)(unsigned int, unsigned char*);
 typedef void(* GPUpgxpCacheVertex)(short sx, short sy, const unsigned char* _pVertex);
+#endif
 
+#if 0
 // GPU function pointers
 extern GPUupdateLace GPU_updateLace;
 extern GPUinit GPU_init;
@@ -129,6 +126,7 @@ extern GPUaddVertex GPU_addVertex;
 extern GPUsetSpeed GPU_setSpeed;
 extern GPUpgxpMemory GPU_pgxpMemory;
 extern GPUpgxpCacheVertex GPU_pgxpCacheVertex;
+#endif
 
 struct CdrStat {
     uint32_t Type;
@@ -266,8 +264,8 @@ typedef struct {
     char CdromID[9];  // ie. 'SCPH12345', no \0 trailing character
     char CdromLabel[11];
     void* psxMem;
-    GPUshowScreenPic GPU_showScreenPic;
-    GPUdisplayText GPU_displayText;
+//    GPUshowScreenPic GPU_showScreenPic;
+//    GPUdisplayText GPU_displayText;
     PADsetSensitive PAD_setSensitive;
     char GPUpath[256];  // paths must be absolute
     char SPUpath[256];
