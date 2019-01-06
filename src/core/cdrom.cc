@@ -25,7 +25,7 @@
 #include "core/ppf.h"
 #include "core/psxdma.h"
 
-void CALLBACK SPUirq(void);
+void SPUirq(void);
 extern SPUregisterCallback SPU_registerCallback;
 
 namespace {

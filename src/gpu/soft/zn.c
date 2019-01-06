@@ -35,35 +35,35 @@
 // --------------------------------------------------- //
 
 #ifdef _WIN32
-long CALLBACK GPUopen(HWND hwndGPU);
+long GPUopen(HWND hwndGPU);
 #else
 long GPUopen(unsigned long* disp, const char* CapText, const char* CfgFile);
 #endif
-void CALLBACK GPUdisplayText(char* pText);
-void CALLBACK GPUdisplayFlags(unsigned long dwFlags);
-void CALLBACK GPUmakeSnapshot(void);
-long CALLBACK GPUinit();
-long CALLBACK GPUclose();
-long CALLBACK GPUshutdown();
-void CALLBACK GPUcursor(int iPlayer, int x, int y);
-void CALLBACK GPUupdateLace(void);
-unsigned long CALLBACK GPUreadStatus(void);
-void CALLBACK GPUwriteStatus(unsigned long gdata);
-void CALLBACK GPUreadDataMem(unsigned long* pMem, int iSize);
-unsigned long CALLBACK GPUreadData(void);
-void CALLBACK GPUwriteDataMem(unsigned long* pMem, int iSize);
-void CALLBACK GPUwriteData(unsigned long gdata);
-void CALLBACK GPUsetMode(unsigned long gdata);
-long CALLBACK GPUgetMode(void);
-long CALLBACK GPUdmaChain(unsigned long* baseAddrL, unsigned long addr);
-long CALLBACK GPUconfigure(void);
-void CALLBACK GPUabout(void);
-long CALLBACK GPUtest(void);
-long CALLBACK GPUfreeze(unsigned long ulGetFreezeData, void* pF);
-void CALLBACK GPUgetScreenPic(unsigned char* pMem);
-void CALLBACK GPUshowScreenPic(unsigned char* pMem);
+void GPUdisplayText(char* pText);
+void GPUdisplayFlags(unsigned long dwFlags);
+void GPUmakeSnapshot(void);
+long GPUinit();
+long GPUclose();
+long GPUshutdown();
+void GPUcursor(int iPlayer, int x, int y);
+void GPUupdateLace(void);
+unsigned long GPUreadStatus(void);
+void GPUwriteStatus(unsigned long gdata);
+void GPUreadDataMem(unsigned long* pMem, int iSize);
+unsigned long GPUreadData(void);
+void GPUwriteDataMem(unsigned long* pMem, int iSize);
+void GPUwriteData(unsigned long gdata);
+void GPUsetMode(unsigned long gdata);
+long GPUgetMode(void);
+long GPUdmaChain(unsigned long* baseAddrL, unsigned long addr);
+long GPUconfigure(void);
+void GPUabout(void);
+long GPUtest(void);
+long GPUfreeze(unsigned long ulGetFreezeData, void* pF);
+void GPUgetScreenPic(unsigned char* pMem);
+void GPUshowScreenPic(unsigned char* pMem);
 #ifndef _WIN32
-void CALLBACK GPUkeypressed(int keycode);
+void GPUkeypressed(int keycode);
 #endif
 
 // --------------------------------------------------- //
@@ -95,21 +95,21 @@ typedef struct GPUOTAG {
 
 #if 0
 
-void CALLBACK ZN_GPUdisplayFlags(unsigned long dwFlags)
+void ZN_GPUdisplayFlags(unsigned long dwFlags)
 {
  GPUdisplayFlags(dwFlags);
 }
 
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUmakeSnapshot(void)
+void ZN_GPUmakeSnapshot(void)
 {
  GPUmakeSnapshot();
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUinit()
+long ZN_GPUinit()
 {                                                      // we always set the vram size to 2MB, if the ZN interface is used
  iGPUHeight=1024;
  iGPUHeightMask=1023;
@@ -121,7 +121,7 @@ long CALLBACK ZN_GPUinit()
 
 extern char * pConfigFile;
 
-long CALLBACK ZN_GPUopen(void * vcfg)
+long ZN_GPUopen(void * vcfg)
 {
  GPUConfiguration_t * cfg=(GPUConfiguration_t *)vcfg;
  long lret;
@@ -156,42 +156,42 @@ long CALLBACK ZN_GPUopen(void * vcfg)
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUclose()
+long ZN_GPUclose()
 {
  return GPUclose();
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUshutdown()
+long ZN_GPUshutdown()
 {
  return GPUshutdown();
 }
 
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUupdateLace(void)
+void ZN_GPUupdateLace(void)
 {
  GPUupdateLace();
 }
 
 // --------------------------------------------------- //
 
-unsigned long CALLBACK ZN_GPUreadStatus(void)
+unsigned long ZN_GPUreadStatus(void)
 {
  return GPUreadStatus();
 }
 
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUwriteStatus(unsigned long gdata)
+void ZN_GPUwriteStatus(unsigned long gdata)
 {
  GPUwriteStatus(gdata);
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUdmaSliceOut(unsigned long *baseAddrL, unsigned long addr, unsigned long iSize)
+long ZN_GPUdmaSliceOut(unsigned long *baseAddrL, unsigned long addr, unsigned long iSize)
 {
  GPUreadDataMem(baseAddrL+addr,iSize);
  return 0;
@@ -199,70 +199,70 @@ long CALLBACK ZN_GPUdmaSliceOut(unsigned long *baseAddrL, unsigned long addr, un
 
 // --------------------------------------------------- //
 
-unsigned long CALLBACK ZN_GPUreadData(void)
+unsigned long ZN_GPUreadData(void)
 {
  return GPUreadData();
 }
 
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUsetMode(unsigned long gdata)
+void ZN_GPUsetMode(unsigned long gdata)
 {
  GPUsetMode(gdata);
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUgetMode(void)
+long ZN_GPUgetMode(void)
 {
  return GPUgetMode();
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUdmaSliceIn(unsigned long *baseAddrL, unsigned long addr, unsigned long iSize)
+long ZN_GPUdmaSliceIn(unsigned long *baseAddrL, unsigned long addr, unsigned long iSize)
 {
  GPUwriteDataMem(baseAddrL+addr,iSize);
  return 0;
 }
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUwriteData(unsigned long gdata)
+void ZN_GPUwriteData(unsigned long gdata)
 {
  GPUwriteDataMem(&gdata,1);
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUdmaChain(unsigned long * baseAddrL, unsigned long addr)
+long ZN_GPUdmaChain(unsigned long * baseAddrL, unsigned long addr)
 {
  return GPUdmaChain(baseAddrL,addr);
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUtest(void)
+long ZN_GPUtest(void)
 {
  return GPUtest();
 }
 
 // --------------------------------------------------- //
 
-long CALLBACK ZN_GPUfreeze(unsigned long ulGetFreezeData,void * pF)
+long ZN_GPUfreeze(unsigned long ulGetFreezeData,void * pF)
 {
  return GPUfreeze(ulGetFreezeData,pF);
 }
 
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUgetScreenPic(unsigned char * pMem)
+void ZN_GPUgetScreenPic(unsigned char * pMem)
 {
  GPUgetScreenPic(pMem);
 }
 
 // --------------------------------------------------- //
 
-void CALLBACK ZN_GPUshowScreenPic(unsigned char * pMem)
+void ZN_GPUshowScreenPic(unsigned char * pMem)
 {
  GPUshowScreenPic(pMem);
 }
@@ -271,7 +271,7 @@ void CALLBACK ZN_GPUshowScreenPic(unsigned char * pMem)
 
 #ifndef _WIN32
 
-void CALLBACK ZN_GPUkeypressed(int keycode)
+void ZN_GPUkeypressed(int keycode)
 {
  GPUkeypressed(keycode);
 }

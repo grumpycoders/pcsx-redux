@@ -129,7 +129,7 @@ class SIO {
 
     void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
 
-    static void CALLBACK SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
+    static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 };
 
 }  // namespace PCSX

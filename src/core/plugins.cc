@@ -66,40 +66,40 @@ GPUpgxpCacheVertex GPU_pgxpCacheVertex;
 extern "C" {
 
 #ifdef _WIN32
-long CALLBACK softGPUopen(unsigned int texture);
+long softGPUopen(unsigned int texture);
 #else
 long softGPUopen(unsigned long *disp, const char *CapText, const char *CfgFile);
 #endif
-void CALLBACK softGPUdisplayText(char *pText);
-void CALLBACK softGPUdisplayFlags(uint32_t dwFlags);
-void CALLBACK softGPUmakeSnapshot(void);
-long CALLBACK softGPUinit();
-long CALLBACK softGPUclose();
-long CALLBACK softGPUshutdown();
-void CALLBACK softGPUcursor(int iPlayer, int x, int y);
-void CALLBACK softGPUupdateLace(void);
-uint32_t CALLBACK softGPUreadStatus(void);
-void CALLBACK softGPUwriteStatus(uint32_t gdata);
-void CALLBACK softGPUreadDataMem(uint32_t *pMem, int iSize);
-uint32_t CALLBACK softGPUreadData(void);
-void CALLBACK softGPUwriteDataMem(uint32_t *pMem, int iSize);
-void CALLBACK softGPUwriteData(uint32_t gdata);
-void CALLBACK softGPUsetMode(uint32_t gdata);
-long CALLBACK softGPUgetMode(void);
-long CALLBACK softGPUdmaChain(uint32_t *baseAddrL, uint32_t addr);
-long CALLBACK softGPUconfigure(void);
-void CALLBACK softGPUabout(void);
-long CALLBACK softGPUtest(void);
-long CALLBACK softGPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF);
-long CALLBACK softGPUgetScreenPic(unsigned char *pMem);
-long CALLBACK softGPUshowScreenPic(unsigned char *pMem);
+void softGPUdisplayText(char *pText);
+void softGPUdisplayFlags(uint32_t dwFlags);
+void softGPUmakeSnapshot(void);
+long softGPUinit();
+long softGPUclose();
+long softGPUshutdown();
+void softGPUcursor(int iPlayer, int x, int y);
+void softGPUupdateLace(void);
+uint32_t softGPUreadStatus(void);
+void softGPUwriteStatus(uint32_t gdata);
+void softGPUreadDataMem(uint32_t *pMem, int iSize);
+uint32_t softGPUreadData(void);
+void softGPUwriteDataMem(uint32_t *pMem, int iSize);
+void softGPUwriteData(uint32_t gdata);
+void softGPUsetMode(uint32_t gdata);
+long softGPUgetMode(void);
+long softGPUdmaChain(uint32_t *baseAddrL, uint32_t addr);
+long softGPUconfigure(void);
+void softGPUabout(void);
+long softGPUtest(void);
+long softGPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF);
+long softGPUgetScreenPic(unsigned char *pMem);
+long softGPUshowScreenPic(unsigned char *pMem);
 #ifndef _WIN32
-void CALLBACK softGPUkeypressed(int keycode);
+void softGPUkeypressed(int keycode);
 #endif
-void CALLBACK softGPUhSync(int val);
-void CALLBACK softGPUvSync(int val);
-void CALLBACK softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
-void CALLBACK softGPUvBlank(int val);
+void softGPUhSync(int val);
+void softGPUvSync(int val);
+void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
+void softGPUvBlank(int val);
 }
 
 SPUconfigure SPU_configure;
@@ -230,25 +230,25 @@ static const char *err;
             SysLibError();                 \
     }
 
-void CALLBACK GPU__displayText(char *pText) { PCSX::g_system->SysPrintf("%s\n", pText); }
+void GPU__displayText(char *pText) { PCSX::g_system->SysPrintf("%s\n", pText); }
 
-long CALLBACK GPU__configure(void) { return 0; }
-long CALLBACK GPU__test(void) { return 0; }
-void CALLBACK GPU__about(void) {}
-void CALLBACK GPU__makeSnapshot(void) {}
-void CALLBACK GPU__toggleDebug(void) {}
-void CALLBACK GPU__keypressed(int key) {}
-long CALLBACK GPU__getScreenPic(unsigned char *pMem) { return -1; }
-long CALLBACK GPU__showScreenPic(unsigned char *pMem) { return -1; }
-void CALLBACK GPU__clearDynarec(void(CALLBACK *callback)(void)) {}
-void CALLBACK GPU__hSync(int val) {}
-void CALLBACK GPU__vBlank(int val) {}
-void CALLBACK GPU__visualVibration(unsigned long iSmall, unsigned long iBig) {}
-void CALLBACK GPU__cursor(int player, int x, int y) {}
-void CALLBACK GPU__addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
-void CALLBACK GPU__setSpeed(float newSpeed) {}
-void CALLBACK GPU__pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
-void CALLBACK GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
+long GPU__configure(void) { return 0; }
+long GPU__test(void) { return 0; }
+void GPU__about(void) {}
+void GPU__makeSnapshot(void) {}
+void GPU__toggleDebug(void) {}
+void GPU__keypressed(int key) {}
+long GPU__getScreenPic(unsigned char *pMem) { return -1; }
+long GPU__showScreenPic(unsigned char *pMem) { return -1; }
+void GPU__clearDynarec(void(*callback)(void)) {}
+void GPU__hSync(int val) {}
+void GPU__vBlank(int val) {}
+void GPU__visualVibration(unsigned long iSmall, unsigned long iBig) {}
+void GPU__cursor(int player, int x, int y) {}
+void GPU__addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {}
+void GPU__setSpeed(float newSpeed) {}
+void GPU__pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
+void GPU__pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
 
 #if 0
 #define LoadGpuSym1(dest, name) LoadSym(GPU_##dest, GPU##dest, name, true);
@@ -334,9 +334,9 @@ static int LoadGPUplugin() {
     return 0;
 }
 
-long CALLBACK SPU__configure(void) { return 0; }
-void CALLBACK SPU__about(void) {}
-long CALLBACK SPU__test(void) { return 0; }
+long SPU__configure(void) { return 0; }
+void SPU__about(void) {}
+long SPU__test(void) { return 0; }
 
 //#define LoadSpuSym1(dest, name) LoadSym(SPU_##dest, SPU##dest, name, true);
 
@@ -358,14 +358,14 @@ static int spu_sbaddr;
 static short spureg[(0x1e00 - 0x1c00) / 2];
 static short *spumem;
 
-long CALLBACK nullSPU_init(void) {
+long nullSPU_init(void) {
     spumem = (short *)malloc(512 * 1024);
     if (spumem == NULL) return -1;
 
     return 0;
 }
 
-long CALLBACK nullSPU_shutdown(void) {
+long nullSPU_shutdown(void) {
     if (spumem != NULL) {
         free(spumem);
         spumem = NULL;
@@ -374,13 +374,13 @@ long CALLBACK nullSPU_shutdown(void) {
     return 0;
 }
 
-long CALLBACK nullSPU_open(HWND hwnd) { return 0; }
+long nullSPU_open(HWND hwnd) { return 0; }
 
-long CALLBACK nullSPU_close(void) { return 0; }
+long nullSPU_close(void) { return 0; }
 
 // New Interface
 
-void CALLBACK nullSPU_writeRegister(unsigned long reg, unsigned short val) {
+void nullSPU_writeRegister(unsigned long reg, unsigned short val) {
     spureg[(reg - 0x1f801c00) / 2] = val;
     switch (reg) {
         case 0x1f801da6:  // spu sbaddr
@@ -394,7 +394,7 @@ void CALLBACK nullSPU_writeRegister(unsigned long reg, unsigned short val) {
     }
 }
 
-unsigned short CALLBACK nullSPU_readRegister(unsigned long reg) {
+unsigned short nullSPU_readRegister(unsigned long reg) {
     switch (reg) {
         case 0x1f801da6:  // spu sbaddr
             return spu_sbaddr / 8;
@@ -411,7 +411,7 @@ unsigned short CALLBACK nullSPU_readRegister(unsigned long reg) {
     return 0;
 }
 
-void CALLBACK nullSPU_readDMAMem(unsigned short *ptr, int size) {
+void nullSPU_readDMAMem(unsigned short *ptr, int size) {
     for (int i = 0; i < size; i++) {
         ptr[i] = spumem[spu_sbaddr / 2];
         spu_sbaddr += 2;
@@ -419,7 +419,7 @@ void CALLBACK nullSPU_readDMAMem(unsigned short *ptr, int size) {
     }
 }
 
-void CALLBACK nullSPU_writeDMAMem(unsigned short *ptr, int size) {
+void nullSPU_writeDMAMem(unsigned short *ptr, int size) {
     for (int i = 0; i < size; i++) {
         spumem[spu_sbaddr / 2] = (short)ptr[i];
         spu_sbaddr += 2;
@@ -427,42 +427,42 @@ void CALLBACK nullSPU_writeDMAMem(unsigned short *ptr, int size) {
     }
 }
 
-void CALLBACK nullSPU_playADPCMchannel(xa_decode_t *xap) {}
+void nullSPU_playADPCMchannel(xa_decode_t *xap) {}
 // Old Interface
 
-unsigned short CALLBACK nullSPU_getOne(unsigned long val) {
+unsigned short nullSPU_getOne(unsigned long val) {
     if (val > 0x7ffff) return 0;
     return spumem[val / 2];
 }
 
-void CALLBACK nullSPU_putOne(unsigned long val, unsigned short data) {
+void nullSPU_putOne(unsigned long val, unsigned short data) {
     if (val > 0x7ffff) return;
     spumem[val / 2] = data;
 }
 
-void CALLBACK nullSPU_setAddr(unsigned char ch, unsigned short waddr) {}
+void nullSPU_setAddr(unsigned char ch, unsigned short waddr) {}
 
-void CALLBACK nullSPU_setPitch(unsigned char ch, unsigned short pitch) {}
+void nullSPU_setPitch(unsigned char ch, unsigned short pitch) {}
 
-void CALLBACK nullSPU_setVolumeL(unsigned char ch, short vol) {}
+void nullSPU_setVolumeL(unsigned char ch, short vol) {}
 
-void CALLBACK nullSPU_setVolumeR(unsigned char ch, short vol) {}
+void nullSPU_setVolumeR(unsigned char ch, short vol) {}
 
-void CALLBACK nullSPU_startChannels1(unsigned short channels) {}
+void nullSPU_startChannels1(unsigned short channels) {}
 
-void CALLBACK nullSPU_startChannels2(unsigned short channels) {}
+void nullSPU_startChannels2(unsigned short channels) {}
 
-void CALLBACK nullSPU_stopChannels1(unsigned short channels) {}
+void nullSPU_stopChannels1(unsigned short channels) {}
 
-void CALLBACK nullSPU_stopChannels2(unsigned short channels) {}
+void nullSPU_stopChannels2(unsigned short channels) {}
 
-long CALLBACK nullSPU_test(void) { return 0; }
+long nullSPU_test(void) { return 0; }
 
-long CALLBACK nullSPU_configure(void) { return 0; }
+long nullSPU_configure(void) { return 0; }
 
-void CALLBACK nullSPU_about(void) {}
+void nullSPU_about(void) {}
 
-long CALLBACK nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
+long nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
 #if 0
     if( ulFreezeMode == 1 )
     {
@@ -480,19 +480,19 @@ long CALLBACK nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
     return 1;
 }
 
-void CALLBACK nullSPU_async(uint32_t length) {}
+void nullSPU_async(uint32_t length) {}
 
-void(CALLBACK *nullSPU_irqcallback)(void);
+void(*nullSPU_irqcallback)(void);
 
-void CALLBACK nullSPU_registerCallback(void(CALLBACK *callback)(void)) { nullSPU_irqcallback = callback; }
+void nullSPU_registerCallback(void(*callback)(void)) { nullSPU_irqcallback = callback; }
 
-void CALLBACK nullSPU_writeDMA(unsigned short val) {
+void nullSPU_writeDMA(unsigned short val) {
     spumem[spu_sbaddr >> 1] = val;
     spu_sbaddr += 2;
     if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
 }
 
-unsigned short CALLBACK nullSPU_readDMA(void) {
+unsigned short nullSPU_readDMA(void) {
     unsigned short s = spumem[spu_sbaddr >> 1];
     spu_sbaddr += 2;
     if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
@@ -620,7 +620,7 @@ unsigned char _PADpoll(unsigned char value) {
     return s_buf[bufc++];
 }
 
-unsigned char CALLBACK PAD1__startPoll(int pad) {
+unsigned char PAD1__startPoll(int pad) {
     PadDataS padd;
 
     PAD1_readPort1(&padd);
@@ -628,15 +628,15 @@ unsigned char CALLBACK PAD1__startPoll(int pad) {
     return _PADstartPoll(&padd);
 }
 
-unsigned char CALLBACK PAD1__poll(unsigned char value) { return _PADpoll(value); }
+unsigned char PAD1__poll(unsigned char value) { return _PADpoll(value); }
 
-long CALLBACK PAD1__configure(void) { return 0; }
-void CALLBACK PAD1__about(void) {}
-long CALLBACK PAD1__test(void) { return 0; }
-long CALLBACK PAD1__query(void) { return 3; }
-long CALLBACK PAD1__keypressed() { return 0; }
-void CALLBACK PAD1__registerVibration(void(CALLBACK *callback)(uint32_t, uint32_t)) {}
-void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
+long PAD1__configure(void) { return 0; }
+void PAD1__about(void) {}
+long PAD1__test(void) { return 0; }
+long PAD1__query(void) { return 3; }
+long PAD1__keypressed() { return 0; }
+void PAD1__registerVibration(void(*callback)(uint32_t, uint32_t)) {}
+void PAD1__registerCursor(void(*callback)(int, int, int)) {}
 
 #define LoadPad1Sym1(dest, name) LoadSym(PAD1_##dest, PAD##dest, name, true);
 
@@ -646,11 +646,11 @@ void CALLBACK PAD1__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
     LoadSym(PAD1_##dest, PAD##dest, name, false); \
     if (PAD1_##dest == NULL) PAD1_##dest = (PAD##dest)PAD1__##dest;
 
-long CALLBACK nullPAD_init(long flags) { return 0; }
-long CALLBACK nullPAD_shutdown() { return 0; }
-long CALLBACK nullPAD_open(HWND x) { return 0; }
-long CALLBACK nullPAD_close() { return 0; }
-long CALLBACK nullPAD_readPort(PadDataS *data) {
+long nullPAD_init(long flags) { return 0; }
+long nullPAD_shutdown() { return 0; }
+long nullPAD_open(HWND x) { return 0; }
+long nullPAD_close() { return 0; }
+long nullPAD_readPort(PadDataS *data) {
     memset(data, 0, sizeof(PadDataS));
     return 0;
 }
@@ -692,7 +692,7 @@ static int LoadPAD1plugin() {
     return 0;
 }
 
-unsigned char CALLBACK PAD2__startPoll(int pad) {
+unsigned char PAD2__startPoll(int pad) {
     PadDataS padd;
 
     PAD2_readPort2(&padd);
@@ -700,15 +700,15 @@ unsigned char CALLBACK PAD2__startPoll(int pad) {
     return _PADstartPoll(&padd);
 }
 
-unsigned char CALLBACK PAD2__poll(unsigned char value) { return _PADpoll(value); }
+unsigned char PAD2__poll(unsigned char value) { return _PADpoll(value); }
 
-long CALLBACK PAD2__configure(void) { return 0; }
-void CALLBACK PAD2__about(void) {}
-long CALLBACK PAD2__test(void) { return 0; }
-long CALLBACK PAD2__query(void) { return PSE_PAD_USE_PORT1 | PSE_PAD_USE_PORT2; }
-long CALLBACK PAD2__keypressed() { return 0; }
-void CALLBACK PAD2__registerVibration(void(CALLBACK *callback)(uint32_t, uint32_t)) {}
-void CALLBACK PAD2__registerCursor(void(CALLBACK *callback)(int, int, int)) {}
+long PAD2__configure(void) { return 0; }
+void PAD2__about(void) {}
+long PAD2__test(void) { return 0; }
+long PAD2__query(void) { return PSE_PAD_USE_PORT1 | PSE_PAD_USE_PORT2; }
+long PAD2__keypressed() { return 0; }
+void PAD2__registerVibration(void(*callback)(uint32_t, uint32_t)) {}
+void PAD2__registerCursor(void(*callback)(int, int, int)) {}
 
 #define LoadPad2Sym1(dest, name) LoadSym(PAD2_##dest, PAD##dest, name, true);
 
@@ -755,11 +755,11 @@ static int LoadPAD2plugin() {
     return 0;
 }
 
-void CALLBACK NET__setInfo(netInfo *info) {}
-void CALLBACK NET__keypressed(int key) {}
-long CALLBACK NET__configure(void) { return 0; }
-long CALLBACK NET__test(void) { return 0; }
-void CALLBACK NET__about(void) {}
+void NET__setInfo(netInfo *info) {}
+void NET__keypressed(int key) {}
+long NET__configure(void) { return 0; }
+long NET__test(void) { return 0; }
+void NET__about(void) {}
 
 #define LoadNetSym1(dest, name) LoadSym(NET_##dest, NET##dest, name, true);
 
@@ -794,40 +794,40 @@ static int LoadNETplugin() {
 
 #ifdef ENABLE_SIO1API
 
-long CALLBACK SIO1__init(void) { return 0; }
-long CALLBACK SIO1__shutdown(void) { return 0; }
-long CALLBACK SIO1__open(void) { return 0; }
-long CALLBACK SIO1__close(void) { return 0; }
-long CALLBACK SIO1__configure(void) { return 0; }
-long CALLBACK SIO1__test(void) { return 0; }
-void CALLBACK SIO1__about(void) {}
-void CALLBACK SIO1__pause(void) {}
-void CALLBACK SIO1__resume(void) {}
-long CALLBACK SIO1__keypressed(int key) { return 0; }
-void CALLBACK SIO1__writeData8(uint8_t val) {}
-void CALLBACK SIO1__writeData16(uint16_t val) {}
-void CALLBACK SIO1__writeData32(uint32_t val) {}
-void CALLBACK SIO1__writeStat16(uint16_t val) {}
-void CALLBACK SIO1__writeStat32(uint32_t val) {}
-void CALLBACK SIO1__writeMode16(uint16_t val) {}
-void CALLBACK SIO1__writeMode32(uint32_t val) {}
-void CALLBACK SIO1__writeCtrl16(uint16_t val) {}
-void CALLBACK SIO1__writeCtrl32(uint32_t val) {}
-void CALLBACK SIO1__writeBaud16(uint16_t val) {}
-void CALLBACK SIO1__writeBaud32(uint32_t val) {}
-uint8_t CALLBACK SIO1__readData8(void) { return 0; }
-uint16_t CALLBACK SIO1__readData16(void) { return 0; }
-uint32_t CALLBACK SIO1__readData32(void) { return 0; }
-uint16_t CALLBACK SIO1__readStat16(void) { return 0; }
-uint32_t CALLBACK SIO1__readStat32(void) { return 0; }
-uint16_t CALLBACK SIO1__readMode16(void) { return 0; }
-uint32_t CALLBACK SIO1__readMode32(void) { return 0; }
-uint16_t CALLBACK SIO1__readCtrl16(void) { return 0; }
-uint32_t CALLBACK SIO1__readCtrl32(void) { return 0; }
-uint16_t CALLBACK SIO1__readBaud16(void) { return 0; }
-uint32_t CALLBACK SIO1__readBaud32(void) { return 0; }
-void CALLBACK SIO1__update(uint32_t t){};
-void CALLBACK SIO1__registerCallback(void(CALLBACK *callback)(void)){};
+long SIO1__init(void) { return 0; }
+long SIO1__shutdown(void) { return 0; }
+long SIO1__open(void) { return 0; }
+long SIO1__close(void) { return 0; }
+long SIO1__configure(void) { return 0; }
+long SIO1__test(void) { return 0; }
+void SIO1__about(void) {}
+void SIO1__pause(void) {}
+void SIO1__resume(void) {}
+long SIO1__keypressed(int key) { return 0; }
+void SIO1__writeData8(uint8_t val) {}
+void SIO1__writeData16(uint16_t val) {}
+void SIO1__writeData32(uint32_t val) {}
+void SIO1__writeStat16(uint16_t val) {}
+void SIO1__writeStat32(uint32_t val) {}
+void SIO1__writeMode16(uint16_t val) {}
+void SIO1__writeMode32(uint32_t val) {}
+void SIO1__writeCtrl16(uint16_t val) {}
+void SIO1__writeCtrl32(uint32_t val) {}
+void SIO1__writeBaud16(uint16_t val) {}
+void SIO1__writeBaud32(uint32_t val) {}
+uint8_t SIO1__readData8(void) { return 0; }
+uint16_t SIO1__readData16(void) { return 0; }
+uint32_t SIO1__readData32(void) { return 0; }
+uint16_t SIO1__readStat16(void) { return 0; }
+uint32_t SIO1__readStat32(void) { return 0; }
+uint16_t SIO1__readMode16(void) { return 0; }
+uint32_t SIO1__readMode32(void) { return 0; }
+uint16_t SIO1__readCtrl16(void) { return 0; }
+uint32_t SIO1__readCtrl32(void) { return 0; }
+uint16_t SIO1__readBaud16(void) { return 0; }
+uint32_t SIO1__readBaud32(void) { return 0; }
+void SIO1__update(uint32_t t){};
+void SIO1__registerCallback(void(*callback)(void)){};
 
 #define LoadSio1Sym1(dest, name) LoadSym(SIO1_##dest, SIO1##dest, name, true);
 
@@ -878,7 +878,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
 
 #endif
 
-void CALLBACK clearDynarec(void) { PCSX::g_emulator.m_psxCpu->Reset(); }
+void clearDynarec(void) { PCSX::g_emulator.m_psxCpu->Reset(); }
 
 int LoadPlugins() {
     long ret;

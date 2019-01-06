@@ -23,4 +23,4 @@
 
 #include "core/spu.h"
 
-void CALLBACK SPUirq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x200); }
+void SPUirq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x200); }

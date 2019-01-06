@@ -2405,9 +2405,7 @@ void X86DynaRecCPU::recSH() {
                 }
                 gen.PUSH32I(addr);
                 gen.CALL32M((uint32_t)&SPU_writeRegister);
-#ifndef _WIN32
                 m_resp += 8;
-#endif
                 return;
             }
         }
@@ -2492,9 +2490,7 @@ void X86DynaRecCPU::recSW() {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
                     gen.CALL32M((uint32_t)&GPU_writeData);
-#ifndef _WIN32
                     m_resp += 4;
-#endif
                     return;
 
                 case 0x1f801814:
@@ -2504,9 +2500,7 @@ void X86DynaRecCPU::recSW() {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
                     gen.CALL32M((uint32_t)&GPU_writeStatus);
-#ifndef _WIN32
                     m_resp += 4;
-#endif
                     return;
             }
         }

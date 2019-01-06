@@ -73,10 +73,10 @@ char szGPUKeys[11];
 // keyboard handler
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUshowScreenPic(unsigned char* pMem);
-void CALLBACK GPUgetScreenPic(unsigned char* pMem);
+void GPUshowScreenPic(unsigned char* pMem);
+void GPUgetScreenPic(unsigned char* pMem);
 
-LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         //--------------------------------------------------//
         case WM_ACTIVATE:  // some scanline window mode fixing stuff

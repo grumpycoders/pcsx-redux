@@ -312,7 +312,7 @@ char *pGetConfigInfos(int iCfg);
 ////////////////////////////////////////////////////////////////////////
 // funcs
 
-BOOL CALLBACK SoftDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL SoftDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG:
             return OnInitSoftDialog(hW);
@@ -643,7 +643,7 @@ void OnCfgCancel(HWND hW) { EndDialog(hW, FALSE); }
 // Bug fixes
 ////////////////////////////////////////////////////////////////////////
 
-BOOL CALLBACK BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG: {
             int i;
@@ -717,7 +717,7 @@ SetDlgItemText(hW,IDC_COMPRESSION2,buffer);
 #endif
 }
 
-BOOL CALLBACK RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #if 0
  switch(uMsg)
   {
@@ -1327,7 +1327,7 @@ void FreeGui(HWND hW) {
 
 ////////////////////////////////////////////////////////////////////////
 
-BOOL CALLBACK DeviceDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL DeviceDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG: {
             HWND hWC;
@@ -1491,7 +1491,7 @@ void SetGPUKey(HWND hWC, char szKey) {
     if (i != iCnt) ComboBox_SetCurSel(hWC, i);
 }
 
-BOOL CALLBACK KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG: {
             int i, j, k;
