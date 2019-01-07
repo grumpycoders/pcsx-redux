@@ -522,7 +522,7 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
     lGPUstatusRet = 0x14802000;
     GPUIsIdle;
     GPUIsReadyForCommands;
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 
     // Get a handle for kernel32.dll, and access the required export function
     LoadKernel32();
@@ -550,7 +550,7 @@ long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
     }
 
     bIsFirstFrame = TRUE;  // we have to init later
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 
     ulInitDisplay();  // setup direct draw
 
@@ -575,7 +575,7 @@ long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
     InitFPS();
 
     bIsFirstFrame = TRUE;  // we have to init later
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 
     d = ulInitDisplay();  // setup x
 
@@ -734,7 +734,7 @@ void ChangeDispOffsetsX(void)  // X CENTER
         DoClearScreenBuffer();
     }
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -831,7 +831,7 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
     iWindowMode = !iWindowMode;
 //    softGPUopen(textureId);
     bChangeWinMode = FALSE;
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 #endif
 
@@ -894,7 +894,7 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 
 #endif
 
-    bDoVSyncUpdate = FALSE;  // vsync done
+    bDoVSyncUpdate = false;  // vsync done
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -964,7 +964,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             GlobalTextABR = 0;
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;
-            bUsingTWin = FALSE;
+            bUsingTWin = false;
             return;
         //--------------------------------------------------//
         // dis/enable display
@@ -1044,7 +1044,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PreviousPSXDisplay.DisplayEnd.y =
                 PreviousPSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
 
-            bDoVSyncUpdate = TRUE;
+            bDoVSyncUpdate = true;
 
             if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
             {
@@ -1389,7 +1389,7 @@ STARTVRAM:
                     {
                         gdata = (gdata & 0xFFFF) | (((unsigned long)(*VRAMWrite.ImagePtr)) << 16);
                         FinishedVRAMWrite();
-                        bDoVSyncUpdate = TRUE;
+                        bDoVSyncUpdate = true;
                         goto ENDVRAM;
                     }
                     VRAMWrite.RowsRemaining = VRAMWrite.Width;
@@ -1408,18 +1408,12 @@ STARTVRAM:
         }
 
         FinishedVRAMWrite();
-        if (bFinished) bDoVSyncUpdate = TRUE;
+        if (bFinished) bDoVSyncUpdate = true;
     }
 
 ENDVRAM:
 
     if (DataWriteMode == DR_NORMAL) {
-        void (**primFunc)(unsigned char *);
-        if (bSkipNextFrame)
-            primFunc = primTableSkip;
-        else
-            primFunc = primTableJ;
-
         for (; i < iSize;) {
             if (DataWriteMode == DR_VRAMTRANSFER) goto STARTVRAM;
 
@@ -1450,7 +1444,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                primFunc[gpuCommand]((unsigned char *)gpuDataM);
+                m_prim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;

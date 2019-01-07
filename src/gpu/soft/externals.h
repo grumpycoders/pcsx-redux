@@ -189,11 +189,9 @@ extern int iFPSEInterface;
 
 // prim.c
 
-extern BOOL bUsingTWin;
+extern bool bUsingTWin;
 extern TWin_t TWin;
 extern unsigned long clutid;
-extern void (*primTableJ[256])(unsigned char *);
-extern void (*primTableSkip[256])(unsigned char *);
 extern unsigned short usMirror;
 extern int iDither;
 extern unsigned long dwCfgFixes;
@@ -201,7 +199,7 @@ extern unsigned long dwActFixes;
 extern unsigned long dwEmuFixes;
 extern int iUseFixes;
 extern int iUseDither;
-extern BOOL bDoVSyncUpdate;
+extern bool bDoVSyncUpdate;
 extern long drawX;
 extern long drawY;
 extern long drawW;

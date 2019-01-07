@@ -924,7 +924,7 @@ int DXinitialize() {
    memset(pSaIBigBuff,0,1024*1024*4);
   }
 
- bUsingTWin=FALSE;
+ bUsingTWin=false;
 #endif  // 0
 
     InitMenu();  // menu init
@@ -3361,7 +3361,7 @@ int Xinitialize() {
     }
 
 #endif
-    bUsingTWin = FALSE;
+    bUsingTWin = false;
 
     InitMenu();
 
