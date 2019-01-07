@@ -469,7 +469,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 // INIT, will be called after lib load... well, just do some var init...
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::init()  // GPU INIT
+long PCSX::SoftGPU::impl::init()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(unsigned long));  // init save state scontrol field
 
@@ -535,7 +535,7 @@ long PCSX::SoftGPU::init()  // GPU INIT
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-long PCSX::SoftGPU::open(unsigned int textureIdGPU)  // GPU OPEN
+long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
 {
     textureId = textureIdGPU;  // store hwnd
 
@@ -591,7 +591,7 @@ long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::close()  // GPU CLOSE
+long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
 #if 0
     if (RECORD_RECORDING == TRUE) {
@@ -616,7 +616,7 @@ long PCSX::SoftGPU::close()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::shutdown()  // GPU SHUTDOWN
+long PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
     // screensaver: release the handle for kernel32.dll
     FreeKernel32();
@@ -858,7 +858,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called evry VSync
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::updateLace()  // VSYNC
+void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 {
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
@@ -901,7 +901,7 @@ void PCSX::SoftGPU::updateLace()  // VSYNC
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-uint32_t PCSX::SoftGPU::readStatus(void)  // READ STATUS
+uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
@@ -937,7 +937,7 @@ uint32_t PCSX::SoftGPU::readStatus(void)  // READ STATUS
 // these are always single packet commands.
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::writeStatus(uint32_t gdata)  // WRITE STATUS
+void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
     unsigned long lCommand = (gdata >> 24) & 0xff;
 
@@ -1218,7 +1218,7 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::readDataMem(uint32_t *pMem, int iSize) {
+void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) return;
@@ -1352,7 +1352,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-void PCSX::SoftGPU::writeDataMem(uint32_t *pMem, int iSize) {
+void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     unsigned long gdata = 0;
     int i = 0;
@@ -1539,7 +1539,7 @@ __inline BOOL CheckForEndlessLoop(unsigned long laddr) {
     return FALSE;
 }
 
-long PCSX::SoftGPU::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
+long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
     unsigned long dmaMem;
     unsigned char *baseAddrB;
     short count;
@@ -1625,7 +1625,7 @@ typedef struct GPUFREEZETAG {
 
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
+long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
     //----------------------------------------------------//
     if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
     {

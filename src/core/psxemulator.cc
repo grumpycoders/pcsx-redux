@@ -39,7 +39,7 @@ PCSX::Emulator::Emulator() {
     m_cdrom = PCSX::CDRom::factory();
     m_cheats = new PCSX::Cheats();
     m_mdec = new PCSX::MDEC();
-    m_gpu = new PCSX::SoftGPU();
+    m_gpu = new PCSX::SoftGPU::impl();
     m_debug = new PCSX::Debug();
     m_hw = new PCSX::HW();
 }

@@ -24,7 +24,9 @@
 
 namespace PCSX {
 
-class SoftGPU : public GPU {
+namespace SoftGPU {
+
+class impl : public GPU {
     virtual long init() final;
     virtual long shutdown() final;
     virtual long open(unsigned int texture) final;
@@ -47,50 +49,52 @@ class SoftGPU : public GPU {
     // memory image of the PSX vram
     ////////////////////////////////////////////////////////////////////////
 
-//    unsigned char *psxVSecure;
-//    unsigned char *psxVub;
-//    signed char *psxVsb;
-//    unsigned short *psxVuw;
-//    unsigned short *psxVuw_eom;
-//    signed short *psxVsw;
-//    unsigned long *psxVul;
-//    signed long *psxVsl;
+    //    unsigned char *psxVSecure;
+    //    unsigned char *psxVub;
+    //    signed char *psxVsb;
+    //    unsigned short *psxVuw;
+    //    unsigned short *psxVuw_eom;
+    //    signed short *psxVsw;
+    //    unsigned long *psxVul;
+    //    signed long *psxVsl;
 
     ////////////////////////////////////////////////////////////////////////
     // GPU globals
     ////////////////////////////////////////////////////////////////////////
 
     long lGPUdataRet;
-//    long lGPUstatusRet;
-//    char szDispBuf[64];
-//    char szMenuBuf[36];
-//    char szDebugText[512];
-//    unsigned long ulStatusControl[256];
+    //    long lGPUstatusRet;
+    //    char szDispBuf[64];
+    //    char szMenuBuf[36];
+    //    char szDebugText[512];
+    //    unsigned long ulStatusControl[256];
 
-//    unsigned long gpuDataM[256];
-//    unsigned char gpuCommand = 0;
-//    long gpuDataC = 0;
-//    long gpuDataP = 0;
+    //    unsigned long gpuDataM[256];
+    //    unsigned char gpuCommand = 0;
+    //    long gpuDataC = 0;
+    //    long gpuDataP = 0;
 
-//    VRAMLoad_t VRAMWrite;
-//    VRAMLoad_t VRAMRead;
-//    DATAREGISTERMODES DataWriteMode;
-//    DATAREGISTERMODES DataReadMode;
+    //    VRAMLoad_t VRAMWrite;
+    //    VRAMLoad_t VRAMRead;
+    //    DATAREGISTERMODES DataWriteMode;
+    //    DATAREGISTERMODES DataReadMode;
 
-//    BOOL bSkipNextFrame = FALSE;
-//    DWORD dwLaceCnt = 0;
-//    int iColDepth;
-//    int iWindowMode;
-//    short sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
-//    PSXDisplay_t PSXDisplay;
-//    PSXDisplay_t PreviousPSXDisplay;
-//    long lSelectedSlot = 0;
-//    BOOL bChangeWinMode = FALSE;
-//    BOOL bDoLazyUpdate = FALSE;
-//    unsigned long lGPUInfoVals[16];
-//    int iFakePrimBusy = 0;
-//    int iRumbleVal = 0;
-//    int iRumbleTime = 0;
+    //    BOOL bSkipNextFrame = FALSE;
+    //    DWORD dwLaceCnt = 0;
+    //    int iColDepth;
+    //    int iWindowMode;
+    //    short sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
+    //    PSXDisplay_t PSXDisplay;
+    //    PSXDisplay_t PreviousPSXDisplay;
+    //    long lSelectedSlot = 0;
+    //    BOOL bChangeWinMode = FALSE;
+    //    BOOL bDoLazyUpdate = FALSE;
+    //    unsigned long lGPUInfoVals[16];
+    //    int iFakePrimBusy = 0;
+    //    int iRumbleVal = 0;
+    //    int iRumbleTime = 0;
 };
+
+}
 
 }
