@@ -69,7 +69,7 @@ class Prim {
 
   public:
     inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
-        if (bSkipNextFrame) {
+        if (!bSkipNextFrame) {
             (*this.*(funcs[cmd]))(baseAddr);
         } else {
             (*this.*(skip[cmd]))(baseAddr);
