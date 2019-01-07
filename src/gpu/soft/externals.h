@@ -84,7 +84,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-typedef struct VRAMLOADTTAG {
+struct VRAMLoad_t {
     short x;
     short y;
     short Width;
@@ -92,36 +92,36 @@ typedef struct VRAMLOADTTAG {
     short RowsRemaining;
     short ColsRemaining;
     unsigned short *ImagePtr;
-} VRAMLoad_t;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
-typedef struct PSXPOINTTAG {
+struct PSXPoint_t {
     long x;
     long y;
-} PSXPoint_t;
+};
 
-typedef struct PSXSPOINTTAG {
+struct PSXSPoint_t {
     short x;
     short y;
-} PSXSPoint_t;
+};
 
-typedef struct PSXRECTTAG {
+struct PSXRect_t {
     short x0;
     short x1;
     short y0;
     short y1;
-} PSXRect_t;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
-typedef struct TWINTAG {
+struct TWin_t {
     PSXRect_t Position;
-} TWin_t;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
-typedef struct PSXDISPLAYTAG {
+struct PSXDisplay_t {
     PSXPoint_t DisplayModeNew;
     PSXPoint_t DisplayMode;
     PSXPoint_t DisplayPosition;
@@ -138,7 +138,7 @@ typedef struct PSXDISPLAYTAG {
     long Disabled;
     PSXRect_t Range;
 
-} PSXDisplay_t;
+};
 
 /////////////////////////////////////////////////////////////////////////////
 
