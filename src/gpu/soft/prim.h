@@ -125,6 +125,6 @@ class Prim {
     bool CheckCoord2();
 };
 
-}
+}  // namespace SoftGPU
 
-}
+}  // namespace PCSX
