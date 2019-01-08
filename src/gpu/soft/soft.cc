@@ -142,7 +142,7 @@
 ////////////////////////////////////////////////////////////////////////////////////
 
 short g_m1 = 255, g_m2 = 255, g_m3 = 255;
-short DrawSemiTrans = FALSE;
+short DrawSemiTrans = false;
 short Ymin;
 short Ymax;
 
@@ -154,7 +154,7 @@ long GlobalTextREST, GlobalTextABR, GlobalTextPAGE;
 // POLYGON OFFSET FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-void offsetPSXLine(void) {
+void PCSX::SoftGPU::SoftRenderer::offsetPSXLine(void) {
     short x0, x1, y0, y1, dx, dy;
     float px, py;
 
@@ -221,14 +221,14 @@ void offsetPSXLine(void) {
     ly2 = (short)((float)y1 + py);
 }
 
-void offsetPSX2(void) {
+void PCSX::SoftGPU::SoftRenderer::offsetPSX2(void) {
     lx0 += PSXDisplay.DrawOffset.x;
     ly0 += PSXDisplay.DrawOffset.y;
     lx1 += PSXDisplay.DrawOffset.x;
     ly1 += PSXDisplay.DrawOffset.y;
 }
 
-void offsetPSX3(void) {
+void PCSX::SoftGPU::SoftRenderer::offsetPSX3(void) {
     lx0 += PSXDisplay.DrawOffset.x;
     ly0 += PSXDisplay.DrawOffset.y;
     lx1 += PSXDisplay.DrawOffset.x;
@@ -237,7 +237,7 @@ void offsetPSX3(void) {
     ly2 += PSXDisplay.DrawOffset.y;
 }
 
-void offsetPSX4(void) {
+void PCSX::SoftGPU::SoftRenderer::offsetPSX4(void) {
     lx0 += PSXDisplay.DrawOffset.x;
     ly0 += PSXDisplay.DrawOffset.y;
     lx1 += PSXDisplay.DrawOffset.x;
@@ -288,7 +288,7 @@ void Dither16(unsigned short *pdest, unsigned long r, unsigned long g, unsigned 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, long m3) {
+static inline void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, long m3) {
     long r, g, b;
 
     if (bCheckMask && *pdest & 0x8000) return;
@@ -339,7 +339,7 @@ __inline void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, l
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol(unsigned short *pdest, unsigned short color) {
+static inline void GetShadeTransCol(unsigned short *pdest, unsigned short color) {
     if (bCheckMask && *pdest & 0x8000) return;
 
     if (DrawSemiTrans) {
@@ -387,7 +387,7 @@ __inline void GetShadeTransCol(unsigned short *pdest, unsigned short color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetShadeTransCol32(unsigned long *pdest, unsigned long color) {
+static inline void GetShadeTransCol32(unsigned long *pdest, unsigned long color) {
     if (DrawSemiTrans) {
         long r, g, b;
 
@@ -470,7 +470,7 @@ __inline void GetShadeTransCol32(unsigned long *pdest, unsigned long color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG(unsigned short *pdest, unsigned short color) {
+static inline void GetTextureTransColG(unsigned short *pdest, unsigned short color) {
     long r, g, b;
     unsigned short l;
 
@@ -531,7 +531,7 @@ __inline void GetTextureTransColG(unsigned short *pdest, unsigned short color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG_S(unsigned short *pdest, unsigned short color) {
+static inline void GetTextureTransColG_S(unsigned short *pdest, unsigned short color) {
     long r, g, b;
     unsigned short l;
 
@@ -552,7 +552,7 @@ __inline void GetTextureTransColG_S(unsigned short *pdest, unsigned short color)
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short color) {
+static inline void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short color) {
     long r, g, b;
     unsigned short l;
 
@@ -613,7 +613,7 @@ __inline void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short colo
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG32(unsigned long *pdest, unsigned long color) {
+static inline void GetTextureTransColG32(unsigned long *pdest, unsigned long color) {
     long r, g, b, l;
 
     if (color == 0) return;
@@ -713,7 +713,7 @@ __inline void GetTextureTransColG32(unsigned long *pdest, unsigned long color) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG32_S(unsigned long *pdest, unsigned long color) {
+static inline void GetTextureTransColG32_S(unsigned long *pdest, unsigned long color) {
     long r, g, b;
 
     if (color == 0) return;
@@ -743,7 +743,7 @@ __inline void GetTextureTransColG32_S(unsigned long *pdest, unsigned long color)
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color) {
+static inline void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color) {
     long r, g, b;
 
     if (color == 0) return;
@@ -841,7 +841,7 @@ __inline void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long colo
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short color, long m1, long m2, long m3) {
+static inline void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short color, long m1, long m2, long m3) {
     long r, g, b;
 
     if (color == 0) return;
@@ -898,7 +898,7 @@ __inline void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short 
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX(unsigned short *pdest, unsigned short color, short m1, short m2, short m3) {
+static inline void GetTextureTransColGX(unsigned short *pdest, unsigned short color, short m1, short m2, short m3) {
     long r, g, b;
     unsigned short l;
 
@@ -958,7 +958,7 @@ __inline void GetTextureTransColGX(unsigned short *pdest, unsigned short color, 
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX_S(unsigned short *pdest, unsigned short color, short m1, short m2, short m3) {
+static inline void GetTextureTransColGX_S(unsigned short *pdest, unsigned short color, short m1, short m2, short m3) {
     long r, g, b;
 
     if (color == 0) return;
@@ -976,7 +976,7 @@ __inline void GetTextureTransColGX_S(unsigned short *pdest, unsigned short color
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color, short m1, short m2, short m3) {
+static inline void GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color, short m1, short m2, short m3) {
     long r, g, b;
 
     if (color == 0) return;
@@ -1008,7 +1008,7 @@ __inline void GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color
 // FILL FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-void FillSoftwareAreaTrans(short x0, short y0, short x1,  // FILL AREA TRANS
+void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(short x0, short y0, short x1,  // FILL AREA TRANS
                            short y1, unsigned short col) {
     short j, i, dx, dy;
 
@@ -1092,7 +1092,7 @@ void FillSoftwareAreaTrans(short x0, short y0, short x1,  // FILL AREA TRANS
 
 ////////////////////////////////////////////////////////////////////////
 
-void FillSoftwareArea(short x0, short y0, short x1,  // FILL AREA (BLK FILL)
+void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(short x0, short y0, short x1,  // FILL AREA (BLK FILL)
                       short y1, unsigned short col)  // no draw area check here!
 {
     short j, i, dx, dy;
@@ -1160,60 +1160,18 @@ static int left_R, delta_left_R, right_R, delta_right_R;
 static int left_G, delta_left_G, right_G, delta_right_G;
 static int left_B, delta_left_B, right_B, delta_right_B;
 
-#ifdef __i386__
-
-// NASM version (external):
-#define shl10idiv i386_shl10idiv
-
-__inline int shl10idiv(int x, int y);
-
-#else
-
-#ifdef VC_INLINE
-
-#pragma warning(disable : 4035)
-
-__inline int shl10idiv(int x, int y) {
-    __asm
-    {
-   mov   eax,x
-   mov   ebx,y
-   mov   edx, eax
-   shl   eax, 10
-   sar   edx, 22
-   idiv  ebx
-      // return result in eax
-    }
-}
-
-#else
-
-__inline int shl10idiv(int x, int y) {
+static constexpr inline int shl10idiv(int x, int y) {
     __int64 bi = x;
     bi <<= 10;
     return bi / y;
 }
-#endif
-#endif
 
-/*
-
-// GNUC long long int version:
-
-__inline int shl10idiv(int x, int y)
-{
- long long int bi=x;
- bi<<=10;
- return bi/y;
-}
-
-*/
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_F(void) {
+static inline int RightSection_F(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -1228,7 +1186,7 @@ __inline int RightSection_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_F(void) {
+static inline int LeftSection_F(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -1243,13 +1201,13 @@ __inline int LeftSection_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_F(void) {
+static inline bool NextRow_F(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (LeftSection_F() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         left_x += delta_left_x;
@@ -1257,20 +1215,20 @@ __inline BOOL NextRow_F(void) {
 
     if (--right_section_height <= 0) {
         if (--right_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (RightSection_F() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         right_x += delta_right_x;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3) {
+static inline bool SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest;
 
@@ -1302,11 +1260,11 @@ __inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, 
 
     height = v3->y - v1->y;
     if (height == 0) {
-        return FALSE;
+        return false;
     }
     longest = (((v2->y - v1->y) << 16) / height) * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
     if (longest == 0) {
-        return FALSE;
+        return false;
     }
 
     if (longest < 0) {
@@ -1318,10 +1276,10 @@ __inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, 
         left_array[1] = v1;
         left_section = 1;
 
-        if (LeftSection_F() <= 0) return FALSE;
+        if (LeftSection_F() <= 0) return false;
         if (RightSection_F() <= 0) {
             right_section--;
-            if (RightSection_F() <= 0) return FALSE;
+            if (RightSection_F() <= 0) return false;
         }
     } else {
         left_array[0] = v3;
@@ -1332,23 +1290,23 @@ __inline BOOL SetupSections_F(short x1, short y1, short x2, short y2, short x3, 
         right_array[1] = v1;
         right_section = 1;
 
-        if (RightSection_F() <= 0) return FALSE;
+        if (RightSection_F() <= 0) return false;
         if (LeftSection_F() <= 0) {
             left_section--;
-            if (LeftSection_F() <= 0) return FALSE;
+            if (LeftSection_F() <= 0) return false;
         }
     }
 
     Ymin = v1->y;
     Ymax = min(v3->y - 1, drawH);
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_G(void) {
+static inline int RightSection_G(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -1363,7 +1321,7 @@ __inline int RightSection_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_G(void) {
+static inline int LeftSection_G(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -1385,13 +1343,13 @@ __inline int LeftSection_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_G(void) {
+static inline bool NextRow_G(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (LeftSection_G() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         left_x += delta_left_x;
@@ -1402,20 +1360,20 @@ __inline BOOL NextRow_G(void) {
 
     if (--right_section_height <= 0) {
         if (--right_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (RightSection_G() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         right_x += delta_right_x;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2,
+static inline bool SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2,
                               long rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest, temp;
@@ -1457,12 +1415,12 @@ __inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, 
 
     height = v3->y - v1->y;
     if (height == 0) {
-        return FALSE;
+        return false;
     }
     temp = (((v2->y - v1->y) << 16) / height);
     longest = temp * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
     if (longest == 0) {
-        return FALSE;
+        return false;
     }
 
     if (longest < 0) {
@@ -1474,10 +1432,10 @@ __inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, 
         left_array[1] = v1;
         left_section = 1;
 
-        if (LeftSection_G() <= 0) return FALSE;
+        if (LeftSection_G() <= 0) return false;
         if (RightSection_G() <= 0) {
             right_section--;
-            if (RightSection_G() <= 0) return FALSE;
+            if (RightSection_G() <= 0) return false;
         }
         if (longest > -0x1000) longest = -0x1000;
     } else {
@@ -1489,10 +1447,10 @@ __inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, 
         right_array[1] = v1;
         right_section = 1;
 
-        if (RightSection_G() <= 0) return FALSE;
+        if (RightSection_G() <= 0) return false;
         if (LeftSection_G() <= 0) {
             left_section--;
-            if (LeftSection_G() <= 0) return FALSE;
+            if (LeftSection_G() <= 0) return false;
         }
         if (longest < 0x1000) longest = 0x1000;
     }
@@ -1504,13 +1462,13 @@ __inline BOOL SetupSections_G(short x1, short y1, short x2, short y2, short x3, 
     delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), longest);
     delta_right_B = shl10idiv(temp * ((v3->B - v1->B) >> 10) + ((v1->B - v2->B) << 6), longest);
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_FT(void) {
+static inline int RightSection_FT(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -1525,7 +1483,7 @@ __inline int RightSection_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_FT(void) {
+static inline int LeftSection_FT(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -1545,13 +1503,13 @@ __inline int LeftSection_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_FT(void) {
+static inline bool NextRow_FT(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (LeftSection_FT() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         left_x += delta_left_x;
@@ -1561,20 +1519,20 @@ __inline BOOL NextRow_FT(void) {
 
     if (--right_section_height <= 0) {
         if (--right_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (RightSection_FT() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         right_x += delta_right_x;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
+static inline bool SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
                                short tx2, short ty2, short tx3, short ty3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest, temp;
@@ -1613,14 +1571,14 @@ __inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3,
 
     height = v3->y - v1->y;
     if (height == 0) {
-        return FALSE;
+        return false;
     }
 
     temp = (((v2->y - v1->y) << 16) / height);
     longest = temp * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
 
     if (longest == 0) {
-        return FALSE;
+        return false;
     }
 
     if (longest < 0) {
@@ -1632,10 +1590,10 @@ __inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3,
         left_array[1] = v1;
         left_section = 1;
 
-        if (LeftSection_FT() <= 0) return FALSE;
+        if (LeftSection_FT() <= 0) return false;
         if (RightSection_FT() <= 0) {
             right_section--;
-            if (RightSection_FT() <= 0) return FALSE;
+            if (RightSection_FT() <= 0) return false;
         }
         if (longest > -0x1000) longest = -0x1000;
     } else {
@@ -1647,10 +1605,10 @@ __inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3,
         right_array[1] = v1;
         right_section = 1;
 
-        if (RightSection_FT() <= 0) return FALSE;
+        if (RightSection_FT() <= 0) return false;
         if (LeftSection_FT() <= 0) {
             left_section--;
-            if (LeftSection_FT() <= 0) return FALSE;
+            if (LeftSection_FT() <= 0) return false;
         }
         if (longest < 0x1000) longest = 0x1000;
     }
@@ -1676,13 +1634,13 @@ __inline BOOL SetupSections_FT(short x1, short y1, short x2, short y2, short x3,
       }
     */
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_GT(void) {
+static inline int RightSection_GT(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -1697,7 +1655,7 @@ __inline int RightSection_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_GT(void) {
+static inline int LeftSection_GT(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -1724,13 +1682,13 @@ __inline int LeftSection_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_GT(void) {
+static inline bool NextRow_GT(void) {
     if (--left_section_height <= 0) {
         if (--left_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (LeftSection_GT() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         left_x += delta_left_x;
@@ -1743,20 +1701,20 @@ __inline BOOL NextRow_GT(void) {
 
     if (--right_section_height <= 0) {
         if (--right_section <= 0) {
-            return TRUE;
+            return true;
         }
         if (RightSection_GT() <= 0) {
-            return TRUE;
+            return true;
         }
     } else {
         right_x += delta_right_x;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
+static inline bool SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
                                short tx2, short ty2, short tx3, short ty3, long rgb1, long rgb2, long rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest, temp;
@@ -1806,14 +1764,14 @@ __inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3,
 
     height = v3->y - v1->y;
     if (height == 0) {
-        return FALSE;
+        return false;
     }
 
     temp = (((v2->y - v1->y) << 16) / height);
     longest = temp * ((v3->x - v1->x) >> 16) + (v1->x - v2->x);
 
     if (longest == 0) {
-        return FALSE;
+        return false;
     }
 
     if (longest < 0) {
@@ -1825,10 +1783,10 @@ __inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3,
         left_array[1] = v1;
         left_section = 1;
 
-        if (LeftSection_GT() <= 0) return FALSE;
+        if (LeftSection_GT() <= 0) return false;
         if (RightSection_GT() <= 0) {
             right_section--;
-            if (RightSection_GT() <= 0) return FALSE;
+            if (RightSection_GT() <= 0) return false;
         }
 
         if (longest > -0x1000) longest = -0x1000;
@@ -1841,10 +1799,10 @@ __inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3,
         right_array[1] = v1;
         right_section = 1;
 
-        if (RightSection_GT() <= 0) return FALSE;
+        if (RightSection_GT() <= 0) return false;
         if (LeftSection_GT() <= 0) {
             left_section--;
-            if (LeftSection_GT() <= 0) return FALSE;
+            if (LeftSection_GT() <= 0) return false;
         }
         if (longest < 0x1000) longest = 0x1000;
     }
@@ -1873,13 +1831,13 @@ __inline BOOL SetupSections_GT(short x1, short y1, short x2, short y2, short x3,
       }
     */
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_F4(void) {
+static inline int RightSection_F4(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -1896,7 +1854,7 @@ __inline int RightSection_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_F4(void) {
+static inline int LeftSection_F4(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -1913,7 +1871,7 @@ __inline int LeftSection_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_F4(void) {
+static inline bool NextRow_F4(void) {
     if (--left_section_height <= 0) {
         if (--left_section > 0)
             while (LeftSection_F4() <= 0) {
@@ -1931,12 +1889,12 @@ __inline BOOL NextRow_F4(void) {
     } else {
         right_x += delta_right_x;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4) {
+static inline bool SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, longest1, longest2;
 
@@ -2087,13 +2045,13 @@ __inline BOOL SetupSections_F4(short x1, short y1, short x2, short y2, short x3,
     Ymin = v1->y;
     Ymax = min(v4->y - 1, drawH);
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_FT4(void) {
+static inline int RightSection_FT4(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -2114,7 +2072,7 @@ __inline int RightSection_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_FT4(void) {
+static inline int LeftSection_FT4(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -2135,7 +2093,7 @@ __inline int LeftSection_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_FT4(void) {
+static inline bool NextRow_FT4(void) {
     if (--left_section_height <= 0) {
         if (--left_section > 0)
             while (LeftSection_FT4() <= 0) {
@@ -2157,12 +2115,12 @@ __inline BOOL NextRow_FT4(void) {
         right_u += delta_right_u;
         right_v += delta_right_v;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
+static inline bool SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
                                 short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4,
                                 short ty4) {
     soft_vertex *v1, *v2, *v3, *v4;
@@ -2326,13 +2284,13 @@ __inline BOOL SetupSections_FT4(short x1, short y1, short x2, short y2, short x3
     Ymin = v1->y;
     Ymax = min(v4->y - 1, drawH);
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-__inline int RightSection_GT4(void) {
+static inline int RightSection_GT4(void) {
     soft_vertex *v1 = right_array[right_section];
     soft_vertex *v2 = right_array[right_section - 1];
 
@@ -2360,7 +2318,7 @@ __inline int RightSection_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline int LeftSection_GT4(void) {
+static inline int LeftSection_GT4(void) {
     soft_vertex *v1 = left_array[left_section];
     soft_vertex *v2 = left_array[left_section - 1];
 
@@ -2388,7 +2346,7 @@ __inline int LeftSection_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL NextRow_GT4(void) {
+static inline bool NextRow_GT4(void) {
     if (--left_section_height <= 0) {
         if (--left_section > 0)
             while (LeftSection_GT4() <= 0) {
@@ -2416,12 +2374,12 @@ __inline BOOL NextRow_GT4(void) {
         right_G += delta_right_G;
         right_B += delta_right_B;
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline BOOL SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
+static inline bool SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
                                 short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4,
                                 long rgb1, long rgb2, long rgb3, long rgb4) {
     soft_vertex *v1, *v2, *v3, *v4;
@@ -2597,7 +2555,7 @@ __inline BOOL SetupSections_GT4(short x1, short y1, short x2, short y2, short x3
     Ymin = v1->y;
     Ymax = min(v4->y - 1, drawH);
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2612,7 +2570,7 @@ __inline BOOL SetupSections_GT4(short x1, short y1, short x2, short y2, short x3
 // POLY 3/4 FLAT SHADED
 ////////////////////////////////////////////////////////////////////////
 
-__inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb) {
+static inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb) {
     int i, j, xmin, xmax, ymin, ymax;
     unsigned short color;
     unsigned long lcolor;
@@ -2673,7 +2631,7 @@ __inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, shor
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3F(long rgb) { drawPoly3Fi(lx0, ly0, lx1, ly1, lx2, ly2, rgb); }
+void PCSX::SoftGPU::SoftRenderer::drawPoly3F(long rgb) { drawPoly3Fi(lx0, ly0, lx1, ly1, lx2, ly2, rgb); }
 
 #ifdef POLYQUAD3FS
 
@@ -2686,7 +2644,7 @@ void drawPoly4F_TRI(long rgb) {
 
 // more exact:
 
-void drawPoly4F(long rgb) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly4F(long rgb) {
     int i, j, xmin, xmax, ymin, ymax;
     unsigned short color;
     unsigned long lcolor;
@@ -5225,7 +5183,7 @@ void drawPoly4TD_TW_S(short x1, short y1, short x2, short y2, short x3, short y3
 // POLY 3/4 G-SHADED
 ////////////////////////////////////////////////////////////////////////
 
-__inline void drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2, long rgb3) {
+static inline void drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2, long rgb3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
     long difR, difB, difG, difR2, difB2, difG2;
@@ -5357,11 +5315,11 @@ __inline void drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, shor
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3G(long rgb1, long rgb2, long rgb3) { drawPoly3Gi(lx0, ly0, lx1, ly1, lx2, ly2, rgb1, rgb2, rgb3); }
+void PCSX::SoftGPU::SoftRenderer::drawPoly3G(long rgb1, long rgb2, long rgb3) { drawPoly3Gi(lx0, ly0, lx1, ly1, lx2, ly2, rgb1, rgb2, rgb3); }
 
 // draw two g-shaded tris for right psx shading emulation
 
-void drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4) {
     drawPoly3Gi(lx1, ly1, lx3, ly3, lx2, ly2, rgb2, rgb4, rgb3);
     drawPoly3Gi(lx0, ly0, lx1, ly1, lx2, ly2, rgb1, rgb2, rgb3);
 }
@@ -7123,42 +7081,42 @@ void drawPoly4TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3,
 
 /*
 // no real rect test, but it does its job the way I need it
-__inline BOOL IsNoRect(void)
+static inline bool IsNoRect(void)
 {
- if(lx0==lx1 && lx2==lx3) return FALSE;
- if(lx0==lx2 && lx1==lx3) return FALSE;
- if(lx0==lx3 && lx1==lx2) return FALSE;
- return TRUE;
+ if(lx0==lx1 && lx2==lx3) return false;
+ if(lx0==lx2 && lx1==lx3) return false;
+ if(lx0==lx3 && lx1==lx2) return false;
+ return true;
 }
 */
 
 // real rect test
-__inline BOOL IsNoRect(void) {
-    if (!(dwActFixes & 0x200)) return FALSE;
+static inline bool IsNoRect(void) {
+    if (!(dwActFixes & 0x200)) return false;
 
     if (ly0 == ly1) {
-        if (lx1 == lx3 && ly3 == ly2 && lx2 == lx0) return FALSE;
-        if (lx1 == lx2 && ly2 == ly3 && lx3 == lx0) return FALSE;
-        return TRUE;
+        if (lx1 == lx3 && ly3 == ly2 && lx2 == lx0) return false;
+        if (lx1 == lx2 && ly2 == ly3 && lx3 == lx0) return false;
+        return true;
     }
 
     if (ly0 == ly2) {
-        if (lx2 == lx3 && ly3 == ly1 && lx1 == lx0) return FALSE;
-        if (lx2 == lx1 && ly1 == ly3 && lx3 == lx0) return FALSE;
-        return TRUE;
+        if (lx2 == lx3 && ly3 == ly1 && lx1 == lx0) return false;
+        if (lx2 == lx1 && ly1 == ly3 && lx3 == lx0) return false;
+        return true;
     }
 
     if (ly0 == ly3) {
-        if (lx3 == lx2 && ly2 == ly1 && lx1 == lx0) return FALSE;
-        if (lx3 == lx1 && ly1 == ly2 && lx2 == lx0) return FALSE;
-        return TRUE;
+        if (lx3 == lx2 && ly2 == ly1 && lx1 == lx0) return false;
+        if (lx3 == lx1 && ly1 == ly2 && lx2 == lx0) return false;
+        return true;
     }
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3FT(unsigned char *baseAddr) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
@@ -7223,7 +7181,7 @@ void drawPoly3FT(unsigned char *baseAddr) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4FT(unsigned char *baseAddr) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
@@ -7325,7 +7283,7 @@ void drawPoly4FT(unsigned char *baseAddr) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3GT(unsigned char *baseAddr) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
@@ -7390,7 +7348,7 @@ void drawPoly3GT(unsigned char *baseAddr) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4GT(unsigned char *baseAddr) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
@@ -7504,7 +7462,7 @@ void drawPoly4GT(unsigned char *baseAddr) {
 // SPRITE FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-void DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) {
+void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) {
     unsigned long *gpuData = (unsigned long *)baseAddr;
     short sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3;
     short tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
@@ -7539,7 +7497,7 @@ void DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h) {
+void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h) {
     long sprtY, sprtX, sprtW, sprtH, lXDir, lYDir;
     long clutY0, clutX0, clutP, textX0, textY0, sprtYa, sprCY, sprCX, sprA;
     short tC;
@@ -7674,13 +7632,13 @@ void DrawSoftwareSprite_IL(unsigned char *baseAddr, short w, short h, long tx, l
 
 ////////////////////////////////////////////////////////////////////////
 
-void DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long ty) {
+void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long ty) {
     long sprtY, sprtX, sprtW, sprtH;
     long clutY0, clutX0, clutP, textX0, textY0, sprtYa, sprCY, sprCX, sprA;
     short tC, tC2;
     unsigned long *gpuData = (unsigned long *)baseAddr;
     unsigned char *pV;
-    BOOL bWT, bWS;
+    bool bWT, bWS;
 
     if (GlobalTextIL && GlobalTextTP < 2) {
         DrawSoftwareSprite_IL(baseAddr, w, h, tx, ty);
@@ -7735,17 +7693,17 @@ void DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long
     if ((sprtY + sprtH) > drawH) sprtH = drawH - sprtY + 1;
     if ((sprtX + sprtW) > drawW) sprtW = drawW - sprtX + 1;
 
-    bWT = FALSE;
-    bWS = FALSE;
+    bWT = false;
+    bWS = false;
 
     switch (GlobalTextTP) {
         case 0:
 
             if (textX0 & 1) {
-                bWS = TRUE;
+                bWS = true;
                 sprtW--;
             }
-            if (sprtW & 1) bWT = TRUE;
+            if (sprtW & 1) bWT = true;
 
             sprtW = sprtW >> 1;
             textX0 = (GlobalTextAddrX << 1) + (textX0 >> 1) + (textY0 << 11);
@@ -8325,7 +8283,7 @@ void HorzLineFlat(int y, int x0, int x1, unsigned short colour) {
 ///////////////////////////////////////////////////////////////////////
 
 /* Bresenham Line drawing function */
-void DrawSoftwareLineShade(long rgb0, long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineShade(long rgb0, long rgb1) {
     short x0, y0, x1, y1, xt, yt;
     long rgbt;
     double m, dy, dx;
@@ -8387,7 +8345,7 @@ void DrawSoftwareLineShade(long rgb0, long rgb1) {
 
 ///////////////////////////////////////////////////////////////////////
 
-void DrawSoftwareLineFlat(long rgb) {
+void PCSX::SoftGPU::SoftRenderer::DrawSoftwareLineFlat(long rgb) {
     short x0, y0, x1, y1, xt, yt;
     double m, dy, dx;
     unsigned short colour = 0;

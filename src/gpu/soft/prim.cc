@@ -110,7 +110,7 @@ int iUseFixes;
 int iUseDither = 0;
 bool bDoVSyncUpdate = false;
 
-static inline unsigned short BGR24to16(unsigned long BGR) {
+static constexpr inline unsigned short BGR24to16(unsigned long BGR) {
     return (unsigned short)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
 

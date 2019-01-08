@@ -37,6 +37,28 @@ class Prim {
         }
     }
 
+  protected:
+    virtual void offsetPSXLine() = 0;
+    virtual void offsetPSX2() = 0;
+    virtual void offsetPSX3() = 0;
+    virtual void offsetPSX4() = 0;
+
+    virtual void FillSoftwareAreaTrans(short x0, short y0, short x1, short y1, unsigned short col) = 0;
+    virtual void FillSoftwareArea(short x0, short y0, short x1, short y1, unsigned short col) = 0;
+    virtual void drawPoly3G(long rgb1, long rgb2, long rgb3) = 0;
+    virtual void drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4) = 0;
+    virtual void drawPoly3F(long rgb) = 0;
+    virtual void drawPoly4F(long rgb) = 0;
+    virtual void drawPoly4FT(unsigned char *baseAddr) = 0;
+    virtual void drawPoly4GT(unsigned char *baseAddr) = 0;
+    virtual void drawPoly3FT(unsigned char *baseAddr) = 0;
+    virtual void drawPoly3GT(unsigned char *baseAddr) = 0;
+    virtual void DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long ty) = 0;
+    virtual void DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) = 0;
+    virtual void DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h) = 0;
+    virtual void DrawSoftwareLineShade(long rgb0, long rgb1) = 0;
+    virtual void DrawSoftwareLineFlat(long rgb) = 0;
+
   private:
     typedef void (Prim::*func_t)(unsigned char *);
     typedef const func_t cfunc_t;
