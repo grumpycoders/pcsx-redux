@@ -197,10 +197,10 @@ static inline void SetRenderMode(unsigned long DrawAttributes) {
 
 // 11 bit signed
 #define SIGNSHIFT 21
-#define CHKMAX_X 1024
-#define CHKMAX_Y 512
+static const unsigned CHKMAX_X = 1024;
+static const unsigned CHKMAX_Y = 512;
 
-static inline void AdjustCoord4() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord4() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short)(((int)lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -211,7 +211,7 @@ static inline void AdjustCoord4() {
     ly3 = (short)(((int)ly3 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-static inline void AdjustCoord3() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord3() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short)(((int)lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -220,14 +220,14 @@ static inline void AdjustCoord3() {
     ly2 = (short)(((int)ly2 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-static inline void AdjustCoord2() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord2() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short)(((int)ly0 << SIGNSHIFT) >> SIGNSHIFT);
     ly1 = (short)(((int)ly1 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-static inline void AdjustCoord1() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord1() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short)(((int)ly0 << SIGNSHIFT) >> SIGNSHIFT);
 
@@ -250,7 +250,7 @@ static inline void AdjustCoord1() {
 //  . . .
 //   2___3
 
-static inline bool CheckCoord4() {
+inline bool PCSX::SoftGPU::Prim::CheckCoord4() {
     if (lx0 < 0) {
         if (((lx1 - lx0) > CHKMAX_X) || ((lx2 - lx0) > CHKMAX_X)) {
             if (lx3 < 0) {
@@ -300,7 +300,7 @@ static inline bool CheckCoord4() {
     return false;
 }
 
-static inline bool CheckCoord3() {
+inline bool PCSX::SoftGPU::Prim::CheckCoord3() {
     if (lx0 < 0) {
         if ((lx1 - lx0) > CHKMAX_X) return true;
         if ((lx2 - lx0) > CHKMAX_X) return true;
@@ -329,7 +329,7 @@ static inline bool CheckCoord3() {
     return false;
 }
 
-static inline bool CheckCoord2() {
+inline bool PCSX::SoftGPU::Prim::CheckCoord2() {
     if (lx0 < 0) {
         if ((lx1 - lx0) > CHKMAX_X) return true;
     }
@@ -346,7 +346,7 @@ static inline bool CheckCoord2() {
     return false;
 }
 
-static inline bool CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
+static constexpr inline bool CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
     if (slx0 < 0) {
         if ((slx1 - slx0) > CHKMAX_X) return true;
     }

@@ -59,6 +59,9 @@ class Prim {
     virtual void DrawSoftwareLineShade(long rgb0, long rgb1) = 0;
     virtual void DrawSoftwareLineFlat(long rgb) = 0;
 
+    short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
+
+
   private:
     typedef void (Prim::*func_t)(unsigned char *);
     typedef const func_t cfunc_t;
@@ -98,6 +101,15 @@ class Prim {
 
     static const func_t funcs[256];
     static const func_t skip[256];
+
+    void AdjustCoord4();
+    void AdjustCoord3();
+    void AdjustCoord2();
+    void AdjustCoord1();
+
+    bool CheckCoord4();
+    bool CheckCoord3();
+    bool CheckCoord2();
 };
 
 }

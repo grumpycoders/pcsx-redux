@@ -56,6 +56,9 @@ class SoftRenderer : public Prim {
     virtual void DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h) final;
     virtual void DrawSoftwareLineShade(long rgb0, long rgb1) final;
     virtual void DrawSoftwareLineFlat(long rgb) final;
+
+    bool IsNoRect();
+    void DrawSoftwareSprite_IL(unsigned char *baseAddr, short w, short h, long tx, long ty);
 };
 
 }  // namespace SoftGPU

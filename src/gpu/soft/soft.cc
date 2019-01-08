@@ -146,9 +146,8 @@ short DrawSemiTrans = false;
 short Ymin;
 short Ymax;
 
-short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
 long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
-long GlobalTextREST, GlobalTextABR, GlobalTextPAGE;
+long GlobalTextREST, GlobalTextABR;
 
 ////////////////////////////////////////////////////////////////////////
 // POLYGON OFFSET FUNCS
@@ -7091,7 +7090,7 @@ static inline bool IsNoRect(void)
 */
 
 // real rect test
-static inline bool IsNoRect(void) {
+inline bool PCSX::SoftGPU::SoftRenderer::IsNoRect() {
     if (!(dwActFixes & 0x200)) return false;
 
     if (ly0 == ly1) {
@@ -7598,7 +7597,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAd
 
 ////////////////////////////////////////////////////////////////////////
 
-void DrawSoftwareSprite_IL(unsigned char *baseAddr, short w, short h, long tx, long ty) {
+void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite_IL(unsigned char *baseAddr, short w, short h, long tx, long ty) {
     long sprtY, sprtX, sprtW, sprtH, tdx, tdy;
     unsigned long *gpuData = (unsigned long *)baseAddr;
 
