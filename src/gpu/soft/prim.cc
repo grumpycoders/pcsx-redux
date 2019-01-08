@@ -97,7 +97,6 @@
 
 bool bUsingTWin = false;
 TWin_t TWin;
-unsigned long clutid;         // global clut
 unsigned short usMirror = 0;  // sprite mirror
 int iDither = 0;
 long drawX;
@@ -201,7 +200,7 @@ static inline void SetRenderMode(unsigned long DrawAttributes) {
 #define CHKMAX_X 1024
 #define CHKMAX_Y 512
 
-void AdjustCoord4() {
+static inline void AdjustCoord4() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short)(((int)lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -212,7 +211,7 @@ void AdjustCoord4() {
     ly3 = (short)(((int)ly3 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord3() {
+static inline void AdjustCoord3() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short)(((int)lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -221,14 +220,14 @@ void AdjustCoord3() {
     ly2 = (short)(((int)ly2 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord2() {
+static inline void AdjustCoord2() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short)(((int)ly0 << SIGNSHIFT) >> SIGNSHIFT);
     ly1 = (short)(((int)ly1 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord1() {
+static inline void AdjustCoord1() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short)(((int)ly0 << SIGNSHIFT) >> SIGNSHIFT);
 

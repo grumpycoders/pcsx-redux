@@ -28,6 +28,16 @@ namespace PCSX {
 namespace SoftGPU {
 
 class Prim {
+  public:
+    inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
+        if (!bSkipNextFrame) {
+            (*this.*(funcs[cmd]))(baseAddr);
+        } else {
+            (*this.*(skip[cmd]))(baseAddr);
+        }
+    }
+
+  private:
     typedef void (Prim::*func_t)(unsigned char *);
     typedef const func_t cfunc_t;
     void cmdSTP(unsigned char *baseAddr);
@@ -66,15 +76,6 @@ class Prim {
 
     static const func_t funcs[256];
     static const func_t skip[256];
-
-  public:
-    inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
-        if (!bSkipNextFrame) {
-            (*this.*(funcs[cmd]))(baseAddr);
-        } else {
-            (*this.*(skip[cmd]))(baseAddr);
-        }
-    }
 };
 
 }

@@ -191,7 +191,6 @@ extern int iFPSEInterface;
 
 extern bool bUsingTWin;
 extern TWin_t TWin;
-extern unsigned long clutid;
 extern unsigned short usMirror;
 extern int iDither;
 extern unsigned long dwCfgFixes;

@@ -72,8 +72,6 @@
 
 #include "stdafx.h"
 
-#define _IN_SOFT
-
 #include "gpu/soft/externals.h"
 #include "gpu/soft/soft.h"
 
@@ -258,7 +256,7 @@ void offsetPSX4(void) {
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-unsigned char dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
+static const unsigned char dithertable[16] = {7, 0, 6, 1, 2, 5, 3, 4, 1, 6, 0, 7, 4, 3, 5, 2};
 
 void Dither16(unsigned short *pdest, unsigned long r, unsigned long g, unsigned long b, unsigned short sM) {
     unsigned char coeff;

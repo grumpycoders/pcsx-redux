@@ -27,8 +27,13 @@
 //
 //*************************************************************************//
 
-#ifndef _GPU_SOFT_H_
-#define _GPU_SOFT_H_
+#pragma once
+
+namespace PCSX {
+namespace SoftGPU {
+class Prim;
+}
+}
 
 void offsetPSXLine(void);
 void offsetPSX2(void);
@@ -50,5 +55,3 @@ void DrawSoftwareSpriteTWin(unsigned char* baseAddr, long w, long h);
 void DrawSoftwareSpriteMirror(unsigned char* baseAddr, long w, long h);
 void DrawSoftwareLineShade(long rgb0, long rgb1);
 void DrawSoftwareLineFlat(long rgb);
-
-#endif  // _GPU_SOFT_H_
