@@ -132,20 +132,6 @@
 
 #define XPSXCOL(r, g, b) ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f))
 
-#ifdef _WIN32
-#pragma warning(disable : 4244)
-#pragma warning(disable : 4761)
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////
-// soft globals
-////////////////////////////////////////////////////////////////////////////////////
-
-short g_m1 = 255, g_m2 = 255, g_m3 = 255;
-short DrawSemiTrans = false;
-short Ymin;
-short Ymax;
-
 ////////////////////////////////////////////////////////////////////////
 // POLYGON OFFSET FUNCS
 ////////////////////////////////////////////////////////////////////////
@@ -527,7 +513,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(unsigned short *pde
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColG_S(unsigned short *pdest, unsigned short color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_S(unsigned short *pdest, unsigned short color) {
     long r, g, b;
     unsigned short l;
 
@@ -709,7 +695,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(unsigned long *pd
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColG32_S(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(unsigned long *pdest, unsigned long color) {
     long r, g, b;
 
     if (color == 0) return;
@@ -1224,7 +1210,7 @@ static inline bool NextRow_F(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3) {
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest;
 
@@ -1369,7 +1355,7 @@ static inline bool NextRow_G(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2,
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2,
                               long rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest, temp;
@@ -1528,7 +1514,7 @@ static inline bool NextRow_FT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
                                short tx2, short ty2, short tx3, short ty3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest, temp;
@@ -1710,7 +1696,7 @@ static inline bool NextRow_GT(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1,
                                short tx2, short ty2, short tx3, short ty3, long rgb1, long rgb2, long rgb3) {
     soft_vertex *v1, *v2, *v3;
     int height, longest, temp;
@@ -1890,7 +1876,7 @@ static inline bool NextRow_F4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4) {
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4) {
     soft_vertex *v1, *v2, *v3, *v4;
     int height, width, longest1, longest2;
 
@@ -2116,7 +2102,7 @@ static inline bool NextRow_FT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
                                 short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4,
                                 short ty4) {
     soft_vertex *v1, *v2, *v3, *v4;
@@ -2375,7 +2361,7 @@ static inline bool NextRow_GT4(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline bool SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
+inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4,
                                 short tx1, short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4,
                                 long rgb1, long rgb2, long rgb3, long rgb4) {
     soft_vertex *v1, *v2, *v3, *v4;

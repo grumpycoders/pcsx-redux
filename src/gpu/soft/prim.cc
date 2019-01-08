@@ -167,7 +167,7 @@ inline void PCSX::SoftGPU::Prim::UpdateGlobalTP(unsigned short gdata) {
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void SetRenderMode(unsigned long DrawAttributes) {
+inline void PCSX::SoftGPU::Prim::SetRenderMode(unsigned long DrawAttributes) {
     DrawSemiTrans = (SEMITRANSBIT(DrawAttributes)) ? true : false;
 
     if (SHADETEXBIT(DrawAttributes)) {

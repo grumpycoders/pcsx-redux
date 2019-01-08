@@ -57,13 +57,32 @@ class SoftRenderer : public Prim {
     virtual void DrawSoftwareLineShade(long rgb0, long rgb1) final;
     virtual void DrawSoftwareLineFlat(long rgb) final;
 
+    short Ymin;
+    short Ymax;
+
     bool IsNoRect();
+
+    bool SetupSections_F(short x1, short y1, short x2, short y2, short x3, short y3);
+    bool SetupSections_G(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2, long rgb3);
+    bool SetupSections_FT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+                          short ty2, short tx3, short ty3);
+    bool SetupSections_GT(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+                          short ty2, short tx3, short ty3, long rgb1, long rgb2, long rgb3);
+    bool SetupSections_F4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4);
+    bool SetupSections_FT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+                           short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4);
+    bool SetupSections_GT4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+                           short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, long rgb1,
+                           long rgb2, long rgb3, long rgb4);
+
     void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, long m3);
     void GetShadeTransCol(unsigned short *pdest, unsigned short color);
     void GetShadeTransCol32(unsigned long *pdest, unsigned long color);
     void GetTextureTransColG(unsigned short *pdest, unsigned short color);
+    void GetTextureTransColG_S(unsigned short *pdest, unsigned short color);
     void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short color);
     void GetTextureTransColG32(unsigned long *pdest, unsigned long color);
+    void GetTextureTransColG32_S(unsigned long *pdest, unsigned long color);
     void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color);
     void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short color, long m1, long m2, long m3);
     void GetTextureTransColGX(unsigned short *pdest, unsigned short color, short m1, short m2, short m3);
