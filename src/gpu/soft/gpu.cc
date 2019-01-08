@@ -827,9 +827,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 #ifdef _WIN32
 void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 {
-//    softGPUclose();
+    //    softGPUclose();
     iWindowMode = !iWindowMode;
-//    softGPUopen(textureId);
+    //    softGPUopen(textureId);
     bChangeWinMode = FALSE;
     bDoVSyncUpdate = true;
 }
@@ -958,10 +958,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             lSetMask = 0;
             bCheckMask = FALSE;
             usMirror = 0;
-            GlobalTextAddrX = 0;
-            GlobalTextAddrY = 0;
-            GlobalTextTP = 0;
-            GlobalTextABR = 0;
+            m_prim.reset();
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;
             bUsingTWin = false;

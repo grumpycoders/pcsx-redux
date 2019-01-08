@@ -159,8 +159,6 @@ extern BOOL bVsync_Key;
 
 extern int iResX;
 extern int iResY;
-extern long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
-extern long GlobalTextREST, GlobalTextABR;
 extern long lLowerpart;
 extern BOOL bIsFirstFrame;
 extern int iWinSize;

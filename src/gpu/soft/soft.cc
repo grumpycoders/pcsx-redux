@@ -146,9 +146,6 @@ short DrawSemiTrans = false;
 short Ymin;
 short Ymax;
 
-long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
-long GlobalTextREST, GlobalTextABR;
-
 ////////////////////////////////////////////////////////////////////////
 // POLYGON OFFSET FUNCS
 ////////////////////////////////////////////////////////////////////////
@@ -287,7 +284,7 @@ void Dither16(unsigned short *pdest, unsigned long r, unsigned long g, unsigned 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
-static inline void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, long m3) {
+inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, long m3) {
     long r, g, b;
 
     if (bCheckMask && *pdest & 0x8000) return;
@@ -338,7 +335,7 @@ static inline void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long 
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetShadeTransCol(unsigned short *pdest, unsigned short color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(unsigned short *pdest, unsigned short color) {
     if (bCheckMask && *pdest & 0x8000) return;
 
     if (DrawSemiTrans) {
@@ -386,7 +383,7 @@ static inline void GetShadeTransCol(unsigned short *pdest, unsigned short color)
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetShadeTransCol32(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(unsigned long *pdest, unsigned long color) {
     if (DrawSemiTrans) {
         long r, g, b;
 
@@ -469,7 +466,7 @@ static inline void GetShadeTransCol32(unsigned long *pdest, unsigned long color)
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColG(unsigned short *pdest, unsigned short color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG(unsigned short *pdest, unsigned short color) {
     long r, g, b;
     unsigned short l;
 
@@ -551,7 +548,7 @@ static inline void GetTextureTransColG_S(unsigned short *pdest, unsigned short c
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(unsigned short *pdest, unsigned short color) {
     long r, g, b;
     unsigned short l;
 
@@ -612,7 +609,7 @@ static inline void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColG32(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(unsigned long *pdest, unsigned long color) {
     long r, g, b, l;
 
     if (color == 0) return;
@@ -742,7 +739,7 @@ static inline void GetTextureTransColG32_S(unsigned long *pdest, unsigned long c
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color) {
     long r, g, b;
 
     if (color == 0) return;
@@ -840,7 +837,7 @@ static inline void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short color, long m1, long m2, long m3) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short color, long m1, long m2, long m3) {
     long r, g, b;
 
     if (color == 0) return;
@@ -897,7 +894,7 @@ static inline void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned s
 
 ////////////////////////////////////////////////////////////////////////
 
-static inline void GetTextureTransColGX(unsigned short *pdest, unsigned short color, short m1, short m2, short m3) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(unsigned short *pdest, unsigned short color, short m1, short m2, short m3) {
     long r, g, b;
     unsigned short l;
 
@@ -2569,7 +2566,7 @@ static inline bool SetupSections_GT4(short x1, short y1, short x2, short y2, sho
 // POLY 3/4 FLAT SHADED
 ////////////////////////////////////////////////////////////////////////
 
-static inline void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb) {
+inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb) {
     int i, j, xmin, xmax, ymin, ymax;
     unsigned short color;
     unsigned long lcolor;
@@ -2706,7 +2703,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4F(long rgb) {
 // POLY 3/4 F-SHADED TEX PAL 4
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TEx4(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(short x1, short y1, short x2, short y2, short x3, short y3, short tx1,
+                                                short ty1, short tx2,
                    short ty2, short tx3, short ty3, short clX, short clY) {
     int i, j, xmin, xmax, ymin, ymax;
     long difX, difY, difX2, difY2;
@@ -2831,7 +2829,8 @@ void drawPoly3TEx4(short x1, short y1, short x2, short y2, short x3, short y3, s
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3,
+                                                   short tx1, short ty1, short tx2,
                       short ty2, short tx3, short ty3, short clX, short clY) {
     int i, j, xmin, xmax, ymin, ymax, n_xi, n_yi, TXV;
     long difX, difY, difX2, difY2;
@@ -2984,7 +2983,8 @@ void drawPoly3TEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3,
+                                                   short tx1, short ty1, short tx2,
                       short ty2, short tx3, short ty3, short clX, short clY) {
     int i, j, xmin, xmax, ymin, ymax;
     long difX, difY, difX2, difY2;
@@ -3114,7 +3114,7 @@ void drawPoly3TEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3
 
 #ifdef POLYQUAD3
 
-void drawPoly4TEx4_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                        short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                        short clY) {
     drawPoly3TEx4(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY);
@@ -3125,7 +3125,8 @@ void drawPoly4TEx4_TRI(short x1, short y1, short x2, short y2, short x3, short y
 
 // more exact:
 
-void drawPoly4TEx4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(short x1, short y1, short x2, short y2, short x3, short y3, short x4,
+                                                short y4, short tx1, short ty1,
                    short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX, short clY) {
     long num;
     long i, j, xmin, xmax, ymin, ymax;
@@ -3255,7 +3256,8 @@ void drawPoly4TEx4(short x1, short y1, short x2, short y2, short x3, short y3, s
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4,
+                                                   short y4, short tx1,
                       short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                       short clY) {
     long num;
@@ -3413,7 +3415,8 @@ void drawPoly4TEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4,
+                                                   short y4, short tx1,
                       short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                       short clY) {
     long num;
@@ -3545,7 +3548,7 @@ void drawPoly4TEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TEx4_TW_S(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TW_S(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                         short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                         short clY) {
     long num;
@@ -3678,7 +3681,7 @@ void drawPoly4TEx4_TW_S(short x1, short y1, short x2, short y2, short x3, short 
 // POLY 3 F-SHADED TEX PAL 8
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TEx8(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                    short ty2, short tx3, short ty3, short clX, short clY) {
     int i, j, xmin, xmax, ymin, ymax;
     long difX, difY, difX2, difY2;
@@ -3788,7 +3791,7 @@ void drawPoly3TEx8(short x1, short y1, short x2, short y2, short x3, short y3, s
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                       short ty2, short tx3, short ty3, short clX, short clY) {
     int i, j, xmin, xmax, ymin, ymax, n_xi, n_yi, TXV, TXU;
     long difX, difY, difX2, difY2;
@@ -3934,7 +3937,7 @@ void drawPoly3TEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                       short ty2, short tx3, short ty3, short clX, short clY) {
     int i, j, xmin, xmax, ymin, ymax;
     long difX, difY, difX2, difY2;
@@ -4053,7 +4056,7 @@ void drawPoly3TEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3
 
 #ifdef POLYQUAD3
 
-void drawPoly4TEx8_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                        short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                        short clY) {
     drawPoly3TEx8(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY);
@@ -4065,7 +4068,7 @@ void drawPoly4TEx8_TRI(short x1, short y1, short x2, short y2, short x3, short y
 
 // more exact:
 
-void drawPoly4TEx8(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
                    short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX, short clY) {
     long num;
     long i, j, xmin, xmax, ymin, ymax;
@@ -4181,7 +4184,7 @@ void drawPoly4TEx8(short x1, short y1, short x2, short y2, short x3, short y3, s
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                       short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                       short clY) {
     long num;
@@ -4332,7 +4335,7 @@ void drawPoly4TEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                       short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                       short clY) {
     long num;
@@ -4455,7 +4458,8 @@ void drawPoly4TEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TEx8_TW_S(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TW_S(short x1, short y1, short x2, short y2, short x3, short y3,
+                                                     short x4, short y4, short tx1,
                         short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                         short clY) {
     long num;
@@ -4580,7 +4584,7 @@ void drawPoly4TEx8_TW_S(short x1, short y1, short x2, short y2, short x3, short 
 // POLY 3 F-SHADED TEX 15 BIT
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TD(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2, short ty2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2, short ty2,
                  short tx3, short ty3) {
     int i, j, xmin, xmax, ymin, ymax;
     long difX, difY, difX2, difY2;
@@ -4688,7 +4692,7 @@ void drawPoly3TD(short x1, short y1, short x2, short y2, short x3, short y3, sho
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                     short ty2, short tx3, short ty3) {
     int i, j, xmin, xmax, ymin, ymax;
     long difX, difY, difX2, difY2;
@@ -4806,7 +4810,7 @@ void drawPoly3TD_TW(short x1, short y1, short x2, short y2, short x3, short y3, 
 
 #ifdef POLYQUAD3
 
-void drawPoly4TD_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                      short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4) {
     drawPoly3TD(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4);
     drawPoly3TD(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4);
@@ -4816,7 +4820,7 @@ void drawPoly4TD_TRI(short x1, short y1, short x2, short y2, short x3, short y3,
 
 // more exact:
 
-void drawPoly4TD(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
                  short tx2, short ty2, short tx3, short ty3, short tx4, short ty4) {
     long num;
     long i, j, xmin, xmax, ymin, ymax;
@@ -4932,7 +4936,7 @@ void drawPoly4TD(short x1, short y1, short x2, short y2, short x3, short y3, sho
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                     short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4) {
     long num;
     long i, j, xmin, xmax, ymin, ymax;
@@ -5056,7 +5060,7 @@ void drawPoly4TD_TW(short x1, short y1, short x2, short y2, short x3, short y3, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TD_TW_S(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TW_S(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                       short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4) {
     long num;
     long i, j, xmin, xmax, ymin, ymax;
@@ -5182,7 +5186,7 @@ void drawPoly4TD_TW_S(short x1, short y1, short x2, short y2, short x3, short y3
 // POLY 3/4 G-SHADED
 ////////////////////////////////////////////////////////////////////////
 
-static inline void drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2, long rgb3) {
+inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb1, long rgb2, long rgb3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
     long difR, difB, difG, difR2, difB2, difG2;
@@ -5327,7 +5331,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4G(long rgb1, long rgb2, long rgb3, lo
 // POLY 3/4 G-SHADED TEX PAL4
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGEx4(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                     short ty2, short tx3, short ty3, short clX, short clY, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
@@ -5474,7 +5478,7 @@ void drawPoly3TGEx4(short x1, short y1, short x2, short y2, short x3, short y3, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                        short ty2, short tx3, short ty3, short clX, short clY, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax, n_xi, n_yi, TXV;
     long cR1, cG1, cB1;
@@ -5640,7 +5644,7 @@ void drawPoly3TGEx4_IL(short x1, short y1, short x2, short y2, short x3, short y
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                        short ty2, short tx3, short ty3, short clX, short clY, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
@@ -5792,7 +5796,7 @@ void drawPoly3TGEx4_TW(short x1, short y1, short x2, short y2, short x3, short y
 // correct that way, so small texture distortions can
 // happen...
 
-void drawPoly4TGEx4_TRI_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx4_TRI_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                            short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                            short clY, long col1, long col2, long col3, long col4) {
     drawPoly3TGEx4_IL(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
@@ -5801,7 +5805,7 @@ void drawPoly4TGEx4_TRI_IL(short x1, short y1, short x2, short y2, short x3, sho
 
 #ifdef POLYQUAD3GT
 
-void drawPoly4TGEx4_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx4_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                         short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                         short clY, long col1, long col2, long col3, long col4) {
     drawPoly3TGEx4(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
@@ -5812,7 +5816,7 @@ void drawPoly4TGEx4_TRI(short x1, short y1, short x2, short y2, short x3, short 
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TGEx4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx4(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                     short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX, short clY,
                     long col1, long col2, long col4, long col3) {
     long num;
@@ -5978,7 +5982,7 @@ void drawPoly4TGEx4(short x1, short y1, short x2, short y2, short x3, short y3, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TGEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx4_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                        short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                        short clY, long col1, long col2, long col3, long col4) {
     drawPoly3TGEx4_TW(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
@@ -5990,7 +5994,7 @@ void drawPoly4TGEx4_TW(short x1, short y1, short x2, short y2, short x3, short y
 // POLY 3/4 G-SHADED TEX PAL8
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGEx8(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                     short ty2, short tx3, short ty3, short clX, short clY, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
@@ -6127,7 +6131,7 @@ void drawPoly3TGEx8(short x1, short y1, short x2, short y2, short x3, short y3, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8_IL(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                        short ty2, short tx3, short ty3, short clX, short clY, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax, n_xi, n_yi, TXV, TXU;
     long cR1, cG1, cB1;
@@ -6288,7 +6292,7 @@ void drawPoly3TGEx8_IL(short x1, short y1, short x2, short y2, short x3, short y
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                        short ty2, short tx3, short ty3, short clX, short clY, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
@@ -6432,7 +6436,7 @@ void drawPoly3TGEx8_TW(short x1, short y1, short x2, short y2, short x3, short y
 
 // note: two g-shaded tris: small texture distortions can happen
 
-void drawPoly4TGEx8_TRI_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx8_TRI_IL(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                            short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                            short clY, long col1, long col2, long col3, long col4) {
     drawPoly3TGEx8_IL(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
@@ -6441,7 +6445,7 @@ void drawPoly4TGEx8_TRI_IL(short x1, short y1, short x2, short y2, short x3, sho
 
 #ifdef POLYQUAD3GT
 
-void drawPoly4TGEx8_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx8_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                         short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                         short clY, long col1, long col2, long col3, long col4) {
     drawPoly3TGEx8(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
@@ -6450,7 +6454,7 @@ void drawPoly4TGEx8_TRI(short x1, short y1, short x2, short y2, short x3, short 
 
 #endif
 
-void drawPoly4TGEx8(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx8(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                     short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX, short clY,
                     long col1, long col2, long col4, long col3) {
     long num;
@@ -6607,7 +6611,7 @@ void drawPoly4TGEx8(short x1, short y1, short x2, short y2, short x3, short y3, 
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TGEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx8_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                        short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, short clX,
                        short clY, long col1, long col2, long col3, long col4) {
     drawPoly3TGEx8_TW(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
@@ -6618,7 +6622,7 @@ void drawPoly4TGEx8_TW(short x1, short y1, short x2, short y2, short x3, short y
 // POLY 3 G-SHADED TEX 15 BIT
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGD(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                   short ty2, short tx3, short ty3, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
@@ -6754,7 +6758,7 @@ void drawPoly3TGD(short x1, short y1, short x2, short y2, short x3, short y3, sh
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly3TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,
                      short ty2, short tx3, short ty3, long col1, long col2, long col3) {
     int i, j, xmin, xmax, ymin, ymax;
     long cR1, cG1, cB1;
@@ -6900,7 +6904,7 @@ void drawPoly3TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3,
 
 #ifdef POLYQUAD3GT
 
-void drawPoly4TGD_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD_TRI(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                       short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, long col1, long col2,
                       long col3, long col4) {
     drawPoly3TGD(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, col2, col4, col3);
@@ -6909,7 +6913,7 @@ void drawPoly4TGD_TRI(short x1, short y1, short x2, short y2, short x3, short y3
 
 #endif
 
-void drawPoly4TGD(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1, short ty1,
                   short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, long col1, long col2, long col4,
                   long col3) {
     long num;
@@ -7064,7 +7068,7 @@ void drawPoly4TGD(short x1, short y1, short x2, short y2, short x3, short y3, sh
 
 ////////////////////////////////////////////////////////////////////////
 
-void drawPoly4TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
+void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD_TW(short x1, short y1, short x2, short y2, short x3, short y3, short x4, short y4, short tx1,
                      short ty1, short tx2, short ty2, short tx3, short ty3, short tx4, short ty4, long col1, long col2,
                      long col3, long col4) {
     drawPoly3TGD_TW(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, col2, col4, col3);
@@ -7849,7 +7853,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_E_SE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
     int dx, dy, incrE, incrSE, d;
     unsigned long r0, g0, b0, r1, g1, b1;
     long dr, dg, db;
@@ -7902,7 +7906,7 @@ void Line_E_SE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigne
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_S_SE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
     int dx, dy, incrS, incrSE, d;
     unsigned long r0, g0, b0, r1, g1, b1;
     long dr, dg, db;
@@ -7955,7 +7959,7 @@ void Line_S_SE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigne
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_N_NE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
     int dx, dy, incrN, incrNE, d;
     unsigned long r0, g0, b0, r1, g1, b1;
     long dr, dg, db;
@@ -8008,7 +8012,7 @@ void Line_N_NE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigne
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_E_NE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigned long rgb1) {
     int dx, dy, incrE, incrNE, d;
     unsigned long r0, g0, b0, r1, g1, b1;
     long dr, dg, db;
@@ -8061,7 +8065,7 @@ void Line_E_NE_Shade(int x0, int y0, int x1, int y1, unsigned long rgb0, unsigne
 
 ///////////////////////////////////////////////////////////////////////
 
-void VertLineShade(int x, int y0, int y1, unsigned long rgb0, unsigned long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::VertLineShade(int x, int y0, int y1, unsigned long rgb0, unsigned long rgb1) {
     int y, dy;
     unsigned long r0, g0, b0, r1, g1, b1;
     long dr, dg, db;
@@ -8105,7 +8109,7 @@ void VertLineShade(int x, int y0, int y1, unsigned long rgb0, unsigned long rgb1
 
 ///////////////////////////////////////////////////////////////////////
 
-void HorzLineShade(int y, int x0, int x1, unsigned long rgb0, unsigned long rgb1) {
+void PCSX::SoftGPU::SoftRenderer::HorzLineShade(int y, int x0, int x1, unsigned long rgb0, unsigned long rgb1) {
     int x, dx;
     unsigned long r0, g0, b0, r1, g1, b1;
     long dr, dg, db;
@@ -8149,7 +8153,7 @@ void HorzLineShade(int y, int x0, int x1, unsigned long rgb0, unsigned long rgb1
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_E_SE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_E_SE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
     int dx, dy, incrE, incrSE, d, x, y;
 
     dx = x1 - x0;
@@ -8176,7 +8180,7 @@ void Line_E_SE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_S_SE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_S_SE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
     int dx, dy, incrS, incrSE, d, x, y;
 
     dx = x1 - x0;
@@ -8203,7 +8207,7 @@ void Line_S_SE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_N_NE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_N_NE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
     int dx, dy, incrN, incrNE, d, x, y;
 
     dx = x1 - x0;
@@ -8230,7 +8234,7 @@ void Line_N_NE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
 
 ///////////////////////////////////////////////////////////////////////
 
-void Line_E_NE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
+void PCSX::SoftGPU::SoftRenderer::Line_E_NE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
     int dx, dy, incrE, incrNE, d, x, y;
 
     dx = x1 - x0;
@@ -8257,7 +8261,7 @@ void Line_E_NE_Flat(int x0, int y0, int x1, int y1, unsigned short colour) {
 
 ///////////////////////////////////////////////////////////////////////
 
-void VertLineFlat(int x, int y0, int y1, unsigned short colour) {
+void PCSX::SoftGPU::SoftRenderer::VertLineFlat(int x, int y0, int y1, unsigned short colour) {
     int y;
 
     if (y0 < drawY) y0 = drawY;
@@ -8269,7 +8273,7 @@ void VertLineFlat(int x, int y0, int y1, unsigned short colour) {
 
 ///////////////////////////////////////////////////////////////////////
 
-void HorzLineFlat(int y, int x0, int x1, unsigned short colour) {
+void PCSX::SoftGPU::SoftRenderer::HorzLineFlat(int y, int x0, int x1, unsigned short colour) {
     int x;
 
     if (x0 < drawX) x0 = drawX;

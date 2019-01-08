@@ -118,7 +118,7 @@ static constexpr inline unsigned short BGR24to16(unsigned long BGR) {
 // Update global TP infos
 ////////////////////////////////////////////////////////////////////////
 
-static inline void UpdateGlobalTP(unsigned short gdata) {
+inline void PCSX::SoftGPU::Prim::UpdateGlobalTP(unsigned short gdata) {
     GlobalTextAddrX = (gdata << 6) & 0x3c0;  // texture addr
 
     if (iGPUHeight == 1024) {

@@ -37,6 +37,13 @@ class Prim {
         }
     }
 
+    inline void reset() {
+        GlobalTextAddrX = 0;
+        GlobalTextAddrY = 0;
+        GlobalTextTP = 0;
+        GlobalTextABR = 0;
+    }
+
   protected:
     virtual void offsetPSXLine() = 0;
     virtual void offsetPSX2() = 0;
@@ -61,6 +68,8 @@ class Prim {
 
     short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
 
+    long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
+    long GlobalTextREST, GlobalTextABR;
 
   private:
     typedef void (Prim::*func_t)(unsigned char *);
@@ -102,6 +111,7 @@ class Prim {
     static const func_t funcs[256];
     static const func_t skip[256];
 
+    void UpdateGlobalTP(unsigned short gdata);
     void AdjustCoord4();
     void AdjustCoord3();
     void AdjustCoord2();
