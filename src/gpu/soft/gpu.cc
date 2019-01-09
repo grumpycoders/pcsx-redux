@@ -957,7 +957,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             sSetMask = 0;
             lSetMask = 0;
             bCheckMask = FALSE;
-            usMirror = 0;
             m_prim.reset();
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;

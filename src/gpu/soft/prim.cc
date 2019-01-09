@@ -95,7 +95,6 @@
 // globals
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short usMirror = 0;  // sprite mirror
 int iDither = 0;
 long drawX;
 long drawY;
