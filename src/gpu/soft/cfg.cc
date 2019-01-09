@@ -100,7 +100,6 @@
 
 #include <stdio.h>
 //#include <vfw.h>
-#include "gpu/soft/record.h"
 #include "stdafx.h"
 
 #include "gpu/soft/cfg.h"

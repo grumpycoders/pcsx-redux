@@ -135,7 +135,6 @@
     <ClCompile Include="..\..\src\gpu\soft\key.cc" />
     <ClCompile Include="..\..\src\gpu\soft\menu.cc" />
     <ClCompile Include="..\..\src\gpu\soft\prim.cc" />
-    <ClCompile Include="..\..\src\gpu\soft\record.cc" />
     <ClCompile Include="..\..\src\gpu\soft\soft.cc" />
     <ClCompile Include="..\..\src\gpu\soft\zn.cc" />
   </ItemGroup>
@@ -153,7 +152,6 @@
     <ClInclude Include="..\..\src\gpu\soft\menu.h" />
     <ClInclude Include="..\..\src\gpu\soft\prim.h" />
     <ClInclude Include="..\..\src\gpu\soft\psemu.h" />
-    <ClInclude Include="..\..\src\gpu\soft\record.h" />
     <ClInclude Include="..\..\src\gpu\soft\resource.h" />
     <ClInclude Include="..\..\src\gpu\soft\soft.h" />
     <ClInclude Include="..\..\src\gpu\soft\stdafx.h" />

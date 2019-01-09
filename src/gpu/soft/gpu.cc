@@ -125,10 +125,6 @@
 
 #define _IN_GPU
 
-#ifdef _WIN32
-#include "gpu/soft/record.h"
-#endif
-
 #include "gpu/soft/cfg.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
