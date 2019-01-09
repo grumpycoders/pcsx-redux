@@ -182,7 +182,6 @@ extern int iFPSEInterface;
 
 // prim.c
 
-extern TWin_t TWin;
 extern unsigned short usMirror;
 extern int iDither;
 extern unsigned long dwCfgFixes;

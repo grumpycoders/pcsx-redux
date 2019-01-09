@@ -68,6 +68,7 @@ class Prim {
     virtual void DrawSoftwareLineFlat(long rgb) = 0;
 
     bool bUsingTWin = false;
+    TWin_t TWin;
     bool DrawSemiTrans = false;
     short g_m1 = 255, g_m2 = 255, g_m3 = 255;
     short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords

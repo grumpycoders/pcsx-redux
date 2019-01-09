@@ -95,7 +95,6 @@
 // globals
 ////////////////////////////////////////////////////////////////////////
 
-TWin_t TWin;
 unsigned short usMirror = 0;  // sprite mirror
 int iDither = 0;
 long drawX;
