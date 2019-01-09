@@ -188,10 +188,6 @@ extern unsigned long dwEmuFixes;
 extern int iUseFixes;
 extern int iUseDither;
 extern bool bDoVSyncUpdate;
-extern long drawX;
-extern long drawY;
-extern long drawW;
-extern long drawH;
 
 // gpu.c
 extern VRAMLoad_t VRAMWrite;

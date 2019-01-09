@@ -952,8 +952,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            drawX = drawY = 0;
-            drawW = drawH = 0;
             sSetMask = 0;
             lSetMask = 0;
             bCheckMask = FALSE;

@@ -44,6 +44,8 @@ class Prim {
         GlobalTextABR = 0;
         bUsingTWin = false;
         usMirror = 0;
+        drawX = drawY = 0;
+        drawW = drawH = 0;
     }
 
   protected:
@@ -72,6 +74,11 @@ class Prim {
     TWin_t TWin;
     unsigned short usMirror = 0;  // sprite mirror
     int iDither = 0;
+    long drawX;
+    long drawY;
+    long drawW;
+    long drawH;
+
     bool DrawSemiTrans = false;
     short g_m1 = 255, g_m2 = 255, g_m3 = 255;
     short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords

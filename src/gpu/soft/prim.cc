@@ -95,10 +95,6 @@
 // globals
 ////////////////////////////////////////////////////////////////////////
 
-long drawX;
-long drawY;
-long drawW;
-long drawH;
 unsigned long dwCfgFixes;
 unsigned long dwActFixes = 0;
 unsigned long dwEmuFixes = 0;
