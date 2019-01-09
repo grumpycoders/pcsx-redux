@@ -961,7 +961,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             m_prim.reset();
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;
-            bUsingTWin = false;
             return;
         //--------------------------------------------------//
         // dis/enable display

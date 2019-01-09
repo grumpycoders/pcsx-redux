@@ -42,6 +42,7 @@ class Prim {
         GlobalTextAddrY = 0;
         GlobalTextTP = 0;
         GlobalTextABR = 0;
+        bUsingTWin = false;
     }
 
   protected:
@@ -66,6 +67,7 @@ class Prim {
     virtual void DrawSoftwareLineShade(long rgb0, long rgb1) = 0;
     virtual void DrawSoftwareLineFlat(long rgb) = 0;
 
+    bool bUsingTWin = false;
     bool DrawSemiTrans = false;
     short g_m1 = 255, g_m2 = 255, g_m3 = 255;
     short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
