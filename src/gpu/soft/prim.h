@@ -46,6 +46,9 @@ class Prim {
         usMirror = 0;
         drawX = drawY = 0;
         drawW = drawH = 0;
+        bCheckMask = false;
+        sSetMask = 0;
+        lSetMask = 0;
     }
 
   protected:
@@ -85,6 +88,10 @@ class Prim {
 
     long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
     long GlobalTextREST, GlobalTextABR;
+
+    bool bCheckMask = false;
+    unsigned short sSetMask = 0;
+    unsigned long lSetMask = 0;
 
   private:
     typedef void (Prim::*func_t)(unsigned char *);
@@ -136,6 +143,8 @@ class Prim {
     bool CheckCoord4();
     bool CheckCoord3();
     bool CheckCoord2();
+
+    long lLowerpart;
 };
 
 }  // namespace SoftGPU

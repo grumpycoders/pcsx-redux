@@ -77,14 +77,6 @@ void GPUgetScreenPic(unsigned char* pMem);
 LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         //--------------------------------------------------//
-        case WM_ACTIVATE:  // some scanline window mode fixing stuff
-        case WM_MOVE: {
-            if (!iUseScanLines) break;
-            if (!iWindowMode) break;
-            if (bIsFirstFrame) break;
-            // MoveScanLineArea(hwnd);
-        } break;
-        //--------------------------------------------------//
         case WM_KEYDOWN:  // keydown
             if (wParam == (WPARAM)szGPUKeys[2]) ulKeybits |= KEY_RESETTEXSTORE;
             break;

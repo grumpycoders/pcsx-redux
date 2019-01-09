@@ -159,12 +159,8 @@ extern BOOL bVsync_Key;
 
 extern int iResX;
 extern int iResY;
-extern long lLowerpart;
-extern BOOL bIsFirstFrame;
 extern int iWinSize;
 extern BOOL bCheckMask;
-extern unsigned short sSetMask;
-extern unsigned long lSetMask;
 extern BOOL bDeviceOK;
 extern int iUseGammaVal;
 extern int iUseScanLines;

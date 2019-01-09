@@ -542,7 +542,6 @@ long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
         InitFPS();
     }
 
-    bIsFirstFrame = TRUE;  // we have to init later
     bDoVSyncUpdate = true;
 
     ulInitDisplay();  // setup direct draw
@@ -883,9 +882,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            sSetMask = 0;
-            lSetMask = 0;
-            bCheckMask = FALSE;
             m_prim.reset();
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;
