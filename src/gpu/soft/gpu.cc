@@ -123,8 +123,6 @@
 
 #endif
 
-#define _IN_GPU
-
 #include "gpu/soft/cfg.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
@@ -530,7 +528,6 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
 long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
 {
     textureId = textureIdGPU;  // store hwnd
@@ -555,48 +552,12 @@ long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
     return 0;
 }
 
-#else
-
-long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
-    unsigned long d;
-
-    pCaptionText = CapText;
-
-#ifndef _FPSE
-    pConfigFile = CfgFile;
-#endif
-
-    ReadConfig();  // read registry
-
-    InitFPS();
-
-    bIsFirstFrame = TRUE;  // we have to init later
-    bDoVSyncUpdate = true;
-
-    d = ulInitDisplay();  // setup x
-
-    if (disp) *disp = d;  // wanna x pointer? ok
-
-    if (d) return 0;
-    return -1;
-}
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
 long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
-#if 0
-    if (RECORD_RECORDING == TRUE) {
-        RECORD_Stop();
-        RECORD_RECORDING = FALSE;
-        BuildDispMenu(0);
-    }
-#endif
-
     ReleaseKeyHandler();  // de-subclass window
 
     CloseDisplay();  // shutdown direct draw
@@ -714,19 +675,7 @@ void ChangeDispOffsetsX(void)  // X CENTER
             PreviousPSXDisplay.Range.x0 += 2;  //???
 
             PreviousPSXDisplay.Range.x1 += (short)(lx - l);
-#ifndef _WIN32
-            PreviousPSXDisplay.Range.x1 -= 2;  // makes linux stretching easier
-#endif
         }
-
-#ifndef _WIN32
-        // some linux alignment security
-        PreviousPSXDisplay.Range.x0 = PreviousPSXDisplay.Range.x0 >> 1;
-        PreviousPSXDisplay.Range.x0 = PreviousPSXDisplay.Range.x0 << 1;
-        PreviousPSXDisplay.Range.x1 = PreviousPSXDisplay.Range.x1 >> 1;
-        PreviousPSXDisplay.Range.x1 = PreviousPSXDisplay.Range.x1 << 1;
-#endif
-
         DoClearScreenBuffer();
     }
 
@@ -820,7 +769,6 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
 void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 {
     //    softGPUclose();
@@ -829,7 +777,6 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
     bChangeWinMode = FALSE;
     bDoVSyncUpdate = true;
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // gun cursor func: player=0-7, x=0-511, y=0-255
@@ -877,18 +824,6 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
                 updateDisplay();                  // -> update display
         }
     }
-
-#if 0
-
-    if (RECORD_RECORDING)
-        if (RECORD_WriteFrame() == FALSE) {
-            RECORD_RECORDING = FALSE;
-            RECORD_Stop();
-        }
-
-    if (bChangeWinMode) ChangeWindowMode();  // toggle full - window mode
-
-#endif
 
     bDoVSyncUpdate = false;  // vsync done
 }
@@ -1470,14 +1405,6 @@ extern "C" long softGPUgetMode(void) {
 ////////////////////////////////////////////////////////////////////////
 
 extern "C" long softGPUconfigure(void) {
-#ifdef _WIN32
-    HWND hWP = GetActiveWindow();
-
-    DialogBox(0, MAKEINTRESOURCE(IDD_CFGSOFT), hWP, (DLGPROC)SoftDlgProc);
-#else  // LINUX
-    SoftDlgProc();
-#endif
-
     return 0;
 }
 
@@ -1550,48 +1477,6 @@ long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
     GPUIsIdle;
 
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////
-// show about dlg
-////////////////////////////////////////////////////////////////////////
-
-#ifdef _WIN32
-BOOL AboutDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
-        case WM_COMMAND: {
-            switch (LOWORD(wParam)) {
-                case IDOK:
-                    EndDialog(hW, TRUE);
-                    return TRUE;
-            }
-        }
-    }
-    return FALSE;
-}
-#endif
-
-extern "C" void softGPUabout(void)  // ABOUT
-{
-#ifdef _WIN32
-    HWND hWP = GetActiveWindow();  // to be sure
-    DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), hWP, (DLGPROC)AboutDlgProc);
-#else  // LINUX
-#ifndef _FPSE
-    AboutDlgProc();
-#endif
-#endif
-    return;
-}
-
-////////////////////////////////////////////////////////////////////////
-// We are ever fine ;)
-////////////////////////////////////////////////////////////////////////
-
-extern "C" long softGPUtest(void) {
-    // if test fails this function should return negative value for error (unable to continue)
-    // and positive value for warning (can continue but output might be crappy)
     return 0;
 }
 
@@ -1785,392 +1670,9 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 // so you have to use the frontbuffer to get a fully
 // rendered picture
 
-#ifdef _WIN32
 extern "C" void softGPUgetScreenPic(unsigned char *pMem) {
-#if 0
-                 HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
- int x,y,c,v,iCol;RECT r,rt;
- float XS,YS;
-
- //----------------------------------------------------// Pete: creating a temp surface, blitting primary surface into it, get data from temp, and finally delete temp... seems to be better in VISTA
- DDPIXELFORMAT dd;LPDIRECTDRAWSURFACE DDSSave;
-
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));
- xddsd.dwSize = sizeof(DDSURFACEDESC);
- xddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
- xddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
- xddsd.dwWidth        = iResX;
- xddsd.dwHeight       = iResY;
-
- if(IDirectDraw_CreateSurface(DX.DD,&xddsd, &DDSSave, NULL)) // create temp surface
-  return;
-
- dd.dwSize=sizeof(DDPIXELFORMAT);                      // check out, what color we have
- IDirectDrawSurface_GetPixelFormat(DDSSave,&dd);
-
- if(dd.dwRBitMask==0x00007c00 &&
-    dd.dwGBitMask==0x000003e0 &&
-    dd.dwBBitMask==0x0000001f)       iCol=15;
- else
- if(dd.dwRBitMask==0x0000f800 &&
-    dd.dwGBitMask==0x000007e0 &&
-    dd.dwBBitMask==0x0000001f)       iCol=16;
- else                                iCol=32;
-
- r.left=0; r.right =iResX;                             // get blitting rects
- r.top=0;  r.bottom=iResY;
- rt.left=0; rt.right =iResX;
- rt.top=0;  rt.bottom=iResY;
- if(iWindowMode)
-  {
-   POINT Point={0,0};
-   ClientToScreen(DX.hWnd,&Point);
-   rt.left+=Point.x;rt.right+=Point.x;
-   rt.top+=Point.y;rt.bottom+=Point.y;
-  }
-
- IDirectDrawSurface_Blt(DDSSave,&r,DX.DDSPrimary,&rt,  // and blit from primary into temp
-                        DDBLT_WAIT,NULL);
-
- //----------------------------------------------------//
-
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));
- xddsd.dwSize   = sizeof(DDSURFACEDESC);
- xddsd.dwFlags  = DDSD_WIDTH | DDSD_HEIGHT;
- xddsd.dwWidth  = iResX;
- xddsd.dwHeight = iResY;
-
- XS=(float)iResX/128;
- YS=(float)iResY/96;
-
- ddrval=IDirectDrawSurface_Lock(DDSSave,NULL, &xddsd, DDLOCK_WAIT|DDLOCK_READONLY, NULL);
-
- if(ddrval==DDERR_SURFACELOST) IDirectDrawSurface_Restore(DDSSave);
-
- pf=pMem;
-
- if(ddrval==DD_OK)
-  {
-   unsigned char * ps=(unsigned char *)xddsd.lpSurface;
-
-   if(iCol==16)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x7e0)>>3;
-         *(pf+2)=(sx&0xf800)>>8;
-         pf+=3;
-        }
-      }
-    }
-   else
-   if(iCol==15)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x3e0)>>2;
-         *(pf+2)=(sx&0x7c00)>>7;
-         pf+=3;
-        }
-      }
-    }
-   else
-    {
-     unsigned long sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned long *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*4+
-               ((int)((float)x*XS))*4));
-         *(pf+0)=(unsigned char)((sx&0xff));
-         *(pf+1)=(unsigned char)((sx&0xff00)>>8);
-         *(pf+2)=(unsigned char)((sx&0xff0000)>>16);
-         pf+=3;
-        }
-      }
-    }
-  }
-
- IDirectDrawSurface_Unlock(DDSSave,&xddsd);
- IDirectDrawSurface_Release(DDSSave);
-
-/*
- HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
- int x,y,c,v;RECT r;
- float XS,YS;
-
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));
- xddsd.dwSize   = sizeof(DDSURFACEDESC);
- xddsd.dwFlags  = DDSD_WIDTH | DDSD_HEIGHT;
- xddsd.dwWidth  = iResX;
- xddsd.dwHeight = iResY;
-
- r.left=0; r.right =iResX;
- r.top=0;  r.bottom=iResY;
-
- if(iWindowMode)
-  {
-   POINT Point={0,0};
-   ClientToScreen(DX.hWnd,&Point);
-   r.left+=Point.x;r.right+=Point.x;
-   r.top+=Point.y;r.bottom+=Point.y;
-  }
-
- XS=(float)iResX/128;
- YS=(float)iResY/96;
-
- ddrval=IDirectDrawSurface_Lock(DX.DDSPrimary,NULL, &xddsd, DDLOCK_WAIT|DDLOCK_READONLY, NULL);
-
- if(ddrval==DDERR_SURFACELOST) IDirectDrawSurface_Restore(DX.DDSPrimary);
-
- pf=pMem;
-
- if(ddrval==DD_OK)
-  {
-   unsigned char * ps=(unsigned char *)xddsd.lpSurface;
-
-   if(iDesktopCol==16)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x7e0)>>3;
-         *(pf+2)=(sx&0xf800)>>8;
-         pf+=3;
-        }
-      }
-    }
-   else
-   if(iDesktopCol==15)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x3e0)>>2;
-         *(pf+2)=(sx&0x7c00)>>7;
-         pf+=3;
-        }
-      }
-    }
-   else
-    {
-     unsigned long sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned long *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*4+
-               ((int)((float)x*XS))*4));
-         *(pf+0)=(unsigned char)((sx&0xff));
-         *(pf+1)=(unsigned char)((sx&0xff00)>>8);
-         *(pf+2)=(unsigned char)((sx&0xff0000)>>16);
-         pf+=3;
-        }
-      }
-    }
-  }
-
- IDirectDrawSurface_Unlock(DX.DDSPrimary,&xddsd);
-*/
-
- /////////////////////////////////////////////////////////////////////
- // generic number/border painter
-
- pf=pMem+(103*3);                                      // offset to number rect
-
- for(y=0;y<20;y++)                                     // loop the number rect pixel
-  {
-   for(x=0;x<6;x++)
-    {
-     c=cFont[lSelectedSlot][x+y*6];                    // get 4 char dot infos at once (number depends on selected slot)
-     v=(c&0xc0)>>6;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;                // paint the dots into the rect
-     v=(c&0x30)>>4;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;
-     v=(c&0x0c)>>2;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;
-     v=c&0x03;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;
-    }
-   pf+=104*3;                                          // next rect y line
-  }
-
- pf=pMem;                                              // ptr to first pos in 128x96 pic
- for(x=0;x<128;x++)                                    // loop top/bottom line
-  {
-   *(pf+(95*128*3))=0x00;*pf++=0x00;
-   *(pf+(95*128*3))=0x00;*pf++=0x00;                   // paint it red
-   *(pf+(95*128*3))=0xff;*pf++=0xff;
-  }
- pf=pMem;                                              // ptr to first pos
- for(y=0;y<96;y++)                                     // loop left/right line
-  {
-   *(pf+(127*3))=0x00;*pf++=0x00;
-   *(pf+(127*3))=0x00;*pf++=0x00;                      // paint it red
-   *(pf+(127*3))=0xff;*pf++=0xff;
-   pf+=127*3;                                          // offset to next line
-  }
-
-#endif  // 0
 }
 
-#else
-// LINUX version:
-
-#ifdef USE_DGA2
-#include <X11/extensions/xf86dga.h>
-extern XDGADevice *dgaDev;
-#endif
-extern char *Xpixels;
-
-void GPUgetScreenPic(unsigned char *pMem) {
-    unsigned short c;
-    unsigned char *pf;
-    int x, y;
-
-    float XS = (float)iResX / 128;
-    float YS = (float)iResY / 96;
-
-    pf = pMem;
-
-    memset(pMem, 0, 128 * 96 * 3);
-
-    if (Xpixels) {
-        unsigned char *ps = (unsigned char *)Xpixels;
-
-        if (iDesktopCol == 16) {
-            long lPitch = iResX << 1;
-            unsigned short sx;
-#ifdef USE_DGA2
-            if (!iWindowMode) lPitch += (dgaDev->mode.imageWidth - dgaDev->mode.viewportWidth) * 2;
-#endif
-            for (y = 0; y < 96; y++) {
-                for (x = 0; x < 128; x++) {
-                    sx = *((unsigned short *)((ps) + (((int)((float)y * YS)) * lPitch) + ((int)((float)x * XS)) * 2));
-                    *(pf + 0) = (sx & 0x1f) << 3;
-                    *(pf + 1) = (sx & 0x7e0) >> 3;
-                    *(pf + 2) = (sx & 0xf800) >> 8;
-                    pf += 3;
-                }
-            }
-        } else if (iDesktopCol == 15) {
-            long lPitch = iResX << 1;
-            unsigned short sx;
-#ifdef USE_DGA2
-            if (!iWindowMode) lPitch += (dgaDev->mode.imageWidth - dgaDev->mode.viewportWidth) * 2;
-#endif
-            for (y = 0; y < 96; y++) {
-                for (x = 0; x < 128; x++) {
-                    sx = *((unsigned short *)((ps) + (((int)((float)y * YS)) * lPitch) + ((int)((float)x * XS)) * 2));
-                    *(pf + 0) = (sx & 0x1f) << 3;
-                    *(pf + 1) = (sx & 0x3e0) >> 2;
-                    *(pf + 2) = (sx & 0x7c00) >> 7;
-                    pf += 3;
-                }
-            }
-        } else {
-            long lPitch = iResX << 2;
-            unsigned long sx;
-#ifdef USE_DGA2
-            if (!iWindowMode) lPitch += (dgaDev->mode.imageWidth - dgaDev->mode.viewportWidth) * 4;
-#endif
-            for (y = 0; y < 96; y++) {
-                for (x = 0; x < 128; x++) {
-                    sx = *((unsigned long *)((ps) + (((int)((float)y * YS)) * lPitch) + ((int)((float)x * XS)) * 4));
-                    *(pf + 0) = (sx & 0xff);
-                    *(pf + 1) = (sx & 0xff00) >> 8;
-                    *(pf + 2) = (sx & 0xff0000) >> 16;
-                    pf += 3;
-                }
-            }
-        }
-    }
-
-    /////////////////////////////////////////////////////////////////////
-    // generic number/border painter
-
-    pf = pMem + (103 * 3);  // offset to number rect
-
-    for (y = 0; y < 20; y++)  // loop the number rect pixel
-    {
-        for (x = 0; x < 6; x++) {
-            c = cFont[lSelectedSlot][x + y * 6];  // get 4 char dot infos at once (number depends on selected slot)
-            PaintPicDot(pf, (c & 0xc0) >> 6);
-            pf += 3;  // paint the dots into the rect
-            PaintPicDot(pf, (c & 0x30) >> 4);
-            pf += 3;
-            PaintPicDot(pf, (c & 0x0c) >> 2);
-            pf += 3;
-            PaintPicDot(pf, (c & 0x03));
-            pf += 3;
-        }
-        pf += 104 * 3;  // next rect y line
-    }
-
-    pf = pMem;                 // ptr to first pos in 128x96 pic
-    for (x = 0; x < 128; x++)  // loop top/bottom line
-    {
-        *(pf + (95 * 128 * 3)) = 0x00;
-        *pf++ = 0x00;
-        *(pf + (95 * 128 * 3)) = 0x00;
-        *pf++ = 0x00;  // paint it red
-        *(pf + (95 * 128 * 3)) = 0xff;
-        *pf++ = 0xff;
-    }
-    pf = pMem;                // ptr to first pos
-    for (y = 0; y < 96; y++)  // loop left/right line
-    {
-        *(pf + (127 * 3)) = 0x00;
-        *pf++ = 0x00;
-        *(pf + (127 * 3)) = 0x00;
-        *pf++ = 0x00;  // paint it red
-        *(pf + (127 * 3)) = 0xff;
-        *pf++ = 0xff;
-        pf += 127 * 3;  // offset to next line
-    }
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // func will be called with 128x96x3 BGR data.
@@ -2208,8 +1710,6 @@ void GPUsetframelimit(unsigned long option) {
 
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-
 extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
     int iVibVal;
 
@@ -2227,7 +1727,3 @@ extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig)
 
     iRumbleTime = 15;  // let the rumble last 16 buffer swaps
 }
-
-#endif
-
-////////////////////////////////////////////////////////////////////////
