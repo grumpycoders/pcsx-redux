@@ -95,11 +95,13 @@
 // globals
 ////////////////////////////////////////////////////////////////////////
 
+// configuration items
 unsigned long dwCfgFixes;
 unsigned long dwActFixes = 0;
 unsigned long dwEmuFixes = 0;
 int iUseFixes;
 int iUseDither = 0;
+// ??
 bool bDoVSyncUpdate = false;
 
 static constexpr inline unsigned short BGR24to16(unsigned long BGR) {
