@@ -132,20 +132,12 @@ unsigned short usCursorActive = 0;
 // own swap buffer func (window/fullscreen)
 ////////////////////////////////////////////////////////////////////////
 
-// sDX DX;
-// static DDSURFACEDESC ddsd;
 GUID guiDev;
-BOOL bDeviceOK;
 unsigned int textureId;
 int iSysMemory = 0;
-int iFPSEInterface = 0;
 int iRefreshRate;
 BOOL bVsync = FALSE;
 BOOL bVsync_Key = FALSE;
-
-void (*BlitScreen)(unsigned char *, long, long);
-void (*pExtraBltFunc)(void);
-void (*p2XSaIFunc)(unsigned char *, DWORD, unsigned char *, int, int);
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -192,29 +184,15 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
     surf += PreviousPSXDisplay.Range.x0 << 2;
 
     if (PSXDisplay.RGB24) {
-        if (iFPSEInterface) {
-            for (column = 0; column < dy; column++) {
-                startxy = ((1024) * (column + y)) + x;
-                pD = (unsigned char *)&psxVuw[startxy];
+        for (column = 0; column < dy; column++) {
+            startxy = ((1024) * (column + y)) + x;
+            pD = (unsigned char *)&psxVuw[startxy];
 
-                for (row = 0; row < dx; row++) {
-                    lu = *((unsigned long *)pD);
-                    *((unsigned long *)((surf) + (column * pitch) + row * 4)) =
-                        0xff000000 | (BLUE(lu) << 16) | (GREEN(lu) << 8) | (RED(lu));
-                    pD += 3;
-                }
-            }
-        } else {
-            for (column = 0; column < dy; column++) {
-                startxy = ((1024) * (column + y)) + x;
-                pD = (unsigned char *)&psxVuw[startxy];
-
-                for (row = 0; row < dx; row++) {
-                    lu = *((unsigned long *)pD);
-                    *((unsigned long *)((surf) + (column * pitch) + row * 4)) =
-                        0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
-                    pD += 3;
-                }
+            for (row = 0; row < dx; row++) {
+                lu = *((unsigned long *)pD);
+                *((unsigned long *)((surf) + (column * pitch) + row * 4)) =
+                    0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
+                pD += 3;
             }
         }
     } else {
@@ -362,8 +340,6 @@ int iUseGammaVal = 2048;
 // MAIN DIRECT DRAW INIT
 ////////////////////////////////////////////////////////////////////////
 
-BOOL ReStart = FALSE;
-
 int DXinitialize() {
     InitMenu();  // menu init
 
@@ -389,9 +365,6 @@ void DXcleanup()  // DX CLEANUP
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
-
-DWORD dwGPUStyle = 0;  // vars to store some wimdows stuff
-HANDLE hGPUMenu = NULL;
 
 unsigned long ulInitDisplay(void) {
     textureMem = (uint8_t *)malloc(1024 * 512 * 4);

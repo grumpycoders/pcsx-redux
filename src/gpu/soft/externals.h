@@ -161,7 +161,6 @@ extern int iResX;
 extern int iResY;
 extern int iWinSize;
 extern BOOL bCheckMask;
-extern BOOL bDeviceOK;
 extern int iUseGammaVal;
 extern int iUseScanLines;
 extern int iDesktopCol;
@@ -174,7 +173,6 @@ extern PSXPoint_t ptCursorPoint[];
 extern unsigned short usCursorActive;
 
 extern int iSysMemory;
-extern int iFPSEInterface;
 
 // prim.c
 
