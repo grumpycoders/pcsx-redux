@@ -168,7 +168,7 @@ inline void PCSX::SoftGPU::Prim::UpdateGlobalTP(unsigned short gdata) {
 ////////////////////////////////////////////////////////////////////////
 
 inline void PCSX::SoftGPU::Prim::SetRenderMode(unsigned long DrawAttributes) {
-    DrawSemiTrans = (SEMITRANSBIT(DrawAttributes)) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(DrawAttributes));
 
     if (SHADETEXBIT(DrawAttributes)) {
         g_m1 = g_m2 = g_m3 = 128;
@@ -381,10 +381,7 @@ void PCSX::SoftGPU::Prim::cmdSTP(unsigned char *baseAddr) {
         lSetMask = 0;
     }
 
-    if (gdata & 2)
-        bCheckMask = true;
-    else
-        bCheckMask = false;
+    bCheckMask = gdata & 2;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -708,7 +705,7 @@ void PCSX::SoftGPU::Prim::primTileS(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     if (!(iTileCheat && sH == 32 && gpuData[0] == 0x60ffffff))  // special cheat for certain ZiNc games
         FillSoftwareAreaTrans(lx0, ly0, lx2, ly2, BGR24to16(gpuData[0]));
@@ -737,7 +734,7 @@ void PCSX::SoftGPU::Prim::primTile1(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     FillSoftwareAreaTrans(lx0, ly0, lx2, ly2,
                           BGR24to16(gpuData[0]));  // Takes Start and Offset
@@ -766,7 +763,7 @@ void PCSX::SoftGPU::Prim::primTile8(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     FillSoftwareAreaTrans(lx0, ly0, lx2, ly2,
                           BGR24to16(gpuData[0]));  // Takes Start and Offset
@@ -795,7 +792,7 @@ void PCSX::SoftGPU::Prim::primTile16(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     FillSoftwareAreaTrans(lx0, ly0, lx2, ly2,
                           BGR24to16(gpuData[0]));  // Takes Start and Offset
@@ -1013,7 +1010,7 @@ void PCSX::SoftGPU::Prim::primPolyF4(unsigned char *baseAddr) {
     }
 
     offsetPSX4();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     drawPoly4F(gpuData[0]);
 
@@ -1043,7 +1040,7 @@ void PCSX::SoftGPU::Prim::primPolyG4(unsigned char *baseAddr) {
     }
 
     offsetPSX4();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     drawPoly4G(gpuData[0], gpuData[2], gpuData[4], gpuData[6]);
 
@@ -1139,7 +1136,7 @@ void PCSX::SoftGPU::Prim::primPolyGT3(unsigned char *baseAddr) {
     }
 
     offsetPSX3();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     if (SHADETEXBIT(gpuData[0])) {
         gpuData[0] = (gpuData[0] & 0xff000000) | 0x00808080;
@@ -1173,7 +1170,7 @@ void PCSX::SoftGPU::Prim::primPolyG3(unsigned char *baseAddr) {
     }
 
     offsetPSX3();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     drawPoly3G(gpuData[0], gpuData[2], gpuData[4]);
 
@@ -1206,7 +1203,7 @@ void PCSX::SoftGPU::Prim::primPolyGT4(unsigned char *baseAddr) {
     }
 
     offsetPSX4();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     if (SHADETEXBIT(gpuData[0])) {
         gpuData[0] = (gpuData[0] & 0xff000000) | 0x00808080;
@@ -1291,7 +1288,7 @@ void PCSX::SoftGPU::Prim::primLineGEx(unsigned char *baseAddr) {
 
     lc1 = gpuData[0] & 0xffffff;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     while (!(((gpuData[i] & 0xF000F000) == 0x50005000) && i >= 4)) {
         sly0 = sly1;
@@ -1310,10 +1307,7 @@ void PCSX::SoftGPU::Prim::primLineGEx(unsigned char *baseAddr) {
         if (!(dwActFixes & 8)) {
             slx1 = (short)(((int)slx1 << SIGNSHIFT) >> SIGNSHIFT);
             sly1 = (short)(((int)sly1 << SIGNSHIFT) >> SIGNSHIFT);
-            if (CheckCoordL(slx0, sly0, slx1, sly1))
-                bDraw = false;
-            else
-                bDraw = true;
+            bDraw = CheckCoordL(slx0, sly0, slx1, sly1);
         }
 
         if ((lx0 != lx1) || (ly0 != ly1)) {
@@ -1355,7 +1349,7 @@ void PCSX::SoftGPU::Prim::primLineG2(unsigned char *baseAddr) {
         ly1++;
     }
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? true : false;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
     offsetPSX2();
     DrawSoftwareLineShade(gpuData[0], gpuData[2]);
 
@@ -1412,10 +1406,7 @@ void PCSX::SoftGPU::Prim::primLineFEx(unsigned char *baseAddr) {
             slx1 = (short)(((int)slx1 << SIGNSHIFT) >> SIGNSHIFT);
             sly1 = (short)(((int)sly1 << SIGNSHIFT) >> SIGNSHIFT);
 
-            if (CheckCoordL(slx0, sly0, slx1, sly1))
-                bDraw = false;
-            else
-                bDraw = true;
+            bDraw = CheckCoordL(slx0, sly0, slx1, sly1);
         }
 
         ly0 = sly0;
