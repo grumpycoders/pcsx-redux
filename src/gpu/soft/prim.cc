@@ -197,8 +197,8 @@ inline void PCSX::SoftGPU::Prim::SetRenderMode(unsigned long DrawAttributes) {
 
 // 11 bit signed
 #define SIGNSHIFT 21
-static const unsigned CHKMAX_X = 1024;
-static const unsigned CHKMAX_Y = 512;
+static const int CHKMAX_X = 1024;
+static const int CHKMAX_Y = 512;
 
 inline void PCSX::SoftGPU::Prim::AdjustCoord4() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
