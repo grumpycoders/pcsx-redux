@@ -641,6 +641,7 @@ long nullPAD_open(HWND x) { return 0; }
 long nullPAD_close() { return 0; }
 long nullPAD_readPort(PadDataS *data) {
     memset(data, 0, sizeof(PadDataS));
+    data->buttonStatus = 0xffff;
     return 0;
 }
 

@@ -1185,7 +1185,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
         m_ti[i].type = (toc_entry.type == 1) ? trackinfo::CDDA : trackinfo::DATA;
 
         m_ti[i].start_offset = PCSX::CDRom::btoi(toc_entry.index0[0]) * 60 * 75 +
-                             PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
+                               PCSX::CDRom::btoi(toc_entry.index0[1]) * 75 + PCSX::CDRom::btoi(toc_entry.index0[2]);
         m_ti[i].start_offset *= 2352;
         m_ti[i].start[0] = PCSX::CDRom::btoi(toc_entry.index1[0]);
         m_ti[i].start[1] = PCSX::CDRom::btoi(toc_entry.index1[1]);
@@ -1213,7 +1213,8 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     m_compr_img->current_block = (unsigned int)-1;
 
     m_compr_img->index_len = (0x100000 - 0x4000) / sizeof(index_entry);
-    m_compr_img->index_table = (unsigned int *)malloc((m_compr_img->index_len + 1) * sizeof(m_compr_img->index_table[0]));
+    m_compr_img->index_table =
+        (unsigned int *)malloc((m_compr_img->index_len + 1) * sizeof(m_compr_img->index_table[0]));
     if (m_compr_img->index_table == NULL) goto fail_io;
 
     cdimg_base = psisoimg_offs + 0x100000;
@@ -1288,7 +1289,8 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
     m_compr_img->current_block = (unsigned int)-1;
 
     m_compr_img->index_len = ciso_hdr.total_bytes / ciso_hdr.block_size;
-    m_compr_img->index_table = (unsigned int *)malloc((m_compr_img->index_len + 1) * sizeof(m_compr_img->index_table[0]));
+    m_compr_img->index_table =
+        (unsigned int *)malloc((m_compr_img->index_len + 1) * sizeof(m_compr_img->index_table[0]));
     if (m_compr_img->index_table == NULL) goto fail_io;
 
     read_len = sizeof(m_compr_img->index_table[0]) * m_compr_img->index_len;
@@ -1652,7 +1654,8 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(File *f, unsigned int base, void *dest, 
                         goto error_in;
                     }
                     // output_edc = edc_compute(output_edc, sector_buffer, b);
-                    if (m_decoded_ecm_sectors && m_decoded_ecm->write(sector_buffer, b) != b) {  // just seek or write also
+                    if (m_decoded_ecm_sectors &&
+                        m_decoded_ecm->write(sector_buffer, b) != b) {  // just seek or write also
                         goto error_out;
                     }
                     break;
@@ -1953,7 +1956,8 @@ void PCSX::CDRiso::PrintTracks() {
         PCSX::g_system->SysPrintf(
             _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
             (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
-            m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0], m_ti[i].length[1], m_ti[i].length[2]);
+            m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0], m_ti[i].length[1],
+            m_ti[i].length[2]);
     }
 }
 
@@ -2026,6 +2030,15 @@ bool PCSX::CDRiso::open(void) {
             }
         }
         m_cdHandle->seek(0, SEEK_SET);
+    }
+
+    if (m_numtracks == 0) {
+        // We got no track information, just an iso file, so let's fill in very basic data
+        m_numtracks = 1;
+        m_ti[1].type = trackinfo::DATA;
+        m_ti[1].start[0] = 0;
+        m_ti[1].start[1] = 2;
+        m_ti[1].start[2] = 0;
     }
 
     PCSX::g_system->SysPrintf(".\n");
