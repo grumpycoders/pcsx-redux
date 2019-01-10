@@ -85,53 +85,34 @@
 
 #define _IN_PRIMDRAW
 
-#include "draw.h"
-#include "externals.h"
-#include "gpu.h"
-#include "soft.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/prim.h"
+#include "gpu/soft/soft.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
 
-BOOL bUsingTWin = FALSE;
-TWin_t TWin;
-unsigned long clutid;         // global clut
-unsigned short usMirror = 0;  // sprite mirror
-int iDither = 0;
-long drawX;
-long drawY;
-long drawW;
-long drawH;
+// configuration items
 unsigned long dwCfgFixes;
 unsigned long dwActFixes = 0;
 unsigned long dwEmuFixes = 0;
 int iUseFixes;
 int iUseDither = 0;
-BOOL bDoVSyncUpdate = FALSE;
+// ??
+bool bDoVSyncUpdate = false;
 
-////////////////////////////////////////////////////////////////////////
-// Some ASM color convertion by LEWPY
-////////////////////////////////////////////////////////////////////////
-
-#ifdef __i386__
-
-#define BGR24to16 i386_BGR24to16
-__inline unsigned short BGR24to16(unsigned long BGR);
-
-#else
-
-__inline unsigned short BGR24to16(unsigned long BGR) {
+static constexpr inline unsigned short BGR24to16(unsigned long BGR) {
     return (unsigned short)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // Update global TP infos
 ////////////////////////////////////////////////////////////////////////
 
-__inline void UpdateGlobalTP(unsigned short gdata) {
+inline void PCSX::SoftGPU::Prim::UpdateGlobalTP(unsigned short gdata) {
     GlobalTextAddrX = (gdata << 6) & 0x3c0;  // texture addr
 
     if (iGPUHeight == 1024) {
@@ -180,8 +161,8 @@ __inline void UpdateGlobalTP(unsigned short gdata) {
 
 ////////////////////////////////////////////////////////////////////////
 
-__inline void SetRenderMode(unsigned long DrawAttributes) {
-    DrawSemiTrans = (SEMITRANSBIT(DrawAttributes)) ? TRUE : FALSE;
+inline void PCSX::SoftGPU::Prim::SetRenderMode(unsigned long DrawAttributes) {
+    DrawSemiTrans = (SEMITRANSBIT(DrawAttributes));
 
     if (SHADETEXBIT(DrawAttributes)) {
         g_m1 = g_m2 = g_m3 = 128;
@@ -210,10 +191,10 @@ __inline void SetRenderMode(unsigned long DrawAttributes) {
 
 // 11 bit signed
 #define SIGNSHIFT 21
-#define CHKMAX_X 1024
-#define CHKMAX_Y 512
+static const int CHKMAX_X = 1024;
+static const int CHKMAX_Y = 512;
 
-void AdjustCoord4() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord4() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short)(((int)lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -224,7 +205,7 @@ void AdjustCoord4() {
     ly3 = (short)(((int)ly3 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord3() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord3() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     lx2 = (short)(((int)lx2 << SIGNSHIFT) >> SIGNSHIFT);
@@ -233,14 +214,14 @@ void AdjustCoord3() {
     ly2 = (short)(((int)ly2 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord2() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord2() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     lx1 = (short)(((int)lx1 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short)(((int)ly0 << SIGNSHIFT) >> SIGNSHIFT);
     ly1 = (short)(((int)ly1 << SIGNSHIFT) >> SIGNSHIFT);
 }
 
-void AdjustCoord1() {
+inline void PCSX::SoftGPU::Prim::AdjustCoord1() {
     lx0 = (short)(((int)lx0 << SIGNSHIFT) >> SIGNSHIFT);
     ly0 = (short)(((int)ly0 << SIGNSHIFT) >> SIGNSHIFT);
 
@@ -263,124 +244,124 @@ void AdjustCoord1() {
 //  . . .
 //   2___3
 
-__inline BOOL CheckCoord4() {
+inline bool PCSX::SoftGPU::Prim::CheckCoord4() {
     if (lx0 < 0) {
         if (((lx1 - lx0) > CHKMAX_X) || ((lx2 - lx0) > CHKMAX_X)) {
             if (lx3 < 0) {
-                if ((lx1 - lx3) > CHKMAX_X) return TRUE;
-                if ((lx2 - lx3) > CHKMAX_X) return TRUE;
+                if ((lx1 - lx3) > CHKMAX_X) return true;
+                if ((lx2 - lx3) > CHKMAX_X) return true;
             }
         }
     }
     if (lx1 < 0) {
-        if ((lx0 - lx1) > CHKMAX_X) return TRUE;
-        if ((lx2 - lx1) > CHKMAX_X) return TRUE;
-        if ((lx3 - lx1) > CHKMAX_X) return TRUE;
+        if ((lx0 - lx1) > CHKMAX_X) return true;
+        if ((lx2 - lx1) > CHKMAX_X) return true;
+        if ((lx3 - lx1) > CHKMAX_X) return true;
     }
     if (lx2 < 0) {
-        if ((lx0 - lx2) > CHKMAX_X) return TRUE;
-        if ((lx1 - lx2) > CHKMAX_X) return TRUE;
-        if ((lx3 - lx2) > CHKMAX_X) return TRUE;
+        if ((lx0 - lx2) > CHKMAX_X) return true;
+        if ((lx1 - lx2) > CHKMAX_X) return true;
+        if ((lx3 - lx2) > CHKMAX_X) return true;
     }
     if (lx3 < 0) {
         if (((lx1 - lx3) > CHKMAX_X) || ((lx2 - lx3) > CHKMAX_X)) {
             if (lx0 < 0) {
-                if ((lx1 - lx0) > CHKMAX_X) return TRUE;
-                if ((lx2 - lx0) > CHKMAX_X) return TRUE;
+                if ((lx1 - lx0) > CHKMAX_X) return true;
+                if ((lx2 - lx0) > CHKMAX_X) return true;
             }
         }
     }
 
     if (ly0 < 0) {
-        if ((ly1 - ly0) > CHKMAX_Y) return TRUE;
-        if ((ly2 - ly0) > CHKMAX_Y) return TRUE;
+        if ((ly1 - ly0) > CHKMAX_Y) return true;
+        if ((ly2 - ly0) > CHKMAX_Y) return true;
     }
     if (ly1 < 0) {
-        if ((ly0 - ly1) > CHKMAX_Y) return TRUE;
-        if ((ly2 - ly1) > CHKMAX_Y) return TRUE;
-        if ((ly3 - ly1) > CHKMAX_Y) return TRUE;
+        if ((ly0 - ly1) > CHKMAX_Y) return true;
+        if ((ly2 - ly1) > CHKMAX_Y) return true;
+        if ((ly3 - ly1) > CHKMAX_Y) return true;
     }
     if (ly2 < 0) {
-        if ((ly0 - ly2) > CHKMAX_Y) return TRUE;
-        if ((ly1 - ly2) > CHKMAX_Y) return TRUE;
-        if ((ly3 - ly2) > CHKMAX_Y) return TRUE;
+        if ((ly0 - ly2) > CHKMAX_Y) return true;
+        if ((ly1 - ly2) > CHKMAX_Y) return true;
+        if ((ly3 - ly2) > CHKMAX_Y) return true;
     }
     if (ly3 < 0) {
-        if ((ly1 - ly3) > CHKMAX_Y) return TRUE;
-        if ((ly2 - ly3) > CHKMAX_Y) return TRUE;
+        if ((ly1 - ly3) > CHKMAX_Y) return true;
+        if ((ly2 - ly3) > CHKMAX_Y) return true;
     }
 
-    return FALSE;
+    return false;
 }
 
-__inline BOOL CheckCoord3() {
+inline bool PCSX::SoftGPU::Prim::CheckCoord3() {
     if (lx0 < 0) {
-        if ((lx1 - lx0) > CHKMAX_X) return TRUE;
-        if ((lx2 - lx0) > CHKMAX_X) return TRUE;
+        if ((lx1 - lx0) > CHKMAX_X) return true;
+        if ((lx2 - lx0) > CHKMAX_X) return true;
     }
     if (lx1 < 0) {
-        if ((lx0 - lx1) > CHKMAX_X) return TRUE;
-        if ((lx2 - lx1) > CHKMAX_X) return TRUE;
+        if ((lx0 - lx1) > CHKMAX_X) return true;
+        if ((lx2 - lx1) > CHKMAX_X) return true;
     }
     if (lx2 < 0) {
-        if ((lx0 - lx2) > CHKMAX_X) return TRUE;
-        if ((lx1 - lx2) > CHKMAX_X) return TRUE;
+        if ((lx0 - lx2) > CHKMAX_X) return true;
+        if ((lx1 - lx2) > CHKMAX_X) return true;
     }
     if (ly0 < 0) {
-        if ((ly1 - ly0) > CHKMAX_Y) return TRUE;
-        if ((ly2 - ly0) > CHKMAX_Y) return TRUE;
+        if ((ly1 - ly0) > CHKMAX_Y) return true;
+        if ((ly2 - ly0) > CHKMAX_Y) return true;
     }
     if (ly1 < 0) {
-        if ((ly0 - ly1) > CHKMAX_Y) return TRUE;
-        if ((ly2 - ly1) > CHKMAX_Y) return TRUE;
+        if ((ly0 - ly1) > CHKMAX_Y) return true;
+        if ((ly2 - ly1) > CHKMAX_Y) return true;
     }
     if (ly2 < 0) {
-        if ((ly0 - ly2) > CHKMAX_Y) return TRUE;
-        if ((ly1 - ly2) > CHKMAX_Y) return TRUE;
+        if ((ly0 - ly2) > CHKMAX_Y) return true;
+        if ((ly1 - ly2) > CHKMAX_Y) return true;
     }
 
-    return FALSE;
+    return false;
 }
 
-__inline BOOL CheckCoord2() {
+inline bool PCSX::SoftGPU::Prim::CheckCoord2() {
     if (lx0 < 0) {
-        if ((lx1 - lx0) > CHKMAX_X) return TRUE;
+        if ((lx1 - lx0) > CHKMAX_X) return true;
     }
     if (lx1 < 0) {
-        if ((lx0 - lx1) > CHKMAX_X) return TRUE;
+        if ((lx0 - lx1) > CHKMAX_X) return true;
     }
     if (ly0 < 0) {
-        if ((ly1 - ly0) > CHKMAX_Y) return TRUE;
+        if ((ly1 - ly0) > CHKMAX_Y) return true;
     }
     if (ly1 < 0) {
-        if ((ly0 - ly1) > CHKMAX_Y) return TRUE;
+        if ((ly0 - ly1) > CHKMAX_Y) return true;
     }
 
-    return FALSE;
+    return false;
 }
 
-__inline BOOL CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
+static constexpr inline bool CheckCoordL(short slx0, short sly0, short slx1, short sly1) {
     if (slx0 < 0) {
-        if ((slx1 - slx0) > CHKMAX_X) return TRUE;
+        if ((slx1 - slx0) > CHKMAX_X) return true;
     }
     if (slx1 < 0) {
-        if ((slx0 - slx1) > CHKMAX_X) return TRUE;
+        if ((slx0 - slx1) > CHKMAX_X) return true;
     }
     if (sly0 < 0) {
-        if ((sly1 - sly0) > CHKMAX_Y) return TRUE;
+        if ((sly1 - sly0) > CHKMAX_Y) return true;
     }
     if (sly1 < 0) {
-        if ((sly0 - sly1) > CHKMAX_Y) return TRUE;
+        if ((sly0 - sly1) > CHKMAX_Y) return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // mask stuff... used in silent hill
 ////////////////////////////////////////////////////////////////////////
 
-void cmdSTP(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::cmdSTP(unsigned char *baseAddr) {
     unsigned long gdata = ((unsigned long *)baseAddr)[0];
 
     lGPUstatusRet &= ~0x1800;                 // Clear the necessary bits
@@ -394,17 +375,14 @@ void cmdSTP(unsigned char *baseAddr) {
         lSetMask = 0;
     }
 
-    if (gdata & 2)
-        bCheckMask = TRUE;
-    else
-        bCheckMask = FALSE;
+    bCheckMask = gdata & 2;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: Set texture page infos
 ////////////////////////////////////////////////////////////////////////
 
-void cmdTexturePage(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::cmdTexturePage(unsigned char *baseAddr) {
     unsigned long gdata = ((unsigned long *)baseAddr)[0];
 
     UpdateGlobalTP((unsigned short)gdata);
@@ -415,7 +393,7 @@ void cmdTexturePage(unsigned char *baseAddr) {
 // cmd: turn on/off texture window
 ////////////////////////////////////////////////////////////////////////
 
-void cmdTextureWindow(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::cmdTextureWindow(unsigned char *baseAddr) {
     unsigned long gdata = ((unsigned long *)baseAddr)[0];
 
     unsigned long YAlign, XAlign;
@@ -463,10 +441,10 @@ void cmdTextureWindow(unsigned char *baseAddr) {
     if ((TWin.Position.x0 == 0 &&  // tw turned off
          TWin.Position.y0 == 0 && TWin.Position.x1 == 0 && TWin.Position.y1 == 0) ||
         (TWin.Position.x1 == 256 && TWin.Position.y1 == 256)) {
-        bUsingTWin = FALSE;  // -> just do it
+        bUsingTWin = false;  // -> just do it
     } else                   // otherwise
     {
-        bUsingTWin = TRUE;  // -> tw turned on
+        bUsingTWin = true;  // -> tw turned on
     }
 }
 
@@ -474,7 +452,7 @@ void cmdTextureWindow(unsigned char *baseAddr) {
 // cmd: start of drawing area... primitives will be clipped inside
 ////////////////////////////////////////////////////////////////////////
 
-void cmdDrawAreaStart(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::cmdDrawAreaStart(unsigned char *baseAddr) {
     unsigned long gdata = ((unsigned long *)baseAddr)[0];
 
     drawX = gdata & 0x3ff;  // for soft drawing
@@ -494,7 +472,7 @@ void cmdDrawAreaStart(unsigned char *baseAddr) {
 // cmd: end of drawing area... primitives will be clipped inside
 ////////////////////////////////////////////////////////////////////////
 
-void cmdDrawAreaEnd(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::cmdDrawAreaEnd(unsigned char *baseAddr) {
     unsigned long gdata = ((unsigned long *)baseAddr)[0];
 
     drawW = gdata & 0x3ff;  // for soft drawing
@@ -514,7 +492,7 @@ void cmdDrawAreaEnd(unsigned char *baseAddr) {
 // cmd: draw offset... will be added to prim coords
 ////////////////////////////////////////////////////////////////////////
 
-void cmdDrawOffset(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::cmdDrawOffset(unsigned char *baseAddr) {
     unsigned long gdata = ((unsigned long *)baseAddr)[0];
 
     PSXDisplay.DrawOffset.x = (short)(gdata & 0x7ff);
@@ -535,7 +513,7 @@ void cmdDrawOffset(unsigned char *baseAddr) {
 // cmd: load image to vram
 ////////////////////////////////////////////////////////////////////////
 
-void primLoadImage(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLoadImage(unsigned char *baseAddr) {
     unsigned short *sgpuData = ((unsigned short *)baseAddr);
 
     VRAMWrite.x = sgpuData[2] & 0x3ff;
@@ -554,7 +532,7 @@ void primLoadImage(unsigned char *baseAddr) {
 // cmd: vram -> psx mem
 ////////////////////////////////////////////////////////////////////////
 
-void primStoreImage(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primStoreImage(unsigned char *baseAddr) {
     unsigned short *sgpuData = ((unsigned short *)baseAddr);
 
     VRAMRead.x = sgpuData[2] & 0x03ff;
@@ -575,7 +553,7 @@ void primStoreImage(unsigned char *baseAddr) {
 // cmd: blkfill - NO primitive! Doesn't care about draw areas...
 ////////////////////////////////////////////////////////////////////////
 
-void primBlkFill(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primBlkFill(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -596,14 +574,14 @@ void primBlkFill(unsigned char *baseAddr) {
 
     FillSoftwareArea(sX, sY, sW, sH, BGR24to16(gpuData[0]));
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: move image vram -> vram
 ////////////////////////////////////////////////////////////////////////
 
-void primMoveImage(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primMoveImage(unsigned char *baseAddr) {
     short *sgpuData = ((short *)baseAddr);
 
     short imageY0, imageX0, imageY1, imageX1, imageSX, imageSY, i, j;
@@ -641,7 +619,7 @@ void primMoveImage(unsigned char *baseAddr) {
                 psxVuw[(1024 * ((imageY1 + j) & iGPUHeightMask)) + ((imageX1 + i) & 0x3ff)] =
                     psxVuw[(1024 * ((imageY0 + j) & iGPUHeightMask)) + ((imageX0 + i) & 0x3ff)];
 
-        bDoVSyncUpdate = TRUE;
+        bDoVSyncUpdate = true;
 
         return;
     }
@@ -694,7 +672,7 @@ void primMoveImage(unsigned char *baseAddr) {
       }
     */
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -704,7 +682,7 @@ void primMoveImage(unsigned char *baseAddr) {
 //#define SMALLDEBUG
 //#include <dbgout.h>
 
-void primTileS(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primTileS(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sW = sgpuData[4] & 0x3ff;
@@ -721,19 +699,19 @@ void primTileS(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     if (!(iTileCheat && sH == 32 && gpuData[0] == 0x60ffffff))  // special cheat for certain ZiNc games
         FillSoftwareAreaTrans(lx0, ly0, lx2, ly2, BGR24to16(gpuData[0]));
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: draw 1 dot Tile (point)
 ////////////////////////////////////////////////////////////////////////
 
-void primTile1(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primTile1(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sH = 1;
@@ -750,19 +728,19 @@ void primTile1(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     FillSoftwareAreaTrans(lx0, ly0, lx2, ly2,
                           BGR24to16(gpuData[0]));  // Takes Start and Offset
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: draw 8 dot Tile (small rect)
 ////////////////////////////////////////////////////////////////////////
 
-void primTile8(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primTile8(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sH = 8;
@@ -779,19 +757,19 @@ void primTile8(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     FillSoftwareAreaTrans(lx0, ly0, lx2, ly2,
                           BGR24to16(gpuData[0]));  // Takes Start and Offset
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: draw 16 dot Tile (medium rect)
 ////////////////////////////////////////////////////////////////////////
 
-void primTile16(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primTile16(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sH = 16;
@@ -808,19 +786,19 @@ void primTile16(unsigned char *baseAddr) {
     lx1 = lx2 = lx0 + sW + PSXDisplay.DrawOffset.x;
     lx0 = lx3 = lx0 + PSXDisplay.DrawOffset.x;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     FillSoftwareAreaTrans(lx0, ly0, lx2, ly2,
                           BGR24to16(gpuData[0]));  // Takes Start and Offset
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: small sprite (textured rect)
 ////////////////////////////////////////////////////////////////////////
 
-void primSprt8(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primSprt8(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -838,14 +816,14 @@ void primSprt8(unsigned char *baseAddr) {
     else
         DrawSoftwareSprite(baseAddr, 8, 8, baseAddr[8], baseAddr[9]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: medium sprite (textured rect)
 ////////////////////////////////////////////////////////////////////////
 
-void primSprt16(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primSprt16(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -863,7 +841,7 @@ void primSprt16(unsigned char *baseAddr) {
     else
         DrawSoftwareSprite(baseAddr, 16, 16, baseAddr[8], baseAddr[9]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -871,7 +849,7 @@ void primSprt16(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 // func used on texture coord wrap
-void primSprtSRest(unsigned char *baseAddr, unsigned short type) {
+void PCSX::SoftGPU::Prim::primSprtSRest(unsigned char *baseAddr, unsigned short type) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     unsigned short sTypeRest = 0;
@@ -958,7 +936,7 @@ void primSprtSRest(unsigned char *baseAddr, unsigned short type) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void primSprtS(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primSprtS(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sW, sH;
@@ -1000,14 +978,14 @@ void primSprtS(unsigned char *baseAddr) {
         }
     }
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: flat shaded Poly4
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyF4(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyF4(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1026,18 +1004,18 @@ void primPolyF4(unsigned char *baseAddr) {
     }
 
     offsetPSX4();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     drawPoly4F(gpuData[0]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Poly4
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyG4(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyG4(unsigned char *baseAddr) {
     unsigned long *gpuData = (unsigned long *)baseAddr;
     short *sgpuData = ((short *)baseAddr);
 
@@ -1056,18 +1034,18 @@ void primPolyG4(unsigned char *baseAddr) {
     }
 
     offsetPSX4();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     drawPoly4G(gpuData[0], gpuData[2], gpuData[4], gpuData[6]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: flat shaded Texture3
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyFT3(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyFT3(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1091,14 +1069,14 @@ void primPolyFT3(unsigned char *baseAddr) {
 
     drawPoly3FT(baseAddr);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: flat shaded Texture4
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyFT4(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyFT4(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1125,14 +1103,14 @@ void primPolyFT4(unsigned char *baseAddr) {
 
     drawPoly4FT(baseAddr);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Texture3
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyGT3(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyGT3(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1152,7 +1130,7 @@ void primPolyGT3(unsigned char *baseAddr) {
     }
 
     offsetPSX3();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     if (SHADETEXBIT(gpuData[0])) {
         gpuData[0] = (gpuData[0] & 0xff000000) | 0x00808080;
@@ -1162,14 +1140,14 @@ void primPolyGT3(unsigned char *baseAddr) {
 
     drawPoly3GT(baseAddr);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyG3(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyG3(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1186,18 +1164,18 @@ void primPolyG3(unsigned char *baseAddr) {
     }
 
     offsetPSX3();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     drawPoly3G(gpuData[0], gpuData[2], gpuData[4]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Texture4
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyGT4(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyGT4(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1219,7 +1197,7 @@ void primPolyGT4(unsigned char *baseAddr) {
     }
 
     offsetPSX4();
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     if (SHADETEXBIT(gpuData[0])) {
         gpuData[0] = (gpuData[0] & 0xff000000) | 0x00808080;
@@ -1230,14 +1208,14 @@ void primPolyGT4(unsigned char *baseAddr) {
 
     drawPoly4GT(baseAddr);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
 
-void primPolyF3(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primPolyF3(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1258,14 +1236,14 @@ void primPolyF3(unsigned char *baseAddr) {
 
     drawPoly3F(gpuData[0]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: skipping shaded polylines
 ////////////////////////////////////////////////////////////////////////
 
-void primLineGSkip(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLineGSkip(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     int iMax = 255;
     int i = 2;
@@ -1286,13 +1264,13 @@ void primLineGSkip(unsigned char *baseAddr) {
 // cmd: shaded polylines
 ////////////////////////////////////////////////////////////////////////
 
-void primLineGEx(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLineGEx(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     int iMax = 255;
     unsigned long lc0, lc1;
     short slx0, slx1, sly0, sly1;
     int i = 2;
-    BOOL bDraw = TRUE;
+    bool bDraw = true;
 
     sly1 = (short)((gpuData[1] >> 16) & 0xffff);
     slx1 = (short)(gpuData[1] & 0xffff);
@@ -1304,7 +1282,7 @@ void primLineGEx(unsigned char *baseAddr) {
 
     lc1 = gpuData[0] & 0xffffff;
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
 
     while (!(((gpuData[i] & 0xF000F000) == 0x50005000) && i >= 4)) {
         sly0 = sly1;
@@ -1323,10 +1301,7 @@ void primLineGEx(unsigned char *baseAddr) {
         if (!(dwActFixes & 8)) {
             slx1 = (short)(((int)slx1 << SIGNSHIFT) >> SIGNSHIFT);
             sly1 = (short)(((int)sly1 << SIGNSHIFT) >> SIGNSHIFT);
-            if (CheckCoordL(slx0, sly0, slx1, sly1))
-                bDraw = FALSE;
-            else
-                bDraw = TRUE;
+            bDraw = CheckCoordL(slx0, sly0, slx1, sly1);
         }
 
         if ((lx0 != lx1) || (ly0 != ly1)) {
@@ -1342,14 +1317,14 @@ void primLineGEx(unsigned char *baseAddr) {
         if (i > iMax) break;
     }
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: shaded polyline2
 ////////////////////////////////////////////////////////////////////////
 
-void primLineG2(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLineG2(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1368,18 +1343,18 @@ void primLineG2(unsigned char *baseAddr) {
         ly1++;
     }
 
-    DrawSemiTrans = (SEMITRANSBIT(gpuData[0])) ? TRUE : FALSE;
+    DrawSemiTrans = (SEMITRANSBIT(gpuData[0]));
     offsetPSX2();
     DrawSoftwareLineShade(gpuData[0], gpuData[2]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: skipping flat polylines
 ////////////////////////////////////////////////////////////////////////
 
-void primLineFSkip(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLineFSkip(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     int i = 2, iMax = 255;
 
@@ -1398,12 +1373,12 @@ void primLineFSkip(unsigned char *baseAddr) {
 // cmd: drawing flat polylines
 ////////////////////////////////////////////////////////////////////////
 
-void primLineFEx(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLineFEx(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     int iMax;
     short slx0, slx1, sly0, sly1;
     int i = 2;
-    BOOL bDraw = TRUE;
+    bool bDraw = true;
 
     iMax = 255;
 
@@ -1425,10 +1400,7 @@ void primLineFEx(unsigned char *baseAddr) {
             slx1 = (short)(((int)slx1 << SIGNSHIFT) >> SIGNSHIFT);
             sly1 = (short)(((int)sly1 << SIGNSHIFT) >> SIGNSHIFT);
 
-            if (CheckCoordL(slx0, sly0, slx1, sly1))
-                bDraw = FALSE;
-            else
-                bDraw = TRUE;
+            bDraw = CheckCoordL(slx0, sly0, slx1, sly1);
         }
 
         ly0 = sly0;
@@ -1443,14 +1415,14 @@ void primLineFEx(unsigned char *baseAddr) {
         if (i > iMax) break;
     }
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: drawing flat polyline2
 ////////////////////////////////////////////////////////////////////////
 
-void primLineF2(unsigned char *baseAddr) {
+void PCSX::SoftGPU::Prim::primLineF2(unsigned char *baseAddr) {
     unsigned long *gpuData = ((unsigned long *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
@@ -1474,153 +1446,153 @@ void primLineF2(unsigned char *baseAddr) {
 
     DrawSoftwareLineFlat(gpuData[0]);
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // cmd: well, easiest command... not implemented
 ////////////////////////////////////////////////////////////////////////
 
-void primNI(unsigned char *bA) {}
+void PCSX::SoftGPU::Prim::primNI(unsigned char *baseAddr) {}
 
 ////////////////////////////////////////////////////////////////////////
 // cmd func ptr table
 ////////////////////////////////////////////////////////////////////////
 
-void (*primTableJ[256])(unsigned char *) = {
-    // 00
-    primNI, primNI, primBlkFill, primNI, primNI, primNI, primNI, primNI,
-    // 08
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 10
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 18
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 20
-    primPolyF3, primPolyF3, primPolyF3, primPolyF3, primPolyFT3, primPolyFT3, primPolyFT3, primPolyFT3,
-    // 28
-    primPolyF4, primPolyF4, primPolyF4, primPolyF4, primPolyFT4, primPolyFT4, primPolyFT4, primPolyFT4,
-    // 30
-    primPolyG3, primPolyG3, primPolyG3, primPolyG3, primPolyGT3, primPolyGT3, primPolyGT3, primPolyGT3,
-    // 38
-    primPolyG4, primPolyG4, primPolyG4, primPolyG4, primPolyGT4, primPolyGT4, primPolyGT4, primPolyGT4,
-    // 40
-    primLineF2, primLineF2, primLineF2, primLineF2, primNI, primNI, primNI, primNI,
-    // 48
-    primLineFEx, primLineFEx, primLineFEx, primLineFEx, primLineFEx, primLineFEx, primLineFEx, primLineFEx,
-    // 50
-    primLineG2, primLineG2, primLineG2, primLineG2, primNI, primNI, primNI, primNI,
-    // 58
-    primLineGEx, primLineGEx, primLineGEx, primLineGEx, primLineGEx, primLineGEx, primLineGEx, primLineGEx,
-    // 60
-    primTileS, primTileS, primTileS, primTileS, primSprtS, primSprtS, primSprtS, primSprtS,
-    // 68
-    primTile1, primTile1, primTile1, primTile1, primNI, primNI, primNI, primNI,
-    // 70
-    primTile8, primTile8, primTile8, primTile8, primSprt8, primSprt8, primSprt8, primSprt8,
-    // 78
-    primTile16, primTile16, primTile16, primTile16, primSprt16, primSprt16, primSprt16, primSprt16,
-    // 80
-    primMoveImage, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 88
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 90
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 98
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // a0
-    primLoadImage, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // a8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // b0
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // b8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // c0
-    primStoreImage, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // c8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // d0
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // d8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // e0
-    primNI, cmdTexturePage, cmdTextureWindow, cmdDrawAreaStart, cmdDrawAreaEnd, cmdDrawOffset, cmdSTP, primNI,
-    // e8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // f0
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // f8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI};
+const PCSX::SoftGPU::Prim::func_t PCSX::SoftGPU::Prim::funcs[256] = {
+    &primNI,         &primNI,         &primBlkFill,      &primNI,            // 00
+    &primNI,         &primNI,         &primNI,           &primNI,            // 04
+    &primNI,         &primNI,         &primNI,           &primNI,            // 08
+    &primNI,         &primNI,         &primNI,           &primNI,            // 0c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 10
+    &primNI,         &primNI,         &primNI,           &primNI,            // 14
+    &primNI,         &primNI,         &primNI,           &primNI,            // 18
+    &primNI,         &primNI,         &primNI,           &primNI,            // 1c
+    &primPolyF3,     &primPolyF3,     &primPolyF3,       &primPolyF3,        // 20
+    &primPolyFT3,    &primPolyFT3,    &primPolyFT3,      &primPolyFT3,       // 24
+    &primPolyF4,     &primPolyF4,     &primPolyF4,       &primPolyF4,        // 28
+    &primPolyFT4,    &primPolyFT4,    &primPolyFT4,      &primPolyFT4,       // 2c
+    &primPolyG3,     &primPolyG3,     &primPolyG3,       &primPolyG3,        // 30
+    &primPolyGT3,    &primPolyGT3,    &primPolyGT3,      &primPolyGT3,       // 34
+    &primPolyG4,     &primPolyG4,     &primPolyG4,       &primPolyG4,        // 38
+    &primPolyGT4,    &primPolyGT4,    &primPolyGT4,      &primPolyGT4,       // 3c
+    &primLineF2,     &primLineF2,     &primLineF2,       &primLineF2,        // 40
+    &primNI,         &primNI,         &primNI,           &primNI,            // 44
+    &primLineFEx,    &primLineFEx,    &primLineFEx,      &primLineFEx,       // 48
+    &primLineFEx,    &primLineFEx,    &primLineFEx,      &primLineFEx,       // 4c
+    &primLineG2,     &primLineG2,     &primLineG2,       &primLineG2,        // 50
+    &primNI,         &primNI,         &primNI,           &primNI,            // 54
+    &primLineGEx,    &primLineGEx,    &primLineGEx,      &primLineGEx,       // 58
+    &primLineGEx,    &primLineGEx,    &primLineGEx,      &primLineGEx,       // 5c
+    &primTileS,      &primTileS,      &primTileS,        &primTileS,         // 60
+    &primSprtS,      &primSprtS,      &primSprtS,        &primSprtS,         // 64
+    &primTile1,      &primTile1,      &primTile1,        &primTile1,         // 68
+    &primNI,         &primNI,         &primNI,           &primNI,            // 6c
+    &primTile8,      &primTile8,      &primTile8,        &primTile8,         // 70
+    &primSprt8,      &primSprt8,      &primSprt8,        &primSprt8,         // 74
+    &primTile16,     &primTile16,     &primTile16,       &primTile16,        // 78
+    &primSprt16,     &primSprt16,     &primSprt16,       &primSprt16,        // 7c
+    &primMoveImage,  &primNI,         &primNI,           &primNI,            // 80
+    &primNI,         &primNI,         &primNI,           &primNI,            // 84
+    &primNI,         &primNI,         &primNI,           &primNI,            // 88
+    &primNI,         &primNI,         &primNI,           &primNI,            // 8c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 90
+    &primNI,         &primNI,         &primNI,           &primNI,            // 94
+    &primNI,         &primNI,         &primNI,           &primNI,            // 98
+    &primNI,         &primNI,         &primNI,           &primNI,            // 9c
+    &primLoadImage,  &primNI,         &primNI,           &primNI,            // a0
+    &primNI,         &primNI,         &primNI,           &primNI,            // a4
+    &primNI,         &primNI,         &primNI,           &primNI,            // a8
+    &primNI,         &primNI,         &primNI,           &primNI,            // ac
+    &primNI,         &primNI,         &primNI,           &primNI,            // b0
+    &primNI,         &primNI,         &primNI,           &primNI,            // b4
+    &primNI,         &primNI,         &primNI,           &primNI,            // b8
+    &primNI,         &primNI,         &primNI,           &primNI,            // bc
+    &primStoreImage, &primNI,         &primNI,           &primNI,            // c0
+    &primNI,         &primNI,         &primNI,           &primNI,            // c4
+    &primNI,         &primNI,         &primNI,           &primNI,            // c8
+    &primNI,         &primNI,         &primNI,           &primNI,            // cc
+    &primNI,         &primNI,         &primNI,           &primNI,            // d0
+    &primNI,         &primNI,         &primNI,           &primNI,            // d4
+    &primNI,         &primNI,         &primNI,           &primNI,            // d8
+    &primNI,         &primNI,         &primNI,           &primNI,            // dc
+    &primNI,         &cmdTexturePage, &cmdTextureWindow, &cmdDrawAreaStart,  // e0
+    &cmdDrawAreaEnd, &cmdDrawOffset,  &cmdSTP,           &primNI,            // e4
+    &primNI,         &primNI,         &primNI,           &primNI,            // e8
+    &primNI,         &primNI,         &primNI,           &primNI,            // ec
+    &primNI,         &primNI,         &primNI,           &primNI,            // f0
+    &primNI,         &primNI,         &primNI,           &primNI,            // f4
+    &primNI,         &primNI,         &primNI,           &primNI,            // f8
+    &primNI,         &primNI,         &primNI,           &primNI,            // fc
+};
 
 ////////////////////////////////////////////////////////////////////////
 // cmd func ptr table for skipping
 ////////////////////////////////////////////////////////////////////////
 
-void (*primTableSkip[256])(unsigned char *) = {
-    // 00
-    primNI, primNI, primBlkFill, primNI, primNI, primNI, primNI, primNI,
-    // 08
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 10
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 18
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 20
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 28
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 30
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 38
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 40
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 48
-    primLineFSkip, primLineFSkip, primLineFSkip, primLineFSkip, primLineFSkip, primLineFSkip, primLineFSkip,
-    primLineFSkip,
-    // 50
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 58
-    primLineGSkip, primLineGSkip, primLineGSkip, primLineGSkip, primLineGSkip, primLineGSkip, primLineGSkip,
-    primLineGSkip,
-    // 60
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 68
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 70
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 78
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 80
-    primMoveImage, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 88
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 90
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // 98
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // a0
-    primLoadImage, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // a8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // b0
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // b8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // c0
-    primStoreImage, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // c8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // d0
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // d8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // e0
-    primNI, cmdTexturePage, cmdTextureWindow, cmdDrawAreaStart, cmdDrawAreaEnd, cmdDrawOffset, cmdSTP, primNI,
-    // e8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // f0
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI,
-    // f8
-    primNI, primNI, primNI, primNI, primNI, primNI, primNI, primNI};
+const PCSX::SoftGPU::Prim::func_t PCSX::SoftGPU::Prim::skip[256] = {
+    &primNI,         &primNI,         &primBlkFill,      &primNI,            // 00
+    &primNI,         &primNI,         &primNI,           &primNI,            // 04
+    &primNI,         &primNI,         &primNI,           &primNI,            // 08
+    &primNI,         &primNI,         &primNI,           &primNI,            // 0c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 10
+    &primNI,         &primNI,         &primNI,           &primNI,            // 14
+    &primNI,         &primNI,         &primNI,           &primNI,            // 18
+    &primNI,         &primNI,         &primNI,           &primNI,            // 1c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 20
+    &primNI,         &primNI,         &primNI,           &primNI,            // 24
+    &primNI,         &primNI,         &primNI,           &primNI,            // 28
+    &primNI,         &primNI,         &primNI,           &primNI,            // 2c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 30
+    &primNI,         &primNI,         &primNI,           &primNI,            // 34
+    &primNI,         &primNI,         &primNI,           &primNI,            // 38
+    &primNI,         &primNI,         &primNI,           &primNI,            // 3c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 40
+    &primNI,         &primNI,         &primNI,           &primNI,            // 44
+    &primLineFSkip,  &primLineFSkip,  &primLineFSkip,    &primLineFSkip,     // 48
+    &primLineFSkip,  &primLineFSkip,  &primLineFSkip,    &primLineFSkip,     // 4c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 50
+    &primNI,         &primNI,         &primNI,           &primNI,            // 54
+    &primLineGSkip,  &primLineGSkip,  &primLineGSkip,    &primLineGSkip,     // 58
+    &primLineGSkip,  &primLineGSkip,  &primLineGSkip,    &primLineGSkip,     // 5c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 60
+    &primNI,         &primNI,         &primNI,           &primNI,            // 64
+    &primNI,         &primNI,         &primNI,           &primNI,            // 68
+    &primNI,         &primNI,         &primNI,           &primNI,            // 6c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 70
+    &primNI,         &primNI,         &primNI,           &primNI,            // 74
+    &primNI,         &primNI,         &primNI,           &primNI,            // 78
+    &primNI,         &primNI,         &primNI,           &primNI,            // 7c
+    &primMoveImage,  &primNI,         &primNI,           &primNI,            // 80
+    &primNI,         &primNI,         &primNI,           &primNI,            // 84
+    &primNI,         &primNI,         &primNI,           &primNI,            // 88
+    &primNI,         &primNI,         &primNI,           &primNI,            // 8c
+    &primNI,         &primNI,         &primNI,           &primNI,            // 90
+    &primNI,         &primNI,         &primNI,           &primNI,            // 94
+    &primNI,         &primNI,         &primNI,           &primNI,            // 98
+    &primNI,         &primNI,         &primNI,           &primNI,            // 9c
+    &primLoadImage,  &primNI,         &primNI,           &primNI,            // a0
+    &primNI,         &primNI,         &primNI,           &primNI,            // a4
+    &primNI,         &primNI,         &primNI,           &primNI,            // a8
+    &primNI,         &primNI,         &primNI,           &primNI,            // ac
+    &primNI,         &primNI,         &primNI,           &primNI,            // b0
+    &primNI,         &primNI,         &primNI,           &primNI,            // b4
+    &primNI,         &primNI,         &primNI,           &primNI,            // b8
+    &primNI,         &primNI,         &primNI,           &primNI,            // bc
+    &primStoreImage, &primNI,         &primNI,           &primNI,            // c0
+    &primNI,         &primNI,         &primNI,           &primNI,            // c4
+    &primNI,         &primNI,         &primNI,           &primNI,            // c8
+    &primNI,         &primNI,         &primNI,           &primNI,            // cc
+    &primNI,         &primNI,         &primNI,           &primNI,            // d0
+    &primNI,         &primNI,         &primNI,           &primNI,            // d4
+    &primNI,         &primNI,         &primNI,           &primNI,            // d8
+    &primNI,         &primNI,         &primNI,           &primNI,            // dc
+    &primNI,         &cmdTexturePage, &cmdTextureWindow, &cmdDrawAreaStart,  // e0
+    &cmdDrawAreaEnd, &cmdDrawOffset,  &cmdSTP,           &primNI,            // e4
+    &primNI,         &primNI,         &primNI,           &primNI,            // e8
+    &primNI,         &primNI,         &primNI,           &primNI,            // ec
+    &primNI,         &primNI,         &primNI,           &primNI,            // f0
+    &primNI,         &primNI,         &primNI,           &primNI,            // f4
+    &primNI,         &primNI,         &primNI,           &primNI,            // f8
+    &primNI,         &primNI,         &primNI,           &primNI,            // fc
+};

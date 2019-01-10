@@ -83,7 +83,7 @@ int PCSX::GPU::gpuReadStatus() {
     int hard;
 
     // GPU plugin
-    hard = GPU_readStatus();
+    hard = readStatus();
 
     // Gameshark Lite - wants to see VRAM busy
     // - Must enable GPU 'Fake Busy States' hack
@@ -106,7 +106,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             }
             // BA blocks * BS words (word = 32-bits)
             size = (bcr >> 16) * (bcr & 0xffff);
-            GPU_readDataMem(ptr, size);
+            readDataMem(ptr, size);
             PCSX::g_emulator.m_psxCpu->Clear(madr, size);
 #if 1
             // already 32-bit word size ((size * 4) / 4)
@@ -127,8 +127,8 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
                 break;
             }
-            GPU_pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
-            GPU_writeDataMem(ptr, size);
+            pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
+            writeDataMem(ptr, size);
 
 #if 0
             // already 32-bit word size ((size * 4) / 4)
@@ -144,7 +144,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU dma chain *** %8.8lx addr = %lx size = %lx\n", chcr, madr, bcr);
 
             size = gpuDmaChainSize(madr);
-            GPU_dmaChain((uint32_t *)PCSX::g_emulator.m_psxMem->g_psxM, madr & 0x1fffff);
+            dmaChain((uint32_t *)PCSX::g_emulator.m_psxMem->g_psxM, madr & 0x1fffff);
 
             // Tekken 3 = use 1.0 only (not 1.5x)
 

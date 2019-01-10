@@ -51,15 +51,13 @@
 
 #define _IN_KEY
 
-#include "draw.h"
-#include "externals.h"
-#include "gpu.h"
-#include "key.h"
-#include "menu.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/key.h"
+#include "gpu/soft/menu.h"
 
 #ifdef _WIN32
-
-#include "record.h"
 
 ////////////////////////////////////////////////////////////////////////
 // KeyBoard handler stuff
@@ -73,19 +71,11 @@ char szGPUKeys[11];
 // keyboard handler
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUshowScreenPic(unsigned char* pMem);
-void CALLBACK GPUgetScreenPic(unsigned char* pMem);
+void GPUshowScreenPic(unsigned char* pMem);
+void GPUgetScreenPic(unsigned char* pMem);
 
-LRESULT CALLBACK KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
-        //--------------------------------------------------//
-        case WM_ACTIVATE:  // some scanline window mode fixing stuff
-        case WM_MOVE: {
-            if (!iUseScanLines) break;
-            if (!iWindowMode) break;
-            if (bIsFirstFrame) break;
-            // MoveScanLineArea(hwnd);
-        } break;
         //--------------------------------------------------//
         case WM_KEYDOWN:  // keydown
             if (wParam == (WPARAM)szGPUKeys[2]) ulKeybits |= KEY_RESETTEXSTORE;

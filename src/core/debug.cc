@@ -17,6 +17,7 @@
 
 #include "core/debug.h"
 #include "core/disr3000a.h"
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/socket.h"
@@ -414,7 +415,7 @@ void PCSX::Debug::ProcessDebug() {
     while (s_paused) {
         GetClient();
         ProcessCommands();
-        GPU_updateLace();
+        PCSX::g_emulator.m_gpu->updateLace();
         PCSX::g_system->SysUpdate();
     }
 }

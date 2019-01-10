@@ -123,21 +123,15 @@
 
 #endif
 
-#define _IN_GPU
-
-#ifdef _WIN32
-#include "record.h"
-#endif
-
-#include "cfg.h"
-#include "draw.h"
-#include "externals.h"
-#include "fps.h"
-#include "gpu.h"
-#include "key.h"
-#include "menu.h"
-#include "prim.h"
-#include "psemu.h"
+#include "gpu/soft/cfg.h"
+#include "gpu/soft/draw.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/fps.h"
+#include "gpu/soft/gpu.h"
+#include "gpu/soft/interface.h"
+#include "gpu/soft/key.h"
+#include "gpu/soft/menu.h"
+#include "gpu/soft/prim.h"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>
@@ -151,7 +145,7 @@ const unsigned char revision = 1;
 const unsigned char build = 18;  // increase that with each version
 
 #ifdef _WIN32
-static char *libraryName = "P.E.Op.S. Soft Driver";
+static const char *libraryName = "P.E.Op.S. Soft Driver";
 #else
 #ifndef _SDL
 static char *libraryName = "P.E.Op.S. SoftX Driver";
@@ -162,7 +156,7 @@ static char *libraryInfo = "P.E.Op.S. SoftSDL Driver V1.18\nCoded by Pete Berner
 #endif
 #endif
 
-static char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
+static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
 
 ////////////////////////////////////////////////////////////////////////
 // memory image of the PSX vram
@@ -181,7 +175,6 @@ signed long *psxVsl;
 // GPU globals
 ////////////////////////////////////////////////////////////////////////
 
-static long lGPUdataRet;
 long lGPUstatusRet;
 char szDispBuf[64];
 char szMenuBuf[36];
@@ -266,7 +259,7 @@ BOOL FreeKernel32(void) { return TRUE; }
 
 /*
 unsigned long PCADDR;
-void CALLBACK GPUdebugSetPC(unsigned long addr)
+void GPUdebugSetPC(unsigned long addr)
 {
  PCADDR=addr;
 }
@@ -275,7 +268,7 @@ void CALLBACK GPUdebugSetPC(unsigned long addr)
 #include <time.h>
 time_t tStart;
 
-void CALLBACK softGPUdisplayText(char *pText)  // some debug func
+extern "C" void softGPUdisplayText(char *pText)  // some debug func
 {
     if (!pText) {
         szDebugText[0] = 0;
@@ -288,85 +281,19 @@ void CALLBACK softGPUdisplayText(char *pText)  // some debug func
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUdisplayFlags(unsigned long dwFlags)  // some info func
+extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
 {
     dwCoreFlags = dwFlags;
     BuildDispMenu(0);
 }
 
 ////////////////////////////////////////////////////////////////////////
-// stuff to make this a true PDK module
-////////////////////////////////////////////////////////////////////////
-
-char *CALLBACK PSEgetLibName(void) { return libraryName; }
-
-unsigned long CALLBACK PSEgetLibType(void) { return PSE_LT_GPU; }
-
-unsigned long CALLBACK PSEgetLibVersion(void) { return version << 16 | revision << 8 | build; }
-
-#ifndef _WIN32
-char *GPUgetLibInfos(void) { return libraryInfo; }
-#endif
-
-////////////////////////////////////////////////////////////////////////
 // Snapshot func
 ////////////////////////////////////////////////////////////////////////
 
 char *pGetConfigInfos(int iCfg) {
-    char szO[2][4] = {"off", "on "};
-    char szTxt[256];
     char *pB = (char *)malloc(32767);
 
-    if (!pB) return NULL;
-    *pB = 0;
-    //----------------------------------------------------//
-    sprintf(szTxt, "Plugin: %s %d.%d.%d\r\n", libraryName, version, revision, build);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "Author: %s\r\n\r\n", PluginAuthor);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    if (iCfg && iWindowMode)
-        sprintf(szTxt, "Resolution/Color:\r\n- %dx%d ", LOWORD(iWinSize), HIWORD(iWinSize));
-    else
-        sprintf(szTxt, "Resolution/Color:\r\n- %dx%d ", iResX, iResY);
-    strcat(pB, szTxt);
-    if (iWindowMode && iCfg)
-        strcpy(szTxt, "Window mode\r\n");
-    else if (iWindowMode)
-        sprintf(szTxt, "Window mode - [%d Bit]\r\n", iDesktopCol);
-    else
-        sprintf(szTxt, "Fullscreen - [%d Bit]\r\n", iColDepth);
-    strcat(pB, szTxt);
-
-    sprintf(szTxt, "Stretch mode: %d\r\n", iUseNoStretchBlt);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "Dither mode: %d\r\n\r\n", iUseDither);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    sprintf(szTxt, "Framerate:\r\n- FPS limit: %s\r\n", szO[UseFrameLimit]);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "- Frame skipping: %s", szO[UseFrameSkip]);
-    strcat(pB, szTxt);
-    if (iFastFwd) strcat(pB, " (fast forward)");
-    strcat(pB, "\r\n");
-    if (iFrameLimit == 2)
-        strcpy(szTxt, "- FPS limit: Auto\r\n\r\n");
-    else
-        sprintf(szTxt, "- FPS limit: %.1f\r\n\r\n", fFrameRate);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    strcpy(szTxt, "Misc:\r\n- Scanlines: ");
-    if (iUseScanLines == 0)
-        strcat(szTxt, "disabled");
-    else if (iUseScanLines == 1)
-        strcat(szTxt, "standard");
-    else if (iUseScanLines == 2)
-        strcat(szTxt, "double blitting");
-    strcat(szTxt, "\r\n");
-    strcat(pB, szTxt);
-    sprintf(szTxt, "- Game fixes: %s [%08lx]\r\n", szO[iUseFixes], dwCfgFixes);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
     return pB;
 }
 
@@ -393,7 +320,7 @@ void DoTextSnapShot(int iNum) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUmakeSnapshot(void)  // snapshot of whole vram
+extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 {
     FILE *bmpfile;
     char filename[256];
@@ -469,7 +396,7 @@ void CALLBACK softGPUmakeSnapshot(void)  // snapshot of whole vram
 // INIT, will be called after lib load... well, just do some var init...
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK softGPUinit()  // GPU INIT
+long PCSX::SoftGPU::impl::init()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(unsigned long));  // init save state scontrol field
 
@@ -522,7 +449,7 @@ long CALLBACK softGPUinit()  // GPU INIT
     lGPUstatusRet = 0x14802000;
     GPUIsIdle;
     GPUIsReadyForCommands;
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 
     // Get a handle for kernel32.dll, and access the required export function
     LoadKernel32();
@@ -534,8 +461,7 @@ long CALLBACK softGPUinit()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-long CALLBACK softGPUopen(unsigned int textureIdGPU)  // GPU OPEN
+long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
 {
     textureId = textureIdGPU;  // store hwnd
 
@@ -549,8 +475,7 @@ long CALLBACK softGPUopen(unsigned int textureIdGPU)  // GPU OPEN
         InitFPS();
     }
 
-    bIsFirstFrame = TRUE;  // we have to init later
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 
     ulInitDisplay();  // setup direct draw
 
@@ -559,48 +484,12 @@ long CALLBACK softGPUopen(unsigned int textureIdGPU)  // GPU OPEN
     return 0;
 }
 
-#else
-
-long GPUopen(unsigned long *disp, char *CapText, char *CfgFile) {
-    unsigned long d;
-
-    pCaptionText = CapText;
-
-#ifndef _FPSE
-    pConfigFile = CfgFile;
-#endif
-
-    ReadConfig();  // read registry
-
-    InitFPS();
-
-    bIsFirstFrame = TRUE;  // we have to init later
-    bDoVSyncUpdate = TRUE;
-
-    d = ulInitDisplay();  // setup x
-
-    if (disp) *disp = d;  // wanna x pointer? ok
-
-    if (d) return 0;
-    return -1;
-}
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK softGPUclose()  // GPU CLOSE
+long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
-#if 0
-    if (RECORD_RECORDING == TRUE) {
-        RECORD_Stop();
-        RECORD_RECORDING = FALSE;
-        BuildDispMenu(0);
-    }
-#endif
-
     ReleaseKeyHandler();  // de-subclass window
 
     CloseDisplay();  // shutdown direct draw
@@ -616,7 +505,7 @@ long CALLBACK softGPUclose()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK softGPUshutdown()  // GPU SHUTDOWN
+long PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
     // screensaver: release the handle for kernel32.dll
     FreeKernel32();
@@ -718,23 +607,11 @@ void ChangeDispOffsetsX(void)  // X CENTER
             PreviousPSXDisplay.Range.x0 += 2;  //???
 
             PreviousPSXDisplay.Range.x1 += (short)(lx - l);
-#ifndef _WIN32
-            PreviousPSXDisplay.Range.x1 -= 2;  // makes linux stretching easier
-#endif
         }
-
-#ifndef _WIN32
-        // some linux alignment security
-        PreviousPSXDisplay.Range.x0 = PreviousPSXDisplay.Range.x0 >> 1;
-        PreviousPSXDisplay.Range.x0 = PreviousPSXDisplay.Range.x0 << 1;
-        PreviousPSXDisplay.Range.x1 = PreviousPSXDisplay.Range.x1 >> 1;
-        PreviousPSXDisplay.Range.x1 = PreviousPSXDisplay.Range.x1 << 1;
-#endif
-
         DoClearScreenBuffer();
     }
 
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -824,22 +701,20 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
 void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 {
-    softGPUclose();
+    //    softGPUclose();
     iWindowMode = !iWindowMode;
-    softGPUopen(textureId);
+    //    softGPUopen(textureId);
     bChangeWinMode = FALSE;
-    bDoVSyncUpdate = TRUE;
+    bDoVSyncUpdate = true;
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // gun cursor func: player=0-7, x=0-511, y=0-255
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUcursor(int iPlayer, int x, int y) {
+extern "C" void softGPUcursor(int iPlayer, int x, int y) {
     if (iPlayer < 0) return;
     if (iPlayer > 7) return;
 
@@ -858,7 +733,7 @@ void CALLBACK softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called evry VSync
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUupdateLace(void)  // VSYNC
+void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 {
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
@@ -882,26 +757,14 @@ void CALLBACK softGPUupdateLace(void)  // VSYNC
         }
     }
 
-#if 0
-
-    if (RECORD_RECORDING)
-        if (RECORD_WriteFrame() == FALSE) {
-            RECORD_RECORDING = FALSE;
-            RECORD_Stop();
-        }
-
-    if (bChangeWinMode) ChangeWindowMode();  // toggle full - window mode
-
-#endif
-
-    bDoVSyncUpdate = FALSE;  // vsync done
+    bDoVSyncUpdate = false;  // vsync done
 }
 
 ////////////////////////////////////////////////////////////////////////
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-unsigned long CALLBACK softGPUreadStatus(void)  // READ STATUS
+uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
@@ -937,7 +800,7 @@ unsigned long CALLBACK softGPUreadStatus(void)  // READ STATUS
 // these are always single packet commands.
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUwriteStatus(unsigned long gdata)  // WRITE STATUS
+void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
     unsigned long lCommand = (gdata >> 24) & 0xff;
 
@@ -952,19 +815,9 @@ void CALLBACK softGPUwriteStatus(unsigned long gdata)  // WRITE STATUS
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            drawX = drawY = 0;
-            drawW = drawH = 0;
-            sSetMask = 0;
-            lSetMask = 0;
-            bCheckMask = FALSE;
-            usMirror = 0;
-            GlobalTextAddrX = 0;
-            GlobalTextAddrY = 0;
-            GlobalTextTP = 0;
-            GlobalTextABR = 0;
+            m_prim.reset();
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;
-            bUsingTWin = FALSE;
             return;
         //--------------------------------------------------//
         // dis/enable display
@@ -1044,7 +897,7 @@ void CALLBACK softGPUwriteStatus(unsigned long gdata)  // WRITE STATUS
             PreviousPSXDisplay.DisplayEnd.y =
                 PreviousPSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
 
-            bDoVSyncUpdate = TRUE;
+            bDoVSyncUpdate = true;
 
             if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
             {
@@ -1218,7 +1071,7 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUreadDataMem(unsigned long *pMem, int iSize) {
+void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) return;
@@ -1277,14 +1130,6 @@ void CALLBACK softGPUreadDataMem(unsigned long *pMem, int iSize) {
 
 ENDREAD:
     GPUIsIdle;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-unsigned long CALLBACK softGPUreadData(void) {
-    unsigned long l;
-    softGPUreadDataMem(&l, 1);
-    return lGPUdataRet;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1360,7 +1205,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-void CALLBACK softGPUwriteDataMem(unsigned long *pMem, int iSize) {
+void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     unsigned long gdata = 0;
     int i = 0;
@@ -1397,7 +1242,7 @@ STARTVRAM:
                     {
                         gdata = (gdata & 0xFFFF) | (((unsigned long)(*VRAMWrite.ImagePtr)) << 16);
                         FinishedVRAMWrite();
-                        bDoVSyncUpdate = TRUE;
+                        bDoVSyncUpdate = true;
                         goto ENDVRAM;
                     }
                     VRAMWrite.RowsRemaining = VRAMWrite.Width;
@@ -1416,18 +1261,12 @@ STARTVRAM:
         }
 
         FinishedVRAMWrite();
-        if (bFinished) bDoVSyncUpdate = TRUE;
+        if (bFinished) bDoVSyncUpdate = true;
     }
 
 ENDVRAM:
 
     if (DataWriteMode == DR_NORMAL) {
-        void (**primFunc)(unsigned char *);
-        if (bSkipNextFrame)
-            primFunc = primTableSkip;
-        else
-            primFunc = primTableJ;
-
         for (; i < iSize;) {
             if (DataWriteMode == DR_VRAMTRANSFER) goto STARTVRAM;
 
@@ -1458,7 +1297,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                primFunc[gpuCommand]((unsigned char *)gpuDataM);
+                m_prim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1473,20 +1312,16 @@ ENDVRAM:
 }
 
 ////////////////////////////////////////////////////////////////////////
-
-void CALLBACK softGPUwriteData(unsigned long gdata) { softGPUwriteDataMem(&gdata, 1); }
-
-////////////////////////////////////////////////////////////////////////
 // this functions will be removed soon (or 'soonish')... not really needed, but some emus want them
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK softGPUsetMode(unsigned long gdata) {
+extern "C" void softGPUsetMode(unsigned long gdata) {
     // Peops does nothing here...
     // DataWriteMode=(gdata&1)?DR_VRAMTRANSFER:DR_NORMAL;
     // DataReadMode =(gdata&2)?DR_VRAMTRANSFER:DR_NORMAL;
 }
 
-long CALLBACK softGPUgetMode(void) {
+extern "C" long softGPUgetMode(void) {
     long iT = 0;
 
     if (DataWriteMode == DR_VRAMTRANSFER) iT |= 0x1;
@@ -1498,15 +1333,7 @@ long CALLBACK softGPUgetMode(void) {
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK softGPUconfigure(void) {
-#ifdef _WIN32
-    HWND hWP = GetActiveWindow();
-
-    DialogBox(0, MAKEINTRESOURCE(IDD_CFGSOFT), hWP, (DLGPROC)SoftDlgProc);
-#else  // LINUX
-    SoftDlgProc();
-#endif
-
+extern "C" long softGPUconfigure(void) {
     return 0;
 }
 
@@ -1551,7 +1378,7 @@ __inline BOOL CheckForEndlessLoop(unsigned long laddr) {
     return FALSE;
 }
 
-long CALLBACK softGPUdmaChain(unsigned long *baseAddrL, unsigned long addr) {
+long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
     unsigned long dmaMem;
     unsigned char *baseAddrB;
     short count;
@@ -1566,61 +1393,19 @@ long CALLBACK softGPUdmaChain(unsigned long *baseAddrL, unsigned long addr) {
     do {
         if (iGPUHeight == 512) addr &= 0x1FFFFC;
         if (DMACommandCounter++ > 2000000) break;
-        if (CheckForEndlessLoop(addr)) break;
+        if (::CheckForEndlessLoop(addr)) break;
 
         count = baseAddrB[addr + 3];
 
         dmaMem = addr + 4;
 
-        if (count > 0) softGPUwriteDataMem(&baseAddrL[dmaMem >> 2], count);
+        if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count);
 
         addr = baseAddrL[addr >> 2] & 0xffffff;
     } while (addr != 0xffffff);
 
     GPUIsIdle;
 
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////
-// show about dlg
-////////////////////////////////////////////////////////////////////////
-
-#ifdef _WIN32
-BOOL CALLBACK AboutDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
-        case WM_COMMAND: {
-            switch (LOWORD(wParam)) {
-                case IDOK:
-                    EndDialog(hW, TRUE);
-                    return TRUE;
-            }
-        }
-    }
-    return FALSE;
-}
-#endif
-
-void CALLBACK softGPUabout(void)  // ABOUT
-{
-#ifdef _WIN32
-    HWND hWP = GetActiveWindow();  // to be sure
-    DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), hWP, (DLGPROC)AboutDlgProc);
-#else  // LINUX
-#ifndef _FPSE
-    AboutDlgProc();
-#endif
-#endif
-    return;
-}
-
-////////////////////////////////////////////////////////////////////////
-// We are ever fine ;)
-////////////////////////////////////////////////////////////////////////
-
-long CALLBACK softGPUtest(void) {
-    // if test fails this function should return negative value for error (unable to continue)
-    // and positive value for warning (can continue but output might be crappy)
     return 0;
 }
 
@@ -1637,7 +1422,7 @@ typedef struct GPUFREEZETAG {
 
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK softGPUfreeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
+long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
     //----------------------------------------------------//
     if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
     {
@@ -1669,15 +1454,15 @@ long CALLBACK softGPUfreeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
 
     // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT
 
-    softGPUwriteStatus(ulStatusControl[0]);
-    softGPUwriteStatus(ulStatusControl[1]);
-    softGPUwriteStatus(ulStatusControl[2]);
-    softGPUwriteStatus(ulStatusControl[3]);
-    softGPUwriteStatus(ulStatusControl[8]);  // try to repair things
-    softGPUwriteStatus(ulStatusControl[6]);
-    softGPUwriteStatus(ulStatusControl[7]);
-    softGPUwriteStatus(ulStatusControl[5]);
-    softGPUwriteStatus(ulStatusControl[4]);
+    writeStatus(ulStatusControl[0]);
+    writeStatus(ulStatusControl[1]);
+    writeStatus(ulStatusControl[2]);
+    writeStatus(ulStatusControl[3]);
+    writeStatus(ulStatusControl[8]);  // try to repair things
+    writeStatus(ulStatusControl[6]);
+    writeStatus(ulStatusControl[7]);
+    writeStatus(ulStatusControl[5]);
+    writeStatus(ulStatusControl[4]);
 
     return 1;
 }
@@ -1814,392 +1599,9 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 // so you have to use the frontbuffer to get a fully
 // rendered picture
 
-#ifdef _WIN32
-void CALLBACK softGPUgetScreenPic(unsigned char *pMem) {
-#if 0
-                 HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
- int x,y,c,v,iCol;RECT r,rt;
- float XS,YS;
-
- //----------------------------------------------------// Pete: creating a temp surface, blitting primary surface into it, get data from temp, and finally delete temp... seems to be better in VISTA
- DDPIXELFORMAT dd;LPDIRECTDRAWSURFACE DDSSave;
-
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));
- xddsd.dwSize = sizeof(DDSURFACEDESC);
- xddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
- xddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
- xddsd.dwWidth        = iResX;
- xddsd.dwHeight       = iResY;
-
- if(IDirectDraw_CreateSurface(DX.DD,&xddsd, &DDSSave, NULL)) // create temp surface
-  return;
-
- dd.dwSize=sizeof(DDPIXELFORMAT);                      // check out, what color we have
- IDirectDrawSurface_GetPixelFormat(DDSSave,&dd);
-
- if(dd.dwRBitMask==0x00007c00 &&
-    dd.dwGBitMask==0x000003e0 &&
-    dd.dwBBitMask==0x0000001f)       iCol=15;
- else
- if(dd.dwRBitMask==0x0000f800 &&
-    dd.dwGBitMask==0x000007e0 &&
-    dd.dwBBitMask==0x0000001f)       iCol=16;
- else                                iCol=32;
-
- r.left=0; r.right =iResX;                             // get blitting rects
- r.top=0;  r.bottom=iResY;
- rt.left=0; rt.right =iResX;
- rt.top=0;  rt.bottom=iResY;
- if(iWindowMode)
-  {
-   POINT Point={0,0};
-   ClientToScreen(DX.hWnd,&Point);
-   rt.left+=Point.x;rt.right+=Point.x;
-   rt.top+=Point.y;rt.bottom+=Point.y;
-  }
-
- IDirectDrawSurface_Blt(DDSSave,&r,DX.DDSPrimary,&rt,  // and blit from primary into temp
-                        DDBLT_WAIT,NULL);
-
- //----------------------------------------------------//
-
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));
- xddsd.dwSize   = sizeof(DDSURFACEDESC);
- xddsd.dwFlags  = DDSD_WIDTH | DDSD_HEIGHT;
- xddsd.dwWidth  = iResX;
- xddsd.dwHeight = iResY;
-
- XS=(float)iResX/128;
- YS=(float)iResY/96;
-
- ddrval=IDirectDrawSurface_Lock(DDSSave,NULL, &xddsd, DDLOCK_WAIT|DDLOCK_READONLY, NULL);
-
- if(ddrval==DDERR_SURFACELOST) IDirectDrawSurface_Restore(DDSSave);
-
- pf=pMem;
-
- if(ddrval==DD_OK)
-  {
-   unsigned char * ps=(unsigned char *)xddsd.lpSurface;
-
-   if(iCol==16)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x7e0)>>3;
-         *(pf+2)=(sx&0xf800)>>8;
-         pf+=3;
-        }
-      }
-    }
-   else
-   if(iCol==15)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x3e0)>>2;
-         *(pf+2)=(sx&0x7c00)>>7;
-         pf+=3;
-        }
-      }
-    }
-   else
-    {
-     unsigned long sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned long *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*4+
-               ((int)((float)x*XS))*4));
-         *(pf+0)=(unsigned char)((sx&0xff));
-         *(pf+1)=(unsigned char)((sx&0xff00)>>8);
-         *(pf+2)=(unsigned char)((sx&0xff0000)>>16);
-         pf+=3;
-        }
-      }
-    }
-  }
-
- IDirectDrawSurface_Unlock(DDSSave,&xddsd);
- IDirectDrawSurface_Release(DDSSave);
-
-/*
- HRESULT ddrval;DDSURFACEDESC xddsd;unsigned char * pf;
- int x,y,c,v;RECT r;
- float XS,YS;
-
- memset(&xddsd, 0, sizeof(DDSURFACEDESC));
- xddsd.dwSize   = sizeof(DDSURFACEDESC);
- xddsd.dwFlags  = DDSD_WIDTH | DDSD_HEIGHT;
- xddsd.dwWidth  = iResX;
- xddsd.dwHeight = iResY;
-
- r.left=0; r.right =iResX;
- r.top=0;  r.bottom=iResY;
-
- if(iWindowMode)
-  {
-   POINT Point={0,0};
-   ClientToScreen(DX.hWnd,&Point);
-   r.left+=Point.x;r.right+=Point.x;
-   r.top+=Point.y;r.bottom+=Point.y;
-  }
-
- XS=(float)iResX/128;
- YS=(float)iResY/96;
-
- ddrval=IDirectDrawSurface_Lock(DX.DDSPrimary,NULL, &xddsd, DDLOCK_WAIT|DDLOCK_READONLY, NULL);
-
- if(ddrval==DDERR_SURFACELOST) IDirectDrawSurface_Restore(DX.DDSPrimary);
-
- pf=pMem;
-
- if(ddrval==DD_OK)
-  {
-   unsigned char * ps=(unsigned char *)xddsd.lpSurface;
-
-   if(iDesktopCol==16)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x7e0)>>3;
-         *(pf+2)=(sx&0xf800)>>8;
-         pf+=3;
-        }
-      }
-    }
-   else
-   if(iDesktopCol==15)
-    {
-     unsigned short sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned short *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*2+
-               ((int)((float)x*XS))*2));
-         *(pf+0)=(sx&0x1f)<<3;
-         *(pf+1)=(sx&0x3e0)>>2;
-         *(pf+2)=(sx&0x7c00)>>7;
-         pf+=3;
-        }
-      }
-    }
-   else
-    {
-     unsigned long sx;
-     for(y=0;y<96;y++)
-      {
-       for(x=0;x<128;x++)
-        {
-         sx=*((unsigned long *)((ps)+
-              r.top*xddsd.lPitch+
-              (((int)((float)y*YS))*xddsd.lPitch)+
-               r.left*4+
-               ((int)((float)x*XS))*4));
-         *(pf+0)=(unsigned char)((sx&0xff));
-         *(pf+1)=(unsigned char)((sx&0xff00)>>8);
-         *(pf+2)=(unsigned char)((sx&0xff0000)>>16);
-         pf+=3;
-        }
-      }
-    }
-  }
-
- IDirectDrawSurface_Unlock(DX.DDSPrimary,&xddsd);
-*/
-
- /////////////////////////////////////////////////////////////////////
- // generic number/border painter
-
- pf=pMem+(103*3);                                      // offset to number rect
-
- for(y=0;y<20;y++)                                     // loop the number rect pixel
-  {
-   for(x=0;x<6;x++)
-    {
-     c=cFont[lSelectedSlot][x+y*6];                    // get 4 char dot infos at once (number depends on selected slot)
-     v=(c&0xc0)>>6;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;                // paint the dots into the rect
-     v=(c&0x30)>>4;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;
-     v=(c&0x0c)>>2;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;
-     v=c&0x03;
-     PaintPicDot(pf,(unsigned char)v);pf+=3;
-    }
-   pf+=104*3;                                          // next rect y line
-  }
-
- pf=pMem;                                              // ptr to first pos in 128x96 pic
- for(x=0;x<128;x++)                                    // loop top/bottom line
-  {
-   *(pf+(95*128*3))=0x00;*pf++=0x00;
-   *(pf+(95*128*3))=0x00;*pf++=0x00;                   // paint it red
-   *(pf+(95*128*3))=0xff;*pf++=0xff;
-  }
- pf=pMem;                                              // ptr to first pos
- for(y=0;y<96;y++)                                     // loop left/right line
-  {
-   *(pf+(127*3))=0x00;*pf++=0x00;
-   *(pf+(127*3))=0x00;*pf++=0x00;                      // paint it red
-   *(pf+(127*3))=0xff;*pf++=0xff;
-   pf+=127*3;                                          // offset to next line
-  }
-
-#endif  // 0
+extern "C" void softGPUgetScreenPic(unsigned char *pMem) {
 }
 
-#else
-// LINUX version:
-
-#ifdef USE_DGA2
-#include <X11/extensions/xf86dga.h>
-extern XDGADevice *dgaDev;
-#endif
-extern char *Xpixels;
-
-void GPUgetScreenPic(unsigned char *pMem) {
-    unsigned short c;
-    unsigned char *pf;
-    int x, y;
-
-    float XS = (float)iResX / 128;
-    float YS = (float)iResY / 96;
-
-    pf = pMem;
-
-    memset(pMem, 0, 128 * 96 * 3);
-
-    if (Xpixels) {
-        unsigned char *ps = (unsigned char *)Xpixels;
-
-        if (iDesktopCol == 16) {
-            long lPitch = iResX << 1;
-            unsigned short sx;
-#ifdef USE_DGA2
-            if (!iWindowMode) lPitch += (dgaDev->mode.imageWidth - dgaDev->mode.viewportWidth) * 2;
-#endif
-            for (y = 0; y < 96; y++) {
-                for (x = 0; x < 128; x++) {
-                    sx = *((unsigned short *)((ps) + (((int)((float)y * YS)) * lPitch) + ((int)((float)x * XS)) * 2));
-                    *(pf + 0) = (sx & 0x1f) << 3;
-                    *(pf + 1) = (sx & 0x7e0) >> 3;
-                    *(pf + 2) = (sx & 0xf800) >> 8;
-                    pf += 3;
-                }
-            }
-        } else if (iDesktopCol == 15) {
-            long lPitch = iResX << 1;
-            unsigned short sx;
-#ifdef USE_DGA2
-            if (!iWindowMode) lPitch += (dgaDev->mode.imageWidth - dgaDev->mode.viewportWidth) * 2;
-#endif
-            for (y = 0; y < 96; y++) {
-                for (x = 0; x < 128; x++) {
-                    sx = *((unsigned short *)((ps) + (((int)((float)y * YS)) * lPitch) + ((int)((float)x * XS)) * 2));
-                    *(pf + 0) = (sx & 0x1f) << 3;
-                    *(pf + 1) = (sx & 0x3e0) >> 2;
-                    *(pf + 2) = (sx & 0x7c00) >> 7;
-                    pf += 3;
-                }
-            }
-        } else {
-            long lPitch = iResX << 2;
-            unsigned long sx;
-#ifdef USE_DGA2
-            if (!iWindowMode) lPitch += (dgaDev->mode.imageWidth - dgaDev->mode.viewportWidth) * 4;
-#endif
-            for (y = 0; y < 96; y++) {
-                for (x = 0; x < 128; x++) {
-                    sx = *((unsigned long *)((ps) + (((int)((float)y * YS)) * lPitch) + ((int)((float)x * XS)) * 4));
-                    *(pf + 0) = (sx & 0xff);
-                    *(pf + 1) = (sx & 0xff00) >> 8;
-                    *(pf + 2) = (sx & 0xff0000) >> 16;
-                    pf += 3;
-                }
-            }
-        }
-    }
-
-    /////////////////////////////////////////////////////////////////////
-    // generic number/border painter
-
-    pf = pMem + (103 * 3);  // offset to number rect
-
-    for (y = 0; y < 20; y++)  // loop the number rect pixel
-    {
-        for (x = 0; x < 6; x++) {
-            c = cFont[lSelectedSlot][x + y * 6];  // get 4 char dot infos at once (number depends on selected slot)
-            PaintPicDot(pf, (c & 0xc0) >> 6);
-            pf += 3;  // paint the dots into the rect
-            PaintPicDot(pf, (c & 0x30) >> 4);
-            pf += 3;
-            PaintPicDot(pf, (c & 0x0c) >> 2);
-            pf += 3;
-            PaintPicDot(pf, (c & 0x03));
-            pf += 3;
-        }
-        pf += 104 * 3;  // next rect y line
-    }
-
-    pf = pMem;                 // ptr to first pos in 128x96 pic
-    for (x = 0; x < 128; x++)  // loop top/bottom line
-    {
-        *(pf + (95 * 128 * 3)) = 0x00;
-        *pf++ = 0x00;
-        *(pf + (95 * 128 * 3)) = 0x00;
-        *pf++ = 0x00;  // paint it red
-        *(pf + (95 * 128 * 3)) = 0xff;
-        *pf++ = 0xff;
-    }
-    pf = pMem;                // ptr to first pos
-    for (y = 0; y < 96; y++)  // loop left/right line
-    {
-        *(pf + (127 * 3)) = 0x00;
-        *pf++ = 0x00;
-        *(pf + (127 * 3)) = 0x00;
-        *pf++ = 0x00;  // paint it red
-        *(pf + (127 * 3)) = 0xff;
-        *pf++ = 0xff;
-        pf += 127 * 3;  // offset to next line
-    }
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // func will be called with 128x96x3 BGR data.
@@ -2209,7 +1611,7 @@ void GPUgetScreenPic(unsigned char *pMem) {
 // release your picture data and stop displaying
 // the screen pic
 
-void CALLBACK softGPUshowScreenPic(unsigned char *pMem) {
+extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
     DestroyPic();           // destroy old pic data
     if (pMem == 0) return;  // done
     CreatePic(pMem);        // create new pic... don't free pMem or something like that... just read from it
@@ -2217,11 +1619,11 @@ void CALLBACK softGPUshowScreenPic(unsigned char *pMem) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUsetfix(unsigned long dwFixBits) { dwEmuFixes = dwFixBits; }
+void GPUsetfix(unsigned long dwFixBits) { dwEmuFixes = dwFixBits; }
 
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK GPUsetframelimit(unsigned long option) {
+void GPUsetframelimit(unsigned long option) {
     bInitCap = TRUE;
 
     if (option == 1) {
@@ -2237,9 +1639,7 @@ void CALLBACK GPUsetframelimit(unsigned long option) {
 
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-
-void CALLBACK softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
+extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
     int iVibVal;
 
     if (PreviousPSXDisplay.DisplayMode.x)  // calc min "shake pixel" from screen width
@@ -2256,7 +1656,3 @@ void CALLBACK softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
 
     iRumbleTime = 15;  // let the rumble last 16 buffer swaps
 }
-
-#endif
-
-////////////////////////////////////////////////////////////////////////

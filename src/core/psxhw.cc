@@ -209,11 +209,11 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
             PSXHW_LOG("IMASK 32bit read %x\n", psxHu32(0x1074));
             return psxHu32(0x1074);
         case 0x1f801810:
-            hard = GPU_readData();
+            hard = PCSX::g_emulator.m_gpu->readData();
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             return hard;
         case 0x1f801814:
-            hard = PCSX::GPU::gpuReadStatus();
+            hard = PCSX::g_emulator.m_gpu->gpuReadStatus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             return hard;
 
@@ -608,12 +608,12 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
             if (PCSX::g_emulator.config().HackFix && SWAP_LEu32(value) == 0x1f00000 && (psxHu32ref(0x1070) & 0x44)) {
                 setIrq(0x01);
             }
-            GPU_writeData(value);
+            PCSX::g_emulator.m_gpu->writeData(value);
             return;
         case 0x1f801814:
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
             if (value & 0x8000000) s_dmaGpuListHackEn = false;
-            GPU_writeStatus(value);
+            PCSX::g_emulator.m_gpu->writeStatus(value);
             return;
 
         case 0x1f801820:

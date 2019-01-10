@@ -1,6 +1,7 @@
 #include <SDL.h>
 
 #include "core/cdrom.h"
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
@@ -69,7 +70,7 @@ int main(int argc, char *argv[]) {
 
     SetIsoFile("test.img");
     LoadPlugins();
-    GPU_open(texture);
+    PCSX::g_emulator.m_gpu->open(texture);
     PCSX::g_emulator.m_cdrom->m_iso.open();
 
     PCSX::g_emulator.EmuInit();

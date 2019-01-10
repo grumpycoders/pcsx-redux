@@ -43,9 +43,9 @@
 
 #define _IN_FPS
 
-#include "externals.h"
-#include "fps.h"
-#include "gpu.h"
+#include "gpu/soft/externals.h"
+#include "gpu/soft/fps.h"
+#include "gpu/soft/gpu.h"
 
 ////////////////////////////////////////////////////////////////////////
 // FPS stuff

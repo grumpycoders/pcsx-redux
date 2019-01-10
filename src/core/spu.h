@@ -37,6 +37,6 @@
 #define H_SPUoff2 0x0d8e
 */
 
-void CALLBACK SPUirq(void);
+void SPUirq(void);
 
 #endif
