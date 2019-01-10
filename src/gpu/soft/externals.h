@@ -150,29 +150,17 @@ extern HINSTANCE hInst;
 
 // draw.c
 
-// extern sDX            DX;
 extern unsigned int textureId;
-extern GUID guiDev;
-extern int iRefreshRate;
-extern BOOL bVsync;
 extern BOOL bVsync_Key;
 
 extern int iResX;
 extern int iResY;
-extern int iWinSize;
 extern BOOL bCheckMask;
-extern int iUseGammaVal;
-extern int iUseScanLines;
-extern int iDesktopCol;
-extern int iUseNoStretchBlt;
-extern int iShowFPS;
 extern int iFastFwd;
 extern int iDebugMode;
 extern int iFVDisplay;
 extern PSXPoint_t ptCursorPoint[];
 extern unsigned short usCursorActive;
-
-extern int iSysMemory;
 
 // prim.c
 

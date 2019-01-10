@@ -113,36 +113,16 @@
 ////////////////////////////////////////////////////////////////////////////////////
 int iResX;
 int iResY;
-int iDesktopCol = 16;
-int iShowFPS = 0;
-int iWinSize;
-int iUseScanLines = 0;
-int iUseNoStretchBlt = 0;
 int iFastFwd = 0;
 int iDebugMode = 1;
 int iFVDisplay = 1;
 PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
-////////////////////////////////////////////////////////////////////////
-// Win code starts here
-////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////
-// own swap buffer func (window/fullscreen)
-////////////////////////////////////////////////////////////////////////
-
-GUID guiDev;
 unsigned int textureId;
-int iSysMemory = 0;
-int iRefreshRate;
-BOOL bVsync = FALSE;
 BOOL bVsync_Key = FALSE;
 
 ////////////////////////////////////////////////////////////////////////
-
-static __inline void WaitVBlank(void) {
-}
 
 static const unsigned int pitch = 4096;
 
@@ -232,88 +212,41 @@ void ShowGunCursor(unsigned char *surf) {
         dy -= PreviousPSXDisplay.Range.y0;
     }
 
-    if (iUseNoStretchBlt >= 3 && iUseNoStretchBlt < 13)  // 2xsai is twice as big, of course
+    const unsigned long crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
+                                                0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
+
+    surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
+
+    for (iPlayer = 0; iPlayer < 8; iPlayer++)  // -> loop all possible players
     {
-        dx *= 2;
-        dy *= 2;
-    } else if (iUseNoStretchBlt >= 13) {
-        dx *= 3;
-        dy *= 3;
-    }
-
-    if (iDesktopCol == 32)  // 32 bit color depth
-    {
-        const unsigned long crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
-                                                  0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
-
-        surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
-
-        for (iPlayer = 0; iPlayer < 8; iPlayer++)  // -> loop all possible players
+        if (usCursorActive & (1 << iPlayer))  // -> player active?
         {
-            if (usCursorActive & (1 << iPlayer))  // -> player active?
-            {
-                const int ty =
-                    (ptCursorPoint[iPlayer].y * dy) / 256;  // -> calculate the cursor pos in the current display
-                const int tx = (ptCursorPoint[iPlayer].x * dx) / 512;
-                sx = tx - 5;
-                if (sx < 0) {
-                    if (sx & 1)
-                        sx = 1;
-                    else
-                        sx = 0;
-                }
-                sy = ty - 5;
-                if (sy < 0) {
-                    if (sy & 1)
-                        sy = 1;
-                    else
-                        sy = 0;
-                }
-                ex = tx + 6;
-                if (ex > dx) ex = dx;
-                ey = ty + 6;
-                if (ey > dy) ey = dy;
-
-                for (x = tx, y = sy; y < ey; y += 2)  // -> do dotted y line
-                    *((unsigned long *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
-                for (y = ty, x = sx; x < ex; x += 2)  // -> do dotted x line
-                    *((unsigned long *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
+            const int ty =
+                (ptCursorPoint[iPlayer].y * dy) / 256;  // -> calculate the cursor pos in the current display
+            const int tx = (ptCursorPoint[iPlayer].x * dx) / 512;
+            sx = tx - 5;
+            if (sx < 0) {
+                if (sx & 1)
+                    sx = 1;
+                else
+                    sx = 0;
             }
-        }
-    } else  // 16 bit color depth
-    {
-        const unsigned short crCursorColor16[8] = {0xf800, 0x07c0, 0x001f, 0xf81f, 0xffc0, 0x07ff, 0xffff, 0x7bdf};
-
-        surf += PreviousPSXDisplay.Range.x0 << 1;  // -> same stuff as above
-
-        for (iPlayer = 0; iPlayer < 8; iPlayer++) {
-            if (usCursorActive & (1 << iPlayer)) {
-                const int ty = (ptCursorPoint[iPlayer].y * dy) / 256;
-                const int tx = (ptCursorPoint[iPlayer].x * dx) / 512;
-                sx = tx - 5;
-                if (sx < 0) {
-                    if (sx & 1)
-                        sx = 1;
-                    else
-                        sx = 0;
-                }
-                sy = ty - 5;
-                if (sy < 0) {
-                    if (sy & 1)
-                        sy = 1;
-                    else
-                        sy = 0;
-                }
-                ex = tx + 6;
-                if (ex > dx) ex = dx;
-                ey = ty + 6;
-                if (ey > dy) ey = dy;
-
-                for (x = tx, y = sy; y < ey; y += 2)
-                    *((unsigned short *)((surf) + (y * pitch) + x * 2)) = crCursorColor16[iPlayer];
-                for (y = ty, x = sx; x < ex; x += 2)
-                    *((unsigned short *)((surf) + (y * pitch) + x * 2)) = crCursorColor16[iPlayer];
+            sy = ty - 5;
+            if (sy < 0) {
+                if (sy & 1)
+                    sy = 1;
+                else
+                    sy = 0;
             }
+            ex = tx + 6;
+            if (ex > dx) ex = dx;
+            ey = ty + 6;
+            if (ey > dy) ey = dy;
+
+            for (x = tx, y = sy; y < ey; y += 2)  // -> do dotted y line
+                *((unsigned long *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
+            for (y = ty, x = sx; x < ex; x += 2)  // -> do dotted x line
+                *((unsigned long *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
         }
     }
 }
@@ -331,24 +264,11 @@ void DoBufferSwap() {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// GAMMA
-////////////////////////////////////////////////////////////////////////
-
-int iUseGammaVal = 2048;
-
-////////////////////////////////////////////////////////////////////////
 // MAIN DIRECT DRAW INIT
 ////////////////////////////////////////////////////////////////////////
 
 int DXinitialize() {
     InitMenu();  // menu init
-
-    if (iShowFPS)  // fps on startup
-    {
-        ulKeybits |= KEY_SHOWFPS;
-        szDispBuf[0] = 0;
-        BuildDispMenu(0);
-    }
 
     return 0;
 }

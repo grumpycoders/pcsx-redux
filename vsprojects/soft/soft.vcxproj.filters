@@ -68,9 +68,6 @@
     <ClInclude Include="..\..\src\gpu\soft\gpu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\interp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\gpu\soft\key.h">
       <Filter>Header Files</Filter>
     </ClInclude>

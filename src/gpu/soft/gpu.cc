@@ -307,60 +307,8 @@ char *GPUgetLibInfos(void) { return libraryInfo; }
 ////////////////////////////////////////////////////////////////////////
 
 char *pGetConfigInfos(int iCfg) {
-    char szO[2][4] = {"off", "on "};
-    char szTxt[256];
     char *pB = (char *)malloc(32767);
 
-    if (!pB) return NULL;
-    *pB = 0;
-    //----------------------------------------------------//
-    sprintf(szTxt, "Plugin: %s %d.%d.%d\r\n", libraryName, version, revision, build);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "Author: %s\r\n\r\n", PluginAuthor);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    if (iCfg && iWindowMode)
-        sprintf(szTxt, "Resolution/Color:\r\n- %dx%d ", LOWORD(iWinSize), HIWORD(iWinSize));
-    else
-        sprintf(szTxt, "Resolution/Color:\r\n- %dx%d ", iResX, iResY);
-    strcat(pB, szTxt);
-    if (iWindowMode && iCfg)
-        strcpy(szTxt, "Window mode\r\n");
-    else if (iWindowMode)
-        sprintf(szTxt, "Window mode - [%d Bit]\r\n", iDesktopCol);
-    else
-        sprintf(szTxt, "Fullscreen - [%d Bit]\r\n", iColDepth);
-    strcat(pB, szTxt);
-
-    sprintf(szTxt, "Stretch mode: %d\r\n", iUseNoStretchBlt);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "Dither mode: %d\r\n\r\n", iUseDither);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    sprintf(szTxt, "Framerate:\r\n- FPS limit: %s\r\n", szO[UseFrameLimit]);
-    strcat(pB, szTxt);
-    sprintf(szTxt, "- Frame skipping: %s", szO[UseFrameSkip]);
-    strcat(pB, szTxt);
-    if (iFastFwd) strcat(pB, " (fast forward)");
-    strcat(pB, "\r\n");
-    if (iFrameLimit == 2)
-        strcpy(szTxt, "- FPS limit: Auto\r\n\r\n");
-    else
-        sprintf(szTxt, "- FPS limit: %.1f\r\n\r\n", fFrameRate);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
-    strcpy(szTxt, "Misc:\r\n- Scanlines: ");
-    if (iUseScanLines == 0)
-        strcat(szTxt, "disabled");
-    else if (iUseScanLines == 1)
-        strcat(szTxt, "standard");
-    else if (iUseScanLines == 2)
-        strcat(szTxt, "double blitting");
-    strcat(szTxt, "\r\n");
-    strcat(pB, szTxt);
-    sprintf(szTxt, "- Game fixes: %s [%08lx]\r\n", szO[iUseFixes], dwCfgFixes);
-    strcat(pB, szTxt);
-    //----------------------------------------------------//
     return pB;
 }
 
