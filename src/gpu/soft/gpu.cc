@@ -132,7 +132,6 @@
 #include "gpu/soft/key.h"
 #include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
-#include "gpu/soft/psemu.h"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>
@@ -287,20 +286,6 @@ extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
     dwCoreFlags = dwFlags;
     BuildDispMenu(0);
 }
-
-////////////////////////////////////////////////////////////////////////
-// stuff to make this a true PDK module
-////////////////////////////////////////////////////////////////////////
-
-const char *PSEgetLibName(void) { return libraryName; }
-
-unsigned long PSEgetLibType(void) { return PSE_LT_GPU; }
-
-unsigned long PSEgetLibVersion(void) { return version << 16 | revision << 8 | build; }
-
-#ifndef _WIN32
-char *GPUgetLibInfos(void) { return libraryInfo; }
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // Snapshot func
