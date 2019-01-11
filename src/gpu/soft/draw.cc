@@ -98,7 +98,7 @@
 //*************************************************************************//
 
 #include "stdafx.h"
-
+#include <SDL.h>
 #include <stdint.h>
 #include "GL/gl3w.h"
 
@@ -256,7 +256,19 @@ void ShowGunCursor(unsigned char *surf) {
     }
 }
 
+static bool f10pressed = false;
+
 void DoBufferSwap() {
+    const Uint8 *keys = SDL_GetKeyboardState(NULL);
+    if (keys[SDL_SCANCODE_F10]) {
+        if (!f10pressed) {
+            memset(textureMem, 0, 1024 * 512 * 4);
+            iDebugMode = !iDebugMode;
+            f10pressed = true;
+        }
+    } else {
+        f10pressed = false;
+    }
     LONG x, y;
     x = PSXDisplay.DisplayPosition.x;
     y = PSXDisplay.DisplayPosition.y;
