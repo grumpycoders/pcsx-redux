@@ -70,16 +70,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -146,6 +146,7 @@
     <ClCompile Include="..\..\src\core\ix86\ix86.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\misc.cc" />
+    <ClCompile Include="..\..\src\core\pad.cc" />
     <ClCompile Include="..\..\src\core\pgxp_cpu.cc" />
     <ClCompile Include="..\..\src\core\pgxp_debug.cc" />
     <ClCompile Include="..\..\src\core\pgxp_gte.cc" />
@@ -181,6 +182,7 @@
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
+    <ClInclude Include="..\..\src\core\pad.h" />
     <ClInclude Include="..\..\src\core\pgxp_cpu.h" />
     <ClInclude Include="..\..\src\core\pgxp_debug.h" />
     <ClInclude Include="..\..\src\core\pgxp_gte.h" />

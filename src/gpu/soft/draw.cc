@@ -187,15 +187,20 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
     }
 }
 
+static uint8_t *textureMem = NULL;
+
 ////////////////////////////////////////////////////////////////////////
 
 void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
-{}
+{
+    memset(textureMem, 0, 1024 * 512 * 4);
+}
 
 ////////////////////////////////////////////////////////////////////////
 
 void DoClearFrontBuffer(void)  // CLEAR PRIMARY BUFFER
 {
+    memset(textureMem, 0, 1024 * 512 * 4);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -250,9 +255,6 @@ void ShowGunCursor(unsigned char *surf) {
         }
     }
 }
-
-
-static uint8_t *textureMem = NULL;
 
 void DoBufferSwap() {
     LONG x, y;
