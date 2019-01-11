@@ -21,11 +21,14 @@
  * Plugin library callback/access functions.
  */
 
-#include "core/plugins.h"
 #include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
+#include "core/pad.h"
+#include "core/plugins.h"
 #include "core/psxemulator.h"
+
+static PCSX::PAD pad1(PCSX::PAD::PAD1);
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
@@ -639,6 +642,11 @@ long nullPAD_init(long flags) { return 0; }
 long nullPAD_shutdown() { return 0; }
 long nullPAD_open(HWND x) { return 0; }
 long nullPAD_close() { return 0; }
+long simplePAD_readPort(PadDataS *data) {
+    memset(data, 0, sizeof(PadDataS));
+    data->buttonStatus = pad1.getButtons();
+    return 0;
+}
 long nullPAD_readPort(PadDataS *data) {
     memset(data, 0, sizeof(PadDataS));
     data->buttonStatus = 0xffff;
@@ -668,7 +676,7 @@ static int LoadPAD1plugin() {
     PAD1_shutdown = nullPAD_shutdown;
     PAD1_open = nullPAD_open;
     PAD1_close = nullPAD_close;
-    PAD1_readPort1 = nullPAD_readPort;
+    PAD1_readPort1 = simplePAD_readPort;
     PAD1_query = PAD1__query;
     PAD1_configure = PAD1__configure;
     PAD1_test = PAD1__test;

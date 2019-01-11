@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
     PCSX::g_emulator.config().PsxAuto = true;
     PCSX::g_emulator.config().HLE = false;
-    PCSX::g_emulator.config().SlowBoot = false;
+    PCSX::g_emulator.config().SlowBoot = true;
     PCSX::g_emulator.config().BiosDir = ".";
     PCSX::g_emulator.config().Bios = "bios.bin";
     PCSX::g_emulator.config().Cpu = PCSX::Emulator::CPU_DYNAREC;

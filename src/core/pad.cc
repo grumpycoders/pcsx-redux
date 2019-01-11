@@ -44,7 +44,7 @@ uint16_t PCSX::PAD::getButtons() {
     const Uint8* keys = SDL_GetKeyboardState(NULL);
 
     uint16_t result = 0;
-    for (unsigned i = 0; i < 16; i++) result |= !!(keys[scancodes[i]]) << i;
+    for (unsigned i = 0; i < 16; i++) result |= !(keys[scancodes[i]]) << i;
 
     return result;
 }
