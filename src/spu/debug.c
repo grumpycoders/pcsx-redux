@@ -40,7 +40,7 @@
 // WINDOWS DEBUG DIALOG HANDLING
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
 #include "resource.h"
 

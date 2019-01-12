@@ -201,7 +201,7 @@ typedef struct {
     int IN_COEF_R;    // (coef.)
 } REVERBInfo;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 extern HINSTANCE hInst;
 #define WM_MUTE (WM_USER + 543)
 #endif
@@ -256,7 +256,7 @@ extern short *pS;
 
 extern int iSpuAsyncWait;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 extern HWND hWMain;  // window handle
 extern HWND hWDebug;
 #endif
@@ -271,7 +271,7 @@ extern void(CALLBACK *cddavCallback)(unsigned short, unsigned short);
 
 #ifndef _IN_CFG
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 extern char *pConfigFile;
 #endif
 
@@ -283,7 +283,7 @@ extern char *pConfigFile;
 
 #ifndef _IN_DSOUND
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 extern unsigned long LastWrite;
 extern unsigned long LastPlay;
 #endif
@@ -296,7 +296,7 @@ extern unsigned long LastPlay;
 
 #ifndef _IN_RECORD
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 extern int iDoRecord;
 #endif
 

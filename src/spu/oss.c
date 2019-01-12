@@ -36,7 +36,7 @@
 
 #include "externals.h"
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 
 ////////////////////////////////////////////////////////////////////////
 // small linux time helper... only used for watchdog

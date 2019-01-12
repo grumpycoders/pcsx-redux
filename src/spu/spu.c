@@ -112,7 +112,7 @@
 const unsigned char version = 1;
 const unsigned char revision = 1;
 const unsigned char build = 9;
-#ifdef _WINDOWS
+#ifdef _WIN32
 static char *libraryName = "P.E.Op.S. DSound Audio Driver";
 #else
 #ifndef USEALSA
@@ -166,7 +166,7 @@ int bThreadEnded = 0;
 int bSpuInit = 0;
 int bSPUIsOpen = 0;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 HWND hWMain = 0;  // window handle
 HWND hWDebug = 0;
 HWND hWRecord = 0;
@@ -516,7 +516,7 @@ INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
 
 int iSpuAsyncWait = 0;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 static VOID CALLBACK MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
 #else
 static void *MAINThread(void *arg)
@@ -553,7 +553,7 @@ static void *MAINThread(void *arg)
         {
             iSecureStart = 0;  // reset secure
 
-#ifdef _WINDOWS
+#ifdef _WIN32
             if (iUseTimer)  // no-thread mode?
             {
                 if (iUseTimer == 1)  // -> ok, timer mode 1: setup a oneshot timer of x ms to wait
@@ -708,7 +708,7 @@ static void *MAINThread(void *arg)
                                     DWORD dwWatchTime = timeGetTime() + 2500;
 
                                     while (iSpuAsyncWait && !bEndThread && timeGetTime() < dwWatchTime)
-#ifdef _WINDOWS
+#ifdef _WIN32
                                         Sleep(1);
 #else
                                         usleep(1000L);
@@ -718,7 +718,7 @@ static void *MAINThread(void *arg)
                                     lastch = ch;
                                     lastns = ns;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
                                     return;
 #else
                                     return 0;
@@ -894,7 +894,7 @@ static void *MAINThread(void *arg)
 
     bThreadEnded = 1;
 
-#ifndef _WINDOWS
+#ifndef _WIN32
     return 0;
 #endif
 }
@@ -903,7 +903,7 @@ static void *MAINThread(void *arg)
 // WINDOWS THREAD... simply calls the timer func and stays forever :)
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
 DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
     MAINProc(0, 0, 0, 0, 0);
@@ -928,7 +928,7 @@ void CALLBACK SPUasync(unsigned long cycle) {
         iSpuAsyncWait = 0;
     }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     if (iDebugMode == 2) {
         if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
         hWDebug = 0;
@@ -946,7 +946,7 @@ void CALLBACK SPUasync(unsigned long cycle) {
     {
         if (!bSpuInit) return;  // -> no init, no call
 
-#ifdef _WINDOWS
+#ifdef _WIN32
         MAINProc(0, 0, 0, 0, 0);  // -> experimental win mode... not really tested... don't like the drawbacks
 #else
         MAINThread(0);  // -> linux high-compat mode
@@ -961,7 +961,7 @@ void CALLBACK SPUasync(unsigned long cycle) {
 //  (262/32)x60 in ntsc
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 
 // since epsxe 1.5.2 (linux) uses SPUupdate, not SPUasync, I will
 // leave that func in the linux port, until epsxe linux is using
@@ -1014,7 +1014,7 @@ void SetupTimer(void) {
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
     if (iUseTimer == 1)  // windows: use timer
     {
@@ -1049,7 +1049,7 @@ void SetupTimer(void) {
 void RemoveTimer(void) {
     bEndThread = 1;  // raise flag to end thread
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
     if (iUseTimer != 2)  // windows thread?
     {
@@ -1152,7 +1152,7 @@ void RemoveStreams(void) {
 // SPUOPEN: called by main emu after init
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 long CALLBACK SPUopen(HWND hW)
 #else
 long SPUopen(void)
@@ -1173,7 +1173,7 @@ long SPUopen(void)
     pSpuIrq = 0;
     iSPUIRQWait = 1;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     LastWrite = 0xffffffff;
     LastPlay = 0;  // init some play vars
     if (!IsWindow(hW)) hW = GetActiveWindow();
@@ -1190,7 +1190,7 @@ long SPUopen(void)
 
     bSPUIsOpen = 1;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     if (iDebugMode)  // windows debug dialog
     {
         hWDebug = CreateDialog(hInst, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
@@ -1213,7 +1213,7 @@ long SPUopen(void)
 
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
 #endif
 
@@ -1226,7 +1226,7 @@ long CALLBACK SPUclose(void) {
 
     bSPUIsOpen = 0;  // no more open
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
     hWDebug = 0;
     if (IsWindow(hWRecord)) DestroyWindow(hWRecord);
@@ -1259,7 +1259,7 @@ long CALLBACK SPUtest(void) { return 0; }
 ////////////////////////////////////////////////////////////////////////
 
 long CALLBACK SPUconfigure(void) {
-#ifdef _WINDOWS
+#ifdef _WIN32
     DialogBox(hInst, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
 #else
     StartCfgTool("CFG");
@@ -1272,7 +1272,7 @@ long CALLBACK SPUconfigure(void) {
 ////////////////////////////////////////////////////////////////////////
 
 void CALLBACK SPUabout(void) {
-#ifdef _WINDOWS
+#ifdef _WIN32
     DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
 #else
     StartCfgTool("ABOUT");

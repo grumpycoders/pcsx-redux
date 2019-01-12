@@ -29,7 +29,7 @@
 
 #include "stdafx.h"
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
 #include <mmsystem.h>
 #include "externals.h"

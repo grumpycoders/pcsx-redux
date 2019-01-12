@@ -124,7 +124,7 @@ long CALLBACK SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *pF) {
 
     if (ulFreezeMode != 0) return 0;  // bad mode? bye
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     if (iDebugMode && IsWindow(hWDebug))  // clean debug mute infos
         SendMessage(hWDebug, WM_MUTE, 0, 0);
     if (IsBadReadPtr(pF, sizeof(SPUFreeze_t)))  // check bad emu stuff

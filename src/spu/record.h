@@ -1,7 +1,7 @@
 #ifndef _RECORD_H_
 #define _RECORD_H_
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 void RecordStart();
 void RecordBuffer(unsigned char* pSound, long lBytes);
 void RecordStop();

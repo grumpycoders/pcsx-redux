@@ -33,7 +33,7 @@
 
 #include "externals.h"
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
 #include <dsound.h>
 

@@ -91,7 +91,7 @@ void CALLBACK ZN_SPUplayADPCMchannel(xa_decode_t *xap) { SPUplayADPCMchannel(xap
 
 long CALLBACK SPUinit(void);
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 
 long CALLBACK SPUopen(HWND hW);
 
