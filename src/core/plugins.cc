@@ -21,11 +21,11 @@
  * Plugin library callback/access functions.
  */
 
+#include "core/plugins.h"
 #include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/pad.h"
-#include "core/plugins.h"
 #include "core/psxemulator.h"
 
 static PCSX::PAD pad1(PCSX::PAD::PAD1);

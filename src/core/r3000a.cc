@@ -234,19 +234,19 @@ void PCSX::R3000Acpu::psxJumpTest() {
             case 0xa0:
                 if (PCSX::g_emulator.m_psxBios->callA0(call)) break;
                 if (call == 0x28 || call == 0xe) break;
-                PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::A0names[call], call,
-                            m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+                PSXBIOS_LOG("Bios call a0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::A0names[call], call, m_psxRegs.GPR.n.a0,
+                            m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
                 break;
             case 0xb0:
                 if (PCSX::g_emulator.m_psxBios->callB0(call)) break;
                 if (call == 0x17 || call == 0xb) break;
-                PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::B0names[call], call,
-                            m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+                PSXBIOS_LOG("Bios call b0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::B0names[call], call, m_psxRegs.GPR.n.a0,
+                            m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
                 break;
             case 0xc0:
                 if (PCSX::g_emulator.m_psxBios->callC0(call)) break;
-                PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::C0names[call], call,
-                            m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+                PSXBIOS_LOG("Bios call c0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::C0names[call], call, m_psxRegs.GPR.n.a0,
+                            m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
                 break;
         }
     }

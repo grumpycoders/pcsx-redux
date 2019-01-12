@@ -43,7 +43,7 @@ class CDRom {
     static const ssize_t SUB_FRAMESIZE = 96;
 
     virtual void reset() = 0;
-    virtual void attenuate(int16_t *buf, int samples, int stereo) = 0;
+    virtual void attenuate(int16_t* buf, int samples, int stereo) = 0;
 
     virtual void interrupt() = 0;
     virtual void readInterrupt() = 0;

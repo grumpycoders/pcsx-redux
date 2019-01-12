@@ -137,7 +137,6 @@ struct PSXDisplay_t {
     PSXSPoint_t DrawOffset;
     long Disabled;
     PSXRect_t Range;
-
 };
 
 /////////////////////////////////////////////////////////////////////////////

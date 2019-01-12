@@ -22,22 +22,22 @@
 #include "core/pad.h"
 
 static const SDL_Scancode scancodes[] = {
-    SDL_SCANCODE_BACKSPACE, // Select
-    SDL_SCANCODE_UNKNOWN,   // n/a
-    SDL_SCANCODE_UNKNOWN,   // n/a
-    SDL_SCANCODE_RETURN,    // Start
-    SDL_SCANCODE_UP,        // Up
-    SDL_SCANCODE_RIGHT,     // Right
-    SDL_SCANCODE_DOWN,      // Down
-    SDL_SCANCODE_LEFT,      // Left
-    SDL_SCANCODE_A,         // L2
-    SDL_SCANCODE_F,         // R2
-    SDL_SCANCODE_Q,         // L1
-    SDL_SCANCODE_R,         // R1
-    SDL_SCANCODE_S,         // Triangle
-    SDL_SCANCODE_D,         // Circle
-    SDL_SCANCODE_X,         // Cross
-    SDL_SCANCODE_Z,         // Square
+    SDL_SCANCODE_BACKSPACE,  // Select
+    SDL_SCANCODE_UNKNOWN,    // n/a
+    SDL_SCANCODE_UNKNOWN,    // n/a
+    SDL_SCANCODE_RETURN,     // Start
+    SDL_SCANCODE_UP,         // Up
+    SDL_SCANCODE_RIGHT,      // Right
+    SDL_SCANCODE_DOWN,       // Down
+    SDL_SCANCODE_LEFT,       // Left
+    SDL_SCANCODE_A,          // L2
+    SDL_SCANCODE_F,          // R2
+    SDL_SCANCODE_Q,          // L1
+    SDL_SCANCODE_R,          // R1
+    SDL_SCANCODE_S,          // Triangle
+    SDL_SCANCODE_D,          // Circle
+    SDL_SCANCODE_X,          // Cross
+    SDL_SCANCODE_Z,          // Square
 };
 
 uint16_t PCSX::PAD::getButtons() {

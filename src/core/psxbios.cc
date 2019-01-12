@@ -21,8 +21,8 @@
  * Internal simulated HLE BIOS.
  */
 
-#include "core/gpu.h"
 #include "core/psxbios.h"
+#include "core/gpu.h"
 #include "core/psxhw.h"
 
 const char *PCSX::Bios::A0names[256] = {

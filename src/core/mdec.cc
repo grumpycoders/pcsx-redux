@@ -173,18 +173,18 @@ static void idct(int *block, int used_col) {
 }
 
 enum {
-// mdec0: command register
-MDEC0_STP = 0x02000000,
-MDEC0_RGB24 = 0x08000000,
-MDEC0_SIZE_MASK = 0x0000FFFF,
+    // mdec0: command register
+    MDEC0_STP = 0x02000000,
+    MDEC0_RGB24 = 0x08000000,
+    MDEC0_SIZE_MASK = 0x0000FFFF,
 
-// mdec1: status register
-MDEC1_BUSY = 0x20000000,
-MDEC1_DREQ = 0x18000000,
-MDEC1_FIFO = 0xc0000000,
-MDEC1_RGB24 = 0x02000000,
-MDEC1_STP = 0x00800000,
-MDEC1_RESET = 0x80000000,
+    // mdec1: status register
+    MDEC1_BUSY = 0x20000000,
+    MDEC1_DREQ = 0x18000000,
+    MDEC1_FIFO = 0xc0000000,
+    MDEC1_RGB24 = 0x02000000,
+    MDEC1_STP = 0x00800000,
+    MDEC1_RESET = 0x80000000,
 };
 
 void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {

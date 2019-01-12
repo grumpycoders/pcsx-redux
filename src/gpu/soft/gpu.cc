@@ -1333,9 +1333,7 @@ extern "C" long softGPUgetMode(void) {
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long softGPUconfigure(void) {
-    return 0;
-}
+extern "C" long softGPUconfigure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // sets all kind of act fixes
@@ -1599,9 +1597,7 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 // so you have to use the frontbuffer to get a fully
 // rendered picture
 
-extern "C" void softGPUgetScreenPic(unsigned char *pMem) {
-}
-
+extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
 
 ////////////////////////////////////////////////////////////////////////
 // func will be called with 128x96x3 BGR data.

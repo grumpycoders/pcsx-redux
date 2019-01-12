@@ -42,20 +42,19 @@ class MDEC {
     static const unsigned DSIZE = 8;
     static const unsigned DSIZE2 = DSIZE * DSIZE;
 
-
   private:
-/* memory speed is 1 byte per MDEC_BIAS psx clock
- * That mean (PCSX::g_emulator.m_psxClockSpeed / MDEC_BIAS) B/s
- * MDEC_BIAS = 2.0 => ~16MB/s
- * MDEC_BIAS = 3.0 => ~11MB/s
- * and so on ...
- * I guess I have 50 images in 50Hz ... (could be 25 images ?)
- * 320x240x24@50Hz => 11.52 MB/s
- * 320x240x24@60Hz => 13.824 MB/s
- * 320x240x16@50Hz => 7.68 MB/s
- * 320x240x16@60Hz => 9.216 MB/s
- * so 2.0 to 4.0 should be fine.
- */
+    /* memory speed is 1 byte per MDEC_BIAS psx clock
+     * That mean (PCSX::g_emulator.m_psxClockSpeed / MDEC_BIAS) B/s
+     * MDEC_BIAS = 2.0 => ~16MB/s
+     * MDEC_BIAS = 3.0 => ~11MB/s
+     * and so on ...
+     * I guess I have 50 images in 50Hz ... (could be 25 images ?)
+     * 320x240x24@50Hz => 11.52 MB/s
+     * 320x240x24@60Hz => 13.824 MB/s
+     * 320x240x16@50Hz => 7.68 MB/s
+     * 320x240x16@60Hz => 9.216 MB/s
+     * so 2.0 to 4.0 should be fine.
+     */
     static inline const float MDEC_BIAS = 2.0f;
 
     struct _pending_dma1 {

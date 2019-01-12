@@ -52,7 +52,7 @@
 #define HW_DMA_PCR (psxHu32ref(0x10f0))
 #define HW_DMA_ICR (psxHu32ref(0x10f4))
 
-#define DMA_INTERRUPT(n)                         \
+#define DMA_INTERRUPT(n)                            \
     if (SWAP_LEu32(HW_DMA_ICR) & (1 << (16 + n))) { \
         HW_DMA_ICR |= SWAP_LE32(1 << (24 + n));     \
         psxHu32ref(0x1070) |= SWAP_LE32(8);         \

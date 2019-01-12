@@ -105,7 +105,7 @@ class Cheats {
         CHEAT_GREATERTHAN16 = 0xD3, /* 16-bit Greater Than */
     };
 
-    private:
+  private:
     Cheat *g_cheats = NULL;
     CheatCode *g_cheatCodes = NULL;
     int g_numCodes = 0;

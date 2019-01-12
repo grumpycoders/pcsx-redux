@@ -29,4 +29,4 @@ extern const char *g_disRNameCP2D[];
 extern const char *g_disRNameCP2C[];
 extern const char *g_disRNameCP0[];
 
-const char* disR3000AF(uint32_t code, uint32_t pc);
+const char *disR3000AF(uint32_t code, uint32_t pc);
