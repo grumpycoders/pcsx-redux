@@ -36,7 +36,7 @@
 // OLD, SOMEWHAT (BUT NOT MUCH) SUPPORTED PSEMUPRO FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short CALLBACK SPUgetOne(unsigned long val) {
+unsigned short SPUgetOne(unsigned long val) {
     if (spuAddr != 0xffffffff) {
         return SPUreadDMA();
     }
@@ -44,7 +44,7 @@ unsigned short CALLBACK SPUgetOne(unsigned long val) {
     return spuMem[val >> 1];
 }
 
-void CALLBACK SPUputOne(unsigned long val, unsigned short data) {
+void SPUputOne(unsigned long val, unsigned short data) {
     if (spuAddr != 0xffffffff) {
         SPUwriteDMA(data);
         return;
@@ -53,26 +53,26 @@ void CALLBACK SPUputOne(unsigned long val, unsigned short data) {
     spuMem[val >> 1] = data;
 }
 
-void CALLBACK SPUplaySample(unsigned char ch) {}
+void SPUplaySample(unsigned char ch) {}
 
-void CALLBACK SPUsetAddr(unsigned char ch, unsigned short waddr) {
+void SPUsetAddr(unsigned char ch, unsigned short waddr) {
     s_chan[ch].pStart = spuMemC + ((unsigned long)waddr << 3);
 }
 
-void CALLBACK SPUsetPitch(unsigned char ch, unsigned short pitch) { SetPitch(ch, pitch); }
+void SPUsetPitch(unsigned char ch, unsigned short pitch) { SetPitch(ch, pitch); }
 
-void CALLBACK SPUsetVolumeL(unsigned char ch, short vol) { SetVolumeR(ch, vol); }
+void SPUsetVolumeL(unsigned char ch, short vol) { SetVolumeR(ch, vol); }
 
-void CALLBACK SPUsetVolumeR(unsigned char ch, short vol) { SetVolumeL(ch, vol); }
+void SPUsetVolumeR(unsigned char ch, short vol) { SetVolumeL(ch, vol); }
 
-void CALLBACK SPUstartChannels1(unsigned short channels) { SoundOn(0, 16, channels); }
+void SPUstartChannels1(unsigned short channels) { SoundOn(0, 16, channels); }
 
-void CALLBACK SPUstartChannels2(unsigned short channels) { SoundOn(16, 24, channels); }
+void SPUstartChannels2(unsigned short channels) { SoundOn(16, 24, channels); }
 
-void CALLBACK SPUstopChannels1(unsigned short channels) { SoundOff(0, 16, channels); }
+void SPUstopChannels1(unsigned short channels) { SoundOff(0, 16, channels); }
 
-void CALLBACK SPUstopChannels2(unsigned short channels) { SoundOff(16, 24, channels); }
+void SPUstopChannels2(unsigned short channels) { SoundOff(16, 24, channels); }
 
-void CALLBACK SPUplaySector(unsigned long mode, unsigned char* p) {
+void SPUplaySector(unsigned long mode, unsigned char* p) {
     if (!iUseXA) return;  // no XA? bye
 }

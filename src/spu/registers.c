@@ -68,7 +68,7 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK SPUwriteRegister(unsigned long reg, unsigned short val) {
+void SPUwriteRegister(unsigned long reg, unsigned short val) {
     const unsigned long r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
@@ -432,7 +432,7 @@ void CALLBACK SPUwriteRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short CALLBACK SPUreadRegister(unsigned long reg) {
+unsigned short SPUreadRegister(unsigned long reg) {
     const unsigned long r = reg & 0xfff;
 
     iSpuAsyncWait = 0;

@@ -76,7 +76,7 @@ void LoadStateUnknown(SPUFreeze_t *pF);  // unknown format
 // SPUFREEZE: called by main emu on savestate load/save
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *pF) {
+long SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *pF) {
     int i;
     SPUOSSFreeze_t *pFO;
 

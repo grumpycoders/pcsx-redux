@@ -32,4 +32,4 @@ void SetVolumeL(unsigned char ch, short vol);
 void SetVolumeR(unsigned char ch, short vol);
 void SetPitch(int ch, unsigned short val);
 void ReverbOn(int start, int end, unsigned short val);
-void CALLBACK SPUwriteRegister(unsigned long reg, unsigned short val);
+void SPUwriteRegister(unsigned long reg, unsigned short val);

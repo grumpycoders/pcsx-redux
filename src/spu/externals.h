@@ -261,7 +261,7 @@ extern HWND hWMain;  // window handle
 extern HWND hWDebug;
 #endif
 
-extern void(CALLBACK *cddavCallback)(unsigned short, unsigned short);
+extern void(*cddavCallback)(unsigned short, unsigned short);
 
 #endif
 

@@ -285,7 +285,7 @@ void DisplayDebugInfos(HWND hW) {
 ////////////////////////////////////////////////////////////////////////
 // main debug dlg handler
 
-BOOL CALLBACK DebugDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL DebugDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         //--------------------------------------------------// init
         case WM_INITDIALOG: {

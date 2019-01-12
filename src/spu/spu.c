@@ -180,9 +180,9 @@ static pthread_t thread = -1;  // thread id (linux)
 
 unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
-void(CALLBACK *irqCallback)(void) = 0;  // func of main emu, called on spu irq
-void(CALLBACK *cddavCallback)(unsigned short, unsigned short) = 0;
-void(CALLBACK *irqQSound)(unsigned char *, long *, long) = 0;
+void(*irqCallback)(void) = 0;  // func of main emu, called on spu irq
+void(*cddavCallback)(unsigned short, unsigned short) = 0;
+void(*irqQSound)(unsigned char *, long *, long) = 0;
 
 // certain globals (were local before, but with the new timeproc I need em global)
 
@@ -517,7 +517,7 @@ INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
 int iSpuAsyncWait = 0;
 
 #ifdef _WIN32
-static VOID CALLBACK MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
+static VOID MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
 #else
 static void *MAINThread(void *arg)
 #endif
@@ -921,7 +921,7 @@ DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
 //  1 time every 'cycle' cycles... harhar
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK SPUasync(unsigned long cycle) {
+void SPUasync(unsigned long cycle) {
     if (iSpuAsyncWait) {
         iSpuAsyncWait++;
         if (iSpuAsyncWait <= 64) return;
@@ -967,7 +967,7 @@ void CALLBACK SPUasync(unsigned long cycle) {
 // leave that func in the linux port, until epsxe linux is using
 // the async function as well
 
-void CALLBACK SPUupdate(void) { SPUasync(0); }
+void SPUupdate(void) { SPUasync(0); }
 
 #endif
 
@@ -975,7 +975,7 @@ void CALLBACK SPUupdate(void) { SPUasync(0); }
 // XA AUDIO
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK SPUplayADPCMchannel(xa_decode_t *xap) {
+void SPUplayADPCMchannel(xa_decode_t *xap) {
     if (!iUseXA) return;  // no XA? bye
     if (!xap) return;
     if (!xap->freq) return;  // no xa freq ? bye
@@ -991,7 +991,7 @@ void CALLBACK SPUplayADPCMchannel(xa_decode_t *xap) {
 // SPUINIT: this func will be called first by the main emu
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK SPUinit(void) {
+long SPUinit(void) {
     spuMemC = (unsigned char *)spuMem;  // just small setup
     memset((void *)s_chan, 0, MAXCHAN * sizeof(SPUCHAN));
     memset((void *)&rvb, 0, sizeof(REVERBInfo));
@@ -1153,7 +1153,7 @@ void RemoveStreams(void) {
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-long CALLBACK SPUopen(HWND hW)
+long SPUopen(HWND hW)
 #else
 long SPUopen(void)
 #endif
@@ -1221,7 +1221,7 @@ void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
 // SPUCLOSE: called before shutdown
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK SPUclose(void) {
+long SPUclose(void) {
     if (!bSPUIsOpen) return 0;  // some security
 
     bSPUIsOpen = 0;  // no more open
@@ -1246,19 +1246,19 @@ long CALLBACK SPUclose(void) {
 // SPUSHUTDOWN: called by main emu on final exit
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK SPUshutdown(void) { return 0; }
+long SPUshutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUTEST: we don't test, we are always fine ;)
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK SPUtest(void) { return 0; }
+long SPUtest(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUCONFIGURE: call config dialog
 ////////////////////////////////////////////////////////////////////////
 
-long CALLBACK SPUconfigure(void) {
+long SPUconfigure(void) {
 #ifdef _WIN32
     DialogBox(hInst, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
 #else
@@ -1271,7 +1271,7 @@ long CALLBACK SPUconfigure(void) {
 // SPUABOUT: show about window
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK SPUabout(void) {
+void SPUabout(void) {
 #ifdef _WIN32
     DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
 #else
@@ -1285,9 +1285,9 @@ void CALLBACK SPUabout(void) {
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-void CALLBACK SPUregisterCallback(void(CALLBACK *callback)(void)) { irqCallback = callback; }
+void SPUregisterCallback(void(*callback)(void)) { irqCallback = callback; }
 
-void CALLBACK SPUregisterCDDAVolume(void(CALLBACK *CDDAVcallback)(unsigned short, unsigned short)) {
+void SPUregisterCDDAVolume(void(*CDDAVcallback)(unsigned short, unsigned short)) {
     cddavCallback = CDDAVcallback;
 }
 
@@ -1295,11 +1295,11 @@ void CALLBACK SPUregisterCDDAVolume(void(CALLBACK *CDDAVcallback)(unsigned short
 // COMMON PLUGIN INFO FUNCS
 ////////////////////////////////////////////////////////////////////////
 
-char *CALLBACK PSEgetLibName(void) { return libraryName; }
+char *PSEgetLibName(void) { return libraryName; }
 
-unsigned long CALLBACK PSEgetLibType(void) { return PSE_LT_SPU; }
+unsigned long PSEgetLibType(void) { return PSE_LT_SPU; }
 
-unsigned long CALLBACK PSEgetLibVersion(void) { return version << 16 | revision << 8 | build; }
+unsigned long PSEgetLibVersion(void) { return version << 16 | revision << 8 | build; }
 
 char *SPUgetLibInfos(void) { return libraryInfo; }
 

@@ -59,7 +59,7 @@ extern int iZincEmu;
 // simple about dlg handler
 ////////////////////////////////////////////////////////////////////////
 
-BOOL CALLBACK AboutDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL AboutDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_COMMAND: {
             switch (LOWORD(wParam)) {
@@ -309,7 +309,7 @@ void OnDSoundCancel(HWND hW) { EndDialog(hW, FALSE); }
 // WIN CFG PROC
 ////////////////////////////////////////////////////////////////////////
 
-BOOL CALLBACK DSoundDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL DSoundDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG:
             return OnInitDSoundDialog(hW);

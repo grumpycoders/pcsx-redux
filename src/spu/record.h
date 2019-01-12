@@ -5,7 +5,7 @@
 void RecordStart();
 void RecordBuffer(unsigned char* pSound, long lBytes);
 void RecordStop();
-BOOL CALLBACK RecordDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam);
+BOOL RecordDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
 
 #endif

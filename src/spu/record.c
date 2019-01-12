@@ -117,7 +117,7 @@ void RecordBuffer(unsigned char* pSound, long lBytes) {
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-BOOL CALLBACK RecordDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL RecordDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         //--------------------------------------------------// init
         case WM_INITDIALOG: {
