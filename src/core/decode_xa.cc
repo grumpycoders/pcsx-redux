@@ -67,7 +67,7 @@ static void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
 #endif
 
 static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_range, const void *vblockp, short *destp,
-                                         int inc) {
+                                       int inc) {
     int i;
     int range, filterid;
     int32_t fy0, fy1;

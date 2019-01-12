@@ -21,9 +21,9 @@
  * Internal PSX counters.
  */
 
-#include "core/gpu.h"
 #include "core/psxcounters.h"
 #include "core/debug.h"
+#include "core/gpu.h"
 
 /******************************************************************************/
 
@@ -366,8 +366,8 @@ void PCSX::Counters::psxRcntInit() {
     // rcnt base.
     m_rcnts[3].rate = 1;
     m_rcnts[3].mode = RcCountToTarget;
-    m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed / (FrameRate[PCSX::g_emulator.config().Video] *
-                                                             m_HSyncTotal[PCSX::g_emulator.config().Video]));
+    m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed /
+                         (FrameRate[PCSX::g_emulator.config().Video] * m_HSyncTotal[PCSX::g_emulator.config().Video]));
 
     for (i = 0; i < CounterQuantity; ++i) {
         psxRcntWcountInternal(i, 0);

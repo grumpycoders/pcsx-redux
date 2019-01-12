@@ -77,11 +77,11 @@
 DMA5 = N/A (PIO)
 */
 
-//void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
+// void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr);
 void spuInterrupt();
 void gpuotcInterrupt();
-//void dmaInterrupt();
+// void dmaInterrupt();
 
 #endif

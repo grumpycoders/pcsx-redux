@@ -522,8 +522,7 @@ class InterpretedCPU : public R3000Acpu {
     void psxHLE();
 
     /* GTE wrappers */
-#define GTE_WR(n) \
-    void gte##n();
+#define GTE_WR(n) void gte##n();
     GTE_WR(LWC2);
     GTE_WR(SWC2);
     GTE_WR(RTPS);

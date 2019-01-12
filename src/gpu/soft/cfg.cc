@@ -586,13 +586,9 @@ void OnBugFixes(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_FIXES), hW, (DLGPROC
 // Recording options
 ////////////////////////////////////////////////////////////////////////
 
-void RefreshCodec(HWND hW) {
+void RefreshCodec(HWND hW) {}
 
-}
-
-BOOL RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    return FALSE;
-}
+BOOL RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) { return FALSE; }
 
 void OnRecording(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_RECORDING), hW, (DLGPROC)RecordingDlgProc); }
 
@@ -755,7 +751,6 @@ void ReadConfig(void) {
             size = 11;
             RegQueryValueEx(myKey, "GPUKeys", 0, &type, (LPBYTE)&szGPUKeys, &size);
 
-
 //
 // Recording options
 //
@@ -859,7 +854,6 @@ static BOOL WINAPI DirectDrawEnumCallbackEx(GUID FAR *pGUID, LPSTR strDesc, LPST
                                             HMONITOR hMonitor) {
     // Use the GUID to create the DirectDraw object, so that information
     // can be extracted from it.
-
 }
 
 //-----------------------------------------------------------------------------
@@ -870,8 +864,7 @@ static BOOL WINAPI DirectDrawEnumCallback(GUID FAR *pGUID, LPSTR strDesc, LPSTR 
 
 //-----------------------------------------------------------------------------
 
-void DoDevEnum(HWND hW) {
-}
+void DoDevEnum(HWND hW) {}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -886,24 +879,17 @@ void FreeGui(HWND hW) {
 
 ////////////////////////////////////////////////////////////////////////
 
-BOOL DeviceDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-
-    return FALSE;
-}
+BOOL DeviceDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) { return FALSE; }
 
 ////////////////////////////////////////////////////////////////////////
 
-void SelectDev(HWND hW) {
-
-}
+void SelectDev(HWND hW) {}
 
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
 
-BOOL bTestModes(void) {
-    return false;
-}
+BOOL bTestModes(void) { return false; }
 
 ////////////////////////////////////////////////////////////////////////
 // define key dialog
@@ -987,4 +973,3 @@ BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 
 void OnKeyConfig(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_KEYS), hW, (DLGPROC)KeyDlgProc); }
-

@@ -26,8 +26,8 @@ namespace PCSX {
 class PAD {
   public:
     enum pad_t { PAD1, PAD2 };
-    PAD(pad_t pad) { }
+    PAD(pad_t pad) {}
     uint16_t getButtons();
 };
 
-}
+}  // namespace PCSX

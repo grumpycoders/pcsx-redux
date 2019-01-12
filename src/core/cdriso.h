@@ -25,7 +25,6 @@
 #include "core/plugins.h"
 #include "core/psxemulator.h"
 
-
 class File {
   public:
     void close();
@@ -166,7 +165,6 @@ class CDRiso {
     int m_numtracks = 0;
     struct trackinfo m_ti[MAXTRACKS];
 
-    
     // redump.org SBI files
     uint8_t sbitime[256][3], sbicount;
 

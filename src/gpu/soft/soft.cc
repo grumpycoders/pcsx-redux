@@ -942,8 +942,8 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX(unsigned short *pd
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_S(unsigned short *pdest, unsigned short color,
-                                                                       short m1, short m2, short m3) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_S(unsigned short *pdest, unsigned short color, short m1,
+                                                                short m2, short m3) {
     long r, g, b;
 
     if (color == 0) return;
@@ -961,7 +961,8 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_S(unsigned short *
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color, short m1, short m2, short m3) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color, short m1,
+                                                                  short m2, short m3) {
     long r, g, b;
 
     if (color == 0) return;

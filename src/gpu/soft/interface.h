@@ -98,6 +98,6 @@ class impl : public GPU {
     //    int iRumbleTime = 0;
 };
 
-}
+}  // namespace SoftGPU
 
-}
+}  // namespace PCSX

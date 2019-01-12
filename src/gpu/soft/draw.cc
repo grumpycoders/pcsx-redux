@@ -97,10 +97,10 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
 #include <SDL.h>
 #include <stdint.h>
 #include "GL/gl3w.h"
+#include "stdafx.h"
 
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
@@ -218,7 +218,7 @@ void ShowGunCursor(unsigned char *surf) {
     }
 
     const unsigned long crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
-                                                0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
+                                              0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
 
     surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
 
@@ -226,8 +226,7 @@ void ShowGunCursor(unsigned char *surf) {
     {
         if (usCursorActive & (1 << iPlayer))  // -> player active?
         {
-            const int ty =
-                (ptCursorPoint[iPlayer].y * dy) / 256;  // -> calculate the cursor pos in the current display
+            const int ty = (ptCursorPoint[iPlayer].y * dy) / 256;  // -> calculate the cursor pos in the current display
             const int tx = (ptCursorPoint[iPlayer].x * dx) / 512;
             sx = tx - 5;
             if (sx < 0) {
@@ -314,23 +313,19 @@ void CloseDisplay(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void CreatePic(unsigned char *pMem) {
-}
+void CreatePic(unsigned char *pMem) {}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void DestroyPic(void) {
-}
+void DestroyPic(void) {}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void DisplayPic(void) {
-}
+void DisplayPic(void) {}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void ShowGpuPic(void) {
-}
+void ShowGpuPic(void) {}
 
 ////////////////////////////////////////////////////////////////////////
 

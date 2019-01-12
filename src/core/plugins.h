@@ -43,11 +43,11 @@ typedef long (*SIO1open)(unsigned long*);
 
 extern "C" {
 
-typedef long(* GPUopen)(unsigned int texture);
-typedef long(* SPUopen)(HWND);
-typedef long(* PADopen)(HWND);
-typedef long(* NETopen)(HWND);
-typedef long(* SIO1open)(HWND);
+typedef long (*GPUopen)(unsigned int texture);
+typedef long (*SPUopen)(HWND);
+typedef long (*PADopen)(HWND);
+typedef long (*NETopen)(HWND);
+typedef long (*SIO1open)(HWND);
 }
 
 #endif
@@ -55,9 +55,9 @@ typedef long(* SIO1open)(HWND);
 int LoadPlugins();
 void ReleasePlugins();
 
-typedef unsigned long(* PSEgetLibType)(void);
-typedef unsigned long(* PSEgetLibVersion)(void);
-typedef char*(* PSEgetLibName)(void);
+typedef unsigned long (*PSEgetLibType)(void);
+typedef unsigned long (*PSEgetLibVersion)(void);
+typedef char* (*PSEgetLibName)(void);
 
 #if 0
 // GPU Functions
@@ -146,21 +146,21 @@ struct SubQ {
 };
 
 // SPU Functions
-typedef long(* SPUinit)(void);
-typedef long(* SPUshutdown)(void);
-typedef long(* SPUclose)(void);
-typedef void(* SPUplaySample)(unsigned char);
-typedef void(* SPUwriteRegister)(unsigned long, unsigned short);
-typedef unsigned short(* SPUreadRegister)(unsigned long);
-typedef void(* SPUwriteDMA)(unsigned short);
-typedef unsigned short(* SPUreadDMA)(void);
-typedef void(* SPUwriteDMAMem)(unsigned short*, int);
-typedef void(* SPUreadDMAMem)(unsigned short*, int);
-typedef void(* SPUplayADPCMchannel)(xa_decode_t*);
-typedef void(* SPUregisterCallback)(void(* callback)(void));
-typedef long(* SPUconfigure)(void);
-typedef long(* SPUtest)(void);
-typedef void(* SPUabout)(void);
+typedef long (*SPUinit)(void);
+typedef long (*SPUshutdown)(void);
+typedef long (*SPUclose)(void);
+typedef void (*SPUplaySample)(unsigned char);
+typedef void (*SPUwriteRegister)(unsigned long, unsigned short);
+typedef unsigned short (*SPUreadRegister)(unsigned long);
+typedef void (*SPUwriteDMA)(unsigned short);
+typedef unsigned short (*SPUreadDMA)(void);
+typedef void (*SPUwriteDMAMem)(unsigned short*, int);
+typedef void (*SPUreadDMAMem)(unsigned short*, int);
+typedef void (*SPUplayADPCMchannel)(xa_decode_t*);
+typedef void (*SPUregisterCallback)(void (*callback)(void));
+typedef long (*SPUconfigure)(void);
+typedef long (*SPUtest)(void);
+typedef void (*SPUabout)(void);
 typedef struct {
     unsigned char PluginName[8];
     uint32_t PluginVersion;
@@ -170,9 +170,9 @@ typedef struct {
     xa_decode_t xa;
     unsigned char* SPUInfo;
 } SPUFreeze_t;
-typedef long(* SPUfreeze)(uint32_t, SPUFreeze_t*);
-typedef void(* SPUasync)(uint32_t);
-typedef void(* SPUplayCDDAchannel)(short*, int);
+typedef long (*SPUfreeze)(uint32_t, SPUFreeze_t*);
+typedef void (*SPUasync)(uint32_t);
+typedef void (*SPUplayCDDAchannel)(short*, int);
 
 // SPU function pointers
 extern SPUconfigure SPU_configure;
@@ -196,21 +196,21 @@ extern SPUasync SPU_async;
 extern SPUplayCDDAchannel SPU_playCDDAchannel;
 
 // PAD Functions
-typedef long(* PADconfigure)(void);
-typedef void(* PADabout)(void);
-typedef long(* PADinit)(long);
-typedef long(* PADshutdown)(void);
-typedef long(* PADtest)(void);
-typedef long(* PADclose)(void);
-typedef long(* PADquery)(void);
-typedef long(* PADreadPort1)(PadDataS*);
-typedef long(* PADreadPort2)(PadDataS*);
-typedef long(* PADkeypressed)(void);
-typedef unsigned char(* PADstartPoll)(int);
-typedef unsigned char(* PADpoll)(unsigned char);
-typedef void(* PADsetSensitive)(int);
-typedef void(* PADregisterVibration)(void(* callback)(uint32_t, uint32_t));
-typedef void(* PADregisterCursor)(void(* callback)(int, int, int));
+typedef long (*PADconfigure)(void);
+typedef void (*PADabout)(void);
+typedef long (*PADinit)(long);
+typedef long (*PADshutdown)(void);
+typedef long (*PADtest)(void);
+typedef long (*PADclose)(void);
+typedef long (*PADquery)(void);
+typedef long (*PADreadPort1)(PadDataS*);
+typedef long (*PADreadPort2)(PadDataS*);
+typedef long (*PADkeypressed)(void);
+typedef unsigned char (*PADstartPoll)(int);
+typedef unsigned char (*PADpoll)(unsigned char);
+typedef void (*PADsetSensitive)(int);
+typedef void (*PADregisterVibration)(void (*callback)(uint32_t, uint32_t));
+typedef void (*PADregisterCursor)(void (*callback)(int, int, int));
 
 // PAD function pointers
 extern PADconfigure PAD1_configure;
@@ -245,27 +245,27 @@ extern PADregisterVibration PAD2_registerVibration;
 extern PADregisterCursor PAD2_registerCursor;
 
 // NET Functions
-typedef long(* NETinit)(void);
-typedef long(* NETshutdown)(void);
-typedef long(* NETclose)(void);
-typedef long(* NETconfigure)(void);
-typedef long(* NETtest)(void);
-typedef void(* NETabout)(void);
-typedef void(* NETpause)(void);
-typedef void(* NETresume)(void);
-typedef long(* NETqueryPlayer)(void);
-typedef long(* NETsendData)(void*, int, int);
-typedef long(* NETrecvData)(void*, int, int);
-typedef long(* NETsendPadData)(void*, int);
-typedef long(* NETrecvPadData)(void*, int);
+typedef long (*NETinit)(void);
+typedef long (*NETshutdown)(void);
+typedef long (*NETclose)(void);
+typedef long (*NETconfigure)(void);
+typedef long (*NETtest)(void);
+typedef void (*NETabout)(void);
+typedef void (*NETpause)(void);
+typedef void (*NETresume)(void);
+typedef long (*NETqueryPlayer)(void);
+typedef long (*NETsendData)(void*, int, int);
+typedef long (*NETrecvData)(void*, int, int);
+typedef long (*NETsendPadData)(void*, int);
+typedef long (*NETrecvPadData)(void*, int);
 
 typedef struct {
     char EmuName[32];
     char CdromID[9];  // ie. 'SCPH12345', no \0 trailing character
     char CdromLabel[11];
     void* psxMem;
-//    GPUshowScreenPic GPU_showScreenPic;
-//    GPUdisplayText GPU_displayText;
+    //    GPUshowScreenPic GPU_showScreenPic;
+    //    GPUdisplayText GPU_displayText;
     PADsetSensitive PAD_setSensitive;
     char GPUpath[256];  // paths must be absolute
     char SPUpath[256];
@@ -276,8 +276,8 @@ typedef struct {
     char Unused[1024];
 } netInfo;
 
-typedef long(* NETsetInfo)(netInfo*);
-typedef long(* NETkeypressed)(int);
+typedef long (*NETsetInfo)(netInfo*);
+typedef long (*NETkeypressed)(int);
 
 // NET function pointers
 extern NETinit NET_init;
@@ -300,39 +300,39 @@ extern NETkeypressed NET_keypressed;
 #ifdef ENABLE_SIO1API
 
 // SIO1 Functions (link cable)
-typedef long(* SIO1init)(void);
-typedef long(* SIO1shutdown)(void);
-typedef long(* SIO1close)(void);
-typedef long(* SIO1configure)(void);
-typedef long(* SIO1test)(void);
-typedef void(* SIO1about)(void);
-typedef void(* SIO1pause)(void);
-typedef void(* SIO1resume)(void);
-typedef long(* SIO1keypressed)(int);
-typedef void(* SIO1writeData8)(uint8_t);
-typedef void(* SIO1writeData16)(uint16_t);
-typedef void(* SIO1writeData32)(uint32_t);
-typedef void(* SIO1writeStat16)(uint16_t);
-typedef void(* SIO1writeStat32)(uint32_t);
-typedef void(* SIO1writeMode16)(uint16_t);
-typedef void(* SIO1writeMode32)(uint32_t);
-typedef void(* SIO1writeCtrl16)(uint16_t);
-typedef void(* SIO1writeCtrl32)(uint32_t);
-typedef void(* SIO1writeBaud16)(uint16_t);
-typedef void(* SIO1writeBaud32)(uint32_t);
-typedef uint8_t(* SIO1readData8)(void);
-typedef uint16_t(* SIO1readData16)(void);
-typedef uint32_t(* SIO1readData32)(void);
-typedef uint16_t(* SIO1readStat16)(void);
-typedef uint32_t(* SIO1readStat32)(void);
-typedef uint16_t(* SIO1readMode16)(void);
-typedef uint32_t(* SIO1readMode32)(void);
-typedef uint16_t(* SIO1readCtrl16)(void);
-typedef uint32_t(* SIO1readCtrl32)(void);
-typedef uint16_t(* SIO1readBaud16)(void);
-typedef uint32_t(* SIO1readBaud32)(void);
-typedef void(* SIO1update)(uint32_t);
-typedef void(* SIO1registerCallback)(void(* callback)(void));
+typedef long (*SIO1init)(void);
+typedef long (*SIO1shutdown)(void);
+typedef long (*SIO1close)(void);
+typedef long (*SIO1configure)(void);
+typedef long (*SIO1test)(void);
+typedef void (*SIO1about)(void);
+typedef void (*SIO1pause)(void);
+typedef void (*SIO1resume)(void);
+typedef long (*SIO1keypressed)(int);
+typedef void (*SIO1writeData8)(uint8_t);
+typedef void (*SIO1writeData16)(uint16_t);
+typedef void (*SIO1writeData32)(uint32_t);
+typedef void (*SIO1writeStat16)(uint16_t);
+typedef void (*SIO1writeStat32)(uint32_t);
+typedef void (*SIO1writeMode16)(uint16_t);
+typedef void (*SIO1writeMode32)(uint32_t);
+typedef void (*SIO1writeCtrl16)(uint16_t);
+typedef void (*SIO1writeCtrl32)(uint32_t);
+typedef void (*SIO1writeBaud16)(uint16_t);
+typedef void (*SIO1writeBaud32)(uint32_t);
+typedef uint8_t (*SIO1readData8)(void);
+typedef uint16_t (*SIO1readData16)(void);
+typedef uint32_t (*SIO1readData32)(void);
+typedef uint16_t (*SIO1readStat16)(void);
+typedef uint32_t (*SIO1readStat32)(void);
+typedef uint16_t (*SIO1readMode16)(void);
+typedef uint32_t (*SIO1readMode32)(void);
+typedef uint16_t (*SIO1readCtrl16)(void);
+typedef uint32_t (*SIO1readCtrl32)(void);
+typedef uint16_t (*SIO1readBaud16)(void);
+typedef uint32_t (*SIO1readBaud32)(void);
+typedef void (*SIO1update)(uint32_t);
+typedef void (*SIO1registerCallback)(void (*callback)(void));
 
 // SIO1 function pointers
 extern SIO1init SIO1_init;

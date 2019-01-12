@@ -499,9 +499,8 @@ class CDRomImpl : public PCSX::CDRom {
             generate_subq(time);
         }
 
-        CDR_LOG(" -> %02x,%02x %02x:%02x:%02x %02x:%02x:%02x\n", m_subq.Track, m_subq.Index,
-                m_subq.Relative[0], m_subq.Relative[1], m_subq.Relative[2], m_subq.Absolute[0],
-                m_subq.Absolute[1], m_subq.Absolute[2]);
+        CDR_LOG(" -> %02x,%02x %02x:%02x:%02x %02x:%02x:%02x\n", m_subq.Track, m_subq.Index, m_subq.Relative[0],
+                m_subq.Relative[1], m_subq.Relative[2], m_subq.Absolute[0], m_subq.Absolute[1], m_subq.Absolute[2]);
     }
 
     void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
@@ -679,8 +678,7 @@ class CDRomImpl : public PCSX::CDRom {
                 // - Pause player, hit Track 01/02/../xx (Setloc issued!!)
 
                 if (m_ParamC == 0 || m_Param[0] == 0) {
-                    CDR_LOG("PLAY Resume @ %d:%d:%d\n", m_SetSectorPlay[0], m_SetSectorPlay[1],
-                            m_SetSectorPlay[2]);
+                    CDR_LOG("PLAY Resume @ %d:%d:%d\n", m_SetSectorPlay[0], m_SetSectorPlay[1], m_SetSectorPlay[2]);
                 } else {
                     int track = btoi(m_Param[0]);
 
@@ -1163,8 +1161,7 @@ class CDRomImpl : public PCSX::CDRom {
         memcpy(m_Transfer, buf, DATA_SIZE);
         m_ppf.CheckPPFCache(m_Transfer, m_Prev[0], m_Prev[1], m_Prev[2]);
 
-        CDR_LOG("readInterrupt() Log: cdr.m_Transfer %x:%x:%x\n", m_Transfer[0], m_Transfer[1],
-                m_Transfer[2]);
+        CDR_LOG("readInterrupt() Log: cdr.m_Transfer %x:%x:%x\n", m_Transfer[0], m_Transfer[1], m_Transfer[2]);
 
         if ((!m_Muted) && (m_Mode & MODE_STRSND) && (!PCSX::g_emulator.config().Xa) &&
             (m_FirstSector != -1)) {  // CD-XA
@@ -1174,8 +1171,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_Channel = m_Transfer[4 + 1];
             }
 
-            if ((m_Transfer[4 + 2] & 0x4) && (m_Transfer[4 + 1] == m_Channel) &&
-                (m_Transfer[4 + 0] == m_File)) {
+            if ((m_Transfer[4 + 2] & 0x4) && (m_Transfer[4 + 1] == m_Channel) && (m_Transfer[4 + 0] == m_File)) {
                 int ret = xa_decode_sector(&m_Xa, m_Transfer + 4, m_FirstSector);
                 if (!ret) {
                     attenuate(m_Xa.pcm, m_Xa.nsamples, m_Xa.stereo);
@@ -1388,8 +1384,8 @@ class CDRomImpl : public PCSX::CDRom {
             case 3:
                 if (rt & 0x20) {
                     memcpy(&m_AttenuatorLeftToLeft, &m_AttenuatorLeftToLeftT, 4);
-                    CDR_LOG_IO("CD-XA Volume: %02x %02x | %02x %02x\n", m_AttenuatorLeftToLeft,
-                               m_AttenuatorLeftToRight, m_AttenuatorRightToLeft, m_AttenuatorRightToRight);
+                    CDR_LOG_IO("CD-XA Volume: %02x %02x | %02x %02x\n", m_AttenuatorLeftToLeft, m_AttenuatorLeftToRight,
+                               m_AttenuatorRightToLeft, m_AttenuatorRightToRight);
                 }
                 return;
         }
@@ -1583,7 +1579,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (Mode == 0 && PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.stop();
 
-        //gzfreeze(&m_cdr, sizeof(m_cdr));
+        // gzfreeze(&m_cdr, sizeof(m_cdr));
 
         if (Mode == 1) m_ParamP = m_ParamC;
 

@@ -105,4 +105,4 @@ void PCSX::Emulator::EmuUpdate() {
 
 void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
-PCSX::Emulator & PCSX::g_emulator = PCSX::Emulator::getEmulator();
+PCSX::Emulator& PCSX::g_emulator = PCSX::Emulator::getEmulator();
