@@ -110,6 +110,7 @@ void softGPUvBlank(int val);
 
 #endif
 
+#if 0
 SPUconfigure SPU_configure;
 SPUabout SPU_about;
 SPUinit SPU_init;
@@ -129,6 +130,7 @@ SPUfreeze SPU_freeze;
 SPUregisterCallback SPU_registerCallback;
 SPUasync SPU_async;
 SPUplayCDDAchannel SPU_playCDDAchannel;
+#endif
 
 PADconfigure PAD1_configure;
 PADabout PAD1_about;
@@ -513,8 +515,9 @@ static int LoadSPUplugin() {
     LoadSpuSymN(playCDDAchannel, "SPUplayCDDAchannel");
 #endif
 
-#define LoadSpuSym1(s, x) SPU_##s = nullSPU_##s;
+#define LoadSpuSym1(s, x) SPU_##s = gSPU##s;
 
+#if 0
     LoadSpuSym1(init, "SPUinit");
     LoadSpuSym1(shutdown, "SPUshutdown");
     LoadSpuSym1(open, "SPUopen");
@@ -531,8 +534,9 @@ static int LoadSPUplugin() {
     LoadSpuSym1(playADPCMchannel, "SPUplayADPCMchannel");
     LoadSpuSym1(freeze, "SPUfreeze");
     LoadSpuSym1(registerCallback, "SPUregisterCallback");
-    // LoadSpuSymN(async, "SPUasync");
-    // LoadSpuSymN(playCDDAchannel, "SPUplayCDDAchannel");
+    LoadSpuSym1(async, "SPUasync");
+    LoadSpuSym1(playCDDAchannel, "SPUplayCDDAchannel");
+#endif
 
     return 0;
 }
@@ -899,7 +903,7 @@ int LoadPlugins() {
         PCSX::g_system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
-    ret = SPU_init();
+    ret = SPUinit();
     if (ret < 0) {
         PCSX::g_system->SysMessage(_("Error initializing SPU plugin: %d"), ret);
         return -1;
@@ -943,7 +947,7 @@ void ReleasePlugins() {
 
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
     PCSX::g_emulator.m_gpu->shutdown();
-    if (SPU_shutdown) SPU_shutdown();
+    SPUshutdown();
     if (PAD1_shutdown) PAD1_shutdown();
     if (PAD2_shutdown) PAD2_shutdown();
     if (PCSX::g_emulator.config().UseNet && NET_shutdown) NET_shutdown();

@@ -44,7 +44,7 @@ typedef long (*SIO1open)(unsigned long*);
 extern "C" {
 
 typedef long (*GPUopen)(unsigned int texture);
-typedef long (*SPUopen)(HWND);
+long SPUopen(HWND);
 typedef long (*PADopen)(HWND);
 typedef long (*NETopen)(HWND);
 typedef long (*SIO1open)(HWND);
@@ -145,22 +145,24 @@ struct SubQ {
     char res1[72];
 };
 
+extern "C" {
+
 // SPU Functions
-typedef long (*SPUinit)(void);
-typedef long (*SPUshutdown)(void);
-typedef long (*SPUclose)(void);
-typedef void (*SPUplaySample)(unsigned char);
-typedef void (*SPUwriteRegister)(unsigned long, unsigned short);
-typedef unsigned short (*SPUreadRegister)(unsigned long);
-typedef void (*SPUwriteDMA)(unsigned short);
-typedef unsigned short (*SPUreadDMA)(void);
-typedef void (*SPUwriteDMAMem)(unsigned short*, int);
-typedef void (*SPUreadDMAMem)(unsigned short*, int);
-typedef void (*SPUplayADPCMchannel)(xa_decode_t*);
-typedef void (*SPUregisterCallback)(void (*callback)(void));
-typedef long (*SPUconfigure)(void);
-typedef long (*SPUtest)(void);
-typedef void (*SPUabout)(void);
+long SPUinit(void);
+long SPUshutdown(void);
+long SPUclose(void);
+void SPUplaySample(unsigned char);
+void SPUwriteRegister(unsigned long, unsigned short);
+unsigned short SPUreadRegister(unsigned long);
+void SPUwriteDMA(unsigned short);
+unsigned short SPUreadDMA(void);
+void SPUwriteDMAMem(unsigned short*, int);
+void SPUreadDMAMem(unsigned short*, int);
+void SPUplayADPCMchannel(xa_decode_t*);
+void SPUregisterCallback(void (*callback)(void));
+long SPUconfigure(void);
+long SPUtest(void);
+void SPUabout(void);
 typedef struct {
     unsigned char PluginName[8];
     uint32_t PluginVersion;
@@ -170,11 +172,14 @@ typedef struct {
     xa_decode_t xa;
     unsigned char* SPUInfo;
 } SPUFreeze_t;
-typedef long (*SPUfreeze)(uint32_t, SPUFreeze_t*);
-typedef void (*SPUasync)(uint32_t);
-typedef void (*SPUplayCDDAchannel)(short*, int);
+long SPUfreeze(uint32_t, SPUFreeze_t*);
+void SPUasync(uint32_t);
+void SPUplayCDDAchannel(short*, int);
+
+}
 
 // SPU function pointers
+#if 0
 extern SPUconfigure SPU_configure;
 extern SPUabout SPU_about;
 extern SPUinit SPU_init;
@@ -194,6 +199,7 @@ extern SPUfreeze SPU_freeze;
 extern SPUregisterCallback SPU_registerCallback;
 extern SPUasync SPU_async;
 extern SPUplayCDDAchannel SPU_playCDDAchannel;
+#endif
 
 // PAD Functions
 typedef long (*PADconfigure)(void);
