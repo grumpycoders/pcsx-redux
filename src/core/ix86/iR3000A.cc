@@ -1934,7 +1934,7 @@ void X86DynaRecCPU::recLHU() {
                 m_iRegs[_Rt_].state = ST_UNK;
 
                 gen.PUSH32I(addr);
-                gen.CALL32M((uint32_t)&SPU_readRegister);
+                gen.CALLFunc((uint32_t)SPUreadRegister);
                 gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
                 gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
 #ifndef __WIN33
@@ -2410,7 +2410,7 @@ void X86DynaRecCPU::recSH() {
                     gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                 }
                 gen.PUSH32I(addr);
-                gen.CALL32M((uint32_t)&SPU_writeRegister);
+                gen.CALLFunc((uint32_t)SPUwriteRegister);
                 m_resp += 8;
                 return;
             }

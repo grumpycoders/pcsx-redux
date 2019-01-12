@@ -730,7 +730,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     // SPU Plugin cannot change during run, so we query size info just once per session
     if (!s_spufP) {
         s_spufP = (SPUFreeze_t *)malloc(offsetof(SPUFreeze_t, SPUPorts));  // only first 3 elements (up to Size)
-        SPU_freeze(2, s_spufP);
+        SPUfreeze(2, s_spufP);
         Size = s_spufP->Size;
         PCSX::g_system->SysPrintf("SPUFreezeSize %i/(%i)\n", Size, offsetof(SPUFreeze_t, SPUPorts));
         free(s_spufP);
@@ -746,7 +746,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     }
     // spu
     gzwrite(f, &(s_spufP->Size), 4);
-    SPU_freeze(1, s_spufP);
+    SPUfreeze(1, s_spufP);
     gzwrite(f, s_spufP, s_spufP->Size);
 
     PCSX::g_emulator.m_sio->sioFreeze(f, 1);
@@ -800,7 +800,7 @@ int LoadStateGz(gzFile f) {
     gzread(f, &Size, 4);
     _spufP = (SPUFreeze_t *)malloc(Size);
     gzread(f, _spufP, Size);
-    SPU_freeze(0, _spufP);
+    SPUfreeze(0, _spufP);
     free(_spufP);
 
     PCSX::g_emulator.m_sio->sioFreeze(f, 0);

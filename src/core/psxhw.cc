@@ -170,7 +170,7 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
 
         default:
             if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                hard = SPU_readRegister(add);
+                hard = SPUreadRegister(add);
             } else {
                 hard = psxHu16(add);
                 PSXHW_LOG("*Unkwnown 16bit read at address %x\n", add);
@@ -428,7 +428,7 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
 
         default:
             if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                SPU_writeRegister(add, value);
+                SPUwriteRegister(add, value);
                 return;
             }
 
@@ -661,11 +661,11 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         default:
             // Dukes of Hazard 2 - car engine noise
             if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                SPU_writeRegister(add, value & 0xffff);
+                SPUwriteRegister(add, value & 0xffff);
                 add += 2;
                 value >>= 16;
 
-                if (add >= 0x1f801c00 && add < 0x1f801e00) SPU_writeRegister(add, value & 0xffff);
+                if (add >= 0x1f801c00 && add < 0x1f801e00) SPUwriteRegister(add, value & 0xffff);
                 return;
             }
 

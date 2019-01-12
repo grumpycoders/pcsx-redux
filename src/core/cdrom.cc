@@ -26,7 +26,6 @@
 #include "core/psxdma.h"
 
 void SPUirq(void);
-extern SPUregisterCallback SPU_registerCallback;
 
 namespace {
 
@@ -277,7 +276,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_Play = false;
             m_FastForward = 0;
             m_FastBackward = 0;
-            SPU_registerCallback(SPUirq);
+            SPUregisterCallback(SPUirq);
         }
     }
 
@@ -318,11 +317,11 @@ class CDRomImpl : public PCSX::CDRom {
 
         // check dbuf IRQ still active
         if (m_Play == 0) return;
-        if ((SPU_readRegister(H_SPUctrl) & 0x40) == 0) return;
-        if ((SPU_readRegister(H_SPUirqAddr) * 8) >= 0x800) return;
+        if ((SPUreadRegister(H_SPUctrl) & 0x40) == 0) return;
+        if ((SPUreadRegister(H_SPUirqAddr) * 8) >= 0x800) return;
 
         // turn off plugin SPU IRQ decoded buffer handling
-        SPU_registerCallback(0);
+        SPUregisterCallback(0);
 
         /*
         Vib Ribbon
@@ -600,7 +599,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_iso.readCDDA(m_SetSectorPlay[0], m_SetSectorPlay[1], m_SetSectorPlay[2], m_Transfer);
 
             attenuate((int16_t *)m_Transfer, CD_FRAMESIZE_RAW / 4, 1);
-            if (SPU_playCDDAchannel) SPU_playCDDAchannel((short *)m_Transfer, CD_FRAMESIZE_RAW);
+            //SPUplayCDDAchannel((short *)m_Transfer, CD_FRAMESIZE_RAW);
         }
 
         m_SetSectorPlay[2]++;
@@ -1175,7 +1174,7 @@ class CDRomImpl : public PCSX::CDRom {
                 int ret = xa_decode_sector(&m_Xa, m_Transfer + 4, m_FirstSector);
                 if (!ret) {
                     attenuate(m_Xa.pcm, m_Xa.nsamples, m_Xa.stereo);
-                    SPU_playADPCMchannel(&m_Xa);
+                    SPUplayADPCMchannel(&m_Xa);
                     m_FirstSector = 0;
                 } else
                     m_FirstSector = -1;

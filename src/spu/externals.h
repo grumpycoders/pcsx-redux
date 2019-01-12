@@ -202,7 +202,6 @@ typedef struct {
 } REVERBInfo;
 
 #ifdef _WIN32
-extern HINSTANCE hInst;
 #define WM_MUTE (WM_USER + 543)
 #endif
 

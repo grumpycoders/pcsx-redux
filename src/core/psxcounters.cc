@@ -173,9 +173,7 @@ void PCSX::Counters::psxRcntUpdate() {
         if (m_spuSyncCount >= SpuUpdInterval[PCSX::g_emulator.config().Video]) {
             m_spuSyncCount = 0;
 
-            if (SPU_async) {
-                SPU_async(SpuUpdInterval[PCSX::g_emulator.config().Video] * m_rcnts[3].target);
-            }
+            SPUasync(SpuUpdInterval[PCSX::g_emulator.config().Video] * m_rcnts[3].target);
         }
 
 #ifdef ENABLE_SIO1API

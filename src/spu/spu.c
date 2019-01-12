@@ -517,7 +517,7 @@ INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
 int iSpuAsyncWait = 0;
 
 #ifdef _WIN32
-static VOID MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
+static VOID CALLBACK MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
 #else
 static void *MAINThread(void *arg)
 #endif
@@ -1193,7 +1193,7 @@ long SPUopen(void)
 #ifdef _WIN32
     if (iDebugMode)  // windows debug dialog
     {
-        hWDebug = CreateDialog(hInst, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
+        hWDebug = CreateDialog(0, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
         SetWindowPos(hWDebug, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
         UpdateWindow(hWDebug);
         SetFocus(hWMain);
@@ -1201,7 +1201,7 @@ long SPUopen(void)
 
     if (iRecordMode)  // windows recording dialog
     {
-        hWRecord = CreateDialog(hInst, MAKEINTRESOURCE(IDD_RECORD), NULL, (DLGPROC)RecordDlgProc);
+        hWRecord = CreateDialog(0, MAKEINTRESOURCE(IDD_RECORD), NULL, (DLGPROC)RecordDlgProc);
         SetWindowPos(hWRecord, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
         UpdateWindow(hWRecord);
         SetFocus(hWMain);
@@ -1260,7 +1260,7 @@ long SPUtest(void) { return 0; }
 
 long SPUconfigure(void) {
 #ifdef _WIN32
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
+    DialogBox(0, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
 #else
     StartCfgTool("CFG");
 #endif
@@ -1273,7 +1273,7 @@ long SPUconfigure(void) {
 
 void SPUabout(void) {
 #ifdef _WIN32
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
+    DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
 #else
     StartCfgTool("ABOUT");
 #endif

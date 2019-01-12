@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
     LoadPlugins();
     PCSX::g_emulator.m_gpu->open(texture);
     PCSX::g_emulator.m_cdrom->m_iso.open();
+    SPUopen(0);
 
     PCSX::g_emulator.EmuInit();
     PCSX::g_emulator.EmuReset();
