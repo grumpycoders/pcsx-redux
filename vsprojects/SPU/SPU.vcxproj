@@ -120,7 +120,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\spu\adsr.cc" />
-    <ClCompile Include="..\..\src\spu\alsa.cc" />
     <ClCompile Include="..\..\src\spu\cfg.cc" />
     <ClCompile Include="..\..\src\spu\debug.cc" />
     <ClCompile Include="..\..\src\spu\dma.cc" />
@@ -134,7 +133,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\spu\adsr.h" />
-    <ClInclude Include="..\..\src\spu\alsa.h" />
     <ClInclude Include="..\..\src\spu\cfg.h" />
     <ClInclude Include="..\..\src\spu\debug.h" />
     <ClInclude Include="..\..\src\spu\dma.h" />
