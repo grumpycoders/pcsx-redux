@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#pragma once
+
 unsigned short SPUreadDMA(void);
 void SPUreadDMAMem(unsigned short* pusPSXMem, int iSize);
 void SPUwriteDMA(unsigned short val);

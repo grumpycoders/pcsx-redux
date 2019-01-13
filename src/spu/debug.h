@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#pragma once
+
 #ifdef _WIN32
 BOOL DebugDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif

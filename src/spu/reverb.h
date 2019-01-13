@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#pragma once
+
 void InitREVERB();
 void SetREVERB(unsigned short val);
 void StartREVERB(SPUCHAN* pChannel);

@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#pragma once
+
 void SoundOn(int start, int end, unsigned short val);
 void SoundOff(int start, int end, unsigned short val);
 void FModOn(int start, int end, unsigned short val);

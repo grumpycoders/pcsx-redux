@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#pragma once
+
 void SetupSound(void);
 void RemoveSound(void);
 unsigned long SoundGetBytesBuffered(void);
