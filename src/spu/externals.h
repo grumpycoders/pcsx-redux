@@ -226,7 +226,7 @@ extern int iVolume;
 extern int iXAPitch;
 extern int iUseTimer;
 extern int iSPUIRQWait;
-extern int iDebugMode;
+extern int iSPUDebugMode;
 extern int iRecordMode;
 extern int iUseReverb;
 extern int iUseInterpolation;

@@ -599,7 +599,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_iso.readCDDA(m_SetSectorPlay[0], m_SetSectorPlay[1], m_SetSectorPlay[2], m_Transfer);
 
             attenuate((int16_t *)m_Transfer, CD_FRAMESIZE_RAW / 4, 1);
-            //SPUplayCDDAchannel((short *)m_Transfer, CD_FRAMESIZE_RAW);
+            SPUplayCDDAchannel((short *)m_Transfer, CD_FRAMESIZE_RAW);
         }
 
         m_SetSectorPlay[2]++;

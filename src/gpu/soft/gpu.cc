@@ -471,7 +471,7 @@ long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
         ReadWinSizeConfig();  // alt+enter toggle?
     else                      // or first time startup?
     {
-        ReadConfig();  // read registry
+        ReadGPUConfig();  // read registry
         InitFPS();
     }
 

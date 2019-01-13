@@ -15,52 +15,40 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\spu\adsr.c">
+    <ClCompile Include="..\..\src\spu\xa.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\alsa.c">
+    <ClCompile Include="..\..\src\spu\spu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\cfg.c">
+    <ClCompile Include="..\..\src\spu\reverb.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\debug.c">
+    <ClCompile Include="..\..\src\spu\registers.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\dma.c">
+    <ClCompile Include="..\..\src\spu\record.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\dsound.c">
+    <ClCompile Include="..\..\src\spu\freeze.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\freeze.c">
+    <ClCompile Include="..\..\src\spu\dsound.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\oss.c">
+    <ClCompile Include="..\..\src\spu\dma.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\psemu.c">
+    <ClCompile Include="..\..\src\spu\debug.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\record.c">
+    <ClCompile Include="..\..\src\spu\cfg.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\registers.c">
+    <ClCompile Include="..\..\src\spu\alsa.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\reverb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\spu\spu.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\spu\stdafx.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\spu\xa.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\spu\zn.c">
+    <ClCompile Include="..\..\src\spu\adsr.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -87,9 +75,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\spu\gauss_i.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\spu\oss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\spu\psemuxa.h">

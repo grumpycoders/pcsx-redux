@@ -119,22 +119,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\spu\adsr.c" />
-    <ClCompile Include="..\..\src\spu\alsa.c" />
-    <ClCompile Include="..\..\src\spu\cfg.c" />
-    <ClCompile Include="..\..\src\spu\debug.c" />
-    <ClCompile Include="..\..\src\spu\dma.c" />
-    <ClCompile Include="..\..\src\spu\dsound.c" />
-    <ClCompile Include="..\..\src\spu\freeze.c" />
-    <ClCompile Include="..\..\src\spu\oss.c" />
-    <ClCompile Include="..\..\src\spu\psemu.c" />
-    <ClCompile Include="..\..\src\spu\record.c" />
-    <ClCompile Include="..\..\src\spu\registers.c" />
-    <ClCompile Include="..\..\src\spu\reverb.c" />
-    <ClCompile Include="..\..\src\spu\spu.c" />
-    <ClCompile Include="..\..\src\spu\stdafx.c" />
-    <ClCompile Include="..\..\src\spu\xa.c" />
-    <ClCompile Include="..\..\src\spu\zn.c" />
+    <ClCompile Include="..\..\src\spu\adsr.cc" />
+    <ClCompile Include="..\..\src\spu\alsa.cc" />
+    <ClCompile Include="..\..\src\spu\cfg.cc" />
+    <ClCompile Include="..\..\src\spu\debug.cc" />
+    <ClCompile Include="..\..\src\spu\dma.cc" />
+    <ClCompile Include="..\..\src\spu\dsound.cc" />
+    <ClCompile Include="..\..\src\spu\freeze.cc" />
+    <ClCompile Include="..\..\src\spu\record.cc" />
+    <ClCompile Include="..\..\src\spu\registers.cc" />
+    <ClCompile Include="..\..\src\spu\reverb.cc" />
+    <ClCompile Include="..\..\src\spu\spu.cc" />
+    <ClCompile Include="..\..\src\spu\xa.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\spu\adsr.h" />
@@ -145,7 +141,6 @@
     <ClInclude Include="..\..\src\spu\dsoundoss.h" />
     <ClInclude Include="..\..\src\spu\externals.h" />
     <ClInclude Include="..\..\src\spu\gauss_i.h" />
-    <ClInclude Include="..\..\src\spu\oss.h" />
     <ClInclude Include="..\..\src\spu\psemuxa.h" />
     <ClInclude Include="..\..\src\spu\record.h" />
     <ClInclude Include="..\..\src\spu\registers.h" />

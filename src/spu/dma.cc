@@ -51,7 +51,7 @@ unsigned short SPUreadDMA(void) {
 // READ DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-void SPUreadDMAMem(unsigned short* pusPSXMem, int iSize) {
+extern "C" void SPUreadDMAMem(unsigned short* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {
@@ -88,7 +88,7 @@ void SPUwriteDMA(unsigned short val) {
 // WRITE DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-void SPUwriteDMAMem(unsigned short* pusPSXMem, int iSize) {
+extern "C" void SPUwriteDMAMem(unsigned short* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {

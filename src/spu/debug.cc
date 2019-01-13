@@ -82,7 +82,7 @@ void DisplayStreamInfos(HWND hW) {
 
     //----------------------------------------------------//
 
-    hBO = SelectObject(hdc, hBStream[0]);  // clean the right border
+    hBO = (HBRUSH)SelectObject(hdc, hBStream[0]);  // clean the right border
     PatBlt(hdc, r.right - 1, 0, 1, r.bottom, PATCOPY);
 
     //----------------------------------------------------//
@@ -150,7 +150,7 @@ void DisplayADSRInfos(HWND hW) {
 
     //----------------------------------------------------// clean the area
 
-    hBO = SelectObject(hdc, hBStream[0]);
+    hBO = (HBRUSH)SelectObject(hdc, hBStream[0]);
     PatBlt(hdc, 0, 0, r.right, r.bottom, PATCOPY);
     r.left++;
     r.right -= 2;
@@ -180,7 +180,7 @@ void DisplayADSRInfos(HWND hW) {
 
     if (dx)  // something to draw?
     {
-        HPEN hPO = SelectObject(hdc, hPAdsr[1]);  // sel A pen
+        HPEN hPO = (HPEN)SelectObject(hdc, hPAdsr[1]);  // sel A pen
         dn = r.left;
         MoveToEx(hdc, dn, r.bottom, NULL);  // move to bottom left corner
 
@@ -320,7 +320,7 @@ BOOL DebugDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         } break;
         //--------------------------------------------------// command
         case WM_COMMAND: {
-            if (wParam == IDCANCEL) iDebugMode = 2;  // cancel? raise flag for destroying the dialog
+            if (wParam == IDCANCEL) iSPUDebugMode = 2;  // cancel? raise flag for destroying the dialog
 
             if (wParam == IDC_XA) {
                 if (IsDlgButtonChecked(hW, wParam))  // -> mute/unmute it

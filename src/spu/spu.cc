@@ -113,7 +113,7 @@ const unsigned char version = 1;
 const unsigned char revision = 1;
 const unsigned char build = 9;
 #ifdef _WIN32
-static char *libraryName = "P.E.Op.S. DSound Audio Driver";
+static const char *libraryName = "P.E.Op.S. DSound Audio Driver";
 #else
 #ifndef USEALSA
 static char *libraryName = "P.E.Op.S. OSS Audio Driver";
@@ -121,7 +121,7 @@ static char *libraryName = "P.E.Op.S. OSS Audio Driver";
 static char *libraryName = "P.E.Op.S. ALSA Audio Driver";
 #endif
 #endif
-static char *libraryInfo = "P.E.Op.S. OSS Driver V1.9\nCoded by Pete Bernert and the P.E.Op.S. team\n";
+static const char *libraryInfo = "P.E.Op.S. OSS Driver V1.9\nCoded by Pete Bernert and the P.E.Op.S. team\n";
 
 ////////////////////////////////////////////////////////////////////////
 // globals
@@ -141,9 +141,9 @@ unsigned char *pMixIrq = 0;
 int iUseXA = 1;
 int iVolume = 3;
 int iXAPitch = 1;
-int iUseTimer = 2;
+int iUseTimer = 1;
 int iSPUIRQWait = 1;
-int iDebugMode = 0;
+int iSPUDebugMode = 0;
 int iRecordMode = 0;
 int iUseReverb = 2;
 int iUseInterpolation = 2;
@@ -203,8 +203,8 @@ static int iSecureStart = 0;  // secure start counter
 
 // dirty inline func includes
 
-#include "adsr.c"
-#include "reverb.c"
+#include "adsr.cc"
+#include "reverb.cc"
 
 ////////////////////////////////////////////////////////////////////////
 // helpers for simple interpolation
@@ -311,7 +311,7 @@ INLINE void InterpolateDown(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-#include "xa.c"
+#include "xa.cc"
 
 ////////////////////////////////////////////////////////////////////////
 // START SOUND... called by main thread to setup a new sound on a channel
@@ -921,7 +921,7 @@ DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
 //  1 time every 'cycle' cycles... harhar
 ////////////////////////////////////////////////////////////////////////
 
-void SPUasync(unsigned long cycle) {
+extern "C" void SPUasync(unsigned long cycle) {
     if (iSpuAsyncWait) {
         iSpuAsyncWait++;
         if (iSpuAsyncWait <= 64) return;
@@ -929,10 +929,10 @@ void SPUasync(unsigned long cycle) {
     }
 
 #ifdef _WIN32
-    if (iDebugMode == 2) {
+    if (iSPUDebugMode == 2) {
         if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
         hWDebug = 0;
-        iDebugMode = 0;
+        iSPUDebugMode = 0;
     }
     if (iRecordMode == 2) {
         if (IsWindow(hWRecord)) DestroyWindow(hWRecord);
@@ -975,7 +975,7 @@ void SPUupdate(void) { SPUasync(0); }
 // XA AUDIO
 ////////////////////////////////////////////////////////////////////////
 
-void SPUplayADPCMchannel(xa_decode_t *xap) {
+extern "C" void SPUplayADPCMchannel(xa_decode_t *xap) {
     if (!iUseXA) return;  // no XA? bye
     if (!xap) return;
     if (!xap->freq) return;  // no xa freq ? bye
@@ -991,7 +991,7 @@ void SPUplayADPCMchannel(xa_decode_t *xap) {
 // SPUINIT: this func will be called first by the main emu
 ////////////////////////////////////////////////////////////////////////
 
-long SPUinit(void) {
+extern "C" long SPUinit(void) {
     spuMemC = (unsigned char *)spuMem;  // just small setup
     memset((void *)s_chan, 0, MAXCHAN * sizeof(SPUCHAN));
     memset((void *)&rvb, 0, sizeof(REVERBInfo));
@@ -1153,7 +1153,7 @@ void RemoveStreams(void) {
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-long SPUopen(HWND hW)
+extern "C" long SPUopen(HWND hW)
 #else
 long SPUopen(void)
 #endif
@@ -1180,7 +1180,7 @@ long SPUopen(void)
     hWMain = hW;  // store hwnd
 #endif
 
-    ReadConfig();  // read user stuff
+//    ReadConfig();  // read user stuff
 
     SetupSound();  // setup sound (before init!)
 
@@ -1191,7 +1191,7 @@ long SPUopen(void)
     bSPUIsOpen = 1;
 
 #ifdef _WIN32
-    if (iDebugMode)  // windows debug dialog
+    if (iSPUDebugMode)  // windows debug dialog
     {
         hWDebug = CreateDialog(0, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
         SetWindowPos(hWDebug, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
@@ -1221,7 +1221,7 @@ void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
 // SPUCLOSE: called before shutdown
 ////////////////////////////////////////////////////////////////////////
 
-long SPUclose(void) {
+extern "C" long SPUclose(void) {
     if (!bSPUIsOpen) return 0;  // some security
 
     bSPUIsOpen = 0;  // no more open
@@ -1246,19 +1246,19 @@ long SPUclose(void) {
 // SPUSHUTDOWN: called by main emu on final exit
 ////////////////////////////////////////////////////////////////////////
 
-long SPUshutdown(void) { return 0; }
+extern "C" long SPUshutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUTEST: we don't test, we are always fine ;)
 ////////////////////////////////////////////////////////////////////////
 
-long SPUtest(void) { return 0; }
+extern "C" long SPUtest(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUCONFIGURE: call config dialog
 ////////////////////////////////////////////////////////////////////////
 
-long SPUconfigure(void) {
+extern "C" long SPUconfigure(void) {
 #ifdef _WIN32
     DialogBox(0, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
 #else
@@ -1271,7 +1271,7 @@ long SPUconfigure(void) {
 // SPUABOUT: show about window
 ////////////////////////////////////////////////////////////////////////
 
-void SPUabout(void) {
+extern "C" void SPUabout(void) {
 #ifdef _WIN32
     DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
 #else
@@ -1285,22 +1285,14 @@ void SPUabout(void) {
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-void SPUregisterCallback(void(*callback)(void)) { irqCallback = callback; }
+extern "C" void SPUregisterCallback(void (*callback)(void)) { irqCallback = callback; }
 
-void SPUregisterCDDAVolume(void(*CDDAVcallback)(unsigned short, unsigned short)) {
+extern "C" void SPUregisterCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
     cddavCallback = CDDAVcallback;
 }
 
 ////////////////////////////////////////////////////////////////////////
-// COMMON PLUGIN INFO FUNCS
-////////////////////////////////////////////////////////////////////////
 
-char *PSEgetLibName(void) { return libraryName; }
+extern "C" void SPUplayCDDAchannel(short * data, int size) {
 
-unsigned long PSEgetLibType(void) { return PSE_LT_SPU; }
-
-unsigned long PSEgetLibVersion(void) { return version << 16 | revision << 8 | build; }
-
-char *SPUgetLibInfos(void) { return libraryInfo; }
-
-////////////////////////////////////////////////////////////////////////
+}

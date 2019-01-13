@@ -336,7 +336,7 @@ BOOL OnInitSoftDialog(HWND hW) {
     int i;
     DEVMODE dv;
 
-    ReadConfig();  // read registry stuff
+    ReadGPUConfig();  // read registry stuff
 
     hWC = GetDlgItem(hW, IDC_RESOLUTION);
 
@@ -512,7 +512,7 @@ void OnSoftOK(HWND hW) {
         return;
     }
 
-    WriteConfig();  // write registry
+    WriteGPUConfig();  // write registry
 
     EndDialog(hW, TRUE);
 }
@@ -659,7 +659,7 @@ void OnCfgDef2(HWND hW) {
 // read registry
 ////////////////////////////////////////////////////////////////////////
 
-void ReadConfig(void) {
+void ReadGPUConfig(void) {
     HKEY myKey;
     DWORD temp;
     DWORD type;
@@ -799,7 +799,7 @@ void ReadWinSizeConfig(void) {
 // write registry
 ////////////////////////////////////////////////////////////////////////
 
-void WriteConfig(void) {
+void WriteGPUConfig(void) {
     HKEY myKey;
     DWORD myDisp;
     DWORD temp;

@@ -45,8 +45,6 @@
 
 #include "externals.h"
 
-extern int iZincEmu;
-
 ////////////////////////////////////////////////////////////////////////
 // WINDOWS CONFIG/ABOUT HANDLING
 ////////////////////////////////////////////////////////////////////////
@@ -98,7 +96,7 @@ void ReadConfig(void) {
     iXAPitch = 1;
     iUseTimer = 1;
     iSPUIRQWait = 0;
-    iDebugMode = 0;
+    iSPUDebugMode = 0;
     iRecordMode = 0;
     iUseReverb = 2;
     iUseInterpolation = 2;
@@ -120,7 +118,7 @@ void ReadConfig(void) {
             iSPUIRQWait = (int)temp;
         size = 4;
         if (RegQueryValueEx(myKey, "DebugMode", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-            iDebugMode = (int)temp;
+            iSPUDebugMode = (int)temp;
         size = 4;
         if (RegQueryValueEx(myKey, "RecordMode", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
             iRecordMode = (int)temp;
@@ -138,13 +136,6 @@ void ReadConfig(void) {
             iUseDBufIrq = (int)temp;
 
         RegCloseKey(myKey);
-    }
-
-    if (iZincEmu) {
-        iVolume = 1;     // with ZINC, max volume is needed (or qsound will be too loud)
-        iUseTimer = 1;   // with ZINC, only timer mode is possible
-        iDebugMode = 0;  // with ZINC, no debug mode possible (we don't get SPUasyncs)
-        iDisStereo = 0;  // with ZINC, no mono possible (or qsound mixing troubles)
     }
 
     if (iUseTimer > MAXMODE) iUseTimer = MAXMODE;  // some checks
@@ -173,7 +164,7 @@ void WriteConfig(void) {
     RegSetValueEx(myKey, "UseTimer", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iSPUIRQWait;
     RegSetValueEx(myKey, "SPUIRQWait", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iDebugMode;
+    temp = iSPUDebugMode;
     RegSetValueEx(myKey, "DebugMode", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iRecordMode;
     RegSetValueEx(myKey, "RecordMode", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
@@ -210,7 +201,7 @@ BOOL OnInitDSoundDialog(HWND hW) {
     ComboBox_SetCurSel(hWC, 4 - iVolume);
 
     if (iSPUIRQWait) CheckDlgButton(hW, IDC_IRQWAIT, TRUE);
-    if (iDebugMode) CheckDlgButton(hW, IDC_DEBUGMODE, TRUE);
+    if (iSPUDebugMode) CheckDlgButton(hW, IDC_DEBUGMODE, TRUE);
     if (iRecordMode) CheckDlgButton(hW, IDC_RECORDMODE, TRUE);
     if (iDisStereo) CheckDlgButton(hW, IDC_DISSTEREO, TRUE);
     if (iUseDBufIrq) CheckDlgButton(hW, IDC_IRQDECODE, TRUE);
@@ -275,9 +266,9 @@ void OnDSoundOK(HWND hW) {
         iSPUIRQWait = 0;
 
     if (IsDlgButtonChecked(hW, IDC_DEBUGMODE))
-        iDebugMode = 1;
+        iSPUDebugMode = 1;
     else
-        iDebugMode = 0;
+        iSPUDebugMode = 0;
 
     if (IsDlgButtonChecked(hW, IDC_RECORDMODE))
         iRecordMode = 1;
@@ -531,11 +522,6 @@ void ReadConfig(void) {
     iUseDBufIrq = 0;
 
     ReadConfigFile();
-
-    if (iZincEmu) {
-        iVolume = 1;     // with ZINC, max volume is needed (or qsound will be too loud)
-        iDisStereo = 0;  // with ZINC, no mono possible (or qsound mixing troubles)
-    }
 }
 
 #endif

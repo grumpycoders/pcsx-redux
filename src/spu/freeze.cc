@@ -76,7 +76,7 @@ void LoadStateUnknown(SPUFreeze_t *pF);  // unknown format
 // SPUFREEZE: called by main emu on savestate load/save
 ////////////////////////////////////////////////////////////////////////
 
-long SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *pF) {
+extern "C" long SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *pF) {
     int i;
     SPUOSSFreeze_t *pFO;
 
@@ -125,7 +125,7 @@ long SPUfreeze(unsigned long ulFreezeMode, SPUFreeze_t *pF) {
     if (ulFreezeMode != 0) return 0;  // bad mode? bye
 
 #ifdef _WIN32
-    if (iDebugMode && IsWindow(hWDebug))  // clean debug mute infos
+    if (iSPUDebugMode && IsWindow(hWDebug))  // clean debug mute infos
         SendMessage(hWDebug, WM_MUTE, 0, 0);
     if (IsBadReadPtr(pF, sizeof(SPUFreeze_t)))  // check bad emu stuff
         return 0;

@@ -68,7 +68,7 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-void SPUwriteRegister(unsigned long reg, unsigned short val) {
+extern "C" void SPUwriteRegister(unsigned long reg, unsigned short val) {
     const unsigned long r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
@@ -103,7 +103,7 @@ void SPUwriteRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.DecayRate = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
                 s_chan[ch].ADSRX.SustainLevel = (lval & 0x000f) << 27;
                 //---------------------------------------------//
-                if (!iDebugMode) break;
+                if (!iSPUDebugMode) break;
                 //---------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
@@ -143,7 +143,7 @@ void SPUwriteRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
                 s_chan[ch].ADSRX.ReleaseRate = 4 * ((lval & 0x001f) ^ 0x1f);
                 //----------------------------------------------//
-                if (!iDebugMode) break;
+                if (!iSPUDebugMode) break;
                 //----------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.SustainModeExp = (lval & 0x8000) ? 1 : 0;
@@ -432,7 +432,7 @@ void SPUwriteRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short SPUreadRegister(unsigned long reg) {
+extern "C" unsigned short SPUreadRegister(unsigned long reg) {
     const unsigned long r = reg & 0xfff;
 
     iSpuAsyncWait = 0;
