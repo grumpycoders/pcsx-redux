@@ -24,5 +24,7 @@
 //
 //*************************************************************************//
 
-INLINE void MixXA(void);
-INLINE void FeedXA(xa_decode_t *xap);
+#pragma once
+
+inline void MixXA(void);
+inline void FeedXA(xa_decode_t *xap);

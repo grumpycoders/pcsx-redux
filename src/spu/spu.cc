@@ -97,13 +97,16 @@
 
 #define _IN_SPU
 
-#include "cfg.h"
-#include "debug.h"
-#include "externals.h"
-#include "record.h"
-#include "regs.h"
-#include "resource.h"
-#include "sdlsound.h"
+#include "src/spu/adsr.h"
+#include "src/spu/cfg.h"
+#include "src/spu/debug.h"
+#include "src/spu/externals.h"
+#include "src/spu/gauss.h"
+#include "src/spu/regs.h"
+#include "src/spu/resource.h"
+#include "src/spu/reverb.h"
+#include "src/spu/sdlsound.h"
+#include "src/spu/xa.h"
 
 ////////////////////////////////////////////////////////////////////////
 // spu version infos/name
@@ -180,9 +183,9 @@ static pthread_t thread = -1;  // thread id (linux)
 
 unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
-void(*irqCallback)(void) = 0;  // func of main emu, called on spu irq
-void(*cddavCallback)(unsigned short, unsigned short) = 0;
-void(*irqQSound)(unsigned char *, long *, long) = 0;
+void (*irqCallback)(void) = 0;  // func of main emu, called on spu irq
+void (*cddavCallback)(unsigned short, unsigned short) = 0;
+void (*irqQSound)(unsigned char *, long *, long) = 0;
 
 // certain globals (were local before, but with the new timeproc I need em global)
 
@@ -200,11 +203,6 @@ static int iSecureStart = 0;  // secure start counter
 ////////////////////////////////////////////////////////////////////////
 // CODE AREA
 ////////////////////////////////////////////////////////////////////////
-
-// dirty inline func includes
-
-#include "adsr.cc"
-#include "reverb.cc"
 
 ////////////////////////////////////////////////////////////////////////
 // helpers for simple interpolation
@@ -248,7 +246,7 @@ static int iSecureStart = 0;  // secure start counter
 //          /
 //
 
-INLINE void InterpolateUp(SPUCHAN *pChannel) {
+inline void InterpolateUp(SPUCHAN *pChannel) {
     if (pChannel->SB[32] == 1)  // flag == 1? calc step and set flag... and don't change the value in this pass
     {
         const int id1 = pChannel->SB[30] - pChannel->SB[29];  // curr delta to next val
@@ -292,7 +290,7 @@ INLINE void InterpolateUp(SPUCHAN *pChannel) {
 // even easier interpolation on downsampling, also no special filter, again just "Pete's common sense" tm
 //
 
-INLINE void InterpolateDown(SPUCHAN *pChannel) {
+inline void InterpolateDown(SPUCHAN *pChannel) {
     if (pChannel->sinc >= 0x20000L)  // we would skip at least one val?
     {
         pChannel->SB[29] += (pChannel->SB[30] - pChannel->SB[29]) / 2;      // add easy weight
@@ -307,17 +305,13 @@ INLINE void InterpolateDown(SPUCHAN *pChannel) {
 #define gval0 (((short *)(&pChannel->SB[29]))[gpos])
 #define gval(x) (((short *)(&pChannel->SB[29]))[(gpos + x) & 3])
 
-#include "gauss_i.h"
-
 ////////////////////////////////////////////////////////////////////////
-
-#include "xa.cc"
 
 ////////////////////////////////////////////////////////////////////////
 // START SOUND... called by main thread to setup a new sound on a channel
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StartSound(SPUCHAN *pChannel) {
+inline void StartSound(SPUCHAN *pChannel) {
     StartADSR(pChannel);
     StartREVERB(pChannel);
 
@@ -349,7 +343,7 @@ INLINE void StartSound(SPUCHAN *pChannel) {
 // ALL KIND OF HELPERS
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void VoiceChangeFrequency(SPUCHAN *pChannel) {
+inline void VoiceChangeFrequency(SPUCHAN *pChannel) {
     pChannel->iUsedFreq = pChannel->iActFreq;  // -> take it and calc steps
     pChannel->sinc = pChannel->iRawPitch << 4;
     if (!pChannel->sinc) pChannel->sinc = 1;
@@ -358,7 +352,7 @@ INLINE void VoiceChangeFrequency(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
+inline void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
     int NP = pChannel->iRawPitch;
 
     NP = ((32768L + iFMod[ns]) * NP) / 32768L;
@@ -383,7 +377,7 @@ INLINE void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 // surely wrong... and no noise frequency (spuCtrl&0x3f00) will be used...
 // and sometimes the noise will be used as fmod modulation... pfff
 
-INLINE int iGetNoiseVal(SPUCHAN *pChannel) {
+inline int iGetNoiseVal(SPUCHAN *pChannel) {
     int fa;
 
     if ((dwNoiseVal <<= 1) & 0x80000000L) {
@@ -406,7 +400,7 @@ INLINE int iGetNoiseVal(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
+inline void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->bFMod == 2)  // fmod freq channel
         pChannel->SB[29] = fa;
     else {
@@ -440,7 +434,7 @@ INLINE void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
+inline int iGetInterpolationVal(SPUCHAN *pChannel) {
     int fa;
 
     if (pChannel->bFMod == 2) return pChannel->SB[29];
@@ -473,10 +467,10 @@ INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
             int gpos;
             vl = (pChannel->spos >> 6) & ~3;
             gpos = pChannel->SB[28];
-            vr = (gauss[vl] * gval0) & ~2047;
-            vr += (gauss[vl + 1] * gval(1)) & ~2047;
-            vr += (gauss[vl + 2] * gval(2)) & ~2047;
-            vr += (gauss[vl + 3] * gval(3)) & ~2047;
+            vr = (Gauss::gauss[vl] * gval0) & ~2047;
+            vr += (Gauss::gauss[vl + 1] * gval(1)) & ~2047;
+            vr += (Gauss::gauss[vl + 2] * gval(2)) & ~2047;
+            vr += (Gauss::gauss[vl + 3] * gval(3)) & ~2047;
             fa = vr >> 11;
         } break;
         //--------------------------------------------------//
@@ -1178,7 +1172,7 @@ long SPUopen(void)
     hWMain = hW;  // store hwnd
 #endif
 
-//    ReadConfig();  // read user stuff
+    //    ReadConfig();  // read user stuff
 
     SetupSound();  // setup sound (before init!)
 
@@ -1194,14 +1188,6 @@ long SPUopen(void)
         hWDebug = CreateDialog(0, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
         SetWindowPos(hWDebug, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
         UpdateWindow(hWDebug);
-        SetFocus(hWMain);
-    }
-
-    if (iRecordMode)  // windows recording dialog
-    {
-        hWRecord = CreateDialog(0, MAKEINTRESOURCE(IDD_RECORD), NULL, (DLGPROC)RecordDlgProc);
-        SetWindowPos(hWRecord, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-        UpdateWindow(hWRecord);
         SetFocus(hWMain);
     }
 #endif
@@ -1291,6 +1277,4 @@ extern "C" void SPUregisterCDDAVolume(void (*CDDAVcallback)(unsigned short, unsi
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUplayCDDAchannel(short * data, int size) {
-
-}
+extern "C" void SPUplayCDDAchannel(short *data, int size) {}

@@ -24,5 +24,10 @@
 //
 //*************************************************************************//
 
-INLINE void StartADSR(SPUCHAN* pChannel);
-INLINE int MixADSR(SPUCHAN* pChannel);
+#pragma once
+
+#include "src/spu/externals.h"
+
+void InitADSR();
+void StartADSR(SPUCHAN* pChannel);
+int MixADSR(SPUCHAN* pChannel);

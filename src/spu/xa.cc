@@ -29,10 +29,10 @@
 
 #include "stdafx.h"
 
-#define _IN_XA
+#include "src/spu/externals.h"
+#include "src/spu/gauss.h"
 
-// will be included from spu.c
-#ifdef _IN_SPU
+#define _IN_XA
 
 ////////////////////////////////////////////////////////////////////////
 // XA GLOBALS
@@ -62,7 +62,7 @@ static int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 // MIX XA
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void MixXA(void) {
+void MixXA(void) {
     int ns;
 
     for (ns = 0; ns < NSSIZE && XAPlay != XAFeed; ns++) {
@@ -85,7 +85,7 @@ INLINE void MixXA(void) {
 // FEED XA
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void FeedXA(xa_decode_t *xap) {
+void FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, iPlace, vl, vr;
 
     if (!bSPUIsOpen) return;
@@ -163,15 +163,15 @@ INLINE void FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (gauss[vl] * gvall0) & ~2047;
-                    vr += (gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (gauss[vl + 3] * gvall(3)) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
+                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
+                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
                     l = (vr >> 11) & 0xffff;
-                    vr = (gauss[vl] * gvalr0) & ~2047;
-                    vr += (gauss[vl + 1] * gvalr(1)) & ~2047;
-                    vr += (gauss[vl + 2] * gvalr(2)) & ~2047;
-                    vr += (gauss[vl + 3] * gvalr(3)) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvalr0) & ~2047;
+                    vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
+                    vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
+                    vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
                     l |= vr << 5;
                 } else {
                     while (spos >= 0x10000L) {
@@ -213,15 +213,15 @@ INLINE void FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (gauss[vl] * gvall0) & ~2047;
-                    vr += (gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (gauss[vl + 3] * gvall(3)) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
+                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
+                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
                     l = (vr >> 11) & 0xffff;
-                    vr = (gauss[vl] * gvalr0) & ~2047;
-                    vr += (gauss[vl + 1] * gvalr(1)) & ~2047;
-                    vr += (gauss[vl + 2] * gvalr(2)) & ~2047;
-                    vr += (gauss[vl + 3] * gvalr(3)) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvalr0) & ~2047;
+                    vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
+                    vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
+                    vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
                     l |= vr << 5;
                 } else {
                     while (spos >= 0x10000L) {
@@ -256,10 +256,10 @@ INLINE void FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (gauss[vl] * gvall0) & ~2047;
-                    vr += (gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (gauss[vl + 3] * gvall(3)) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
+                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
+                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
                     l1 = s = vr >> 11;
                     l1 &= 0xffff;
                 } else {
@@ -293,10 +293,10 @@ INLINE void FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (gauss[vl] * gvall0) & ~2047;
-                    vr += (gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (gauss[vl + 3] * gvall(3)) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
+                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
+                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
                     l = s = vr >> 11;
                     l &= 0xffff;
                 } else {
@@ -320,5 +320,3 @@ INLINE void FeedXA(xa_decode_t *xap) {
         }
     }
 }
-
-#endif

@@ -35,10 +35,7 @@
 
 #include "stdafx.h"
 
-#define _IN_REVERB
-
-// will be included from spu.c
-#ifdef _IN_SPU
+#include "src/spu/externals.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
@@ -116,7 +113,7 @@ void SetREVERB(unsigned short val) {
 // START REVERB
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StartREVERB(SPUCHAN *pChannel) {
+void StartREVERB(SPUCHAN *pChannel) {
     if (pChannel->bReverb && (spuCtrl & 0x80))  // reverb possible?
     {
         if (iUseReverb == 2)
@@ -136,7 +133,7 @@ INLINE void StartREVERB(SPUCHAN *pChannel) {
 // HELPER FOR NEILL'S REVERB: re-inits our reverb mixing buf
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void InitREVERB(void) {
+void InitREVERB(void) {
     if (iUseReverb == 2) {
         memset(sRVBStart, 0, NSSIZE * 2 * 4);
     }
@@ -146,7 +143,7 @@ INLINE void InitREVERB(void) {
 // STORE REVERB
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StoreREVERB(SPUCHAN *pChannel, int ns) {
+void StoreREVERB(SPUCHAN *pChannel, int ns) {
     if (iUseReverb == 0)
         return;
     else if (iUseReverb == 2)  // -------------------------------- // Neil's reverb
@@ -181,7 +178,7 @@ INLINE void StoreREVERB(SPUCHAN *pChannel, int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
+inline int g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -192,7 +189,7 @@ INLINE int g_buffer(int iOff)  // get_buffer content helper: takes care about wr
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
+inline void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -205,7 +202,7 @@ INLINE void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes ca
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+inline void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;
@@ -218,7 +215,7 @@ INLINE void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content hel
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int MixREVERBLeft(int ns) {
+int MixREVERBLeft(int ns) {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2) {
@@ -322,7 +319,7 @@ INLINE int MixREVERBLeft(int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int MixREVERBRight(void) {
+int MixREVERBRight(void) {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2)  // Neill's reverb:
@@ -340,8 +337,6 @@ INLINE int MixREVERBRight(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 
 /*
 -----------------------------------------------------------------------------
