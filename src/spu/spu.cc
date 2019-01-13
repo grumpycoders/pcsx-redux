@@ -99,11 +99,11 @@
 
 #include "cfg.h"
 #include "debug.h"
-#include "dsoundoss.h"
 #include "externals.h"
 #include "record.h"
 #include "regs.h"
 #include "resource.h"
+#include "sdlsound.h"
 
 ////////////////////////////////////////////////////////////////////////
 // spu version infos/name
@@ -1174,8 +1174,6 @@ long SPUopen(void)
     iSPUIRQWait = 1;
 
 #ifdef _WIN32
-    LastWrite = 0xffffffff;
-    LastPlay = 0;  // init some play vars
     if (!IsWindow(hW)) hW = GetActiveWindow();
     hWMain = hW;  // store hwnd
 #endif

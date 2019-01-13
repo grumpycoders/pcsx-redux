@@ -20,7 +20,7 @@ static void startFrame();
 static void endFrame();
 
 unsigned int GUI_init() {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
         assert(0);
     }
 
