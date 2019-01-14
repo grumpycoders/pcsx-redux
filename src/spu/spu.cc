@@ -107,35 +107,9 @@
 #include "spu/xa.h"
 
 ////////////////////////////////////////////////////////////////////////
-// spu version infos/name
-////////////////////////////////////////////////////////////////////////
-
-const unsigned char version = 1;
-const unsigned char revision = 1;
-const unsigned char build = 9;
-#ifdef _WIN32
-static const char *libraryName = "P.E.Op.S. DSound Audio Driver";
-#else
-#ifndef USEALSA
-static char *libraryName = "P.E.Op.S. OSS Audio Driver";
-#else
-static char *libraryName = "P.E.Op.S. ALSA Audio Driver";
-#endif
-#endif
-static const char *libraryInfo = "P.E.Op.S. OSS Driver V1.9\nCoded by Pete Bernert and the P.E.Op.S. team\n";
-
-////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
 
-// psx buffer / addresses
-
-unsigned short regArea[10000];
-unsigned short spuMem[256 * 1024];
-unsigned char *spuMemC;
-unsigned char *pSpuIrq = 0;
-unsigned char *pSpuBuffer;
-unsigned char *pMixIrq = 0;
 
 // user settings
 
@@ -166,18 +140,7 @@ int bThreadEnded = 0;
 int bSpuInit = 0;
 int bSPUIsOpen = 0;
 
-#ifdef _WIN32
-HWND hWMain = 0;  // window handle
-HWND hWDebug = 0;
-HWND hWRecord = 0;
 static SDL_Thread* hMainThread;
-#else
-// 2003/06/07 - Pete
-#ifndef NOTHREADLIB
-static pthread_t thread = -1;  // thread id (linux)
-#endif
-#endif
-
 unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
 void (*irqCallback)(void) = 0;  // func of main emu, called on spu irq
@@ -186,16 +149,16 @@ void (*irqQSound)(unsigned char *, long *, long) = 0;
 
 // certain globals (were local before, but with the new timeproc I need em global)
 
-const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
+static const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
 int SSumR[NSSIZE];
 int SSumL[NSSIZE];
 int iFMod[NSSIZE];
 int iCycle = 0;
 short *pS;
 
-static int lastch = -1;       // last channel processed on spu irq in timer mode
-static int lastns = 0;        // last ns pos
-static int iSecureStart = 0;  // secure start counter
+int lastch = -1;       // last channel processed on spu irq in timer mode
+int lastns = 0;        // last ns pos
+int iSecureStart = 0;  // secure start counter
 
 ////////////////////////////////////////////////////////////////////////
 // CODE AREA
@@ -507,7 +470,7 @@ inline int iGetInterpolationVal(SPUCHAN *pChannel) {
 
 int iSpuAsyncWait = 0;
 
-static int MainThread(void *arg) {
+void PCSX::SPU::MainThread() {
     int s_1, s_2, fa, ns, voldiv = iVolume;
     unsigned char *start;
     unsigned int nSample;
@@ -852,8 +815,6 @@ static int MainThread(void *arg) {
     // end of big main loop...
 
     bThreadEnded = 1;
-
-    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -905,7 +866,7 @@ long PCSX::SPU::init(void) {
 // SETUPTIMER: init of certain buffers and threads/timers
 ////////////////////////////////////////////////////////////////////////
 
-void SetupTimer(void) {
+void PCSX::SPU::SetupThread() {
     memset(SSumR, 0, NSSIZE * sizeof(int));  // init some mixing buffers
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(iFMod, 0, NSSIZE * sizeof(int));
@@ -916,20 +877,22 @@ void SetupTimer(void) {
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
 
-    hMainThread = SDL_CreateThread(MainThread, "SPU Thread", NULL);
+    hMainThread = SDL_CreateThread(PCSX::SPU::MainThreadTrampoline, "SPU Thread", this);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // REMOVETIMER: kill threads/timers
 ////////////////////////////////////////////////////////////////////////
 
-void RemoveTimer(void) {
+void PCSX::SPU::RemoveThread() {
     bEndThread = 1;  // raise flag to end thread
 
     while (!bThreadEnded) {
         SDL_Delay(5L);
     }  // -> wait till thread has ended
     SDL_Delay(5L);
+
+    SDL_WaitThread(hMainThread, NULL);
 
     bThreadEnded = 0;  // no more spu is running
     bSpuInit = 0;
@@ -939,7 +902,7 @@ void RemoveTimer(void) {
 // SETUPSTREAMS: init most of the spu buffers
 ////////////////////////////////////////////////////////////////////////
 
-void SetupStreams(void) {
+void PCSX::SPU::SetupStreams() {
     int i;
 
     pSpuBuffer = (unsigned char *)malloc(32768);  // alloc mixing buffer
@@ -980,7 +943,7 @@ void SetupStreams(void) {
 // REMOVESTREAMS: free most buffer
 ////////////////////////////////////////////////////////////////////////
 
-void RemoveStreams(void) {
+void PCSX::SPU::RemoveStreams(void) {
     free(pSpuBuffer);  // free mixing buffer
     pSpuBuffer = NULL;
     free(sRVBStart);  // free reverb buffer
@@ -1004,13 +967,8 @@ void RemoveStreams(void) {
 // SPUOPEN: called by main emu after init
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-extern "C" long SPUopen(HWND hW)
-#else
-long SPUopen(void)
-#endif
-{
-    if (bSPUIsOpen) return 0;  // security for some stupid main emus
+bool PCSX::SPU::open() {
+    if (bSPUIsOpen) return true;  // security for some stupid main emus
 
     iUseXA = 1;  // just small setup
     iVolume = 3;
@@ -1025,22 +983,17 @@ long SPUopen(void)
     pSpuIrq = 0;
     iSPUIRQWait = 1;
 
-#ifdef _WIN32
-    if (!IsWindow(hW)) hW = GetActiveWindow();
-    hWMain = hW;  // store hwnd
-#endif
-
     //    ReadConfig();  // read user stuff
 
     SetupSound();  // setup sound (before init!)
 
     SetupStreams();  // prepare streaming
 
-    SetupTimer();  // timer for feeding data
+    SetupThread();  // timer for feeding data
 
     bSPUIsOpen = 1;
 
-    return PSE_SPU_ERR_SUCCESS;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1058,14 +1011,7 @@ long PCSX::SPU::close(void) {
 
     bSPUIsOpen = 0;  // no more open
 
-#ifdef _WIN32
-    if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
-    hWDebug = 0;
-    if (IsWindow(hWRecord)) DestroyWindow(hWRecord);
-    hWRecord = 0;
-#endif
-
-    RemoveTimer();  // no more feeding
+    RemoveThread();  // no more feeding
 
     RemoveSound();  // no more sound handling
 

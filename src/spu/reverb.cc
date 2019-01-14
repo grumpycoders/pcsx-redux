@@ -36,6 +36,7 @@
 #include "stdafx.h"
 
 #include "spu/externals.h"
+#include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
@@ -178,7 +179,7 @@ void StoreREVERB(SPUCHAN *pChannel, int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline int g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
+inline int PCSX::SPU::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -189,7 +190,7 @@ inline int g_buffer(int iOff)  // get_buffer content helper: takes care about wr
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
+inline void PCSX::SPU::s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -202,7 +203,7 @@ inline void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes ca
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+inline void PCSX::SPU::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;
@@ -214,8 +215,7 @@ inline void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content hel
 }
 
 ////////////////////////////////////////////////////////////////////////
-
-int MixREVERBLeft(int ns) {
+int PCSX::SPU::MixREVERBLeft(int ns) {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2) {

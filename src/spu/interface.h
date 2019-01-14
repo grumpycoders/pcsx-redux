@@ -27,6 +27,7 @@ namespace PCSX {
 
 class SPU {
   public:
+    bool open();
     // SPU Functions
     long init(void);
     long shutdown(void);
@@ -59,9 +60,37 @@ class SPU {
     void playCDDAchannel(short*, int);
     void registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short));
 
-  private:
+//  private:
+    // freeze
     void LoadStateV5(SPUFreeze_t*);
     void LoadStateUnknown(SPUFreeze_t*);
+
+    // spu
+    void MainThread();
+    static int MainThreadTrampoline(void *arg) {
+        SPU *that = static_cast<SPU *>(arg);
+        that->MainThread();
+        return 0;
+    }
+    void SetupStreams();
+    void RemoveStreams();
+    void SetupThread();
+    void RemoveThread();
+
+    // reverb
+    int g_buffer(int iOff); // get_buffer content helper: takes care about wraps
+    void s_buffer(int iOff, int iVal);  // set_buffer content helper: takes care about wraps and clipping
+    void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+    int MixREVERBLeft(int ns);
+
+// psx buffer / addresses
+
+    unsigned short regArea[10000];
+    unsigned short spuMem[256 * 1024];
+    unsigned char *spuMemC;
+    unsigned char *pSpuIrq = 0;
+    unsigned char *pSpuBuffer;
+    unsigned char *pMixIrq = 0;
 };
 
 }  // namespace PCSX

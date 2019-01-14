@@ -41,7 +41,6 @@
 #include "spu/interface.h"
 #include "spu/registers.h"
 #include "spu/regs.h"
-#include "spu/spu.h"
 
 ////////////////////////////////////////////////////////////////////////
 // freeze structs
@@ -82,7 +81,7 @@ long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
         if (ulFreezeMode == 2)
             return 1;   // info mode? ok, bye
                         // save mode:
-        RemoveTimer();  // stop timer
+        RemoveThread();  // stop timer
 
         memcpy(pF->SPURam, spuMem, 0x80000);  // copy common infos
         memcpy(pF->SPUPorts, regArea, 0x200);
@@ -105,7 +104,7 @@ long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
             if (pFO->s_chan[i].pLoop) pFO->s_chan[i].pLoop -= (unsigned long)spuMemC;
         }
 
-        SetupTimer();  // sound processing on again
+        SetupThread();  // sound processing on again
 
         return 1;
         //--------------------------------------------------//
@@ -120,7 +119,7 @@ long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
         return 0;
 #endif
 
-    RemoveTimer();  // we stop processing while doing the save!
+    RemoveThread();  // we stop processing while doing the save!
 
     memcpy(spuMem, pF->SPURam, 0x80000);  // get ram
     memcpy(regArea, pF->SPUPorts, 0x200);
@@ -155,7 +154,7 @@ long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
         writeRegister(0x1f801c00 + (i << 4) + 0xca, regArea[(i << 3) + 0x65]);
     }
 
-    SetupTimer();  // start sound processing again
+    SetupThread();  // start sound processing again
 
     return 1;
 }

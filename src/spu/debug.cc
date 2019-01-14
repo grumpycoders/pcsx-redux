@@ -30,6 +30,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #include "stdafx.h"
 
 #define _IN_DEBUG
@@ -374,5 +376,7 @@ BOOL DebugDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+#endif
 
 #endif

@@ -215,14 +215,6 @@ typedef struct {
 
 extern int bSPUIsOpen;
 
-// psx buffers / addresses
-
-extern unsigned short regArea[];
-extern unsigned short spuMem[];
-extern unsigned char *spuMemC;
-extern unsigned char *pSpuIrq;
-extern unsigned char *pSpuBuffer;
-
 // user settings
 
 extern int iUseXA;

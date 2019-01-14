@@ -5,6 +5,7 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
+#include "spu/interface.h"
 
 class SystemImpl : public PCSX::System {
     virtual void SysPrintf(const char *fmt, ...) final {
@@ -72,7 +73,7 @@ int main(int argc, char *argv[]) {
     LoadPlugins();
     PCSX::g_emulator.m_gpu->open(texture);
     PCSX::g_emulator.m_cdrom->m_iso.open();
-    SPUopen(0);
+    PCSX::g_emulator.m_spu->open();
 
     PCSX::g_emulator.EmuInit();
     PCSX::g_emulator.EmuReset();
