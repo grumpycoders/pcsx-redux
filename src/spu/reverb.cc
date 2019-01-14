@@ -42,7 +42,7 @@
 // SET REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SetREVERB(unsigned short val) {
+void PCSX::SPU::impl::SetREVERB(unsigned short val) {
     switch (val) {
         case 0x0000:
             iReverbOff = -1;
@@ -101,7 +101,7 @@ void PCSX::SPU::SetREVERB(unsigned short val) {
 // START REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::StartREVERB(SPUCHAN *pChannel) {
+void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
     if (pChannel->bReverb && (spuCtrl & 0x80))  // reverb possible?
     {
         if (iUseReverb == 2)
@@ -121,7 +121,7 @@ void PCSX::SPU::StartREVERB(SPUCHAN *pChannel) {
 // HELPER FOR NEILL'S REVERB: re-inits our reverb mixing buf
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::InitREVERB() {
+void PCSX::SPU::impl::InitREVERB() {
     if (iUseReverb == 2) {
         memset(sRVBStart, 0, NSSIZE * 2 * 4);
     }
@@ -131,7 +131,7 @@ void PCSX::SPU::InitREVERB() {
 // STORE REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::StoreREVERB(SPUCHAN *pChannel, int ns) {
+void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
     if (iUseReverb == 0)
         return;
     else if (iUseReverb == 2)  // -------------------------------- // Neil's reverb
@@ -166,7 +166,7 @@ void PCSX::SPU::StoreREVERB(SPUCHAN *pChannel, int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline int PCSX::SPU::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
+inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -177,7 +177,7 @@ inline int PCSX::SPU::g_buffer(int iOff)  // get_buffer content helper: takes ca
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
+inline void PCSX::SPU::impl::s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -190,7 +190,7 @@ inline void PCSX::SPU::s_buffer(int iOff, int iVal)  // set_buffer content helpe
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+inline void PCSX::SPU::impl::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;
@@ -202,7 +202,7 @@ inline void PCSX::SPU::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) 
 }
 
 ////////////////////////////////////////////////////////////////////////
-int PCSX::SPU::MixREVERBLeft(int ns) {
+int PCSX::SPU::impl::MixREVERBLeft(int ns) {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2) {
@@ -306,7 +306,7 @@ int PCSX::SPU::MixREVERBLeft(int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::MixREVERBRight() {
+int PCSX::SPU::impl::MixREVERBRight() {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2)  // Neill's reverb:

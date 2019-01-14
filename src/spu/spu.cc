@@ -153,7 +153,7 @@
 //          /
 //
 
-inline void InterpolateUp(PCSX::SPU::SPUCHAN *pChannel) {
+static inline void InterpolateUp(PCSX::SPU::SPUCHAN *pChannel) {
     if (pChannel->SB[32] == 1)  // flag == 1? calc step and set flag... and don't change the value in this pass
     {
         const int id1 = pChannel->SB[30] - pChannel->SB[29];  // curr delta to next val
@@ -197,7 +197,7 @@ inline void InterpolateUp(PCSX::SPU::SPUCHAN *pChannel) {
 // even easier interpolation on downsampling, also no special filter, again just "Pete's common sense" tm
 //
 
-inline void InterpolateDown(PCSX::SPU::SPUCHAN *pChannel) {
+static inline void InterpolateDown(PCSX::SPU::SPUCHAN *pChannel) {
     if (pChannel->sinc >= 0x20000L)  // we would skip at least one val?
     {
         pChannel->SB[29] += (pChannel->SB[30] - pChannel->SB[29]) / 2;      // add easy weight
@@ -218,8 +218,8 @@ inline void InterpolateDown(PCSX::SPU::SPUCHAN *pChannel) {
 // START SOUND... called by main thread to setup a new sound on a channel
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::StartSound(SPUCHAN *pChannel) {
-    StartADSR(pChannel);
+inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
+    m_adsr.start(pChannel);
     StartREVERB(pChannel);
 
     pChannel->pCurr = pChannel->pStart;  // set sample start
@@ -250,7 +250,7 @@ inline void PCSX::SPU::StartSound(SPUCHAN *pChannel) {
 // ALL KIND OF HELPERS
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::VoiceChangeFrequency(SPUCHAN *pChannel) {
+inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
     pChannel->iUsedFreq = pChannel->iActFreq;  // -> take it and calc steps
     pChannel->sinc = pChannel->iRawPitch << 4;
     if (!pChannel->sinc) pChannel->sinc = 1;
@@ -259,7 +259,7 @@ inline void PCSX::SPU::VoiceChangeFrequency(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
+inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
     int NP = pChannel->iRawPitch;
 
     NP = ((32768L + iFMod[ns]) * NP) / 32768L;
@@ -284,7 +284,7 @@ inline void PCSX::SPU::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 // surely wrong... and no noise frequency (spuCtrl&0x3f00) will be used...
 // and sometimes the noise will be used as fmod modulation... pfff
 
-inline int PCSX::SPU::iGetNoiseVal(SPUCHAN *pChannel) {
+inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     int fa;
 
     if ((dwNoiseVal <<= 1) & 0x80000000L) {
@@ -307,7 +307,7 @@ inline int PCSX::SPU::iGetNoiseVal(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
+inline void PCSX::SPU::impl::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->bFMod == 2)  // fmod freq channel
         pChannel->SB[29] = fa;
     else {
@@ -341,7 +341,7 @@ inline void PCSX::SPU::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline int PCSX::SPU::iGetInterpolationVal(SPUCHAN *pChannel) {
+inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
     int fa;
 
     if (pChannel->bFMod == 2) return pChannel->SB[29];
@@ -415,7 +415,7 @@ inline int PCSX::SPU::iGetInterpolationVal(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::MainThread() {
+void PCSX::SPU::impl::MainThread() {
     int s_1, s_2, fa, ns, voldiv = iVolume;
     unsigned char *start;
     unsigned int nSample;
@@ -612,7 +612,7 @@ void PCSX::SPU::MainThread() {
                     else
                         fa = iGetInterpolationVal(pChannel);  // get sample val
 
-                    pChannel->sval = (MixADSR(pChannel) * fa) / 1023;  // mix adsr
+                    pChannel->sval = (m_adsr.mix(pChannel) * fa) / 1023;  // mix adsr
 
                     if (pChannel->bFMod == 2)        // fmod freq channel
                         iFMod[ns] = pChannel->sval;  // -> store 1T sample data, use that to do fmod on next channel
@@ -771,7 +771,7 @@ void PCSX::SPU::MainThread() {
 //  1 time every 'cycle' cycles... harhar
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::async(uint32_t cycle) {
+void PCSX::SPU::impl::async(uint32_t cycle) {
     if (iSpuAsyncWait) {
         iSpuAsyncWait++;
         if (iSpuAsyncWait <= 64) return;
@@ -783,7 +783,7 @@ void PCSX::SPU::async(uint32_t cycle) {
 // XA AUDIO
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::playADPCMchannel(xa_decode_t *xap) {
+void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
     if (!iUseXA) return;  // no XA? bye
     if (!xap) return;
     if (!xap->freq) return;  // no xa freq ? bye
@@ -799,11 +799,10 @@ void PCSX::SPU::playADPCMchannel(xa_decode_t *xap) {
 // SPUINIT: this func will be called first by the main emu
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::init(void) {
+long PCSX::SPU::impl::init(void) {
     spuMemC = (unsigned char *)spuMem;  // just small setup
     memset((void *)s_chan, 0, MAXCHAN * sizeof(SPUCHAN));
     memset((void *)&rvb, 0, sizeof(REVERBInfo));
-    InitADSR();
     return 0;
 }
 
@@ -811,7 +810,7 @@ long PCSX::SPU::init(void) {
 // SETUPTIMER: init of certain buffers and threads/timers
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SetupThread() {
+void PCSX::SPU::impl::SetupThread() {
     memset(SSumR, 0, NSSIZE * sizeof(int));  // init some mixing buffers
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(iFMod, 0, NSSIZE * sizeof(int));
@@ -822,14 +821,14 @@ void PCSX::SPU::SetupThread() {
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
 
-    hMainThread = SDL_CreateThread(PCSX::SPU::MainThreadTrampoline, "SPU Thread", this);
+    hMainThread = SDL_CreateThread(PCSX::SPU::impl::MainThreadTrampoline, "SPU Thread", this);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // REMOVETIMER: kill threads/timers
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::RemoveThread() {
+void PCSX::SPU::impl::RemoveThread() {
     bEndThread = 1;  // raise flag to end thread
 
     while (!bThreadEnded) {
@@ -847,7 +846,7 @@ void PCSX::SPU::RemoveThread() {
 // SETUPSTREAMS: init most of the spu buffers
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SetupStreams() {
+void PCSX::SPU::impl::SetupStreams() {
     int i;
 
     pSpuBuffer = (unsigned char *)malloc(32768);  // alloc mixing buffer
@@ -888,7 +887,7 @@ void PCSX::SPU::SetupStreams() {
 // REMOVESTREAMS: free most buffer
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::RemoveStreams(void) {
+void PCSX::SPU::impl::RemoveStreams(void) {
     free(pSpuBuffer);  // free mixing buffer
     pSpuBuffer = NULL;
     free(sRVBStart);  // free reverb buffer
@@ -912,7 +911,7 @@ void PCSX::SPU::RemoveStreams(void) {
 // SPUOPEN: called by main emu after init
 ////////////////////////////////////////////////////////////////////////
 
-bool PCSX::SPU::open() {
+bool PCSX::SPU::impl::open() {
     if (bSPUIsOpen) return true;  // security for some stupid main emus
 
     iUseXA = 1;  // just small setup
@@ -951,7 +950,7 @@ void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
 // SPUCLOSE: called before shutdown
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::close(void) {
+long PCSX::SPU::impl::close(void) {
     if (!bSPUIsOpen) return 0;  // some security
 
     bSPUIsOpen = 0;  // no more open
@@ -967,25 +966,25 @@ long PCSX::SPU::close(void) {
 // SPUSHUTDOWN: called by main emu on final exit
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::shutdown(void) { return 0; }
+long PCSX::SPU::impl::shutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUTEST: we don't test, we are always fine ;)
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::test(void) { return 0; }
+long PCSX::SPU::impl::test(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUCONFIGURE: call config dialog
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::configure(void) { return 0; }
+long PCSX::SPU::impl::configure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUABOUT: show about window
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::about(void) {}
+void PCSX::SPU::impl::about(void) {}
 
 ////////////////////////////////////////////////////////////////////////
 // SETUP CALLBACKS
@@ -993,12 +992,12 @@ void PCSX::SPU::about(void) {}
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::registerCallback(void (*callback)(void)) { irqCallback = callback; }
+void PCSX::SPU::impl::registerCallback(void (*callback)(void)) { irqCallback = callback; }
 
-void PCSX::SPU::registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
+void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
     cddavCallback = CDDAVcallback;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::playCDDAchannel(short *data, int size) {}
+void PCSX::SPU::impl::playCDDAchannel(short *data, int size) {}

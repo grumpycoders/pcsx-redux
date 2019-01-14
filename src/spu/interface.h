@@ -24,9 +24,14 @@
 
 #include "core/decode_xa.h"
 
+#include "spu/types.h"
+#include "spu/adsr.h"
+
 namespace PCSX {
 
-class SPU {
+namespace SPU {
+
+class impl {
   public:
     bool open();
     // SPU Functions
@@ -61,142 +66,18 @@ class SPU {
     void playCDDAchannel(short *, int);
     void registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short));
 
-    //  private:
+    // num of channels
+    static const size_t MAXCHAN = 24;
 
+  private:
     // sound buffer sizes
     // 400 ms complete sound buffer
     static const size_t SOUNDSIZE = 70560;
     // 137 ms test buffer... if less than that is buffered, a new upload will happen
     static const size_t TESTSIZE = 24192;
 
-    // num of channels
-    static const size_t MAXCHAN = 24;
-
     // ~ 1 ms of data
     static const size_t NSSIZE = 45;
-
-    // MAIN CHANNEL STRUCT
-
-    // ADSR INFOS PER CHANNEL
-    struct ADSRInfo {
-        int AttackModeExp;
-        long AttackTime;
-        long DecayTime;
-        long SustainLevel;
-        int SustainModeExp;
-        long SustainModeDec;
-        long SustainTime;
-        int ReleaseModeExp;
-        unsigned long ReleaseVal;
-        long ReleaseTime;
-        long ReleaseStartTime;
-        long ReleaseVol;
-        long lTime;
-        long lVolume;
-    };
-
-    struct ADSRInfoEx {
-        int State;
-        int AttackModeExp;
-        int AttackRate;
-        int DecayRate;
-        int SustainLevel;
-        int SustainModeExp;
-        int SustainIncrease;
-        int SustainRate;
-        int ReleaseModeExp;
-        int ReleaseRate;
-        int EnvelopeVol;
-        long lVolume;
-        long lDummy1;
-        long lDummy2;
-    };
-
-    struct SPUCHAN {
-        int bNew;  // start flag
-
-        int iSBPos;  // mixing stuff
-        int spos;
-        int sinc;
-        int SB[32 + 32];  // Pete added another 32 dwords in 1.6 ... prevents overflow issues with gaussian/cubic
-                          // interpolation (thanx xodnizel!), and can be used for even better interpolations, eh? :)
-        int sval;
-
-        unsigned char *pStart;  // start ptr into sound mem
-        unsigned char *pCurr;   // current pos in sound mem
-        unsigned char *pLoop;   // loop ptr in sound mem
-
-        int bOn;           // is channel active (sample playing?)
-        int bStop;         // is channel stopped (sample _can_ still be playing, ADSR Release phase)
-        int bReverb;       // can we do reverb on this channel? must have ctrl register bit, to get active
-        int iActFreq;      // current psx pitch
-        int iUsedFreq;     // current pc pitch
-        int iLeftVolume;   // left volume
-        int iLeftVolRaw;   // left psx volume value
-        int bIgnoreLoop;   // ignore loop bit, if an external loop address is used
-        int iMute;         // mute mode
-        int iRightVolume;  // right volume
-        int iRightVolRaw;  // right psx volume value
-        int iRawPitch;     // raw pitch (0...3fff)
-        int iIrqDone;      // debug irq done flag
-        int s_1;           // last decoding infos
-        int s_2;
-        int bRVBActive;    // reverb active flag
-        int iRVBOffset;    // reverb offset
-        int iRVBRepeat;    // reverb repeat
-        int bNoise;        // noise active flag
-        int bFMod;         // freq mod (0=off, 1=sound channel, 2=freq channel)
-        int iRVBNum;       // another reverb helper
-        int iOldNoise;     // old noise val for this channel
-        ADSRInfo ADSR;     // active ADSR settings
-        ADSRInfoEx ADSRX;  // next ADSR settings (will be moved to active on sample start)
-    };
-
-    struct REVERBInfo {
-        int StartAddr;  // reverb area start addr in samples
-        int CurrAddr;   // reverb area curr addr in samples
-
-        int VolLeft;
-        int VolRight;
-        int iLastRVBLeft;
-        int iLastRVBRight;
-        int iRVBLeft;
-        int iRVBRight;
-
-        int FB_SRC_A;     // (offset)
-        int FB_SRC_B;     // (offset)
-        int IIR_ALPHA;    // (coef.)
-        int ACC_COEF_A;   // (coef.)
-        int ACC_COEF_B;   // (coef.)
-        int ACC_COEF_C;   // (coef.)
-        int ACC_COEF_D;   // (coef.)
-        int IIR_COEF;     // (coef.)
-        int FB_ALPHA;     // (coef.)
-        int FB_X;         // (coef.)
-        int IIR_DEST_A0;  // (offset)
-        int IIR_DEST_A1;  // (offset)
-        int ACC_SRC_A0;   // (offset)
-        int ACC_SRC_A1;   // (offset)
-        int ACC_SRC_B0;   // (offset)
-        int ACC_SRC_B1;   // (offset)
-        int IIR_SRC_A0;   // (offset)
-        int IIR_SRC_A1;   // (offset)
-        int IIR_DEST_B0;  // (offset)
-        int IIR_DEST_B1;  // (offset)
-        int ACC_SRC_C0;   // (offset)
-        int ACC_SRC_C1;   // (offset)
-        int ACC_SRC_D0;   // (offset)
-        int ACC_SRC_D1;   // (offset)
-        int IIR_SRC_B1;   // (offset)
-        int IIR_SRC_B0;   // (offset)
-        int MIX_DEST_A0;  // (offset)
-        int MIX_DEST_A1;  // (offset)
-        int MIX_DEST_B0;  // (offset)
-        int MIX_DEST_B1;  // (offset)
-        int IN_COEF_L;    // (coef.)
-        int IN_COEF_R;    // (coef.)
-    };
-
 
     // freeze
     void LoadStateV5(SPUFreeze_t *);
@@ -205,7 +86,7 @@ class SPU {
     // spu
     void MainThread();
     static int MainThreadTrampoline(void *arg) {
-        SPU *that = static_cast<SPU *>(arg);
+        impl *that = static_cast<impl *>(arg);
         that->MainThread();
         return 0;
     }
@@ -271,7 +152,7 @@ class SPU {
 
     // MAIN infos struct for each channel
 
-    PCSX::SPU::SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
+    SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
     REVERBInfo rvb;
 
     unsigned long dwNoiseVal = 1;  // global noise generator
@@ -313,6 +194,31 @@ class SPU {
     int iReverbOff = -1;  // some delay factor for reverb
     int iReverbRepeat = 0;
     int iReverbNum = 1;
+
+    // XA
+    xa_decode_t *xapGlobal = 0;
+
+    unsigned long *XAFeed = NULL;
+    unsigned long *XAPlay = NULL;
+    unsigned long *XAStart = NULL;
+    unsigned long *XAEnd = NULL;
+    unsigned long XARepeat = 0;
+    unsigned long XALastVal = 0;
+
+    int iLeftXAVol = 32767;
+    int iRightXAVol = 32767;
+
+    int gauss_ptr = 0;
+    int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    int &gvall0() { return gauss_window[gauss_ptr]; }
+    int &gvall(int pos) { return gauss_window[(gauss_ptr + pos) & 3]; }
+    int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
+    int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
+
+    ::PCSX::SPU::ADSR m_adsr;
 };
+
+}  // namespace SPU
 
 }  // namespace PCSX

@@ -30,7 +30,6 @@
 #pragma once
 
 #include "core/decode_xa.h"
-#include "spu/interface.h"
 
 /////////////////////////////////////////////////////////
 // generic defines
@@ -65,27 +64,3 @@
 // used for simple interpolation
 #define FLAG_IPOL0 2
 #define FLAG_IPOL1 4
-
-///////////////////////////////////////////////////////////
-
-
-
-///////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////
-// XA.C globals
-///////////////////////////////////////////////////////////
-
-extern xa_decode_t *xapGlobal;
-
-extern unsigned long *XAFeed;
-extern unsigned long *XAPlay;
-extern unsigned long *XAStart;
-extern unsigned long *XAEnd;
-
-extern unsigned long XARepeat;
-extern unsigned long XALastVal;
-
-extern int iLeftXAVol;
-extern int iRightXAVol;

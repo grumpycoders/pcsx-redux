@@ -53,7 +53,7 @@ typedef struct {
     unsigned long dummy2;
     unsigned long dummy3;
 
-    PCSX::SPU::SPUCHAN s_chan[PCSX::SPU::MAXCHAN];
+    PCSX::SPU::SPUCHAN s_chan[PCSX::SPU::impl::MAXCHAN];
 
 } SPUOSSFreeze_t;
 
@@ -63,7 +63,7 @@ typedef struct {
 // SPUFREEZE: called by main emu on savestate load/save
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
+long PCSX::SPU::impl::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
     int i;
     SPUOSSFreeze_t *pFO;
 
@@ -153,7 +153,7 @@ long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::LoadStateV5(SPUFreeze_t *pF) {
+void PCSX::SPU::impl::LoadStateV5(SPUFreeze_t *pF) {
     int i;
     SPUOSSFreeze_t *pFO;
 
@@ -178,7 +178,7 @@ void PCSX::SPU::LoadStateV5(SPUFreeze_t *pF) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::LoadStateUnknown(SPUFreeze_t *pF) {
+void PCSX::SPU::impl::LoadStateUnknown(SPUFreeze_t *pF) {
     int i;
 
     for (i = 0; i < MAXCHAN; i++) {

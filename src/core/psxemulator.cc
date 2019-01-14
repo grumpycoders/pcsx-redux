@@ -43,7 +43,7 @@ PCSX::Emulator::Emulator() {
     m_gpu = new PCSX::SoftGPU::impl();
     m_debug = new PCSX::Debug();
     m_hw = new PCSX::HW();
-    m_spu = new PCSX::SPU();
+    m_spu = new PCSX::SPU::impl();
 }
 
 PCSX::Emulator::~Emulator() {

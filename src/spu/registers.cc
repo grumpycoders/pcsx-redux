@@ -67,7 +67,7 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::writeRegister(unsigned long reg, unsigned short val) {
+void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
     const unsigned long r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
@@ -431,7 +431,7 @@ void PCSX::SPU::writeRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short PCSX::SPU::readRegister(unsigned long reg) {
+unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
     const unsigned long r = reg & 0xfff;
 
     iSpuAsyncWait = 0;
@@ -493,7 +493,7 @@ unsigned short PCSX::SPU::readRegister(unsigned long reg) {
 // SOUND ON register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
+void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
 {
     int ch;
 
@@ -512,7 +512,7 @@ void PCSX::SPU::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX
 // SOUND OFF register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
+void PCSX::SPU::impl::SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
 {
     int ch;
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
@@ -528,7 +528,7 @@ void PCSX::SPU::SoundOff(int start, int end, unsigned short val)  // SOUND OFF P
 // FMOD register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
+void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
 {
     int ch;
 
@@ -550,7 +550,7 @@ void PCSX::SPU::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX C
 // NOISE register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
+void PCSX::SPU::impl::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
 {
     int ch;
 
@@ -572,7 +572,7 @@ void PCSX::SPU::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX
 // please note: sweep and phase invert are wrong... but I've never seen
 // them used
 
-void PCSX::SPU::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
+void PCSX::SPU::impl::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 {
     s_chan[ch].iLeftVolRaw = vol;
 
@@ -599,7 +599,7 @@ void PCSX::SPU::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 // RIGHT VOLUME register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
+void PCSX::SPU::impl::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 {
     s_chan[ch].iRightVolRaw = vol;
 
@@ -625,7 +625,7 @@ void PCSX::SPU::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 // PITCH register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::SetPitch(int ch, unsigned short val)  // SET PITCH
+void PCSX::SPU::impl::SetPitch(int ch, unsigned short val)  // SET PITCH
 {
     int NP;
     if (val > 0x3fff)
@@ -644,7 +644,7 @@ void PCSX::SPU::SetPitch(int ch, unsigned short val)  // SET PITCH
 // REVERB register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
+void PCSX::SPU::impl::ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
 {
     int ch;
 

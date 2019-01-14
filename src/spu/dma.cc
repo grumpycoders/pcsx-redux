@@ -33,7 +33,7 @@
 // READ DMA (one value)
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short PCSX::SPU::readDMA(void) {
+unsigned short PCSX::SPU::impl::readDMA(void) {
     unsigned short s;
 
     s = spuMem[spuAddr >> 1];
@@ -50,7 +50,7 @@ unsigned short PCSX::SPU::readDMA(void) {
 // READ DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::readDMAMem(unsigned short* pusPSXMem, int iSize) {
+void PCSX::SPU::impl::readDMAMem(unsigned short* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {
@@ -74,7 +74,7 @@ void PCSX::SPU::readDMAMem(unsigned short* pusPSXMem, int iSize) {
 // WRITE DMA (one value)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::writeDMA(unsigned short val) {
+void PCSX::SPU::impl::writeDMA(unsigned short val) {
     spuMem[spuAddr >> 1] = val;  // spu addr got by writeregister
 
     spuAddr += 2;                        // inc spu addr
@@ -87,7 +87,7 @@ void PCSX::SPU::writeDMA(unsigned short val) {
 // WRITE DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::writeDMAMem(unsigned short* pusPSXMem, int iSize) {
+void PCSX::SPU::impl::writeDMAMem(unsigned short* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {

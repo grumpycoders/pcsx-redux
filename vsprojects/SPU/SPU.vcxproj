@@ -153,6 +153,7 @@
     <ClInclude Include="..\..\src\spu\externals.h" />
     <ClInclude Include="..\..\src\spu\registers.h" />
     <ClInclude Include="..\..\src\spu\stdafx.h" />
+    <ClInclude Include="..\..\src\spu\types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

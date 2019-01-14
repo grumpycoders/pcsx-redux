@@ -31,41 +31,16 @@
 
 #include "spu/externals.h"
 #include "spu/gauss.h"
-
-#define _IN_XA
-
-////////////////////////////////////////////////////////////////////////
-// XA GLOBALS
-////////////////////////////////////////////////////////////////////////
-
-xa_decode_t *xapGlobal = 0;
-
-unsigned long *XAFeed = NULL;
-unsigned long *XAPlay = NULL;
-unsigned long *XAStart = NULL;
-unsigned long *XAEnd = NULL;
-unsigned long XARepeat = 0;
-unsigned long XALastVal = 0;
-
-int iLeftXAVol = 32767;
-int iRightXAVol = 32767;
-
-static int gauss_ptr = 0;
-static int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-#define gvall0 gauss_window[gauss_ptr]
-#define gvall(x) gauss_window[(gauss_ptr + x) & 3]
-#define gvalr0 gauss_window[4 + gauss_ptr]
-#define gvalr(x) gauss_window[4 + ((gauss_ptr + x) & 3)]
+#include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
 // MIX XA
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::MixXA() {
+void PCSX::SPU::impl::MixXA() {
     int ns;
 
-    for (ns = 0; ns < PCSX::SPU::NSSIZE && XAPlay != XAFeed; ns++) {
+    for (ns = 0; ns < PCSX::SPU::impl::NSSIZE && XAPlay != XAFeed; ns++) {
         XALastVal = *XAPlay++;
         if (XAPlay == XAEnd) XAPlay = XAStart;
         SSumL[ns] += (((short)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
@@ -85,7 +60,7 @@ void PCSX::SPU::MixXA() {
 // FEED XA
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::FeedXA(xa_decode_t *xap) {
+void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, iPlace, vl, vr;
 
     if (!bSPUIsOpen) return;
@@ -163,12 +138,12 @@ void PCSX::SPU::FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
                     vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
                     vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
                     vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
                     l = (vr >> 11) & 0xffff;
-                    vr = (Gauss::gauss[vl] * gvalr0) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvalr0()) & ~2047;
                     vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
                     vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
                     vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
@@ -213,12 +188,12 @@ void PCSX::SPU::FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
                     vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
                     vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
                     vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
                     l = (vr >> 11) & 0xffff;
-                    vr = (Gauss::gauss[vl] * gvalr0) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvalr0()) & ~2047;
                     vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
                     vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
                     vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
@@ -256,7 +231,7 @@ void PCSX::SPU::FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
                     vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
                     vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
                     vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
@@ -293,7 +268,7 @@ void PCSX::SPU::FeedXA(xa_decode_t *xap) {
                         spos -= 0x10000L;
                     }
                     vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0) & ~2047;
+                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
                     vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
                     vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
                     vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
