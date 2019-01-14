@@ -24,8 +24,9 @@
 
 #include "core/decode_xa.h"
 
-#include "spu/types.h"
 #include "spu/adsr.h"
+#include "spu/sdlsound.h"
+#include "spu/types.h"
 
 namespace PCSX {
 
@@ -216,7 +217,8 @@ class impl {
     int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
-    ::PCSX::SPU::ADSR m_adsr;
+    ADSR m_adsr;
+    SDLsound m_sound;
 };
 
 }  // namespace SPU

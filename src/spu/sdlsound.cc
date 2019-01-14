@@ -23,15 +23,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-static const size_t BUFFER_SIZE = 32 * 1024 * 4;
+#include "spu/sdlsound.h"
 
-static SDL_AudioDeviceID s_dev;
-static uint32_t s_ptrBegin = 0, s_ptrEnd = 0;
-static uint8_t s_buffer[BUFFER_SIZE];
-static SDL_mutex* s_mutex;
-static SDL_AudioSpec s_specs;
 
-static void dequeueLocked(uint8_t* stream, size_t len) {
+void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len) {
     if ((BUFFER_SIZE - s_ptrBegin) < len) {
         size_t subLen = BUFFER_SIZE - s_ptrBegin;
         dequeueLocked(stream, subLen);
@@ -44,7 +39,7 @@ static void dequeueLocked(uint8_t* stream, size_t len) {
     if (s_ptrBegin == BUFFER_SIZE) s_ptrBegin = 0;
 }
 
-static void callback(void* userdata, Uint8* stream, int len) {
+void PCSX::SPU::SDLsound::callback(Uint8* stream, int len) {
     SDL_LockMutex(s_mutex);
     size_t available;
     if (s_ptrEnd >= s_ptrBegin) {
@@ -62,13 +57,14 @@ static void callback(void* userdata, Uint8* stream, int len) {
     SDL_UnlockMutex(s_mutex);
 }
 
-void SetupSound(void) {
+void PCSX::SPU::SDLsound::setup() {
     SDL_zero(s_specs);
     s_specs.freq = 44100;
     s_specs.format = AUDIO_S16LSB;
     s_specs.channels = 2;
     s_specs.samples = 1024;
-    s_specs.callback = callback;
+    s_specs.callback = callbackTrampoline;
+    s_specs.userdata = this;
     s_dev = SDL_OpenAudioDevice(NULL, 0, &s_specs, NULL, SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
     assert(s_dev);
     SDL_PauseAudioDevice(s_dev, 0);
@@ -77,12 +73,12 @@ void SetupSound(void) {
     assert(s_mutex);
 }
 
-void RemoveSound(void) {
+void PCSX::SPU::SDLsound::remove() {
     SDL_CloseAudioDevice(s_dev);
     SDL_DestroyMutex(s_mutex);
 }
 
-unsigned long SoundGetBytesBuffered(void) {
+unsigned long PCSX::SPU::SDLsound::getBytesBuffered(void) {
     unsigned long r;
 
     SDL_LockMutex(s_mutex);
@@ -98,7 +94,7 @@ unsigned long SoundGetBytesBuffered(void) {
     return r;
 }
 
-static void enqueueLocked(const uint8_t* data, size_t len) {
+void PCSX::SPU::SDLsound::enqueueLocked(const uint8_t* data, size_t len) {
     if (len > (BUFFER_SIZE - s_ptrEnd)) {
         size_t subLen = BUFFER_SIZE - s_ptrEnd;
         enqueueLocked(data, subLen);
@@ -112,7 +108,7 @@ static void enqueueLocked(const uint8_t* data, size_t len) {
     if (s_ptrEnd == BUFFER_SIZE) s_ptrEnd = 0;
 }
 
-void SoundFeedStreamData(unsigned char* pSound, long lBytes) {
+void PCSX::SPU::SDLsound::feedStreamData(unsigned char* pSound, long lBytes) {
     SDL_LockMutex(s_mutex);
     enqueueLocked(pSound, lBytes);
     SDL_UnlockMutex(s_mutex);
