@@ -55,7 +55,7 @@ int iReverbNum = 1;
 // SET REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void SetREVERB(unsigned short val) {
+void PCSX::SPU::SetREVERB(unsigned short val) {
     switch (val) {
         case 0x0000:
             iReverbOff = -1;
@@ -114,7 +114,7 @@ void SetREVERB(unsigned short val) {
 // START REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void StartREVERB(SPUCHAN *pChannel) {
+void PCSX::SPU::StartREVERB(SPUCHAN *pChannel) {
     if (pChannel->bReverb && (spuCtrl & 0x80))  // reverb possible?
     {
         if (iUseReverb == 2)
@@ -134,7 +134,7 @@ void StartREVERB(SPUCHAN *pChannel) {
 // HELPER FOR NEILL'S REVERB: re-inits our reverb mixing buf
 ////////////////////////////////////////////////////////////////////////
 
-void InitREVERB(void) {
+void PCSX::SPU::InitREVERB() {
     if (iUseReverb == 2) {
         memset(sRVBStart, 0, NSSIZE * 2 * 4);
     }
@@ -144,7 +144,7 @@ void InitREVERB(void) {
 // STORE REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void StoreREVERB(SPUCHAN *pChannel, int ns) {
+void PCSX::SPU::StoreREVERB(SPUCHAN *pChannel, int ns) {
     if (iUseReverb == 0)
         return;
     else if (iUseReverb == 2)  // -------------------------------- // Neil's reverb
@@ -319,7 +319,7 @@ int PCSX::SPU::MixREVERBLeft(int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-int MixREVERBRight(void) {
+int PCSX::SPU::MixREVERBRight() {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2)  // Neill's reverb:

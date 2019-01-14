@@ -85,7 +85,7 @@ void MixXA(void) {
 // FEED XA
 ////////////////////////////////////////////////////////////////////////
 
-void FeedXA(xa_decode_t *xap) {
+void PCSX::SPU::FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, iPlace, vl, vr;
 
     if (!bSPUIsOpen) return;

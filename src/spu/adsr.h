@@ -27,7 +27,8 @@
 #pragma once
 
 #include "spu/externals.h"
+#include "spu/interface.h"
 
 void InitADSR();
-void StartADSR(SPUCHAN* pChannel);
-int MixADSR(SPUCHAN* pChannel);
+void StartADSR(PCSX::SPU::SPUCHAN* pChannel);
+int MixADSR(PCSX::SPU::SPUCHAN* pChannel);

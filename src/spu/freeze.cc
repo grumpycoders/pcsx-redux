@@ -54,7 +54,7 @@ typedef struct {
     unsigned long dummy2;
     unsigned long dummy3;
 
-    SPUCHAN s_chan[MAXCHAN];
+    PCSX::SPU::SPUCHAN s_chan[MAXCHAN];
 
 } SPUOSSFreeze_t;
 

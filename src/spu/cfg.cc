@@ -39,6 +39,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #include "stdafx.h"
 
 #define _IN_CFG
@@ -513,5 +515,7 @@ void ReadConfig(void) {
 
     ReadConfigFile();
 }
+
+#endif
 
 #endif

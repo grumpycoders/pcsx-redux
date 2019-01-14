@@ -36,6 +36,7 @@
 #include "stdafx.h"
 
 #include "spu/externals.h"
+#include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
 // ADSR func
@@ -73,7 +74,7 @@ void InitADSR(void)  // INIT ADSR
 
 ////////////////////////////////////////////////////////////////////////
 
-void StartADSR(SPUCHAN *pChannel)  // MIX ADSR
+void StartADSR(PCSX::SPU::SPUCHAN *pChannel)  // MIX ADSR
 {
     pChannel->ADSRX.lVolume = 1;  // and init some adsr vars
     pChannel->ADSRX.State = 0;
@@ -90,7 +91,7 @@ static const unsigned long int TableDisp[] = {
     -0x1B + 9 + 32, -0x1B + 10 + 32, -0x1B + 11 + 32, -0x1B + 12 + 32,
 };
 
-int MixADSR(SPUCHAN *ch) {
+int MixADSR(PCSX::SPU::SPUCHAN *ch) {
     unsigned long int disp;
     signed long int EnvelopeVol = ch->ADSRX.EnvelopeVol;
 

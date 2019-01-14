@@ -61,6 +61,83 @@ class SPU {
     void registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short));
 
 //  private:
+
+    // MAIN CHANNEL STRUCT
+
+    // ADSR INFOS PER CHANNEL
+    struct ADSRInfo {
+        int AttackModeExp;
+        long AttackTime;
+        long DecayTime;
+        long SustainLevel;
+        int SustainModeExp;
+        long SustainModeDec;
+        long SustainTime;
+        int ReleaseModeExp;
+        unsigned long ReleaseVal;
+        long ReleaseTime;
+        long ReleaseStartTime;
+        long ReleaseVol;
+        long lTime;
+        long lVolume;
+    };
+
+    struct ADSRInfoEx {
+        int State;
+        int AttackModeExp;
+        int AttackRate;
+        int DecayRate;
+        int SustainLevel;
+        int SustainModeExp;
+        int SustainIncrease;
+        int SustainRate;
+        int ReleaseModeExp;
+        int ReleaseRate;
+        int EnvelopeVol;
+        long lVolume;
+        long lDummy1;
+        long lDummy2;
+    };
+
+    struct SPUCHAN {
+        int bNew;  // start flag
+
+        int iSBPos;  // mixing stuff
+        int spos;
+        int sinc;
+        int SB[32 + 32];  // Pete added another 32 dwords in 1.6 ... prevents overflow issues with gaussian/cubic
+                          // interpolation (thanx xodnizel!), and can be used for even better interpolations, eh? :)
+        int sval;
+
+        unsigned char *pStart;  // start ptr into sound mem
+        unsigned char *pCurr;   // current pos in sound mem
+        unsigned char *pLoop;   // loop ptr in sound mem
+
+        int bOn;           // is channel active (sample playing?)
+        int bStop;         // is channel stopped (sample _can_ still be playing, ADSR Release phase)
+        int bReverb;       // can we do reverb on this channel? must have ctrl register bit, to get active
+        int iActFreq;      // current psx pitch
+        int iUsedFreq;     // current pc pitch
+        int iLeftVolume;   // left volume
+        int iLeftVolRaw;   // left psx volume value
+        int bIgnoreLoop;   // ignore loop bit, if an external loop address is used
+        int iMute;         // mute mode
+        int iRightVolume;  // right volume
+        int iRightVolRaw;  // right psx volume value
+        int iRawPitch;     // raw pitch (0...3fff)
+        int iIrqDone;      // debug irq done flag
+        int s_1;           // last decoding infos
+        int s_2;
+        int bRVBActive;    // reverb active flag
+        int iRVBOffset;    // reverb offset
+        int iRVBRepeat;    // reverb repeat
+        int bNoise;        // noise active flag
+        int bFMod;         // freq mod (0=off, 1=sound channel, 2=freq channel)
+        int iRVBNum;       // another reverb helper
+        int iOldNoise;     // old noise val for this channel
+        ADSRInfo ADSR;     // active ADSR settings
+        ADSRInfoEx ADSRX;  // next ADSR settings (will be moved to active on sample start)
+    };
     // freeze
     void LoadStateV5(SPUFreeze_t*);
     void LoadStateUnknown(SPUFreeze_t*);
@@ -76,14 +153,32 @@ class SPU {
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
+    void StartSound(SPUCHAN *pChannel);
+    void VoiceChangeFrequency(SPUCHAN *pChannel);
+    void FModChangeFrequency(SPUCHAN *pChannel, int ns);
+    int iGetNoiseVal(SPUCHAN *pChannel);
+    void StoreInterpolationVal(SPUCHAN *pChannel, int fa);
+    int iGetInterpolationVal(SPUCHAN *pChannel);
 
     // reverb
     int g_buffer(int iOff); // get_buffer content helper: takes care about wraps
     void s_buffer(int iOff, int iVal);  // set_buffer content helper: takes care about wraps and clipping
     void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+    void InitREVERB();
+    void SetREVERB(unsigned short val);
+    void StartREVERB(SPUCHAN *pChannel);
+    void StoreREVERB(SPUCHAN *pChannel, int ns);
     int MixREVERBLeft(int ns);
+    int MixREVERBRight();
 
-// psx buffer / addresses
+    // xa
+    void FeedXA(xa_decode_t *xap);
+
+
+    
+    int bSPUIsOpen;
+
+    // psx buffer / addresses
 
     unsigned short regArea[10000];
     unsigned short spuMem[256 * 1024];
@@ -91,6 +186,19 @@ class SPU {
     unsigned char *pSpuIrq = 0;
     unsigned char *pSpuBuffer;
     unsigned char *pMixIrq = 0;
+
+// user settings
+
+    int iUseXA = 1;
+    int iVolume = 3;
+    int iXAPitch = 1;
+    int iSPUIRQWait = 1;
+    int iSPUDebugMode = 0;
+    int iRecordMode = 0;
+    int iUseReverb = 2;
+    int iUseInterpolation = 2;
+    int iDisStereo = 0;
+    int iUseDBufIrq = 0;
 };
 
 }  // namespace PCSX

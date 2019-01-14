@@ -68,9 +68,6 @@
     <ClInclude Include="..\..\src\spu\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\spu\reverb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\spu\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>

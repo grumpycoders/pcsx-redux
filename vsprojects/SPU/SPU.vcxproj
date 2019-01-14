@@ -156,7 +156,6 @@
     <ClInclude Include="..\..\src\spu\registers.h" />
     <ClInclude Include="..\..\src\spu\regs.h" />
     <ClInclude Include="..\..\src\spu\resource.h" />
-    <ClInclude Include="..\..\src\spu\reverb.h" />
     <ClInclude Include="..\..\src\spu\stdafx.h" />
     <ClInclude Include="..\..\src\spu\xa.h" />
   </ItemGroup>

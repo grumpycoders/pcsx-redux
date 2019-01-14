@@ -102,7 +102,6 @@
 #include "spu/interface.h"
 #include "spu/regs.h"
 #include "spu/resource.h"
-#include "spu/reverb.h"
 #include "spu/sdlsound.h"
 #include "spu/xa.h"
 
@@ -111,22 +110,11 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-// user settings
 
-int iUseXA = 1;
-int iVolume = 3;
-int iXAPitch = 1;
-int iSPUIRQWait = 1;
-int iSPUDebugMode = 0;
-int iRecordMode = 0;
-int iUseReverb = 2;
-int iUseInterpolation = 2;
-int iDisStereo = 0;
-int iUseDBufIrq = 0;
 
 // MAIN infos struct for each channel
 
-SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
+PCSX::SPU::SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
 REVERBInfo rvb;
 
 unsigned long dwNoiseVal = 1;  // global noise generator
@@ -138,7 +126,6 @@ unsigned long spuAddr = 0xffffffff;  // address into spu mem
 int bEndThread = 0;                  // thread handlers
 int bThreadEnded = 0;
 int bSpuInit = 0;
-int bSPUIsOpen = 0;
 
 static SDL_Thread* hMainThread;
 unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
@@ -206,7 +193,7 @@ int iSecureStart = 0;  // secure start counter
 //          /
 //
 
-inline void InterpolateUp(SPUCHAN *pChannel) {
+inline void InterpolateUp(PCSX::SPU::SPUCHAN *pChannel) {
     if (pChannel->SB[32] == 1)  // flag == 1? calc step and set flag... and don't change the value in this pass
     {
         const int id1 = pChannel->SB[30] - pChannel->SB[29];  // curr delta to next val
@@ -250,7 +237,7 @@ inline void InterpolateUp(SPUCHAN *pChannel) {
 // even easier interpolation on downsampling, also no special filter, again just "Pete's common sense" tm
 //
 
-inline void InterpolateDown(SPUCHAN *pChannel) {
+inline void InterpolateDown(PCSX::SPU::SPUCHAN *pChannel) {
     if (pChannel->sinc >= 0x20000L)  // we would skip at least one val?
     {
         pChannel->SB[29] += (pChannel->SB[30] - pChannel->SB[29]) / 2;      // add easy weight
@@ -271,7 +258,7 @@ inline void InterpolateDown(SPUCHAN *pChannel) {
 // START SOUND... called by main thread to setup a new sound on a channel
 ////////////////////////////////////////////////////////////////////////
 
-inline void StartSound(SPUCHAN *pChannel) {
+inline void PCSX::SPU::StartSound(SPUCHAN *pChannel) {
     StartADSR(pChannel);
     StartREVERB(pChannel);
 
@@ -303,7 +290,7 @@ inline void StartSound(SPUCHAN *pChannel) {
 // ALL KIND OF HELPERS
 ////////////////////////////////////////////////////////////////////////
 
-inline void VoiceChangeFrequency(SPUCHAN *pChannel) {
+inline void PCSX::SPU::VoiceChangeFrequency(SPUCHAN *pChannel) {
     pChannel->iUsedFreq = pChannel->iActFreq;  // -> take it and calc steps
     pChannel->sinc = pChannel->iRawPitch << 4;
     if (!pChannel->sinc) pChannel->sinc = 1;
@@ -312,7 +299,7 @@ inline void VoiceChangeFrequency(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
+inline void PCSX::SPU::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
     int NP = pChannel->iRawPitch;
 
     NP = ((32768L + iFMod[ns]) * NP) / 32768L;
@@ -337,7 +324,7 @@ inline void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 // surely wrong... and no noise frequency (spuCtrl&0x3f00) will be used...
 // and sometimes the noise will be used as fmod modulation... pfff
 
-inline int iGetNoiseVal(SPUCHAN *pChannel) {
+inline int PCSX::SPU::iGetNoiseVal(SPUCHAN *pChannel) {
     int fa;
 
     if ((dwNoiseVal <<= 1) & 0x80000000L) {
@@ -360,7 +347,7 @@ inline int iGetNoiseVal(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
+inline void PCSX::SPU::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->bFMod == 2)  // fmod freq channel
         pChannel->SB[29] = fa;
     else {
@@ -394,7 +381,7 @@ inline void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline int iGetInterpolationVal(SPUCHAN *pChannel) {
+inline int PCSX::SPU::iGetInterpolationVal(SPUCHAN *pChannel) {
     int fa;
 
     if (pChannel->bFMod == 2) return pChannel->SB[29];
