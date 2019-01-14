@@ -1000,4 +1000,13 @@ void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(unsigned short, u
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::playCDDAchannel(short *data, int size) {}
+void PCSX::SPU::impl::playCDDAchannel(short *data, int size) {
+    m_cdda.freq = 44100;
+    m_cdda.nsamples = size / 4;
+    m_cdda.stereo = 1;
+    m_cdda.nbits = 16;
+    memcpy(m_cdda.pcm, data, size);
+    iLeftXAVol = 32767;
+    iRightXAVol = 32767;
+    FeedXA(&m_cdda);
+}

@@ -219,6 +219,7 @@ class impl {
 
     ADSR m_adsr;
     SDLsound m_sound;
+    xa_decode_t m_cdda;
 };
 
 }  // namespace SPU
