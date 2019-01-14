@@ -147,17 +147,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\spu\adsr.h" />
-    <ClInclude Include="..\..\src\spu\cfg.h" />
-    <ClInclude Include="..\..\src\spu\debug.h" />
     <ClInclude Include="..\..\src\spu\gauss.h" />
     <ClInclude Include="..\..\src\spu\interface.h" />
     <ClInclude Include="..\..\src\spu\sdlsound.h" />
     <ClInclude Include="..\..\src\spu\externals.h" />
     <ClInclude Include="..\..\src\spu\registers.h" />
-    <ClInclude Include="..\..\src\spu\regs.h" />
-    <ClInclude Include="..\..\src\spu\resource.h" />
     <ClInclude Include="..\..\src\spu\stdafx.h" />
-    <ClInclude Include="..\..\src\spu\xa.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

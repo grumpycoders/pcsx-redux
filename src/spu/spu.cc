@@ -100,10 +100,7 @@
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
-#include "spu/regs.h"
-#include "spu/resource.h"
 #include "spu/sdlsound.h"
-#include "spu/xa.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals

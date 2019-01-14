@@ -44,7 +44,6 @@
 #include "spu/externals.h"
 #include "spu/interface.h"
 #include "spu/registers.h"
-#include "spu/regs.h"
 
 /*
 // adsr time values (in ms) by James Higgs ... see the end of
