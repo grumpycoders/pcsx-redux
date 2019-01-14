@@ -62,10 +62,10 @@ static int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 // MIX XA
 ////////////////////////////////////////////////////////////////////////
 
-void MixXA(void) {
+void PCSX::SPU::MixXA() {
     int ns;
 
-    for (ns = 0; ns < NSSIZE && XAPlay != XAFeed; ns++) {
+    for (ns = 0; ns < PCSX::SPU::NSSIZE && XAPlay != XAFeed; ns++) {
         XALastVal = *XAPlay++;
         if (XAPlay == XAEnd) XAPlay = XAStart;
         SSumL[ns] += (((short)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;

@@ -50,17 +50,7 @@
 // spu defines
 ////////////////////////////////////////////////////////////////////////
 
-// sound buffer sizes
-// 400 ms complete sound buffer
-#define SOUNDSIZE 70560
-// 137 ms test buffer... if less than that is buffered, a new upload will happen
-#define TESTSIZE 24192
 
-// num of channels
-#define MAXCHAN 24
-
-// ~ 1 ms of data
-#define NSSIZE 45
 
 ///////////////////////////////////////////////////////////
 // struct defines
@@ -85,81 +75,6 @@
 
 ///////////////////////////////////////////////////////////
 
-typedef struct {
-    int StartAddr;  // reverb area start addr in samples
-    int CurrAddr;   // reverb area curr addr in samples
-
-    int VolLeft;
-    int VolRight;
-    int iLastRVBLeft;
-    int iLastRVBRight;
-    int iRVBLeft;
-    int iRVBRight;
-
-    int FB_SRC_A;     // (offset)
-    int FB_SRC_B;     // (offset)
-    int IIR_ALPHA;    // (coef.)
-    int ACC_COEF_A;   // (coef.)
-    int ACC_COEF_B;   // (coef.)
-    int ACC_COEF_C;   // (coef.)
-    int ACC_COEF_D;   // (coef.)
-    int IIR_COEF;     // (coef.)
-    int FB_ALPHA;     // (coef.)
-    int FB_X;         // (coef.)
-    int IIR_DEST_A0;  // (offset)
-    int IIR_DEST_A1;  // (offset)
-    int ACC_SRC_A0;   // (offset)
-    int ACC_SRC_A1;   // (offset)
-    int ACC_SRC_B0;   // (offset)
-    int ACC_SRC_B1;   // (offset)
-    int IIR_SRC_A0;   // (offset)
-    int IIR_SRC_A1;   // (offset)
-    int IIR_DEST_B0;  // (offset)
-    int IIR_DEST_B1;  // (offset)
-    int ACC_SRC_C0;   // (offset)
-    int ACC_SRC_C1;   // (offset)
-    int ACC_SRC_D0;   // (offset)
-    int ACC_SRC_D1;   // (offset)
-    int IIR_SRC_B1;   // (offset)
-    int IIR_SRC_B0;   // (offset)
-    int MIX_DEST_A0;  // (offset)
-    int MIX_DEST_A1;  // (offset)
-    int MIX_DEST_B0;  // (offset)
-    int MIX_DEST_B1;  // (offset)
-    int IN_COEF_L;    // (coef.)
-    int IN_COEF_R;    // (coef.)
-} REVERBInfo;
-
-#ifdef _WIN32
-#define WM_MUTE (WM_USER + 543)
-#endif
-
-///////////////////////////////////////////////////////////
-// SPU.C globals
-///////////////////////////////////////////////////////////
-// MISC
-
-extern PCSX::SPU::SPUCHAN s_chan[];
-extern REVERBInfo rvb;
-
-extern unsigned long dwNoiseVal;
-extern unsigned short spuCtrl;
-extern unsigned short spuStat;
-extern unsigned short spuIrq;
-extern unsigned long spuAddr;
-extern int bEndThread;
-extern int bThreadEnded;
-extern int bSpuInit;
-extern unsigned long dwNewChannel;
-
-extern int SSumR[];
-extern int SSumL[];
-extern int iCycle;
-extern short *pS;
-
-extern int iSpuAsyncWait;
-
-extern void(*cddavCallback)(unsigned short, unsigned short);
 
 ///////////////////////////////////////////////////////////
 // XA.C globals

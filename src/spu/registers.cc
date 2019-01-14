@@ -494,7 +494,7 @@ unsigned short PCSX::SPU::readRegister(unsigned long reg) {
 // SOUND ON register write
 ////////////////////////////////////////////////////////////////////////
 
-void SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
+void PCSX::SPU::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
 {
     int ch;
 
@@ -513,7 +513,7 @@ void SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
 // SOUND OFF register write
 ////////////////////////////////////////////////////////////////////////
 
-void SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
+void PCSX::SPU::SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
 {
     int ch;
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
@@ -529,7 +529,7 @@ void SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
 // FMOD register write
 ////////////////////////////////////////////////////////////////////////
 
-void FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
+void PCSX::SPU::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
 {
     int ch;
 
@@ -551,7 +551,7 @@ void FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
 // NOISE register write
 ////////////////////////////////////////////////////////////////////////
 
-void NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
+void PCSX::SPU::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
 {
     int ch;
 
@@ -573,7 +573,7 @@ void NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
 // please note: sweep and phase invert are wrong... but I've never seen
 // them used
 
-void SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
+void PCSX::SPU::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 {
     s_chan[ch].iLeftVolRaw = vol;
 
@@ -600,7 +600,7 @@ void SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 // RIGHT VOLUME register write
 ////////////////////////////////////////////////////////////////////////
 
-void SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
+void PCSX::SPU::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 {
     s_chan[ch].iRightVolRaw = vol;
 
@@ -626,7 +626,7 @@ void SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 // PITCH register write
 ////////////////////////////////////////////////////////////////////////
 
-void SetPitch(int ch, unsigned short val)  // SET PITCH
+void PCSX::SPU::SetPitch(int ch, unsigned short val)  // SET PITCH
 {
     int NP;
     if (val > 0x3fff)
@@ -645,7 +645,7 @@ void SetPitch(int ch, unsigned short val)  // SET PITCH
 // REVERB register write
 ////////////////////////////////////////////////////////////////////////
 
-void ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
+void PCSX::SPU::ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
 {
     int ch;
 

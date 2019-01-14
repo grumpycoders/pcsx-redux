@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <SDL.h>
 #include <stdint.h>
 
 #include "core/decode_xa.h"
@@ -32,14 +33,14 @@ class SPU {
     long init(void);
     long shutdown(void);
     long close(void);
-    //void playSample(unsigned char);
+    // void playSample(unsigned char);
     void writeRegister(unsigned long, unsigned short);
     unsigned short readRegister(unsigned long);
     void writeDMA(unsigned short);
     unsigned short readDMA(void);
-    void writeDMAMem(unsigned short*, int);
-    void readDMAMem(unsigned short*, int);
-    void playADPCMchannel(xa_decode_t*);
+    void writeDMAMem(unsigned short *, int);
+    void readDMAMem(unsigned short *, int);
+    void playADPCMchannel(xa_decode_t *);
     void registerCallback(void (*callback)(void));
     long configure(void);
     long test(void);
@@ -52,15 +53,27 @@ class SPU {
         unsigned char SPUPorts[0x200];
         unsigned char SPURam[0x80000];
         xa_decode_t xa;
-        unsigned char* SPUInfo;
+        unsigned char *SPUInfo;
     };
 
-    long freeze(uint32_t, SPUFreeze_t*);
+    long freeze(uint32_t, SPUFreeze_t *);
     void async(uint32_t);
-    void playCDDAchannel(short*, int);
+    void playCDDAchannel(short *, int);
     void registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short));
 
-//  private:
+    //  private:
+
+    // sound buffer sizes
+    // 400 ms complete sound buffer
+    static const size_t SOUNDSIZE = 70560;
+    // 137 ms test buffer... if less than that is buffered, a new upload will happen
+    static const size_t TESTSIZE = 24192;
+
+    // num of channels
+    static const size_t MAXCHAN = 24;
+
+    // ~ 1 ms of data
+    static const size_t NSSIZE = 45;
 
     // MAIN CHANNEL STRUCT
 
@@ -138,9 +151,56 @@ class SPU {
         ADSRInfo ADSR;     // active ADSR settings
         ADSRInfoEx ADSRX;  // next ADSR settings (will be moved to active on sample start)
     };
+
+    struct REVERBInfo {
+        int StartAddr;  // reverb area start addr in samples
+        int CurrAddr;   // reverb area curr addr in samples
+
+        int VolLeft;
+        int VolRight;
+        int iLastRVBLeft;
+        int iLastRVBRight;
+        int iRVBLeft;
+        int iRVBRight;
+
+        int FB_SRC_A;     // (offset)
+        int FB_SRC_B;     // (offset)
+        int IIR_ALPHA;    // (coef.)
+        int ACC_COEF_A;   // (coef.)
+        int ACC_COEF_B;   // (coef.)
+        int ACC_COEF_C;   // (coef.)
+        int ACC_COEF_D;   // (coef.)
+        int IIR_COEF;     // (coef.)
+        int FB_ALPHA;     // (coef.)
+        int FB_X;         // (coef.)
+        int IIR_DEST_A0;  // (offset)
+        int IIR_DEST_A1;  // (offset)
+        int ACC_SRC_A0;   // (offset)
+        int ACC_SRC_A1;   // (offset)
+        int ACC_SRC_B0;   // (offset)
+        int ACC_SRC_B1;   // (offset)
+        int IIR_SRC_A0;   // (offset)
+        int IIR_SRC_A1;   // (offset)
+        int IIR_DEST_B0;  // (offset)
+        int IIR_DEST_B1;  // (offset)
+        int ACC_SRC_C0;   // (offset)
+        int ACC_SRC_C1;   // (offset)
+        int ACC_SRC_D0;   // (offset)
+        int ACC_SRC_D1;   // (offset)
+        int IIR_SRC_B1;   // (offset)
+        int IIR_SRC_B0;   // (offset)
+        int MIX_DEST_A0;  // (offset)
+        int MIX_DEST_A1;  // (offset)
+        int MIX_DEST_B0;  // (offset)
+        int MIX_DEST_B1;  // (offset)
+        int IN_COEF_L;    // (coef.)
+        int IN_COEF_R;    // (coef.)
+    };
+
+
     // freeze
-    void LoadStateV5(SPUFreeze_t*);
-    void LoadStateUnknown(SPUFreeze_t*);
+    void LoadStateV5(SPUFreeze_t *);
+    void LoadStateUnknown(SPUFreeze_t *);
 
     // spu
     void MainThread();
@@ -160,9 +220,19 @@ class SPU {
     void StoreInterpolationVal(SPUCHAN *pChannel, int fa);
     int iGetInterpolationVal(SPUCHAN *pChannel);
 
+    // registers
+    void SoundOn(int start, int end, unsigned short val);
+    void SoundOff(int start, int end, unsigned short val);
+    void FModOn(int start, int end, unsigned short val);
+    void NoiseOn(int start, int end, unsigned short val);
+    void SetVolumeL(unsigned char ch, short vol);
+    void SetVolumeR(unsigned char ch, short vol);
+    void SetPitch(int ch, unsigned short val);
+    void ReverbOn(int start, int end, unsigned short val);
+
     // reverb
-    int g_buffer(int iOff); // get_buffer content helper: takes care about wraps
-    void s_buffer(int iOff, int iVal);  // set_buffer content helper: takes care about wraps and clipping
+    int g_buffer(int iOff);              // get_buffer content helper: takes care about wraps
+    void s_buffer(int iOff, int iVal);   // set_buffer content helper: takes care about wraps and clipping
     void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
     void InitREVERB();
     void SetREVERB(unsigned short val);
@@ -172,10 +242,9 @@ class SPU {
     int MixREVERBRight();
 
     // xa
+    void MixXA();
     void FeedXA(xa_decode_t *xap);
 
-
-    
     int bSPUIsOpen;
 
     // psx buffer / addresses
@@ -187,7 +256,7 @@ class SPU {
     unsigned char *pSpuBuffer;
     unsigned char *pMixIrq = 0;
 
-// user settings
+    // user settings
 
     int iUseXA = 1;
     int iVolume = 3;
@@ -199,6 +268,42 @@ class SPU {
     int iUseInterpolation = 2;
     int iDisStereo = 0;
     int iUseDBufIrq = 0;
+
+    // MAIN infos struct for each channel
+
+    PCSX::SPU::SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
+    REVERBInfo rvb;
+
+    unsigned long dwNoiseVal = 1;  // global noise generator
+
+    unsigned short spuCtrl = 0;  // some vars to store psx reg infos
+    unsigned short spuStat = 0;
+    unsigned short spuIrq = 0;
+    unsigned long spuAddr = 0xffffffff;  // address into spu mem
+    int bEndThread = 0;                  // thread handlers
+    int bThreadEnded = 0;
+    int bSpuInit = 0;
+
+    SDL_Thread *hMainThread;
+    unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
+
+    void (*irqCallback)(void) = 0;  // func of main emu, called on spu irq
+    void (*cddavCallback)(unsigned short, unsigned short) = 0;
+    void (*irqQSound)(unsigned char *, long *, long) = 0;
+
+    // certain globals (were local before, but with the new timeproc I need em global)
+
+    const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
+    int SSumR[NSSIZE];
+    int SSumL[NSSIZE];
+    int iFMod[NSSIZE];
+    int iCycle = 0;
+    short *pS;
+
+    int lastch = -1;       // last channel processed on spu irq in timer mode
+    int lastns = 0;        // last ns pos
+    int iSecureStart = 0;  // secure start counter
+    int iSpuAsyncWait = 0;
 };
 
 }  // namespace PCSX

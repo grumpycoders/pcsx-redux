@@ -110,43 +110,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-
-
-// MAIN infos struct for each channel
-
-PCSX::SPU::SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
-REVERBInfo rvb;
-
-unsigned long dwNoiseVal = 1;  // global noise generator
-
-unsigned short spuCtrl = 0;  // some vars to store psx reg infos
-unsigned short spuStat = 0;
-unsigned short spuIrq = 0;
-unsigned long spuAddr = 0xffffffff;  // address into spu mem
-int bEndThread = 0;                  // thread handlers
-int bThreadEnded = 0;
-int bSpuInit = 0;
-
-static SDL_Thread* hMainThread;
-unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
-
-void (*irqCallback)(void) = 0;  // func of main emu, called on spu irq
-void (*cddavCallback)(unsigned short, unsigned short) = 0;
-void (*irqQSound)(unsigned char *, long *, long) = 0;
-
-// certain globals (were local before, but with the new timeproc I need em global)
-
-static const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
-int SSumR[NSSIZE];
-int SSumL[NSSIZE];
-int iFMod[NSSIZE];
-int iCycle = 0;
-short *pS;
-
-int lastch = -1;       // last channel processed on spu irq in timer mode
-int lastns = 0;        // last ns pos
-int iSecureStart = 0;  // secure start counter
-
 ////////////////////////////////////////////////////////////////////////
 // CODE AREA
 ////////////////////////////////////////////////////////////////////////
@@ -454,8 +417,6 @@ inline int PCSX::SPU::iGetInterpolationVal(SPUCHAN *pChannel) {
 #define PAUSE_L 5000
 
 ////////////////////////////////////////////////////////////////////////
-
-int iSpuAsyncWait = 0;
 
 void PCSX::SPU::MainThread() {
     int s_1, s_2, fa, ns, voldiv = iVolume;
@@ -999,9 +960,7 @@ long PCSX::SPU::close(void) {
     bSPUIsOpen = 0;  // no more open
 
     RemoveThread();  // no more feeding
-
     RemoveSound();  // no more sound handling
-
     RemoveStreams();  // no more streaming
 
     return 0;
