@@ -28,7 +28,9 @@
 #include "core/mdec.h"
 #include "core/misc.h"
 #include "core/ppf.h"
-#include "core/psxemulator.h "
+#include "core/psxemulator.h"
+
+#include "spu/interface.h"
 
 // PSX Executable types
 #define PSX_EXE 1
@@ -695,7 +697,7 @@ void RewindState() {
 }
 
 static PCSX::GPU::GPUFreeze_t *s_gpufP = NULL;
-static SPUFreeze_t *s_spufP = NULL;
+static PCSX::SPU::SPUFreeze_t *s_spufP = NULL;
 
 int SaveStateMem(const uint32_t id) { return 0; }
 int LoadStateMem(const uint32_t id) { return 0; }
@@ -729,12 +731,13 @@ int SaveStateGz(gzFile f, long *gzsize) {
 
     // SPU Plugin cannot change during run, so we query size info just once per session
     if (!s_spufP) {
-        s_spufP = (SPUFreeze_t *)malloc(offsetof(SPUFreeze_t, SPUPorts));  // only first 3 elements (up to Size)
-        SPUfreeze(2, s_spufP);
+        s_spufP = (PCSX::SPU::SPUFreeze_t *)malloc(
+            offsetof(PCSX::SPU::SPUFreeze_t, SPUPorts));  // only first 3 elements (up to Size)
+        PCSX::g_emulator.m_spu->freeze(2, s_spufP);
         Size = s_spufP->Size;
-        PCSX::g_system->SysPrintf("SPUFreezeSize %i/(%i)\n", Size, offsetof(SPUFreeze_t, SPUPorts));
+        PCSX::g_system->SysPrintf("SPUFreezeSize %i/(%i)\n", Size, offsetof(PCSX::SPU::SPUFreeze_t, SPUPorts));
         free(s_spufP);
-        s_spufP = (SPUFreeze_t *)malloc(Size);
+        s_spufP = (PCSX::SPU::SPUFreeze_t *)malloc(Size);
         s_spufP->Size = Size;
 
         if (s_spufP->Size <= 0) {
@@ -746,7 +749,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
     }
     // spu
     gzwrite(f, &(s_spufP->Size), 4);
-    SPUfreeze(1, s_spufP);
+    PCSX::g_emulator.m_spu->freeze(1, s_spufP);
     gzwrite(f, s_spufP, s_spufP->Size);
 
     PCSX::g_emulator.m_sio->sioFreeze(f, 1);
@@ -762,7 +765,7 @@ int SaveStateGz(gzFile f, long *gzsize) {
 }
 
 int LoadStateGz(gzFile f) {
-    SPUFreeze_t *_spufP;
+    PCSX::SPU::SPUFreeze_t *_spufP;
     int Size;
     char header[sizeof(PcsxrHeader)];
     uint32_t version;
@@ -798,9 +801,9 @@ int LoadStateGz(gzFile f) {
 
     // spu
     gzread(f, &Size, 4);
-    _spufP = (SPUFreeze_t *)malloc(Size);
+    _spufP = (PCSX::SPU::SPUFreeze_t *)malloc(Size);
     gzread(f, _spufP, Size);
-    SPUfreeze(0, _spufP);
+    PCSX::g_emulator.m_spu->freeze(0, _spufP);
     free(_spufP);
 
     PCSX::g_emulator.m_sio->sioFreeze(f, 0);

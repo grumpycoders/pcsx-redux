@@ -29,8 +29,8 @@
 
 #include "stdafx.h"
 
-#include "src/spu/externals.h"
-#include "src/spu/gauss.h"
+#include "spu/externals.h"
+#include "spu/gauss.h"
 
 #define _IN_XA
 

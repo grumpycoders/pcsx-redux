@@ -23,6 +23,8 @@
 
 #include "core/psxdma.h"
 
+#include "spu/interface.h"
+
 // Dma0/1 in Mdec.c
 // Dma3   in CdRom.c
 
@@ -43,7 +45,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
                 break;
             }
-            SPUwriteDMAMem(ptr, (bcr >> 16) * (bcr & 0xffff) * 2);
+            PCSX::g_emulator.m_spu->writeDMAMem(ptr, (bcr >> 16) * (bcr & 0xffff) * 2);
 
             // Jungle Book - max 0.333x DMA length
             // Harry Potter and the Philosopher's Stone - max 0.5x DMA length
@@ -60,7 +62,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
                 break;
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
-            SPUreadDMAMem(ptr, size);
+            PCSX::g_emulator.m_spu->readDMAMem(ptr, size);
             PCSX::g_emulator.m_psxCpu->Clear(madr, size);
 
 #if 1

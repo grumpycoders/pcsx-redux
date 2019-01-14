@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "src/spu/externals.h"
+#include "spu/externals.h"
 
 void InitADSR();
 void StartADSR(SPUCHAN* pChannel);

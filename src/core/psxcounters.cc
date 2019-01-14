@@ -24,6 +24,7 @@
 #include "core/psxcounters.h"
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "spu/interface.h"
 
 /******************************************************************************/
 
@@ -173,7 +174,7 @@ void PCSX::Counters::psxRcntUpdate() {
         if (m_spuSyncCount >= SpuUpdInterval[PCSX::g_emulator.config().Video]) {
             m_spuSyncCount = 0;
 
-            SPUasync(SpuUpdInterval[PCSX::g_emulator.config().Video] * m_rcnts[3].target);
+            PCSX::g_emulator.m_spu->async(SpuUpdInterval[PCSX::g_emulator.config().Video] * m_rcnts[3].target);
         }
 
 #ifdef ENABLE_SIO1API

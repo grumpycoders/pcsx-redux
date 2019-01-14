@@ -41,10 +41,11 @@
 
 #define _IN_REGISTERS
 
-#include "externals.h"
-#include "registers.h"
-#include "regs.h"
-#include "reverb.h"
+#include "spu/externals.h"
+#include "spu/interface.h"
+#include "spu/registers.h"
+#include "spu/regs.h"
+#include "spu/reverb.h"
 
 /*
 // adsr time values (in ms) by James Higgs ... see the end of
@@ -68,7 +69,7 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUwriteRegister(unsigned long reg, unsigned short val) {
+void PCSX::SPU::writeRegister(unsigned long reg, unsigned short val) {
     const unsigned long r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
@@ -432,7 +433,7 @@ extern "C" void SPUwriteRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" unsigned short SPUreadRegister(unsigned long reg) {
+unsigned short PCSX::SPU::readRegister(unsigned long reg) {
     const unsigned long r = reg & 0xfff;
 
     iSpuAsyncWait = 0;

@@ -28,4 +28,3 @@
 
 void SetupTimer(void);
 void RemoveTimer(void);
-extern "C" void SPUplayADPCMchannel(xa_decode_t *xap);

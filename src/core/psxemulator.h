@@ -86,6 +86,7 @@ class MDEC;
 class GPU;
 class Debug;
 class HW;
+class SPU;
 
 class Emulator {
   private:
@@ -171,6 +172,7 @@ class Emulator {
     GPU* m_gpu = NULL;
     Debug* m_debug = NULL;
     HW* m_hw = NULL;
+    SPU* m_spu = NULL;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

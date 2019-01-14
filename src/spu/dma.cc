@@ -26,15 +26,14 @@
 
 #include "stdafx.h"
 
-#define _IN_DMA
-
-#include "externals.h"
+#include "spu/externals.h"
+#include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
 // READ DMA (one value)
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short SPUreadDMA(void) {
+unsigned short PCSX::SPU::readDMA(void) {
     unsigned short s;
 
     s = spuMem[spuAddr >> 1];
@@ -51,7 +50,7 @@ unsigned short SPUreadDMA(void) {
 // READ DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUreadDMAMem(unsigned short* pusPSXMem, int iSize) {
+void PCSX::SPU::readDMAMem(unsigned short* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {
@@ -75,7 +74,7 @@ extern "C" void SPUreadDMAMem(unsigned short* pusPSXMem, int iSize) {
 // WRITE DMA (one value)
 ////////////////////////////////////////////////////////////////////////
 
-void SPUwriteDMA(unsigned short val) {
+void PCSX::SPU::writeDMA(unsigned short val) {
     spuMem[spuAddr >> 1] = val;  // spu addr got by writeregister
 
     spuAddr += 2;                        // inc spu addr
@@ -88,7 +87,7 @@ void SPUwriteDMA(unsigned short val) {
 // WRITE DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUwriteDMAMem(unsigned short* pusPSXMem, int iSize) {
+void PCSX::SPU::writeDMAMem(unsigned short* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {

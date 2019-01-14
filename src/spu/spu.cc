@@ -97,16 +97,17 @@
 
 #define _IN_SPU
 
-#include "src/spu/adsr.h"
-#include "src/spu/cfg.h"
-#include "src/spu/debug.h"
-#include "src/spu/externals.h"
-#include "src/spu/gauss.h"
-#include "src/spu/regs.h"
-#include "src/spu/resource.h"
-#include "src/spu/reverb.h"
-#include "src/spu/sdlsound.h"
-#include "src/spu/xa.h"
+#include "spu/adsr.h"
+#include "spu/cfg.h"
+#include "spu/debug.h"
+#include "spu/externals.h"
+#include "spu/gauss.h"
+#include "spu/interface.h"
+#include "spu/regs.h"
+#include "spu/resource.h"
+#include "spu/reverb.h"
+#include "spu/sdlsound.h"
+#include "spu/xa.h"
 
 ////////////////////////////////////////////////////////////////////////
 // spu version infos/name
@@ -915,7 +916,7 @@ DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
 //  1 time every 'cycle' cycles... harhar
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUasync(unsigned long cycle) {
+void PCSX::SPU::async(uint32_t cycle) {
     if (iSpuAsyncWait) {
         iSpuAsyncWait++;
         if (iSpuAsyncWait <= 64) return;
@@ -969,7 +970,7 @@ void SPUupdate(void) { SPUasync(0); }
 // XA AUDIO
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUplayADPCMchannel(xa_decode_t *xap) {
+void PCSX::SPU::playADPCMchannel(xa_decode_t *xap) {
     if (!iUseXA) return;  // no XA? bye
     if (!xap) return;
     if (!xap->freq) return;  // no xa freq ? bye
@@ -985,7 +986,7 @@ extern "C" void SPUplayADPCMchannel(xa_decode_t *xap) {
 // SPUINIT: this func will be called first by the main emu
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long SPUinit(void) {
+long PCSX::SPU::init(void) {
     spuMemC = (unsigned char *)spuMem;  // just small setup
     memset((void *)s_chan, 0, MAXCHAN * sizeof(SPUCHAN));
     memset((void *)&rvb, 0, sizeof(REVERBInfo));
@@ -1205,7 +1206,7 @@ void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
 // SPUCLOSE: called before shutdown
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long SPUclose(void) {
+long PCSX::SPU::close(void) {
     if (!bSPUIsOpen) return 0;  // some security
 
     bSPUIsOpen = 0;  // no more open
@@ -1230,19 +1231,19 @@ extern "C" long SPUclose(void) {
 // SPUSHUTDOWN: called by main emu on final exit
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long SPUshutdown(void) { return 0; }
+long PCSX::SPU::shutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUTEST: we don't test, we are always fine ;)
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long SPUtest(void) { return 0; }
+long PCSX::SPU::test(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUCONFIGURE: call config dialog
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long SPUconfigure(void) {
+long PCSX::SPU::configure(void) {
 #ifdef _WIN32
     DialogBox(0, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
 #else
@@ -1255,7 +1256,7 @@ extern "C" long SPUconfigure(void) {
 // SPUABOUT: show about window
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUabout(void) {
+void PCSX::SPU::about(void) {
 #ifdef _WIN32
     DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
 #else
@@ -1269,12 +1270,12 @@ extern "C" void SPUabout(void) {
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUregisterCallback(void (*callback)(void)) { irqCallback = callback; }
+void PCSX::SPU::registerCallback(void (*callback)(void)) { irqCallback = callback; }
 
-extern "C" void SPUregisterCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
+void PCSX::SPU::registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
     cddavCallback = CDDAVcallback;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void SPUplayCDDAchannel(short *data, int size) {}
+void PCSX::SPU::playCDDAchannel(short *data, int size) {}

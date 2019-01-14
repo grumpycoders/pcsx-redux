@@ -19,10 +19,49 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#include "core/decode_xa.h"
+
 namespace PCSX {
 
 class SPU {
+  public:
+    // SPU Functions
+    long init(void);
+    long shutdown(void);
+    long close(void);
+    //void playSample(unsigned char);
+    void writeRegister(unsigned long, unsigned short);
+    unsigned short readRegister(unsigned long);
+    void writeDMA(unsigned short);
+    unsigned short readDMA(void);
+    void writeDMAMem(unsigned short*, int);
+    void readDMAMem(unsigned short*, int);
+    void playADPCMchannel(xa_decode_t*);
+    void registerCallback(void (*callback)(void));
+    long configure(void);
+    long test(void);
+    void about(void);
 
+    struct SPUFreeze_t {
+        char PluginName[8];
+        uint32_t PluginVersion;
+        uint32_t Size;
+        unsigned char SPUPorts[0x200];
+        unsigned char SPURam[0x80000];
+        xa_decode_t xa;
+        unsigned char* SPUInfo;
+    };
+
+    long freeze(uint32_t, SPUFreeze_t*);
+    void async(uint32_t);
+    void playCDDAchannel(short*, int);
+    void registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short));
+
+  private:
+    void LoadStateV5(SPUFreeze_t*);
+    void LoadStateUnknown(SPUFreeze_t*);
 };
 
 }  // namespace PCSX

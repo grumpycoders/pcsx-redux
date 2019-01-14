@@ -70,16 +70,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\third_party\SDL\include;..\..;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\third_party\SDL\include;..\..;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\third_party\SDL\include;..\..;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\third_party\SDL\include;..\..;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -149,11 +149,10 @@
     <ClInclude Include="..\..\src\spu\adsr.h" />
     <ClInclude Include="..\..\src\spu\cfg.h" />
     <ClInclude Include="..\..\src\spu\debug.h" />
-    <ClInclude Include="..\..\src\spu\dma.h" />
     <ClInclude Include="..\..\src\spu\gauss.h" />
+    <ClInclude Include="..\..\src\spu\interface.h" />
     <ClInclude Include="..\..\src\spu\sdlsound.h" />
     <ClInclude Include="..\..\src\spu\externals.h" />
-    <ClInclude Include="..\..\src\spu\psemuxa.h" />
     <ClInclude Include="..\..\src\spu\registers.h" />
     <ClInclude Include="..\..\src\spu\regs.h" />
     <ClInclude Include="..\..\src\spu\resource.h" />

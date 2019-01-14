@@ -35,7 +35,7 @@
 
 #include "stdafx.h"
 
-#include "src/spu/externals.h"
+#include "spu/externals.h"
 
 ////////////////////////////////////////////////////////////////////////
 // ADSR func

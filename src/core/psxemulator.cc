@@ -29,6 +29,7 @@
 #include "core/r3000a.h"
 
 #include "gpu/soft/interface.h"
+#include "spu/interface.h"
 
 PCSX::Emulator::Emulator() {
     m_psxMem = new PCSX::Memory();
@@ -42,6 +43,7 @@ PCSX::Emulator::Emulator() {
     m_gpu = new PCSX::SoftGPU::impl();
     m_debug = new PCSX::Debug();
     m_hw = new PCSX::HW();
+    m_spu = new PCSX::SPU();
 }
 
 PCSX::Emulator::~Emulator() {
@@ -56,6 +58,7 @@ PCSX::Emulator::~Emulator() {
     delete m_gpu;
     delete m_debug;
     delete m_hw;
+    delete m_spu;
 }
 
 int PCSX::Emulator::EmuInit() {
