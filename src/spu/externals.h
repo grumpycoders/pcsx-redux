@@ -41,10 +41,7 @@
 #define PSE_SPU_ERR -60
 #define PSE_SPU_ERR_NOTCONFIGURED PSE_SPU_ERR - 1
 #define PSE_SPU_ERR_INIT PSE_SPU_ERR - 2
-#ifndef max
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#endif
+
 
 ////////////////////////////////////////////////////////////////////////
 // spu defines
@@ -92,14 +89,3 @@ extern unsigned long XALastVal;
 
 extern int iLeftXAVol;
 extern int iRightXAVol;
-
-///////////////////////////////////////////////////////////
-// REVERB.C globals
-///////////////////////////////////////////////////////////
-
-extern int *sRVBPlay;
-extern int *sRVBEnd;
-extern int *sRVBStart;
-extern int iReverbOff;
-extern int iReverbRepeat;
-extern int iReverbNum;

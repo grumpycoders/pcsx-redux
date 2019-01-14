@@ -304,6 +304,15 @@ class SPU {
     int lastns = 0;        // last ns pos
     int iSecureStart = 0;  // secure start counter
     int iSpuAsyncWait = 0;
+
+    // REVERB info and timing vars...
+
+    int *sRVBPlay = 0;
+    int *sRVBEnd = 0;
+    int *sRVBStart = 0;
+    int iReverbOff = -1;  // some delay factor for reverb
+    int iReverbRepeat = 0;
+    int iReverbNum = 1;
 };
 
 }  // namespace PCSX
