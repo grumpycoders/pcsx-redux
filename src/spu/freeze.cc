@@ -114,8 +114,8 @@ long PCSX::SPU::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
     if (ulFreezeMode != 0) return 0;  // bad mode? bye
 
 #ifdef _WIN32
-    if (iSPUDebugMode && IsWindow(hWDebug))  // clean debug mute infos
-        SendMessage(hWDebug, WM_MUTE, 0, 0);
+    if (iSPUDebugMode && IsWindow(0))  // clean debug mute infos
+        SendMessage(0, WM_MUTE, 0, 0);
     if (IsBadReadPtr(pF, sizeof(SPUFreeze_t)))  // check bad emu stuff
         return 0;
 #endif

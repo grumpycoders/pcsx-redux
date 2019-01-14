@@ -361,7 +361,7 @@ BOOL DebugDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         } break;
         //--------------------------------------------------// size
         case WM_SIZE:
-            if (wParam == SIZE_MINIMIZED) SetFocus(hWMain);  // if we get minimized, set the foxus to the main window
+            if (wParam == SIZE_MINIMIZED) SetFocus(0);  // if we get minimized, set the foxus to the main window
             break;
         //--------------------------------------------------// setcursor
         case WM_SETCURSOR: {

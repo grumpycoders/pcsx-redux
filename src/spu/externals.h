@@ -29,6 +29,8 @@
 
 #pragma once
 
+#include "core/decode_xa.h"
+
 /////////////////////////////////////////////////////////
 // generic defines
 /////////////////////////////////////////////////////////
@@ -226,7 +228,6 @@ extern unsigned char *pSpuBuffer;
 extern int iUseXA;
 extern int iVolume;
 extern int iXAPitch;
-extern int iUseTimer;
 extern int iSPUIRQWait;
 extern int iSPUDebugMode;
 extern int iRecordMode;
@@ -256,11 +257,6 @@ extern int iCycle;
 extern short *pS;
 
 extern int iSpuAsyncWait;
-
-#ifdef _WIN32
-extern HWND hWMain;  // window handle
-extern HWND hWDebug;
-#endif
 
 extern void(*cddavCallback)(unsigned short, unsigned short);
 

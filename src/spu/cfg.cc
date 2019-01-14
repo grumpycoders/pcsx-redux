@@ -94,7 +94,6 @@ void ReadConfig(void) {
     iUseXA = 1;  // init vars
     iVolume = 3;
     iXAPitch = 1;
-    iUseTimer = 1;
     iSPUIRQWait = 0;
     iSPUDebugMode = 0;
     iRecordMode = 0;
@@ -111,8 +110,6 @@ void ReadConfig(void) {
         if (RegQueryValueEx(myKey, "Volume", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iVolume = (int)temp;
         size = 4;
         if (RegQueryValueEx(myKey, "XAPitch", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iXAPitch = (int)temp;
-        size = 4;
-        if (RegQueryValueEx(myKey, "UseTimer", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iUseTimer = (int)temp;
         size = 4;
         if (RegQueryValueEx(myKey, "SPUIRQWait", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
             iSPUIRQWait = (int)temp;
@@ -138,7 +135,6 @@ void ReadConfig(void) {
         RegCloseKey(myKey);
     }
 
-    if (iUseTimer > MAXMODE) iUseTimer = MAXMODE;  // some checks
     if (iVolume < 1) iVolume = 1;
     if (iVolume > 4) iVolume = 4;
 }
@@ -160,8 +156,6 @@ void WriteConfig(void) {
     RegSetValueEx(myKey, "Volume", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iXAPitch;
     RegSetValueEx(myKey, "XAPitch", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iUseTimer;
-    RegSetValueEx(myKey, "UseTimer", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iSPUIRQWait;
     RegSetValueEx(myKey, "SPUIRQWait", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iSPUDebugMode;
@@ -213,7 +207,6 @@ BOOL OnInitDSoundDialog(HWND hW) {
     // ComboBox_AddString(hWC, "2: Use spu update calls (TESTMODE!)");
     ComboBox_AddString(hWC, "2: Use SPUasync (must be supported by the emu)");
 #endif
-    ComboBox_SetCurSel(hWC, iUseTimer);
 
     hWC = GetDlgItem(hW, IDC_USEREVERB);
     ComboBox_AddString(hWC, "0: No reverb (fastest)");
@@ -250,9 +243,6 @@ void OnDSoundOK(HWND hW) {
 
     hWC = GetDlgItem(hW, IDC_VOLUME);
     iVolume = 4 - ComboBox_GetCurSel(hWC);
-
-    hWC = GetDlgItem(hW, IDC_USETIMER);
-    iUseTimer = ComboBox_GetCurSel(hWC);
 
     hWC = GetDlgItem(hW, IDC_USEREVERB);
     iUseReverb = ComboBox_GetCurSel(hWC);

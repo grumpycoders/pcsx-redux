@@ -93,13 +93,10 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
-#define _IN_SPU
+//#include "stdafx.h"
+#include <SDL.h>
 
 #include "spu/adsr.h"
-#include "spu/cfg.h"
-#include "spu/debug.h"
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
@@ -145,7 +142,6 @@ unsigned char *pMixIrq = 0;
 int iUseXA = 1;
 int iVolume = 3;
 int iXAPitch = 1;
-int iUseTimer = 1;
 int iSPUIRQWait = 1;
 int iSPUDebugMode = 0;
 int iRecordMode = 0;
@@ -174,7 +170,7 @@ int bSPUIsOpen = 0;
 HWND hWMain = 0;  // window handle
 HWND hWDebug = 0;
 HWND hWRecord = 0;
-static HANDLE hMainThread;
+static SDL_Thread* hMainThread;
 #else
 // 2003/06/07 - Pete
 #ifndef NOTHREADLIB
@@ -511,18 +507,15 @@ inline int iGetInterpolationVal(SPUCHAN *pChannel) {
 
 int iSpuAsyncWait = 0;
 
-#ifdef _WIN32
-static VOID CALLBACK MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
-#else
-static void *MAINThread(void *arg)
-#endif
-{
+static int MainThread(void *arg) {
     int s_1, s_2, fa, ns, voldiv = iVolume;
     unsigned char *start;
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
     int bIRQReturn = 0;
     SPUCHAN *pChannel;
+
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 
     while (!bEndThread)  // until we are shutting down
     {
@@ -548,19 +541,7 @@ static void *MAINThread(void *arg)
         {
             iSecureStart = 0;  // reset secure
 
-#ifdef _WIN32
-            if (iUseTimer)  // no-thread mode?
-            {
-                if (iUseTimer == 1)  // -> ok, timer mode 1: setup a oneshot timer of x ms to wait
-                    timeSetEvent(PAUSE_W, 1, MAINProc, 0, TIME_ONESHOT);
-                return;  // -> and done this time (timer mode 1 or 2)
-            }
-            // win thread mode:
-            Sleep(PAUSE_W);  // sleep for x ms (win)
-#else
-            if (iUseTimer) return 0;  // linux no-thread mode? bye
-            usleep(PAUSE_L);          // else sleep for x ms (linux)
-#endif
+            SDL_Delay(PAUSE_W);  // sleep for x ms
 
             if (dwNewChannel)
                 iSecureStart =
@@ -699,26 +680,9 @@ static void *MAINThread(void *arg)
                             if (bIRQReturn)  // special return for "spu irq - wait for cpu action"
                             {
                                 bIRQReturn = 0;
-                                if (iUseTimer != 2) {
-                                    DWORD dwWatchTime = timeGetTime() + 2500;
+                                DWORD dwWatchTime = SDL_GetTicks() + 2500;
 
-                                    while (iSpuAsyncWait && !bEndThread && timeGetTime() < dwWatchTime)
-#ifdef _WIN32
-                                        Sleep(1);
-#else
-                                        usleep(1000L);
-#endif
-
-                                } else {
-                                    lastch = ch;
-                                    lastns = ns;
-
-#ifdef _WIN32
-                                    return;
-#else
-                                    return 0;
-#endif
-                                }
+                                while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
                             }
 
                             ////////////////////////////////////////////
@@ -889,23 +853,8 @@ static void *MAINThread(void *arg)
 
     bThreadEnded = 1;
 
-#ifndef _WIN32
-    return 0;
-#endif
-}
-
-////////////////////////////////////////////////////////////////////////
-// WINDOWS THREAD... simply calls the timer func and stays forever :)
-////////////////////////////////////////////////////////////////////////
-
-#ifdef _WIN32
-
-DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
-    MAINProc(0, 0, 0, 0, 0);
     return 0;
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -922,49 +871,7 @@ void PCSX::SPU::async(uint32_t cycle) {
         if (iSpuAsyncWait <= 64) return;
         iSpuAsyncWait = 0;
     }
-
-#ifdef _WIN32
-    if (iSPUDebugMode == 2) {
-        if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
-        hWDebug = 0;
-        iSPUDebugMode = 0;
-    }
-    if (iRecordMode == 2) {
-        if (IsWindow(hWRecord)) DestroyWindow(hWRecord);
-        hWRecord = 0;
-        iRecordMode = 0;
-    }
-#endif
-
-    if (iUseTimer ==
-        2)  // special mode, only used in Linux by this spu (or if you enable the experimental Windows mode)
-    {
-        if (!bSpuInit) return;  // -> no init, no call
-
-#ifdef _WIN32
-        MAINProc(0, 0, 0, 0, 0);  // -> experimental win mode... not really tested... don't like the drawbacks
-#else
-        MAINThread(0);  // -> linux high-compat mode
-#endif
-    }
 }
-
-////////////////////////////////////////////////////////////////////////
-// SPU UPDATE... new epsxe func
-//  1 time every 32 hsync lines
-//  (312/32)x50 in pal
-//  (262/32)x60 in ntsc
-////////////////////////////////////////////////////////////////////////
-
-#ifndef _WIN32
-
-// since epsxe 1.5.2 (linux) uses SPUupdate, not SPUasync, I will
-// leave that func in the linux port, until epsxe linux is using
-// the async function as well
-
-void SPUupdate(void) { SPUasync(0); }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // XA AUDIO
@@ -1009,32 +916,7 @@ void SetupTimer(void) {
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
 
-#ifdef _WIN32
-
-    if (iUseTimer == 1)  // windows: use timer
-    {
-        timeBeginPeriod(1);
-        timeSetEvent(1, 1, MAINProc, 0, TIME_ONESHOT);
-    } else if (iUseTimer == 0)  // windows: use thread
-    {
-        //_beginthread(MAINThread,0,NULL);
-        DWORD dw;
-        hMainThread = CreateThread(NULL, 0, MAINThreadEx, 0, 0, &dw);
-        SetThreadPriority(hMainThread,
-                          // THREAD_PRIORITY_TIME_CRITICAL);
-                          THREAD_PRIORITY_HIGHEST);
-    }
-
-#else
-
-#ifndef NOTHREADLIB
-    if (!iUseTimer)     // linux: use thread
-    {
-        pthread_create(&thread, NULL, MAINThread, NULL);
-    }
-#endif
-
-#endif
+    hMainThread = SDL_CreateThread(MainThread, "SPU Thread", NULL);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1044,35 +926,10 @@ void SetupTimer(void) {
 void RemoveTimer(void) {
     bEndThread = 1;  // raise flag to end thread
 
-#ifdef _WIN32
-
-    if (iUseTimer != 2)  // windows thread?
-    {
-        while (!bThreadEnded) {
-            Sleep(5L);
-        }  // -> wait till thread has ended
-        Sleep(5L);
-    }
-    if (iUseTimer == 1) timeEndPeriod(1);  // windows timer? stop it
-
-#else
-
-#ifndef NOTHREADLIB
-    if (!iUseTimer)  // linux tread?
-    {
-        int i = 0;
-        while (!bThreadEnded && i < 2000) {
-            usleep(1000L);
-            i++;
-        }  // -> wait until thread has ended
-        if (thread != -1) {
-            pthread_cancel(thread);
-            thread = -1;
-        }  // -> cancel thread anyway
-    }
-#endif
-
-#endif
+    while (!bThreadEnded) {
+        SDL_Delay(5L);
+    }  // -> wait till thread has ended
+    SDL_Delay(5L);
 
     bThreadEnded = 0;  // no more spu is running
     bSpuInit = 0;
@@ -1183,16 +1040,6 @@ long SPUopen(void)
 
     bSPUIsOpen = 1;
 
-#ifdef _WIN32
-    if (iSPUDebugMode)  // windows debug dialog
-    {
-        hWDebug = CreateDialog(0, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
-        SetWindowPos(hWDebug, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-        UpdateWindow(hWDebug);
-        SetFocus(hWMain);
-    }
-#endif
-
     return PSE_SPU_ERR_SUCCESS;
 }
 
@@ -1243,26 +1090,13 @@ long PCSX::SPU::test(void) { return 0; }
 // SPUCONFIGURE: call config dialog
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SPU::configure(void) {
-#ifdef _WIN32
-    DialogBox(0, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
-#else
-    StartCfgTool("CFG");
-#endif
-    return 0;
-}
+long PCSX::SPU::configure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUABOUT: show about window
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::about(void) {
-#ifdef _WIN32
-    DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
-#else
-    StartCfgTool("ABOUT");
-#endif
-}
+void PCSX::SPU::about(void) {}
 
 ////////////////////////////////////////////////////////////////////////
 // SETUP CALLBACKS
