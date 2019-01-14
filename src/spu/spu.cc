@@ -93,118 +93,23 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
+//#include "stdafx.h"
+#include <SDL.h>
 
-#define _IN_SPU
-
-#include "cfg.h"
-#include "debug.h"
-#include "dsoundoss.h"
-#include "externals.h"
-#include "record.h"
-#include "regs.h"
-#include "resource.h"
-
-////////////////////////////////////////////////////////////////////////
-// spu version infos/name
-////////////////////////////////////////////////////////////////////////
-
-const unsigned char version = 1;
-const unsigned char revision = 1;
-const unsigned char build = 9;
-#ifdef _WIN32
-static char *libraryName = "P.E.Op.S. DSound Audio Driver";
-#else
-#ifndef USEALSA
-static char *libraryName = "P.E.Op.S. OSS Audio Driver";
-#else
-static char *libraryName = "P.E.Op.S. ALSA Audio Driver";
-#endif
-#endif
-static char *libraryInfo = "P.E.Op.S. OSS Driver V1.9\nCoded by Pete Bernert and the P.E.Op.S. team\n";
+#include "spu/adsr.h"
+#include "spu/externals.h"
+#include "spu/gauss.h"
+#include "spu/interface.h"
+#include "spu/sdlsound.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
 
-// psx buffer / addresses
-
-unsigned short regArea[10000];
-unsigned short spuMem[256 * 1024];
-unsigned char *spuMemC;
-unsigned char *pSpuIrq = 0;
-unsigned char *pSpuBuffer;
-unsigned char *pMixIrq = 0;
-
-// user settings
-
-int iUseXA = 1;
-int iVolume = 3;
-int iXAPitch = 1;
-int iUseTimer = 2;
-int iSPUIRQWait = 1;
-int iDebugMode = 0;
-int iRecordMode = 0;
-int iUseReverb = 2;
-int iUseInterpolation = 2;
-int iDisStereo = 0;
-int iUseDBufIrq = 0;
-
-// MAIN infos struct for each channel
-
-SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
-REVERBInfo rvb;
-
-unsigned long dwNoiseVal = 1;  // global noise generator
-
-unsigned short spuCtrl = 0;  // some vars to store psx reg infos
-unsigned short spuStat = 0;
-unsigned short spuIrq = 0;
-unsigned long spuAddr = 0xffffffff;  // address into spu mem
-int bEndThread = 0;                  // thread handlers
-int bThreadEnded = 0;
-int bSpuInit = 0;
-int bSPUIsOpen = 0;
-
-#ifdef _WIN32
-HWND hWMain = 0;  // window handle
-HWND hWDebug = 0;
-HWND hWRecord = 0;
-static HANDLE hMainThread;
-#else
-// 2003/06/07 - Pete
-#ifndef NOTHREADLIB
-static pthread_t thread = -1;  // thread id (linux)
-#endif
-#endif
-
-unsigned long dwNewChannel = 0;  // flags for faster testing, if new channel starts
-
-void(*irqCallback)(void) = 0;  // func of main emu, called on spu irq
-void(*cddavCallback)(unsigned short, unsigned short) = 0;
-void(*irqQSound)(unsigned char *, long *, long) = 0;
-
-// certain globals (were local before, but with the new timeproc I need em global)
-
-const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
-int SSumR[NSSIZE];
-int SSumL[NSSIZE];
-int iFMod[NSSIZE];
-int iCycle = 0;
-short *pS;
-
-static int lastch = -1;       // last channel processed on spu irq in timer mode
-static int lastns = 0;        // last ns pos
-static int iSecureStart = 0;  // secure start counter
 
 ////////////////////////////////////////////////////////////////////////
 // CODE AREA
 ////////////////////////////////////////////////////////////////////////
-
-// dirty inline func includes
-
-#include "adsr.c"
-#include "reverb.c"
 
 ////////////////////////////////////////////////////////////////////////
 // helpers for simple interpolation
@@ -248,7 +153,7 @@ static int iSecureStart = 0;  // secure start counter
 //          /
 //
 
-INLINE void InterpolateUp(SPUCHAN *pChannel) {
+static inline void InterpolateUp(PCSX::SPU::SPUCHAN *pChannel) {
     if (pChannel->SB[32] == 1)  // flag == 1? calc step and set flag... and don't change the value in this pass
     {
         const int id1 = pChannel->SB[30] - pChannel->SB[29];  // curr delta to next val
@@ -292,7 +197,7 @@ INLINE void InterpolateUp(SPUCHAN *pChannel) {
 // even easier interpolation on downsampling, also no special filter, again just "Pete's common sense" tm
 //
 
-INLINE void InterpolateDown(SPUCHAN *pChannel) {
+static inline void InterpolateDown(PCSX::SPU::SPUCHAN *pChannel) {
     if (pChannel->sinc >= 0x20000L)  // we would skip at least one val?
     {
         pChannel->SB[29] += (pChannel->SB[30] - pChannel->SB[29]) / 2;      // add easy weight
@@ -307,18 +212,14 @@ INLINE void InterpolateDown(SPUCHAN *pChannel) {
 #define gval0 (((short *)(&pChannel->SB[29]))[gpos])
 #define gval(x) (((short *)(&pChannel->SB[29]))[(gpos + x) & 3])
 
-#include "gauss_i.h"
-
 ////////////////////////////////////////////////////////////////////////
-
-#include "xa.c"
 
 ////////////////////////////////////////////////////////////////////////
 // START SOUND... called by main thread to setup a new sound on a channel
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StartSound(SPUCHAN *pChannel) {
-    StartADSR(pChannel);
+inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
+    m_adsr.start(pChannel);
     StartREVERB(pChannel);
 
     pChannel->pCurr = pChannel->pStart;  // set sample start
@@ -349,7 +250,7 @@ INLINE void StartSound(SPUCHAN *pChannel) {
 // ALL KIND OF HELPERS
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void VoiceChangeFrequency(SPUCHAN *pChannel) {
+inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
     pChannel->iUsedFreq = pChannel->iActFreq;  // -> take it and calc steps
     pChannel->sinc = pChannel->iRawPitch << 4;
     if (!pChannel->sinc) pChannel->sinc = 1;
@@ -358,7 +259,7 @@ INLINE void VoiceChangeFrequency(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
+inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
     int NP = pChannel->iRawPitch;
 
     NP = ((32768L + iFMod[ns]) * NP) / 32768L;
@@ -383,7 +284,7 @@ INLINE void FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 // surely wrong... and no noise frequency (spuCtrl&0x3f00) will be used...
 // and sometimes the noise will be used as fmod modulation... pfff
 
-INLINE int iGetNoiseVal(SPUCHAN *pChannel) {
+inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     int fa;
 
     if ((dwNoiseVal <<= 1) & 0x80000000L) {
@@ -406,7 +307,7 @@ INLINE int iGetNoiseVal(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
+inline void PCSX::SPU::impl::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
     if (pChannel->bFMod == 2)  // fmod freq channel
         pChannel->SB[29] = fa;
     else {
@@ -440,7 +341,7 @@ INLINE void StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
+inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
     int fa;
 
     if (pChannel->bFMod == 2) return pChannel->SB[29];
@@ -473,10 +374,10 @@ INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
             int gpos;
             vl = (pChannel->spos >> 6) & ~3;
             gpos = pChannel->SB[28];
-            vr = (gauss[vl] * gval0) & ~2047;
-            vr += (gauss[vl + 1] * gval(1)) & ~2047;
-            vr += (gauss[vl + 2] * gval(2)) & ~2047;
-            vr += (gauss[vl + 3] * gval(3)) & ~2047;
+            vr = (Gauss::gauss[vl] * gval0) & ~2047;
+            vr += (Gauss::gauss[vl + 1] * gval(1)) & ~2047;
+            vr += (Gauss::gauss[vl + 2] * gval(2)) & ~2047;
+            vr += (Gauss::gauss[vl + 3] * gval(3)) & ~2047;
             fa = vr >> 11;
         } break;
         //--------------------------------------------------//
@@ -514,20 +415,15 @@ INLINE int iGetInterpolationVal(SPUCHAN *pChannel) {
 
 ////////////////////////////////////////////////////////////////////////
 
-int iSpuAsyncWait = 0;
-
-#ifdef _WIN32
-static VOID CALLBACK MAINProc(UINT nTimerId, UINT msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2)
-#else
-static void *MAINThread(void *arg)
-#endif
-{
+void PCSX::SPU::impl::MainThread() {
     int s_1, s_2, fa, ns, voldiv = iVolume;
     unsigned char *start;
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
     int bIRQReturn = 0;
     SPUCHAN *pChannel;
+
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 
     while (!bEndThread)  // until we are shutting down
     {
@@ -549,23 +445,11 @@ static void *MAINThread(void *arg)
             iSecureStart = 0;  // 0: no new channel should start
 
         while (!iSecureStart && !bEndThread &&        // no new start? no thread end?
-               (SoundGetBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
+               (m_sound.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
         {
             iSecureStart = 0;  // reset secure
 
-#ifdef _WIN32
-            if (iUseTimer)  // no-thread mode?
-            {
-                if (iUseTimer == 1)  // -> ok, timer mode 1: setup a oneshot timer of x ms to wait
-                    timeSetEvent(PAUSE_W, 1, MAINProc, 0, TIME_ONESHOT);
-                return;  // -> and done this time (timer mode 1 or 2)
-            }
-            // win thread mode:
-            Sleep(PAUSE_W);  // sleep for x ms (win)
-#else
-            if (iUseTimer) return 0;  // linux no-thread mode? bye
-            usleep(PAUSE_L);          // else sleep for x ms (linux)
-#endif
+            SDL_Delay(PAUSE_W);  // sleep for x ms
 
             if (dwNewChannel)
                 iSecureStart =
@@ -704,26 +588,9 @@ static void *MAINThread(void *arg)
                             if (bIRQReturn)  // special return for "spu irq - wait for cpu action"
                             {
                                 bIRQReturn = 0;
-                                if (iUseTimer != 2) {
-                                    DWORD dwWatchTime = timeGetTime() + 2500;
+                                DWORD dwWatchTime = SDL_GetTicks() + 2500;
 
-                                    while (iSpuAsyncWait && !bEndThread && timeGetTime() < dwWatchTime)
-#ifdef _WIN32
-                                        Sleep(1);
-#else
-                                        usleep(1000L);
-#endif
-
-                                } else {
-                                    lastch = ch;
-                                    lastns = ns;
-
-#ifdef _WIN32
-                                    return;
-#else
-                                    return 0;
-#endif
-                                }
+                                while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
                             }
 
                             ////////////////////////////////////////////
@@ -745,7 +612,7 @@ static void *MAINThread(void *arg)
                     else
                         fa = iGetInterpolationVal(pChannel);  // get sample val
 
-                    pChannel->sval = (MixADSR(pChannel) * fa) / 1023;  // mix adsr
+                    pChannel->sval = (m_adsr.mix(pChannel) * fa) / 1023;  // mix adsr
 
                     if (pChannel->bFMod == 2)        // fmod freq channel
                         iFMod[ns] = pChannel->sval;  // -> store 1T sample data, use that to do fmod on next channel
@@ -884,7 +751,7 @@ static void *MAINThread(void *arg)
 
             //-------------------------------------------------//
 
-            SoundFeedStreamData((unsigned char *)pSpuBuffer, ((unsigned char *)pS) - ((unsigned char *)pSpuBuffer));
+            m_sound.feedStreamData((unsigned char *)pSpuBuffer, ((unsigned char *)pS) - ((unsigned char *)pSpuBuffer));
             pS = (short *)pSpuBuffer;
             iCycle = 0;
         }
@@ -893,24 +760,7 @@ static void *MAINThread(void *arg)
     // end of big main loop...
 
     bThreadEnded = 1;
-
-#ifndef _WIN32
-    return 0;
-#endif
 }
-
-////////////////////////////////////////////////////////////////////////
-// WINDOWS THREAD... simply calls the timer func and stays forever :)
-////////////////////////////////////////////////////////////////////////
-
-#ifdef _WIN32
-
-DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
-    MAINProc(0, 0, 0, 0, 0);
-    return 0;
-}
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -921,61 +771,19 @@ DWORD WINAPI MAINThreadEx(LPVOID lpParameter) {
 //  1 time every 'cycle' cycles... harhar
 ////////////////////////////////////////////////////////////////////////
 
-void SPUasync(unsigned long cycle) {
+void PCSX::SPU::impl::async(uint32_t cycle) {
     if (iSpuAsyncWait) {
         iSpuAsyncWait++;
         if (iSpuAsyncWait <= 64) return;
         iSpuAsyncWait = 0;
     }
-
-#ifdef _WIN32
-    if (iDebugMode == 2) {
-        if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
-        hWDebug = 0;
-        iDebugMode = 0;
-    }
-    if (iRecordMode == 2) {
-        if (IsWindow(hWRecord)) DestroyWindow(hWRecord);
-        hWRecord = 0;
-        iRecordMode = 0;
-    }
-#endif
-
-    if (iUseTimer ==
-        2)  // special mode, only used in Linux by this spu (or if you enable the experimental Windows mode)
-    {
-        if (!bSpuInit) return;  // -> no init, no call
-
-#ifdef _WIN32
-        MAINProc(0, 0, 0, 0, 0);  // -> experimental win mode... not really tested... don't like the drawbacks
-#else
-        MAINThread(0);  // -> linux high-compat mode
-#endif
-    }
 }
-
-////////////////////////////////////////////////////////////////////////
-// SPU UPDATE... new epsxe func
-//  1 time every 32 hsync lines
-//  (312/32)x50 in pal
-//  (262/32)x60 in ntsc
-////////////////////////////////////////////////////////////////////////
-
-#ifndef _WIN32
-
-// since epsxe 1.5.2 (linux) uses SPUupdate, not SPUasync, I will
-// leave that func in the linux port, until epsxe linux is using
-// the async function as well
-
-void SPUupdate(void) { SPUasync(0); }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // XA AUDIO
 ////////////////////////////////////////////////////////////////////////
 
-void SPUplayADPCMchannel(xa_decode_t *xap) {
+void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
     if (!iUseXA) return;  // no XA? bye
     if (!xap) return;
     if (!xap->freq) return;  // no xa freq ? bye
@@ -991,11 +799,10 @@ void SPUplayADPCMchannel(xa_decode_t *xap) {
 // SPUINIT: this func will be called first by the main emu
 ////////////////////////////////////////////////////////////////////////
 
-long SPUinit(void) {
+long PCSX::SPU::impl::init(void) {
     spuMemC = (unsigned char *)spuMem;  // just small setup
     memset((void *)s_chan, 0, MAXCHAN * sizeof(SPUCHAN));
     memset((void *)&rvb, 0, sizeof(REVERBInfo));
-    InitADSR();
     return 0;
 }
 
@@ -1003,7 +810,7 @@ long SPUinit(void) {
 // SETUPTIMER: init of certain buffers and threads/timers
 ////////////////////////////////////////////////////////////////////////
 
-void SetupTimer(void) {
+void PCSX::SPU::impl::SetupThread() {
     memset(SSumR, 0, NSSIZE * sizeof(int));  // init some mixing buffers
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(iFMod, 0, NSSIZE * sizeof(int));
@@ -1014,70 +821,22 @@ void SetupTimer(void) {
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
 
-#ifdef _WIN32
-
-    if (iUseTimer == 1)  // windows: use timer
-    {
-        timeBeginPeriod(1);
-        timeSetEvent(1, 1, MAINProc, 0, TIME_ONESHOT);
-    } else if (iUseTimer == 0)  // windows: use thread
-    {
-        //_beginthread(MAINThread,0,NULL);
-        DWORD dw;
-        hMainThread = CreateThread(NULL, 0, MAINThreadEx, 0, 0, &dw);
-        SetThreadPriority(hMainThread,
-                          // THREAD_PRIORITY_TIME_CRITICAL);
-                          THREAD_PRIORITY_HIGHEST);
-    }
-
-#else
-
-#ifndef NOTHREADLIB
-    if (!iUseTimer)     // linux: use thread
-    {
-        pthread_create(&thread, NULL, MAINThread, NULL);
-    }
-#endif
-
-#endif
+    hMainThread = SDL_CreateThread(PCSX::SPU::impl::MainThreadTrampoline, "SPU Thread", this);
 }
 
 ////////////////////////////////////////////////////////////////////////
 // REMOVETIMER: kill threads/timers
 ////////////////////////////////////////////////////////////////////////
 
-void RemoveTimer(void) {
+void PCSX::SPU::impl::RemoveThread() {
     bEndThread = 1;  // raise flag to end thread
 
-#ifdef _WIN32
+    while (!bThreadEnded) {
+        SDL_Delay(5L);
+    }  // -> wait till thread has ended
+    SDL_Delay(5L);
 
-    if (iUseTimer != 2)  // windows thread?
-    {
-        while (!bThreadEnded) {
-            Sleep(5L);
-        }  // -> wait till thread has ended
-        Sleep(5L);
-    }
-    if (iUseTimer == 1) timeEndPeriod(1);  // windows timer? stop it
-
-#else
-
-#ifndef NOTHREADLIB
-    if (!iUseTimer)  // linux tread?
-    {
-        int i = 0;
-        while (!bThreadEnded && i < 2000) {
-            usleep(1000L);
-            i++;
-        }  // -> wait until thread has ended
-        if (thread != -1) {
-            pthread_cancel(thread);
-            thread = -1;
-        }  // -> cancel thread anyway
-    }
-#endif
-
-#endif
+    SDL_WaitThread(hMainThread, NULL);
 
     bThreadEnded = 0;  // no more spu is running
     bSpuInit = 0;
@@ -1087,7 +846,7 @@ void RemoveTimer(void) {
 // SETUPSTREAMS: init most of the spu buffers
 ////////////////////////////////////////////////////////////////////////
 
-void SetupStreams(void) {
+void PCSX::SPU::impl::SetupStreams() {
     int i;
 
     pSpuBuffer = (unsigned char *)malloc(32768);  // alloc mixing buffer
@@ -1128,7 +887,7 @@ void SetupStreams(void) {
 // REMOVESTREAMS: free most buffer
 ////////////////////////////////////////////////////////////////////////
 
-void RemoveStreams(void) {
+void PCSX::SPU::impl::RemoveStreams(void) {
     free(pSpuBuffer);  // free mixing buffer
     pSpuBuffer = NULL;
     free(sRVBStart);  // free reverb buffer
@@ -1152,13 +911,8 @@ void RemoveStreams(void) {
 // SPUOPEN: called by main emu after init
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-long SPUopen(HWND hW)
-#else
-long SPUopen(void)
-#endif
-{
-    if (bSPUIsOpen) return 0;  // security for some stupid main emus
+bool PCSX::SPU::impl::open() {
+    if (bSPUIsOpen) return true;  // security for some stupid main emus
 
     iUseXA = 1;  // just small setup
     iVolume = 3;
@@ -1173,42 +927,17 @@ long SPUopen(void)
     pSpuIrq = 0;
     iSPUIRQWait = 1;
 
-#ifdef _WIN32
-    LastWrite = 0xffffffff;
-    LastPlay = 0;  // init some play vars
-    if (!IsWindow(hW)) hW = GetActiveWindow();
-    hWMain = hW;  // store hwnd
-#endif
+    //    ReadConfig();  // read user stuff
 
-    ReadConfig();  // read user stuff
-
-    SetupSound();  // setup sound (before init!)
+    m_sound.setup();  // setup sound (before init!)
 
     SetupStreams();  // prepare streaming
 
-    SetupTimer();  // timer for feeding data
+    SetupThread();  // timer for feeding data
 
     bSPUIsOpen = 1;
 
-#ifdef _WIN32
-    if (iDebugMode)  // windows debug dialog
-    {
-        hWDebug = CreateDialog(0, MAKEINTRESOURCE(IDD_DEBUG), NULL, (DLGPROC)DebugDlgProc);
-        SetWindowPos(hWDebug, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-        UpdateWindow(hWDebug);
-        SetFocus(hWMain);
-    }
-
-    if (iRecordMode)  // windows recording dialog
-    {
-        hWRecord = CreateDialog(0, MAKEINTRESOURCE(IDD_RECORD), NULL, (DLGPROC)RecordDlgProc);
-        SetWindowPos(hWRecord, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-        UpdateWindow(hWRecord);
-        SetFocus(hWMain);
-    }
-#endif
-
-    return PSE_SPU_ERR_SUCCESS;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1221,22 +950,13 @@ void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
 // SPUCLOSE: called before shutdown
 ////////////////////////////////////////////////////////////////////////
 
-long SPUclose(void) {
+long PCSX::SPU::impl::close(void) {
     if (!bSPUIsOpen) return 0;  // some security
 
     bSPUIsOpen = 0;  // no more open
 
-#ifdef _WIN32
-    if (IsWindow(hWDebug)) DestroyWindow(hWDebug);
-    hWDebug = 0;
-    if (IsWindow(hWRecord)) DestroyWindow(hWRecord);
-    hWRecord = 0;
-#endif
-
-    RemoveTimer();  // no more feeding
-
-    RemoveSound();  // no more sound handling
-
+    RemoveThread();  // no more feeding
+    m_sound.remove();  // no more sound handling
     RemoveStreams();  // no more streaming
 
     return 0;
@@ -1246,38 +966,25 @@ long SPUclose(void) {
 // SPUSHUTDOWN: called by main emu on final exit
 ////////////////////////////////////////////////////////////////////////
 
-long SPUshutdown(void) { return 0; }
+long PCSX::SPU::impl::shutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUTEST: we don't test, we are always fine ;)
 ////////////////////////////////////////////////////////////////////////
 
-long SPUtest(void) { return 0; }
+long PCSX::SPU::impl::test(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUCONFIGURE: call config dialog
 ////////////////////////////////////////////////////////////////////////
 
-long SPUconfigure(void) {
-#ifdef _WIN32
-    DialogBox(0, MAKEINTRESOURCE(IDD_CFGDLG), GetActiveWindow(), (DLGPROC)DSoundDlgProc);
-#else
-    StartCfgTool("CFG");
-#endif
-    return 0;
-}
+long PCSX::SPU::impl::configure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUABOUT: show about window
 ////////////////////////////////////////////////////////////////////////
 
-void SPUabout(void) {
-#ifdef _WIN32
-    DialogBox(0, MAKEINTRESOURCE(IDD_ABOUT), GetActiveWindow(), (DLGPROC)AboutDlgProc);
-#else
-    StartCfgTool("ABOUT");
-#endif
-}
+void PCSX::SPU::impl::about(void) {}
 
 ////////////////////////////////////////////////////////////////////////
 // SETUP CALLBACKS
@@ -1285,22 +992,21 @@ void SPUabout(void) {
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-void SPUregisterCallback(void(*callback)(void)) { irqCallback = callback; }
+void PCSX::SPU::impl::registerCallback(void (*callback)(void)) { irqCallback = callback; }
 
-void SPUregisterCDDAVolume(void(*CDDAVcallback)(unsigned short, unsigned short)) {
+void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
     cddavCallback = CDDAVcallback;
 }
 
 ////////////////////////////////////////////////////////////////////////
-// COMMON PLUGIN INFO FUNCS
-////////////////////////////////////////////////////////////////////////
 
-char *PSEgetLibName(void) { return libraryName; }
-
-unsigned long PSEgetLibType(void) { return PSE_LT_SPU; }
-
-unsigned long PSEgetLibVersion(void) { return version << 16 | revision << 8 | build; }
-
-char *SPUgetLibInfos(void) { return libraryInfo; }
-
-////////////////////////////////////////////////////////////////////////
+void PCSX::SPU::impl::playCDDAchannel(short *data, int size) {
+    m_cdda.freq = 44100;
+    m_cdda.nsamples = size / 4;
+    m_cdda.stereo = 1;
+    m_cdda.nbits = 16;
+    memcpy(m_cdda.pcm, data, size);
+    iLeftXAVol = 32767;
+    iRightXAVol = 32767;
+    FeedXA(&m_cdda);
+}

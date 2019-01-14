@@ -35,29 +35,14 @@
 
 #include "stdafx.h"
 
-#define _IN_REVERB
-
-// will be included from spu.c
-#ifdef _IN_SPU
-
-////////////////////////////////////////////////////////////////////////
-// globals
-////////////////////////////////////////////////////////////////////////
-
-// REVERB info and timing vars...
-
-int *sRVBPlay = 0;
-int *sRVBEnd = 0;
-int *sRVBStart = 0;
-int iReverbOff = -1;  // some delay factor for reverb
-int iReverbRepeat = 0;
-int iReverbNum = 1;
+#include "spu/externals.h"
+#include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
 // SET REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void SetREVERB(unsigned short val) {
+void PCSX::SPU::impl::SetREVERB(unsigned short val) {
     switch (val) {
         case 0x0000:
             iReverbOff = -1;
@@ -116,7 +101,7 @@ void SetREVERB(unsigned short val) {
 // START REVERB
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StartREVERB(SPUCHAN *pChannel) {
+void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
     if (pChannel->bReverb && (spuCtrl & 0x80))  // reverb possible?
     {
         if (iUseReverb == 2)
@@ -136,7 +121,7 @@ INLINE void StartREVERB(SPUCHAN *pChannel) {
 // HELPER FOR NEILL'S REVERB: re-inits our reverb mixing buf
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void InitREVERB(void) {
+void PCSX::SPU::impl::InitREVERB() {
     if (iUseReverb == 2) {
         memset(sRVBStart, 0, NSSIZE * 2 * 4);
     }
@@ -146,7 +131,7 @@ INLINE void InitREVERB(void) {
 // STORE REVERB
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StoreREVERB(SPUCHAN *pChannel, int ns) {
+void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
     if (iUseReverb == 0)
         return;
     else if (iUseReverb == 2)  // -------------------------------- // Neil's reverb
@@ -181,7 +166,7 @@ INLINE void StoreREVERB(SPUCHAN *pChannel, int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
+inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -192,7 +177,7 @@ INLINE int g_buffer(int iOff)  // get_buffer content helper: takes care about wr
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
+inline void PCSX::SPU::impl::s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -205,7 +190,7 @@ INLINE void s_buffer(int iOff, int iVal)  // set_buffer content helper: takes ca
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+inline void PCSX::SPU::impl::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;
@@ -217,8 +202,7 @@ INLINE void s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content hel
 }
 
 ////////////////////////////////////////////////////////////////////////
-
-INLINE int MixREVERBLeft(int ns) {
+int PCSX::SPU::impl::MixREVERBLeft(int ns) {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2) {
@@ -322,7 +306,7 @@ INLINE int MixREVERBLeft(int ns) {
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE int MixREVERBRight(void) {
+int PCSX::SPU::impl::MixREVERBRight() {
     if (iUseReverb == 0)
         return 0;
     else if (iUseReverb == 2)  // Neill's reverb:
@@ -340,8 +324,6 @@ INLINE int MixREVERBRight(void) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 
 /*
 -----------------------------------------------------------------------------

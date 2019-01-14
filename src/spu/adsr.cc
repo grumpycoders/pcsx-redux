@@ -35,24 +35,23 @@
 
 #include "stdafx.h"
 
-#define _IN_ADSR
-
-// will be included from spu.c
-#ifdef _IN_SPU
+#include "spu/adsr.h"
+#include "spu/externals.h"
+#include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
 // ADSR func
 ////////////////////////////////////////////////////////////////////////
 
-static unsigned long int RateTable[160];
 
-void InitADSR(void)  // INIT ADSR
+
+PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
 {
     unsigned long r, rs, rd;
     int i;
 
-    memset(RateTable, 0,
-           sizeof(unsigned long) * 160);  // build the rate table according to Neill's rules (see at bottom of file)
+    memset(m_table, 0,
+           sizeof(uint32_t) * 160);  // build the rate table according to Neill's rules (see at bottom of file)
 
     r = 3;
     rs = 1;
@@ -70,13 +69,13 @@ void InitADSR(void)  // INIT ADSR
         }
         if (r > 0x3FFFFFFF) r = 0x3FFFFFFF;
 
-        RateTable[i] = r;
+        m_table[i] = r;
     }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-INLINE void StartADSR(SPUCHAN *pChannel)  // MIX ADSR
+void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
 {
     pChannel->ADSRX.lVolume = 1;  // and init some adsr vars
     pChannel->ADSRX.State = 0;
@@ -85,26 +84,18 @@ INLINE void StartADSR(SPUCHAN *pChannel)  // MIX ADSR
 
 ////////////////////////////////////////////////////////////////////////
 
-static const unsigned long int TableDisp[] = {
-    -0x18 + 0 + 32, -0x18 + 4 + 32,  -0x18 + 6 + 32,  -0x18 + 8 + 32,  // release/decay
-    -0x18 + 9 + 32, -0x18 + 10 + 32, -0x18 + 11 + 32, -0x18 + 12 + 32,
-
-    -0x1B + 0 + 32, -0x1B + 4 + 32,  -0x1B + 6 + 32,  -0x1B + 8 + 32,  // sustain
-    -0x1B + 9 + 32, -0x1B + 10 + 32, -0x1B + 11 + 32, -0x1B + 12 + 32,
-};
-
-INLINE int MixADSR(SPUCHAN *ch) {
+int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
     unsigned long int disp;
     signed long int EnvelopeVol = ch->ADSRX.EnvelopeVol;
 
     if (ch->bStop)  // should be stopped:
     {               // do release
         if (ch->ADSRX.ReleaseModeExp) {
-            disp = TableDisp[(EnvelopeVol >> 28) & 0x7];
+            disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
         } else {
             disp = -0x0C + 32;
         }
-        EnvelopeVol -= RateTable[ch->ADSRX.ReleaseRate + disp];
+        EnvelopeVol -= m_table[ch->ADSRX.ReleaseRate + disp];
 
         if (EnvelopeVol < 0) {
             EnvelopeVol = 0;
@@ -122,7 +113,7 @@ INLINE int MixADSR(SPUCHAN *ch) {
             if (ch->ADSRX.AttackModeExp) {
                 if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
             }
-            EnvelopeVol += RateTable[ch->ADSRX.AttackRate + disp];
+            EnvelopeVol += m_table[ch->ADSRX.AttackRate + disp];
 
             if (EnvelopeVol < 0) {
                 EnvelopeVol = 0x7FFFFFFF;
@@ -136,8 +127,8 @@ INLINE int MixADSR(SPUCHAN *ch) {
         //--------------------------------------------------//
         if (ch->ADSRX.State == 1)  // -> decay
         {
-            disp = TableDisp[(EnvelopeVol >> 28) & 0x7];
-            EnvelopeVol -= RateTable[ch->ADSRX.DecayRate + disp];
+            disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
+            EnvelopeVol -= m_table[ch->ADSRX.DecayRate + disp];
 
             if (EnvelopeVol < 0) EnvelopeVol = 0;
             if (EnvelopeVol <= ch->ADSRX.SustainLevel) {
@@ -156,18 +147,18 @@ INLINE int MixADSR(SPUCHAN *ch) {
                 if (ch->ADSRX.SustainModeExp) {
                     if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
                 }
-                EnvelopeVol += RateTable[ch->ADSRX.SustainRate + disp];
+                EnvelopeVol += m_table[ch->ADSRX.SustainRate + disp];
 
                 if (EnvelopeVol < 0) {
                     EnvelopeVol = 0x7FFFFFFF;
                 }
             } else {
                 if (ch->ADSRX.SustainModeExp) {
-                    disp = TableDisp[((EnvelopeVol >> 28) & 0x7) + 8];
+                    disp = m_tableDisp[((EnvelopeVol >> 28) & 0x7) + 8];
                 } else {
                     disp = -0x0F + 32;
                 }
-                EnvelopeVol -= RateTable[ch->ADSRX.SustainRate + disp];
+                EnvelopeVol -= m_table[ch->ADSRX.SustainRate + disp];
 
                 if (EnvelopeVol < 0) {
                     EnvelopeVol = 0;
@@ -180,8 +171,6 @@ INLINE int MixADSR(SPUCHAN *ch) {
     }
     return 0;
 }
-
-#endif
 
 /*
 James Higgs ADSR investigations:

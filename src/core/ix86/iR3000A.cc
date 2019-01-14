@@ -30,6 +30,7 @@
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "spu/interface.h"
 
 namespace {
 
@@ -68,6 +69,11 @@ unsigned long GPU_readDataWrapper() { return PCSX::g_emulator.m_gpu->readData();
 unsigned long GPU_readStatusWrapper() { return PCSX::g_emulator.m_gpu->readStatus(); }
 void GPU_writeDataWrapper(uint32_t gdata) { PCSX::g_emulator.m_gpu->writeData(gdata); }
 void GPU_writeStatusWrapper(unsigned long gdata) { PCSX::g_emulator.m_gpu->writeStatus(gdata); }
+
+unsigned short SPUreadRegisterWrapper(unsigned long addr) { return PCSX::g_emulator.m_spu->readRegister(addr); }
+void SPUwriteRegisterWrapper(unsigned long addr, unsigned short value) {
+    PCSX::g_emulator.m_spu->writeRegister(addr, value);
+}
 
 #undef PC_REC
 #undef PC_REC8
@@ -1934,7 +1940,7 @@ void X86DynaRecCPU::recLHU() {
                 m_iRegs[_Rt_].state = ST_UNK;
 
                 gen.PUSH32I(addr);
-                gen.CALLFunc((uint32_t)SPUreadRegister);
+                gen.CALLFunc((uint32_t)SPUreadRegisterWrapper);
                 gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
                 gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
 #ifndef __WIN33
@@ -2410,7 +2416,7 @@ void X86DynaRecCPU::recSH() {
                     gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                 }
                 gen.PUSH32I(addr);
-                gen.CALLFunc((uint32_t)SPUwriteRegister);
+                gen.CALLFunc((uint32_t)SPUwriteRegisterWrapper);
                 m_resp += 8;
                 return;
             }

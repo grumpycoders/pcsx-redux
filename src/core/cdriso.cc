@@ -810,7 +810,7 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
                 m_ti[m_numtracks].type = trackinfo::CDDA;
                 sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
                 // Check if extension is mp3, etc, for compressed audio formats
-                if (m_multifile && (m_ti[m_numtracks].cddatype = get_cdda_type(filepath)) > trackinfo::BIN) {
+                if (m_multifile && (m_ti[m_numtracks].cddatype = get_cdda_type(m_ti[m_numtracks].filepath)) > trackinfo::BIN) {
                     int seconds = get_compressed_cdda_track_length(filepath) + 0;
                     const bool lazy_decode = true;  // TODO: config param
 
@@ -885,6 +885,8 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
                 m_ti[m_numtracks + 1].handle = new File(filepath);
             }
 
+            strcpy(m_ti[m_numtracks + 1].filepath, tmpb);
+
             // update global offset if this is not first file in this .cue
             if (m_numtracks + 1 > 1) {
                 m_multifile = true;
@@ -905,7 +907,7 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
                 // user selected .cue as image file, use its data track instead
                 m_cdHandle->close();
                 delete m_cdHandle;
-                m_cdHandle = new File(filepath);
+                m_cdHandle = new File(tmpb);
             }
         }
     }

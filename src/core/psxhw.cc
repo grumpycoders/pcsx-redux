@@ -25,6 +25,7 @@
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
+#include "spu/interface.h"
 
 // Vampire Hunter D hack
 
@@ -170,7 +171,7 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
 
         default:
             if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                hard = SPUreadRegister(add);
+                hard = PCSX::g_emulator.m_spu->readRegister(add);
             } else {
                 hard = psxHu16(add);
                 PSXHW_LOG("*Unkwnown 16bit read at address %x\n", add);
@@ -428,7 +429,7 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
 
         default:
             if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                SPUwriteRegister(add, value);
+                PCSX::g_emulator.m_spu->writeRegister(add, value);
                 return;
             }
 
@@ -661,11 +662,11 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         default:
             // Dukes of Hazard 2 - car engine noise
             if (add >= 0x1f801c00 && add < 0x1f801e00) {
-                SPUwriteRegister(add, value & 0xffff);
+                PCSX::g_emulator.m_spu->writeRegister(add, value & 0xffff);
                 add += 2;
                 value >>= 16;
 
-                if (add >= 0x1f801c00 && add < 0x1f801e00) SPUwriteRegister(add, value & 0xffff);
+                if (add >= 0x1f801c00 && add < 0x1f801e00) PCSX::g_emulator.m_spu->writeRegister(add, value & 0xffff);
                 return;
             }
 

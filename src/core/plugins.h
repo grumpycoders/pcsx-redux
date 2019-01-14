@@ -145,62 +145,6 @@ struct SubQ {
     char res1[72];
 };
 
-extern "C" {
-
-// SPU Functions
-long SPUinit(void);
-long SPUshutdown(void);
-long SPUclose(void);
-void SPUplaySample(unsigned char);
-void SPUwriteRegister(unsigned long, unsigned short);
-unsigned short SPUreadRegister(unsigned long);
-void SPUwriteDMA(unsigned short);
-unsigned short SPUreadDMA(void);
-void SPUwriteDMAMem(unsigned short*, int);
-void SPUreadDMAMem(unsigned short*, int);
-void SPUplayADPCMchannel(xa_decode_t*);
-void SPUregisterCallback(void (*callback)(void));
-long SPUconfigure(void);
-long SPUtest(void);
-void SPUabout(void);
-typedef struct {
-    unsigned char PluginName[8];
-    uint32_t PluginVersion;
-    uint32_t Size;
-    unsigned char SPUPorts[0x200];
-    unsigned char SPURam[0x80000];
-    xa_decode_t xa;
-    unsigned char* SPUInfo;
-} SPUFreeze_t;
-long SPUfreeze(uint32_t, SPUFreeze_t*);
-void SPUasync(uint32_t);
-void SPUplayCDDAchannel(short*, int);
-
-}
-
-// SPU function pointers
-#if 0
-extern SPUconfigure SPU_configure;
-extern SPUabout SPU_about;
-extern SPUinit SPU_init;
-extern SPUshutdown SPU_shutdown;
-extern SPUtest SPU_test;
-extern SPUopen SPU_open;
-extern SPUclose SPU_close;
-extern SPUplaySample SPU_playSample;
-extern SPUwriteRegister SPU_writeRegister;
-extern SPUreadRegister SPU_readRegister;
-extern SPUwriteDMA SPU_writeDMA;
-extern SPUreadDMA SPU_readDMA;
-extern SPUwriteDMAMem SPU_writeDMAMem;
-extern SPUreadDMAMem SPU_readDMAMem;
-extern SPUplayADPCMchannel SPU_playADPCMchannel;
-extern SPUfreeze SPU_freeze;
-extern SPUregisterCallback SPU_registerCallback;
-extern SPUasync SPU_async;
-extern SPUplayCDDAchannel SPU_playCDDAchannel;
-#endif
-
 // PAD Functions
 typedef long (*PADconfigure)(void);
 typedef void (*PADabout)(void);

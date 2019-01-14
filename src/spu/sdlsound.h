@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,19 +19,38 @@
 
 #pragma once
 
-#include "core/psxemulator.h"
+#include <SDL.h>
 
-struct ADPCM_Decode_t {
-    int32_t y0, y1;
+namespace PCSX {
+
+namespace SPU {
+
+class SDLsound {
+  public:
+    void setup();
+    void remove();
+    unsigned long getBytesBuffered();
+    void feedStreamData(unsigned char* pSound, long lBytes);
+
+  private:
+
+    void callback(Uint8* stream, int len);
+    static void callbackTrampoline(void* userdata, Uint8* stream, int len) {
+        SDLsound* that = static_cast<SDLsound*>(userdata);
+        that->callback(stream, len);
+    }
+    void dequeueLocked(uint8_t* stream, size_t len);
+    void enqueueLocked(const uint8_t* data, size_t len);
+
+    static const size_t BUFFER_SIZE = 32 * 1024 * 4;
+
+    SDL_AudioDeviceID s_dev;
+    uint32_t s_ptrBegin = 0, s_ptrEnd = 0;
+    uint8_t s_buffer[BUFFER_SIZE];
+    SDL_mutex* s_mutex;
+    SDL_AudioSpec s_specs;
 };
 
-struct xa_decode_t {
-    int freq;
-    int nbits;
-    int stereo;
-    int nsamples;
-    ADPCM_Decode_t left, right;
-    short pcm[16384];
-};
+}  // namespace SPU
 
-int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_sector);
+}  // namespace PCSX

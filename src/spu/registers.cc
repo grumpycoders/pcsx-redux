@@ -41,10 +41,9 @@
 
 #define _IN_REGISTERS
 
-#include "externals.h"
-#include "registers.h"
-#include "regs.h"
-#include "reverb.h"
+#include "spu/externals.h"
+#include "spu/interface.h"
+#include "spu/registers.h"
 
 /*
 // adsr time values (in ms) by James Higgs ... see the end of
@@ -68,7 +67,7 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-void SPUwriteRegister(unsigned long reg, unsigned short val) {
+void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
     const unsigned long r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
@@ -103,7 +102,7 @@ void SPUwriteRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.DecayRate = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
                 s_chan[ch].ADSRX.SustainLevel = (lval & 0x000f) << 27;
                 //---------------------------------------------//
-                if (!iDebugMode) break;
+                if (!iSPUDebugMode) break;
                 //---------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
@@ -143,7 +142,7 @@ void SPUwriteRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
                 s_chan[ch].ADSRX.ReleaseRate = 4 * ((lval & 0x001f) ^ 0x1f);
                 //----------------------------------------------//
-                if (!iDebugMode) break;
+                if (!iSPUDebugMode) break;
                 //----------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.SustainModeExp = (lval & 0x8000) ? 1 : 0;
@@ -432,7 +431,7 @@ void SPUwriteRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short SPUreadRegister(unsigned long reg) {
+unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
     const unsigned long r = reg & 0xfff;
 
     iSpuAsyncWait = 0;
@@ -494,7 +493,7 @@ unsigned short SPUreadRegister(unsigned long reg) {
 // SOUND ON register write
 ////////////////////////////////////////////////////////////////////////
 
-void SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
+void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
 {
     int ch;
 
@@ -513,7 +512,7 @@ void SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
 // SOUND OFF register write
 ////////////////////////////////////////////////////////////////////////
 
-void SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
+void PCSX::SPU::impl::SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
 {
     int ch;
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
@@ -529,7 +528,7 @@ void SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
 // FMOD register write
 ////////////////////////////////////////////////////////////////////////
 
-void FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
+void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
 {
     int ch;
 
@@ -551,7 +550,7 @@ void FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
 // NOISE register write
 ////////////////////////////////////////////////////////////////////////
 
-void NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
+void PCSX::SPU::impl::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
 {
     int ch;
 
@@ -573,7 +572,7 @@ void NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
 // please note: sweep and phase invert are wrong... but I've never seen
 // them used
 
-void SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
+void PCSX::SPU::impl::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 {
     s_chan[ch].iLeftVolRaw = vol;
 
@@ -600,7 +599,7 @@ void SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 // RIGHT VOLUME register write
 ////////////////////////////////////////////////////////////////////////
 
-void SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
+void PCSX::SPU::impl::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 {
     s_chan[ch].iRightVolRaw = vol;
 
@@ -626,7 +625,7 @@ void SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 // PITCH register write
 ////////////////////////////////////////////////////////////////////////
 
-void SetPitch(int ch, unsigned short val)  // SET PITCH
+void PCSX::SPU::impl::SetPitch(int ch, unsigned short val)  // SET PITCH
 {
     int NP;
     if (val > 0x3fff)
@@ -645,7 +644,7 @@ void SetPitch(int ch, unsigned short val)  // SET PITCH
 // REVERB register write
 ////////////////////////////////////////////////////////////////////////
 
-void ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
+void PCSX::SPU::impl::ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
 {
     int ch;
 

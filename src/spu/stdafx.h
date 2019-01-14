@@ -43,8 +43,6 @@
 //#include <dbgout.h>
 // void auxprintf (LPCTSTR pFormat, ...);
 
-#define INLINE __inline
-
 //////////////////////////////////////////////////////////
 // LINUX
 //////////////////////////////////////////////////////////
@@ -70,8 +68,8 @@
 #define LOWORD(l) ((unsigned short)(l))
 #define HIWORD(l) ((unsigned short)(((unsigned long)(l) >> 16) & 0xFFFF))
 
-#define INLINE inline
+#define inline inline
 
 #endif
 
-#include "psemuxa.h"
+#include "core/decode_xa.h"

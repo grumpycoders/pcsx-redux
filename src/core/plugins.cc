@@ -27,6 +27,7 @@
 #include "core/gpu.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
+#include "spu/interface.h"
 
 static PCSX::PAD pad1(PCSX::PAD::PAD1);
 
@@ -328,218 +329,11 @@ static int LoadGPUplugin() {
     return 0;
 }
 
-long SPU__configure(void) { return 0; }
-void SPU__about(void) {}
-long SPU__test(void) { return 0; }
-
-//#define LoadSpuSym1(dest, name) LoadSym(SPU_##dest, SPU##dest, name, true);
-
-#define LoadSpuSym0(dest, name)                  \
-    LoadSym(SPU_##dest, SPU##dest, name, false); \
-    if (SPU_##dest == NULL) SPU_##dest = (SPU##dest)SPU__##dest;
-
-#define LoadSpuSymN(dest, name) LoadSym(SPU_##dest, SPU##dest, name, false);
-
 #include <stdlib.h>
 #include <string.h>
 
 #include "decode_xa.h"
 #include "psxemulator.h"
-
-int iSoundMuted = 1;
-
-static int spu_sbaddr;
-static short spureg[(0x1e00 - 0x1c00) / 2];
-static short *spumem;
-
-long nullSPU_init(void) {
-    spumem = (short *)malloc(512 * 1024);
-    if (spumem == NULL) return -1;
-
-    return 0;
-}
-
-long nullSPU_shutdown(void) {
-    if (spumem != NULL) {
-        free(spumem);
-        spumem = NULL;
-    }
-
-    return 0;
-}
-
-long nullSPU_open(HWND hwnd) { return 0; }
-
-long nullSPU_close(void) { return 0; }
-
-// New Interface
-
-void nullSPU_writeRegister(unsigned long reg, unsigned short val) {
-    spureg[(reg - 0x1f801c00) / 2] = val;
-    switch (reg) {
-        case 0x1f801da6:  // spu sbaddr
-            spu_sbaddr = val * 8;
-            break;
-        case 0x1f801da8:  // spu data
-            spumem[spu_sbaddr / 2] = (short)val;
-            spu_sbaddr += 2;
-            if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
-            break;
-    }
-}
-
-unsigned short nullSPU_readRegister(unsigned long reg) {
-    switch (reg) {
-        case 0x1f801da6:  // spu sbaddr
-            return spu_sbaddr / 8;
-        case 0x1f801da8:  // spu data
-        {
-            int ret = spumem[spu_sbaddr / 2];
-            spu_sbaddr += 2;
-            if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
-            return ret;
-        }
-        default:
-            return spureg[(reg - 0x1f801c00) / 2];
-    }
-    return 0;
-}
-
-void nullSPU_readDMAMem(unsigned short *ptr, int size) {
-    for (int i = 0; i < size; i++) {
-        ptr[i] = spumem[spu_sbaddr / 2];
-        spu_sbaddr += 2;
-        if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
-    }
-}
-
-void nullSPU_writeDMAMem(unsigned short *ptr, int size) {
-    for (int i = 0; i < size; i++) {
-        spumem[spu_sbaddr / 2] = (short)ptr[i];
-        spu_sbaddr += 2;
-        if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
-    }
-}
-
-void nullSPU_playADPCMchannel(xa_decode_t *xap) {}
-// Old Interface
-
-unsigned short nullSPU_getOne(unsigned long val) {
-    if (val > 0x7ffff) return 0;
-    return spumem[val / 2];
-}
-
-void nullSPU_putOne(unsigned long val, unsigned short data) {
-    if (val > 0x7ffff) return;
-    spumem[val / 2] = data;
-}
-
-void nullSPU_setAddr(unsigned char ch, unsigned short waddr) {}
-
-void nullSPU_setPitch(unsigned char ch, unsigned short pitch) {}
-
-void nullSPU_setVolumeL(unsigned char ch, short vol) {}
-
-void nullSPU_setVolumeR(unsigned char ch, short vol) {}
-
-void nullSPU_startChannels1(unsigned short channels) {}
-
-void nullSPU_startChannels2(unsigned short channels) {}
-
-void nullSPU_stopChannels1(unsigned short channels) {}
-
-void nullSPU_stopChannels2(unsigned short channels) {}
-
-long nullSPU_test(void) { return 0; }
-
-long nullSPU_configure(void) { return 0; }
-
-void nullSPU_about(void) {}
-
-long nullSPU_freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
-#if 0
-    if( ulFreezeMode == 1 )
-    {
-        memcpy(pF->cSPURam, spumem, 512*1024);
-        memcpy(pF->cSPUPort, spureg, 0x200);
-        pF->Addr = spu_sbaddr;
-    }
-    else
-    {
-        memcpy(spumem, pF->cSPURam, 512*1024);
-        memcpy(spureg, pF->cSPUPort, 0x200);
-        spu_sbaddr = pF->Addr;
-    }
-#endif
-    return 1;
-}
-
-void nullSPU_async(uint32_t length) {}
-
-void (*nullSPU_irqcallback)(void);
-
-void nullSPU_registerCallback(void (*callback)(void)) { nullSPU_irqcallback = callback; }
-
-void nullSPU_writeDMA(unsigned short val) {
-    spumem[spu_sbaddr >> 1] = val;
-    spu_sbaddr += 2;
-    if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
-}
-
-unsigned short nullSPU_readDMA(void) {
-    unsigned short s = spumem[spu_sbaddr >> 1];
-    spu_sbaddr += 2;
-    if (spu_sbaddr > 0x7ffff) spu_sbaddr = 0;
-    return s;
-}
-
-static int LoadSPUplugin() {
-#if 0
-    LoadSpuSym1(init, "SPUinit");
-    LoadSpuSym1(shutdown, "SPUshutdown");
-    LoadSpuSym1(open, "SPUopen");
-    LoadSpuSym1(close, "SPUclose");
-    LoadSpuSym0(configure, "SPUconfigure");
-    LoadSpuSym0(about, "SPUabout");
-    LoadSpuSym0(test, "SPUtest");
-    LoadSpuSym1(writeRegister, "SPUwriteRegister");
-    LoadSpuSym1(readRegister, "SPUreadRegister");
-    LoadSpuSym1(writeDMA, "SPUwriteDMA");
-    LoadSpuSym1(readDMA, "SPUreadDMA");
-    LoadSpuSym1(writeDMAMem, "SPUwriteDMAMem");
-    LoadSpuSym1(readDMAMem, "SPUreadDMAMem");
-    LoadSpuSym1(playADPCMchannel, "SPUplayADPCMchannel");
-    LoadSpuSym1(freeze, "SPUfreeze");
-    LoadSpuSym1(registerCallback, "SPUregisterCallback");
-    LoadSpuSymN(async, "SPUasync");
-    LoadSpuSymN(playCDDAchannel, "SPUplayCDDAchannel");
-#endif
-
-#define LoadSpuSym1(s, x) SPU_##s = gSPU##s;
-
-#if 0
-    LoadSpuSym1(init, "SPUinit");
-    LoadSpuSym1(shutdown, "SPUshutdown");
-    LoadSpuSym1(open, "SPUopen");
-    LoadSpuSym1(close, "SPUclose");
-    // LoadSpuSym0(configure, "SPUconfigure");
-    // LoadSpuSym0(about, "SPUabout");
-    // LoadSpuSym0(test, "SPUtest");
-    LoadSpuSym1(writeRegister, "SPUwriteRegister");
-    LoadSpuSym1(readRegister, "SPUreadRegister");
-    LoadSpuSym1(writeDMA, "SPUwriteDMA");
-    LoadSpuSym1(readDMA, "SPUreadDMA");
-    LoadSpuSym1(writeDMAMem, "SPUwriteDMAMem");
-    LoadSpuSym1(readDMAMem, "SPUreadDMAMem");
-    LoadSpuSym1(playADPCMchannel, "SPUplayADPCMchannel");
-    LoadSpuSym1(freeze, "SPUfreeze");
-    LoadSpuSym1(registerCallback, "SPUregisterCallback");
-    LoadSpuSym1(async, "SPUasync");
-    LoadSpuSym1(playCDDAchannel, "SPUplayCDDAchannel");
-#endif
-
-    return 0;
-}
 
 static unsigned char s_buf[256];
 unsigned char stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -888,7 +682,6 @@ int LoadPlugins() {
     ReleasePlugins();
 
     if (LoadGPUplugin() == -1) return -1;
-    if (LoadSPUplugin() == -1) return -1;
     if (LoadPAD1plugin() == -1) return -1;
     if (LoadPAD2plugin() == -1) return -1;
     if (LoadNETplugin() == -1) PCSX::g_emulator.config().UseNet = false;
@@ -903,7 +696,7 @@ int LoadPlugins() {
         PCSX::g_system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
-    ret = SPUinit();
+    ret = PCSX::g_emulator.m_spu->init();
     if (ret < 0) {
         PCSX::g_system->SysMessage(_("Error initializing SPU plugin: %d"), ret);
         return -1;
@@ -947,7 +740,7 @@ void ReleasePlugins() {
 
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
     PCSX::g_emulator.m_gpu->shutdown();
-    SPUshutdown();
+    PCSX::g_emulator.m_spu->shutdown();
     if (PAD1_shutdown) PAD1_shutdown();
     if (PAD2_shutdown) PAD2_shutdown();
     if (PCSX::g_emulator.config().UseNet && NET_shutdown) NET_shutdown();
