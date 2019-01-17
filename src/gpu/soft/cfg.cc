@@ -386,7 +386,6 @@ BOOL OnInitSoftDialog(HWND hW) {
     if (iStopSaver) CheckDlgButton(hW, IDC_STOPSAVER, TRUE);
     if (iUseFixes) CheckDlgButton(hW, IDC_GAMEFIX, TRUE);
     if (bTransparent) CheckDlgButton(hW, IDC_TRANSPARENT, TRUE);
-    if (iDebugMode) CheckDlgButton(hW, IDC_DEBUGMODE, TRUE);
     if (bSSSPSXLimit) CheckDlgButton(hW, IDC_SSSPSXLIMIT, TRUE);
 
     hWC = GetDlgItem(hW, IDC_NOSTRETCH);  // stretching
@@ -482,11 +481,6 @@ void GetSettings(HWND hW) {
         bSSSPSXLimit = TRUE;
     else
         bSSSPSXLimit = FALSE;
-
-    if (IsDlgButtonChecked(hW, IDC_DEBUGMODE))  // debug mode
-        iDebugMode = 1;
-    else
-        iDebugMode = 0;
 
     hWC = GetDlgItem(hW, IDC_DITHER);
     iUseDither = ComboBox_GetCurSel(hWC);
@@ -680,7 +674,6 @@ void ReadGPUConfig(void) {
     iStopSaver = 0;
     bTransparent = FALSE;
     bSSSPSXLimit = FALSE;
-    iDebugMode = 0;
     lstrcpy(szGPUKeys, szKeyDefaults);
 
     // zn Windows config file
@@ -745,9 +738,6 @@ void ReadGPUConfig(void) {
             size = 4;
             if (RegQueryValueEx(myKey, "SSSPSXLimit", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 bSSSPSXLimit = (BOOL)temp;
-            size = 4;
-            if (RegQueryValueEx(myKey, "DebugMode", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                iDebugMode = (BOOL)temp;
             size = 11;
             RegQueryValueEx(myKey, "GPUKeys", 0, &type, (LPBYTE)&szGPUKeys, &size);
 
@@ -836,8 +826,6 @@ void WriteGPUConfig(void) {
     RegSetValueEx(myKey, "SSSPSXLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iStopSaver;
     RegSetValueEx(myKey, "StopSaver", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iDebugMode;
-    RegSetValueEx(myKey, "DebugMode", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     RegSetValueEx(myKey, "GPUKeys", 0, REG_BINARY, (LPBYTE)szGPUKeys, 11);
 
     //

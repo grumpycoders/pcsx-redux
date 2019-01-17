@@ -7,6 +7,8 @@
 #include "gui/gui.h"
 #include "spu/interface.h"
 
+static PCSX::GUI * s_gui;
+
 class SystemImpl : public PCSX::System {
     virtual void SysPrintf(const char *fmt, ...) final {
         // print message to debugging console
@@ -41,7 +43,7 @@ class SystemImpl : public PCSX::System {
 
     virtual void SysUpdate() final {
         // called on vblank to update states
-        GUI_flip();
+        s_gui->update();
     }
 
     virtual void SysRunGui() final {
@@ -58,9 +60,9 @@ class SystemImpl : public PCSX::System {
 };
 
 int main(int argc, char *argv[]) {
-    unsigned int texture = GUI_init();
-
     PCSX::g_system = new SystemImpl;
+    s_gui = new PCSX::GUI();
+    s_gui->init();
 
     PCSX::g_emulator.config().PsxAuto = true;
     PCSX::g_emulator.config().HLE = false;
@@ -71,7 +73,7 @@ int main(int argc, char *argv[]) {
 
     SetIsoFile("test.img");
     LoadPlugins();
-    PCSX::g_emulator.m_gpu->open(texture);
+    PCSX::g_emulator.m_gpu->open(s_gui);
     PCSX::g_emulator.m_cdrom->m_iso.open();
     PCSX::g_emulator.m_spu->open();
 
@@ -82,6 +84,9 @@ int main(int argc, char *argv[]) {
     LoadCdrom();
 
     PCSX::g_emulator.m_psxCpu->Execute();
+
+    delete s_gui;
+    delete PCSX::g_system;
 
     return 0;
 }

@@ -72,19 +72,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

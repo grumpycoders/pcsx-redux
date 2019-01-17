@@ -143,14 +143,17 @@ struct PSXDisplay_t {
 
 // draw.c
 
-extern unsigned int textureId;
+namespace PCSX {
+class GUI;
+}
+
+extern PCSX::GUI *m_gui;
 extern BOOL bVsync_Key;
 
 extern int iResX;
 extern int iResY;
 extern BOOL bCheckMask;
 extern int iFastFwd;
-extern int iDebugMode;
 extern int iFVDisplay;
 extern PSXPoint_t ptCursorPoint[];
 extern unsigned short usCursorActive;

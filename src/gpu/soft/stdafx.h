@@ -26,7 +26,9 @@
 
 #ifdef _WIN32
 
+#ifndef STRICT
 #define STRICT
+#endif
 #define D3D_OVERLOADS
 #define DIRECT3D_VERSION 0x600
 #define CINTERFACE

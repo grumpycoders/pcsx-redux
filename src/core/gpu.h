@@ -4,6 +4,8 @@
 
 namespace PCSX {
 
+class GUI;
+
 class GPU {
   public:
     int gpuReadStatus();
@@ -27,7 +29,7 @@ class GPU {
 
     virtual long init() = 0;
     virtual long shutdown() = 0;
-    virtual long open(unsigned int texture) = 0;
+    virtual long open(GUI*) = 0;
     virtual long close() = 0;
     virtual uint32_t readData() = 0;
     virtual void readDataMem(uint32_t *pMem, int iSize) = 0;

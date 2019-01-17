@@ -99,9 +99,11 @@
 
 #include <SDL.h>
 #include <stdint.h>
+
 #include "GL/gl3w.h"
 #include "stdafx.h"
 
+#include "gui/gui.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
@@ -119,7 +121,7 @@ int iFVDisplay = 1;
 PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
-unsigned int textureId;
+PCSX::GUI *m_gui;
 BOOL bVsync_Key = FALSE;
 
 ////////////////////////////////////////////////////////////////////////
@@ -137,23 +139,6 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
     short row, column;
     short dx = (short)PreviousPSXDisplay.Range.x1;
     short dy = (short)PreviousPSXDisplay.DisplayMode.y;
-
-    if (iDebugMode && iFVDisplay) {
-        dx = 1024;
-        dy = iGPUHeight;
-        x = 0;
-        y = 0;
-
-        for (column = 0; column < dy; column++) {
-            startxy = ((1024) * (column + y)) + x;
-            for (row = 0; row < dx; row++) {
-                s = psxVuw[startxy++];
-                *((unsigned long *)((surf) + (column * pitch) + row * 4)) =
-                    ((((s << 19) & 0xf80000) | ((s << 6) & 0xf800) | ((s >> 7) & 0xf8)) & 0xffffff) | 0xff000000;
-            }
-        }
-        return;
-    }
 
     if (PreviousPSXDisplay.Range.y0)  // centering needed?
     {
@@ -187,6 +172,7 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
     }
 }
 
+GLuint textureId = 0;
 static uint8_t *textureMem = NULL;
 
 ////////////////////////////////////////////////////////////////////////
@@ -194,6 +180,8 @@ static uint8_t *textureMem = NULL;
 void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
 {
     memset(textureMem, 0, 1024 * 512 * 4);
+    glClearColor(1, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -201,6 +189,8 @@ void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
 void DoClearFrontBuffer(void)  // CLEAR PRIMARY BUFFER
 {
     memset(textureMem, 0, 1024 * 512 * 4);
+    glClearColor(1, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -255,25 +245,22 @@ void ShowGunCursor(unsigned char *surf) {
     }
 }
 
-static bool f10pressed = false;
-
 void DoBufferSwap() {
-    const Uint8 *keys = SDL_GetKeyboardState(NULL);
-    if (keys[SDL_SCANCODE_F10]) {
-        if (!f10pressed) {
-            memset(textureMem, 0, 1024 * 512 * 4);
-            iDebugMode = !iDebugMode;
-            f10pressed = true;
-        }
-    } else {
-        f10pressed = false;
-    }
+    m_gui->bindVRAMTexture();
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
+    m_gui->checkGL();
+
     LONG x, y;
     x = PSXDisplay.DisplayPosition.x;
     y = PSXDisplay.DisplayPosition.y;
-    BlitScreen32(textureMem, x, y);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_BGRA, GL_UNSIGNED_BYTE, textureMem);
+    if (PSXDisplay.RGB24) {
+        BlitScreen32(textureMem, x, y);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+    } else {
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    m_gui->checkGL();
+    m_gui->flip();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -301,6 +288,11 @@ void DXcleanup()  // DX CLEANUP
 
 unsigned long ulInitDisplay(void) {
     textureMem = (uint8_t *)malloc(1024 * 512 * 4);
+    if (!textureId) {
+        glGenTextures(1, &textureId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
+    }
     DXinitialize();  // init direct draw (not D3D... oh, well)
     return 1;
 }
