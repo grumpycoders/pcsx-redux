@@ -21,6 +21,15 @@ void PCSX::GUI::checkGL() {
     }
 }
 
+void PCSX::GUI::setFullscreen(bool fullscreen) {
+    m_fullscreen = fullscreen;
+    if (fullscreen) {
+        SDL_SetWindowFullscreen(s_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    } else {
+        SDL_SetWindowFullscreen(s_window, 0);
+    }
+}
+
 void PCSX::GUI::init() {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
         assert(0);
@@ -35,10 +44,8 @@ void PCSX::GUI::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
-    SDL_Rect r;
-    if (SDL_GetDisplayBounds(0, &r) != 0) abort();
-    s_window = SDL_CreateWindow("PCSX-REDUX", 0, 0, r.w, r.h,
-                               SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_BORDERLESS);
+    s_window = SDL_CreateWindow("PCSX-REDUX", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600,
+                               SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     assert(s_window);
 
     s_glContext = SDL_GL_CreateContext(s_window);

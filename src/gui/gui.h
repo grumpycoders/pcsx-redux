@@ -33,6 +33,7 @@ class GUI final {
     void bindVRAMTexture();
     static void checkGL();
     void setViewport();
+    void setFullscreen(bool);
 
   private:
     void startFrame();
@@ -51,6 +52,7 @@ class GUI final {
     ImVec2 m_renderSize = ImVec2(1, 1);
 
     float m_renderRatio = 3.0f / 4.0f;
+    bool m_fullscreen = false;
 };
 
 }
