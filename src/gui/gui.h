@@ -32,6 +32,7 @@ class GUI final {
     void flip();
     void bindVRAMTexture();
     static void checkGL();
+    void setViewport();
 
   private:
     void startFrame();
@@ -47,6 +48,9 @@ class GUI final {
     int s_currentTexture;
 
     ImVec4 clear_color = ImColor(114, 144, 154);
+    ImVec2 m_renderSize = ImVec2(1, 1);
+
+    float m_renderRatio = 3.0f / 4.0f;
 };
 
 }

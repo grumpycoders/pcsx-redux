@@ -84,9 +84,10 @@ void PCSX::GUI::startFrame() {
     checkGL();
 }
 
+void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
+
 void PCSX::GUI::flip() {
     checkGL();
-    int resolution[2] = {1024, 1024};
 
     glBindFramebuffer(GL_FRAMEBUFFER, s_offscreenFrameBuffer);
     checkGL();
@@ -94,14 +95,14 @@ void PCSX::GUI::flip() {
     checkGL();
 
     // made up resolution
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, resolution[0], resolution[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     checkGL();
 
     glBindRenderbuffer(GL_RENDERBUFFER, s_offscreenDepthBuffer);
     checkGL();
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, resolution[0], resolution[1]);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
     checkGL();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_offscreenDepthBuffer);
     checkGL();
@@ -114,7 +115,7 @@ void PCSX::GUI::flip() {
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-    glViewport(0, 0, resolution[0], resolution[1]);
+    glViewport(0, 0, m_renderSize.x, m_renderSize.y);
 
     glClearColor(0, 0, 0, 0);
     glClearDepthf(0.f);
@@ -125,9 +126,6 @@ void PCSX::GUI::flip() {
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
     checkGL();
-
-    glClearColor(1, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
 
     glDisable(GL_CULL_FACE);
     s_currentTexture = s_currentTexture ? 0 : 1;
@@ -155,9 +153,16 @@ void PCSX::GUI::endFrame() {
     }
     checkGL();
 
-    ImGui::Begin("VRAM");
+    ImGui::Begin("VRAM", nullptr, ImGuiWindowFlags_NoScrollbar);
     {
         ImVec2 textureSize = ImGui::GetWindowSize();
+        float r = textureSize.y / textureSize.x;
+        static const float ratio = 0.5f;
+        if (r > ratio) {
+            textureSize.y = textureSize.x * ratio;
+        } else {
+            textureSize.x = textureSize.y / ratio;
+        }
         textureSize.y = textureSize.x * (512.f / 1024.f);
         ImGui::Image((ImTextureID)s_VRAMTexture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
         ImGui::SameLine();
@@ -165,11 +170,16 @@ void PCSX::GUI::endFrame() {
     ImGui::End();
     checkGL();
 
-    ImGui::Begin("Output");
+    ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar);
     {
-        ImVec2 textureSize = ImGui::GetWindowSize();
-        textureSize.y = textureSize.x * (1024 / 1024.f);
-        ImGui::Image((ImTextureID)s_offscreenTextures[s_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
+        m_renderSize = ImGui::GetWindowSize();
+        float r = m_renderSize.y / m_renderSize.x;
+        if (r > m_renderRatio) {
+            m_renderSize.y = m_renderSize.x * m_renderRatio;
+        } else {
+            m_renderSize.x = m_renderSize.y / m_renderRatio;
+        }
+        ImGui::Image((ImTextureID)s_offscreenTextures[s_currentTexture], m_renderSize, ImVec2(0, 0), ImVec2(1, 1));
         ImGui::SameLine();
     }
     ImGui::End();
