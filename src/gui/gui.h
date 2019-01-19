@@ -28,7 +28,10 @@ namespace PCSX {
 class GUI final {
   public:
     void init();
-    void update();
+    void update() {
+        endFrame();
+        startFrame();
+    }
     void flip();
     void bindVRAMTexture();
     static void checkGL();
