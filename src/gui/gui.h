@@ -39,6 +39,15 @@ class GUI final {
     void startFrame();
     void endFrame();
 
+    void normalizeDimensions(ImVec2 &vec, float ratio) {
+        float r = vec.y / vec.x;
+        if (r > ratio) {
+            vec.y = vec.x * ratio;
+        } else {
+            vec.x = vec.y / ratio;
+        }
+    }
+
     SDL_Window *s_window = NULL;
     SDL_GLContext s_glContext = NULL;
     unsigned int s_VRAMTexture = 0;
@@ -53,6 +62,12 @@ class GUI final {
 
     float m_renderRatio = 3.0f / 4.0f;
     bool m_fullscreen = false;
+
+    // GUI
+    bool m_fullscreenRender = true;
+    bool m_showMenu = false;
+    bool m_showDemo = false;
+    bool m_showVRAMwindow = false;
 };
 
 }
