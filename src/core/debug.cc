@@ -300,23 +300,23 @@ void PCSX::Debug::StartDebugger() {
 
     s_memoryMap = (uint8_t *)malloc(0x200000);
     if (s_memoryMap == NULL) {
-        PCSX::g_system->SysMessage("%s", _("Error allocating memory"));
+        PCSX::g_system->message("%s", _("Error allocating memory"));
         return;
     }
 
     if (StartServer() == -1) {
-        PCSX::g_system->SysPrintf("%s", _("Unable to start debug server.\n"));
+        PCSX::g_system->printf("%s", _("Unable to start debug server.\n"));
         return;
     }
 
-    PCSX::g_system->SysPrintf("%s", _("Debugger started.\n"));
+    PCSX::g_system->printf("%s", _("Debugger started.\n"));
     s_debugger_active = 1;
 }
 
 void PCSX::Debug::StopDebugger() {
     if (s_debugger_active) {
         StopServer();
-        PCSX::g_system->SysPrintf("%s", _("Debugger stopped.\n"));
+        PCSX::g_system->printf("%s", _("Debugger stopped.\n"));
     }
 
     if (s_memoryMap != NULL) {
@@ -345,7 +345,7 @@ void PCSX::Debug::DebugVSync() {
     if (s_reset) {
         s_resetting = 1;
         CheckCdrom();
-        PCSX::g_system->SysReset();
+        PCSX::g_system->reset();
         if (s_reset == 2) LoadCdrom();
         s_reset = s_resetting = 0;
         return;
@@ -416,7 +416,7 @@ void PCSX::Debug::ProcessDebug() {
         GetClient();
         ProcessCommands();
         PCSX::g_emulator.m_gpu->updateLace();
-        PCSX::g_system->SysUpdate();
+        PCSX::g_system->update();
     }
 }
 

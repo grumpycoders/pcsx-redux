@@ -40,7 +40,7 @@ class GPU {
     virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void updateLace() = 0;
     virtual void keypressed(int key) {}
-    virtual void displayText(char *pText) { PCSX::g_system->SysPrintf("%s\n", pText); }
+    virtual void displayText(char *pText) { PCSX::g_system->printf("%s\n", pText); }
     virtual void makeSnapshot(void) {}
     virtual void toggleDebug(void) {}
     virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) = 0;

@@ -52,7 +52,7 @@ typedef const func_t cfunc_t;
 void SysBiosPrintfWrapper(const char *fmt, ...) {
     va_list a;
     va_start(a, fmt);
-    PCSX::g_system->SysBiosPrintf(fmt, a);
+    PCSX::g_system->biosPrintf(fmt, a);
     va_end(a);
 }
 uint8_t psxMemRead8Wrapper(uint32_t mem) { return PCSX::g_emulator.m_psxMem->psxMemRead8(mem); }
@@ -861,9 +861,9 @@ void X86DynaRecCPU::iDumpBlock(int8_t *ptr) {
     FILE *f;
     uint32_t i;
 
-    PCSX::g_system->SysPrintf("dump1 %x:%x, %x\n", m_psxRegs.pc, m_pc, m_psxRegs.cycle);
+    PCSX::g_system->printf("dump1 %x:%x, %x\n", m_psxRegs.pc, m_pc, m_psxRegs.cycle);
 
-    for (i = m_psxRegs.pc; i < m_pc; i += 4) PCSX::g_system->SysPrintf("%s\n", disR3000AF(PSXMu32(i), i));
+    for (i = m_psxRegs.pc; i < m_pc; i += 4) PCSX::g_system->printf("%s\n", disR3000AF(PSXMu32(i), i));
 
     fflush(stdout);
     f = fopen("dump1", "w");
@@ -920,7 +920,7 @@ bool X86DynaRecCPU::Init() {
     m_recRAM = (char *)calloc(0x200000, 1);
     m_recROM = (char *)calloc(0x080000, 1);
     if (m_recRAM == NULL || m_recROM == NULL || m_recMem == NULL || m_psxRecLUT == NULL) {
-        PCSX::g_system->SysMessage("Error allocating memory");
+        PCSX::g_system->message("Error allocating memory");
         return false;
     }
 
@@ -963,10 +963,10 @@ void X86DynaRecCPU::Shutdown() {
 }
 
 void X86DynaRecCPU::recError() {
-    PCSX::g_system->SysReset();
+    PCSX::g_system->reset();
     // ClosePlugins();
-    PCSX::g_system->SysMessage("Unrecoverable error while running recompiler\n");
-    PCSX::g_system->SysRunGui();
+    PCSX::g_system->message("Unrecoverable error while running recompiler\n");
+    PCSX::g_system->runGui();
 }
 
 void X86DynaRecCPU::execute() {
@@ -1016,7 +1016,7 @@ void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
 }
 
 void X86DynaRecCPU::recNULL() {
-    //  PCSX::g_system->SysMessage("recUNK: %8.8x\n", m_psxRegs.code);
+    //  PCSX::g_system->message("recUNK: %8.8x\n", m_psxRegs.code);
 }
 
 /*********************************************************
@@ -1799,7 +1799,7 @@ void X86DynaRecCPU::recLB() {
             gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
             return;
         }
-        //      PCSX::g_system->SysPrintf("unhandled r8 %x\n", addr);
+        //      PCSX::g_system->printf("unhandled r8 %x\n", addr);
     }
 
     iPushOfB();
@@ -1844,7 +1844,7 @@ void X86DynaRecCPU::recLBU() {
             gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
             return;
         }
-        //      PCSX::g_system->SysPrintf("unhandled r8u %x\n", addr);
+        //      PCSX::g_system->printf("unhandled r8u %x\n", addr);
     }
 
     iPushOfB();
@@ -1889,7 +1889,7 @@ void X86DynaRecCPU::recLH() {
             gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
             return;
         }
-        //      PCSX::g_system->SysPrintf("unhandled r16 %x\n", addr);
+        //      PCSX::g_system->printf("unhandled r16 %x\n", addr);
     }
 
     iPushOfB();
@@ -1989,7 +1989,7 @@ void X86DynaRecCPU::recLHU() {
                     return;
             }
         }
-        //      PCSX::g_system->SysPrintf("unhandled r16u %x\n", addr);
+        //      PCSX::g_system->printf("unhandled r16u %x\n", addr);
     }
 
     iPushOfB();
@@ -2085,7 +2085,7 @@ void X86DynaRecCPU::recLW() {
                     return;
             }
         }
-        //      PCSX::g_system->SysPrintf("unhandled r32 %x\n", addr);
+        //      PCSX::g_system->printf("unhandled r32 %x\n", addr);
     }
 
     iPushOfB();
@@ -2218,7 +2218,7 @@ void X86DynaRecCPU::recLWL() {
         }
     }
 
-    PCSX::g_system->SysPrintf("recLWBlock %d: %d\n", count, IsConst(_Rs_));
+    PCSX::g_system->printf("recLWBlock %d: %d\n", count, IsConst(_Rs_));
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemPointer);
 //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
@@ -2360,7 +2360,7 @@ void X86DynaRecCPU::recSB() {
             }
             return;
         }
-        //      PCSX::g_system->SysPrintf("unhandled w8 %x\n", addr);
+        //      PCSX::g_system->printf("unhandled w8 %x\n", addr);
     }
 
     if (IsConst(_Rt_)) {
@@ -2421,7 +2421,7 @@ void X86DynaRecCPU::recSH() {
                 return;
             }
         }
-        //      PCSX::g_system->SysPrintf("unhandled w16 %x\n", addr);
+        //      PCSX::g_system->printf("unhandled w16 %x\n", addr);
     }
 
     if (IsConst(_Rt_)) {
@@ -2516,7 +2516,7 @@ void X86DynaRecCPU::recSW() {
                     return;
             }
         }
-        //      PCSX::g_system->SysPrintf("unhandled w32 %x\n", addr);
+        //      PCSX::g_system->printf("unhandled w32 %x\n", addr);
     }
 
     if (IsConst(_Rt_)) {
@@ -2568,7 +2568,7 @@ void X86DynaRecCPU::recSW() {
         }
     }
 
-    PCSX::g_system->SysPrintf("recSWBlock %d: %d\n", count, IsConst(_Rs_));
+    PCSX::g_system->printf("recSWBlock %d: %d\n", count, IsConst(_Rs_));
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemPointer);
 //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);

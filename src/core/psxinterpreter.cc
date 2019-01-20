@@ -73,7 +73,7 @@ GTE_WR(CTC2);
 void PCSX::InterpretedCPU::delayRead(int reg, uint32_t bpc) {
     uint32_t rold, rnew;
 
-    //  PCSX::g_system->SysPrintf("delayRead at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+    //  PCSX::g_system->printf("delayRead at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
 
     rold = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg];
     cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
@@ -92,10 +92,10 @@ void PCSX::InterpretedCPU::delayRead(int reg, uint32_t bpc) {
 }
 
 void PCSX::InterpretedCPU::delayWrite(int reg, uint32_t bpc) {
-    /*  PCSX::g_system->SysPrintf("delayWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+    /*  PCSX::g_system->printf("delayWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
 
-            PCSX::g_system->SysPrintf("%s\n", disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code,
-       PCSX::g_emulator.m_psxCpu->m_psxRegs.pc-4)); PCSX::g_system->SysPrintf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
+            PCSX::g_system->printf("%s\n", disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code,
+       PCSX::g_emulator.m_psxCpu->m_psxRegs.pc-4)); PCSX::g_system->printf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
 
     // no changes from normal behavior
     cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
@@ -108,7 +108,7 @@ void PCSX::InterpretedCPU::delayWrite(int reg, uint32_t bpc) {
 }
 
 void PCSX::InterpretedCPU::delayReadWrite(int reg, uint32_t bpc) {
-    //  PCSX::g_system->SysPrintf("delayReadWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+    //  PCSX::g_system->printf("delayReadWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
 
     // the branch delay load is skipped
 
@@ -759,7 +759,7 @@ void PCSX::InterpretedCPU::psxSYSCALL() {
 }
 
 void PCSX::InterpretedCPU::psxRFE() {
-    //  PCSX::g_system->SysPrintf("psxRFE\n");
+    //  PCSX::g_system->printf("psxRFE\n");
     PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status =
         (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) |
         ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
@@ -1030,7 +1030,7 @@ void PCSX::InterpretedCPU::psxTestSWInts() {
 }
 
 inline void PCSX::InterpretedCPU::MTC0(int reg, uint32_t val) {
-    //  PCSX::g_system->SysPrintf("MTC0 %d: %x\n", reg, val);
+    //  PCSX::g_system->printf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
             PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[12] = val;

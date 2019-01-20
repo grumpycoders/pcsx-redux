@@ -209,7 +209,7 @@ void PCSX::PPF::BuildPPFCache() {
     fread(buffer, 3, 1, ppffile);
 
     if (strcmp(buffer, "PPF") != 0) {
-        PCSX::g_system->SysPrintf(_("Invalid PPF patch: %s.\n"), szPPF);
+        PCSX::g_system->printf(_("Invalid PPF patch: %s.\n"), szPPF);
         fclose(ppffile);
         return;
     }
@@ -285,7 +285,7 @@ void PCSX::PPF::BuildPPFCache() {
 
         default:
             fclose(ppffile);
-            PCSX::g_system->SysPrintf(_("Unsupported PPF version (%d).\n"), method + 1);
+            PCSX::g_system->printf(_("Unsupported PPF version (%d).\n"), method + 1);
             return;
     }
 
@@ -324,5 +324,5 @@ void PCSX::PPF::BuildPPFCache() {
 
     FillPPFCache();  // build address array
 
-    PCSX::g_system->SysPrintf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
+    PCSX::g_system->printf(_("Loaded PPF %d.0 patch: %s.\n"), method + 1, szPPF);
 }

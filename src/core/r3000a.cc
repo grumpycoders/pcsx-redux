@@ -30,7 +30,7 @@
 #include "core/pgxp_mem.h"
 
 int PCSX::R3000Acpu::psxInit() {
-    g_system->SysPrintf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
+    g_system->printf(_("Running PCSXR Version %s (%s).\n"), PACKAGE_VERSION, __DATE__);
 
     if (g_emulator.config().Cpu == Emulator::CPU_DYNAREC) {
         g_emulator.m_psxCpu = Cpus::DynaRec();
@@ -77,7 +77,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, uint32_t bd) {
     // Set the EPC & PC
     if (bd) {
         PSXCPU_LOG("bd set!!!\n");
-        g_system->SysPrintf("bd set!!!\n");
+        g_system->printf("bd set!!!\n");
         m_psxRegs.CP0.n.Cause |= 0x80000000;
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc - 4);
     } else

@@ -11,7 +11,7 @@
 #include "imgui_impl_sdl.h"
 
 void PCSX::GUI::bindVRAMTexture() {
-    glBindTexture(GL_TEXTURE_2D, s_VRAMTexture);
+    glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     checkGL();
 }
 
@@ -26,9 +26,9 @@ void PCSX::GUI::checkGL() {
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
-        SDL_SetWindowFullscreen(s_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     } else {
-        SDL_SetWindowFullscreen(s_window, 0);
+        SDL_SetWindowFullscreen(m_window, 0);
     }
 }
 
@@ -46,12 +46,12 @@ void PCSX::GUI::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
-    s_window = SDL_CreateWindow("PCSX-REDUX", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800,
+    m_window = SDL_CreateWindow("PCSX-REDUX", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800,
                                 SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
-    assert(s_window);
+    assert(m_window);
 
-    s_glContext = SDL_GL_CreateContext(s_window);
-    assert(s_glContext);
+    m_glContext = SDL_GL_CreateContext(m_window);
+    assert(m_glContext);
 
     int result = gl3wInit();
 
@@ -60,21 +60,21 @@ void PCSX::GUI::init() {
     // Setup ImGui binding
     ImGui::CreateContext();
     ImGui_ImplOpenGL3_Init();
-    ImGui_ImplSDL2_InitForOpenGL(s_window, s_glContext);
+    ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
-    glGenTextures(1, &s_VRAMTexture);
-    glBindTexture(GL_TEXTURE_2D, s_VRAMTexture);
+    glGenTextures(1, &m_VRAMTexture);
+    glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5, 1024, 512);
     checkGL();
 
     // offscreen stuff
-    glGenFramebuffers(1, &s_offscreenFrameBuffer);
-    glGenTextures(2, s_offscreenTextures);
-    glGenRenderbuffers(1, &s_offscreenDepthBuffer);
+    glGenFramebuffers(1, &m_offscreenFrameBuffer);
+    glGenTextures(2, m_offscreenTextures);
+    glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
 
     startFrame();
-    s_currentTexture = 1;
+    m_currentTexture = 1;
     flip();
 }
 
@@ -83,7 +83,7 @@ void PCSX::GUI::startFrame() {
     std::unordered_set<SDL_Scancode> keyset;
     SDL_Keymod mods = SDL_GetModState();
     while (SDL_PollEvent(&event)) {
-        ImGui_ImplSDL2_ProcessEvent(&event);
+        bool passthrough = true;
         SDL_Scancode sc = event.key.keysym.scancode;
         switch (event.type) {
             case SDL_QUIT:
@@ -92,17 +92,19 @@ void PCSX::GUI::startFrame() {
             case SDL_KEYDOWN:
                 if ((mods & KMOD_ALT) && (sc == SDL_SCANCODE_RETURN)) {
                     setFullscreen(!m_fullscreen);
+                    passthrough = false;
                 } else {
                     keyset.insert(sc);
                 }
                 break;
         }
+        if (passthrough) ImGui_ImplSDL2_ProcessEvent(&event);
     }
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(s_window);
+    ImGui_ImplSDL2_NewFrame(m_window);
     ImGui::NewFrame();
-    SDL_GL_SwapWindow(s_window);
-    glBindFramebuffer(GL_FRAMEBUFFER, s_offscreenFrameBuffer);
+    SDL_GL_SwapWindow(m_window);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     checkGL();
 
     if (!ImGui::GetIO().WantCaptureKeyboard) {
@@ -121,9 +123,9 @@ void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y)
 void PCSX::GUI::flip() {
     checkGL();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, s_offscreenFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     checkGL();
-    glBindTexture(GL_TEXTURE_2D, s_offscreenTextures[s_currentTexture]);
+    glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
     checkGL();
 
     // made up resolution
@@ -132,13 +134,13 @@ void PCSX::GUI::flip() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     checkGL();
 
-    glBindRenderbuffer(GL_RENDERBUFFER, s_offscreenDepthBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
     checkGL();
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
     checkGL();
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_offscreenDepthBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
     checkGL();
-    GLuint texture = s_offscreenTextures[s_currentTexture];
+    GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     checkGL();
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
@@ -161,7 +163,7 @@ void PCSX::GUI::flip() {
     checkGL();
 
     glDisable(GL_CULL_FACE);
-    s_currentTexture = s_currentTexture ? 0 : 1;
+    m_currentTexture = m_currentTexture ? 0 : 1;
     checkGL();
 }
 
@@ -175,7 +177,7 @@ void PCSX::GUI::endFrame() {
     if (m_fullscreenRender) {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     } else {
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
     checkGL();
     glClearDepthf(0.f);
@@ -184,12 +186,12 @@ void PCSX::GUI::endFrame() {
     checkGL();
 
     int w, h;
-    SDL_GL_GetDrawableSize(s_window, &w, &h);
+    SDL_GL_GetDrawableSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
     normalizeDimensions(m_renderSize, m_renderRatio);
 
     if (m_fullscreenRender) {
-        ImTextureID texture = ImTextureID(s_offscreenTextures[s_currentTexture]);
+        ImTextureID texture = ImTextureID(m_offscreenTextures[m_currentTexture]);
         ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f, (h - m_renderSize.y) / 2.0f));
         ImGui::SetNextWindowSize(m_renderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -205,12 +207,9 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_showMenu || !m_fullscreenRender) {
-        if (m_showDemo) {
-            ImGui::ShowDemoWindow();
-        }
-
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Debug")) {
+                ImGui::MenuItem("Show Logs", nullptr, &m_showLog);
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
                 ImGui::MenuItem("Fullscreen render", nullptr, &m_fullscreenRender);
                 ImGui::EndMenu();
@@ -223,31 +222,35 @@ void PCSX::GUI::endFrame() {
 
             ImGui::EndMainMenuBar();
         }
-        checkGL();
+    }
 
-        if (m_showVRAMwindow) {
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+    if (m_showDemo) ImGui::ShowDemoWindow();
+
+    if (m_showVRAMwindow) {
+        ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("VRAM", &m_showVRAMwindow, ImGuiWindowFlags_NoScrollbar)) {
             ImVec2 textureSize = ImGui::GetWindowSize();
             normalizeDimensions(textureSize, 0.5f);
-            ImGui::Image((ImTextureID)s_VRAMTexture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image((ImTextureID)m_VRAMTexture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::End();
-        }
-        checkGL();
+    }
 
-        if (!m_fullscreenRender) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
-            ImVec2 textureSize = ImGui::GetWindowSize();
-            normalizeDimensions(textureSize, m_renderRatio);
-            ImGui::Image((ImTextureID)s_offscreenTextures[s_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
-            ImGui::End();
-            checkGL();
-        }
-        checkGL();
+    if (!m_fullscreenRender) {
+        ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
+        ImVec2 textureSize = ImGui::GetWindowSize();
+        normalizeDimensions(textureSize, m_renderRatio);
+        ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
+        ImGui::End();
+    }
+
+    if (m_showLog) {
+        ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
+        m_log.draw("Logs", &m_showLog);
     }
 
     ImGui::Render();

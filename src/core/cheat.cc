@@ -51,7 +51,7 @@ void PCSX::Cheats::LoadCheats(const char *filename) {
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
-        PCSX::g_system->SysPrintf(_("Could not load cheats from: %s\n"), filename);
+        PCSX::g_system->printf(_("Could not load cheats from: %s\n"), filename);
         return;
     }
 
@@ -123,7 +123,7 @@ void PCSX::Cheats::LoadCheats(const char *filename) {
 
     fclose(fp);
 
-    PCSX::g_system->SysPrintf(_("Cheats loaded from: %s\n"), filename);
+    PCSX::g_system->printf(_("Cheats loaded from: %s\n"), filename);
 }
 
 // save all cheats to the specified filename
@@ -154,7 +154,7 @@ void PCSX::Cheats::SaveCheats(const char *filename) {
 
     fclose(fp);
 
-    PCSX::g_system->SysPrintf(_("Cheats saved to: %s\n"), filename);
+    PCSX::g_system->printf(_("Cheats saved to: %s\n"), filename);
 }
 
 // apply all enabled cheats

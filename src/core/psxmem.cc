@@ -38,7 +38,7 @@ int PCSX::Memory::psxMemInit() {
     g_psxR = (int8_t *)calloc(0x00080000, 1);
 
     if (g_psxMemRLUT == NULL || g_psxMemWLUT == NULL || g_psxM == NULL || g_psxP == NULL || g_psxH == NULL) {
-        PCSX::g_system->SysMessage("%s", _("Error allocating memory!"));
+        PCSX::g_system->message("%s", _("Error allocating memory!"));
         return -1;
     }
 
@@ -86,14 +86,14 @@ void PCSX::Memory::psxMemReset() {
 
         f = fopen(bios, "rb");
         if (f == NULL) {
-            PCSX::g_system->SysMessage(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
+            PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
             memset(g_psxR, 0, 0x80000);
             PCSX::g_emulator.config().HLE = true;
         } else {
             fread(g_psxR, 1, 0x80000, f);
             fclose(f);
             PCSX::g_emulator.config().HLE = false;
-            PCSX::g_system->SysPrintf(_("Loaded BIOS: %s\n"), bios);
+            PCSX::g_system->printf(_("Loaded BIOS: %s\n"), bios);
         }
     } else
         PCSX::g_emulator.config().HLE = true;
@@ -261,7 +261,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
         PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += 1;
     }
 
-    //  if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->SysPrintf("t2fix!!\n");
+    //  if ((mem&0x1fffff) == 0x71E18 || value == 0x48088800) PCSX::g_system->printf("t2fix!!\n");
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
         if ((mem & 0xffff) < 0x400)

@@ -36,12 +36,12 @@ class Logger {
         if (!enabled) return;
         va_list a;
         va_start(a, fmt);
-        g_system->SysLog(name.name, fmt, a);
+        g_system->log(name.name, fmt, a);
         va_end(a);
     }
     static void LogVA(const char *fmt, va_list a) {
         if (!enabled) return;
-        g_system->SysLog(name.name, fmt, a);
+        g_system->log(name.name, fmt, a);
     }
 };
 
@@ -59,7 +59,7 @@ static constexpr LogName PsxCPULogName = {"PSXCPU"};
 static constexpr LogName MiscLogName = {"MISC"};
 
 /*
- * Specifices at compilation time which logs should be activated.
+ * Specifies at compilation time which logs should be activated.
  */
 typedef Logger<PadLogName, false> PAD_LOGGER;
 typedef Logger<Sio1LogName, false> SIO1_LOGGER;

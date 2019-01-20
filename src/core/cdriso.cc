@@ -388,7 +388,7 @@ static int decode_packet(int *got_frame, AVPacket pkt, int audio_stream_idx, AVF
         if (ret == AVERROR(EAGAIN)) {
             ret = 0;
         } else if (ret < 0) {
-            PCSX::g_system->SysPrintf(_("Error decoding audio frame\n"));
+            PCSX::g_system->printf(_("Error decoding audio frame\n"));
             return ret;
         } else {
             ret = pkt.size;
@@ -418,7 +418,7 @@ static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AV
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
 
     if (ret < 0) {
-        PCSX::g_system->SysPrintf(_("Could not find %s stream in input file\n"), av_get_media_type_string(type));
+        PCSX::g_system->printf(_("Could not find %s stream in input file\n"), av_get_media_type_string(type));
         return ret;
     } else {
         stream_index = ret;
@@ -426,20 +426,20 @@ static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AV
 
         AVCodec *dec = avcodec_find_decoder(st->codecpar->codec_id);
         if (!dec) {
-            PCSX::g_system->SysPrintf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
+            PCSX::g_system->printf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
             return AVERROR(EINVAL);
         }
 
         AVCodecContext *dec_ctx = avcodec_alloc_context3(dec);
         if (!dec_ctx) {
-            PCSX::g_system->SysPrintf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
+            PCSX::g_system->printf(_("Failed to find %s codec\n"), av_get_media_type_string(type));
             return AVERROR(EINVAL);
         }
         avcodec_parameters_to_context(dec_ctx, st->codecpar);
 
         /* Init the decoders, with or without reference counting */
         if ((ret = avcodec_open2(dec_ctx, dec, NULL)) < 0) {
-            PCSX::g_system->SysPrintf(_("Failed to open %s codec\n"), av_get_media_type_string(type));
+            PCSX::g_system->printf(_("Failed to open %s codec\n"), av_get_media_type_string(type));
             avcodec_free_context(&dec_ctx);
             return ret;
         }
@@ -461,12 +461,12 @@ static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size
     int ret = 0, got_frame;
 
     if (avformat_open_input(&fmt_ctx, src_filename, NULL, NULL) < 0) {
-        PCSX::g_system->SysPrintf(_("Could not open source file %s\n"), src_filename);
+        PCSX::g_system->printf(_("Could not open source file %s\n"), src_filename);
         return -1;
     }
 
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-        PCSX::g_system->SysPrintf(_("Could not find stream information\n"));
+        PCSX::g_system->printf(_("Could not find stream information\n"));
         ret = -1;
         goto end;
     }
@@ -476,7 +476,7 @@ static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size
     }
 
     if (!audio_stream) {
-        PCSX::g_system->SysPrintf(_("Could not find audio stream in the input, aborting\n"));
+        PCSX::g_system->printf(_("Could not find audio stream in the input, aborting\n"));
         ret = -1;
         goto end;
     }
@@ -484,7 +484,7 @@ static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size
     audio_codec = avcodec_find_decoder(audio_stream->codecpar->codec_id);
 
     if (!audio_codec) {
-        PCSX::g_system->SysPrintf(_("Could not find audio codec for the input, aborting\n"));
+        PCSX::g_system->printf(_("Could not find audio codec for the input, aborting\n"));
         ret = -1;
         goto end;
     }
@@ -492,7 +492,7 @@ static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size
     audio_dec_ctx = avcodec_alloc_context3(audio_codec);
 
     if (!audio_dec_ctx) {
-        PCSX::g_system->SysPrintf(_("Could not allocate audio codec for the input, aborting\n"));
+        PCSX::g_system->printf(_("Could not allocate audio codec for the input, aborting\n"));
         ret = -1;
         goto end;
     }
@@ -500,7 +500,7 @@ static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size
     // init and configure resampler
     resample_context = swr_alloc();
     if (!resample_context) {
-        PCSX::g_system->SysPrintf(_("Could not allocate resample context"));
+        PCSX::g_system->printf(_("Could not allocate resample context"));
         ret = -1;
         goto end;
     }
@@ -511,14 +511,14 @@ static int decode_compressed_cdda_track(char *buf, char *src_filename, int *size
     av_opt_set_sample_fmt(resample_context, "in_sample_fmt", audio_dec_ctx->sample_fmt, 0);
     av_opt_set_sample_fmt(resample_context, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
     if (swr_init(resample_context) < 0) {
-        PCSX::g_system->SysPrintf(_("Could not open resample context"));
+        PCSX::g_system->printf(_("Could not open resample context"));
         ret = -1;
         goto end;
     }
 
     frame = av_frame_alloc();
     if (!frame) {
-        PCSX::g_system->SysPrintf(_("Could not allocate frame\n"));
+        PCSX::g_system->printf(_("Could not allocate frame\n"));
         ret = AVERROR(ENOMEM);
         goto end;
     }
@@ -566,7 +566,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
     memset(tri->decoded_buffer, 0, tri->len_decoded_buffer - 1);
 
     if (tri->decoded_buffer == NULL) {
-        PCSX::g_system->SysMessage(_("Could not allocate memory to decode CDDA TRACK: %s\n"), tri->filepath);
+        PCSX::g_system->message(_("Could not allocate memory to decode CDDA TRACK: %s\n"), tri->filepath);
         tri->handle->close();  // encoded file handle not needed anymore
         delete tri->handle;
         tri->handle = new File(NULL, 1);  // change handle to decoded one
@@ -578,19 +578,19 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
     delete tri->handle;
 
     int ret;
-    PCSX::g_system->SysPrintf(_("Decoding audio tr#%u (%s)..."), tracknumber, tri->filepath);
+    PCSX::g_system->printf(_("Decoding audio tr#%u (%s)..."), tracknumber, tri->filepath);
 
     int len = 0;
 
     if ((ret = decode_compressed_cdda_track(tri->decoded_buffer, tri->filepath, &len)) == 0) {
         if (len > tri->len_decoded_buffer) {
-            PCSX::g_system->SysPrintf(_("Buffer overflow..."));
-            PCSX::g_system->SysPrintf(_("Actual %i vs. %i estimated\n"), len, tri->len_decoded_buffer);
+            PCSX::g_system->printf(_("Buffer overflow..."));
+            PCSX::g_system->printf(_("Actual %i vs. %i estimated\n"), len, tri->len_decoded_buffer);
             len = tri->len_decoded_buffer;  // we probably segfaulted already, oh well...
         }
 
         tri->handle = new File(tri->decoded_buffer, len);  // change handle to decoded one
-        PCSX::g_system->SysPrintf(_("OK\n"), tri->filepath);
+        PCSX::g_system->printf(_("OK\n"), tri->filepath);
     }
     tri->cddatype = trackinfo::BIN;
     return len;
@@ -821,7 +821,7 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
 
                     // Send to decoder if not lazy decoding
                     if (!lazy_decode) {
-                        PCSX::g_system->SysPrintf("\n");
+                        PCSX::g_system->printf("\n");
                         file_len = do_decode_cdda(&(m_ti[m_numtracks]), m_numtracks) / PCSX::CDRom::CD_FRAMESIZE_RAW;
                     }
                 }
@@ -835,14 +835,14 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
                     file_len = accurate_len;
                 }
             } else {
-                PCSX::g_system->SysPrintf(".cue: failed to parse TRACK\n");
+                PCSX::g_system->printf(".cue: failed to parse TRACK\n");
                 m_ti[m_numtracks].type = m_numtracks == 1 ? trackinfo::DATA : trackinfo::CDDA;
             }
             if (sector_size == 0)  // TODO m_isMode1ISO?
                 sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
         } else if (!strcmp(token, "INDEX")) {
             if (sscanf(linebuf, " INDEX %02d %8s", &t, time) != 2)
-                PCSX::g_system->SysPrintf(".cue: failed to parse INDEX\n");
+                PCSX::g_system->printf(".cue: failed to parse INDEX\n");
             tok2msf(time, (char *)&m_ti[m_numtracks].start);
 
             t = msf2sec(m_ti[m_numtracks].start);
@@ -895,7 +895,7 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
 
             file_len = 0;
             if (m_ti[m_numtracks + 1].handle == NULL) {
-                PCSX::g_system->SysMessage(_("\ncould not open: %s\n"), filepath);
+                PCSX::g_system->message(_("\ncould not open: %s\n"), filepath);
                 continue;
             }
 
@@ -1111,13 +1111,13 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
 
     ret = m_cdHandle->read(&pbp_hdr, sizeof(pbp_hdr));
     if (ret != sizeof(pbp_hdr)) {
-        PCSX::g_system->SysPrintf("failed to read pbp\n");
+        PCSX::g_system->printf("failed to read pbp\n");
         goto fail_io;
     }
 
     ret = m_cdHandle->seek(pbp_hdr.psar_offs, SEEK_SET);
     if (ret != 0) {
-        PCSX::g_system->SysPrintf("failed to seek to %x\n", pbp_hdr.psar_offs);
+        PCSX::g_system->printf("failed to seek to %x\n", pbp_hdr.psar_offs);
         goto fail_io;
     }
 
@@ -1128,12 +1128,12 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
         // multidisk image?
         ret = m_cdHandle->seek(pbp_hdr.psar_offs + 0x200, SEEK_SET);
         if (ret != 0) {
-            PCSX::g_system->SysPrintf("failed to seek to %x\n", pbp_hdr.psar_offs + 0x200);
+            PCSX::g_system->printf("failed to seek to %x\n", pbp_hdr.psar_offs + 0x200);
             goto fail_io;
         }
 
         if (m_cdHandle->read(&offsettab, sizeof(offsettab)) != sizeof(offsettab)) {
-            PCSX::g_system->SysPrintf("failed to read offsettab\n");
+            PCSX::g_system->printf("failed to read offsettab\n");
             goto fail_io;
         }
 
@@ -1142,7 +1142,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
         }
         m_cdrIsoMultidiskCount = i;
         if (m_cdrIsoMultidiskCount == 0) {
-            PCSX::g_system->SysPrintf("multidisk eboot has 0 images?\n");
+            PCSX::g_system->printf("multidisk eboot has 0 images?\n");
             goto fail_io;
         }
 
@@ -1152,7 +1152,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
 
         ret = m_cdHandle->seek(psisoimg_offs, SEEK_SET);
         if (ret != 0) {
-            PCSX::g_system->SysPrintf("failed to seek to %x\n", psisoimg_offs);
+            PCSX::g_system->printf("failed to seek to %x\n", psisoimg_offs);
             goto fail_io;
         }
 
@@ -1161,14 +1161,14 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     }
 
     if (strcmp(psar_sig, "PSISOIMG00") != 0) {
-        PCSX::g_system->SysPrintf("bad psar_sig: %s\n", psar_sig);
+        PCSX::g_system->printf("bad psar_sig: %s\n", psar_sig);
         goto fail_io;
     }
 
     // seek to TOC
     ret = m_cdHandle->seek(psisoimg_offs + 0x800, SEEK_SET);
     if (ret != 0) {
-        PCSX::g_system->SysPrintf("failed to seek to %x\n", psisoimg_offs + 0x800);
+        PCSX::g_system->printf("failed to seek to %x\n", psisoimg_offs + 0x800);
         goto fail_io;
     }
 
@@ -1204,7 +1204,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     // seek to ISO index
     ret = m_cdHandle->seek(psisoimg_offs + 0x4000, SEEK_SET);
     if (ret != 0) {
-        PCSX::g_system->SysPrintf("failed to seek to ISO index\n");
+        PCSX::g_system->printf("failed to seek to ISO index\n");
         goto fail_io;
     }
 
@@ -1223,7 +1223,7 @@ int PCSX::CDRiso::handlepbp(const char *isofile) {
     for (i = 0; i < m_compr_img->index_len; i++) {
         ret = m_cdHandle->read(&index_entry, sizeof(index_entry));
         if (ret != sizeof(index_entry)) {
-            PCSX::g_system->SysPrintf("failed to read index_entry #%d\n", i);
+            PCSX::g_system->printf("failed to read index_entry #%d\n", i);
             goto fail_index;
         }
 
@@ -1268,18 +1268,18 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
 
     ret = m_cdHandle->read(&ciso_hdr, sizeof(ciso_hdr));
     if (ret != sizeof(ciso_hdr)) {
-        PCSX::g_system->SysPrintf("failed to read ciso header\n");
+        PCSX::g_system->printf("failed to read ciso header\n");
         return -1;
     }
 
     if (strncmp(ciso_hdr.magic, "CISO", 4) != 0 || ciso_hdr.total_bytes <= 0 || ciso_hdr.block_size <= 0) {
-        PCSX::g_system->SysPrintf("bad ciso header\n");
+        PCSX::g_system->printf("bad ciso header\n");
         return -1;
     }
     if (ciso_hdr.header_size != 0 && ciso_hdr.header_size != sizeof(ciso_hdr)) {
         ret = m_cdHandle->seek(ciso_hdr.header_size, SEEK_SET);
         if (ret != 0) {
-            PCSX::g_system->SysPrintf("failed to seek to %x\n", ciso_hdr.header_size);
+            PCSX::g_system->printf("failed to seek to %x\n", ciso_hdr.header_size);
             return -1;
         }
     }
@@ -1298,7 +1298,7 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
     read_len = sizeof(m_compr_img->index_table[0]) * m_compr_img->index_len;
     ret = m_cdHandle->read(m_compr_img->index_table, read_len);
     if (ret != read_len) {
-        PCSX::g_system->SysPrintf("failed to read index table\n");
+        PCSX::g_system->printf("failed to read index table\n");
         goto fail_index;
     }
 
@@ -1309,7 +1309,7 @@ int PCSX::CDRiso::handlecbin(const char *isofile) {
         m_compr_img->index_table[i] = (index << ciso_hdr.align) | plain;
     }
     if ((int64_t)index << ciso_hdr.align >= 0x80000000ll) {
-        PCSX::g_system->SysPrintf("warning: ciso img too large, expect problems\n");
+        PCSX::g_system->printf("warning: ciso img too large, expect problems\n");
     }
 
     return 0;
@@ -1401,7 +1401,7 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
 
     fclose(sbihandle);
 
-    PCSX::g_system->SysPrintf(_("Loaded SBI file: %s.\n"), filename);
+    PCSX::g_system->printf(_("Loaded SBI file: %s.\n"), filename);
 
     return 0;
 }
@@ -1495,13 +1495,13 @@ ssize_t PCSX::CDRiso::cdread_compressed(File *f, unsigned int base, void *dest, 
     }
 
     if (sector >= m_compr_img->index_len * 16) {
-        PCSX::g_system->SysPrintf("sector %d is past img end\n", sector);
+        PCSX::g_system->printf("sector %d is past img end\n", sector);
         return -1;
     }
 
     start_byte = m_compr_img->index_table[block] & 0x7fffffff;
     if (m_cdHandle->seek(start_byte, SEEK_SET) != 0) {
-        PCSX::g_system->SysPrintf("seek error for block %d at %x: ", block, start_byte);
+        PCSX::g_system->printf("seek error for block %d at %x: ", block, start_byte);
         perror(NULL);
         return -1;
     }
@@ -1509,12 +1509,12 @@ ssize_t PCSX::CDRiso::cdread_compressed(File *f, unsigned int base, void *dest, 
     is_compressed = !(m_compr_img->index_table[block] & 0x80000000);
     size = (m_compr_img->index_table[block + 1] & 0x7fffffff) - start_byte;
     if (size > sizeof(m_compr_img->buff_compressed)) {
-        PCSX::g_system->SysPrintf("block %d is too large: %u\n", block, size);
+        PCSX::g_system->printf("block %d is too large: %u\n", block, size);
         return -1;
     }
 
     if (m_cdHandle->read(is_compressed ? m_compr_img->buff_compressed : m_compr_img->buff_raw[0], size) != size) {
-        PCSX::g_system->SysPrintf("read error for block %d at %x: ", block, start_byte);
+        PCSX::g_system->printf("read error for block %d at %x: ", block, start_byte);
         perror(NULL);
         return -1;
     }
@@ -1524,11 +1524,11 @@ ssize_t PCSX::CDRiso::cdread_compressed(File *f, unsigned int base, void *dest, 
         cdbuffer_size = cdbuffer_size_expect;
         ret = uncompress2_internal(m_compr_img->buff_raw[0], &cdbuffer_size, m_compr_img->buff_compressed, size);
         if (ret != 0) {
-            PCSX::g_system->SysPrintf("uncompress failed with %d for block %d, sector %d\n", ret, block, sector);
+            PCSX::g_system->printf("uncompress failed with %d for block %d, sector %d\n", ret, block, sector);
             return -1;
         }
         if (cdbuffer_size != cdbuffer_size_expect)
-            PCSX::g_system->SysPrintf("cdbuffer_size: %lu != %lu, sector %d\n", cdbuffer_size, cdbuffer_size_expect,
+            PCSX::g_system->printf("cdbuffer_size: %lu != %lu, sector %d\n", cdbuffer_size, cdbuffer_size_expect,
                                       sector);
     }
 
@@ -1577,7 +1577,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(File *f, unsigned int base, void *dest, 
     }
     // To prevent invalid seek
     /* else if (sector > m_len_ecm_savetable) {
-            PCSX::g_system->SysPrintf("ECM: invalid sector requested\n");
+            PCSX::g_system->printf("ECM: invalid sector requested\n");
             return -1;
     }*/
     // printf("SeekSector %i %i %i %i\n", sector, pos->sector, m_prevsector, base);
@@ -1617,7 +1617,7 @@ ssize_t PCSX::CDRiso::cdread_ecm_decode(File *f, unsigned int base, void *dest, 
                 goto error_in;
             }
             if ((bits > 31) || ((uint32_t)(c & 0x7F)) >= (((uint32_t)0x80000000LU) >> (bits - 1))) {
-                // PCSX::g_system->SysMessage(_("Corrupt ECM file; invalid sector count\n"));
+                // PCSX::g_system->message(_("Corrupt ECM file; invalid sector count\n"));
                 goto error;
             }
             num |= ((uint32_t)(c & 0x7F)) << bits;
@@ -1742,7 +1742,7 @@ error_in:
 error:
 error_out:
     // memset(dest, 0x0, PCSX::CDRomCD_FRAMESIZE_RAW);
-    PCSX::g_system->SysPrintf("Error decoding ECM image: WantedSector %i Type %i Base %i Sectors %i(%i) Pos %i(%li)\n",
+    PCSX::g_system->printf("Error decoding ECM image: WantedSector %i Type %i Base %i Sectors %i(%i) Pos %i(%li)\n",
                               sector, type, base, sectorcount, pos->sector, writebytecount, f->tell());
     return -1;
 }
@@ -1768,7 +1768,7 @@ int PCSX::CDRiso::handleecm(const char *isoname, File *cdh, int32_t *accurate_le
             return 0;
         }
 
-        PCSX::g_system->SysPrintf(_("\nDetected ECM file with proper header and filename suffix.\n"));
+        PCSX::g_system->printf(_("\nDetected ECM file with proper header and filename suffix.\n"));
 
         // Init ECC/EDC tables
         eccedc_init();
@@ -1822,7 +1822,7 @@ int aropen(FILE *fparchive, const char *_fn) {
         // r = archive_read_open_FILE(a, archive);
         archive_read_open_filename(a, _fn, 75 * PCSX::CDRomCD_FRAMESIZE_RAW);
         if (r != ARCHIVE_OK) {
-            PCSX::g_system->SysPrintf("Archive open failed (%i).\n", r);
+            PCSX::g_system->printf("Archive open failed (%i).\n", r);
             archive_read_free(a);
             a = NULL;
             return -1;
@@ -1836,7 +1836,7 @@ int aropen(FILE *fparchive, const char *_fn) {
         }
         archive_read_free(a);
         if (ae == NULL) {
-            PCSX::g_system->SysPrintf("Archive entry read failed (%i).\n", r);
+            PCSX::g_system->printf("Archive entry read failed (%i).\n", r);
             a = NULL;
             return -1;
         }
@@ -1849,7 +1849,7 @@ int aropen(FILE *fparchive, const char *_fn) {
             length_peek = archive_entry_size(ae);
             if (length_peek == length) {
                 // ae = ae_peek;
-                PCSX::g_system->SysPrintf(" -- Selected entry %s %i", archive_entry_pathname(ae), length);
+                PCSX::g_system->printf(" -- Selected entry %s %i", archive_entry_pathname(ae), length);
                 break;
             }
         }
@@ -1861,7 +1861,7 @@ int aropen(FILE *fparchive, const char *_fn) {
         cdimage_buffer = fopen("/tmp/pcsxr.tmp.bin", "w+b");
     } else if (!use_temp_file && (cdimage_buffer == NULL || m_cdHandle != cdimage_buffer)) {
         if (cdimage_buffer_mem == NULL && ((cdimage_buffer_mem = malloc(len_uncompressed_buffer)) == NULL)) {
-            PCSX::g_system->SysMessage("Could not reserve enough memory for full image buffer.\n");
+            PCSX::g_system->message("Could not reserve enough memory for full image buffer.\n");
             exit(3);
         }
         // printf("Memory ok2 %u %p\n", len_uncompressed_buffer, cdimage_buffer_mem);
@@ -1895,11 +1895,11 @@ static int cdread_archive(FILE *f, unsigned int base, void *dest, int sector) {
         for (fseek(cdimage_buffer, offset, SEEK_SET); offset < readsize;) {
             r = archive_read_data_block(a, &buff, &size, &offset);
             offset += size;
-            PCSX::g_system->SysPrintf("ReadArchive seek:%u(%u) cur:%u(%u)\r", sector, readsize / 1024,
+            PCSX::g_system->printf("ReadArchive seek:%u(%u) cur:%u(%u)\r", sector, readsize / 1024,
                                       offset / PCSX::CDRomCD_FRAMESIZE_RAW, offset / 1024);
             fwrite(buff, size, 1, cdimage_buffer);
             if (r != ARCHIVE_OK) {
-                // PCSX::g_system->SysPrintf("End of archive.\n");
+                // PCSX::g_system->printf("End of archive.\n");
                 archive_read_free(a);
                 a = NULL;
                 readsize = offset;
@@ -1908,7 +1908,7 @@ static int cdread_archive(FILE *f, unsigned int base, void *dest, int sector) {
             }
         }
     } else {
-        // PCSX::g_system->SysPrintf("ReadSectorArchSector: %u(%u)\n", sector,
+        // PCSX::g_system->printf("ReadSectorArchSector: %u(%u)\n", sector,
         // sector*PCSX::CDRomCD_FRAMESIZE_RAW);
     }
 
@@ -1921,7 +1921,7 @@ int handlearchive(const char *isoname, int32_t *accurate_length) {
     int ret = -1;
     if ((ret = aropen(m_cdHandle, isoname)) == 0) {
         m_cdimg_read_func = cdread_archive;
-        PCSX::g_system->SysPrintf("[+archive]");
+        PCSX::g_system->printf("[+archive]");
         if (!m_ecm_file_detected) {
             // Detect ECM inside archive
             m_cdimg_read_func_archive = cdread_normal;
@@ -1929,10 +1929,10 @@ int handlearchive(const char *isoname, int32_t *accurate_length) {
             if (handleecm("test.ecm", cdimage_buffer, accurate_length) != -1) {
                 m_cdimg_read_func_archive = cdread_ecm_decode;
                 m_cdimg_read_func = cdread_archive;
-                PCSX::g_system->SysPrintf("[+ecm]");
+                PCSX::g_system->printf("[+ecm]");
             }
         } else {
-            PCSX::g_system->SysPrintf("[+ecm]");
+            PCSX::g_system->printf("[+ecm]");
         }
     }
     return ret;
@@ -1955,7 +1955,7 @@ void PCSX::CDRiso::PrintTracks() {
     int i;
 
     for (i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->SysPrintf(
+        PCSX::g_system->printf(
             _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
             (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
             m_ti[i].start[0], m_ti[i].start[1], m_ti[i].start[2], m_ti[i].length[0], m_ti[i].length[1],
@@ -1977,7 +1977,7 @@ bool PCSX::CDRiso::open(void) {
         return false;
     }
 
-    PCSX::g_system->SysPrintf(_("Loaded CD Image: %s"), GetIsoFile());
+    PCSX::g_system->printf(_("Loaded CD Image: %s"), GetIsoFile());
 
     m_cddaBigEndian = false;
     m_subChanMixed = false;
@@ -1990,33 +1990,33 @@ bool PCSX::CDRiso::open(void) {
     m_cdimg_read_func = &CDRiso::cdread_normal;
 
     if (parsecue(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[+cue]");
+        PCSX::g_system->printf("[+cue]");
     } else if (parsetoc(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[+toc]");
+        PCSX::g_system->printf("[+toc]");
     } else if (parseccd(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[+ccd]");
+        PCSX::g_system->printf("[+ccd]");
     } else if (parsemds(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[+mds]");
+        PCSX::g_system->printf("[+mds]");
     }
     // TODO Is it possible that cue/ccd+ecm? otherwise use else if below to supressn extra checks
     if (handlepbp(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[pbp]");
+        PCSX::g_system->printf("[pbp]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
     } else if (handlecbin(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[cbin]");
+        PCSX::g_system->printf("[cbin]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
     } else if ((handleecm(GetIsoFile(), m_cdHandle, NULL) == 0)) {
-        PCSX::g_system->SysPrintf("[+ecm]");
+        PCSX::g_system->printf("[+ecm]");
     } else if (handlearchive(GetIsoFile(), NULL) == 0) {
     }
 
     if (!m_subChanMixed && opensubfile(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[+sub]");
+        PCSX::g_system->printf("[+sub]");
     }
     if (opensbifile(GetIsoFile()) == 0) {
-        PCSX::g_system->SysPrintf("[+sbi]");
+        PCSX::g_system->printf("[+sbi]");
     }
 
     if (!m_ecm_file_detected) {
@@ -2027,7 +2027,7 @@ bool PCSX::CDRiso::open(void) {
             m_cdHandle->seek(0, SEEK_SET);
             m_cdHandle->read(&modeTest, 4);
             if (SWAP_LE32(modeTest) != 0xffffff00) {
-                PCSX::g_system->SysPrintf("[2048]");
+                PCSX::g_system->printf("[2048]");
                 m_isMode1ISO = true;
             }
         }
@@ -2043,7 +2043,7 @@ bool PCSX::CDRiso::open(void) {
         m_ti[1].start[2] = 0;
     }
 
-    PCSX::g_system->SysPrintf(".\n");
+    PCSX::g_system->printf(".\n");
 
     PrintTracks();
 

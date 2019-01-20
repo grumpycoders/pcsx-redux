@@ -19,73 +19,32 @@
 
 #pragma once
 
-#include <SDL.h>
 #include <stdarg.h>
 
 #include "imgui.h"
 
-#include "gui/widgets/log.h"
-
 namespace PCSX {
+namespace Widgets {
 
-class GUI final {
+class Log {
   public:
-    void init();
-    void update() {
-        endFrame();
-        startFrame();
-    }
-    void flip();
-    void bindVRAMTexture();
-    void setViewport();
-    void setFullscreen(bool);
-    void addLog(const char *fmt, ...) {
+    void clear();
+    void addLog(const char* fmt, ...) IM_FMTARGS(2) {
         va_list args;
         va_start(args, fmt);
         addLog(fmt, args);
         va_end(args);
     }
-    void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
-    void addNotification(const char *fmt, va_list args) {
-        // TODO
-    }
+    void addLog(const char* fmt, va_list args);
+    void draw(const char* title, bool* p_open = nullptr);
+
   private:
-    static void checkGL();
-
-    void startFrame();
-    void endFrame();
-
-    void normalizeDimensions(ImVec2 &vec, float ratio) {
-        float r = vec.y / vec.x;
-        if (r > ratio) {
-            vec.y = vec.x * ratio;
-        } else {
-            vec.x = vec.y / ratio;
-        }
-    }
-
-    SDL_Window *m_window = NULL;
-    SDL_GLContext m_glContext = NULL;
-    unsigned int m_VRAMTexture = 0;
-
-    unsigned int m_offscreenFrameBuffer = 0;
-    unsigned int m_offscreenTextures[2] = {0, 0};
-    unsigned int m_offscreenDepthBuffer = 0;
-    int m_currentTexture;
-
-    ImVec4 m_backgroundColor = ImColor(114, 144, 154);
-    ImVec2 m_renderSize = ImVec2(1, 1);
-
-    float m_renderRatio = 3.0f / 4.0f;
-    bool m_fullscreen = false;
-
-    // GUI
-    bool m_fullscreenRender = true;
-    bool m_showMenu = false;
-    bool m_showDemo = false;
-    bool m_showVRAMwindow = false;
-    bool m_showLog = false;
-    Widgets::Log m_log;
+    ImGuiTextBuffer m_buffer;
+    ImGuiTextFilter m_filter;
+    ImVector<int> m_lineOffsets;  // Index to lines offset
+    bool m_scrollToBottom = false;
+    bool m_follow = true;
 };
 
+}  // namespace Widgets
 }  // namespace PCSX
