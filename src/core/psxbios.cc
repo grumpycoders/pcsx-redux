@@ -1092,7 +1092,7 @@ class BiosImpl : public PCSX::Bios {
 
         // exit on uninitialized heap
         if (chunk == NULL) {
-            PCSX::g_system->SysBiosPrintf("malloc %x,%x: Uninitialized Heap!\n", v0, a0);
+            PCSX::g_system->biosPrintf("malloc %x,%x: Uninitialized Heap!\n", v0, a0);
             v0 = 0;
             pc0 = ra;
             return;
@@ -1107,7 +1107,7 @@ class BiosImpl : public PCSX::Bios {
 
         // catch out of memory
         if (chunk >= s_heap_end) {
-            PCSX::g_system->SysBiosPrintf("malloc %x,%x: Out of memory error!\n", v0, a0);
+            PCSX::g_system->biosPrintf("malloc %x,%x: Out of memory error!\n", v0, a0);
             v0 = 0;
             pc0 = ra;
             return;
@@ -1127,14 +1127,14 @@ class BiosImpl : public PCSX::Bios {
         // return pointer to allocated memory
         v0 = ((unsigned long)chunk - (unsigned long)PCSX::g_emulator.m_psxMem->g_psxM) + 4;
         v0 |= 0x80000000;
-        PCSX::g_system->SysBiosPrintf("malloc %x,%x\n", v0, a0);
+        PCSX::g_system->biosPrintf("malloc %x,%x\n", v0, a0);
         pc0 = ra;
     }
 
     void psxBios_free() {  // 0x34
         PSXBIOS_LOG("psxBios_%s\n", A0names[0x34]);
 
-        PCSX::g_system->SysBiosPrintf("free %x: %x bytes\n", a0, *(uint32_t *)(Ra0 - 4));
+        PCSX::g_system->biosPrintf("free %x: %x bytes\n", a0, *(uint32_t *)(Ra0 - 4));
 
         *(uint32_t *)(Ra0 - 4) |= 1;  // set chunk to free
         pc0 = ra;
@@ -1176,7 +1176,7 @@ class BiosImpl : public PCSX::Bios {
         s_heap_end = (uint32_t *)((uint8_t *)s_heap_addr + size);
         *s_heap_addr = SWAP_LE32(size | 1);
 
-        PCSX::g_system->SysBiosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1,
+        PCSX::g_system->biosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1,
                                       (uintptr_t)s_heap_addr - (uintptr_t)PCSX::g_emulator.m_psxMem->g_psxM, size);
 
         pc0 = ra;
@@ -1270,7 +1270,7 @@ class BiosImpl : public PCSX::Bios {
 
         memcpy(Rsp, save, 4 * 4);
 
-        PCSX::g_system->SysBiosPrintf("%s", tmp);
+        PCSX::g_system->biosPrintf("%s", tmp);
 
         pc0 = ra;
     }
@@ -1483,16 +1483,16 @@ class BiosImpl : public PCSX::Bios {
             case 2:
                 psxHu32ref(0x1060) = SWAP_LE32(newMem);
                 psxMu32ref(0x060) = a0;
-                PCSX::g_system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
+                PCSX::g_system->biosPrintf("Change effective memory : %d MBytes\n", a0);
                 break;
 
             case 8:
                 psxHu32ref(0x1060) = SWAP_LE32(newMem | 0x300);
                 psxMu32ref(0x060) = a0;
-                PCSX::g_system->SysBiosPrintf("Change effective memory : %d MBytes\n", a0);
+                PCSX::g_system->biosPrintf("Change effective memory : %d MBytes\n", a0);
 
             default:
-                PCSX::g_system->SysBiosPrintf("Effective memory must be 2/8 MBytes\n");
+                PCSX::g_system->biosPrintf("Effective memory must be 2/8 MBytes\n");
                 break;
         }
 
@@ -1917,7 +1917,7 @@ class BiosImpl : public PCSX::Bios {
             if ((*fptr & 0xF0) != 0x50) continue;
             if (strcmp(s_FDesc[1 + mcd].name, fptr + 0xa)) continue;
             s_FDesc[1 + mcd].mcfile = i;
-            PCSX::g_system->SysBiosPrintf("open %s\n", fptr + 0xa);
+            PCSX::g_system->biosPrintf("open %s\n", fptr + 0xa);
             v0 = 1 + mcd;
             break;
         }
@@ -1957,7 +1957,7 @@ class BiosImpl : public PCSX::Bios {
                 pptr[8] = pptr[9] = 0xff;
                 for (j = 0, checksum = 0; j < 127; j++) checksum ^= pptr[j];
                 pptr[127] = checksum;
-                PCSX::g_system->SysBiosPrintf("openC %s %d\n", ptr, nblk);
+                PCSX::g_system->biosPrintf("openC %s %d\n", ptr, nblk);
                 v0 = 1 + mcd;
                 /* just go ahead and resave them all */
                 PCSX::g_emulator.m_sio->SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
@@ -2033,7 +2033,7 @@ class BiosImpl : public PCSX::Bios {
 
     template <int mcd>
     void buread() {
-        PCSX::g_system->SysBiosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2,
+        PCSX::g_system->biosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2,
                                       getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
         char *ptr = getmcdData<mcd>() + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
         memcpy(Ra1, ptr, a2);
@@ -2070,7 +2070,7 @@ class BiosImpl : public PCSX::Bios {
     template <int mcd>
     void buwrite() {
         uint32_t offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
-        PCSX::g_system->SysBiosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2);
+        PCSX::g_system->biosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2);
         char *ptr = getmcdData<mcd>() + offset;
         memcpy(ptr, Ra1, a2);
         s_FDesc[1 + mcd].offset += a2;
@@ -2092,7 +2092,7 @@ class BiosImpl : public PCSX::Bios {
             char *ptr = Ra1;
 
             while (a2 > 0) {
-                PCSX::g_system->SysBiosPrintf("%c", *ptr++);
+                PCSX::g_system->biosPrintf("%c", *ptr++);
                 a2--;
             }
             pc0 = ra;
@@ -2132,7 +2132,7 @@ class BiosImpl : public PCSX::Bios {
         char logchar = (a0 == 0xa ? '>' : (char)a0);
         if (psxstrbuf_count < PSXSTRBUFMAX) psxstrbuf[psxstrbuf_count++] = logchar;
 
-        PCSX::g_system->SysBiosPrintf("%c", (char)a0);
+        PCSX::g_system->biosPrintf("%c", (char)a0);
         if ((a0 == 0xa && psxstrbuf_count >= 2) || psxstrbuf_count >= PSXSTRBUFMAX) {
             psxstrbuf[psxstrbuf_count++] = '\0';
             PSXBIOS_LOG("psxBios_%s: string_[%d]_cr: %s\n", B0names[0x3d], psxstrbuf_count, psxstrbuf);
@@ -2143,7 +2143,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_puts() {  // 3e/3f
-        PCSX::g_system->SysBiosPrintf("%s", Ra0);
+        PCSX::g_system->biosPrintf("%s", Ra0);
         pc0 = ra;
     }
 
@@ -2181,7 +2181,7 @@ class BiosImpl : public PCSX::Bios {
                     match = 0;
                     break;
                 }
-            PCSX::g_system->SysPrintf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match);
+            PCSX::g_system->printf("%d : %s = %s + %s (match=%d)\n", nfile, dir->name, pfile, ptr, match);
             if (match == 0) {
                 continue;
             }
@@ -2285,7 +2285,7 @@ class BiosImpl : public PCSX::Bios {
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;
             *ptr = (*ptr & 0xf) | 0xA0;
             PCSX::g_emulator.m_sio->SaveMcd(getmcdName<mcd>(), getmcdData<mcd>(), 128 * i, 1);
-            PCSX::g_system->SysBiosPrintf("delete %s\n", ptr + 0xa);
+            PCSX::g_system->biosPrintf("delete %s\n", ptr + 0xa);
             v0 = 1;
             break;
         }

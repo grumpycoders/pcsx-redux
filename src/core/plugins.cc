@@ -227,7 +227,7 @@ static const char *err;
     {                                                                         \
         err = SysLibError();                                                  \
         if (err != NULL) {                                                    \
-            PCSX::g_system->SysMessage(_("Error loading %s: %s"), func, err); \
+            PCSX::g_system->message(_("Error loading %s: %s"), func, err); \
             return -1;                                                        \
         }                                                                     \
     }
@@ -693,29 +693,29 @@ int LoadPlugins() {
     PCSX::g_emulator.m_cdrom->m_iso.init();
     ret = PCSX::g_emulator.m_gpu->init();
     if (ret < 0) {
-        PCSX::g_system->SysMessage(_("Error initializing GPU plugin: %d"), ret);
+        PCSX::g_system->message(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
     ret = PCSX::g_emulator.m_spu->init();
     if (ret < 0) {
-        PCSX::g_system->SysMessage(_("Error initializing SPU plugin: %d"), ret);
+        PCSX::g_system->message(_("Error initializing SPU plugin: %d"), ret);
         return -1;
     }
     ret = PAD1_init(1);
     if (ret < 0) {
-        PCSX::g_system->SysMessage(_("Error initializing Controller 1 plugin: %d"), ret);
+        PCSX::g_system->message(_("Error initializing Controller 1 plugin: %d"), ret);
         return -1;
     }
     ret = PAD2_init(2);
     if (ret < 0) {
-        PCSX::g_system->SysMessage(_("Error initializing Controller 2 plugin: %d"), ret);
+        PCSX::g_system->message(_("Error initializing Controller 2 plugin: %d"), ret);
         return -1;
     }
 
     if (PCSX::g_emulator.config().UseNet) {
         ret = NET_init();
         if (ret < 0) {
-            PCSX::g_system->SysMessage(_("Error initializing NetPlay plugin: %d"), ret);
+            PCSX::g_system->message(_("Error initializing NetPlay plugin: %d"), ret);
             return -1;
         }
     }
@@ -723,12 +723,12 @@ int LoadPlugins() {
 #ifdef ENABLE_SIO1API
     ret = SIO1_init();
     if (ret < 0) {
-        PCSX::g_system->SysMessage(_("Error initializing SIO1 plugin: %d"), ret);
+        PCSX::g_system->message(_("Error initializing SIO1 plugin: %d"), ret);
         return -1;
     }
 #endif
 
-    PCSX::g_system->SysPrintf("%s", _("Plugins loaded.\n"));
+    PCSX::g_system->printf("%s", _("Plugins loaded.\n"));
     return 0;
 }
 

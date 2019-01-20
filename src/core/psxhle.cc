@@ -54,10 +54,10 @@ static void hleC0() {
 }
 
 static void hleBootstrap() {  // 0xbfc00000
-    PCSX::g_system->SysBiosPrintf("hleBootstrap\n");
+    PCSX::g_system->biosPrintf("hleBootstrap\n");
     CheckCdrom();
     LoadCdrom();
-    PCSX::g_system->SysBiosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", PCSX::g_emulator.m_cdromLabel,
+    PCSX::g_system->biosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", PCSX::g_emulator.m_cdromLabel,
                                   (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
                                   (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);
 }
@@ -79,7 +79,7 @@ typedef struct {
 static void hleExecRet() {
     EXEC *header = (EXEC *)PSXM(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0);
 
-    PCSX::g_system->SysBiosPrintf("ExecRet %x: %x\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0, header->ret);
+    PCSX::g_system->biosPrintf("ExecRet %x: %x\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0, header->ret);
 
     PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra = header->ret;
     PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = header->_sp;

@@ -461,9 +461,9 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::impl::open(unsigned int textureIdGPU)  // GPU OPEN
+long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 {
-    textureId = textureIdGPU;  // store hwnd
+    m_gui = gui;
 
     SetKeyHandler();  // sub-class window
 

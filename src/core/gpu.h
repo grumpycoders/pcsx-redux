@@ -4,6 +4,8 @@
 
 namespace PCSX {
 
+class GUI;
+
 class GPU {
   public:
     int gpuReadStatus();
@@ -27,7 +29,7 @@ class GPU {
 
     virtual long init() = 0;
     virtual long shutdown() = 0;
-    virtual long open(unsigned int texture) = 0;
+    virtual long open(GUI*) = 0;
     virtual long close() = 0;
     virtual uint32_t readData() = 0;
     virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
@@ -38,7 +40,7 @@ class GPU {
     virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void updateLace() = 0;
     virtual void keypressed(int key) {}
-    virtual void displayText(char *pText) { PCSX::g_system->SysPrintf("%s\n", pText); }
+    virtual void displayText(char *pText) { PCSX::g_system->printf("%s\n", pText); }
     virtual void makeSnapshot(void) {}
     virtual void toggleDebug(void) {}
     virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) = 0;

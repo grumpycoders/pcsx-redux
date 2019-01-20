@@ -127,9 +127,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\gui\gui.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\log.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
+    <ClInclude Include="..\..\src\gui\widgets\log.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

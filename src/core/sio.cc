@@ -112,7 +112,7 @@ void PCSX::SIO::sioWrite8(uint8_t value) {
                             break;
                     }
                 } /* else {
-//                  PCSX::g_system->SysPrintf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
+//                  PCSX::g_system->printf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
 s_buf[5]);
                  }*/
 
@@ -730,17 +730,17 @@ uint16_t PCSX::SIO::sioReadBaud16() { return s_baudReg; }
 
 void PCSX::SIO::netError() {
     // ClosePlugins();
-    PCSX::g_system->SysMessage("%s", _("Connection closed!\n"));
+    PCSX::g_system->message("%s", _("Connection closed!\n"));
 
     PCSX::g_emulator.m_cdromId[0] = '\0';
     PCSX::g_emulator.m_cdromLabel[0] = '\0';
 
-    PCSX::g_system->SysRunGui();
+    PCSX::g_system->runGui();
 }
 
 void PCSX::SIO::sioInterrupt() {
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
-    //  PCSX::g_system->SysPrintf("Sio Interrupt\n");
+    //  PCSX::g_system->printf("Sio Interrupt\n");
     s_statReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
@@ -762,7 +762,7 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
     if (mcd == 2) data = g_mcd2Data;
 
     if (*str == 0) {
-        PCSX::g_system->SysPrintf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
+        PCSX::g_system->printf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
         return;
     }
 
@@ -772,7 +772,7 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
 
     f = fopen(filepath, "rb");
     if (f == NULL) {
-        PCSX::g_system->SysPrintf(_("The memory card %s doesn't exist - creating it\n"), filepath);
+        PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), filepath);
         CreateMcd(filepath);
         f = fopen(filepath, "rb");
         if (f != NULL) {
@@ -787,10 +787,10 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
             fread(data, 1, MCD_SIZE, f);
             fclose(f);
         } else
-            PCSX::g_system->SysMessage(_("Memory card %s failed to load!\n"), filepath);
+            PCSX::g_system->message(_("Memory card %s failed to load!\n"), filepath);
     } else {
         struct stat buf;
-        PCSX::g_system->SysPrintf(_("Loading memory card %s\n"), filepath);
+        PCSX::g_system->printf(_("Loading memory card %s\n"), filepath);
         if (stat(filepath, &buf) != -1) {
             if (buf.st_size == MCD_SIZE + 64)
                 fseek(f, 64, SEEK_SET);
@@ -829,7 +829,7 @@ void PCSX::SIO::SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t 
 
         fwrite(data + adr, 1, size, f);
         fclose(f);
-        PCSX::g_system->SysPrintf(_("Saving memory card %s\n"), mcd);
+        PCSX::g_system->printf(_("Saving memory card %s\n"), mcd);
         return;
     }
 
