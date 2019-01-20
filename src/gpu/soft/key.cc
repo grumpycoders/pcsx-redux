@@ -87,8 +87,6 @@ LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
         //--------------------------------------------------//
         case WM_KEYUP:  // key up
 
-            if (wParam == (WPARAM)szGPUKeys[9]) iFVDisplay = !iFVDisplay;
-
             if (wParam == (WPARAM)szGPUKeys[0]) {
                 if (ulKeybits & KEY_SHOWFPS) {
                     DestroyPic();

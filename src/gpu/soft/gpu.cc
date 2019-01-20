@@ -1636,19 +1636,5 @@ void GPUsetframelimit(unsigned long option) {
 ////////////////////////////////////////////////////////////////////////
 
 extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
-    int iVibVal;
 
-    if (PreviousPSXDisplay.DisplayMode.x)  // calc min "shake pixel" from screen width
-        iVibVal = max(1, iResX / PreviousPSXDisplay.DisplayMode.x);
-    else
-        iVibVal = 1;
-    // big rumble: 4...15 sp ; small rumble 1...3 sp
-    if (iBig)
-        iRumbleVal = max(4 * iVibVal, min(15 * iVibVal, ((int)iBig * iVibVal) / 10));
-    else
-        iRumbleVal = max(1 * iVibVal, min(3 * iVibVal, ((int)iSmall * iVibVal) / 10));
-
-    srand(timeGetTime());  // init rand (will be used in BufferSwap)
-
-    iRumbleTime = 15;  // let the rumble last 16 buffer swaps
 }

@@ -150,11 +150,8 @@ class GUI;
 extern PCSX::GUI *m_gui;
 extern BOOL bVsync_Key;
 
-extern int iResX;
-extern int iResY;
 extern BOOL bCheckMask;
 extern int iFastFwd;
-extern int iFVDisplay;
 extern PSXPoint_t ptCursorPoint[];
 extern unsigned short usCursorActive;
 

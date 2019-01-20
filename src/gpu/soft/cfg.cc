@@ -197,22 +197,6 @@ void ReadConfigFile() {
     len = fread(pB, 1, size, in);
     fclose(in);
 
-    GetValue("ResX", iResX);
-    if (iResX < 20) iResX = 20;
-    iResX = (iResX / 4) * 4;
-
-    GetValue("ResY", iResY);
-    if (iResY < 20) iResY = 20;
-    iResY = (iResY / 4) * 4;
-
-    GetValue("Dithering", iUseDither);
-
-    GetValue("FullScreen", iWindowMode);
-    if (iWindowMode != 0)
-        iWindowMode = 0;
-    else
-        iWindowMode = 1;
-
     GetValue("SSSPSXLimit", bSSSPSXLimit);
 
     GetValue("UseFrameLimit", UseFrameLimit);
@@ -437,9 +421,7 @@ void GetSettings(HWND hW) {
     hWC = GetDlgItem(hW, IDC_RESOLUTION);  // get resolution
     i = ComboBox_GetCurSel(hWC);
     ComboBox_GetLBText(hWC, i, cs);
-    iResX = atol(cs);
     p = strchr(cs, 'x');
-    iResY = atol(p + 1);
     p = strchr(cs, ',');  // added by syo
 
     hWC = GetDlgItem(hW, IDC_COLDEPTH);  // get color depth
@@ -660,8 +642,6 @@ void ReadGPUConfig(void) {
     DWORD size;
 
     // predefines
-    iResX = 640;
-    iResY = 480;
     iColDepth = 16;
     iWindowMode = 0;
     UseFrameLimit = 1;
@@ -682,10 +662,6 @@ void ReadGPUConfig(void) {
     else {
         if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Vision Thing\\PSEmu Pro\\GPU\\PeteSoft", 0, KEY_ALL_ACCESS,
                          &myKey) == ERROR_SUCCESS) {
-            size = 4;
-            if (RegQueryValueEx(myKey, "ResX", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResX = (int)temp;
-            size = 4;
-            if (RegQueryValueEx(myKey, "ResY", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResY = (int)temp;
             size = 4;
             if (RegQueryValueEx(myKey, "WindowMode", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 iWindowMode = (int)temp;
@@ -767,22 +743,6 @@ void ReadGPUConfig(void) {
 ////////////////////////////////////////////////////////////////////////
 
 void ReadWinSizeConfig(void) {
-    HKEY myKey;
-    DWORD temp;
-    DWORD type;
-    DWORD size;
-
-    if (pConfigFile) return;  // no need to read stuff in ZN config file mode
-
-    if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Vision Thing\\PSEmu Pro\\GPU\\PeteSoft", 0, KEY_ALL_ACCESS,
-                     &myKey) == ERROR_SUCCESS) {
-        size = 4;
-        if (RegQueryValueEx(myKey, "ResX", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResX = (int)temp;
-        size = 4;
-        if (RegQueryValueEx(myKey, "ResY", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResY = (int)temp;
-
-        RegCloseKey(myKey);
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -796,10 +756,6 @@ void WriteGPUConfig(void) {
 
     RegCreateKeyEx(HKEY_CURRENT_USER, "Software\\Vision Thing\\PSEmu Pro\\GPU\\PeteSoft", 0, NULL,
                    REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &myKey, &myDisp);
-    temp = iResX;
-    RegSetValueEx(myKey, "ResX", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iResY;
-    RegSetValueEx(myKey, "ResY", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iWindowMode;
     RegSetValueEx(myKey, "WindowMode", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iColDepth;
