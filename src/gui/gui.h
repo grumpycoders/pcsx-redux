@@ -24,6 +24,7 @@
 
 #include "imgui.h"
 
+#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "gui/widgets/log.h"
 
 namespace PCSX {
@@ -86,6 +87,11 @@ class GUI final {
     bool m_showVRAMwindow = false;
     bool m_showLog = false;
     Widgets::Log m_log;
+    struct MemoryEditorWrapper {
+        MemoryEditor editor;
+        bool show;
+    };
+    MemoryEditorWrapper m_mainMemEditors[8];
 };
 
 }  // namespace PCSX

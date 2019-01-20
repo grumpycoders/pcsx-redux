@@ -3,6 +3,8 @@
 
 #include <unordered_set>
 
+#include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "gui/gui.h"
 
 #include "GL/gl3w.h"
@@ -211,6 +213,14 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu("Debug")) {
                 ImGui::MenuItem("Show Logs", nullptr, &m_showLog);
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
+                if (ImGui::BeginMenu("Memory Editors")) {
+                    unsigned counter = 1;
+                    for (auto& editor : m_mainMemEditors) {
+                        std::string title = "Memory Editor #" + std::to_string(counter++);
+                        ImGui::MenuItem(title.c_str(), nullptr, &editor.show);
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::MenuItem("Fullscreen render", nullptr, &m_fullscreenRender);
                 ImGui::EndMenu();
             }
@@ -251,6 +261,12 @@ void PCSX::GUI::endFrame() {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
         m_log.draw("Logs", &m_showLog);
+    }
+
+    unsigned counter = 1;
+    for (auto& editor : m_mainMemEditors) {
+        std::string title = "Memory Editor #" + std::to_string(counter++);
+        if (editor.show) editor.editor.DrawWindow(title.c_str(), PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
     }
 
     ImGui::Render();
