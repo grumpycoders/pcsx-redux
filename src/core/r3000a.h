@@ -82,27 +82,27 @@ typedef union {
 } psxCP0Regs;
 
 typedef struct {
-    short x, y;
+    int16_t x, y;
 } SVector2D;
 
 typedef struct {
-    short z, pad;
+    int16_t z, unused;
 } SVector2Dz;
 
 typedef struct {
-    short x, y, z, pad;
+    int16_t x, y, z, unused;
 } SVector3D;
 
 typedef struct {
-    short x, y, z, pad;
+    int16_t x, y, z, unused;
 } LVector3D;
 
 typedef struct {
-    unsigned char r, g, b, c;
+    uint8_t r, g, b, c;
 } CBGR;
 
 typedef struct {
-    short m11, m12, m13, m21, m22, m23, m31, m32, m33, pad;
+    int16_t m11, m12, m13, m21, m22, m23, m31, m32, m33, unused;
 } SMatrix3D;
 
 typedef union {

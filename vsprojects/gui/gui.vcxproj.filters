@@ -27,6 +27,9 @@
     <ClCompile Include="..\..\src\gui\widgets\log.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\registers.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\registers.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
   </ItemGroup>

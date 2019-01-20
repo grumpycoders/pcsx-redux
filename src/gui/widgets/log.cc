@@ -32,8 +32,8 @@ void PCSX::Widgets::Log::addLog(const char* fmt, va_list args) {
     m_scrollToBottom = m_follow;
 }
 
-void PCSX::Widgets::Log::draw(const char* title, bool* p_open) {
-    if (!ImGui::Begin(title, p_open)) {
+void PCSX::Widgets::Log::draw(const char* title) {
+    if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
         return;
     }

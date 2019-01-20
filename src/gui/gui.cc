@@ -5,6 +5,7 @@
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "core/r3000a.h"
 #include "gui/gui.h"
 
 #include "GL/gl3w.h"
@@ -18,7 +19,7 @@ void PCSX::GUI::bindVRAMTexture() {
 }
 
 void PCSX::GUI::checkGL() {
-    volatile GLenum error = glGetError();
+    GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
         SDL_TriggerBreakpoint();
         abort();
@@ -74,6 +75,9 @@ void PCSX::GUI::init() {
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
+
+    unsigned counter = 1;
+    for (auto& editor : m_mainMemEditors) editor.title = "Memory Editor #" + std::to_string(counter++);
 
     startFrame();
     m_currentTexture = 1;
@@ -204,20 +208,18 @@ void PCSX::GUI::endFrame() {
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
         ImGui::Image(texture, m_renderSize, ImVec2(0, 0), ImVec2(1, 1));
         ImGui::End();
-        ImGui::PopStyleVar();
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
 
     if (m_showMenu || !m_fullscreenRender) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Debug")) {
-                ImGui::MenuItem("Show Logs", nullptr, &m_showLog);
+                ImGui::MenuItem("Show Logs", nullptr, &m_log.m_show);
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
+                ImGui::MenuItem("Show Registers", nullptr, &m_registers.m_show);
                 if (ImGui::BeginMenu("Memory Editors")) {
-                    unsigned counter = 1;
                     for (auto& editor : m_mainMemEditors) {
-                        std::string title = "Memory Editor #" + std::to_string(counter++);
-                        ImGui::MenuItem(title.c_str(), nullptr, &editor.show);
+                        ImGui::MenuItem(editor.title.c_str(), nullptr, &editor.show);
                     }
                     ImGui::EndMenu();
                 }
@@ -257,16 +259,25 @@ void PCSX::GUI::endFrame() {
         ImGui::End();
     }
 
-    if (m_showLog) {
+    if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw("Logs", &m_showLog);
+        m_log.draw("Logs");
     }
 
-    unsigned counter = 1;
-    for (auto& editor : m_mainMemEditors) {
-        std::string title = "Memory Editor #" + std::to_string(counter++);
-        if (editor.show) editor.editor.DrawWindow(title.c_str(), PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
+    {
+        unsigned counter = 0;
+        for (auto& editor : m_mainMemEditors) {
+            if (editor.show) {
+                ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+                editor.editor.DrawWindow(editor.title.c_str(), PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
+            }
+        }
+    }
+
+    if (m_registers.m_show) {
+        m_registers.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, "Registers");
     }
 
     ImGui::Render();

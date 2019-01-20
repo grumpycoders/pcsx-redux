@@ -22,10 +22,13 @@
 #include <SDL.h>
 #include <stdarg.h>
 
+#include <string>
+
 #include "imgui.h"
 
-#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "gui/widgets/log.h"
+#include "gui/widgets/registers.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
 
 namespace PCSX {
 
@@ -50,6 +53,7 @@ class GUI final {
     void addNotification(const char *fmt, va_list args) {
         // TODO
     }
+
   private:
     static void checkGL();
 
@@ -85,13 +89,14 @@ class GUI final {
     bool m_showMenu = false;
     bool m_showDemo = false;
     bool m_showVRAMwindow = false;
-    bool m_showLog = false;
     Widgets::Log m_log;
     struct MemoryEditorWrapper {
         MemoryEditor editor;
+        std::string title;
         bool show;
     };
     MemoryEditorWrapper m_mainMemEditors[8];
+    Widgets::Registers m_registers;
 };
 
 }  // namespace PCSX

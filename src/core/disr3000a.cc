@@ -48,14 +48,14 @@ const char *g_disRNameCP2C[] = {
 };
 
 const char *g_disRNameCP0[] = {
-    "Index",    "Random",   "EntryLo0", "EntryLo1",    // 00
-    "Context",  "PageMask", "Wired",    "*Check me*",  // 04
-    "BadVAddr", "Count",    "EntryHi",  "Compare",     // 08
-    "Status",   "Cause",    "ExceptPC", "PRevID",      // 0c
-    "Config",   "LLAddr",   "WatchLo",  "WatchHi",     // 10
-    "XContext", "*RES*",    "*RES*",    "*RES*",       // 14
-    "*RES*",    "*RES* ",   "PErr",     "CacheErr",    // 18
-    "TagLo",    "TagHi",    "ErrorEPC", "*RES*",       // 1c
+    "Index",    "Random",   "EntryLo0", "EntryLo1",  // 00
+    "Context",  "PageMask", "Wired",    "+Checkme",  // 04
+    "BadVAddr", "Count",    "EntryHi",  "Compare",   // 08
+    "Status",   "Cause",    "ExceptPC", "PRevID",    // 0c
+    "Config",   "LLAddr",   "WatchLo",  "WatchHi",   // 10
+    "XContext", "*RES*",    "*RES*",    "*RES*",     // 14
+    "*RES*",    "*RES*",    "PErr",     "CacheErr",  // 18
+    "TagLo",    "TagHi",    "ErrorEPC", "*RES*",     // 1c
 };
 
 // Type definition of our functions

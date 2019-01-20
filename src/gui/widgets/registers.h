@@ -21,31 +21,16 @@
 
 #include <stdarg.h>
 
-#include "imgui.h"
+struct psxRegisters;
 
 namespace PCSX {
 namespace Widgets {
 
-class Log {
+class Registers {
   public:
-    void clear();
-    void addLog(const char* fmt, ...) IM_FMTARGS(2) {
-        va_list args;
-        va_start(args, fmt);
-        addLog(fmt, args);
-        va_end(args);
-    }
-    void addLog(const char* fmt, va_list args);
-    void draw(const char* title);
+    void draw(psxRegisters* registers, const char* title);
 
-    bool m_show;
-
-  private:
-    ImGuiTextBuffer m_buffer;
-    ImGuiTextFilter m_filter;
-    ImVector<int> m_lineOffsets;  // Index to lines offset
-    bool m_scrollToBottom = false;
-    bool m_follow = true;
+    bool m_show = false;
 };
 
 }  // namespace Widgets
