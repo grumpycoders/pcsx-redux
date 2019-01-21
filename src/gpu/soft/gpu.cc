@@ -815,7 +815,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            m_prim.reset();
+            m_softPrim.reset();
             PSXDisplay.RGB24 = FALSE;
             PSXDisplay.Interlaced = FALSE;
             return;
@@ -1297,7 +1297,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_prim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
+                m_softPrim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;

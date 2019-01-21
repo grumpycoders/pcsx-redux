@@ -12,6 +12,9 @@ class GPU {
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
+    bool m_showCfg;
+    virtual void showCfg() = 0;
+
   private:
     // Taken from PEOPS SOFTGPU
     uint32_t s_lUsedAddr[3];

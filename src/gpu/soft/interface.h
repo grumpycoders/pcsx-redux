@@ -21,7 +21,7 @@
 
 #include "core/gpu.h"
 #include "gpu/soft/externals.h"
-#include "gpu/soft/soft.h"
+#include "gpu/soft/prim.h"
 
 namespace PCSX {
 
@@ -47,8 +47,9 @@ class impl : public GPU {
     virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
     virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) final;
+    virtual void showCfg() final { /* m_softPrim.showCfg(&m_showCfg); */ }
 
-    SoftRenderer m_prim;
+    SoftPrim m_softPrim;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram

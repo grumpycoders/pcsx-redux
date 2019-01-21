@@ -52,6 +52,7 @@ class GUI final {
     void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
     void addNotification(const char *fmt, va_list args) {
         // TODO
+        SDL_TriggerBreakpoint();
     }
 
   private:
@@ -69,8 +70,8 @@ class GUI final {
         }
     }
 
-    SDL_Window *m_window = NULL;
-    SDL_GLContext m_glContext = NULL;
+    SDL_Window *m_window = nullptr;
+    SDL_GLContext m_glContext = nullptr;
     unsigned int m_VRAMTexture = 0;
 
     unsigned int m_offscreenFrameBuffer = 0;
