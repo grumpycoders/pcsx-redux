@@ -70,6 +70,9 @@ class impl {
     // num of channels
     static const size_t MAXCHAN = 24;
 
+    void drawDebug();
+    bool m_showDebug = true;
+
   private:
     // sound buffer sizes
     // 400 ms complete sound buffer
@@ -220,6 +223,9 @@ class impl {
     ADSR m_adsr;
     SDLsound m_sound;
     xa_decode_t m_cdda;
+
+    // debug window
+    unsigned m_selectedChannel = 0;
 };
 
 }  // namespace SPU

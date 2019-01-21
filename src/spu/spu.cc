@@ -873,7 +873,7 @@ void PCSX::SPU::impl::SetupStreams() {
         // slow us down:
         //   s_chan[i].hMutex=CreateMutex(NULL,FALSE,NULL);
         s_chan[i].ADSRX.SustainLevel = 0xf << 27;  // -> init sustain
-        s_chan[i].iMute = 0;
+        s_chan[i].iMute = false;
         s_chan[i].iIrqDone = 0;
         s_chan[i].pLoop = spuMemC;
         s_chan[i].pStart = spuMemC;

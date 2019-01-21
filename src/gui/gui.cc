@@ -27,6 +27,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
+#include "spu/interface.h"
 
 #include "GL/gl3w.h"
 #include "imgui.h"
@@ -247,6 +248,9 @@ void PCSX::GUI::endFrame() {
                     }
                     ImGui::EndMenu();
                 }
+                ImGui::Separator();
+                ImGui::MenuItem("Show SPU debug", nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
+                ImGui::Separator();
                 ImGui::MenuItem("Fullscreen render", nullptr, &m_fullscreenRender);
                 ImGui::EndMenu();
             }
@@ -302,6 +306,10 @@ void PCSX::GUI::endFrame() {
 
     if (m_registers.m_show) {
         m_registers.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, "Registers");
+    }
+
+    if (PCSX::g_emulator.m_spu->m_showDebug) {
+        PCSX::g_emulator.m_spu->drawDebug();
     }
 
     if (PCSX::g_emulator.m_gpu->m_showCfg) {

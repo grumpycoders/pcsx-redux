@@ -171,7 +171,7 @@ void PCSX::SPU::impl::LoadStateV5(SPUFreeze_t *pF) {
         s_chan[i].pStart += (unsigned long)spuMemC;
         s_chan[i].pCurr += (unsigned long)spuMemC;
         s_chan[i].pLoop += (unsigned long)spuMemC;
-        s_chan[i].iMute = 0;
+        s_chan[i].iMute = false;
         s_chan[i].iIrqDone = 0;
     }
 }
@@ -189,7 +189,7 @@ void PCSX::SPU::impl::LoadStateUnknown(SPUFreeze_t *pF) {
         s_chan[i].pLoop = spuMemC;
         s_chan[i].pStart = spuMemC;
         s_chan[i].pLoop = spuMemC;
-        s_chan[i].iMute = 0;
+        s_chan[i].iMute = false;
         s_chan[i].iIrqDone = 0;
     }
 

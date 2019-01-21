@@ -30,6 +30,110 @@
 //
 //*************************************************************************//
 
+#include "imgui.h"
+
+#include "spu/interface.h"
+
+void PCSX::SPU::impl::drawDebug() {
+    if (!ImGui::Begin("SPU Debug", &m_showDebug)) {
+        ImGui::End();
+        return;
+    }
+    {
+        ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
+        for (unsigned i = 0; i < 24; i++) {
+            std::string label1 = "Channel " + std::to_string(i);
+            std::string label2 = "##Mute" + std::to_string(i);
+            std::string label3 = "##Select" + std::to_string(i);
+            ImGui::Button(label1.c_str());
+            ImGui::SameLine();
+            ImGui::Checkbox(label2.c_str(), &s_chan[i].iMute);
+            ImGui::SameLine();
+            if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == i)) m_selectedChannel = i;
+        }
+        if (ImGui::Button("Mute all", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0))) {
+            for (unsigned i = 0; i < 24; i++) {
+                s_chan[i].iMute = true;
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Unmute all", ImVec2(-1, 0))) {
+            for (unsigned i = 0; i < 24; i++) {
+                s_chan[i].iMute = false;
+            }
+        }
+        ImGui::EndChild();
+    }
+    ImGui::SameLine();
+    {
+        auto ch = s_chan[m_selectedChannel];
+        auto ADSRX = ch.ADSRX;
+
+        ImGui::BeginChild("##debugSPUright", ImVec2(0, 0), true);
+        {
+            ImGui::Text("ADSR channel info");
+            ImGui::Columns(2);
+            {
+                ImGui::Text("Attack:\nDecay:\nSustain:\nRelease:");
+                ImGui::SameLine();
+                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.AttackRate ^ 0x7f, (ADSRX.DecayRate ^ 0x1f) / 4,
+                            ADSRX.SustainRate ^ 0x7f, (ADSRX.ReleaseRate ^ 0x1f) / 4);
+            }
+            ImGui::NextColumn();
+            {
+                ImGui::Text("Sustain level:\nSustain inc:\nCurr adsr vol:\nRaw enveloppe");
+                ImGui::SameLine();
+                ImGui::Text("%i\n%i\n%i\n%08x", ADSRX.SustainLevel >> 27, ADSRX.SustainIncrease, ADSRX.lVolume,
+                            ADSRX.EnvelopeVol);
+            }
+            ImGui::Columns(1);
+            ImGui::Separator();
+            ImGui::Text("Generic channel info");
+            ImGui::Columns(2);
+            {
+                ImGui::Text("On:\nStop:\nNoise:\nFMod:\nReverb:\nRvb active:\nRvb number:\nRvb offset:\nRvb repeat:");
+                ImGui::SameLine();
+                ImGui::Text("%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i", ch.bOn, ch.bStop, ch.bNoise, ch.bFMod, ch.bReverb,
+                            ch.bRVBActive, ch.iRVBNum, ch.iRVBOffset, ch.iRVBRepeat);
+            }
+            ImGui::NextColumn();
+            {
+                ImGui::Text("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:");
+                ImGui::SameLine();
+                ImGui::Text(
+                    "%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", (unsigned long)ch.pStart - (unsigned long)spuMemC,
+                    (unsigned long)ch.pCurr - (unsigned long)spuMemC, (unsigned long)ch.pLoop - (unsigned long)spuMemC,
+                    ch.iRightVolume, ch.iRightVolRaw, ch.iLeftVolume, ch.iLeftVolRaw, ch.iActFreq, ch.iUsedFreq);
+            }
+            ImGui::Columns(1);
+            ImGui::BeginChild("##debugSPUXA", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
+            {
+                ImGui::Text("XA");
+                ImGui::Text("Freq:\nStereo:\nSamples:\nBuffered:\nVolume:\n");
+                ImGui::SameLine();
+                ImGui::Text("%i\n%i\n%i\n%i\n%5i  %5i", xapGlobal ? xapGlobal->freq : 0,
+                            xapGlobal ? xapGlobal->stereo : 0, xapGlobal ? xapGlobal->nsamples : 0,
+                            XAPlay <= XAFeed ? XAPlay - XAFeed : (XAFeed - XAStart) + (XAEnd - XAPlay), iLeftXAVol,
+                            iRightXAVol);
+            }
+            ImGui::EndChild();
+            ImGui::SameLine();
+            ImGui::BeginChild("##debugSPUstate", ImVec2(0, 0), true);
+            {
+                ImGui::Text("Spu states");
+                ImGui::Text("Irq addr:\nCtrl:\nStat:\nSpu mem:");
+                ImGui::SameLine();
+                ImGui::Text("%i\n%04x\n%04x\n%i", pSpuIrq ? -1 : (unsigned long)pSpuIrq - (unsigned long)spuMemC,
+                            spuCtrl, spuStat, spuAddr);
+            }
+            ImGui::EndChild();
+        }
+        ImGui::EndChild();
+    }
+
+    ImGui::End();
+}
+
 #if 0
 
 #include "stdafx.h"

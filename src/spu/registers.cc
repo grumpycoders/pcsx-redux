@@ -101,8 +101,6 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.AttackRate = ((lval >> 8) & 0x007f) ^ 0x7f;
                 s_chan[ch].ADSRX.DecayRate = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
                 s_chan[ch].ADSRX.SustainLevel = (lval & 0x000f) << 27;
-                //---------------------------------------------//
-                if (!iSPUDebugMode) break;
                 //---------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
@@ -141,8 +139,6 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.SustainRate = ((lval >> 6) & 0x007f) ^ 0x7f;
                 s_chan[ch].ADSRX.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
                 s_chan[ch].ADSRX.ReleaseRate = 4 * ((lval & 0x001f) ^ 0x1f);
-                //----------------------------------------------//
-                if (!iSPUDebugMode) break;
                 //----------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.SustainModeExp = (lval & 0x8000) ? 1 : 0;
