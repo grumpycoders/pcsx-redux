@@ -367,7 +367,6 @@ BOOL OnInitSoftDialog(HWND hW) {
         CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE2);
     else
         CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE1);
-    if (iStopSaver) CheckDlgButton(hW, IDC_STOPSAVER, TRUE);
     if (iUseFixes) CheckDlgButton(hW, IDC_GAMEFIX, TRUE);
     if (bTransparent) CheckDlgButton(hW, IDC_TRANSPARENT, TRUE);
     if (bSSSPSXLimit) CheckDlgButton(hW, IDC_SSSPSXLIMIT, TRUE);
@@ -448,11 +447,6 @@ void GetSettings(HWND hW) {
         iUseFixes = 1;
     else
         iUseFixes = 0;
-
-    if (IsDlgButtonChecked(hW, IDC_STOPSAVER))  // stop screen saver
-        iStopSaver = 1;
-    else
-        iStopSaver = 0;
 
     if (IsDlgButtonChecked(hW, IDC_TRANSPARENT))  // transparent menu
         bTransparent = TRUE;
@@ -651,7 +645,6 @@ void ReadGPUConfig(void) {
     dwCfgFixes = 0;
     iUseFixes = 0;
     iUseDither = 0;
-    iStopSaver = 0;
     bTransparent = FALSE;
     bSSSPSXLimit = FALSE;
     lstrcpy(szGPUKeys, szKeyDefaults);
@@ -705,9 +698,6 @@ void ReadGPUConfig(void) {
                     fFrameRate = (float)temp;
             }
 
-            size = 4;
-            if (RegQueryValueEx(myKey, "StopSaver", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                iStopSaver = (int)temp;
             size = 4;
             if (RegQueryValueEx(myKey, "Transparent", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 bTransparent = (BOOL)temp;
@@ -780,8 +770,6 @@ void WriteGPUConfig(void) {
     RegSetValueEx(myKey, "Transparent", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = bSSSPSXLimit;
     RegSetValueEx(myKey, "SSSPSXLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iStopSaver;
-    RegSetValueEx(myKey, "StopSaver", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     RegSetValueEx(myKey, "GPUKeys", 0, REG_BINARY, (LPBYTE)szGPUKeys, 11);
 
     //

@@ -206,53 +206,6 @@ int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
 
-#ifdef _WIN32
-
-////////////////////////////////////////////////////////////////////////
-// screensaver stuff: dynamically load kernel32.dll to avoid export dependeny
-////////////////////////////////////////////////////////////////////////
-
-int iStopSaver = 0;
-HINSTANCE kernel32LibHandle = NULL;
-
-// A stub function, that does nothing .... but it does "nothing" well :)
-EXECUTION_STATE WINAPI STUB_SetThreadExecutionState(EXECUTION_STATE esFlags) { return esFlags; }
-
-// The dynamic version of the system call is prepended with a "D_"
-EXECUTION_STATE(WINAPI *D_SetThreadExecutionState)(EXECUTION_STATE esFlags) = STUB_SetThreadExecutionState;
-
-BOOL LoadKernel32(void) {
-    // Get a handle to the kernel32.dll (which is actually already loaded)
-    kernel32LibHandle = LoadLibrary("kernel32.dll");
-
-    // If we've got a handle, then locate the entry point for the SetThreadExecutionState function
-    if (kernel32LibHandle != NULL) {
-        if ((D_SetThreadExecutionState = (EXECUTION_STATE(WINAPI *)(EXECUTION_STATE))GetProcAddress(
-                 kernel32LibHandle, "SetThreadExecutionState")) == NULL)
-            D_SetThreadExecutionState = STUB_SetThreadExecutionState;
-    }
-
-    return TRUE;
-}
-
-BOOL FreeKernel32(void) {
-    // Release the handle to kernel32.dll
-    if (kernel32LibHandle != NULL) FreeLibrary(kernel32LibHandle);
-
-    // Set to stub function, to avoid nasty suprises if called :)
-    D_SetThreadExecutionState = STUB_SetThreadExecutionState;
-
-    return TRUE;
-}
-#else
-
-// Linux: Stub the functions
-BOOL LoadKernel32(void) { return TRUE; }
-
-BOOL FreeKernel32(void) { return TRUE; }
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 // some misc external display funcs
 ////////////////////////////////////////////////////////////////////////
@@ -451,9 +404,6 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
     GPUIsReadyForCommands;
     bDoVSyncUpdate = true;
 
-    // Get a handle for kernel32.dll, and access the required export function
-    LoadKernel32();
-
     return 0;
 }
 
@@ -479,8 +429,6 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 
     ulInitDisplay();  // setup direct draw
 
-    if (iStopSaver) D_SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED | ES_CONTINUOUS);
-
     return 0;
 }
 
@@ -494,10 +442,6 @@ long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 
     CloseDisplay();  // shutdown direct draw
 
-#ifdef _WIN32
-    if (iStopSaver) D_SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
-#endif
-
     return 0;
 }
 
@@ -507,9 +451,6 @@ long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 
 long PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
-    // screensaver: release the handle for kernel32.dll
-    FreeKernel32();
-
     free(psxVSecure);
 
     return 0;  // nothinh to do

@@ -218,7 +218,6 @@ extern float fFrameRateHz;
 extern float fps_skip;
 extern float fps_cur;
 extern BOOL IsPerformanceCounter;
-extern int iStopSaver;
 extern BOOL bSSSPSXLimit;
 
 // key.c
