@@ -164,14 +164,6 @@ void BuildDispMenu(int iInc) {
     else if (UseFrameSkip)
         szMenuBuf[7] = '*';
 
-    if (iUseDither)  // set marks
-    {
-        if (iUseDither == 1)
-            szMenuBuf[12] = '+';
-        else
-            szMenuBuf[12] = '*';
-    }
-
     if (dwActFixes) szMenuBuf[17] = '*';
 
     if (dwCoreFlags & 1) szMenuBuf[23] = 'A';
@@ -277,12 +269,6 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
                 }
             }
             bSkipNextFrame = FALSE;
-            break;
-        //////////////////////////////////////////////////////
-        case 2:  // dithering
-            iUseDither += iStep;
-            if (iUseDither < 0) iUseDither = 2;
-            if (iUseDither > 2) iUseDither = 0;
             break;
         //////////////////////////////////////////////////////
         case 3:  // special fixes

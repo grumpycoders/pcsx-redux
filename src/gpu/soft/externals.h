@@ -160,7 +160,6 @@ extern unsigned long dwCfgFixes;
 extern unsigned long dwActFixes;
 extern unsigned long dwEmuFixes;
 extern int iUseFixes;
-extern int iUseDither;
 extern bool bDoVSyncUpdate;
 
 // gpu.c

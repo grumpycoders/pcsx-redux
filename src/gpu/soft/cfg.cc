@@ -390,11 +390,6 @@ BOOL OnInitSoftDialog(HWND hW) {
     ComboBox_AddString(hWC, "HQ3X unstretched (Fast CPU+mmx)");
     ComboBox_AddString(hWC, "HQ3X stretching (Fast CPU+mmx)");
 
-    hWC = GetDlgItem(hW, IDC_DITHER);  // dithering
-    ComboBox_AddString(hWC, "No dithering (fastest)");
-    ComboBox_AddString(hWC, "Game dependend dithering (slow)");
-    ComboBox_AddString(hWC, "Always dither g-shaded polygons (slowest)");
-    ComboBox_SetCurSel(hWC, iUseDither);
 
     if (iFrameLimit == 2)  // frame limit wrapper
         CheckDlgButton(hW, IDC_FRAMEAUTO, TRUE);
@@ -457,9 +452,6 @@ void GetSettings(HWND hW) {
         bSSSPSXLimit = TRUE;
     else
         bSSSPSXLimit = FALSE;
-
-    hWC = GetDlgItem(hW, IDC_DITHER);
-    iUseDither = ComboBox_GetCurSel(hWC);
 
     if (IsDlgButtonChecked(hW, IDC_FRAMEAUTO))  // frame rate
         iFrameLimit = 2;
@@ -644,7 +636,6 @@ void ReadGPUConfig(void) {
     fFrameRate = 200.0f;
     dwCfgFixes = 0;
     iUseFixes = 0;
-    iUseDither = 0;
     bTransparent = FALSE;
     bSSSPSXLimit = FALSE;
     lstrcpy(szGPUKeys, szKeyDefaults);
@@ -676,9 +667,6 @@ void ReadGPUConfig(void) {
             size = 4;
             if (RegQueryValueEx(myKey, "UseFixes", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 iUseFixes = (int)temp;
-            size = 4;
-            if (RegQueryValueEx(myKey, "UseDither", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                iUseDither = (int)temp;
             size = 4;
             if (!iFrameLimit) {
                 UseFrameLimit = 1;
@@ -758,8 +746,6 @@ void WriteGPUConfig(void) {
     RegSetValueEx(myKey, "CfgFixes", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iUseFixes;
     RegSetValueEx(myKey, "UseFixes", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iUseDither;
-    RegSetValueEx(myKey, "UseDither", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iFrameLimit;
     RegSetValueEx(myKey, "FrameLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = (DWORD)fFrameRate;

@@ -47,7 +47,7 @@ class impl : public GPU {
     virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
     virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) final;
-    virtual void showCfg() final { /* m_softPrim.showCfg(&m_showCfg); */ }
+    virtual void showCfg() final { m_softPrim.showCfg(&m_showCfg); }
 
     SoftPrim m_softPrim;
 

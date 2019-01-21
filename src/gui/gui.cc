@@ -22,6 +22,7 @@
 
 #include <unordered_set>
 
+#include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -232,6 +233,10 @@ void PCSX::GUI::endFrame() {
 
     if (m_showMenu || !m_fullscreenRender) {
         if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("Configuration")) {
+                ImGui::MenuItem("Soft GPU", nullptr, &PCSX::g_emulator.m_gpu->m_showCfg);
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu("Debug")) {
                 ImGui::MenuItem("Show Logs", nullptr, &m_log.m_show);
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
@@ -297,6 +302,10 @@ void PCSX::GUI::endFrame() {
 
     if (m_registers.m_show) {
         m_registers.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, "Registers");
+    }
+
+    if (PCSX::g_emulator.m_gpu->m_showCfg) {
+        PCSX::g_emulator.m_gpu->showCfg();
     }
 
     ImGui::Render();

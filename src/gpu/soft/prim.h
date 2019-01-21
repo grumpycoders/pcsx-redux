@@ -38,6 +38,8 @@ class SoftPrim : public SoftRenderer {
         }
     }
 
+    void showCfg(bool *);
+
     inline void reset() {
         GlobalTextAddrX = 0;
         GlobalTextAddrY = 0;
@@ -53,7 +55,7 @@ class SoftPrim : public SoftRenderer {
     }
 
   private:
-
+    int iUseDither = 0;
     long GlobalTextREST;
 
     typedef void (SoftPrim::*func_t)(unsigned char *);

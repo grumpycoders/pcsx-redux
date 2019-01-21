@@ -83,13 +83,12 @@
 
 #include "stdafx.h"
 
-#define _IN_PRIMDRAW
-
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/prim.h"
 #include "gpu/soft/soft.h"
+#include "imgui.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
@@ -100,9 +99,19 @@ unsigned long dwCfgFixes;
 unsigned long dwActFixes = 0;
 unsigned long dwEmuFixes = 0;
 int iUseFixes;
-int iUseDither = 0;
 // ??
 bool bDoVSyncUpdate = false;
+
+void PCSX::SoftGPU::SoftPrim::showCfg(bool *show) {
+    if (!ImGui::Begin("Soft GPU configuration", show)) {
+        ImGui::End();
+    }
+    static const char *ditherValues[] = {"No dithering (fastest)",
+                                         "Game dependend dithering (slow)",
+                                         "Always dither g-shaded polygons (slowest)"};
+    ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
+    ImGui::End();
+}
 
 static constexpr inline unsigned short BGR24to16(unsigned long BGR) {
     return (unsigned short)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
