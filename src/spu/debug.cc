@@ -30,36 +30,76 @@
 //
 //*************************************************************************//
 
+#include <SDL.h>
 #include "imgui.h"
 
 #include "spu/interface.h"
 
 void PCSX::SPU::impl::drawDebug() {
+    uint32_t now = SDL_GetTicks();
+    uint32_t delta = now - m_lastUpdated;
+    while (delta >= 50) {
+        m_lastUpdated += 50;
+        delta -= 50;
+        for (unsigned ch = 0; ch < MAXCHAN; ch++) {
+            if (!s_chan[ch].bOn) {
+                m_channelDebugTypes[ch][m_currentDebugSample] = EMPTY;
+                m_channelDebugData[ch][m_currentDebugSample] = 0.0f;
+            };
+            if (s_chan[ch].iIrqDone) {
+                m_channelDebugTypes[ch][m_currentDebugSample] = IRQ;
+                m_channelDebugData[ch][m_currentDebugSample] = 0.0f;
+                s_chan[ch].iIrqDone = 0;
+                continue;
+            }
+
+            if (s_chan[ch].iMute) {
+                m_channelDebugTypes[ch][m_currentDebugSample] = MUTED;
+            } else if (s_chan[ch].bNoise) {
+                m_channelDebugTypes[ch][m_currentDebugSample] = NOISE;
+            } else if (s_chan[ch].bFMod == 1) {
+                m_channelDebugTypes[ch][m_currentDebugSample] = FMOD1;
+            } else if (s_chan[ch].bFMod == 2) {
+                m_channelDebugTypes[ch][m_currentDebugSample] = FMOD2;
+            } else {
+                m_channelDebugTypes[ch][m_currentDebugSample] = DATA;
+            }
+
+            m_channelDebugData[ch][m_currentDebugSample] = fabsf((float)s_chan[ch].sval / 32768.0f);
+        }
+        if (++m_currentDebugSample == DEBUG_SAMPLES) m_currentDebugSample = 0;
+    }
     if (!ImGui::Begin("SPU Debug", &m_showDebug)) {
         ImGui::End();
         return;
     }
     {
         ImGui::BeginChild("##debugSPUleft", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
-        for (unsigned i = 0; i < 24; i++) {
-            std::string label1 = "Channel " + std::to_string(i);
-            std::string label2 = "##Mute" + std::to_string(i);
-            std::string label3 = "##Select" + std::to_string(i);
-            ImGui::Button(label1.c_str());
-            ImGui::SameLine();
-            ImGui::Checkbox(label2.c_str(), &s_chan[i].iMute);
-            ImGui::SameLine();
-            if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == i)) m_selectedChannel = i;
+        ImGui::Columns(2);
+        for (unsigned i = 0; i < MAXCHAN / 2; i++) {
+            for (unsigned j = 0; j < 2; j++) {
+                unsigned ch = j * MAXCHAN / 2 + i;
+                std::string label1 = "##Channel" + std::to_string(ch);
+                std::string label2 = "##Mute" + std::to_string(ch);
+                std::string label3 = "Ch" + std::to_string(ch);
+                ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f);
+                ImGui::SameLine();
+                ImGui::Checkbox(label2.c_str(), &s_chan[ch].iMute);
+                ImGui::SameLine();
+                if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
+                ImGui::NextColumn();
+            }
         }
+        ImGui::Columns(1);
         if (ImGui::Button("Mute all", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0))) {
-            for (unsigned i = 0; i < 24; i++) {
-                s_chan[i].iMute = true;
+            for (unsigned ch = 0; ch < MAXCHAN; ch++) {
+                s_chan[ch].iMute = true;
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("Unmute all", ImVec2(-1, 0))) {
-            for (unsigned i = 0; i < 24; i++) {
-                s_chan[i].iMute = false;
+            for (unsigned ch = 0; ch < MAXCHAN; ch++) {
+                s_chan[ch].iMute = false;
             }
         }
         ImGui::EndChild();

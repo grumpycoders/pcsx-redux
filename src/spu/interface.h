@@ -226,6 +226,19 @@ class impl {
 
     // debug window
     unsigned m_selectedChannel = 0;
+    uint32_t m_lastUpdated = 0;
+    static const unsigned DEBUG_SAMPLES = 1024;
+    enum {
+        EMPTY = 0,
+        DATA,
+        NOISE,
+        FMOD1,
+        FMOD2,
+        IRQ,
+        MUTED
+    } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
+    float m_channelDebugData[MAXCHAN][DEBUG_SAMPLES];
+    unsigned m_currentDebugSample = 0;
 };
 
 }  // namespace SPU

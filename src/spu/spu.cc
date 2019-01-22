@@ -937,6 +937,8 @@ bool PCSX::SPU::impl::open() {
 
     bSPUIsOpen = 1;
 
+    m_lastUpdated = SDL_GetTicks();
+
     return true;
 }
 
