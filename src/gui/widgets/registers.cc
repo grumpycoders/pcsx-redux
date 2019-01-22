@@ -31,8 +31,26 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
         return;
     }
 
-    if (ImGui::BeginTabBar("Registers")) {
-        if (ImGui::BeginTabItem("GPR")) {
+    unsigned oldSelected = m_selected;
+    const ImVec4 hilight = ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered];
+    auto drawButton = [&](const unsigned pos, const char* label) {
+        if (oldSelected == pos) ImGui::PushStyleColor(ImGuiCol_Button, hilight);
+        if (ImGui::Button(label)) m_selected = pos;
+        if (oldSelected == pos) ImGui::PopStyleColor();
+    };
+
+    drawButton(0, "GPR");
+    ImGui::SameLine();
+    drawButton(1, "CP0");
+    ImGui::SameLine();
+    drawButton(2, "CP2D");
+    ImGui::SameLine();
+    drawButton(3, "CP2C");
+    ImGui::SameLine();
+    drawButton(4, "Misc");
+
+    switch (m_selected) {
+        case 0: {
             unsigned counter = 0;
             for (auto& reg : registers->GPR.r) {
                 const char* name;
@@ -54,17 +72,17 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
                 counter++;
                 ImGui::Text("%s: %08x", name, reg);
             }
-            ImGui::EndTabItem();
+            break;
         }
-        if (ImGui::BeginTabItem("CP0")) {
+        case 1: {
             unsigned counter = 0;
             for (auto& reg : registers->CP0.r) {
                 const char* name = g_disRNameCP0[counter++];
                 ImGui::Text("%9s: %08x", name, reg);
             }
-            ImGui::EndTabItem();
+            break;
         }
-        if (ImGui::BeginTabItem("CP2 Data")) {
+        case 2: {
             auto v0 = registers->CP2D.n.v0;
             ImGui::Text("v0  : {%i, %i, %i}", v0.x, v0.y, v0.z);
             auto v1 = registers->CP2D.n.v1;
@@ -104,9 +122,9 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
             ImGui::Text("orgb: %u", registers->CP2D.n.orgb);
             ImGui::Text("lzcs: %i", registers->CP2D.n.lzcs);
             ImGui::Text("lzcr: %i", registers->CP2D.n.lzcr);
-            ImGui::EndTabItem();
+            break;
         }
-        if (ImGui::BeginTabItem("CP2 Control")) {
+        case 3: {
             auto displayMatrix = [](const SMatrix3D& matrix, const char* name) {
                 ImGui::Text("   [%5i, %5i, %5i]", matrix.m11, matrix.m12, matrix.m13);
                 ImGui::Text("%s: [%5i, %5i, %5i]", name, matrix.m21, matrix.m22, matrix.m23);
@@ -132,15 +150,14 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
             ImGui::Text("zsf3: %i", registers->CP2C.n.zsf3);
             ImGui::Text("zsf4: %i", registers->CP2C.n.zsf4);
             ImGui::Text("flag: %i", registers->CP2C.n.flag);
-            ImGui::EndTabItem();
+            break;
         }
-        if (ImGui::BeginTabItem("Misc")) {
+        case 4: {
             ImGui::Text("pc   : %08x", registers->pc);
             ImGui::Text("cycle: %08x", registers->cycle);
             ImGui::Text("int  : %08x", registers->interrupt);
-            ImGui::EndTabItem();
+            break;
         }
-        ImGui::EndTabBar();
     }
 
     ImGui::End();

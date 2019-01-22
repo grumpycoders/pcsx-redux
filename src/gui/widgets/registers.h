@@ -31,6 +31,9 @@ class Registers {
     void draw(psxRegisters* registers, const char* title);
 
     bool m_show = false;
+
+  private:
+    unsigned m_selected = 0;
 };
 
 }  // namespace Widgets

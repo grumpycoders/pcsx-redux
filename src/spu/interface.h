@@ -71,7 +71,7 @@ class impl {
     static const size_t MAXCHAN = 24;
 
     void drawDebug();
-    bool m_showDebug = true;
+    bool m_showDebug = false;
 
   private:
     // sound buffer sizes

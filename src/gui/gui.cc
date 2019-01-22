@@ -22,17 +22,19 @@
 
 #include <unordered_set>
 
+#include "flags.h"
+
+#include "GL/gl3w.h"
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_sdl.h"
+
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
-
-#include "GL/gl3w.h"
-#include "imgui.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_impl_sdl.h"
 
 void PCSX::GUI::bindVRAMTexture() {
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
@@ -57,10 +59,6 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
 }
 
 void PCSX::GUI::init() {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
-        assert(0);
-    }
-
     // SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -69,16 +67,16 @@ void PCSX::GUI::init() {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
+    if (m_args.get<bool>("fullscreen", false)) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    m_window = SDL_CreateWindow("PCSX-REDUX", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800,
-                                SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+    m_window = SDL_CreateWindow("PCSX-REDUX", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800, flags);
     assert(m_window);
 
     m_glContext = SDL_GL_CreateContext(m_window);
     assert(m_glContext);
 
     int result = gl3wInit();
-
     assert(result == 0);
 
     // Setup ImGui binding
@@ -155,7 +153,6 @@ void PCSX::GUI::flip() {
     glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
     checkGL();
 
-    // made up resolution
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

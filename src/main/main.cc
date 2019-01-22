@@ -4,8 +4,8 @@
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "flags.h"
 #include "gui/gui.h"
-#include "main/flags.h"
 #include "spu/interface.h"
 
 static PCSX::GUI * s_gui;
@@ -61,10 +61,13 @@ class SystemImpl : public PCSX::System {
 int main(int argc, char **argv) {
     const flags::args args(argc, argv);
 
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
+        assert(0);
+    }
+
     PCSX::g_system = new SystemImpl;
-    s_gui = new PCSX::GUI();
+    s_gui = new PCSX::GUI(args);
     s_gui->init();
-    s_gui->setFullscreen(args.get<bool>("fullscreen", false));
 
     PCSX::g_emulator.config().PsxAuto = true;
     PCSX::g_emulator.config().HLE = false;

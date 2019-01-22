@@ -24,16 +24,18 @@
 
 #include <string>
 
+#include "flags.h"
 #include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
 
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
 
 namespace PCSX {
 
 class GUI final {
   public:
+    GUI(const flags::args &args) : m_args(args) {}
     void init();
     void update() {
         endFrame();
@@ -98,6 +100,8 @@ class GUI final {
     };
     MemoryEditorWrapper m_mainMemEditors[8];
     Widgets::Registers m_registers;
+
+    const flags::args &m_args;
 };
 
 }  // namespace PCSX

@@ -74,7 +74,7 @@ struct parser {
 };
 
 // If a key exists, return an optional populated with its value.
-inline std::optional<std::string_view> get_value(const argument_map& options, const std::string_view& option) {
+static inline std::optional<std::string_view> get_value(const argument_map& options, const std::string_view& option) {
     const auto it = options.find(option);
     return it != options.end() ? make_optional(*it->second) : std::nullopt;
 }
@@ -83,7 +83,7 @@ inline std::optional<std::string_view> get_value(const argument_map& options, co
 // If the value cannot be properly parsed or the key does not exist, returns
 // nullopt.
 template <class T>
-std::optional<T> get(const argument_map& options, const std::string_view& option) {
+static std::optional<T> get(const argument_map& options, const std::string_view& option) {
     if (const auto view = get_value(options, option)) {
         T value;
         if (std::istringstream(std::string(*view)) >> value) return value;
@@ -93,12 +93,12 @@ std::optional<T> get(const argument_map& options, const std::string_view& option
 
 // Since the values are already stored as strings, there's no need to use `>>`.
 template <>
-std::optional<std::string_view> get(const argument_map& options, const std::string_view& option) {
+static std::optional<std::string_view> get(const argument_map& options, const std::string_view& option) {
     return get_value(options, option);
 }
 
 template <>
-std::optional<std::string> get(const argument_map& options, const std::string_view& option) {
+static std::optional<std::string> get(const argument_map& options, const std::string_view& option) {
     if (const auto view = get<std::string_view>(options, option)) {
         return std::string(*view);
     }
@@ -110,7 +110,7 @@ std::optional<std::string> get(const argument_map& options, const std::string_vi
 // present.
 constexpr std::array<const char*, 5> falsities{{"0", "n", "no", "f", "false"}};
 template <>
-std::optional<bool> get(const argument_map& options, const std::string_view& option) {
+static std::optional<bool> get(const argument_map& options, const std::string_view& option) {
     if (const auto value = get_value(options, option)) {
         return std::none_of(falsities.begin(), falsities.end(), [&value](auto falsity) { return *value == falsity; });
     }
