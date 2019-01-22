@@ -103,6 +103,8 @@ int iUseFixes;
 bool bDoVSyncUpdate = false;
 
 void PCSX::SoftGPU::SoftPrim::showCfg(bool *show) {
+    ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Soft GPU configuration", show)) {
         ImGui::End();
     }

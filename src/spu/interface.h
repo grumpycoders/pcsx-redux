@@ -70,7 +70,7 @@ class impl {
     // num of channels
     static const size_t MAXCHAN = 24;
 
-    void drawDebug();
+    void debug();
     bool m_showDebug = false;
 
   private:

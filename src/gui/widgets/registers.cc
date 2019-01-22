@@ -24,7 +24,7 @@
 #include "gui/widgets/registers.h"
 
 void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) {
-    ImGui::SetNextWindowPos(ImVec2(600, 20), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(200, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();

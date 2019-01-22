@@ -22,7 +22,7 @@
 
 #include "spu/interface.h"
 
-void PCSX::SPU::impl::drawDebug() {
+void PCSX::SPU::impl::debug() {
     uint32_t now = SDL_GetTicks();
     uint32_t delta = now - m_lastUpdated;
     while (delta >= 50) {
@@ -56,6 +56,9 @@ void PCSX::SPU::impl::drawDebug() {
         }
         if (++m_currentDebugSample == DEBUG_SAMPLES) m_currentDebugSample = 0;
     }
+    if (!m_showDebug) return;
+    ImGui::SetNextWindowPos(ImVec2(20, 40), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1200, 430), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("SPU Debug", &m_showDebug)) {
         ImGui::End();
         return;

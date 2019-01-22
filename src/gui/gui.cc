@@ -305,9 +305,7 @@ void PCSX::GUI::endFrame() {
         m_registers.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, "Registers");
     }
 
-    if (PCSX::g_emulator.m_spu->m_showDebug) {
-        PCSX::g_emulator.m_spu->drawDebug();
-    }
+    PCSX::g_emulator.m_spu->debug();
 
     if (PCSX::g_emulator.m_gpu->m_showCfg) {
         PCSX::g_emulator.m_gpu->showCfg();
