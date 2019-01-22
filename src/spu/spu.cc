@@ -914,7 +914,7 @@ void PCSX::SPU::impl::RemoveStreams(void) {
 bool PCSX::SPU::impl::open() {
     if (bSPUIsOpen) return true;  // security for some stupid main emus
 
-    iUseXA = 1;  // just small setup
+    iUseXA = true;  // just small setup
     iVolume = 3;
     iReverbOff = -1;
     spuIrq = 0;
@@ -925,7 +925,7 @@ bool PCSX::SPU::impl::open() {
     pMixIrq = 0;
     memset((void *)s_chan, 0, (MAXCHAN + 1) * sizeof(SPUCHAN));
     pSpuIrq = 0;
-    iSPUIRQWait = 1;
+    iSPUIRQWait = true;
 
     //    ReadConfig();  // read user stuff
 
@@ -975,12 +975,6 @@ long PCSX::SPU::impl::shutdown(void) { return 0; }
 ////////////////////////////////////////////////////////////////////////
 
 long PCSX::SPU::impl::test(void) { return 0; }
-
-////////////////////////////////////////////////////////////////////////
-// SPUCONFIGURE: call config dialog
-////////////////////////////////////////////////////////////////////////
-
-long PCSX::SPU::impl::configure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // SPUABOUT: show about window

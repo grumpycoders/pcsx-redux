@@ -233,6 +233,7 @@ void PCSX::GUI::endFrame() {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Configuration")) {
                 ImGui::MenuItem("Soft GPU", nullptr, &PCSX::g_emulator.m_gpu->m_showCfg);
+                ImGui::MenuItem("SPU", nullptr, &PCSX::g_emulator.m_spu->m_showCfg);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Debug")) {
@@ -306,6 +307,7 @@ void PCSX::GUI::endFrame() {
     }
 
     PCSX::g_emulator.m_spu->debug();
+    PCSX::g_emulator.m_spu->configure();
 
     if (PCSX::g_emulator.m_gpu->m_showCfg) {
         PCSX::g_emulator.m_gpu->showCfg();

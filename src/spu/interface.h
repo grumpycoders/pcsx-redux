@@ -48,7 +48,6 @@ class impl {
     void readDMAMem(unsigned short *, int);
     void playADPCMchannel(xa_decode_t *);
     void registerCallback(void (*callback)(void));
-    long configure(void);
     long test(void);
     void about(void);
 
@@ -71,7 +70,9 @@ class impl {
     static const size_t MAXCHAN = 24;
 
     void debug();
+    void configure();
     bool m_showDebug = false;
+    bool m_showCfg = true;
 
   private:
     // sound buffer sizes
@@ -143,16 +144,16 @@ class impl {
 
     // user settings
 
-    int iUseXA = 1;
+    bool iUseXA = true;
     int iVolume = 3;
-    int iXAPitch = 1;
-    int iSPUIRQWait = 1;
+    bool iXAPitch = true;
+    bool iSPUIRQWait = true;
     int iSPUDebugMode = 0;
     int iRecordMode = 0;
     int iUseReverb = 2;
     int iUseInterpolation = 2;
-    int iDisStereo = 0;
-    int iUseDBufIrq = 0;
+    bool iDisStereo = false;
+    bool iUseDBufIrq = false;
 
     // MAIN infos struct for each channel
 
