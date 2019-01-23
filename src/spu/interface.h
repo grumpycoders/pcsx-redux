@@ -22,8 +22,9 @@
 #include <SDL.h>
 #include <stdint.h>
 
-#include "core/decode_xa.h"
+#include "json.hpp"
 
+#include "core/decode_xa.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
 #include "spu/types.h"
@@ -34,6 +35,7 @@ namespace SPU {
 
 class impl {
   public:
+    using json = nlohmann::json;
     bool open();
     // SPU Functions
     long init(void);
@@ -70,9 +72,11 @@ class impl {
     static const size_t MAXCHAN = 24;
 
     void debug();
-    void configure();
+    bool configure();
+    json getCfg();
+    void setCfg(const json &);
     bool m_showDebug = false;
-    bool m_showCfg = true;
+    bool m_showCfg = false;
 
   private:
     // sound buffer sizes
@@ -148,8 +152,6 @@ class impl {
     int iVolume = 3;
     bool iXAPitch = true;
     bool iSPUIRQWait = true;
-    int iSPUDebugMode = 0;
-    int iRecordMode = 0;
     int iUseReverb = 2;
     int iUseInterpolation = 2;
     bool iDisStereo = false;

@@ -27,6 +27,7 @@
 #include "flags.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+#undef snprintf
 
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
@@ -59,6 +60,7 @@ class GUI final {
 
   private:
     static void checkGL();
+    void saveCfg();
 
     void startFrame();
     void endFrame();

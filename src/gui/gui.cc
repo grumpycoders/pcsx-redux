@@ -20,9 +20,11 @@
 #include <SDL.h>
 #include <assert.h>
 
+#include <fstream>
 #include <unordered_set>
 
 #include "flags.h"
+#include "json.hpp"
 
 #include "GL/gl3w.h"
 #include "imgui.h"
@@ -35,6 +37,8 @@
 #include "core/r3000a.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
+
+using json = nlohmann::json;
 
 void PCSX::GUI::bindVRAMTexture() {
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
@@ -81,6 +85,21 @@ void PCSX::GUI::init() {
 
     // Setup ImGui binding
     ImGui::CreateContext();
+    {
+        ImGui::GetIO().IniFilename = nullptr;
+        std::ifstream cfg("pcsx.json");
+        json j;
+        if (cfg.is_open()) {
+            cfg >> j;
+            if (j["imgui"].is_string()) {
+                std::string imguicfg = j["imgui"];
+                ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
+            }
+            if (j["SPU"].is_string()) {
+                PCSX::g_emulator.m_spu->setCfg(j["SPU"]);
+            }
+        }
+    }
     ImGui_ImplOpenGL3_Init();
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
@@ -101,6 +120,17 @@ void PCSX::GUI::init() {
     startFrame();
     m_currentTexture = 1;
     flip();
+}
+
+void PCSX::GUI::saveCfg() {
+    const char* settings = ImGui::SaveIniSettingsToMemory(nullptr);
+
+    std::ofstream cfg("pcsx.json");
+    json j;
+
+    j["imgui"] = settings;
+    j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
+    cfg << j << std::endl;
 }
 
 void PCSX::GUI::startFrame() {
@@ -128,6 +158,10 @@ void PCSX::GUI::startFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(m_window);
     ImGui::NewFrame();
+    if (ImGui::GetIO().WantSaveIniSettings) {
+        ImGui::GetIO().WantSaveIniSettings = false;
+        saveCfg();
+    }
     SDL_GL_SwapWindow(m_window);
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     checkGL();
@@ -213,6 +247,8 @@ void PCSX::GUI::endFrame() {
     SDL_GL_GetDrawableSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
     normalizeDimensions(m_renderSize, m_renderRatio);
+
+    bool changed = false;
 
     if (m_fullscreenRender) {
         ImTextureID texture = ImTextureID(m_offscreenTextures[m_currentTexture]);
@@ -307,7 +343,7 @@ void PCSX::GUI::endFrame() {
     }
 
     PCSX::g_emulator.m_spu->debug();
-    PCSX::g_emulator.m_spu->configure();
+    changed |= PCSX::g_emulator.m_spu->configure();
 
     if (PCSX::g_emulator.m_gpu->m_showCfg) {
         PCSX::g_emulator.m_gpu->showCfg();
@@ -318,4 +354,6 @@ void PCSX::GUI::endFrame() {
     checkGL();
     glFlush();
     checkGL();
+
+    if (changed) saveCfg();
 }
