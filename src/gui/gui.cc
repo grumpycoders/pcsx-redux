@@ -21,6 +21,7 @@
 #include <assert.h>
 
 #include <fstream>
+#include <iomanip>
 #include <unordered_set>
 
 #include "flags.h"
@@ -90,14 +91,15 @@ void PCSX::GUI::init() {
         std::ifstream cfg("pcsx.json");
         json j;
         if (cfg.is_open()) {
-            cfg >> j;
-            if (j["imgui"].is_string()) {
-                std::string imguicfg = j["imgui"];
+            try {
+                cfg >> j;
+            } catch (...) {
+            }
+            if ((j.count("gui") == 1) && j["gui"].is_string()) {
+                std::string imguicfg = j["gui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
-            if (j["SPU"].is_string()) {
-                PCSX::g_emulator.m_spu->setCfg(j["SPU"]);
-            }
+            PCSX::g_emulator.m_spu->setCfg(j);
         }
     }
     ImGui_ImplOpenGL3_Init();
@@ -123,14 +125,12 @@ void PCSX::GUI::init() {
 }
 
 void PCSX::GUI::saveCfg() {
-    const char* settings = ImGui::SaveIniSettingsToMemory(nullptr);
-
     std::ofstream cfg("pcsx.json");
     json j;
 
-    j["imgui"] = settings;
+    j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
     j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
-    cfg << j << std::endl;
+    cfg << std::setw(2) << j << std::endl;
 }
 
 void PCSX::GUI::startFrame() {

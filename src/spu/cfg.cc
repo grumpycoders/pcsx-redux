@@ -42,50 +42,33 @@ bool PCSX::SPU::impl::configure() {
         return false;
     }
     bool changed = false;
-    changed |= ImGui::Checkbox("Enable streaming", &iUseXA);
+
+    changed |= ImGui::Checkbox("Enable streaming", &settings.get<Streaming>().value);
     ShowHelpMarker(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
 XA audio and audio tracks.)");
     static const char *volumeValues[] = {"Low", "Medium", "Loud", "Loudest"};
-    changed |= ImGui::Combo("Volume", &iVolume, volumeValues, IM_ARRAYSIZE(volumeValues));
-    changed |= ImGui::Checkbox("Change streaming pitch", &iXAPitch);
+    changed |= ImGui::Combo("Volume", &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
+    changed |= ImGui::Checkbox("Change streaming pitch", &settings.get<StreamingPitch>().value);
     ShowHelpMarker(R"(Attempts to make the CPU-to-SPU audio stream
 in sync, by changing its pitch. Consumes more CPU.)");
-    changed |= ImGui::Checkbox("Pause SPU waiting for CPU IRQ", &iSPUIRQWait);
+    changed |= ImGui::Checkbox("Pause SPU waiting for CPU IRQ", &settings.get<SPUIRQWait>().value);
     ShowHelpMarker(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)");
     static const char *reverbValues[] = {"None - fastest", "Simple - only handles the most common effects",
                                          "Accurate - best quality, but slower"};
-    changed |= ImGui::Combo("Reverb", &iUseReverb, reverbValues, IM_ARRAYSIZE(reverbValues));
+    changed |= ImGui::Combo("Reverb", &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
     static const char *interpolationValues[] = {"None - fastest", "Simple interpolation",
                                                 "Gaussian interpolation - good quality",
                                                 "Cubic interpolation - better treble"};
     changed |=
-        ImGui::Combo("Interpolation", &iUseInterpolation, interpolationValues, IM_ARRAYSIZE(interpolationValues));
-    changed |= ImGui::Checkbox("Mono", &iDisStereo);
+        ImGui::Combo("Interpolation", &settings.get<Interpolation>().value, interpolationValues, IM_ARRAYSIZE(interpolationValues));
+    changed |= ImGui::Checkbox("Mono", &settings.get<Mono>().value);
     ShowHelpMarker("Downmixes stereo to mono.");
-    changed |= ImGui::Checkbox("Decoded buffers IRQ", &iUseDBufIrq);
+    changed |= ImGui::Checkbox("Decoded buffers IRQ", &settings.get<DBufIRQ>().value);
     ShowHelpMarker("Generates IRQs when buffers are decoded.");
+
     ImGui::End();
-
     return changed;
-}
-
-PCSX::SPU::impl::json PCSX::SPU::impl::getCfg() {
-    json j = {{"EnableStreaming", iUseXA}, {"Volume", iVolume},     {"StreamingPitch", iXAPitch},
-              {"SPUIRQWait", iSPUIRQWait}, {"Reverb", iUseReverb},  {"Interpolation", iUseInterpolation},
-              {"Mono", iDisStereo},        {"DBufIRQ", iUseDBufIrq}};
-    return std::move(j);
-}
-
-void PCSX::SPU::impl::setCfg(const json &j) {
-    iUseXA = j["EnableStreaming"];
-    iVolume = j["Volume"];
-    iXAPitch = j["StreamingPitch"];
-    iSPUIRQWait = j["SPUIRQWait"];
-    iUseReverb = j["Reverb"];
-    iUseInterpolation = j["Interpolation"];
-    iDisStereo = j["Mono"];
-    iUseDBufIrq = j["DBufIRQ"];
 }

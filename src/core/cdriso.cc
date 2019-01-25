@@ -59,7 +59,7 @@ ssize_t File::seek(ssize_t pos, int wheel) {
             m_ptr += pos;
             break;
     }
-    m_ptr = std::min(std::max(m_ptr, m_size), 0);
+    m_ptr = std::min(std::max(m_ptr, m_size), (ssize_t)0);
     return m_ptr;
 }
 ssize_t File::tell() {

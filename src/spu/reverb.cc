@@ -104,9 +104,9 @@ void PCSX::SPU::impl::SetREVERB(unsigned short val) {
 void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
     if (pChannel->bReverb && (spuCtrl & 0x80))  // reverb possible?
     {
-        if (iUseReverb == 2)
+        if (settings.get<Reverb>() == 2)
             pChannel->bRVBActive = 1;
-        else if (iUseReverb == 1 && iReverbOff > 0)  // -> fake reverb used?
+        else if (settings.get<Reverb>() == 1 && iReverbOff > 0)  // -> fake reverb used?
         {
             pChannel->bRVBActive = 1;  // -> activate it
             pChannel->iRVBOffset = iReverbOff * 45;
@@ -122,7 +122,7 @@ void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::InitREVERB() {
-    if (iUseReverb == 2) {
+    if (settings.get<Reverb>() == 2) {
         memset(sRVBStart, 0, NSSIZE * 2 * 4);
     }
 }
@@ -132,9 +132,9 @@ void PCSX::SPU::impl::InitREVERB() {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
-    if (iUseReverb == 0)
+    if (settings.get<Reverb>() == 0)
         return;
-    else if (iUseReverb == 2)  // -------------------------------- // Neil's reverb
+    else if (settings.get<Reverb>() == 2)  // -------------------------------- // Neil's reverb
     {
         const int iRxl = (pChannel->sval * pChannel->iLeftVolume) / 0x4000;
         const int iRxr = (pChannel->sval * pChannel->iRightVolume) / 0x4000;
@@ -203,9 +203,9 @@ inline void PCSX::SPU::impl::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sa
 
 ////////////////////////////////////////////////////////////////////////
 int PCSX::SPU::impl::MixREVERBLeft(int ns) {
-    if (iUseReverb == 0)
+    if (settings.get<Reverb>() == 0)
         return 0;
-    else if (iUseReverb == 2) {
+    else if (settings.get<Reverb>() == 2) {
         static int iCnt = 0;  // this func will be called with 44.1 khz
 
         if (!rvb.StartAddr)  // reverb is off
@@ -307,9 +307,9 @@ int PCSX::SPU::impl::MixREVERBLeft(int ns) {
 ////////////////////////////////////////////////////////////////////////
 
 int PCSX::SPU::impl::MixREVERBRight() {
-    if (iUseReverb == 0)
+    if (settings.get<Reverb>() == 0)
         return 0;
-    else if (iUseReverb == 2)  // Neill's reverb:
+    else if (settings.get<Reverb>() == 2)  // Neill's reverb:
     {
         int i = rvb.iLastRVBRight + (rvb.iRVBRight - rvb.iLastRVBRight) / 2;
         rvb.iLastRVBRight = rvb.iRVBRight;

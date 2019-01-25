@@ -65,7 +65,7 @@
 //
 // 2003/02/08 - linuzappz
 // - small bugfix for one usleep that was 1 instead of 1000
-// - added iDisStereo for no stereo (Linux)
+// - added settings.get<Mono>() for no stereo (Linux)
 //
 // 2003/01/22 - Pete
 // - added easy interpolation & small noise adjustments
@@ -235,7 +235,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     pChannel->SB[29] = 0;  // init our interpolation helpers
     pChannel->SB[30] = 0;
 
-    if (iUseInterpolation >= 2)  // gauss interpolation?
+    if (settings.get<Interpolation>() >= 2)  // gauss interpolation?
     {
         pChannel->spos = 0x30000L;
         pChannel->SB[28] = 0;
@@ -254,7 +254,7 @@ inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
     pChannel->iUsedFreq = pChannel->iActFreq;  // -> take it and calc steps
     pChannel->sinc = pChannel->iRawPitch << 4;
     if (!pChannel->sinc) pChannel->sinc = 1;
-    if (iUseInterpolation == 1) pChannel->SB[32] = 1;  // -> freq change in simle imterpolation mode: set flag
+    if (settings.get<Interpolation>() == 1) pChannel->SB[32] = 1;  // -> freq change in simle imterpolation mode: set flag
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -273,7 +273,7 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
     pChannel->iUsedFreq = NP;
     pChannel->sinc = (((NP / 10) << 16) / 4410);
     if (!pChannel->sinc) pChannel->sinc = 1;
-    if (iUseInterpolation == 1) pChannel->SB[32] = 1;  // freq change in simple interpolation mode
+    if (settings.get<Interpolation>() == 1) pChannel->SB[32] = 1;  // freq change in simple interpolation mode
 
     iFMod[ns] = 0;
 }
@@ -300,7 +300,7 @@ inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     if (fa < -32767L) fa = -32767L;
     pChannel->iOldNoise = fa;
 
-    if (iUseInterpolation < 2)  // no gauss/cubic interpolation?
+    if (settings.get<Interpolation>() < 2)  // no gauss/cubic interpolation?
         pChannel->SB[29] = fa;  // -> store noise val in "current sample" slot
     return fa;
 }
@@ -319,13 +319,13 @@ inline void PCSX::SPU::impl::StoreInterpolationVal(SPUCHAN *pChannel, int fa) {
             if (fa < -32767L) fa = -32767L;
         }
 
-        if (iUseInterpolation >= 2)  // gauss/cubic interpolation
+        if (settings.get<Interpolation>() >= 2)  // gauss/cubic interpolation
         {
             int gpos = pChannel->SB[28];
             gval0 = fa;
             gpos = (gpos + 1) & 3;
             pChannel->SB[28] = gpos;
-        } else if (iUseInterpolation == 1)  // simple interpolation
+        } else if (settings.get<Interpolation>() == 1)  // simple interpolation
         {
             pChannel->SB[28] = 0;
             pChannel->SB[29] =
@@ -346,7 +346,7 @@ inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
 
     if (pChannel->bFMod == 2) return pChannel->SB[29];
 
-    switch (iUseInterpolation) {
+    switch (settings.get<Interpolation>()) {
         //--------------------------------------------------//
         case 3:  // cubic interpolation
         {
@@ -416,7 +416,7 @@ inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::MainThread() {
-    int s_1, s_2, fa, ns, voldiv = iVolume;
+    int s_1, s_2, fa, ns, voldiv = settings.get<Volume>();
     unsigned char *start;
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
@@ -553,7 +553,7 @@ void PCSX::SPU::impl::MainThread() {
                                     pChannel->iIrqDone = 1;  // -> debug flag
                                     irqCallback();           // -> call main emu
 
-                                    if (iSPUIRQWait)  // -> option: wait after irq for main emu
+                                    if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
                                     {
                                         iSpuAsyncWait = 1;
                                         bIRQReturn = 1;
@@ -654,7 +654,7 @@ void PCSX::SPU::impl::MainThread() {
         ///////////////////////////////////////////////////////
         // mix all channels (including reverb) into one buffer
 
-        if (iDisStereo)  // no stereo?
+        if (settings.get<Mono>())  // no stereo?
         {
             int dl, dr;
             for (ns = 0; ns < NSSIZE; ns++) {
@@ -784,7 +784,7 @@ void PCSX::SPU::impl::async(uint32_t cycle) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
-    if (!iUseXA) return;  // no XA? bye
+    if (!settings.get<Streaming>()) return;  // no XA? bye
     if (!xap) return;
     if (!xap->freq) return;  // no xa freq ? bye
 
@@ -851,7 +851,7 @@ void PCSX::SPU::impl::SetupStreams() {
 
     pSpuBuffer = (unsigned char *)malloc(32768);  // alloc mixing buffer
 
-    if (iUseReverb == 1)
+    if (settings.get<Reverb>() == 1)
         i = 88200 * 2;
     else
         i = NSSIZE * 2;
@@ -880,7 +880,7 @@ void PCSX::SPU::impl::SetupStreams() {
         s_chan[i].pCurr = spuMemC;
     }
 
-    if (iUseDBufIrq) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
+    if (settings.get<DBufIRQ>().value) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -914,8 +914,8 @@ void PCSX::SPU::impl::RemoveStreams(void) {
 bool PCSX::SPU::impl::open() {
     if (bSPUIsOpen) return true;  // security for some stupid main emus
 
-    iUseXA = true;  // just small setup
-    iVolume = 3;
+    settings.get<Streaming>() = true;  // just small setup
+    settings.get<Volume>() = 3;
     iReverbOff = -1;
     spuIrq = 0;
     spuAddr = 0xffffffff;
@@ -925,7 +925,7 @@ bool PCSX::SPU::impl::open() {
     pMixIrq = 0;
     memset((void *)s_chan, 0, (MAXCHAN + 1) * sizeof(SPUCHAN));
     pSpuIrq = 0;
-    iSPUIRQWait = true;
+    settings.get<SPUIRQWait>() = true;
 
     //    ReadConfig();  // read user stuff
 

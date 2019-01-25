@@ -25,6 +25,7 @@
 #include "json.hpp"
 
 #include "core/decode_xa.h"
+#include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
 #include "spu/types.h"
@@ -73,8 +74,14 @@ class impl {
 
     void debug();
     bool configure();
-    json getCfg();
-    void setCfg(const json &);
+    json getCfg() { return settings.serialize(); }
+    void setCfg(const json &j) {
+        if (j.count("SPU") && j["SPU"].is_object()) {
+            settings.deserialize(j["SPU"]);
+        } else {
+            settings.reset();
+        }
+    }
     bool m_showDebug = false;
     bool m_showCfg = false;
 
@@ -147,15 +154,15 @@ class impl {
     unsigned char *pMixIrq = 0;
 
     // user settings
-
-    bool iUseXA = true;
-    int iVolume = 3;
-    bool iXAPitch = true;
-    bool iSPUIRQWait = true;
-    int iUseReverb = 2;
-    int iUseInterpolation = 2;
-    bool iDisStereo = false;
-    bool iUseDBufIrq = false;
+    typedef Setting<bool, true, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>> Streaming;
+    typedef Setting<int, 3, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>> Volume;
+    typedef Setting<bool, true, irqus::typestring<'P', 'i', 't', 'c', 'h'>> StreamingPitch;
+    typedef Setting<bool, true, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>> SPUIRQWait;
+    typedef Setting<int, 2, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>> Reverb;
+    typedef Setting<int, 2, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>> Interpolation;
+    typedef Setting<bool, false, irqus::typestring<'M', 'o', 'n', 'o'>> Mono;
+    typedef Setting<bool, false, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'>> DBufIRQ;
+    Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ> settings;
 
     // MAIN infos struct for each channel
 
@@ -231,15 +238,7 @@ class impl {
     unsigned m_selectedChannel = 0;
     uint32_t m_lastUpdated = 0;
     static const unsigned DEBUG_SAMPLES = 1024;
-    enum {
-        EMPTY = 0,
-        DATA,
-        NOISE,
-        FMOD1,
-        FMOD2,
-        IRQ,
-        MUTED
-    } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
+    enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
     float m_channelDebugData[MAXCHAN][DEBUG_SAMPLES];
     unsigned m_currentDebugSample = 0;
 };
