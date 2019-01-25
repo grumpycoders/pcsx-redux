@@ -1,0 +1,4 @@
+* text=auto
+
+*.vcxproj text
+*.sln text
