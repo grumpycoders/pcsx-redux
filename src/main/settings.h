@@ -35,9 +35,12 @@ template <typename name>
 class SettingString;
 template <char... C>
 class SettingString<irqus::typestring<C...>> {
-    using myself = SettingString<irqus::typestring<C...>>;
+  public:
+    typedef irqus::typestring<C...> name;
+
+  private:
+    using myself = SettingString<name>;
     using type = std::string;
-    constexpr static size_t nameSize = sizeof...(C);
 
   public:
     operator type() const { return value; }
@@ -47,15 +50,17 @@ class SettingString<irqus::typestring<C...>> {
     }
     void setDefault() { value = ""; }
     type value;
-    const char name[nameSize + 1] = {C..., '\0'};
 };
 
 template <typename type, type defaultValue, typename name>
 class Setting;
 template <typename type, type defaultValue, char... C>
 class Setting<type, defaultValue, irqus::typestring<C...>> {
-    using myself = Setting<type, defaultValue, irqus::typestring<C...>>;
-    constexpr static size_t nameSize = sizeof...(C);
+  public:
+    typedef irqus::typestring<C...> name;
+
+  private:
+    using myself = Setting<type, defaultValue, name>;
 
   public:
     operator type() const { return value; }
@@ -65,7 +70,6 @@ class Setting<type, defaultValue, irqus::typestring<C...>> {
     }
     void setDefault() { value = defaultValue; }
     type value = defaultValue;
-    const char name[nameSize + 1] = {C..., '\0'};
 };
 
 template <typename... settings>
@@ -102,7 +106,7 @@ class Settings : private std::tuple<settings...> {
     template <size_t index, typename settingType, typename... settings>
     constexpr void serialize(json &j) const {
         const settingType &setting = std::get<index>(*this);
-        j[setting.name] = setting.value;
+        j[settingType::name::data()] = setting.value;
         serialize<index + 1, settings...>(j);
     }
     template <size_t index>
@@ -111,8 +115,8 @@ class Settings : private std::tuple<settings...> {
     constexpr void deserialize(const json &j, bool setDefault = true) {
         settingType &setting = std::get<index>(*this);
         try {
-            if (j.find(setting.name) != j.end()) {
-                setting.value = j[setting.name];
+            if (j.find(settingType::name::data()) != j.end()) {
+                setting.value = j[settingType::name::data()];
             } else if (setDefault) {
                 setting.setDefault();
             }

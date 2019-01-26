@@ -154,6 +154,16 @@ class impl {
     unsigned char *pMixIrq = 0;
 
     // user settings
+#if 1
+    typedef Setting<bool, true, typestring_is("Streaming")> Streaming;
+    typedef Setting<int, 3, typestring_is("Volume")> Volume;
+    typedef Setting<bool, true, typestring_is("Pitch")> StreamingPitch;
+    typedef Setting<bool, true, typestring_is("IRQWait")> SPUIRQWait;
+    typedef Setting<int, 2, typestring_is("Reverb")> Reverb;
+    typedef Setting<int, 2, typestring_is("Interp")> Interpolation;
+    typedef Setting<bool, false, typestring_is("Mono")> Mono;
+    typedef Setting<bool, false, typestring_is("DBufIRQ")> DBufIRQ;
+#else
     typedef Setting<bool, true, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>> Streaming;
     typedef Setting<int, 3, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>> Volume;
     typedef Setting<bool, true, irqus::typestring<'P', 'i', 't', 'c', 'h'>> StreamingPitch;
@@ -162,6 +172,7 @@ class impl {
     typedef Setting<int, 2, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>> Interpolation;
     typedef Setting<bool, false, irqus::typestring<'M', 'o', 'n', 'o'>> Mono;
     typedef Setting<bool, false, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'>> DBufIRQ;
+#endif
     Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ> settings;
 
     // MAIN infos struct for each channel
