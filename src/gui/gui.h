@@ -38,6 +38,7 @@ class GUI final {
   public:
     GUI(const flags::args &args) : m_args(args) {}
     void init();
+    void close();
     void update() {
         endFrame();
         startFrame();

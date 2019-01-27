@@ -29,7 +29,7 @@
 
 #include "main/settings.h"
 
-static PCSX::GUI * s_gui;
+static PCSX::GUI *s_gui;
 
 class SystemImpl : public PCSX::System {
     virtual void printf(const char *fmt, ...) final {
@@ -111,7 +111,26 @@ int main(int argc, char **argv) {
     CheckCdrom();
     LoadCdrom();
 
-    PCSX::g_emulator.m_psxCpu->Execute();
+    PCSX::g_system->start();
+
+    while (!PCSX::g_system->quitting()) {
+        if (PCSX::g_system->running()) {
+            PCSX::g_emulator.m_psxCpu->Execute();
+        } else {
+            s_gui->update();
+        }
+    }
+
+    PCSX::g_emulator.m_spu->close();
+    PCSX::g_emulator.m_gpu->close();
+    PCSX::g_emulator.m_cdrom->m_iso.close();
+
+    PCSX::g_emulator.m_psxCpu->psxShutdown();
+    PCSX::g_emulator.m_spu->shutdown();
+    PCSX::g_emulator.m_gpu->shutdown();
+    PCSX::g_emulator.m_cdrom->m_iso.shutdown();
+
+    s_gui->close();
 
     delete s_gui;
     delete PCSX::g_system;

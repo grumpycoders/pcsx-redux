@@ -1475,7 +1475,7 @@ const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxBSCMem[64] 
 bool PCSX::InterpretedCPU::Init() { return true; }
 void PCSX::InterpretedCPU::Reset() { PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = false; }
 void PCSX::InterpretedCPU::Execute() {
-    for (;;) execI();
+    while (PCSX::g_system->running()) execI();
 }
 void PCSX::InterpretedCPU::ExecuteBlock() {
     s_branch2 = 0;

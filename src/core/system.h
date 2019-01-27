@@ -42,6 +42,18 @@ class System {
     virtual void runGui() = 0;
     // Close mem and plugins
     virtual void close() = 0;
+    bool running() { return m_running; }
+    bool quitting() { return m_quitting; }
+    void start() { m_running = true; }
+    void stop() { m_running = false; }
+    void quit() {
+        m_quitting = true;
+        m_running = false;
+    }
+
+  private:
+    bool m_running = false;
+    bool m_quitting = false;
 };
 
 extern System *g_system;

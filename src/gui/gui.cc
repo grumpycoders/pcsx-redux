@@ -75,7 +75,7 @@ void PCSX::GUI::init() {
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
     if (m_args.get<bool>("fullscreen", false)) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    m_window = SDL_CreateWindow("PCSX-REDUX", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800, flags);
+    m_window = SDL_CreateWindow("PCSX-Redux", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800, flags);
     assert(m_window);
 
     m_glContext = SDL_GL_CreateContext(m_window);
@@ -124,6 +124,11 @@ void PCSX::GUI::init() {
     flip();
 }
 
+void PCSX::GUI::close() {
+    SDL_DestroyWindow(m_window);
+    SDL_Quit();
+}
+
 void PCSX::GUI::saveCfg() {
     std::ofstream cfg("pcsx.json");
     json j;
@@ -142,7 +147,7 @@ void PCSX::GUI::startFrame() {
         SDL_Scancode sc = event.key.keysym.scancode;
         switch (event.type) {
             case SDL_QUIT:
-                _exit(0);
+                PCSX::g_system->quit();
                 break;
             case SDL_KEYDOWN:
                 if ((mods & KMOD_ALT) && (sc == SDL_SCANCODE_RETURN)) {

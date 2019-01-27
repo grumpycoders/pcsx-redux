@@ -990,7 +990,7 @@ void X86DynaRecCPU::execute() {
 }
 
 void X86DynaRecCPU::Execute() {
-    for (;;) execute();
+    while (PCSX::g_system->running()) execute();
 }
 
 void X86DynaRecCPU::ExecuteBlock() { execute(); }

@@ -154,7 +154,7 @@ class impl {
     unsigned char *pMixIrq = 0;
 
     // user settings
-#if 1
+#if 0
     typedef Setting<bool, true, typestring_is("Streaming")> Streaming;
     typedef Setting<int, 3, typestring_is("Volume")> Volume;
     typedef Setting<bool, true, typestring_is("Pitch")> StreamingPitch;
