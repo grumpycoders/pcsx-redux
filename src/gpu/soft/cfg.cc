@@ -90,6 +90,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #include "stdafx.h"
 
 #define _IN_CFG
@@ -389,7 +391,6 @@ BOOL OnInitSoftDialog(HWND hW) {
     ComboBox_AddString(hWC, "Scale3x unstretched (needs a fast cpu)");
     ComboBox_AddString(hWC, "HQ3X unstretched (Fast CPU+mmx)");
     ComboBox_AddString(hWC, "HQ3X stretching (Fast CPU+mmx)");
-
 
     if (iFrameLimit == 2)  // frame limit wrapper
         CheckDlgButton(hW, IDC_FRAMEAUTO, TRUE);
@@ -720,8 +721,7 @@ void ReadGPUConfig(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void ReadWinSizeConfig(void) {
-}
+void ReadWinSizeConfig(void) {}
 
 ////////////////////////////////////////////////////////////////////////
 // write registry
@@ -891,3 +891,5 @@ BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 
 void OnKeyConfig(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_KEYS), hW, (DLGPROC)KeyDlgProc); }
+
+#endif

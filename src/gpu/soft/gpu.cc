@@ -236,8 +236,8 @@ extern "C" void softGPUdisplayText(char *pText)  // some debug func
 
 extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
 {
-    dwCoreFlags = dwFlags;
-    BuildDispMenu(0);
+//    dwCoreFlags = dwFlags;
+    //BuildDispMenu(0);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -414,7 +414,7 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 {
     m_gui = gui;
-
+#if 0
     SetKeyHandler();  // sub-class window
 
     if (bChangeWinMode)
@@ -424,6 +424,9 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
         ReadGPUConfig();  // read registry
         InitFPS();
     }
+#else
+    InitFPS();
+#endif
 
     bDoVSyncUpdate = true;
 
@@ -438,7 +441,7 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 
 long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
-    ReleaseKeyHandler();  // de-subclass window
+//    ReleaseKeyHandler();  // de-subclass window
 
     CloseDisplay();  // shutdown direct draw
 
@@ -471,13 +474,13 @@ void updateDisplay(void)  // UPDATE DISPLAY
     if (dwActFixes & 32)  // pc fps calculation fix
     {
         if (UseFrameLimit) PCFrameCap();  // -> brake
-        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+//        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
-    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
-    {
-        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
-    }
+//    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
+//    {
+//        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
+//    }
 
     if (iFastFwd)  // fastfwd ?
     {
@@ -1369,7 +1372,7 @@ long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF)
         if (lSlotNum < 0) return 0;
         if (lSlotNum > 8) return 0;
         lSelectedSlot = lSlotNum + 1;
-        BuildDispMenu(0);
+        //BuildDispMenu(0);
         return 1;
     }
     //----------------------------------------------------//
@@ -1568,7 +1571,7 @@ void GPUsetframelimit(unsigned long option) {
         UseFrameSkip = 0;
         iFrameLimit = 2;
         SetAutoFrameCap();
-        BuildDispMenu(0);
+        //BuildDispMenu(0);
     } else {
         UseFrameLimit = 0;
     }
@@ -1576,6 +1579,4 @@ void GPUsetframelimit(unsigned long option) {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
-
-}
+extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {}

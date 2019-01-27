@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #ifndef _GPU_MENU_H_
 #define _GPU_MENU_H_
 
@@ -34,3 +36,5 @@ void BuildDispMenu(int iInc);
 void SwitchDispMenu(int iStep);
 
 #endif  // _GPU_MENU_H_
+
+#endif

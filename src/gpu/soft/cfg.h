@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #ifndef _GPU_CFG_H_
 #define _GPU_CFG_H_
 
@@ -39,3 +41,5 @@ void AboutDlgProc(void);
 #endif
 
 #endif  // _GPU_CFG_H_
+
+#endif

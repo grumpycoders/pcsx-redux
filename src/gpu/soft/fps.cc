@@ -102,7 +102,7 @@ void CheckFrameRate(void) {
     } else          // non-skipping mode:
     {
         if (UseFrameLimit) FrameCap();           // -> do it
-        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
+//        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
     }
 }
 
