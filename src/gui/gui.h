@@ -25,6 +25,7 @@
 #include <string>
 
 #include "flags.h"
+
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #undef snprintf
@@ -105,6 +106,8 @@ class GUI final {
     Widgets::Registers m_registers;
 
     const flags::args &m_args;
+
+    bool m_showIsoOpenDlg = false;
 };
 
 }  // namespace PCSX

@@ -84,6 +84,8 @@ void PCSX::GUI::init() {
     int result = gl3wInit();
     assert(result == 0);
 
+    SDL_GL_SetSwapInterval(0);
+
     // Setup ImGui binding
     ImGui::CreateContext();
     {
@@ -272,6 +274,12 @@ void PCSX::GUI::endFrame() {
 
     if (m_showMenu || !m_fullscreenRender) {
         if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Open ISO")) {
+                    m_showIsoOpenDlg = true;
+                }
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu("Configuration")) {
                 ImGui::MenuItem("Soft GPU", nullptr, &PCSX::g_emulator.m_gpu->m_showCfg);
                 ImGui::MenuItem("SPU", nullptr, &PCSX::g_emulator.m_spu->m_showCfg);
@@ -304,6 +312,9 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_showDemo) ImGui::ShowDemoWindow();
+    const char* isoFile = "";
+    if (isoFile[0]) {
+    }
 
     if (m_showVRAMwindow) {
         ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);

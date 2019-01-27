@@ -157,9 +157,6 @@
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\imgui-addons\imgui-addons.vcxproj">
-      <Project>{745aaa1e-c2b9-4149-88f5-a2de14b1e34a}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\imgui-sdl-ogl3\imgui-sdl-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
     </ProjectReference>

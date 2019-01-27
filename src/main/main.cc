@@ -111,8 +111,6 @@ int main(int argc, char **argv) {
     CheckCdrom();
     LoadCdrom();
 
-    PCSX::g_system->start();
-
     while (!PCSX::g_system->quitting()) {
         if (PCSX::g_system->running()) {
             PCSX::g_emulator.m_psxCpu->Execute();
