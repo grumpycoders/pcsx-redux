@@ -30,6 +30,7 @@
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #undef snprintf
 
+#include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
 
@@ -104,10 +105,9 @@ class GUI final {
     };
     MemoryEditorWrapper m_mainMemEditors[8];
     Widgets::Registers m_registers;
+    Widgets::FileDialog m_openIsoFileDialog = "Open Image";
 
     const flags::args &m_args;
-
-    bool m_showIsoOpenDlg = false;
 };
 
 }  // namespace PCSX

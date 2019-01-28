@@ -99,17 +99,18 @@ int main(int argc, char **argv) {
     PCSX::g_emulator.config().Bios = "bios.bin";
     PCSX::g_emulator.config().Cpu = PCSX::Emulator::CPU_DYNAREC;
 
-    SetIsoFile("test.img");
     LoadPlugins();
     PCSX::g_emulator.m_gpu->open(s_gui);
-    PCSX::g_emulator.m_cdrom->m_iso.open();
     PCSX::g_emulator.m_spu->open();
+
+    std::string iso = args.get<std::string>("iso", "");
+    if (!iso.empty()) SetIsoFile(iso.c_str());
+    PCSX::g_emulator.m_cdrom->m_iso.open();
+    CheckCdrom();
+    LoadCdrom();
 
     PCSX::g_emulator.EmuInit();
     PCSX::g_emulator.EmuReset();
-
-    CheckCdrom();
-    LoadCdrom();
 
     while (!PCSX::g_system->quitting()) {
         if (PCSX::g_system->running()) {

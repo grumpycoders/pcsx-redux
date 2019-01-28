@@ -32,6 +32,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl.h"
 
+#include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -272,11 +273,13 @@ void PCSX::GUI::endFrame() {
         ImGui::PopStyleVar(2);
     }
 
+    bool showOpenIsoFileDialog = false;
+
     if (m_showMenu || !m_fullscreenRender) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open ISO")) {
-                    m_showIsoOpenDlg = true;
+                    showOpenIsoFileDialog = true;
                 }
                 ImGui::EndMenu();
             }
@@ -311,10 +314,19 @@ void PCSX::GUI::endFrame() {
         }
     }
 
-    if (m_showDemo) ImGui::ShowDemoWindow();
-    const char* isoFile = "";
-    if (isoFile[0]) {
+    if (showOpenIsoFileDialog) m_openIsoFileDialog.openDialog();
+    if (m_openIsoFileDialog.draw()) {
+        std::string fileToOpen = m_openIsoFileDialog.selected();
+        if (!fileToOpen.empty()) {
+            PCSX::g_emulator.m_cdrom->m_iso.close();
+            SetIsoFile(fileToOpen.c_str());
+            PCSX::g_emulator.m_cdrom->m_iso.open();
+            CheckCdrom();
+            LoadCdrom();
+        }
     }
+
+    if (m_showDemo) ImGui::ShowDemoWindow();
 
     if (m_showVRAMwindow) {
         ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
