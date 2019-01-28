@@ -273,7 +273,7 @@ class CDRomImpl : public PCSX::CDRom {
 
     inline void StopCdda() {
         if (m_Play) {
-            if (!PCSX::g_emulator.config().Cdda) m_iso.stop();
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) m_iso.stop();
             m_StatP &= ~STATUS_PLAY;
             m_Play = false;
             m_FastForward = 0;
@@ -708,7 +708,8 @@ class CDRomImpl : public PCSX::CDRom {
                 ReadTrack(m_SetSectorPlay);
                 m_TrackChanged = false;
 
-                if (PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.play(m_SetSectorPlay);
+                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+                    m_iso.play(m_SetSectorPlay);
 
                 // Vib Ribbon: gameplay checks flag
                 m_StatP &= ~STATUS_SEEK;
@@ -1164,7 +1165,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         CDR_LOG("readInterrupt() Log: cdr.m_Transfer %x:%x:%x\n", m_Transfer[0], m_Transfer[1], m_Transfer[2]);
 
-        if ((!m_Muted) && (m_Mode & MODE_STRSND) && (!PCSX::g_emulator.config().Xa) &&
+        if ((!m_Muted) && (m_Mode & MODE_STRSND) && (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingXa>()) &&
             (m_FirstSector != -1)) {  // CD-XA
             // Firemen 2: Multi-XA files - briefings, cutscenes
             if (m_FirstSector == 1 && (m_Mode & MODE_SF) == 0) {
@@ -1578,7 +1579,8 @@ class CDRomImpl : public PCSX::CDRom {
     int freeze(gzFile f, int Mode) final {
         uint8_t tmpp[3];
 
-        if (Mode == 0 && PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.stop();
+        if (Mode == 0 && PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+            m_iso.stop();
 
         // gzfreeze(&m_cdr, sizeof(m_cdr));
 
@@ -1594,7 +1596,8 @@ class CDRomImpl : public PCSX::CDRom {
 
             if (m_Play) {
                 Find_CurTrack(m_SetSectorPlay);
-                if (PCSX::g_emulator.config().Cdda != PCSX::Emulator::CDDA_DISABLED) m_iso.play(m_SetSectorPlay);
+                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+                    m_iso.play(m_SetSectorPlay);
             }
         }
 

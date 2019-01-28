@@ -164,14 +164,14 @@ class impl {
     typedef Setting<bool, false, typestring_is("Mono")> Mono;
     typedef Setting<bool, false, typestring_is("DBufIRQ")> DBufIRQ;
 #else
-    typedef Setting<bool, true, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>> Streaming;
-    typedef Setting<int, 3, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>> Volume;
-    typedef Setting<bool, true, irqus::typestring<'P', 'i', 't', 'c', 'h'>> StreamingPitch;
-    typedef Setting<bool, true, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>> SPUIRQWait;
-    typedef Setting<int, 2, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>> Reverb;
-    typedef Setting<int, 2, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>> Interpolation;
-    typedef Setting<bool, false, irqus::typestring<'M', 'o', 'n', 'o'>> Mono;
-    typedef Setting<bool, false, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'>> DBufIRQ;
+    typedef Setting<bool, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>, true> Streaming;
+    typedef Setting<int, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>, 3> Volume;
+    typedef Setting<bool, irqus::typestring<'P', 'i', 't', 'c', 'h'>, true> StreamingPitch;
+    typedef Setting<bool, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>, true> SPUIRQWait;
+    typedef Setting<int, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>, 2> Reverb;
+    typedef Setting<int, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>, 2> Interpolation;
+    typedef Setting<bool, irqus::typestring<'M', 'o', 'n', 'o'>> Mono;
+    typedef Setting<bool, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'>> DBufIRQ;
 #endif
     Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ> settings;
 

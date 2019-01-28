@@ -65,7 +65,7 @@ GTE_WR(CTC2);
 // These macros are used to assemble the repassembler functions
 
 #define debugI()                                                                                                    \
-    if (PCSX::g_emulator.config().verbose) {                                                                        \
+    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVerbose>()) {                                                                        \
         PSXCPU_LOG("%s\n",                                                                                          \
                    disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code, PCSX::g_emulator.m_psxCpu->m_psxRegs.pc)); \
     }
@@ -1490,7 +1490,7 @@ inline void PCSX::InterpretedCPU::execI() {
 
     debugI();
 
-    if (PCSX::g_emulator.config().Debug) PCSX::g_emulator.m_debug->ProcessDebug();
+    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) PCSX::g_emulator.m_debug->ProcessDebug();
 
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc += 4;
     PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;

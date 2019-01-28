@@ -59,7 +59,7 @@ void PCSX::R3000Acpu::psxReset() {
     PCSX::g_emulator.m_hw->psxHwReset();
     PCSX::g_emulator.m_psxBios->psxBiosInit();
 
-    if (!g_emulator.config().HLE) psxExecuteBios();
+    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) psxExecuteBios();
 
     EMU_LOG("*BIOS END*\n");
 }
@@ -91,7 +91,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, uint32_t bd) {
     // Set the Status
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
 
-    if (g_emulator.config().HLE) PCSX::g_emulator.m_psxBios->psxBiosException();
+    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) PCSX::g_emulator.m_psxBios->psxBiosException();
 }
 
 void PCSX::R3000Acpu::psxBranchTest() {
@@ -137,7 +137,8 @@ void PCSX::R3000Acpu::psxBranchTest() {
         PCSX::g_emulator.m_psxCounters->psxRcntUpdate();
 
     if (m_psxRegs.interrupt) {
-        if ((m_psxRegs.interrupt & (1 << PSXINT_SIO)) && !g_emulator.config().SioIrq) {  // sio
+        if ((m_psxRegs.interrupt & (1 << PSXINT_SIO)) &&
+            !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {  // sio
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SIO].sCycle) >= m_psxRegs.intCycle[PSXINT_SIO].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
                 PCSX::g_emulator.m_sio->sioInterrupt();
@@ -228,7 +229,8 @@ void PCSX::R3000Acpu::psxBranchTest() {
 }
 
 void PCSX::R3000Acpu::psxJumpTest() {
-    if (!g_emulator.config().HLE && g_emulator.config().verbose) {
+    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() &&
+        PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVerbose>()) {
         uint32_t call = m_psxRegs.GPR.n.t1 & 0xff;
         switch (m_psxRegs.pc & 0x1fffff) {
             case 0xa0:

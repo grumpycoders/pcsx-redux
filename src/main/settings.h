@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <filesystem>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -31,36 +32,17 @@
 
 namespace PCSX {
 
-template <typename name>
-class SettingString;
-template <char... C>
-class SettingString<irqus::typestring<C...>> {
-  public:
-    typedef irqus::typestring<C...> name;
-
-  private:
-    using myself = SettingString<name>;
-    using type = std::string;
-
-  public:
-    operator type() const { return value; }
-    myself &operator=(const type &v) {
-        value = v;
-        return *this;
-    }
-    void setDefault() { value = ""; }
-    type value;
-};
-
-template <typename type, type defaultValue, typename name>
+template <typename type, typename name, type defaultValue = type()>
 class Setting;
-template <typename type, type defaultValue, char... C>
-class Setting<type, defaultValue, irqus::typestring<C...>> {
+template <typename type, char... C, type defaultValue>
+class Setting<type, irqus::typestring<C...>, defaultValue> {
+    using json = nlohmann::json;
+
   public:
     typedef irqus::typestring<C...> name;
 
   private:
-    using myself = Setting<type, defaultValue, name>;
+    using myself = Setting<type, name, defaultValue>;
 
   public:
     operator type() const { return value; }
@@ -68,8 +50,67 @@ class Setting<type, defaultValue, irqus::typestring<C...>> {
         value = v;
         return *this;
     }
+    json serialize() const { return value; }
+    void deserialize(const json &j) { value = j; }
     void setDefault() { value = defaultValue; }
     type value = defaultValue;
+};
+
+template <typename name, typename defaultValue = irqus::typestring<'\0'>>
+class SettingString;
+template <char... C, char... D>
+class SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
+    using json = nlohmann::json;
+
+  public:
+    typedef irqus::typestring<C...> name;
+    typedef irqus::typestring<D...> defaultValue;
+    typedef std::string type;
+
+  private:
+    using myself = SettingString<name, defaultValue>;
+
+  public:
+    operator type() const { return value; }
+    myself &operator=(const type &v) {
+        value = v;
+        return *this;
+    }
+    const char *c_str() const { return value.c_str(); }
+    json serialize() const { return value; }
+    void deserialize(const json &j) { value = j; }
+    void setDefault() { value = defaultValue::data(); }
+    type value = defaultValue::data();
+};
+
+template <typename name, typename defaultValue = irqus::typestring<'\0'>>
+class SettingPath;
+template <char... C, char... D>
+class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
+    using json = nlohmann::json;
+
+  public:
+    typedef irqus::typestring<C...> name;
+    typedef irqus::typestring<D...> defaultValue;
+    typedef std::filesystem::path type;
+
+  private:
+    using myself = SettingPath<name, defaultValue>;
+
+  public:
+    operator type() const { return value; }
+    myself &operator=(const type &v) {
+        value = v;
+        return *this;
+    }
+    const char *c_str() const { return value.string().c_str(); }
+    json serialize() const { return value.string(); }
+    void deserialize(const json &j) {
+        std::string str = j;
+        value = std::filesystem::path(str);
+    }
+    void setDefault() { value = defaultValue::data(); }
+    type value = defaultValue::data();
 };
 
 template <typename... settings>
@@ -106,7 +147,7 @@ class Settings : private std::tuple<settings...> {
     template <size_t index, typename settingType, typename... settings>
     constexpr void serialize(json &j) const {
         const settingType &setting = std::get<index>(*this);
-        j[settingType::name::data()] = setting.value;
+        j[settingType::name::data()] = setting.serialize();
         serialize<index + 1, settings...>(j);
     }
     template <size_t index>
@@ -116,7 +157,7 @@ class Settings : private std::tuple<settings...> {
         settingType &setting = std::get<index>(*this);
         try {
             if (j.find(settingType::name::data()) != j.end()) {
-                setting.value = j[settingType::name::data()];
+                setting.deserialize(j[settingType::name::data()]);
             } else if (setDefault) {
                 setting.setDefault();
             }

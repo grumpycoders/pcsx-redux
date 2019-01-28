@@ -102,6 +102,9 @@ void PCSX::GUI::init() {
                 std::string imguicfg = j["gui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
+            if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
+                PCSX::g_emulator.settings.deserialize(j["emulator"]);
+            }
             PCSX::g_emulator.m_spu->setCfg(j);
         }
     }
@@ -138,6 +141,7 @@ void PCSX::GUI::saveCfg() {
 
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
     j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
+    j["emulator"] = PCSX::g_emulator.settings.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -323,6 +327,7 @@ void PCSX::GUI::endFrame() {
             PCSX::g_emulator.m_cdrom->m_iso.open();
             CheckCdrom();
             LoadCdrom();
+            PCSX::g_system->start();
         }
     }
 

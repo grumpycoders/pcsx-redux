@@ -1382,7 +1382,7 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
         buffer[14] = 'i';
         buffer[15] = '\0';
 
-        sprintf(sbifile, "%s%s", PCSX::g_emulator.config().PatchesDir.c_str(), buffer);
+        sprintf(sbifile, "%s%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().c_str(), buffer);
         filename = sbifile;
     }
 
@@ -2287,7 +2287,7 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
     }
 
     // data tracks play silent (or CDDA set to silent)
-    if (m_ti[track].type != trackinfo::CDDA || PCSX::g_emulator.config().Cdda == PCSX::Emulator::CDDA_DISABLED) {
+    if (m_ti[track].type != trackinfo::CDDA || PCSX::g_emulator.settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_DISABLED) {
         memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
         return true;
     }
@@ -2310,7 +2310,7 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
         return false;
     }
 
-    if (PCSX::g_emulator.config().Cdda == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
+    if (PCSX::g_emulator.settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
         int i;
         unsigned char tmp;
 

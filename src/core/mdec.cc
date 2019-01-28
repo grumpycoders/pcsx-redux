@@ -295,7 +295,7 @@ inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
     int *Crblk = blk;
     int *Cbblk = blk + DSIZE2;
 
-    if (!PCSX::g_emulator.config().Mdec) {
+    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBnWMdec>()) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 24) {
             if (y == 8) Yblk += DSIZE2;
             for (x = 0; x < 4; x++, image += 2, Crblk++, Cbblk++, Yblk += 2) {
@@ -354,7 +354,7 @@ void yuv2rgb24(int *blk, uint8_t *image) {
     int *Crblk = blk;
     int *Cbblk = blk + PCSX::MDEC::DSIZE2;
 
-    if (!PCSX::g_emulator.config().Mdec) {
+    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBnWMdec>()) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
             if (y == 8) Yblk += PCSX::MDEC::DSIZE2;
             for (x = 0; x < 4; x++, image += 6, Crblk++, Cbblk++, Yblk += 2) {
