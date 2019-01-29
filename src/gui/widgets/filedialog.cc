@@ -17,6 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
+#include <malloc.h>
+#include <stdio.h>
+#endif
+
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -26,33 +36,86 @@
 
 #include "gui/widgets/filedialog.h"
 
+#ifdef _WIN32
+void PCSX::Widgets::FileDialog::fillRoots() {
+    DWORD drivesMask = GetLogicalDrives();
+    for (TCHAR drive = 'A'; drive <= 'Z'; drive++, drivesMask >>= 1) {
+        if (!(drivesMask & 1)) continue;
+        BOOL success = FALSE;
+        TCHAR rootPath[4];
+        TCHAR volumeName[MAX_PATH + 1];
+        rootPath[0] = drive;
+        rootPath[1] = ':';
+        rootPath[2] = '\\';
+        rootPath[3] = '\0';
+        success = GetVolumeInformation(rootPath, volumeName, MAX_PATH + 1, NULL, NULL, NULL, NULL, 0);
+        if (!success) continue;
+#ifdef UNICODE
+        int needed;
+        LPSTR str;
+
+        needed = WideCharToMultiByte(CP_UTF8, 0, rootPath, -1, NULL, 0, NULL, NULL);
+        if (needed <= 0) continue;
+        str = (LPSTR)_malloca(needed);
+        WideCharToMultiByte(CP_UTF8, 0, rootPath, -1, str, needed, NULL, NULL);
+        std::string root = str;
+        _freea(str);
+
+        needed = WideCharToMultiByte(CP_UTF8, 0, volumeName, -1, NULL, 0, NULL, NULL);
+        if (needed <= 0) continue;
+        str = (LPSTR)_malloca(needed);
+        WideCharToMultiByte(CP_UTF8, 0, volumeName, -1, str, needed, NULL, NULL);
+        std::string label = root + " (" + str + ")";
+        _freea(str);
+#else
+        std::string root = rootName;
+        std::string label = root + " (" + volumeName + ")";
+#endif
+        m_roots.push_back({root, label});
+    }
+}
+#else
+void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({"/", "(root)"}) }
+#endif
+
 void PCSX::Widgets::FileDialog::openDialog() {
     ImGui::OpenPopup(m_title.c_str());
     setToCurrentPath();
-    m_selected = "";
+    m_selected.clear();
+    m_sorter.name = SORT_DOWN;
+    m_sorter.size = UNSORTED;
+    m_sorter.date = UNSORTED;
 }
 
 bool PCSX::Widgets::FileDialog::draw() {
     bool done = false;
     if (ImGui::BeginPopupModal(m_title.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (m_cacheDirty) {
-            m_directories.clear();
-            m_files.clear();
+            fillRoots();
+            m_spaceInfo = std::filesystem::space(m_currentPath);
             for (auto& p : std::filesystem::directory_iterator(m_currentPath)) {
                 if (p.is_directory()) {
                     m_directories.push_back(p.path().filename().string());
                 } else {
-                    std::time_t dateTime = std::filesystem::last_write_time(p).time_since_epoch().count() / 100000000;
-                    const std::tm* converted = std::localtime(&dateTime);
-                    std::ostringstream formatted;
-                    formatted << std::put_time(converted, "%c");
-                    m_files.push_back(
-                        {p.path().filename().string(), std::filesystem::file_size(p), formatted.str(), dateTime});
+                    try {
+                        auto status = p.status();
+                        auto lastWrite = std::filesystem::last_write_time(p);
+                        auto timeSinceEpoch = lastWrite.time_since_epoch();
+                        auto count = timeSinceEpoch.count();
+                        std::time_t dateTime = count / 100000000;
+                        const std::tm* converted = std::localtime(&dateTime);
+                        std::ostringstream formatted;
+                        formatted << std::put_time(converted, "%c");
+                        m_files.push_back(
+                            {p.path().filename().string(), std::filesystem::file_size(p), formatted.str(), dateTime});
+                    } catch (...) {
+                    }
                 }
             }
             if (m_sorter.name != UNSORTED || m_sorter.size != UNSORTED || m_sorter.date != UNSORTED) {
                 std::sort(m_files.begin(), m_files.end(), m_sorter);
             }
+            std::sort(m_directories.begin(), m_directories.end());
             m_cacheDirty = false;
         }
 
@@ -63,13 +126,24 @@ bool PCSX::Widgets::FileDialog::draw() {
         ImGui::Text(m_currentPath.string().c_str());
         {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
-            if (ImGui::Selectable("..", false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
-                goUp = true;
-            }
-            for (auto& p : m_directories) {
-                if (ImGui::Selectable(p.c_str(), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
-                    goDown = p;
+            if (ImGui::TreeNode("Roots")) {
+                for (auto& p : m_roots) {
+                    if (ImGui::Selectable(p.label.c_str(), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                        goDown = p.root;
+                    }
                 }
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNodeEx("Directories", ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (ImGui::Selectable("..", false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                    goUp = true;
+                }
+                for (auto& p : m_directories) {
+                    if (ImGui::Selectable(p.c_str(), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                        goDown = p;
+                    }
+                }
+                ImGui::TreePop();
             }
             ImGui::EndChild();
         }
@@ -195,7 +269,8 @@ bool PCSX::Widgets::FileDialog::draw() {
         }
         ImGui::Text(selectedStr.c_str());
         if (ImGui::Button("OK", ImVec2(120, 30)) && selected) {
-            m_selected = selectedStr;
+            m_selected.clear();
+            m_selected.push_back(selectedStr);
             ImGui::CloseCurrentPopup();
             done = true;
         }

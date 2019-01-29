@@ -320,10 +320,10 @@ void PCSX::GUI::endFrame() {
 
     if (showOpenIsoFileDialog) m_openIsoFileDialog.openDialog();
     if (m_openIsoFileDialog.draw()) {
-        std::string fileToOpen = m_openIsoFileDialog.selected();
+        std::vector<std::string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator.m_cdrom->m_iso.close();
-            SetIsoFile(fileToOpen.c_str());
+            SetIsoFile(fileToOpen[0].c_str());
             PCSX::g_emulator.m_cdrom->m_iso.open();
             CheckCdrom();
             LoadCdrom();

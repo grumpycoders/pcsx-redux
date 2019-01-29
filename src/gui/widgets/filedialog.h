@@ -34,14 +34,25 @@ class FileDialog {
         nukeCache();
     }
     void openDialog();
-    std::string selected() { return m_selected; }
+    const std::vector<std::string> selected() const { return m_selected; }
     bool draw();
 
   private:
-    void nukeCache() { m_cacheDirty = true; }
+    void fillRoots();
+    void nukeCache() {
+        m_cacheDirty = true;
+        m_roots.clear();
+        m_directories.clear();
+        m_files.clear();
+    }
     bool m_cacheDirty = true;
     std::filesystem::path m_currentPath;
     const std::string m_title;
+    struct Root {
+        std::string root;
+        std::string label;
+    };
+    std::vector<Root> m_roots;
     std::vector<std::string> m_directories;
     struct File {
         std::string filename;
@@ -51,7 +62,7 @@ class FileDialog {
         bool selected;
     };
     std::vector<File> m_files;
-    std::string m_selected;
+    std::vector<std::string> m_selected;
     enum sort { UNSORTED, SORT_DOWN, SORT_UP };
     struct {
         bool operator()(const File& a, const File& b) const {
@@ -74,10 +85,11 @@ class FileDialog {
                     return a.dateTimeTimeT > b.dateTimeTimeT;
             }
         }
-        sort name = UNSORTED;
+        sort name = SORT_DOWN;
         sort size = UNSORTED;
         sort date = UNSORTED;
     } m_sorter;
+    std::filesystem::space_info m_spaceInfo;
 };
 
 }  // namespace Widgets
