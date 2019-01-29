@@ -41,10 +41,7 @@ class GUI final {
     GUI(const flags::args &args) : m_args(args) {}
     void init();
     void close();
-    void update() {
-        endFrame();
-        startFrame();
-    }
+    void update();
     void flip();
     void bindVRAMTexture();
     void setViewport();
@@ -60,6 +57,8 @@ class GUI final {
         // TODO
         SDL_TriggerBreakpoint();
     }
+    void scheduleSoftReset() { m_scheduleSoftReset = true; }
+    void scheduleHardReset() { m_scheduleHardReset = true; }
 
   private:
     static void checkGL();
@@ -108,6 +107,8 @@ class GUI final {
     Widgets::FileDialog m_openIsoFileDialog = "Open Image";
 
     const flags::args &m_args;
+    bool m_scheduleSoftReset = false;
+    bool m_scheduleHardReset = false;
 };
 
 }  // namespace PCSX

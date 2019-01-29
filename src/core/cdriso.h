@@ -50,6 +50,7 @@ namespace PCSX {
 
 class CDRiso {
   public:
+    bool isLidOpened() { return m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(NULL); }
     void setCdOpenCaseTime(int64_t time) { m_cdOpenCaseTime = time; }
     void init();
     void shutdown();

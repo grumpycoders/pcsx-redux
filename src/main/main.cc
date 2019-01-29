@@ -70,8 +70,14 @@ class SystemImpl : public PCSX::System {
         // called when the UI needs to show up
     }
 
-    virtual void reset() final {
-        // debugger is requesting a reset
+    virtual void softReset() final {
+        // debugger or UI is requesting a reset
+        s_gui->scheduleSoftReset();
+    }
+
+    virtual void hardReset() final {
+        // debugger or UI is requesting a reset
+        s_gui->scheduleHardReset();
     }
 
     virtual void close() final {
@@ -96,14 +102,16 @@ int main(int argc, char **argv) {
     PCSX::g_emulator.m_gpu->open(s_gui);
     PCSX::g_emulator.m_spu->open();
 
+    PCSX::g_emulator.EmuInit();
+    PCSX::g_emulator.EmuReset();
+
     std::string iso = args.get<std::string>("iso", "");
     if (!iso.empty()) SetIsoFile(iso.c_str());
     PCSX::g_emulator.m_cdrom->m_iso.open();
     CheckCdrom();
     LoadCdrom();
 
-    PCSX::g_emulator.EmuInit();
-    PCSX::g_emulator.EmuReset();
+    if (args.get<bool>("run", false)) PCSX::g_system->start();
 
     while (!PCSX::g_system->quitting()) {
         if (PCSX::g_system->running()) {

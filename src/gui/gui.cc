@@ -279,11 +279,48 @@ void PCSX::GUI::endFrame() {
 
     bool showOpenIsoFileDialog = false;
 
-    if (m_showMenu || !m_fullscreenRender) {
+    if (m_showMenu || !m_fullscreenRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open ISO")) {
                     showOpenIsoFileDialog = true;
+                }
+                if (ImGui::MenuItem("Close ISO")) {
+                    PCSX::g_emulator.m_cdrom->m_iso.close();
+                    CheckCdrom();
+                    LoadCdrom();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Open LID")) {
+                    PCSX::g_emulator.m_cdrom->setCdOpenCaseTime(-1);
+                    PCSX::g_emulator.m_cdrom->lidInterrupt();
+                }
+                if (ImGui::MenuItem("Close LID")) {
+                    PCSX::g_emulator.m_cdrom->setCdOpenCaseTime(0);
+                    PCSX::g_emulator.m_cdrom->lidInterrupt();
+                }
+                if (ImGui::MenuItem("Open and close LID")) {
+                    PCSX::g_emulator.m_cdrom->setCdOpenCaseTime((int64_t)time(NULL) + 2);
+                    PCSX::g_emulator.m_cdrom->lidInterrupt();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Quit")) {
+                    PCSX::g_system->quit();
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Emulation")) {
+                if (ImGui::MenuItem("Start", nullptr, nullptr, !PCSX::g_system->running())) {
+                    PCSX::g_system->start();
+                }
+                if (ImGui::MenuItem("Pause", nullptr, nullptr, PCSX::g_system->running())) {
+                    PCSX::g_system->stop();
+                }
+                if (ImGui::MenuItem("Soft Reset")) {
+                    scheduleSoftReset();
+                }
+                if (ImGui::MenuItem("Hard Reset")) {
+                    scheduleHardReset();
                 }
                 ImGui::EndMenu();
             }
@@ -327,7 +364,6 @@ void PCSX::GUI::endFrame() {
             PCSX::g_emulator.m_cdrom->m_iso.open();
             CheckCdrom();
             LoadCdrom();
-            PCSX::g_system->start();
         }
     }
 
@@ -389,4 +425,18 @@ void PCSX::GUI::endFrame() {
     checkGL();
 
     if (changed) saveCfg();
+}
+
+void PCSX::GUI::update() {
+    endFrame();
+    startFrame();
+    // This scheduling is extremely delicate, because this will cause update to be reentrant.
+    // We basically need these to be tail calls, or at least, close from it.
+    if (m_scheduleSoftReset) {
+        m_scheduleSoftReset = false;
+        PCSX::g_emulator.m_psxCpu->psxReset();
+    } else if (m_scheduleHardReset) {
+        m_scheduleHardReset = false;
+        PCSX::g_emulator.EmuReset();
+    }
 }

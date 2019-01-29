@@ -345,7 +345,7 @@ void PCSX::Debug::DebugVSync() {
     if (s_reset) {
         s_resetting = 1;
         CheckCdrom();
-        PCSX::g_system->reset();
+        PCSX::g_system->hardReset();
         if (s_reset == 2) LoadCdrom();
         s_reset = s_resetting = 0;
         return;

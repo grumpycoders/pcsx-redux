@@ -963,7 +963,7 @@ void X86DynaRecCPU::Shutdown() {
 }
 
 void X86DynaRecCPU::recError() {
-    PCSX::g_system->reset();
+    PCSX::g_system->hardReset();
     // ClosePlugins();
     PCSX::g_system->message("Unrecoverable error while running recompiler\n");
     PCSX::g_system->runGui();

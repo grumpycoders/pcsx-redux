@@ -2251,7 +2251,7 @@ uint8_t *PCSX::CDRiso::getBufferSub() {
 bool PCSX::CDRiso::getStatus(CdrStat *stat) {
     uint32_t sect;
 
-    if (m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(NULL)) {
+    if (isLidOpened()) {
         stat->Status = 0x10;
     } else {
         stat->Status = 0;

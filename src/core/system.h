@@ -25,7 +25,8 @@ namespace PCSX {
 class System {
   public:
     // Requests a system reset
-    virtual void reset() = 0;
+    virtual void softReset() = 0;
+    virtual void hardReset() = 0;
     // Printf used by bios syscalls
     virtual void biosPrintf(const char *fmt, ...) = 0;
     virtual void biosPrintf(const char *fmt, va_list va) = 0;
