@@ -28,7 +28,8 @@ namespace Widgets {
 
 class FileDialog {
   public:
-    FileDialog(const char* title) : m_title(title) { setToCurrentPath(); }
+    enum Flags { NewFile = 1 };
+    FileDialog(const char* title, uint64_t flags = 0) : m_title(title), m_flags(flags) { setToCurrentPath(); }
     void setToCurrentPath() {
         m_currentPath = std::filesystem::current_path();
         nukeCache();
@@ -47,6 +48,7 @@ class FileDialog {
     }
     bool m_cacheDirty = true;
     std::filesystem::path m_currentPath;
+    uint64_t m_flags;
     const std::string m_title;
     struct Root {
         std::string root;
@@ -90,6 +92,7 @@ class FileDialog {
         sort date = UNSORTED;
     } m_sorter;
     std::filesystem::space_info m_spaceInfo;
+    std::string m_newFile;
 };
 
 }  // namespace Widgets

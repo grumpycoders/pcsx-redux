@@ -33,6 +33,7 @@
 #include <sstream>
 
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 #include "gui/widgets/filedialog.h"
 
@@ -85,6 +86,7 @@ void PCSX::Widgets::FileDialog::openDialog() {
     m_sorter.name = SORT_DOWN;
     m_sorter.size = UNSORTED;
     m_sorter.date = UNSORTED;
+    m_newFile = "";
 }
 
 bool PCSX::Widgets::FileDialog::draw() {
@@ -119,10 +121,13 @@ bool PCSX::Widgets::FileDialog::draw() {
             m_cacheDirty = false;
         }
 
+        bool goHome = false;
         bool goUp = false;
         std::string goDown = "";
         File* selected = nullptr;
 
+        if (ImGui::Button("Home")) goHome = true;
+        ImGui::SameLine();
         ImGui::Text(m_currentPath.string().c_str());
         {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -243,6 +248,9 @@ bool PCSX::Widgets::FileDialog::draw() {
                 if (ImGui::Selectable(label.c_str(), p.selected, ImGuiSelectableFlags_SpanAllColumns)) {
                     for (auto& f : m_files) f.selected = false;
                     p.selected = true;
+                    if (m_flags & NewFile) {
+                        m_newFile = std::filesystem::path(p.filename).filename().string();
+                    }
                 }
                 ImGui::SameLine();
                 ImGui::Text(p.filename.c_str());
@@ -258,23 +266,31 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::EndChild();
         }
         std::string selectedStr;
-        if (!selected) {
-            selectedStr = (m_currentPath / std::filesystem::path("...")).string();
+        bool gotSelected = selected;
+        if (m_flags & NewFile) {
+            ImGui::Text(m_currentPath.string().c_str());
+            ImGui::SameLine();
+            std::string label = std::string("##") + m_title + "Filename";
+            ImGui::InputText(label.c_str(), &m_newFile);
+            selectedStr = m_newFile;
+            gotSelected = !m_newFile.empty();
+        } else {
+            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : "...")).string();
+            ImGui::Text(selectedStr.c_str());
+        }
+        if (!gotSelected) {
             const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
             ImGui::PushStyleColor(ImGuiCol_Button, lolight);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, lolight);
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, lolight);
-        } else {
-            selectedStr = (m_currentPath / std::filesystem::path(selected->filename)).string();
         }
-        ImGui::Text(selectedStr.c_str());
-        if (ImGui::Button("OK", ImVec2(120, 30)) && selected) {
+        if (ImGui::Button("OK", ImVec2(120, 30)) && gotSelected) {
             m_selected.clear();
             m_selected.push_back(selectedStr);
             ImGui::CloseCurrentPopup();
             done = true;
         }
-        if (!selected) ImGui::PopStyleColor(3);
+        if (!gotSelected) ImGui::PopStyleColor(3);
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
         if (ImGui::Button("Cancel", ImVec2(120, 30))) {
@@ -288,6 +304,9 @@ bool PCSX::Widgets::FileDialog::draw() {
             nukeCache();
         } else if (!goDown.empty()) {
             m_currentPath = m_currentPath / goDown;
+            nukeCache();
+        } else if (goHome) {
+            setToCurrentPath();
             nukeCache();
         }
     }

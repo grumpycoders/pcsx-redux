@@ -102,7 +102,8 @@ int iUseFixes;
 // ??
 bool bDoVSyncUpdate = false;
 
-void PCSX::SoftGPU::SoftPrim::showCfg(bool *show) {
+bool PCSX::SoftGPU::SoftPrim::configure(bool *show) {
+    bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Soft GPU configuration", show)) {
@@ -111,8 +112,9 @@ void PCSX::SoftGPU::SoftPrim::showCfg(bool *show) {
     static const char *ditherValues[] = {"No dithering (fastest)",
                                          "Game dependend dithering (slow)",
                                          "Always dither g-shaded polygons (slowest)"};
-    ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
+    changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
     ImGui::End();
+    return changed;
 }
 
 static constexpr inline unsigned short BGR24to16(unsigned long BGR) {

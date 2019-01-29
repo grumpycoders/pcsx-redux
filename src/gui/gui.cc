@@ -309,6 +309,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::EndMenu();
             }
+            ImGui::Separator();
             if (ImGui::BeginMenu("Emulation")) {
                 if (ImGui::MenuItem("Start", nullptr, nullptr, !PCSX::g_system->running())) {
                     PCSX::g_system->start();
@@ -324,11 +325,14 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::EndMenu();
             }
+            ImGui::Separator();
             if (ImGui::BeginMenu("Configuration")) {
+                ImGui::MenuItem("Emulation", nullptr, &m_showCfg);
                 ImGui::MenuItem("Soft GPU", nullptr, &PCSX::g_emulator.m_gpu->m_showCfg);
                 ImGui::MenuItem("SPU", nullptr, &PCSX::g_emulator.m_spu->m_showCfg);
                 ImGui::EndMenu();
             }
+            ImGui::Separator();
             if (ImGui::BeginMenu("Debug")) {
                 ImGui::MenuItem("Show Logs", nullptr, &m_log.m_show);
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
@@ -345,11 +349,14 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem("Fullscreen render", nullptr, &m_fullscreenRender);
                 ImGui::EndMenu();
             }
+            ImGui::Separator();
             if (ImGui::BeginMenu("ImGui Demo")) {
                 ImGui::MenuItem("Toggle", nullptr, &m_showDemo);
                 ImGui::EndMenu();
             }
-            ImGui::Text(" %.2f FPS (%.2f ms)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Separator();
+            ImGui::Separator();
+            ImGui::Text("%.2f FPS (%.2f ms)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }
@@ -413,10 +420,8 @@ void PCSX::GUI::endFrame() {
 
     PCSX::g_emulator.m_spu->debug();
     changed |= PCSX::g_emulator.m_spu->configure();
-
-    if (PCSX::g_emulator.m_gpu->m_showCfg) {
-        PCSX::g_emulator.m_gpu->showCfg();
-    }
+    changed |= PCSX::g_emulator.m_gpu->configure();
+    changed |= configure();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -425,6 +430,18 @@ void PCSX::GUI::endFrame() {
     checkGL();
 
     if (changed) saveCfg();
+}
+
+bool PCSX::GUI::configure() {
+    bool changed = false;
+    if (!m_showCfg) return false;
+
+    if (ImGui::Begin("Emulation Configuration", &m_showCfg)) {
+    
+    }
+    ImGui::End();
+
+    return changed;
 }
 
 void PCSX::GUI::update() {

@@ -67,6 +67,8 @@ class GUI final {
     void startFrame();
     void endFrame();
 
+    bool configure();
+
     void normalizeDimensions(ImVec2 &vec, float ratio) {
         float r = vec.y / vec.x;
         if (r > ratio) {
@@ -104,7 +106,9 @@ class GUI final {
     };
     MemoryEditorWrapper m_mainMemEditors[8];
     Widgets::Registers m_registers;
-    Widgets::FileDialog m_openIsoFileDialog = "Open Image";
+    Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
+
+    bool m_showCfg = false;
 
     const flags::args &m_args;
     bool m_scheduleSoftReset = false;

@@ -133,6 +133,7 @@
     <ClCompile Include="..\..\third_party\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\third_party\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\third_party\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\misc\cpp\imgui_stdlib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.h" />
@@ -143,6 +144,7 @@
     <ClInclude Include="..\..\third_party\imgui\imgui.h" />
     <ClInclude Include="..\..\third_party\imgui\imgui_internal.h" />
     <ClInclude Include="..\..\third_party\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\..\third_party\imgui\misc\cpp\imgui_stdlib.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

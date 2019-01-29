@@ -32,7 +32,7 @@ namespace SoftGPU {
 class impl : public GPU {
     virtual long init() final;
     virtual long shutdown() final;
-    virtual long open(GUI*) final;
+    virtual long open(GUI *) final;
     virtual long close() final;
     virtual uint32_t readData() final {
         uint32_t l;
@@ -47,7 +47,13 @@ class impl : public GPU {
     virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
     virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) final;
-    virtual void showCfg() final { m_softPrim.showCfg(&m_showCfg); }
+    virtual bool configure() final {
+        if (m_showCfg) {
+            return m_softPrim.configure(&m_showCfg);
+        } else {
+            return false;
+        }
+    }
 
     SoftPrim m_softPrim;
 
