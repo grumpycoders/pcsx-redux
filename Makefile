@@ -3,7 +3,7 @@ rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib
 
 CXXFLAGS := -std=c++2a
-CPPFLAGS := `pkg-config --cflags $(PACKAGES)` -Isrc -Ithird_party -Ithird_party/imgui -Ithird_party/imgui/examples/libs/gl3w -Ithird_party/imgui/examples -Ithird_party/imgui_club
+CPPFLAGS := `pkg-config --cflags $(PACKAGES)` -Isrc -Ithird_party -Ithird_party/imgui -Ithird_party/imgui/examples/libs/gl3w -Ithird_party/imgui/examples -Ithird_party/imgui_club -O3
 
 LDFLAGS := `pkg-config --libs $(PACKAGES)` -lstdc++fs -ldl -lGL
 LD := $(CXX)
