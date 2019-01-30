@@ -70,7 +70,11 @@
 //
 //*************************************************************************//
 
+#define NOMINMAX
+
 #include "stdafx.h"
+
+#include <algorithm>
 
 #include "gpu/soft/externals.h"
 #include "gpu/soft/soft.h"
