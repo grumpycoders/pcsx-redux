@@ -23,6 +23,8 @@
  *           alexey silinov
  */
 
+#if defined(__i386__) || defined(_M_IX86)
+
 #include "core/ix86/ix86.h"
 
 void PCSX::ix86::x86Init(int8_t* ptr) {
@@ -1577,3 +1579,5 @@ void PCSX::ix86::PFMINRtoR(sseRegister to, sseRegister from) {
     ModRM(3, to, from);
     write8(0x94);
 }
+
+#endif

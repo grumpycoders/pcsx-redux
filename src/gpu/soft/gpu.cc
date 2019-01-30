@@ -113,6 +113,8 @@
 
 #include "stdafx.h"
 
+#include <algorithm>
+
 #ifdef _WIN32
 
 #include <stdarg.h>
@@ -144,17 +146,7 @@ const unsigned char version = 1;  // do not touch - library for PSEmu 1.x
 const unsigned char revision = 1;
 const unsigned char build = 18;  // increase that with each version
 
-#ifdef _WIN32
 static const char *libraryName = "P.E.Op.S. Soft Driver";
-#else
-#ifndef _SDL
-static char *libraryName = "P.E.Op.S. SoftX Driver";
-static char *libraryInfo = "P.E.Op.S. SoftX Driver V1.18\nCoded by Pete Bernert and the P.E.Op.S. team\n";
-#else
-static char *libraryName = "P.E.Op.S. SoftSDL Driver";
-static char *libraryInfo = "P.E.Op.S. SoftSDL Driver V1.18\nCoded by Pete Bernert and the P.E.Op.S. team\n";
-#endif
-#endif
 
 static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
 
@@ -191,16 +183,16 @@ VRAMLoad_t VRAMRead;
 DATAREGISTERMODES DataWriteMode;
 DATAREGISTERMODES DataReadMode;
 
-BOOL bSkipNextFrame = FALSE;
-DWORD dwLaceCnt = 0;
+bool bSkipNextFrame = false;
+uint32_t dwLaceCnt = 0;
 int iColDepth;
 int iWindowMode;
 short sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 PSXDisplay_t PSXDisplay;
 PSXDisplay_t PreviousPSXDisplay;
 long lSelectedSlot = 0;
-BOOL bChangeWinMode = FALSE;
-BOOL bDoLazyUpdate = FALSE;
+bool bChangeWinMode = false;
+bool bDoLazyUpdate = false;
 unsigned long lGPUInfoVals[16];
 int iFakePrimBusy = 0;
 int iRumbleVal = 0;
@@ -324,7 +316,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
         bmpfile = fopen(filename, "rb");
         if (bmpfile == NULL) break;
         fclose(bmpfile);
-    } while (TRUE);
+    } while (true);
 
     // try opening new snapshot file
     if ((bmpfile = fopen(filename, "wb")) == NULL) return;
@@ -375,15 +367,15 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 
     SetFPSHandler();
 
-    PSXDisplay.RGB24 = FALSE;  // init some stuff
-    PSXDisplay.Interlaced = FALSE;
+    PSXDisplay.RGB24 = false;  // init some stuff
+    PSXDisplay.Interlaced = false;
     PSXDisplay.DrawOffset.x = 0;
     PSXDisplay.DrawOffset.y = 0;
     PSXDisplay.DisplayMode.x = 320;
     PSXDisplay.DisplayMode.y = 240;
     PreviousPSXDisplay.DisplayMode.x = 320;
     PreviousPSXDisplay.DisplayMode.y = 240;
-    PSXDisplay.Disabled = FALSE;
+    PSXDisplay.Disabled = false;
     PreviousPSXDisplay.Range.x0 = 0;
     PreviousPSXDisplay.Range.y0 = 0;
     PSXDisplay.Range.x0 = 0;
@@ -489,9 +481,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
         if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
         if (fpscount % 6)                     // -> skip 6/7 frames
-            bSkipNextFrame = TRUE;
+            bSkipNextFrame = true;
         else
-            bSkipNextFrame = FALSE;
+            bSkipNextFrame = false;
         fpscount++;
         if (fpscount >= (int)fFrameRateHz) fpscount = 0;
         return;
@@ -504,10 +496,10 @@ void updateDisplay(void)  // UPDATE DISPLAY
         {
             if ((fps_skip < fFrameRateHz) && !(bSkipNextFrame))  // -> skip max one in a row
             {
-                bSkipNextFrame = TRUE;
+                bSkipNextFrame = true;
                 fps_skip = fFrameRateHz;
             } else
-                bSkipNextFrame = FALSE;
+                bSkipNextFrame = false;
         } else
             FrameSkip();
     } else  // no skip ?
@@ -623,9 +615,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
     PreviousPSXDisplay.DisplayMode.x =       // previous will hold
-        min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
+        std::min(640L, PSXDisplay.DisplayMode.x);  // max 640x512... that's
     PreviousPSXDisplay.DisplayMode.y =       // the size of my
-        min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
+        std::min(512L, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
     PSXDisplay.DisplayEnd.x =  // calc end of display
@@ -650,7 +642,7 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
     //    softGPUclose();
     iWindowMode = !iWindowMode;
     //    softGPUopen(textureId);
-    bChangeWinMode = FALSE;
+    bChangeWinMode = false;
     bDoVSyncUpdate = true;
 }
 
@@ -694,7 +686,7 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
         if (dwActFixes & 64)  // lazy screen update fix
         {
             if (bDoLazyUpdate && !UseFrameSkip) updateDisplay();
-            bDoLazyUpdate = FALSE;
+            bDoLazyUpdate = false;
         } else {
             if (bDoVSyncUpdate && !UseFrameSkip)  // some primitives drawn?
                 updateDisplay();                  // -> update display
@@ -760,8 +752,8 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
             m_softPrim.reset();
-            PSXDisplay.RGB24 = FALSE;
-            PSXDisplay.Interlaced = FALSE;
+            PSXDisplay.RGB24 = false;
+            PSXDisplay.Interlaced = false;
             return;
         //--------------------------------------------------//
         // dis/enable display
@@ -846,7 +838,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
             {
                 if (UseFrameSkip) updateDisplay();
-                if (dwActFixes & 64) bDoLazyUpdate = TRUE;
+                if (dwActFixes & 64) bDoLazyUpdate = true;
             }
         }
             return;
@@ -896,9 +888,9 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 
             ChangeDispOffsetsY();
 
-            PSXDisplay.PAL = (gdata & 0x08) ? TRUE : FALSE;            // if 1 - PAL mode, else NTSC
-            PSXDisplay.RGB24New = (gdata & 0x10) ? TRUE : FALSE;       // if 1 - TrueColor
-            PSXDisplay.InterlacedNew = (gdata & 0x20) ? TRUE : FALSE;  // if 1 - Interlace
+            PSXDisplay.PAL = (gdata & 0x08) ? true : false;            // if 1 - PAL mode, else NTSC
+            PSXDisplay.RGB24New = (gdata & 0x10) ? true : false;       // if 1 - TrueColor
+            PSXDisplay.InterlacedNew = (gdata & 0x20) ? true : false;  // if 1 - Interlace
 
             lGPUstatusRet &= ~GPUSTATUS_WIDTHBITS;                               // Clear the width bits
             lGPUstatusRet |= (((gdata & 0x03) << 17) | ((gdata & 0x40) << 10));  // Set the width bits
@@ -1160,7 +1152,7 @@ void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
 STARTVRAM:
 
     if (DataWriteMode == DR_VRAMTRANSFER) {
-        BOOL bFinished = FALSE;
+        bool bFinished = false;
 
         // make sure we are in vram
         while (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
@@ -1201,7 +1193,7 @@ STARTVRAM:
             VRAMWrite.RowsRemaining = VRAMWrite.Width;
             VRAMWrite.ColsRemaining--;
             VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
-            bFinished = TRUE;
+            bFinished = true;
         }
 
         FinishedVRAMWrite();
@@ -1285,10 +1277,10 @@ extern "C" long softGPUconfigure(void) { return 0; }
 
 void SetFixes(void) {
 #ifdef _WIN32
-    BOOL bOldPerformanceCounter = IsPerformanceCounter;  // store curr timer mode
+    bool bOldPerformanceCounter = IsPerformanceCounter;  // store curr timer mode
 
     if (dwActFixes & 0x10)  // check fix 0x10
-        IsPerformanceCounter = FALSE;
+        IsPerformanceCounter = false;
     else
         SetFPSHandler();
 
@@ -1308,16 +1300,16 @@ void SetFixes(void) {
 
 unsigned long lUsedAddr[3];
 
-__inline BOOL CheckForEndlessLoop(unsigned long laddr) {
-    if (laddr == lUsedAddr[1]) return TRUE;
-    if (laddr == lUsedAddr[2]) return TRUE;
+__inline bool CheckForEndlessLoop(unsigned long laddr) {
+    if (laddr == lUsedAddr[1]) return true;
+    if (laddr == lUsedAddr[2]) return true;
 
     if (laddr < lUsedAddr[0])
         lUsedAddr[1] = laddr;
     else
         lUsedAddr[2] = laddr;
     lUsedAddr[0] = laddr;
-    return FALSE;
+    return false;
 }
 
 long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
@@ -1564,7 +1556,7 @@ void GPUsetfix(unsigned long dwFixBits) { dwEmuFixes = dwFixBits; }
 ////////////////////////////////////////////////////////////////////////
 
 void GPUsetframelimit(unsigned long option) {
-    bInitCap = TRUE;
+    bInitCap = true;
 
     if (option == 1) {
         UseFrameLimit = 1;

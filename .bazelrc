@@ -1,3 +1,0 @@
-# We build in 32 bits
-build --copt=-m32
-build --linkopt=-m32

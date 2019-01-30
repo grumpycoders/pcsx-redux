@@ -41,8 +41,8 @@ class PPF {
         struct PPF_DATA *pNext;
     };
 
-    PPF_CACHE *s_ppfCache = NULL;
-    PPF_DATA *s_ppfHead = NULL, *s_ppfLast = NULL;
+    PPF_CACHE *s_ppfCache = nullptr;
+    PPF_DATA *s_ppfHead = nullptr, *s_ppfLast = nullptr;
     int s_iPPFNum = 0;
 
     void FillPPFCache();

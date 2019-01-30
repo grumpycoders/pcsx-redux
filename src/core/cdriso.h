@@ -39,7 +39,7 @@ class File {
     bool failed();
 
   private:
-    static const uint8_t m_internalBuffer = 0;
+    static const uint8_t m_internalBuffer;
     FILE* m_handle = NULL;
     ssize_t m_ptr = 0;
     ssize_t m_size = 0;

@@ -23,7 +23,7 @@
 
 #include "core/decode_xa.h"
 
-#define FIXED
+//#define FIXED
 
 #define NOT(_X_) (!(_X_))
 #define XACLAMP(_X_, _MI_, _MA_)    \

@@ -86,7 +86,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
         static int iFPSCnt = 0;
         static int iLastSize = 0;
         static DWORD dwL1 = 0;
-        DWORD dw = timeGetTime(), dw1, dw2;
+        DWORD dw = SDL_GetTicks(), dw1, dw2;
 
         iPlace = iSize;
 

@@ -588,7 +588,7 @@ void PCSX::SPU::impl::MainThread() {
                             if (bIRQReturn)  // special return for "spu irq - wait for cpu action"
                             {
                                 bIRQReturn = 0;
-                                DWORD dwWatchTime = SDL_GetTicks() + 2500;
+                                Uint32 dwWatchTime = SDL_GetTicks() + 2500;
 
                                 while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
                             }
@@ -941,12 +941,6 @@ bool PCSX::SPU::impl::open() {
 
     return true;
 }
-
-////////////////////////////////////////////////////////////////////////
-
-#ifndef _WIN32
-void SPUsetConfigFile(char *pCfg) { pConfigFile = pCfg; }
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // SPUCLOSE: called before shutdown

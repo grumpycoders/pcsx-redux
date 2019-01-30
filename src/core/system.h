@@ -20,10 +20,13 @@
 
 #pragma once
 
+#include <stdarg.h>
+
 namespace PCSX {
 
 class System {
   public:
+    virtual ~System() {}
     // Requests a system reset
     virtual void softReset() = 0;
     virtual void hardReset() = 0;

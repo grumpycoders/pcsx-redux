@@ -127,7 +127,7 @@ class Settings : private std::tuple<settings...> {
         return std::get<setting>(*this);
     }
     constexpr void reset() { reset<0, settings...>(); }
-    constexpr json serialize() const {
+    json serialize() const {
         json ret;
         serialize<0, settings...>(ret);
         return ret;
@@ -137,22 +137,23 @@ class Settings : private std::tuple<settings...> {
   private:
     template <size_t index>
     constexpr void reset() {}
-    template <size_t index, typename settingType, typename... settings>
+    template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void reset() {
         settingType &setting = std::get<index>(*this);
         setting.setDefault();
+        reset<index + 1, nestedSettings...>();
     }
     template <size_t index>
     constexpr void serialize(json &j) const {}
-    template <size_t index, typename settingType, typename... settings>
+    template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void serialize(json &j) const {
         const settingType &setting = std::get<index>(*this);
         j[settingType::name::data()] = setting.serialize();
-        serialize<index + 1, settings...>(j);
+        serialize<index + 1, nestedSettings...>(j);
     }
     template <size_t index>
     constexpr void deserialize(const json &j, bool setDefault = true) {}
-    template <size_t index, typename settingType, typename... settings>
+    template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void deserialize(const json &j, bool setDefault = true) {
         settingType &setting = std::get<index>(*this);
         try {
@@ -164,7 +165,7 @@ class Settings : private std::tuple<settings...> {
         } catch (...) {
             if (setDefault) setting.setDefault();
         }
-        deserialize<index + 1, settings...>(j);
+        deserialize<index + 1, nestedSettings...>(j);
     }
 };
 

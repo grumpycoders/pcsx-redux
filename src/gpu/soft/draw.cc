@@ -118,7 +118,7 @@ PSXPoint_t ptCursorPoint[8];
 unsigned short usCursorActive = 0;
 
 PCSX::GUI *m_gui;
-BOOL bVsync_Key = FALSE;
+bool bVsync_Key = false;
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -434,7 +434,7 @@ void DoBufferSwap() {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
     checkGL();
 
-    LONG x, y;
+    int x, y;
     x = PSXDisplay.DisplayPosition.x;
     y = PSXDisplay.DisplayPosition.y;
     if (PSXDisplay.RGB24) {
