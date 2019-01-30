@@ -111,7 +111,7 @@ class CDRiso {
         unsigned int block_shift;
         unsigned int current_block;
         unsigned int sector_in_blk;
-    } * m_compr_img;
+    } * m_compr_img = NULL;
 
     read_func_t m_cdimg_read_func = NULL;
     read_func_t m_cdimg_read_func_archive = NULL;
@@ -126,7 +126,7 @@ class CDRiso {
     uint32_t m_prevsector;
 
     File* m_decoded_ecm = NULL;
-    void* m_decoded_ecm_buffer;
+    void* m_decoded_ecm_buffer = NULL;
 
     // Function that is used to read CD normally
     read_func_t m_cdimg_read_func_o = NULL;
