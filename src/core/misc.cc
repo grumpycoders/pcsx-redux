@@ -388,18 +388,10 @@ int CheckCdrom() {
     if (PCSX::g_emulator.config().PerGameMcd) {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
-#ifdef _WIN32
-        sprintf(mcd1path, "memcards\\games\\%s-%02d.mcd",
+        sprintf(mcd1path, "memcards/games/%s-%02d.mcd",
                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().c_str(), 1);
-        sprintf(mcd2path, "memcards\\games\\%s-%02d.mcd",
+        sprintf(mcd2path, "memcards/games/%s-%02d.mcd",
                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().c_str(), 2);
-#else
-        // lk: dot paths should not be hardcoded here, this is for testing only
-        sprintf(mcd1path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"),
-                PCSX::g_emulator.config().PsxExeName.c_str(), 1);
-        sprintf(mcd2path, "%s/.pcsxr/memcards/games/%s-%02d.mcd", getenv("HOME"),
-                PCSX::g_emulator.config().PsxExeName.c_str(), 2);
-#endif
         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
         PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str(),

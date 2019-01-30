@@ -27,8 +27,11 @@
 #include <stdio.h>
 #endif
 
+#include <algorithm>
 #include <chrono>
+#include <ctime>
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -76,7 +79,7 @@ void PCSX::Widgets::FileDialog::fillRoots() {
     }
 }
 #else
-void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({"/", "(root)"}) }
+void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({"/", "(root)"}); }
 #endif
 
 void PCSX::Widgets::FileDialog::openDialog() {

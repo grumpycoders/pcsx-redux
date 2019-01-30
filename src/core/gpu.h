@@ -14,6 +14,7 @@ class GPU {
 
     bool m_showCfg;
     virtual bool configure() = 0;
+    virtual ~GPU() {}
 
   private:
     // Taken from PEOPS SOFTGPU

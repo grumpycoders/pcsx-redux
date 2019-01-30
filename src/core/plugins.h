@@ -26,12 +26,6 @@
 
 typedef void* HWND;
 
-typedef long (*GPUopen)(unsigned long*, char*, char*);
-typedef long (*SPUopen)(void);
-typedef long (*PADopen)(unsigned long*);
-typedef long (*NETopen)(unsigned long*);
-typedef long (*SIO1open)(unsigned long*);
-
 #else
 
 #define WIN32_LEAN_AND_MEAN
@@ -41,6 +35,8 @@ typedef long (*SIO1open)(unsigned long*);
 #include "core/psemu_plugin_defs.h"
 #include "core/spu.h"
 
+#endif
+
 extern "C" {
 
 typedef long (*GPUopen)(unsigned int texture);
@@ -49,8 +45,6 @@ typedef long (*PADopen)(HWND);
 typedef long (*NETopen)(HWND);
 typedef long (*SIO1open)(HWND);
 }
-
-#endif
 
 int LoadPlugins();
 void ReleasePlugins();
@@ -146,6 +140,7 @@ struct SubQ {
 };
 
 // PAD Functions
+struct PadDataS;
 typedef long (*PADconfigure)(void);
 typedef void (*PADabout)(void);
 typedef long (*PADinit)(long);

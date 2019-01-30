@@ -75,13 +75,13 @@ unsigned long dwCoreFlags = 0;
 
 #ifdef _WIN32
 HFONT hGFont = NULL;
-BOOL bTransparent = FALSE;
+bool bTransparent = false;
 #endif
 
 void InitMenu(void) {
 #ifdef _WIN32
     hGFont = CreateFont(  //-8,
-        13, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        13, 0, 0, 0, FW_NORMAL, false, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         DEFAULT_QUALITY, DEFAULT_PITCH,
         //"Courier New");
         //"MS Sans Serif");
@@ -219,7 +219,7 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
         case 0:       // frame limit
         {
             int iType = 0;
-            bInitCap = TRUE;
+            bInitCap = true;
 
 #ifdef _WIN32
             if (iFrameLimit == 1 && UseFrameLimit && GetAsyncKeyState(VK_SHIFT) & 32768) {
@@ -244,7 +244,7 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
         } break;
         //////////////////////////////////////////////////////
         case 1:  // frame skip
-            bInitCap = TRUE;
+            bInitCap = true;
             if (iStep > 0) {
                 if (!UseFrameSkip) {
                     UseFrameSkip = 1;
@@ -270,7 +270,7 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
                     }
                 }
             }
-            bSkipNextFrame = FALSE;
+            bSkipNextFrame = false;
             break;
         //////////////////////////////////////////////////////
         case 3:  // special fixes

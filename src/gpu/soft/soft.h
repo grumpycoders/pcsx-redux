@@ -39,7 +39,7 @@ class SoftRenderer {
     TWin_t TWin;
     unsigned short usMirror = 0;  // sprite mirror
     int iDither = 0;
-    long drawX, drawY, drawW, drawH;
+    int drawX, drawY, drawW, drawH;
 
     bool DrawSemiTrans = false;
     short g_m1 = 255, g_m2 = 255, g_m3 = 255;

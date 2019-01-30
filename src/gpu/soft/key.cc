@@ -83,7 +83,7 @@ LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         //--------------------------------------------------//
         case WM_SYSKEYUP:  // alt+enter
-            if (wParam == VK_RETURN) bChangeWinMode = TRUE;
+            if (wParam == VK_RETURN) bChangeWinMode = true;
             break;
         //--------------------------------------------------//
         case WM_KEYUP:  // key up
@@ -107,11 +107,11 @@ LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
             if (wParam == (WPARAM)szGPUKeys[6]) {
 #if 0
-                                if (RECORD_RECORDING == TRUE) {
-                    RECORD_RECORDING = FALSE;
+                                if (RECORD_RECORDING == true) {
+                    RECORD_RECORDING = false;
                     RECORD_Stop();
                 } else {
-                    RECORD_RECORDING = TRUE;
+                    RECORD_RECORDING = true;
                     RECORD_Start();
                 }
 
@@ -137,13 +137,13 @@ LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 break;
             }
             if (wParam == (WPARAM)szGPUKeys[7]) {
-                bVsync_Key = bVsync_Key == TRUE ? FALSE : TRUE;
+                bVsync_Key = bVsync_Key == true ? false : TRUE;
                 BuildDispMenu(0);
                 break;
             }
             if (wParam == (WPARAM)szGPUKeys[8]) {
                 iFastFwd = 1 - iFastFwd;
-                bSkipNextFrame = FALSE;
+                bSkipNextFrame = false;
                 UseFrameSkip = iFastFwd;
                 UseFrameLimit = !iFastFwd;
                 BuildDispMenu(0);
@@ -290,7 +290,7 @@ void GPUkeypressed(int keycode) {
             break;
         case 0x60: {
             iFastFwd = 1 - iFastFwd;
-            bSkipNextFrame = FALSE;
+            bSkipNextFrame = false;
             UseFrameSkip = iFastFwd;
             UseFrameLimit = !iFastFwd;
             BuildDispMenu(0);

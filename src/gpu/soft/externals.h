@@ -148,7 +148,7 @@ class GUI;
 }
 
 extern PCSX::GUI *m_gui;
-extern BOOL bVsync_Key;
+extern bool bVsync_Key;
 
 extern int iFastFwd;
 extern PSXPoint_t ptCursorPoint[];
@@ -173,12 +173,12 @@ extern char szDispBuf[];
 extern char szMenuBuf[];
 extern char szDebugText[];
 extern short sDispWidths[];
-extern BOOL bDebugText;
+extern bool bDebugText;
 // extern unsigned int   iMaxDMACommandCounter;
 // extern unsigned long  dwDMAChainStop;
 extern PSXDisplay_t PSXDisplay;
 extern PSXDisplay_t PreviousPSXDisplay;
-extern BOOL bSkipNextFrame;
+extern bool bSkipNextFrame;
 extern long lGPUstatusRet;
 extern long drawingLines;
 extern unsigned char *psxVSecure;
@@ -189,9 +189,9 @@ extern signed short *psxVsw;
 extern unsigned long *psxVul;
 extern signed long *psxVsl;
 extern unsigned short *psxVuw_eom;
-extern BOOL bChangeWinMode;
+extern bool bChangeWinMode;
 extern long lSelectedSlot;
-extern DWORD dwLaceCnt;
+extern uint32_t dwLaceCnt;
 extern unsigned long lGPUInfoVals[];
 extern unsigned long ulStatusControl[];
 extern int iRumbleVal;
@@ -199,16 +199,16 @@ extern int iRumbleTime;
 
 // menu.c
 //extern unsigned long dwCoreFlags;
-extern HFONT hGFont;
+//extern HFONT hGFont;
 extern int iMPos;
-extern BOOL bTransparent;
+extern bool bTransparent;
 
 // key.c
 //extern unsigned long ulKeybits;
 //extern char szGPUKeys[];
 
 // fps.c
-extern BOOL bInitCap;
+extern bool bInitCap;
 extern int UseFrameLimit;
 extern int UseFrameSkip;
 extern float fFrameRate;
@@ -216,8 +216,8 @@ extern int iFrameLimit;
 extern float fFrameRateHz;
 extern float fps_skip;
 extern float fps_cur;
-extern BOOL IsPerformanceCounter;
-extern BOOL bSSSPSXLimit;
+extern bool IsPerformanceCounter;
+extern bool bSSSPSXLimit;
 
 // key.c
 

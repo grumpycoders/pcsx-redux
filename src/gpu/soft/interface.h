@@ -91,7 +91,7 @@ class impl : public GPU {
     //    DATAREGISTERMODES DataWriteMode;
     //    DATAREGISTERMODES DataReadMode;
 
-    //    BOOL bSkipNextFrame = FALSE;
+    //    bool bSkipNextFrame = false;
     //    DWORD dwLaceCnt = 0;
     //    int iColDepth;
     //    int iWindowMode;
@@ -99,8 +99,8 @@ class impl : public GPU {
     //    PSXDisplay_t PSXDisplay;
     //    PSXDisplay_t PreviousPSXDisplay;
     //    long lSelectedSlot = 0;
-    //    BOOL bChangeWinMode = FALSE;
-    //    BOOL bDoLazyUpdate = FALSE;
+    //    bool bChangeWinMode = false;
+    //    bool bDoLazyUpdate = false;
     //    unsigned long lGPUInfoVals[16];
     //    int iFakePrimBusy = 0;
     //    int iRumbleVal = 0;

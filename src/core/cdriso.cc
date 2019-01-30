@@ -42,6 +42,7 @@
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 
+const uint8_t File::m_internalBuffer = 0;
 void File::close() {
     if (m_handle) fclose(m_handle);
 }
