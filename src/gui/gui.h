@@ -55,7 +55,7 @@ class GUI final {
     void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
     void addNotification(const char *fmt, va_list args) {
         // TODO
-        SDL_TriggerBreakpoint();
+        // SDL_TriggerBreakpoint();
     }
     void scheduleSoftReset() { m_scheduleSoftReset = true; }
     void scheduleHardReset() { m_scheduleHardReset = true; }

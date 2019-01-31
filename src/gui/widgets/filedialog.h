@@ -86,6 +86,7 @@ class FileDialog {
                 case SORT_UP:
                     return a.dateTimeTimeT > b.dateTimeTimeT;
             }
+            return false;
         }
         sort name = SORT_DOWN;
         sort size = UNSORTED;
