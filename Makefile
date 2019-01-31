@@ -1,11 +1,23 @@
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+TARGET := pcsx-redux
 
 PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib
 
 CXXFLAGS := -std=c++2a
-CPPFLAGS := `pkg-config --cflags $(PACKAGES)` -Isrc -Ithird_party -Ithird_party/imgui -Ithird_party/imgui/examples/libs/gl3w -Ithird_party/imgui/examples -Ithird_party/imgui_club -O3
+CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
+CPPFLAGS += -Isrc
+CPPFLAGS += -Ithird_party
+CPPFLAGS += -Ithird_party/imgui
+CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
+CPPFLAGS += -Ithird_party/imgui/examples
+CPPFLAGS += -Ithird_party/imgui_club
+CPPFLAGS += -O3
 
-LDFLAGS := `pkg-config --libs $(PACKAGES)` -lstdc++fs -ldl -lGL
+LDFLAGS := `pkg-config --libs $(PACKAGES)`
+LDFLAGS += -lstdc++fs
+LDFLAGS += -ldl
+LDFLAGS += -lGL
+
 LD := $(CXX)
 
 SRC_CC := $(call rwildcard,src/,*.cc)
@@ -18,17 +30,44 @@ OBJECTS := $(patsubst %.cc,%.o,$(SRC_CC))
 OBJECTS += $(patsubst %.cpp,%.o,$(SRC_CPP))
 OBJECTS += $(patsubst %.c,%.o,$(SRC_C))
 
-all: pcsx-redux
+all: dep $(TARGET)
 
-pcsx-redux: $(OBJECTS)
-	@echo $(SRC_C)
-	$(LD) -o $@ $? $(LDFLAGS)
+$(TARGET): $(OBJECTS)
+	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
 
 %.o: %.c
-	$(CC) -c -o $@ $? $(CPPFLAGS) $(CFLAGS)
+	$(CC) -c -o $@ $< $(CPPFLAGS) $(CFLAGS)
 
 %.o: %.cc
-	$(CXX) -c -o $@ $? $(CPPFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(CPPFLAGS) $(CXXFLAGS)
 
 %.o: %.cpp
-	$(CXX) -c -o $@ $? $(CPPFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(CPPFLAGS) $(CXXFLAGS)
+
+%.dep: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+
+%.dep: %.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+
+%.dep: %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+
+clean:
+	rm -f $(OBJECTS) $(TARGET) $(DEPS)
+
+gitclean:
+	git clean -f -d -x
+	git submodule foreach --recursive git clean -f -d -x
+
+DEPS := $(patsubst %.cc,%.dep,$(SRC_CC))
+DEPS += $(patsubst %.cpp,%.dep,$(SRC_CPP))
+DEPS += $(patsubst %.c,%.dep,$(SRC_C))
+
+dep: $(DEPS)
+
+ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), gitclean)
+-include $(DEPS)
+endif
+endif
