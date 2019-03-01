@@ -22,8 +22,10 @@
 #include <SDL.h>
 #include <stdint.h>
 
-#include "core/decode_xa.h"
+#include "json.hpp"
 
+#include "core/decode_xa.h"
+#include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
 #include "spu/types.h"
@@ -34,6 +36,7 @@ namespace SPU {
 
 class impl {
   public:
+    using json = nlohmann::json;
     bool open();
     // SPU Functions
     long init(void);
@@ -48,7 +51,6 @@ class impl {
     void readDMAMem(unsigned short *, int);
     void playADPCMchannel(xa_decode_t *);
     void registerCallback(void (*callback)(void));
-    long configure(void);
     long test(void);
     void about(void);
 
@@ -69,6 +71,19 @@ class impl {
 
     // num of channels
     static const size_t MAXCHAN = 24;
+
+    void debug();
+    bool configure();
+    json getCfg() { return settings.serialize(); }
+    void setCfg(const json &j) {
+        if (j.count("SPU") && j["SPU"].is_object()) {
+            settings.deserialize(j["SPU"]);
+        } else {
+            settings.reset();
+        }
+    }
+    bool m_showDebug = false;
+    bool m_showCfg = false;
 
   private:
     // sound buffer sizes
@@ -139,17 +154,26 @@ class impl {
     unsigned char *pMixIrq = 0;
 
     // user settings
-
-    int iUseXA = 1;
-    int iVolume = 3;
-    int iXAPitch = 1;
-    int iSPUIRQWait = 1;
-    int iSPUDebugMode = 0;
-    int iRecordMode = 0;
-    int iUseReverb = 2;
-    int iUseInterpolation = 2;
-    int iDisStereo = 0;
-    int iUseDBufIrq = 0;
+#if 0
+    typedef Setting<bool, true, typestring_is("Streaming")> Streaming;
+    typedef Setting<int, 3, typestring_is("Volume")> Volume;
+    typedef Setting<bool, true, typestring_is("Pitch")> StreamingPitch;
+    typedef Setting<bool, true, typestring_is("IRQWait")> SPUIRQWait;
+    typedef Setting<int, 2, typestring_is("Reverb")> Reverb;
+    typedef Setting<int, 2, typestring_is("Interp")> Interpolation;
+    typedef Setting<bool, false, typestring_is("Mono")> Mono;
+    typedef Setting<bool, false, typestring_is("DBufIRQ")> DBufIRQ;
+#else
+    typedef Setting<bool, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>, true> Streaming;
+    typedef Setting<int, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>, 3> Volume;
+    typedef Setting<bool, irqus::typestring<'P', 'i', 't', 'c', 'h'>, true> StreamingPitch;
+    typedef Setting<bool, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>, true> SPUIRQWait;
+    typedef Setting<int, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>, 2> Reverb;
+    typedef Setting<int, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>, 2> Interpolation;
+    typedef Setting<bool, irqus::typestring<'M', 'o', 'n', 'o'>> Mono;
+    typedef Setting<bool, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'>> DBufIRQ;
+#endif
+    Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ> settings;
 
     // MAIN infos struct for each channel
 
@@ -220,6 +244,14 @@ class impl {
     ADSR m_adsr;
     SDLsound m_sound;
     xa_decode_t m_cdda;
+
+    // debug window
+    unsigned m_selectedChannel = 0;
+    uint32_t m_lastUpdated = 0;
+    static const unsigned DEBUG_SAMPLES = 1024;
+    enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
+    float m_channelDebugData[MAXCHAN][DEBUG_SAMPLES];
+    unsigned m_currentDebugSample = 0;
 };
 
 }  // namespace SPU

@@ -39,7 +39,7 @@ class File {
     bool failed();
 
   private:
-    static const uint8_t m_internalBuffer = 0;
+    static const uint8_t m_internalBuffer;
     FILE* m_handle = NULL;
     ssize_t m_ptr = 0;
     ssize_t m_size = 0;
@@ -50,6 +50,7 @@ namespace PCSX {
 
 class CDRiso {
   public:
+    bool isLidOpened() { return m_cdOpenCaseTime < 0 || m_cdOpenCaseTime > (int64_t)time(NULL); }
     void setCdOpenCaseTime(int64_t time) { m_cdOpenCaseTime = time; }
     void init();
     void shutdown();
@@ -110,7 +111,7 @@ class CDRiso {
         unsigned int block_shift;
         unsigned int current_block;
         unsigned int sector_in_blk;
-    } * m_compr_img;
+    } * m_compr_img = NULL;
 
     read_func_t m_cdimg_read_func = NULL;
     read_func_t m_cdimg_read_func_archive = NULL;
@@ -125,7 +126,7 @@ class CDRiso {
     uint32_t m_prevsector;
 
     File* m_decoded_ecm = NULL;
-    void* m_decoded_ecm_buffer;
+    void* m_decoded_ecm_buffer = NULL;
 
     // Function that is used to read CD normally
     read_func_t m_cdimg_read_func_o = NULL;

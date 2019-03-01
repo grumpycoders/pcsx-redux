@@ -55,6 +55,7 @@
 LARGE_INTEGER CPUFrequency, PerformanceCounter;
 #else
 #include <unistd.h>
+typedef uint32_t DWORD;
 #endif
 
 float fFrameRateHz = 0;
@@ -63,13 +64,13 @@ float fFrameRate;
 int iFrameLimit;
 int UseFrameLimit = 0;
 int UseFrameSkip = 0;
-BOOL bSSSPSXLimit = FALSE;
+bool bSSSPSXLimit = false;
 
 ////////////////////////////////////////////////////////////////////////
 // FPS skipping / limit
 ////////////////////////////////////////////////////////////////////////
 
-BOOL bInitCap = TRUE;
+bool bInitCap = true;
 float fps_skip = 0;
 float fps_cur = 0;
 
@@ -85,7 +86,7 @@ void CheckFrameRate(void) {
             dwLaceCnt++;                                // -> store cnt of vsync between frames
             if (dwLaceCnt >= MAXLACE && UseFrameLimit)  // -> if there are many laces without screen toggling,
             {                                           //    do std frame limitation
-                if (dwLaceCnt == MAXLACE) bInitCap = TRUE;
+                if (dwLaceCnt == MAXLACE) bInitCap = true;
 
                 if (bSSSPSXLimit)
                     FrameCapSSSPSX();
@@ -102,7 +103,7 @@ void CheckFrameRate(void) {
     } else          // non-skipping mode:
     {
         if (UseFrameLimit) FrameCap();           // -> do it
-        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
+//        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
     }
 }
 
@@ -112,7 +113,7 @@ void CheckFrameRate(void) {
 
 #ifdef _WIN32
 
-BOOL IsPerformanceCounter = FALSE;
+bool IsPerformanceCounter = false;
 
 void FrameCap(void)  // frame limit func
 {
@@ -120,12 +121,12 @@ void FrameCap(void)  // frame limit func
     static DWORD TicksToWait = 0;
     static LARGE_INTEGER CurrentTime;
     static LARGE_INTEGER LastTime;
-    static BOOL SkipNextWait = FALSE;
-    BOOL Waiting = TRUE;
+    static bool SkipNextWait = false;
+    bool Waiting = true;
 
     //---------------------------------------------------------
     if (bInitCap) {
-        bInitCap = FALSE;
+        bInitCap = false;
         if (IsPerformanceCounter) QueryPerformanceCounter(&LastTime);
         lastticks = timeGetTime();
         TicksToWait = 0;
@@ -173,7 +174,7 @@ void FrameCap(void)  // frame limit func
                 //---------------------------------------------------------
 
                 if ((_ticks_since_last_update > TicksToWait) || (CurrentTime.LowPart < LastTime.LowPart)) {
-                    Waiting = FALSE;
+                    Waiting = false;
 
                     lastticks = curticks;
 
@@ -199,7 +200,7 @@ void FrameCap(void)  // frame limit func
                 curticks = timeGetTime();
                 _ticks_since_last_update = curticks - lastticks;
                 if ((_ticks_since_last_update > TicksToWait) || (curticks < lastticks)) {
-                    Waiting = FALSE;
+                    Waiting = false;
                     lastticks = curticks;
                     TicksToWait = dwFrameRateTicks;
                 }
@@ -215,7 +216,7 @@ void FrameCapSSSPSX(void)  // frame limit func SSSPSX
 
     //---------------------------------------------------------
     if (bInitCap) {
-        bInitCap = FALSE;
+        bInitCap = false;
         reqticks = curticks = timeGetTime();
         offset = 0;
         return;
@@ -248,7 +249,7 @@ void FrameSkip(void) {
     if (iNumSkips)  // we are in pure skipping mode?
     {
         dwLastLace += dwLaceCnt;  // -> calc frame limit helper (number of laces)
-        bSkipNextFrame = TRUE;    // -> we skip next frame as well
+        bSkipNextFrame = true;    // -> we skip next frame as well
         iNumSkips--;              // -> ok, one done
     } else                        // ok, no additional skipping has to be done...
     {                             // we check now, if some limitation is needed, or a new skipping has to get started
@@ -301,14 +302,14 @@ void FrameSkip(void) {
                         if (IsPerformanceCounter)  // -> ok, start time of the next frame
                             QueryPerformanceCounter(&LastTime);
                         lastticks = timeGetTime();
-                        return;  // -> done, we will skip next frame to get more speed (SkipNextFrame still TRUE)
+                        return;  // -> done, we will skip next frame to get more speed (SkipNextFrame still true)
                     }
                 }
             }
 
-            bInitCap = FALSE;          // -> ok, we have inited the frameskip func
+            bInitCap = false;          // -> ok, we have inited the frameskip func
             iAdditionalSkip = 0;       // -> init additional skip
-            bSkipNextFrame = FALSE;    // -> we don't skip the next frame
+            bSkipNextFrame = false;    // -> we don't skip the next frame
             if (IsPerformanceCounter)  // -> we store the start time of the next frame
                 QueryPerformanceCounter(&LastTime);
             lastticks = timeGetTime();
@@ -318,7 +319,7 @@ void FrameSkip(void) {
             return;  // -> done, the next frame will get drawn
         }
 
-        bSkipNextFrame = FALSE;  // init the frame skip signal to 'no skipping' first
+        bSkipNextFrame = false;  // init the frame skip signal to 'no skipping' first
 
         if (IsPerformanceCounter)  // get the current time (we are now at the end of one drawn frame)
         {
@@ -342,7 +343,7 @@ void FrameSkip(void) {
                 iNumSkips--;                                        // -> since we already skip next frame, one down
                 if (iNumSkips > MAXSKIP) iNumSkips = MAXSKIP;       // -> well, somewhere we have to draw a line
             }
-            bSkipNextFrame = TRUE;  // -> signal for skipping the next frame
+            bSkipNextFrame = true;  // -> signal for skipping the next frame
         } else                      // we were faster than real psx? fine :)
             if (UseFrameLimit)      // frame limit used? so we wait til the 'real psx time' has been reached
         {
@@ -448,7 +449,7 @@ void PCFrameCap(void) {
     static DWORD TicksToWait = 0;
     static LARGE_INTEGER CurrentTime;
     static LARGE_INTEGER LastTime;
-    BOOL Waiting = TRUE;
+    bool Waiting = true;
 
     while (Waiting) {
         if (IsPerformanceCounter) {
@@ -466,7 +467,7 @@ void PCFrameCap(void) {
             //------------------------------------------------//
 
             if ((_ticks_since_last_update > TicksToWait) || (CurrentTime.LowPart < LastTime.LowPart)) {
-                Waiting = FALSE;
+                Waiting = false;
                 lastticks = curticks;
                 LastTime.HighPart = CurrentTime.HighPart;
                 LastTime.LowPart = CurrentTime.LowPart;
@@ -476,7 +477,7 @@ void PCFrameCap(void) {
             curticks = timeGetTime();
             _ticks_since_last_update = curticks - lastticks;
             if ((_ticks_since_last_update > TicksToWait) || (curticks < lastticks)) {
-                Waiting = FALSE;
+                Waiting = false;
                 lastticks = curticks;
                 TicksToWait = (1000 / (DWORD)fFrameRateHz);
             }
@@ -573,15 +574,15 @@ void SetAutoFrameCap(void) {
 
 void SetFPSHandler(void) {
     if (QueryPerformanceFrequency(&CPUFrequency))  // timer mode
-        IsPerformanceCounter = TRUE;
+        IsPerformanceCounter = true;
     else
-        IsPerformanceCounter = FALSE;
+        IsPerformanceCounter = false;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 void InitFPS(void) {
-    bInitCap = TRUE;
+    bInitCap = true;
 
     if (fFrameRateHz == 0) {
         if (iFrameLimit == 2)
@@ -615,7 +616,7 @@ unsigned long timeGetTime() {
 void FrameCap(void) {
     static unsigned long curticks, lastticks, _ticks_since_last_update;
     static unsigned long TicksToWait = 0;
-    BOOL Waiting = TRUE;
+    bool Waiting = true;
 
     {
         curticks = timeGetTime();
@@ -633,7 +634,7 @@ void FrameCap(void) {
                 curticks = timeGetTime();
                 _ticks_since_last_update = curticks - lastticks;
                 if ((_ticks_since_last_update > TicksToWait) || (curticks < lastticks)) {
-                    Waiting = FALSE;
+                    Waiting = false;
                     lastticks = curticks;
                     TicksToWait = dwFrameRateTicks;
                 }
@@ -649,7 +650,7 @@ void FrameCapSSSPSX(void)  // frame limit func SSSPSX
 
     //---------------------------------------------------------
     if (bInitCap) {
-        bInitCap = FALSE;
+        bInitCap = false;
         reqticks = curticks = timeGetTime();
         offset = 0;
         return;
@@ -681,7 +682,7 @@ void FrameSkip(void) {
     if (iNumSkips)  // we are in skipping mode?
     {
         dwLastLace += dwLaceCnt;  // -> calc frame limit helper (number of laces)
-        bSkipNextFrame = TRUE;    // -> we skip next frame
+        bSkipNextFrame = true;    // -> we skip next frame
         iNumSkips--;              // -> ok, one done
     } else                        // ok, no additional skipping has to be done...
     {                             // we check now, if some limitation is needed, or a new skipping has to get started
@@ -726,9 +727,9 @@ void FrameSkip(void) {
                 }
             }
 
-            bInitCap = FALSE;           // -> ok, we have inited the frameskip func
+            bInitCap = false;           // -> ok, we have inited the frameskip func
             iAdditionalSkip = 0;        // -> init additional skip
-            bSkipNextFrame = FALSE;     // -> we don't skip the next frame
+            bSkipNextFrame = false;     // -> we don't skip the next frame
             lastticks = timeGetTime();  // -> we store the start time of the next frame
             dwLaceCnt = 0;              // -> and we start to count the laces
             dwLastLace = 0;
@@ -736,7 +737,7 @@ void FrameSkip(void) {
             return;  // -> done, the next frame will get drawn
         }
 
-        bSkipNextFrame = FALSE;  // init the frame skip signal to 'no skipping' first
+        bSkipNextFrame = false;  // init the frame skip signal to 'no skipping' first
 
         curticks = timeGetTime();  // get the current time (we are now at the end of one drawn frame)
         _ticks_since_last_update = curticks - lastticks;
@@ -754,7 +755,7 @@ void FrameSkip(void) {
                 iNumSkips--;                                        // -> since we already skip next frame, one down
                 if (iNumSkips > MAXSKIP) iNumSkips = MAXSKIP;       // -> well, somewhere we have to draw a line
             }
-            bSkipNextFrame = TRUE;  // -> signal for skipping the next frame
+            bSkipNextFrame = true;  // -> signal for skipping the next frame
         } else                      // we were faster than real psx? fine :)
             if (UseFrameLimit)      // frame limit used? so we wait til the 'real psx time' has been reached
         {
@@ -788,7 +789,7 @@ void calcfps(void) {
         _ticks_since_last_update = curticks - lastticks;
 
         if (UseFrameSkip && !UseFrameLimit && _ticks_since_last_update)
-            fps_skip = min(fps_skip, ((float)TIMEBASE / (float)_ticks_since_last_update + 1.0f));
+            fps_skip = std::min(fps_skip, ((float)TIMEBASE / (float)_ticks_since_last_update + 1.0f));
 
         lastticks = curticks;
     }
@@ -820,13 +821,13 @@ void calcfps(void) {
 void PCFrameCap(void) {
     static unsigned long curticks, lastticks, _ticks_since_last_update;
     static unsigned long TicksToWait = 0;
-    BOOL Waiting = TRUE;
+    bool Waiting = true;
 
     while (Waiting) {
         curticks = timeGetTime();
         _ticks_since_last_update = curticks - lastticks;
         if ((_ticks_since_last_update > TicksToWait) || (curticks < lastticks)) {
-            Waiting = FALSE;
+            Waiting = false;
             lastticks = curticks;
             TicksToWait = (TIMEBASE / (unsigned long)fFrameRateHz);
         }

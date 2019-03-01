@@ -21,7 +21,7 @@
 
 #include "core/gpu.h"
 #include "gpu/soft/externals.h"
-#include "gpu/soft/soft.h"
+#include "gpu/soft/prim.h"
 
 namespace PCSX {
 
@@ -32,7 +32,7 @@ namespace SoftGPU {
 class impl : public GPU {
     virtual long init() final;
     virtual long shutdown() final;
-    virtual long open(GUI*) final;
+    virtual long open(GUI *) final;
     virtual long close() final;
     virtual uint32_t readData() final {
         uint32_t l;
@@ -47,8 +47,15 @@ class impl : public GPU {
     virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
     virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) final;
+    virtual bool configure() final {
+        if (m_showCfg) {
+            return m_softPrim.configure(&m_showCfg);
+        } else {
+            return false;
+        }
+    }
 
-    SoftRenderer m_prim;
+    SoftPrim m_softPrim;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram
@@ -84,7 +91,7 @@ class impl : public GPU {
     //    DATAREGISTERMODES DataWriteMode;
     //    DATAREGISTERMODES DataReadMode;
 
-    //    BOOL bSkipNextFrame = FALSE;
+    //    bool bSkipNextFrame = false;
     //    DWORD dwLaceCnt = 0;
     //    int iColDepth;
     //    int iWindowMode;
@@ -92,8 +99,8 @@ class impl : public GPU {
     //    PSXDisplay_t PSXDisplay;
     //    PSXDisplay_t PreviousPSXDisplay;
     //    long lSelectedSlot = 0;
-    //    BOOL bChangeWinMode = FALSE;
-    //    BOOL bDoLazyUpdate = FALSE;
+    //    bool bChangeWinMode = false;
+    //    bool bDoLazyUpdate = false;
     //    unsigned long lGPUInfoVals[16];
     //    int iFakePrimBusy = 0;
     //    int iRumbleVal = 0;

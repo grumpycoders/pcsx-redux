@@ -24,6 +24,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #ifndef _GPU_CFG_H_
 #define _GPU_CFG_H_
 
@@ -32,10 +34,12 @@ void WriteGPUConfig(void);
 void ReadWinSizeConfig(void);
 
 #ifdef _WIN32
-BOOL SoftDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
+bool SoftDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #else  // LINUX
 void SoftDlgProc(void);
 void AboutDlgProc(void);
 #endif
 
 #endif  // _GPU_CFG_H_
+
+#endif

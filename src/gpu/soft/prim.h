@@ -22,12 +22,13 @@
 #include <stdint.h>
 
 #include "gpu/soft/externals.h"
+#include "gpu/soft/soft.h"
 
 namespace PCSX {
 
 namespace SoftGPU {
 
-class Prim {
+class SoftPrim : public SoftRenderer {
   public:
     inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
         if (!bSkipNextFrame) {
@@ -36,6 +37,8 @@ class Prim {
             (*this.*(skip[cmd]))(baseAddr);
         }
     }
+
+    bool configure(bool *);
 
     inline void reset() {
         GlobalTextAddrX = 0;
@@ -51,50 +54,11 @@ class Prim {
         lSetMask = 0;
     }
 
-  protected:
-    virtual void offsetPSXLine() = 0;
-    virtual void offsetPSX2() = 0;
-    virtual void offsetPSX3() = 0;
-    virtual void offsetPSX4() = 0;
-
-    virtual void FillSoftwareAreaTrans(short x0, short y0, short x1, short y1, unsigned short col) = 0;
-    virtual void FillSoftwareArea(short x0, short y0, short x1, short y1, unsigned short col) = 0;
-    virtual void drawPoly3G(long rgb1, long rgb2, long rgb3) = 0;
-    virtual void drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4) = 0;
-    virtual void drawPoly3F(long rgb) = 0;
-    virtual void drawPoly4F(long rgb) = 0;
-    virtual void drawPoly4FT(unsigned char *baseAddr) = 0;
-    virtual void drawPoly4GT(unsigned char *baseAddr) = 0;
-    virtual void drawPoly3FT(unsigned char *baseAddr) = 0;
-    virtual void drawPoly3GT(unsigned char *baseAddr) = 0;
-    virtual void DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long ty) = 0;
-    virtual void DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) = 0;
-    virtual void DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h) = 0;
-    virtual void DrawSoftwareLineShade(long rgb0, long rgb1) = 0;
-    virtual void DrawSoftwareLineFlat(long rgb) = 0;
-
-    bool bUsingTWin = false;
-    TWin_t TWin;
-    unsigned short usMirror = 0;  // sprite mirror
-    int iDither = 0;
-    long drawX;
-    long drawY;
-    long drawW;
-    long drawH;
-
-    bool DrawSemiTrans = false;
-    short g_m1 = 255, g_m2 = 255, g_m3 = 255;
-    short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
-
-    long GlobalTextAddrX, GlobalTextAddrY, GlobalTextTP;
-    long GlobalTextREST, GlobalTextABR;
-
-    bool bCheckMask = false;
-    unsigned short sSetMask = 0;
-    unsigned long lSetMask = 0;
-
   private:
-    typedef void (Prim::*func_t)(unsigned char *);
+    int iUseDither = 0;
+    long GlobalTextREST;
+
+    typedef void (SoftPrim::*func_t)(unsigned char *);
     typedef const func_t cfunc_t;
     void cmdSTP(unsigned char *baseAddr);
     void cmdTexturePage(unsigned char *baseAddr);

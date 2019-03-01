@@ -22,19 +22,26 @@
 #include <SDL.h>
 #include <stdarg.h>
 
-#include "imgui.h"
+#include <string>
 
+#include "flags.h"
+
+#include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
+#undef snprintf
+
+#include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
+#include "gui/widgets/registers.h"
 
 namespace PCSX {
 
 class GUI final {
   public:
+    GUI(const flags::args &args) : m_args(args) {}
     void init();
-    void update() {
-        endFrame();
-        startFrame();
-    }
+    void close();
+    void update();
     void flip();
     void bindVRAMTexture();
     void setViewport();
@@ -48,12 +55,19 @@ class GUI final {
     void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
     void addNotification(const char *fmt, va_list args) {
         // TODO
+        // SDL_TriggerBreakpoint();
     }
+    void scheduleSoftReset() { m_scheduleSoftReset = true; }
+    void scheduleHardReset() { m_scheduleHardReset = true; }
+
   private:
     static void checkGL();
+    void saveCfg();
 
     void startFrame();
     void endFrame();
+
+    bool configure();
 
     void normalizeDimensions(ImVec2 &vec, float ratio) {
         float r = vec.y / vec.x;
@@ -64,8 +78,8 @@ class GUI final {
         }
     }
 
-    SDL_Window *m_window = NULL;
-    SDL_GLContext m_glContext = NULL;
+    SDL_Window *m_window = nullptr;
+    SDL_GLContext m_glContext = nullptr;
     unsigned int m_VRAMTexture = 0;
 
     unsigned int m_offscreenFrameBuffer = 0;
@@ -84,8 +98,21 @@ class GUI final {
     bool m_showMenu = false;
     bool m_showDemo = false;
     bool m_showVRAMwindow = false;
-    bool m_showLog = false;
     Widgets::Log m_log;
+    struct MemoryEditorWrapper {
+        MemoryEditor editor;
+        std::string title;
+        bool show;
+    };
+    MemoryEditorWrapper m_mainMemEditors[8];
+    Widgets::Registers m_registers;
+    Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
+
+    bool m_showCfg = false;
+
+    const flags::args &m_args;
+    bool m_scheduleSoftReset = false;
+    bool m_scheduleHardReset = false;
 };
 
 }  // namespace PCSX

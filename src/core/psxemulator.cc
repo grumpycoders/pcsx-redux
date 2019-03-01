@@ -91,7 +91,8 @@ void PCSX::Emulator::EmuShutdown() {
 
 void PCSX::Emulator::EmuUpdate() {
     // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!m_config.HLE || !m_psxBios->m_hleSoftCall) PCSX::g_system->update();
+    if (!settings.get<SettingHLE>() || !m_psxBios->m_hleSoftCall)
+        PCSX::g_system->update();
 
     m_cheats->ApplyCheats();
 

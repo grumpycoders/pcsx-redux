@@ -65,7 +65,7 @@ void PCSX::SPU::SDLsound::setup() {
     s_specs.samples = 1024;
     s_specs.callback = callbackTrampoline;
     s_specs.userdata = this;
-    s_dev = SDL_OpenAudioDevice(NULL, 0, &s_specs, NULL, SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
+    s_dev = SDL_OpenAudioDevice(NULL, 0, &s_specs, NULL, 0 /* SDL_AUDIO_ALLOW_SAMPLES_CHANGE */);
     assert(s_dev);
     SDL_PauseAudioDevice(s_dev, 0);
 

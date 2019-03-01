@@ -82,7 +82,7 @@ struct SPUCHAN {
     int iLeftVolume;   // left volume
     int iLeftVolRaw;   // left psx volume value
     int bIgnoreLoop;   // ignore loop bit, if an external loop address is used
-    int iMute;         // mute mode
+    bool iMute;        // mute mode
     int iRightVolume;  // right volume
     int iRightVolRaw;  // right psx volume value
     int iRawPitch;     // raw pitch (0...3fff)

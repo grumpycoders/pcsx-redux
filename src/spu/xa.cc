@@ -79,14 +79,14 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     if (iPlace == 0) return;  // no place at all
 
     //----------------------------------------------------//
-    if (iXAPitch)  // pitch change option?
+    if (settings.get<StreamingPitch>())  // pitch change option?
     {
         static DWORD dwLT = 0;
         static DWORD dwFPS = 0;
         static int iFPSCnt = 0;
         static int iLastSize = 0;
         static DWORD dwL1 = 0;
-        DWORD dw = timeGetTime(), dw1, dw2;
+        DWORD dw = SDL_GetTicks(), dw1, dw2;
 
         iPlace = iSize;
 
@@ -125,11 +125,11 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
         unsigned long *pS = (unsigned long *)xap->pcm;
         unsigned long l = 0;
 
-        if (iXAPitch) {
+        if (settings.get<StreamingPitch>()) {
             long l1, l2;
             short s;
             for (i = 0; i < iSize; i++) {
-                if (iUseInterpolation == 2) {
+                if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
                         l = *pS++;
                         gauss_window[gauss_ptr] = (short)LOWORD(l);
@@ -179,7 +179,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
         } else {
             for (i = 0; i < iSize; i++) {
-                if (iUseInterpolation == 2) {
+                if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
                         l = *pS++;
                         gauss_window[gauss_ptr] = (short)LOWORD(l);
@@ -221,10 +221,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
         unsigned long l;
         short s = 0;
 
-        if (iXAPitch) {
+        if (settings.get<StreamingPitch>()) {
             long l1;
             for (i = 0; i < iSize; i++) {
-                if (iUseInterpolation == 2) {
+                if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
                         gauss_window[gauss_ptr] = (short)*pS++;
                         gauss_ptr = (gauss_ptr + 1) & 3;
@@ -261,7 +261,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
         } else {
             for (i = 0; i < iSize; i++) {
-                if (iUseInterpolation == 2) {
+                if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
                         gauss_window[gauss_ptr] = (short)*pS++;
                         gauss_ptr = (gauss_ptr + 1) & 3;

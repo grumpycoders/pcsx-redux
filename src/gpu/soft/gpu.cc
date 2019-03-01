@@ -111,7 +111,11 @@
 //
 //*************************************************************************//
 
+#define NOMINMAX
+
 #include "stdafx.h"
+
+#include <algorithm>
 
 #ifdef _WIN32
 
@@ -144,17 +148,7 @@ const unsigned char version = 1;  // do not touch - library for PSEmu 1.x
 const unsigned char revision = 1;
 const unsigned char build = 18;  // increase that with each version
 
-#ifdef _WIN32
 static const char *libraryName = "P.E.Op.S. Soft Driver";
-#else
-#ifndef _SDL
-static char *libraryName = "P.E.Op.S. SoftX Driver";
-static char *libraryInfo = "P.E.Op.S. SoftX Driver V1.18\nCoded by Pete Bernert and the P.E.Op.S. team\n";
-#else
-static char *libraryName = "P.E.Op.S. SoftSDL Driver";
-static char *libraryInfo = "P.E.Op.S. SoftSDL Driver V1.18\nCoded by Pete Bernert and the P.E.Op.S. team\n";
-#endif
-#endif
 
 static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
 
@@ -191,67 +185,20 @@ VRAMLoad_t VRAMRead;
 DATAREGISTERMODES DataWriteMode;
 DATAREGISTERMODES DataReadMode;
 
-BOOL bSkipNextFrame = FALSE;
-DWORD dwLaceCnt = 0;
+bool bSkipNextFrame = false;
+uint32_t dwLaceCnt = 0;
 int iColDepth;
 int iWindowMode;
 short sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 PSXDisplay_t PSXDisplay;
 PSXDisplay_t PreviousPSXDisplay;
 long lSelectedSlot = 0;
-BOOL bChangeWinMode = FALSE;
-BOOL bDoLazyUpdate = FALSE;
+bool bChangeWinMode = false;
+bool bDoLazyUpdate = false;
 unsigned long lGPUInfoVals[16];
 int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
-
-#ifdef _WIN32
-
-////////////////////////////////////////////////////////////////////////
-// screensaver stuff: dynamically load kernel32.dll to avoid export dependeny
-////////////////////////////////////////////////////////////////////////
-
-int iStopSaver = 0;
-HINSTANCE kernel32LibHandle = NULL;
-
-// A stub function, that does nothing .... but it does "nothing" well :)
-EXECUTION_STATE WINAPI STUB_SetThreadExecutionState(EXECUTION_STATE esFlags) { return esFlags; }
-
-// The dynamic version of the system call is prepended with a "D_"
-EXECUTION_STATE(WINAPI *D_SetThreadExecutionState)(EXECUTION_STATE esFlags) = STUB_SetThreadExecutionState;
-
-BOOL LoadKernel32(void) {
-    // Get a handle to the kernel32.dll (which is actually already loaded)
-    kernel32LibHandle = LoadLibrary("kernel32.dll");
-
-    // If we've got a handle, then locate the entry point for the SetThreadExecutionState function
-    if (kernel32LibHandle != NULL) {
-        if ((D_SetThreadExecutionState = (EXECUTION_STATE(WINAPI *)(EXECUTION_STATE))GetProcAddress(
-                 kernel32LibHandle, "SetThreadExecutionState")) == NULL)
-            D_SetThreadExecutionState = STUB_SetThreadExecutionState;
-    }
-
-    return TRUE;
-}
-
-BOOL FreeKernel32(void) {
-    // Release the handle to kernel32.dll
-    if (kernel32LibHandle != NULL) FreeLibrary(kernel32LibHandle);
-
-    // Set to stub function, to avoid nasty suprises if called :)
-    D_SetThreadExecutionState = STUB_SetThreadExecutionState;
-
-    return TRUE;
-}
-#else
-
-// Linux: Stub the functions
-BOOL LoadKernel32(void) { return TRUE; }
-
-BOOL FreeKernel32(void) { return TRUE; }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 // some misc external display funcs
@@ -283,8 +230,8 @@ extern "C" void softGPUdisplayText(char *pText)  // some debug func
 
 extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
 {
-    dwCoreFlags = dwFlags;
-    BuildDispMenu(0);
+//    dwCoreFlags = dwFlags;
+    //BuildDispMenu(0);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -371,7 +318,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
         bmpfile = fopen(filename, "rb");
         if (bmpfile == NULL) break;
         fclose(bmpfile);
-    } while (TRUE);
+    } while (true);
 
     // try opening new snapshot file
     if ((bmpfile = fopen(filename, "wb")) == NULL) return;
@@ -422,15 +369,15 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 
     SetFPSHandler();
 
-    PSXDisplay.RGB24 = FALSE;  // init some stuff
-    PSXDisplay.Interlaced = FALSE;
+    PSXDisplay.RGB24 = false;  // init some stuff
+    PSXDisplay.Interlaced = false;
     PSXDisplay.DrawOffset.x = 0;
     PSXDisplay.DrawOffset.y = 0;
     PSXDisplay.DisplayMode.x = 320;
     PSXDisplay.DisplayMode.y = 240;
     PreviousPSXDisplay.DisplayMode.x = 320;
     PreviousPSXDisplay.DisplayMode.y = 240;
-    PSXDisplay.Disabled = FALSE;
+    PSXDisplay.Disabled = false;
     PreviousPSXDisplay.Range.x0 = 0;
     PreviousPSXDisplay.Range.y0 = 0;
     PSXDisplay.Range.x0 = 0;
@@ -451,9 +398,6 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
     GPUIsReadyForCommands;
     bDoVSyncUpdate = true;
 
-    // Get a handle for kernel32.dll, and access the required export function
-    LoadKernel32();
-
     return 0;
 }
 
@@ -464,7 +408,7 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 {
     m_gui = gui;
-
+#if 0
     SetKeyHandler();  // sub-class window
 
     if (bChangeWinMode)
@@ -474,12 +418,13 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
         ReadGPUConfig();  // read registry
         InitFPS();
     }
+#else
+    InitFPS();
+#endif
 
     bDoVSyncUpdate = true;
 
     ulInitDisplay();  // setup direct draw
-
-    if (iStopSaver) D_SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED | ES_CONTINUOUS);
 
     return 0;
 }
@@ -490,13 +435,9 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 
 long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
-    ReleaseKeyHandler();  // de-subclass window
+//    ReleaseKeyHandler();  // de-subclass window
 
     CloseDisplay();  // shutdown direct draw
-
-#ifdef _WIN32
-    if (iStopSaver) D_SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
-#endif
 
     return 0;
 }
@@ -507,9 +448,6 @@ long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 
 long PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
-    // screensaver: release the handle for kernel32.dll
-    FreeKernel32();
-
     free(psxVSecure);
 
     return 0;  // nothinh to do
@@ -530,13 +468,13 @@ void updateDisplay(void)  // UPDATE DISPLAY
     if (dwActFixes & 32)  // pc fps calculation fix
     {
         if (UseFrameLimit) PCFrameCap();  // -> brake
-        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+//        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
-    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
-    {
-        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
-    }
+//    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
+//    {
+//        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
+//    }
 
     if (iFastFwd)  // fastfwd ?
     {
@@ -545,9 +483,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
         if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
         if (fpscount % 6)                     // -> skip 6/7 frames
-            bSkipNextFrame = TRUE;
+            bSkipNextFrame = true;
         else
-            bSkipNextFrame = FALSE;
+            bSkipNextFrame = false;
         fpscount++;
         if (fpscount >= (int)fFrameRateHz) fpscount = 0;
         return;
@@ -560,10 +498,10 @@ void updateDisplay(void)  // UPDATE DISPLAY
         {
             if ((fps_skip < fFrameRateHz) && !(bSkipNextFrame))  // -> skip max one in a row
             {
-                bSkipNextFrame = TRUE;
+                bSkipNextFrame = true;
                 fps_skip = fFrameRateHz;
             } else
-                bSkipNextFrame = FALSE;
+                bSkipNextFrame = false;
         } else
             FrameSkip();
     } else  // no skip ?
@@ -679,9 +617,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
     PreviousPSXDisplay.DisplayMode.x =       // previous will hold
-        min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
+        std::min(640L, PSXDisplay.DisplayMode.x);  // max 640x512... that's
     PreviousPSXDisplay.DisplayMode.y =       // the size of my
-        min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
+        std::min(512L, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
     PSXDisplay.DisplayEnd.x =  // calc end of display
@@ -706,7 +644,7 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
     //    softGPUclose();
     iWindowMode = !iWindowMode;
     //    softGPUopen(textureId);
-    bChangeWinMode = FALSE;
+    bChangeWinMode = false;
     bDoVSyncUpdate = true;
 }
 
@@ -750,7 +688,7 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
         if (dwActFixes & 64)  // lazy screen update fix
         {
             if (bDoLazyUpdate && !UseFrameSkip) updateDisplay();
-            bDoLazyUpdate = FALSE;
+            bDoLazyUpdate = false;
         } else {
             if (bDoVSyncUpdate && !UseFrameSkip)  // some primitives drawn?
                 updateDisplay();                  // -> update display
@@ -815,9 +753,9 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            m_prim.reset();
-            PSXDisplay.RGB24 = FALSE;
-            PSXDisplay.Interlaced = FALSE;
+            m_softPrim.reset();
+            PSXDisplay.RGB24 = false;
+            PSXDisplay.Interlaced = false;
             return;
         //--------------------------------------------------//
         // dis/enable display
@@ -902,7 +840,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
             {
                 if (UseFrameSkip) updateDisplay();
-                if (dwActFixes & 64) bDoLazyUpdate = TRUE;
+                if (dwActFixes & 64) bDoLazyUpdate = true;
             }
         }
             return;
@@ -952,9 +890,9 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 
             ChangeDispOffsetsY();
 
-            PSXDisplay.PAL = (gdata & 0x08) ? TRUE : FALSE;            // if 1 - PAL mode, else NTSC
-            PSXDisplay.RGB24New = (gdata & 0x10) ? TRUE : FALSE;       // if 1 - TrueColor
-            PSXDisplay.InterlacedNew = (gdata & 0x20) ? TRUE : FALSE;  // if 1 - Interlace
+            PSXDisplay.PAL = (gdata & 0x08) ? true : false;            // if 1 - PAL mode, else NTSC
+            PSXDisplay.RGB24New = (gdata & 0x10) ? true : false;       // if 1 - TrueColor
+            PSXDisplay.InterlacedNew = (gdata & 0x20) ? true : false;  // if 1 - Interlace
 
             lGPUstatusRet &= ~GPUSTATUS_WIDTHBITS;                               // Clear the width bits
             lGPUstatusRet |= (((gdata & 0x03) << 17) | ((gdata & 0x40) << 10));  // Set the width bits
@@ -1216,7 +1154,7 @@ void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
 STARTVRAM:
 
     if (DataWriteMode == DR_VRAMTRANSFER) {
-        BOOL bFinished = FALSE;
+        bool bFinished = false;
 
         // make sure we are in vram
         while (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
@@ -1257,7 +1195,7 @@ STARTVRAM:
             VRAMWrite.RowsRemaining = VRAMWrite.Width;
             VRAMWrite.ColsRemaining--;
             VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
-            bFinished = TRUE;
+            bFinished = true;
         }
 
         FinishedVRAMWrite();
@@ -1297,7 +1235,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_prim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
+                m_softPrim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1341,10 +1279,10 @@ extern "C" long softGPUconfigure(void) { return 0; }
 
 void SetFixes(void) {
 #ifdef _WIN32
-    BOOL bOldPerformanceCounter = IsPerformanceCounter;  // store curr timer mode
+    bool bOldPerformanceCounter = IsPerformanceCounter;  // store curr timer mode
 
     if (dwActFixes & 0x10)  // check fix 0x10
-        IsPerformanceCounter = FALSE;
+        IsPerformanceCounter = false;
     else
         SetFPSHandler();
 
@@ -1364,16 +1302,16 @@ void SetFixes(void) {
 
 unsigned long lUsedAddr[3];
 
-__inline BOOL CheckForEndlessLoop(unsigned long laddr) {
-    if (laddr == lUsedAddr[1]) return TRUE;
-    if (laddr == lUsedAddr[2]) return TRUE;
+__inline bool CheckForEndlessLoop(unsigned long laddr) {
+    if (laddr == lUsedAddr[1]) return true;
+    if (laddr == lUsedAddr[2]) return true;
 
     if (laddr < lUsedAddr[0])
         lUsedAddr[1] = laddr;
     else
         lUsedAddr[2] = laddr;
     lUsedAddr[0] = laddr;
-    return FALSE;
+    return false;
 }
 
 long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
@@ -1428,7 +1366,7 @@ long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF)
         if (lSlotNum < 0) return 0;
         if (lSlotNum > 8) return 0;
         lSelectedSlot = lSlotNum + 1;
-        BuildDispMenu(0);
+        //BuildDispMenu(0);
         return 1;
     }
     //----------------------------------------------------//
@@ -1620,14 +1558,14 @@ void GPUsetfix(unsigned long dwFixBits) { dwEmuFixes = dwFixBits; }
 ////////////////////////////////////////////////////////////////////////
 
 void GPUsetframelimit(unsigned long option) {
-    bInitCap = TRUE;
+    bInitCap = true;
 
     if (option == 1) {
         UseFrameLimit = 1;
         UseFrameSkip = 0;
         iFrameLimit = 2;
         SetAutoFrameCap();
-        BuildDispMenu(0);
+        //BuildDispMenu(0);
     } else {
         UseFrameLimit = 0;
     }
@@ -1635,20 +1573,4 @@ void GPUsetframelimit(unsigned long option) {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {
-    int iVibVal;
-
-    if (PreviousPSXDisplay.DisplayMode.x)  // calc min "shake pixel" from screen width
-        iVibVal = max(1, iResX / PreviousPSXDisplay.DisplayMode.x);
-    else
-        iVibVal = 1;
-    // big rumble: 4...15 sp ; small rumble 1...3 sp
-    if (iBig)
-        iRumbleVal = max(4 * iVibVal, min(15 * iVibVal, ((int)iBig * iVibVal) / 10));
-    else
-        iRumbleVal = max(1 * iVibVal, min(3 * iVibVal, ((int)iSmall * iVibVal) / 10));
-
-    srand(timeGetTime());  // init rand (will be used in BufferSwap)
-
-    iRumbleTime = 15;  // let the rumble last 16 buffer swaps
-}
+extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {}

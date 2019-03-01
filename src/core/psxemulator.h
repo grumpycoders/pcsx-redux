@@ -37,11 +37,16 @@
 #include <time.h>
 #include <zlib.h>
 
+#include <filesystem>
 #include <string>
+
+#include "main/settings.h"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #endif
 #ifdef MAX_PATH
@@ -56,7 +61,7 @@
 #define PACKAGE_VERSION "0"
 #endif
 
-// Local includes - anything else is forbidden
+// Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
 #include "core/system.h"
 
@@ -99,26 +104,30 @@ class Emulator {
   public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
     enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
-    enum CDDAType { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
+    enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };    // CDDA Types
+    typedef SettingPath<irqus::typestring<'M', 'c', 'd', '1'>> SettingMcd1;
+    typedef SettingPath<irqus::typestring<'M', 'c', 'd', '2'>> SettingMcd2;
+    typedef SettingPath<irqus::typestring<'B', 'i', 'o', 's'>> SettingBios;
+    typedef SettingPath<irqus::typestring<'P', 'p', 'f', 'D', 'i', 'r'>> SettingPpfDir;
+    typedef SettingPath<irqus::typestring<'P', 's', 'x', 'E', 'x', 'e'>> SettingPsxExe;
+    typedef Setting<bool, irqus::typestring<'X', 'a'>, true> SettingXa;
+    typedef Setting<bool, irqus::typestring<'S', 'i', 'o', 'I', 'r', 'q'>> SettingSioIrq;
+    typedef Setting<bool, irqus::typestring<'S', 'p', 'u', 'I', 'r', 'q'>> SettingSpuIrq;
+    typedef Setting<bool, irqus::typestring<'B', 'n', 'W', 'M', 'd', 'e', 'c'>> SettingBnWMdec;
+    typedef Setting<bool, irqus::typestring<'A', 'u', 't', 'o', 'V', 'i', 'd', 'e', 'o'>, true> SettingAutoVideo;
+    typedef Setting<VideoType, irqus::typestring<'V', 'i', 'd', 'e', 'o'>, PSX_TYPE_NTSC> SettingVideo;
+    typedef Setting<CDDAType, irqus::typestring<'C', 'D', 'D', 'A'>, CDDA_ENABLED_LE> SettingCDDA;
+    typedef Setting<bool, irqus::typestring<'H', 'L', 'E'>, true> SettingHLE;
+    typedef Setting<bool, irqus::typestring<'S', 'l', 'o', 'w', 'B', 'o', 'o', 't'>> SettingSlowBoot;
+    typedef Setting<bool, irqus::typestring<'D', 'e', 'b', 'u', 'g'>> SettingDebug;
+    typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
+    typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
+    Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSioIrq,
+             SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingHLE, SettingSlowBoot,
+             SettingDebug, SettingVerbose, SettingRCntFix>
+        settings;
     class PcsxConfig {
       public:
-        std::string Mcd1;
-        std::string Mcd2;
-        std::string Bios;
-        std::string BiosDir;
-        std::string PatchesDir;
-        std::string PsxExeName;
-        bool Xa = false;
-        bool SioIrq = false;
-        bool Mdec = false;
-        bool PsxAuto = false;
-        CDDAType Cdda = CDDA_ENABLED_LE;
-        bool HLE = false;
-        bool SlowBoot = false;
-        bool Debug = false;
-        bool verbose = false;
-        bool SpuIrq = false;
-        bool RCntFix = false;
         bool UseNet = false;
         bool VSyncWA = false;
         bool NoMemcard = false;

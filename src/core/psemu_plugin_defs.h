@@ -170,7 +170,7 @@ typedef struct {
 // this warning might be returned as undefined warning but allowing driver to continue
 #define PSE_PAD_WARN 80
 
-typedef struct {
+struct PadDataS {
     // controler type - fill it withe predefined values above
     unsigned char controllerType;
 
@@ -187,7 +187,7 @@ typedef struct {
 
     unsigned char reserved[91];
 
-} PadDataS;
+};
 
 /*         NET PlugIn v2       */
 /* Added by linuzappz@pcsx.net */

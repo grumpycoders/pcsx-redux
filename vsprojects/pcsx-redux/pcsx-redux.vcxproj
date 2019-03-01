@@ -22,35 +22,35 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{36D6F879-F4CB-477E-BB87-33D867EDDB0A}</ProjectGuid>
     <RootNamespace>pcsxredux</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>main</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -72,19 +72,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>pcsx-redux</TargetName>
-    <IncludePath>..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\third_party\SDL\include;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -183,7 +183,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\main\flags.h" />
+    <ClInclude Include="..\..\src\main\settings.h" />
+    <ClInclude Include="..\..\third_party\json.hpp" />
+    <ClInclude Include="..\..\third_party\typestring.hh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

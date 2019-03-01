@@ -36,7 +36,9 @@ class Log {
         va_end(args);
     }
     void addLog(const char* fmt, va_list args);
-    void draw(const char* title, bool* p_open = nullptr);
+    void draw(const char* title);
+
+    bool m_show;
 
   private:
     ImGuiTextBuffer m_buffer;

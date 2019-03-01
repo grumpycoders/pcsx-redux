@@ -65,6 +65,7 @@ class CDRom {
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
     void setCdOpenCaseTime(int64_t time) { m_iso.setCdOpenCaseTime(time); }
+    bool isLidOpen() { return m_iso.isLidOpened(); }
 
     CDRiso m_iso;
     PPF m_ppf;

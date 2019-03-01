@@ -37,7 +37,11 @@
 //
 //*************************************************************************//
 
+#define NOMINMAX
+
 #include "stdafx.h"
+
+#include <algorithm>
 
 #define _IN_REGISTERS
 
@@ -101,14 +105,12 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.AttackRate = ((lval >> 8) & 0x007f) ^ 0x7f;
                 s_chan[ch].ADSRX.DecayRate = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
                 s_chan[ch].ADSRX.SustainLevel = (lval & 0x000f) << 27;
-                //---------------------------------------------//
-                if (!iSPUDebugMode) break;
                 //---------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
 
                 lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = min(31, lx);                    // no overflow on shift!
+                lx = std::min(31UL, lx);                    // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -141,15 +143,13 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSRX.SustainRate = ((lval >> 6) & 0x007f) ^ 0x7f;
                 s_chan[ch].ADSRX.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
                 s_chan[ch].ADSRX.ReleaseRate = 4 * ((lval & 0x001f) ^ 0x1f);
-                //----------------------------------------------//
-                if (!iSPUDebugMode) break;
                 //----------------------------------------------// stuff below is only for debug mode
 
                 s_chan[ch].ADSR.SustainModeExp = (lval & 0x8000) ? 1 : 0;
                 s_chan[ch].ADSR.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
 
                 lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = min(31, lx);                      // values are used to hold the volume
+                lx = std::min(31UL, lx);                      // values are used to hold the volume
                 if (lx)                                // until a sound stop occurs
                 {                                      // the highest value we reach (due to
                     lx = (1 << lx);                    // overflow checking) is:

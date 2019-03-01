@@ -76,27 +76,22 @@ void PCSX::Memory::psxMemReset() {
     memset(g_psxP, 0, 0x00010000);
 
     // Load BIOS
-    if (PCSX::g_emulator.config().Bios != "HLE") {
-        // AppPath's priority is high.
-        const char *apppath = GetAppPath();
-        if (strlen(apppath) > 0)
-            strcat(strcat(strcat(bios, GetAppPath()), "bios\\"), PCSX::g_emulator.config().Bios.c_str());
-        else
-            sprintf(bios, "%s/%s", PCSX::g_emulator.config().BiosDir.c_str(), PCSX::g_emulator.config().Bios.c_str());
-
-        f = fopen(bios, "rb");
+    std::filesystem::path biosPath = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>();
+    if (biosPath.string() != "HLE") {
+        f = fopen(biosPath.string().c_str(), "rb");
         if (f == NULL) {
             PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
             memset(g_psxR, 0, 0x80000);
-            PCSX::g_emulator.config().HLE = true;
+            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
         } else {
             fread(g_psxR, 1, 0x80000, f);
             fclose(f);
-            PCSX::g_emulator.config().HLE = false;
+            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = false;
             PCSX::g_system->printf(_("Loaded BIOS: %s\n"), bios);
         }
-    } else
-        PCSX::g_emulator.config().HLE = true;
+    } else {
+        PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
+    }
 }
 
 void PCSX::Memory::psxMemShutdown() {
@@ -128,7 +123,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator.config().Debug) {
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) {
                 PCSX::g_emulator.m_debug->DebugCheckBP((mem & 0xffffff) | 0x80000000, PCSX::Debug::BR1);
             }
             return *(uint8_t *)(p + (mem & 0xffff));
@@ -156,7 +151,7 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator.config().Debug) {
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) {
                 PCSX::g_emulator.m_debug->DebugCheckBP((mem & 0xffffff) | 0x80000000, PCSX::Debug::BR2);
             }
             return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
@@ -184,7 +179,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator.config().Debug) {
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) {
                 PCSX::g_emulator.m_debug->DebugCheckBP((mem & 0xffffff) | 0x80000000, PCSX::Debug::BR4);
             }
             return SWAP_LEu32(*(uint32_t *)(p + (mem & 0xffff)));
@@ -214,7 +209,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator.config().Debug) {
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) {
                 PCSX::g_emulator.m_debug->DebugCheckBP((mem & 0xffffff) | 0x80000000, PCSX::Debug::BW1);
             }
             *(uint8_t *)(p + (mem & 0xffff)) = value;
@@ -242,7 +237,7 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator.config().Debug) {
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) {
                 PCSX::g_emulator.m_debug->DebugCheckBP((mem & 0xffffff) | 0x80000000, PCSX::Debug::BW2);
             }
             *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
@@ -271,7 +266,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator.config().Debug) {
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) {
                 PCSX::g_emulator.m_debug->DebugCheckBP((mem & 0xffffff) | 0x80000000, PCSX::Debug::BW4);
             }
             *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);

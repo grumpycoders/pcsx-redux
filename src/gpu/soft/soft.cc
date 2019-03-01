@@ -70,7 +70,11 @@
 //
 //*************************************************************************//
 
+#define NOMINMAX
+
 #include "stdafx.h"
+
+#include <algorithm>
 
 #include "gpu/soft/externals.h"
 #include "gpu/soft/soft.h"
@@ -400,7 +404,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(unsigned long *pdest
             r = ((long)sr) << 16;
             b = ((long)sb) << 11;
             g = ((long)sg) << 6;
-            c = LOWORD(*pdest);
+            c = (*pdest) & 0xffff;
             sr = (XCOL1(c)) - src;
             if (sr & 0x8000) sr = 0;
             sb = (XCOL2(c)) - sbc;
@@ -1006,10 +1010,10 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(short x0, short y0, shor
     if (x0 > drawW) return;
     if (y0 > drawH) return;
 
-    x1 = min(x1, drawW + 1);
-    y1 = min(y1, drawH + 1);
-    x0 = max(x0, drawX);
-    y0 = max(y0, drawY);
+    x1 = std::min(x1, static_cast<short>(drawW + 1));
+    y1 = std::min(y1, static_cast<short>(drawH + 1));
+    x0 = std::max(x0, static_cast<short>(drawX));
+    y0 = std::max(y0, static_cast<short>(drawY));
 
     if (y0 >= iGPUHeight) return;
     if (x0 > 1023) return;
@@ -1147,7 +1151,7 @@ static int left_G, delta_left_G, right_G, delta_right_G;
 static int left_B, delta_left_B, right_B, delta_right_B;
 
 static constexpr inline int shl10idiv(int x, int y) {
-    __int64 bi = x;
+    int64_t bi = x;
     bi <<= 10;
     return bi / y;
 }
@@ -1283,7 +1287,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F(short x1, short y1, sho
     }
 
     Ymin = v1->y;
-    Ymax = min(v3->y - 1, drawH);
+    Ymax = std::min(v3->y - 1, drawH);
 
     return true;
 }
@@ -1441,7 +1445,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_G(short x1, short y1, sho
     }
 
     Ymin = v1->y;
-    Ymax = min(v3->y - 1, drawH);
+    Ymax = std::min(v3->y - 1, drawH);
 
     delta_right_R = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), longest);
     delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), longest);
@@ -1600,7 +1604,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT(short x1, short y1, sh
     }
 
     Ymin = v1->y;
-    Ymax = min(v3->y - 1, drawH);
+    Ymax = std::min(v3->y - 1, drawH);
 
     delta_right_u = shl10idiv(temp * ((v3->u - v1->u) >> 10) + ((v1->u - v2->u) << 6), longest);
     delta_right_v = shl10idiv(temp * ((v3->v - v1->v) >> 10) + ((v1->v - v2->v) << 6), longest);
@@ -1795,7 +1799,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT(short x1, short y1, sh
     }
 
     Ymin = v1->y;
-    Ymax = min(v3->y - 1, drawH);
+    Ymax = std::min(v3->y - 1, drawH);
 
     delta_right_R = shl10idiv(temp * ((v3->R - v1->R) >> 10) + ((v1->R - v2->R) << 6), longest);
     delta_right_G = shl10idiv(temp * ((v3->G - v1->G) >> 10) + ((v1->G - v2->G) << 6), longest);
@@ -2031,7 +2035,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_F4(short x1, short y1, sh
     }
 
     Ymin = v1->y;
-    Ymax = min(v4->y - 1, drawH);
+    Ymax = std::min(v4->y - 1, drawH);
 
     return true;
 }
@@ -2270,7 +2274,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_FT4(short x1, short y1, s
     }
 
     Ymin = v1->y;
-    Ymax = min(v4->y - 1, drawH);
+    Ymax = std::min(v4->y - 1, drawH);
 
     return true;
 }
@@ -2542,7 +2546,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::SetupSections_GT4(short x1, short y1, s
     }
 
     Ymin = v1->y;
-    Ymax = min(v4->y - 1, drawH);
+    Ymax = std::min(v4->y - 1, drawH);
 
     return true;
 }

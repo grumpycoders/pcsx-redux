@@ -29,33 +29,51 @@
 
 #pragma once
 
-#include "gpu/soft/prim.h"
-
 namespace PCSX {
 
 namespace SoftGPU {
 
-class SoftRenderer : public Prim {
-    virtual void offsetPSXLine() final;
-    virtual void offsetPSX2() final;
-    virtual void offsetPSX3() final;
-    virtual void offsetPSX4() final;
+class SoftRenderer {
+  protected:
+    bool bUsingTWin = false;
+    TWin_t TWin;
+    unsigned short usMirror = 0;  // sprite mirror
+    int iDither = 0;
+    int drawX, drawY, drawW, drawH;
 
-    virtual void FillSoftwareAreaTrans(short x0, short y0, short x1, short y1, unsigned short col) final;
-    virtual void FillSoftwareArea(short x0, short y0, short x1, short y1, unsigned short col) final;
-    virtual void drawPoly3G(long rgb1, long rgb2, long rgb3) final;
-    virtual void drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4) final;
-    virtual void drawPoly3F(long rgb) final;
-    virtual void drawPoly4F(long rgb) final;
-    virtual void drawPoly4FT(unsigned char *baseAddr) final;
-    virtual void drawPoly4GT(unsigned char *baseAddr) final;
-    virtual void drawPoly3FT(unsigned char *baseAddr) final;
-    virtual void drawPoly3GT(unsigned char *baseAddr) final;
-    virtual void DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long ty) final;
-    virtual void DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) final;
-    virtual void DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h) final;
-    virtual void DrawSoftwareLineShade(long rgb0, long rgb1) final;
-    virtual void DrawSoftwareLineFlat(long rgb) final;
+    bool DrawSemiTrans = false;
+    short g_m1 = 255, g_m2 = 255, g_m3 = 255;
+    short ly0, lx0, ly1, lx1, ly2, lx2, ly3, lx3;  // global psx vertex coords
+
+    long GlobalTextAddrX;
+    long GlobalTextAddrY;
+    long GlobalTextTP;
+    long GlobalTextABR;
+
+    bool bCheckMask = false;
+    unsigned short sSetMask = 0;
+    unsigned long lSetMask = 0;
+
+    void offsetPSXLine();
+    void offsetPSX2();
+    void offsetPSX3();
+    void offsetPSX4();
+
+    void FillSoftwareAreaTrans(short x0, short y0, short x1, short y1, unsigned short col);
+    void FillSoftwareArea(short x0, short y0, short x1, short y1, unsigned short col);
+    void drawPoly3G(long rgb1, long rgb2, long rgb3);
+    void drawPoly4G(long rgb1, long rgb2, long rgb3, long rgb4);
+    void drawPoly3F(long rgb);
+    void drawPoly4F(long rgb);
+    void drawPoly4FT(unsigned char *baseAddr);
+    void drawPoly4GT(unsigned char *baseAddr);
+    void drawPoly3FT(unsigned char *baseAddr);
+    void drawPoly3GT(unsigned char *baseAddr);
+    void DrawSoftwareSprite(unsigned char *baseAddr, short w, short h, long tx, long ty);
+    void DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h);
+    void DrawSoftwareSpriteMirror(unsigned char *baseAddr, long w, long h);
+    void DrawSoftwareLineShade(long rgb0, long rgb1);
+    void DrawSoftwareLineFlat(long rgb);
 
     short Ymin;
     short Ymax;

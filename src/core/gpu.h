@@ -12,6 +12,10 @@ class GPU {
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
+    bool m_showCfg;
+    virtual bool configure() = 0;
+    virtual ~GPU() {}
+
   private:
     // Taken from PEOPS SOFTGPU
     uint32_t s_lUsedAddr[3];
@@ -55,7 +59,6 @@ class GPU {
     virtual void setSpeed(float newSpeed) {}
     virtual void pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
     virtual void pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
-    virtual long configure(void) { return 0; }
     virtual long test(void) { return 0; }
     virtual void about(void) {}
 };

@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018 PCSX-Redux authors                                 *
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -22,44 +21,20 @@
 
 #include <stdarg.h>
 
-namespace PCSX {
+struct psxRegisters;
 
-class System {
+namespace PCSX {
+namespace Widgets {
+
+class Registers {
   public:
-    virtual ~System() {}
-    // Requests a system reset
-    virtual void softReset() = 0;
-    virtual void hardReset() = 0;
-    // Printf used by bios syscalls
-    virtual void biosPrintf(const char *fmt, ...) = 0;
-    virtual void biosPrintf(const char *fmt, va_list va) = 0;
-    // Printf used by the code in general, to indicate errors most of the time
-    // TODO: convert them all to logs
-    virtual void printf(const char *fmt, ...) = 0;
-    // Add a log line
-    virtual void log(const char *facility, const char *fmt, va_list a) = 0;
-    // Message used to print msg to users
-    virtual void message(const char *fmt, ...) = 0;
-    // Called on VBlank (to update i.e. pads)
-    virtual void update() = 0;
-    // Returns to the Gui
-    virtual void runGui() = 0;
-    // Close mem and plugins
-    virtual void close() = 0;
-    bool running() { return m_running; }
-    bool quitting() { return m_quitting; }
-    void start() { m_running = true; }
-    void stop() { m_running = false; }
-    void quit() {
-        m_quitting = true;
-        m_running = false;
-    }
+    void draw(psxRegisters* registers, const char* title);
+
+    bool m_show = false;
 
   private:
-    bool m_running = false;
-    bool m_quitting = false;
+    unsigned m_selected = 0;
 };
 
-extern System *g_system;
-
+}  // namespace Widgets
 }  // namespace PCSX

@@ -32,8 +32,8 @@
 static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
 
 void PCSX::HW::psxHwReset() {
-    if (PCSX::g_emulator.config().SioIrq) psxHu32ref(0x1070) |= SWAP_LE32(0x80);
-    if (PCSX::g_emulator.config().SpuIrq) psxHu32ref(0x1070) |= SWAP_LE32(0x200);
+    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) psxHu32ref(0x1070) |= SWAP_LE32(0x80);
+    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSpuIrq>()) psxHu32ref(0x1070) |= SWAP_LE32(0x200);
 
     memset(PCSX::g_emulator.m_psxMem->g_psxH, 0, 0x10000);
 
@@ -378,8 +378,8 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
 #endif
         case 0x1f801070:
             PSXHW_LOG("IREG 16bit write %x\n", value);
-            if (PCSX::g_emulator.config().SioIrq) psxHu16ref(0x1070) |= SWAP_LEu16(0x80);
-            if (PCSX::g_emulator.config().SpuIrq) psxHu16ref(0x1070) |= SWAP_LEu16(0x200);
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) psxHu16ref(0x1070) |= SWAP_LEu16(0x80);
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSpuIrq>()) psxHu16ref(0x1070) |= SWAP_LEu16(0x200);
             psxHu16ref(0x1070) &= SWAP_LEu16(value);
             return;
 
@@ -487,8 +487,8 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
             return;  // Ram size
         case 0x1f801070:
             PSXHW_LOG("IREG 32bit write %x\n", value);
-            if (PCSX::g_emulator.config().SioIrq) psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
-            if (PCSX::g_emulator.config().SpuIrq) psxHu32ref(0x1070) |= SWAP_LEu32(0x200);
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSpuIrq>()) psxHu32ref(0x1070) |= SWAP_LEu32(0x200);
             psxHu32ref(0x1070) &= SWAP_LEu32(value);
             return;
         case 0x1f801074:

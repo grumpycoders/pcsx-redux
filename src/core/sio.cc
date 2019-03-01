@@ -45,7 +45,7 @@
 
 #define SIO_INT(eCycle)                                                                     \
     {                                                                                       \
-        if (!PCSX::g_emulator.config().SioIrq) {                                            \
+        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {                                            \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
@@ -610,12 +610,15 @@ s_buf[5]);
 
             // Chronicles of the Sword - no memcard = password options
             if (PCSX::g_emulator.config().NoMemcard ||
-                (!PCSX::g_emulator.config().Mcd1[0] && !PCSX::g_emulator.config().Mcd2[0])) {
+                (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str()[0] &&
+                 !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str()[0])) {
                 memset(s_buf, 0x00, 4);
             } else {
                 memcpy(s_buf, s_cardh, 4);
-                if (!PCSX::g_emulator.config().Mcd1[0]) s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                if (!PCSX::g_emulator.config().Mcd2[0]) s_buf[3] = 0;  // is card 2 plugged?
+                if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str()[0])
+                    s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
+                if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str()[0])
+                    s_buf[3] = 0;  // is card 2 plugged?
             }
 
             s_parp = 0;
@@ -679,12 +682,14 @@ uint8_t PCSX::SIO::sioRead8() {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.config().Mcd1.c_str(), g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128,
+                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str(), g_mcd1Data,
+                                    (s_adrL | (s_adrH << 8)) * 128,
                                     128);
                             break;
                         case 0x2002:
                             memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.config().Mcd2.c_str(), g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128,
+                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str(), g_mcd2Data,
+                                    (s_adrL | (s_adrH << 8)) * 128,
                                     128);
                             break;
                     }

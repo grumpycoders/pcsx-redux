@@ -90,6 +90,8 @@
 //
 //*************************************************************************//
 
+#if 0
+
 #include "stdafx.h"
 
 #define _IN_CFG
@@ -197,22 +199,6 @@ void ReadConfigFile() {
     len = fread(pB, 1, size, in);
     fclose(in);
 
-    GetValue("ResX", iResX);
-    if (iResX < 20) iResX = 20;
-    iResX = (iResX / 4) * 4;
-
-    GetValue("ResY", iResY);
-    if (iResY < 20) iResY = 20;
-    iResY = (iResY / 4) * 4;
-
-    GetValue("Dithering", iUseDither);
-
-    GetValue("FullScreen", iWindowMode);
-    if (iWindowMode != 0)
-        iWindowMode = 0;
-    else
-        iWindowMode = 1;
-
     GetValue("SSSPSXLimit", bSSSPSXLimit);
 
     GetValue("UseFrameLimit", UseFrameLimit);
@@ -251,7 +237,7 @@ char szKeyDefaults[11] = {VK_DELETE,   VK_INSERT,   VK_HOME, VK_END, VK_PRIOR, V
 ////////////////////////////////////////////////////////////////////////
 // prototypes
 
-BOOL OnInitSoftDialog(HWND hW);
+bool OnInitSoftDialog(HWND hW);
 void OnSoftOK(HWND hW);
 void OnCfgCancel(HWND hW);
 void OnCfgDef1(HWND hW);
@@ -261,7 +247,7 @@ void OnBugFixes(HWND hW);
 void OnRecording(HWND hW);
 
 void SelectDev(HWND hW);
-BOOL bTestModes(void);
+bool bTestModes(void);
 void OnKeyConfig(HWND hW);
 void GetSettings(HWND hW);
 void OnClipboard(HWND hW);
@@ -271,7 +257,7 @@ char *pGetConfigInfos(int iCfg);
 ////////////////////////////////////////////////////////////////////////
 // funcs
 
-BOOL SoftDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+bool SoftDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG:
             return OnInitSoftDialog(hW);
@@ -279,45 +265,45 @@ BOOL SoftDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_COMMAND: {
             switch (LOWORD(wParam)) {
                 case IDC_DISPMODE1: {
-                    CheckDlgButton(hW, IDC_DISPMODE2, FALSE);
-                    return TRUE;
+                    CheckDlgButton(hW, IDC_DISPMODE2, false);
+                    return true;
                 }
                 case IDC_DISPMODE2: {
-                    CheckDlgButton(hW, IDC_DISPMODE1, FALSE);
-                    return TRUE;
+                    CheckDlgButton(hW, IDC_DISPMODE1, false);
+                    return true;
                 }
                 case IDC_DEF1:
                     OnCfgDef1(hW);
-                    return TRUE;
+                    return true;
                 case IDC_DEF2:
                     OnCfgDef2(hW);
-                    return TRUE;
+                    return true;
                 case IDC_SELFIX:
                     OnBugFixes(hW);
-                    return TRUE;
+                    return true;
                 case IDC_KEYCONFIG:
                     OnKeyConfig(hW);
-                    return TRUE;
+                    return true;
                 case IDC_SELDEV:
                     SelectDev(hW);
-                    return TRUE;
+                    return true;
                 case IDCANCEL:
                     OnCfgCancel(hW);
-                    return TRUE;
+                    return true;
                 case IDOK:
                     OnSoftOK(hW);
-                    return TRUE;
+                    return true;
                 case IDC_CLIPBOARD:
                     OnClipboard(hW);
-                    return TRUE;
+                    return true;
 
                 case IDC_RECORDING:
                     OnRecording(hW);
-                    return TRUE;
+                    return true;
             }
         }
     }
-    return FALSE;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -330,7 +316,7 @@ void ComboBoxAddRes(HWND hWC, const char *cs) {
     ComboBox_AddString(hWC, cs);
 }
 
-BOOL OnInitSoftDialog(HWND hW) {
+bool OnInitSoftDialog(HWND hW) {
     HWND hWC;
     char cs[256];
     int i;
@@ -377,16 +363,15 @@ BOOL OnInitSoftDialog(HWND hW) {
     if (i == CB_ERR) i = 0;
     ComboBox_SetCurSel(hWC, i);
 
-    if (UseFrameLimit) CheckDlgButton(hW, IDC_USELIMIT, TRUE);
-    if (UseFrameSkip) CheckDlgButton(hW, IDC_USESKIPPING, TRUE);
+    if (UseFrameLimit) CheckDlgButton(hW, IDC_USELIMIT, true);
+    if (UseFrameSkip) CheckDlgButton(hW, IDC_USESKIPPING, true);
     if (iWindowMode)
         CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE2);
     else
         CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE1);
-    if (iStopSaver) CheckDlgButton(hW, IDC_STOPSAVER, TRUE);
-    if (iUseFixes) CheckDlgButton(hW, IDC_GAMEFIX, TRUE);
-    if (bTransparent) CheckDlgButton(hW, IDC_TRANSPARENT, TRUE);
-    if (bSSSPSXLimit) CheckDlgButton(hW, IDC_SSSPSXLIMIT, TRUE);
+    if (iUseFixes) CheckDlgButton(hW, IDC_GAMEFIX, true);
+    if (bTransparent) CheckDlgButton(hW, IDC_TRANSPARENT, true);
+    if (bSSSPSXLimit) CheckDlgButton(hW, IDC_SSSPSXLIMIT, true);
 
     hWC = GetDlgItem(hW, IDC_NOSTRETCH);  // stretching
     ComboBox_AddString(hWC, "Stretch to full window size");
@@ -407,21 +392,15 @@ BOOL OnInitSoftDialog(HWND hW) {
     ComboBox_AddString(hWC, "HQ3X unstretched (Fast CPU+mmx)");
     ComboBox_AddString(hWC, "HQ3X stretching (Fast CPU+mmx)");
 
-    hWC = GetDlgItem(hW, IDC_DITHER);  // dithering
-    ComboBox_AddString(hWC, "No dithering (fastest)");
-    ComboBox_AddString(hWC, "Game dependend dithering (slow)");
-    ComboBox_AddString(hWC, "Always dither g-shaded polygons (slowest)");
-    ComboBox_SetCurSel(hWC, iUseDither);
-
     if (iFrameLimit == 2)  // frame limit wrapper
-        CheckDlgButton(hW, IDC_FRAMEAUTO, TRUE);
+        CheckDlgButton(hW, IDC_FRAMEAUTO, true);
     else
-        CheckDlgButton(hW, IDC_FRAMEMANUELL, TRUE);
+        CheckDlgButton(hW, IDC_FRAMEMANUELL, true);
 
     sprintf(cs, "%.2f", fFrameRate);
     SetDlgItemText(hW, IDC_FRAMELIM, cs);  // set frame rate
 
-    return TRUE;
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -437,9 +416,7 @@ void GetSettings(HWND hW) {
     hWC = GetDlgItem(hW, IDC_RESOLUTION);  // get resolution
     i = ComboBox_GetCurSel(hWC);
     ComboBox_GetLBText(hWC, i, cs);
-    iResX = atol(cs);
     p = strchr(cs, 'x');
-    iResY = atol(p + 1);
     p = strchr(cs, ',');  // added by syo
 
     hWC = GetDlgItem(hW, IDC_COLDEPTH);  // get color depth
@@ -467,23 +444,15 @@ void GetSettings(HWND hW) {
     else
         iUseFixes = 0;
 
-    if (IsDlgButtonChecked(hW, IDC_STOPSAVER))  // stop screen saver
-        iStopSaver = 1;
-    else
-        iStopSaver = 0;
-
     if (IsDlgButtonChecked(hW, IDC_TRANSPARENT))  // transparent menu
-        bTransparent = TRUE;
+        bTransparent = true;
     else
-        bTransparent = FALSE;
+        bTransparent = false;
 
     if (IsDlgButtonChecked(hW, IDC_SSSPSXLIMIT))  // SSSPSX fps limit mode
-        bSSSPSXLimit = TRUE;
+        bSSSPSXLimit = true;
     else
-        bSSSPSXLimit = FALSE;
-
-    hWC = GetDlgItem(hW, IDC_DITHER);
-    iUseDither = ComboBox_GetCurSel(hWC);
+        bSSSPSXLimit = false;
 
     if (IsDlgButtonChecked(hW, IDC_FRAMEAUTO))  // frame rate
         iFrameLimit = 2;
@@ -508,7 +477,7 @@ void OnSoftOK(HWND hW) {
 
     WriteGPUConfig();  // write registry
 
-    EndDialog(hW, TRUE);
+    EndDialog(hW, true);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -537,27 +506,27 @@ void OnClipboard(HWND hW) {
 // Cancel
 ////////////////////////////////////////////////////////////////////////
 
-void OnCfgCancel(HWND hW) { EndDialog(hW, FALSE); }
+void OnCfgCancel(HWND hW) { EndDialog(hW, false); }
 
 ////////////////////////////////////////////////////////////////////////
 // Bug fixes
 ////////////////////////////////////////////////////////////////////////
 
-BOOL BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+bool BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG: {
             int i;
 
             for (i = 0; i < 32; i++) {
-                if (dwCfgFixes & (1 << i)) CheckDlgButton(hW, IDC_FIX1 + i, TRUE);
+                if (dwCfgFixes & (1 << i)) CheckDlgButton(hW, IDC_FIX1 + i, true);
             }
         }
 
         case WM_COMMAND: {
             switch (LOWORD(wParam)) {
                 case IDCANCEL:
-                    EndDialog(hW, FALSE);
-                    return TRUE;
+                    EndDialog(hW, false);
+                    return true;
 
                 case IDOK: {
                     int i;
@@ -565,13 +534,13 @@ BOOL BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     for (i = 0; i < 32; i++) {
                         if (IsDlgButtonChecked(hW, IDC_FIX1 + i)) dwCfgFixes |= (1 << i);
                     }
-                    EndDialog(hW, TRUE);
-                    return TRUE;
+                    EndDialog(hW, true);
+                    return true;
                 }
             }
         }
     }
-    return FALSE;
+    return false;
 }
 
 void OnBugFixes(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_FIXES), hW, (DLGPROC)BugFixesDlgProc); }
@@ -582,7 +551,7 @@ void OnBugFixes(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_FIXES), hW, (DLGPROC
 
 void RefreshCodec(HWND hW) {}
 
-BOOL RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) { return FALSE; }
+bool RecordingDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) { return false; }
 
 void OnRecording(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_RECORDING), hW, (DLGPROC)RecordingDlgProc); }
 
@@ -599,22 +568,22 @@ void OnCfgDef1(HWND hW) {
     ComboBox_SetCurSel(hWC, 0);
     hWC = GetDlgItem(hW, IDC_SCANLINES);
     ComboBox_SetCurSel(hWC, 0);
-    CheckDlgButton(hW, IDC_USELIMIT, FALSE);
-    CheckDlgButton(hW, IDC_USESKIPPING, TRUE);
+    CheckDlgButton(hW, IDC_USELIMIT, false);
+    CheckDlgButton(hW, IDC_USESKIPPING, true);
     CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE1);
-    CheckDlgButton(hW, IDC_FRAMEAUTO, FALSE);
-    CheckDlgButton(hW, IDC_FRAMEMANUELL, TRUE);
-    CheckDlgButton(hW, IDC_SHOWFPS, FALSE);
+    CheckDlgButton(hW, IDC_FRAMEAUTO, false);
+    CheckDlgButton(hW, IDC_FRAMEMANUELL, true);
+    CheckDlgButton(hW, IDC_SHOWFPS, false);
     hWC = GetDlgItem(hW, IDC_NOSTRETCH);
     ComboBox_SetCurSel(hWC, 1);
     hWC = GetDlgItem(hW, IDC_DITHER);
     ComboBox_SetCurSel(hWC, 0);
-    SetDlgItemInt(hW, IDC_FRAMELIM, 200, FALSE);
-    SetDlgItemInt(hW, IDC_WINX, 320, FALSE);
-    SetDlgItemInt(hW, IDC_WINY, 240, FALSE);
-    CheckDlgButton(hW, IDC_VSYNC, FALSE);
-    CheckDlgButton(hW, IDC_TRANSPARENT, TRUE);
-    CheckDlgButton(hW, IDC_DEBUGMODE, FALSE);
+    SetDlgItemInt(hW, IDC_FRAMELIM, 200, false);
+    SetDlgItemInt(hW, IDC_WINX, 320, false);
+    SetDlgItemInt(hW, IDC_WINY, 240, false);
+    CheckDlgButton(hW, IDC_VSYNC, false);
+    CheckDlgButton(hW, IDC_TRANSPARENT, true);
+    CheckDlgButton(hW, IDC_DEBUGMODE, false);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -630,23 +599,23 @@ void OnCfgDef2(HWND hW) {
     ComboBox_SetCurSel(hWC, 0);
     hWC = GetDlgItem(hW, IDC_SCANLINES);
     ComboBox_SetCurSel(hWC, 0);
-    CheckDlgButton(hW, IDC_USELIMIT, TRUE);
-    CheckDlgButton(hW, IDC_USESKIPPING, FALSE);
+    CheckDlgButton(hW, IDC_USELIMIT, true);
+    CheckDlgButton(hW, IDC_USESKIPPING, false);
     CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE1);
-    CheckDlgButton(hW, IDC_FRAMEAUTO, TRUE);
-    CheckDlgButton(hW, IDC_FRAMEMANUELL, FALSE);
-    CheckDlgButton(hW, IDC_SHOWFPS, FALSE);
-    CheckDlgButton(hW, IDC_VSYNC, FALSE);
-    CheckDlgButton(hW, IDC_TRANSPARENT, TRUE);
-    CheckDlgButton(hW, IDC_DEBUGMODE, FALSE);
+    CheckDlgButton(hW, IDC_FRAMEAUTO, true);
+    CheckDlgButton(hW, IDC_FRAMEMANUELL, false);
+    CheckDlgButton(hW, IDC_SHOWFPS, false);
+    CheckDlgButton(hW, IDC_VSYNC, false);
+    CheckDlgButton(hW, IDC_TRANSPARENT, true);
+    CheckDlgButton(hW, IDC_DEBUGMODE, false);
     hWC = GetDlgItem(hW, IDC_NOSTRETCH);
     ComboBox_SetCurSel(hWC, 0);
     hWC = GetDlgItem(hW, IDC_DITHER);
     ComboBox_SetCurSel(hWC, 2);
 
-    SetDlgItemInt(hW, IDC_FRAMELIM, 200, FALSE);
-    SetDlgItemInt(hW, IDC_WINX, 640, FALSE);
-    SetDlgItemInt(hW, IDC_WINY, 480, FALSE);
+    SetDlgItemInt(hW, IDC_FRAMELIM, 200, false);
+    SetDlgItemInt(hW, IDC_WINX, 640, false);
+    SetDlgItemInt(hW, IDC_WINY, 480, false);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -660,8 +629,6 @@ void ReadGPUConfig(void) {
     DWORD size;
 
     // predefines
-    iResX = 640;
-    iResY = 480;
     iColDepth = 16;
     iWindowMode = 0;
     UseFrameLimit = 1;
@@ -670,10 +637,8 @@ void ReadGPUConfig(void) {
     fFrameRate = 200.0f;
     dwCfgFixes = 0;
     iUseFixes = 0;
-    iUseDither = 0;
-    iStopSaver = 0;
-    bTransparent = FALSE;
-    bSSSPSXLimit = FALSE;
+    bTransparent = false;
+    bSSSPSXLimit = false;
     lstrcpy(szGPUKeys, szKeyDefaults);
 
     // zn Windows config file
@@ -682,10 +647,6 @@ void ReadGPUConfig(void) {
     else {
         if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Vision Thing\\PSEmu Pro\\GPU\\PeteSoft", 0, KEY_ALL_ACCESS,
                          &myKey) == ERROR_SUCCESS) {
-            size = 4;
-            if (RegQueryValueEx(myKey, "ResX", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResX = (int)temp;
-            size = 4;
-            if (RegQueryValueEx(myKey, "ResY", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResY = (int)temp;
             size = 4;
             if (RegQueryValueEx(myKey, "WindowMode", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 iWindowMode = (int)temp;
@@ -708,9 +669,6 @@ void ReadGPUConfig(void) {
             if (RegQueryValueEx(myKey, "UseFixes", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 iUseFixes = (int)temp;
             size = 4;
-            if (RegQueryValueEx(myKey, "UseDither", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                iUseDither = (int)temp;
-            size = 4;
             if (!iFrameLimit) {
                 UseFrameLimit = 1;
                 UseFrameSkip = 0;
@@ -730,14 +688,11 @@ void ReadGPUConfig(void) {
             }
 
             size = 4;
-            if (RegQueryValueEx(myKey, "StopSaver", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                iStopSaver = (int)temp;
-            size = 4;
             if (RegQueryValueEx(myKey, "Transparent", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                bTransparent = (BOOL)temp;
+                bTransparent = (bool)temp;
             size = 4;
             if (RegQueryValueEx(myKey, "SSSPSXLimit", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                bSSSPSXLimit = (BOOL)temp;
+                bSSSPSXLimit = (bool)temp;
             size = 11;
             RegQueryValueEx(myKey, "GPUKeys", 0, &type, (LPBYTE)&szGPUKeys, &size);
 
@@ -766,24 +721,7 @@ void ReadGPUConfig(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void ReadWinSizeConfig(void) {
-    HKEY myKey;
-    DWORD temp;
-    DWORD type;
-    DWORD size;
-
-    if (pConfigFile) return;  // no need to read stuff in ZN config file mode
-
-    if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Vision Thing\\PSEmu Pro\\GPU\\PeteSoft", 0, KEY_ALL_ACCESS,
-                     &myKey) == ERROR_SUCCESS) {
-        size = 4;
-        if (RegQueryValueEx(myKey, "ResX", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResX = (int)temp;
-        size = 4;
-        if (RegQueryValueEx(myKey, "ResY", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) iResY = (int)temp;
-
-        RegCloseKey(myKey);
-    }
-}
+void ReadWinSizeConfig(void) {}
 
 ////////////////////////////////////////////////////////////////////////
 // write registry
@@ -796,10 +734,6 @@ void WriteGPUConfig(void) {
 
     RegCreateKeyEx(HKEY_CURRENT_USER, "Software\\Vision Thing\\PSEmu Pro\\GPU\\PeteSoft", 0, NULL,
                    REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &myKey, &myDisp);
-    temp = iResX;
-    RegSetValueEx(myKey, "ResX", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iResY;
-    RegSetValueEx(myKey, "ResY", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iWindowMode;
     RegSetValueEx(myKey, "WindowMode", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iColDepth;
@@ -812,8 +746,6 @@ void WriteGPUConfig(void) {
     RegSetValueEx(myKey, "CfgFixes", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iUseFixes;
     RegSetValueEx(myKey, "UseFixes", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iUseDither;
-    RegSetValueEx(myKey, "UseDither", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iFrameLimit;
     RegSetValueEx(myKey, "FrameLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = (DWORD)fFrameRate;
@@ -824,8 +756,6 @@ void WriteGPUConfig(void) {
     RegSetValueEx(myKey, "Transparent", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = bSSSPSXLimit;
     RegSetValueEx(myKey, "SSSPSXLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = iStopSaver;
-    RegSetValueEx(myKey, "StopSaver", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     RegSetValueEx(myKey, "GPUKeys", 0, REG_BINARY, (LPBYTE)szGPUKeys, 11);
 
     //
@@ -838,7 +768,7 @@ void WriteGPUConfig(void) {
 
 HWND gHWND;
 
-static BOOL WINAPI DirectDrawEnumCallbackEx(GUID FAR *pGUID, LPSTR strDesc, LPSTR strName, VOID *pV,
+static bool WINAPI DirectDrawEnumCallbackEx(GUID FAR *pGUID, LPSTR strDesc, LPSTR strName, VOID *pV,
                                             HMONITOR hMonitor) {
     // Use the GUID to create the DirectDraw object, so that information
     // can be extracted from it.
@@ -846,7 +776,7 @@ static BOOL WINAPI DirectDrawEnumCallbackEx(GUID FAR *pGUID, LPSTR strDesc, LPST
 
 //-----------------------------------------------------------------------------
 
-static BOOL WINAPI DirectDrawEnumCallback(GUID FAR *pGUID, LPSTR strDesc, LPSTR strName, VOID *pV) {
+static bool WINAPI DirectDrawEnumCallback(GUID FAR *pGUID, LPSTR strDesc, LPSTR strName, VOID *pV) {
     return DirectDrawEnumCallbackEx(pGUID, strDesc, strName, NULL, NULL);
 }
 
@@ -867,7 +797,7 @@ void FreeGui(HWND hW) {
 
 ////////////////////////////////////////////////////////////////////////
 
-BOOL DeviceDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) { return FALSE; }
+bool DeviceDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) { return false; }
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -877,7 +807,7 @@ void SelectDev(HWND hW) {}
 
 ////////////////////////////////////////////////////////////////////////
 
-BOOL bTestModes(void) { return false; }
+bool bTestModes(void) { return false; }
 
 ////////////////////////////////////////////////////////////////////////
 // define key dialog
@@ -905,7 +835,7 @@ void SetGPUKey(HWND hWC, char szKey) {
     if (i != iCnt) ComboBox_SetCurSel(hWC, i);
 }
 
-BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+bool KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG: {
             int i, j, k;
@@ -931,7 +861,7 @@ BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 SetGPUKey(GetDlgItem(hW, i), szGPUKeys[i - IDC_KEY1]);
             }
         }
-            return TRUE;
+            return true;
 
         case WM_COMMAND: {
             switch (LOWORD(wParam)) {
@@ -941,8 +871,8 @@ BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 } break;
 
                 case IDCANCEL:
-                    EndDialog(hW, FALSE);
-                    return TRUE;
+                    EndDialog(hW, false);
+                    return true;
                 case IDOK: {
                     HWND hWC;
                     int i;
@@ -951,13 +881,15 @@ BOOL KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         szGPUKeys[i - IDC_KEY1] = (char)ComboBox_GetItemData(hWC, ComboBox_GetCurSel(hWC));
                         if (szGPUKeys[i - IDC_KEY1] < 0x20) szGPUKeys[i - IDC_KEY1] = 0x20;
                     }
-                    EndDialog(hW, TRUE);
-                    return TRUE;
+                    EndDialog(hW, true);
+                    return true;
                 }
             }
         }
     }
-    return FALSE;
+    return false;
 }
 
 void OnKeyConfig(HWND hW) { DialogBox(0, MAKEINTRESOURCE(IDD_KEYS), hW, (DLGPROC)KeyDlgProc); }
+
+#endif

@@ -283,7 +283,7 @@ uint32_t PCSX::Counters::psxRcntRcount(uint32_t index) {
     // Parasite Eve 2 fix - artificial clock jitter based on PCSX::Emulator::BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
     if (PCSX::g_emulator.config().HackFix && index == 2 && m_rcnts[index].counterState == CountToTarget &&
-        (PCSX::g_emulator.config().RCntFix || ((m_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
+        (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingRCntFix>() || ((m_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
         /*
          *The problem is that...
          *
