@@ -104,7 +104,7 @@ class Emulator {
   public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
     enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
-    enum CDDAType { CDDA_ENABLED_LE = 0, CDDA_DISABLED, CDDA_ENABLED_BE };  // CDDA Types
+    enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };    // CDDA Types
     typedef SettingPath<irqus::typestring<'M', 'c', 'd', '1'>> SettingMcd1;
     typedef SettingPath<irqus::typestring<'M', 'c', 'd', '2'>> SettingMcd2;
     typedef SettingPath<irqus::typestring<'B', 'i', 'o', 's'>> SettingBios;
@@ -115,6 +115,7 @@ class Emulator {
     typedef Setting<bool, irqus::typestring<'S', 'p', 'u', 'I', 'r', 'q'>> SettingSpuIrq;
     typedef Setting<bool, irqus::typestring<'B', 'n', 'W', 'M', 'd', 'e', 'c'>> SettingBnWMdec;
     typedef Setting<bool, irqus::typestring<'A', 'u', 't', 'o', 'V', 'i', 'd', 'e', 'o'>, true> SettingAutoVideo;
+    typedef Setting<VideoType, irqus::typestring<'V', 'i', 'd', 'e', 'o'>, PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, irqus::typestring<'C', 'D', 'D', 'A'>, CDDA_ENABLED_LE> SettingCDDA;
     typedef Setting<bool, irqus::typestring<'H', 'L', 'E'>, true> SettingHLE;
     typedef Setting<bool, irqus::typestring<'S', 'l', 'o', 'w', 'B', 'o', 'o', 't'>> SettingSlowBoot;
@@ -122,8 +123,8 @@ class Emulator {
     typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
     typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSioIrq,
-             SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingCDDA, SettingHLE, SettingSlowBoot, SettingDebug,
-             SettingVerbose, SettingRCntFix>
+             SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingHLE, SettingSlowBoot,
+             SettingDebug, SettingVerbose, SettingRCntFix>
         settings;
     class PcsxConfig {
       public:

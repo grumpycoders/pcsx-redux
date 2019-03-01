@@ -432,12 +432,72 @@ void PCSX::GUI::endFrame() {
     if (changed) saveCfg();
 }
 
+static void ShowHelpMarker(const char* desc) {
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 bool PCSX::GUI::configure() {
     bool changed = false;
     if (!m_showCfg) return false;
 
+    ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Emulation Configuration", &m_showCfg)) {
-    
+        auto& settings = PCSX::g_emulator.settings;
+        changed |= ImGui::Checkbox("Enable XA decoder", &settings.get<Emulator::SettingXa>().value);
+        changed |= ImGui::Checkbox("Always enable SIO IRQ", &settings.get<Emulator::SettingSioIrq>().value);
+        changed |= ImGui::Checkbox("Always enable SPU IRQ", &settings.get<Emulator::SettingSpuIrq>().value);
+        changed |= ImGui::Checkbox("Decode MDEC videos in B&W", &settings.get<Emulator::SettingBnWMdec>().value);
+
+        {
+            static const char* types[] = {"Auto", "NTSC", "PAL"};
+            auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
+            auto& type = settings.get<Emulator::SettingVideo>().value;
+            if (ImGui::BeginCombo("System Type", types[type])) {
+                if (ImGui::Selectable(types[0], autodetect)) {
+                    changed = true;
+                    autodetect = true;
+                }
+                if (ImGui::Selectable(types[1], !autodetect && (type == PCSX::Emulator::PSX_TYPE_NTSC))) {
+                    changed = true;
+                    type = PCSX::Emulator::PSX_TYPE_NTSC;
+                    autodetect = false;
+                }
+                if (ImGui::Selectable(types[2], !autodetect && (type == PCSX::Emulator::PSX_TYPE_PAL))) {
+                    changed = true;
+                    type = PCSX::Emulator::PSX_TYPE_PAL;
+                    autodetect = false;
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        {
+            static const char* labels[] = {"Disabled", "Little Endian", "Big Endian"};
+            auto& cdda = settings.get<Emulator::SettingCDDA>().value;
+            if (ImGui::BeginCombo("CDDA", labels[cdda])) {
+                int counter = 0;
+                for (auto& label : labels) {
+                    if (ImGui::Selectable(label, cdda == counter)) {
+                        changed = true;
+                        cdda = decltype(cdda)(counter);
+                    }
+                    counter++;
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
+        changed |= ImGui::Checkbox("Slow boot", &settings.get<Emulator::SettingSlowBoot>().value);
     }
     ImGui::End();
 
