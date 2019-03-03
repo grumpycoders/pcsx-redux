@@ -31,35 +31,21 @@
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
 
-PCSX::Emulator::Emulator() {
-    m_psxMem = new PCSX::Memory();
-    m_psxCounters = new PCSX::Counters();
-    m_psxBios = PCSX::Bios::factory();
-    m_gte = new PCSX::GTE();
-    m_sio = new PCSX::SIO();
-    m_cdrom = PCSX::CDRom::factory();
-    m_cheats = new PCSX::Cheats();
-    m_mdec = new PCSX::MDEC();
-    m_gpu = new PCSX::SoftGPU::impl();
-    m_debug = new PCSX::Debug();
-    m_hw = new PCSX::HW();
-    m_spu = new PCSX::SPU::impl();
-}
+PCSX::Emulator::Emulator()
+    : m_psxMem(new PCSX::Memory())
+    , m_psxCounters(new PCSX::Counters())
+    , m_psxBios(PCSX::Bios::factory())
+    , m_gte(new PCSX::GTE())
+    , m_sio(new PCSX::SIO())
+    , m_cdrom(PCSX::CDRom::factory())
+    , m_cheats(new PCSX::Cheats())
+    , m_mdec(new PCSX::MDEC())
+    , m_gpu(new PCSX::SoftGPU::impl())
+    , m_debug(new PCSX::Debug())
+    , m_hw(new PCSX::HW())
+    , m_spu(new PCSX::SPU::impl()) { }
 
-PCSX::Emulator::~Emulator() {
-    delete m_psxMem;
-    delete m_psxCounters;
-    delete m_psxBios;
-    delete m_gte;
-    delete m_sio;
-    delete m_cdrom;
-    delete m_cheats;
-    delete m_mdec;
-    delete m_gpu;
-    delete m_debug;
-    delete m_hw;
-    delete m_spu;
-}
+PCSX::Emulator::~Emulator() { }
 
 int PCSX::Emulator::EmuInit() {
     assert(g_system);

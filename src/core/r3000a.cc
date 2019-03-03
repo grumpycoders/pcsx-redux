@@ -263,10 +263,12 @@ void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
     // g_emulator.m_psxCpu->Reset();
 }
 
-static PCSX::InterpretedCPU s_cpuInt;
-PCSX::R3000Acpu* PCSX::Cpus::Interpreted() { return &s_cpuInt; }
+std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
+    return std::unique_ptr<PCSX::R3000Acpu>(new PCSX::InterpretedCPU);
+}
 
-PCSX::R3000Acpu* PCSX::Cpus::DynaRec() {
-    if (getX86DynaRec()->Implemented()) return getX86DynaRec();
-    return NULL;
+std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
+    std::unique_ptr<PCSX::R3000Acpu> cpu = getX86DynaRec();
+    if (cpu->Implemented()) return cpu;
+    return nullptr;
 }
