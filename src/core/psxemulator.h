@@ -38,6 +38,7 @@
 #include <zlib.h>
 
 #include <filesystem>
+#include <memory>
 #include <string>
 
 #include "main/settings.h"
@@ -100,6 +101,8 @@ class Emulator {
   private:
     Emulator();
     ~Emulator();
+    Emulator(const Emulator&) = delete;
+    Emulator& operator=(const Emulator&) = delete;
 
   public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
@@ -172,19 +175,19 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
-    Memory* m_psxMem = NULL;
-    R3000Acpu* m_psxCpu = NULL;
-    Counters* m_psxCounters = NULL;
-    Bios* m_psxBios = NULL;
-    GTE* m_gte = NULL;
-    SIO* m_sio = NULL;
-    CDRom* m_cdrom = NULL;
-    Cheats* m_cheats = NULL;
-    MDEC* m_mdec = NULL;
-    GPU* m_gpu = NULL;
-    Debug* m_debug = NULL;
-    HW* m_hw = NULL;
-    SPU::impl* m_spu = NULL;
+    std::unique_ptr<Memory> m_psxMem;
+    std::unique_ptr<R3000Acpu> m_psxCpu;
+    std::unique_ptr<Counters> m_psxCounters;
+    std::unique_ptr<Bios> m_psxBios;
+    std::unique_ptr<GTE> m_gte;
+    std::unique_ptr<SIO> m_sio;
+    std::unique_ptr<CDRom> m_cdrom;
+    std::unique_ptr<Cheats> m_cheats;
+    std::unique_ptr<MDEC> m_mdec;
+    std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<Debug> m_debug;
+    std::unique_ptr<HW> m_hw;
+    std::unique_ptr<SPU::impl> m_spu;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

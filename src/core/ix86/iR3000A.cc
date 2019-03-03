@@ -3581,7 +3581,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
 
 }  // namespace
 
-PCSX::R3000Acpu *PCSX::Cpus::getX86DynaRec() {
-    static X86DynaRecCPU cpu;
-    return &cpu;
+std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getX86DynaRec() {
+    return std::unique_ptr<PCSX::R3000Acpu>(new X86DynaRecCPU());
 }

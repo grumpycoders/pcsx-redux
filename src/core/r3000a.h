@@ -17,8 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __R3000A_H__
-#define __R3000A_H__
+#pragma once
+
+#include <memory>
 
 #include "core/psxbios.h"
 #include "core/psxcounters.h"
@@ -624,13 +625,11 @@ class InterpretedCPU : public R3000Acpu {
 
 class Cpus {
   public:
-    static R3000Acpu *Interpreted();
-    static R3000Acpu *DynaRec();
+    static std::unique_ptr<R3000Acpu> Interpreted();
+    static std::unique_ptr<R3000Acpu> DynaRec();
 
   private:
-    static R3000Acpu *getX86DynaRec();
+    static std::unique_ptr<R3000Acpu> getX86DynaRec();
 };
 
 }  // namespace PCSX
-
-#endif
