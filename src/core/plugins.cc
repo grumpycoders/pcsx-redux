@@ -21,15 +21,13 @@
  * Plugin library callback/access functions.
  */
 
-#include "core/plugins.h"
 #include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/pad.h"
+#include "core/plugins.h"
 #include "core/psxemulator.h"
 #include "spu/interface.h"
-
-static PCSX::PAD pad1(PCSX::PAD::PAD1);
 
 static char IsoFile[MAXPATHLEN] = "";
 static char ExeFile[MAXPATHLEN] = "";
@@ -133,6 +131,7 @@ SPUasync SPU_async;
 SPUplayCDDAchannel SPU_playCDDAchannel;
 #endif
 
+#if 0
 PADconfigure PAD1_configure;
 PADabout PAD1_about;
 PADinit PAD1_init;
@@ -144,7 +143,7 @@ PADquery PAD1_query;
 PADreadPort1 PAD1_readPort1;
 PADkeypressed PAD1_keypressed;
 PADstartPoll PAD1_startPoll;
-PADpoll PAD1_poll;
+PADpoll PCSX::g_emulator.m_pad1->poll;
 PADsetSensitive PAD1_setSensitive;
 PADregisterVibration PAD1_registerVibration;
 PADregisterCursor PAD1_registerCursor;
@@ -160,10 +159,11 @@ PADquery PAD2_query;
 PADreadPort2 PAD2_readPort2;
 PADkeypressed PAD2_keypressed;
 PADstartPoll PAD2_startPoll;
-PADpoll PAD2_poll;
+PADpoll PCSX::g_emulator.m_pad2->poll;
 PADsetSensitive PAD2_setSensitive;
 PADregisterVibration PAD2_registerVibration;
 PADregisterCursor PAD2_registerCursor;
+#endif
 
 NETinit NET_init;
 NETshutdown NET_shutdown;
@@ -335,6 +335,7 @@ static int LoadGPUplugin() {
 #include "decode_xa.h"
 #include "psxemulator.h"
 
+#if 0
 static unsigned char s_buf[256];
 unsigned char stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 unsigned char mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
@@ -481,7 +482,7 @@ static int LoadPAD1plugin() {
     PAD1_about = PAD1__about;
     PAD1_keypressed = PAD1__keypressed;
     PAD1_startPoll = PAD1__startPoll;
-    PAD1_poll = PAD1__poll;
+    PCSX::g_emulator.m_pad1->poll = PAD1__poll;
     PAD1_registerVibration = PAD1__registerVibration;
     PAD1_registerCursor = PAD1__registerCursor;
 
@@ -544,12 +545,13 @@ static int LoadPAD2plugin() {
     PAD2_about = PAD2__about;
     PAD2_keypressed = PAD2__keypressed;
     PAD2_startPoll = PAD2__startPoll;
-    PAD2_poll = PAD2__poll;
+    PCSX::g_emulator.m_pad2->poll = PAD2__poll;
     PAD2_registerVibration = PAD2__registerVibration;
     PAD2_registerCursor = PAD2__registerCursor;
 
     return 0;
 }
+#endif
 
 void NET__setInfo(netInfo *info) {}
 void NET__keypressed(int key) {}
@@ -682,8 +684,6 @@ int LoadPlugins() {
     ReleasePlugins();
 
     if (LoadGPUplugin() == -1) return -1;
-    if (LoadPAD1plugin() == -1) return -1;
-    if (LoadPAD2plugin() == -1) return -1;
     if (LoadNETplugin() == -1) PCSX::g_emulator.config().UseNet = false;
 
 #ifdef ENABLE_SIO1API
@@ -699,16 +699,6 @@ int LoadPlugins() {
     ret = PCSX::g_emulator.m_spu->init();
     if (ret < 0) {
         PCSX::g_system->message(_("Error initializing SPU plugin: %d"), ret);
-        return -1;
-    }
-    ret = PAD1_init(1);
-    if (ret < 0) {
-        PCSX::g_system->message(_("Error initializing Controller 1 plugin: %d"), ret);
-        return -1;
-    }
-    ret = PAD2_init(2);
-    if (ret < 0) {
-        PCSX::g_system->message(_("Error initializing Controller 2 plugin: %d"), ret);
         return -1;
     }
 
@@ -741,8 +731,6 @@ void ReleasePlugins() {
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
     PCSX::g_emulator.m_gpu->shutdown();
     PCSX::g_emulator.m_spu->shutdown();
-    if (PAD1_shutdown) PAD1_shutdown();
-    if (PAD2_shutdown) PAD2_shutdown();
     if (PCSX::g_emulator.config().UseNet && NET_shutdown) NET_shutdown();
 
 #ifdef ENABLE_SIO1API

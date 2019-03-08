@@ -23,6 +23,7 @@
 
 #include <sys/stat.h>
 
+#include "core/pad.h"
 #include "core/sio.h"
 
 // *** FOR WORKS ON PADS AND MEMORY CARDS *****
@@ -105,10 +106,10 @@ void PCSX::SIO::sioWrite8(uint8_t value) {
                 if (!PCSX::g_emulator.config().UseNet) {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
-                            s_buf[s_parp] = PAD1_poll(value);
+                            s_buf[s_parp] = PCSX::g_emulator.m_pad1->poll(value);
                             break;
                         case 0x2002:
-                            s_buf[s_parp] = PAD2_poll(value);
+                            s_buf[s_parp] = PCSX::g_emulator.m_pad2->poll(value);
                             break;
                     }
                 } /* else {
@@ -164,10 +165,10 @@ s_buf[5]);
             if (!PCSX::g_emulator.config().UseNet) {
                 switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
-                        s_buf[s_parp] = PAD1_poll(value);
+                        s_buf[s_parp] = PCSX::g_emulator.m_pad1->poll(value);
                         break;
                     case 0x2002:
-                        s_buf[s_parp] = PAD2_poll(value);
+                        s_buf[s_parp] = PCSX::g_emulator.m_pad2->poll(value);
                         break;
                 }
             }
@@ -564,29 +565,29 @@ s_buf[5]);
             if (!PCSX::g_emulator.config().UseNet) {
                 switch (s_ctrlReg & 0x2002) {
                     case 0x0002:
-                        s_buf[0] = PAD1_startPoll(1);
+                        s_buf[0] = PCSX::g_emulator.m_pad1->startPoll();
                         break;
                     case 0x2002:
-                        s_buf[0] = PAD2_startPoll(2);
+                        s_buf[0] = PCSX::g_emulator.m_pad2->startPoll();
                         break;
                 }
             } else {
                 if ((s_ctrlReg & 0x2002) == 0x0002) {
                     int i, j;
 
-                    PAD1_startPoll(1);
+                    PCSX::g_emulator.m_pad1->startPoll();
                     s_buf[0] = 0;
-                    s_buf[1] = PAD1_poll(0x42);
+                    s_buf[1] = PCSX::g_emulator.m_pad1->poll(0x42);
                     if (!(s_buf[1] & 0x0f)) {
                         s_bufcount = 32;
                     } else {
                         s_bufcount = (s_buf[1] & 0x0f) * 2;
                     }
-                    s_buf[2] = PAD1_poll(0);
+                    s_buf[2] = PCSX::g_emulator.m_pad1->poll(0);
                     i = 3;
                     j = s_bufcount;
                     while (j--) {
-                        s_buf[i++] = PAD1_poll(0);
+                        s_buf[i++] = PCSX::g_emulator.m_pad1->poll(0);
                     }
                     s_bufcount += 3;
 

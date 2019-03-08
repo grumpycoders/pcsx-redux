@@ -21,13 +21,38 @@
 
 #include <stdint.h>
 
+#include <SDL.h>
+struct PadDataS;
 namespace PCSX {
-
 class PAD {
   public:
     enum pad_t { PAD1, PAD2 };
-    PAD(pad_t pad) {}
+    PAD(pad_t pad);
+    ~PAD();
+    void init();
+    void shutdown();
+    unsigned char startPoll();
+    unsigned char poll(unsigned char);
+
+  private:
+    void readPort(PadDataS *pad);
+    unsigned char startPoll(PadDataS *pad);
     uint16_t getButtons();
+
+    pad_t m_padIdx = PAD1;
+
+    bool m_connected = false;
+    bool m_isKeyboard = false;
+    int m_joystick = -1;
+    SDL_Scancode m_scancodes[16];
+    SDL_GameController *m_pad = NULL;
+
+    unsigned char m_buf[256];
+    unsigned char m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    unsigned char m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
+    unsigned char m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+    int m_bufcount, m_bufc;
 };
 
 }  // namespace PCSX
