@@ -21,6 +21,7 @@
  * Internal simulated HLE BIOS.
  */
 
+#include "core/pad.h"
 #include "core/psxbios.h"
 #include "core/gpu.h"
 #include "core/psxhw.h"
@@ -2944,21 +2945,21 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBiosShutdown() final {}
 
-#define psxBios_PADpoll(pad)                           \
-    {                                                  \
-        PAD##pad##_startPoll(pad);                     \
-        s_pad_buf##pad[0] = 0;                         \
-        s_pad_buf##pad[1] = PAD##pad##_poll(0x42);     \
-        if (!(s_pad_buf##pad[1] & 0x0f)) {             \
-            bufcount = 32;                             \
-        } else {                                       \
-            bufcount = (s_pad_buf##pad[1] & 0x0f) * 2; \
-        }                                              \
-        PAD##pad##_poll(0);                            \
-        i = 2;                                         \
-        while (bufcount--) {                           \
-            s_pad_buf##pad[i++] = PAD##pad##_poll(0);  \
-        }                                              \
+#define psxBios_PADpoll(pad)                                              \
+    {                                                                     \
+        PCSX::g_emulator.m_pad##pad##->startPoll();                       \
+        s_pad_buf##pad[0] = 0;                                            \
+        s_pad_buf##pad[1] = PCSX::g_emulator.m_pad##pad##->poll(0x42);    \
+        if (!(s_pad_buf##pad[1] & 0x0f)) {                                \
+            bufcount = 32;                                                \
+        } else {                                                          \
+            bufcount = (s_pad_buf##pad[1] & 0x0f) * 2;                    \
+        }                                                                 \
+        PCSX::g_emulator.m_pad##pad##->poll(0);                           \
+        i = 2;                                                            \
+        while (bufcount--) {                                              \
+            s_pad_buf##pad[i++] = PCSX::g_emulator.m_pad##pad##->poll(0); \
+        }                                                                 \
     }
 
     void biosInterrupt() {
@@ -2969,41 +2970,41 @@ class BiosImpl : public PCSX::Bios {
             uint32_t *buf = (uint32_t *)s_pad_buf;
 
             if (!PCSX::g_emulator.config().UseNet) {
-                PAD1_startPoll(1);
-                if (PAD1_poll(0x42) == 0x23) {
-                    PAD1_poll(0);
-                    *buf = PAD1_poll(0) << 8;
-                    *buf |= PAD1_poll(0);
-                    PAD1_poll(0);
-                    *buf &= ~((PAD1_poll(0) > 0x20) ? 1 << 6 : 0);
-                    *buf &= ~((PAD1_poll(0) > 0x20) ? 1 << 7 : 0);
+                PCSX::g_emulator.m_pad1->startPoll();
+                if (PCSX::g_emulator.m_pad1->poll(0x42) == 0x23) {
+                    PCSX::g_emulator.m_pad1->poll(0);
+                    *buf = PCSX::g_emulator.m_pad1->poll(0) << 8;
+                    *buf |= PCSX::g_emulator.m_pad1->poll(0);
+                    PCSX::g_emulator.m_pad1->poll(0);
+                    *buf &= ~((PCSX::g_emulator.m_pad1->poll(0) > 0x20) ? 1 << 6 : 0);
+                    *buf &= ~((PCSX::g_emulator.m_pad1->poll(0) > 0x20) ? 1 << 7 : 0);
                 } else {
-                    PAD1_poll(0);
-                    *buf = PAD1_poll(0) << 8;
-                    *buf |= PAD1_poll(0);
+                    PCSX::g_emulator.m_pad1->poll(0);
+                    *buf = PCSX::g_emulator.m_pad1->poll(0) << 8;
+                    *buf |= PCSX::g_emulator.m_pad1->poll(0);
                 }
 
-                PAD2_startPoll(2);
-                if (PAD2_poll(0x42) == 0x23) {
-                    PAD2_poll(0);
-                    *buf |= PAD2_poll(0) << 24;
-                    *buf |= PAD2_poll(0) << 16;
-                    PAD2_poll(0);
-                    *buf &= ~((PAD2_poll(0) > 0x20) ? 1 << 22 : 0);
-                    *buf &= ~((PAD2_poll(0) > 0x20) ? 1 << 23 : 0);
+                PCSX::g_emulator.m_pad2->startPoll();
+                if (PCSX::g_emulator.m_pad2->poll(0x42) == 0x23) {
+                    PCSX::g_emulator.m_pad2->poll(0);
+                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 24;
+                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 16;
+                    PCSX::g_emulator.m_pad2->poll(0);
+                    *buf &= ~((PCSX::g_emulator.m_pad2->poll(0) > 0x20) ? 1 << 22 : 0);
+                    *buf &= ~((PCSX::g_emulator.m_pad2->poll(0) > 0x20) ? 1 << 23 : 0);
                 } else {
-                    PAD2_poll(0);
-                    *buf |= PAD2_poll(0) << 24;
-                    *buf |= PAD2_poll(0) << 16;
+                    PCSX::g_emulator.m_pad2->poll(0);
+                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 24;
+                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 16;
                 }
             } else {
                 uint16_t data;
 
-                PAD1_startPoll(1);
-                PAD1_poll(0x42);
-                PAD1_poll(0);
-                data = PAD1_poll(0) << 8;
-                data |= PAD1_poll(0);
+                PCSX::g_emulator.m_pad1->startPoll();
+                PCSX::g_emulator.m_pad1->poll(0x42);
+                PCSX::g_emulator.m_pad1->poll(0);
+                data = PCSX::g_emulator.m_pad1->poll(0) << 8;
+                data |= PCSX::g_emulator.m_pad1->poll(0);
 
                 if (NET_sendPadData(&data, 2) == -1) PCSX::g_emulator.m_sio->netError();
 

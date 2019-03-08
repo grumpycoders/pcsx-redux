@@ -90,7 +90,7 @@ using json = nlohmann::json;
 int main(int argc, char **argv) {
     const flags::args args(argc, argv);
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         assert(0);
     }
 

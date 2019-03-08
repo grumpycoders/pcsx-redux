@@ -79,19 +79,20 @@ typedef intptr_t ssize_t;
 
 namespace PCSX {
 
-class Memory;
-class R3000Acpu;
-class System;
-class Counters;
 class Bios;
-class GTE;
-class SIO;
 class CDRom;
 class Cheats;
-class MDEC;
-class GPU;
+class Counters;
 class Debug;
+class GPU;
+class GTE;
 class HW;
+class MDEC;
+class Memory;
+class PAD;
+class R3000Acpu;
+class SIO;
+class System;
 
 namespace SPU {
 class impl;
@@ -188,6 +189,8 @@ class Emulator {
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<SPU::impl> m_spu;
+    std::unique_ptr<PAD> m_pad1;
+    std::unique_ptr<PAD> m_pad2;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

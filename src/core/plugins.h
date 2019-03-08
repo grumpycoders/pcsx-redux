@@ -140,6 +140,7 @@ struct SubQ {
 };
 
 // PAD Functions
+#if 0
 struct PadDataS;
 typedef long (*PADconfigure)(void);
 typedef void (*PADabout)(void);
@@ -169,7 +170,7 @@ extern PADquery PAD1_query;
 extern PADreadPort1 PAD1_readPort1;
 extern PADkeypressed PAD1_keypressed;
 extern PADstartPoll PAD1_startPoll;
-extern PADpoll PAD1_poll;
+extern PADpoll PCSX::g_emulator.m_pad1->poll;
 extern PADsetSensitive PAD1_setSensitive;
 extern PADregisterVibration PAD1_registerVibration;
 extern PADregisterCursor PAD1_registerCursor;
@@ -184,10 +185,11 @@ extern PADquery PAD2_query;
 extern PADreadPort2 PAD2_readPort2;
 extern PADkeypressed PAD2_keypressed;
 extern PADstartPoll PAD2_startPoll;
-extern PADpoll PAD2_poll;
+extern PADpoll PCSX::g_emulator.m_pad2->poll;
 extern PADsetSensitive PAD2_setSensitive;
 extern PADregisterVibration PAD2_registerVibration;
 extern PADregisterCursor PAD2_registerCursor;
+#endif
 
 // NET Functions
 typedef long (*NETinit)(void);
@@ -211,7 +213,7 @@ typedef struct {
     void* psxMem;
     //    GPUshowScreenPic GPU_showScreenPic;
     //    GPUdisplayText GPU_displayText;
-    PADsetSensitive PAD_setSensitive;
+    //    PADsetSensitive PAD_setSensitive;
     char GPUpath[256];  // paths must be absolute
     char SPUpath[256];
     char CDRpath[256];
