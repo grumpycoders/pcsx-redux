@@ -39,8 +39,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     while (clipper.Step()) {
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
-            const char* text = disR3000AF(*reinterpret_cast<uint32_t*>(memory->g_psxM + addr), addr | 0x80000000);
-            ImGui::Text("%c %s", addr == pc ? '>' : ' ', text);
+            std::string ins = Disasm::asString(*reinterpret_cast<uint32_t*>(memory->g_psxM + addr), 0, addr | 0x80000000);
+            ImGui::Text("%c %s", addr == pc ? '>' : ' ', ins.c_str());
         }
     }
     if (m_followPC) {

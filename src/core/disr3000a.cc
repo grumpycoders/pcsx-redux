@@ -21,34 +21,35 @@
  * R3000A disassembler.
  */
 
+#include <stdarg.h>
+
+#include "core/disr3000a.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
-static char s_ostr[512];
-
 // Names of registers
-const char *g_disRNameGPR[] = {
+const char *PCSX::Disasm::s_disRNameGPR[] = {
     "r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",  // 00
     "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",  // 08
     "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",  // 10
     "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra",  // 18
 };
 
-const char *g_disRNameCP2D[] = {
+const char *PCSX::Disasm::s_disRNameCP2D[] = {
     "vxy0", "vz0",  "vxy1", "vz1",  "vxy2", "vz2",  "rgb",  "otz",   // 00
     "ir0",  "ir1",  "ir2",  "ir3",  "sxy0", "sxy1", "sxy2", "sxyp",  // 08
     "sz0",  "sz1",  "sz2",  "sz3",  "rgb0", "rgb1", "rgb2", "res1",  // 10
     "mac0", "mac1", "mac2", "mac3", "irgb", "orgb", "lzcs", "lzcr",  // 18
 };
 
-const char *g_disRNameCP2C[] = {
+const char *PCSX::Disasm::s_disRNameCP2C[] = {
     "r11r12", "r13r21", "r22r23", "r31r32", "r33", "trx",  "try",  "trz",   // 00
     "l11l12", "l13l21", "l22l23", "l31l32", "l33", "rbk",  "bbk",  "gbk",   // 08
     "lr1lr2", "lr3lg1", "lg2lg3", "lb1lb2", "lb3", "rfc",  "gfc",  "bfc",   // 10
     "ofx",    "ofy",    "h",      "dqa",    "dqb", "zsf3", "zsf4", "flag",  // 18
 };
 
-const char *g_disRNameCP0[] = {
+const char *PCSX::Disasm::s_disRNameCP0[] = {
     "Index",    "Random",   "EntryLo0", "EntryLo1",  // 00
     "Context",  "PageMask", "Wired",    "+Checkme",  // 04
     "BadVAddr", "Count",    "EntryHi",  "Compare",   // 08
@@ -59,23 +60,7 @@ const char *g_disRNameCP0[] = {
     "TagLo",    "TagHi",    "ErrorEPC", "*RES*",     // 1c
 };
 
-// Type definition of our functions
-
-typedef const char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
-
-// These macros are used to assemble the disassembler functions
-#define MakeDisFg(fn, b)                         \
-    const char *fn(uint32_t code, uint32_t pc) { \
-        b;                                       \
-        return s_ostr;                           \
-    }
-#define MakeDisF(fn, b)                                 \
-    static const char *fn(uint32_t code, uint32_t pc) { \
-        sprintf(s_ostr, "%8.8x %8.8x:", pc, code);      \
-        b; /*s_ostr[(strlen(s_ostr) - 1)] = 0;*/        \
-        return s_ostr;                                  \
-    }
-
+#undef declare
 #undef _Funct_
 #undef _Rd_
 #undef _Rt_
@@ -84,6 +69,7 @@ typedef const char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
 #undef _Im_
 #undef _Target_
 
+#define declare(n) void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc)
 #define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
@@ -95,274 +81,660 @@ typedef const char *(*TdisR3000AF)(uint32_t code, uint32_t pc);
 #define _Branch_ (pc + 4 + ((short)_Im_ * 4))
 #define _OfB_ _Im_, _nRs_
 
-#define dName(i) sprintf(s_ostr, "%s %-7s", s_ostr, i)
-#define dGPR(i) \
-    sprintf(s_ostr, "%s %s,", s_ostr, g_disRNameGPR[i])
-#define dCP0(i) \
-    sprintf(s_ostr, "%s %s,", s_ostr, g_disRNameCP0[i])
-#define dCP2D(i) \
-    sprintf(s_ostr, "%s %s,", s_ostr, g_disRNameCP2D[i])
-#define dCP2C(i) \
-    sprintf(s_ostr, "%s %s,", s_ostr, g_disRNameCP2C[i])
-#define dHI() sprintf(s_ostr, "%s hi,", s_ostr)
-#define dLO() sprintf(s_ostr, "%s lo,", s_ostr)
-#define dImm() sprintf(s_ostr, "%s 0x%4.4x,", s_ostr, _Im_)
-#define dTarget() sprintf(s_ostr, "%s 0x%8.8x,", s_ostr, _Target_)
-#define dSa() sprintf(s_ostr, "%s 0x%2.2x,", s_ostr, _Sa_)
-#define dOfB()                                                                                                \
-    sprintf(s_ostr, "%s 0x%4.4x (%s),", s_ostr, _Im_, \
-            g_disRNameGPR[_Rs_])
-#define dOffset() sprintf(s_ostr, "%s 0x%8.8x,", s_ostr, _Branch_)
-#define dCode() sprintf(s_ostr, "%s 0x%8.8x,", s_ostr, (code >> 6) & 0xffffff)
+namespace {
+class StringDisasm : public PCSX::Disasm {
+    void append(const char *str, ...) {
+        va_list va;
+        va_start(va, str);
+        char buf[64];
+        std::vsnprintf(buf, 64, str, va);
+        va_end(va);
+        size_t len = strlen(buf);
+        memcpy(m_buf + m_len, buf, len + 1);
+        m_len += len;
+    }
+    void comma() {
+        if (m_gotArg) append(", ");
+        m_gotArg = true;
+    }
+    virtual void Name(const char *name) final {
+        std::sprintf(m_buf, "%-7s", name);
+        m_gotArg = false;
+        m_len = 7;
+    }
+    virtual void GPR(uint8_t reg) final {
+        comma();
+        append(s_disRNameGPR[reg]);
+    }
+    virtual void CP0(uint8_t reg) final {
+        comma();
+        append(s_disRNameCP0[reg]);
+    }
+    virtual void CP2D(uint8_t reg) final {
+        comma();
+        append(s_disRNameCP2D[reg]);
+    }
+    virtual void CP2C(uint8_t reg) final {
+        comma();
+        append(s_disRNameCP2C[reg]);
+    }
+    virtual void HI() final {
+        comma();
+        append("hi");
+    }
+    virtual void LO() final {
+        comma();
+        append("lo");
+    }
+    virtual void Imm(uint16_t value) final {
+        comma();
+        append("0x%4.4x", value);
+    }
+    virtual void Target(uint32_t value) final {
+        comma();
+        append("0x%8.8x", value);
+    }
+    virtual void Sa(uint8_t value) final {
+        comma();
+        append("0x%2.2x", value);
+    }
+    virtual void OfB(uint16_t offset, uint8_t reg) {
+        comma();
+        append("%s[0x%4.4x]", s_disRNameGPR[reg], offset);
+    }
+    virtual void Offset(uint32_t value) final {
+        comma();
+        append("0x%8.8x", value);
+    }
+    char m_buf[512];
+    size_t m_len = 0;
+    bool m_gotArg = false;
+
+  public:
+    std::string get() { return m_buf; }
+};
+}  // namespace
+
+#define dName(i) Name(i)
+#define dGPR(i)           \
+    if (m_lastGPR != i) { \
+        GPR(i);           \
+        m_lastGPR = i;    \
+    }
+#define dCP0(i)       \
+    m_lastGPR = 0xff; \
+    CP0(i)
+#define dCP2D(i)      \
+    m_lastGPR = 0xff; \
+    CP2D(i)
+#define dCP2C(i)      \
+    m_lastGPR = 0xff; \
+    CP2C(i)
+#define dHI()         \
+    m_lastGPR = 0xff; \
+    HI()
+#define dLO()         \
+    m_lastGPR = 0xff; \
+    LO()
+#define dImm() Imm(_Im_)
+#define dTarget() Target(_Target_)
+#define dSa() Sa(_Sa_)
+#define dOfB() OfB(_Im_, _Rs_)
+#define dOffset() Offset(_Branch_)
 
 /*********************************************************
  * Arithmetic with immediate operand                      *
  * Format:  OP rt, rs, immediate                          *
  *********************************************************/
-MakeDisF(disADDI, dName("addi"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
-MakeDisF(disADDIU, dName("addiu"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
-MakeDisF(disANDI, dName("andi"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
-MakeDisF(disORI, dName("ori"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
-MakeDisF(disSLTI, dName("slti"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
-MakeDisF(disSLTIU, dName("sltiu"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
-MakeDisF(disXORI, dName("xori"); dGPR(_Rt_); dGPR(_Rs_); dImm(););
+declare(disADDI) {
+    dName("addi");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
+declare(disADDIU) {
+    dName("addiu");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
+declare(disANDI) {
+    dName("andi");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
+declare(disORI) {
+    dName("ori");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
+declare(disSLTI) {
+    dName("slti");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
+declare(disSLTIU) {
+    dName("sltiu");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
+declare(disXORI) {
+    dName("xori");
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+    dImm();
+}
 
 /*********************************************************
  * Register arithmetic                                    *
  * Format:  OP rd, rs, rt                                 *
  *********************************************************/
-MakeDisF(disADD, dName("add"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disADDU, dName("addu"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disAND, dName("and"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disNOR, dName("nor"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disOR, dName("or"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disSLT, dName("slt"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disSLTU, dName("sltu"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disSUB, dName("sub"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disSUBU, dName("subu"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disXOR, dName("xor"); dGPR(_Rd_); dGPR(_Rs_); dGPR(_Rt_););
+declare(disADD) {
+    dName("add");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disADDU) {
+    dName("addu");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disAND) {
+    dName("and");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disNOR) {
+    dName("nor");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disOR) {
+    dName("or");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disSLT) {
+    dName("slt");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disSLTU) {
+    dName("sltu");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disSUB) {
+    dName("sub");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disSUBU) {
+    dName("subu");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disXOR) {
+    dName("xor");
+    dGPR(_Rd_);
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
 
 /*********************************************************
  * Register arithmetic & Register trap logic              *
  * Format:  OP rs, rt                                     *
  *********************************************************/
-MakeDisF(disDIV, dName("div"); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disDIVU, dName("divu"); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disMULT, dName("mult"); dGPR(_Rs_); dGPR(_Rt_););
-MakeDisF(disMULTU, dName("multu"); dGPR(_Rs_); dGPR(_Rt_););
+declare(disDIV) {
+    dName("div");
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disDIVU) {
+    dName("divu");
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disMULT) {
+    dName("mult");
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
+declare(disMULTU) {
+    dName("multu");
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+}
 
 /*********************************************************
  * Register branch logic                                  *
  * Format:  OP rs, offset                                 *
  *********************************************************/
-MakeDisF(disBGEZ, dName("bgez"); dGPR(_Rs_); dOffset(););
-MakeDisF(disBGEZAL, dName("bgezal"); dGPR(_Rs_); dOffset(););
-MakeDisF(disBGTZ, dName("bgtz"); dGPR(_Rs_); dOffset(););
-MakeDisF(disBLEZ, dName("blez"); dGPR(_Rs_); dOffset(););
-MakeDisF(disBLTZ, dName("bltz"); dGPR(_Rs_); dOffset(););
-MakeDisF(disBLTZAL, dName("bltzal"); dGPR(_Rs_); dOffset(););
+declare(disBGEZ) {
+    dName("bgez");
+    dGPR(_Rs_);
+    dOffset();
+}
+declare(disBGEZAL) {
+    dName("bgezal");
+    dGPR(_Rs_);
+    dOffset();
+}
+declare(disBGTZ) {
+    dName("bgtz");
+    dGPR(_Rs_);
+    dOffset();
+}
+declare(disBLEZ) {
+    dName("blez");
+    dGPR(_Rs_);
+    dOffset();
+}
+declare(disBLTZ) {
+    dName("bltz");
+    dGPR(_Rs_);
+    dOffset();
+}
+declare(disBLTZAL) {
+    dName("bltzal");
+    dGPR(_Rs_);
+    dOffset();
+}
 
 /*********************************************************
  * Shift arithmetic with constant shift                   *
  * Format:  OP rd, rt, sa                                 *
  *********************************************************/
-MakeDisF(disSLL,
-         if (code) {
-             dName("sll");
-             dGPR(_Rd_);
-             dGPR(_Rt_);
-             dSa();
-         } else { dName("nop"); });
-MakeDisF(disSRA, dName("sra"); dGPR(_Rd_); dGPR(_Rt_); dSa(););
-MakeDisF(disSRL, dName("srl"); dGPR(_Rd_); dGPR(_Rt_); dSa(););
+declare(disSLL) {
+    if (code) {
+        dName("sll");
+        dGPR(_Rd_);
+        dGPR(_Rt_);
+        dSa();
+    } else {
+        dName("nop");
+    }
+}
+declare(disSRA) {
+    dName("sra");
+    dGPR(_Rd_);
+    dGPR(_Rt_);
+    dSa();
+}
+declare(disSRL) {
+    dName("srl");
+    dGPR(_Rd_);
+    dGPR(_Rt_);
+    dSa();
+}
 
 /*********************************************************
  * Shift arithmetic with variant register shift           *
  * Format:  OP rd, rt, rs                                 *
  *********************************************************/
-MakeDisF(disSLLV, dName("sllv"); dGPR(_Rd_); dGPR(_Rt_); dGPR(_Rs_););
-MakeDisF(disSRAV, dName("srav"); dGPR(_Rd_); dGPR(_Rt_); dGPR(_Rs_););
-MakeDisF(disSRLV, dName("srlv"); dGPR(_Rd_); dGPR(_Rt_); dGPR(_Rs_););
+declare(disSLLV) {
+    dName("sllv");
+    dGPR(_Rd_);
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+}
+declare(disSRAV) {
+    dName("srav");
+    dGPR(_Rd_);
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+}
+declare(disSRLV) {
+    dName("srlv");
+    dGPR(_Rd_);
+    dGPR(_Rt_);
+    dGPR(_Rs_);
+}
 
 /*********************************************************
  * Load higher 16 bits of the first word in GPR with imm  *
  * Format:  OP rt, immediate                              *
  *********************************************************/
-MakeDisF(disLUI, dName("lui"); dGPR(_Rt_); dImm(););
+declare(disLUI) {
+    dName("lui");
+    dGPR(_Rt_);
+    dImm();
+}
 
 /*********************************************************
  * Move from HI/LO to GPR                                 *
  * Format:  OP rd                                         *
  *********************************************************/
-MakeDisF(disMFHI, dName("mfhi"); dGPR(_Rd_); dHI(););
-MakeDisF(disMFLO, dName("mflo"); dGPR(_Rd_); dLO(););
+declare(disMFHI) {
+    dName("mfhi");
+    dGPR(_Rd_);
+    dHI();
+}
+declare(disMFLO) {
+    dName("mflo");
+    dGPR(_Rd_);
+    dLO();
+}
 
 /*********************************************************
  * Move from GPR to HI/LO                                 *
  * Format:  OP rd                                         *
  *********************************************************/
-MakeDisF(disMTHI, dName("mthi"); dHI(); dGPR(_Rs_););
-MakeDisF(disMTLO, dName("mtlo"); dLO(); dGPR(_Rs_););
+declare(disMTHI) {
+    dName("mthi");
+    dHI();
+    dGPR(_Rs_);
+}
+declare(disMTLO) {
+    dName("mtlo");
+    dLO();
+    dGPR(_Rs_);
+}
 
 /*********************************************************
  * Special purpose instructions                           *
  * Format:  OP                                            *
  *********************************************************/
-MakeDisF(disBREAK, dName("break"));
-MakeDisF(disRFE, dName("rfe"));
-MakeDisF(disSYSCALL, dName("syscall"));
-MakeDisF(disHLE, dName("hle"));
+declare(disBREAK) { dName("break"); }
+declare(disRFE) { dName("rfe"); }
+declare(disSYSCALL) { dName("syscall"); }
+declare(disHLE) { dName("hle"); }
 
-MakeDisF(disRTPS, dName("rtps"));
-MakeDisF(disOP, dName("op"));
-MakeDisF(disNCLIP, dName("nclip"));
-MakeDisF(disDPCS, dName("dpcs"));
-MakeDisF(disINTPL, dName("intpl"));
-MakeDisF(disMVMVA, dName("mvmva"));
-MakeDisF(disNCDS, dName("ncds"));
-MakeDisF(disCDP, dName("cdp"));
-MakeDisF(disNCDT, dName("ncdt"));
-MakeDisF(disNCCS, dName("nccs"));
-MakeDisF(disCC, dName("cc"));
-MakeDisF(disNCS, dName("ncs"));
-MakeDisF(disNCT, dName("nct"));
-MakeDisF(disSQR, dName("sqr"));
-MakeDisF(disDCPL, dName("dcpl"));
-MakeDisF(disDPCT, dName("dpct"));
-MakeDisF(disAVSZ3, dName("avsz3"));
-MakeDisF(disAVSZ4, dName("avsz4"));
-MakeDisF(disRTPT, dName("rtpt"));
-MakeDisF(disGPF, dName("gpf"));
-MakeDisF(disGPL, dName("gpl"));
-MakeDisF(disNCCT, dName("ncct"));
+declare(disRTPS) { dName("rtps"); }
+declare(disOP) { dName("op"); }
+declare(disNCLIP) { dName("nclip"); }
+declare(disDPCS) { dName("dpcs"); }
+declare(disINTPL) { dName("intpl"); }
+declare(disMVMVA) { dName("mvmva"); }
+declare(disNCDS) { dName("ncds"); }
+declare(disCDP) { dName("cdp"); }
+declare(disNCDT) { dName("ncdt"); }
+declare(disNCCS) { dName("nccs"); }
+declare(disCC) { dName("cc"); }
+declare(disNCS) { dName("ncs"); }
+declare(disNCT) { dName("nct"); }
+declare(disSQR) { dName("sqr"); }
+declare(disDCPL) { dName("dcpl"); }
+declare(disDPCT) { dName("dpct"); }
+declare(disAVSZ3) { dName("avsz3"); }
+declare(disAVSZ4) { dName("avsz4"); }
+declare(disRTPT) { dName("rtpt"); }
+declare(disGPF) { dName("gpf"); }
+declare(disGPL) { dName("gpl"); }
+declare(disNCCT) { dName("ncct"); }
 
-MakeDisF(disMFC2, dName("mfc2"); dGPR(_Rt_); dCP2C(_Rd_););
-MakeDisF(disMTC2, dName("mtc2"); dCP2C(_Rd_); dGPR(_Rt_););
-MakeDisF(disCFC2, dName("cfc2"); dGPR(_Rt_); dCP2C(_Rd_););
-MakeDisF(disCTC2, dName("ctc2"); dCP2C(_Rd_); dGPR(_Rt_););
+declare(disMFC2) {
+    dName("mfc2");
+    dGPR(_Rt_);
+    dCP2C(_Rd_);
+}
+declare(disMTC2) {
+    dName("mtc2");
+    dCP2C(_Rd_);
+    dGPR(_Rt_);
+}
+declare(disCFC2) {
+    dName("cfc2");
+    dGPR(_Rt_);
+    dCP2C(_Rd_);
+}
+declare(disCTC2) {
+    dName("ctc2");
+    dCP2C(_Rd_);
+    dGPR(_Rt_);
+}
 
 /*********************************************************
  * Register branch logic                                  *
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
-MakeDisF(disBEQ, dName("beq"); dGPR(_Rs_); dGPR(_Rt_); dOffset(););
-MakeDisF(disBNE, dName("bne"); dGPR(_Rs_); dGPR(_Rt_); dOffset(););
+declare(disBEQ) {
+    dName("beq");
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+    dOffset();
+}
+declare(disBNE) {
+    dName("bne");
+    dGPR(_Rs_);
+    dGPR(_Rt_);
+    dOffset();
+}
 
 /*********************************************************
  * Jump to target                                         *
  * Format:  OP target                                     *
  *********************************************************/
-MakeDisF(disJ, dName("j"); dTarget(););
-MakeDisF(disJAL, dName("jal"); dTarget(););
+declare(disJ) {
+    dName("j");
+    dTarget();
+}
+declare(disJAL) {
+    dName("jal");
+    dTarget();
+}
 
 /*********************************************************
  * Register jump                                          *
  * Format:  OP rs, rd                                     *
  *********************************************************/
-MakeDisF(disJR, dName("jr"); dGPR(_Rs_););
-MakeDisF(disJALR, dName("jalr"); dGPR(_Rs_); dGPR(_Rd_));
+declare(disJR) {
+    dName("jr");
+    dGPR(_Rs_);
+}
+declare(disJALR) {
+    dName("jalr");
+    dGPR(_Rs_);
+    dGPR(_Rd_);
+}
 
 /*********************************************************
  * Load and store for GPR                                 *
  * Format:  OP rt, offset(base)                           *
  *********************************************************/
-MakeDisF(disLB, dName("lb"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLBU, dName("lbu"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLH, dName("lh"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLHU, dName("lhu"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLW, dName("lw"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLWL, dName("lwl"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLWR, dName("lwr"); dGPR(_Rt_); dOfB(););
-MakeDisF(disLWC2, dName("lwc2"); dCP2D(_Rt_); dOfB(););
-MakeDisF(disSB, dName("sb"); dGPR(_Rt_); dOfB(););
-MakeDisF(disSH, dName("sh"); dGPR(_Rt_); dOfB(););
-MakeDisF(disSW, dName("sw"); dGPR(_Rt_); dOfB(););
-MakeDisF(disSWL, dName("swl"); dGPR(_Rt_); dOfB(););
-MakeDisF(disSWR, dName("swr"); dGPR(_Rt_); dOfB(););
-MakeDisF(disSWC2, dName("swc2"); dCP2D(_Rt_); dOfB(););
+declare(disLB) {
+    dName("lb");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLBU) {
+    dName("lbu");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLH) {
+    dName("lh");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLHU) {
+    dName("lhu");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLW) {
+    dName("lw");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLWL) {
+    dName("lwl");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLWR) {
+    dName("lwr");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disLWC2) {
+    dName("lwc2");
+    dCP2D(_Rt_);
+    dOfB();
+}
+declare(disSB) {
+    dName("sb");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disSH) {
+    dName("sh");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disSW) {
+    dName("sw");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disSWL) {
+    dName("swl");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disSWR) {
+    dName("swr");
+    dGPR(_Rt_);
+    dOfB();
+}
+declare(disSWC2) {
+    dName("swc2");
+    dCP2D(_Rt_);
+    dOfB();
+}
 
 /*********************************************************
  * Moves between GPR and COPx                             *
  * Format:  OP rt, fs                                     *
  *********************************************************/
-MakeDisF(disMFC0, dName("mfc0"); dGPR(_Rt_); dCP0(_Rd_););
-MakeDisF(disMTC0, dName("mtc0"); dCP0(_Rd_); dGPR(_Rt_););
-MakeDisF(disCFC0, dName("cfc0"); dGPR(_Rt_); dCP0(_Rd_););
-MakeDisF(disCTC0, dName("ctc0"); dCP0(_Rd_); dGPR(_Rt_););
+declare(disMFC0) {
+    dName("mfc0");
+    dGPR(_Rt_);
+    dCP0(_Rd_);
+}
+declare(disMTC0) {
+    dName("mtc0");
+    dCP0(_Rd_);
+    dGPR(_Rt_);
+}
+declare(disCFC0) {
+    dName("cfc0");
+    dGPR(_Rt_);
+    dCP0(_Rd_);
+}
+declare(disCTC0) {
+    dName("ctc0");
+    dCP0(_Rd_);
+    dGPR(_Rt_);
+}
 
 /*********************************************************
  * Unknow instruction (would generate an exception)       *
  * Format:  ?                                             *
  *********************************************************/
-MakeDisF(disNULL, dName("*** Bad OP ***"););
+declare(disNULL) { dName("*** Bad OP ***"); }
 
-TdisR3000AF disR3000A_SPECIAL[] = {
+const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_SPECIAL[] = {
     // Subset of disSPECIAL
-    disSLL,  disNULL,  disSRL,  disSRA,  disSLLV,    disNULL,  disSRLV, disSRAV,  // 00
-    disJR,   disJALR,  disNULL, disNULL, disSYSCALL, disBREAK, disNULL, disNULL,  // 08
-    disMFHI, disMTHI,  disMFLO, disMTLO, disNULL,    disNULL,  disNULL, disNULL,  // 10
-    disMULT, disMULTU, disDIV,  disDIVU, disNULL,    disNULL,  disNULL, disNULL,  // 18
-    disADD,  disADDU,  disSUB,  disSUBU, disAND,     disOR,    disXOR,  disNOR,   // 20
-    disNULL, disNULL,  disSLT,  disSLTU, disNULL,    disNULL,  disNULL, disNULL,  // 28
-    disNULL, disNULL,  disNULL, disNULL, disNULL,    disNULL,  disNULL, disNULL,  // 30
-    disNULL, disNULL,  disNULL, disNULL, disNULL,    disNULL,  disNULL, disNULL,  // 38
+    &Disasm::disSLL,  &Disasm::disNULL,  &Disasm::disSRL,  &Disasm::disSRA,  &Disasm::disSLLV,    &Disasm::disNULL,  &Disasm::disSRLV, &Disasm::disSRAV,  // 00
+    &Disasm::disJR,   &Disasm::disJALR,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disSYSCALL, &Disasm::disBREAK, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disMFHI, &Disasm::disMTHI,  &Disasm::disMFLO, &Disasm::disMTLO, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disMULT, &Disasm::disMULTU, &Disasm::disDIV,  &Disasm::disDIVU, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disADD,  &Disasm::disADDU,  &Disasm::disSUB,  &Disasm::disSUBU, &Disasm::disAND,     &Disasm::disOR,    &Disasm::disXOR,  &Disasm::disNOR,   // 20
+    &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disSLT,  &Disasm::disSLTU, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 28
+    &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 30
+    &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 38
 };
 
-MakeDisF(disSPECIAL, disR3000A_SPECIAL[_Funct_](code, pc));
+declare(disSPECIAL) {
+    cTdisR3000AF ptr = s_disR3000A_SPECIAL[_Funct_];
+    (*this.*ptr)(code, nextCode, pc);
+}
 
-TdisR3000AF disR3000A_BCOND[] = {
+const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BCOND[] = {
     // Subset of disBCOND
-    disBLTZ,   disBGEZ,   disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 00
-    disNULL,   disNULL,   disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 08
-    disBLTZAL, disBGEZAL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 10
-    disNULL,   disNULL,   disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 18
+    &Disasm::disBLTZ,   &Disasm::disBGEZ,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 00
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disBLTZAL, &Disasm::disBGEZAL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
 };
 
-MakeDisF(disBCOND, disR3000A_BCOND[_Rt_](code, pc));
+declare(disBCOND) {
+    cTdisR3000AF ptr = s_disR3000A_BCOND[_Rt_];
+    (*this.*ptr)(code, nextCode, pc);
+}
 
-TdisR3000AF disR3000A_COP0[] = {
+const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP0[] = {
     // Subset of disCOP0
-    disMFC0, disNULL, disCFC0, disNULL, disMTC0, disNULL, disCTC0, disNULL,  // 00
-    disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 08
-    disRFE,  disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 10
-    disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 18
+    &Disasm::disMFC0, &Disasm::disNULL, &Disasm::disCFC0, &Disasm::disNULL, &Disasm::disMTC0, &Disasm::disNULL, &Disasm::disCTC0, &Disasm::disNULL,  // 00
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disRFE,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
 };
 
-MakeDisF(disCOP0, disR3000A_COP0[_Rs_](code, pc));
+declare(disCOP0) {
+    cTdisR3000AF ptr = s_disR3000A_COP0[_Rs_];
+    (*this.*ptr)(code, nextCode, pc);
+}
 
-TdisR3000AF disR3000A_BASIC[] = {
+const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BASIC[] = {
     // Subset of disBASIC (based on rs)
-    disMFC2, disNULL, disCFC2, disNULL, disMTC2, disNULL, disCTC2, disNULL,  // 00
-    disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 08
-    disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 10
-    disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL, disNULL,  // 18
+    &Disasm::disMFC2, &Disasm::disNULL, &Disasm::disCFC2, &Disasm::disNULL, &Disasm::disMTC2, &Disasm::disNULL, &Disasm::disCTC2, &Disasm::disNULL,  // 00
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
 };
 
-MakeDisF(disBASIC, disR3000A_BASIC[_Rs_](code, pc));
+declare(disBASIC) {
+    cTdisR3000AF ptr = s_disR3000A_BASIC[_Rs_];
+    (*this.*ptr)(code, nextCode, pc);
+}
 
-TdisR3000AF disR3000A_COP2[] = {
+const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP2[] = {
     // Subset of disR3000F_COP2 (based on funct)
-    disBASIC, disRTPS,  disNULL,  disNULL, disNULL, disNULL,  disNCLIP, disNULL,  // 00
-    disNULL,  disNULL,  disNULL,  disNULL, disOP,   disNULL,  disNULL,  disNULL,  // 08
-    disDPCS,  disINTPL, disMVMVA, disNCDS, disCDP,  disNULL,  disNCDT,  disNULL,  // 10
-    disNULL,  disNULL,  disNULL,  disNCCS, disCC,   disNULL,  disNCS,   disNULL,  // 18
-    disNCT,   disNULL,  disNULL,  disNULL, disNULL, disNULL,  disNULL,  disNULL,  // 20
-    disSQR,   disDCPL,  disDPCT,  disNULL, disNULL, disAVSZ3, disAVSZ4, disNULL,  // 28
-    disRTPT,  disNULL,  disNULL,  disNULL, disNULL, disNULL,  disNULL,  disNULL,  // 30
-    disNULL,  disNULL,  disNULL,  disNULL, disNULL, disGPF,   disGPL,   disNCCT,  // 38
+    &Disasm::disBASIC, &Disasm::disRTPS,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNCLIP, &Disasm::disNULL,  // 00
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disOP,   &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 08
+    &Disasm::disDPCS,  &Disasm::disINTPL, &Disasm::disMVMVA, &Disasm::disNCDS, &Disasm::disCDP,  &Disasm::disNULL,  &Disasm::disNCDT,  &Disasm::disNULL,  // 10
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNCCS, &Disasm::disCC,   &Disasm::disNULL,  &Disasm::disNCS,   &Disasm::disNULL,  // 18
+    &Disasm::disNCT,   &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 20
+    &Disasm::disSQR,   &Disasm::disDCPL,  &Disasm::disDPCT,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disAVSZ3, &Disasm::disAVSZ4, &Disasm::disNULL,  // 28
+    &Disasm::disRTPT,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 30
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disGPF,   &Disasm::disGPL,   &Disasm::disNCCT,  // 38
 };
 
-MakeDisF(disCOP2, disR3000A_COP2[_Funct_](code, pc));
+declare(disCOP2) {
+    cTdisR3000AF ptr = s_disR3000A_COP2[_Funct_];
+    (*this.*ptr)(code, nextCode, pc);
+}
 
-TdisR3000AF disR3000A[] = {
-    disSPECIAL, disBCOND, disJ,    disJAL,   disBEQ,  disBNE,  disBLEZ, disBGTZ,  // 00
-    disADDI,    disADDIU, disSLTI, disSLTIU, disANDI, disORI,  disXORI, disLUI,   // 08
-    disCOP0,    disNULL,  disCOP2, disNULL,  disNULL, disNULL, disNULL, disNULL,  // 10
-    disNULL,    disNULL,  disNULL, disNULL,  disNULL, disNULL, disNULL, disNULL,  // 18
-    disLB,      disLH,    disLWL,  disLW,    disLBU,  disLHU,  disLWR,  disNULL,  // 20
-    disSB,      disSH,    disSWL,  disSW,    disNULL, disNULL, disSWR,  disNULL,  // 28
-    disNULL,    disNULL,  disLWC2, disNULL,  disNULL, disNULL, disNULL, disNULL,  // 30
-    disNULL,    disNULL,  disSWC2, disHLE,   disNULL, disNULL, disNULL, disNULL,  // 38
+const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
+    &Disasm::disSPECIAL, &Disasm::disBCOND, &Disasm::disJ,    &Disasm::disJAL,   &Disasm::disBEQ,  &Disasm::disBNE,  &Disasm::disBLEZ, &Disasm::disBGTZ,  // 00
+    &Disasm::disADDI,    &Disasm::disADDIU, &Disasm::disSLTI, &Disasm::disSLTIU, &Disasm::disANDI, &Disasm::disORI,  &Disasm::disXORI, &Disasm::disLUI,   // 08
+    &Disasm::disCOP0,    &Disasm::disNULL,  &Disasm::disCOP2, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disLB,      &Disasm::disLH,    &Disasm::disLWL,  &Disasm::disLW,    &Disasm::disLBU,  &Disasm::disLHU,  &Disasm::disLWR,  &Disasm::disNULL,  // 20
+    &Disasm::disSB,      &Disasm::disSH,    &Disasm::disSWL,  &Disasm::disSW,    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disSWR,  &Disasm::disNULL,  // 28
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disLWC2, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 30
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disHLE,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 38
 };
 
-MakeDisFg(disR3000AF, disR3000A[code >> 26](code, pc));
+std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc) {
+    StringDisasm strd;
+    strd.process(code, nextCode, pc);
+    char buf[64];
+    snprintf(buf, 64, "%8.8x %8.8x: ", pc, code);
+    return buf + strd.get();
+}
