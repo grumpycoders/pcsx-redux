@@ -21,6 +21,8 @@
  * R3000A disassembler.
  */
 
+#pragma once
+
 #include <stdint.h>
 #include <string>
 
