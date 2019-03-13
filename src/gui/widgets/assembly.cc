@@ -37,9 +37,24 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper(2 * 1024 * 1024 / 4);
     while (clipper.Step()) {
+        bool skipNext = false;
+        if (clipper.DisplayStart != 0) {
+            uint32_t addr = clipper.DisplayStart * 4 - 4;
+            uint32_t code = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr);
+            uint32_t nextCode = 0;
+            if (addr <= 0x1ffff8) {
+                nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr + 4);
+            }
+            Disasm::asString(code, nextCode, addr | 0x80000000, &skipNext);
+        }
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
-            std::string ins = Disasm::asString(*reinterpret_cast<uint32_t*>(memory->g_psxM + addr), 0, addr | 0x80000000);
+            uint32_t code = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr);
+            uint32_t nextCode = 0;
+            if (addr <= 0x1ffff8) {
+                nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr + 4);
+            }
+            std::string ins = Disasm::asString(code, nextCode, addr | 0x80000000, &skipNext);
             ImGui::Text("%c %s", addr == pc ? '>' : ' ', ins.c_str());
         }
     }

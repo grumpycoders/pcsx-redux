@@ -69,7 +69,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 #undef _Im_
 #undef _Target_
 
-#define declare(n) void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc)
+#define declare(n) void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext)
 #define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
@@ -82,7 +82,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 #define _OfB_ _Im_, _nRs_
 
 namespace {
-class StringDisasm : public PCSX::Disasm {
+struct StringDisasm : public PCSX::Disasm {
     void append(const char *str, ...) {
         va_list va;
         va_start(va, str);
@@ -97,7 +97,7 @@ class StringDisasm : public PCSX::Disasm {
         if (m_gotArg) append(", ");
         m_gotArg = true;
     }
-    virtual void Name(const char *name) final {
+    virtual void OpCode(const char *name) final {
         std::sprintf(m_buf, "%-7s", name);
         m_gotArg = false;
         m_len = 7;
@@ -130,6 +130,10 @@ class StringDisasm : public PCSX::Disasm {
         comma();
         append("0x%4.4x", value);
     }
+    virtual void Imm32(uint32_t value) final {
+        comma();
+        append("0x%8.8x", value);
+    }
     virtual void Target(uint32_t value) final {
         comma();
         append("0x%8.8x", value);
@@ -146,6 +150,10 @@ class StringDisasm : public PCSX::Disasm {
         comma();
         append("0x%8.8x", value);
     }
+    virtual void reset() final {
+        m_buf[0] = 0;
+        m_len = 0;
+    }
     char m_buf[512];
     size_t m_len = 0;
     bool m_gotArg = false;
@@ -155,27 +163,17 @@ class StringDisasm : public PCSX::Disasm {
 };
 }  // namespace
 
-#define dName(i) Name(i)
-#define dGPR(i)           \
-    if (m_lastGPR != i) { \
-        GPR(i);           \
-        m_lastGPR = i;    \
-    }
-#define dCP0(i)       \
-    m_lastGPR = 0xff; \
-    CP0(i)
-#define dCP2D(i)      \
-    m_lastGPR = 0xff; \
-    CP2D(i)
-#define dCP2C(i)      \
-    m_lastGPR = 0xff; \
-    CP2C(i)
-#define dHI()         \
-    m_lastGPR = 0xff; \
-    HI()
-#define dLO()         \
-    m_lastGPR = 0xff; \
-    LO()
+#define dOpCode(i) \
+    do {           \
+        reset();   \
+        OpCode(i); \
+    } while (0)
+#define dGPR(i) GPR(i);
+#define dCP0(i) CP0(i)
+#define dCP2D(i) CP2D(i)
+#define dCP2C(i) CP2C(i)
+#define dHI() HI()
+#define dLO() LO()
 #define dImm() Imm(_Im_)
 #define dTarget() Target(_Target_)
 #define dSa() Sa(_Sa_)
@@ -187,45 +185,73 @@ class StringDisasm : public PCSX::Disasm {
  * Format:  OP rt, rs, immediate                          *
  *********************************************************/
 declare(disADDI) {
-    dName("addi");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("addi");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disADDIU) {
-    dName("addiu");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("addiu");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disANDI) {
-    dName("andi");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("andi");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disORI) {
-    dName("ori");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("ori");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disSLTI) {
-    dName("slti");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("slti");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disSLTIU) {
-    dName("sltiu");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("sltiu");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disXORI) {
-    dName("xori");
-    dGPR(_Rt_);
-    dGPR(_Rs_);
+    dOpCode("xori");
+    if (_Rt_ == _Rs_) {
+        dGPR(_Rt_);
+    } else {
+        dGPR(_Rt_);
+        dGPR(_Rs_);
+    }
     dImm();
 }
 
@@ -234,63 +260,112 @@ declare(disXORI) {
  * Format:  OP rd, rs, rt                                 *
  *********************************************************/
 declare(disADD) {
-    dName("add");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("add");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
     dGPR(_Rt_);
 }
 declare(disADDU) {
-    dName("addu");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("addu");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disAND) {
-    dName("and");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("and");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disNOR) {
-    dName("nor");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("nor");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disOR) {
-    dName("or");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("or");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disSLT) {
-    dName("slt");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("slt");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disSLTU) {
-    dName("sltu");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("sltu");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disSUB) {
-    dName("sub");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("sub");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disSUBU) {
-    dName("subu");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("subu");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 declare(disXOR) {
-    dName("xor");
-    dGPR(_Rd_);
-    dGPR(_Rs_);
+    dOpCode("xor");
+    if (_Rd_ == _Rs_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    }
+
     dGPR(_Rt_);
 }
 
@@ -299,22 +374,22 @@ declare(disXOR) {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 declare(disDIV) {
-    dName("div");
+    dOpCode("div");
     dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disDIVU) {
-    dName("divu");
+    dOpCode("divu");
     dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disMULT) {
-    dName("mult");
+    dOpCode("mult");
     dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disMULTU) {
-    dName("multu");
+    dOpCode("multu");
     dGPR(_Rs_);
     dGPR(_Rt_);
 }
@@ -324,32 +399,32 @@ declare(disMULTU) {
  * Format:  OP rs, offset                                 *
  *********************************************************/
 declare(disBGEZ) {
-    dName("bgez");
+    dOpCode("bgez");
     dGPR(_Rs_);
     dOffset();
 }
 declare(disBGEZAL) {
-    dName("bgezal");
+    dOpCode("bgezal");
     dGPR(_Rs_);
     dOffset();
 }
 declare(disBGTZ) {
-    dName("bgtz");
+    dOpCode("bgtz");
     dGPR(_Rs_);
     dOffset();
 }
 declare(disBLEZ) {
-    dName("blez");
+    dOpCode("blez");
     dGPR(_Rs_);
     dOffset();
 }
 declare(disBLTZ) {
-    dName("bltz");
+    dOpCode("bltz");
     dGPR(_Rs_);
     dOffset();
 }
 declare(disBLTZAL) {
-    dName("bltzal");
+    dOpCode("bltzal");
     dGPR(_Rs_);
     dOffset();
 }
@@ -360,24 +435,38 @@ declare(disBLTZAL) {
  *********************************************************/
 declare(disSLL) {
     if (code) {
-        dName("sll");
-        dGPR(_Rd_);
-        dGPR(_Rt_);
+        dOpCode("sll");
+        if (_Rd_ == _Rt_) {
+            dGPR(_Rd_);
+        } else {
+            dGPR(_Rd_);
+            dGPR(_Rt_);
+        }
         dSa();
     } else {
-        dName("nop");
+        dOpCode("nop");
     }
 }
 declare(disSRA) {
-    dName("sra");
-    dGPR(_Rd_);
-    dGPR(_Rt_);
+    dOpCode("sra");
+    if (_Rd_ == _Rt_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rt_);
+    }
+
     dSa();
 }
 declare(disSRL) {
-    dName("srl");
-    dGPR(_Rd_);
-    dGPR(_Rt_);
+    dOpCode("srl");
+    if (_Rd_ == _Rt_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rt_);
+    }
+
     dSa();
 }
 
@@ -386,21 +475,36 @@ declare(disSRL) {
  * Format:  OP rd, rt, rs                                 *
  *********************************************************/
 declare(disSLLV) {
-    dName("sllv");
-    dGPR(_Rd_);
-    dGPR(_Rt_);
+    dOpCode("sllv");
+    if (_Rd_ == _Rt_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rt_);
+    }
+
     dGPR(_Rs_);
 }
 declare(disSRAV) {
-    dName("srav");
-    dGPR(_Rd_);
-    dGPR(_Rt_);
+    dOpCode("srav");
+    if (_Rd_ == _Rt_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rt_);
+    }
+
     dGPR(_Rs_);
 }
 declare(disSRLV) {
-    dName("srlv");
-    dGPR(_Rd_);
-    dGPR(_Rt_);
+    dOpCode("srlv");
+    if (_Rd_ == _Rt_) {
+        dGPR(_Rd_);
+    } else {
+        dGPR(_Rd_);
+        dGPR(_Rt_);
+    }
+
     dGPR(_Rs_);
 }
 
@@ -409,9 +513,27 @@ declare(disSRLV) {
  * Format:  OP rt, immediate                              *
  *********************************************************/
 declare(disLUI) {
-    dName("lui");
-    dGPR(_Rt_);
-    dImm();
+    uint8_t nextIns = nextCode >> 26;
+    uint8_t nextRt = (nextCode >> 16) & 0x1f;
+    uint8_t nextRs = (nextCode >> 21) & 0x1f;
+    uint16_t nextImm = nextCode & 0xffff;
+    if (skipNext && (nextIns == 9) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
+        dOpCode("li");
+        dGPR(_Rt_);
+        uint32_t imm = static_cast<uint32_t>(nextImm) + _Imm_;
+        Imm32(imm);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 13) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
+        dOpCode("li");
+        dGPR(_Rt_);
+        uint32_t imm = static_cast<uint32_t>(nextImm) | _Imm_;
+        Imm32(imm);
+        *skipNext = true;
+    } else {
+        dOpCode("lui");
+        dGPR(_Rt_);
+        dImm();
+    }
 }
 
 /*********************************************************
@@ -419,12 +541,12 @@ declare(disLUI) {
  * Format:  OP rd                                         *
  *********************************************************/
 declare(disMFHI) {
-    dName("mfhi");
+    dOpCode("mfhi");
     dGPR(_Rd_);
     dHI();
 }
 declare(disMFLO) {
-    dName("mflo");
+    dOpCode("mflo");
     dGPR(_Rd_);
     dLO();
 }
@@ -434,12 +556,12 @@ declare(disMFLO) {
  * Format:  OP rd                                         *
  *********************************************************/
 declare(disMTHI) {
-    dName("mthi");
+    dOpCode("mthi");
     dHI();
     dGPR(_Rs_);
 }
 declare(disMTLO) {
-    dName("mtlo");
+    dOpCode("mtlo");
     dLO();
     dGPR(_Rs_);
 }
@@ -448,51 +570,51 @@ declare(disMTLO) {
  * Special purpose instructions                           *
  * Format:  OP                                            *
  *********************************************************/
-declare(disBREAK) { dName("break"); }
-declare(disRFE) { dName("rfe"); }
-declare(disSYSCALL) { dName("syscall"); }
-declare(disHLE) { dName("hle"); }
+declare(disBREAK) { dOpCode("break"); }
+declare(disRFE) { dOpCode("rfe"); }
+declare(disSYSCALL) { dOpCode("syscall"); }
+declare(disHLE) { dOpCode("hle"); }
 
-declare(disRTPS) { dName("rtps"); }
-declare(disOP) { dName("op"); }
-declare(disNCLIP) { dName("nclip"); }
-declare(disDPCS) { dName("dpcs"); }
-declare(disINTPL) { dName("intpl"); }
-declare(disMVMVA) { dName("mvmva"); }
-declare(disNCDS) { dName("ncds"); }
-declare(disCDP) { dName("cdp"); }
-declare(disNCDT) { dName("ncdt"); }
-declare(disNCCS) { dName("nccs"); }
-declare(disCC) { dName("cc"); }
-declare(disNCS) { dName("ncs"); }
-declare(disNCT) { dName("nct"); }
-declare(disSQR) { dName("sqr"); }
-declare(disDCPL) { dName("dcpl"); }
-declare(disDPCT) { dName("dpct"); }
-declare(disAVSZ3) { dName("avsz3"); }
-declare(disAVSZ4) { dName("avsz4"); }
-declare(disRTPT) { dName("rtpt"); }
-declare(disGPF) { dName("gpf"); }
-declare(disGPL) { dName("gpl"); }
-declare(disNCCT) { dName("ncct"); }
+declare(disRTPS) { dOpCode("rtps"); }
+declare(disOP) { dOpCode("op"); }
+declare(disNCLIP) { dOpCode("nclip"); }
+declare(disDPCS) { dOpCode("dpcs"); }
+declare(disINTPL) { dOpCode("intpl"); }
+declare(disMVMVA) { dOpCode("mvmva"); }
+declare(disNCDS) { dOpCode("ncds"); }
+declare(disCDP) { dOpCode("cdp"); }
+declare(disNCDT) { dOpCode("ncdt"); }
+declare(disNCCS) { dOpCode("nccs"); }
+declare(disCC) { dOpCode("cc"); }
+declare(disNCS) { dOpCode("ncs"); }
+declare(disNCT) { dOpCode("nct"); }
+declare(disSQR) { dOpCode("sqr"); }
+declare(disDCPL) { dOpCode("dcpl"); }
+declare(disDPCT) { dOpCode("dpct"); }
+declare(disAVSZ3) { dOpCode("avsz3"); }
+declare(disAVSZ4) { dOpCode("avsz4"); }
+declare(disRTPT) { dOpCode("rtpt"); }
+declare(disGPF) { dOpCode("gpf"); }
+declare(disGPL) { dOpCode("gpl"); }
+declare(disNCCT) { dOpCode("ncct"); }
 
 declare(disMFC2) {
-    dName("mfc2");
+    dOpCode("mfc2");
     dGPR(_Rt_);
     dCP2C(_Rd_);
 }
 declare(disMTC2) {
-    dName("mtc2");
+    dOpCode("mtc2");
     dCP2C(_Rd_);
     dGPR(_Rt_);
 }
 declare(disCFC2) {
-    dName("cfc2");
+    dOpCode("cfc2");
     dGPR(_Rt_);
     dCP2C(_Rd_);
 }
 declare(disCTC2) {
-    dName("ctc2");
+    dOpCode("ctc2");
     dCP2C(_Rd_);
     dGPR(_Rt_);
 }
@@ -502,13 +624,13 @@ declare(disCTC2) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 declare(disBEQ) {
-    dName("beq");
+    dOpCode("beq");
     dGPR(_Rs_);
     dGPR(_Rt_);
     dOffset();
 }
 declare(disBNE) {
-    dName("bne");
+    dOpCode("bne");
     dGPR(_Rs_);
     dGPR(_Rt_);
     dOffset();
@@ -519,11 +641,11 @@ declare(disBNE) {
  * Format:  OP target                                     *
  *********************************************************/
 declare(disJ) {
-    dName("j");
+    dOpCode("j");
     dTarget();
 }
 declare(disJAL) {
-    dName("jal");
+    dOpCode("jal");
     dTarget();
 }
 
@@ -532,13 +654,15 @@ declare(disJAL) {
  * Format:  OP rs, rd                                     *
  *********************************************************/
 declare(disJR) {
-    dName("jr");
+    dOpCode("jr");
     dGPR(_Rs_);
 }
 declare(disJALR) {
-    dName("jalr");
+    dOpCode("jalr");
     dGPR(_Rs_);
-    dGPR(_Rd_);
+    if (_Rd_ != 31) {
+        dGPR(_Rd_);
+    }
 }
 
 /*********************************************************
@@ -546,72 +670,72 @@ declare(disJALR) {
  * Format:  OP rt, offset(base)                           *
  *********************************************************/
 declare(disLB) {
-    dName("lb");
+    dOpCode("lb");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLBU) {
-    dName("lbu");
+    dOpCode("lbu");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLH) {
-    dName("lh");
+    dOpCode("lh");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLHU) {
-    dName("lhu");
+    dOpCode("lhu");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLW) {
-    dName("lw");
+    dOpCode("lw");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLWL) {
-    dName("lwl");
+    dOpCode("lwl");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLWR) {
-    dName("lwr");
+    dOpCode("lwr");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disLWC2) {
-    dName("lwc2");
+    dOpCode("lwc2");
     dCP2D(_Rt_);
     dOfB();
 }
 declare(disSB) {
-    dName("sb");
+    dOpCode("sb");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disSH) {
-    dName("sh");
+    dOpCode("sh");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disSW) {
-    dName("sw");
+    dOpCode("sw");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disSWL) {
-    dName("swl");
+    dOpCode("swl");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disSWR) {
-    dName("swr");
+    dOpCode("swr");
     dGPR(_Rt_);
     dOfB();
 }
 declare(disSWC2) {
-    dName("swc2");
+    dOpCode("swc2");
     dCP2D(_Rt_);
     dOfB();
 }
@@ -621,22 +745,22 @@ declare(disSWC2) {
  * Format:  OP rt, fs                                     *
  *********************************************************/
 declare(disMFC0) {
-    dName("mfc0");
+    dOpCode("mfc0");
     dGPR(_Rt_);
     dCP0(_Rd_);
 }
 declare(disMTC0) {
-    dName("mtc0");
+    dOpCode("mtc0");
     dCP0(_Rd_);
     dGPR(_Rt_);
 }
 declare(disCFC0) {
-    dName("cfc0");
+    dOpCode("cfc0");
     dGPR(_Rt_);
     dCP0(_Rd_);
 }
 declare(disCTC0) {
-    dName("ctc0");
+    dOpCode("ctc0");
     dCP0(_Rd_);
     dGPR(_Rt_);
 }
@@ -645,96 +769,134 @@ declare(disCTC0) {
  * Unknow instruction (would generate an exception)       *
  * Format:  ?                                             *
  *********************************************************/
-declare(disNULL) { dName("*** Bad OP ***"); }
+declare(disNULL) { dOpCode("*** Bad OP ***"); }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_SPECIAL[] = {
     // Subset of disSPECIAL
-    &Disasm::disSLL,  &Disasm::disNULL,  &Disasm::disSRL,  &Disasm::disSRA,  &Disasm::disSLLV,    &Disasm::disNULL,  &Disasm::disSRLV, &Disasm::disSRAV,  // 00
-    &Disasm::disJR,   &Disasm::disJALR,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disSYSCALL, &Disasm::disBREAK, &Disasm::disNULL, &Disasm::disNULL,  // 08
-    &Disasm::disMFHI, &Disasm::disMTHI,  &Disasm::disMFLO, &Disasm::disMTLO, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 10
-    &Disasm::disMULT, &Disasm::disMULTU, &Disasm::disDIV,  &Disasm::disDIVU, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 18
-    &Disasm::disADD,  &Disasm::disADDU,  &Disasm::disSUB,  &Disasm::disSUBU, &Disasm::disAND,     &Disasm::disOR,    &Disasm::disXOR,  &Disasm::disNOR,   // 20
-    &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disSLT,  &Disasm::disSLTU, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 28
-    &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 30
-    &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 38
+    &Disasm::disSLL,     &Disasm::disNULL,  &Disasm::disSRL,  &Disasm::disSRA,   // 00
+    &Disasm::disSLLV,    &Disasm::disNULL,  &Disasm::disSRLV, &Disasm::disSRAV,  // 04
+    &Disasm::disJR,      &Disasm::disJALR,  &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disSYSCALL, &Disasm::disBREAK, &Disasm::disNULL, &Disasm::disNULL,  // 0c
+    &Disasm::disMFHI,    &Disasm::disMTHI,  &Disasm::disMFLO, &Disasm::disMTLO,  // 10
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 14
+    &Disasm::disMULT,    &Disasm::disMULTU, &Disasm::disDIV,  &Disasm::disDIVU,  // 18
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 1c
+    &Disasm::disADD,     &Disasm::disADDU,  &Disasm::disSUB,  &Disasm::disSUBU,  // 20
+    &Disasm::disAND,     &Disasm::disOR,    &Disasm::disXOR,  &Disasm::disNOR,   // 24
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSLT,  &Disasm::disSLTU,  // 28
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 2c
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 30
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 34
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 38
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  // 3c
 };
 
 declare(disSPECIAL) {
     cTdisR3000AF ptr = s_disR3000A_SPECIAL[_Funct_];
-    (*this.*ptr)(code, nextCode, pc);
+    (*this.*ptr)(code, nextCode, pc, skipNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BCOND[] = {
     // Subset of disBCOND
-    &Disasm::disBLTZ,   &Disasm::disBGEZ,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 00
-    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
-    &Disasm::disBLTZAL, &Disasm::disBGEZAL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
-    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disBLTZ,   &Disasm::disBGEZ,   &Disasm::disNULL, &Disasm::disNULL,  // 00
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL,  // 04
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL,  // 0c
+    &Disasm::disBLTZAL, &Disasm::disBGEZAL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL,  // 14
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disNULL,   &Disasm::disNULL,   &Disasm::disNULL, &Disasm::disNULL,  // 1c
 };
 
 declare(disBCOND) {
     cTdisR3000AF ptr = s_disR3000A_BCOND[_Rt_];
-    (*this.*ptr)(code, nextCode, pc);
+    (*this.*ptr)(code, nextCode, pc, skipNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP0[] = {
     // Subset of disCOP0
-    &Disasm::disMFC0, &Disasm::disNULL, &Disasm::disCFC0, &Disasm::disNULL, &Disasm::disMTC0, &Disasm::disNULL, &Disasm::disCTC0, &Disasm::disNULL,  // 00
-    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
-    &Disasm::disRFE,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
-    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disMFC0, &Disasm::disNULL, &Disasm::disCFC0, &Disasm::disNULL,  // 00
+    &Disasm::disMTC0, &Disasm::disNULL, &Disasm::disCTC0, &Disasm::disNULL,  // 04
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 0c
+    &Disasm::disRFE,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 14
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 1c
 };
 
 declare(disCOP0) {
     cTdisR3000AF ptr = s_disR3000A_COP0[_Rs_];
-    (*this.*ptr)(code, nextCode, pc);
+    (*this.*ptr)(code, nextCode, pc, skipNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BASIC[] = {
     // Subset of disBASIC (based on rs)
-    &Disasm::disMFC2, &Disasm::disNULL, &Disasm::disCFC2, &Disasm::disNULL, &Disasm::disMTC2, &Disasm::disNULL, &Disasm::disCTC2, &Disasm::disNULL,  // 00
-    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
-    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
-    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disMFC2, &Disasm::disNULL, &Disasm::disCFC2, &Disasm::disNULL,  // 00
+    &Disasm::disMTC2, &Disasm::disNULL, &Disasm::disCTC2, &Disasm::disNULL,  // 04
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 0c
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 14
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
+    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 1c
 };
 
 declare(disBASIC) {
     cTdisR3000AF ptr = s_disR3000A_BASIC[_Rs_];
-    (*this.*ptr)(code, nextCode, pc);
+    (*this.*ptr)(code, nextCode, pc, skipNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP2[] = {
     // Subset of disR3000F_COP2 (based on funct)
-    &Disasm::disBASIC, &Disasm::disRTPS,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNCLIP, &Disasm::disNULL,  // 00
-    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disOP,   &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 08
-    &Disasm::disDPCS,  &Disasm::disINTPL, &Disasm::disMVMVA, &Disasm::disNCDS, &Disasm::disCDP,  &Disasm::disNULL,  &Disasm::disNCDT,  &Disasm::disNULL,  // 10
-    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNCCS, &Disasm::disCC,   &Disasm::disNULL,  &Disasm::disNCS,   &Disasm::disNULL,  // 18
-    &Disasm::disNCT,   &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 20
-    &Disasm::disSQR,   &Disasm::disDCPL,  &Disasm::disDPCT,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disAVSZ3, &Disasm::disAVSZ4, &Disasm::disNULL,  // 28
-    &Disasm::disRTPT,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 30
-    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disGPF,   &Disasm::disGPL,   &Disasm::disNCCT,  // 38
+    &Disasm::disBASIC, &Disasm::disRTPS,  &Disasm::disNULL,  &Disasm::disNULL,  // 00
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNCLIP, &Disasm::disNULL,  // 04
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 08
+    &Disasm::disOP,    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 0c
+    &Disasm::disDPCS,  &Disasm::disINTPL, &Disasm::disMVMVA, &Disasm::disNCDS,  // 10
+    &Disasm::disCDP,   &Disasm::disNULL,  &Disasm::disNCDT,  &Disasm::disNULL,  // 14
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNCCS,  // 18
+    &Disasm::disCC,    &Disasm::disNULL,  &Disasm::disNCS,   &Disasm::disNULL,  // 1c
+    &Disasm::disNCT,   &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 20
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 24
+    &Disasm::disSQR,   &Disasm::disDCPL,  &Disasm::disDPCT,  &Disasm::disNULL,  // 28
+    &Disasm::disNULL,  &Disasm::disAVSZ3, &Disasm::disAVSZ4, &Disasm::disNULL,  // 2c
+    &Disasm::disRTPT,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 30
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 34
+    &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  &Disasm::disNULL,  // 38
+    &Disasm::disNULL,  &Disasm::disGPF,   &Disasm::disGPL,   &Disasm::disNCCT,  // 3c
 };
 
 declare(disCOP2) {
     cTdisR3000AF ptr = s_disR3000A_COP2[_Funct_];
-    (*this.*ptr)(code, nextCode, pc);
+    (*this.*ptr)(code, nextCode, pc, skipNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
-    &Disasm::disSPECIAL, &Disasm::disBCOND, &Disasm::disJ,    &Disasm::disJAL,   &Disasm::disBEQ,  &Disasm::disBNE,  &Disasm::disBLEZ, &Disasm::disBGTZ,  // 00
-    &Disasm::disADDI,    &Disasm::disADDIU, &Disasm::disSLTI, &Disasm::disSLTIU, &Disasm::disANDI, &Disasm::disORI,  &Disasm::disXORI, &Disasm::disLUI,   // 08
-    &Disasm::disCOP0,    &Disasm::disNULL,  &Disasm::disCOP2, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
-    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 18
-    &Disasm::disLB,      &Disasm::disLH,    &Disasm::disLWL,  &Disasm::disLW,    &Disasm::disLBU,  &Disasm::disLHU,  &Disasm::disLWR,  &Disasm::disNULL,  // 20
-    &Disasm::disSB,      &Disasm::disSH,    &Disasm::disSWL,  &Disasm::disSW,    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disSWR,  &Disasm::disNULL,  // 28
-    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disLWC2, &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 30
-    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disHLE,   &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 38
+    &Disasm::disSPECIAL, &Disasm::disBCOND, &Disasm::disJ,    &Disasm::disJAL,    // 00
+    &Disasm::disBEQ,     &Disasm::disBNE,   &Disasm::disBLEZ, &Disasm::disBGTZ,   // 04
+    &Disasm::disADDI,    &Disasm::disADDIU, &Disasm::disSLTI, &Disasm::disSLTIU,  // 08
+    &Disasm::disANDI,    &Disasm::disORI,   &Disasm::disXORI, &Disasm::disLUI,    // 0c
+    &Disasm::disCOP0,    &Disasm::disNULL,  &Disasm::disCOP2, &Disasm::disNULL,   // 10
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 14
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 18
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 1c
+    &Disasm::disLB,      &Disasm::disLH,    &Disasm::disLWL,  &Disasm::disLW,     // 20
+    &Disasm::disLBU,     &Disasm::disLHU,   &Disasm::disLWR,  &Disasm::disNULL,   // 24
+    &Disasm::disSB,      &Disasm::disSH,    &Disasm::disSWL,  &Disasm::disSW,     // 28
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWR,  &Disasm::disNULL,   // 2c
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disLWC2, &Disasm::disNULL,   // 30
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 34
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disHLE,    // 38
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 3c
 };
 
-std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc) {
+std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext) {
     StringDisasm strd;
-    strd.process(code, nextCode, pc);
+    strd.process(code, nextCode, pc, skipNext);
     char buf[64];
     snprintf(buf, 64, "%8.8x %8.8x: ", pc, code);
-    return buf + strd.get();
+    std::string ret = buf + strd.get();
+    strd.reset();
+    return ret;
 }
