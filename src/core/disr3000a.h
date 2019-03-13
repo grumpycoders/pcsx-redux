@@ -62,7 +62,7 @@ class Disasm {
     virtual void Imm32(uint32_t value) = 0;
     virtual void Target(uint32_t value) = 0;
     virtual void Sa(uint8_t value) = 0;
-    virtual void OfB(uint16_t offset, uint8_t reg) = 0;
+    virtual void OfB(int16_t offset, uint8_t reg, int size) = 0;
     virtual void Offset(uint32_t offset) = 0;
 
   private:

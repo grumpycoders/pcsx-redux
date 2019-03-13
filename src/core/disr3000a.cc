@@ -104,27 +104,31 @@ struct StringDisasm : public PCSX::Disasm {
     }
     virtual void GPR(uint8_t reg) final {
         comma();
+        append("$");
         append(s_disRNameGPR[reg]);
     }
     virtual void CP0(uint8_t reg) final {
         comma();
+        append("$");
         append(s_disRNameCP0[reg]);
     }
     virtual void CP2D(uint8_t reg) final {
         comma();
+        append("$");
         append(s_disRNameCP2D[reg]);
     }
     virtual void CP2C(uint8_t reg) final {
         comma();
+        append("$");
         append(s_disRNameCP2C[reg]);
     }
     virtual void HI() final {
         comma();
-        append("hi");
+        append("$hi");
     }
     virtual void LO() final {
         comma();
-        append("lo");
+        append("$lo");
     }
     virtual void Imm(uint16_t value) final {
         comma();
@@ -142,9 +146,13 @@ struct StringDisasm : public PCSX::Disasm {
         comma();
         append("0x%2.2x", value);
     }
-    virtual void OfB(uint16_t offset, uint8_t reg) {
+    virtual void OfB(int16_t offset, uint8_t reg, int size) {
         comma();
-        append("%s[0x%4.4x]", s_disRNameGPR[reg], offset);
+        if (offset < 0) {
+            append("-0x%4.4x(%s)", -offset, s_disRNameGPR[reg]);
+        } else {
+            append("0x%4.4x(%s)", offset, s_disRNameGPR[reg]);
+        }
     }
     virtual void Offset(uint32_t value) final {
         comma();
@@ -177,7 +185,7 @@ struct StringDisasm : public PCSX::Disasm {
 #define dImm() Imm(_Im_)
 #define dTarget() Target(_Target_)
 #define dSa() Sa(_Sa_)
-#define dOfB() OfB(_Im_, _Rs_)
+#define dOfB(size) OfB(_Im_, _Rs_, size)
 #define dOffset() Offset(_Branch_)
 
 /*********************************************************
@@ -520,13 +528,13 @@ declare(disLUI) {
     if (skipNext && (nextIns == 9) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
         dOpCode("li");
         dGPR(_Rt_);
-        uint32_t imm = static_cast<uint32_t>(nextImm) + _Imm_;
+        uint32_t imm = static_cast<uint32_t>(static_cast<int16_t>(nextImm)) + (static_cast<uint32_t>(_Im_) << 16);
         Imm32(imm);
         *skipNext = true;
     } else if (skipNext && (nextIns == 13) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
         dOpCode("li");
         dGPR(_Rt_);
-        uint32_t imm = static_cast<uint32_t>(nextImm) | _Imm_;
+        uint32_t imm = static_cast<uint32_t>(nextImm) | (static_cast<uint32_t>(_Im_) << 16);
         Imm32(imm);
         *skipNext = true;
     } else {
@@ -672,72 +680,72 @@ declare(disJALR) {
 declare(disLB) {
     dOpCode("lb");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(1);
 }
 declare(disLBU) {
     dOpCode("lbu");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(1);
 }
 declare(disLH) {
     dOpCode("lh");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(2);
 }
 declare(disLHU) {
     dOpCode("lhu");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(2);
 }
 declare(disLW) {
     dOpCode("lw");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disLWL) {
     dOpCode("lwl");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disLWR) {
     dOpCode("lwr");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disLWC2) {
     dOpCode("lwc2");
     dCP2D(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disSB) {
     dOpCode("sb");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(1);
 }
 declare(disSH) {
     dOpCode("sh");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(2);
 }
 declare(disSW) {
     dOpCode("sw");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disSWL) {
     dOpCode("swl");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disSWR) {
     dOpCode("swr");
     dGPR(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 declare(disSWC2) {
     dOpCode("swc2");
     dCP2D(_Rt_);
-    dOfB();
+    dOfB(4);
 }
 
 /*********************************************************
