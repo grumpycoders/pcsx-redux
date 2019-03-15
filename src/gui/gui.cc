@@ -123,7 +123,18 @@ void PCSX::GUI::init() {
     checkGL();
 
     unsigned counter = 1;
-    for (auto& editor : m_mainMemEditors) editor.title = "Memory Editor #" + std::to_string(counter++);
+    for (auto& editor : m_mainMemEditors) {
+        editor.title = "Memory Editor #" + std::to_string(counter++);
+        editor.show = false;
+    }
+    m_parallelPortEditor.title = "Parallel Port";
+    m_parallelPortEditor.show = false;
+    m_scratchPadEditor.title = "Scratch Pad";
+    m_scratchPadEditor.show = false;
+    m_hwrEditor.title = "Hardware Registers";
+    m_hwrEditor.show = false;
+    m_biosEditor.title = "BIOS";
+    m_biosEditor.show = false;
 
     startFrame();
     m_currentTexture = 1;
@@ -337,10 +348,15 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem("Show Logs", nullptr, &m_log.m_show);
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
                 ImGui::MenuItem("Show Registers", nullptr, &m_registers.m_show);
+                ImGui::MenuItem("Show Assembly", nullptr, &m_assembly.m_show);
                 if (ImGui::BeginMenu("Memory Editors")) {
                     for (auto& editor : m_mainMemEditors) {
-                        ImGui::MenuItem(editor.title.c_str(), nullptr, &editor.show);
+                        editor.MenuItem();
                     }
+                    m_parallelPortEditor.MenuItem();
+                    m_scratchPadEditor.MenuItem();
+                    m_hwrEditor.MenuItem();
+                    m_biosEditor.MenuItem();
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
@@ -409,13 +425,41 @@ void PCSX::GUI::endFrame() {
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.editor.DrawWindow(editor.title.c_str(), PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
+                editor.draw(PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
             }
+            counter++;
+        }
+        if (m_parallelPortEditor.show) {
+            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            m_parallelPortEditor.draw(PCSX::g_emulator.m_psxMem->g_psxP, 64 * 1024);
+        }
+        counter++;
+        if (m_scratchPadEditor.show) {
+            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            m_scratchPadEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH, 1024);
+        }
+        counter++;
+        if (m_hwrEditor.show) {
+            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            m_hwrEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH + 8 * 1024, 8 * 1024);
+        }
+        counter++;
+        if (m_biosEditor.show) {
+            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            m_biosEditor.draw(PCSX::g_emulator.m_psxMem->g_psxR, 512 * 1024);
         }
     }
 
     if (m_registers.m_show) {
         m_registers.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, "Registers");
+    }
+
+    if (m_assembly.m_show) {
+        m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), "Assembly");
     }
 
     PCSX::g_emulator.m_spu->debug();

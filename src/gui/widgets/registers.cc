@@ -49,7 +49,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
                             break;
                     }
                 } else {
-                    name = g_disRNameGPR[counter];
+                    name = PCSX::Disasm::s_disRNameGPR[counter];
                 }
                 counter++;
                 ImGui::Text("%s: %08x", name, reg);
@@ -59,7 +59,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
         if (ImGui::BeginTabItem("CP0")) {
             unsigned counter = 0;
             for (auto& reg : registers->CP0.r) {
-                const char* name = g_disRNameCP0[counter++];
+                const char* name = PCSX::Disasm::s_disRNameCP0[counter++];
                 ImGui::Text("%9s: %08x", name, reg);
             }
             ImGui::EndTabItem();

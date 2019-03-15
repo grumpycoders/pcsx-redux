@@ -30,6 +30,7 @@
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #undef snprintf
 
+#include "gui/widgets/assembly.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
@@ -102,10 +103,17 @@ class GUI final {
     struct MemoryEditorWrapper {
         MemoryEditor editor;
         std::string title;
-        bool show;
+        bool & show = editor.Open;
+        void MenuItem() { ImGui::MenuItem(title.c_str(), nullptr, &show); }
+        void draw(void *mem, size_t size) { editor.DrawWindow(title.c_str(), mem, size); }
     };
     MemoryEditorWrapper m_mainMemEditors[8];
+    MemoryEditorWrapper m_parallelPortEditor;
+    MemoryEditorWrapper m_scratchPadEditor;
+    MemoryEditorWrapper m_hwrEditor;
+    MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
+    Widgets::Assembly m_assembly;
     Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
 
     bool m_showCfg = false;

@@ -863,7 +863,10 @@ void X86DynaRecCPU::iDumpBlock(int8_t *ptr) {
 
     PCSX::g_system->printf("dump1 %x:%x, %x\n", m_psxRegs.pc, m_pc, m_psxRegs.cycle);
 
-    for (i = m_psxRegs.pc; i < m_pc; i += 4) PCSX::g_system->printf("%s\n", disR3000AF(PSXMu32(i), i));
+    for (i = m_psxRegs.pc; i < m_pc; i += 4) {
+        std::string ins = PCSX::Disasm::asString(PSXMu32(i), 0, i);
+        PCSX::g_system->printf("%s\n", ins.c_str());
+    }
 
     fflush(stdout);
     f = fopen("dump1", "w");

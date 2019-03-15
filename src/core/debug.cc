@@ -372,9 +372,9 @@ void PCSX::Debug::ProcessDebug() {
     if (!s_paused) {
         if (s_trace && s_printpc) {
             char reply[256];
-            sprintf(reply, "219 %s\r\n",
-                    disR3000AF(PCSX::g_emulator.m_psxMem->psxMemRead32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc),
-                               PCSX::g_emulator.m_psxCpu->m_psxRegs.pc));
+            uint32_t pc = g_emulator.m_psxCpu->m_psxRegs.pc;
+            std::string ins = Disasm::asString(g_emulator.m_psxMem->psxMemRead32(pc), 0, pc);
+            sprintf(reply, "219 %s\r\n", ins.c_str());
             WriteSocket(reply, strlen(reply));
         }
 
@@ -475,12 +475,12 @@ void PCSX::Debug::ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s211 %02X(%2.2s)=%08X\r\n", reply, i, g_disRNameGPR[i],
+                        sprintf(reply, "%s211 %02X(%2.2s)=%08X\r\n", reply, i, PCSX::Disasm::s_disRNameGPR[i],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "211 %02X(%2.2s)=%08X\r\n", code, g_disRNameGPR[code],
+                        sprintf(reply, "211 %02X(%2.2s)=%08X\r\n", code, PCSX::Disasm::s_disRNameGPR[code],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid GPR register: %X\r\n", code);
@@ -501,12 +501,12 @@ void PCSX::Debug::ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s213 %02X(%8.8s)=%08X\r\n", reply, i, g_disRNameCP0[i],
+                        sprintf(reply, "%s213 %02X(%8.8s)=%08X\r\n", reply, i, PCSX::Disasm::s_disRNameCP0[i],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "213 %02X(%8.8s)=%08X\r\n", code, g_disRNameCP0[code],
+                        sprintf(reply, "213 %02X(%8.8s)=%08X\r\n", code, PCSX::Disasm::s_disRNameCP0[code],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP0 register: %X\r\n", code);
@@ -523,12 +523,12 @@ void PCSX::Debug::ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s214 %02X(%6.6s)=%08X\r\n", reply, i, g_disRNameCP2C[i],
+                        sprintf(reply, "%s214 %02X(%6.6s)=%08X\r\n", reply, i, PCSX::Disasm::s_disRNameCP2C[i],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "214 %02X(%6.6s)=%08X\r\n", code, g_disRNameCP2C[code],
+                        sprintf(reply, "214 %02X(%6.6s)=%08X\r\n", code, PCSX::Disasm::s_disRNameCP2C[code],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP2C register: %X\r\n", code);
@@ -545,12 +545,12 @@ void PCSX::Debug::ProcessCommands() {
                 if (!arguments) {
                     reply[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        sprintf(reply, "%s215 %02X(%4.4s)=%08X\r\n", reply, i, g_disRNameCP2D[i],
+                        sprintf(reply, "%s215 %02X(%4.4s)=%08X\r\n", reply, i, PCSX::Disasm::s_disRNameCP2D[i],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[i]);
                     }
                 } else {
                     if ((code >= 0) && (code < 32)) {
-                        sprintf(reply, "215 %02X(%4.4s)=%08X\r\n", code, g_disRNameCP2D[code],
+                        sprintf(reply, "215 %02X(%4.4s)=%08X\r\n", code, PCSX::Disasm::s_disRNameCP2D[code],
                                 PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[code]);
                     } else {
                         sprintf(reply, "511 Invalid COP2D register: %X\r\n", code);
@@ -566,7 +566,10 @@ void PCSX::Debug::ProcessCommands() {
                 }
                 if (!arguments) code = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
 
-                sprintf(reply, "219 %s\r\n", disR3000AF(PCSX::g_emulator.m_psxMem->psxMemRead32(code), code));
+                {
+                    std::string ins = Disasm::asString(g_emulator.m_psxMem->psxMemRead32(code), 0, code);
+                    sprintf(reply, "219 %s\r\n", ins.c_str());
+                }
                 break;
             case 0x121:
                 if (!arguments || sscanf(arguments, "%02X=%08X", &reg, &value) != 2) {
