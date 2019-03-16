@@ -1278,17 +1278,15 @@ extern "C" long softGPUconfigure(void) { return 0; }
 ////////////////////////////////////////////////////////////////////////
 
 void SetFixes(void) {
-#ifdef _WIN32
-    bool bOldPerformanceCounter = IsPerformanceCounter;  // store curr timer mode
+    bool bOldPerformanceCounter = UsePerformanceCounter;  // store curr timer mode
 
     if (dwActFixes & 0x10)  // check fix 0x10
-        IsPerformanceCounter = false;
+        UsePerformanceCounter = false;
     else
         SetFPSHandler();
 
-    if (bOldPerformanceCounter != IsPerformanceCounter)  // we have change it?
+    if (bOldPerformanceCounter != UsePerformanceCounter)  // we have change it?
         InitFPS();                                       // -> init fps again
-#endif
 
     if (dwActFixes & 0x02)
         sDispWidths[4] = 384;

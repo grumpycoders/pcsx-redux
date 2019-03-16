@@ -218,7 +218,7 @@ extern int iFrameLimit;
 extern float fFrameRateHz;
 extern float fps_skip;
 extern float fps_cur;
-extern bool IsPerformanceCounter;
+extern bool UsePerformanceCounter;
 extern bool bSSSPSXLimit;
 
 // key.c
