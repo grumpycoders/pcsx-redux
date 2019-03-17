@@ -55,8 +55,18 @@ static void hleC0() {
 
 static void hleBootstrap() {  // 0xbfc00000
     PCSX::g_system->biosPrintf("hleBootstrap\n");
-    CheckCdrom();
-    LoadCdrom();
+    if (!CheckCdrom()) {
+        PCSX::g_system->biosPrintf("hleBootstrap: No CDRom\n");
+        PCSX::g_system->stop();
+        PCSX::g_emulator.EmuReset();
+        return;
+    }
+    if (!LoadCdrom()) {
+        PCSX::g_system->biosPrintf("hleBootstrap: failed to load cdrom's binary\n");
+        PCSX::g_system->stop();
+        PCSX::g_emulator.EmuReset();
+        return;
+    }
     PCSX::g_system->biosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", PCSX::g_emulator.m_cdromLabel,
                                   (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
                                   (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);

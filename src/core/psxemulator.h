@@ -141,7 +141,6 @@ class Emulator {
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
         CPUType Cpu = CPU_DYNAREC;        // CPU_DYNAREC or CPU_INTERPRETER
-        VideoType Video = PSX_TYPE_NTSC;  // PSX_TYPE_NTSC or PSX_TYPE_PAL
         uint32_t RewindCount = 0;
         uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.

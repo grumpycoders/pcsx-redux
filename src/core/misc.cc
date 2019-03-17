@@ -98,12 +98,12 @@ void mmssdd(char *b, char *p) {
     time[1] = PCSX::CDRom::itob(time[1]); \
     time[2] = PCSX::CDRom::itob(time[2]);
 
-#define READTRACK()                                                  \
-    if (!PCSX::g_emulator.m_cdrom->m_iso.readTrack(time)) return -1; \
-    buf = PCSX::g_emulator.m_cdrom->m_iso.getBuffer();               \
-    if (buf == NULL)                                                 \
-        return -1;                                                   \
-    else                                                             \
+#define READTRACK()                                                     \
+    if (!PCSX::g_emulator.m_cdrom->m_iso.readTrack(time)) return false; \
+    buf = PCSX::g_emulator.m_cdrom->m_iso.getBuffer();                  \
+    if (buf == NULL)                                                    \
+        return false;                                                   \
+    else                                                                \
         PCSX::g_emulator.m_cdrom->m_ppf.CheckPPFCache(buf, time[0], time[1], time[2]);
 
 #define READDIR(_dir)             \
@@ -152,7 +152,7 @@ int GetCdromFile(uint8_t *mdir, uint8_t *time, const char *filename) {
     return 0;
 }
 
-int LoadCdrom() {
+bool LoadCdrom() {
     EXE_HEADER tmpHead;
     struct iso_directory_record *dir;
     uint8_t time[4], *buf;
@@ -162,7 +162,7 @@ int LoadCdrom() {
     if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) {
         if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSlowBoot>())
             PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
-        return 0;
+        return true;
     }
 
     time[0] = PCSX::CDRom::itob(0);
@@ -234,10 +234,10 @@ int LoadCdrom() {
         tmpHead.t_addr += 2048;
     }
 
-    return 0;
+    return true;
 }
 
-int LoadCdromFile(const char *filename, EXE_HEADER *head) {
+bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
     struct iso_directory_record *dir;
     uint8_t time[4], *buf;
     uint8_t mdir[4096];
@@ -290,10 +290,10 @@ int LoadCdromFile(const char *filename, EXE_HEADER *head) {
         addr += 2048;
     }
 
-    return 0;
+    return true;
 }
 
-int CheckCdrom() {
+bool CheckCdrom() {
     struct iso_directory_record *dir;
     unsigned char time[4];
     unsigned char *buf;
@@ -348,7 +348,7 @@ int CheckCdrom() {
         strcpy(exename, "PSX.EXE;1");
         strcpy(PCSX::g_emulator.m_cdromId, "SLUS99999");
     } else
-        return -1;  // SYSTEM.CNF and PSX.EXE not found
+        return false;  // SYSTEM.CNF and PSX.EXE not found
 
     if (PCSX::g_emulator.m_cdromId[0] == '\0') {
         len = strlen(exename);
@@ -365,9 +365,9 @@ int CheckCdrom() {
             !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||          // according to redump.org, these PAL
             !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||          // discs have a non-standard ID;
             !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))            // add more serials if they are discovered.
-            PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_PAL;  // pal
+            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_PAL;  // pal
         else
-            PCSX::g_emulator.config().Video = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
+            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
     }
 
     if (PCSX::g_emulator.config().OverClock == 0) {
@@ -401,7 +401,7 @@ int CheckCdrom() {
     PCSX::g_emulator.m_cdrom->m_ppf.BuildPPFCache();
     PCSX::g_emulator.m_cdrom->m_iso.LoadSBI(NULL);
 
-    return 0;
+    return true;
 }
 
 static int PSXGetFileType(FILE *f) {
@@ -845,7 +845,7 @@ int SendPcsxInfo() {
     NET_sendData(&PCSX::g_emulator.config().SioIrq, sizeof(PCSX::g_emulator.config().SioIrq), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().SpuIrq, sizeof(PCSX::g_emulator.config().SpuIrq), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().RCntFix, sizeof(PCSX::g_emulator.config().RCntFix), PSE_NET_BLOCKING);
-    NET_sendData(&PCSX::g_emulator.config().Video, sizeof(PCSX::g_emulator.config().Video), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().Cpu, sizeof(PCSX::g_emulator.config().Cpu), PSE_NET_BLOCKING);
     #endif
 
@@ -862,7 +862,7 @@ int RecvPcsxInfo() {
     NET_recvData(&PCSX::g_emulator.config().SioIrq, sizeof(PCSX::g_emulator.config().SioIrq), PSE_NET_BLOCKING);
     NET_recvData(&PCSX::g_emulator.config().SpuIrq, sizeof(PCSX::g_emulator.config().SpuIrq), PSE_NET_BLOCKING);
     NET_recvData(&PCSX::g_emulator.config().RCntFix, sizeof(PCSX::g_emulator.config().RCntFix), PSE_NET_BLOCKING);
-    NET_recvData(&PCSX::g_emulator.config().Video, sizeof(PCSX::g_emulator.config().Video), PSE_NET_BLOCKING);
+    NET_recvData(&PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
     #endif
 
     PCSX::g_system->update();
