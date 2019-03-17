@@ -3360,142 +3360,238 @@ void X86DynaRecCPU::recHLE() {
 }
 
 const func_t X86DynaRecCPU::m_recBSC[64] = {
-    &recSPECIAL, &recREGIMM, &recJ,    &recJAL,   &recBEQ,  &recBNE,  &recBLEZ, &recBGTZ,  // 00
-    &recADDI,    &recADDIU,  &recSLTI, &recSLTIU, &recANDI, &recORI,  &recXORI, &recLUI,   // 08
-    &recCOP0,    &recNULL,   &recCOP2, &recNULL,  &recNULL, &recNULL, &recNULL, &recNULL,  // 10
-    &recNULL,    &recNULL,   &recNULL, &recNULL,  &recNULL, &recNULL, &recNULL, &recNULL,  // 18
-    &recLB,      &recLH,     &recLWL,  &recLW,    &recLBU,  &recLHU,  &recLWR,  &recNULL,  // 20
-    &recSB,      &recSH,     &recSWL,  &recSW,    &recNULL, &recNULL, &recSWR,  &recNULL,  // 28
-    &recNULL,    &recNULL,   &recLWC2, &recNULL,  &recNULL, &recNULL, &recNULL, &recNULL,  // 30
-    &recNULL,    &recNULL,   &recSWC2, &recHLE,   &recNULL, &recNULL, &recNULL, &recNULL,  // 38
+    &X86DynaRecCPU::recSPECIAL, &X86DynaRecCPU::recREGIMM, &X86DynaRecCPU::recJ,    &X86DynaRecCPU::recJAL,    // 00
+    &X86DynaRecCPU::recBEQ,     &X86DynaRecCPU::recBNE,    &X86DynaRecCPU::recBLEZ, &X86DynaRecCPU::recBGTZ,   // 04
+    &X86DynaRecCPU::recADDI,    &X86DynaRecCPU::recADDIU,  &X86DynaRecCPU::recSLTI, &X86DynaRecCPU::recSLTIU,  // 08
+    &X86DynaRecCPU::recANDI,    &X86DynaRecCPU::recORI,    &X86DynaRecCPU::recXORI, &X86DynaRecCPU::recLUI,    // 0c
+    &X86DynaRecCPU::recCOP0,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recCOP2, &X86DynaRecCPU::recNULL,   // 10
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 14
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 18
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 1c
+    &X86DynaRecCPU::recLB,      &X86DynaRecCPU::recLH,     &X86DynaRecCPU::recLWL,  &X86DynaRecCPU::recLW,     // 20
+    &X86DynaRecCPU::recLBU,     &X86DynaRecCPU::recLHU,    &X86DynaRecCPU::recLWR,  &X86DynaRecCPU::recNULL,   // 24
+    &X86DynaRecCPU::recSB,      &X86DynaRecCPU::recSH,     &X86DynaRecCPU::recSWL,  &X86DynaRecCPU::recSW,     // 28
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWR,  &X86DynaRecCPU::recNULL,   // 2c
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recLWC2, &X86DynaRecCPU::recNULL,   // 30
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 34
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWC2, &X86DynaRecCPU::recHLE,    // 38
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 3c
 };
 
 const func_t X86DynaRecCPU::m_recSPC[64] = {
-    &recSLL,  &recNULL,  &recSRL,  &recSRA,  &recSLLV,    &recNULL,  &recSRLV, &recSRAV,  // 00
-    &recJR,   &recJALR,  &recNULL, &recNULL, &recSYSCALL, &recBREAK, &recNULL, &recNULL,  // 08
-    &recMFHI, &recMTHI,  &recMFLO, &recMTLO, &recNULL,    &recNULL,  &recNULL, &recNULL,  // 10
-    &recMULT, &recMULTU, &recDIV,  &recDIVU, &recNULL,    &recNULL,  &recNULL, &recNULL,  // 18
-    &recADD,  &recADDU,  &recSUB,  &recSUBU, &recAND,     &recOR,    &recXOR,  &recNOR,   // 20
-    &recNULL, &recNULL,  &recSLT,  &recSLTU, &recNULL,    &recNULL,  &recNULL, &recNULL,  // 28
-    &recNULL, &recNULL,  &recNULL, &recNULL, &recNULL,    &recNULL,  &recNULL, &recNULL,  // 30
-    &recNULL, &recNULL,  &recNULL, &recNULL, &recNULL,    &recNULL,  &recNULL, &recNULL,  // 38
+    &X86DynaRecCPU::recSLL,     &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recSRL,  &X86DynaRecCPU::recSRA,   // 00
+    &X86DynaRecCPU::recSLLV,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recSRLV, &X86DynaRecCPU::recSRAV,  // 04
+    &X86DynaRecCPU::recJR,      &X86DynaRecCPU::recJALR,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recSYSCALL, &X86DynaRecCPU::recBREAK, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recMFHI,    &X86DynaRecCPU::recMTHI,  &X86DynaRecCPU::recMFLO, &X86DynaRecCPU::recMTLO,  // 10
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recMULT,    &X86DynaRecCPU::recMULTU, &X86DynaRecCPU::recDIV,  &X86DynaRecCPU::recDIVU,  // 18
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 1c
+    &X86DynaRecCPU::recADD,     &X86DynaRecCPU::recADDU,  &X86DynaRecCPU::recSUB,  &X86DynaRecCPU::recSUBU,  // 20
+    &X86DynaRecCPU::recAND,     &X86DynaRecCPU::recOR,    &X86DynaRecCPU::recXOR,  &X86DynaRecCPU::recNOR,   // 24
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recSLT,  &X86DynaRecCPU::recSLTU,  // 28
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 2c
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 30
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 34
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 38
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 3c
 };
 
 const func_t X86DynaRecCPU::m_recREG[32] = {
-    &recBLTZ,   &recBGEZ,   &recNULL, &recNULL,  // 00
-    &recNULL,   &recNULL,   &recNULL, &recNULL,  // 04
-    &recNULL,   &recNULL,   &recNULL, &recNULL,  // 08
-    &recNULL,   &recNULL,   &recNULL, &recNULL,  // 0c
-    &recBLTZAL, &recBGEZAL, &recNULL, &recNULL,  // 10
-    &recNULL,   &recNULL,   &recNULL, &recNULL,  // 14
-    &recNULL,   &recNULL,   &recNULL, &recNULL,  // 18
-    &recNULL,   &recNULL,   &recNULL, &recNULL,  // 1c
+    &X86DynaRecCPU::recBLTZ,   &X86DynaRecCPU::recBGEZ,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 00
+    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 04
+    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recBLTZAL, &X86DynaRecCPU::recBGEZAL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 10
+    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 18
+    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 1c
 };
 
 const func_t X86DynaRecCPU::m_recCP0[32] = {
-    &recMFC0, &recNULL, &recCFC0, &recNULL,  // 00
-    &recMTC0, &recNULL, &recCTC0, &recNULL,  // 04
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 08
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 0c
-    &recRFE,  &recNULL, &recNULL, &recNULL,  // 10
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 14
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 18
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 1c
+    &X86DynaRecCPU::recMFC0, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recCFC0, &X86DynaRecCPU::recNULL,  // 00
+    &X86DynaRecCPU::recMTC0, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recCTC0, &X86DynaRecCPU::recNULL,  // 04
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recRFE,  &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 10
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 18
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 1c
 };
 
 const func_t X86DynaRecCPU::m_recCP2[64] = {
-    &recBASIC, &recRTPS,  &recNULL,  &recNULL, &recNULL, &recNULL,  &recNCLIP, &recNULL,  // 00
-    &recNULL,  &recNULL,  &recNULL,  &recNULL, &recOP,   &recNULL,  &recNULL,  &recNULL,  // 08
-    &recDPCS,  &recINTPL, &recMVMVA, &recNCDS, &recCDP,  &recNULL,  &recNCDT,  &recNULL,  // 10
-    &recNULL,  &recNULL,  &recNULL,  &recNCCS, &recCC,   &recNULL,  &recNCS,   &recNULL,  // 18
-    &recNCT,   &recNULL,  &recNULL,  &recNULL, &recNULL, &recNULL,  &recNULL,  &recNULL,  // 20
-    &recSQR,   &recDCPL,  &recDPCT,  &recNULL, &recNULL, &recAVSZ3, &recAVSZ4, &recNULL,  // 28
-    &recRTPT,  &recNULL,  &recNULL,  &recNULL, &recNULL, &recNULL,  &recNULL,  &recNULL,  // 30
-    &recNULL,  &recNULL,  &recNULL,  &recNULL, &recNULL, &recGPF,   &recGPL,   &recNCCT,  // 38
+    &X86DynaRecCPU::recBASIC, &X86DynaRecCPU::recRTPS,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 00
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNCLIP, &X86DynaRecCPU::recNULL,  // 04
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recOP,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recDPCS,  &X86DynaRecCPU::recINTPL, &X86DynaRecCPU::recMVMVA, &X86DynaRecCPU::recNCDS,  // 10
+    &X86DynaRecCPU::recCDP,   &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNCDT,  &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNCCS,  // 18
+    &X86DynaRecCPU::recCC,    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNCS,   &X86DynaRecCPU::recNULL,  // 1c
+    &X86DynaRecCPU::recNCT,   &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 20
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 24
+    &X86DynaRecCPU::recSQR,   &X86DynaRecCPU::recDCPL,  &X86DynaRecCPU::recDPCT,  &X86DynaRecCPU::recNULL,  // 28
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recAVSZ3, &X86DynaRecCPU::recAVSZ4, &X86DynaRecCPU::recNULL,  // 2c
+    &X86DynaRecCPU::recRTPT,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 30
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 34
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recNULL,  // 38
+    &X86DynaRecCPU::recNULL,  &X86DynaRecCPU::recGPF,   &X86DynaRecCPU::recGPL,   &X86DynaRecCPU::recNCCT,  // 3c
 };
 
 const func_t X86DynaRecCPU::m_recCP2BSC[32] = {
-    &recMFC2, &recNULL, &recCFC2, &recNULL,  // 00
-    &recMTC2, &recNULL, &recCTC2, &recNULL,  // 04
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 08
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 0c
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 10
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 14
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 18
-    &recNULL, &recNULL, &recNULL, &recNULL,  // 1c
+    &X86DynaRecCPU::recMFC2, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recCFC2, &X86DynaRecCPU::recNULL,  // 00
+    &X86DynaRecCPU::recMTC2, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recCTC2, &X86DynaRecCPU::recNULL,  // 04
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 10
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 18
+    &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,  // 1c
 };
 
 // Trace all functions using PGXP
 const func_t X86DynaRecCPU::m_pgxpRecBSC[64] = {
-    &recSPECIAL,  &recREGIMM,    &recJ,        &recJAL,        // 00
-    &recBEQ,      &recBNE,       &recBLEZ,     &recBGTZ,       // 04
-    &pgxpRecADDI, &pgxpRecADDIU, &pgxpRecSLTI, &pgxpRecSLTIU,  // 08
-    &pgxpRecANDI, &pgxpRecORI,   &pgxpRecXORI, &pgxpRecLUI,    // 0c
-    &recCOP0,     &recNULL,      &recCOP2,     &recNULL,       // 10
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 14
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 18
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 1c
-    &pgxpRecLB,   &pgxpRecLH,    &pgxpRecLWL,  &pgxpRecLW,     // 20
-    &pgxpRecLBU,  &pgxpRecLHU,   &pgxpRecLWR,  &pgxpRecNULL,   // 24
-    &pgxpRecSB,   &pgxpRecSH,    &pgxpRecSWL,  &pgxpRecSW,     // 28
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecSWR,  &pgxpRecNULL,   // 2c
-    &recNULL,     &recNULL,      &pgxpRecLWC2, &recNULL,       // 30
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 34
-    &recNULL,     &recNULL,      &pgxpRecSWC2, &recHLE,        // 38
-    &recNULL,     &recNULL,      &recNULL,     &recNULL,       // 3c
+    &X86DynaRecCPU::recSPECIAL,  &X86DynaRecCPU::recREGIMM,     // 00
+    &X86DynaRecCPU::recJ,        &X86DynaRecCPU::recJAL,        // 02
+    &X86DynaRecCPU::recBEQ,      &X86DynaRecCPU::recBNE,        // 04
+    &X86DynaRecCPU::recBLEZ,     &X86DynaRecCPU::recBGTZ,       // 06
+    &X86DynaRecCPU::pgxpRecADDI, &X86DynaRecCPU::pgxpRecADDIU,  // 08
+    &X86DynaRecCPU::pgxpRecSLTI, &X86DynaRecCPU::pgxpRecSLTIU,  // 0a
+    &X86DynaRecCPU::pgxpRecANDI, &X86DynaRecCPU::pgxpRecORI,    // 0c
+    &X86DynaRecCPU::pgxpRecXORI, &X86DynaRecCPU::pgxpRecLUI,    // 0e
+    &X86DynaRecCPU::recCOP0,     &X86DynaRecCPU::recNULL,       // 10
+    &X86DynaRecCPU::recCOP2,     &X86DynaRecCPU::recNULL,       // 12
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 14
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 16
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 18
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 1a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 1c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 1e
+    &X86DynaRecCPU::pgxpRecLB,   &X86DynaRecCPU::pgxpRecLH,     // 20
+    &X86DynaRecCPU::pgxpRecLWL,  &X86DynaRecCPU::pgxpRecLW,     // 22
+    &X86DynaRecCPU::pgxpRecLBU,  &X86DynaRecCPU::pgxpRecLHU,    // 24
+    &X86DynaRecCPU::pgxpRecLWR,  &X86DynaRecCPU::pgxpRecNULL,   // 26
+    &X86DynaRecCPU::pgxpRecSB,   &X86DynaRecCPU::pgxpRecSH,     // 28
+    &X86DynaRecCPU::pgxpRecSWL,  &X86DynaRecCPU::pgxpRecSW,     // 2a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 2c
+    &X86DynaRecCPU::pgxpRecSWR,  &X86DynaRecCPU::pgxpRecNULL,   // 2e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 30
+    &X86DynaRecCPU::pgxpRecLWC2, &X86DynaRecCPU::recNULL,       // 32
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 34
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 36
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 38
+    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recHLE,        // 3a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3e
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecSPC[64] = {
-    &pgxpRecSLL,  &pgxpRecNULL,  &pgxpRecSRL,  &pgxpRecSRA,   // 00
-    &pgxpRecSLLV, &pgxpRecNULL,  &pgxpRecSRLV, &pgxpRecSRAV,  // 04
-    &recJR,       &recJALR,      &recNULL,     &recNULL,      // 08
-    &recSYSCALL,  &recBREAK,     &recNULL,     &recNULL,      // 0c
-    &pgxpRecMFHI, &pgxpRecMTHI,  &pgxpRecMFLO, &pgxpRecMTLO,  // 10
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 14
-    &pgxpRecMULT, &pgxpRecMULTU, &pgxpRecDIV,  &pgxpRecDIVU,  // 18
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 1c
-    &pgxpRecADD,  &pgxpRecADDU,  &pgxpRecSUB,  &pgxpRecSUBU,  // 20
-    &pgxpRecAND,  &pgxpRecOR,    &pgxpRecXOR,  &pgxpRecNOR,   // 24
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecSLT,  &pgxpRecSLTU,  // 28
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 2c
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 30
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 34
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 38
-    &pgxpRecNULL, &pgxpRecNULL,  &pgxpRecNULL, &pgxpRecNULL,  // 3c
+    &X86DynaRecCPU::pgxpRecSLL,  &X86DynaRecCPU::pgxpRecNULL,   // 00
+    &X86DynaRecCPU::pgxpRecSRL,  &X86DynaRecCPU::pgxpRecSRA,    // 02
+    &X86DynaRecCPU::pgxpRecSLLV, &X86DynaRecCPU::pgxpRecNULL,   // 04
+    &X86DynaRecCPU::pgxpRecSRLV, &X86DynaRecCPU::pgxpRecSRAV,   // 06
+    &X86DynaRecCPU::recJR,       &X86DynaRecCPU::recJALR,       // 08
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 0a
+    &X86DynaRecCPU::recSYSCALL,  &X86DynaRecCPU::recBREAK,      // 0c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 0e
+    &X86DynaRecCPU::pgxpRecMFHI, &X86DynaRecCPU::pgxpRecMTHI,   // 10
+    &X86DynaRecCPU::pgxpRecMFLO, &X86DynaRecCPU::pgxpRecMTLO,   // 12
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 14
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 16
+    &X86DynaRecCPU::pgxpRecMULT, &X86DynaRecCPU::pgxpRecMULTU,  // 18
+    &X86DynaRecCPU::pgxpRecDIV,  &X86DynaRecCPU::pgxpRecDIVU,   // 1a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 1c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 1e
+    &X86DynaRecCPU::pgxpRecADD,  &X86DynaRecCPU::pgxpRecADDU,   // 20
+    &X86DynaRecCPU::pgxpRecSUB,  &X86DynaRecCPU::pgxpRecSUBU,   // 22
+    &X86DynaRecCPU::pgxpRecAND,  &X86DynaRecCPU::pgxpRecOR,     // 24
+    &X86DynaRecCPU::pgxpRecXOR,  &X86DynaRecCPU::pgxpRecNOR,    // 26
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 28
+    &X86DynaRecCPU::pgxpRecSLT,  &X86DynaRecCPU::pgxpRecSLTU,   // 2a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 2c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 2e
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 30
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 32
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 34
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 36
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 38
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 3a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 3c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 3e
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecCP0[32] = {
-    &pgxpRecMFC0, &pgxpRecNULL, &pgxpRecCFC0, &pgxpRecNULL,  // 00
-    &pgxpRecMTC0, &pgxpRecNULL, &pgxpRecCTC0, &pgxpRecNULL,  // 04
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 08
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 0c
-    &pgxpRecRFE,  &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 10
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 14
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 18
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 1c
+    &X86DynaRecCPU::pgxpRecMFC0, &X86DynaRecCPU::pgxpRecNULL,  // 00
+    &X86DynaRecCPU::pgxpRecCFC0, &X86DynaRecCPU::pgxpRecNULL,  // 02
+    &X86DynaRecCPU::pgxpRecMTC0, &X86DynaRecCPU::pgxpRecNULL,  // 04
+    &X86DynaRecCPU::pgxpRecCTC0, &X86DynaRecCPU::pgxpRecNULL,  // 06
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 08
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0e
+    &X86DynaRecCPU::pgxpRecRFE,  &X86DynaRecCPU::pgxpRecNULL,  // 10
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 12
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 14
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 16
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 18
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1e
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecCP2BSC[32] = {
-    &pgxpRecMFC2, &pgxpRecNULL, &pgxpRecCFC2, &pgxpRecNULL,  // 00
-    &pgxpRecMTC2, &pgxpRecNULL, &pgxpRecCTC2, &pgxpRecNULL,  // 04
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 08
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 0c
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 10
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 14
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 18
-    &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecNULL,  // 1c
+    &X86DynaRecCPU::pgxpRecMFC2, &X86DynaRecCPU::pgxpRecNULL,  // 00
+    &X86DynaRecCPU::pgxpRecCFC2, &X86DynaRecCPU::pgxpRecNULL,  // 02
+    &X86DynaRecCPU::pgxpRecMTC2, &X86DynaRecCPU::pgxpRecNULL,  // 04
+    &X86DynaRecCPU::pgxpRecCTC2, &X86DynaRecCPU::pgxpRecNULL,  // 06
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 08
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0e
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 10
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 12
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 14
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 16
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 18
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1c
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1e
 };
 
 // Trace memory functions only
 const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
-    &recSPECIAL, &recREGIMM, &recJ,        &recJAL,    &recBEQ,      &recBNE,      &recBLEZ,    &recBGTZ,      // 00
-    &recADDI,    &recADDIU,  &recSLTI,     &recSLTIU,  &recANDI,     &recORI,      &recXORI,    &recLUI,       // 08
-    &recCOP0,    &recNULL,   &recCOP2,     &recNULL,   &recNULL,     &recNULL,     &recNULL,    &recNULL,      // 10
-    &recNULL,    &recNULL,   &recNULL,     &recNULL,   &recNULL,     &recNULL,     &recNULL,    &recNULL,      // 18
-    &pgxpRecLB,  &pgxpRecLH, &pgxpRecLWL,  &pgxpRecLW, &pgxpRecLBU,  &pgxpRecLHU,  &pgxpRecLWR, &pgxpRecNULL,  // 20
-    &pgxpRecSB,  &pgxpRecSH, &pgxpRecSWL,  &pgxpRecSW, &pgxpRecNULL, &pgxpRecNULL, &pgxpRecSWR, &pgxpRecNULL,  // 28
-    &recNULL,    &recNULL,   &pgxpRecLWC2, &recNULL,   &recNULL,     &recNULL,     &recNULL,    &recNULL,      // 30
-    &recNULL,    &recNULL,   &pgxpRecSWC2, &recHLE,    &recNULL,     &recNULL,     &recNULL,    &recNULL,      // 38
+    &X86DynaRecCPU::recSPECIAL,  &X86DynaRecCPU::recREGIMM,    // 00
+    &X86DynaRecCPU::recJ,        &X86DynaRecCPU::recJAL,       // 02
+    &X86DynaRecCPU::recBEQ,      &X86DynaRecCPU::recBNE,       // 04
+    &X86DynaRecCPU::recBLEZ,     &X86DynaRecCPU::recBGTZ,      // 06
+    &X86DynaRecCPU::recADDI,     &X86DynaRecCPU::recADDIU,     // 08
+    &X86DynaRecCPU::recSLTI,     &X86DynaRecCPU::recSLTIU,     // 0a
+    &X86DynaRecCPU::recANDI,     &X86DynaRecCPU::recORI,       // 0c
+    &X86DynaRecCPU::recXORI,     &X86DynaRecCPU::recLUI,       // 0e
+    &X86DynaRecCPU::recCOP0,     &X86DynaRecCPU::recNULL,      // 10
+    &X86DynaRecCPU::recCOP2,     &X86DynaRecCPU::recNULL,      // 12
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 14
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 16
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 18
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 1a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 1c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 1e
+    &X86DynaRecCPU::pgxpRecLB,   &X86DynaRecCPU::pgxpRecLH,    // 20
+    &X86DynaRecCPU::pgxpRecLWL,  &X86DynaRecCPU::pgxpRecLW,    // 22
+    &X86DynaRecCPU::pgxpRecLBU,  &X86DynaRecCPU::pgxpRecLHU,   // 24
+    &X86DynaRecCPU::pgxpRecLWR,  &X86DynaRecCPU::pgxpRecNULL,  // 26
+    &X86DynaRecCPU::pgxpRecSB,   &X86DynaRecCPU::pgxpRecSH,    // 28
+    &X86DynaRecCPU::pgxpRecSWL,  &X86DynaRecCPU::pgxpRecSW,    // 2a
+    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 2c
+    &X86DynaRecCPU::pgxpRecSWR,  &X86DynaRecCPU::pgxpRecNULL,  // 2e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 30
+    &X86DynaRecCPU::pgxpRecLWC2, &X86DynaRecCPU::recNULL,      // 32
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 34
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 36
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 38
+    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recHLE,       // 3a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 3c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 3e
 };
 
 void X86DynaRecCPU::recRecompile() {
@@ -3516,7 +3612,10 @@ void X86DynaRecCPU::recRecompile() {
 
     for (m_count = 0; m_count < DYNAREC_BLOCK;) {
         p = (char *)PSXM(m_pc);
-        if (p == NULL) recError();
+        if (p == NULL) {
+            recError();
+            return;
+        }
         m_psxRegs.code = *(uint32_t *)p;
         m_pc += 4;
         m_count++;

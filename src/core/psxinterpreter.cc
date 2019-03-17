@@ -1109,57 +1109,93 @@ void PCSX::InterpretedCPU::psxHLE() {
 }
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_psxBSC[64] = {
-    &InterpretedCPU::psxSPECIAL, &InterpretedCPU::psxREGIMM, &InterpretedCPU::psxJ,    &InterpretedCPU::psxJAL,   &InterpretedCPU::psxBEQ,  &InterpretedCPU::psxBNE,  &InterpretedCPU::psxBLEZ, &InterpretedCPU::psxBGTZ,  // 00
-    &InterpretedCPU::psxADDI,    &InterpretedCPU::psxADDIU,  &InterpretedCPU::psxSLTI, &InterpretedCPU::psxSLTIU, &InterpretedCPU::psxANDI, &InterpretedCPU::psxORI,  &InterpretedCPU::psxXORI, &InterpretedCPU::psxLUI,   // 08
-    &InterpretedCPU::psxCOP0,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxCOP2, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
-    &InterpretedCPU::psxLB,      &InterpretedCPU::psxLH,     &InterpretedCPU::psxLWL,  &InterpretedCPU::psxLW,    &InterpretedCPU::psxLBU,  &InterpretedCPU::psxLHU,  &InterpretedCPU::psxLWR,  &InterpretedCPU::psxNULL,  // 20
-    &InterpretedCPU::psxSB,      &InterpretedCPU::psxSH,     &InterpretedCPU::psxSWL,  &InterpretedCPU::psxSW,    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxSWR,  &InterpretedCPU::psxNULL,  // 28
-    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteLWC2, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 30
-    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteSWC2, &InterpretedCPU::psxHLE,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 38
+    &InterpretedCPU::psxSPECIAL, &InterpretedCPU::psxREGIMM, &InterpretedCPU::psxJ,    &InterpretedCPU::psxJAL,    // 00
+    &InterpretedCPU::psxBEQ,     &InterpretedCPU::psxBNE,    &InterpretedCPU::psxBLEZ, &InterpretedCPU::psxBGTZ,   // 04
+    &InterpretedCPU::psxADDI,    &InterpretedCPU::psxADDIU,  &InterpretedCPU::psxSLTI, &InterpretedCPU::psxSLTIU,  // 08
+    &InterpretedCPU::psxANDI,    &InterpretedCPU::psxORI,    &InterpretedCPU::psxXORI, &InterpretedCPU::psxLUI,    // 0c
+    &InterpretedCPU::psxCOP0,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxCOP2, &InterpretedCPU::psxNULL,   // 10
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 14
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 18
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 1c
+    &InterpretedCPU::psxLB,      &InterpretedCPU::psxLH,     &InterpretedCPU::psxLWL,  &InterpretedCPU::psxLW,     // 20
+    &InterpretedCPU::psxLBU,     &InterpretedCPU::psxLHU,    &InterpretedCPU::psxLWR,  &InterpretedCPU::psxNULL,   // 24
+    &InterpretedCPU::psxSB,      &InterpretedCPU::psxSH,     &InterpretedCPU::psxSWL,  &InterpretedCPU::psxSW,     // 28
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxSWR,  &InterpretedCPU::psxNULL,   // 2c
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteLWC2, &InterpretedCPU::psxNULL,   // 30
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 34
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteSWC2, &InterpretedCPU::psxHLE,    // 38
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 3c
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_psxSPC[64] = {
-    &InterpretedCPU::psxSLL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxSRL,  &InterpretedCPU::psxSRA,  &InterpretedCPU::psxSLLV,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxSRLV, &InterpretedCPU::psxSRAV,  // 00
-    &InterpretedCPU::psxJR,   &InterpretedCPU::psxJALR,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxSYSCALL, &InterpretedCPU::psxBREAK, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::psxMFHI, &InterpretedCPU::psxMTHI,  &InterpretedCPU::psxMFLO, &InterpretedCPU::psxMTLO, &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxMULT, &InterpretedCPU::psxMULTU, &InterpretedCPU::psxDIV,  &InterpretedCPU::psxDIVU, &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
-    &InterpretedCPU::psxADD,  &InterpretedCPU::psxADDU,  &InterpretedCPU::psxSUB,  &InterpretedCPU::psxSUBU, &InterpretedCPU::psxAND,     &InterpretedCPU::psxOR,    &InterpretedCPU::psxXOR,  &InterpretedCPU::psxNOR,   // 20
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxSLT,  &InterpretedCPU::psxSLTU, &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 28
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 30
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 38
+    &InterpretedCPU::psxSLL,     &InterpretedCPU::psxNULL,  &InterpretedCPU::psxSRL,  &InterpretedCPU::psxSRA,   // 00
+    &InterpretedCPU::psxSLLV,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxSRLV, &InterpretedCPU::psxSRAV,  // 04
+    &InterpretedCPU::psxJR,      &InterpretedCPU::psxJALR,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
+    &InterpretedCPU::psxSYSCALL, &InterpretedCPU::psxBREAK, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 0c
+    &InterpretedCPU::psxMFHI,    &InterpretedCPU::psxMTHI,  &InterpretedCPU::psxMFLO, &InterpretedCPU::psxMTLO,  // 10
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 14
+    &InterpretedCPU::psxMULT,    &InterpretedCPU::psxMULTU, &InterpretedCPU::psxDIV,  &InterpretedCPU::psxDIVU,  // 18
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 1c
+    &InterpretedCPU::psxADD,     &InterpretedCPU::psxADDU,  &InterpretedCPU::psxSUB,  &InterpretedCPU::psxSUBU,  // 20
+    &InterpretedCPU::psxAND,     &InterpretedCPU::psxOR,    &InterpretedCPU::psxXOR,  &InterpretedCPU::psxNOR,   // 24
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxSLT,  &InterpretedCPU::psxSLTU,  // 28
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 2c
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 30
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 34
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 38
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 3c
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_psxREG[32] = {
-    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 00
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
+    &InterpretedCPU::psxBLTZ,   &InterpretedCPU::psxBGEZ,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 00
+    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 04
+    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
+    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 0c
+    &InterpretedCPU::psxBLTZAL, &InterpretedCPU::psxBGEZAL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
+    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 14
+    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
+    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 1c
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_psxCP0[32] = {
-    &InterpretedCPU::psxMFC0, &InterpretedCPU::psxNULL, &InterpretedCPU::psxCFC0, &InterpretedCPU::psxNULL, &InterpretedCPU::psxMTC0, &InterpretedCPU::psxNULL, &InterpretedCPU::psxCTC0, &InterpretedCPU::psxNULL,  // 00
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::psxRFE,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
+    &InterpretedCPU::psxMFC0, &InterpretedCPU::psxNULL, &InterpretedCPU::psxCFC0, &InterpretedCPU::psxNULL,  // 00
+    &InterpretedCPU::psxMTC0, &InterpretedCPU::psxNULL, &InterpretedCPU::psxCTC0, &InterpretedCPU::psxNULL,  // 04
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 0c
+    &InterpretedCPU::psxRFE,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 14
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 1c
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_psxCP2[64] = {
-    &InterpretedCPU::psxBASIC, &InterpretedCPU::gteRTPS,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCLIP, &InterpretedCPU::psxNULL,  // 00
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::gteOP,   &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::gteDPCS,  &InterpretedCPU::gteINTPL, &InterpretedCPU::gteMVMVA, &InterpretedCPU::gteNCDS, &InterpretedCPU::gteCDP,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCDT,  &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCCS, &InterpretedCPU::gteCC,   &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCS,   &InterpretedCPU::psxNULL,  // 18
-    &InterpretedCPU::gteNCT,   &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 20
-    &InterpretedCPU::gteSQR,   &InterpretedCPU::gteDCPL,  &InterpretedCPU::gteDPCT,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::gteAVSZ3, &InterpretedCPU::gteAVSZ4, &InterpretedCPU::psxNULL,  // 28
-    &InterpretedCPU::gteRTPT,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 30
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::gteGPF,   &InterpretedCPU::gteGPL,   &InterpretedCPU::gteNCCT,  // 38
+    &InterpretedCPU::psxBASIC, &InterpretedCPU::gteRTPS,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 00
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCLIP, &InterpretedCPU::psxNULL,  // 04
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 08
+    &InterpretedCPU::gteOP,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 0c
+    &InterpretedCPU::gteDPCS,  &InterpretedCPU::gteINTPL, &InterpretedCPU::gteMVMVA, &InterpretedCPU::gteNCDS,  // 10
+    &InterpretedCPU::gteCDP,   &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCDT,  &InterpretedCPU::psxNULL,  // 14
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCCS,  // 18
+    &InterpretedCPU::gteCC,    &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCS,   &InterpretedCPU::psxNULL,  // 1c
+    &InterpretedCPU::gteNCT,   &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 20
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 24
+    &InterpretedCPU::gteSQR,   &InterpretedCPU::gteDCPL,  &InterpretedCPU::gteDPCT,  &InterpretedCPU::psxNULL,  // 28
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::gteAVSZ3, &InterpretedCPU::gteAVSZ4, &InterpretedCPU::psxNULL,  // 2c
+    &InterpretedCPU::gteRTPT,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 30
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 34
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 38
+    &InterpretedCPU::psxNULL,  &InterpretedCPU::gteGPF,   &InterpretedCPU::gteGPL,   &InterpretedCPU::gteNCCT,  // 3c
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_psxCP2BSC[32] = {
-    &InterpretedCPU::psxMFC2, &InterpretedCPU::psxNULL, &InterpretedCPU::psxCFC2, &InterpretedCPU::psxNULL, &InterpretedCPU::gteMTC2, &InterpretedCPU::psxNULL, &InterpretedCPU::gteCTC2, &InterpretedCPU::psxNULL,  // 00
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
-    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
+    &InterpretedCPU::psxMFC2, &InterpretedCPU::psxNULL, &InterpretedCPU::psxCFC2, &InterpretedCPU::psxNULL,  // 00
+    &InterpretedCPU::gteMTC2, &InterpretedCPU::psxNULL, &InterpretedCPU::gteCTC2, &InterpretedCPU::psxNULL,  // 04
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 08
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 0c
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 10
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 14
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 18
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  // 1c
 };
 
 /////////////////////////////////////////////
@@ -1395,83 +1431,147 @@ PGXP_INT_FUNC(CP0, RFE)
 
 // Trace all functions using PGXP
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxBSC[64] = {
-    &InterpretedCPU::psxSPECIAL,  &InterpretedCPU::psxREGIMM,    &InterpretedCPU::psxJ,        &InterpretedCPU::psxJAL,        // 00
-    &InterpretedCPU::psxBEQ,      &InterpretedCPU::psxBNE,       &InterpretedCPU::psxBLEZ,     &InterpretedCPU::psxBGTZ,       // 04
-    &InterpretedCPU::pgxpPsxADDI, &InterpretedCPU::pgxpPsxADDIU, &InterpretedCPU::pgxpPsxSLTI, &InterpretedCPU::pgxpPsxSLTIU,  // 08
-    &InterpretedCPU::pgxpPsxANDI, &InterpretedCPU::pgxpPsxORI,   &InterpretedCPU::pgxpPsxXORI, &InterpretedCPU::pgxpPsxLUI,    // 0c
-    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,      &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,       // 10
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 14
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 18
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 1c
-    &InterpretedCPU::pgxpPsxLB,   &InterpretedCPU::pgxpPsxLH,    &InterpretedCPU::pgxpPsxLWL,  &InterpretedCPU::pgxpPsxLW,     // 20
-    &InterpretedCPU::pgxpPsxLBU,  &InterpretedCPU::pgxpPsxLHU,   &InterpretedCPU::pgxpPsxLWR,  &InterpretedCPU::pgxpPsxNULL,   // 24
-    &InterpretedCPU::pgxpPsxSB,   &InterpretedCPU::pgxpPsxSH,    &InterpretedCPU::pgxpPsxSWL,  &InterpretedCPU::pgxpPsxSW,     // 28
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxSWR,  &InterpretedCPU::pgxpPsxNULL,   // 2c
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::pgxpPsxLWC2, &InterpretedCPU::psxNULL,       // 30
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 34
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxHLE,        // 38
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 3c
+    &InterpretedCPU::psxSPECIAL,  &InterpretedCPU::psxREGIMM,     // 00
+    &InterpretedCPU::psxJ,        &InterpretedCPU::psxJAL,        // 02
+    &InterpretedCPU::psxBEQ,      &InterpretedCPU::psxBNE,        // 04
+    &InterpretedCPU::psxBLEZ,     &InterpretedCPU::psxBGTZ,       // 06
+    &InterpretedCPU::pgxpPsxADDI, &InterpretedCPU::pgxpPsxADDIU,  // 08
+    &InterpretedCPU::pgxpPsxSLTI, &InterpretedCPU::pgxpPsxSLTIU,  // 0a
+    &InterpretedCPU::pgxpPsxANDI, &InterpretedCPU::pgxpPsxORI,    // 0c
+    &InterpretedCPU::pgxpPsxXORI, &InterpretedCPU::pgxpPsxLUI,    // 0e
+    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,       // 10
+    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,       // 12
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 14
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 16
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 18
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 1a
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 1c
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 1e
+    &InterpretedCPU::pgxpPsxLB,   &InterpretedCPU::pgxpPsxLH,     // 20
+    &InterpretedCPU::pgxpPsxLWL,  &InterpretedCPU::pgxpPsxLW,     // 22
+    &InterpretedCPU::pgxpPsxLBU,  &InterpretedCPU::pgxpPsxLHU,    // 24
+    &InterpretedCPU::pgxpPsxLWR,  &InterpretedCPU::pgxpPsxNULL,   // 26
+    &InterpretedCPU::pgxpPsxSB,   &InterpretedCPU::pgxpPsxSH,     // 28
+    &InterpretedCPU::pgxpPsxSWL,  &InterpretedCPU::pgxpPsxSW,     // 2a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 2c
+    &InterpretedCPU::pgxpPsxSWR,  &InterpretedCPU::pgxpPsxNULL,   // 2e
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 30
+    &InterpretedCPU::pgxpPsxLWC2, &InterpretedCPU::psxNULL,       // 32
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 34
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 36
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 38
+    &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxHLE,        // 3a
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 3c
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 3e
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxSPC[64] = {
-    &InterpretedCPU::pgxpPsxSLL,  &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxSRL,  &InterpretedCPU::pgxpPsxSRA,   // 00
-    &InterpretedCPU::pgxpPsxSLLV, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxSRLV, &InterpretedCPU::pgxpPsxSRAV,  // 04
-    &InterpretedCPU::psxJR,       &InterpretedCPU::psxJALR,      &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 08
-    &InterpretedCPU::psxSYSCALL,  &InterpretedCPU::psxBREAK,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 0c
-    &InterpretedCPU::pgxpPsxMFHI, &InterpretedCPU::pgxpPsxMTHI,  &InterpretedCPU::pgxpPsxMFLO, &InterpretedCPU::pgxpPsxMTLO,  // 10
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 14
-    &InterpretedCPU::pgxpPsxMULT, &InterpretedCPU::pgxpPsxMULTU, &InterpretedCPU::pgxpPsxDIV,  &InterpretedCPU::pgxpPsxDIVU,  // 18
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1c
-    &InterpretedCPU::pgxpPsxADD,  &InterpretedCPU::pgxpPsxADDU,  &InterpretedCPU::pgxpPsxSUB,  &InterpretedCPU::pgxpPsxSUBU,  // 20
-    &InterpretedCPU::pgxpPsxAND,  &InterpretedCPU::pgxpPsxOR,    &InterpretedCPU::pgxpPsxXOR,  &InterpretedCPU::pgxpPsxNOR,   // 24
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxSLT,  &InterpretedCPU::pgxpPsxSLTU,  // 28
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 2c
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 30
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 34
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 38
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 3c
+    &InterpretedCPU::pgxpPsxSLL,  &InterpretedCPU::pgxpPsxNULL,   // 00
+    &InterpretedCPU::pgxpPsxSRL,  &InterpretedCPU::pgxpPsxSRA,    // 02
+    &InterpretedCPU::pgxpPsxSLLV, &InterpretedCPU::pgxpPsxNULL,   // 04
+    &InterpretedCPU::pgxpPsxSRLV, &InterpretedCPU::pgxpPsxSRAV,   // 06
+    &InterpretedCPU::psxJR,       &InterpretedCPU::psxJALR,       // 08
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 0a
+    &InterpretedCPU::psxSYSCALL,  &InterpretedCPU::psxBREAK,      // 0c
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 0e
+    &InterpretedCPU::pgxpPsxMFHI, &InterpretedCPU::pgxpPsxMTHI,   // 10
+    &InterpretedCPU::pgxpPsxMFLO, &InterpretedCPU::pgxpPsxMTLO,   // 12
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 14
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 16
+    &InterpretedCPU::pgxpPsxMULT, &InterpretedCPU::pgxpPsxMULTU,  // 18
+    &InterpretedCPU::pgxpPsxDIV,  &InterpretedCPU::pgxpPsxDIVU,   // 1a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 1c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 1e
+    &InterpretedCPU::pgxpPsxADD,  &InterpretedCPU::pgxpPsxADDU,   // 20
+    &InterpretedCPU::pgxpPsxSUB,  &InterpretedCPU::pgxpPsxSUBU,   // 22
+    &InterpretedCPU::pgxpPsxAND,  &InterpretedCPU::pgxpPsxOR,     // 24
+    &InterpretedCPU::pgxpPsxXOR,  &InterpretedCPU::pgxpPsxNOR,    // 26
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 28
+    &InterpretedCPU::pgxpPsxSLT,  &InterpretedCPU::pgxpPsxSLTU,   // 2a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 2c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 2e
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 30
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 32
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 34
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 36
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 38
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 3a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 3c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,   // 3e
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxCP0[32] = {
-    &InterpretedCPU::pgxpPsxMFC0, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxCFC0, &InterpretedCPU::pgxpPsxNULL,  // 00
-    &InterpretedCPU::pgxpPsxMTC0, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxCTC0, &InterpretedCPU::pgxpPsxNULL,  // 04
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 08
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0c
-    &InterpretedCPU::pgxpPsxRFE,  &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 10
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 14
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 18
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1c
+    &InterpretedCPU::pgxpPsxMFC0, &InterpretedCPU::pgxpPsxNULL,  // 00
+    &InterpretedCPU::pgxpPsxCFC0, &InterpretedCPU::pgxpPsxNULL,  // 02
+    &InterpretedCPU::pgxpPsxMTC0, &InterpretedCPU::pgxpPsxNULL,  // 04
+    &InterpretedCPU::pgxpPsxCTC0, &InterpretedCPU::pgxpPsxNULL,  // 06
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 08
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0e
+    &InterpretedCPU::pgxpPsxRFE,  &InterpretedCPU::pgxpPsxNULL,  // 10
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 12
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 14
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 16
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 18
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1e
 };
 
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxCP2BSC[32] = {
-    &InterpretedCPU::pgxpPsxMFC2, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxCFC2, &InterpretedCPU::pgxpPsxNULL,  // 00
-    &InterpretedCPU::pgxpPsxMTC2, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxCTC2, &InterpretedCPU::pgxpPsxNULL,  // 04
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 08
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0c
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 10
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 14
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 18
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1c
+    &InterpretedCPU::pgxpPsxMFC2, &InterpretedCPU::pgxpPsxNULL,  // 00
+    &InterpretedCPU::pgxpPsxCFC2, &InterpretedCPU::pgxpPsxNULL,  // 02
+    &InterpretedCPU::pgxpPsxMTC2, &InterpretedCPU::pgxpPsxNULL,  // 04
+    &InterpretedCPU::pgxpPsxCTC2, &InterpretedCPU::pgxpPsxNULL,  // 06
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 08
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 0e
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 10
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 12
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 14
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 16
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 18
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1c
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 1e
 };
 
 // Trace memory functions only
 const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxBSCMem[64] = {
-    &InterpretedCPU::psxSPECIAL,  &InterpretedCPU::psxREGIMM,   &InterpretedCPU::psxJ,        &InterpretedCPU::psxJAL,       // 00
-    &InterpretedCPU::psxBEQ,      &InterpretedCPU::psxBNE,      &InterpretedCPU::psxBLEZ,     &InterpretedCPU::psxBGTZ,      // 04
-    &InterpretedCPU::psxADDI,     &InterpretedCPU::psxADDIU,    &InterpretedCPU::psxSLTI,     &InterpretedCPU::psxSLTIU,     // 08
-    &InterpretedCPU::psxANDI,     &InterpretedCPU::psxORI,      &InterpretedCPU::psxXORI,     &InterpretedCPU::psxLUI,       // 0c
-    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,      // 10
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 14
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 18
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 1c
-    &InterpretedCPU::pgxpPsxLB,   &InterpretedCPU::pgxpPsxLH,   &InterpretedCPU::pgxpPsxLWL,  &InterpretedCPU::pgxpPsxLW,    // 20
-    &InterpretedCPU::pgxpPsxLBU,  &InterpretedCPU::pgxpPsxLHU,  &InterpretedCPU::pgxpPsxLWR,  &InterpretedCPU::pgxpPsxNULL,  // 24
-    &InterpretedCPU::pgxpPsxSB,   &InterpretedCPU::pgxpPsxSH,   &InterpretedCPU::pgxpPsxSWL,  &InterpretedCPU::pgxpPsxSW,    // 28
-    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxSWR,  &InterpretedCPU::pgxpPsxNULL,  // 2c
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::pgxpPsxLWC2, &InterpretedCPU::psxNULL,      // 30
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 34
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxHLE,       // 38
-    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 3c
+    &InterpretedCPU::psxSPECIAL,  &InterpretedCPU::psxREGIMM,    // 00
+    &InterpretedCPU::psxJ,        &InterpretedCPU::psxJAL,       // 02
+    &InterpretedCPU::psxBEQ,      &InterpretedCPU::psxBNE,       // 04
+    &InterpretedCPU::psxBLEZ,     &InterpretedCPU::psxBGTZ,      // 06
+    &InterpretedCPU::psxADDI,     &InterpretedCPU::psxADDIU,     // 08
+    &InterpretedCPU::psxSLTI,     &InterpretedCPU::psxSLTIU,     // 0a
+    &InterpretedCPU::psxANDI,     &InterpretedCPU::psxORI,       // 0c
+    &InterpretedCPU::psxXORI,     &InterpretedCPU::psxLUI,       // 0e
+    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,      // 10
+    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,      // 12
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 14
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 16
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 18
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 1a
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 1c
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 1e
+    &InterpretedCPU::pgxpPsxLB,   &InterpretedCPU::pgxpPsxLH,    // 20
+    &InterpretedCPU::pgxpPsxLWL,  &InterpretedCPU::pgxpPsxLW,    // 22
+    &InterpretedCPU::pgxpPsxLBU,  &InterpretedCPU::pgxpPsxLHU,   // 24
+    &InterpretedCPU::pgxpPsxLWR,  &InterpretedCPU::pgxpPsxNULL,  // 26
+    &InterpretedCPU::pgxpPsxSB,   &InterpretedCPU::pgxpPsxSH,    // 28
+    &InterpretedCPU::pgxpPsxSWL,  &InterpretedCPU::pgxpPsxSW,    // 2a
+    &InterpretedCPU::pgxpPsxNULL, &InterpretedCPU::pgxpPsxNULL,  // 2c
+    &InterpretedCPU::pgxpPsxSWR,  &InterpretedCPU::pgxpPsxNULL,  // 2e
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 30
+    &InterpretedCPU::pgxpPsxLWC2, &InterpretedCPU::psxNULL,      // 32
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 34
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 36
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 38
+    &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxHLE,       // 3a
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 3c
+    &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 3e
 };
 
 ///////////////////////////////////////////
