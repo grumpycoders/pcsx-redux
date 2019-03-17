@@ -101,4 +101,4 @@ static void hleExecRet() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
 }
 
-const HLE_t psxHLEt[256] = {hleDummy, hleA0, hleB0, hleC0, hleBootstrap, hleExecRet, hleDummy, hleDummy};
+const HLE_t psxHLEt[8] = {hleDummy, hleA0, hleB0, hleC0, hleBootstrap, hleExecRet, hleDummy, hleDummy};

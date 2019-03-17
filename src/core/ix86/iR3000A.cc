@@ -3348,10 +3348,15 @@ void X86DynaRecCPU::recRFE() {
 void X86DynaRecCPU::recHLE() {
     iFlushRegs();
 
-    gen.MOV32ItoR(PCSX::ix86::EAX, (uint32_t)psxHLEt[m_psxRegs.code & 0xffff]);
-    gen.CALL32R(PCSX::ix86::EAX);
-    m_branch = 2;
-    iRet();
+    uint32_t hleCode = PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x03ffffff;
+    if (hleCode >= (sizeof(psxHLEt) / sizeof(psxHLEt[0]))) {
+        recNULL();
+    } else {
+        gen.MOV32ItoR(PCSX::ix86::EAX, (uint32_t)psxHLEt[hleCode]);
+        gen.CALL32R(PCSX::ix86::EAX);
+        m_branch = 2;
+        iRet();
+    }
 }
 
 const func_t X86DynaRecCPU::m_recBSC[64] = {
