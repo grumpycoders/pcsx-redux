@@ -25,6 +25,6 @@
 #include "core/r3000a.h"
 
 typedef void (*HLE_t)();
-extern const HLE_t psxHLEt[256];
+extern const HLE_t psxHLEt[8];
 
 #endif
