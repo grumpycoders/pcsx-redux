@@ -1277,14 +1277,14 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_format() {  // 0x41
-        if (strcmp(Ra0, "bu00:") == 0 && PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str()[0] != '\0') {
-            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str());
-            PCSX::g_emulator.m_sio->LoadMcd(1, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str());
+        if (strcmp(Ra0, "bu00:") == 0 && !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().empty()) {
+            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
+            PCSX::g_emulator.m_sio->LoadMcd(1, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
             v0 = 1;
         } else if (strcmp(Ra0, "bu10:") == 0 &&
-                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str()[0] != '\0') {
-            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str());
-            PCSX::g_emulator.m_sio->LoadMcd(2, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str());
+                   !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().empty()) {
+            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
+            PCSX::g_emulator.m_sio->LoadMcd(2, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
             v0 = 1;
         } else {
             v0 = 0;
@@ -1512,13 +1512,13 @@ class BiosImpl : public PCSX::Bios {
             case 0x01:
             case 0x02:
             case 0x03:
-                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str()[0] ? 0x2 : 0x8;
+                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().empty() ? 0x8 : 0x2;
                 break;
             case 0x10:
             case 0x11:
             case 0x12:
             case 0x13:
-                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str()[0] ? 0x2 : 0x8;
+                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().empty() ? 0x8 : 0x2;
                 break;
             default:
                 PSXBIOS_LOG("psxBios_%s: UNKNOWN PORT 0x%x\n", A0names[0xab], s_card_active_chan);
@@ -1980,12 +1980,12 @@ class BiosImpl : public PCSX::Bios {
 
         if (!strncmp(Ra0, "bu00", 4)) {
             buopen(1, PCSX::g_emulator.m_sio->g_mcd1Data,
-                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str());
+                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
         }
 
         if (!strncmp(Ra0, "bu10", 4)) {
             buopen(2, PCSX::g_emulator.m_sio->g_mcd2Data,
-                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str());
+                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
         }
 
         pc0 = ra;
@@ -2028,9 +2028,9 @@ class BiosImpl : public PCSX::Bios {
     template <int mcd>
     const char *getmcdName() {
         if (mcd == 1) {
-            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str();
+            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str();
         } else if (mcd == 2) {
-            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str();
+            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str();
         }
         return NULL;
     }
@@ -2350,13 +2350,13 @@ class BiosImpl : public PCSX::Bios {
         if (port == 0) {
             memcpy(PCSX::g_emulator.m_sio->g_mcd1Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
                    PCSX::SIO::MCD_SECT_SIZE);
-            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str(),
+            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str(),
                                             PCSX::g_emulator.m_sio->g_mcd1Data,
                                             sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
         } else {
             memcpy(PCSX::g_emulator.m_sio->g_mcd2Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
                    PCSX::SIO::MCD_SECT_SIZE);
-            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str(),
+            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str(),
                                             PCSX::g_emulator.m_sio->g_mcd2Data,
                                             sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
         }

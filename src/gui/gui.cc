@@ -92,6 +92,7 @@ void PCSX::GUI::init() {
     {
         ImGui::GetIO().IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
+        auto& settings = PCSX::g_emulator.settings;
         json j;
         if (cfg.is_open()) {
             try {
@@ -103,9 +104,17 @@ void PCSX::GUI::init() {
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
             if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                PCSX::g_emulator.settings.deserialize(j["emulator"]);
+                settings.deserialize(j["emulator"]);
             }
             PCSX::g_emulator.m_spu->setCfg(j);
+        }
+
+        if (settings.get<Emulator::SettingMcd1>().value.string().empty()) {
+            settings.get<Emulator::SettingMcd1>() = "memcard1.mcd";
+        }
+
+        if (settings.get<Emulator::SettingMcd2>().value.string().empty()) {
+            settings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
         }
     }
     ImGui_ImplOpenGL3_Init();
@@ -293,9 +302,7 @@ void PCSX::GUI::endFrame() {
     if (m_showMenu || !m_fullscreenRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open ISO")) {
-                    showOpenIsoFileDialog = true;
-                }
+                showOpenIsoFileDialog = ImGui::MenuItem("Open ISO");
                 if (ImGui::MenuItem("Close ISO")) {
                     PCSX::g_emulator.m_cdrom->m_iso.close();
                     CheckCdrom();
@@ -490,12 +497,13 @@ static void ShowHelpMarker(const char* desc) {
 
 bool PCSX::GUI::configure() {
     bool changed = false;
+    bool selectBiosDialog = false;
+    auto& settings = PCSX::g_emulator.settings;
     if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Emulation Configuration", &m_showCfg)) {
-        auto& settings = PCSX::g_emulator.settings;
         changed |= ImGui::Checkbox("Enable XA decoder", &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox("Always enable SIO IRQ", &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox("Always enable SPU IRQ", &settings.get<Emulator::SettingSpuIrq>().value);
@@ -542,9 +550,18 @@ bool PCSX::GUI::configure() {
 
         changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox("Slow boot", &settings.get<Emulator::SettingSlowBoot>().value);
+        auto bios = settings.get<Emulator::SettingBios>().value.string();
+        ImGui::InputText("BIOS file", const_cast<char *>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::SameLine();
+        selectBiosDialog = ImGui::Button("...");
     }
     ImGui::End();
 
+    if (selectBiosDialog) m_selectBiosDialog.openDialog();
+    if (m_selectBiosDialog.draw()) {
+        std::vector<std::string> fileToOpen = m_selectBiosDialog.selected();
+        if (!fileToOpen.empty()) settings.get<Emulator::SettingBios>().value = fileToOpen[0];
+    }
     return changed;
 }
 

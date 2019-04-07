@@ -27,8 +27,6 @@
 #include "gui/gui.h"
 #include "spu/interface.h"
 
-#include "main/settings.h"
-
 static PCSX::GUI *s_gui;
 
 class SystemImpl : public PCSX::System {

@@ -86,7 +86,7 @@ class GUI final {
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
     unsigned int m_offscreenDepthBuffer = 0;
-    int m_currentTexture;
+    int m_currentTexture = -1;
 
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
     ImVec2 m_renderSize = ImVec2(1, 1);
@@ -103,7 +103,7 @@ class GUI final {
     struct MemoryEditorWrapper {
         MemoryEditor editor;
         std::string title;
-        bool & show = editor.Open;
+        bool &show = editor.Open;
         void MenuItem() { ImGui::MenuItem(title.c_str(), nullptr, &show); }
         void draw(void *mem, size_t size) { editor.DrawWindow(title.c_str(), mem, size); }
     };
@@ -115,6 +115,7 @@ class GUI final {
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly;
     Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
+    Widgets::FileDialog m_selectBiosDialog = {"Select BIOS"};
 
     bool m_showCfg = false;
 

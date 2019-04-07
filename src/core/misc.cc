@@ -394,8 +394,8 @@ bool CheckCdrom() {
                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().c_str(), 2);
         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
-        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str(),
-                                         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str());
+        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str(),
+                                         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
     }
 
     PCSX::g_emulator.m_cdrom->m_ppf.BuildPPFCache();
