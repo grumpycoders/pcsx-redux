@@ -1104,7 +1104,7 @@ void PCSX::InterpretedCPU::psxHLE() {
     if (hleCode >= (sizeof(psxHLEt) / sizeof(psxHLEt[0]))) {
         psxNULL();
     } else {
-        psxHLEt[hleCode];
+        psxHLEt[hleCode]();
     }
 }
 
