@@ -116,6 +116,10 @@ void PCSX::GUI::init() {
         if (settings.get<Emulator::SettingMcd2>().value.string().empty()) {
             settings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
         }
+
+        std::string path1 = settings.get<Emulator::SettingMcd1>().value.string();
+        std::string path2 = settings.get<Emulator::SettingMcd2>().value.string();
+        PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
     ImGui_ImplOpenGL3_Init();
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
