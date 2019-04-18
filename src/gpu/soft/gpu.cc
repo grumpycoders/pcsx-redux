@@ -115,6 +115,8 @@
 
 #include "stdafx.h"
 
+#include <stdint.h>
+
 #include <algorithm>
 
 #ifdef _WIN32
@@ -162,8 +164,8 @@ signed char *psxVsb;
 unsigned short *psxVuw;
 unsigned short *psxVuw_eom;
 signed short *psxVsw;
-unsigned long *psxVul;
-signed long *psxVsl;
+uint32_t *psxVul;
+int32_t *psxVsl;
 
 ////////////////////////////////////////////////////////////////////////
 // GPU globals
@@ -173,9 +175,9 @@ long lGPUstatusRet;
 char szDispBuf[64];
 char szMenuBuf[36];
 char szDebugText[512];
-unsigned long ulStatusControl[256];
+uint32_t ulStatusControl[256];
 
-static unsigned long gpuDataM[256];
+static uint32_t gpuDataM[256];
 static unsigned char gpuCommand = 0;
 static long gpuDataC = 0;
 static long gpuDataP = 0;
@@ -195,7 +197,7 @@ PSXDisplay_t PreviousPSXDisplay;
 long lSelectedSlot = 0;
 bool bChangeWinMode = false;
 bool bDoLazyUpdate = false;
-unsigned long lGPUInfoVals[16];
+uint32_t lGPUInfoVals[16];
 int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
@@ -345,7 +347,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 
 long PCSX::SoftGPU::impl::init()  // GPU INIT
 {
-    memset(ulStatusControl, 0, 256 * sizeof(unsigned long));  // init save state scontrol field
+    memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
 
     szDebugText[0] = 0;  // init debug text buffer
 
@@ -358,14 +360,14 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 
     psxVsb = (signed char *)psxVub;  // different ways of accessing PSX VRAM
     psxVsw = (signed short *)psxVub;
-    psxVsl = (signed long *)psxVub;
+    psxVsl = (int32_t *)psxVub;
     psxVuw = (unsigned short *)psxVub;
-    psxVul = (unsigned long *)psxVub;
+    psxVul = (uint32_t *)psxVub;
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
 
     memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
-    memset(lGPUInfoVals, 0x00, 16 * sizeof(unsigned long));
+    memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
 
     SetFPSHandler();
 
@@ -748,7 +750,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // reset gpu
         case 0x00:
-            memset(lGPUInfoVals, 0x00, 16 * sizeof(unsigned long));
+            memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
             lGPUstatusRet = 0x14802000;
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
@@ -1374,7 +1376,7 @@ long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF)
     if (ulGetFreezeData == 1)  // 1: get data
     {
         pF->ulStatus = lGPUstatusRet;
-        memcpy(pF->ulControl, ulStatusControl, 256 * sizeof(unsigned long));
+        memcpy(pF->ulControl, ulStatusControl, 256 * sizeof(uint32_t));
         memcpy(pF->psxVRam, psxVub, 1024 * iGPUHeight * 2);
 
         return 1;
@@ -1383,7 +1385,7 @@ long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF)
     if (ulGetFreezeData != 0) return 0;  // 0: set data
 
     lGPUstatusRet = pF->ulStatus;
-    memcpy(ulStatusControl, pF->ulControl, 256 * sizeof(unsigned long));
+    memcpy(ulStatusControl, pF->ulControl, 256 * sizeof(uint32_t));
     memcpy(psxVub, pF->psxVRam, 1024 * iGPUHeight * 2);
 
     // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT

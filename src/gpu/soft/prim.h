@@ -98,7 +98,7 @@ class SoftPrim : public SoftRenderer {
     static const func_t skip[256];
 
     void UpdateGlobalTP(unsigned short gdata);
-    void SetRenderMode(unsigned long DrawAttributes);
+    void SetRenderMode(uint32_t DrawAttributes);
     void AdjustCoord4();
     void AdjustCoord3();
     void AdjustCoord2();

@@ -373,7 +373,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol(unsigned short *pdest,
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetShadeTransCol32(uint32_t *pdest, unsigned long color) {
     if (DrawSemiTrans) {
         long r, g, b;
 
@@ -599,7 +599,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG_SPR(unsigned short 
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(uint32_t *pdest, unsigned long color) {
     long r, g, b, l;
 
     if (color == 0) return;
@@ -699,7 +699,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32(unsigned long *pd
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(uint32_t *pdest, unsigned long color) {
     long r, g, b;
 
     if (color == 0) return;
@@ -729,7 +729,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_S(unsigned long *
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color) {
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColG32_SPR(uint32_t *pdest, unsigned long color) {
     long r, g, b;
 
     if (color == 0) return;
@@ -965,7 +965,7 @@ inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX_S(unsigned short *
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color, short m1,
+inline void PCSX::SoftGPU::SoftRenderer::GetTextureTransColGX32_S(uint32_t *pdest, unsigned long color, short m1,
                                                                   short m2, short m3) {
     long r, g, b;
 
@@ -1059,11 +1059,11 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareAreaTrans(short x0, short y0, shor
         }
     } else  // fast fill
     {
-        unsigned long *DSTPtr;
+        uint32_t *DSTPtr;
         unsigned short LineOffset;
         unsigned long lcol = lSetMask | (((unsigned long)(col)) << 16) | col;
         dx >>= 1;
-        DSTPtr = (unsigned long *)(psxVuw + (1024 * y0) + x0);
+        DSTPtr = (uint32_t *)(psxVuw + (1024 * y0) + x0);
         LineOffset = 512 - dx;
 
         if (!bCheckMask && !DrawSemiTrans) {
@@ -1110,12 +1110,12 @@ void PCSX::SoftGPU::SoftRenderer::FillSoftwareArea(short x0, short y0, short x1,
             DSTPtr += LineOffset;
         }
     } else {
-        unsigned long *DSTPtr;
+        uint32_t *DSTPtr;
         unsigned short LineOffset;
-        unsigned long lcol = (((long)col) << 16) | col;
+        uint32_t lcol = (((int32_t)col) << 16) | col;
 
         dx >>= 1;
-        DSTPtr = (unsigned long *)(psxVuw + (1024 * y0) + x0);
+        DSTPtr = (uint32_t *)(psxVuw + (1024 * y0) + x0);
         LineOffset = 512 - dx;
 
         for (i = 0; i < dy; i++) {
@@ -2597,7 +2597,7 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(short x1, short y1, short x
             if (drawW < xmax) xmax = drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                *((unsigned long *)&psxVuw[(i << 10) + j]) = lcolor;
+                *((uint32_t *)&psxVuw[(i << 10) + j]) = lcolor;
             }
             if (j == xmax) psxVuw[(i << 10) + j] = color;
 
@@ -2615,7 +2615,7 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(short x1, short y1, short x
         if (drawW < xmax) xmax = drawW;
 
         for (j = xmin; j < xmax; j += 2) {
-            GetShadeTransCol32((unsigned long *)&psxVuw[(i << 10) + j], lcolor);
+            GetShadeTransCol32((uint32_t *)&psxVuw[(i << 10) + j], lcolor);
         }
         if (j == xmax) GetShadeTransCol(&psxVuw[(i << 10) + j], color);
 
@@ -2671,7 +2671,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4F(long rgb) {
             if (drawW < xmax) xmax = drawW;
 
             for (j = xmin; j < xmax; j += 2) {
-                *((unsigned long *)&psxVuw[(i << 10) + j]) = lcolor;
+                *((uint32_t *)&psxVuw[(i << 10) + j]) = lcolor;
             }
             if (j == xmax) psxVuw[(i << 10) + j] = color;
 
@@ -2689,7 +2689,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4F(long rgb) {
         if (drawW < xmax) xmax = drawW;
 
         for (j = xmin; j < xmax; j += 2) {
-            GetShadeTransCol32((unsigned long *)&psxVuw[(i << 10) + j], lcolor);
+            GetShadeTransCol32((uint32_t *)&psxVuw[(i << 10) + j], lcolor);
         }
         if (j == xmax) GetShadeTransCol(&psxVuw[(i << 10) + j], color);
 
@@ -2760,7 +2760,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(short x1, short y1, short x2, sh
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
 
                     posX += difX2;
@@ -2806,7 +2806,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4(short x1, short y1, short x2, sh
                 tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (XAdjust >> 1)];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
 
                 posX += difX2;
@@ -2895,7 +2895,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4_IL(short x1, short y1, short x2,
 
                     tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((XAdjust & 0x03) << 2)) & 0x0f;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
 
                     posX += difX2;
@@ -2955,7 +2955,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4_IL(short x1, short y1, short x2,
 
                 tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((XAdjust & 0x03) << 2)) & 0x0f;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
 
                 posX += difX2;
@@ -3043,7 +3043,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4_TW(short x1, short y1, short x2,
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
 
                     posX += difX2;
@@ -3089,7 +3089,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx4_TW(short x1, short y1, short x2,
                 tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
 
                 posX += difX2;
@@ -3185,7 +3185,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(short x1, short y1, short x2, sh
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -3236,7 +3236,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4(short x1, short y1, short x2, sh
                 tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (XAdjust >> 1)];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -3325,7 +3325,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_IL(short x1, short y1, short x2,
 
                     tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((XAdjust & 0x03) << 2)) & 0x0f;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -3390,7 +3390,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_IL(short x1, short y1, short x2,
 
                 tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((XAdjust & 0x03) << 2)) & 0x0f;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -3475,7 +3475,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TW(short x1, short y1, short x2,
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -3526,7 +3526,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TW(short x1, short y1, short x2,
                 tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -3607,7 +3607,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TW_S(short x1, short y1, short x
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -3658,7 +3658,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx4_TW_S(short x1, short y1, short x
                 tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                 tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                GetTextureTransColG32_SPR((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32_SPR((uint32_t *)&psxVuw[(i << 10) + j],
                                           psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -3730,7 +3730,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(short x1, short y1, short x2, sh
                 for (j = xmin; j < xmax; j += 2) {
                     tC1 = psxVub[((posY >> 5) & 0xFFFFF800) + YAdjust + (posX >> 16)];
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + ((posX + difX) >> 16)];
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -3769,7 +3769,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8(short x1, short y1, short x2, sh
             for (j = xmin; j < xmax; j += 2) {
                 tC1 = psxVub[((posY >> 5) & 0xFFFFF800) + YAdjust + (posX >> 16)];
                 tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + ((posX + difX) >> 16)];
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -3853,7 +3853,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8_IL(short x1, short y1, short x2,
 
                     tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((TXU & 0x01) << 3)) & 0xff;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -3910,7 +3910,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8_IL(short x1, short y1, short x2,
 
                 tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((TXU & 0x01) << 3)) & 0xff;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -3993,7 +3993,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8_TW(short x1, short y1, short x2,
                         psxVub[(((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + ((posX >> 16) % TWin.Position.x1)];
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                                  (((posX + difX) >> 16) % TWin.Position.x1)];
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -4034,7 +4034,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TEx8_TW(short x1, short y1, short x2,
                 tC1 = psxVub[(((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + ((posX >> 16) % TWin.Position.x1)];
                 tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                              (((posX + difX) >> 16) % TWin.Position.x1)];
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -4124,7 +4124,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(short x1, short y1, short x2, sh
                 for (j = xmin; j < xmax; j += 2) {
                     tC1 = psxVub[((posY >> 5) & 0xFFFFF800) + YAdjust + (posX >> 16)];
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + ((posX + difX) >> 16)];
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -4168,7 +4168,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8(short x1, short y1, short x2, sh
             for (j = xmin; j < xmax; j += 2) {
                 tC1 = psxVub[((posY >> 5) & 0xFFFFF800) + YAdjust + (posX >> 16)];
                 tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + ((posX + difX) >> 16)];
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -4253,7 +4253,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_IL(short x1, short y1, short x2,
 
                     tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((TXU & 0x01) << 3)) & 0xff;
 
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -4315,7 +4315,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_IL(short x1, short y1, short x2,
 
                 tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((TXU & 0x01) << 3)) & 0xff;
 
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -4395,7 +4395,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TW(short x1, short y1, short x2,
                         psxVub[(((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + ((posX >> 16) % TWin.Position.x1)];
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                                  (((posX + difX) >> 16) % TWin.Position.x1)];
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -4441,7 +4441,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TW(short x1, short y1, short x2,
                 tC1 = psxVub[(((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + ((posX >> 16) % TWin.Position.x1)];
                 tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                              (((posX + difX) >> 16) % TWin.Position.x1)];
-                GetTextureTransColG32((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32((uint32_t *)&psxVuw[(i << 10) + j],
                                       psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -4518,7 +4518,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TW_S(short x1, short y1, short x
                         psxVub[(((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + ((posX >> 16) % TWin.Position.x1)];
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                                  (((posX + difX) >> 16) % TWin.Position.x1)];
-                    GetTextureTransColG32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColG32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                             psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                     posX += difX2;
                     posY += difY2;
@@ -4564,7 +4564,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TEx8_TW_S(short x1, short y1, short x
                 tC1 = psxVub[(((posY >> 16) % TWin.Position.y1) << 11) + YAdjust + ((posX >> 16) % TWin.Position.x1)];
                 tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                              (((posX + difX) >> 16) % TWin.Position.x1)];
-                GetTextureTransColG32_SPR((unsigned long *)&psxVuw[(i << 10) + j],
+                GetTextureTransColG32_SPR((uint32_t *)&psxVuw[(i << 10) + j],
                                           psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16);
                 posX += difX2;
                 posY += difY2;
@@ -4629,7 +4629,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(short x1, short y1, short x2, shor
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColG32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)psxVuw[((((posY + difY) >> 16) + GlobalTextAddrY) << 10) + ((posX + difX) >> 16) +
                                        GlobalTextAddrX])
                          << 16) |
@@ -4670,7 +4670,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD(short x1, short y1, short x2, shor
 
             for (j = xmin; j < xmax; j += 2) {
                 GetTextureTransColG32(
-                    (unsigned long *)&psxVuw[(i << 10) + j],
+                    (uint32_t *)&psxVuw[(i << 10) + j],
                     (((long)psxVuw[((((posY + difY) >> 16) + GlobalTextAddrY) << 10) + ((posX + difX) >> 16) +
                                    GlobalTextAddrX])
                      << 16) |
@@ -4737,7 +4737,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD_TW(short x1, short y1, short x2, s
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColG32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)
                               psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                       << 10) +
@@ -4782,7 +4782,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TD_TW(short x1, short y1, short x2, s
 
             for (j = xmin; j < xmax; j += 2) {
                 GetTextureTransColG32(
-                    (unsigned long *)&psxVuw[(i << 10) + j],
+                    (uint32_t *)&psxVuw[(i << 10) + j],
                     (((long)psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                     << 10) +
                                    (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
@@ -4871,7 +4871,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(short x1, short y1, short x2, shor
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColG32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)psxVuw[((((posY + difY) >> 16) + GlobalTextAddrY) << 10) + ((posX + difX) >> 16) +
                                        GlobalTextAddrX])
                          << 16) |
@@ -4918,7 +4918,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(short x1, short y1, short x2, shor
 
             for (j = xmin; j < xmax; j += 2) {
                 GetTextureTransColG32(
-                    (unsigned long *)&psxVuw[(i << 10) + j],
+                    (uint32_t *)&psxVuw[(i << 10) + j],
                     (((long)psxVuw[((((posY + difY) >> 16) + GlobalTextAddrY) << 10) + ((posX + difX) >> 16) +
                                    GlobalTextAddrX])
                      << 16) |
@@ -4988,7 +4988,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TW(short x1, short y1, short x2, s
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColG32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)
                               psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                       << 10) +
@@ -5039,7 +5039,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TW(short x1, short y1, short x2, s
 
             for (j = xmin; j < xmax; j += 2) {
                 GetTextureTransColG32(
-                    (unsigned long *)&psxVuw[(i << 10) + j],
+                    (uint32_t *)&psxVuw[(i << 10) + j],
                     (((long)psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                     << 10) +
                                    (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
@@ -5113,7 +5113,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TW_S(short x1, short y1, short x2,
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColG32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)
                               psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                       << 10) +
@@ -5164,7 +5164,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_TW_S(short x1, short y1, short x2,
 
             for (j = xmin; j < xmax; j += 2) {
                 GetTextureTransColG32_SPR(
-                    (unsigned long *)&psxVuw[(i << 10) + j],
+                    (uint32_t *)&psxVuw[(i << 10) + j],
                     (((long)psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                     << 10) +
                                    (((posX + difX) >> 16) % TWin.Position.x1) + GlobalTextAddrX + TWin.Position.x0])
@@ -5238,7 +5238,7 @@ inline void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(short x1, short y1, short x
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
-                    *((unsigned long *)&psxVuw[(i << 10) + j]) =
+                    *((uint32_t *)&psxVuw[(i << 10) + j]) =
                         ((((cR1 + difR) << 7) & 0x7c000000) | (((cG1 + difG) << 2) & 0x03e00000) |
                          (((cB1 + difB) >> 3) & 0x001f0000) | (((cR1) >> 9) & 0x7c00) | (((cG1) >> 14) & 0x03e0) |
                          (((cB1) >> 19) & 0x001f)) |
@@ -5410,7 +5410,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(short x1, short y1, short x2, s
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -5567,7 +5567,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4_IL(short x1, short y1, short x2
 
                     tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((XAdjust & 0x03) << 2)) & 0x0f;
 
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -5725,7 +5725,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4_TW(short x1, short y1, short x2
                     XAdjust = ((posX + difX) >> 16) % TWin.Position.x1;
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -5907,7 +5907,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx4(short x1, short y1, short x2, s
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (XAdjust >> 1)];
                     tC2 = (tC2 >> ((XAdjust & 1) << 2)) & 0xf;
 
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -6074,7 +6074,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(short x1, short y1, short x2, s
                 for (j = xmin; j < xmax; j += 2) {
                     tC1 = psxVub[((posY >> 5) & 0xFFFFF800) + YAdjust + ((posX >> 16))];
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + (((posX + difX) >> 16))];
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -6224,7 +6224,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8_IL(short x1, short y1, short x2
 
                     tC2 = (psxVuw[(n_yi << 10) + YAdjust + n_xi] >> ((TXU & 0x01) << 3)) & 0xff;
 
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -6378,7 +6378,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8_TW(short x1, short y1, short x2
                     tC2 = psxVub[((((posY + difY) >> 16) % TWin.Position.y1) << 11) + YAdjust +
                                  (((posX + difX) >> 16) % TWin.Position.x1)];
 
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -6548,7 +6548,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TGEx8(short x1, short y1, short x2, s
                     tC1 = psxVub[((posY >> 5) & 0xFFFFF800) + YAdjust + (posX >> 16)];
                     tC2 = psxVub[(((posY + difY) >> 5) & 0xFFFFF800) + YAdjust + ((posX + difX) >> 16)];
 
-                    GetTextureTransColGX32_S((unsigned long *)&psxVuw[(i << 10) + j],
+                    GetTextureTransColGX32_S((uint32_t *)&psxVuw[(i << 10) + j],
                                              psxVuw[clutP + tC1] | ((long)psxVuw[clutP + tC2]) << 16,
                                              (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                              (cG1 >> 16) | ((cG1 + difG) & 0xff0000),
@@ -6703,7 +6703,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(short x1, short y1, short x2, sho
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColGX32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)psxVuw[((((posY + difY) >> 16) + GlobalTextAddrY) << 10) + ((posX + difX) >> 16) +
                                        GlobalTextAddrX])
                          << 16) |
@@ -6840,7 +6840,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD_TW(short x1, short y1, short x2, 
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColGX32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)
                               psxVuw[(((((posY + difY) >> 16) % TWin.Position.y1) + GlobalTextAddrY + TWin.Position.y0)
                                       << 10) +
@@ -7005,7 +7005,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TGD(short x1, short y1, short x2, sho
 
                 for (j = xmin; j < xmax; j += 2) {
                     GetTextureTransColGX32_S(
-                        (unsigned long *)&psxVuw[(i << 10) + j],
+                        (uint32_t *)&psxVuw[(i << 10) + j],
                         (((long)psxVuw[((((posY + difY) >> 16) + GlobalTextAddrY) << 10) + ((posX + difX) >> 16) +
                                        GlobalTextAddrX])
                          << 16) |
@@ -7145,7 +7145,7 @@ inline bool PCSX::SoftGPU::SoftRenderer::IsNoRect() {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
         if (GlobalTextTP == 0)
@@ -7210,7 +7210,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3FT(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
         if (GlobalTextTP == 0)
@@ -7312,7 +7312,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4FT(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
         if (GlobalTextTP == 0)
@@ -7377,7 +7377,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3GT(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
 
     if (GlobalTextIL && GlobalTextTP < 2) {
         if (GlobalTextTP == 0)
@@ -7491,7 +7491,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4GT(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteTWin(unsigned char *baseAddr, long w, long h) {
-    unsigned long *gpuData = (unsigned long *)baseAddr;
+    uint32_t *gpuData = (uint32_t *)baseAddr;
     short sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3;
     short tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
 
@@ -7529,7 +7529,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAd
     long sprtY, sprtX, sprtW, sprtH, lXDir, lYDir;
     long clutY0, clutX0, clutP, textX0, textY0, sprtYa, sprCY, sprCX, sprA;
     short tC;
-    unsigned long *gpuData = (unsigned long *)baseAddr;
+    uint32_t *gpuData = (uint32_t *)baseAddr;
     sprtY = ly0;
     sprtX = lx0;
     sprtH = h;
@@ -7628,7 +7628,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSpriteMirror(unsigned char *baseAd
 
 void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite_IL(unsigned char *baseAddr, short w, short h, long tx, long ty) {
     long sprtY, sprtX, sprtW, sprtH, tdx, tdy;
-    unsigned long *gpuData = (unsigned long *)baseAddr;
+    uint32_t *gpuData = (uint32_t *)baseAddr;
 
     sprtY = ly0;
     sprtX = lx0;
@@ -7664,7 +7664,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
     long sprtY, sprtX, sprtW, sprtH;
     long clutY0, clutX0, clutP, textX0, textY0, sprtYa, sprCY, sprCX, sprA;
     short tC, tC2;
-    unsigned long *gpuData = (unsigned long *)baseAddr;
+    uint32_t *gpuData = (uint32_t *)baseAddr;
     unsigned char *pV;
     bool bWT, bWS;
 
@@ -7754,7 +7754,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
                         tC = *pV++;
 
                         GetTextureTransColG32_S(
-                            (unsigned long *)&psxVuw[sprA],
+                            (uint32_t *)&psxVuw[sprA],
                             (((long)psxVuw[clutP + ((tC >> 4) & 0xf)]) << 16) | psxVuw[clutP + (tC & 0x0f)]);
                     }
 
@@ -7781,7 +7781,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
                     tC = *pV++;
 
                     GetTextureTransColG32_SPR(
-                        (unsigned long *)&psxVuw[sprA],
+                        (uint32_t *)&psxVuw[sprA],
                         (((long)psxVuw[clutP + ((tC >> 4) & 0xf)]) << 16) | psxVuw[clutP + (tC & 0x0f)]);
                 }
 
@@ -7806,7 +7806,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
                     for (sprCX = 0; sprCX < sprtW; sprCX += 2, sprA += 2) {
                         tC = *pV++;
                         tC2 = *pV++;
-                        GetTextureTransColG32_S((unsigned long *)&psxVuw[sprA],
+                        GetTextureTransColG32_S((uint32_t *)&psxVuw[sprA],
                                                 (((long)psxVuw[clutP + tC2]) << 16) | psxVuw[clutP + tC]);
                     }
                     if (sprCX == sprtW) GetTextureTransColG_S(&psxVuw[sprA], psxVuw[clutP + (*pV)]);
@@ -7822,7 +7822,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
                 for (sprCX = 0; sprCX < sprtW; sprCX += 2, sprA += 2) {
                     tC = *pV++;
                     tC2 = *pV++;
-                    GetTextureTransColG32_SPR((unsigned long *)&psxVuw[sprA],
+                    GetTextureTransColG32_SPR((uint32_t *)&psxVuw[sprA],
                                               (((long)psxVuw[clutP + tC2]) << 16) | psxVuw[clutP + tC]);
                 }
                 if (sprCX == sprtW) GetTextureTransColG_SPR(&psxVuw[sprA], psxVuw[clutP + (*pV)]);
@@ -7841,7 +7841,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
                     sprA = ((sprtY + sprCY) << 10) + sprtX;
 
                     for (sprCX = 0; sprCX < sprtW; sprCX += 2, sprA += 2) {
-                        GetTextureTransColG32_S((unsigned long *)&psxVuw[sprA],
+                        GetTextureTransColG32_S((uint32_t *)&psxVuw[sprA],
                                                 (((long)psxVuw[(sprCY << 10) + textX0 + sprCX + 1]) << 16) |
                                                     psxVuw[(sprCY << 10) + textX0 + sprCX]);
                     }
@@ -7856,7 +7856,7 @@ void PCSX::SoftGPU::SoftRenderer::DrawSoftwareSprite(unsigned char *baseAddr, sh
                 sprA = ((sprtY + sprCY) << 10) + sprtX;
 
                 for (sprCX = 0; sprCX < sprtW; sprCX += 2, sprA += 2) {
-                    GetTextureTransColG32_SPR((unsigned long *)&psxVuw[sprA],
+                    GetTextureTransColG32_SPR((uint32_t *)&psxVuw[sprA],
                                               (((long)psxVuw[(sprCY << 10) + textX0 + sprCX + 1]) << 16) |
                                                   psxVuw[(sprCY << 10) + textX0 + sprCX]);
                 }

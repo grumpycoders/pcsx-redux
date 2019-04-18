@@ -185,7 +185,7 @@ class impl {
     unsigned short spuCtrl = 0;  // some vars to store psx reg infos
     unsigned short spuStat = 0;
     unsigned short spuIrq = 0;
-    unsigned long spuAddr = 0xffffffff;  // address into spu mem
+    uint32_t spuAddr = 0xffffffff;  // address into spu mem
     int bEndThread = 0;                  // thread handlers
     int bThreadEnded = 0;
     int bSpuInit = 0;
@@ -195,7 +195,7 @@ class impl {
 
     void (*irqCallback)(void) = 0;  // func of main emu, called on spu irq
     void (*cddavCallback)(unsigned short, unsigned short) = 0;
-    void (*irqQSound)(unsigned char *, long *, long) = 0;
+    void (*irqQSound)(unsigned char *, uint32_t *, uint32_t) = 0;
 
     // certain globals (were local before, but with the new timeproc I need em global)
 
@@ -223,12 +223,12 @@ class impl {
     // XA
     xa_decode_t *xapGlobal = 0;
 
-    unsigned long *XAFeed = NULL;
-    unsigned long *XAPlay = NULL;
-    unsigned long *XAStart = NULL;
-    unsigned long *XAEnd = NULL;
-    unsigned long XARepeat = 0;
-    unsigned long XALastVal = 0;
+    uint32_t *XAFeed = NULL;
+    uint32_t *XAPlay = NULL;
+    uint32_t *XAStart = NULL;
+    uint32_t *XAEnd = NULL;
+    uint32_t XARepeat = 0;
+    uint32_t XALastVal = 0;
 
     int iLeftXAVol = 32767;
     int iRightXAVol = 32767;

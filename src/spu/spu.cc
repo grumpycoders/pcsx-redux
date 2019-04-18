@@ -738,7 +738,7 @@ void PCSX::SPU::impl::MainThread() {
             //- zn qsound mixer callback ----------------------//
 
             if (irqQSound) {
-                long *pl = (long *)XAPlay;
+                uint32_t *pl = (uint32_t *)XAPlay;
                 short *ps = (short *)pSpuBuffer;
                 int g, iBytes = ((unsigned char *)pS) - ((unsigned char *)pSpuBuffer);
                 iBytes /= 2;
@@ -746,7 +746,7 @@ void PCSX::SPU::impl::MainThread() {
                     *pl++ = *ps++;
                 }
 
-                irqQSound((unsigned char *)pSpuBuffer, (long *)XAPlay, iBytes / 2);
+                irqQSound((unsigned char *)pSpuBuffer, (uint32_t *)XAPlay, iBytes / 2);
             }
 
             //-------------------------------------------------//
@@ -862,7 +862,7 @@ void PCSX::SPU::impl::SetupStreams() {
     sRVBPlay = sRVBStart;
 
     XAStart =  // alloc xa buffer
-        (unsigned long *)malloc(44100 * 4);
+        (uint32_t *)malloc(44100 * 4);
     XAPlay = XAStart;
     XAFeed = XAStart;
     XAEnd = XAStart + 44100;

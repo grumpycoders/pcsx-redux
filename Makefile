@@ -12,11 +12,13 @@ CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -O3
+CPPFLAGS += -g
 
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
 LDFLAGS += -lstdc++fs
 LDFLAGS += -ldl
 LDFLAGS += -lGL
+LDFLAGS += -g
 
 LD := $(CXX)
 
