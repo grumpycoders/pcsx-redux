@@ -150,8 +150,8 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
             pD = (unsigned char *)&psxVuw[startxy];
 
             for (row = 0; row < dx; row++) {
-                lu = *((unsigned long *)pD);
-                *((unsigned long *)((surf) + (column * pitch) + row * 4)) =
+                lu = *((uint32_t *)pD);
+                *((uint32_t *)((surf) + (column * pitch) + row * 4)) =
                     0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
                 pD += 3;
             }
@@ -161,7 +161,7 @@ void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR M
             startxy = ((1024) * (column + y)) + x;
             for (row = 0; row < dx; row++) {
                 s = psxVuw[startxy++];
-                *((unsigned long *)((surf) + (column * pitch) + row * 4)) =
+                *((uint32_t *)((surf) + (column * pitch) + row * 4)) =
                     ((((s << 19) & 0xf80000) | ((s << 6) & 0xf800) | ((s >> 7) & 0xf8)) & 0xffffff) | 0xff000000;
             }
         }
@@ -229,9 +229,9 @@ void ShowGunCursor(unsigned char *surf) {
             if (ey > dy) ey = dy;
 
             for (x = tx, y = sy; y < ey; y += 2)  // -> do dotted y line
-                *((unsigned long *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
+                *((uint32_t *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
             for (y = ty, x = sx; x < ex; x += 2)  // -> do dotted x line
-                *((unsigned long *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
+                *((uint32_t *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
         }
     }
 }
