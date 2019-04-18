@@ -158,9 +158,9 @@ extern unsigned short usCursorActive;
 
 // prim.c
 
-extern unsigned long dwCfgFixes;
-extern unsigned long dwActFixes;
-extern unsigned long dwEmuFixes;
+extern uint32_t dwCfgFixes;
+extern uint32_t dwActFixes;
+extern uint32_t dwEmuFixes;
 extern int iUseFixes;
 extern bool bDoVSyncUpdate;
 
@@ -188,14 +188,14 @@ extern unsigned char *psxVub;
 extern signed char *psxVsb;
 extern unsigned short *psxVuw;
 extern signed short *psxVsw;
-extern unsigned long *psxVul;
-extern signed long *psxVsl;
+extern uint32_t *psxVul;
+extern int32_t *psxVsl;
 extern unsigned short *psxVuw_eom;
 extern bool bChangeWinMode;
 extern long lSelectedSlot;
 extern uint32_t dwLaceCnt;
-extern unsigned long lGPUInfoVals[];
-extern unsigned long ulStatusControl[];
+extern uint32_t lGPUInfoVals[];
+extern uint32_t ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
 

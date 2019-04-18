@@ -95,17 +95,17 @@ class SoftRenderer {
 
     void GetShadeTransCol_Dither(unsigned short *pdest, long m1, long m2, long m3);
     void GetShadeTransCol(unsigned short *pdest, unsigned short color);
-    void GetShadeTransCol32(unsigned long *pdest, unsigned long color);
+    void GetShadeTransCol32(uint32_t *pdest, unsigned long color);
     void GetTextureTransColG(unsigned short *pdest, unsigned short color);
     void GetTextureTransColG_S(unsigned short *pdest, unsigned short color);
     void GetTextureTransColG_SPR(unsigned short *pdest, unsigned short color);
-    void GetTextureTransColG32(unsigned long *pdest, unsigned long color);
-    void GetTextureTransColG32_S(unsigned long *pdest, unsigned long color);
-    void GetTextureTransColG32_SPR(unsigned long *pdest, unsigned long color);
+    void GetTextureTransColG32(uint32_t *pdest, unsigned long color);
+    void GetTextureTransColG32_S(uint32_t *pdest, unsigned long color);
+    void GetTextureTransColG32_SPR(uint32_t *pdest, unsigned long color);
     void GetTextureTransColGX_Dither(unsigned short *pdest, unsigned short color, long m1, long m2, long m3);
     void GetTextureTransColGX(unsigned short *pdest, unsigned short color, short m1, short m2, short m3);
     void GetTextureTransColGX_S(unsigned short *pdest, unsigned short color, short m1, short m2, short m3);
-    void GetTextureTransColGX32_S(unsigned long *pdest, unsigned long color, short m1, short m2, short m3);
+    void GetTextureTransColGX32_S(uint32_t *pdest, unsigned long color, short m1, short m2, short m3);
     void DrawSoftwareSprite_IL(unsigned char *baseAddr, short w, short h, long tx, long ty);
     void drawPoly3Fi(short x1, short y1, short x2, short y2, short x3, short y3, long rgb);
     void drawPoly3TD(short x1, short y1, short x2, short y2, short x3, short y3, short tx1, short ty1, short tx2,

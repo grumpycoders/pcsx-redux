@@ -23,4 +23,5 @@ ipch/
 
 # Linux files
 *.o
+*.dep
 /pcsx-redux

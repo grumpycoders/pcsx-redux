@@ -2947,18 +2947,18 @@ class BiosImpl : public PCSX::Bios {
 
 #define psxBios_PADpoll(pad)                                              \
     {                                                                     \
-        PCSX::g_emulator.m_pad##pad##->startPoll();                       \
+        PCSX::g_emulator.m_pad##pad->startPoll();                       \
         s_pad_buf##pad[0] = 0;                                            \
-        s_pad_buf##pad[1] = PCSX::g_emulator.m_pad##pad##->poll(0x42);    \
+        s_pad_buf##pad[1] = PCSX::g_emulator.m_pad##pad->poll(0x42);    \
         if (!(s_pad_buf##pad[1] & 0x0f)) {                                \
             bufcount = 32;                                                \
         } else {                                                          \
             bufcount = (s_pad_buf##pad[1] & 0x0f) * 2;                    \
         }                                                                 \
-        PCSX::g_emulator.m_pad##pad##->poll(0);                           \
+        PCSX::g_emulator.m_pad##pad->poll(0);                           \
         i = 2;                                                            \
         while (bufcount--) {                                              \
-            s_pad_buf##pad[i++] = PCSX::g_emulator.m_pad##pad##->poll(0); \
+            s_pad_buf##pad[i++] = PCSX::g_emulator.m_pad##pad->poll(0); \
         }                                                                 \
     }
 

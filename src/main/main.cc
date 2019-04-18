@@ -46,7 +46,7 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void biosPrintf(const char *fmt, va_list a) final { s_gui->addLog(fmt, a); }
+    virtual void vbiosPrintf(const char *fmt, va_list a) final { s_gui->addLog(fmt, a); }
 
     virtual void message(const char *fmt, ...) final {
         // display message to user as a pop-up

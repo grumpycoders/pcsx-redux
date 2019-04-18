@@ -95,9 +95,9 @@
 ////////////////////////////////////////////////////////////////////////
 
 // configuration items
-unsigned long dwCfgFixes;
-unsigned long dwActFixes = 0;
-unsigned long dwEmuFixes = 0;
+uint32_t dwCfgFixes;
+uint32_t dwActFixes = 0;
+uint32_t dwEmuFixes = 0;
 int iUseFixes;
 // ??
 bool bDoVSyncUpdate = false;
@@ -117,7 +117,7 @@ bool PCSX::SoftGPU::SoftPrim::configure(bool *show) {
     return changed;
 }
 
-static constexpr inline unsigned short BGR24to16(unsigned long BGR) {
+static constexpr inline unsigned short BGR24to16(uint32_t BGR) {
     return (unsigned short)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
 
@@ -174,7 +174,7 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(unsigned short gdata) {
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SoftGPU::SoftPrim::SetRenderMode(unsigned long DrawAttributes) {
+inline void PCSX::SoftGPU::SoftPrim::SetRenderMode(uint32_t DrawAttributes) {
     DrawSemiTrans = (SEMITRANSBIT(DrawAttributes));
 
     if (SHADETEXBIT(DrawAttributes)) {
@@ -375,7 +375,7 @@ static constexpr inline bool CheckCoordL(short slx0, short sly0, short slx1, sho
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::cmdSTP(unsigned char *baseAddr) {
-    unsigned long gdata = ((unsigned long *)baseAddr)[0];
+    uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     lGPUstatusRet &= ~0x1800;                 // Clear the necessary bits
     lGPUstatusRet |= ((gdata & 0x03) << 11);  // Set the necessary bits
@@ -396,7 +396,7 @@ void PCSX::SoftGPU::SoftPrim::cmdSTP(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::cmdTexturePage(unsigned char *baseAddr) {
-    unsigned long gdata = ((unsigned long *)baseAddr)[0];
+    uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     UpdateGlobalTP((unsigned short)gdata);
     GlobalTextREST = (gdata & 0x00ffffff) >> 9;
@@ -407,9 +407,9 @@ void PCSX::SoftGPU::SoftPrim::cmdTexturePage(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(unsigned char *baseAddr) {
-    unsigned long gdata = ((unsigned long *)baseAddr)[0];
+    uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
-    unsigned long YAlign, XAlign;
+    uint32_t YAlign, XAlign;
 
     lGPUInfoVals[INFO_TW] = gdata & 0xFFFFF;
 
@@ -443,8 +443,8 @@ void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(unsigned char *baseAddr) {
 
     // Re-calculate the bit field, because we can't trust what is passed in the data
 
-    YAlign = (unsigned long)(32 - (TWin.Position.y1 >> 3));
-    XAlign = (unsigned long)(32 - (TWin.Position.x1 >> 3));
+    YAlign = (uint32_t)(32 - (TWin.Position.y1 >> 3));
+    XAlign = (uint32_t)(32 - (TWin.Position.x1 >> 3));
 
     // Absolute position of the start of the texture window
 
@@ -466,7 +466,7 @@ void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::cmdDrawAreaStart(unsigned char *baseAddr) {
-    unsigned long gdata = ((unsigned long *)baseAddr)[0];
+    uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     drawX = gdata & 0x3ff;  // for soft drawing
 
@@ -486,7 +486,7 @@ void PCSX::SoftGPU::SoftPrim::cmdDrawAreaStart(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::cmdDrawAreaEnd(unsigned char *baseAddr) {
-    unsigned long gdata = ((unsigned long *)baseAddr)[0];
+    uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     drawW = gdata & 0x3ff;  // for soft drawing
 
@@ -506,7 +506,7 @@ void PCSX::SoftGPU::SoftPrim::cmdDrawAreaEnd(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::cmdDrawOffset(unsigned char *baseAddr) {
-    unsigned long gdata = ((unsigned long *)baseAddr)[0];
+    uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     PSXDisplay.DrawOffset.x = (short)(gdata & 0x7ff);
 
@@ -567,7 +567,7 @@ void PCSX::SoftGPU::SoftPrim::primStoreImage(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primBlkFill(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     short sX = sgpuData[2];
@@ -654,12 +654,12 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
         }
     } else  // dword aligned
     {
-        unsigned long *SRCPtr, *DSTPtr;
+        uint32_t *SRCPtr, *DSTPtr;
         unsigned short LineOffset;
         int dx = imageSX >> 1;
 
-        SRCPtr = (unsigned long *)(psxVuw + (1024 * imageY0) + imageX0);
-        DSTPtr = (unsigned long *)(psxVuw + (1024 * imageY1) + imageX1);
+        SRCPtr = (uint32_t *)(psxVuw + (1024 * imageY0) + imageX0);
+        DSTPtr = (uint32_t *)(psxVuw + (1024 * imageY1) + imageX1);
 
         LineOffset = 512 - dx;
 
@@ -696,7 +696,7 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
 //#include <dbgout.h>
 
 void PCSX::SoftGPU::SoftPrim::primTileS(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sW = sgpuData[4] & 0x3ff;
     short sH = sgpuData[5] & iGPUHeightMask;  // mmm... limit tiles to 0x1ff or height?
@@ -725,7 +725,7 @@ void PCSX::SoftGPU::SoftPrim::primTileS(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primTile1(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sH = 1;
     short sW = 1;
@@ -754,7 +754,7 @@ void PCSX::SoftGPU::SoftPrim::primTile1(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primTile8(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sH = 8;
     short sW = 8;
@@ -783,7 +783,7 @@ void PCSX::SoftGPU::SoftPrim::primTile8(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primTile16(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sH = 16;
     short sW = 16;
@@ -812,7 +812,7 @@ void PCSX::SoftGPU::SoftPrim::primTile16(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primSprt8(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -837,7 +837,7 @@ void PCSX::SoftGPU::SoftPrim::primSprt8(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primSprt16(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -863,7 +863,7 @@ void PCSX::SoftGPU::SoftPrim::primSprt16(unsigned char *baseAddr) {
 
 // func used on texture coord wrap
 void PCSX::SoftGPU::SoftPrim::primSprtSRest(unsigned char *baseAddr, unsigned short type) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     unsigned short sTypeRest = 0;
 
@@ -950,7 +950,7 @@ void PCSX::SoftGPU::SoftPrim::primSprtSRest(unsigned char *baseAddr, unsigned sh
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primSprtS(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
     short sW, sH;
 
@@ -999,7 +999,7 @@ void PCSX::SoftGPU::SoftPrim::primSprtS(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyF4(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1029,7 +1029,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyF4(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyG4(unsigned char *baseAddr) {
-    unsigned long *gpuData = (unsigned long *)baseAddr;
+    uint32_t *gpuData = (uint32_t *)baseAddr;
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1059,7 +1059,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyG4(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyFT3(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1090,7 +1090,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyFT3(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyFT4(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1124,7 +1124,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyFT4(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyGT3(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1161,7 +1161,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyGT3(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyG3(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1189,7 +1189,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyG3(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyGT4(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1229,7 +1229,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyGT4(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primPolyF3(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1257,7 +1257,7 @@ void PCSX::SoftGPU::SoftPrim::primPolyF3(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primLineGSkip(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     int iMax = 255;
     int i = 2;
 
@@ -1278,9 +1278,9 @@ void PCSX::SoftGPU::SoftPrim::primLineGSkip(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primLineGEx(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     int iMax = 255;
-    unsigned long lc0, lc1;
+    uint32_t lc0, lc1;
     short slx0, slx1, sly0, sly1;
     int i = 2;
     bool bDraw = true;
@@ -1338,7 +1338,7 @@ void PCSX::SoftGPU::SoftPrim::primLineGEx(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primLineG2(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];
@@ -1368,7 +1368,7 @@ void PCSX::SoftGPU::SoftPrim::primLineG2(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primLineFSkip(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     int i = 2, iMax = 255;
 
     ly1 = (short)((gpuData[1] >> 16) & 0xffff);
@@ -1387,7 +1387,7 @@ void PCSX::SoftGPU::SoftPrim::primLineFSkip(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primLineFEx(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     int iMax;
     short slx0, slx1, sly0, sly1;
     int i = 2;
@@ -1436,7 +1436,7 @@ void PCSX::SoftGPU::SoftPrim::primLineFEx(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::SoftPrim::primLineF2(unsigned char *baseAddr) {
-    unsigned long *gpuData = ((unsigned long *)baseAddr);
+    uint32_t *gpuData = ((uint32_t *)baseAddr);
     short *sgpuData = ((short *)baseAddr);
 
     lx0 = sgpuData[2];

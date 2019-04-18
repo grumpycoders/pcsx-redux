@@ -122,7 +122,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     sinc = (xap->nsamples << 16) / iSize;  // calc freq by num / size
 
     if (xap->stereo) {
-        unsigned long *pS = (unsigned long *)xap->pcm;
+        uint32_t *pS = (uint32_t *)xap->pcm;
         unsigned long l = 0;
 
         if (settings.get<StreamingPitch>()) {

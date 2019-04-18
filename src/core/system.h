@@ -32,7 +32,7 @@ class System {
     virtual void hardReset() = 0;
     // Printf used by bios syscalls
     virtual void biosPrintf(const char *fmt, ...) = 0;
-    virtual void biosPrintf(const char *fmt, va_list va) = 0;
+    virtual void vbiosPrintf(const char *fmt, va_list va) = 0;
     // Printf used by the code in general, to indicate errors most of the time
     // TODO: convert them all to logs
     virtual void printf(const char *fmt, ...) = 0;
