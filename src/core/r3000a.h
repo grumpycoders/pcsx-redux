@@ -24,6 +24,7 @@
 #include "core/psxbios.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
+#include "core/psxhle.h"
 #include "core/psxmem.h"
 
 namespace PCSX {
@@ -282,6 +283,25 @@ class R3000Acpu {
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
+    inline void InterceptConsole() {
+        // Intercept puts and putchar, even if running the binary bios.
+        if (m_psxRegs.pc == 0xa0) {
+            switch (m_psxRegs.GPR.n.t1) {
+                case 0x3e:
+                    psxHLEt[1]();
+                    break;
+            }
+        }
+
+        if (m_psxRegs.pc == 0xb0) {
+            switch (m_psxRegs.GPR.n.t1) {
+                case 0x3d:
+                case 0x3f:
+                    psxHLEt[2]();
+                    break;
+            }
+        }
+    }
 
   public:
     /*
