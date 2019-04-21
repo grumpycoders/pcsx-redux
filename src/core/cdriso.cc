@@ -100,7 +100,7 @@ int File::getc() {
     if (m_size == m_ptr) return -1;
     return m_data[m_ptr++];
 }
-bool File::failed() { return m_ptr || m_data; }
+bool File::failed() { return !m_handle && !m_data; }
 
 extern "C" {
 #include <libavcodec/avcodec.h>
