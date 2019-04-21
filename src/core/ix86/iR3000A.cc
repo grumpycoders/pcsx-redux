@@ -975,7 +975,8 @@ void X86DynaRecCPU::recError() {
 void X86DynaRecCPU::execute() {
     void (**recFunc)() = NULL;
     char *p;
-    uint32_t pc = m_psxRegs.pc;
+
+    InterceptConsole();
 
     p = (char *)PC_REC(m_psxRegs.pc);
 

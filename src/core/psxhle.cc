@@ -22,6 +22,7 @@
  */
 
 #include "core/psxhle.h"
+#include "core/r3000a.h"
 
 static void hleDummy() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
