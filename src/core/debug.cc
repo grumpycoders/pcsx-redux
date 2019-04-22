@@ -88,32 +88,40 @@ void PCSX::Debug::DebugCheckBP(uint32_t address, BreakpointType type) {
     if (m_mapping_w16 && type == BW2) MarkMap(address, MAP_W16);
     if (m_mapping_w32 && type == BW4) MarkMap(address, MAP_W32);
 
-    for (auto& bp : m_breakpoints) {
-        if ((bp.m_type == type) && (bp.m_address == address)) {
+    for (auto it = m_breakpoints.begin(); it != m_breakpoints.end(); it++) {
+        if ((it->m_type == type) && (it->m_address == address)) {
+            m_lastBP = it;
             PCSX::g_system->pause();
             return;
         }
     }
 
     if (m_breakmp_e && type == BE && !IsMapMarked(address, MAP_EXEC)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     } else if (m_breakmp_r8 && type == BR1 && !IsMapMarked(address, MAP_R8)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     } else if (m_breakmp_r16 && type == BR2 && !IsMapMarked(address, MAP_R16)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     } else if (m_breakmp_r32 && type == BR4 && !IsMapMarked(address, MAP_R32)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     } else if (m_breakmp_w8 && type == BW1 && !IsMapMarked(address, MAP_W8)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     } else if (m_breakmp_w16 && type == BW2 && !IsMapMarked(address, MAP_W16)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     } else if (m_breakmp_w32 && type == BW4 && !IsMapMarked(address, MAP_W32)) {
+        m_lastBP = m_breakpoints.end();
         PCSX::g_system->pause();
         return;
     }
@@ -125,11 +133,11 @@ std::string PCSX::Debug::GenerateFlowIDC() {
     ss << "static main(void) {\r\n";
     for (uint32_t i = 0; i < 0x00200000; i++) {
         if (IsMapMarked(i, MAP_EXEC_JAL)) {
-            ss << "\tMakeFunction(0X8" << std ::hex << std::setw(7) << std::setfill('0') << i << ", BADADDR);\r\n ";
+            ss << "\tMakeFunction(0X8" << std::hex << std::setw(7) << std::setfill('0') << i << ", BADADDR);\r\n ";
         }
     }
     ss << "}\r\n";
-    return ss.str;
+    return ss.str();
 }
 
 std::string PCSX::Debug::GenerateMarkIDC() {
@@ -138,10 +146,9 @@ std::string PCSX::Debug::GenerateMarkIDC() {
     ss << "static main(void) {\r\n";
     for (uint32_t i = 0; i < 0x00200000; i++) {
         if (IsMapMarked(i, MAP_EXEC)) {
-            ss << "\tMakeCode(0X8" << std ::hex << std::setw(7) << std::setfill('0') << i << ");\r\n";
+            ss << "\tMakeCode(0X8" << std::hex << std::setw(7) << std::setfill('0') << i << ");\r\n";
         }
-        
     }
     ss << "}\r\n";
-    return ss.str;
+    return ss.str();
 }

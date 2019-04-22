@@ -41,7 +41,6 @@ int PCSX::R3000Acpu::psxInit() {
     }
 
     PGXP_Init();
-    PCSX::g_emulator.m_debug->PauseDebugger();
 
     return g_emulator.m_psxCpu->Init();
 }

@@ -17,8 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <functional>
+
 #include "imgui.h"
 
+#include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -156,6 +159,18 @@ class ImGuiAsm : public PCSX::Disasm {
         sameLine();
         ImGui::Text("0x%2.2x", value);
     }
+    inline uint8_t* ptr(uint32_t addr) {
+        uint8_t* lut = m_memory->g_psxMemRLUT[addr >> 16];
+        if (lut) {
+            return lut + (addr & 0xffff);
+        } else {
+            static uint8_t dummy[4] = {0, 0, 0, 0};
+            return dummy;
+        }
+    }
+    inline uint8_t mem8(uint32_t addr) { return *ptr(addr); }
+    inline uint16_t mem16(uint32_t addr) { return SWAP_LE16(*(int16_t*)ptr(addr)); }
+    inline uint32_t mem32(uint32_t addr) { return SWAP_LE32(*(int32_t*)ptr(addr)); }
     virtual void OfB(int16_t offset, uint8_t reg, int size) {
         comma();
         sameLine();
@@ -166,13 +181,13 @@ class ImGuiAsm : public PCSX::Disasm {
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
             switch (size) {
                 case 1:
-                    ImGui::Text("[%8.8x] = %2.2x", addr, psxMu8(addr));
+                    ImGui::Text("[%8.8x] = %2.2x", addr, mem8(addr));
                     break;
                 case 2:
-                    ImGui::Text("[%8.8x] = %4.4x", addr, psxMu16(addr));
+                    ImGui::Text("[%8.8x] = %4.4x", addr, mem16(addr));
                     break;
                 case 4:
-                    ImGui::Text("[%8.8x] = %8.8x", addr, psxMu32(addr));
+                    ImGui::Text("[%8.8x] = %8.8x", addr, mem32(addr));
                     break;
             }
             ImGui::PopTextWrapPos();
@@ -202,32 +217,121 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         return;
     }
 
-    uint32_t pc = registers->pc & 0x1fffff;
+    DummyAsm dummy;
+    ImGuiAsm imguiAsm(registers, memory);
+
+    uint32_t base = (registers->pc >> 20) & 0xffc;
+    uint32_t real = registers->pc & 0x1fffff;
+    uint32_t pc = real;
+    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
+        // main memory first
+        if (real >= 0x00200000) pc = 0;
+    } else if (base == 0x1f0) {
+        // parallel port second
+        if (real >= 0x00010000) {
+            pc = 0;
+        } else {
+            pc += 0x00200000;
+        }
+    } else if (base == 0xbfc) {
+        // bios last
+        if (real >= 0x00080000) {
+            pc = 0;
+        } else {
+            pc += 0x00210000;
+        }
+    }
     ImGui::Checkbox("Follow PC", &m_followPC);
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(2 * 1024 * 1024 / 4);
+    ImGuiListClipper clipper(0x00290000 / 4);
+
     while (clipper.Step()) {
         bool skipNext = false;
+        typedef std::function<void(uint32_t, const char*, uint32_t)> prependType;
+        auto process = [&](uint32_t addr, prependType prepend, PCSX::Disasm* disasm) {
+            uint32_t code = 0;
+            uint32_t nextCode = 0;
+            uint32_t base = 0;
+            const char* section = "UNK";
+            if (addr < 0x00200000) {
+                section = "RAM";
+                code = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr);
+                if (addr <= 0x001ffff8) {
+                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr + 4);
+                }
+                base = 0x80000000;
+            } else if (addr < 0x00210000) {
+                section = "PAR";
+                addr -= 0x00200000;
+                code = *reinterpret_cast<uint32_t*>(memory->g_psxP + addr);
+                if (addr <= 0x0000fff8) {
+                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxP + addr);
+                }
+                base = 0x1f000000;
+            } else if (addr < 0x00290000) {
+                section = "ROM";
+                addr -= 0x00210000;
+                code = *reinterpret_cast<uint32_t*>(memory->g_psxR + addr);
+                if (addr <= 0x0007fff8) {
+                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxR + addr);
+                }
+                base = 0xbfc00000;
+            }
+            prepend(code, section, addr | base);
+            disasm->process(code, nextCode, addr | base, &skipNext);
+        };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            uint32_t code = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr);
-            uint32_t nextCode = 0;
-            if (addr <= 0x1ffff8) {
-                nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr + 4);
-            }
-            DummyAsm dummy;
-            dummy.process(code, nextCode, addr | 0x80000000, &skipNext);
+            process(addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
         }
-        ImGuiAsm imguiAsm(registers, memory);
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
-            uint32_t code = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr);
-            uint32_t nextCode = 0;
-            if (addr <= 0x1ffff8) {
-                nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxM + addr + 4);
-            }
-            ImGui::Text("%c %8.8x %8.8x: ", addr == pc ? '>' : ' ', addr | 0x80000000, code);
-            imguiAsm.process(code, nextCode, addr | 0x80000000, &skipNext);
+            Debug::bpiterator currentBP;
+            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) {
+                bool hasBP = false;
+                PCSX::g_emulator.m_debug->ForEachBP([&](PCSX::Debug::bpiterator it) mutable {
+                    uint32_t addr = dispAddr;
+                    uint32_t bpAddr = it->Address();
+                    uint32_t base = (addr >> 20) & 0xffc;
+                    uint32_t bpBase = (bpAddr >> 20) & 0xffc;
+                    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
+                        addr &= 0x1fffff;
+                    }
+                    if ((bpBase == 0x000) || (bpBase == 0x800) || (bpBase == 0xa00)) {
+                        bpAddr &= 0x1fffff;
+                    }
+                    if ((it->Type() == Debug::BE) && (addr == bpAddr)) {
+                        hasBP = true;
+                        currentBP = it;
+                        return false;
+                    }
+                    return true;
+                });
+
+                char p = ' ';
+                if (addr == pc) p = '>';
+                if (hasBP) p = 'o';
+                if (addr == pc && hasBP) p = 'X';
+
+                ImGui::Text("%c %s:%8.8x %8.8x: ", p, section, dispAddr, code);
+                std::string contextMenuTitle = "assembly address menu ";
+                contextMenuTitle += dispAddr;
+                if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
+                    if (hasBP) {
+                        if (ImGui::Button("Remove breakpoint from here")) {
+                            PCSX::g_emulator.m_debug->EraseBP(currentBP);
+                            hasBP = false;
+                        }
+                    } else {
+                        if (ImGui::Button("Set Breakpoint here")) {
+                            PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE);
+                            hasBP = true;
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+            };
+            process(addr, l, &imguiAsm);
         }
     }
     if (m_followPC) {

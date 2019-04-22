@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <list>
 #include <string>
 
@@ -39,6 +40,8 @@ class Debug {
 
     class Breakpoint {
       public:
+        BreakpointType Type() const { return m_type; }
+        uint32_t Address() const { return m_address; }
         Breakpoint(uint32_t address, BreakpointType type) : m_address(address), m_type(type) {}
 
       private:
@@ -48,18 +51,24 @@ class Debug {
     };
 
   private:
-    using BreakpointList = std::list<Breakpoint>;
-    using bpiterator = BreakpointList::const_iterator;
+    typedef std::list<Breakpoint> BreakpointList;
 
   public:
-    bpiterator bpBegin() const { return m_breakpoints.cbegin(); }
-    bpiterator bpEnd() const { return m_breakpoints.cend(); }
-    void erase(bpiterator pos) { m_breakpoints.erase(pos); }
+    typedef BreakpointList::const_iterator bpiterator;
+    inline void AddBreakpoint(uint32_t address, BreakpointType type) { m_breakpoints.emplace_back(address, type); }
+    inline void ForEachBP(std::function<bool(bpiterator)> lambda) {
+        for (auto i = m_breakpoints.begin(); i != m_breakpoints.end(); i++) {
+            if (!lambda(i)) return;
+        }
+    }
+    inline void EraseBP(bpiterator pos) { m_breakpoints.erase(pos); }
+    inline bool HasLastBP() { return m_lastBP != m_breakpoints.end(); }
+    inline bpiterator LastBP() { return m_lastBP; }
 
   private:
     BreakpointList m_breakpoints;
+    bpiterator m_lastBP = m_breakpoints.end();
 
-    bool m_mapping_e = false;
     bool m_mapping_e = false;
     bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
     bool m_mapping_w8 = false, m_mapping_w16 = false, m_mapping_w32 = false;
