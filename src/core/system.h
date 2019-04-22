@@ -50,6 +50,8 @@ class System {
     bool quitting() { return m_quitting; }
     void start() { m_running = true; }
     void stop() { m_running = false; }
+    void pause() { m_running = false; }
+    void resume() { m_running = true; }
     void quit() {
         m_quitting = true;
         m_running = false;

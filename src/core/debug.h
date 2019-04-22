@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <list>
+#include <string>
+
 #include "core/psxemulator.h"
 #include "core/system.h"
 
@@ -26,49 +29,51 @@ namespace PCSX {
 
 class Debug {
   public:
-    enum breakpoint_types { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
+    enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
+    static inline const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
 
-    void StartDebugger();
-    void StopDebugger();
-
-    void DebugVSync();
     void ProcessDebug();
+    void DebugCheckBP(uint32_t address, BreakpointType type);
+    std::string GenerateFlowIDC();
+    std::string GenerateMarkIDC();
 
-    void DebugCheckBP(uint32_t address, enum breakpoint_types type);
+    class Breakpoint {
+      public:
+        Breakpoint(uint32_t address, BreakpointType type) : m_address(address), m_type(type) {}
 
-    void PauseDebugger();
-    void ResumeDebugger();
-
-  private:
-    int s_debugger_active = 0, s_paused = 0, s_trace = 0, s_printpc = 0, s_reset = 0, s_resetting = 0;
-    int s_run_to = 0;
-    uint32_t s_run_to_addr = 0;
-    int s_step_over = 0;
-    uint32_t s_step_over_addr = 0;
-    int s_mapping_e = 0;
-    int s_mapping_r8 = 0, s_mapping_r16 = 0, s_mapping_r32 = 0;
-    int s_mapping_w8 = 0, s_mapping_w16 = 0, s_mapping_w32 = 0;
-    int s_breakmp_e = 0;
-    int s_breakmp_r8 = 0, s_breakmp_r16 = 0, s_breakmp_r32 = 0;
-    int s_breakmp_w8 = 0, s_breakmp_w16 = 0, s_breakmp_w32 = 0;
-
-    uint8_t *s_memoryMap = NULL;
-
-    struct breakpoint_t {
-        breakpoint_t *next, *prev;
-        int number, type;
-        uint32_t address;
+      private:
+        uint32_t m_address;
+        BreakpointType m_type;
+        friend class Debug;
     };
 
-    breakpoint_t *s_firstBP = NULL;
+  private:
+    using BreakpointList = std::list<Breakpoint>;
+    using bpiterator = BreakpointList::const_iterator;
 
-    void ProcessCommands();
-    int add_breakpoint(int type, uint32_t address);
-    void delete_breakpoint(breakpoint_t *bp);
-    breakpoint_t *next_breakpoint(breakpoint_t *bp);
-    breakpoint_t *find_breakpoint(int number);
+  public:
+    bpiterator bpBegin() const { return m_breakpoints.cbegin(); }
+    bpiterator bpEnd() const { return m_breakpoints.cend(); }
+    void erase(bpiterator pos) { m_breakpoints.erase(pos); }
+
+  private:
+    BreakpointList m_breakpoints;
+
+    bool m_mapping_e = false;
+    bool m_mapping_e = false;
+    bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
+    bool m_mapping_w8 = false, m_mapping_w16 = false, m_mapping_w32 = false;
+    bool m_breakmp_e = false;
+    bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
+    bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
+
+    uint8_t m_mainMemoryMap[0x00200000];
+    uint8_t m_biosMemoryMap[0x00080000];
+    uint8_t m_parpMemoryMap[0x00010000];
+    uint8_t m_scratchPadMap[0x00000400];
+
     void MarkMap(uint32_t address, int mask);
-    int IsMapMarked(uint32_t address, int mask);
+    bool IsMapMarked(uint32_t address, int mask);
 };
 
 }  // namespace PCSX
