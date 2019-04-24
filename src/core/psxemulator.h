@@ -108,7 +108,9 @@ class Emulator {
   public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
     enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
-    enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };    // CDDA Types
+    enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
+    typedef Setting<bool, irqus::typestring<'S', 't', 'd', 'o', 'u', 't'>> SettingStdout;
+    typedef SettingPath<irqus::typestring<'L', 'o', 'g', 'f', 'i', 'l', 'e'>> SettingLogfile;
     typedef SettingPath<irqus::typestring<'M', 'c', 'd', '1'>> SettingMcd1;
     typedef SettingPath<irqus::typestring<'M', 'c', 'd', '2'>> SettingMcd2;
     typedef SettingPath<irqus::typestring<'B', 'i', 'o', 's'>> SettingBios;
@@ -126,9 +128,9 @@ class Emulator {
     typedef Setting<bool, irqus::typestring<'D', 'e', 'b', 'u', 'g'>> SettingDebug;
     typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
     typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
-    Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSioIrq,
-             SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingHLE, SettingSlowBoot,
-             SettingDebug, SettingVerbose, SettingRCntFix>
+    Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
+             SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
+             SettingHLE, SettingSlowBoot, SettingDebug, SettingVerbose, SettingRCntFix>
         settings;
     class PcsxConfig {
       public:
