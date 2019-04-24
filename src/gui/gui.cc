@@ -106,6 +106,8 @@ void PCSX::GUI::init() {
                 PCSX::g_emulator.settings.deserialize(j["emulator"]);
             }
             PCSX::g_emulator.m_spu->setCfg(j);
+        } else {
+            saveCfg();
         }
     }
     ImGui_ImplOpenGL3_Init();
