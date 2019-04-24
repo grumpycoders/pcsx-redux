@@ -44,7 +44,7 @@ class SDLsound {
 
     static const size_t BUFFER_SIZE = 32 * 1024 * 4;
 
-    SDL_AudioDeviceID s_dev;
+    SDL_AudioDeviceID s_dev = 0;
     uint32_t s_ptrBegin = 0, s_ptrEnd = 0;
     uint8_t s_buffer[BUFFER_SIZE];
     SDL_mutex* s_mutex;
