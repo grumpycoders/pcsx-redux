@@ -29,6 +29,17 @@
 
 namespace {
 
+void DButton(const char* label, bool enabled, std::function<void(void)> clicked) {
+    if (!enabled) {
+        const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+        ImGui::PushStyleColor(ImGuiCol_Button, lolight);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, lolight);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, lolight);
+    }
+    if (ImGui::Button(label) && enabled) clicked();
+    if (!enabled) ImGui::PopStyleColor(3);
+}
+
 class DummyAsm : public PCSX::Disasm {
     virtual void OpCode(const char* str) final {}
     virtual void GPR(uint8_t reg) final {}
@@ -317,17 +328,16 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
-                    if (hasBP) {
-                        if (ImGui::Button("Remove breakpoint from here")) {
-                            PCSX::g_emulator.m_debug->EraseBP(currentBP);
-                            hasBP = false;
-                        }
-                    } else {
-                        if (ImGui::Button("Set Breakpoint here")) {
-                            PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE);
-                            hasBP = true;
-                        }
-                    }
+                    DButton("Set Breakpoint here", !hasBP, [&]() mutable {
+                        PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE);
+                        ImGui::CloseCurrentPopup();
+                        hasBP = true;
+                    });
+                    DButton("Remove breakpoint from here", hasBP, [&]() mutable {
+                        PCSX::g_emulator.m_debug->EraseBP(currentBP);
+                        ImGui::CloseCurrentPopup();
+                        hasBP = false;
+                    });
                     ImGui::EndPopup();
                 }
             };
