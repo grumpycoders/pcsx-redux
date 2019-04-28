@@ -256,6 +256,8 @@ void PCSX::R3000Acpu::psxJumpTest() {
 
 void PCSX::R3000Acpu::psxExecuteBios() {
     while (m_psxRegs.pc != 0x80030000) ExecuteBlock();
+    if (g_emulator.settings.get<PCSX::Emulator::SettingFastBoot>())
+        m_psxRegs.pc =  m_psxRegs.GPR.n.ra;
 }
 
 void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {

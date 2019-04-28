@@ -160,8 +160,6 @@ bool LoadCdrom() {
     char exename[256];
 
     if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) {
-        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSlowBoot>())
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
         return true;
     }
 
