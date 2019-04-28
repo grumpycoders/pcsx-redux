@@ -543,7 +543,7 @@ bool PCSX::GUI::configure() {
         }
 
         changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
-        changed |= ImGui::Checkbox("Slow boot", &settings.get<Emulator::SettingSlowBoot>().value);
+        changed |= ImGui::Checkbox("Fast boot", &settings.get<Emulator::SettingFastBoot>().value);
     }
     ImGui::End();
 

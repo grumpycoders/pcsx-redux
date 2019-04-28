@@ -124,13 +124,13 @@ class Emulator {
     typedef Setting<VideoType, irqus::typestring<'V', 'i', 'd', 'e', 'o'>, PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, irqus::typestring<'C', 'D', 'D', 'A'>, CDDA_ENABLED_LE> SettingCDDA;
     typedef Setting<bool, irqus::typestring<'H', 'L', 'E'>, true> SettingHLE;
-    typedef Setting<bool, irqus::typestring<'S', 'l', 'o', 'w', 'B', 'o', 'o', 't'>> SettingSlowBoot;
+    typedef Setting<bool, irqus::typestring<'F', 'a', 's', 't', 'B', 'o', 'o', 't'>, true> SettingFastBoot;
     typedef Setting<bool, irqus::typestring<'D', 'e', 'b', 'u', 'g'>> SettingDebug;
     typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
     typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingHLE, SettingSlowBoot, SettingDebug, SettingVerbose, SettingRCntFix>
+             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix>
         settings;
     class PcsxConfig {
       public:
