@@ -99,6 +99,7 @@ class GUI final {
     bool m_showMenu = false;
     bool m_showDemo = false;
     bool m_showVRAMwindow = false;
+    bool m_showAbout = false;
     Widgets::Log m_log;
     struct MemoryEditorWrapper {
         MemoryEditor editor;
