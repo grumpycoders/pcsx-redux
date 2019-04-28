@@ -368,8 +368,15 @@ void PCSX::GUI::endFrame() {
                 ImGui::EndMenu();
             }
             ImGui::Separator();
-            if (ImGui::BeginMenu("ImGui Demo")) {
-                ImGui::MenuItem("Toggle", nullptr, &m_showDemo);
+            if (ImGui::BeginMenu("Help")) {
+                ImGui::Separator();
+                if (ImGui::MenuItem("Show ImGui Demo", nullptr, nullptr)) {
+                    m_showDemo = true;
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("About", nullptr, nullptr)) {
+                    m_showAbout = true;
+                }
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -408,10 +415,11 @@ void PCSX::GUI::endFrame() {
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
-        ImVec2 textureSize = ImGui::GetWindowSize();
-        normalizeDimensions(textureSize, m_renderRatio);
-        ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
+        if (ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse)) {
+            ImVec2 textureSize = ImGui::GetWindowSize();
+            normalizeDimensions(textureSize, m_renderRatio);
+            ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
+        }
         ImGui::End();
     }
 
@@ -462,6 +470,36 @@ void PCSX::GUI::endFrame() {
 
     if (m_assembly.m_show) {
         m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), "Assembly");
+    }
+
+    if (m_showAbout) {
+        ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("About")) {
+            ImGui::Text("PCSX-Redux", &m_showAbout);
+            ImGui::Separator();
+            auto someString = [](const char* str, GLenum index) {
+                const char* value = (const char*)glGetString(index);
+                checkGL();
+                ImGui::TextWrapped("%s: %s", str, value);
+            };
+            ImGui::Text("OpenGL information");
+            someString("vendor", GL_VENDOR);
+            someString("renderer", GL_RENDERER);
+            someString("version", GL_VERSION);
+            someString("shading language version", GL_SHADING_LANGUAGE_VERSION);
+            std::string extensions;
+            GLint n, i;
+            glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+            checkGL();
+            for (i = 0; i < n; i++) {
+                extensions += " ";
+                extensions += (const char*)glGetStringi(GL_EXTENSIONS, i);
+                checkGL();
+            }
+            ImGui::TextWrapped("extensions:%s", extensions.c_str());
+        }
+        ImGui::End();
     }
 
     PCSX::g_emulator.m_spu->debug();
