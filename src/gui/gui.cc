@@ -301,7 +301,6 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem("Close ISO")) {
                     PCSX::g_emulator.m_cdrom->m_iso.close();
                     CheckCdrom();
-                    LoadCdrom();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Open LID")) {
@@ -395,7 +394,6 @@ void PCSX::GUI::endFrame() {
             SetIsoFile(fileToOpen[0].c_str());
             PCSX::g_emulator.m_cdrom->m_iso.open();
             CheckCdrom();
-            LoadCdrom();
         }
     }
 
