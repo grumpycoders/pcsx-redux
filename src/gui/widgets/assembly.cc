@@ -276,7 +276,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 addr -= 0x00200000;
                 code = *reinterpret_cast<uint32_t*>(memory->g_psxP + addr);
                 if (addr <= 0x0000fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxP + addr);
+                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxP + addr + 4);
                 }
                 base = 0x1f000000;
             } else if (addr < 0x00290000) {
@@ -284,7 +284,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 addr -= 0x00210000;
                 code = *reinterpret_cast<uint32_t*>(memory->g_psxR + addr);
                 if (addr <= 0x0007fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxR + addr);
+                    nextCode = *reinterpret_cast<uint32_t*>(memory->g_psxR + addr + 4);
                 }
                 base = 0xbfc00000;
             }

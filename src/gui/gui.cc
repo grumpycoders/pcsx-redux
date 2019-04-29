@@ -488,16 +488,17 @@ void PCSX::GUI::endFrame() {
             someString("renderer", GL_RENDERER);
             someString("version", GL_VERSION);
             someString("shading language version", GL_SHADING_LANGUAGE_VERSION);
-            std::string extensions;
             GLint n, i;
             glGetIntegerv(GL_NUM_EXTENSIONS, &n);
             checkGL();
+            ImGui::Text("extensions:");
+            ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
             for (i = 0; i < n; i++) {
-                extensions += " ";
-                extensions += (const char*)glGetStringi(GL_EXTENSIONS, i);
+                const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
                 checkGL();
+                ImGui::Text("%s", extension);
             }
-            ImGui::TextWrapped("extensions:%s", extensions.c_str());
+            ImGui::EndChild();
         }
         ImGui::End();
     }
