@@ -581,7 +581,29 @@ declare(disMTLO) {
 declare(disBREAK) { dOpCode("break"); }
 declare(disRFE) { dOpCode("rfe"); }
 declare(disSYSCALL) { dOpCode("syscall"); }
-declare(disHLE) { dOpCode("hle"); }
+declare(disHLE) {
+    uint32_t hleCode = code & 0x03ffffff;
+    switch (hleCode) {
+        case 1:
+            dOpCode("hleA0");
+            break;
+        case 2:
+            dOpCode("hleB0");
+            break;
+        case 3:
+            dOpCode("hleC0");
+            break;
+        case 4:
+            dOpCode("hleBootstrap");
+            break;
+        case 5:
+            dOpCode("hleExecRet");
+            break;
+        default:
+            disNULL(code, nextCode, pc, skipNext);
+            break;
+    }
+}
 
 declare(disRTPS) { dOpCode("rtps"); }
 declare(disOP) { dOpCode("op"); }
