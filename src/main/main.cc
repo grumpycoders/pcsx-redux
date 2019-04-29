@@ -188,7 +188,6 @@ int main(int argc, char **argv) {
     if (!iso.empty()) SetIsoFile(iso.c_str());
     PCSX::g_emulator.m_cdrom->m_iso.open();
     CheckCdrom();
-    LoadCdrom();
 
     if (args.get<bool>("run", false)) PCSX::g_system->start();
 
