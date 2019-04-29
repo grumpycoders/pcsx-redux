@@ -1581,7 +1581,7 @@ void PCSX::InterpretedCPU::Reset() { PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache
 void PCSX::InterpretedCPU::Execute() {
     while (hasToRun()) execI();
 }
-void PCSX::InterpretedCPU::ExecuteBlock() {
+void PCSX::InterpretedCPU::ExecuteHLEBlock() {
     s_branch2 = 0;
     while (!s_branch2) execI();
 }

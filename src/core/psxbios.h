@@ -44,9 +44,12 @@ class Bios {
     virtual bool callB0(unsigned index) = 0;
     virtual bool callC0(unsigned index) = 0;
 
-    bool m_hleSoftCall;
+    bool inSoftCall() { return m_hleSoftCall; }
 
     static Bios *factory();
+
+  protected:
+    bool m_hleSoftCall;
 };
 
 }  // namespace PCSX
