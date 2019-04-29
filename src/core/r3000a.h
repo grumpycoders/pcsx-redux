@@ -274,15 +274,26 @@ class R3000Acpu {
     void psxShutdown();
     void psxException(uint32_t code, uint32_t bd);
     void psxBranchTest();
-    void psxExecuteBios();
     void psxJumpTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     psxRegisters m_psxRegs;
+    bool m_booted = false;
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
+    inline bool hasToRun() {
+        if (!g_system->running()) return false;
+        if (!m_booted) {
+            uint32_t &pc = m_psxRegs.pc;
+            if (pc == 0x80030000) {
+                m_booted = true;
+                if (g_emulator.settings.get<PCSX::Emulator::SettingFastBoot>()) pc = m_psxRegs.GPR.n.ra;
+            }
+        }
+        return true;
+    }
     inline void InterceptConsole() {
         // Intercept puts and putchar, even if running the binary bios.
         if (m_psxRegs.pc == 0xa0) {
