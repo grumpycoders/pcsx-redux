@@ -50,6 +50,8 @@ void PCSX::R3000Acpu::psxReset() {
     Reset();
 
     memset(&m_psxRegs, 0, sizeof(m_psxRegs));
+    m_booted = g_emulator.settings.get<Emulator::SettingHLE>().value ||
+               !g_emulator.settings.get<Emulator::SettingFastBoot>().value;
 
     m_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
 
@@ -58,8 +60,6 @@ void PCSX::R3000Acpu::psxReset() {
 
     PCSX::g_emulator.m_hw->psxHwReset();
     PCSX::g_emulator.m_psxBios->psxBiosInit();
-
-    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) psxExecuteBios();
 
     EMU_LOG("*BIOS END*\n");
 }
@@ -252,12 +252,6 @@ void PCSX::R3000Acpu::psxJumpTest() {
                 break;
         }
     }
-}
-
-void PCSX::R3000Acpu::psxExecuteBios() {
-    while (m_psxRegs.pc != 0x80030000) ExecuteBlock();
-    if (g_emulator.settings.get<PCSX::Emulator::SettingFastBoot>())
-        m_psxRegs.pc =  m_psxRegs.GPR.n.ra;
 }
 
 void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
