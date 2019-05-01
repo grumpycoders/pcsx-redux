@@ -87,19 +87,19 @@ class ImGuiAsm : public PCSX::Disasm {
     void comma() {
         if (m_gotArg) {
             sameLine();
-            ImGui::Text(", ");
+            ImGui::Text(",");
         }
         m_gotArg = true;
     }
     virtual void OpCode(const char* str) final {
         m_gotArg = false;
         sameLine();
-        ImGui::Text("%-7s", str);
+        ImGui::Text("%-6s", str);
     }
     virtual void GPR(uint8_t reg) final {
         comma();
         sameLine();
-        ImGui::Text("$");
+        ImGui::Text(" $");
         sameLine();
         ImGui::Text(s_disRNameGPR[reg]);
         if (ImGui::IsItemHovered()) {
@@ -113,7 +113,7 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void CP0(uint8_t reg) final {
         comma();
         sameLine();
-        ImGui::Text("$");
+        ImGui::Text(" $");
         sameLine();
         ImGui::Text(s_disRNameCP0[reg]);
         if (ImGui::IsItemHovered()) {
@@ -127,7 +127,7 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void CP2C(uint8_t reg) final {
         comma();
         sameLine();
-        ImGui::Text("$");
+        ImGui::Text(" $");
         sameLine();
         ImGui::Text(s_disRNameCP2C[reg]);
         if (ImGui::IsItemHovered()) {
@@ -141,7 +141,7 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void CP2D(uint8_t reg) final {
         comma();
         sameLine();
-        ImGui::Text("$");
+        ImGui::Text(" $");
         sameLine();
         ImGui::Text(s_disRNameCP2D[reg]);
         if (ImGui::IsItemHovered()) {
@@ -155,7 +155,7 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void HI() final {
         comma();
         sameLine();
-        ImGui::Text("$hi");
+        ImGui::Text(" $hi");
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -167,7 +167,7 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void LO() final {
         comma();
         sameLine();
-        ImGui::Text("$lo");
+        ImGui::Text(" $lo");
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -179,32 +179,27 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void Imm(uint16_t value) final {
         comma();
         sameLine();
-        ImGui::Text("0x%4.4x", value);
+        ImGui::Text(" 0x%4.4x", value);
     }
     virtual void Imm32(uint32_t value) final {
         comma();
         sameLine();
-        ImGui::Text("0x%8.8x", value);
+        ImGui::Text(" 0x%8.8x", value);
     }
     virtual void Target(uint32_t value) final {
         comma();
         sameLine();
-        ImGui::Text("0x%8.8x", value);
-        std::string contextMenuTitle = "target menu ";
-        contextMenuTitle += m_currentAddr;
-        if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
-            DButton("Jump to address", true, [&]() mutable {
-                m_jumpToPC = true;
-                m_jumpToPCValue = virtToReal(value);
-            });
-            ImGui::EndPopup();
+        char label[21];
+        std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
+        if (ImGui::SmallButton(label)) {
+            m_jumpToPC = true;
+            m_jumpToPCValue = virtToReal(value);
         }
-
     }
     virtual void Sa(uint8_t value) final {
         comma();
         sameLine();
-        ImGui::Text("0x%2.2x", value);
+        ImGui::Text(" 0x%2.2x", value);
     }
     inline uint8_t* ptr(uint32_t addr) {
         uint8_t* lut = m_memory->g_psxMemRLUT[addr >> 16];
@@ -221,7 +216,7 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void OfB(int16_t offset, uint8_t reg, int size) {
         comma();
         sameLine();
-        ImGui::Text("0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
+        ImGui::Text(" 0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
         if (ImGui::IsItemHovered()) {
             uint32_t addr = m_registers->GPR.r[reg] + offset;
             ImGui::BeginTooltip();
@@ -244,7 +239,12 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void Offset(uint32_t value) final {
         comma();
         sameLine();
-        ImGui::Text("0x%8.8x", value);
+        char label[21];
+        std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
+        if (ImGui::SmallButton(label)) {
+            m_jumpToPC = true;
+            m_jumpToPCValue = virtToReal(value);
+        }
     }
     bool m_gotArg = false;
     PCSX::psxRegisters* m_registers;
