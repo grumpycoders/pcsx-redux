@@ -71,14 +71,26 @@ void PCSX::Debug::ProcessDebug() {
     DebugCheckBP(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, BE);
     if (m_mapping_e) {
         MarkMap(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, MAP_EXEC);
+        // JAL
         if ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 3) {
             MarkMap(_JumpTarget_, MAP_EXEC_JAL);
         }
+        // JALR
         if (((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
             ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9)) {
             MarkMap(_Rd_, MAP_EXEC_JAL);
         }
     }
+}
+
+void PCSX::Debug::triggerBP(bpiterator bp) {
+    if (bp->m_temporary) {
+        m_lastBP = m_breakpoints.end();
+        m_breakpoints.erase(bp);
+    } else {
+        m_lastBP = bp;
+    }
+    PCSX::g_system->pause();
 }
 
 void PCSX::Debug::DebugCheckBP(uint32_t address, BreakpointType type) {
@@ -91,39 +103,33 @@ void PCSX::Debug::DebugCheckBP(uint32_t address, BreakpointType type) {
 
     for (auto it = m_breakpoints.begin(); it != m_breakpoints.end(); it++) {
         if ((it->m_type == type) && (it->m_address == address)) {
-            m_lastBP = it;
-            PCSX::g_system->pause();
+            triggerBP(it);
             return;
         }
     }
 
+    auto none = m_breakpoints.end();
+
     if (m_breakmp_e && type == BE && !IsMapMarked(address, MAP_EXEC)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     } else if (m_breakmp_r8 && type == BR1 && !IsMapMarked(address, MAP_R8)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     } else if (m_breakmp_r16 && type == BR2 && !IsMapMarked(address, MAP_R16)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     } else if (m_breakmp_r32 && type == BR4 && !IsMapMarked(address, MAP_R32)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     } else if (m_breakmp_w8 && type == BW1 && !IsMapMarked(address, MAP_W8)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     } else if (m_breakmp_w16 && type == BW2 && !IsMapMarked(address, MAP_W16)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     } else if (m_breakmp_w32 && type == BW4 && !IsMapMarked(address, MAP_W32)) {
-        m_lastBP = m_breakpoints.end();
-        PCSX::g_system->pause();
+        triggerBP(none);
         return;
     }
 }

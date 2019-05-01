@@ -29,6 +29,32 @@
 
 namespace {
 
+uint32_t virtToReal (uint32_t virt) {
+    uint32_t base = (virt >> 20) & 0xffc;
+    uint32_t real = virt & 0x1fffff;
+    uint32_t pc = real;
+    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
+        // main memory first
+        if (real >= 0x00200000) pc = 0;
+    } else if (base == 0x1f0) {
+        // parallel port second
+        if (real >= 0x00010000) {
+            pc = 0;
+        } else {
+            pc += 0x00200000;
+        }
+    } else if (base == 0xbfc) {
+        // bios last
+        if (real >= 0x00080000) {
+            pc = 0;
+        } else {
+            pc += 0x00210000;
+        }
+    }
+    return pc;
+};
+
+
 void DButton(const char* label, bool enabled, std::function<void(void)> clicked) {
     if (!enabled) {
         const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
@@ -164,6 +190,16 @@ class ImGuiAsm : public PCSX::Disasm {
         comma();
         sameLine();
         ImGui::Text("0x%8.8x", value);
+        std::string contextMenuTitle = "target menu ";
+        contextMenuTitle += m_currentAddr;
+        if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
+            DButton("Jump to address", true, [&]() mutable {
+                m_jumpToPC = true;
+                m_jumpToPCValue = virtToReal(value);
+            });
+            ImGui::EndPopup();
+        }
+
     }
     virtual void Sa(uint8_t value) final {
         comma();
@@ -215,7 +251,11 @@ class ImGuiAsm : public PCSX::Disasm {
     PCSX::Memory* m_memory;
 
   public:
-    ImGuiAsm(PCSX::psxRegisters* registers, PCSX::Memory* memory) : m_registers(registers), m_memory(memory) {}
+    ImGuiAsm(PCSX::psxRegisters* registers, PCSX::Memory* memory, bool& jumpToPC, uint32_t& jumpToPCValue)
+        : m_registers(registers), m_memory(memory), m_jumpToPC(jumpToPC), m_jumpToPCValue(jumpToPCValue) {}
+    uint32_t m_currentAddr;
+    bool& m_jumpToPC;
+    uint32_t& m_jumpToPCValue;
 };
 
 }  // namespace
@@ -229,29 +269,11 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     }
 
     DummyAsm dummy;
-    ImGuiAsm imguiAsm(registers, memory);
+    bool jumpToPC = false;
+    uint32_t jumpToPCValue = 0;
+    ImGuiAsm imguiAsm(registers, memory, jumpToPC, jumpToPCValue);
 
-    uint32_t base = (registers->pc >> 20) & 0xffc;
-    uint32_t real = registers->pc & 0x1fffff;
-    uint32_t pc = real;
-    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        // main memory first
-        if (real >= 0x00200000) pc = 0;
-    } else if (base == 0x1f0) {
-        // parallel port second
-        if (real >= 0x00010000) {
-            pc = 0;
-        } else {
-            pc += 0x00200000;
-        }
-    } else if (base == 0xbfc) {
-        // bios last
-        if (real >= 0x00080000) {
-            pc = 0;
-        } else {
-            pc += 0x00210000;
-        }
-    }
+    uint32_t pc = virtToReal(registers->pc);
     ImGui::Checkbox("Follow PC", &m_followPC);
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper(0x00290000 / 4);
@@ -298,7 +320,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
             Debug::bpiterator currentBP;
-            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) {
+            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 PCSX::g_emulator.m_debug->ForEachBP([&](PCSX::Debug::bpiterator it) mutable {
                     uint32_t addr = dispAddr;
@@ -324,10 +346,29 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 if (hasBP) p = 'o';
                 if (addr == pc && hasBP) p = 'X';
 
-                ImGui::Text("%c %s:%8.8x %8.8x: ", p, section, dispAddr, code);
+                imguiAsm.m_currentAddr = dispAddr;
+                uint8_t b[4];
+                auto tc = [](uint8_t c) -> char {
+                    if (c <= 0x20) return '.';
+                    if (c >= 0x7f) return '.';
+                    return c;
+                };
+                b[0] = code & 0xff;
+                code >>= 8;
+                b[1] = code & 0xff;
+                code >>= 8;
+                b[2] = code & 0xff;
+                code >>= 8;
+                b[3] = code & 0xff;
+                ImGui::Text("%c %s:%8.8x %c%c%c%c %8.8x: ", p, section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]), code);
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
+                    DButton("Run to cursor", !PCSX::g_system->running(), [&]() mutable {
+                        PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE, true);
+                        ImGui::CloseCurrentPopup();
+                        PCSX::g_system->start();
+                    });
                     DButton("Set Breakpoint here", !hasBP, [&]() mutable {
                         PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE);
                         ImGui::CloseCurrentPopup();
@@ -344,8 +385,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             process(addr, l, &imguiAsm);
         }
     }
-    if (m_followPC) {
-        uint64_t pctopx = pc / 4;
+    if (m_followPC || jumpToPC) {
+        uint64_t pctopx = (jumpToPC ? jumpToPCValue : pc) / 4;
         uint64_t scroll_to_px = pctopx * static_cast<uint64_t>(ImGui::GetTextLineHeightWithSpacing());
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
     }

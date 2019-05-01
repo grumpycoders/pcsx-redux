@@ -42,11 +42,13 @@ class Debug {
       public:
         BreakpointType Type() const { return m_type; }
         uint32_t Address() const { return m_address; }
-        Breakpoint(uint32_t address, BreakpointType type) : m_address(address), m_type(type) {}
+        Breakpoint(uint32_t address, BreakpointType type, bool temporary = false)
+            : m_address(address), m_type(type), m_temporary(temporary) {}
 
       private:
         uint32_t m_address;
         BreakpointType m_type;
+        bool m_temporary;
         friend class Debug;
     };
 
@@ -55,7 +57,9 @@ class Debug {
 
   public:
     typedef BreakpointList::const_iterator bpiterator;
-    inline void AddBreakpoint(uint32_t address, BreakpointType type) { m_breakpoints.emplace_back(address, type); }
+    inline void AddBreakpoint(uint32_t address, BreakpointType type, bool temporary = false) {
+        m_breakpoints.emplace_back(address, type, temporary);
+    }
     inline void ForEachBP(std::function<bool(bpiterator)> lambda) {
         for (auto i = m_breakpoints.begin(); i != m_breakpoints.end(); i++) {
             if (!lambda(i)) return;
@@ -83,6 +87,7 @@ class Debug {
 
     void MarkMap(uint32_t address, int mask);
     bool IsMapMarked(uint32_t address, int mask);
+    void triggerBP(bpiterator bp);
 };
 
 }  // namespace PCSX
