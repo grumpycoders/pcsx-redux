@@ -68,18 +68,16 @@ bool PCSX::Debug::IsMapMarked(uint32_t address, int mask) {
 
 void PCSX::Debug::ProcessDebug() {
     const uint32_t& pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
-    DebugCheckBP(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, BE);
+    DebugCheckBP(pc, BE);
+    const bool isJAL = (PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 3;
+    const bool isJALR = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9);
+    const bool isJRRA = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rd_ == 31;
     if (m_mapping_e) {
-        MarkMap(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, MAP_EXEC);
-        // JAL
-        if ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 3) {
-            MarkMap(_JumpTarget_, MAP_EXEC_JAL);
-        }
-        // JALR
-        if (((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-            ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9)) {
-            MarkMap(_Rd_, MAP_EXEC_JAL);
-        }
+        MarkMap(pc, MAP_EXEC);
+        if (isJAL) MarkMap(_JumpTarget_, MAP_EXEC_JAL);
+        if (isJALR) MarkMap(_Rd_, MAP_EXEC_JAL);
     }
 }
 
