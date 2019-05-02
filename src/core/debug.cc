@@ -68,12 +68,31 @@ bool PCSX::Debug::IsMapMarked(uint32_t address, int mask) {
 
 void PCSX::Debug::ProcessDebug() {
     const uint32_t& pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
-    DebugCheckBP(pc, BE);
     const bool isJAL = (PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 3;
     const bool isJALR = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
                         ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9);
     const bool isJRRA = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rd_ == 31;
+                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 31;
+
+    if (m_stepping) {
+        if (isJAL || isJALR) m_steppingJumps++;
+        if (isJRRA) m_steppingJumps--;
+
+        auto none = m_breakpoints.end();
+        switch (m_stepType) {
+            case STEP_IN:
+                triggerBP(none);
+                break;
+            case STEP_OVER:
+                if (m_steppingJumps == 0) triggerBP(none);
+                break;
+            case STEP_OUT:
+                if (m_steppingJumps == -1) triggerBP(none);
+                break;
+        }
+    }
+
+    DebugCheckBP(pc, BE);
     if (m_mapping_e) {
         MarkMap(pc, MAP_EXEC);
         if (isJAL) MarkMap(_JumpTarget_, MAP_EXEC_JAL);
@@ -81,8 +100,16 @@ void PCSX::Debug::ProcessDebug() {
     }
 }
 
+void PCSX::Debug::startStepping() {
+    if (PCSX::g_system->running()) return;
+    m_stepping = true;
+    m_steppingJumps = 0;
+    g_system->resume();
+}
+
 void PCSX::Debug::triggerBP(bpiterator bp) {
-    if (bp->m_temporary) {
+    m_stepping = false;
+    if (bp != m_breakpoints.end() && bp->m_temporary) {
         m_lastBP = m_breakpoints.end();
         m_breakpoints.erase(bp);
     } else {
@@ -92,17 +119,10 @@ void PCSX::Debug::triggerBP(bpiterator bp) {
 }
 
 void PCSX::Debug::DebugCheckBP(uint32_t address, BreakpointType type) {
-    if (m_mapping_r8 && type == BR1) MarkMap(address, MAP_R8);
-    if (m_mapping_r16 && type == BR2) MarkMap(address, MAP_R16);
-    if (m_mapping_r32 && type == BR4) MarkMap(address, MAP_R32);
-    if (m_mapping_w8 && type == BW1) MarkMap(address, MAP_W8);
-    if (m_mapping_w16 && type == BW2) MarkMap(address, MAP_W16);
-    if (m_mapping_w32 && type == BW4) MarkMap(address, MAP_W32);
-
     for (auto it = m_breakpoints.begin(); it != m_breakpoints.end(); it++) {
         if ((it->m_type == type) && (it->m_address == address)) {
             triggerBP(it);
-            return;
+            break;
         }
     }
 
@@ -110,26 +130,26 @@ void PCSX::Debug::DebugCheckBP(uint32_t address, BreakpointType type) {
 
     if (m_breakmp_e && type == BE && !IsMapMarked(address, MAP_EXEC)) {
         triggerBP(none);
-        return;
     } else if (m_breakmp_r8 && type == BR1 && !IsMapMarked(address, MAP_R8)) {
         triggerBP(none);
-        return;
     } else if (m_breakmp_r16 && type == BR2 && !IsMapMarked(address, MAP_R16)) {
         triggerBP(none);
-        return;
     } else if (m_breakmp_r32 && type == BR4 && !IsMapMarked(address, MAP_R32)) {
         triggerBP(none);
-        return;
     } else if (m_breakmp_w8 && type == BW1 && !IsMapMarked(address, MAP_W8)) {
         triggerBP(none);
-        return;
     } else if (m_breakmp_w16 && type == BW2 && !IsMapMarked(address, MAP_W16)) {
         triggerBP(none);
-        return;
     } else if (m_breakmp_w32 && type == BW4 && !IsMapMarked(address, MAP_W32)) {
         triggerBP(none);
-        return;
     }
+
+    if (m_mapping_r8 && type == BR1) MarkMap(address, MAP_R8);
+    if (m_mapping_r16 && type == BR2) MarkMap(address, MAP_R16);
+    if (m_mapping_r32 && type == BR4) MarkMap(address, MAP_R32);
+    if (m_mapping_w8 && type == BW1) MarkMap(address, MAP_W8);
+    if (m_mapping_w16 && type == BW2) MarkMap(address, MAP_W16);
+    if (m_mapping_w32 && type == BW4) MarkMap(address, MAP_W32);
 }
 
 std::string PCSX::Debug::GenerateFlowIDC() {

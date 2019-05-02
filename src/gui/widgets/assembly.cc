@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <SDL.h>
+
 #include <functional>
 
 #include "imgui.h"
@@ -275,6 +277,15 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
 
     uint32_t pc = virtToReal(registers->pc);
     ImGui::Checkbox("Follow PC", &m_followPC);
+    ImGui::SameLine();
+    DButton("Step In", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
+    ImGui::SameLine();
+    DButton("Step Over", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
+    ImGui::SameLine();
+    DButton("Step Out", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_F10)) {
+        g_emulator.m_debug->stepOver();
+    }
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper(0x00290000 / 4);
 
@@ -367,7 +378,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     DButton("Run to cursor", !PCSX::g_system->running(), [&]() mutable {
                         PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE, true);
                         ImGui::CloseCurrentPopup();
-                        PCSX::g_system->start();
+                        PCSX::g_system->resume();
                     });
                     DButton("Set Breakpoint here", !hasBP, [&]() mutable {
                         PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE);

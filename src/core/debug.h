@@ -52,7 +52,21 @@ class Debug {
         friend class Debug;
     };
 
+    void stepIn() {
+        m_stepType = STEP_IN;
+        startStepping();
+    }
+    void stepOver() {
+        m_stepType = STEP_OVER;
+        startStepping();
+    }
+    void stepOut() {
+        m_stepType = STEP_OUT;
+        startStepping();
+    }
+
   private:
+    void startStepping();
     typedef std::list<Breakpoint> BreakpointList;
 
   public:
@@ -88,6 +102,14 @@ class Debug {
     void MarkMap(uint32_t address, int mask);
     bool IsMapMarked(uint32_t address, int mask);
     void triggerBP(bpiterator bp);
+
+    enum {
+        STEP_IN,
+        STEP_OVER,
+        STEP_OUT,
+    } m_stepType;
+    bool m_stepping = false;
+    int m_steppingJumps = 0;
 };
 
 }  // namespace PCSX
