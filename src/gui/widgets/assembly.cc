@@ -278,13 +278,27 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     uint32_t pc = virtToReal(registers->pc);
     ImGui::Checkbox("Follow PC", &m_followPC);
     ImGui::SameLine();
+    DButton("Pause", g_system->running(), [&]() mutable { g_system->pause(); });
+    ImGui::SameLine();
+    DButton("Resume", !g_system->running(), [&]() mutable { g_system->resume(); });
+    ImGui::SameLine();
     DButton("Step In", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
     ImGui::SameLine();
     DButton("Step Over", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
     ImGui::SameLine();
     DButton("Step Out", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
-    if (ImGui::IsKeyPressed(SDL_SCANCODE_F10)) {
-        g_emulator.m_debug->stepOver();
+    if (!g_system->running()) {
+        if (ImGui::IsKeyPressed(SDL_SCANCODE_F10)) {
+            g_emulator.m_debug->stepOver();
+        } else if (ImGui::IsKeyPressed(SDL_SCANCODE_F11)) {
+            if (ImGui::GetIO().KeyShift) {
+                g_emulator.m_debug->stepOut();
+            } else {
+                g_emulator.m_debug->stepIn();
+            }
+        } else if (ImGui::IsKeyPressed(SDL_SCANCODE_F5)) {
+            g_system->resume();
+        }
     }
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper(0x00290000 / 4);
