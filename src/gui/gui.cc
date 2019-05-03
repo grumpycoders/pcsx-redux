@@ -431,34 +431,34 @@ void PCSX::GUI::endFrame() {
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
             if (editor.show) {
-                ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
+                editor.draw(PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(PCSX::g_emulator.m_psxMem->g_psxP, 64 * 1024);
+            m_parallelPortEditor.draw(PCSX::g_emulator.m_psxMem->g_psxP, 64 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH, 1024);
+            m_scratchPadEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH + 8 * 1024, 8 * 1024);
+            m_hwrEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(PCSX::g_emulator.m_psxMem->g_psxR, 512 * 1024);
+            m_biosEditor.draw(PCSX::g_emulator.m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
         }
     }
 

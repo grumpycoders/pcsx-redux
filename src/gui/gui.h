@@ -106,7 +106,7 @@ class GUI final {
         std::string title;
         bool & show = editor.Open;
         void MenuItem() { ImGui::MenuItem(title.c_str(), nullptr, &show); }
-        void draw(void *mem, size_t size) { editor.DrawWindow(title.c_str(), mem, size); }
+        void draw(void *mem, size_t size, uint32_t baseAddr = 0) { editor.DrawWindow(title.c_str(), mem, size, baseAddr); }
     };
     MemoryEditorWrapper m_mainMemEditors[8];
     MemoryEditorWrapper m_parallelPortEditor;

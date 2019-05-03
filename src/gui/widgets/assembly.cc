@@ -264,7 +264,7 @@ class ImGuiAsm : public PCSX::Disasm {
 
 void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(1200, 500), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
         return;
