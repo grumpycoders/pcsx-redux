@@ -31,7 +31,7 @@
 
 namespace {
 
-uint32_t virtToReal (uint32_t virt) {
+uint32_t virtToReal(uint32_t virt) {
     uint32_t base = (virt >> 20) & 0xffc;
     uint32_t real = virt & 0x1fffff;
     uint32_t pc = real;
@@ -55,7 +55,6 @@ uint32_t virtToReal (uint32_t virt) {
     }
     return pc;
 };
-
 
 void DButton(const char* label, bool enabled, std::function<void(void)> clicked) {
     if (!enabled) {
@@ -195,7 +194,7 @@ class ImGuiAsm : public PCSX::Disasm {
         std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
         if (ImGui::SmallButton(label)) {
             m_jumpToPC = true;
-            m_jumpToPCValue = virtToReal(value);
+            m_jumpToPCValue = value;
         }
     }
     virtual void Sa(uint8_t value) final {
@@ -245,7 +244,7 @@ class ImGuiAsm : public PCSX::Disasm {
         std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
         if (ImGui::SmallButton(label)) {
             m_jumpToPC = true;
-            m_jumpToPCValue = virtToReal(value);
+            m_jumpToPCValue = value;
         }
     }
     bool m_gotArg = false;
@@ -300,8 +299,18 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             g_system->resume();
         }
     }
-    ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGuiStyle& style = ImGui::GetStyle();
+    const float heightSeparator = style.ItemSpacing.y;
+    float footerHeight = 0;
+    footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
+    ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImGuiListClipper clipper(0x00290000 / 4);
+
+    char* endPtr;
+    uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);
+    uint32_t jumpAddressValue = strtoul(m_jumpAddressString, &endPtr, 16);
+    bool jumpAddressValid = *m_jumpAddressString && !*endPtr;
 
     while (clipper.Step()) {
         bool skipNext = false;
@@ -385,7 +394,15 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 b[2] = code & 0xff;
                 code >>= 8;
                 b[3] = code & 0xff;
-                ImGui::Text("%c %s:%8.8x %c%c%c%c %8.8x: ", p, section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]), code);
+                if (jumpAddressValid && dispAddr == jumpAddress) {
+                    ImVec2 pos = ImGui::GetCursorScreenPos();
+                    const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
+                    float height = ImGui::GetTextLineHeight();
+                    float width = (ImGui::CalcTextSize("@").x + 1) * 64;
+                    drawList->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), bgcolor);
+                }
+                ImGui::Text("%c %s:%8.8x %c%c%c%c %8.8x: ", p, section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
+                            tc(b[3]), code);
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
@@ -410,8 +427,22 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             process(addr, l, &imguiAsm);
         }
     }
+    ImGui::EndChild();
+    if (jumpToPC) {
+        std::snprintf(m_jumpAddressString, 19, "%08x", jumpToPCValue);
+    }
+    if (ImGui::InputText("##address", m_jumpAddressString, 20,
+                         ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+        char* endPtr;
+        uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);
+        if (*m_jumpAddressString && !*endPtr) {
+            jumpToPC = true;
+            jumpToPCValue = jumpAddress;
+        }
+    }
+    ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if (m_followPC || jumpToPC) {
-        uint64_t pctopx = (jumpToPC ? jumpToPCValue : pc) / 4;
+        uint64_t pctopx = (jumpToPC ? virtToReal(jumpToPCValue) : pc) / 4;
         uint64_t scroll_to_px = pctopx * static_cast<uint64_t>(ImGui::GetTextLineHeightWithSpacing());
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
     }

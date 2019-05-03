@@ -37,6 +37,7 @@ class Assembly {
 
   private:
     bool m_followPC = false;
+    char m_jumpAddressString[20];
 };
 
 }  // namespace Widgets
