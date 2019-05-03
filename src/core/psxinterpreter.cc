@@ -1592,16 +1592,19 @@ inline void PCSX::InterpretedCPU::execI() {
     InterceptConsole();
     uint32_t *code = PCSX::g_emulator.m_psxCpu->Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, false);
     PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
+    const bool &debug = g_emulator.settings.get<PCSX::Emulator::SettingDebug>();
 
     debugI();
 
-    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>()) PCSX::g_emulator.m_debug->ProcessDebug();
+    if (debug) g_emulator.m_debug->ProcessDebugBefore();
 
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc += 4;
     PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;
 
     cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
     (*this.*func)();
+
+    if (debug) g_emulator.m_debug->ProcessDebugAfter();
 }
 
 void PCSX::InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {

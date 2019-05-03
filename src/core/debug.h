@@ -33,7 +33,8 @@ class Debug {
     enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
     static inline const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
 
-    void ProcessDebug();
+    void ProcessDebugBefore();
+    void ProcessDebugAfter();
     void DebugCheckBP(uint32_t address, BreakpointType type);
     std::string GenerateFlowIDC();
     std::string GenerateMarkIDC();
