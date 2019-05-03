@@ -19,7 +19,9 @@
 
 #include <SDL.h>
 
+#include <fstream>
 #include <functional>
+#include <iostream>
 
 #include "imgui.h"
 
@@ -192,9 +194,18 @@ class ImGuiAsm : public PCSX::Disasm {
         sameLine();
         char label[21];
         std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-        if (ImGui::SmallButton(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
+        auto symbol = m_symbols.find(value);
+        if (symbol == m_symbols.end()) {
+            if (ImGui::SmallButton(label)) {
+                m_jumpToPC = true;
+                m_jumpToPCValue = value;
+            }
+        } else {
+            std::string longLabel = symbol->second + " ;" + label;
+            if (ImGui::SmallButton(longLabel.c_str())) {
+                m_jumpToPC = true;
+                m_jumpToPCValue = value;
+            }
         }
     }
     virtual void Sa(uint8_t value) final {
@@ -242,9 +253,18 @@ class ImGuiAsm : public PCSX::Disasm {
         sameLine();
         char label[21];
         std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-        if (ImGui::SmallButton(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
+        auto symbol = m_symbols.find(value);
+        if (symbol == m_symbols.end()) {
+            if (ImGui::SmallButton(label)) {
+                m_jumpToPC = true;
+                m_jumpToPCValue = value;
+            }
+        } else {
+            std::string longLabel = symbol->second + " ;" + label;
+            if (ImGui::SmallButton(longLabel.c_str())) {
+                m_jumpToPC = true;
+                m_jumpToPCValue = value;
+            }
         }
     }
     bool m_gotArg = false;
@@ -252,11 +272,17 @@ class ImGuiAsm : public PCSX::Disasm {
     PCSX::Memory* m_memory;
 
   public:
-    ImGuiAsm(PCSX::psxRegisters* registers, PCSX::Memory* memory, bool& jumpToPC, uint32_t& jumpToPCValue)
-        : m_registers(registers), m_memory(memory), m_jumpToPC(jumpToPC), m_jumpToPCValue(jumpToPCValue) {}
+    ImGuiAsm(PCSX::psxRegisters* registers, PCSX::Memory* memory, bool& jumpToPC, uint32_t& jumpToPCValue,
+             const std::map<uint32_t, std::string>& symbols)
+        : m_registers(registers),
+          m_memory(memory),
+          m_jumpToPC(jumpToPC),
+          m_jumpToPCValue(jumpToPCValue),
+          m_symbols(symbols) {}
     uint32_t m_currentAddr;
     bool& m_jumpToPC;
     uint32_t& m_jumpToPCValue;
+    const std::map<uint32_t, std::string>& m_symbols;
 };
 
 }  // namespace
@@ -264,15 +290,34 @@ class ImGuiAsm : public PCSX::Disasm {
 void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return;
+    }
+
+    bool openSymbolsDialog = false;
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            openSymbolsDialog = ImGui::MenuItem("Load symbols map");
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Debug")) {
+            if (ImGui::MenuItem("Pause", nullptr, nullptr, g_system->running())) g_system->pause();
+            if (ImGui::MenuItem("Resume", nullptr, nullptr, !g_system->running())) g_system->resume();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Step In", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepIn();
+            if (ImGui::MenuItem("Step Over", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOver();
+            if (ImGui::MenuItem("Step Out", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOut();
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
     }
 
     DummyAsm dummy;
     bool jumpToPC = false;
     uint32_t jumpToPCValue = 0;
-    ImGuiAsm imguiAsm(registers, memory, jumpToPC, jumpToPCValue);
+    ImGuiAsm imguiAsm(registers, memory, jumpToPC, jumpToPCValue, m_symbols);
 
     uint32_t pc = virtToReal(registers->pc);
     ImGui::Checkbox("Follow PC", &m_followPC);
@@ -308,7 +353,6 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     ImGuiListClipper clipper(0x00290000 / 4);
 
     char* endPtr;
-    uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);
     uint32_t jumpAddressValue = strtoul(m_jumpAddressString, &endPtr, 16);
     bool jumpAddressValid = *m_jumpAddressString && !*endPtr;
 
@@ -394,12 +438,16 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 b[2] = code & 0xff;
                 code >>= 8;
                 b[3] = code & 0xff;
-                if (jumpAddressValid && dispAddr == jumpAddress) {
+                if (jumpAddressValid && dispAddr == jumpAddressValue) {
                     ImVec2 pos = ImGui::GetCursorScreenPos();
                     const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
                     float height = ImGui::GetTextLineHeight();
                     float width = (ImGui::CalcTextSize("@").x + 1) * 64;
                     drawList->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), bgcolor);
+                }
+                auto symbol = m_symbols.find(dispAddr);
+                if (symbol != m_symbols.end()) {
+                    ImGui::Text("%s:", symbol->second.c_str());
                 }
                 ImGui::Text("%c %s:%8.8x %c%c%c%c %8.8x: ", p, section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
                             tc(b[3]), code);
@@ -448,4 +496,24 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     }
     ImGui::EndChild();
     ImGui::End();
+
+    if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
+    if (m_symbolsFileDialog.draw()) {
+        std::vector<std::string> filesToOpen = m_symbolsFileDialog.selected();
+        for (auto fileName : filesToOpen) {
+            std::ifstream file;
+            file.open(fileName);
+            if (!file) continue;
+            while (!file.eof()) {
+                std::string addressString;
+                std::string name;
+                file >> addressString >> name;
+                char* endPtr;
+                uint32_t address = strtoul(addressString.c_str(), &endPtr, 16);
+                bool addressValid = addressString[0] && !*endPtr;
+                if (!addressValid) continue;
+                m_symbols[address] = name;
+            }
+        }
+    }
 }

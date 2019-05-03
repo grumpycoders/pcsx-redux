@@ -19,7 +19,12 @@
 
 #pragma once
 
-#include <stdarg.h>
+#include <stdint.h>
+
+#include <map>
+#include <string>
+
+#include "gui/widgets/filedialog.h"
 
 struct psxRegisters;
 
@@ -38,6 +43,8 @@ class Assembly {
   private:
     bool m_followPC = false;
     char m_jumpAddressString[20];
+    std::map<uint32_t, std::string> m_symbols;
+    FileDialog m_symbolsFileDialog = {"Load Symbols"};
 };
 
 }  // namespace Widgets

@@ -28,7 +28,6 @@
 
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
-#undef snprintf
 
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/filedialog.h"
