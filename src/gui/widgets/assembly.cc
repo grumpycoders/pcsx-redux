@@ -318,6 +318,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         return;
     }
 
+    float glyphWidth = ImGui::CalcTextSize("@").x + 1;
+
     bool openSymbolsDialog = false;
 
     if (ImGui::BeginMenuBar()) {
@@ -465,7 +467,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     ImVec2 pos = ImGui::GetCursorScreenPos();
                     const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
                     float height = ImGui::GetTextLineHeight();
-                    float width = (ImGui::CalcTextSize("@").x + 1) * 64;
+                    float width = glyphWidth * 64;
                     drawList->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), bgcolor);
                 }
                 auto symbol = m_symbols.find(dispAddr);
@@ -502,6 +504,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     if (jumpToPC) {
         std::snprintf(m_jumpAddressString, 19, "%08x", jumpToPCValue);
     }
+    ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
     if (ImGui::InputText("##address", m_jumpAddressString, 20,
                          ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
         char* endPtr;
@@ -511,6 +514,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             jumpToPCValue = jumpAddress;
         }
     }
+    ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if (m_followPC || jumpToPC) {
         uint64_t pctopx = (jumpToPC ? virtToReal(jumpToPCValue) : pc) / 4;
