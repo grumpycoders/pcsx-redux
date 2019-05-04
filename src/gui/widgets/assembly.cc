@@ -82,7 +82,8 @@ class DummyAsm : public PCSX::Disasm {
     virtual void Target(uint32_t value) final {}
     virtual void Sa(uint8_t value) final {}
     virtual void OfB(int16_t offset, uint8_t reg, int size) final {}
-    virtual void Offset(uint32_t offset) final {}
+    virtual void BranchDest(uint32_t offset) final {}
+    virtual void Offset(uint32_t offset, int size) final {}
 };
 
 class ImGuiAsm : public PCSX::Disasm {
@@ -248,7 +249,7 @@ class ImGuiAsm : public PCSX::Disasm {
             ImGui::EndTooltip();
         }
     }
-    virtual void Offset(uint32_t value) final {
+    virtual void BranchDest(uint32_t value) final {
         comma();
         sameLine();
         char label[21];
@@ -265,6 +266,28 @@ class ImGuiAsm : public PCSX::Disasm {
                 m_jumpToPC = true;
                 m_jumpToPCValue = value;
             }
+        }
+    }
+    virtual void Offset(uint32_t addr, int size) final {
+        comma();
+        sameLine();
+        ImGui::Text(" 0x%8.8x", addr);
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            switch (size) {
+                case 1:
+                    ImGui::Text("[%8.8x] = %2.2x", addr, mem8(addr));
+                    break;
+                case 2:
+                    ImGui::Text("[%8.8x] = %4.4x", addr, mem16(addr));
+                    break;
+                case 4:
+                    ImGui::Text("[%8.8x] = %8.8x", addr, mem32(addr));
+                    break;
+            }
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
         }
     }
     bool m_gotArg = false;

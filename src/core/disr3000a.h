@@ -63,7 +63,8 @@ class Disasm {
     virtual void Target(uint32_t value) = 0;
     virtual void Sa(uint8_t value) = 0;
     virtual void OfB(int16_t offset, uint8_t reg, int size) = 0;
-    virtual void Offset(uint32_t offset) = 0;
+    virtual void BranchDest(uint32_t offset) = 0;
+    virtual void Offset(uint32_t offset, int size) = 0;
 
   private:
     // Type definition of our functions

@@ -154,7 +154,11 @@ struct StringDisasm : public PCSX::Disasm {
             append("0x%4.4x(%s)", offset, s_disRNameGPR[reg]);
         }
     }
-    virtual void Offset(uint32_t value) final {
+    virtual void BranchDest(uint32_t value) final {
+        comma();
+        append("0x%8.8x", value);
+    }
+    virtual void Offset(uint32_t value, int size) final {
         comma();
         append("0x%8.8x", value);
     }
@@ -186,7 +190,7 @@ struct StringDisasm : public PCSX::Disasm {
 #define dTarget() Target(_Target_)
 #define dSa() Sa(_Sa_)
 #define dOfB(size) OfB(_Im_, _Rs_, size)
-#define dOffset() Offset(_Branch_)
+#define dBranch() BranchDest(_Branch_)
 
 /*********************************************************
  * Arithmetic with immediate operand                      *
@@ -194,72 +198,44 @@ struct StringDisasm : public PCSX::Disasm {
  *********************************************************/
 declare(disADDI) {
     dOpCode("addi");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 declare(disADDIU) {
     dOpCode("addiu");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 declare(disANDI) {
     dOpCode("andi");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 declare(disORI) {
     dOpCode("ori");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 declare(disSLTI) {
     dOpCode("slti");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 declare(disSLTIU) {
     dOpCode("sltiu");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 declare(disXORI) {
     dOpCode("xori");
-    if (_Rt_ == _Rs_) {
-        dGPR(_Rt_);
-    } else {
-        dGPR(_Rt_);
-        dGPR(_Rs_);
-    }
+    dGPR(_Rt_);
+    if (_Rt_ != _Rs_) dGPR(_Rs_);
     dImm();
 }
 
@@ -268,112 +244,98 @@ declare(disXORI) {
  * Format:  OP rd, rs, rt                                 *
  *********************************************************/
 declare(disADD) {
-    dOpCode("add");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
+    if (_Rt_ == 0) {
+        dOpCode("move");
         dGPR(_Rd_);
         dGPR(_Rs_);
+    } else {
+        dOpCode("add");
+        dGPR(_Rd_);
+        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        dGPR(_Rt_);
     }
-    dGPR(_Rt_);
 }
 declare(disADDU) {
     dOpCode("addu");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rs_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ == _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disAND) {
     dOpCode("and");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rs_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ == _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disNOR) {
-    dOpCode("nor");
-    if (_Rd_ == _Rs_) {
+    if (_Rt_ == 0) {
+        dOpCode("not");
         dGPR(_Rd_);
+        if (_Rd_ != _Rs_) dGPR(_Rs_);
+    } else if (_Rs_ == 0) {
+        dOpCode("not");
+        dGPR(_Rd_);
+        if (_Rd_ != _Rt_) dGPR(_Rt_);
     } else {
+        dOpCode("nor");
         dGPR(_Rd_);
-        dGPR(_Rs_);
+        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        dGPR(_Rt_);
     }
-
-    dGPR(_Rt_);
 }
 declare(disOR) {
     dOpCode("or");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rs_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ == _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disSLT) {
-    dOpCode("slt");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
+    uint8_t nextIns = nextCode >> 26;
+    uint8_t nextRt = (nextCode >> 16) & 0x1f;
+    uint8_t nextRs = (nextCode >> 21) & 0x1f;
+    uint16_t nextImm = nextCode & 0xffff;
+    if (skipNext && (nextIns == 0x05) && (_Rd_ == nextRs) && (_Rd_ == 1) && (nextRt == 0)) {
+        // bne
+        dOpCode("blt");
         dGPR(_Rs_);
+        dGPR(_Rt_);
+        BranchDest(pc + 4 + nextImm * 4);
+        *skipNext = true;
+    } else {
+        dOpCode("slt");
+        dGPR(_Rd_);
+        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        dGPR(_Rt_);
     }
-
-    dGPR(_Rt_);
 }
 declare(disSLTU) {
     dOpCode("sltu");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rs_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ == _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disSUB) {
-    dOpCode("sub");
-    if (_Rd_ == _Rs_) {
+    if (_Rs_ == 0) {
+        dOpCode("neg");
         dGPR(_Rd_);
+        if (_Rd_ != _Rt_) dGPR(_Rt_);
     } else {
+        dOpCode("sub");
         dGPR(_Rd_);
-        dGPR(_Rs_);
+        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        dGPR(_Rt_);
     }
-
-    dGPR(_Rt_);
 }
 declare(disSUBU) {
     dOpCode("subu");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rs_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ == _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disXOR) {
     dOpCode("xor");
-    if (_Rd_ == _Rs_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rs_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ == _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 
@@ -409,32 +371,32 @@ declare(disMULTU) {
 declare(disBGEZ) {
     dOpCode("bgez");
     dGPR(_Rs_);
-    dOffset();
+    dBranch();
 }
 declare(disBGEZAL) {
     dOpCode("bgezal");
     dGPR(_Rs_);
-    dOffset();
+    dBranch();
 }
 declare(disBGTZ) {
     dOpCode("bgtz");
     dGPR(_Rs_);
-    dOffset();
+    dBranch();
 }
 declare(disBLEZ) {
     dOpCode("blez");
     dGPR(_Rs_);
-    dOffset();
+    dBranch();
 }
 declare(disBLTZ) {
     dOpCode("bltz");
     dGPR(_Rs_);
-    dOffset();
+    dBranch();
 }
 declare(disBLTZAL) {
     dOpCode("bltzal");
     dGPR(_Rs_);
-    dOffset();
+    dBranch();
 }
 
 /*********************************************************
@@ -444,12 +406,8 @@ declare(disBLTZAL) {
 declare(disSLL) {
     if (code) {
         dOpCode("sll");
-        if (_Rd_ == _Rt_) {
-            dGPR(_Rd_);
-        } else {
-            dGPR(_Rd_);
-            dGPR(_Rt_);
-        }
+        dGPR(_Rd_);
+        if (_Rd_ != _Rt_) dGPR(_Rt_);
         dSa();
     } else {
         dOpCode("nop");
@@ -457,24 +415,14 @@ declare(disSLL) {
 }
 declare(disSRA) {
     dOpCode("sra");
-    if (_Rd_ == _Rt_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rt_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ != _Rt_) dGPR(_Rt_);
     dSa();
 }
 declare(disSRL) {
     dOpCode("srl");
-    if (_Rd_ == _Rt_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rt_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ != _Rt_) dGPR(_Rt_);
     dSa();
 }
 
@@ -484,35 +432,20 @@ declare(disSRL) {
  *********************************************************/
 declare(disSLLV) {
     dOpCode("sllv");
-    if (_Rd_ == _Rt_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rt_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ != _Rt_) dGPR(_Rt_);
     dGPR(_Rs_);
 }
 declare(disSRAV) {
     dOpCode("srav");
-    if (_Rd_ == _Rt_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rt_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ != _Rt_) dGPR(_Rt_);
     dGPR(_Rs_);
 }
 declare(disSRLV) {
     dOpCode("srlv");
-    if (_Rd_ == _Rt_) {
-        dGPR(_Rd_);
-    } else {
-        dGPR(_Rd_);
-        dGPR(_Rt_);
-    }
-
+    dGPR(_Rd_);
+    if (_Rd_ != _Rt_) dGPR(_Rt_);
     dGPR(_Rs_);
 }
 
@@ -525,19 +458,70 @@ declare(disLUI) {
     uint8_t nextRt = (nextCode >> 16) & 0x1f;
     uint8_t nextRs = (nextCode >> 21) & 0x1f;
     uint16_t nextImm = nextCode & 0xffff;
-    if (skipNext && (nextIns == 9) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
+    uint32_t imm = static_cast<uint32_t>(static_cast<int16_t>(nextImm)) + (static_cast<uint32_t>(_Im_) << 16);
+    if (skipNext && (nextIns == 0x09) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
+        // next = addiu
         dOpCode("li");
         dGPR(_Rt_);
-        uint32_t imm = static_cast<uint32_t>(static_cast<int16_t>(nextImm)) + (static_cast<uint32_t>(_Im_) << 16);
         Imm32(imm);
         *skipNext = true;
-    } else if (skipNext && (nextIns == 13) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
+    } else if (skipNext && (nextIns == 0x0d) && (_Rt_ == nextRt) && (nextRt == nextRs)) {
+        // next = ori
         dOpCode("li");
         dGPR(_Rt_);
-        uint32_t imm = static_cast<uint32_t>(nextImm) | (static_cast<uint32_t>(_Im_) << 16);
+        imm = static_cast<uint32_t>(nextImm) | (static_cast<uint32_t>(_Im_) << 16);
         Imm32(imm);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x20) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = lb
+        dOpCode("lb");
+        dGPR(nextRt);
+        Offset(imm, 1);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x21) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = lh
+        dOpCode("lh");
+        dGPR(nextRt);
+        Offset(imm, 2);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x23) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = lw
+        dOpCode("lw");
+        dGPR(nextRt);
+        Offset(imm, 4);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x24) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = lbu
+        dOpCode("lbu");
+        dGPR(nextRt);
+        Offset(imm, 1);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x25) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = lhu
+        dOpCode("lhu");
+        dGPR(nextRt);
+        Offset(imm, 2);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x28) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = sb
+        dOpCode("sb");
+        dGPR(nextRt);
+        Offset(imm, 1);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x29) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = sh
+        dOpCode("sh");
+        dGPR(nextRt);
+        Offset(imm, 2);
+        *skipNext = true;
+    } else if (skipNext && (nextIns == 0x2b) && (_Rt_ == nextRs) && (_Rt_ == 1)) {
+        // next = sw
+        dOpCode("sw");
+        dGPR(nextRt);
+        Offset(imm, 4);
         *skipNext = true;
     } else {
+        // normal lui
         dOpCode("lui");
         dGPR(_Rt_);
         dImm();
@@ -654,16 +638,21 @@ declare(disCTC2) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 declare(disBEQ) {
-    dOpCode("beq");
-    dGPR(_Rs_);
-    dGPR(_Rt_);
-    dOffset();
+    if (_Rs_ == _Rt_) {
+        dOpCode("b");
+        dBranch();
+    } else {
+        dOpCode("beq");
+        dGPR(_Rs_);
+        dGPR(_Rt_);
+        dBranch();
+    }
 }
 declare(disBNE) {
     dOpCode("bne");
     dGPR(_Rs_);
     dGPR(_Rt_);
-    dOffset();
+    dBranch();
 }
 
 /*********************************************************
@@ -690,9 +679,7 @@ declare(disJR) {
 declare(disJALR) {
     dOpCode("jalr");
     dGPR(_Rs_);
-    if (_Rd_ != 31) {
-        dGPR(_Rd_);
-    }
+    if (_Rd_ != 31) dGPR(_Rd_);
 }
 
 /*********************************************************
