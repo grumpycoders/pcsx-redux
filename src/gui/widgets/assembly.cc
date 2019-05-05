@@ -202,19 +202,25 @@ class ImGuiAsm : public PCSX::Disasm {
         comma();
         sameLine();
         char label[21];
+        ImGui::Text("");
+        ImGui::SameLine();
         std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
         auto symbol = m_symbols.find(value);
         if (symbol == m_symbols.end()) {
-            if (ImGui::SmallButton(label)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            if (ImGui::Button(label)) {
                 m_jumpToPC = true;
                 m_jumpToPCValue = value;
             }
+            ImGui::PopStyleVar();
         } else {
             std::string longLabel = symbol->second + " ;" + label;
-            if (ImGui::SmallButton(longLabel.c_str())) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            if (ImGui::Button(longLabel.c_str())) {
                 m_jumpToPC = true;
                 m_jumpToPCValue = value;
             }
+            ImGui::PopStyleVar();
         }
     }
     virtual void Sa(uint8_t value) final {
@@ -249,9 +255,11 @@ class ImGuiAsm : public PCSX::Disasm {
         char label[16];
         std::snprintf(label, sizeof(label), "0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
         uint32_t addr = m_registers->GPR.r[reg] + offset;
-        ImGui::Text(" ");
+        ImGui::Text("");
         ImGui::SameLine();
-        if (ImGui::SmallButton(label)) jumpToMemory(addr, size);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        if (ImGui::Button(label)) jumpToMemory(addr, size);
+        ImGui::PopStyleVar();
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -274,19 +282,25 @@ class ImGuiAsm : public PCSX::Disasm {
         comma();
         sameLine();
         char label[21];
+        ImGui::Text("");
+        ImGui::SameLine();
         std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
         auto symbol = m_symbols.find(value);
         if (symbol == m_symbols.end()) {
-            if (ImGui::SmallButton(label)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            if (ImGui::Button(label)) {
                 m_jumpToPC = true;
                 m_jumpToPCValue = value;
             }
+            ImGui::PopStyleVar();
         } else {
             std::string longLabel = symbol->second + " ;" + label;
-            if (ImGui::SmallButton(longLabel.c_str())) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            if (ImGui::Button(longLabel.c_str())) {
                 m_jumpToPC = true;
                 m_jumpToPCValue = value;
             }
+            ImGui::PopStyleVar();
         }
     }
     virtual void Offset(uint32_t addr, int size) final {
@@ -294,9 +308,11 @@ class ImGuiAsm : public PCSX::Disasm {
         sameLine();
         char label[16];
         std::snprintf(label, sizeof(label), "0x%8.8x", addr);
-        ImGui::Text(" ");
+        ImGui::Text("");
         ImGui::SameLine();
-        if (ImGui::SmallButton(label)) jumpToMemory(addr, size);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        if (ImGui::Button(label)) jumpToMemory(addr, size);
+        ImGui::PopStyleVar();
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
