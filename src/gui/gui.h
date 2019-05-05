@@ -101,6 +101,10 @@ class GUI final {
     bool m_showAbout = false;
     Widgets::Log m_log;
     struct MemoryEditorWrapper {
+        MemoryEditorWrapper() {
+            editor.OptShowDataPreview = true;
+            editor.OptUpperCaseHex = false;
+        }
         MemoryEditor editor;
         std::string title;
         bool & show = editor.Open;
