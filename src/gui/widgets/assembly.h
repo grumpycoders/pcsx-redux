@@ -24,6 +24,7 @@
 #include <map>
 #include <string>
 
+#include "core/disr3000a.h"
 #include "gui/widgets/filedialog.h"
 
 struct psxRegisters;
@@ -35,10 +36,11 @@ class Memory;
 
 namespace Widgets {
 
-class Assembly {
+class Assembly : private Disasm {
   public:
     Assembly(MemoryEditor* mainMemoryEditor, MemoryEditor* hwMemoryEditor)
-        : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
+        : m_mainMemoryEditor(mainMemoryEditor),
+          m_hwMemoryEditor(hwMemoryEditor) {
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     void draw(psxRegisters* registers, Memory* memory, const char* title);
@@ -53,8 +55,38 @@ class Assembly {
     char m_jumpAddressString[20];
     std::map<uint32_t, std::string> m_symbols;
     FileDialog m_symbolsFileDialog = {"Load Symbols"};
-    MemoryEditor* m_mainMemoryEditor;
-    MemoryEditor* m_hwMemoryEditor;
+    MemoryEditor* m_mainMemoryEditor = nullptr;
+    MemoryEditor* m_hwMemoryEditor = nullptr;
+
+    // Disasm section
+    void sameLine();
+    void comma();
+    uint8_t* ptr(uint32_t addr);
+    void jumpToMemory(uint32_t addr, int size);
+    uint8_t mem8(uint32_t addr);
+    uint16_t mem16(uint32_t addr);
+    uint32_t mem32(uint32_t addr);
+    virtual void OpCode(const char* str) final;
+    virtual void GPR(uint8_t reg) final;
+    virtual void CP0(uint8_t reg) final;
+    virtual void CP2C(uint8_t reg) final;
+    virtual void CP2D(uint8_t reg) final;
+    virtual void HI() final;
+    virtual void LO() final;
+    virtual void Imm(uint16_t value) final;
+    virtual void Imm32(uint32_t value) final;
+    virtual void Target(uint32_t value) final;
+    virtual void Sa(uint8_t value) final;
+    virtual void OfB(int16_t offset, uint8_t reg, int size) final;
+    virtual void BranchDest(uint32_t value) final;
+    virtual void Offset(uint32_t addr, int size) final;
+    bool m_gotArg = false;
+    bool m_notch = false;
+    psxRegisters* m_registers;
+    uint32_t m_currentAddr = 0;
+    bool m_jumpToPC = false;
+    uint32_t m_jumpToPCValue = 0;
+    Memory* m_memory;
 };
 
 }  // namespace Widgets
