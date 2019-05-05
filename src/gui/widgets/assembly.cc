@@ -33,6 +33,10 @@
 
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
+static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
+static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
+static ImVec4 s_labelColor = ImColor(0x01, 0x87, 0x86);
+
 namespace {
 
 uint32_t virtToReal(uint32_t virt) {
@@ -72,6 +76,7 @@ void DButton(const char* label, bool enabled, std::function<void(void)> clicked)
 }
 
 class DummyAsm : public PCSX::Disasm {
+    virtual void Invalid() final {}
     virtual void OpCode(const char* str) final {}
     virtual void GPR(uint8_t reg) final {}
     virtual void CP0(uint8_t reg) final {}
@@ -101,6 +106,14 @@ void PCSX::Widgets::Assembly::comma() {
     }
     m_gotArg = true;
 }
+void PCSX::Widgets::Assembly::Invalid() {
+    m_gotArg = false;
+    sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_invalidColor);
+    ImGui::Text("(**invalid**)");
+    ImGui::PopStyleColor();
+}
+
 void PCSX::Widgets::Assembly::OpCode(const char* str) {
     m_gotArg = false;
     sameLine();
@@ -195,12 +208,16 @@ void PCSX::Widgets::Assembly::LO() {
 void PCSX::Widgets::Assembly::Imm(uint16_t value) {
     comma();
     sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
     ImGui::Text(" 0x%4.4x", value);
+    ImGui::PopStyleColor();
 }
 void PCSX::Widgets::Assembly::Imm32(uint32_t value) {
     comma();
     sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
     ImGui::Text(" 0x%8.8x", value);
+    ImGui::PopStyleColor();
 }
 void PCSX::Widgets::Assembly::Target(uint32_t value) {
     comma();
@@ -230,7 +247,9 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
 void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     comma();
     sameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
     ImGui::Text(" 0x%2.2x", value);
+    ImGui::PopStyleColor();
 }
 uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
     uint8_t* lut = m_memory->g_psxMemRLUT[addr >> 16];
@@ -514,13 +533,14 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     if (c >= 0x7f) return '.';
                     return c;
                 };
-                b[0] = code & 0xff;
-                code >>= 8;
-                b[1] = code & 0xff;
-                code >>= 8;
-                b[2] = code & 0xff;
-                code >>= 8;
-                b[3] = code & 0xff;
+                uint32_t tcode = code;
+                b[0] = tcode & 0xff;
+                tcode >>= 8;
+                b[1] = tcode & 0xff;
+                tcode >>= 8;
+                b[2] = tcode & 0xff;
+                tcode >>= 8;
+                b[3] = tcode & 0xff;
                 if (jumpAddressValid && dispAddr == jumpAddressValue) {
                     ImVec2 pos = ImGui::GetCursorScreenPos();
                     const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
@@ -530,7 +550,9 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 }
                 auto symbol = m_symbols.find(dispAddr);
                 if (symbol != m_symbols.end()) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
                     ImGui::Text("%s:", symbol->second.c_str());
+                    ImGui::PopStyleColor();
                 }
                 ImGui::Text("%c %s:%8.8x %c%c%c%c %8.8x: ", p, section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
                             tc(b[3]), code);

@@ -97,6 +97,7 @@ struct StringDisasm : public PCSX::Disasm {
         if (m_gotArg) append(", ");
         m_gotArg = true;
     }
+    virtual void Invalid() final { strcpy(m_buf, "*** Bad OP ***"); }
     virtual void OpCode(const char *name) final {
         std::sprintf(m_buf, "%-7s", name);
         m_gotArg = false;
@@ -256,20 +257,20 @@ declare(disADD) {
     } else {
         dOpCode("add");
         dGPR(_Rd_);
-        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        if (_Rd_ != _Rs_) dGPR(_Rs_);
         dGPR(_Rt_);
     }
 }
 declare(disADDU) {
     dOpCode("addu");
     dGPR(_Rd_);
-    if (_Rd_ == _Rs_) dGPR(_Rs_);
+    if (_Rd_ != _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disAND) {
     dOpCode("and");
     dGPR(_Rd_);
-    if (_Rd_ == _Rs_) dGPR(_Rs_);
+    if (_Rd_ != _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disNOR) {
@@ -284,15 +285,21 @@ declare(disNOR) {
     } else {
         dOpCode("nor");
         dGPR(_Rd_);
-        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        if (_Rd_ != _Rs_) dGPR(_Rs_);
         dGPR(_Rt_);
     }
 }
 declare(disOR) {
+    if (_Rs_ == _Rt_) {
+        dOpCode("move");
+        dGPR(_Rd_);
+        dGPR(_Rs_);
+    } else {
     dOpCode("or");
     dGPR(_Rd_);
-    if (_Rd_ == _Rs_) dGPR(_Rs_);
+    if (_Rd_ != _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
+    }
 }
 declare(disSLT) {
     uint8_t nextIns = nextCode >> 26;
@@ -310,14 +317,14 @@ declare(disSLT) {
     } else {
         dOpCode("slt");
         dGPR(_Rd_);
-        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        if (_Rd_ != _Rs_) dGPR(_Rs_);
         dGPR(_Rt_);
     }
 }
 declare(disSLTU) {
     dOpCode("sltu");
     dGPR(_Rd_);
-    if (_Rd_ == _Rs_) dGPR(_Rs_);
+    if (_Rd_ != _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disSUB) {
@@ -328,20 +335,20 @@ declare(disSUB) {
     } else {
         dOpCode("sub");
         dGPR(_Rd_);
-        if (_Rd_ == _Rs_) dGPR(_Rs_);
+        if (_Rd_ != _Rs_) dGPR(_Rs_);
         dGPR(_Rt_);
     }
 }
 declare(disSUBU) {
     dOpCode("subu");
     dGPR(_Rd_);
-    if (_Rd_ == _Rs_) dGPR(_Rs_);
+    if (_Rd_ != _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 declare(disXOR) {
     dOpCode("xor");
     dGPR(_Rd_);
-    if (_Rd_ == _Rs_) dGPR(_Rs_);
+    if (_Rd_ != _Rs_) dGPR(_Rs_);
     dGPR(_Rt_);
 }
 
@@ -804,7 +811,10 @@ declare(disCTC0) {
  * Unknow instruction (would generate an exception)       *
  * Format:  ?                                             *
  *********************************************************/
-declare(disNULL) { dOpCode("*** Bad OP ***"); }
+declare(disNULL) {
+    reset();
+    Invalid();
+}
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_SPECIAL[] = {
     // Subset of disSPECIAL

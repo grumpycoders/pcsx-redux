@@ -52,6 +52,7 @@ class Disasm {
     virtual void reset() {}
 
   protected:
+    virtual void Invalid() = 0;
     virtual void OpCode(const char *str) = 0;
     virtual void GPR(uint8_t reg) = 0;
     virtual void CP0(uint8_t reg) = 0;

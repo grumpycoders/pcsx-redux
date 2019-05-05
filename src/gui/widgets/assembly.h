@@ -66,6 +66,7 @@ class Assembly : private Disasm {
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
+    virtual void Invalid() final;
     virtual void OpCode(const char* str) final;
     virtual void GPR(uint8_t reg) final;
     virtual void CP0(uint8_t reg) final;
