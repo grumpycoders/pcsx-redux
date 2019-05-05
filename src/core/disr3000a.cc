@@ -69,7 +69,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 #undef _Im_
 #undef _Target_
 
-#define declare(n) void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext)
+#define declare(n) void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext)
 #define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
@@ -203,9 +203,14 @@ declare(disADDI) {
     dImm();
 }
 declare(disADDIU) {
-    dOpCode("addiu");
-    dGPR(_Rt_);
-    if (_Rt_ != _Rs_) dGPR(_Rs_);
+    if (_Rs_ == 0) {
+        dOpCode("move");
+        dGPR(_Rt_);
+    } else {
+        dOpCode("addiu");
+        dGPR(_Rt_);
+        if (_Rt_ != _Rs_) dGPR(_Rs_);
+    }
     dImm();
 }
 declare(disANDI) {
@@ -301,6 +306,7 @@ declare(disSLT) {
         dGPR(_Rt_);
         BranchDest(pc + 4 + nextImm * 4);
         *skipNext = true;
+        if (delaySlotNext) *delaySlotNext = true;
     } else {
         dOpCode("slt");
         dGPR(_Rd_);
@@ -369,31 +375,37 @@ declare(disMULTU) {
  * Format:  OP rs, offset                                 *
  *********************************************************/
 declare(disBGEZ) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("bgez");
     dGPR(_Rs_);
     dBranch();
 }
 declare(disBGEZAL) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("bgezal");
     dGPR(_Rs_);
     dBranch();
 }
 declare(disBGTZ) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("bgtz");
     dGPR(_Rs_);
     dBranch();
 }
 declare(disBLEZ) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("blez");
     dGPR(_Rs_);
     dBranch();
 }
 declare(disBLTZ) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("bltz");
     dGPR(_Rs_);
     dBranch();
 }
 declare(disBLTZAL) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("bltzal");
     dGPR(_Rs_);
     dBranch();
@@ -638,6 +650,7 @@ declare(disCTC2) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 declare(disBEQ) {
+    if (delaySlotNext) *delaySlotNext = true;
     if (_Rs_ == _Rt_) {
         dOpCode("b");
         dBranch();
@@ -649,6 +662,7 @@ declare(disBEQ) {
     }
 }
 declare(disBNE) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("bne");
     dGPR(_Rs_);
     dGPR(_Rt_);
@@ -660,10 +674,12 @@ declare(disBNE) {
  * Format:  OP target                                     *
  *********************************************************/
 declare(disJ) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("j");
     dTarget();
 }
 declare(disJAL) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("jal");
     dTarget();
 }
@@ -673,10 +689,12 @@ declare(disJAL) {
  * Format:  OP rs, rd                                     *
  *********************************************************/
 declare(disJR) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("jr");
     dGPR(_Rs_);
 }
 declare(disJALR) {
+    if (delaySlotNext) *delaySlotNext = true;
     dOpCode("jalr");
     dGPR(_Rs_);
     if (_Rd_ != 31) dGPR(_Rd_);
@@ -810,7 +828,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_SPECIAL[] = {
 
 declare(disSPECIAL) {
     cTdisR3000AF ptr = s_disR3000A_SPECIAL[_Funct_];
-    (*this.*ptr)(code, nextCode, pc, skipNext);
+    (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BCOND[] = {
@@ -827,7 +845,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BCOND[] = {
 
 declare(disBCOND) {
     cTdisR3000AF ptr = s_disR3000A_BCOND[_Rt_];
-    (*this.*ptr)(code, nextCode, pc, skipNext);
+    (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP0[] = {
@@ -844,7 +862,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP0[] = {
 
 declare(disCOP0) {
     cTdisR3000AF ptr = s_disR3000A_COP0[_Rs_];
-    (*this.*ptr)(code, nextCode, pc, skipNext);
+    (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BASIC[] = {
@@ -861,7 +879,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BASIC[] = {
 
 declare(disBASIC) {
     cTdisR3000AF ptr = s_disR3000A_BASIC[_Rs_];
-    (*this.*ptr)(code, nextCode, pc, skipNext);
+    (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP2[] = {
@@ -886,7 +904,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP2[] = {
 
 declare(disCOP2) {
     cTdisR3000AF ptr = s_disR3000A_COP2[_Funct_];
-    (*this.*ptr)(code, nextCode, pc, skipNext);
+    (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {

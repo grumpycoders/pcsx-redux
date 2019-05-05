@@ -31,6 +31,8 @@
 #include "core/r3000a.h"
 #include "gui/widgets/assembly.h"
 
+#include "imgui_memory_editor/imgui_memory_editor.h"
+
 namespace {
 
 uint32_t virtToReal(uint32_t virt) {
@@ -98,7 +100,13 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void OpCode(const char* str) final {
         m_gotArg = false;
         sameLine();
-        ImGui::Text("%-6s", str);
+        if (m_notch) {
+            ImGui::TextDisabled("~");
+            ImGui::SameLine();
+            ImGui::Text("%-6s", str);
+        } else {
+            ImGui::Text("%-8s", str);
+        }
     }
     virtual void GPR(uint8_t reg) final {
         comma();
@@ -223,15 +231,28 @@ class ImGuiAsm : public PCSX::Disasm {
             return dummy;
         }
     }
+    void jumpToMemory(uint32_t addr, int size) {
+        uint32_t base = (addr >> 20) & 0xffc;
+        uint32_t real = addr & 0x1fffff;
+        if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
+            if (real < 0x00200000) m_mainMemoryEditor->GotoAddrAndHighlight(real, real + size);
+        } else if (base == 0x1f8) {
+            if (real >= 0x1000 && real < 0x3000) m_hwMemoryEditor->GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
+        }
+    }
     inline uint8_t mem8(uint32_t addr) { return *ptr(addr); }
     inline uint16_t mem16(uint32_t addr) { return SWAP_LE16(*(int16_t*)ptr(addr)); }
     inline uint32_t mem32(uint32_t addr) { return SWAP_LE32(*(int32_t*)ptr(addr)); }
     virtual void OfB(int16_t offset, uint8_t reg, int size) {
         comma();
         sameLine();
-        ImGui::Text(" 0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
+        char label[16];
+        std::snprintf(label, sizeof(label), "0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
+        uint32_t addr = m_registers->GPR.r[reg] + offset;
+        ImGui::Text(" ");
+        ImGui::SameLine();
+        if (ImGui::SmallButton(label)) jumpToMemory(addr, size);
         if (ImGui::IsItemHovered()) {
-            uint32_t addr = m_registers->GPR.r[reg] + offset;
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
             switch (size) {
@@ -271,7 +292,11 @@ class ImGuiAsm : public PCSX::Disasm {
     virtual void Offset(uint32_t addr, int size) final {
         comma();
         sameLine();
-        ImGui::Text(" 0x%8.8x", addr);
+        char label[16];
+        std::snprintf(label, sizeof(label), "0x%8.8x", addr);
+        ImGui::Text(" ");
+        ImGui::SameLine();
+        if (ImGui::SmallButton(label)) jumpToMemory(addr, size);
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -296,16 +321,25 @@ class ImGuiAsm : public PCSX::Disasm {
 
   public:
     ImGuiAsm(PCSX::psxRegisters* registers, PCSX::Memory* memory, bool& jumpToPC, uint32_t& jumpToPCValue,
-             const std::map<uint32_t, std::string>& symbols)
+             const std::map<uint32_t, std::string>& symbols, bool& notch, MemoryEditor* mainMemoryEditor,
+             MemoryEditor* hwMemoryEditor)
         : m_registers(registers),
           m_memory(memory),
           m_jumpToPC(jumpToPC),
           m_jumpToPCValue(jumpToPCValue),
-          m_symbols(symbols) {}
-    uint32_t m_currentAddr;
+          m_symbols(symbols),
+          m_notch(notch),
+          m_mainMemoryEditor(mainMemoryEditor),
+          m_hwMemoryEditor(hwMemoryEditor) {}
+    uint32_t m_currentAddr = 0;
+
+  private:
     bool& m_jumpToPC;
     uint32_t& m_jumpToPCValue;
     const std::map<uint32_t, std::string>& m_symbols;
+    bool& m_notch;
+    MemoryEditor* m_mainMemoryEditor;
+    MemoryEditor* m_hwMemoryEditor;
 };
 
 }  // namespace
@@ -318,7 +352,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         return;
     }
 
-    float glyphWidth = ImGui::CalcTextSize("@").x + 1;
+    float glyphWidth = ImGui::GetFontSize();
 
     bool openSymbolsDialog = false;
 
@@ -336,13 +370,47 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::MenuItem("Step Out", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOut();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Options")) {
+            ImGui::MenuItem("Combined pseudo-instructions", nullptr, &m_pseudo);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(glyphWidth * 35.0f);
+                ImGui::TextWrapped(
+                    "When two instructions are detected to be a single pseudo-instruction, combine them into the "
+                    "actual pseudo-instruction.");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+            ImGui::MenuItem("Pseudo-instrucitons filling", nullptr, &m_pseudoFilling, m_pseudo);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(glyphWidth * 35.0f);
+                ImGui::TextWrapped(
+                    "When combining two instructions into a single pseudo-instruction, add a placeholder for the "
+                    "second one.");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+            ImGui::MenuItem("Delay slot notch", nullptr, &m_delaySlotNotch);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(glyphWidth * 35.0f);
+                ImGui::TextWrapped(
+                    "Add a small visible notch to indicate instructions that are on the delay slot of a branch.");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+            ImGui::EndMenu();
+        }
         ImGui::EndMenuBar();
     }
 
     DummyAsm dummy;
     bool jumpToPC = false;
+    bool notch = false;
     uint32_t jumpToPCValue = 0;
-    ImGuiAsm imguiAsm(registers, memory, jumpToPC, jumpToPCValue, m_symbols);
+    ImGuiAsm imguiAsm(registers, memory, jumpToPC, jumpToPCValue, m_symbols, notch, m_mainMemoryEditor,
+                      m_hwMemoryEditor);
 
     uint32_t pc = virtToReal(registers->pc);
     ImGui::Checkbox("Follow PC", &m_followPC);
@@ -383,6 +451,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
 
     while (clipper.Step()) {
         bool skipNext = false;
+        bool delaySlotNext = false;
         typedef std::function<void(uint32_t, const char*, uint32_t)> prependType;
         auto process = [&](uint32_t addr, prependType prepend, PCSX::Disasm* disasm) {
             uint32_t code = 0;
@@ -414,7 +483,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 base = 0xbfc00000;
             }
             prepend(code, section, addr | base);
-            disasm->process(code, nextCode, addr | base, &skipNext);
+            disasm->process(code, nextCode, addr | base, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
+            notch = delaySlotNext & m_delaySlotNotch;
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
@@ -495,6 +565,10 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                         hasBP = false;
                     });
                     ImGui::EndPopup();
+                }
+                if (skipNext && m_pseudoFilling) {
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("pseudo");
                 }
             };
             process(addr, l, &imguiAsm);

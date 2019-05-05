@@ -113,7 +113,7 @@ class GUI final {
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
-    Widgets::Assembly m_assembly;
+    Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
 
     bool m_showCfg = false;

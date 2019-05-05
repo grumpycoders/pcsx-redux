@@ -27,6 +27,7 @@
 #include "gui/widgets/filedialog.h"
 
 struct psxRegisters;
+struct MemoryEditor;
 
 namespace PCSX {
 
@@ -36,15 +37,24 @@ namespace Widgets {
 
 class Assembly {
   public:
-    void draw(psxRegisters* registers, Memory * memory, const char* title);
+    Assembly(MemoryEditor* mainMemoryEditor, MemoryEditor* hwMemoryEditor)
+        : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
+        memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
+    }
+    void draw(psxRegisters* registers, Memory* memory, const char* title);
 
     bool m_show = false;
 
   private:
     bool m_followPC = false;
+    bool m_pseudoFilling = true;
+    bool m_pseudo = true;
+    bool m_delaySlotNotch = true;
     char m_jumpAddressString[20];
     std::map<uint32_t, std::string> m_symbols;
     FileDialog m_symbolsFileDialog = {"Load Symbols"};
+    MemoryEditor* m_mainMemoryEditor;
+    MemoryEditor* m_hwMemoryEditor;
 };
 
 }  // namespace Widgets
