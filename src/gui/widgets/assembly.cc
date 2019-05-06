@@ -275,7 +275,11 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     comma();
     sameLine();
     char label[16];
-    std::snprintf(label, sizeof(label), "0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
+    if (offset < 0) {
+        std::snprintf(label, sizeof(label), "-0x%4.4x($%s)", -offset, s_disRNameGPR[reg]);
+    } else {
+        std::snprintf(label, sizeof(label), "0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
+    }
     uint32_t addr = m_registers->GPR.r[reg] + offset;
     ImGui::Text("");
     ImGui::SameLine();
