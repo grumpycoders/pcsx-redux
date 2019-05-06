@@ -36,6 +36,8 @@
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
 static ImVec4 s_labelColor = ImColor(0x01, 0x87, 0x86);
+static ImVec4 s_bpColor = ImColor(0xba, 0x00, 0x0d);
+static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
 
 namespace {
 
@@ -525,11 +527,6 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     return true;
                 });
 
-                char p = ' ';
-                if (addr == pc) p = '>';
-                if (hasBP) p = 'o';
-                if (addr == pc && hasBP) p = 'X';
-
                 m_currentAddr = dispAddr;
                 uint8_t b[4];
                 auto tc = [](uint8_t c) -> char {
@@ -545,8 +542,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 b[2] = tcode & 0xff;
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
+                ImVec2 pos = ImGui::GetCursorScreenPos();
                 if (jumpAddressValid && dispAddr == jumpAddressValue) {
-                    ImVec2 pos = ImGui::GetCursorScreenPos();
                     const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
                     float height = ImGui::GetTextLineHeight();
                     float width = glyphWidth * 64;
@@ -558,7 +555,38 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     ImGui::Text("%s:", symbol->second.c_str());
                     ImGui::PopStyleColor();
                 }
-                ImGui::Text("%c %s:%8.8x %c%c%c%c %8.8x: ", p, section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
+                if (hasBP) {
+                    float x = pos.x + ImGui::GetTextLineHeight() / 2;
+                    float y = pos.y + glyphWidth / 2;
+                    drawList->AddCircleFilled(ImVec2(x, y), glyphWidth / 2, ImColor(s_bpColor));
+                }
+                if (addr == pc) {
+                    /*
+                       a
+                    d  +
+                    +--+\
+                    |  | + c
+                    +--+/e
+                       +
+                       b
+                    */
+                    ImVec2 a, b, c, d, e;
+                    const float dist = glyphWidth / 2;
+                    const float w2 = ImGui::GetTextLineHeight() / 4;
+                    a.x = pos.x + dist;
+                    a.y = pos.y;
+                    b.x = pos.x + dist;
+                    b.y = pos.y + ImGui::GetTextLineHeight();
+                    c.x = pos.x + glyphWidth;
+                    c.y = pos.y + ImGui::GetTextLineHeight() / 2;
+                    d.x = pos.x;
+                    d.y = pos.y + ImGui::GetTextLineHeight() / 2 - w2;
+                    e.x = pos.x + dist;
+                    e.y = pos.y + ImGui::GetTextLineHeight() / 2 + w2;
+                    drawList->AddTriangleFilled(a, b, c, ImColor(s_currentColor));
+                    drawList->AddRectFilled(d, e, ImColor(s_currentColor));
+                }
+                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
                             tc(b[3]), code);
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
