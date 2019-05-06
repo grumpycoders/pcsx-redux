@@ -477,13 +477,23 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             g_system->resume();
         }
     }
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    drawList->ChannelsSplit(2);
+    drawList->ChannelsSetCurrent(1);
+
     ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = 0;
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
+
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImGuiListClipper clipper(0x00290000 / 4);
+
+    ImVec2 topleft = drawList->GetClipRectMin();
+    ImVec2 bottomright = drawList->GetClipRectMax();
+
+    //drawList->AddLine(topleft, bottomright, ImColor(s_invalidColor));
 
     char* endPtr;
     uint32_t jumpAddressValue = strtoul(m_jumpAddressString, &endPtr, 16);
@@ -553,6 +563,9 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     }
                     return true;
                 });
+
+                ImGui::Text("    ");
+                ImGui::SameLine();
 
                 m_currentAddr = dispAddr;
                 uint8_t b[4];
@@ -666,6 +679,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         m_jumpToPC = false;
     }
     ImGui::EndChild();
+    drawList->ChannelsMerge();
     ImGui::End();
 
     if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
