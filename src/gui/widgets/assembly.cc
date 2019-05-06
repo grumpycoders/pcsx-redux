@@ -265,11 +265,38 @@ uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
 void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, int size) {
     uint32_t base = (addr >> 20) & 0xffc;
     uint32_t real = addr & 0x1fffff;
+    auto changeDataType = [](MemoryEditor* editor, int size) {
+        bool isSigned = false;
+        switch (editor->PreviewDataType) {
+            case MemoryEditor::DataType_S8:
+            case MemoryEditor::DataType_S16:
+            case MemoryEditor::DataType_S32:
+            case MemoryEditor::DataType_S64:
+                isSigned = true;
+                break;
+        }
+        switch (size) {
+            case 1:
+                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S8 : MemoryEditor::DataType_U8;
+                break;
+            case 2:
+                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S16 : MemoryEditor::DataType_U16;
+                break;
+            case 4:
+                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S32 : MemoryEditor::DataType_U32;
+                break;
+        }
+    };
     if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        if (real < 0x00200000) m_mainMemoryEditor->GotoAddrAndHighlight(real, real + size);
+        if (real < 0x00200000) {
+            m_mainMemoryEditor->GotoAddrAndHighlight(real, real + size);
+            changeDataType(m_mainMemoryEditor, size);
+        }
     } else if (base == 0x1f8) {
-        if (real >= 0x1000 && real < 0x3000)
+        if (real >= 0x1000 && real < 0x3000) {
             m_hwMemoryEditor->GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
+            changeDataType(m_hwMemoryEditor, size);
+        }
     }
 }
 
@@ -586,8 +613,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     drawList->AddTriangleFilled(a, b, c, ImColor(s_currentColor));
                     drawList->AddRectFilled(d, e, ImColor(s_currentColor));
                 }
-                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
-                            tc(b[3]), code);
+                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]),
+                            code);
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
