@@ -661,13 +661,39 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         }
     }
     drawList->ChannelsSetCurrent(0);
+    std::map<unsigned, decltype(m_arrows)> allocated;
     for (auto& arrowData : m_arrows) {
+        unsigned column = 0;
+        bool found = false;
+        uint32_t top = arrowData.first;
+        uint32_t bottom = arrowData.second;
+        if (top > bottom) std::swap(top, bottom);
+        while (!found) {
+            found = true;
+            for (auto& toCompare : allocated[column]) {
+                uint32_t topCompare = toCompare.first;
+                uint32_t bottomCompare = toCompare.second;
+                if (topCompare > bottomCompare) std::swap(topCompare, bottomCompare);
+                if (((top < topCompare) && (topCompare < bottom)) ||
+                    ((top < bottomCompare) && (bottomCompare < bottom)) ||
+                    ((topCompare < top) && (bottom < bottomCompare))) {
+                    found = false;
+                    break;
+                }
+            }
+            if (found) {
+                allocated[column].push_back(arrowData);
+                break;
+            } else {
+                column++;
+            }
+        }
         const float thickness = glyphWidth / 4;
         auto src = linesStartPos.find(arrowData.first);
         auto dst = linesStartPos.find(arrowData.second);
         float sx = src->second.x + ImGui::GetTextLineHeight() / 2;
         float sy = src->second.y + glyphWidth / 2;
-        float columnX = sx - glyphWidth;
+        float columnX = sx - glyphWidth * (column + 1);
         float direction = arrowData.first < arrowData.second ? 1.0f : -1.0f;
         ImVec2 p0, p1, cp0, cp1;
         p0.x = sx + glyphWidth / 4;
