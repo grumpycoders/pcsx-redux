@@ -57,6 +57,7 @@ class Assembly : private Disasm {
     FileDialog m_symbolsFileDialog = {"Load Symbols"};
     MemoryEditor* m_mainMemoryEditor = nullptr;
     MemoryEditor* m_hwMemoryEditor = nullptr;
+    std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
     // Disasm section
     void sameLine();

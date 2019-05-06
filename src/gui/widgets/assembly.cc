@@ -38,6 +38,7 @@ static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
 static ImVec4 s_labelColor = ImColor(0x01, 0x87, 0x86);
 static ImVec4 s_bpColor = ImColor(0xba, 0x00, 0x0d);
 static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
+static ImVec4 s_arrowColor = ImColor(0x61, 0x61, 0x61);
 
 namespace {
 
@@ -227,6 +228,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     char label[21];
     ImGui::Text("");
     ImGui::SameLine();
+    m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     auto symbol = m_symbols.find(value);
     if (symbol == m_symbols.end()) {
@@ -339,6 +341,7 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     char label[21];
     ImGui::Text("");
     ImGui::SameLine();
+    m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     auto symbol = m_symbols.find(value);
     if (symbol == m_symbols.end()) {
@@ -478,10 +481,6 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         }
     }
 
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-    drawList->ChannelsSplit(2);
-    drawList->ChannelsSetCurrent(1);
-
     ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = 0;
@@ -490,14 +489,18 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper(0x00290000 / 4);
 
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    drawList->ChannelsSplit(2);
+    drawList->ChannelsSetCurrent(1);
     ImVec2 topleft = drawList->GetClipRectMin();
     ImVec2 bottomright = drawList->GetClipRectMax();
-
-    //drawList->AddLine(topleft, bottomright, ImColor(s_invalidColor));
 
     char* endPtr;
     uint32_t jumpAddressValue = strtoul(m_jumpAddressString, &endPtr, 16);
     bool jumpAddressValid = *m_jumpAddressString && !*endPtr;
+
+    std::map<uint32_t, ImVec2> linesStartPos;
+    m_arrows.clear();
 
     while (clipper.Step()) {
         bool skipNext = false;
@@ -583,6 +586,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
                 ImVec2 pos = ImGui::GetCursorScreenPos();
+                linesStartPos[dispAddr] = pos;
                 if (jumpAddressValid && dispAddr == jumpAddressValue) {
                     const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
                     float height = ImGui::GetTextLineHeight();
@@ -656,6 +660,56 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             process(addr, l, this);
         }
     }
+    drawList->ChannelsSetCurrent(0);
+    for (auto& arrowData : m_arrows) {
+        const float thickness = glyphWidth / 4;
+        auto src = linesStartPos.find(arrowData.first);
+        auto dst = linesStartPos.find(arrowData.second);
+        float sx = src->second.x + ImGui::GetTextLineHeight() / 2;
+        float sy = src->second.y + glyphWidth / 2;
+        float columnX = sx - glyphWidth;
+        float direction = arrowData.first < arrowData.second ? 1.0f : -1.0f;
+        ImVec2 p0, p1, cp0, cp1;
+        p0.x = sx + glyphWidth / 4;
+        p0.y = sy;
+        p1.x = columnX;
+        p1.y = sy + direction * ImGui::GetTextLineHeight() / 2;
+        cp0.x = p1.x - thickness;
+        cp0.y = p0.y;
+        cp1.x = columnX;
+        cp1.y = p0.y - thickness * direction;
+        drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+        if (dst != linesStartPos.end()) {
+            float dx = dst->second.x + ImGui::GetTextLineHeight() / 2;
+            float dy = dst->second.y + glyphWidth / 2;
+            p0.x = columnX;
+            p0.y = dy - direction * ImGui::GetTextLineHeight() / 2;
+            drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
+            p1.x = dx + glyphWidth / 4;
+            p1.y = dy;
+            cp1.x = p0.x - thickness;
+            cp1.y = p1.y;
+            cp0.x = columnX;
+            cp0.y = p1.y + thickness * direction;
+            p1.x -= thickness;
+            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+            ImVec2 a, b, c;
+            a = b = c = p1;
+            a.x += thickness;
+            b.x -= thickness;
+            b.y -= thickness;
+            c.x -= thickness;
+            c.y += thickness;
+            drawList->AddTriangleFilled(a, b, c, ImColor(s_arrowColor));
+        } else {
+            float height = bottomright.y - topleft.y;
+            ImVec2 out;
+            out.x = p1.x;
+            out.y = height * 2 * direction;
+            drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowColor), thickness);
+        }
+    }
+    drawList->ChannelsMerge();
     ImGui::EndChild();
     if (m_jumpToPC) {
         std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPCValue);
@@ -679,7 +733,6 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         m_jumpToPC = false;
     }
     ImGui::EndChild();
-    drawList->ChannelsMerge();
     ImGui::End();
 
     if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
