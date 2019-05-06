@@ -276,11 +276,11 @@ void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, int size) {
 void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     comma();
     sameLine();
-    char label[16];
+    char label[32];
     if (offset < 0) {
-        std::snprintf(label, sizeof(label), "-0x%4.4x($%s)", -offset, s_disRNameGPR[reg]);
+        std::snprintf(label, sizeof(label), "-0x%4.4x($%s)##%08x", -offset, s_disRNameGPR[reg], m_currentAddr);
     } else {
-        std::snprintf(label, sizeof(label), "0x%4.4x($%s)", offset, s_disRNameGPR[reg]);
+        std::snprintf(label, sizeof(label), "0x%4.4x($%s)##%08x", offset, s_disRNameGPR[reg], m_currentAddr);
     }
     uint32_t addr = m_registers->GPR.r[reg] + offset;
     ImGui::Text("");
@@ -334,8 +334,8 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
 void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     comma();
     sameLine();
-    char label[16];
-    std::snprintf(label, sizeof(label), "0x%8.8x", addr);
+    char label[32];
+    std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
     ImGui::Text("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
