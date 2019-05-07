@@ -52,6 +52,8 @@ class Assembly : private Disasm {
     bool m_pseudoFilling = true;
     bool m_pseudo = true;
     bool m_delaySlotNotch = true;
+    bool m_displayArrowForJumps = false;
+    int m_numColumns = 4;
     char m_jumpAddressString[20];
     std::map<uint32_t, std::string> m_symbols;
     FileDialog m_symbolsFileDialog = {"Load Symbols"};

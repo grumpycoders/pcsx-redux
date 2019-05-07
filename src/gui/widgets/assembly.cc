@@ -39,6 +39,7 @@ static ImVec4 s_labelColor = ImColor(0x01, 0x87, 0x86);
 static ImVec4 s_bpColor = ImColor(0xba, 0x00, 0x0d);
 static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
 static ImVec4 s_arrowColor = ImColor(0x61, 0x61, 0x61);
+static ImVec4 s_arrowOutlineColor = ImColor(0x37, 0x37, 0x37);
 
 namespace {
 
@@ -228,7 +229,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     char label[21];
     ImGui::Text("");
     ImGui::SameLine();
-    m_arrows.push_back({m_currentAddr, value});
+    if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     auto symbol = m_symbols.find(value);
     if (symbol == m_symbols.end()) {
@@ -448,6 +449,16 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
+            ImGui::MenuItem("Draw arrows for jumps", nullptr, &m_displayArrowForJumps);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(glyphWidth * 35.0f);
+                ImGui::TextWrapped(
+                    "Display arrows for jumps. This might crowd the display a bit too much.");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+            ImGui::SliderInt("columns", &m_numColumns, 0, 32);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -490,8 +501,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     ImGuiListClipper clipper(0x00290000 / 4);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    drawList->ChannelsSplit(2);
-    drawList->ChannelsSetCurrent(1);
+    drawList->ChannelsSplit(129);
+    drawList->ChannelsSetCurrent(128);
     ImVec2 topleft = drawList->GetClipRectMin();
     ImVec2 bottomright = drawList->GetClipRectMax();
 
@@ -567,9 +578,6 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     return true;
                 });
 
-                ImGui::Text("    ");
-                ImGui::SameLine();
-
                 m_currentAddr = dispAddr;
                 uint8_t b[4];
                 auto tc = [](uint8_t c) -> char {
@@ -585,19 +593,27 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 b[2] = tcode & 0xff;
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
-                ImVec2 pos = ImGui::GetCursorScreenPos();
-                linesStartPos[dispAddr] = pos;
-                if (jumpAddressValid && dispAddr == jumpAddressValue) {
-                    const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
-                    float height = ImGui::GetTextLineHeight();
-                    float width = glyphWidth * 64;
-                    drawList->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), bgcolor);
-                }
+
                 auto symbol = m_symbols.find(dispAddr);
                 if (symbol != m_symbols.end()) {
                     ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
                     ImGui::Text("%s:", symbol->second.c_str());
                     ImGui::PopStyleColor();
+                }
+
+                for (int i = 0; i < m_numColumns; i++) {
+                    ImGui::Text("");
+                    ImGui::SameLine();
+                }
+
+                ImVec2 pos = ImGui::GetCursorScreenPos();
+                linesStartPos[dispAddr] = pos;
+
+                if (jumpAddressValid && dispAddr == jumpAddressValue) {
+                    const ImColor bgcolor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
+                    float height = ImGui::GetTextLineHeight();
+                    float width = glyphWidth * 64;
+                    drawList->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), bgcolor);
                 }
                 if (hasBP) {
                     float x = pos.x + ImGui::GetTextLineHeight() / 2;
@@ -660,7 +676,11 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             process(addr, l, this);
         }
     }
-    drawList->ChannelsSetCurrent(0);
+    std::sort(m_arrows.begin(), m_arrows.end(), [](const auto& a, const auto& b) -> bool {
+        int64_t distA = static_cast<int64_t>(a.first) - static_cast<int64_t>(a.second);
+        int64_t distB = static_cast<int64_t>(b.first) - static_cast<int64_t>(b.second);
+        return distA > distB;
+    });
     std::map<unsigned, decltype(m_arrows)> allocated;
     for (auto& arrowData : m_arrows) {
         unsigned column = 0;
@@ -681,58 +701,83 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     break;
                 }
             }
-            if (found) {
+            if (found || (column == 63)) {
                 allocated[column].push_back(arrowData);
                 break;
             } else {
                 column++;
             }
         }
-        const float thickness = glyphWidth / 4;
-        auto src = linesStartPos.find(arrowData.first);
-        auto dst = linesStartPos.find(arrowData.second);
-        float sx = src->second.x + ImGui::GetTextLineHeight() / 2;
-        float sy = src->second.y + glyphWidth / 2;
-        float columnX = sx - glyphWidth * (column + 1);
-        float direction = arrowData.first < arrowData.second ? 1.0f : -1.0f;
-        ImVec2 p0, p1, cp0, cp1;
-        p0.x = sx + glyphWidth / 4;
-        p0.y = sy;
-        p1.x = columnX;
-        p1.y = sy + direction * ImGui::GetTextLineHeight() / 2;
-        cp0.x = p1.x - thickness;
-        cp0.y = p0.y;
-        cp1.x = columnX;
-        cp1.y = p0.y - thickness * direction;
-        drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
-        if (dst != linesStartPos.end()) {
-            float dx = dst->second.x + ImGui::GetTextLineHeight() / 2;
-            float dy = dst->second.y + glyphWidth / 2;
-            p0.x = columnX;
-            p0.y = dy - direction * ImGui::GetTextLineHeight() / 2;
-            drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
-            p1.x = dx + glyphWidth / 4;
-            p1.y = dy;
-            cp1.x = p0.x - thickness;
-            cp1.y = p1.y;
-            cp0.x = columnX;
-            cp0.y = p1.y + thickness * direction;
-            p1.x -= thickness;
+    }
+    for (auto& columnData : allocated) {
+        unsigned column = columnData.first;
+        for (auto& arrowData : columnData.second) {
+            const float thickness = glyphWidth / 4;
+            auto src = linesStartPos.find(arrowData.first);
+            auto dst = linesStartPos.find(arrowData.second);
+            float sx = src->second.x + ImGui::GetTextLineHeight() / 2;
+            float sy = src->second.y + glyphWidth / 2;
+            float columnX = sx - glyphWidth * (column + 1);
+            float direction = arrowData.first < arrowData.second ? 1.0f : -1.0f;
+            ImVec2 p0, p1, cp0, cp1;
+            p0.x = sx + glyphWidth / 4;
+            p0.y = sy;
+            p1.x = columnX;
+            p1.y = sy + direction * ImGui::GetTextLineHeight() / 2;
+            cp0.x = p1.x - thickness;
+            cp0.y = p0.y;
+            cp1.x = columnX;
+            cp1.y = p0.y - thickness * direction;
+            drawList->ChannelsSetCurrent(1 + column * 2);
             drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
-            ImVec2 a, b, c;
-            a = b = c = p1;
-            a.x += thickness;
-            b.x -= thickness;
-            b.y -= thickness;
-            c.x -= thickness;
-            c.y += thickness;
-            drawList->AddTriangleFilled(a, b, c, ImColor(s_arrowColor));
-        } else {
-            float height = bottomright.y - topleft.y;
-            ImVec2 out;
-            out.x = p1.x;
-            out.y = height * 2 * direction;
-            drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowColor), thickness);
+            drawList->ChannelsSetCurrent(0 + column * 2);
+            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+            if (dst != linesStartPos.end()) {
+                float dx = dst->second.x + ImGui::GetTextLineHeight() / 2;
+                float dy = dst->second.y + glyphWidth / 2;
+                p0.x = columnX;
+                p0.y = dy - direction * ImGui::GetTextLineHeight() / 2;
+                drawList->ChannelsSetCurrent(1 + column * 2);
+                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
+                drawList->ChannelsSetCurrent(0 + column * 2);
+                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                p1.x = dx + glyphWidth / 4;
+                p1.y = dy;
+                cp1.x = p0.x - thickness;
+                cp1.y = p1.y;
+                cp0.x = columnX;
+                cp0.y = p1.y + thickness * direction;
+                p1.x -= thickness;
+                drawList->ChannelsSetCurrent(1 + column * 2);
+                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+                drawList->ChannelsSetCurrent(0 + column * 2);
+                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                ImVec2 a, b, c;
+                a = b = c = p1;
+                a.x += thickness;
+                b.x -= thickness;
+                b.y -= thickness;
+                c.x -= thickness;
+                c.y += thickness;
+                drawList->ChannelsSetCurrent(1 + column * 2);
+                drawList->AddTriangleFilled(a, b, c, ImColor(s_arrowColor));
+                a.x += 2;
+                b.x -= 2;
+                b.y -= 2;
+                c.x -= 2;
+                c.y += 2;
+                drawList->ChannelsSetCurrent(0 + column * 2);
+                drawList->AddTriangleFilled(a, b, c, ImColor(s_arrowOutlineColor));
+            } else {
+                float height = bottomright.y - topleft.y;
+                ImVec2 out;
+                out.x = p1.x;
+                out.y = height * 2 * direction;
+                drawList->ChannelsSetCurrent(1 + column * 2);
+                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowColor), thickness);
+                drawList->ChannelsSetCurrent(0 + column * 2);
+                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
+            }
         }
     }
     drawList->ChannelsMerge();
