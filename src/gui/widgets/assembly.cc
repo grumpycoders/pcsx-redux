@@ -786,7 +786,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPCValue);
     }
     ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
-    if (ImGui::InputText("##address", m_jumpAddressString, 20,
+    if (ImGui::InputText("Address", m_jumpAddressString, 20,
                          ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
         char* endPtr;
         uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);

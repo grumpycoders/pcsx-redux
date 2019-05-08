@@ -27,6 +27,17 @@ class Breakpoints {
   public:
     void draw(const char* title);
     bool m_show = false;
+
+  private:
+    bool m_filterE = true;
+    bool m_filterR1 = true;
+    bool m_filterR2 = true;
+    bool m_filterR4 = true;
+    bool m_filterW1 = true;
+    bool m_filterW2 = true;
+    bool m_filterW4 = true;
+    char m_bpAddressString[20];
+    int m_breakpointType = 0;
 };
 
 }  // namespace Widgets

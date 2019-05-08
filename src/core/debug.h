@@ -31,7 +31,8 @@ namespace PCSX {
 class Debug {
   public:
     enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
-    static inline const char *s_breakpoint_type_names[] = {"Exec", "Read Byte", "Read Half", "Read Word", "Write Byte", "Write Healf", "Write Word"};
+    static inline const char *s_breakpoint_type_names[] = {"Exec",       "Read Byte",   "Read Half", "Read Word",
+                                                           "Write Byte", "Write Healf", "Write Word"};
 
     void processBefore();
     void processAfter();
@@ -42,8 +43,7 @@ class Debug {
     class Breakpoint {
       public:
         BreakpointType type() const { return m_type; }
-        Breakpoint(BreakpointType type, bool temporary = false)
-            : m_type(type), m_temporary(temporary) {}
+        Breakpoint(BreakpointType type, bool temporary = false) : m_type(type), m_temporary(temporary) {}
         Breakpoint() : m_type(BE), m_temporary(true) {}
 
       private:
@@ -65,6 +65,13 @@ class Debug {
         startStepping();
     }
 
+    bool m_mapping_e = false;
+    bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
+    bool m_mapping_w8 = false, m_mapping_w16 = false, m_mapping_w32 = false;
+    bool m_breakmp_e = false;
+    bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
+    bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
+
   private:
     void startStepping();
     typedef std::multimap<uint32_t, Breakpoint> BreakpointList;
@@ -83,17 +90,10 @@ class Debug {
     inline bool isValidBP(bpiterator pos) { return m_breakpoints.end() != pos; }
     inline void eraseBP(bpiterator pos) { m_breakpoints.erase(pos); }
     inline bpiterator lastBP() { return m_lastBP; }
+    inline bpiterator endBP() { return m_breakpoints.end(); }
 
-  private:
-    BreakpointList m_breakpoints;
+        private : BreakpointList m_breakpoints;
     bpiterator m_lastBP = m_breakpoints.end();
-
-    bool m_mapping_e = false;
-    bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
-    bool m_mapping_w8 = false, m_mapping_w16 = false, m_mapping_w32 = false;
-    bool m_breakmp_e = false;
-    bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
-    bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
 
     uint8_t m_mainMemoryMap[0x00200000];
     uint8_t m_biosMemoryMap[0x00080000];
