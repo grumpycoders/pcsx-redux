@@ -30,6 +30,7 @@
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
 #include "gui/widgets/assembly.h"
+#include "gui/widgets/breakpoints.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
@@ -119,6 +120,7 @@ class GUI final {
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
+    Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
 

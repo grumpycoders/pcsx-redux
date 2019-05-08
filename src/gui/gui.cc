@@ -350,6 +350,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
                 ImGui::MenuItem("Show Registers", nullptr, &m_registers.m_show);
                 ImGui::MenuItem("Show Assembly", nullptr, &m_assembly.m_show);
+                ImGui::MenuItem("Show Breakpoints", nullptr, &m_breakpoints.m_show);
                 if (ImGui::BeginMenu("Memory Editors")) {
                     for (auto& editor : m_mainMemEditors) {
                         editor.MenuItem();
@@ -467,6 +468,10 @@ void PCSX::GUI::endFrame() {
 
     if (m_assembly.m_show) {
         m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), "Assembly");
+    }
+
+    if (m_breakpoints.m_show) {
+        m_breakpoints.draw("Breakpoints");
     }
 
     if (m_showAbout) {

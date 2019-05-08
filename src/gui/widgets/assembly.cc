@@ -559,9 +559,9 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             Debug::bpiterator currentBP;
             prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
                 bool hasBP = false;
-                PCSX::g_emulator.m_debug->ForEachBP([&](PCSX::Debug::bpiterator it) mutable {
+                PCSX::g_emulator.m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
                     uint32_t addr = dispAddr;
-                    uint32_t bpAddr = it->Address();
+                    uint32_t bpAddr = it->first;
                     uint32_t base = (addr >> 20) & 0xffc;
                     uint32_t bpBase = (bpAddr >> 20) & 0xffc;
                     if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
@@ -570,7 +570,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     if ((bpBase == 0x000) || (bpBase == 0x800) || (bpBase == 0xa00)) {
                         bpAddr &= 0x1fffff;
                     }
-                    if ((it->Type() == Debug::BE) && (addr == bpAddr)) {
+                    if ((it->second.type() == Debug::BE) && (addr == bpAddr)) {
                         hasBP = true;
                         currentBP = it;
                         return false;
@@ -652,17 +652,17 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton("Run to cursor", !PCSX::g_system->running(), [&]() mutable {
-                        PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE, true);
+                        PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE, true);
                         ImGui::CloseCurrentPopup();
                         PCSX::g_system->resume();
                     });
                     DButton("Set Breakpoint here", !hasBP, [&]() mutable {
-                        PCSX::g_emulator.m_debug->AddBreakpoint(dispAddr, Debug::BE);
+                        PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE);
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
                     DButton("Remove breakpoint from here", hasBP, [&]() mutable {
-                        PCSX::g_emulator.m_debug->EraseBP(currentBP);
+                        PCSX::g_emulator.m_debug->eraseBP(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
                     });

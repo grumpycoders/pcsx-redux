@@ -20,7 +20,7 @@
 #pragma once
 
 #include <functional>
-#include <list>
+#include <map>
 #include <string>
 
 #include "core/psxemulator.h"
@@ -31,23 +31,22 @@ namespace PCSX {
 class Debug {
   public:
     enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
-    static inline const char *s_breakpoint_type_names[] = {"E", "R1", "R2", "R4", "W1", "W2", "W4"};
+    static inline const char *s_breakpoint_type_names[] = {"Exec", "Read Byte", "Read Half", "Read Word", "Write Byte", "Write Healf", "Write Word"};
 
-    void ProcessDebugBefore();
-    void ProcessDebugAfter();
-    void DebugCheckBP(uint32_t address, BreakpointType type);
-    std::string GenerateFlowIDC();
-    std::string GenerateMarkIDC();
+    void processBefore();
+    void processAfter();
+    void checkBP(uint32_t address, BreakpointType type);
+    std::string generateFlowIDC();
+    std::string generateMarkIDC();
 
     class Breakpoint {
       public:
-        BreakpointType Type() const { return m_type; }
-        uint32_t Address() const { return m_address; }
-        Breakpoint(uint32_t address, BreakpointType type, bool temporary = false)
-            : m_address(address), m_type(type), m_temporary(temporary) {}
+        BreakpointType type() const { return m_type; }
+        Breakpoint(BreakpointType type, bool temporary = false)
+            : m_type(type), m_temporary(temporary) {}
+        Breakpoint() : m_type(BE), m_temporary(true) {}
 
       private:
-        uint32_t m_address;
         BreakpointType m_type;
         bool m_temporary;
         friend class Debug;
@@ -68,21 +67,22 @@ class Debug {
 
   private:
     void startStepping();
-    typedef std::list<Breakpoint> BreakpointList;
+    typedef std::multimap<uint32_t, Breakpoint> BreakpointList;
 
   public:
     typedef BreakpointList::const_iterator bpiterator;
-    inline void AddBreakpoint(uint32_t address, BreakpointType type, bool temporary = false) {
-        m_breakpoints.emplace_back(address, type, temporary);
+    inline void addBreakpoint(uint32_t address, BreakpointType type, bool temporary = false) {
+        m_breakpoints.insert({address, {type, temporary}});
     }
-    inline void ForEachBP(std::function<bool(bpiterator)> lambda) {
+    inline auto findBreakpoints(uint32_t address) { return m_breakpoints.equal_range(address); }
+    inline void forEachBP(std::function<bool(bpiterator)> lambda) {
         for (auto i = m_breakpoints.begin(); i != m_breakpoints.end(); i++) {
             if (!lambda(i)) return;
         }
     }
-    inline void EraseBP(bpiterator pos) { m_breakpoints.erase(pos); }
-    inline bool HasLastBP() { return m_lastBP != m_breakpoints.end(); }
-    inline bpiterator LastBP() { return m_lastBP; }
+    inline bool isValidBP(bpiterator pos) { return m_breakpoints.end() != pos; }
+    inline void eraseBP(bpiterator pos) { m_breakpoints.erase(pos); }
+    inline bpiterator lastBP() { return m_lastBP; }
 
   private:
     BreakpointList m_breakpoints;
@@ -100,8 +100,8 @@ class Debug {
     uint8_t m_parpMemoryMap[0x00010000];
     uint8_t m_scratchPadMap[0x00000400];
 
-    void MarkMap(uint32_t address, int mask);
-    bool IsMapMarked(uint32_t address, int mask);
+    void markMap(uint32_t address, int mask);
+    bool isMapMarked(uint32_t address, int mask);
     void triggerBP(bpiterator bp);
 
     enum {
