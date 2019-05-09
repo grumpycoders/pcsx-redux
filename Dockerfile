@@ -1,4 +1,6 @@
-FROM ubuntu:bionic
+FROM codercom/code-server:1.939
+
+USER root
 
 RUN apt update
 RUN apt install -y wget gnupg
@@ -9,3 +11,5 @@ RUN apt-add-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic ma
 RUN apt update
 RUN apt install -y make g++-8 clang-9 git
 RUN apt install -y pkg-config libsdl2-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev zlib1g-dev
+
+USER coder
