@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,37 +19,27 @@
 
 #pragma once
 
-#include "core/misc.h"
-#include "core/psxemulator.h"
-#include "core/psxmem.h"
-#include "core/r3000a.h"
-#include "core/sio.h"
-
 namespace PCSX {
 
-class Bios {
+namespace Widgets {
+
+class Breakpoints {
   public:
-    Bios() {}
-    virtual ~Bios() {}
-    static const char *A0names[256];
-    static const char *B0names[256];
-    static const char *C0names[256];
+    void draw(const char* title);
+    bool m_show = false;
 
-    virtual void psxBiosInit() = 0;
-    virtual void psxBiosShutdown() = 0;
-    virtual void psxBiosException() = 0;
-    virtual void psxBiosFreeze(int Mode) = 0;
-
-    virtual bool callA0(unsigned index) = 0;
-    virtual bool callB0(unsigned index) = 0;
-    virtual bool callC0(unsigned index) = 0;
-
-    bool inSoftCall() { return m_hleSoftCall; }
-
-    static Bios *factory();
-
-  protected:
-    bool m_hleSoftCall;
+  private:
+    bool m_filterE = true;
+    bool m_filterR1 = true;
+    bool m_filterR2 = true;
+    bool m_filterR4 = true;
+    bool m_filterW1 = true;
+    bool m_filterW2 = true;
+    bool m_filterW4 = true;
+    char m_bpAddressString[20];
+    int m_breakpointType = 0;
 };
+
+}  // namespace Widgets
 
 }  // namespace PCSX

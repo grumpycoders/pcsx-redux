@@ -202,8 +202,6 @@ void PCSX::Counters::psxRcntUpdate() {
             PCSX::g_emulator.EmuUpdate();
         }
     }
-
-    PCSX::g_emulator.m_debug->DebugVSync();
 }
 
 /******************************************************************************/

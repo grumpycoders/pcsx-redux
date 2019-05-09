@@ -164,7 +164,6 @@
     <ClCompile Include="..\..\src\core\psxmem.cc" />
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
-    <ClCompile Include="..\..\src\core\socket.cc" />
     <ClCompile Include="..\..\src\core\spu.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
   </ItemGroup>
@@ -201,7 +200,6 @@
     <ClInclude Include="..\..\src\core\r3000a.h" />
     <ClInclude Include="..\..\src\core\sio.h" />
     <ClInclude Include="..\..\src\core\sjisfont.h" />
-    <ClInclude Include="..\..\src\core\socket.h" />
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\system.h" />
   </ItemGroup>

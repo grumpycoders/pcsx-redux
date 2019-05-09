@@ -259,8 +259,9 @@ class R3000Acpu {
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
     virtual void Reset() = 0;
-    virtual void Execute() = 0;      /* executes up to a break */
-    virtual void ExecuteBlock() = 0; /* executes up to a jump */
+    virtual void Execute() = 0;         /* executes up to a debug break */
+    virtual void ExecuteHLEBlock() = 0; /* executes up to a jump, to run an HLE softcall;
+                                           debug breaks won't happen until after the softcall */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -400,7 +401,7 @@ class InterpretedCPU : public R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
-    virtual void ExecuteBlock() override;
+    virtual void ExecuteHLEBlock() override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;

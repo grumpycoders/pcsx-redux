@@ -35,7 +35,7 @@ class Disasm {
     static const char *s_disRNameCP2C[];
     static const char *s_disRNameCP0[];
 
-#define declare(n) void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr)
+#define declare(n) void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool *delaySlotNext = nullptr)
 
     declare(process) {
         if (skipNext && *skipNext) {
@@ -43,14 +43,16 @@ class Disasm {
             *skipNext = false;
             return;
         }
+        if (delaySlotNext) *delaySlotNext = false;
         cTdisR3000AF ptr = s_disR3000A[code >> 26];
-        (*this.*ptr)(code, nextCode, pc, skipNext);
+        (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
     }
 
     static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr);
     virtual void reset() {}
 
   protected:
+    virtual void Invalid() = 0;
     virtual void OpCode(const char *str) = 0;
     virtual void GPR(uint8_t reg) = 0;
     virtual void CP0(uint8_t reg) = 0;
@@ -63,11 +65,12 @@ class Disasm {
     virtual void Target(uint32_t value) = 0;
     virtual void Sa(uint8_t value) = 0;
     virtual void OfB(int16_t offset, uint8_t reg, int size) = 0;
-    virtual void Offset(uint32_t offset) = 0;
+    virtual void BranchDest(uint32_t offset) = 0;
+    virtual void Offset(uint32_t offset, int size) = 0;
 
   private:
     // Type definition of our functions
-    typedef void (Disasm::*TdisR3000AF)(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext);
+    typedef void (Disasm::*TdisR3000AF)(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext);
     typedef const TdisR3000AF cTdisR3000AF;
     static const TdisR3000AF s_disR3000A[];
     static const TdisR3000AF s_disR3000A_COP0[];

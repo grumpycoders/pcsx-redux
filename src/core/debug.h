@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,6 +19,10 @@
 
 #pragma once
 
+#include <functional>
+#include <map>
+#include <string>
+
 #include "core/psxemulator.h"
 #include "core/system.h"
 
@@ -26,49 +30,87 @@ namespace PCSX {
 
 class Debug {
   public:
-    enum breakpoint_types { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
+    enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
+    static inline const char *s_breakpoint_type_names[] = {"Exec",       "Read Byte",   "Read Half", "Read Word",
+                                                           "Write Byte", "Write Healf", "Write Word"};
 
-    void StartDebugger();
-    void StopDebugger();
+    void processBefore();
+    void processAfter();
+    void checkBP(uint32_t address, BreakpointType type);
+    std::string generateFlowIDC();
+    std::string generateMarkIDC();
 
-    void DebugVSync();
-    void ProcessDebug();
+    class Breakpoint {
+      public:
+        BreakpointType type() const { return m_type; }
+        Breakpoint(BreakpointType type, bool temporary = false) : m_type(type), m_temporary(temporary) {}
+        Breakpoint() : m_type(BE), m_temporary(true) {}
 
-    void DebugCheckBP(uint32_t address, enum breakpoint_types type);
-
-    void PauseDebugger();
-    void ResumeDebugger();
-
-  private:
-    int s_debugger_active = 0, s_paused = 0, s_trace = 0, s_printpc = 0, s_reset = 0, s_resetting = 0;
-    int s_run_to = 0;
-    uint32_t s_run_to_addr = 0;
-    int s_step_over = 0;
-    uint32_t s_step_over_addr = 0;
-    int s_mapping_e = 0;
-    int s_mapping_r8 = 0, s_mapping_r16 = 0, s_mapping_r32 = 0;
-    int s_mapping_w8 = 0, s_mapping_w16 = 0, s_mapping_w32 = 0;
-    int s_breakmp_e = 0;
-    int s_breakmp_r8 = 0, s_breakmp_r16 = 0, s_breakmp_r32 = 0;
-    int s_breakmp_w8 = 0, s_breakmp_w16 = 0, s_breakmp_w32 = 0;
-
-    uint8_t *s_memoryMap = NULL;
-
-    struct breakpoint_t {
-        breakpoint_t *next, *prev;
-        int number, type;
-        uint32_t address;
+      private:
+        BreakpointType m_type;
+        bool m_temporary;
+        friend class Debug;
     };
 
-    breakpoint_t *s_firstBP = NULL;
+    void stepIn() {
+        m_stepType = STEP_IN;
+        startStepping();
+    }
+    void stepOver() {
+        m_stepType = STEP_OVER;
+        startStepping();
+    }
+    void stepOut() {
+        m_stepType = STEP_OUT;
+        startStepping();
+    }
 
-    void ProcessCommands();
-    int add_breakpoint(int type, uint32_t address);
-    void delete_breakpoint(breakpoint_t *bp);
-    breakpoint_t *next_breakpoint(breakpoint_t *bp);
-    breakpoint_t *find_breakpoint(int number);
-    void MarkMap(uint32_t address, int mask);
-    int IsMapMarked(uint32_t address, int mask);
+    bool m_mapping_e = false;
+    bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
+    bool m_mapping_w8 = false, m_mapping_w16 = false, m_mapping_w32 = false;
+    bool m_breakmp_e = false;
+    bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
+    bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
+
+  private:
+    void startStepping();
+    typedef std::multimap<uint32_t, Breakpoint> BreakpointList;
+
+  public:
+    typedef BreakpointList::const_iterator bpiterator;
+    inline void addBreakpoint(uint32_t address, BreakpointType type, bool temporary = false) {
+        m_breakpoints.insert({address, {type, temporary}});
+    }
+    inline auto findBreakpoints(uint32_t address) { return m_breakpoints.equal_range(address); }
+    inline void forEachBP(std::function<bool(bpiterator)> lambda) {
+        for (auto i = m_breakpoints.begin(); i != m_breakpoints.end(); i++) {
+            if (!lambda(i)) return;
+        }
+    }
+    inline bool isValidBP(bpiterator pos) { return m_breakpoints.end() != pos; }
+    inline void eraseBP(bpiterator pos) { m_breakpoints.erase(pos); }
+    inline bpiterator lastBP() { return m_lastBP; }
+    inline bpiterator endBP() { return m_breakpoints.end(); }
+
+        private : BreakpointList m_breakpoints;
+    bpiterator m_lastBP = m_breakpoints.end();
+
+    uint8_t m_mainMemoryMap[0x00200000];
+    uint8_t m_biosMemoryMap[0x00080000];
+    uint8_t m_parpMemoryMap[0x00010000];
+    uint8_t m_scratchPadMap[0x00000400];
+
+    void markMap(uint32_t address, int mask);
+    bool isMapMarked(uint32_t address, int mask);
+    void triggerBP(bpiterator bp);
+
+    enum {
+        STEP_IN,
+        STEP_OVER,
+        STEP_OUT,
+    } m_stepType;
+    bool m_stepping = false;
+    int m_steppingJumps = 0;
 };
 
 }  // namespace PCSX

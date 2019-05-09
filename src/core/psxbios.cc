@@ -489,11 +489,11 @@ class BiosImpl : public PCSX::Bios {
 
     inline void softCall(uint32_t pc) {
         pc0 = pc;
-        ra = 0x80001000;
+        ra = 0;
 
         m_hleSoftCall = true;
 
-        while (pc0 != 0x80001000) PCSX::g_emulator.m_psxCpu->ExecuteBlock();
+        while (pc0 != 0) PCSX::g_emulator.m_psxCpu->ExecuteHLEBlock();
 
         m_hleSoftCall = false;
     }
@@ -501,11 +501,11 @@ class BiosImpl : public PCSX::Bios {
     inline void softCall2(uint32_t pc) {
         uint32_t sra = ra;
         pc0 = pc;
-        ra = 0x80001000;
+        ra = 0;
 
         m_hleSoftCall = true;
 
-        while (pc0 != 0x80001000) PCSX::g_emulator.m_psxCpu->ExecuteBlock();
+        while (pc0 != 0) PCSX::g_emulator.m_psxCpu->ExecuteHLEBlock();
         ra = sra;
 
         m_hleSoftCall = false;
