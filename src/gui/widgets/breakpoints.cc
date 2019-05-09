@@ -45,16 +45,16 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGui::Checkbox("Map word writes        ", &debugger->m_mapping_w32);
     ImGui::Separator();
     ImGui::Checkbox("Break on execution map", &debugger->m_breakmp_e);
-    ImGui::Checkbox("Break on byte read map ", &debugger->m_mapping_r8);
+    ImGui::Checkbox("Break on byte read map ", &debugger->m_breakmp_r8);
     ImGui::SameLine();
-    ImGui::Checkbox("Break on half read map ", &debugger->m_mapping_r16);
+    ImGui::Checkbox("Break on half read map ", &debugger->m_breakmp_r16);
     ImGui::SameLine();
-    ImGui::Checkbox("Break on word read map ", &debugger->m_mapping_r32);
-    ImGui::Checkbox("Break on byte write map", &debugger->m_mapping_w8);
+    ImGui::Checkbox("Break on word read map ", &debugger->m_breakmp_r32);
+    ImGui::Checkbox("Break on byte write map", &debugger->m_breakmp_w8);
     ImGui::SameLine();
-    ImGui::Checkbox("Break on half write map", &debugger->m_mapping_w16);
+    ImGui::Checkbox("Break on half write map", &debugger->m_breakmp_w16);
     ImGui::SameLine();
-    ImGui::Checkbox("Break on word write map", &debugger->m_mapping_w32);
+    ImGui::Checkbox("Break on word write map", &debugger->m_breakmp_w32);
     ImGui::Separator();
     ImGui::Text("Breakpoints");
     if (ImGui::Button("Show all breakpoints")) {
