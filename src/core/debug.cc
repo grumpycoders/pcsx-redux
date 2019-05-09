@@ -123,8 +123,8 @@ void PCSX::Debug::triggerBP(bpiterator bp) {
 }
 
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type) {
-    auto range = m_breakpoints.equal_range(address);
-    for (auto it = range.first; it != range.second; it++) {
+    auto [begin, end] = m_breakpoints.equal_range(address);
+    for (auto it = begin; it != end; it++) {
         if ((it->second.m_type == type) && (it->first == address)) {
             triggerBP(it);
             break;

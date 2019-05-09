@@ -22,7 +22,11 @@
 #include "core/debug.h"
 #include "gui/widgets/breakpoints.h"
 
+static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
+
 void PCSX::Widgets::Breakpoints::draw(const char* title) {
+    ImGui::SetNextWindowPos(ImVec2(520, 30), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return;
@@ -71,7 +75,15 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGui::Checkbox("Show half write BPs    ", &m_filterW2);
     ImGui::SameLine();
     ImGui::Checkbox("Show word write BPs    ", &m_filterW4);
-    ImGui::BeginChild("BreakpointsList", ImVec2(0, 0), true);
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    const float heightSeparator = style.ItemSpacing.y;
+    float footerHeight = 0;
+    footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
+    float glyphWidth = ImGui::GetFontSize();
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+    ImGui::BeginChild("BreakpointsList", ImVec2(0, -footerHeight), true);
     Debug::bpiterator eraseBP = debugger->endBP();
     debugger->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
         switch (it->second.type()) {
@@ -97,20 +109,40 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                 if (!m_filterW4) return true;
                 break;
         }
-        ImGui::Text("%8.8x - %s  ", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]);
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImGui::Text("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]);
+        ImGui::SameLine();
         std::string buttonLabel = "Remove##";
         buttonLabel += it->first;
         buttonLabel += Debug::s_breakpoint_type_names[it->second.type()];
         if (ImGui::Button(buttonLabel.c_str())) {
             eraseBP = it;
         }
+        if (debugger->lastBP() != it) return true;
+        ImVec2 a, b, c, d, e;
+        const float dist = glyphWidth / 2;
+        const float w2 = ImGui::GetTextLineHeight() / 4;
+        a.x = pos.x + dist;
+        a.y = pos.y;
+        b.x = pos.x + dist;
+        b.y = pos.y + ImGui::GetTextLineHeight();
+        c.x = pos.x + glyphWidth;
+        c.y = pos.y + ImGui::GetTextLineHeight() / 2;
+        d.x = pos.x;
+        d.y = pos.y + ImGui::GetTextLineHeight() / 2 - w2;
+        e.x = pos.x + dist;
+        e.y = pos.y + ImGui::GetTextLineHeight() / 2 + w2;
+        drawList->AddTriangleFilled(a, b, c, ImColor(s_currentColor));
+        drawList->AddRectFilled(d, e, ImColor(s_currentColor));
+
         return true;
     });
     ImGui::EndChild();
     if (debugger->isValidBP(eraseBP)) {
         debugger->eraseBP(eraseBP);
     }
-    ImGui::InputText("Address", m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
+    ImGui::InputText("##address", m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
     ImGui::SameLine();
     if (ImGui::BeginCombo("Breakpoint Type", Debug::s_breakpoint_type_names[m_breakpointType])) {
         for (int i = 0; i < 7; i++) {
@@ -120,6 +152,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         }
         ImGui::EndCombo();
     }
+    ImGui::PopItemWidth();
     ImGui::SameLine();
     if (ImGui::Button("Add Breakpoint")) {
         char* endPtr;
