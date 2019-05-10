@@ -17,7 +17,7 @@ jobs:
       - run:
           name: Build
           command: |
-            make -j
+            make -j 2
 
 workflows:
   version: 2
