@@ -20,7 +20,7 @@ find repository/src -name *.c -or -name *.cc -or -name *.h | while read f ; do
   format "$f"
 done
 
-find repository/vsprojects -name *.vcxproj -or -name *.sln | while read f ; do
+find repository/vsprojects -name *.vcxproj | while read f ; do
   echo "$f"
   clean "$f"
 done
