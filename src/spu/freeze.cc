@@ -33,8 +33,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #define _IN_FREEZE
 
 #include "spu/externals.h"

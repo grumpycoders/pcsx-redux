@@ -81,8 +81,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"

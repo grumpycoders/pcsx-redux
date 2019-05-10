@@ -39,7 +39,7 @@ void ShowGpuPic(void);
 void ShowTextGpuPic(void);
 
 #ifdef _WIN32
-void MoveScanLineArea(HWND hwnd);
+//void MoveScanLineArea(HWND hwnd);
 #endif
 
 ///////////////////////////////////////////////////////////////////////

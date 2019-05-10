@@ -39,8 +39,6 @@
 
 #define NOMINMAX
 
-#include "stdafx.h"
-
 #include <algorithm>
 
 #define _IN_REGISTERS

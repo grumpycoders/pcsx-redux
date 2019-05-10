@@ -101,8 +101,6 @@
 #include <stdint.h>
 
 #include "GL/gl3w.h"
-#include "stdafx.h"
-
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
