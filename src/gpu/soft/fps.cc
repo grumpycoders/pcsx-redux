@@ -98,8 +98,8 @@ void CheckFrameRate(void) {
         calcfps();  // -> calc fps display in skipping mode
     } else          // non-skipping mode:
     {
-        if (UseFrameLimit) FrameCap();           // -> do it
-//        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
+        if (UseFrameLimit) FrameCap();  // -> do it
+                                        //        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
     }
 }
 
@@ -229,7 +229,7 @@ void FrameCapSSSPSX(void)  // frame limit func SSSPSX
 
 void FrameSkip(void) {
     static int iNumSkips = 0, iAdditionalSkip = 0;  // number of additional frames to skip
-    static Uint32 dwLastLace = 0;                    // helper var for frame limitation
+    static Uint32 dwLastLace = 0;                   // helper var for frame limitation
     static Uint32 curticks, lastticks, _ticks_since_last_update;
     static Uint64 CurrentTime;
     static Uint64 LastTime;
@@ -254,7 +254,7 @@ void FrameSkip(void) {
                     dwLaceCnt;  // -> and that's the number of updatelace since the start of the last drawn frame
 
                 if (UsePerformanceCounter)  // -> now we calc the time of the last drawn frame + the time we spent
-                                           // skipping
+                                            // skipping
                 {
                     CurrentTime = SDL_GetPerformanceCounter();
                     _ticks_since_last_update = dwT + CurrentTime - LastTime;
@@ -287,8 +287,8 @@ void FrameSkip(void) {
                     if (iAdditionalSkip <
                         MAXSKIP)  // -> well, somewhen we really have to stop skipping on very slow systems
                     {
-                        iAdditionalSkip++;         // -> inc our watchdog var
-                        dwLaceCnt = 0;             // -> reset lace count
+                        iAdditionalSkip++;          // -> inc our watchdog var
+                        dwLaceCnt = 0;              // -> reset lace count
                         if (UsePerformanceCounter)  // -> ok, start time of the next frame
                             LastTime = SDL_GetPerformanceCounter();
                         lastticks = SDL_GetTicks();
@@ -297,9 +297,9 @@ void FrameSkip(void) {
                 }
             }
 
-            bInitCap = false;          // -> ok, we have inited the frameskip func
-            iAdditionalSkip = 0;       // -> init additional skip
-            bSkipNextFrame = false;    // -> we don't skip the next frame
+            bInitCap = false;           // -> ok, we have inited the frameskip func
+            iAdditionalSkip = 0;        // -> init additional skip
+            bSkipNextFrame = false;     // -> we don't skip the next frame
             if (UsePerformanceCounter)  // -> we store the start time of the next frame
                 LastTime = SDL_GetPerformanceCounter();
             lastticks = SDL_GetTicks();
@@ -559,9 +559,7 @@ void SetAutoFrameCap(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void SetFPSHandler(void) {
-    CPUFrequency = SDL_GetPerformanceFrequency();
-}
+void SetFPSHandler(void) { CPUFrequency = SDL_GetPerformanceFrequency(); }
 
 ////////////////////////////////////////////////////////////////////////
 

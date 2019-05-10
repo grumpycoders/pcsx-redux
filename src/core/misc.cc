@@ -360,9 +360,9 @@ bool CheckCdrom() {
     if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
         if ((PCSX::g_emulator.m_cdromId[2] == 'e') || (PCSX::g_emulator.m_cdromId[2] == 'E') ||
             !strncmp(PCSX::g_emulator.m_cdromId, "DTLS3035", 8) ||
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||          // according to redump.org, these PAL
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||          // discs have a non-standard ID;
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))            // add more serials if they are discovered.
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
+            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
             PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_PAL;  // pal
         else
             PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
@@ -503,7 +503,7 @@ int Load(const char *ExePath) {
                             break;
                         default:
                             PCSX::g_system->printf(_("Unknown CPE opcode %02x at position %08x.\n"), opcode,
-                                                      ftell(tmpFile) - 1);
+                                                   ftell(tmpFile) - 1);
                             retval = -1;
                             break;
                     }
@@ -838,14 +838,14 @@ int CheckState(const char *file) {
 int SendPcsxInfo() {
     if (NET_recvData == NULL || NET_sendData == NULL) return 0;
 
-    #if 0
+#if 0
     NET_sendData(&PCSX::g_emulator.config().Xa, sizeof(PCSX::g_emulator.config().Xa), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().SioIrq, sizeof(PCSX::g_emulator.config().SioIrq), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().SpuIrq, sizeof(PCSX::g_emulator.config().SpuIrq), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().RCntFix, sizeof(PCSX::g_emulator.config().RCntFix), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
     NET_sendData(&PCSX::g_emulator.config().Cpu, sizeof(PCSX::g_emulator.config().Cpu), PSE_NET_BLOCKING);
-    #endif
+#endif
 
     return 0;
 }
@@ -855,13 +855,13 @@ int RecvPcsxInfo() {
 
     if (NET_recvData == NULL || NET_sendData == NULL) return 0;
 
-    #if 0
+#if 0
     NET_recvData(&PCSX::g_emulator.config().Xa, sizeof(PCSX::g_emulator.config().Xa), PSE_NET_BLOCKING);
     NET_recvData(&PCSX::g_emulator.config().SioIrq, sizeof(PCSX::g_emulator.config().SioIrq), PSE_NET_BLOCKING);
     NET_recvData(&PCSX::g_emulator.config().SpuIrq, sizeof(PCSX::g_emulator.config().SpuIrq), PSE_NET_BLOCKING);
     NET_recvData(&PCSX::g_emulator.config().RCntFix, sizeof(PCSX::g_emulator.config().RCntFix), PSE_NET_BLOCKING);
     NET_recvData(&PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
-    #endif
+#endif
 
     PCSX::g_system->update();
 

@@ -39,8 +39,7 @@ namespace Widgets {
 class Assembly : private Disasm {
   public:
     Assembly(MemoryEditor* mainMemoryEditor, MemoryEditor* hwMemoryEditor)
-        : m_mainMemoryEditor(mainMemoryEditor),
-          m_hwMemoryEditor(hwMemoryEditor) {
+        : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     void draw(psxRegisters* registers, Memory* memory, const char* title);

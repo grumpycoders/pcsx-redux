@@ -33,7 +33,6 @@ class SDLsound {
     void feedStreamData(unsigned char* pSound, long lBytes);
 
   private:
-
     void callback(Uint8* stream, int len);
     static void callbackTrampoline(void* userdata, Uint8* stream, int len) {
         SDLsound* that = static_cast<SDLsound*>(userdata);

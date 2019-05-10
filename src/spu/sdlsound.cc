@@ -25,7 +25,6 @@
 
 #include "spu/sdlsound.h"
 
-
 void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len) {
     if ((BUFFER_SIZE - s_ptrBegin) < len) {
         size_t subLen = BUFFER_SIZE - s_ptrBegin;

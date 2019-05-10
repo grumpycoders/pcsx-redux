@@ -273,7 +273,8 @@ class CDRomImpl : public PCSX::CDRom {
 
     inline void StopCdda() {
         if (m_Play) {
-            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) m_iso.stop();
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+                m_iso.stop();
             m_StatP &= ~STATUS_PLAY;
             m_Play = false;
             m_FastForward = 0;

@@ -464,7 +464,7 @@ void DoBufferSwap() {
 ////////////////////////////////////////////////////////////////////////
 
 int DXinitialize() {
-//    InitMenu();  // menu init
+    //    InitMenu();  // menu init
 
     return 0;
 }
@@ -475,7 +475,7 @@ int DXinitialize() {
 
 void DXcleanup()  // DX CLEANUP
 {
-//    CloseMenu();  // bye display lists
+    //    CloseMenu();  // bye display lists
 }
 
 ////////////////////////////////////////////////////////////////////////

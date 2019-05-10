@@ -811,7 +811,8 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
                 m_ti[m_numtracks].type = trackinfo::CDDA;
                 sector_size = PCSX::CDRom::CD_FRAMESIZE_RAW;
                 // Check if extension is mp3, etc, for compressed audio formats
-                if (m_multifile && (m_ti[m_numtracks].cddatype = get_cdda_type(m_ti[m_numtracks].filepath)) > trackinfo::BIN) {
+                if (m_multifile &&
+                    (m_ti[m_numtracks].cddatype = get_cdda_type(m_ti[m_numtracks].filepath)) > trackinfo::BIN) {
                     int seconds = get_compressed_cdda_track_length(filepath) + 0;
                     const bool lazy_decode = true;  // TODO: config param
 
@@ -1530,7 +1531,7 @@ ssize_t PCSX::CDRiso::cdread_compressed(File *f, unsigned int base, void *dest, 
         }
         if (cdbuffer_size != cdbuffer_size_expect)
             PCSX::g_system->printf("cdbuffer_size: %lu != %lu, sector %d\n", cdbuffer_size, cdbuffer_size_expect,
-                                      sector);
+                                   sector);
     }
 
     // done at last!
@@ -1744,7 +1745,7 @@ error:
 error_out:
     // memset(dest, 0x0, PCSX::CDRomCD_FRAMESIZE_RAW);
     PCSX::g_system->printf("Error decoding ECM image: WantedSector %i Type %i Base %i Sectors %i(%i) Pos %i(%li)\n",
-                              sector, type, base, sectorcount, pos->sector, writebytecount, f->tell());
+                           sector, type, base, sectorcount, pos->sector, writebytecount, f->tell());
     return -1;
 }
 
@@ -1897,7 +1898,7 @@ static int cdread_archive(FILE *f, unsigned int base, void *dest, int sector) {
             r = archive_read_data_block(a, &buff, &size, &offset);
             offset += size;
             PCSX::g_system->printf("ReadArchive seek:%u(%u) cur:%u(%u)\r", sector, readsize / 1024,
-                                      offset / PCSX::CDRomCD_FRAMESIZE_RAW, offset / 1024);
+                                   offset / PCSX::CDRomCD_FRAMESIZE_RAW, offset / 1024);
             fwrite(buff, size, 1, cdimage_buffer);
             if (r != ARCHIVE_OK) {
                 // PCSX::g_system->printf("End of archive.\n");
@@ -2288,7 +2289,8 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
     }
 
     // data tracks play silent (or CDDA set to silent)
-    if (m_ti[track].type != trackinfo::CDDA || PCSX::g_emulator.settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_DISABLED) {
+    if (m_ti[track].type != trackinfo::CDDA ||
+        PCSX::g_emulator.settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_DISABLED) {
         memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
         return true;
     }

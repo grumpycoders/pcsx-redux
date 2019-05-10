@@ -69,7 +69,8 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 #undef _Im_
 #undef _Target_
 
-#define declare(n) void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext)
+#define declare(n) \
+    void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext)
 #define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
@@ -295,10 +296,10 @@ declare(disOR) {
         dGPR(_Rd_);
         dGPR(_Rs_);
     } else {
-    dOpCode("or");
-    dGPR(_Rd_);
-    if (_Rd_ != _Rs_) dGPR(_Rs_);
-    dGPR(_Rt_);
+        dOpCode("or");
+        dGPR(_Rd_);
+        if (_Rd_ != _Rs_) dGPR(_Rs_);
+        dGPR(_Rt_);
     }
 }
 declare(disSLT) {

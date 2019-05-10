@@ -111,7 +111,7 @@ class CDRiso {
         unsigned int block_shift;
         unsigned int current_block;
         unsigned int sector_in_blk;
-    } * m_compr_img = NULL;
+    }* m_compr_img = NULL;
 
     read_func_t m_cdimg_read_func = NULL;
     read_func_t m_cdimg_read_func_archive = NULL;
@@ -151,13 +151,13 @@ class CDRiso {
 
     struct trackinfo {
         enum track_type_t { CLOSED = 0, DATA = 1, CDDA = 2 } type = CLOSED;
-        uint8_t start[3] = { 0, 0, 0 };                                    // MSF-format
-        uint8_t length[3] = { 0, 0, 0 };                                   // MSF-format
+        uint8_t start[3] = {0, 0, 0};                                      // MSF-format
+        uint8_t length[3] = {0, 0, 0};                                     // MSF-format
         File* handle = nullptr;                                            // for multi-track images CDDA
         enum cddatype_t { NONE = 0, BIN = 1, CCDDA = 2 } cddatype = NONE;  // BIN, WAV, MP3, APE
         char* decoded_buffer = nullptr;
         uint32_t len_decoded_buffer = 0;
-        char filepath[256] = { 0 };
+        char filepath[256] = {0};
         uint32_t start_offset = 0;  // byte offset from start of above file
     };
 

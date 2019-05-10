@@ -186,7 +186,6 @@ struct PadDataS {
     unsigned char moveX, moveY;
 
     unsigned char reserved[91];
-
 };
 
 /*         NET PlugIn v2       */
