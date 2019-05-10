@@ -91,6 +91,7 @@ class Assembly : private Disasm {
     bool m_jumpToPC = false;
     uint32_t m_jumpToPCValue = 0;
     Memory* m_memory;
+    uint32_t m_ramBase = 0x80000000;
 };
 
 }  // namespace Widgets

@@ -214,6 +214,22 @@ void PCSX::Widgets::Assembly::Imm(uint16_t value) {
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
     ImGui::Text(" 0x%4.4x", value);
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::Text("= %u", value);
+        if (value >= 0x8000) {
+          union {
+              uint16_t x;
+              int16_t y;
+          } v;
+          v.x = value;
+          ImGui::Text("= -0x%4.4x", -v.y);
+          ImGui::Text("= -%i", -v.y);
+        }
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
     ImGui::PopStyleColor();
 }
 void PCSX::Widgets::Assembly::Imm32(uint32_t value) {
@@ -221,6 +237,22 @@ void PCSX::Widgets::Assembly::Imm32(uint32_t value) {
     sameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, s_constantColor);
     ImGui::Text(" 0x%8.8x", value);
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::Text("= %u", value);
+        if (value >= 0x80000000) {
+          union {
+              uint32_t x;
+              int32_t y;
+          } v;
+          v.x = value;
+          ImGui::Text("= -0x%8.8x", -v.y);
+          ImGui::Text("= -%i", -v.y);
+        }
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
     ImGui::PopStyleColor();
 }
 void PCSX::Widgets::Assembly::Target(uint32_t value) {
@@ -528,7 +560,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 if (addr <= 0x001ffff8) {
                     nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxM + addr + 4);
                 }
-                base = 0x80000000;
+                base = m_ramBase;
             } else if (addr < 0x00210000) {
                 section = "PAR";
                 addr -= 0x00200000;
@@ -795,9 +827,31 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             m_jumpToPCValue = jumpAddress;
         }
     }
+    static const char * baseStrs[] = {"00000000", "80000000", "a0000000"};
+    static const uint32_t baseValues[] = {0x00000000, 0x80000000, 0xa0000000};
+    int base = 0;
+    if (m_ramBase == 0x80000000) base = 1;
+    if (m_ramBase == 0xa0000000) base = 2;
+    ImGui::SameLine();
+    if (ImGui::BeginCombo("RAM base", baseStrs[base])) {
+        for (int i = 0; i < 3; i++) {
+            if (ImGui::Selectable(baseStrs[i], base == i)) {
+                m_ramBase = baseValues[i];
+            }
+        }
+        ImGui::EndCombo();
+    }
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if (m_followPC || m_jumpToPC) {
+        if (m_followPC) {
+            uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
+            switch(basePC) {
+                case 0x000: m_ramBase = 0x00000000; break;
+                case 0x800: m_ramBase = 0x80000000; break;
+                case 0xa00: m_ramBase = 0xa0000000; break;
+            }
+        }
         uint64_t pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
         uint64_t scroll_to_px = pctopx * static_cast<uint64_t>(ImGui::GetTextLineHeightWithSpacing());
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
