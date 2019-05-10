@@ -113,8 +113,6 @@
 
 #define NOMINMAX
 
-#include "stdafx.h"
-
 #include <stdint.h>
 
 #include <algorithm>

@@ -153,7 +153,6 @@
     <ClInclude Include="..\..\src\gpu\soft\prim.h" />
     <ClInclude Include="..\..\src\gpu\soft\resource.h" />
     <ClInclude Include="..\..\src\gpu\soft\soft.h" />
-    <ClInclude Include="..\..\src\gpu\soft\stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

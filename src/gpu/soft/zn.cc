@@ -24,8 +24,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #define _IN_ZN
 
 #include "gpu/soft/externals.h"
