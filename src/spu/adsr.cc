@@ -41,8 +41,6 @@
 // ADSR func
 ////////////////////////////////////////////////////////////////////////
 
-
-
 PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
 {
     unsigned long r, rs, rd;

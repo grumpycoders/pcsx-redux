@@ -31,7 +31,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         ImGui::End();
         return;
     }
-    auto & debugger = PCSX::g_emulator.m_debug;
+    auto& debugger = PCSX::g_emulator.m_debug;
     ImGui::Checkbox("Map execution", &debugger->m_mapping_e);
     ImGui::Checkbox("Map byte reads         ", &debugger->m_mapping_r8);
     ImGui::SameLine();

@@ -170,8 +170,8 @@ class impl {
     typedef Setting<bool, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>, true> SPUIRQWait;
     typedef Setting<int, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>, 2> Reverb;
     typedef Setting<int, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>, 2> Interpolation;
-    typedef Setting<bool, irqus::typestring<'M', 'o', 'n', 'o'>> Mono;
-    typedef Setting<bool, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'>> DBufIRQ;
+    typedef Setting<bool, irqus::typestring<'M', 'o', 'n', 'o'> > Mono;
+    typedef Setting<bool, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'> > DBufIRQ;
 #endif
     Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ> settings;
 
@@ -186,7 +186,7 @@ class impl {
     unsigned short spuStat = 0;
     unsigned short spuIrq = 0;
     uint32_t spuAddr = 0xffffffff;  // address into spu mem
-    int bEndThread = 0;                  // thread handlers
+    int bEndThread = 0;             // thread handlers
     int bThreadEnded = 0;
     int bSpuInit = 0;
 

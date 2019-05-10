@@ -108,7 +108,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
 
                 lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31UL, lx);                    // no overflow on shift!
+                lx = std::min(31UL, lx);             // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -147,7 +147,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSR.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
 
                 lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31UL, lx);                      // values are used to hold the volume
+                lx = std::min(31UL, lx);               // values are used to hold the volume
                 if (lx)                                // until a sound stop occurs
                 {                                      // the highest value we reach (due to
                     lx = (1 << lx);                    // overflow checking) is:

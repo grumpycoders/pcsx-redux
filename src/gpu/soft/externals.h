@@ -200,14 +200,14 @@ extern int iRumbleVal;
 extern int iRumbleTime;
 
 // menu.c
-//extern unsigned long dwCoreFlags;
-//extern HFONT hGFont;
+// extern unsigned long dwCoreFlags;
+// extern HFONT hGFont;
 extern int iMPos;
 extern bool bTransparent;
 
 // key.c
-//extern unsigned long ulKeybits;
-//extern char szGPUKeys[];
+// extern unsigned long ulKeybits;
+// extern char szGPUKeys[];
 
 // fps.c
 extern bool bInitCap;

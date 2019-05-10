@@ -92,7 +92,8 @@ class Debug {
     inline bpiterator lastBP() { return m_lastBP; }
     inline bpiterator endBP() { return m_breakpoints.end(); }
 
-        private : BreakpointList m_breakpoints;
+  private:
+    BreakpointList m_breakpoints;
     bpiterator m_lastBP = m_breakpoints.end();
 
     uint8_t m_mainMemoryMap[0x00200000];

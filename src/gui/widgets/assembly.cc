@@ -219,13 +219,13 @@ void PCSX::Widgets::Assembly::Imm(uint16_t value) {
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
         ImGui::Text("= %u", value);
         if (value >= 0x8000) {
-          union {
-              uint16_t x;
-              int16_t y;
-          } v;
-          v.x = value;
-          ImGui::Text("= -0x%4.4x", -v.y);
-          ImGui::Text("= -%i", -v.y);
+            union {
+                uint16_t x;
+                int16_t y;
+            } v;
+            v.x = value;
+            ImGui::Text("= -0x%4.4x", -v.y);
+            ImGui::Text("= -%i", -v.y);
         }
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
@@ -242,13 +242,13 @@ void PCSX::Widgets::Assembly::Imm32(uint32_t value) {
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
         ImGui::Text("= %u", value);
         if (value >= 0x80000000) {
-          union {
-              uint32_t x;
-              int32_t y;
-          } v;
-          v.x = value;
-          ImGui::Text("= -0x%8.8x", -v.y);
-          ImGui::Text("= -%i", -v.y);
+            union {
+                uint32_t x;
+                int32_t y;
+            } v;
+            v.x = value;
+            ImGui::Text("= -0x%8.8x", -v.y);
+            ImGui::Text("= -%i", -v.y);
         }
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
@@ -485,8 +485,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
-                    "Display arrows for jumps. This might crowd the display a bit too much.");
+                ImGui::TextWrapped("Display arrows for jumps. This might crowd the display a bit too much.");
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
@@ -827,7 +826,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             m_jumpToPCValue = jumpAddress;
         }
     }
-    static const char * baseStrs[] = {"00000000", "80000000", "a0000000"};
+    static const char* baseStrs[] = {"00000000", "80000000", "a0000000"};
     static const uint32_t baseValues[] = {0x00000000, 0x80000000, 0xa0000000};
     int base = 0;
     if (m_ramBase == 0x80000000) base = 1;
@@ -846,10 +845,16 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     if (m_followPC || m_jumpToPC) {
         if (m_followPC) {
             uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
-            switch(basePC) {
-                case 0x000: m_ramBase = 0x00000000; break;
-                case 0x800: m_ramBase = 0x80000000; break;
-                case 0xa00: m_ramBase = 0xa0000000; break;
+            switch (basePC) {
+                case 0x000:
+                    m_ramBase = 0x00000000;
+                    break;
+                case 0x800:
+                    m_ramBase = 0x80000000;
+                    break;
+                case 0xa00:
+                    m_ramBase = 0xa0000000;
+                    break;
             }
         }
         uint64_t pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;

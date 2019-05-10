@@ -46,7 +46,7 @@
 
 #define SIO_INT(eCycle)                                                                     \
     {                                                                                       \
-        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {                                            \
+        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {              \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
@@ -684,14 +684,12 @@ uint8_t PCSX::SIO::sioRead8() {
                         case 0x0002:
                             memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
                             SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str(), g_mcd1Data,
-                                    (s_adrL | (s_adrH << 8)) * 128,
-                                    128);
+                                    (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                         case 0x2002:
                             memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
                             SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str(), g_mcd2Data,
-                                    (s_adrL | (s_adrH << 8)) * 128,
-                                    128);
+                                    (s_adrL | (s_adrH << 8)) * 128, 128);
                             break;
                     }
                 }

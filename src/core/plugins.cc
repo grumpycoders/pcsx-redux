@@ -21,11 +21,11 @@
  * Plugin library callback/access functions.
  */
 
+#include "core/plugins.h"
 #include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/pad.h"
-#include "core/plugins.h"
 #include "core/psxemulator.h"
 #include "spu/interface.h"
 
@@ -223,13 +223,13 @@ SIO1registerCallback SIO1_registerCallback;
 
 static const char *err;
 
-#define CheckErr(func)                                                        \
-    {                                                                         \
-        err = SysLibError();                                                  \
-        if (err != NULL) {                                                    \
+#define CheckErr(func)                                                     \
+    {                                                                      \
+        err = SysLibError();                                               \
+        if (err != NULL) {                                                 \
             PCSX::g_system->message(_("Error loading %s: %s"), func, err); \
-            return -1;                                                        \
-        }                                                                     \
+            return -1;                                                     \
+        }                                                                  \
     }
 
 #define LoadSym(dest, src, name, checkerr) \

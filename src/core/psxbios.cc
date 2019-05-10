@@ -21,9 +21,9 @@
  * Internal simulated HLE BIOS.
  */
 
-#include "core/pad.h"
 #include "core/psxbios.h"
 #include "core/gpu.h"
+#include "core/pad.h"
 #include "core/psxhw.h"
 
 const char *PCSX::Bios::A0names[256] = {
@@ -1178,7 +1178,7 @@ class BiosImpl : public PCSX::Bios {
         *s_heap_addr = SWAP_LE32(size | 1);
 
         PCSX::g_system->biosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1,
-                                      (uintptr_t)s_heap_addr - (uintptr_t)PCSX::g_emulator.m_psxMem->g_psxM, size);
+                                   (uintptr_t)s_heap_addr - (uintptr_t)PCSX::g_emulator.m_psxMem->g_psxM, size);
 
         pc0 = ra;
     }
@@ -1277,7 +1277,8 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_format() {  // 0x41
-        if (strcmp(Ra0, "bu00:") == 0 && PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str()[0] != '\0') {
+        if (strcmp(Ra0, "bu00:") == 0 &&
+            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str()[0] != '\0') {
             PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str());
             PCSX::g_emulator.m_sio->LoadMcd(1, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str());
             v0 = 1;
@@ -2038,7 +2039,7 @@ class BiosImpl : public PCSX::Bios {
     template <int mcd>
     void buread() {
         PCSX::g_system->biosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2,
-                                      getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
+                                   getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
         char *ptr = getmcdData<mcd>() + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
         memcpy(Ra1, ptr, a2);
         if (s_FDesc[1 + mcd].mode & 0x8000)
@@ -2351,14 +2352,14 @@ class BiosImpl : public PCSX::Bios {
             memcpy(PCSX::g_emulator.m_sio->g_mcd1Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
                    PCSX::SIO::MCD_SECT_SIZE);
             PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().c_str(),
-                                            PCSX::g_emulator.m_sio->g_mcd1Data,
-                                            sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
+                                            PCSX::g_emulator.m_sio->g_mcd1Data, sect * PCSX::SIO::MCD_SECT_SIZE,
+                                            PCSX::SIO::MCD_SECT_SIZE);
         } else {
             memcpy(PCSX::g_emulator.m_sio->g_mcd2Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
                    PCSX::SIO::MCD_SECT_SIZE);
             PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().c_str(),
-                                            PCSX::g_emulator.m_sio->g_mcd2Data,
-                                            sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
+                                            PCSX::g_emulator.m_sio->g_mcd2Data, sect * PCSX::SIO::MCD_SECT_SIZE,
+                                            PCSX::SIO::MCD_SECT_SIZE);
         }
 
         DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
@@ -2945,21 +2946,21 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBiosShutdown() final {}
 
-#define psxBios_PADpoll(pad)                                              \
-    {                                                                     \
+#define psxBios_PADpoll(pad)                                            \
+    {                                                                   \
         PCSX::g_emulator.m_pad##pad->startPoll();                       \
-        s_pad_buf##pad[0] = 0;                                            \
+        s_pad_buf##pad[0] = 0;                                          \
         s_pad_buf##pad[1] = PCSX::g_emulator.m_pad##pad->poll(0x42);    \
-        if (!(s_pad_buf##pad[1] & 0x0f)) {                                \
-            bufcount = 32;                                                \
-        } else {                                                          \
-            bufcount = (s_pad_buf##pad[1] & 0x0f) * 2;                    \
-        }                                                                 \
+        if (!(s_pad_buf##pad[1] & 0x0f)) {                              \
+            bufcount = 32;                                              \
+        } else {                                                        \
+            bufcount = (s_pad_buf##pad[1] & 0x0f) * 2;                  \
+        }                                                               \
         PCSX::g_emulator.m_pad##pad->poll(0);                           \
-        i = 2;                                                            \
-        while (bufcount--) {                                              \
+        i = 2;                                                          \
+        while (bufcount--) {                                            \
             s_pad_buf##pad[i++] = PCSX::g_emulator.m_pad##pad->poll(0); \
-        }                                                                 \
+        }                                                               \
     }
 
     void biosInterrupt() {
