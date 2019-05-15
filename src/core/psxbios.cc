@@ -21,9 +21,9 @@
  * Internal simulated HLE BIOS.
  */
 
-#include "core/pad.h"
 #include "core/psxbios.h"
 #include "core/gpu.h"
+#include "core/pad.h"
 #include "core/psxhw.h"
 
 const char *PCSX::Bios::A0names[256] = {
@@ -489,11 +489,11 @@ class BiosImpl : public PCSX::Bios {
 
     inline void softCall(uint32_t pc) {
         pc0 = pc;
-        ra = 0x80001000;
+        ra = 0;
 
         m_hleSoftCall = true;
 
-        while (pc0 != 0x80001000) PCSX::g_emulator.m_psxCpu->ExecuteBlock();
+        while (pc0 != 0) PCSX::g_emulator.m_psxCpu->ExecuteHLEBlock();
 
         m_hleSoftCall = false;
     }
@@ -501,11 +501,11 @@ class BiosImpl : public PCSX::Bios {
     inline void softCall2(uint32_t pc) {
         uint32_t sra = ra;
         pc0 = pc;
-        ra = 0x80001000;
+        ra = 0;
 
         m_hleSoftCall = true;
 
-        while (pc0 != 0x80001000) PCSX::g_emulator.m_psxCpu->ExecuteBlock();
+        while (pc0 != 0) PCSX::g_emulator.m_psxCpu->ExecuteHLEBlock();
         ra = sra;
 
         m_hleSoftCall = false;
@@ -1178,7 +1178,7 @@ class BiosImpl : public PCSX::Bios {
         *s_heap_addr = SWAP_LE32(size | 1);
 
         PCSX::g_system->biosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1,
-                                      (uintptr_t)s_heap_addr - (uintptr_t)PCSX::g_emulator.m_psxMem->g_psxM, size);
+                                   (uintptr_t)s_heap_addr - (uintptr_t)PCSX::g_emulator.m_psxMem->g_psxM, size);
 
         pc0 = ra;
     }
@@ -2038,7 +2038,7 @@ class BiosImpl : public PCSX::Bios {
     template <int mcd>
     void buread() {
         PCSX::g_system->biosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2,
-                                      getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
+                                   getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
         char *ptr = getmcdData<mcd>() + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
         memcpy(Ra1, ptr, a2);
         if (s_FDesc[1 + mcd].mode & 0x8000)
@@ -2945,21 +2945,21 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBiosShutdown() final {}
 
-#define psxBios_PADpoll(pad)                                              \
-    {                                                                     \
+#define psxBios_PADpoll(pad)                                            \
+    {                                                                   \
         PCSX::g_emulator.m_pad##pad->startPoll();                       \
-        s_pad_buf##pad[0] = 0;                                            \
+        s_pad_buf##pad[0] = 0;                                          \
         s_pad_buf##pad[1] = PCSX::g_emulator.m_pad##pad->poll(0x42);    \
-        if (!(s_pad_buf##pad[1] & 0x0f)) {                                \
-            bufcount = 32;                                                \
-        } else {                                                          \
-            bufcount = (s_pad_buf##pad[1] & 0x0f) * 2;                    \
-        }                                                                 \
+        if (!(s_pad_buf##pad[1] & 0x0f)) {                              \
+            bufcount = 32;                                              \
+        } else {                                                        \
+            bufcount = (s_pad_buf##pad[1] & 0x0f) * 2;                  \
+        }                                                               \
         PCSX::g_emulator.m_pad##pad->poll(0);                           \
-        i = 2;                                                            \
-        while (bufcount--) {                                              \
+        i = 2;                                                          \
+        while (bufcount--) {                                            \
             s_pad_buf##pad[i++] = PCSX::g_emulator.m_pad##pad->poll(0); \
-        }                                                                 \
+        }                                                               \
     }
 
     void biosInterrupt() {

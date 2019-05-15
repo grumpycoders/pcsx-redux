@@ -33,8 +33,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #include "spu/externals.h"
 #include "spu/interface.h"
 
@@ -177,7 +175,8 @@ inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: ta
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::impl::s_buffer(int iOff, int iVal)  // set_buffer content helper: takes care about wraps and clipping
+inline void PCSX::SPU::impl::s_buffer(int iOff,
+                                      int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -190,7 +189,8 @@ inline void PCSX::SPU::impl::s_buffer(int iOff, int iVal)  // set_buffer content
 
 ////////////////////////////////////////////////////////////////////////
 
-inline void PCSX::SPU::impl::s_buffer1(int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+inline void PCSX::SPU::impl::s_buffer1(
+    int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;

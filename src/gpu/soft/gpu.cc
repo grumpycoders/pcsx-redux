@@ -113,8 +113,6 @@
 
 #define NOMINMAX
 
-#include "stdafx.h"
-
 #include <stdint.h>
 
 #include <algorithm>
@@ -232,8 +230,8 @@ extern "C" void softGPUdisplayText(char *pText)  // some debug func
 
 extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
 {
-//    dwCoreFlags = dwFlags;
-    //BuildDispMenu(0);
+    //    dwCoreFlags = dwFlags;
+    // BuildDispMenu(0);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -437,7 +435,7 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 
 long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
-//    ReleaseKeyHandler();  // de-subclass window
+    //    ReleaseKeyHandler();  // de-subclass window
 
     CloseDisplay();  // shutdown direct draw
 
@@ -470,13 +468,13 @@ void updateDisplay(void)  // UPDATE DISPLAY
     if (dwActFixes & 32)  // pc fps calculation fix
     {
         if (UseFrameLimit) PCFrameCap();  // -> brake
-//        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+                                          //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
-//    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
-//    {
-//        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
-//    }
+    //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
+    //    {
+    //        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
+    //    }
 
     if (iFastFwd)  // fastfwd ?
     {
@@ -618,9 +616,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
-    PreviousPSXDisplay.DisplayMode.x =       // previous will hold
+    PreviousPSXDisplay.DisplayMode.x =             // previous will hold
         std::min(640L, PSXDisplay.DisplayMode.x);  // max 640x512... that's
-    PreviousPSXDisplay.DisplayMode.y =       // the size of my
+    PreviousPSXDisplay.DisplayMode.y =             // the size of my
         std::min(512L, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
@@ -1288,7 +1286,7 @@ void SetFixes(void) {
         SetFPSHandler();
 
     if (bOldPerformanceCounter != UsePerformanceCounter)  // we have change it?
-        InitFPS();                                       // -> init fps again
+        InitFPS();                                        // -> init fps again
 
     if (dwActFixes & 0x02)
         sDispWidths[4] = 384;
@@ -1366,7 +1364,7 @@ long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF)
         if (lSlotNum < 0) return 0;
         if (lSlotNum > 8) return 0;
         lSelectedSlot = lSlotNum + 1;
-        //BuildDispMenu(0);
+        // BuildDispMenu(0);
         return 1;
     }
     //----------------------------------------------------//
@@ -1565,7 +1563,7 @@ void GPUsetframelimit(unsigned long option) {
         UseFrameSkip = 0;
         iFrameLimit = 2;
         SetAutoFrameCap();
-        //BuildDispMenu(0);
+        // BuildDispMenu(0);
     } else {
         UseFrameLimit = 0;
     }

@@ -19,37 +19,27 @@
 
 #pragma once
 
-#include <SDL.h>
-
 namespace PCSX {
 
-namespace SPU {
+namespace Widgets {
 
-class SDLsound {
+class Breakpoints {
   public:
-    void setup();
-    void remove();
-    unsigned long getBytesBuffered();
-    void feedStreamData(unsigned char* pSound, long lBytes);
+    void draw(const char* title);
+    bool m_show = false;
 
   private:
-    void callback(Uint8* stream, int len);
-    static void callbackTrampoline(void* userdata, Uint8* stream, int len) {
-        SDLsound* that = static_cast<SDLsound*>(userdata);
-        that->callback(stream, len);
-    }
-    void dequeueLocked(uint8_t* stream, size_t len);
-    void enqueueLocked(const uint8_t* data, size_t len);
-
-    static const size_t BUFFER_SIZE = 32 * 1024 * 4;
-
-    SDL_AudioDeviceID s_dev = 0;
-    uint32_t s_ptrBegin = 0, s_ptrEnd = 0;
-    uint8_t s_buffer[BUFFER_SIZE];
-    SDL_mutex* s_mutex;
-    SDL_AudioSpec s_specs;
+    bool m_filterE = true;
+    bool m_filterR1 = true;
+    bool m_filterR2 = true;
+    bool m_filterR4 = true;
+    bool m_filterW1 = true;
+    bool m_filterW2 = true;
+    bool m_filterW4 = true;
+    char m_bpAddressString[20];
+    int m_breakpointType = 0;
 };
 
-}  // namespace SPU
+}  // namespace Widgets
 
 }  // namespace PCSX

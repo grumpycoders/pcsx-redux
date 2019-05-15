@@ -34,6 +34,18 @@ class SystemImpl : public PCSX::System {
         // print message to debugging console
         va_list a;
         va_start(a, fmt);
+        if (m_logfile) {
+            va_list c;
+            va_copy(c, a);
+            vfprintf(m_logfile, fmt, c);
+            va_end(c);
+        }
+        if (m_enableStdout) {
+            va_list c;
+            va_copy(c, a);
+            vprintf(fmt, c);
+            va_end(c);
+        }
         s_gui->addLog(fmt, a);
         va_end(a);
     }
@@ -42,22 +54,74 @@ class SystemImpl : public PCSX::System {
         // print message to debugging console
         va_list a;
         va_start(a, fmt);
+        if (m_logfile) {
+            va_list c;
+            va_copy(c, a);
+            vfprintf(m_logfile, fmt, c);
+            va_end(c);
+        }
+        if (m_enableStdout) {
+            va_list c;
+            va_copy(c, a);
+            vprintf(fmt, c);
+            va_end(c);
+        }
         s_gui->addLog(fmt, a);
         va_end(a);
     }
 
-    virtual void vbiosPrintf(const char *fmt, va_list a) final { s_gui->addLog(fmt, a); }
+    virtual void vbiosPrintf(const char *fmt, va_list a) final {
+        if (m_logfile) {
+            va_list c;
+            va_copy(c, a);
+            vfprintf(m_logfile, fmt, c);
+            va_end(c);
+        }
+        if (m_enableStdout) {
+            va_list c;
+            va_copy(c, a);
+            vprintf(fmt, c);
+            va_end(c);
+        }
+        s_gui->addLog(fmt, a);
+    }
 
     virtual void message(const char *fmt, ...) final {
         // display message to user as a pop-up
         va_list a;
         va_start(a, fmt);
+        if (m_logfile) {
+            va_list c;
+            va_copy(c, a);
+            vfprintf(m_logfile, fmt, c);
+            va_end(c);
+        }
+        if (m_enableStdout) {
+            va_list c;
+            va_copy(c, a);
+            vprintf(fmt, c);
+            va_end(c);
+        }
         s_gui->addLog(fmt, a);
         s_gui->addNotification(fmt, a);
         va_end(a);
     }
 
-    virtual void log(const char *facility, const char *fmt, va_list a) final { s_gui->addLog(fmt, a); }
+    virtual void log(const char *facility, const char *fmt, va_list a) final {
+        if (m_logfile) {
+            va_list c;
+            va_copy(c, a);
+            vfprintf(m_logfile, fmt, c);
+            va_end(c);
+        }
+        if (m_enableStdout) {
+            va_list c;
+            va_copy(c, a);
+            vprintf(fmt, c);
+            va_end(c);
+        }
+        s_gui->addLog(fmt, a);
+    }
 
     virtual void update() final {
         // called on vblank to update states
@@ -81,6 +145,17 @@ class SystemImpl : public PCSX::System {
     virtual void close() final {
         // emulator is requesting a shutdown of the emulation
     }
+
+    FILE *m_logfile = nullptr;
+
+  public:
+    ~SystemImpl() {
+        if (m_logfile) fclose(m_logfile);
+    }
+
+    void useLogfile(const std::string &filename) { m_logfile = fopen(filename.c_str(), "w"); }
+
+    bool m_enableStdout = false;
 };
 
 using json = nlohmann::json;
@@ -92,9 +167,13 @@ int main(int argc, char **argv) {
         assert(0);
     }
 
-    PCSX::g_system = new SystemImpl;
+    SystemImpl *system = new SystemImpl;
+    PCSX::g_system = system;
     s_gui = new PCSX::GUI(args);
     s_gui->init();
+    system->m_enableStdout = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingStdout>();
+    const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().value.string();
+    if (!logfile.empty()) system->useLogfile(logfile);
 
     LoadPlugins();
     PCSX::g_emulator.m_gpu->open(s_gui);
@@ -107,7 +186,6 @@ int main(int argc, char **argv) {
     if (!iso.empty()) SetIsoFile(iso.c_str());
     PCSX::g_emulator.m_cdrom->m_iso.open();
     CheckCdrom();
-    LoadCdrom();
 
     if (args.get<bool>("run", false)) PCSX::g_system->start();
 

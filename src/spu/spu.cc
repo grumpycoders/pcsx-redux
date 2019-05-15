@@ -93,7 +93,6 @@
 //
 //*************************************************************************//
 
-//#include "stdafx.h"
 #include <SDL.h>
 
 #include "spu/adsr.h"
@@ -105,7 +104,6 @@
 ////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
-
 
 ////////////////////////////////////////////////////////////////////////
 // CODE AREA
@@ -254,7 +252,8 @@ inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
     pChannel->iUsedFreq = pChannel->iActFreq;  // -> take it and calc steps
     pChannel->sinc = pChannel->iRawPitch << 4;
     if (!pChannel->sinc) pChannel->sinc = 1;
-    if (settings.get<Interpolation>() == 1) pChannel->SB[32] = 1;  // -> freq change in simle imterpolation mode: set flag
+    if (settings.get<Interpolation>() == 1)
+        pChannel->SB[32] = 1;  // -> freq change in simle imterpolation mode: set flag
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -301,7 +300,7 @@ inline int PCSX::SPU::impl::iGetNoiseVal(SPUCHAN *pChannel) {
     pChannel->iOldNoise = fa;
 
     if (settings.get<Interpolation>() < 2)  // no gauss/cubic interpolation?
-        pChannel->SB[29] = fa;  // -> store noise val in "current sample" slot
+        pChannel->SB[29] = fa;              // -> store noise val in "current sample" slot
     return fa;
 }
 
@@ -444,7 +443,7 @@ void PCSX::SPU::impl::MainThread() {
         } else
             iSecureStart = 0;  // 0: no new channel should start
 
-        while (!iSecureStart && !bEndThread &&        // no new start? no thread end?
+        while (!iSecureStart && !bEndThread &&           // no new start? no thread end?
                (m_sound.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
         {
             iSecureStart = 0;  // reset secure
@@ -951,9 +950,9 @@ long PCSX::SPU::impl::close(void) {
 
     bSPUIsOpen = 0;  // no more open
 
-    RemoveThread();  // no more feeding
+    RemoveThread();    // no more feeding
     m_sound.remove();  // no more sound handling
-    RemoveStreams();  // no more streaming
+    RemoveStreams();   // no more streaming
 
     return 0;
 }

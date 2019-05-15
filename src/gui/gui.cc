@@ -107,6 +107,8 @@ void PCSX::GUI::init() {
                 settings.deserialize(j["emulator"]);
             }
             PCSX::g_emulator.m_spu->setCfg(j);
+        } else {
+            saveCfg();
         }
 
         if (settings.get<Emulator::SettingMcd1>().value.string().empty()) {
@@ -310,7 +312,6 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem("Close ISO")) {
                     PCSX::g_emulator.m_cdrom->m_iso.close();
                     CheckCdrom();
-                    LoadCdrom();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Open LID")) {
@@ -360,6 +361,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem("Show VRAM", nullptr, &m_showVRAMwindow);
                 ImGui::MenuItem("Show Registers", nullptr, &m_registers.m_show);
                 ImGui::MenuItem("Show Assembly", nullptr, &m_assembly.m_show);
+                ImGui::MenuItem("Show Breakpoints", nullptr, &m_breakpoints.m_show);
                 if (ImGui::BeginMenu("Memory Editors")) {
                     for (auto& editor : m_mainMemEditors) {
                         editor.MenuItem();
@@ -377,8 +379,14 @@ void PCSX::GUI::endFrame() {
                 ImGui::EndMenu();
             }
             ImGui::Separator();
-            if (ImGui::BeginMenu("ImGui Demo")) {
-                ImGui::MenuItem("Toggle", nullptr, &m_showDemo);
+            if (ImGui::BeginMenu("Help")) {
+                if (ImGui::MenuItem("Show ImGui Demo", nullptr, nullptr)) {
+                    m_showDemo = true;
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("About", nullptr, nullptr)) {
+                    m_showAbout = true;
+                }
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -397,7 +405,6 @@ void PCSX::GUI::endFrame() {
             SetIsoFile(fileToOpen[0].c_str());
             PCSX::g_emulator.m_cdrom->m_iso.open();
             CheckCdrom();
-            LoadCdrom();
         }
     }
 
@@ -417,10 +424,11 @@ void PCSX::GUI::endFrame() {
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
-        ImVec2 textureSize = ImGui::GetWindowSize();
-        normalizeDimensions(textureSize, m_renderRatio);
-        ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
+        if (ImGui::Begin("Output", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse)) {
+            ImVec2 textureSize = ImGui::GetWindowSize();
+            normalizeDimensions(textureSize, m_renderRatio);
+            ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
+        }
         ImGui::End();
     }
 
@@ -434,34 +442,34 @@ void PCSX::GUI::endFrame() {
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
             if (editor.show) {
-                ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024);
+                editor.draw(PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(PCSX::g_emulator.m_psxMem->g_psxP, 64 * 1024);
+            m_parallelPortEditor.draw(PCSX::g_emulator.m_psxMem->g_psxP, 64 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH, 1024);
+            m_scratchPadEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH + 8 * 1024, 8 * 1024);
+            m_hwrEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
-            ImGui::SetNextWindowPos(ImVec2(50, 50 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(PCSX::g_emulator.m_psxMem->g_psxR, 512 * 1024);
+            m_biosEditor.draw(PCSX::g_emulator.m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
         }
     }
 
@@ -471,6 +479,41 @@ void PCSX::GUI::endFrame() {
 
     if (m_assembly.m_show) {
         m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), "Assembly");
+    }
+
+    if (m_breakpoints.m_show) {
+        m_breakpoints.draw("Breakpoints");
+    }
+
+    if (m_showAbout) {
+        ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("About")) {
+            ImGui::Text("PCSX-Redux", &m_showAbout);
+            ImGui::Separator();
+            auto someString = [](const char* str, GLenum index) {
+                const char* value = (const char*)glGetString(index);
+                checkGL();
+                ImGui::TextWrapped("%s: %s", str, value);
+            };
+            ImGui::Text("OpenGL information");
+            someString("vendor", GL_VENDOR);
+            someString("renderer", GL_RENDERER);
+            someString("version", GL_VERSION);
+            someString("shading language version", GL_SHADING_LANGUAGE_VERSION);
+            GLint n, i;
+            glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+            checkGL();
+            ImGui::Text("extensions:");
+            ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
+            for (i = 0; i < n; i++) {
+                const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
+                checkGL();
+                ImGui::Text("%s", extension);
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
     }
 
     PCSX::g_emulator.m_spu->debug();
@@ -553,7 +596,7 @@ bool PCSX::GUI::configure() {
         }
 
         changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
-        changed |= ImGui::Checkbox("Slow boot", &settings.get<Emulator::SettingSlowBoot>().value);
+        changed |= ImGui::Checkbox("Fast boot", &settings.get<Emulator::SettingFastBoot>().value);
         auto bios = settings.get<Emulator::SettingBios>().value.string();
         ImGui::InputText("BIOS file", const_cast<char *>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();

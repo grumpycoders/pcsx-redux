@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\src\gui\widgets\assembly.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -54,6 +57,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\assembly.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\breakpoints.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
   </ItemGroup>

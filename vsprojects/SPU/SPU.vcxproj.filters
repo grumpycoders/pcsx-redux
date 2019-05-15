@@ -56,9 +56,6 @@
     <ClInclude Include="..\..\src\spu\registers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\spu\stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\spu\sdlsound.h">
       <Filter>Header Files</Filter>
     </ClInclude>

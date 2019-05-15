@@ -24,8 +24,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #define _IN_ZN
 
 #include "gpu/soft/externals.h"
@@ -34,7 +32,7 @@
 // - psx gpu plugin interface prototypes-------------- //
 // --------------------------------------------------- //
 
-//long GPUopen(HWND hwndGPU);
+// long GPUopen(HWND hwndGPU);
 void GPUdisplayText(char* pText);
 void GPUdisplayFlags(unsigned long dwFlags);
 void GPUmakeSnapshot(void);

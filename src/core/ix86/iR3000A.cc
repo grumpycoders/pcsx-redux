@@ -95,7 +95,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     virtual bool Init() final;
     virtual void Reset() final;
     virtual void Execute() final;
-    virtual void ExecuteBlock() final;
+    virtual void ExecuteHLEBlock() final;
     virtual void Clear(uint32_t Addr, uint32_t Size) final;
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
@@ -975,7 +975,8 @@ void X86DynaRecCPU::recError() {
 void X86DynaRecCPU::execute() {
     void (**recFunc)() = NULL;
     char *p;
-    uint32_t pc = m_psxRegs.pc;
+
+    InterceptConsole();
 
     p = (char *)PC_REC(m_psxRegs.pc);
 
@@ -993,10 +994,10 @@ void X86DynaRecCPU::execute() {
 }
 
 void X86DynaRecCPU::Execute() {
-    while (PCSX::g_system->running()) execute();
+    while (hasToRun()) execute();
 }
 
-void X86DynaRecCPU::ExecuteBlock() { execute(); }
+void X86DynaRecCPU::ExecuteHLEBlock() { execute(); }
 
 void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
     uint32_t bank, offset;
@@ -3678,7 +3679,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     virtual bool Init() final { return false; }
     virtual void Reset() final { assert(0); }
     virtual void Execute() final { assert(0); }
-    virtual void ExecuteBlock() final { assert(0); }
+    virtual void ExecuteHLEBlock() final { assert(0); }
     virtual void Clear(uint32_t Addr, uint32_t Size) final { assert(0); }
     virtual void Shutdown() final { assert(0); }
     virtual void SetPGXPMode(uint32_t pgxpMode) final { assert(0); }

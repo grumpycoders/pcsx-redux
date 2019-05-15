@@ -25,7 +25,6 @@
 
 #include "spu/sdlsound.h"
 
-
 void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len) {
     if ((BUFFER_SIZE - s_ptrBegin) < len) {
         size_t subLen = BUFFER_SIZE - s_ptrBegin;
@@ -66,15 +65,15 @@ void PCSX::SPU::SDLsound::setup() {
     s_specs.callback = callbackTrampoline;
     s_specs.userdata = this;
     s_dev = SDL_OpenAudioDevice(NULL, 0, &s_specs, NULL, 0 /* SDL_AUDIO_ALLOW_SAMPLES_CHANGE */);
-    assert(s_dev);
-    SDL_PauseAudioDevice(s_dev, 0);
+    if (s_dev) SDL_PauseAudioDevice(s_dev, 0);
 
     s_mutex = SDL_CreateMutex();
     assert(s_mutex);
 }
 
 void PCSX::SPU::SDLsound::remove() {
-    SDL_CloseAudioDevice(s_dev);
+    if (s_dev) SDL_CloseAudioDevice(s_dev);
+    s_dev = 0;
     SDL_DestroyMutex(s_mutex);
 }
 

@@ -27,11 +27,12 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
+
+static uint16_t loword(uint32_t v) { return v & 0xffff; }
+static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 
 ////////////////////////////////////////////////////////////////////////
 // MIX XA
@@ -43,15 +44,15 @@ void PCSX::SPU::impl::MixXA() {
     for (ns = 0; ns < PCSX::SPU::impl::NSSIZE && XAPlay != XAFeed; ns++) {
         XALastVal = *XAPlay++;
         if (XAPlay == XAEnd) XAPlay = XAStart;
-        SSumL[ns] += (((short)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
-        SSumR[ns] += (((short)((XALastVal >> 16) & 0xffff)) * iRightXAVol) / 32767;
+        SSumL[ns] += (((int16_t)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
+        SSumR[ns] += (((int16_t)((XALastVal >> 16) & 0xffff)) * iRightXAVol) / 32767;
     }
 
     if (XAPlay == XAFeed && XARepeat) {
         XARepeat--;
         for (; ns < NSSIZE; ns++) {
-            SSumL[ns] += (((short)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
-            SSumR[ns] += (((short)((XALastVal >> 16) & 0xffff)) * iRightXAVol) / 32767;
+            SSumL[ns] += (((int16_t)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
+            SSumR[ns] += (((int16_t)((XALastVal >> 16) & 0xffff)) * iRightXAVol) / 32767;
         }
     }
 }
@@ -81,12 +82,12 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     //----------------------------------------------------//
     if (settings.get<StreamingPitch>())  // pitch change option?
     {
-        static DWORD dwLT = 0;
-        static DWORD dwFPS = 0;
+        static uint32_t dwLT = 0;
+        static uint32_t dwFPS = 0;
         static int iFPSCnt = 0;
         static int iLastSize = 0;
-        static DWORD dwL1 = 0;
-        DWORD dw = SDL_GetTicks(), dw1, dw2;
+        static uint32_t dwL1 = 0;
+        uint32_t dw = SDL_GetTicks(), dw1, dw2;
 
         iPlace = iSize;
 
@@ -123,17 +124,17 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
 
     if (xap->stereo) {
         uint32_t *pS = (uint32_t *)xap->pcm;
-        unsigned long l = 0;
+        uint32_t l = 0;
 
         if (settings.get<StreamingPitch>()) {
-            long l1, l2;
-            short s;
+            int32_t l1, l2;
+            int16_t s;
             for (i = 0; i < iSize; i++) {
                 if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
                         l = *pS++;
-                        gauss_window[gauss_ptr] = (short)LOWORD(l);
-                        gauss_window[4 + gauss_ptr] = (short)HIWORD(l);
+                        gauss_window[gauss_ptr] = (int16_t)loword(l);
+                        gauss_window[4 + gauss_ptr] = (int16_t)hiword(l);
                         gauss_ptr = (gauss_ptr + 1) & 3;
                         spos -= 0x10000L;
                     }
@@ -155,12 +156,12 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                     }
                 }
 
-                s = (short)LOWORD(l);
+                s = (int16_t)loword(l);
                 l1 = s;
                 l1 = (l1 * iPlace) / iSize;
                 if (l1 < -32767) l1 = -32767;
                 if (l1 > 32767) l1 = 32767;
-                s = (short)HIWORD(l);
+                s = (int16_t)hiword(l);
                 l2 = s;
                 l2 = (l2 * iPlace) / iSize;
                 if (l2 < -32767) l2 = -32767;
@@ -182,8 +183,8 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
                         l = *pS++;
-                        gauss_window[gauss_ptr] = (short)LOWORD(l);
-                        gauss_window[4 + gauss_ptr] = (short)HIWORD(l);
+                        gauss_window[gauss_ptr] = (int16_t)loword(l);
+                        gauss_window[4 + gauss_ptr] = (int16_t)hiword(l);
                         gauss_ptr = (gauss_ptr + 1) & 3;
                         spos -= 0x10000L;
                     }
@@ -217,16 +218,16 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
         }
     } else {
-        unsigned short *pS = (unsigned short *)xap->pcm;
-        unsigned long l;
-        short s = 0;
+        uint16_t *pS = (uint16_t *)xap->pcm;
+        uint32_t l;
+        int16_t s = 0;
 
         if (settings.get<StreamingPitch>()) {
-            long l1;
+            int32_t l1;
             for (i = 0; i < iSize; i++) {
                 if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
-                        gauss_window[gauss_ptr] = (short)*pS++;
+                        gauss_window[gauss_ptr] = (int16_t)*pS++;
                         gauss_ptr = (gauss_ptr + 1) & 3;
                         spos -= 0x10000L;
                     }
@@ -263,7 +264,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             for (i = 0; i < iSize; i++) {
                 if (settings.get<Interpolation>() == 2) {
                     while (spos >= 0x10000L) {
-                        gauss_window[gauss_ptr] = (short)*pS++;
+                        gauss_window[gauss_ptr] = (int16_t)*pS++;
                         gauss_ptr = (gauss_ptr + 1) & 3;
                         spos -= 0x10000L;
                     }

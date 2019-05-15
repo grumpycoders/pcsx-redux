@@ -1,0 +1,26 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: grumpycoders/pcsx-redux-build:latest
+    environment:
+      CC: clang-9
+      CXX: clang++-9
+      LD: clang++-9
+    steps:
+      - checkout
+      - run:
+          name: submodules
+          command: |
+            git submodule update --init --recursive
+      - run:
+          name: Build
+          command: |
+            make -j 2
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build

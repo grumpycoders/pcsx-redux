@@ -174,7 +174,8 @@ void PCSX::Counters::psxRcntUpdate() {
         if (m_spuSyncCount >= SpuUpdInterval[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]) {
             m_spuSyncCount = 0;
 
-            PCSX::g_emulator.m_spu->async(SpuUpdInterval[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] * m_rcnts[3].target);
+            PCSX::g_emulator.m_spu->async(
+                SpuUpdInterval[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] * m_rcnts[3].target);
         }
 
 #ifdef ENABLE_SIO1API
@@ -202,8 +203,6 @@ void PCSX::Counters::psxRcntUpdate() {
             PCSX::g_emulator.EmuUpdate();
         }
     }
-
-    PCSX::g_emulator.m_debug->DebugVSync();
 }
 
 /******************************************************************************/
@@ -235,9 +234,9 @@ void PCSX::Counters::psxRcntWmode(uint32_t index, uint32_t value) {
             break;
         case 1:
             if (value & Rc1HSyncClock) {
-                m_rcnts[index].rate =
-                    (PCSX::g_emulator.m_psxClockSpeed /
-                     (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] * m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+                m_rcnts[index].rate = (PCSX::g_emulator.m_psxClockSpeed /
+                                       (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                                        m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
             } else {
                 m_rcnts[index].rate = 1;
             }
@@ -283,7 +282,8 @@ uint32_t PCSX::Counters::psxRcntRcount(uint32_t index) {
     // Parasite Eve 2 fix - artificial clock jitter based on PCSX::Emulator::BIAS
     // TODO: any other games depend on getting excepted value from RCNT?
     if (PCSX::g_emulator.config().HackFix && index == 2 && m_rcnts[index].counterState == CountToTarget &&
-        (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingRCntFix>() || ((m_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
+        (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingRCntFix>() ||
+         ((m_rcnts[index].mode & 0x2FF) == JITTER_FLAGS))) {
         /*
          *The problem is that...
          *
@@ -341,7 +341,8 @@ void PCSX::Counters::psxHsyncCalculate() {
         m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] =
             m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] / PCSX::Emulator::BIAS;
     } else if (PCSX::g_emulator.config().HackFix) {
-        m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] = m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] + 1;
+        m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] =
+            m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] + 1;
     }
 }
 
@@ -366,7 +367,8 @@ void PCSX::Counters::psxRcntInit() {
     m_rcnts[3].rate = 1;
     m_rcnts[3].mode = RcCountToTarget;
     m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed /
-                         (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] * m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+                         (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                          m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
 
     for (i = 0; i < CounterQuantity; ++i) {
         psxRcntWcountInternal(i, 0);
@@ -390,11 +392,13 @@ int32_t PCSX::Counters::psxRcntFreeze(gzFile f, int32_t Mode) {
     if (Mode == 0) {
         psxHsyncCalculate();
         // iCB: recalculate target count in case overclock is changed
-        m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed / (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
-                                                                 m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+        m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed /
+                             (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                              m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
         if (m_rcnts[1].rate != 1)
-            m_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed / (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
-                                                                   m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+            m_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed /
+                               (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                                m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
     }
 
     return 0;

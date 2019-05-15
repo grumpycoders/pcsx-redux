@@ -33,8 +33,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #define _IN_FREEZE
 
 #include "spu/externals.h"
@@ -78,8 +76,8 @@ long PCSX::SPU::impl::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
         pF->Size = sizeof(SPUFreeze_t) + sizeof(SPUOSSFreeze_t);
 
         if (ulFreezeMode == 2)
-            return 1;   // info mode? ok, bye
-                        // save mode:
+            return 1;    // info mode? ok, bye
+                         // save mode:
         RemoveThread();  // stop timer
 
         memcpy(pF->SPURam, spuMem, 0x80000);  // copy common infos

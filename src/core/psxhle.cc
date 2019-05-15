@@ -22,6 +22,7 @@
  */
 
 #include "core/psxhle.h"
+#include "core/r3000a.h"
 
 static void hleDummy() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
@@ -68,8 +69,8 @@ static void hleBootstrap() {  // 0xbfc00000
         return;
     }
     PCSX::g_system->biosPrintf("CdromLabel: \"%s\": PC = %8.8x (SP = %8.8x)\n", PCSX::g_emulator.m_cdromLabel,
-                                  (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
-                                  (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);
+                               (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.pc,
+                               (unsigned int)PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp);
 }
 
 typedef struct {

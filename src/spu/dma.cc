@@ -24,8 +24,6 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
 #include "spu/externals.h"
 #include "spu/interface.h"
 

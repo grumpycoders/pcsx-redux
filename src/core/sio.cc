@@ -46,7 +46,7 @@
 
 #define SIO_INT(eCycle)                                                                     \
     {                                                                                       \
-        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {                                            \
+        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {              \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \

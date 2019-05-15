@@ -24,6 +24,7 @@
 #include "core/psxbios.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
+#include "core/psxhle.h"
 #include "core/psxmem.h"
 
 namespace PCSX {
@@ -258,8 +259,9 @@ class R3000Acpu {
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
     virtual void Reset() = 0;
-    virtual void Execute() = 0;      /* executes up to a break */
-    virtual void ExecuteBlock() = 0; /* executes up to a jump */
+    virtual void Execute() = 0;         /* executes up to a debug break */
+    virtual void ExecuteHLEBlock() = 0; /* executes up to a jump, to run an HLE softcall;
+                                           debug breaks won't happen until after the softcall */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -273,15 +275,45 @@ class R3000Acpu {
     void psxShutdown();
     void psxException(uint32_t code, uint32_t bd);
     void psxBranchTest();
-    void psxExecuteBios();
     void psxJumpTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     psxRegisters m_psxRegs;
+    bool m_booted = false;
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
+    inline bool hasToRun() {
+        if (!g_system->running()) return false;
+        if (!m_booted) {
+            uint32_t &pc = m_psxRegs.pc;
+            if (pc == 0x80030000) {
+                m_booted = true;
+                if (g_emulator.settings.get<PCSX::Emulator::SettingFastBoot>()) pc = m_psxRegs.GPR.n.ra;
+            }
+        }
+        return true;
+    }
+    inline void InterceptConsole() {
+        // Intercept puts and putchar, even if running the binary bios.
+        if (m_psxRegs.pc == 0xa0) {
+            switch (m_psxRegs.GPR.n.t1) {
+                case 0x3e:
+                    psxHLEt[1]();
+                    break;
+            }
+        }
+
+        if (m_psxRegs.pc == 0xb0) {
+            switch (m_psxRegs.GPR.n.t1) {
+                case 0x3d:
+                case 0x3f:
+                    psxHLEt[2]();
+                    break;
+            }
+        }
+    }
 
   public:
     /*
@@ -369,7 +401,7 @@ class InterpretedCPU : public R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
-    virtual void ExecuteBlock() override;
+    virtual void ExecuteHLEBlock() override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;

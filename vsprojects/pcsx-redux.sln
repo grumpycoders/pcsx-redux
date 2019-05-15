@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.329
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "main", "pcsx-redux\pcsx-redux.vcxproj", "{36D6F879-F4CB-477E-BB87-33D867EDDB0A}"
 EndProject
@@ -15,6 +15,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "core\core.vcxproj",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A41EB6E5-153D-42EF-A61C-0D918DDE2891}"
 	ProjectSection(SolutionItems) = preProject
+		..\src\.clang-format = ..\src\.clang-format
 		..\src\.editorconfig = ..\src\.editorconfig
 	EndProjectSection
 EndProject
@@ -120,7 +121,6 @@ Global
 		{36D6F879-F4CB-477E-BB87-33D867EDDB0A} = {008A2872-432F-480B-828D-FF9AAA4846BC}
 		{3125E078-7261-48C4-803E-4B29CEEAA56B} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{9372D878-F76C-418B-8E2A-8E9896FF575B} = {008A2872-432F-480B-828D-FF9AAA4846BC}
-		{60F01E36-B838-4AA0-8057-8324E0E39526} = {008A2872-432F-480B-828D-FF9AAA4846BC}
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{B86F9380-6228-4B11-87AD-29FDABF95ABB} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
@@ -129,6 +129,7 @@ Global
 		{BF968FD3-EF46-45AF-B74E-46A41A96276F} = {008A2872-432F-480B-828D-FF9AAA4846BC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 	EndGlobalSection
 EndGlobal

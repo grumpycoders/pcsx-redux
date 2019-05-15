@@ -28,9 +28,9 @@
 
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
-#undef snprintf
 
 #include "gui/widgets/assembly.h"
+#include "gui/widgets/breakpoints.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
@@ -99,13 +99,20 @@ class GUI final {
     bool m_showMenu = false;
     bool m_showDemo = false;
     bool m_showVRAMwindow = false;
+    bool m_showAbout = false;
     Widgets::Log m_log;
     struct MemoryEditorWrapper {
+        MemoryEditorWrapper() {
+            editor.OptShowDataPreview = true;
+            editor.OptUpperCaseHex = false;
+        }
         MemoryEditor editor;
         std::string title;
         bool &show = editor.Open;
         void MenuItem() { ImGui::MenuItem(title.c_str(), nullptr, &show); }
-        void draw(void *mem, size_t size) { editor.DrawWindow(title.c_str(), mem, size); }
+        void draw(void *mem, size_t size, uint32_t baseAddr = 0) {
+            editor.DrawWindow(title.c_str(), mem, size, baseAddr);
+        }
     };
     MemoryEditorWrapper m_mainMemEditors[8];
     MemoryEditorWrapper m_parallelPortEditor;
@@ -113,9 +120,10 @@ class GUI final {
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
-    Widgets::Assembly m_assembly;
+    Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
     Widgets::FileDialog m_selectBiosDialog = {"Select BIOS"};
+    Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
 

@@ -17,14 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PSXHLE_H__
-#define __PSXHLE_H__
-
-#include "core/plugins.h"
-#include "core/psxemulator.h"
-#include "core/r3000a.h"
+#pragma once
 
 typedef void (*HLE_t)();
 extern const HLE_t psxHLEt[8];
-
-#endif

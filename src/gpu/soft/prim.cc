@@ -81,12 +81,10 @@
 //
 //*************************************************************************//
 
-#include "stdafx.h"
-
+#include "gpu/soft/prim.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
-#include "gpu/soft/prim.h"
 #include "gpu/soft/soft.h"
 #include "imgui.h"
 
@@ -109,8 +107,7 @@ bool PCSX::SoftGPU::SoftPrim::configure(bool *show) {
     if (!ImGui::Begin("Soft GPU configuration", show)) {
         ImGui::End();
     }
-    static const char *ditherValues[] = {"No dithering (fastest)",
-                                         "Game dependend dithering (slow)",
+    static const char *ditherValues[] = {"No dithering (fastest)", "Game dependend dithering (slow)",
                                          "Always dither g-shaded polygons (slowest)"};
     changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
     ImGui::End();
@@ -1473,70 +1470,134 @@ void PCSX::SoftGPU::SoftPrim::primNI(unsigned char *baseAddr) {}
 ////////////////////////////////////////////////////////////////////////
 
 const PCSX::SoftGPU::SoftPrim::func_t PCSX::SoftGPU::SoftPrim::funcs[256] = {
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primBlkFill,      &SoftPrim::primNI,            // 00
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 04
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 08
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 0c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 10
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 14
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 18
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 1c
-    &SoftPrim::primPolyF3,     &SoftPrim::primPolyF3,     &SoftPrim::primPolyF3,       &SoftPrim::primPolyF3,        // 20
-    &SoftPrim::primPolyFT3,    &SoftPrim::primPolyFT3,    &SoftPrim::primPolyFT3,      &SoftPrim::primPolyFT3,       // 24
-    &SoftPrim::primPolyF4,     &SoftPrim::primPolyF4,     &SoftPrim::primPolyF4,       &SoftPrim::primPolyF4,        // 28
-    &SoftPrim::primPolyFT4,    &SoftPrim::primPolyFT4,    &SoftPrim::primPolyFT4,      &SoftPrim::primPolyFT4,       // 2c
-    &SoftPrim::primPolyG3,     &SoftPrim::primPolyG3,     &SoftPrim::primPolyG3,       &SoftPrim::primPolyG3,        // 30
-    &SoftPrim::primPolyGT3,    &SoftPrim::primPolyGT3,    &SoftPrim::primPolyGT3,      &SoftPrim::primPolyGT3,       // 34
-    &SoftPrim::primPolyG4,     &SoftPrim::primPolyG4,     &SoftPrim::primPolyG4,       &SoftPrim::primPolyG4,        // 38
-    &SoftPrim::primPolyGT4,    &SoftPrim::primPolyGT4,    &SoftPrim::primPolyGT4,      &SoftPrim::primPolyGT4,       // 3c
-    &SoftPrim::primLineF2,     &SoftPrim::primLineF2,     &SoftPrim::primLineF2,       &SoftPrim::primLineF2,        // 40
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 44
-    &SoftPrim::primLineFEx,    &SoftPrim::primLineFEx,    &SoftPrim::primLineFEx,      &SoftPrim::primLineFEx,       // 48
-    &SoftPrim::primLineFEx,    &SoftPrim::primLineFEx,    &SoftPrim::primLineFEx,      &SoftPrim::primLineFEx,       // 4c
-    &SoftPrim::primLineG2,     &SoftPrim::primLineG2,     &SoftPrim::primLineG2,       &SoftPrim::primLineG2,        // 50
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 54
-    &SoftPrim::primLineGEx,    &SoftPrim::primLineGEx,    &SoftPrim::primLineGEx,      &SoftPrim::primLineGEx,       // 58
-    &SoftPrim::primLineGEx,    &SoftPrim::primLineGEx,    &SoftPrim::primLineGEx,      &SoftPrim::primLineGEx,       // 5c
-    &SoftPrim::primTileS,      &SoftPrim::primTileS,      &SoftPrim::primTileS,        &SoftPrim::primTileS,         // 60
-    &SoftPrim::primSprtS,      &SoftPrim::primSprtS,      &SoftPrim::primSprtS,        &SoftPrim::primSprtS,         // 64
-    &SoftPrim::primTile1,      &SoftPrim::primTile1,      &SoftPrim::primTile1,        &SoftPrim::primTile1,         // 68
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 6c
-    &SoftPrim::primTile8,      &SoftPrim::primTile8,      &SoftPrim::primTile8,        &SoftPrim::primTile8,         // 70
-    &SoftPrim::primSprt8,      &SoftPrim::primSprt8,      &SoftPrim::primSprt8,        &SoftPrim::primSprt8,         // 74
-    &SoftPrim::primTile16,     &SoftPrim::primTile16,     &SoftPrim::primTile16,       &SoftPrim::primTile16,        // 78
-    &SoftPrim::primSprt16,     &SoftPrim::primSprt16,     &SoftPrim::primSprt16,       &SoftPrim::primSprt16,        // 7c
-    &SoftPrim::primMoveImage,  &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 80
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 84
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 88
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 8c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 90
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 94
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 98
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 9c
-    &SoftPrim::primLoadImage,  &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // a0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // a4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // a8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // ac
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // b0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // b4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // b8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // bc
-    &SoftPrim::primStoreImage, &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // c0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // c4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // c8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // cc
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // d0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // d4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // d8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // dc
-    &SoftPrim::primNI,         &SoftPrim::cmdTexturePage, &SoftPrim::cmdTextureWindow, &SoftPrim::cmdDrawAreaStart,  // e0
-    &SoftPrim::cmdDrawAreaEnd, &SoftPrim::cmdDrawOffset,  &SoftPrim::cmdSTP,           &SoftPrim::primNI,            // e4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // e8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // ec
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // f0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // f4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // f8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // fc
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primBlkFill,      &SoftPrim::primNI,  // 00
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 04
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 08
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 0c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 10
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 14
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 18
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 1c
+    &SoftPrim::primPolyF3,       &SoftPrim::primPolyF3,
+    &SoftPrim::primPolyF3,       &SoftPrim::primPolyF3,  // 20
+    &SoftPrim::primPolyFT3,      &SoftPrim::primPolyFT3,
+    &SoftPrim::primPolyFT3,      &SoftPrim::primPolyFT3,  // 24
+    &SoftPrim::primPolyF4,       &SoftPrim::primPolyF4,
+    &SoftPrim::primPolyF4,       &SoftPrim::primPolyF4,  // 28
+    &SoftPrim::primPolyFT4,      &SoftPrim::primPolyFT4,
+    &SoftPrim::primPolyFT4,      &SoftPrim::primPolyFT4,  // 2c
+    &SoftPrim::primPolyG3,       &SoftPrim::primPolyG3,
+    &SoftPrim::primPolyG3,       &SoftPrim::primPolyG3,  // 30
+    &SoftPrim::primPolyGT3,      &SoftPrim::primPolyGT3,
+    &SoftPrim::primPolyGT3,      &SoftPrim::primPolyGT3,  // 34
+    &SoftPrim::primPolyG4,       &SoftPrim::primPolyG4,
+    &SoftPrim::primPolyG4,       &SoftPrim::primPolyG4,  // 38
+    &SoftPrim::primPolyGT4,      &SoftPrim::primPolyGT4,
+    &SoftPrim::primPolyGT4,      &SoftPrim::primPolyGT4,  // 3c
+    &SoftPrim::primLineF2,       &SoftPrim::primLineF2,
+    &SoftPrim::primLineF2,       &SoftPrim::primLineF2,  // 40
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 44
+    &SoftPrim::primLineFEx,      &SoftPrim::primLineFEx,
+    &SoftPrim::primLineFEx,      &SoftPrim::primLineFEx,  // 48
+    &SoftPrim::primLineFEx,      &SoftPrim::primLineFEx,
+    &SoftPrim::primLineFEx,      &SoftPrim::primLineFEx,  // 4c
+    &SoftPrim::primLineG2,       &SoftPrim::primLineG2,
+    &SoftPrim::primLineG2,       &SoftPrim::primLineG2,  // 50
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 54
+    &SoftPrim::primLineGEx,      &SoftPrim::primLineGEx,
+    &SoftPrim::primLineGEx,      &SoftPrim::primLineGEx,  // 58
+    &SoftPrim::primLineGEx,      &SoftPrim::primLineGEx,
+    &SoftPrim::primLineGEx,      &SoftPrim::primLineGEx,  // 5c
+    &SoftPrim::primTileS,        &SoftPrim::primTileS,
+    &SoftPrim::primTileS,        &SoftPrim::primTileS,  // 60
+    &SoftPrim::primSprtS,        &SoftPrim::primSprtS,
+    &SoftPrim::primSprtS,        &SoftPrim::primSprtS,  // 64
+    &SoftPrim::primTile1,        &SoftPrim::primTile1,
+    &SoftPrim::primTile1,        &SoftPrim::primTile1,  // 68
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 6c
+    &SoftPrim::primTile8,        &SoftPrim::primTile8,
+    &SoftPrim::primTile8,        &SoftPrim::primTile8,  // 70
+    &SoftPrim::primSprt8,        &SoftPrim::primSprt8,
+    &SoftPrim::primSprt8,        &SoftPrim::primSprt8,  // 74
+    &SoftPrim::primTile16,       &SoftPrim::primTile16,
+    &SoftPrim::primTile16,       &SoftPrim::primTile16,  // 78
+    &SoftPrim::primSprt16,       &SoftPrim::primSprt16,
+    &SoftPrim::primSprt16,       &SoftPrim::primSprt16,  // 7c
+    &SoftPrim::primMoveImage,    &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 80
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 84
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 88
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 8c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 90
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 94
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 98
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 9c
+    &SoftPrim::primLoadImage,    &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // a0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // a4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // a8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // ac
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // b0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // b4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // b8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // bc
+    &SoftPrim::primStoreImage,   &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // c0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // c4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // c8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // cc
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // d0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // d4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // d8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // dc
+    &SoftPrim::primNI,           &SoftPrim::cmdTexturePage,
+    &SoftPrim::cmdTextureWindow, &SoftPrim::cmdDrawAreaStart,  // e0
+    &SoftPrim::cmdDrawAreaEnd,   &SoftPrim::cmdDrawOffset,
+    &SoftPrim::cmdSTP,           &SoftPrim::primNI,  // e4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // e8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // ec
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // f0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // f4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // f8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // fc
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -1544,68 +1605,132 @@ const PCSX::SoftGPU::SoftPrim::func_t PCSX::SoftGPU::SoftPrim::funcs[256] = {
 ////////////////////////////////////////////////////////////////////////
 
 const PCSX::SoftGPU::SoftPrim::func_t PCSX::SoftGPU::SoftPrim::skip[256] = {
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primBlkFill,      &SoftPrim::primNI,            // 00
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 04
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 08
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 0c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 10
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 14
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 18
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 1c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 20
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 24
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 28
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 2c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 30
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 34
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 38
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 3c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 40
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 44
-    &SoftPrim::primLineFSkip,  &SoftPrim::primLineFSkip,  &SoftPrim::primLineFSkip,    &SoftPrim::primLineFSkip,     // 48
-    &SoftPrim::primLineFSkip,  &SoftPrim::primLineFSkip,  &SoftPrim::primLineFSkip,    &SoftPrim::primLineFSkip,     // 4c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 50
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 54
-    &SoftPrim::primLineGSkip,  &SoftPrim::primLineGSkip,  &SoftPrim::primLineGSkip,    &SoftPrim::primLineGSkip,     // 58
-    &SoftPrim::primLineGSkip,  &SoftPrim::primLineGSkip,  &SoftPrim::primLineGSkip,    &SoftPrim::primLineGSkip,     // 5c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 60
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 64
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 68
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 6c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 70
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 74
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 78
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 7c
-    &SoftPrim::primMoveImage,  &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 80
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 84
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 88
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 8c
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 90
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 94
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 98
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // 9c
-    &SoftPrim::primLoadImage,  &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // a0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // a4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // a8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // ac
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // b0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // b4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // b8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // bc
-    &SoftPrim::primStoreImage, &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // c0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // c4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // c8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // cc
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // d0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // d4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // d8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // dc
-    &SoftPrim::primNI,         &SoftPrim::cmdTexturePage, &SoftPrim::cmdTextureWindow, &SoftPrim::cmdDrawAreaStart,  // e0
-    &SoftPrim::cmdDrawAreaEnd, &SoftPrim::cmdDrawOffset,  &SoftPrim::cmdSTP,           &SoftPrim::primNI,            // e4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // e8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // ec
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // f0
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // f4
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // f8
-    &SoftPrim::primNI,         &SoftPrim::primNI,         &SoftPrim::primNI,           &SoftPrim::primNI,            // fc
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primBlkFill,      &SoftPrim::primNI,  // 00
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 04
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 08
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 0c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 10
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 14
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 18
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 1c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 20
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 24
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 28
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 2c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 30
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 34
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 38
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 3c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 40
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 44
+    &SoftPrim::primLineFSkip,    &SoftPrim::primLineFSkip,
+    &SoftPrim::primLineFSkip,    &SoftPrim::primLineFSkip,  // 48
+    &SoftPrim::primLineFSkip,    &SoftPrim::primLineFSkip,
+    &SoftPrim::primLineFSkip,    &SoftPrim::primLineFSkip,  // 4c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 50
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 54
+    &SoftPrim::primLineGSkip,    &SoftPrim::primLineGSkip,
+    &SoftPrim::primLineGSkip,    &SoftPrim::primLineGSkip,  // 58
+    &SoftPrim::primLineGSkip,    &SoftPrim::primLineGSkip,
+    &SoftPrim::primLineGSkip,    &SoftPrim::primLineGSkip,  // 5c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 60
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 64
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 68
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 6c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 70
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 74
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 78
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 7c
+    &SoftPrim::primMoveImage,    &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 80
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 84
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 88
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 8c
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 90
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 94
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 98
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // 9c
+    &SoftPrim::primLoadImage,    &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // a0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // a4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // a8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // ac
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // b0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // b4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // b8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // bc
+    &SoftPrim::primStoreImage,   &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // c0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // c4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // c8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // cc
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // d0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // d4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // d8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // dc
+    &SoftPrim::primNI,           &SoftPrim::cmdTexturePage,
+    &SoftPrim::cmdTextureWindow, &SoftPrim::cmdDrawAreaStart,  // e0
+    &SoftPrim::cmdDrawAreaEnd,   &SoftPrim::cmdDrawOffset,
+    &SoftPrim::cmdSTP,           &SoftPrim::primNI,  // e4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // e8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // ec
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // f0
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // f4
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // f8
+    &SoftPrim::primNI,           &SoftPrim::primNI,
+    &SoftPrim::primNI,           &SoftPrim::primNI,  // fc
 };

@@ -62,8 +62,8 @@ with some games, but slows SPU processing.)");
     static const char *interpolationValues[] = {"None - fastest", "Simple interpolation",
                                                 "Gaussian interpolation - good quality",
                                                 "Cubic interpolation - better treble"};
-    changed |=
-        ImGui::Combo("Interpolation", &settings.get<Interpolation>().value, interpolationValues, IM_ARRAYSIZE(interpolationValues));
+    changed |= ImGui::Combo("Interpolation", &settings.get<Interpolation>().value, interpolationValues,
+                            IM_ARRAYSIZE(interpolationValues));
     changed |= ImGui::Checkbox("Mono", &settings.get<Mono>().value);
     ShowHelpMarker("Downmixes stereo to mono.");
     changed |= ImGui::Checkbox("Decoded buffers IRQ", &settings.get<DBufIRQ>().value);
