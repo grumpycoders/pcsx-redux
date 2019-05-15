@@ -791,7 +791,6 @@ void PCSX::InterpretedCPU::psxJAL() {
  *********************************************************/
 void PCSX::InterpretedCPU::psxJR() {
     doBranch(_u32(_rRs_));
-    PCSX::g_emulator.m_psxCpu->psxJumpTest();
 }
 
 void PCSX::InterpretedCPU::psxJALR() {

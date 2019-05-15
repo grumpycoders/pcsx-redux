@@ -275,7 +275,6 @@ class R3000Acpu {
     void psxShutdown();
     void psxException(uint32_t code, uint32_t bd);
     void psxBranchTest();
-    void psxJumpTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
