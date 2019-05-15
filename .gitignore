@@ -21,6 +21,8 @@ ipch/
 *.VC.db
 *.VC.VC.opendb
 
+vsprojects/packages
+
 # Linux files
 *.o
 *.dep
