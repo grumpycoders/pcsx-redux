@@ -304,6 +304,10 @@ class R3000Acpu {
         // so this hack enables us to properly display printfs.
         const uint32_t call = m_psxRegs.GPR.n.t1 & 0xff;
         if (pc == 0xa0) {
+            if (m_logNewSyscalls && (m_savedCounters[0][call] == 0)) {
+                g_system->printf("Bios call a0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::getA0name(call), call,
+                                 m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+            }
             if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[0][call]++;
             switch (call) {
                 case 0x3e: // puts
@@ -314,6 +318,10 @@ class R3000Acpu {
         }
 
         if (pc == 0xb0) {
+            if (m_logNewSyscalls && (m_savedCounters[1][call] == 0)) {
+                g_system->printf("Bios call b0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::getB0name(call), call,
+                                 m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+            }
             if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[1][call]++;
             switch (call) {
                 case 0x3d: // putchar
@@ -325,15 +333,26 @@ class R3000Acpu {
         }
 
         if (pc == 0xc0) {
+            if (m_logNewSyscalls && (m_savedCounters[2][call] == 0)) {
+                g_system->printf("Bios call c0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::getC0name(call), call,
+                                 m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+            }
             if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[0][call]++;
         }
     }
 
   private:
     uint64_t m_counters[3][256];
+    uint64_t m_savedCounters[3][256];
 
   public:
-    const uint64_t* getCounters(int syscall) { return m_counters[syscall]; }
+    inline void memorizeCounters() {
+        for (int i = 0; i < 3; i++) {
+            memcpy(m_savedCounters[i], m_counters[i], 256 * sizeof(m_savedCounters[0][0]));
+        }
+    }
+    bool m_logNewSyscalls = false;
+    const uint64_t *getCounters(int syscall) { return m_counters[syscall]; }
     /*
 Formula One 2001
 - Use old CPU cache code when the RAM location is

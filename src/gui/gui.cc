@@ -372,6 +372,7 @@ void PCSX::GUI::endFrame() {
                     m_biosEditor.MenuItem();
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem("Show BIOS counters", nullptr, &m_showBiosCounters);
                 ImGui::Separator();
                 ImGui::MenuItem("Show SPU debug", nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
                 ImGui::Separator();
@@ -510,6 +511,73 @@ void PCSX::GUI::endFrame() {
                 const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
                 checkGL();
                 ImGui::Text("%s", extension);
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
+    }
+
+    if (m_showBiosCounters) {
+        if (ImGui::Begin("BIOS Counters", &m_showBiosCounters)) {
+            auto isUnknown = [](const char* name, char syscall) {
+                if (strlen(name) != 9) return false;
+                if (strncmp(name, "sys_", 4) != 0) return false;
+                if (name[4] != syscall) return false;
+                if (name[5] != '0') return false;
+                if (name[6] != '_') return false;
+                return true;
+            };
+            ImGui::Checkbox("Enable counters", &g_emulator.settings.get<Emulator::SettingBiosCounters>().value);
+            ImGui::SameLine();
+            ImGui::Checkbox("Skip unknowns", &m_skipBiosUnknowns);
+            if (ImGui::Button("Memorize")) {
+                g_emulator.m_psxCpu->memorizeCounters();
+            }
+            ImGui::SameLine();
+            ImGui::Checkbox("Log new syscalls", &g_emulator.m_psxCpu->m_logNewSyscalls);
+            ImGui::Separator();
+            ImGui::BeginChild("A0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
+            for (int i = 0; i < 256; i++) {
+                char defaultName[16];
+                const char* name = g_emulator.m_psxBios->getA0name(i);
+                if (!name) {
+                    name = defaultName;
+                    std::snprintf(defaultName, 16, "sys_a0_%02x", i);
+                }
+                if (m_skipBiosUnknowns && isUnknown(name, 'a')) continue;
+                ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(0)[i]);
+                ImGui::SameLine();
+                ImGui::Text(name);
+            }
+            ImGui::EndChild();
+            ImGui::SameLine();
+            ImGui::BeginChild("B0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
+            for (int i = 0; i < 256; i++) {
+                char defaultName[16];
+                const char* name = g_emulator.m_psxBios->getB0name(i);
+                if (!name) {
+                    name = defaultName;
+                    std::snprintf(defaultName, 16, "sys_b0_%02x", i);
+                }
+                if (m_skipBiosUnknowns && isUnknown(name, 'b')) continue;
+                ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(1)[i]);
+                ImGui::SameLine();
+                ImGui::Text(name);
+            }
+            ImGui::EndChild();
+            ImGui::SameLine();
+            ImGui::BeginChild("C0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
+            for (int i = 0; i < 256; i++) {
+                char defaultName[16];
+                const char* name = g_emulator.m_psxBios->getC0name(i);
+                if (!name) {
+                    name = defaultName;
+                    std::snprintf(defaultName, 16, "sys_c0_%02x", i);
+                }
+                if (m_skipBiosUnknowns && isUnknown(name, 'c')) continue;
+                ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(2)[i]);
+                ImGui::SameLine();
+                ImGui::Text(name);
             }
             ImGui::EndChild();
         }

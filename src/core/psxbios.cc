@@ -23,10 +23,11 @@
 
 #include "core/psxbios.h"
 #include "core/gpu.h"
+#include "core/misc.h"
 #include "core/pad.h"
 #include "core/psxhw.h"
 
-const char *PCSX::Bios::A0names[256] = {
+static const char *A0names[] = {
     // 0x00
     "open",
     "lseek",
@@ -222,142 +223,68 @@ const char *PCSX::Bios::A0names[256] = {
     "?? sub_function",
 };
 
-const char *PCSX::Bios::B0names[256] = {
-    // 0x00
-    "SysMalloc",
-    "sys_b0_01",
-    "sys_b0_02",
-    "sys_b0_03",
-    "sys_b0_04",
-    "sys_b0_05",
-    "sys_b0_06",
-    "DeliverEvent",
-    "OpenEvent",
-    "CloseEvent",
-    "WaitEvent",
-    "TestEvent",
-    "EnableEvent",
-    "DisableEvent",
-    "OpenTh",
-    "CloseTh",
-    // 0x10
-    "ChangeTh",
-    "sys_b0_11",
-    "InitPAD",
-    "StartPAD",
-    "StopPAD",
-    "PAD_init",
-    "PAD_dr",
-    "ReturnFromExecption",
-    "ResetEntryInt",
-    "HookEntryInt",
-    "sys_b0_1a",
-    "sys_b0_1b",
-    "sys_b0_1c",
-    "sys_b0_1d",
-    "sys_b0_1e",
-    "sys_b0_1f",
-    // 0x20
-    "UnDeliverEvent",
-    "sys_b0_21",
-    "sys_b0_22",
-    "sys_b0_23",
-    "sys_b0_24",
-    "sys_b0_25",
-    "sys_b0_26",
-    "sys_b0_27",
-    "sys_b0_28",
-    "sys_b0_29",
-    "sys_b0_2a",
-    "sys_b0_2b",
-    "sys_b0_2c",
-    "sys_b0_2d",
-    "sys_b0_2e",
-    "sys_b0_2f",
-    // 0x30
-    "sys_b0_30",
-    "sys_b0_31",
-    "open",
-    "lseek",
-    "read",
-    "write",
-    "close",
-    "ioctl",
-    "exit",
-    "sys_b0_39",
-    "getc",
-    "putc",
-    "getchar",
-    "putchar",
-    "gets",
-    "puts",
-    // 0x40
-    "cd",
-    "format",
-    "firstfile",
-    "nextfile",
-    "rename",
-    "delete",
-    "undelete",
-    "AddDevice",
-    "RemoteDevice",
-    "PrintInstalledDevices",
-    "InitCARD",
-    "StartCARD",
-    "StopCARD",
-    "sys_b0_4d",
-    "_card_write",
-    "_card_read",
-    // 0x50
-    "_new_card",
-    "Krom2RawAdd",
-    "sys_b0_52",
-    "sys_b0_53",
-    "_get_errno",
-    "_get_error",
-    "GetC0Table",
-    "GetB0Table",
-    "_card_chan",
-    "sys_b0_59",
-    "sys_b0_5a",
-    "ChangeClearPAD",
-    "_card_status",
-    "_card_wait",
+static const char *B0names[] = {
+    "SysMalloc",    "sys_b0_01",    "sys_b0_02",    "sys_b0_03", // 00
+    "sys_b0_04",    "sys_b0_05",    "sys_b0_06",    "DeliverEvent", // 04
+    "OpenEvent",    "CloseEvent",    "WaitEvent",    "TestEvent", // 08
+    "EnableEvent",    "DisableEvent",    "OpenTh",    "CloseTh", // 10
+    "ChangeTh",    "sys_b0_11",    "InitPAD",    "StartPAD", // 14
+    "StopPAD",    "PAD_init",    "PAD_dr",    "ReturnFromException", // 18
+    "ResetEntryInt",    "HookEntryInt",    "sys_b0_1a",    "sys_b0_1b", // 1c
+    "sys_b0_1c",    "sys_b0_1d",    "sys_b0_1e",    "sys_b0_1f", // 20
+    "UnDeliverEvent",    "sys_b0_21",    "sys_b0_22",    "sys_b0_23", // 24
+    "sys_b0_24",    "sys_b0_25",    "sys_b0_26",    "sys_b0_27", // 28
+    "sys_b0_28",    "sys_b0_29",    "sys_b0_2a",    "sys_b0_2b", // 2c
+    "sys_b0_2c",    "sys_b0_2d",    "sys_b0_2e",    "sys_b0_2f", // 30
+    "sys_b0_30",    "sys_b0_31",    "open",    "lseek", // 34
+    "read",    "write",    "close",    "ioctl", // 38
+    "exit",    "sys_b0_39",    "getc",    "putc", // 3c
+    "getchar",    "putchar",    "gets",    "puts", // 40
+    "cd",    "format",    "firstfile",    "nextfile", // 44
+    "rename",    "delete",    "undelete",    "AddDevice", // 48
+    "RemoteDevice",    "PrintInstalledDevices",    "InitCARD",    "StartCARD", // 4c
+    "StopCARD",    "sys_b0_4d",    "_card_write",    "_card_read", // 50
+    "_new_card",     "Krom2RawAdd",    "sys_b0_52",    "sys_b0_53", // 54
+    "_get_errno",    "_get_error",    "GetC0Table",    "GetB0Table", // 58
+    "_card_chan",    "sys_b0_59",    "sys_b0_5a",    "ChangeClearPAD", // 5c
+    "_card_status",    "_card_wait", // 60
 };
 
-const char *PCSX::Bios::C0names[256] = {
-    // 0x00
-    "InitRCnt",
-    "InitException",
-    "SysEnqIntRP",
-    "SysDeqIntRP",
-    "get_free_EvCB_slot",
-    "get_free_TCB_slot",
-    "ExceptionHandler",
-    "InstallExeptionHandler",
-    "SysInitMemory",
-    "SysInitKMem",
-    "ChangeClearRCnt",
-    "SystemError",
-    "InitDefInt",
-    "sys_c0_0d",
-    "sys_c0_0e",
-    "sys_c0_0f",
-    // 0x10
-    "sys_c0_10",
-    "sys_c0_11",
-    "InstallDevices",
-    "FlushStfInOutPut",
-    "sys_c0_14",
-    "_cdevinput",
-    "_cdevscan",
-    "_circgetc",
-    "_circputc",
-    "ioabort",
-    "sys_c0_1a",
-    "KernelRedirect",
-    "PatchAOTable",
+static const char *C0names[] = {
+    "InitRCnt",           "InitException",     "SysEnqIntRP",      "SysDeqIntRP",             // 00
+    "get_free_EvCB_slot", "get_free_TCB_slot", "ExceptionHandler", "InstallExeptionHandler",  // 04
+    "SysInitMemory",      "SysInitKMem",       "ChangeClearRCnt",  "SystemError",             // 08
+    "InitDefInt",         "sys_c0_0d",         "sys_c0_0e",        "sys_c0_0f",               // 0c
+    "sys_c0_10",          "sys_c0_11",         "InstallDevices",   "FlushStfInOutPut",        // 10
+    "sys_c0_14",          "_cdevinput",        "_cdevscan",        "_circgetc",               // 14
+    "_circputc",          "ioabort",           "sys_c0_1a",        "KernelRedirect",          // 18
+    "PatchAOTable",       "GetDeviceStatus"                                                   // 1c
 };
+
+const char *PCSX::Bios::getA0name(uint8_t call) {
+    unsigned count = sizeof(A0names) / sizeof(A0names[0]);
+    if (call < count) {
+        return A0names[call];
+    } else {
+        return nullptr;
+    }
+}
+const char *PCSX::Bios::getB0name(uint8_t call) {
+    unsigned count = sizeof(B0names) / sizeof(B0names[0]);
+    if (call < count) {
+        return B0names[call];
+    } else {
+        return nullptr;
+    }
+}
+const char *PCSX::Bios::getC0name(uint8_t call) {
+    unsigned count = sizeof(C0names) / sizeof(C0names[0]);
+    if (call < count) {
+        return C0names[call];
+    } else {
+        return nullptr;
+    }
+}
 
 //#define r0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.r0)
 #define at (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.at)
@@ -1277,14 +1204,19 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_format() {  // 0x41
-        if (strcmp(Ra0, "bu00:") == 0 && !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().empty()) {
-            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
-            PCSX::g_emulator.m_sio->LoadMcd(1, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
+        if (strcmp(Ra0, "bu00:") == 0 &&
+            !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().empty()) {
+            PCSX::g_emulator.m_sio->CreateMcd(
+                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
+            PCSX::g_emulator.m_sio->LoadMcd(
+                1, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str());
             v0 = 1;
         } else if (strcmp(Ra0, "bu10:") == 0 &&
                    !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().empty()) {
-            PCSX::g_emulator.m_sio->CreateMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
-            PCSX::g_emulator.m_sio->LoadMcd(2, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
+            PCSX::g_emulator.m_sio->CreateMcd(
+                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
+            PCSX::g_emulator.m_sio->LoadMcd(
+                2, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
             v0 = 1;
         } else {
             v0 = 0;
@@ -1908,7 +1840,7 @@ class BiosImpl : public PCSX::Bios {
 
     void buopen(int mcd, char *ptr, const char *cfg) {
         int i;
-        uint8_t *fptr = reinterpret_cast<uint8_t*>(ptr);
+        uint8_t *fptr = reinterpret_cast<uint8_t *>(ptr);
 
         strcpy(s_FDesc[1 + mcd].name, Ra0 + 5);
         s_FDesc[1 + mcd].offset = 0;
@@ -2350,15 +2282,15 @@ class BiosImpl : public PCSX::Bios {
         if (port == 0) {
             memcpy(PCSX::g_emulator.m_sio->g_mcd1Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
                    PCSX::SIO::MCD_SECT_SIZE);
-            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str(),
-                                            PCSX::g_emulator.m_sio->g_mcd1Data,
-                                            sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
+            PCSX::g_emulator.m_sio->SaveMcd(
+                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str(),
+                PCSX::g_emulator.m_sio->g_mcd1Data, sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
         } else {
             memcpy(PCSX::g_emulator.m_sio->g_mcd2Data + (sect * PCSX::SIO::MCD_SECT_SIZE), Ra2,
                    PCSX::SIO::MCD_SECT_SIZE);
-            PCSX::g_emulator.m_sio->SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str(),
-                                            PCSX::g_emulator.m_sio->g_mcd2Data,
-                                            sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
+            PCSX::g_emulator.m_sio->SaveMcd(
+                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str(),
+                PCSX::g_emulator.m_sio->g_mcd2Data, sect * PCSX::SIO::MCD_SECT_SIZE, PCSX::SIO::MCD_SECT_SIZE);
         }
 
         DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004

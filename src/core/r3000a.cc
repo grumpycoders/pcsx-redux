@@ -50,6 +50,7 @@ void PCSX::R3000Acpu::psxReset() {
 
     for (int i = 0; i < 3; i++) {
         memset(m_counters[i], 0, 256 * sizeof(m_counters[0][0]));
+        memset(m_savedCounters[i], 0, 256 * sizeof(m_savedCounters[0][0]));
     }
 
     memset(&m_psxRegs, 0, sizeof(m_psxRegs));

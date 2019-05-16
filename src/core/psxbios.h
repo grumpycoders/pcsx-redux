@@ -19,15 +19,17 @@
 
 #pragma once
 
+#include <stdint.h>
+
 namespace PCSX {
 
 class Bios {
   public:
     Bios() {}
     virtual ~Bios() {}
-    static const char *A0names[256];
-    static const char *B0names[256];
-    static const char *C0names[256];
+    static const char *getA0name(uint8_t call);
+    static const char *getB0name(uint8_t call);
+    static const char *getC0name(uint8_t call);
 
     virtual void psxBiosInit() = 0;
     virtual void psxBiosShutdown() = 0;

@@ -126,6 +126,8 @@ class GUI final {
     Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
+    bool m_showBiosCounters = false;
+    bool m_skipBiosUnknowns = true;
 
     const flags::args &m_args;
     bool m_scheduleSoftReset = false;
