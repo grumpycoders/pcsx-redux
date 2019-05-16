@@ -6,7 +6,7 @@ pool:
 
 variables:
   solution: 'vsprojects/pcsx-redux.sln'
-  buildPlatform: 'x86|x64'
+  buildPlatform: 'x86'
   buildConfiguration: 'Release'
 
 steps:
@@ -27,8 +27,6 @@ steps:
     Contents: |
       vsprojects/Release/*.exe
       vsprojects/Release/*.dll
-      vsprojects/x64/Release/*.exe
-      vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)'
 
 - task: PublishBuildArtifacts@1
