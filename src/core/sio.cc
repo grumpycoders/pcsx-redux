@@ -23,6 +23,7 @@
 
 #include <sys/stat.h>
 
+#include "core/misc.h"
 #include "core/pad.h"
 #include "core/sio.h"
 

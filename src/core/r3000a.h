@@ -294,27 +294,46 @@ class R3000Acpu {
         }
         return true;
     }
-    inline void InterceptConsole() {
+    inline void InterceptBIOS() {
+        const uint32_t pc = m_psxRegs.pc & 0x1fffff;
+        const uint32_t base = (pc >> 20) & 0xffc;
+        if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+
         // Intercept puts and putchar, even if running the binary bios.
-        if (m_psxRegs.pc == 0xa0) {
-            switch (m_psxRegs.GPR.n.t1) {
-                case 0x3e:
-                    psxHLEt[1]();
+        // The binary bios doesn't have the TTY output set up by default,
+        // so this hack enables us to properly display printfs.
+        const uint32_t call = m_psxRegs.GPR.n.t1 & 0xff;
+        if (pc == 0xa0) {
+            if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[0][call]++;
+            switch (call) {
+                case 0x3e: // puts
+                    PCSX::g_emulator.m_psxBios->callA0(call);
+                    PCSX::g_emulator.m_psxCpu->psxBranchTest();
                     break;
             }
         }
 
-        if (m_psxRegs.pc == 0xb0) {
-            switch (m_psxRegs.GPR.n.t1) {
-                case 0x3d:
-                case 0x3f:
-                    psxHLEt[2]();
+        if (pc == 0xb0) {
+            if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[1][call]++;
+            switch (call) {
+                case 0x3d: // putchar
+                case 0x3f: // puts
+                    PCSX::g_emulator.m_psxBios->callB0(call);
+                    PCSX::g_emulator.m_psxCpu->psxBranchTest();
                     break;
             }
+        }
+
+        if (pc == 0xc0) {
+            if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[0][call]++;
         }
     }
 
+  private:
+    uint64_t m_counters[3][256];
+
   public:
+    const uint64_t* getCounters(int syscall) { return m_counters[syscall]; }
     /*
 Formula One 2001
 - Use old CPU cache code when the RAM location is

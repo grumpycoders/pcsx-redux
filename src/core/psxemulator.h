@@ -64,6 +64,7 @@
 
 // Local includes from core - anything else from core is forbidden
 #include "core/logger.h"
+#include "core/misc.h"
 #include "core/system.h"
 
 #if defined(__linux__) || defined(__MACOSX__)
@@ -128,9 +129,10 @@ class Emulator {
     typedef Setting<bool, irqus::typestring<'D', 'e', 'b', 'u', 'g'>> SettingDebug;
     typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
     typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
+    typedef Setting<bool, irqus::typestring<'B', 'i', 'o', 's', 'C', 'o', 'u', 'n', 't', 'e', 'r', 's'>> SettingBiosCounters;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix>
+             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingBiosCounters>
         settings;
     class PcsxConfig {
       public:
