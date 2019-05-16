@@ -1908,7 +1908,7 @@ class BiosImpl : public PCSX::Bios {
 
     void buopen(int mcd, char *ptr, const char *cfg) {
         int i;
-        char *fptr = ptr;
+        uint8_t *fptr = reinterpret_cast<uint8_t*>(ptr);
 
         strcpy(s_FDesc[1 + mcd].name, Ra0 + 5);
         s_FDesc[1 + mcd].offset = 0;
@@ -1917,17 +1917,17 @@ class BiosImpl : public PCSX::Bios {
         for (i = 1; i < 16; i++) {
             fptr += 128;
             if ((*fptr & 0xF0) != 0x50) continue;
-            if (strcmp(s_FDesc[1 + mcd].name, fptr + 0xa)) continue;
+            if (strcmp(s_FDesc[1 + mcd].name, reinterpret_cast<char *>(fptr) + 0xa)) continue;
             s_FDesc[1 + mcd].mcfile = i;
             PCSX::g_system->biosPrintf("open %s\n", fptr + 0xa);
             v0 = 1 + mcd;
             break;
         }
         if (a1 & 0x200 && v0 == -1) { /* FCREAT */
-            fptr = ptr;
+            fptr = reinterpret_cast<uint8_t *>(ptr);
             for (i = 1; i < 16; i++) {
                 int j, checksum, nblk = a1 >> 16;
-                char *pptr, *fptr2;
+                uint8_t *pptr, *fptr2;
 
                 fptr += 128;
                 if ((*fptr & 0xF0) != 0xa0) continue;
@@ -1938,7 +1938,7 @@ class BiosImpl : public PCSX::Bios {
                 fptr[5] = 0x20 * nblk;
                 fptr[6] = 0x00;
                 fptr[7] = 0x00;
-                strcpy(fptr + 0xa, s_FDesc[1 + mcd].name);
+                strcpy(reinterpret_cast<char *>(fptr) + 0xa, s_FDesc[1 + mcd].name);
                 pptr = fptr2 = fptr;
                 for (j = 2; j <= nblk; j++) {
                     int k;
