@@ -1,3 +1,8 @@
+|Platform|Build status|
+|--------|------------|
+|Windows build|[![Build Status](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=master)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=master)|
+|Linux build|[![CircleCI](https://circleci.com/gh/grumpycoders/pcsx-redux.svg?style=svg)](https://circleci.com/gh/grumpycoders/pcsx-redux)|
+
 # PCSX-Redux
 
 ## What?
