@@ -20,6 +20,7 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: '$(buildPlatform)'
+    maximumCpuCount: true
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
