@@ -22,13 +22,6 @@ steps:
     maximumCpuCount: true
     configuration: '$(buildConfiguration)'
 
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    platform: 'x64'
-    maximumCpuCount: true
-    configuration: '$(buildConfiguration)'
-    
 - task: CopyFiles@2
   inputs:
     Contents: |
@@ -36,11 +29,18 @@ steps:
       vsprojects/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)'
 
+- task: VSBuild@1
+  inputs:
+    solution: '$(solution)'
+    platform: 'x64'
+    maximumCpuCount: true
+    configuration: '$(buildConfiguration)'
+
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/Release/x64/*.exe
-      vsprojects/Release/x64/*.dll
+      vsprojects/x64/Release/*.exe
+      vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)'
 
 - task: PublishBuildArtifacts@1
