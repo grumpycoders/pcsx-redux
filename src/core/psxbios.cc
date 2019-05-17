@@ -1461,7 +1461,7 @@ class BiosImpl : public PCSX::Bios {
         // COTS password option
         if (PCSX::g_emulator.config().NoMemcard) ret = 0x8;
 
-        //  DeliverEvent(0x11, 0x2); // 0xf0000011, 0x0004
+        DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
         DeliverEvent(0x81, ret);  // 0xf4000001, 0x0004
 
         v0 = 1;
