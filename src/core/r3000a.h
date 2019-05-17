@@ -296,21 +296,38 @@ class R3000Acpu {
     }
     inline void InterceptBIOS() {
         const uint32_t pc = m_psxRegs.pc & 0x1fffff;
-        const uint32_t base = (pc >> 20) & 0xffc;
+        const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+        const auto r = m_psxRegs.GPR.n;
+        bool ignore = !g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>();
+        const uint32_t rabase = (r.ra >> 20) & 0xffc;
+        const uint32_t ra = r.ra & 0x1fffff;
+        if ((rabase != 0x000) && (rabase != 0x800) && (rabase != 0xa00)) ignore = true;
+        if (ra < 0x10000) ignore = true;
 
-        // Intercept puts and putchar, even if running the binary bios.
+        // Intercept printf, puts and putchar, even if running the binary bios.
         // The binary bios doesn't have the TTY output set up by default,
-        // so this hack enables us to properly display printfs.
+        // so this hack enables us to properly display printfs. Also,
+        // sometimes, games will fully redirect printf's output, so it
+        // will stop calling putchar.
         const uint32_t call = m_psxRegs.GPR.n.t1 & 0xff;
         if (pc == 0xa0) {
-            if (m_logNewSyscalls && (m_savedCounters[0][call] == 0)) {
-                g_system->printf("Bios call a0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::getA0name(call), call,
-                                 m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+            if (!ignore) {
+                if (m_savedCounters[0][call] == 0) {
+                    if (m_breakpointOnNew) g_system->pause();
+                    if (m_logNewSyscalls) {
+                        const char *name = Bios::getA0name(call);
+                        g_system->printf("Bios call a0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
+                    }
+                    m_counters[0][call]++;
+                }
             }
-            if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[0][call]++;
             switch (call) {
-                case 0x3e: // puts
+                case 0x03:  // write
+                    // stdout
+                    if (r.a0 != 1) break;
+                case 0x3e:  // puts
+                case 0x3f:  // printf
                     PCSX::g_emulator.m_psxBios->callA0(call);
                     PCSX::g_emulator.m_psxCpu->psxBranchTest();
                     break;
@@ -318,14 +335,22 @@ class R3000Acpu {
         }
 
         if (pc == 0xb0) {
-            if (m_logNewSyscalls && (m_savedCounters[1][call] == 0)) {
-                g_system->printf("Bios call b0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::getB0name(call), call,
-                                 m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+            if (!ignore) {
+                if (m_savedCounters[1][call] == 0) {
+                    if (m_breakpointOnNew) g_system->pause();
+                    if (m_logNewSyscalls) {
+                        const char *name = Bios::getB0name(call);
+                        g_system->printf("Bios call b0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
+                    }
+                }
+                m_counters[1][call]++;
             }
-            if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[1][call]++;
             switch (call) {
-                case 0x3d: // putchar
-                case 0x3f: // puts
+                case 0x35:  // write
+                    // stdout
+                    if (r.a0 != 1) break;
+                case 0x3d:  // putchar
+                case 0x3f:  // puts
                     PCSX::g_emulator.m_psxBios->callB0(call);
                     PCSX::g_emulator.m_psxCpu->psxBranchTest();
                     break;
@@ -333,11 +358,16 @@ class R3000Acpu {
         }
 
         if (pc == 0xc0) {
-            if (m_logNewSyscalls && (m_savedCounters[2][call] == 0)) {
-                g_system->printf("Bios call c0: %s (%x) %x,%x,%x,%x\n", PCSX::Bios::getC0name(call), call,
-                                 m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.a3);
+            if (!ignore) {
+                if (m_savedCounters[2][call] == 0) {
+                    if (m_breakpointOnNew) g_system->pause();
+                    if (m_logNewSyscalls) {
+                        const char *name = Bios::getC0name(call);
+                        g_system->printf("Bios call c0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
+                    }
+                }
+                m_counters[2][call]++;
             }
-            if (g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>()) m_counters[0][call]++;
         }
     }
 
@@ -351,7 +381,13 @@ class R3000Acpu {
             memcpy(m_savedCounters[i], m_counters[i], 256 * sizeof(m_savedCounters[0][0]));
         }
     }
+    inline void clearCounters() {
+        for (int i = 0; i < 3; i++) {
+            memset(m_counters[i], 0, 256 * sizeof(m_counters[0][0]));
+        }
+    }
     bool m_logNewSyscalls = false;
+    bool m_breakpointOnNew = false;
     const uint64_t *getCounters(int syscall) { return m_counters[syscall]; }
     /*
 Formula One 2001

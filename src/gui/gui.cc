@@ -534,7 +534,12 @@ void PCSX::GUI::endFrame() {
                 g_emulator.m_psxCpu->memorizeCounters();
             }
             ImGui::SameLine();
+            if (ImGui::Button("Clear")) {
+                g_emulator.m_psxCpu->clearCounters();
+            }
             ImGui::Checkbox("Log new syscalls", &g_emulator.m_psxCpu->m_logNewSyscalls);
+            ImGui::SameLine();
+            ImGui::Checkbox("Breakpoint on new syscalls", &g_emulator.m_psxCpu->m_breakpointOnNew);
             ImGui::Separator();
             ImGui::BeginChild("A0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
             for (int i = 0; i < 256; i++) {
@@ -666,7 +671,7 @@ bool PCSX::GUI::configure() {
         changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox("Fast boot", &settings.get<Emulator::SettingFastBoot>().value);
         auto bios = settings.get<Emulator::SettingBios>().value.string();
-        ImGui::InputText("BIOS file", const_cast<char *>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputText("BIOS file", const_cast<char*>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
     }

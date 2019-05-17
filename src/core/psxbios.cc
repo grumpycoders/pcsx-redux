@@ -2483,9 +2483,11 @@ class BiosImpl : public PCSX::Bios {
             m_biosB0[i] = NULL;
             m_biosC0[i] = NULL;
         }
+        m_biosA0[0x03] = &BiosImpl::psxBios_write;
         m_biosA0[0x3e] = &BiosImpl::psxBios_puts;
         m_biosA0[0x3f] = &BiosImpl::psxBios_printf;
 
+        m_biosB0[0x35] = &BiosImpl::psxBios_write;
         m_biosB0[0x3d] = &BiosImpl::psxBios_putchar;
         m_biosB0[0x3f] = &BiosImpl::psxBios_puts;
 
@@ -2500,7 +2502,6 @@ class BiosImpl : public PCSX::Bios {
         m_biosA0[0x00] = &BiosImpl::psxBios_open;
         m_biosA0[0x01] = &BiosImpl::psxBios_lseek;
         m_biosA0[0x02] = &BiosImpl::psxBios_read;
-        m_biosA0[0x03] = &BiosImpl::psxBios_write;
         m_biosA0[0x04] = &BiosImpl::psxBios_close;
         // m_biosA0[0x05] = &BiosImpl::psxBios_ioctl;
         // m_biosA0[0x06] = &BiosImpl::psxBios_exit;
@@ -2730,7 +2731,6 @@ class BiosImpl : public PCSX::Bios {
         m_biosB0[0x32] = &BiosImpl::psxBios_open;
         m_biosB0[0x33] = &BiosImpl::psxBios_lseek;
         m_biosB0[0x34] = &BiosImpl::psxBios_read;
-        m_biosB0[0x35] = &BiosImpl::psxBios_write;
         m_biosB0[0x36] = &BiosImpl::psxBios_close;
         // m_biosB0[0x37] = &BiosImpl::psxBios_ioctl;
         // m_biosB0[0x38] = &BiosImpl::psxBios_exit;
