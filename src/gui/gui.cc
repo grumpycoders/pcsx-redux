@@ -539,7 +539,11 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Checkbox("Log new syscalls", &g_emulator.m_psxCpu->m_logNewSyscalls);
             ImGui::SameLine();
+            ImGui::Checkbox("Log events", &g_emulator.m_psxCpu->m_logEvents);
+            ImGui::SameLine();
             ImGui::Checkbox("Breakpoint on new syscalls", &g_emulator.m_psxCpu->m_breakpointOnNew);
+            ImGui::SameLine();
+            ImGui::Checkbox("Debug kernel", &g_emulator.m_psxCpu->m_debugKernel);
             ImGui::Separator();
             ImGui::BeginChild("A0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
             for (int i = 0; i < 256; i++) {
@@ -550,7 +554,11 @@ void PCSX::GUI::endFrame() {
                     std::snprintf(defaultName, 16, "sys_a0_%02x", i);
                 }
                 if (m_skipBiosUnknowns && isUnknown(name, 'a')) continue;
+                char checkboxName[16];
+                std::snprintf(checkboxName, 16, "##sys_a0_%02x_brk", i);
                 ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(0)[i]);
+                ImGui::SameLine();
+                ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[0][i]);
                 ImGui::SameLine();
                 ImGui::Text(name);
             }
@@ -565,7 +573,11 @@ void PCSX::GUI::endFrame() {
                     std::snprintf(defaultName, 16, "sys_b0_%02x", i);
                 }
                 if (m_skipBiosUnknowns && isUnknown(name, 'b')) continue;
+                char checkboxName[16];
+                std::snprintf(checkboxName, 16, "##sys_b0_%02x_brk", i);
                 ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(1)[i]);
+                ImGui::SameLine();
+                ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[1][i]);
                 ImGui::SameLine();
                 ImGui::Text(name);
             }
@@ -580,7 +592,11 @@ void PCSX::GUI::endFrame() {
                     std::snprintf(defaultName, 16, "sys_c0_%02x", i);
                 }
                 if (m_skipBiosUnknowns && isUnknown(name, 'c')) continue;
+                char checkboxName[16];
+                std::snprintf(checkboxName, 16, "##sys_c0_%02x_brk", i);
                 ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(2)[i]);
+                ImGui::SameLine();
+                ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[2][i]);
                 ImGui::SameLine();
                 ImGui::Text(name);
             }

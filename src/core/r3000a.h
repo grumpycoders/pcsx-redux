@@ -256,6 +256,13 @@ typedef struct {
 
 class R3000Acpu {
   public:
+    R3000Acpu() {
+        for (int s = 0; s < 3; s++) {
+            for (int c = 0; c < 256; c++) {
+                m_breakpoints[s][c] = false;
+            }
+        }
+      }
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
     virtual void Reset() = 0;
@@ -304,15 +311,17 @@ class R3000Acpu {
         const uint32_t ra = r.ra & 0x1fffff;
         if ((rabase != 0x000) && (rabase != 0x800) && (rabase != 0xa00)) ignore = true;
         if (ra < 0x10000) ignore = true;
+        if (m_debugKernel) ignore = false;
 
         // Intercept printf, puts and putchar, even if running the binary bios.
         // The binary bios doesn't have the TTY output set up by default,
         // so this hack enables us to properly display printfs. Also,
         // sometimes, games will fully redirect printf's output, so it
         // will stop calling putchar.
-        const uint32_t call = m_psxRegs.GPR.n.t1 & 0xff;
+        const uint32_t call = r.t1 & 0xff;
         if (pc == 0xa0) {
             if (!ignore) {
+                if (m_breakpoints[0][call]) g_system->pause();
                 if (m_savedCounters[0][call] == 0) {
                     if (m_breakpointOnNew) g_system->pause();
                     if (m_logNewSyscalls) {
@@ -336,6 +345,7 @@ class R3000Acpu {
 
         if (pc == 0xb0) {
             if (!ignore) {
+                if (m_breakpoints[1][call]) g_system->pause();
                 if (m_savedCounters[1][call] == 0) {
                     if (m_breakpointOnNew) g_system->pause();
                     if (m_logNewSyscalls) {
@@ -346,6 +356,19 @@ class R3000Acpu {
                 m_counters[1][call]++;
             }
             switch (call) {
+                case 0x07:  // DeliverEvent
+                case 0x08:  // OpenEvent
+                case 0x09:  // CloseEvent
+                case 0x0a:  // WaitEvent
+                case 0x0b:  // TestEvent
+                case 0x0c:  // EnableEvent
+                case 0x0d:  // DisableEvent
+                    if (m_logEvents) {
+                        int ev = GetEv();
+                        int spec = GetSpec();
+                        g_system->printf("%s(0x%02x, 0x%02x)\n", Bios::getB0name(call), ev, spec);
+                    }
+                    break;
                 case 0x35:  // write
                     // stdout
                     if (r.a0 != 1) break;
@@ -359,6 +382,7 @@ class R3000Acpu {
 
         if (pc == 0xc0) {
             if (!ignore) {
+                if (m_breakpoints[2][call]) g_system->pause();
                 if (m_savedCounters[2][call] == 0) {
                     if (m_breakpointOnNew) g_system->pause();
                     if (m_logNewSyscalls) {
@@ -372,6 +396,36 @@ class R3000Acpu {
     }
 
   private:
+    /* gets ev for use with s_Event */
+    int GetEv() {
+        const auto r = m_psxRegs.GPR.n;
+        int ev = (r.a0 >> 24) & 0xf;
+        if (ev == 0xf) ev = 0x5;
+        ev *= 32;
+        ev += r.a0 & 0x1f;
+        return ev;
+    }
+
+    int GetSpec() {
+        int spec = 0;
+        const auto r = m_psxRegs.GPR.n;
+        switch (r.a1) {
+            case 0x0301:
+                spec = 16;
+                break;
+            case 0x0302:
+                spec = 17;
+                break;
+            default:
+                for (int i = 0; i < 16; i++)
+                    if (r.a1 & (1 << i)) {
+                        spec = i;
+                        break;
+                    }
+                break;
+        }
+        return spec;
+    }
     uint64_t m_counters[3][256];
     uint64_t m_savedCounters[3][256];
 
@@ -386,8 +440,11 @@ class R3000Acpu {
             memset(m_counters[i], 0, 256 * sizeof(m_counters[0][0]));
         }
     }
+    bool m_breakpoints[3][256];
     bool m_logNewSyscalls = false;
     bool m_breakpointOnNew = false;
+    bool m_debugKernel = false;
+    bool m_logEvents = false;
     const uint64_t *getCounters(int syscall) { return m_counters[syscall]; }
     /*
 Formula One 2001
