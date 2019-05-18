@@ -875,7 +875,7 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
 
             // absolute path?
             m_ti[m_numtracks + 1].handle = new File(tmpb);
-            if (m_ti[m_numtracks + 1].handle == NULL) {
+            if (m_ti[m_numtracks + 1].handle->failed()) {
                 // relative to .cue?
                 tmp = strrchr(tmpb, '\\');
                 if (tmp == NULL) tmp = strrchr(tmpb, '/');
