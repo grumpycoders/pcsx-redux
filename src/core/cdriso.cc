@@ -875,7 +875,8 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
 
             // absolute path?
             m_ti[m_numtracks + 1].handle = new File(tmpb);
-            if (m_ti[m_numtracks + 1].handle == NULL) {
+            if (m_ti[m_numtracks + 1].handle->failed()) {
+                delete m_ti[m_numtracks + 1].handle;
                 // relative to .cue?
                 tmp = strrchr(tmpb, '\\');
                 if (tmp == NULL) tmp = strrchr(tmpb, '/');
@@ -896,8 +897,10 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
             }
 
             file_len = 0;
-            if (m_ti[m_numtracks + 1].handle == NULL) {
+            if (m_ti[m_numtracks + 1].handle->failed()) {
                 PCSX::g_system->message(_("\ncould not open: %s\n"), filepath);
+                delete m_ti[m_numtracks + 1].handle;
+                m_ti[m_numtracks + 1].handle = nullptr;
                 continue;
             }
 
@@ -909,7 +912,7 @@ int PCSX::CDRiso::parsecue(const char *isofile) {
                 // user selected .cue as image file, use its data track instead
                 m_cdHandle->close();
                 delete m_cdHandle;
-                m_cdHandle = new File(tmpb);
+                m_cdHandle = new File(filepath);
             }
         }
     }
@@ -2208,7 +2211,7 @@ bool PCSX::CDRiso::readTrack(uint8_t *time) {
     int sector = CDRom::MSF2SECT(CDRom::btoi(time[0]), CDRom::btoi(time[1]), CDRom::btoi(time[2]));
     long ret;
 
-    if (m_cdHandle == NULL) {
+    if (m_cdHandle == NULL || m_cdHandle->failed()) {
         return false;
     }
 

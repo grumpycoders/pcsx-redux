@@ -355,42 +355,50 @@ static void DrawFullscreenQuad(int is24Bit) {
         glUseProgram(shaderprogram16);
     }
 
+    float xRatio = 1 / 1024.f;
+    if (is24Bit) {
+        xRatio = (1 / 1.5f) * (1.f / 1024.f);
+    }
+
+    float startX = PSXDisplay.DisplayPosition.x * xRatio;
+    float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.f;
+
     s_vertexData quadVertices[6];
 
     quadVertices[0].positions[0] = -1;
     quadVertices[0].positions[1] = -1;
     quadVertices[0].positions[2] = 0;
-    quadVertices[0].textures[0] = PSXDisplay.DisplayPosition.x / 1024.f;
+    quadVertices[0].textures[0] = startX;
     quadVertices[0].textures[1] = PSXDisplay.DisplayPosition.y / 512.f;
 
     quadVertices[1].positions[0] = 1;
     quadVertices[1].positions[1] = -1;
     quadVertices[1].positions[2] = 0;
-    quadVertices[1].textures[0] = PSXDisplay.DisplayEnd.x / 1024.f;
+    quadVertices[1].textures[0] = startX + width;
     quadVertices[1].textures[1] = PSXDisplay.DisplayPosition.y / 512.f;
 
     quadVertices[2].positions[0] = 1;
     quadVertices[2].positions[1] = 1;
     quadVertices[2].positions[2] = 0;
-    quadVertices[2].textures[0] = PSXDisplay.DisplayEnd.x / 1024.f;
+    quadVertices[2].textures[0] = startX + width;
     quadVertices[2].textures[1] = PSXDisplay.DisplayEnd.y / 512.f;
 
     quadVertices[3].positions[0] = -1;
     quadVertices[3].positions[1] = -1;
     quadVertices[3].positions[2] = 0;
-    quadVertices[3].textures[0] = PSXDisplay.DisplayPosition.x / 1024.f;
+    quadVertices[3].textures[0] = startX;
     quadVertices[3].textures[1] = PSXDisplay.DisplayPosition.y / 512.f;
 
     quadVertices[4].positions[0] = -1;
     quadVertices[4].positions[1] = 1;
     quadVertices[4].positions[2] = 0;
-    quadVertices[4].textures[0] = PSXDisplay.DisplayPosition.x / 1024.f;
+    quadVertices[4].textures[0] = startX;
     quadVertices[4].textures[1] = PSXDisplay.DisplayEnd.y / 512.f;
 
     quadVertices[5].positions[0] = 1;
     quadVertices[5].positions[1] = 1;
     quadVertices[5].positions[2] = 0;
-    quadVertices[5].textures[0] = PSXDisplay.DisplayEnd.x / 1024.f;
+    quadVertices[5].textures[0] = startX + width;
     quadVertices[5].textures[1] = PSXDisplay.DisplayEnd.y / 512.f;
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);

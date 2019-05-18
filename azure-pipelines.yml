@@ -6,7 +6,6 @@ pool:
 
 variables:
   solution: 'vsprojects/pcsx-redux.sln'
-  buildPlatform: 'x86'
   buildConfiguration: 'Release'
 
 steps:
@@ -19,5 +18,33 @@ steps:
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
-    platform: '$(buildPlatform)'
+    platform: 'x86'
+    maximumCpuCount: true
     configuration: '$(buildConfiguration)'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      vsprojects/Release/*.exe
+      vsprojects/Release/*.dll
+    TargetFolder: '$(build.artifactStagingDirectory)'
+
+- task: VSBuild@1
+  inputs:
+    solution: '$(solution)'
+    platform: 'x64'
+    maximumCpuCount: true
+    configuration: '$(buildConfiguration)'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      vsprojects/x64/Release/*.exe
+      vsprojects/x64/Release/*.dll
+    TargetFolder: '$(build.artifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'

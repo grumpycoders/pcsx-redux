@@ -385,9 +385,7 @@ void PCSX::GUI::endFrame() {
                     m_showDemo = true;
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem("About", nullptr, nullptr)) {
-                    m_showAbout = true;
-                }
+                ImGui::MenuItem("About", nullptr, m_showAbout);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -678,7 +676,7 @@ void PCSX::GUI::about() {
     if (!m_showAbout) return;
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("About")) {
+    if (ImGui::Begin("About", &m_showAbout)) {
         ImGui::Text("PCSX-Redux", &m_showAbout);
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
