@@ -27,228 +27,85 @@
 #include "core/pad.h"
 #include "core/psxhw.h"
 
+// clang-format off
 static const char *A0names[] = {
-    // 0x00
-    "open",
-    "lseek",
-    "read",
-    "write",
-    "close",
-    "ioctl",
-    "exit",
-    "sys_a0_07",
-    "getc",
-    "putc",
-    "todigit",
-    "atof",
-    "strtoul",
-    "strtol",
-    "abs",
-    "labs",
-    // 0x10
-    "atoi",
-    "atol",
-    "atob",
-    "setjmp",
-    "longjmp",
-    "strcat",
-    "strncat",
-    "strcmp",
-    "strncmp",
-    "strcpy",
-    "strncpy",
-    "strlen",
-    "index",
-    "rindex",
-    "strchr",
-    "strrchr",
-    // 0x20
-    "strpbrk",
-    "strspn",
-    "strcspn",
-    "strtok",
-    "strstr",
-    "toupper",
-    "tolower",
-    "bcopy",
-    "bzero",
-    "bcmp",
-    "memcpy",
-    "memset",
-    "memmove",
-    "memcmp",
-    "memchr",
-    "rand",
-    // 0x30
-    "srand",
-    "qsort",
-    "strtod",
-    "malloc",
-    "free",
-    "lsearch",
-    "bsearch",
-    "calloc",
-    "realloc",
-    "InitHeap",
-    "_exit",
-    "getchar",
-    "putchar",
-    "gets",
-    "puts",
-    "printf",
-    // 0x40
-    "sys_a0_40",
-    "LoadTest",
-    "Load",
-    "Exec",
-    "FlushCache",
-    "InstallInterruptHandler",
-    "GPU_dw",
-    "mem2vram",
-    "SendGPUStatus",
-    "GPU_cw",
-    "GPU_cwb",
-    "SendPackets",
-    "sys_a0_4c",
-    "GetGPUStatus",
-    "GPU_sync",
-    "sys_a0_4f",
-    // 0x50
-    "sys_a0_50",
-    "LoadExec",
-    "GetSysSp",
-    "sys_a0_53",
-    "_96_init()",
-    "_bu_init()",
-    "_96_remove()",
-    "sys_a0_57",
-    "sys_a0_58",
-    "sys_a0_59",
-    "sys_a0_5a",
-    "dev_tty_init",
-    "dev_tty_open",
-    "sys_a0_5d",
-    "dev_tty_ioctl",
-    "dev_cd_open",
-    // 0x60
-    "dev_cd_read",
-    "dev_cd_close",
-    "dev_cd_firstfile",
-    "dev_cd_nextfile",
-    "dev_cd_chdir",
-    "dev_card_open",
-    "dev_card_read",
-    "dev_card_write",
-    "dev_card_close",
-    "dev_card_firstfile",
-    "dev_card_nextfile",
-    "dev_card_erase",
-    "dev_card_undelete",
-    "dev_card_format",
-    "dev_card_rename",
-    "dev_card_6f",
-    // 0x70
-    "_bu_init",
-    "_96_init",
-    "_96_remove",
-    "sys_a0_73",
-    "sys_a0_74",
-    "sys_a0_75",
-    "sys_a0_76",
-    "sys_a0_77",
-    "_96_CdSeekL",
-    "sys_a0_79",
-    "sys_a0_7a",
-    "sys_a0_7b",
-    "_96_CdGetStatus",
-    "sys_a0_7d",
-    "_96_CdRead",
-    "sys_a0_7f",
-    // 0x80
-    "sys_a0_80",
-    "sys_a0_81",
-    "sys_a0_82",
-    "sys_a0_83",
-    "sys_a0_84",
-    "_96_CdStop",
-    "sys_a0_86",
-    "sys_a0_87",
-    "sys_a0_88",
-    "sys_a0_89",
-    "sys_a0_8a",
-    "sys_a0_8b",
-    "sys_a0_8c",
-    "sys_a0_8d",
-    "sys_a0_8e",
-    "sys_a0_8f",
-    // 0x90
-    "sys_a0_90",
-    "sys_a0_91",
-    "sys_a0_92",
-    "sys_a0_93",
-    "sys_a0_94",
-    "sys_a0_95",
-    "AddCDROMDevice",
-    "AddMemCardDevide",
-    "DisableKernelIORedirection",
-    "EnableKernelIORedirection",
-    "sys_a0_9a",
-    "sys_a0_9b",
-    "SetConf",
-    "GetConf",
-    "sys_a0_9e",
-    "SetMem",
-    // 0xa0
-    "_boot",
-    "SystemError",
-    "EnqueueCdIntr",
-    "DequeueCdIntr",
-    "sys_a0_a4",
-    "ReadSector",
-    "get_cd_status",
-    "bufs_cb_0",
-    "bufs_cb_1",
-    "bufs_cb_2",
-    "bufs_cb_3",
-    "_card_info",
-    "_card_load",
-    "_card_auto",
-    "bufs_cd_4",
-    "sys_a0_af",
-    // 0xb0
-    "sys_a0_b0",
-    "sys_a0_b1",
-    "do_a_long_jmp",
-    "sys_a0_b3",
-    "?? sub_function",
+    "open",    "lseek",    "read",    "write",      // 00
+    "close",   "ioctl",    "exit",    "sys_a0_07",  // 04
+    "getc",    "putc",     "todigit", "atof",       // 08
+    "strtoul", "strtol",   "abs",     "labs"        // 0c
+    "atoi",    "atol",     "atob",    "setjmp",     // 10
+    "longjmp", "strcat",   "strncat", "strcmp",     // 14
+    "strncmp", "strcpy",   "strncpy", "strlen",     // 18
+    "index",   "rindex",   "strchr",  "strrchr"     // 1c
+    "strpbrk", "strspn",   "strcspn", "strtok",     // 20
+    "strstr",  "toupper",  "tolower", "bcopy",      // 24
+    "bzero",   "bcmp",     "memcpy",  "memset",     // 28
+    "memmove", "memcmp",   "memchr",  "rand",       // 2c
+    "srand",   "qsort",    "strtod",  "malloc",     // 30
+    "free",    "lsearch",  "bsearch", "calloc",     // 34
+    "realloc", "InitHeap", "_exit",   "getchar",    // 38
+    "putchar", "gets",     "puts",    "printf",     // 3c
+
+    "sys_a0_40",         "LoadTest",                "Load",              "Exec",             // 40
+    "FlushCache",        "InstallInterruptHandler", "GPU_dw",            "mem2vram",         // 44
+    "SendGPUStatus",     "GPU_cw",                  "GPU_cwb",           "SendPackets",      // 48
+    "sys_a0_4c",         "GetGPUStatus",            "GPU_sync",          "sys_a0_4f",        // 4c
+    "sys_a0_50",         "LoadExec",                "GetSysSp",          "sys_a0_53",        // 50
+    "_96_init()",        "_bu_init()",              "_96_remove()",      "sys_a0_57",        // 54
+    "sys_a0_58",         "sys_a0_59",               "sys_a0_5a",         "dev_tty_init",     // 58
+    "dev_tty_open",      "sys_a0_5d",               "dev_tty_ioctl",     "dev_cd_open",      // 5c
+    "dev_cd_read",       "dev_cd_close",            "dev_cd_firstfile",  "dev_cd_nextfile",  // 60
+    "dev_cd_chdir",      "dev_card_open",           "dev_card_read",     "dev_card_write",   // 64
+    "dev_card_close",    "dev_card_firstfile",      "dev_card_nextfile", "dev_card_erase",   // 68
+    "dev_card_undelete", "dev_card_format",         "dev_card_rename",   "dev_card_6f",      // 6c
+
+    "_bu_init",          "_96_init",   "_96_remove",     "sys_a0_73",         // 70
+    "sys_a0_74",         "sys_a0_75",  "sys_a0_76",      "sys_a0_77",         // 74
+    "_96_CdSeekL",       "sys_a0_79",  "sys_a0_7a",      "sys_a0_7b",         // 78
+    "_96_CdGetStatus",   "sys_a0_7d",  "_96_CdRead",     "sys_a0_7f",         // 7c
+    "sys_a0_80",         "sys_a0_81",  "sys_a0_82",      "sys_a0_83",         // 80
+    "sys_a0_84",         "_96_CdStop", "sys_a0_86",      "sys_a0_87",         // 84
+    "sys_a0_88",         "sys_a0_89",  "sys_a0_8a",      "sys_a0_8b",         // 88
+    "sys_a0_8c",         "sys_a0_8d",  "sys_a0_8e",      "sys_a0_8f",         // 8c
+    "sys_a0_90",         "sys_a0_91",  "sys_a0_92",      "sys_a0_93",         // 90
+    "sys_a0_94",         "sys_a0_95",  "AddCDROMDevice", "AddMemCardDevide",  // 94
+
+    "DisableKernelIORedirection", "EnableKernelIORedirection", "sys_a0_9a",     "sys_a0_9b",      // 98
+    "SetConf",                    "GetConf",                   "sys_a0_9e",     "SetMem",         // 9c
+    "_boot",                      "SystemError",               "EnqueueCdIntr", "DequeueCdIntr",  // a0
+    "sys_a0_a4",                  "ReadSector",                "get_cd_status", "bufs_cb_0",      // a4
+    "bufs_cb_1",                  "bufs_cb_2",                 "bufs_cb_3",     "_card_info",     // a8
+    "_card_load",                 "_card_auto",                "bufs_cd_4",     "sys_a0_af",      // ac
+    "sys_a0_b0",                  "sys_a0_b1",                 "do_a_long_jmp", "sys_a0_b3",      // b0
 };
 
 static const char *B0names[] = {
-    "SysMalloc",    "sys_b0_01",    "sys_b0_02",    "sys_b0_03", // 00
-    "sys_b0_04",    "sys_b0_05",    "sys_b0_06",    "DeliverEvent", // 04
-    "OpenEvent",    "CloseEvent",    "WaitEvent",    "TestEvent", // 08
-    "EnableEvent",    "DisableEvent",    "OpenTh",    "CloseTh", // 10
-    "ChangeTh",    "sys_b0_11",    "InitPAD",    "StartPAD", // 14
-    "StopPAD",    "PAD_init",    "PAD_dr",    "ReturnFromException", // 18
-    "ResetEntryInt",    "HookEntryInt",    "sys_b0_1a",    "sys_b0_1b", // 1c
-    "sys_b0_1c",    "sys_b0_1d",    "sys_b0_1e",    "sys_b0_1f", // 20
-    "UnDeliverEvent",    "sys_b0_21",    "sys_b0_22",    "sys_b0_23", // 24
-    "sys_b0_24",    "sys_b0_25",    "sys_b0_26",    "sys_b0_27", // 28
-    "sys_b0_28",    "sys_b0_29",    "sys_b0_2a",    "sys_b0_2b", // 2c
-    "sys_b0_2c",    "sys_b0_2d",    "sys_b0_2e",    "sys_b0_2f", // 30
-    "sys_b0_30",    "sys_b0_31",    "open",    "lseek", // 34
-    "read",    "write",    "close",    "ioctl", // 38
-    "exit",    "sys_b0_39",    "getc",    "putc", // 3c
-    "getchar",    "putchar",    "gets",    "puts", // 40
-    "cd",    "format",    "firstfile",    "nextfile", // 44
-    "rename",    "delete",    "undelete",    "AddDevice", // 48
-    "RemoteDevice",    "PrintInstalledDevices",    "InitCARD",    "StartCARD", // 4c
-    "StopCARD",    "sys_b0_4d",    "_card_write",    "_card_read", // 50
-    "_new_card",     "Krom2RawAdd",    "sys_b0_52",    "sys_b0_53", // 54
-    "_get_errno",    "_get_error",    "GetC0Table",    "GetB0Table", // 58
-    "_card_chan",    "sys_b0_59",    "sys_b0_5a",    "ChangeClearPAD", // 5c
-    "_card_status",    "_card_wait", // 60
+    "SysMalloc",      "sys_b0_01",             "sys_b0_02",   "sys_b0_03",            // 00
+    "sys_b0_04",      "sys_b0_05",             "sys_b0_06",   "DeliverEvent",         // 04
+    "OpenEvent",      "CloseEvent",            "WaitEvent",   "TestEvent",            // 08
+    "EnableEvent",    "DisableEvent",          "OpenTh",      "CloseTh",              // 0c
+    "ChangeTh",       "sys_b0_11",             "InitPAD",     "StartPAD",             // 10
+    "StopPAD",        "PAD_init",              "PAD_dr",      "ReturnFromException",  // 14
+    "ResetEntryInt",  "HookEntryInt",          "sys_b0_1a",   "sys_b0_1b",            // 18
+    "sys_b0_1c",      "sys_b0_1d",             "sys_b0_1e",   "sys_b0_1f",            // 1c
+    "UnDeliverEvent", "sys_b0_21",             "sys_b0_22",   "sys_b0_23",            // 20
+    "sys_b0_24",      "sys_b0_25",             "sys_b0_26",   "sys_b0_27",            // 24
+    "sys_b0_28",      "sys_b0_29",             "sys_b0_2a",   "sys_b0_2b",            // 28
+    "sys_b0_2c",      "sys_b0_2d",             "sys_b0_2e",   "sys_b0_2f",            // 2c
+    "sys_b0_30",      "sys_b0_31",             "open",        "lseek",                // 30
+    "read",           "write",                 "close",       "ioctl",                // 30
+    "exit",           "sys_b0_39",             "getc",        "putc",                 // 30
+    "getchar",        "putchar",               "gets",        "puts",                 // 3c
+    "cd",             "format",                "firstfile",   "nextfile",             // 40
+    "rename",         "delete",                "undelete",    "AddDevice",            // 40
+    "RemoteDevice",   "PrintInstalledDevices", "InitCARD",    "StartCARD",            // 40
+    "StopCARD",       "sys_b0_4d",             "_card_write", "_card_read",           // 4c
+    "_new_card",      "Krom2RawAdd",           "sys_b0_52",   "sys_b0_53",            // 50
+    "_get_errno",     "_get_error",            "GetC0Table",  "GetB0Table",           // 50
+    "_card_chan",     "sys_b0_59",             "sys_b0_5a",   "ChangeClearPAD",       // 50
+    "_card_status",   "_card_wait"                                                    // 5c
 };
+// clang-format on
 
 static const char *C0names[] = {
     "InitRCnt",           "InitException",     "SysEnqIntRP",      "SysDeqIntRP",             // 00
