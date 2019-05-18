@@ -518,6 +518,8 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_showBiosCounters) {
+        ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(750, 530), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("BIOS Counters", &m_showBiosCounters)) {
             auto isUnknown = [](const char* name, char syscall) {
                 if (strlen(name) != 9) return false;
@@ -527,9 +529,6 @@ void PCSX::GUI::endFrame() {
                 if (name[6] != '_') return false;
                 return true;
             };
-            ImGui::Checkbox("Enable counters", &g_emulator.m_psxCpu->m_biosCounters);
-            ImGui::SameLine();
-            ImGui::Checkbox("Skip unknowns", &m_skipBiosUnknowns);
             if (ImGui::Button("Memorize")) {
                 g_emulator.m_psxCpu->memorizeCounters();
             }
@@ -537,13 +536,17 @@ void PCSX::GUI::endFrame() {
             if (ImGui::Button("Clear")) {
                 g_emulator.m_psxCpu->clearCounters();
             }
+            ImGui::SameLine();
+            ImGui::Checkbox("Enable counters", &g_emulator.m_psxCpu->m_biosCounters);
+            ImGui::SameLine();
+            ImGui::Checkbox("Skip unknowns", &m_skipBiosUnknowns);
+            ImGui::SameLine();
+            ImGui::Checkbox("Debug kernel", &g_emulator.m_psxCpu->m_debugKernel);
             ImGui::Checkbox("Log new syscalls", &g_emulator.m_psxCpu->m_logNewSyscalls);
             ImGui::SameLine();
             ImGui::Checkbox("Log events", &g_emulator.m_psxCpu->m_logEvents);
             ImGui::SameLine();
             ImGui::Checkbox("Breakpoint on new syscalls", &g_emulator.m_psxCpu->m_breakpointOnNew);
-            ImGui::SameLine();
-            ImGui::Checkbox("Debug kernel", &g_emulator.m_psxCpu->m_debugKernel);
             ImGui::Separator();
             ImGui::BeginChild("A0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
             for (int i = 0; i < 256; i++) {
@@ -638,7 +641,7 @@ bool PCSX::GUI::configure() {
     if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Emulation Configuration", &m_showCfg)) {
         changed |= ImGui::Checkbox("Enable XA decoder", &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox("Always enable SIO IRQ", &settings.get<Emulator::SettingSioIrq>().value);
