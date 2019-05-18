@@ -306,7 +306,7 @@ class R3000Acpu {
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
         const auto r = m_psxRegs.GPR.n;
-        bool ignore = !g_emulator.settings.get<PCSX::Emulator::SettingBiosCounters>();
+        bool ignore = m_biosCounters;
         const uint32_t rabase = (r.ra >> 20) & 0xffc;
         const uint32_t ra = r.ra & 0x1fffff;
         if ((rabase != 0x000) && (rabase != 0x800) && (rabase != 0xa00)) ignore = true;
@@ -441,6 +441,7 @@ class R3000Acpu {
         }
     }
     bool m_breakpoints[3][256];
+    bool m_biosCounters = false;
     bool m_logNewSyscalls = false;
     bool m_breakpointOnNew = false;
     bool m_debugKernel = false;

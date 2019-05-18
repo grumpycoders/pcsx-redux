@@ -527,7 +527,7 @@ void PCSX::GUI::endFrame() {
                 if (name[6] != '_') return false;
                 return true;
             };
-            ImGui::Checkbox("Enable counters", &g_emulator.settings.get<Emulator::SettingBiosCounters>().value);
+            ImGui::Checkbox("Enable counters", &g_emulator.m_psxCpu->m_biosCounters);
             ImGui::SameLine();
             ImGui::Checkbox("Skip unknowns", &m_skipBiosUnknowns);
             if (ImGui::Button("Memorize")) {
