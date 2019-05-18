@@ -69,6 +69,8 @@ class GUI final {
     void endFrame();
 
     bool configure();
+    void biosCounters();
+    void about();
 
     void normalizeDimensions(ImVec2 &vec, float ratio) {
         float r = vec.y / vec.x;
