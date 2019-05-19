@@ -92,35 +92,40 @@ void PCSX::GUI::init() {
     {
         ImGui::GetIO().IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
-        auto& settings = PCSX::g_emulator.settings;
+        auto& emuSettings = PCSX::g_emulator.settings;
         json j;
         if (cfg.is_open()) {
             try {
                 cfg >> j;
             } catch (...) {
             }
-            if ((j.count("gui") == 1) && j["gui"].is_string()) {
-                std::string imguicfg = j["gui"];
+            if ((j.count("imgui") == 1) && j["imgui"].is_string()) {
+                std::string imguicfg = j["imgui"];
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
             if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                settings.deserialize(j["emulator"]);
+                emuSettings.deserialize(j["emulator"]);
+            }
+            if ((j.count("gui") == 1 && j["gui"].is_object())) {
+                settings.deserialize(j["gui"]);
             }
             PCSX::g_emulator.m_spu->setCfg(j);
         } else {
             saveCfg();
         }
 
-        if (settings.get<Emulator::SettingMcd1>().empty()) {
-            settings.get<Emulator::SettingMcd1>() = "memcard1.mcd";
+        setFullscreen(m_fullscreen);
+
+        if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
+            emuSettings.get<Emulator::SettingMcd1>() = "memcard1.mcd";
         }
 
-        if (settings.get<Emulator::SettingMcd2>().empty()) {
-            settings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
+        if (emuSettings.get<Emulator::SettingMcd2>().empty()) {
+            emuSettings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
         }
 
-        std::string path1 = settings.get<Emulator::SettingMcd1>().string();
-        std::string path2 = settings.get<Emulator::SettingMcd2>().string();
+        std::string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
+        std::string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
     ImGui_ImplOpenGL3_Init();
@@ -168,6 +173,7 @@ void PCSX::GUI::saveCfg() {
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
     j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator.settings.serialize();
+    j["gui"] = settings.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -346,8 +352,6 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem("Hard Reset")) {
                     scheduleHardReset();
                 }
-                ImGui::Separator();
-                ImGui::MenuItem("Mute sound", nullptr, &g_emulator.settings.get<Emulator::SettingMute>().value);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -383,9 +387,7 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu("Help")) {
-                if (ImGui::MenuItem("Show ImGui Demo", nullptr, nullptr)) {
-                    m_showDemo = true;
-                }
+                ImGui::MenuItem("Show ImGui Demo", nullptr, &m_showDemo);
                 ImGui::Separator();
                 ImGui::MenuItem("About", nullptr, m_showAbout);
                 ImGui::EndMenu();

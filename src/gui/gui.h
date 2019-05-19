@@ -34,6 +34,7 @@
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
+#include "main/settings.h"
 
 namespace PCSX {
 
@@ -94,15 +95,27 @@ class GUI final {
     ImVec2 m_renderSize = ImVec2(1, 1);
 
     float m_renderRatio = 3.0f / 4.0f;
-    bool m_fullscreen = false;
+    bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
     // GUI
-    bool m_fullscreenRender = true;
-    bool m_showMenu = false;
+    typedef Setting<bool, irqus::typestring<'F', 'u', 'l', 'l', 's', 'c', 'r', 'e', 'e', 'n'>, false> Fullscreen;
+    typedef Setting<
+        bool, irqus::typestring<'F', 'u', 'l', 'l', 's', 'c', 'r', 'e', 'e', 'n', 'R', 'e', 'n', 'd', 'e', 'r'>, true>
+        FullscreenRender;
+    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'M', 'e', 'n', 'u'>> ShowMenu;
+    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'V', 'R', 'A', 'M'>> ShowVRAM;
+    typedef Setting<bool,
+                    irqus::typestring<'S', 'h', 'o', 'w', 'B', 'i', 'o', 's', 'C', 'o', 'u', 'n', 't', 'e', 'r', 's'>>
+        ShowBiosCounters;
+    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'L', 'o', 'g'>> ShowLog;
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowVRAM, ShowBiosCounters, ShowLog> settings;
+
+    bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
+    bool &m_showMenu = {settings.get<ShowMenu>().value};
     bool m_showDemo = false;
-    bool m_showVRAMwindow = false;
+    bool &m_showVRAMwindow = {settings.get<ShowVRAM>().value};
     bool m_showAbout = false;
-    Widgets::Log m_log;
+    Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
         MemoryEditorWrapper() {
             editor.OptShowDataPreview = true;
@@ -128,7 +141,7 @@ class GUI final {
     Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
-    bool m_showBiosCounters = false;
+    bool &m_showBiosCounters = {settings.get<ShowBiosCounters>().value};
     bool m_skipBiosUnknowns = true;
 
     const flags::args &m_args;

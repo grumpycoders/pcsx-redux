@@ -172,8 +172,9 @@ class impl {
     typedef Setting<int, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>, 2> Interpolation;
     typedef Setting<bool, irqus::typestring<'M', 'o', 'n', 'o'> > Mono;
     typedef Setting<bool, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'> > DBufIRQ;
+    typedef Setting<bool, irqus::typestring<'M', 'u', 't', 'e'> > Mute;
 #endif
-    Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ> settings;
+    Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute> settings;
 
     // MAIN infos struct for each channel
 
@@ -242,7 +243,7 @@ class impl {
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
     ADSR m_adsr;
-    SDLsound m_sound;
+    SDLsound m_sound = {settings.get<Mute>().value};
     xa_decode_t m_cdda;
 
     // debug window
