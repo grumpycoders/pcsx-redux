@@ -28,6 +28,7 @@ namespace Widgets {
 
 class Log {
   public:
+    Log(bool& show) : m_show(show) {}
     void clear();
     void addLog(const char* fmt, ...) IM_FMTARGS(2) {
         va_list args;
@@ -38,7 +39,7 @@ class Log {
     void addLog(const char* fmt, va_list args);
     void draw(const char* title);
 
-    bool m_show = false;
+    bool & m_show;
 
   private:
     ImGuiTextBuffer m_buffer;

@@ -23,7 +23,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "core/psxemulator.h"
 #include "spu/sdlsound.h"
 
 void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len) {
@@ -104,7 +103,7 @@ void PCSX::SPU::SDLsound::enqueueLocked(const uint8_t* data, size_t len) {
     }
 
     memcpy(s_buffer + s_ptrEnd, data, len);
-    if (g_emulator.settings.get<Emulator::SettingMute>()) memset(s_buffer + s_ptrEnd, 0, len);
+    if (m_muted) memset(s_buffer + s_ptrEnd, 0, len);
     s_ptrEnd += len;
     if (s_ptrEnd == BUFFER_SIZE) s_ptrEnd = 0;
 }

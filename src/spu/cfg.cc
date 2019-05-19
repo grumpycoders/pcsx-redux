@@ -42,7 +42,7 @@ bool PCSX::SPU::impl::configure() {
         return false;
     }
     bool changed = false;
-
+    changed |= ImGui::Checkbox("Muted", &settings.get<Mute>().value);
     changed |= ImGui::Checkbox("Enable streaming", &settings.get<Streaming>().value);
     ShowHelpMarker(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes

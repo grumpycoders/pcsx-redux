@@ -27,6 +27,7 @@ namespace SPU {
 
 class SDLsound {
   public:
+    SDLsound(bool& muted) : m_muted(muted) {}
     void setup();
     void remove();
     unsigned long getBytesBuffered();
@@ -48,6 +49,7 @@ class SDLsound {
     uint8_t s_buffer[BUFFER_SIZE];
     SDL_mutex* s_mutex;
     SDL_AudioSpec s_specs;
+    bool& m_muted;
 };
 
 }  // namespace SPU
