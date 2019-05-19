@@ -200,7 +200,7 @@ void PCSX::PPF::BuildPPFCache() {
     buffer[10] = PCSX::g_emulator.m_cdromId[8];
     buffer[11] = '\0';
 
-    sprintf(szPPF, "%s/%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().c_str(), buffer);
+    sprintf(szPPF, "%s/%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
 
     ppffile = fopen(szPPF, "rb");
     if (ppffile == NULL) return;

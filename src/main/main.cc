@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
     s_gui = new PCSX::GUI(args);
     s_gui->init();
     system->m_enableStdout = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingStdout>();
-    const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().value.string();
+    const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().string();
     if (!logfile.empty()) system->useLogfile(logfile);
 
     LoadPlugins();

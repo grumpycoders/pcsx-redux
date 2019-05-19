@@ -387,13 +387,13 @@ bool CheckCdrom() {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
         sprintf(mcd1path, "memcards/games/%s-%02d.mcd",
-                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().c_str(), 1);
+                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 1);
         sprintf(mcd2path, "memcards/games/%s-%02d.mcd",
-                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().c_str(), 2);
+                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);
         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
-        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str(),
-                                         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str());
+        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
+                                         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
     }
 
     PCSX::g_emulator.m_cdrom->m_ppf.BuildPPFCache();
@@ -432,7 +432,7 @@ static void LoadLibPS() {
 
     // Load Net Yaroze runtime library (if exists)
     sprintf(buf, "%s/libps.exe",
-            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().value.parent_path().string().c_str());
+            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().value.parent_path().u8string().c_str());
     f = fopen(buf, "rb");
 
     if (f != NULL) {
