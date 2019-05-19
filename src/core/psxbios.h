@@ -44,6 +44,8 @@ class Bios {
 
     static Bios *factory();
 
+    bool m_realBiosLoaded = false;
+
   protected:
     bool m_hleSoftCall;
 };

@@ -2348,7 +2348,7 @@ class BiosImpl : public PCSX::Bios {
         m_biosB0[0x3d] = &BiosImpl::psxBios_putchar;
         m_biosB0[0x3f] = &BiosImpl::psxBios_puts;
 
-        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) return;
+        if (m_realBiosLoaded) return;
 
         for (i = 0; i < 256; i++) {
             if (m_biosA0[i] == NULL) m_biosA0[i] = &BiosImpl::psxBios_dummy;
