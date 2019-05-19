@@ -22,29 +22,9 @@
 
 #include <stdio.h>
 
+#include "core/file.h"
 #include "core/plugins.h"
 #include "core/psxemulator.h"
-
-class File {
-  public:
-    void close();
-    ssize_t seek(ssize_t pos, int wheel);
-    ssize_t tell();
-    void flush();
-    File(void* data, ssize_t size);
-    File(const char* filename);
-    ssize_t read(void* dest, ssize_t size);
-    ssize_t write(const void* dest, size_t size);
-    int getc();
-    bool failed();
-
-  private:
-    static const uint8_t m_internalBuffer;
-    FILE* m_handle = NULL;
-    ssize_t m_ptr = 0;
-    ssize_t m_size = 0;
-    const uint8_t* m_data = NULL;
-};
 
 namespace PCSX {
 
