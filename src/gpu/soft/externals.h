@@ -57,7 +57,7 @@
 #define SEMITRANSBIT(x) ((x >> 25) & 0x1)
 #define PSXRGB(r, g, b) ((g << 10) | (b << 5) | r)
 
-#define DATAREGISTERMODES unsigned short
+#define DATAREGISTERMODES uint16_t
 
 #define DR_NORMAL 0
 #define DR_VRAMTRANSFER 1
@@ -87,32 +87,32 @@
 /////////////////////////////////////////////////////////////////////////////
 
 struct VRAMLoad_t {
-    short x;
-    short y;
-    short Width;
-    short Height;
-    short RowsRemaining;
-    short ColsRemaining;
-    unsigned short *ImagePtr;
+    int16_t x;
+    int16_t y;
+    int16_t Width;
+    int16_t Height;
+    int16_t RowsRemaining;
+    int16_t ColsRemaining;
+    uint16_t *ImagePtr;
 };
 
 /////////////////////////////////////////////////////////////////////////////
 
 struct PSXPoint_t {
-    long x;
-    long y;
+    int32_t x;
+    int32_t y;
 };
 
 struct PSXSPoint_t {
-    short x;
-    short y;
+    int16_t x;
+    int16_t y;
 };
 
 struct PSXRect_t {
-    short x0;
-    short x1;
-    short y0;
-    short y1;
+    int16_t x0;
+    int16_t x1;
+    int16_t y0;
+    int16_t y1;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -129,15 +129,15 @@ struct PSXDisplay_t {
     PSXPoint_t DisplayPosition;
     PSXPoint_t DisplayEnd;
 
-    long Double;
-    long Height;
-    long PAL;
-    long InterlacedNew;
-    long Interlaced;
-    long RGB24New;
-    long RGB24;
+    int32_t Double;
+    int32_t Height;
+    int32_t PAL;
+    int32_t InterlacedNew;
+    int32_t Interlaced;
+    int32_t RGB24New;
+    int32_t RGB24;
     PSXSPoint_t DrawOffset;
-    long Disabled;
+    int32_t Disabled;
     PSXRect_t Range;
 };
 
@@ -154,7 +154,7 @@ extern bool bVsync_Key;
 
 extern int iFastFwd;
 extern PSXPoint_t ptCursorPoint[];
-extern unsigned short usCursorActive;
+extern uint16_t usCursorActive;
 
 // prim.c
 
@@ -174,25 +174,25 @@ extern int iWindowMode;
 extern char szDispBuf[];
 extern char szMenuBuf[];
 extern char szDebugText[];
-extern short sDispWidths[];
+extern int16_t sDispWidths[];
 extern bool bDebugText;
 // extern unsigned int   iMaxDMACommandCounter;
-// extern unsigned long  dwDMAChainStop;
+// extern uint32_t  dwDMAChainStop;
 extern PSXDisplay_t PSXDisplay;
 extern PSXDisplay_t PreviousPSXDisplay;
 extern bool bSkipNextFrame;
-extern long lGPUstatusRet;
-extern long drawingLines;
+extern int32_t lGPUstatusRet;
+extern int32_t drawingLines;
 extern unsigned char *psxVSecure;
 extern unsigned char *psxVub;
 extern signed char *psxVsb;
-extern unsigned short *psxVuw;
-extern signed short *psxVsw;
+extern uint16_t *psxVuw;
+extern int16_t *psxVsw;
 extern uint32_t *psxVul;
 extern int32_t *psxVsl;
-extern unsigned short *psxVuw_eom;
+extern uint16_t *psxVuw_eom;
 extern bool bChangeWinMode;
-extern long lSelectedSlot;
+extern int32_t lSelectedSlot;
 extern uint32_t dwLaceCnt;
 extern uint32_t lGPUInfoVals[];
 extern uint32_t ulStatusControl[];
@@ -200,13 +200,13 @@ extern int iRumbleVal;
 extern int iRumbleTime;
 
 // menu.c
-// extern unsigned long dwCoreFlags;
+// extern uint32_t dwCoreFlags;
 // extern HFONT hGFont;
 extern int iMPos;
 extern bool bTransparent;
 
 // key.c
-// extern unsigned long ulKeybits;
+// extern uint32_t ulKeybits;
 // extern char szGPUKeys[];
 
 // fps.c
@@ -227,7 +227,7 @@ extern bool bSSSPSXLimit;
 extern char *pConfigFile;
 
 // zn.c
-extern unsigned long dwGPUVersion;
+extern uint32_t dwGPUVersion;
 extern int iGPUHeight;
 extern int iGPUHeightMask;
 extern int GlobalTextIL;

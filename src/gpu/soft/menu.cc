@@ -67,7 +67,7 @@
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/menu.h"
 
-unsigned long dwCoreFlags = 0;
+uint32_t dwCoreFlags = 0;
 
 ////////////////////////////////////////////////////////////////////////
 // create lists/stuff for fonts (actually there are no more lists, but I am too lazy to change the func names ;)

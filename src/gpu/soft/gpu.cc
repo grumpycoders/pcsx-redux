@@ -159,9 +159,9 @@ static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
 unsigned char *psxVSecure;
 unsigned char *psxVub;
 signed char *psxVsb;
-unsigned short *psxVuw;
-unsigned short *psxVuw_eom;
-signed short *psxVsw;
+uint16_t *psxVuw;
+uint16_t *psxVuw_eom;
+int16_t *psxVsw;
 uint32_t *psxVul;
 int32_t *psxVsl;
 
@@ -169,7 +169,7 @@ int32_t *psxVsl;
 // GPU globals
 ////////////////////////////////////////////////////////////////////////
 
-long lGPUstatusRet;
+int32_t lGPUstatusRet;
 char szDispBuf[64];
 char szMenuBuf[36];
 char szDebugText[512];
@@ -177,8 +177,8 @@ uint32_t ulStatusControl[256];
 
 static uint32_t gpuDataM[256];
 static unsigned char gpuCommand = 0;
-static long gpuDataC = 0;
-static long gpuDataP = 0;
+static int32_t gpuDataC = 0;
+static int32_t gpuDataP = 0;
 
 VRAMLoad_t VRAMWrite;
 VRAMLoad_t VRAMRead;
@@ -189,10 +189,10 @@ bool bSkipNextFrame = false;
 uint32_t dwLaceCnt = 0;
 int iColDepth;
 int iWindowMode;
-short sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
+int16_t sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
 PSXDisplay_t PSXDisplay;
 PSXDisplay_t PreviousPSXDisplay;
-long lSelectedSlot = 0;
+int32_t lSelectedSlot = 0;
 bool bChangeWinMode = false;
 bool bDoLazyUpdate = false;
 uint32_t lGPUInfoVals[16];
@@ -205,8 +205,8 @@ int iRumbleTime = 0;
 ////////////////////////////////////////////////////////////////////////
 
 /*
-unsigned long PCADDR;
-void GPUdebugSetPC(unsigned long addr)
+uint32_t PCADDR;
+void GPUdebugSetPC(uint32_t addr)
 {
  PCADDR=addr;
 }
@@ -228,7 +228,7 @@ extern "C" void softGPUdisplayText(char *pText)  // some debug func
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUdisplayFlags(unsigned long dwFlags)  // some info func
+extern "C" void softGPUdisplayFlags(uint32_t dwFlags)  // some info func
 {
     //    dwCoreFlags = dwFlags;
     // BuildDispMenu(0);
@@ -272,12 +272,12 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
     FILE *bmpfile;
     char filename[256];
     unsigned char header[0x36];
-    long size, height;
+    int32_t size, height;
     unsigned char line[1024 * 3];
-    short i, j;
+    int16_t i, j;
     unsigned char empty[2] = {0, 0};
-    unsigned short color;
-    unsigned long snapshotnr = 0;
+    uint16_t color;
+    uint32_t snapshotnr = 0;
 
     height = iGPUHeight;
 
@@ -343,7 +343,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 // INIT, will be called after lib load... well, just do some var init...
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::impl::init()  // GPU INIT
+int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
 
@@ -357,9 +357,9 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
     psxVub = psxVSecure + 512 * 1024;  // security offset into double sized psx vram!
 
     psxVsb = (signed char *)psxVub;  // different ways of accessing PSX VRAM
-    psxVsw = (signed short *)psxVub;
+    psxVsw = (int16_t *)psxVub;
     psxVsl = (int32_t *)psxVub;
-    psxVuw = (unsigned short *)psxVub;
+    psxVuw = (uint16_t *)psxVub;
     psxVul = (uint32_t *)psxVub;
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
@@ -405,7 +405,7 @@ long PCSX::SoftGPU::impl::init()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
+int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 {
     m_gui = gui;
 #if 0
@@ -433,7 +433,7 @@ long PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::impl::close()  // GPU CLOSE
+int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
 {
     //    ReleaseKeyHandler();  // de-subclass window
 
@@ -446,7 +446,7 @@ long PCSX::SoftGPU::impl::close()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
+int32_t PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
     free(psxVSecure);
 
@@ -516,35 +516,35 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
 void ChangeDispOffsetsX(void)  // X CENTER
 {
-    long lx, l;
+    int32_t lx, l;
 
     if (!PSXDisplay.Range.x1) return;
 
     l = PreviousPSXDisplay.DisplayMode.x;
 
-    l *= (long)PSXDisplay.Range.x1;
+    l *= (int32_t)PSXDisplay.Range.x1;
     l /= 2560;
     lx = l;
     l &= 0xfffffff8;
 
     if (l == PreviousPSXDisplay.Range.y1) return;  // abusing range.y1 for
-    PreviousPSXDisplay.Range.y1 = (short)l;        // storing last x range and test
+    PreviousPSXDisplay.Range.y1 = (int16_t)l;        // storing last x range and test
 
     if (lx >= PreviousPSXDisplay.DisplayMode.x) {
-        PreviousPSXDisplay.Range.x1 = (short)PreviousPSXDisplay.DisplayMode.x;
+        PreviousPSXDisplay.Range.x1 = (int16_t)PreviousPSXDisplay.DisplayMode.x;
         PreviousPSXDisplay.Range.x0 = 0;
     } else {
-        PreviousPSXDisplay.Range.x1 = (short)l;
+        PreviousPSXDisplay.Range.x1 = (int16_t)l;
 
         PreviousPSXDisplay.Range.x0 = (PSXDisplay.Range.x0 - 500) / 8;
 
         if (PreviousPSXDisplay.Range.x0 < 0) PreviousPSXDisplay.Range.x0 = 0;
 
         if ((PreviousPSXDisplay.Range.x0 + lx) > PreviousPSXDisplay.DisplayMode.x) {
-            PreviousPSXDisplay.Range.x0 = (short)(PreviousPSXDisplay.DisplayMode.x - lx);
+            PreviousPSXDisplay.Range.x0 = (int16_t)(PreviousPSXDisplay.DisplayMode.x - lx);
             PreviousPSXDisplay.Range.x0 += 2;  //???
 
-            PreviousPSXDisplay.Range.x1 += (short)(lx - l);
+            PreviousPSXDisplay.Range.x1 += (int16_t)(lx - l);
         }
         DoClearScreenBuffer();
     }
@@ -590,7 +590,7 @@ void ChangeDispOffsetsY(void)  // Y CENTER
         iT = 28;
 
     if (PSXDisplay.Range.y0 >= iT) {
-        PreviousPSXDisplay.Range.y0 = (short)((PSXDisplay.Range.y0 - iT - 4) * PSXDisplay.Double);
+        PreviousPSXDisplay.Range.y0 = (int16_t)((PSXDisplay.Range.y0 - iT - 4) * PSXDisplay.Double);
         if (PreviousPSXDisplay.Range.y0 < 0) PreviousPSXDisplay.Range.y0 = 0;
         PSXDisplay.DisplayModeNew.y += PreviousPSXDisplay.Range.y0;
     } else
@@ -617,9 +617,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
     PreviousPSXDisplay.DisplayMode.x =             // previous will hold
-        std::min(640L, PSXDisplay.DisplayMode.x);  // max 640x512... that's
+        std::min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
     PreviousPSXDisplay.DisplayMode.y =             // the size of my
-        std::min(512L, PSXDisplay.DisplayMode.y);  // back buffer surface
+        std::min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
     PSXDisplay.DisplayEnd.x =  // calc end of display
@@ -740,7 +740,7 @@ uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 
 void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
-    unsigned long lCommand = (gdata >> 24) & 0xff;
+    uint32_t lCommand = (gdata >> 24) & 0xff;
 
     ulStatusControl[lCommand] = gdata;  // store command for freezing
 
@@ -790,7 +790,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 
             ////////
             /*
-                 PSXDisplay.DisplayPosition.y = (short)((gdata>>10)&0x3ff);
+                 PSXDisplay.DisplayPosition.y = (int16_t)((gdata>>10)&0x3ff);
                  if (PSXDisplay.DisplayPosition.y & 0x200)
                   PSXDisplay.DisplayPosition.y |= 0xfffffc00;
                  if(PSXDisplay.DisplayPosition.y<0)
@@ -804,11 +804,11 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             // new
             if (iGPUHeight == 1024) {
                 if (dwGPUVersion == 2)
-                    PSXDisplay.DisplayPosition.y = (short)((gdata >> 12) & 0x3ff);
+                    PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 12) & 0x3ff);
                 else
-                    PSXDisplay.DisplayPosition.y = (short)((gdata >> 10) & 0x3ff);
+                    PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x3ff);
             } else
-                PSXDisplay.DisplayPosition.y = (short)((gdata >> 10) & 0x1ff);
+                PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
 
             // store the same val in some helper var, we need it on later compares
             PreviousPSXDisplay.DisplayModeNew.x = PSXDisplay.DisplayPosition.y;
@@ -827,7 +827,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
                 PreviousPSXDisplay.DisplayModeNew.y = 0;
             // eon
 
-            PSXDisplay.DisplayPosition.x = (short)(gdata & 0x3ff);
+            PSXDisplay.DisplayPosition.x = (int16_t)(gdata & 0x3ff);
             PSXDisplay.DisplayEnd.x = PSXDisplay.DisplayPosition.x + PSXDisplay.DisplayMode.x;
             PSXDisplay.DisplayEnd.y =
                 PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
@@ -848,8 +848,8 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         // setting width
         case 0x06:
 
-            PSXDisplay.Range.x0 = (short)(gdata & 0x7ff);
-            PSXDisplay.Range.x1 = (short)((gdata >> 12) & 0xfff);
+            PSXDisplay.Range.x0 = (int16_t)(gdata & 0x7ff);
+            PSXDisplay.Range.x1 = (int16_t)((gdata >> 12) & 0xfff);
 
             PSXDisplay.Range.x1 -= PSXDisplay.Range.x0;
 
@@ -859,8 +859,8 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // setting height
         case 0x07: {
-            PSXDisplay.Range.y0 = (short)(gdata & 0x3ff);
-            PSXDisplay.Range.y1 = (short)((gdata >> 10) & 0x3ff);
+            PSXDisplay.Range.y0 = (int16_t)(gdata & 0x3ff);
+            PSXDisplay.Range.y1 = (int16_t)((gdata >> 10) & 0x3ff);
 
             PreviousPSXDisplay.Height = PSXDisplay.Height;
 
@@ -1024,7 +1024,7 @@ void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
         // do 2 seperate 16bit reads for compatibility (wrap issues)
         if ((VRAMRead.ColsRemaining > 0) && (VRAMRead.RowsRemaining > 0)) {
             // lower 16 bit
-            lGPUdataRet = (unsigned long)*VRAMRead.ImagePtr;
+            lGPUdataRet = (uint32_t)*VRAMRead.ImagePtr;
 
             VRAMRead.ImagePtr++;
             if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
@@ -1038,7 +1038,7 @@ void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
             }
 
             // higher 16 bit (always, even if it's an odd width)
-            lGPUdataRet |= (unsigned long)(*VRAMRead.ImagePtr) << 16;
+            lGPUdataRet |= (uint32_t)(*VRAMRead.ImagePtr) << 16;
 
             *pMem++ = lGPUdataRet;
 
@@ -1145,7 +1145,7 @@ const unsigned char primTableCX[256] = {
 
 void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
-    unsigned long gdata = 0;
+    uint32_t gdata = 0;
     int i = 0;
 
     GPUIsBusy;
@@ -1170,7 +1170,7 @@ STARTVRAM:
 
                 gdata = *pMem++;
 
-                *VRAMWrite.ImagePtr++ = (unsigned short)gdata;
+                *VRAMWrite.ImagePtr++ = (uint16_t)gdata;
                 if (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
                 VRAMWrite.RowsRemaining--;
 
@@ -1178,7 +1178,7 @@ STARTVRAM:
                     VRAMWrite.ColsRemaining--;
                     if (VRAMWrite.ColsRemaining <= 0)  // last pixel is odd width
                     {
-                        gdata = (gdata & 0xFFFF) | (((unsigned long)(*VRAMWrite.ImagePtr)) << 16);
+                        gdata = (gdata & 0xFFFF) | (((uint32_t)(*VRAMWrite.ImagePtr)) << 16);
                         FinishedVRAMWrite();
                         bDoVSyncUpdate = true;
                         goto ENDVRAM;
@@ -1187,7 +1187,7 @@ STARTVRAM:
                     VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
                 }
 
-                *VRAMWrite.ImagePtr++ = (unsigned short)(gdata >> 16);
+                *VRAMWrite.ImagePtr++ = (uint16_t)(gdata >> 16);
                 if (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
                 VRAMWrite.RowsRemaining--;
             }
@@ -1253,14 +1253,14 @@ ENDVRAM:
 // this functions will be removed soon (or 'soonish')... not really needed, but some emus want them
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUsetMode(unsigned long gdata) {
+extern "C" void softGPUsetMode(uint32_t gdata) {
     // Peops does nothing here...
     // DataWriteMode=(gdata&1)?DR_VRAMTRANSFER:DR_NORMAL;
     // DataReadMode =(gdata&2)?DR_VRAMTRANSFER:DR_NORMAL;
 }
 
-extern "C" long softGPUgetMode(void) {
-    long iT = 0;
+extern "C" int32_t softGPUgetMode(void) {
+    int32_t iT = 0;
 
     if (DataWriteMode == DR_VRAMTRANSFER) iT |= 0x1;
     if (DataReadMode == DR_VRAMTRANSFER) iT |= 0x2;
@@ -1271,7 +1271,7 @@ extern "C" long softGPUgetMode(void) {
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" long softGPUconfigure(void) { return 0; }
+extern "C" int32_t softGPUconfigure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // sets all kind of act fixes
@@ -1298,9 +1298,9 @@ void SetFixes(void) {
 // process gpu commands
 ////////////////////////////////////////////////////////////////////////
 
-unsigned long lUsedAddr[3];
+uint32_t lUsedAddr[3];
 
-__inline bool CheckForEndlessLoop(unsigned long laddr) {
+__inline bool CheckForEndlessLoop(uint32_t laddr) {
     if (laddr == lUsedAddr[1]) return true;
     if (laddr == lUsedAddr[2]) return true;
 
@@ -1312,10 +1312,10 @@ __inline bool CheckForEndlessLoop(unsigned long laddr) {
     return false;
 }
 
-long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
-    unsigned long dmaMem;
+int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
+    uint32_t dmaMem;
     unsigned char *baseAddrB;
-    short count;
+    int16_t count;
     unsigned int DMACommandCounter = 0;
 
     GPUIsBusy;
@@ -1348,19 +1348,19 @@ long PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct GPUFREEZETAG {
-    unsigned long ulFreezeVersion;           // should be always 1 for now (set by main emu)
-    unsigned long ulStatus;                  // current gpu status
-    unsigned long ulControl[256];            // latest control register values
+    uint32_t ulFreezeVersion;           // should be always 1 for now (set by main emu)
+    uint32_t ulStatus;                  // current gpu status
+    uint32_t ulControl[256];            // latest control register values
     unsigned char psxVRam[1024 * 1024 * 2];  // current VRam image (full 2 MB for ZN)
 } GPUFreeze_t;
 
 ////////////////////////////////////////////////////////////////////////
 
-long PCSX::SoftGPU::impl::freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) {
+int32_t PCSX::SoftGPU::impl::freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) {
     //----------------------------------------------------//
     if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
     {
-        long lSlotNum = *((long *)pF);
+        int32_t lSlotNum = *((int32_t *)pF);
         if (lSlotNum < 0) return 0;
         if (lSlotNum > 8) return 0;
         lSelectedSlot = lSlotNum + 1;
@@ -1551,11 +1551,11 @@ extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void GPUsetfix(unsigned long dwFixBits) { dwEmuFixes = dwFixBits; }
+void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 
 ////////////////////////////////////////////////////////////////////////
 
-void GPUsetframelimit(unsigned long option) {
+void GPUsetframelimit(uint32_t option) {
     bInitCap = true;
 
     if (option == 1) {
@@ -1571,4 +1571,4 @@ void GPUsetframelimit(unsigned long option) {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUvisualVibration(unsigned long iSmall, unsigned long iBig) {}
+extern "C" void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig) {}
