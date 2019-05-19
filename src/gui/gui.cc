@@ -347,7 +347,7 @@ void PCSX::GUI::endFrame() {
                     scheduleHardReset();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem("Mute sound", nullptr, g_emulator.settings.get<Emulator::SettingMute>().value);
+                ImGui::MenuItem("Mute sound", nullptr, &g_emulator.settings.get<Emulator::SettingMute>().value);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
