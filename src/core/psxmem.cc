@@ -70,27 +70,25 @@ int PCSX::Memory::psxMemInit() {
 
 void PCSX::Memory::psxMemReset() {
     FILE *f = NULL;
-    char bios[1024] = {'\0'};
 
     memset(g_psxM, 0, 0x00200000);
     memset(g_psxP, 0, 0x00010000);
+    memset(g_psxR, 0, 0x80000);
+    g_emulator.m_psxBios->m_realBiosLoaded = false;
 
     // Load BIOS
     std::filesystem::path biosPath = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>();
-    if (biosPath.string() != "HLE") {
+    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) {
         f = fopen(biosPath.string().c_str(), "rb");
-        if (f == NULL) {
-            PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), bios);
-            memset(g_psxR, 0, 0x80000);
+        if (!f) {
+            PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), biosPath.string().c_str());
             PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
         } else {
             fread(g_psxR, 1, 0x80000, f);
             fclose(f);
-            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = false;
-            PCSX::g_system->printf(_("Loaded BIOS: %s\n"), bios);
+            PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string().c_str());
+            g_emulator.m_psxBios->m_realBiosLoaded = true;
         }
-    } else {
-        PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
     }
 }
 
@@ -102,6 +100,7 @@ void PCSX::Memory::psxMemShutdown() {
 
     free(g_psxMemRLUT);
     free(g_psxMemWLUT);
+    g_emulator.m_psxBios->m_realBiosLoaded = false;
 }
 
 static int m_writeok = 1;

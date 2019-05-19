@@ -19,11 +19,7 @@
 
 #pragma once
 
-#include "core/misc.h"
-#include "core/psxemulator.h"
-#include "core/psxmem.h"
-#include "core/r3000a.h"
-#include "core/sio.h"
+#include <stdint.h>
 
 namespace PCSX {
 
@@ -31,9 +27,9 @@ class Bios {
   public:
     Bios() {}
     virtual ~Bios() {}
-    static const char *A0names[256];
-    static const char *B0names[256];
-    static const char *C0names[256];
+    static const char *getA0name(uint8_t call);
+    static const char *getB0name(uint8_t call);
+    static const char *getC0name(uint8_t call);
 
     virtual void psxBiosInit() = 0;
     virtual void psxBiosShutdown() = 0;
@@ -47,6 +43,8 @@ class Bios {
     bool inSoftCall() { return m_hleSoftCall; }
 
     static Bios *factory();
+
+    bool m_realBiosLoaded = false;
 
   protected:
     bool m_hleSoftCall;

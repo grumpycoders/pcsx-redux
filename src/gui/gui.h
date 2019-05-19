@@ -69,6 +69,8 @@ class GUI final {
     void endFrame();
 
     bool configure();
+    void biosCounters();
+    void about();
 
     void normalizeDimensions(ImVec2 &vec, float ratio) {
         float r = vec.y / vec.x;
@@ -86,7 +88,7 @@ class GUI final {
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
     unsigned int m_offscreenDepthBuffer = 0;
-    int m_currentTexture;
+    int m_currentTexture = -1;
 
     ImVec4 m_backgroundColor = ImColor(114, 144, 154);
     ImVec2 m_renderSize = ImVec2(1, 1);
@@ -122,9 +124,12 @@ class GUI final {
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
+    Widgets::FileDialog m_selectBiosDialog = {"Select BIOS"};
     Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
+    bool m_showBiosCounters = false;
+    bool m_skipBiosUnknowns = true;
 
     const flags::args &m_args;
     bool m_scheduleSoftReset = false;

@@ -37,6 +37,7 @@ class FileDialog {
     void openDialog();
     const std::vector<std::string> selected() const { return m_selected; }
     bool draw();
+    std::filesystem::path m_currentPath;
 
   private:
     void fillRoots();
@@ -47,7 +48,6 @@ class FileDialog {
         m_files.clear();
     }
     bool m_cacheDirty = true;
-    std::filesystem::path m_currentPath;
     uint64_t m_flags;
     const std::string m_title;
     struct Root {

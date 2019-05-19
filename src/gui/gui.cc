@@ -92,6 +92,7 @@ void PCSX::GUI::init() {
     {
         ImGui::GetIO().IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
+        auto& settings = PCSX::g_emulator.settings;
         json j;
         if (cfg.is_open()) {
             try {
@@ -103,12 +104,24 @@ void PCSX::GUI::init() {
                 ImGui::LoadIniSettingsFromMemory(imguicfg.c_str(), imguicfg.size());
             }
             if ((j.count("emulator") == 1) && j["emulator"].is_object()) {
-                PCSX::g_emulator.settings.deserialize(j["emulator"]);
+                settings.deserialize(j["emulator"]);
             }
             PCSX::g_emulator.m_spu->setCfg(j);
         } else {
             saveCfg();
         }
+
+        if (settings.get<Emulator::SettingMcd1>().value.string().empty()) {
+            settings.get<Emulator::SettingMcd1>() = "memcard1.mcd";
+        }
+
+        if (settings.get<Emulator::SettingMcd2>().value.string().empty()) {
+            settings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
+        }
+
+        std::string path1 = settings.get<Emulator::SettingMcd1>().value.string();
+        std::string path2 = settings.get<Emulator::SettingMcd2>().value.string();
+        PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
     ImGui_ImplOpenGL3_Init();
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
@@ -295,9 +308,7 @@ void PCSX::GUI::endFrame() {
     if (m_showMenu || !m_fullscreenRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open ISO")) {
-                    showOpenIsoFileDialog = true;
-                }
+                showOpenIsoFileDialog = ImGui::MenuItem("Open ISO");
                 if (ImGui::MenuItem("Close ISO")) {
                     PCSX::g_emulator.m_cdrom->m_iso.close();
                     CheckCdrom();
@@ -335,6 +346,8 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem("Hard Reset")) {
                     scheduleHardReset();
                 }
+                ImGui::Separator();
+                ImGui::MenuItem("Mute sound", nullptr, g_emulator.settings.get<Emulator::SettingMute>().value);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -361,6 +374,7 @@ void PCSX::GUI::endFrame() {
                     m_biosEditor.MenuItem();
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem("Show BIOS counters", nullptr, &m_showBiosCounters);
                 ImGui::Separator();
                 ImGui::MenuItem("Show SPU debug", nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
                 ImGui::Separator();
@@ -384,8 +398,17 @@ void PCSX::GUI::endFrame() {
         }
     }
 
-    if (showOpenIsoFileDialog) m_openIsoFileDialog.openDialog();
+    auto& isoPath = g_emulator.settings.get<Emulator::SettingIsoPath>().value;
+
+    if (showOpenIsoFileDialog) {
+        if (!isoPath.string().empty()) {
+            m_openIsoFileDialog.m_currentPath = isoPath;
+        }
+        m_openIsoFileDialog.openDialog();
+    }
     if (m_openIsoFileDialog.draw()) {
+        isoPath = m_openIsoFileDialog.m_currentPath;
+        changed = true;
         std::vector<std::string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator.m_cdrom->m_iso.close();
@@ -472,37 +495,6 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw("Breakpoints");
     }
 
-    if (m_showAbout) {
-        ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("About", &m_showAbout)) {
-            ImGui::Text("PCSX-Redux", &m_showAbout);
-            ImGui::Separator();
-            auto someString = [](const char* str, GLenum index) {
-                const char* value = (const char*)glGetString(index);
-                checkGL();
-                ImGui::TextWrapped("%s: %s", str, value);
-            };
-            ImGui::Text("OpenGL information");
-            someString("vendor", GL_VENDOR);
-            someString("renderer", GL_RENDERER);
-            someString("version", GL_VERSION);
-            someString("shading language version", GL_SHADING_LANGUAGE_VERSION);
-            GLint n, i;
-            glGetIntegerv(GL_NUM_EXTENSIONS, &n);
-            checkGL();
-            ImGui::Text("extensions:");
-            ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
-            for (i = 0; i < n; i++) {
-                const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
-                checkGL();
-                ImGui::Text("%s", extension);
-            }
-            ImGui::EndChild();
-        }
-        ImGui::End();
-    }
-
     PCSX::g_emulator.m_spu->debug();
     changed |= PCSX::g_emulator.m_spu->configure();
     changed |= PCSX::g_emulator.m_gpu->configure();
@@ -531,12 +523,13 @@ static void ShowHelpMarker(const char* desc) {
 
 bool PCSX::GUI::configure() {
     bool changed = false;
+    bool selectBiosDialog = false;
+    auto& settings = PCSX::g_emulator.settings;
     if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Emulation Configuration", &m_showCfg)) {
-        auto& settings = PCSX::g_emulator.settings;
         changed |= ImGui::Checkbox("Enable XA decoder", &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox("Always enable SIO IRQ", &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox("Always enable SPU IRQ", &settings.get<Emulator::SettingSpuIrq>().value);
@@ -583,10 +576,143 @@ bool PCSX::GUI::configure() {
 
         changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox("Fast boot", &settings.get<Emulator::SettingFastBoot>().value);
+        auto bios = settings.get<Emulator::SettingBios>().value.string();
+        ImGui::InputText("BIOS file", const_cast<char*>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::SameLine();
+        selectBiosDialog = ImGui::Button("...");
     }
     ImGui::End();
 
+    if (selectBiosDialog) m_selectBiosDialog.openDialog();
+    if (m_selectBiosDialog.draw()) {
+        std::vector<std::string> fileToOpen = m_selectBiosDialog.selected();
+        if (!fileToOpen.empty()) settings.get<Emulator::SettingBios>().value = fileToOpen[0];
+    }
     return changed;
+}
+
+void PCSX::GUI::biosCounters() {
+    if (!m_showBiosCounters) return;
+    ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(750, 530), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("BIOS Counters", &m_showBiosCounters)) {
+        auto isUnknown = [](const char* name, char syscall) {
+            if (strlen(name) != 9) return false;
+            if (strncmp(name, "sys_", 4) != 0) return false;
+            if (name[4] != syscall) return false;
+            if (name[5] != '0') return false;
+            if (name[6] != '_') return false;
+            return true;
+        };
+        if (ImGui::Button("Memorize")) {
+            g_emulator.m_psxCpu->memorizeCounters();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear")) {
+            g_emulator.m_psxCpu->clearCounters();
+        }
+        ImGui::SameLine();
+        ImGui::Checkbox("Enable counters", &g_emulator.m_psxCpu->m_biosCounters);
+        ImGui::SameLine();
+        ImGui::Checkbox("Skip unknowns", &m_skipBiosUnknowns);
+        ImGui::SameLine();
+        ImGui::Checkbox("Debug kernel", &g_emulator.m_psxCpu->m_debugKernel);
+        ImGui::Checkbox("Log new syscalls", &g_emulator.m_psxCpu->m_logNewSyscalls);
+        ImGui::SameLine();
+        ImGui::Checkbox("Log events", &g_emulator.m_psxCpu->m_logEvents);
+        ImGui::SameLine();
+        ImGui::Checkbox("Breakpoint on new syscalls", &g_emulator.m_psxCpu->m_breakpointOnNew);
+        ImGui::Separator();
+        ImGui::BeginChild("A0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
+        for (int i = 0; i < 256; i++) {
+            char defaultName[16];
+            const char* name = g_emulator.m_psxBios->getA0name(i);
+            if (!name) {
+                name = defaultName;
+                std::snprintf(defaultName, 16, "sys_a0_%02x", i);
+            }
+            if (m_skipBiosUnknowns && isUnknown(name, 'a')) continue;
+            char checkboxName[16];
+            std::snprintf(checkboxName, 16, "##sys_a0_%02x_brk", i);
+            ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(0)[i]);
+            ImGui::SameLine();
+            ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[0][i]);
+            ImGui::SameLine();
+            ImGui::Text(name);
+        }
+        ImGui::EndChild();
+        ImGui::SameLine();
+        ImGui::BeginChild("B0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
+        for (int i = 0; i < 256; i++) {
+            char defaultName[16];
+            const char* name = g_emulator.m_psxBios->getB0name(i);
+            if (!name) {
+                name = defaultName;
+                std::snprintf(defaultName, 16, "sys_b0_%02x", i);
+            }
+            if (m_skipBiosUnknowns && isUnknown(name, 'b')) continue;
+            char checkboxName[16];
+            std::snprintf(checkboxName, 16, "##sys_b0_%02x_brk", i);
+            ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(1)[i]);
+            ImGui::SameLine();
+            ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[1][i]);
+            ImGui::SameLine();
+            ImGui::Text(name);
+        }
+        ImGui::EndChild();
+        ImGui::SameLine();
+        ImGui::BeginChild("C0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
+        for (int i = 0; i < 256; i++) {
+            char defaultName[16];
+            const char* name = g_emulator.m_psxBios->getC0name(i);
+            if (!name) {
+                name = defaultName;
+                std::snprintf(defaultName, 16, "sys_c0_%02x", i);
+            }
+            if (m_skipBiosUnknowns && isUnknown(name, 'c')) continue;
+            char checkboxName[16];
+            std::snprintf(checkboxName, 16, "##sys_c0_%02x_brk", i);
+            ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(2)[i]);
+            ImGui::SameLine();
+            ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[2][i]);
+            ImGui::SameLine();
+            ImGui::Text(name);
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
+}
+
+void PCSX::GUI::about() {
+    if (!m_showAbout) return;
+    ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("About", &m_showAbout)) {
+        ImGui::Text("PCSX-Redux", &m_showAbout);
+        ImGui::Separator();
+        auto someString = [](const char* str, GLenum index) {
+            const char* value = (const char*)glGetString(index);
+            checkGL();
+            ImGui::TextWrapped("%s: %s", str, value);
+        };
+        ImGui::Text("OpenGL information");
+        someString("vendor", GL_VENDOR);
+        someString("renderer", GL_RENDERER);
+        someString("version", GL_VERSION);
+        someString("shading language version", GL_SHADING_LANGUAGE_VERSION);
+        GLint n, i;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+        checkGL();
+        ImGui::Text("extensions:");
+        ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
+        for (i = 0; i < n; i++) {
+            const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
+            checkGL();
+            ImGui::Text("%s", extension);
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
 }
 
 void PCSX::GUI::update() {

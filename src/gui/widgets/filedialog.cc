@@ -84,7 +84,6 @@ void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({"/", "(root)"})
 
 void PCSX::Widgets::FileDialog::openDialog() {
     ImGui::OpenPopup(m_title.c_str());
-    setToCurrentPath();
     m_selected.clear();
     m_sorter.name = SORT_DOWN;
     m_sorter.size = UNSORTED;
