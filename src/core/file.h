@@ -19,8 +19,10 @@
 
 #pragma once
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+
+#include <filesystem>
 
 #include "core/psxemulator.h"
 
@@ -33,13 +35,21 @@ class File {
     ssize_t tell();
     void flush();
     File(void* data, ssize_t size);
+    File(const std::filesystem::path& filename) : File(filename.u8string()) {}
+    File(const std::string& filename) : File(filename.c_str()) {}
     File(const char* filename);
+    ~File() { close(); }
+    File* dup() { return new File(m_filename); }
+    char* gets(char* s, int size);
     ssize_t read(void* dest, ssize_t size);
     ssize_t write(const void* dest, size_t size);
     int getc();
     bool failed();
+    bool eof();
+    std::filesystem::path filename() { return m_filename; }
 
   private:
+    const std::filesystem::path m_filename;
     static const uint8_t m_internalBuffer;
     FILE* m_handle = NULL;
     ssize_t m_ptr = 0;

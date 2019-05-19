@@ -24,6 +24,7 @@
 const uint8_t PCSX::File::m_internalBuffer = 0;
 void PCSX::File::close() {
     if (m_handle) fclose(m_handle);
+    m_handle = nullptr;
 }
 ssize_t PCSX::File::seek(ssize_t pos, int wheel) {
     if (m_handle) return fseek(m_handle, pos, wheel);
@@ -60,7 +61,7 @@ PCSX::File::File(void *data, ssize_t size) {
     m_size = size;
 }
 #ifdef _WIN32
-PCSX::File::File(const char *filename) {
+PCSX::File::File(const char *filename) : m_filename(filename) {
 #ifdef UNICODE
     int needed;
     LPWSTR str;
@@ -80,6 +81,28 @@ PCSX::File::File(const char *filename) {
 #else
 PCSX::File::File(const char *filename) { m_handle = fopen(filename, "rb"); }
 #endif
+char *PCSX::File::gets(char *s, int size) {
+    if (m_handle) return fgets(s, size, m_handle);
+    if (!m_data) return nullptr;
+    if (m_size == m_ptr) return nullptr;
+    int c;
+    char *ptr = s;
+    if (!size) return nullptr;
+    size--;
+    while (true) {
+        if (!size) {
+            *ptr = 0;
+            return s;
+        }
+        c = getc();
+        if ((c == 0) || (c == -1)) {
+            *ptr = 0;
+            return s;
+        }
+        *ptr++ = c;
+        size--;
+    }
+}
 ssize_t PCSX::File::read(void *dest, ssize_t size) {
     if (m_handle) return fread(dest, 1, size, m_handle);
     if (!m_data) return -1;
@@ -100,3 +123,8 @@ int PCSX::File::getc() {
     return m_data[m_ptr++];
 }
 bool PCSX::File::failed() { return !m_handle && !m_data; }
+bool PCSX::File::eof() {
+    if (m_handle) return feof(m_handle);
+    if (!m_data) return true;
+    return m_size == m_ptr;
+}
