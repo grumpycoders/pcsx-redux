@@ -398,8 +398,17 @@ void PCSX::GUI::endFrame() {
         }
     }
 
-    if (showOpenIsoFileDialog) m_openIsoFileDialog.openDialog();
+    auto& isoPath = g_emulator.settings.get<Emulator::SettingIsoPath>().value;
+
+    if (showOpenIsoFileDialog) {
+        if (!isoPath.string().empty()) {
+            m_openIsoFileDialog.m_currentPath = isoPath;
+        }
+        m_openIsoFileDialog.openDialog();
+    }
     if (m_openIsoFileDialog.draw()) {
+        isoPath = m_openIsoFileDialog.m_currentPath;
+        changed = true;
         std::vector<std::string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator.m_cdrom->m_iso.close();

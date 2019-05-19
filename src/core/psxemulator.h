@@ -130,9 +130,10 @@ class Emulator {
     typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
     typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
     typedef Setting<bool, irqus::typestring<'M', 'u', 't', 'e'>> SettingMute;
+    typedef SettingPath<irqus::typestring<'I', 's', 'o', 'P', 'a', 't', 'h'>> SettingIsoPath;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingMute>
+             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingMute, SettingIsoPath>
         settings;
     class PcsxConfig {
       public:
