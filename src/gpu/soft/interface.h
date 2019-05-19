@@ -30,10 +30,10 @@ class GUI;
 namespace SoftGPU {
 
 class impl : public GPU {
-    virtual long init() final;
-    virtual long shutdown() final;
-    virtual long open(GUI *) final;
-    virtual long close() final;
+    virtual int32_t init() final;
+    virtual int32_t shutdown() final;
+    virtual int32_t open(GUI *) final;
+    virtual int32_t close() final;
     virtual uint32_t readData() final {
         uint32_t l;
         readDataMem(&l, 1);
@@ -44,9 +44,9 @@ class impl : public GPU {
     virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1); }
     virtual void writeDataMem(uint32_t *pMem, int iSize) final;
     virtual void writeStatus(uint32_t gdata) final;
-    virtual long dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
+    virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
-    virtual long freeze(unsigned long ulGetFreezeData, GPUFreeze_t *pF) final;
+    virtual int32_t freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) final;
     virtual bool configure() final {
         if (m_showCfg) {
             return m_softPrim.configure(&m_showCfg);
@@ -64,27 +64,27 @@ class impl : public GPU {
     //    unsigned char *psxVSecure;
     //    unsigned char *psxVub;
     //    signed char *psxVsb;
-    //    unsigned short *psxVuw;
-    //    unsigned short *psxVuw_eom;
-    //    signed short *psxVsw;
-    //    unsigned long *psxVul;
-    //    signed long *psxVsl;
+    //    uint16_t *psxVuw;
+    //    uint16_t *psxVuw_eom;
+    //    int16_t *psxVsw;
+    //    uint32_t *psxVul;
+    //    int32_t *psxVsl;
 
     ////////////////////////////////////////////////////////////////////////
     // GPU globals
     ////////////////////////////////////////////////////////////////////////
 
-    long lGPUdataRet;
-    //    long lGPUstatusRet;
+    int32_t lGPUdataRet;
+    //    int32_t lGPUstatusRet;
     //    char szDispBuf[64];
     //    char szMenuBuf[36];
     //    char szDebugText[512];
-    //    unsigned long ulStatusControl[256];
+    //    uint32_t ulStatusControl[256];
 
-    //    unsigned long gpuDataM[256];
+    //    uint32_t gpuDataM[256];
     //    unsigned char gpuCommand = 0;
-    //    long gpuDataC = 0;
-    //    long gpuDataP = 0;
+    //    int32_t gpuDataC = 0;
+    //    int32_t gpuDataP = 0;
 
     //    VRAMLoad_t VRAMWrite;
     //    VRAMLoad_t VRAMRead;
@@ -95,13 +95,13 @@ class impl : public GPU {
     //    DWORD dwLaceCnt = 0;
     //    int iColDepth;
     //    int iWindowMode;
-    //    short sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
+    //    int16_t sDispWidths[8] = {256, 320, 512, 640, 368, 384, 512, 640};
     //    PSXDisplay_t PSXDisplay;
     //    PSXDisplay_t PreviousPSXDisplay;
-    //    long lSelectedSlot = 0;
+    //    int32_t lSelectedSlot = 0;
     //    bool bChangeWinMode = false;
     //    bool bDoLazyUpdate = false;
-    //    unsigned long lGPUInfoVals[16];
+    //    uint32_t lGPUInfoVals[16];
     //    int iFakePrimBusy = 0;
     //    int iRumbleVal = 0;
     //    int iRumbleTime = 0;

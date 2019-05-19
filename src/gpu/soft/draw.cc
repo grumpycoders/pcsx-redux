@@ -113,7 +113,7 @@
 ////////////////////////////////////////////////////////////////////////////////////
 int iFastFwd = 0;
 PSXPoint_t ptCursorPoint[8];
-unsigned short usCursorActive = 0;
+uint16_t usCursorActive = 0;
 
 PCSX::GUI *m_gui;
 bool bVsync_Key = false;
@@ -124,15 +124,15 @@ static const unsigned int pitch = 4096;
 
 ////////////////////////////////////////////////////////////////////////
 
-void BlitScreen32(unsigned char *surf, long x, long y)  // BLIT IN 32bit COLOR MODE
+void BlitScreen32(unsigned char *surf, int32_t x, int32_t y)  // BLIT IN 32bit COLOR MODE
 {
     unsigned char *pD;
-    unsigned long lu;
-    unsigned short s;
+    uint32_t lu;
+    uint16_t s;
     unsigned int startxy;
-    short row, column;
-    short dx = (short)PreviousPSXDisplay.Range.x1;
-    short dy = (short)PreviousPSXDisplay.DisplayMode.y;
+    int16_t row, column;
+    int16_t dx = (int16_t)PreviousPSXDisplay.Range.x1;
+    int16_t dy = (int16_t)PreviousPSXDisplay.DisplayMode.y;
 
     if (PreviousPSXDisplay.Range.y0)  // centering needed?
     {
@@ -186,8 +186,8 @@ void DoClearFrontBuffer(void)  // CLEAR PRIMARY BUFFER
 ////////////////////////////////////////////////////////////////////////
 
 void ShowGunCursor(unsigned char *surf) {
-    unsigned short dx = (unsigned short)PreviousPSXDisplay.Range.x1;
-    unsigned short dy = (unsigned short)PreviousPSXDisplay.DisplayMode.y;
+    uint16_t dx = (uint16_t)PreviousPSXDisplay.Range.x1;
+    uint16_t dy = (uint16_t)PreviousPSXDisplay.DisplayMode.y;
     int x, y, iPlayer, sx, ex, sy, ey;
 
     if (PreviousPSXDisplay.Range.y0)  // centering needed?
@@ -196,7 +196,7 @@ void ShowGunCursor(unsigned char *surf) {
         dy -= PreviousPSXDisplay.Range.y0;
     }
 
-    const unsigned long crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
+    const uint32_t crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
                                               0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
 
     surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
@@ -490,7 +490,7 @@ void DXcleanup()  // DX CLEANUP
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-unsigned long ulInitDisplay(void) {
+uint32_t ulInitDisplay(void) {
     DXinitialize();  // init direct draw (not D3D... oh, well)
     glGenTextures(1, &vramTexture);
     checkGL();

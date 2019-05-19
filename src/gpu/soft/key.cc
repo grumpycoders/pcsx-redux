@@ -65,7 +65,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 WNDPROC wpOrgWndProc = 0;
-unsigned long ulKeybits = 0;
+uint32_t ulKeybits = 0;
 char szGPUKeys[11];
 
 ////////////////////////////////////////////////////////////////////////
@@ -162,7 +162,7 @@ void SetKeyHandler(void) {
                  if(!wpOrgWndProc)                                     // setup keyhandler
   {
    wpOrgWndProc = (WNDPROC)GetWindowLong(textureId, GWL_WNDPROC );
-   SetWindowLong(textureId, GWL_WNDPROC, (long)KeyWndProc);
+   SetWindowLong(textureId, GWL_WNDPROC, (int32_t)KeyWndProc);
   }
 
 #endif  // 0
@@ -174,7 +174,7 @@ void ReleaseKeyHandler(void) {
 #if 0
                  if(wpOrgWndProc)
   SetWindowLong(textureId,GWL_WNDPROC,              // set old proc
-                (long)wpOrgWndProc);
+                (int32_t)wpOrgWndProc);
  wpOrgWndProc = 0;
 
 #endif  // 0
@@ -209,7 +209,7 @@ void ReleaseKeyHandler(void) {
 
 void GPUmakeSnapshot(void);
 
-unsigned long ulKeybits = 0;
+uint32_t ulKeybits = 0;
 
 void GPUkeypressed(int keycode) {
 #ifdef _FPSE

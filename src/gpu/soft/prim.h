@@ -56,7 +56,7 @@ class SoftPrim : public SoftRenderer {
 
   private:
     int iUseDither = 0;
-    long GlobalTextREST;
+    int32_t GlobalTextREST;
 
     typedef void (SoftPrim::*func_t)(unsigned char *);
     typedef const func_t cfunc_t;
@@ -76,7 +76,7 @@ class SoftPrim : public SoftRenderer {
     void primTile16(unsigned char *baseAddr);
     void primSprt8(unsigned char *baseAddr);
     void primSprt16(unsigned char *baseAddr);
-    void primSprtSRest(unsigned char *baseAddr, unsigned short type);
+    void primSprtSRest(unsigned char *baseAddr, uint16_t type);
     void primSprtS(unsigned char *baseAddr);
     void primPolyF4(unsigned char *baseAddr);
     void primPolyG4(unsigned char *baseAddr);
@@ -97,7 +97,7 @@ class SoftPrim : public SoftRenderer {
     static const func_t funcs[256];
     static const func_t skip[256];
 
-    void UpdateGlobalTP(unsigned short gdata);
+    void UpdateGlobalTP(uint16_t gdata);
     void SetRenderMode(uint32_t DrawAttributes);
     void AdjustCoord4();
     void AdjustCoord3();
@@ -108,7 +108,7 @@ class SoftPrim : public SoftRenderer {
     bool CheckCoord3();
     bool CheckCoord2();
 
-    long lLowerpart;
+    int32_t lLowerpart;
 };
 
 }  // namespace SoftGPU

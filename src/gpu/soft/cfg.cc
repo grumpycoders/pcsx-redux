@@ -701,7 +701,7 @@ void ReadGPUConfig(void) {
 //
 #define GetDWORD(xa, xb) \
     size = 4;            \
-    if (RegQueryValueEx(myKey, xa, 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) xb = (unsigned long)temp;
+    if (RegQueryValueEx(myKey, xa, 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS) xb = (uint32_t)temp;
 #define GetBINARY(xa, xb) \
     size = sizeof(xb);    \
     RegQueryValueEx(myKey, xa, 0, &type, (LPBYTE)&xb, &size);

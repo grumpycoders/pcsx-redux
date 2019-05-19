@@ -323,7 +323,7 @@ void FrameSkip(void) {
         dwLastLace = dwLaceCnt;                     // store curr count (frame limitation helper)
         dwWaitTime = dwLaceCnt * dwFrameRateTicks;  // calc the 'real psx lace time'
 
-        if (_ticks_since_last_update > dwWaitTime)  // hey, we needed way too long for that frame...
+        if (_ticks_since_last_update > dwWaitTime)  // hey, we needed way too int32_t for that frame...
         {
             if (UseFrameLimit)  // if limitation, we skip just next frame,
             {                   // and decide after, if we need to do more
@@ -365,11 +365,11 @@ void FrameSkip(void) {
 void calcfps(void)  // fps calculations
 {
     static Uint32 curticks, _ticks_since_last_update, lastticks;
-    static long fps_cnt = 0;
+    static int32_t fps_cnt = 0;
     static Uint32 fps_tck = 1;
     static Uint64 CurrentTime;
     static Uint64 LastTime;
-    static long fpsskip_cnt = 0;
+    static int32_t fpsskip_cnt = 0;
     static Uint32 fpsskip_tck = 1;
 
     if (UsePerformanceCounter) {
@@ -459,7 +459,7 @@ void PCFrameCap(void) {
                 Waiting = false;
                 lastticks = curticks;
                 LastTime = CurrentTime;
-                TicksToWait = (unsigned long)(CPUFrequency / fFrameRateHz);
+                TicksToWait = (uint32_t)(CPUFrequency / fFrameRateHz);
             }
         } else {
             curticks = SDL_GetTicks();
@@ -477,7 +477,7 @@ void PCFrameCap(void) {
 
 void PCcalcfps(void) {
     static Uint32 curticks, _ticks_since_last_update, lastticks;
-    static long fps_cnt = 0;
+    static int32_t fps_cnt = 0;
     static float fps_acc = 0;
     static Uint64 CurrentTime;
     static Uint64 LastTime;
