@@ -80,7 +80,27 @@ File::File(void *data, ssize_t size) {
     }
     m_size = size;
 }
+#ifdef _WIN32
+File::File(const char *filename) {
+#ifdef UNICODE
+    int needed;
+    LPWSTR str;
+
+    needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
+    if (needed <= 0) return;
+    str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed * sizeof(wchar_t));
+
+    m_handle = _wfopen(str, L"rb");
+
+    _freea(str);
+#else
+    m_handle = fopen(filename, "rb");
+#endif
+}
+#else
 File::File(const char *filename) { m_handle = fopen(filename, "rb"); }
+#endif
 ssize_t File::read(void *dest, ssize_t size) {
     if (m_handle) return fread(dest, 1, size, m_handle);
     if (!m_data) return -1;
@@ -1387,7 +1407,7 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
         buffer[14] = 'i';
         buffer[15] = '\0';
 
-        sprintf(sbifile, "%s%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().c_str(), buffer);
+        sprintf(sbifile, "%s%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
         filename = sbifile;
     }
 

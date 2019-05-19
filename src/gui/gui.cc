@@ -111,16 +111,16 @@ void PCSX::GUI::init() {
             saveCfg();
         }
 
-        if (settings.get<Emulator::SettingMcd1>().value.string().empty()) {
+        if (settings.get<Emulator::SettingMcd1>().empty()) {
             settings.get<Emulator::SettingMcd1>() = "memcard1.mcd";
         }
 
-        if (settings.get<Emulator::SettingMcd2>().value.string().empty()) {
+        if (settings.get<Emulator::SettingMcd2>().empty()) {
             settings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
         }
 
-        std::string path1 = settings.get<Emulator::SettingMcd1>().value.string();
-        std::string path2 = settings.get<Emulator::SettingMcd2>().value.string();
+        std::string path1 = settings.get<Emulator::SettingMcd1>().string();
+        std::string path2 = settings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
     ImGui_ImplOpenGL3_Init();
@@ -398,16 +398,16 @@ void PCSX::GUI::endFrame() {
         }
     }
 
-    auto& isoPath = g_emulator.settings.get<Emulator::SettingIsoPath>().value;
+    auto& isoPath = g_emulator.settings.get<Emulator::SettingIsoPath>();
 
     if (showOpenIsoFileDialog) {
-        if (!isoPath.string().empty()) {
-            m_openIsoFileDialog.m_currentPath = isoPath;
+        if (!isoPath.empty()) {
+            m_openIsoFileDialog.m_currentPath = isoPath.value;
         }
         m_openIsoFileDialog.openDialog();
     }
     if (m_openIsoFileDialog.draw()) {
-        isoPath = m_openIsoFileDialog.m_currentPath;
+        isoPath.value = m_openIsoFileDialog.m_currentPath;
         changed = true;
         std::vector<std::string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
@@ -576,7 +576,7 @@ bool PCSX::GUI::configure() {
 
         changed |= ImGui::Checkbox("BIOS HLE", &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox("Fast boot", &settings.get<Emulator::SettingFastBoot>().value);
-        auto bios = settings.get<Emulator::SettingBios>().value.string();
+        auto bios = settings.get<Emulator::SettingBios>().string();
         ImGui::InputText("BIOS file", const_cast<char*>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");

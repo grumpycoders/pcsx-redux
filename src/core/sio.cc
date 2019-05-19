@@ -612,14 +612,14 @@ s_buf[5]);
 
             // Chronicles of the Sword - no memcard = password options
             if (PCSX::g_emulator.config().NoMemcard ||
-                (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().empty() &&
-                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().empty())) {
+                (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() &&
+                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty())) {
                 memset(s_buf, 0x00, 4);
             } else {
                 memcpy(s_buf, s_cardh, 4);
-                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().empty())
+                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty())
                     s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().empty())
+                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty())
                     s_buf[3] = 0;  // is card 2 plugged?
             }
 
@@ -684,13 +684,13 @@ uint8_t PCSX::SIO::sioRead8() {
                     switch (s_ctrlReg & 0x2002) {
                         case 0x0002:
                             memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().value.string().c_str(), g_mcd1Data,
+                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(), g_mcd1Data,
                                     (s_adrL | (s_adrH << 8)) * 128,
                                     128);
                             break;
                         case 0x2002:
                             memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().value.string().c_str(), g_mcd2Data,
+                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(), g_mcd2Data,
                                     (s_adrL | (s_adrH << 8)) * 128,
                                     128);
                             break;

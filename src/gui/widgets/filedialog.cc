@@ -99,7 +99,7 @@ bool PCSX::Widgets::FileDialog::draw() {
             m_spaceInfo = std::filesystem::space(m_currentPath);
             for (auto& p : std::filesystem::directory_iterator(m_currentPath)) {
                 if (p.is_directory()) {
-                    m_directories.push_back(p.path().filename().string());
+                    m_directories.push_back(p.path().filename().u8string());
                 } else {
                     try {
                         auto status = p.status();
@@ -111,7 +111,7 @@ bool PCSX::Widgets::FileDialog::draw() {
                         std::ostringstream formatted;
                         formatted << std::put_time(converted, "%c");
                         m_files.push_back(
-                            {p.path().filename().string(), std::filesystem::file_size(p), formatted.str(), dateTime});
+                            {p.path().filename().u8string(), std::filesystem::file_size(p), formatted.str(), dateTime});
                     } catch (...) {
                     }
                 }
@@ -130,7 +130,7 @@ bool PCSX::Widgets::FileDialog::draw() {
 
         if (ImGui::Button("Home")) goHome = true;
         ImGui::SameLine();
-        ImGui::Text(m_currentPath.string().c_str());
+        ImGui::Text(m_currentPath.u8string().c_str());
         {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
             if (ImGui::TreeNode("Roots")) {
@@ -251,7 +251,7 @@ bool PCSX::Widgets::FileDialog::draw() {
                     for (auto& f : m_files) f.selected = false;
                     p.selected = true;
                     if (m_flags & NewFile) {
-                        m_newFile = std::filesystem::path(p.filename).filename().string();
+                        m_newFile = std::filesystem::path(p.filename).filename().u8string();
                     }
                 }
                 ImGui::SameLine();
@@ -270,14 +270,14 @@ bool PCSX::Widgets::FileDialog::draw() {
         std::string selectedStr;
         bool gotSelected = selected;
         if (m_flags & NewFile) {
-            ImGui::Text(m_currentPath.string().c_str());
+            ImGui::Text(m_currentPath.u8string().c_str());
             ImGui::SameLine();
             std::string label = std::string("##") + m_title + "Filename";
             ImGui::InputText(label.c_str(), &m_newFile);
             selectedStr = m_newFile;
             gotSelected = !m_newFile.empty();
         } else {
-            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : "...")).string();
+            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : "...")).u8string();
             ImGui::Text(selectedStr.c_str());
         }
         if (!gotSelected) {
@@ -305,7 +305,7 @@ bool PCSX::Widgets::FileDialog::draw() {
             m_currentPath = m_currentPath.parent_path();
             nukeCache();
         } else if (!goDown.empty()) {
-            m_currentPath = m_currentPath / goDown;
+            m_currentPath = m_currentPath / std::filesystem::u8path(goDown);
             nukeCache();
         } else if (goHome) {
             setToCurrentPath();

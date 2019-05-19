@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <codecvt>
 #include <filesystem>
 #include <string>
 #include <tuple>
@@ -103,11 +104,12 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
         value = v;
         return *this;
     }
-    const char *c_str() const { return value.string().c_str(); }
-    json serialize() const { return value.string(); }
+    std::string string() const { return value.u8string(); }
+    bool empty() const { return value.u8string().empty(); }
+    json serialize() const { return value.u8string(); }
     void deserialize(const json &j) {
         std::string str = j;
-        value = std::filesystem::path(str);
+        value = std::filesystem::u8path(str);
     }
     void setDefault() { value = defaultValue::data(); }
     type value = defaultValue::data();
