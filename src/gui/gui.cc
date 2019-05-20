@@ -389,7 +389,7 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu("Help")) {
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &m_showDemo);
                 ImGui::Separator();
-                ImGui::MenuItem("About", nullptr, m_showAbout);
+                ImGui::MenuItem("About", nullptr, &m_showAbout);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
