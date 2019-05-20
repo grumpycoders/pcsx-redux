@@ -496,6 +496,9 @@ void PCSX::GUI::endFrame() {
     if (m_breakpoints.m_show) {
         m_breakpoints.draw("Breakpoints");
     }
+    
+    about();
+    biosCounters();
 
     PCSX::g_emulator.m_spu->debug();
     changed |= PCSX::g_emulator.m_spu->configure();
