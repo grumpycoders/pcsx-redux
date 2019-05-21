@@ -103,6 +103,17 @@ char *PCSX::File::gets(char *s, int size) {
         size--;
     }
 }
+std::string PCSX::File::gets() {
+    int c;
+    std::string ret;
+    while (true) {
+        c = getc();
+        if ((c == 0) || (c == -1)) {
+            return ret;
+        }
+        ret += c;
+    }
+}
 ssize_t PCSX::File::read(void *dest, ssize_t size) {
     if (m_handle) return fread(dest, 1, size, m_handle);
     if (!m_data) return -1;

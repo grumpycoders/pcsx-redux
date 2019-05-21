@@ -78,9 +78,6 @@
 typedef intptr_t ssize_t;
 #endif
 
-#define _(msgid) msgid
-#define N_(msgid) msgid
-
 namespace PCSX {
 
 class Bios;
@@ -133,9 +130,10 @@ class Emulator {
     typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
     typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
     typedef SettingPath<irqus::typestring<'I', 's', 'o', 'P', 'a', 't', 'h'>> SettingIsoPath;
+    typedef SettingString<irqus::typestring<'L', 'o', 'c', 'a', 'l', 'e'>> SettingLocale;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath>
+             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale>
         settings;
     class PcsxConfig {
       public:

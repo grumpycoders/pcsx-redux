@@ -24,3 +24,8 @@ find repository/vsprojects -name *.vcxproj | while read f ; do
   echo "$f"
   clean "$f"
 done
+
+find repository/i18n -type f | while read f ; do
+  echo "$f"
+  clean "$f"
+done

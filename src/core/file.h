@@ -41,6 +41,7 @@ class File {
     ~File() { close(); }
     File* dup() { return new File(m_filename); }
     char* gets(char* s, int size);
+    std::string gets();
     ssize_t read(void* dest, ssize_t size);
     ssize_t write(const void* dest, size_t size);
     int getc();

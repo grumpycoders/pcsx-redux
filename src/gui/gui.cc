@@ -496,7 +496,7 @@ void PCSX::GUI::endFrame() {
     if (m_breakpoints.m_show) {
         m_breakpoints.draw("Breakpoints");
     }
-    
+
     about();
     biosCounters();
 
@@ -535,6 +535,26 @@ bool PCSX::GUI::configure() {
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Emulation Configuration", &m_showCfg)) {
+        {
+            std::string currentLocale = g_system->localeName();
+            if (currentLocale.length() == 0) currentLocale = "English";
+            if (ImGui::BeginCombo(_("Locale"), currentLocale.c_str())) {
+                if (ImGui::Selectable("English", currentLocale == "English")) {
+                    g_system->activateLocale("English");
+                    g_emulator.settings.get<Emulator::SettingLocale>() = "English";
+                    changed = true;
+                }
+                for (auto& l : g_system->localesNames()) {
+                    if (ImGui::Selectable(l.c_str(), currentLocale == l)) {
+                        g_system->activateLocale(l);
+                        g_emulator.settings.get<Emulator::SettingLocale>() = l;
+                        changed = true;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+        ImGui::Separator();
         changed |= ImGui::Checkbox("Enable XA decoder", &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox("Always enable SIO IRQ", &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox("Always enable SPU IRQ", &settings.get<Emulator::SettingSpuIrq>().value);
@@ -693,7 +713,7 @@ void PCSX::GUI::about() {
     ImGui::SetNextWindowPos(ImVec2(200, 100), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(880, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("About", &m_showAbout)) {
-        ImGui::Text("PCSX-Redux", &m_showAbout);
+        ImGui::Text("PCSX-Redux");
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
             const char* value = (const char*)glGetString(index);
