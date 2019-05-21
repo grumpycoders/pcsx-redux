@@ -110,6 +110,9 @@ bool PCSX::SoftGPU::SoftPrim::configure(bool *show) {
     static const char *ditherValues[] = {"No dithering (fastest)", "Game dependend dithering (slow)",
                                          "Always dither g-shaded polygons (slowest)"};
     changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
+    changed |= ImGui::Checkbox("UseFrameLimit", &UseFrameLimit);
+    changed |= ImGui::Checkbox("UseFrameSkip", &UseFrameSkip);
+    changed |= ImGui::Checkbox("SSSPSXLimit", &bSSSPSXLimit);
     ImGui::End();
     return changed;
 }

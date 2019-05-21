@@ -58,8 +58,8 @@ float fFrameRateHz = 0;
 Uint32 dwFrameRateTicks = 16;
 float fFrameRate;
 int iFrameLimit = 2;
-int UseFrameLimit = 1;
-int UseFrameSkip = 0;
+bool UseFrameLimit = false;
+bool UseFrameSkip = false;
 bool bSSSPSXLimit = true;
 
 ////////////////////////////////////////////////////////////////////////
