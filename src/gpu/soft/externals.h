@@ -211,8 +211,8 @@ extern bool bTransparent;
 
 // fps.c
 extern bool bInitCap;
-extern int UseFrameLimit;
-extern int UseFrameSkip;
+extern bool UseFrameLimit;
+extern bool UseFrameSkip;
 extern float fFrameRate;
 extern int iFrameLimit;
 extern float fFrameRateHz;
