@@ -15,6 +15,13 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      LICENSE
+      i18n/*.po
+    TargetFolder: '$(build.artifactStagingDirectory)/assets'
+
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
@@ -27,7 +34,7 @@ steps:
     Contents: |
       vsprojects/Release/*.exe
       vsprojects/Release/*.dll
-    TargetFolder: '$(build.artifactStagingDirectory)'
+    TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
 - task: VSBuild@1
   inputs:
@@ -41,7 +48,7 @@ steps:
     Contents: |
       vsprojects/x64/Release/*.exe
       vsprojects/x64/Release/*.dll
-    TargetFolder: '$(build.artifactStagingDirectory)'
+    TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
 - task: PublishBuildArtifacts@1
   inputs:
