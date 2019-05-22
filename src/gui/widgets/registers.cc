@@ -21,6 +21,7 @@
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "gui/widgets/registers.h"
 
 void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) {
@@ -31,7 +32,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
         return;
     }
 
-    if (ImGui::BeginTabBar("Registers")) {
+    if (ImGui::BeginTabBar(_("Registers"))) {
         if (ImGui::BeginTabItem("GPR")) {
             unsigned counter = 0;
             for (auto& reg : registers->GPR.r) {
@@ -134,7 +135,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
             ImGui::Text("flag: %i", registers->CP2C.n.flag);
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Misc")) {
+        if (ImGui::BeginTabItem(_("Misc"))) {
             ImGui::Text("pc   : %08x", registers->pc);
             ImGui::Text("cycle: %08x", registers->cycle);
             ImGui::Text("int  : %08x", registers->interrupt);

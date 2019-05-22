@@ -30,7 +30,7 @@
 #include "core/pgxp_mem.h"
 
 int PCSX::R3000Acpu::psxInit() {
-    g_system->printf("PCSX-Redux booting\n");
+    g_system->printf(_("PCSX-Redux booting\n"));
 
     if (g_emulator.config().Cpu == Emulator::CPU_DYNAREC) {
         g_emulator.m_psxCpu = Cpus::DynaRec();

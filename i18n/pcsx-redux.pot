@@ -12,13 +12,120 @@ msgid ""
 "could not open: %s\n"
 msgstr ""
 
+#: src/gui/widgets/filedialog.cc:226
+msgid "  Date & Time"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:170
+msgid "  File"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:198
+msgid "  Size"
+msgstr ""
+
+#: src/gui/gui.cc:397
+#, c-format
+msgid "%.2f FPS (%.2f ms)"
+msgstr ""
+
 #: src/core/cheat.cc:288 src/core/cheat.cc:403
 msgid "(Untitled)"
+msgstr ""
+
+#: src/gui/gui.cc:392 src/gui/gui.cc:715
+msgid "About"
 msgstr ""
 
 #: src/core/cdriso.cc:530
 #, c-format
 msgid "Actual %i vs. %i estimated\n"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:157
+msgid "Add Breakpoint"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:479
+msgid ""
+"Add a small visible notch to indicate instructions that are on the delay "
+"slot of a branch."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:823
+msgid "Address"
+msgstr ""
+
+#: src/gui/gui.cc:559
+msgid "Always enable SIO IRQ"
+msgstr ""
+
+#: src/gui/gui.cc:560
+msgid "Always enable SPU IRQ"
+msgstr ""
+
+#: src/gui/gui.cc:493
+msgid "Assembly"
+msgstr ""
+
+#: src/gui/gui.cc:156
+msgid "BIOS"
+msgstr ""
+
+#: src/gui/gui.cc:623
+msgid "BIOS Counters"
+msgstr ""
+
+#: src/gui/gui.cc:602
+msgid "BIOS HLE"
+msgstr ""
+
+#: src/gui/gui.cc:605
+msgid "BIOS file"
+msgstr ""
+
+#: src/gui/gui.cc:587
+msgid "Big Endian"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:48
+msgid "Break on byte read map "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:53
+msgid "Break on byte write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:47
+msgid "Break on execution map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:50
+msgid "Break on half read map "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:55
+msgid "Break on half write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:52
+msgid "Break on word read map "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:57
+msgid "Break on word write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:147
+msgid "Breakpoint Type"
+msgstr ""
+
+#: src/gui/gui.cc:649
+msgid "Breakpoint on new syscalls"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:59 src/gui/gui.cc:497
+msgid "Breakpoints"
 msgstr ""
 
 #: src/core/cdriso.cc:529
@@ -41,6 +148,14 @@ msgstr ""
 msgid "CD-ROM Label: %.32s\n"
 msgstr ""
 
+#: src/gui/gui.cc:589
+msgid "CDDA"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:304
+msgid "Cancel"
+msgstr ""
+
 #: src/core/cheat.cc:126
 #, c-format
 msgid "Cheats loaded from: %s\n"
@@ -51,9 +166,37 @@ msgstr ""
 msgid "Cheats saved to: %s\n"
 msgstr ""
 
+#: src/gui/widgets/log.cc:43 src/gui/gui.cc:636
+msgid "Clear"
+msgstr ""
+
+#: src/gui/gui.cc:318
+msgid "Close ISO"
+msgstr ""
+
+#: src/gui/gui.cc:327
+msgid "Close LID"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:491
+msgid "Columns"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:455
+msgid "Combined pseudo-instructions"
+msgstr ""
+
+#: src/gui/gui.cc:358
+msgid "Configuration"
+msgstr ""
+
 #. ClosePlugins();
 #: src/core/sio.cc:740
 msgid "Connection closed!\n"
+msgstr ""
+
+#: src/gui/widgets/log.cc:45
+msgid "Copy"
 msgstr ""
 
 #: src/core/cdriso.cc:437
@@ -116,9 +259,57 @@ msgstr ""
 msgid "Could not open source file %s\n"
 msgstr ""
 
+#: src/gui/widgets/assembly.cc:445 src/gui/gui.cc:365
+msgid "Debug"
+msgstr ""
+
+#: src/gui/gui.cc:644
+msgid "Debug kernel"
+msgstr ""
+
+#: src/gui/gui.cc:561
+msgid "Decode MDEC videos in B&W"
+msgstr ""
+
 #: src/core/cdriso.cc:523
 #, c-format
 msgid "Decoding audio tr#%u (%s)..."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:475
+msgid "Delay slot notch"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:150
+msgid "Directories"
+msgstr ""
+
+#: src/gui/gui.cc:587
+msgid "Disabled"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:487
+msgid "Display arrows for jumps. This might crowd the display a bit too much."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:483
+msgid "Draw arrows for jumps"
+msgstr ""
+
+#: src/gui/gui.cc:342 src/gui/gui.cc:359
+msgid "Emulation"
+msgstr ""
+
+#: src/gui/gui.cc:537
+msgid "Emulation Configuration"
+msgstr ""
+
+#: src/gui/gui.cc:558
+msgid "Enable XA decoder"
+msgstr ""
+
+#: src/gui/gui.cc:640
+msgid "Enable counters"
 msgstr ""
 
 #: src/core/psxmem.cc:42
@@ -170,9 +361,69 @@ msgstr ""
 msgid "Failed to open %s codec\n"
 msgstr ""
 
+#: src/gui/gui.cc:603
+msgid "Fast boot"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:441 src/gui/gui.cc:316
+msgid "File"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:281
+msgid "Filename"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:166
+msgid "Files"
+msgstr ""
+
+#: src/gui/widgets/log.cc:47
+msgid "Filter"
+msgstr ""
+
+#: src/gui/widgets/log.cc:41
+msgid "Follow"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:500
+msgid "Follow PC"
+msgstr ""
+
+#: src/gui/gui.cc:385
+msgid "Fullscreen render"
+msgstr ""
+
+#: src/gui/gui.cc:360
+msgid "GPU"
+msgstr ""
+
+#: src/gui/gui.cc:352
+msgid "Hard Reset"
+msgstr ""
+
+#: src/gui/gui.cc:154
+msgid "Hardware Registers"
+msgstr ""
+
+#: src/gui/gui.cc:389
+msgid "Help"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:137
+msgid "Home"
+msgstr ""
+
 #: src/core/ppf.cc:212
 #, c-format
 msgid "Invalid PPF patch: %s.\n"
+msgstr ""
+
+#: src/gui/gui.cc:587
+msgid "Little Endian"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:442
+msgid "Load symbols map"
 msgstr ""
 
 #: src/core/psxmem.cc:90
@@ -201,14 +452,78 @@ msgstr ""
 msgid "Loading memory card %s\n"
 msgstr ""
 
+#: src/gui/gui.cc:541
+msgid "Locale"
+msgstr ""
+
+#: src/gui/gui.cc:647
+msgid "Log events"
+msgstr ""
+
+#: src/gui/gui.cc:645
+msgid "Log new syscalls"
+msgstr ""
+
+#: src/gui/gui.cc:450
+msgid "Logs"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:36
+msgid "Map byte reads         "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:41
+msgid "Map byte writes        "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:35
+msgid "Map execution"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:38
+msgid "Map half reads         "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:43
+msgid "Map half writes        "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:40
+msgid "Map word reads         "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:45
+msgid "Map word writes        "
+msgstr ""
+
+#: src/gui/gui.cc:632
+msgid "Memorize"
+msgstr ""
+
+#: src/gui/gui.cc:147
+msgid "Memory Editor #"
+msgstr ""
+
+#: src/gui/gui.cc:371
+msgid "Memory Editors"
+msgstr ""
+
 #: src/core/sio.cc:797
 #, c-format
 msgid "Memory card %s failed to load!\n"
 msgstr ""
 
+#: src/gui/widgets/registers.cc:138
+msgid "Misc"
+msgstr ""
+
 #: src/core/sio.cc:772
 #, c-format
 msgid "No memory card value was specified - card %i is not plugged.\n"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:295
+msgid "OK"
 msgstr ""
 
 #. change handle to decoded one
@@ -217,13 +532,195 @@ msgstr ""
 msgid "OK\n"
 msgstr ""
 
+#: src/gui/gui.cc:317
+msgid "Open ISO"
+msgstr ""
+
+#: src/gui/gui.cc:323
+msgid "Open LID"
+msgstr ""
+
+#: src/gui/gui.cc:331
+msgid "Open and close LID"
+msgstr ""
+
+#: src/gui/gui.cc:723
+msgid "OpenGL information"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:454
+msgid "Options"
+msgstr ""
+
+#: src/gui/gui.cc:439
+msgid "Output"
+msgstr ""
+
+#: src/core/r3000a.cc:33
+#, c-format
+msgid "PCSX-Redux booting\n"
+msgstr ""
+
+#: src/gui/gui.cc:150
+msgid "Parallel Port"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:446 src/gui/widgets/assembly.cc:502
+#: src/gui/gui.cc:346
+msgid "Pause"
+msgstr ""
+
 #: src/core/plugins.cc:721
 msgid "Plugins loaded.\n"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:465
+msgid "Pseudo-instrucitons filling"
+msgstr ""
+
+#: src/gui/gui.cc:336
+msgid "Quit"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:838
+msgid "RAM base"
+msgstr ""
+
+#: src/gui/widgets/registers.cc:35 src/gui/gui.cc:489
+msgid "Registers"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:698
+msgid "Remove breakpoint from here"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:115
+msgid "Remove##"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:447 src/gui/widgets/assembly.cc:504
+msgid "Resume"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:142
+msgid "Roots"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:688
+msgid "Run to cursor"
+msgstr ""
+
+#: src/gui/gui.cc:361
+msgid "SPU"
 msgstr ""
 
 #: src/core/sio.cc:839
 #, c-format
 msgid "Saving memory card %s\n"
+msgstr ""
+
+#: src/gui/gui.cc:152
+msgid "Scratch Pad"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:693
+msgid "Set Breakpoint here"
+msgstr ""
+
+#: src/gui/gui.cc:369
+msgid "Show Assembly"
+msgstr ""
+
+#: src/gui/gui.cc:381
+msgid "Show BIOS counters"
+msgstr ""
+
+#: src/gui/gui.cc:370
+msgid "Show Breakpoints"
+msgstr ""
+
+#: src/gui/gui.cc:390
+msgid "Show ImGui Demo"
+msgstr ""
+
+#: src/gui/gui.cc:366
+msgid "Show Logs"
+msgstr ""
+
+#: src/gui/gui.cc:368
+msgid "Show Registers"
+msgstr ""
+
+#: src/gui/gui.cc:383
+msgid "Show SPU debug"
+msgstr ""
+
+#: src/gui/gui.cc:367
+msgid "Show VRAM"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:60
+msgid "Show all breakpoints"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:68
+msgid "Show byte read BPs     "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:73
+msgid "Show byte write BPs    "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:67
+msgid "Show exec BPs"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:70
+msgid "Show half read BPs     "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:75
+msgid "Show half write BPs    "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:64
+msgid "Show no breakpoints"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:72
+msgid "Show word read BPs     "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:77
+msgid "Show word write BPs    "
+msgstr ""
+
+#: src/gui/gui.cc:642
+msgid "Skip unknowns"
+msgstr ""
+
+#: src/gui/gui.cc:349
+msgid "Soft Reset"
+msgstr ""
+
+#: src/gui/gui.cc:343
+msgid "Start"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:449 src/gui/widgets/assembly.cc:507
+msgid "Step In"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:513
+msgid "Step Out"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:510
+msgid "Step Over"
+msgstr ""
+
+#: src/gui/gui.cc:567
+msgid "System Type"
 msgstr ""
 
 #: src/core/sio.cc:782
@@ -250,6 +747,38 @@ msgstr ""
 msgid "Unsupported PPF version (%d).\n"
 msgstr ""
 
+#: src/gui/gui.cc:428
+msgid "VRAM"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:470
+msgid ""
+"When combining two instructions into a single pseudo-instruction, add a "
+"placeholder for the second one."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:460
+msgid ""
+"When two instructions are detected to be a single pseudo-instruction, "
+"combine them into the actual pseudo-instruction."
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:232
+msgid "^ Date & Time"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:176
+msgid "^ File"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:204
+msgid "^ Size"
+msgstr ""
+
+#: src/gui/gui.cc:731
+msgid "extensions:"
+msgstr ""
+
 #: src/core/misc.cc:573
 #, c-format
 msgid "ng Load Bin file: [0x%08x] : %s\n"
@@ -258,4 +787,32 @@ msgstr ""
 #: src/core/misc.cc:575
 #, c-format
 msgid "ok Load Bin file: [0x%08x] : %s\n"
+msgstr ""
+
+#: src/gui/gui.cc:725
+msgid "renderer"
+msgstr ""
+
+#: src/gui/gui.cc:727
+msgid "shading language version"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:229
+msgid "v Date & Time"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:173
+msgid "v File"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:201
+msgid "v Size"
+msgstr ""
+
+#: src/gui/gui.cc:724
+msgid "vendor"
+msgstr ""
+
+#: src/gui/gui.cc:726
+msgid "version"
 msgstr ""
