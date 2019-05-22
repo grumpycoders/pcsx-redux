@@ -41,6 +41,7 @@
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 
+#include "core/system.h"
 #include "gui/widgets/filedialog.h"
 
 #ifdef _WIN32
@@ -133,12 +134,12 @@ bool PCSX::Widgets::FileDialog::draw() {
         std::string goDown = "";
         File* selected = nullptr;
 
-        if (ImGui::Button("Home")) goHome = true;
+        if (ImGui::Button(_("Home"))) goHome = true;
         ImGui::SameLine();
         ImGui::Text(m_currentPath.u8string().c_str());
         {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
-            if (ImGui::TreeNode("Roots")) {
+            if (ImGui::TreeNode(_("Roots"))) {
                 for (auto& p : m_roots) {
                     if (ImGui::Selectable(p.label.c_str(), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
                         goDown = p.root;
@@ -146,7 +147,7 @@ bool PCSX::Widgets::FileDialog::draw() {
                 }
                 ImGui::TreePop();
             }
-            if (ImGui::TreeNodeEx("Directories", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::TreeNodeEx(_("Directories"), ImGuiTreeNodeFlags_DefaultOpen)) {
                 if (ImGui::Selectable("..", false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
                     goUp = true;
                 }
@@ -162,17 +163,17 @@ bool PCSX::Widgets::FileDialog::draw() {
         ImGui::SameLine();
         {
             std::string header;
-            ImGui::BeginChild("Files", ImVec2(500, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::BeginChild(_("Files"), ImVec2(500, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
             ImGui::Columns(3);
             switch (m_sorter.name) {
                 case UNSORTED:
-                    header = "  File";
+                    header = _("  File");
                     break;
                 case SORT_DOWN:
-                    header = "v File";
+                    header = _("v File");
                     break;
                 case SORT_UP:
-                    header = "^ File";
+                    header = _("^ File");
                     break;
             }
             if (ImGui::Selectable(header.c_str())) {
@@ -194,13 +195,13 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::NextColumn();
             switch (m_sorter.size) {
                 case UNSORTED:
-                    header = "  Size";
+                    header = _("  Size");
                     break;
                 case SORT_DOWN:
-                    header = "v Size";
+                    header = _("v Size");
                     break;
                 case SORT_UP:
-                    header = "^ Size";
+                    header = _("^ Size");
                     break;
             }
             if (ImGui::Selectable(header.c_str())) {
@@ -222,13 +223,13 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::NextColumn();
             switch (m_sorter.date) {
                 case UNSORTED:
-                    header = "  Date & Time";
+                    header = _("  Date & Time");
                     break;
                 case SORT_DOWN:
-                    header = "v Date & Time";
+                    header = _("v Date & Time");
                     break;
                 case SORT_UP:
-                    header = "^ Date & Time";
+                    header = _("^ Date & Time");
                     break;
             }
             if (ImGui::Selectable(header.c_str())) {
@@ -277,7 +278,7 @@ bool PCSX::Widgets::FileDialog::draw() {
         if (m_flags & NewFile) {
             ImGui::Text(m_currentPath.u8string().c_str());
             ImGui::SameLine();
-            std::string label = std::string("##") + m_title + "Filename";
+            std::string label = std::string("##") + m_title + _("Filename");
             ImGui::InputText(label.c_str(), &m_newFile);
             selectedStr = m_newFile;
             gotSelected = !m_newFile.empty();
@@ -291,7 +292,7 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, lolight);
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, lolight);
         }
-        if (ImGui::Button("OK", ImVec2(120, 30)) && gotSelected) {
+        if (ImGui::Button(_("OK"), ImVec2(120, 30)) && gotSelected) {
             m_selected.clear();
             m_selected.push_back(selectedStr);
             ImGui::CloseCurrentPopup();
@@ -300,7 +301,7 @@ bool PCSX::Widgets::FileDialog::draw() {
         if (!gotSelected) ImGui::PopStyleColor(3);
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 30))) {
+        if (ImGui::Button(_("Cancel"), ImVec2(120, 30))) {
             ImGui::CloseCurrentPopup();
             done = true;
         }

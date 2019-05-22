@@ -438,58 +438,57 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     bool openSymbolsDialog = false;
 
     if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            openSymbolsDialog = ImGui::MenuItem("Load symbols map");
+        if (ImGui::BeginMenu(_("File"))) {
+            openSymbolsDialog = ImGui::MenuItem(_("Load symbols map"));
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Debug")) {
-            if (ImGui::MenuItem("Pause", nullptr, nullptr, g_system->running())) g_system->pause();
-            if (ImGui::MenuItem("Resume", nullptr, nullptr, !g_system->running())) g_system->resume();
+        if (ImGui::BeginMenu(_("Debug"))) {
+            if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, g_system->running())) g_system->pause();
+            if (ImGui::MenuItem(_("Resume"), nullptr, nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
-            if (ImGui::MenuItem("Step In", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepIn();
-            if (ImGui::MenuItem("Step Over", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOver();
-            if (ImGui::MenuItem("Step Out", nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOut();
+            if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepIn();
+            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOver();
+            if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOut();
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Options")) {
-            ImGui::MenuItem("Combined pseudo-instructions", nullptr, &m_pseudo);
+        if (ImGui::BeginMenu(_("Options"))) {
+            ImGui::MenuItem(_("Combined pseudo-instructions"), nullptr, &m_pseudo);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextWrapped(_(
                     "When two instructions are detected to be a single pseudo-instruction, combine them into the "
-                    "actual pseudo-instruction.");
+                      "actual pseudo-instruction."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
-            ImGui::MenuItem("Pseudo-instrucitons filling", nullptr, &m_pseudoFilling, m_pseudo);
+            ImGui::MenuItem(_("Pseudo-instrucitons filling"), nullptr, &m_pseudoFilling, m_pseudo);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextWrapped(_(
                     "When combining two instructions into a single pseudo-instruction, add a placeholder for the "
-                    "second one.");
+                      "second one."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
-            ImGui::MenuItem("Delay slot notch", nullptr, &m_delaySlotNotch);
+            ImGui::MenuItem(_("Delay slot notch"), nullptr, &m_delaySlotNotch);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
-                    "Add a small visible notch to indicate instructions that are on the delay slot of a branch.");
+                ImGui::TextWrapped(_("Add a small visible notch to indicate instructions that are on the delay slot of a branch."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
-            ImGui::MenuItem("Draw arrows for jumps", nullptr, &m_displayArrowForJumps);
+            ImGui::MenuItem(_("Draw arrows for jumps"), nullptr, &m_displayArrowForJumps);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped("Display arrows for jumps. This might crowd the display a bit too much.");
+                ImGui::TextWrapped(_("Display arrows for jumps. This might crowd the display a bit too much."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
-            ImGui::SliderInt("columns", &m_numColumns, 0, 32);
+            ImGui::SliderInt(_("Columns"), &m_numColumns, 0, 32);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -498,17 +497,21 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     DummyAsm dummy;
 
     uint32_t pc = virtToReal(m_registers->pc);
-    ImGui::Checkbox("Follow PC", &m_followPC);
+    ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
-    DButton("Pause", g_system->running(), [&]() mutable { g_system->pause(); });
+    DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
     ImGui::SameLine();
-    DButton("Resume", !g_system->running(), [&]() mutable { g_system->resume(); });
+    DButton(_("Resume"), !g_system->running(), [&]() mutable {
+        g_system->resume(); });
     ImGui::SameLine();
-    DButton("Step In", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
+    DButton(_("Step In"), !g_system->running(), [&]() mutable {
+        g_emulator.m_debug->stepIn(); });
     ImGui::SameLine();
-    DButton("Step Over", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
+    DButton(_("Step Over"), !g_system->running(), [&]() mutable {
+        g_emulator.m_debug->stepOver(); });
     ImGui::SameLine();
-    DButton("Step Out", !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
+    DButton(_("Step Out"), !g_system->running(), [&]() mutable {
+        g_emulator.m_debug->stepOut(); });
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(SDL_SCANCODE_F10)) {
             g_emulator.m_debug->stepOver();
@@ -682,17 +685,17 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
-                    DButton("Run to cursor", !PCSX::g_system->running(), [&]() mutable {
+                    DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
                         PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE, true);
                         ImGui::CloseCurrentPopup();
                         PCSX::g_system->resume();
                     });
-                    DButton("Set Breakpoint here", !hasBP, [&]() mutable {
+                    DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
                         PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE);
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
-                    DButton("Remove breakpoint from here", hasBP, [&]() mutable {
+                    DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
                         PCSX::g_emulator.m_debug->eraseBP(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
@@ -817,7 +820,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPCValue);
     }
     ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
-    if (ImGui::InputText("Address", m_jumpAddressString, 20,
+    if (ImGui::InputText(_("Address"), m_jumpAddressString, 20,
                          ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
         char* endPtr;
         uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);
@@ -832,7 +835,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     if (m_ramBase == 0x80000000) base = 1;
     if (m_ramBase == 0xa0000000) base = 2;
     ImGui::SameLine();
-    if (ImGui::BeginCombo("RAM base", baseStrs[base])) {
+    if (ImGui::BeginCombo(_("RAM base"), baseStrs[base])) {
         for (int i = 0; i < 3; i++) {
             if (ImGui::Selectable(baseStrs[i], base == i)) {
                 m_ramBase = baseValues[i];

@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/system.h"
 #include "gui/widgets/log.h"
 
 void PCSX::Widgets::Log::clear() {
@@ -37,13 +38,13 @@ void PCSX::Widgets::Log::draw(const char* title) {
         ImGui::End();
         return;
     }
-    ImGui::Checkbox("Follow", &m_follow);
+    ImGui::Checkbox(_("Follow"), &m_follow);
     ImGui::SameLine();
-    if (ImGui::Button("Clear")) clear();
+    if (ImGui::Button(_("Clear"))) clear();
     ImGui::SameLine();
-    bool copy = ImGui::Button("Copy");
+    bool copy = ImGui::Button(_("Copy"));
     ImGui::SameLine();
-    m_filter.Draw("Filter", -100.0f);
+    m_filter.Draw(_("Filter"), -100.0f);
     ImGui::Separator();
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
     if (copy) ImGui::LogToClipboard();
