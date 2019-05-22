@@ -19,6 +19,10 @@
 
 #include <SDL.h>
 
+#include <filesystem>
+#include <map>
+#include <string>
+
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
@@ -174,6 +178,13 @@ int main(int argc, char **argv) {
     system->m_enableStdout = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingStdout>();
     const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().string();
     if (!logfile.empty()) system->useLogfile(logfile);
+
+    std::filesystem::path self = argv[0];
+    std::filesystem::path binDir = self.parent_path();
+    static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}};
+
+    for (auto &l : locales) system->loadLocale(l.first, binDir / l.second);
+    system->activateLocale(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLocale>());
 
     LoadPlugins();
     PCSX::g_emulator.m_gpu->open(s_gui);

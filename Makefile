@@ -3,6 +3,8 @@ TARGET := pcsx-redux
 
 PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib
 
+LOCALES := fr
+
 CXXFLAGS := -std=c++2a
 CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -Isrc
@@ -62,14 +64,28 @@ gitclean:
 	git clean -f -d -x
 	git submodule foreach --recursive git clean -f -d -x
 
+define msgmerge
+msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
+endef
+
+regen-i18n:
+	find src -name *.cc -or -name *.c -or -name *.h > pcsx-src-list.txt
+	xgettext --keyword=_ --language=C++ --add-comments --sort-output -o i18n/pcsx-redux.pot --omit-header --join-existing -f pcsx-src-list.txt
+	rm pcsx-src-list.txt
+	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
+
+.PHONY: all clean gitclean regen-i18n
+
 DEPS := $(patsubst %.cc,%.dep,$(SRC_CC))
 DEPS += $(patsubst %.cpp,%.dep,$(SRC_CPP))
 DEPS += $(patsubst %.c,%.dep,$(SRC_C))
 
 dep: $(DEPS)
 
+ifneq ($(MAKECMDGOALS), regen-i18n)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), gitclean)
 -include $(DEPS)
+endif
 endif
 endif

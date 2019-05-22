@@ -2,3 +2,5 @@
 
 *.vcxproj text
 *.sln text
+*.po text
+*.pot text

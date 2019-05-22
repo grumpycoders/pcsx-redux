@@ -22,6 +22,9 @@
 
 #include <stdarg.h>
 
+#include <filesystem>
+#include <map>
+
 namespace PCSX {
 
 class System {
@@ -58,6 +61,44 @@ class System {
     }
 
   private:
+    static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
+        return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
+    }
+
+  public:
+    template <size_t S>
+    static inline constexpr uint64_t ctHash(const char (&str)[S]) {
+        return djbProcess(5381, str, S - 1);
+    }
+    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
+    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
+
+    const char *getStr(uint64_t hash, const char *str) {
+        auto ret = m_i18n.find(hash);
+        if (ret == m_i18n.end()) return str;
+        return ret->second.c_str();
+    }
+
+    bool loadLocale(const std::string &name, const std::filesystem::path &path);
+    void activateLocale(const std::string &name) {
+        auto locale = m_locales.find(name);
+        if (locale == m_locales.end()) return;
+        m_i18n = locale->second;
+        m_currentLocale = name;
+    }
+    std::string localeName() { return m_currentLocale; }
+    std::vector<std::string> localesNames() {
+        std::vector<std::string> locales;
+        for (auto &l : m_locales) {
+            locales.push_back(l.first);
+        }
+        return locales;
+    }
+
+  private:
+    std::map<uint64_t, std::string> m_i18n;
+    std::map<std::string, decltype(m_i18n)> m_locales;
+    std::string m_currentLocale;
     bool m_running = false;
     bool m_quitting = false;
 };
@@ -65,3 +106,5 @@ class System {
 extern System *g_system;
 
 }  // namespace PCSX
+
+#define _(str) PCSX::g_system->getStr(PCSX::System::ctHash(str), str)

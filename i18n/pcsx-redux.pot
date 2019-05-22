@@ -1,0 +1,261 @@
+#: src/core/cdriso.cc:1686
+#, c-format
+msgid ""
+"\n"
+"Detected ECM file with proper header and filename suffix.\n"
+msgstr ""
+
+#: src/core/cdriso.cc:810
+#, c-format
+msgid ""
+"\n"
+"could not open: %s\n"
+msgstr ""
+
+#: src/core/cheat.cc:288 src/core/cheat.cc:403
+msgid "(Untitled)"
+msgstr ""
+
+#: src/core/cdriso.cc:530
+#, c-format
+msgid "Actual %i vs. %i estimated\n"
+msgstr ""
+
+#: src/core/cdriso.cc:529
+#, c-format
+msgid "Buffer overflow..."
+msgstr ""
+
+#: src/core/misc.cc:382
+#, c-format
+msgid "CD-ROM EXE Name: %.255s\n"
+msgstr ""
+
+#: src/core/misc.cc:381
+#, c-format
+msgid "CD-ROM ID: %.9s\n"
+msgstr ""
+
+#: src/core/misc.cc:380
+#, c-format
+msgid "CD-ROM Label: %.32s\n"
+msgstr ""
+
+#: src/core/cheat.cc:126
+#, c-format
+msgid "Cheats loaded from: %s\n"
+msgstr ""
+
+#: src/core/cheat.cc:157
+#, c-format
+msgid "Cheats saved to: %s\n"
+msgstr ""
+
+#. ClosePlugins();
+#: src/core/sio.cc:740
+msgid "Connection closed!\n"
+msgstr ""
+
+#: src/core/cdriso.cc:437
+#, c-format
+msgid "Could not allocate audio codec for the input, aborting\n"
+msgstr ""
+
+#: src/core/cdriso.cc:463
+#, c-format
+msgid "Could not allocate frame\n"
+msgstr ""
+
+#: src/core/cdriso.cc:511
+#, c-format
+msgid "Could not allocate memory to decode CDDA TRACK: %s\n"
+msgstr ""
+
+#: src/core/cdriso.cc:445
+#, c-format
+msgid "Could not allocate resample context"
+msgstr ""
+
+#: src/core/cdriso.cc:363
+#, c-format
+msgid "Could not find %s stream in input file\n"
+msgstr ""
+
+#: src/core/cdriso.cc:429
+#, c-format
+msgid "Could not find audio codec for the input, aborting\n"
+msgstr ""
+
+#: src/core/cdriso.cc:421
+#, c-format
+msgid "Could not find audio stream in the input, aborting\n"
+msgstr ""
+
+#: src/core/cdriso.cc:411
+#, c-format
+msgid "Could not find stream information\n"
+msgstr ""
+
+#: src/core/cheat.cc:54
+#, c-format
+msgid "Could not load cheats from: %s\n"
+msgstr ""
+
+#: src/core/psxmem.cc:85
+#, c-format
+msgid "Could not open BIOS:\"%s\". Enabling HLE Bios!\n"
+msgstr ""
+
+#: src/core/cdriso.cc:456
+#, c-format
+msgid "Could not open resample context"
+msgstr ""
+
+#: src/core/cdriso.cc:406
+#, c-format
+msgid "Could not open source file %s\n"
+msgstr ""
+
+#: src/core/cdriso.cc:523
+#, c-format
+msgid "Decoding audio tr#%u (%s)..."
+msgstr ""
+
+#: src/core/psxmem.cc:42
+msgid "Error allocating memory!"
+msgstr ""
+
+#: src/core/cdriso.cc:333
+#, c-format
+msgid "Error decoding audio frame\n"
+msgstr ""
+
+#: src/core/plugins.cc:696
+#, c-format
+msgid "Error initializing GPU plugin: %d"
+msgstr ""
+
+#: src/core/plugins.cc:708
+#, c-format
+msgid "Error initializing NetPlay plugin: %d"
+msgstr ""
+
+#: src/core/plugins.cc:716
+#, c-format
+msgid "Error initializing SIO1 plugin: %d"
+msgstr ""
+
+#: src/core/plugins.cc:701
+#, c-format
+msgid "Error initializing SPU plugin: %d"
+msgstr ""
+
+#: src/core/plugins.cc:230
+#, c-format
+msgid "Error loading %s: %s"
+msgstr ""
+
+#: src/core/misc.cc:462 src/core/misc.cc:586
+#, c-format
+msgid "Error opening file: %s.\n"
+msgstr ""
+
+#: src/core/cdriso.cc:371 src/core/cdriso.cc:377
+#, c-format
+msgid "Failed to find %s codec\n"
+msgstr ""
+
+#: src/core/cdriso.cc:384
+#, c-format
+msgid "Failed to open %s codec\n"
+msgstr ""
+
+#: src/core/ppf.cc:212
+#, c-format
+msgid "Invalid PPF patch: %s.\n"
+msgstr ""
+
+#: src/core/psxmem.cc:90
+#, c-format
+msgid "Loaded BIOS: %s\n"
+msgstr ""
+
+#: src/core/cdriso.cc:1895
+#, c-format
+msgid "Loaded CD Image: %s"
+msgstr ""
+
+#. build address array
+#: src/core/ppf.cc:327
+#, c-format
+msgid "Loaded PPF %d.0 patch: %s.\n"
+msgstr ""
+
+#: src/core/cdriso.cc:1319
+#, c-format
+msgid "Loaded SBI file: %s.\n"
+msgstr ""
+
+#: src/core/sio.cc:800
+#, c-format
+msgid "Loading memory card %s\n"
+msgstr ""
+
+#: src/core/sio.cc:797
+#, c-format
+msgid "Memory card %s failed to load!\n"
+msgstr ""
+
+#: src/core/sio.cc:772
+#, c-format
+msgid "No memory card value was specified - card %i is not plugged.\n"
+msgstr ""
+
+#. change handle to decoded one
+#: src/core/cdriso.cc:535
+#, c-format
+msgid "OK\n"
+msgstr ""
+
+#: src/core/plugins.cc:721
+msgid "Plugins loaded.\n"
+msgstr ""
+
+#: src/core/sio.cc:839
+#, c-format
+msgid "Saving memory card %s\n"
+msgstr ""
+
+#: src/core/sio.cc:782
+#, c-format
+msgid "The memory card %s doesn't exist - creating it\n"
+msgstr ""
+
+#: src/core/misc.cc:536
+msgid "This file does not appear to be a valid PSX file.\n"
+msgstr ""
+
+#: src/core/cdriso.cc:1874
+#, c-format
+msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
+msgstr ""
+
+#: src/core/misc.cc:505
+#, c-format
+msgid "Unknown CPE opcode %02x at position %08x.\n"
+msgstr ""
+
+#: src/core/ppf.cc:288
+#, c-format
+msgid "Unsupported PPF version (%d).\n"
+msgstr ""
+
+#: src/core/misc.cc:573
+#, c-format
+msgid "ng Load Bin file: [0x%08x] : %s\n"
+msgstr ""
+
+#: src/core/misc.cc:575
+#, c-format
+msgid "ok Load Bin file: [0x%08x] : %s\n"
+msgstr ""
