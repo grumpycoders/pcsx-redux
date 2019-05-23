@@ -81,7 +81,7 @@ class System {
     }
 
     void loadAllLocales() {
-        static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}};
+        static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}, {"Deutsch", "de.po"}};
 
         for (auto &l : locales) {
             if (loadLocale(l.first, m_binDir / "i18n" / l.second)) {
@@ -95,6 +95,11 @@ class System {
 
     bool loadLocale(const std::string &name, const std::filesystem::path &path);
     void activateLocale(const std::string &name) {
+        if (name == "English") {
+            m_currentLocale = "English";
+            m_i18n = {};
+            return;
+        }
         auto locale = m_locales.find(name);
         if (locale == m_locales.end()) return;
         m_i18n = locale->second;
