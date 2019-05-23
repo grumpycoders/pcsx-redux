@@ -19,6 +19,7 @@
 
 #include "imgui.h"
 
+#include "core/system.h"
 #include "spu/interface.h"
 
 static void ShowHelpMarker(const char *desc) {
@@ -37,37 +38,37 @@ bool PCSX::SPU::impl::configure() {
     if (!m_showCfg) return false;
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 220), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("SPU configuration", &m_showCfg)) {
+    if (!ImGui::Begin(_("SPU configuration"), &m_showCfg)) {
         ImGui::End();
         return false;
     }
     bool changed = false;
-    changed |= ImGui::Checkbox("Muted", &settings.get<Mute>().value);
-    changed |= ImGui::Checkbox("Enable streaming", &settings.get<Streaming>().value);
-    ShowHelpMarker(R"(Uncheck this to mute the streaming channel
+    changed |= ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value);
+    changed |= ImGui::Checkbox(_("Enable streaming"), &settings.get<Streaming>().value);
+    ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
-XA audio and audio tracks.)");
-    static const char *volumeValues[] = {"Low", "Medium", "Loud", "Loudest"};
-    changed |= ImGui::Combo("Volume", &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
-    changed |= ImGui::Checkbox("Change streaming pitch", &settings.get<StreamingPitch>().value);
-    ShowHelpMarker(R"(Attempts to make the CPU-to-SPU audio stream
-in sync, by changing its pitch. Consumes more CPU.)");
-    changed |= ImGui::Checkbox("Pause SPU waiting for CPU IRQ", &settings.get<SPUIRQWait>().value);
-    ShowHelpMarker(R"(Suspends the SPU processing during an IRQ, waiting
+XA audio and audio tracks.)"));
+    static const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
+    changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
+    changed |= ImGui::Checkbox(_("Change streaming pitch"), &settings.get<StreamingPitch>().value);
+    ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
+in sync, by changing its pitch. Consumes more CPU.)"));
+    changed |= ImGui::Checkbox(_("Pause SPU waiting for CPU IRQ"), &settings.get<SPUIRQWait>().value);
+    ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
-with some games, but slows SPU processing.)");
-    static const char *reverbValues[] = {"None - fastest", "Simple - only handles the most common effects",
-                                         "Accurate - best quality, but slower"};
-    changed |= ImGui::Combo("Reverb", &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
-    static const char *interpolationValues[] = {"None - fastest", "Simple interpolation",
-                                                "Gaussian interpolation - good quality",
-                                                "Cubic interpolation - better treble"};
-    changed |= ImGui::Combo("Interpolation", &settings.get<Interpolation>().value, interpolationValues,
+with some games, but slows SPU processing.)"));
+    static const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
+                                         _("Accurate - best quality, but slower")};
+    changed |= ImGui::Combo(_("Reverb"), &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
+    static const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
+                                                _("Gaussian interpolation - good quality"),
+                                                _("Cubic interpolation - better treble")};
+    changed |= ImGui::Combo(_("Interpolation"), &settings.get<Interpolation>().value, interpolationValues,
                             IM_ARRAYSIZE(interpolationValues));
-    changed |= ImGui::Checkbox("Mono", &settings.get<Mono>().value);
-    ShowHelpMarker("Downmixes stereo to mono.");
-    changed |= ImGui::Checkbox("Decoded buffers IRQ", &settings.get<DBufIRQ>().value);
-    ShowHelpMarker("Generates IRQs when buffers are decoded.");
+    changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
+    ShowHelpMarker(_("Downmixes stereo to mono."));
+    changed |= ImGui::Checkbox(_("Decoded buffers IRQ"), &settings.get<DBufIRQ>().value);
+    ShowHelpMarker(_("Generates IRQs when buffers are decoded."));
 
     ImGui::End();
     return changed;
