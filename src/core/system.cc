@@ -48,6 +48,8 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
     uint64_t hashValue;
     std::map<uint64_t, std::string> locale;
 
+    if (in->failed()) return false;
+
     while ((c = in->getc()) >= 0) {
         if (c == '\n') {
             inComment = false;

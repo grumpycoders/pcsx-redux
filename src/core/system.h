@@ -66,6 +66,7 @@ class System {
     }
 
   public:
+    void setBinDir(std::filesystem::path path) { m_binDir = path; }
     template <size_t S>
     static inline constexpr uint64_t ctHash(const char (&str)[S]) {
         return djbProcess(5381, str, S - 1);
@@ -77,6 +78,19 @@ class System {
         auto ret = m_i18n.find(hash);
         if (ret == m_i18n.end()) return str;
         return ret->second.c_str();
+    }
+
+    void loadAllLocales() {
+        static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}};
+
+        for (auto &l : locales) {
+            if (loadLocale(l.first, m_binDir / "i18n" / l.second)) {
+            } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second)) {
+            } else if (loadLocale(l.first, m_binDir / l.second)) {
+            } else {
+                loadLocale(l.first, std::filesystem::current_path() / l.second);
+            }
+        }
     }
 
     bool loadLocale(const std::string &name, const std::filesystem::path &path);
@@ -101,6 +115,7 @@ class System {
     std::string m_currentLocale;
     bool m_running = false;
     bool m_quitting = false;
+    std::filesystem::path m_binDir;
 };
 
 extern System *g_system;

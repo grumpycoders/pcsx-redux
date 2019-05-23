@@ -181,9 +181,8 @@ int main(int argc, char **argv) {
 
     std::filesystem::path self = argv[0];
     std::filesystem::path binDir = self.parent_path();
-    static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}};
-
-    for (auto &l : locales) system->loadLocale(l.first, binDir / l.second);
+    system->setBinDir(binDir);
+    system->loadAllLocales();
     system->activateLocale(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLocale>());
 
     LoadPlugins();

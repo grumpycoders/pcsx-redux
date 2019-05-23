@@ -553,6 +553,7 @@ bool PCSX::GUI::configure() {
                 }
                 ImGui::EndCombo();
             }
+            if (ImGui::Button(_("Reload locales"))) g_system->loadAllLocales();
         }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
