@@ -155,14 +155,15 @@ class impl {
 
     // user settings
 #if 0
-    typedef Setting<bool, true, typestring_is("Streaming")> Streaming;
-    typedef Setting<int, 3, typestring_is("Volume")> Volume;
-    typedef Setting<bool, true, typestring_is("Pitch")> StreamingPitch;
-    typedef Setting<bool, true, typestring_is("IRQWait")> SPUIRQWait;
-    typedef Setting<int, 2, typestring_is("Reverb")> Reverb;
-    typedef Setting<int, 2, typestring_is("Interp")> Interpolation;
-    typedef Setting<bool, false, typestring_is("Mono")> Mono;
-    typedef Setting<bool, false, typestring_is("DBufIRQ")> DBufIRQ;
+    typedef Setting<bool, typestring_is("Streaming"), true> Streaming;
+    typedef Setting<int, typestring_is("Volume"), 3> Volume;
+    typedef Setting<bool, typestring_is("Pitch"), true> StreamingPitch;
+    typedef Setting<bool, typestring_is("IRQWait"), true> SPUIRQWait;
+    typedef Setting<int, typestring_is("Reverb"), 2> Reverb;
+    typedef Setting<int, typestring_is("Interp"), 2> Interpolation;
+    typedef Setting<bool, typestring_is("Mono")> Mono;
+    typedef Setting<bool, typestring_is("DBufIRQ")> DBufIRQ;
+    typedef Setting<bool, typestring_is("Mute")> Mute;
 #else
     typedef Setting<bool, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>, true> Streaming;
     typedef Setting<int, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>, 3> Volume;
