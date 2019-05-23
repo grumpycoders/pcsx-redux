@@ -1,14 +1,16 @@
 # Translators:
 # Christophe Péguillat <christophe.peguillat@gmail.com>, 2019
-# 
+#
 msgid ""
 msgstr ""
-"Last-Translator: Christophe Péguillat <christophe.peguillat@gmail.com>, 2019\n"
-"Language-Team: French (https://www.transifex.com/grumpycoders/teams/99251/fr/)\n"
+"Last-Translator: Christophe Péguillat <christophe.peguillat@gmail.com>, "
+"2019\n"
+"Language-Team: French (https://www.transifex.com/grumpycoders/teams/99251/"
+"fr/)\n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: src/core/cdriso.cc:1686
@@ -18,7 +20,8 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier appropriés.\n"
+"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier "
+"appropriés.\n"
 
 #: src/core/cdriso.cc:810
 #, c-format
@@ -50,7 +53,7 @@ msgstr "%.2f FPS (%.2f ms)"
 msgid "(Untitled)"
 msgstr "(Sans titre)"
 
-#: src/gui/gui.cc:392 src/gui/gui.cc:715
+#: src/gui/gui.cc:392 src/gui/gui.cc:716
 msgid "About"
 msgstr "À propos de PCSX-Redux"
 
@@ -75,11 +78,11 @@ msgstr ""
 msgid "Address"
 msgstr "Adresse"
 
-#: src/gui/gui.cc:559
+#: src/gui/gui.cc:560
 msgid "Always enable SIO IRQ"
 msgstr "Toujours activer l'IRQ du SIO"
 
-#: src/gui/gui.cc:560
+#: src/gui/gui.cc:561
 msgid "Always enable SPU IRQ"
 msgstr "Toujours activer l'IRQ du SPU"
 
@@ -91,19 +94,19 @@ msgstr "Assembleur"
 msgid "BIOS"
 msgstr "BIOS"
 
-#: src/gui/gui.cc:623
+#: src/gui/gui.cc:624
 msgid "BIOS Counters"
 msgstr "Compteurs du BIOS"
 
-#: src/gui/gui.cc:602
+#: src/gui/gui.cc:603
 msgid "BIOS HLE"
 msgstr ""
 
-#: src/gui/gui.cc:605
+#: src/gui/gui.cc:606
 msgid "BIOS file"
 msgstr "Fichier du BIOS"
 
-#: src/gui/gui.cc:587
+#: src/gui/gui.cc:588
 msgid "Big Endian"
 msgstr ""
 
@@ -139,7 +142,7 @@ msgstr "Break on word write map"
 msgid "Breakpoint Type"
 msgstr "Type de Breakpoint"
 
-#: src/gui/gui.cc:649
+#: src/gui/gui.cc:650
 msgid "Breakpoint on new syscalls"
 msgstr "Breakpoints sur de nouveaux syscalls"
 
@@ -167,7 +170,7 @@ msgstr "ID du CD-ROM : %.9s\n"
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Titre du CD-ROM : %.32s\n"
 
-#: src/gui/gui.cc:589
+#: src/gui/gui.cc:590
 msgid "CDDA"
 msgstr "CDDA"
 
@@ -185,7 +188,7 @@ msgstr "Cheats chargés à partir de : %s\n"
 msgid "Cheats saved to: %s\n"
 msgstr "Cheats sauvegardés sur : %s\n"
 
-#: src/gui/widgets/log.cc:43 src/gui/gui.cc:636
+#: src/gui/widgets/log.cc:43 src/gui/gui.cc:637
 msgid "Clear"
 msgstr "Effacer"
 
@@ -282,11 +285,11 @@ msgstr "Impossible d'ouvrir le fichier source %s\n"
 msgid "Debug"
 msgstr "Débug"
 
-#: src/gui/gui.cc:644
+#: src/gui/gui.cc:645
 msgid "Debug kernel"
 msgstr "Débug du kernel"
 
-#: src/gui/gui.cc:561
+#: src/gui/gui.cc:562
 msgid "Decode MDEC videos in B&W"
 msgstr "Décoder les vidéos MDEC en N&B"
 
@@ -303,7 +306,7 @@ msgstr "Delay slot notch"
 msgid "Directories"
 msgstr "Répertoires"
 
-#: src/gui/gui.cc:587
+#: src/gui/gui.cc:588
 msgid "Disabled"
 msgstr "Désactivé"
 
@@ -323,11 +326,11 @@ msgstr "Emulation"
 msgid "Emulation Configuration"
 msgstr "Configuration de l'Emulation"
 
-#: src/gui/gui.cc:558
+#: src/gui/gui.cc:559
 msgid "Enable XA decoder"
 msgstr "Activer le décodeur XA"
 
-#: src/gui/gui.cc:640
+#: src/gui/gui.cc:641
 msgid "Enable counters"
 msgstr "Activer les compteurs"
 
@@ -380,7 +383,7 @@ msgstr "Impossible de trouver le codec %s\n"
 msgid "Failed to open %s codec\n"
 msgstr "Impossible d'ouvrir le codec %s\n"
 
-#: src/gui/gui.cc:603
+#: src/gui/gui.cc:604
 msgid "Fast boot"
 msgstr "Démarrage rapide"
 
@@ -437,7 +440,7 @@ msgstr "Origine"
 msgid "Invalid PPF patch: %s.\n"
 msgstr "Patch PPF invalide :%s.\n"
 
-#: src/gui/gui.cc:587
+#: src/gui/gui.cc:588
 msgid "Little Endian"
 msgstr ""
 
@@ -475,11 +478,11 @@ msgstr "Chargement de la carte mémoire %s\n"
 msgid "Locale"
 msgstr "Langue"
 
-#: src/gui/gui.cc:647
+#: src/gui/gui.cc:648
 msgid "Log events"
 msgstr ""
 
-#: src/gui/gui.cc:645
+#: src/gui/gui.cc:646
 msgid "Log new syscalls"
 msgstr ""
 
@@ -515,7 +518,7 @@ msgstr ""
 msgid "Map word writes        "
 msgstr ""
 
-#: src/gui/gui.cc:632
+#: src/gui/gui.cc:633
 msgid "Memorize"
 msgstr "Mémoriser"
 
@@ -565,7 +568,7 @@ msgstr "Ouvrir le CAPOT"
 msgid "Open and close LID"
 msgstr "Ouvrir et refermer le CAPOT"
 
-#: src/gui/gui.cc:723
+#: src/gui/gui.cc:724
 msgid "OpenGL information"
 msgstr "Information sur l'OpenGL"
 
@@ -610,6 +613,10 @@ msgstr "Base de la RAM"
 #: src/gui/widgets/registers.cc:35 src/gui/gui.cc:489
 msgid "Registers"
 msgstr "Registres"
+
+#: src/gui/gui.cc:556
+msgid "Reload locales"
+msgstr ""
 
 #: src/gui/widgets/assembly.cc:698
 msgid "Remove breakpoint from here"
@@ -716,7 +723,7 @@ msgstr ""
 msgid "Show word write BPs    "
 msgstr ""
 
-#: src/gui/gui.cc:642
+#: src/gui/gui.cc:643
 msgid "Skip unknowns"
 msgstr "Ignorer les inconnus"
 
@@ -740,7 +747,7 @@ msgstr ""
 msgid "Step Over"
 msgstr ""
 
-#: src/gui/gui.cc:567
+#: src/gui/gui.cc:568
 msgid "System Type"
 msgstr "Type de système"
 
@@ -796,7 +803,7 @@ msgstr "^ Fichier"
 msgid "^ Size"
 msgstr "^ Taille"
 
-#: src/gui/gui.cc:731
+#: src/gui/gui.cc:732
 msgid "extensions:"
 msgstr "extensions :"
 
@@ -810,11 +817,11 @@ msgstr ""
 msgid "ok Load Bin file: [0x%08x] : %s\n"
 msgstr ""
 
-#: src/gui/gui.cc:725
+#: src/gui/gui.cc:726
 msgid "renderer"
 msgstr "carte graphique"
 
-#: src/gui/gui.cc:727
+#: src/gui/gui.cc:728
 msgid "shading language version"
 msgstr "version GLSL"
 
@@ -830,10 +837,10 @@ msgstr "v Fichier"
 msgid "v Size"
 msgstr "v Taille"
 
-#: src/gui/gui.cc:724
+#: src/gui/gui.cc:725
 msgid "vendor"
 msgstr "fabriquant"
 
-#: src/gui/gui.cc:726
+#: src/gui/gui.cc:727
 msgid "version"
 msgstr "version OpenGL"
