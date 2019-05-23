@@ -535,8 +535,8 @@ bool PCSX::GUI::configure() {
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("Emulation Configuration"), &m_showCfg)) {
-        std::string currentLocale = g_system->localeName();
         {
+            std::string currentLocale = g_system->localeName();
             if (currentLocale.length() == 0) currentLocale = "English";
             if (ImGui::BeginCombo(_("Locale"), currentLocale.c_str())) {
                 if (ImGui::Selectable("English", currentLocale == "English")) {
@@ -555,7 +555,7 @@ bool PCSX::GUI::configure() {
             }
             if (ImGui::Button(_("Reload locales"))) {
                 g_system->loadAllLocales();
-                g_system->activateLocale(currentlocale);
+                g_system->activateLocale(currentLocale);
             }
         }
         ImGui::Separator();
