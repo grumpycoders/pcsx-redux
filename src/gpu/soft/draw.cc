@@ -124,50 +124,6 @@ static const unsigned int pitch = 4096;
 
 ////////////////////////////////////////////////////////////////////////
 
-void BlitScreen32(unsigned char *surf, int32_t x, int32_t y)  // BLIT IN 32bit COLOR MODE
-{
-    unsigned char *pD;
-    uint32_t lu;
-    uint16_t s;
-    unsigned int startxy;
-    int16_t row, column;
-    int16_t dx = (int16_t)PreviousPSXDisplay.Range.x1;
-    int16_t dy = (int16_t)PreviousPSXDisplay.DisplayMode.y;
-
-    if (PreviousPSXDisplay.Range.y0)  // centering needed?
-    {
-        surf += PreviousPSXDisplay.Range.y0 * pitch;
-        dy -= PreviousPSXDisplay.Range.y0;
-    }
-
-    surf += PreviousPSXDisplay.Range.x0 << 2;
-
-    if (PSXDisplay.RGB24) {
-        for (column = 0; column < dy; column++) {
-            startxy = ((1024) * (column + y)) + x;
-            pD = (unsigned char *)&psxVuw[startxy];
-
-            for (row = 0; row < dx; row++) {
-                lu = *((uint32_t *)pD);
-                *((uint32_t *)((surf) + (column * pitch) + row * 4)) =
-                    0xff000000 | (RED(lu) << 16) | (GREEN(lu) << 8) | (BLUE(lu));
-                pD += 3;
-            }
-        }
-    } else {
-        for (column = 0; column < dy; column++) {
-            startxy = ((1024) * (column + y)) + x;
-            for (row = 0; row < dx; row++) {
-                s = psxVuw[startxy++];
-                *((uint32_t *)((surf) + (column * pitch) + row * 4)) =
-                    ((((s << 19) & 0xf80000) | ((s << 6) & 0xf800) | ((s >> 7) & 0xf8)) & 0xffffff) | 0xff000000;
-            }
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-
 void DoClearScreenBuffer(void)  // CLEAR DX BUFFER
 {
     glClearColor(1, 0, 0, 0);
