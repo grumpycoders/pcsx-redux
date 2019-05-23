@@ -19,6 +19,7 @@
 
 #include "imgui.h"
 
+#include "core/system.h"
 #include "spu/interface.h"
 
 static void ShowHelpMarker(const char *desc) {
