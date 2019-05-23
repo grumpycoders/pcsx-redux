@@ -33,7 +33,7 @@ msgstr ""
 msgid "(Untitled)"
 msgstr ""
 
-#: src/gui/gui.cc:392 src/gui/gui.cc:715
+#: src/gui/gui.cc:392 src/gui/gui.cc:716
 msgid "About"
 msgstr ""
 
@@ -56,11 +56,11 @@ msgstr ""
 msgid "Address"
 msgstr ""
 
-#: src/gui/gui.cc:559
+#: src/gui/gui.cc:560
 msgid "Always enable SIO IRQ"
 msgstr ""
 
-#: src/gui/gui.cc:560
+#: src/gui/gui.cc:561
 msgid "Always enable SPU IRQ"
 msgstr ""
 
@@ -72,19 +72,19 @@ msgstr ""
 msgid "BIOS"
 msgstr ""
 
-#: src/gui/gui.cc:623
+#: src/gui/gui.cc:624
 msgid "BIOS Counters"
 msgstr ""
 
-#: src/gui/gui.cc:602
+#: src/gui/gui.cc:603
 msgid "BIOS HLE"
 msgstr ""
 
-#: src/gui/gui.cc:605
+#: src/gui/gui.cc:606
 msgid "BIOS file"
 msgstr ""
 
-#: src/gui/gui.cc:587
+#: src/gui/gui.cc:588
 msgid "Big Endian"
 msgstr ""
 
@@ -120,7 +120,7 @@ msgstr ""
 msgid "Breakpoint Type"
 msgstr ""
 
-#: src/gui/gui.cc:649
+#: src/gui/gui.cc:650
 msgid "Breakpoint on new syscalls"
 msgstr ""
 
@@ -148,7 +148,7 @@ msgstr ""
 msgid "CD-ROM Label: %.32s\n"
 msgstr ""
 
-#: src/gui/gui.cc:589
+#: src/gui/gui.cc:590
 msgid "CDDA"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "Cheats saved to: %s\n"
 msgstr ""
 
-#: src/gui/widgets/log.cc:43 src/gui/gui.cc:636
+#: src/gui/widgets/log.cc:43 src/gui/gui.cc:637
 msgid "Clear"
 msgstr ""
 
@@ -263,11 +263,11 @@ msgstr ""
 msgid "Debug"
 msgstr ""
 
-#: src/gui/gui.cc:644
+#: src/gui/gui.cc:645
 msgid "Debug kernel"
 msgstr ""
 
-#: src/gui/gui.cc:561
+#: src/gui/gui.cc:562
 msgid "Decode MDEC videos in B&W"
 msgstr ""
 
@@ -284,7 +284,7 @@ msgstr ""
 msgid "Directories"
 msgstr ""
 
-#: src/gui/gui.cc:587
+#: src/gui/gui.cc:588
 msgid "Disabled"
 msgstr ""
 
@@ -304,11 +304,11 @@ msgstr ""
 msgid "Emulation Configuration"
 msgstr ""
 
-#: src/gui/gui.cc:558
+#: src/gui/gui.cc:559
 msgid "Enable XA decoder"
 msgstr ""
 
-#: src/gui/gui.cc:640
+#: src/gui/gui.cc:641
 msgid "Enable counters"
 msgstr ""
 
@@ -361,7 +361,7 @@ msgstr ""
 msgid "Failed to open %s codec\n"
 msgstr ""
 
-#: src/gui/gui.cc:603
+#: src/gui/gui.cc:604
 msgid "Fast boot"
 msgstr ""
 
@@ -418,7 +418,7 @@ msgstr ""
 msgid "Invalid PPF patch: %s.\n"
 msgstr ""
 
-#: src/gui/gui.cc:587
+#: src/gui/gui.cc:588
 msgid "Little Endian"
 msgstr ""
 
@@ -456,11 +456,11 @@ msgstr ""
 msgid "Locale"
 msgstr ""
 
-#: src/gui/gui.cc:647
+#: src/gui/gui.cc:648
 msgid "Log events"
 msgstr ""
 
-#: src/gui/gui.cc:645
+#: src/gui/gui.cc:646
 msgid "Log new syscalls"
 msgstr ""
 
@@ -496,7 +496,7 @@ msgstr ""
 msgid "Map word writes        "
 msgstr ""
 
-#: src/gui/gui.cc:632
+#: src/gui/gui.cc:633
 msgid "Memorize"
 msgstr ""
 
@@ -544,7 +544,7 @@ msgstr ""
 msgid "Open and close LID"
 msgstr ""
 
-#: src/gui/gui.cc:723
+#: src/gui/gui.cc:724
 msgid "OpenGL information"
 msgstr ""
 
@@ -588,6 +588,10 @@ msgstr ""
 
 #: src/gui/widgets/registers.cc:35 src/gui/gui.cc:489
 msgid "Registers"
+msgstr ""
+
+#: src/gui/gui.cc:556
+msgid "Reload locales"
 msgstr ""
 
 #: src/gui/widgets/assembly.cc:698
@@ -695,7 +699,7 @@ msgstr ""
 msgid "Show word write BPs    "
 msgstr ""
 
-#: src/gui/gui.cc:642
+#: src/gui/gui.cc:643
 msgid "Skip unknowns"
 msgstr ""
 
@@ -719,7 +723,7 @@ msgstr ""
 msgid "Step Over"
 msgstr ""
 
-#: src/gui/gui.cc:567
+#: src/gui/gui.cc:568
 msgid "System Type"
 msgstr ""
 
@@ -775,7 +779,7 @@ msgstr ""
 msgid "^ Size"
 msgstr ""
 
-#: src/gui/gui.cc:731
+#: src/gui/gui.cc:732
 msgid "extensions:"
 msgstr ""
 
@@ -789,11 +793,11 @@ msgstr ""
 msgid "ok Load Bin file: [0x%08x] : %s\n"
 msgstr ""
 
-#: src/gui/gui.cc:725
+#: src/gui/gui.cc:726
 msgid "renderer"
 msgstr ""
 
-#: src/gui/gui.cc:727
+#: src/gui/gui.cc:728
 msgid "shading language version"
 msgstr ""
 
@@ -809,10 +813,10 @@ msgstr ""
 msgid "v Size"
 msgstr ""
 
-#: src/gui/gui.cc:724
+#: src/gui/gui.cc:725
 msgid "vendor"
 msgstr ""
 
-#: src/gui/gui.cc:726
+#: src/gui/gui.cc:727
 msgid "version"
 msgstr ""
