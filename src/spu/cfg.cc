@@ -48,7 +48,7 @@ bool PCSX::SPU::impl::configure() {
     ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
 XA audio and audio tracks.)"));
-    static const char *volumeValues[] = {(_("Low"), _("Medium"), _("Loud"), _("Loudest")};
+    static const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
     changed |= ImGui::Checkbox(_("Change streaming pitch"), &settings.get<StreamingPitch>().value);
     ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
