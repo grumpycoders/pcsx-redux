@@ -136,8 +136,8 @@ class GUI final {
     MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
-    Widgets::FileDialog m_openIsoFileDialog = {_("Open Image")};
-    Widgets::FileDialog m_selectBiosDialog = {_("Select BIOS")};
+    Widgets::FileDialog m_openIsoFileDialog = {(_("Open Image"))};
+    Widgets::FileDialog m_selectBiosDialog = {(_("Select BIOS"))};
     Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
