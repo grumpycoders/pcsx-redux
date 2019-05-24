@@ -144,16 +144,17 @@ void PCSX::GUI::init() {
 
     unsigned counter = 1;
     for (auto& editor : m_mainMemEditors) {
-        editor.title = _("Memory Editor #") + std::to_string(counter++);
+        editor.title = [counter]() { return (_("Memory Editor #") + std::to_string(counter)).c_str(); };
+        counter++;
         editor.show = false;
     }
-    m_parallelPortEditor.title = _("Parallel Port");
+    m_parallelPortEditor.title = []() { return _("Parallel Port"); };
     m_parallelPortEditor.show = false;
-    m_scratchPadEditor.title = _("Scratch Pad");
+    m_scratchPadEditor.title = []() { return _("Scratch Pad"); };
     m_scratchPadEditor.show = false;
-    m_hwrEditor.title = _("Hardware Registers");
+    m_hwrEditor.title = []() { return _("Hardware Registers"); };
     m_hwrEditor.show = false;
-    m_biosEditor.title = _("BIOS");
+    m_biosEditor.title = []() { return _("BIOS"); };
     m_biosEditor.show = false;
 
     startFrame();

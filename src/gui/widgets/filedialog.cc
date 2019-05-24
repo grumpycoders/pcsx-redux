@@ -87,7 +87,7 @@ void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({"/", "(root)"})
 #endif
 
 void PCSX::Widgets::FileDialog::openDialog() {
-    ImGui::OpenPopup(m_title.c_str());
+    ImGui::OpenPopup(m_title());
     m_selected.clear();
     m_sorter.name = SORT_DOWN;
     m_sorter.size = UNSORTED;
@@ -97,7 +97,7 @@ void PCSX::Widgets::FileDialog::openDialog() {
 
 bool PCSX::Widgets::FileDialog::draw() {
     bool done = false;
-    if (ImGui::BeginPopupModal(m_title.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal(m_title(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (m_cacheDirty) {
             fillRoots();
             if (!std::filesystem::exists(m_currentPath)) setToCurrentPath();
@@ -278,7 +278,7 @@ bool PCSX::Widgets::FileDialog::draw() {
         if (m_flags & NewFile) {
             ImGui::Text(m_currentPath.u8string().c_str());
             ImGui::SameLine();
-            std::string label = std::string("##") + m_title + _("Filename");
+            std::string label = std::string("##") + m_title() + "Filename";
             ImGui::InputText(label.c_str(), &m_newFile);
             selectedStr = m_newFile;
             gotSelected = !m_newFile.empty();
