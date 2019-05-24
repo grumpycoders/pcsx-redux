@@ -20,6 +20,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -29,7 +30,7 @@ namespace Widgets {
 class FileDialog {
   public:
     enum Flags { NewFile = 1 };
-    FileDialog(const char* title, uint64_t flags = 0) : m_title(title), m_flags(flags) { setToCurrentPath(); }
+    FileDialog(std::function<const char*()> title, uint64_t flags = 0) : m_title(title), m_flags(flags) { setToCurrentPath(); }
     void setToCurrentPath() {
         m_currentPath = std::filesystem::current_path();
         nukeCache();
@@ -49,7 +50,7 @@ class FileDialog {
     }
     bool m_cacheDirty = true;
     uint64_t m_flags;
-    const std::string m_title;
+    const std::function<const char*()> m_title;
     struct Root {
         std::string root;
         std::string label;

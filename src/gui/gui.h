@@ -29,6 +29,7 @@
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
+#include "core/system.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/filedialog.h"
@@ -122,11 +123,11 @@ class GUI final {
             editor.OptUpperCaseHex = false;
         }
         MemoryEditor editor;
-        std::string title;
+        std::function<const char *()> title;
         bool &show = editor.Open;
-        void MenuItem() { ImGui::MenuItem(title.c_str(), nullptr, &show); }
+        void MenuItem() { ImGui::MenuItem(title(), nullptr, &show); }
         void draw(void *mem, size_t size, uint32_t baseAddr = 0) {
-            editor.DrawWindow(title.c_str(), mem, size, baseAddr);
+            editor.DrawWindow(title(), mem, size, baseAddr);
         }
     };
     MemoryEditorWrapper m_mainMemEditors[8];
@@ -136,8 +137,8 @@ class GUI final {
     MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
-    Widgets::FileDialog m_openIsoFileDialog = {"Open Image"};
-    Widgets::FileDialog m_selectBiosDialog = {"Select BIOS"};
+    Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
+    Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::Breakpoints m_breakpoints;
 
     bool m_showCfg = false;
