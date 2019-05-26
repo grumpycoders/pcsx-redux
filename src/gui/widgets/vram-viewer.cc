@@ -153,12 +153,16 @@ void PCSX::Widgets::VRAMViewer::destroy() {
     if (m_pixelShader) glDeleteShader(m_pixelShader);
 }
 
-void PCSX::Widgets::VRAMViewer::draw(unsigned int textureID, ImVec2 dimensions) {
+void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensions) {
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
     ImGui::Image((ImTextureID)textureID, dimensions, ImVec2(0, 0), ImVec2(1, 1));
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+}
+
+void PCSX::Widgets::VRAMViewer::drawEditor() {
+
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {

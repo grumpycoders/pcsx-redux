@@ -20,6 +20,7 @@
 #pragma once
 
 #include "imgui.h"
+#include "ImGuiColorTextEdit/TextEditor.h"
 
 namespace PCSX {
 namespace Widgets {
@@ -27,7 +28,8 @@ namespace Widgets {
 class VRAMViewer {
   public:
     void init();
-    void draw(unsigned int textureID, ImVec2 dimensions);
+    void drawVRAM(unsigned int textureID, ImVec2 dimensions);
+    void drawEditor();
     void destroy();
 
   private:
@@ -48,6 +50,8 @@ class VRAMViewer {
     int m_attribLocationHovered;
 
     bool m_hovered = false;
+    TextEditor m_vertexShaderEditor;
+    TextEditor m_pixelShaderEditor;
 };
 
 }

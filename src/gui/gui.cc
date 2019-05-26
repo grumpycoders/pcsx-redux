@@ -434,7 +434,7 @@ void PCSX::GUI::endFrame() {
                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
             ImVec2 textureSize = ImGui::GetWindowSize();
             normalizeDimensions(textureSize, 0.5f);
-            m_vramViewer.draw(m_VRAMTexture, textureSize);
+            m_vramViewer.drawVRAM(m_VRAMTexture, textureSize);
         }
         ImGui::End();
     }
