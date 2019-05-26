@@ -430,11 +430,29 @@ void PCSX::GUI::endFrame() {
     if (m_showVRAMwindow) {
         ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(_("VRAM"), &m_showVRAMwindow,
-                         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-            ImVec2 textureSize = ImGui::GetWindowSize();
+        if (ImGui::Begin(
+                _("VRAM"), &m_showVRAMwindow,
+                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar)) {
+            if (ImGui::BeginMenuBar()) {
+                if (ImGui::BeginMenu(_("File"))) {
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("View"))) {
+                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showVRAMShaderEditor);
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenuBar();
+            }
+            ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, 0.5f);
             m_vramViewer.drawVRAM(m_VRAMTexture, textureSize);
+        }
+        ImGui::End();
+    }
+
+    if (m_showVRAMShaderEditor) {
+        if (ImGui::Begin(_("VRAM Shader Editor"), &m_showVRAMShaderEditor)) {
+            m_vramViewer.drawEditor();
         }
         ImGui::End();
     }

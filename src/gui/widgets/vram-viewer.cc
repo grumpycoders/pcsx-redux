@@ -26,6 +26,7 @@
 
 #include "GL/gl3w.h"
 
+#include "core/system.h"
 #include "gui/widgets/vram-viewer.h"
 
 #define GL_SHADER_VERSION "#version 300 es\n"
@@ -53,12 +54,11 @@ out vec4 outColor;
 
 void main() {
     outColor = texture(vramTexture, fragUV.st);
-    outColor = vec4(1.0f) - outColor;
     outColor.a = 1.0f;
 }
 )";
 
-std::string PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
+void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     GLint status = 0;
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -72,12 +72,11 @@ std::string PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char 
         char *log = (char *)malloc(maxLength);
         glGetShaderInfoLog(vertexShader, maxLength, &maxLength, log);
 
-        std::string error = log;
+        m_errorMessage = std::string(_("Vertex Shader compilation error:\n")) + log;
 
         free(log);
         glDeleteShader(vertexShader);
-
-        return error;
+        return;
     }
 
     GLuint pixelShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -92,13 +91,12 @@ std::string PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char 
 
         glGetShaderInfoLog(pixelShader, maxLength, &maxLength, log);
 
-        std::string error = log;
+        m_errorMessage = std::string(_("Pixel Shader compilation error:\n")) + log;
 
         free(log);
         glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
-
-        return error;
+        return;
     }
 
     GLuint shaderProgram = glCreateProgram();
@@ -115,14 +113,13 @@ std::string PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char 
 
         glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, log);
 
-        std::string error = log;
+        m_errorMessage = std::string(_("Link error:\n")) + log;
 
         free(log);
         glDeleteProgram(shaderProgram);
         glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
-
-        return error;
+        return;
     }
 
     destroy();
@@ -134,17 +131,14 @@ std::string PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char 
     m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "position");
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "texUV");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "hovered");
-    return "";
+
+    m_errorMessage = "";
 }
 
 void PCSX::Widgets::VRAMViewer::init() {
+    m_vertexShaderEditor.SetText(s_defaultVertexShader);
+    m_pixelShaderEditor.SetText(s_defaultPixelShader);
     compileShader(s_defaultVertexShader, s_defaultPixelShader);
-    SDL_assert(m_shaderProgram);
-    SDL_assert(m_attribLocationTex != -1);
-    SDL_assert(m_attribLocationProjMtx != -1);
-    SDL_assert(m_attribLocationVtxPos != -1);
-    SDL_assert(m_attribLocationVtxUV != -1);
-    SDL_assert(m_attribLocationHovered != -1);
 }
 
 void PCSX::Widgets::VRAMViewer::destroy() {
@@ -162,7 +156,21 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensio
 }
 
 void PCSX::Widgets::VRAMViewer::drawEditor() {
+    auto contents = ImGui::GetContentRegionAvail();
+    ImGuiStyle &style = ImGui::GetStyle();
+    const float heightSeparator = style.ItemSpacing.y;
+    float footerHeight = heightSeparator * 2 + 5 * ImGui::GetTextLineHeightWithSpacing();
+    float width = contents.x / 2 - style.ItemInnerSpacing.x;
+    m_vertexShaderEditor.Render(_("Vertex Shader"), ImVec2(width, -footerHeight), true);
+    ImGui::SameLine();
+    m_pixelShaderEditor.Render(_("Pixel Shader"), ImVec2(width, -footerHeight), true);
+    ImGui::BeginChild("Errors", ImVec2(0, 0), true);
+    ImGui::Text("%s", m_errorMessage.c_str());
+    ImGui::EndChild();
 
+    if (m_vertexShaderEditor.IsTextChanged() || m_pixelShaderEditor.IsTextChanged()) {
+        compileShader(m_vertexShaderEditor.GetText().c_str(), m_pixelShaderEditor.GetText().c_str());
+    }
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {

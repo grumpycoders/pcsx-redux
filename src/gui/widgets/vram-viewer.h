@@ -33,7 +33,7 @@ class VRAMViewer {
     void destroy();
 
   private:
-    std::string compileShader(const char *VS, const char *PS);
+    void compileShader(const char *VS, const char *PS);
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
         VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
         that->imguiCB(parentList, cmd);
@@ -52,6 +52,8 @@ class VRAMViewer {
     bool m_hovered = false;
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
+
+    std::string m_errorMessage;
 };
 
 }

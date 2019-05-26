@@ -116,6 +116,7 @@ class GUI final {
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     bool m_showDemo = false;
     bool &m_showVRAMwindow = {settings.get<ShowVRAM>().value};
+    bool m_showVRAMShaderEditor;
     bool m_showAbout = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
