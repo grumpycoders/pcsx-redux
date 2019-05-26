@@ -35,6 +35,7 @@
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/vram-viewer.h"
 #include "main/settings.h"
 
 namespace PCSX {
@@ -148,6 +149,8 @@ class GUI final {
     const flags::args &m_args;
     bool m_scheduleSoftReset = false;
     bool m_scheduleHardReset = false;
+
+    Widgets::VRAMViewer m_vramViewer;
 };
 
 }  // namespace PCSX

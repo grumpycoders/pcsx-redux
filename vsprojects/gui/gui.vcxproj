@@ -70,16 +70,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\ImGuiColorTextEdit;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\ImGuiColorTextEdit;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\ImGuiColorTextEdit;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\ImGuiColorTextEdit;..\..\third_party\imgui;..\..\third_party\imgui\examples;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\imgui_club;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -140,6 +140,7 @@
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
@@ -148,6 +149,7 @@
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
+    <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />
     <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

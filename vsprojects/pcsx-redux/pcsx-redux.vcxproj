@@ -160,6 +160,9 @@
     <ProjectReference Include="..\imgui-sdl-ogl3\imgui-sdl-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\ImGuiColorTextEdit\ImGuiColorTextEdit.vcxproj">
+      <Project>{f7b148d1-8033-475e-9a0f-7e8718ceb57e}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\SDLmain\SDLmain.vcxproj">
       <Project>{da956fd3-e142-46f2-9dd5-c78bebb56b7a}</Project>
     </ProjectReference>

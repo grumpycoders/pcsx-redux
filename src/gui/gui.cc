@@ -133,7 +133,7 @@ void PCSX::GUI::init() {
 
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5, 1024, 512);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     checkGL();
 
     // offscreen stuff
@@ -141,6 +141,8 @@ void PCSX::GUI::init() {
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
+
+    m_vramViewer.init();
 
     unsigned counter = 1;
     for (auto& editor : m_mainMemEditors) {
@@ -429,7 +431,7 @@ void PCSX::GUI::endFrame() {
         if (ImGui::Begin(_("VRAM"), &m_showVRAMwindow, ImGuiWindowFlags_NoScrollbar)) {
             ImVec2 textureSize = ImGui::GetWindowSize();
             normalizeDimensions(textureSize, 0.5f);
-            ImGui::Image((ImTextureID)m_VRAMTexture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            m_vramViewer.draw(m_VRAMTexture, textureSize);
         }
         ImGui::End();
     }
