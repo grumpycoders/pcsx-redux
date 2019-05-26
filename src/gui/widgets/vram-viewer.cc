@@ -33,27 +33,25 @@
 
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
-in vec2 position;
-in vec2 texUV;
-uniform mat4 projMatrix;
-uniform uint hoveredIn;
+in vec2 i_position;
+in vec2 i_texUV;
+uniform mat4 u_projMatrix;
 out vec2 fragUV;
 
 void main() {
-    fragUV = texUV;
-    gl_Position = projMatrix * vec4(position.xy, 0.0f, 1.0f);
+    fragUV = i_texUV;
+    gl_Position = u_projMatrix * vec4(i_position.xy, 0.0f, 1.0f);
 }
 )";
 
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
-uniform sampler2D vramTexture;
-uniform bool hovered;
+uniform sampler2D u_vramTexture;
 in vec2 fragUV;
 out vec4 outColor;
 
 void main() {
-    outColor = texture(vramTexture, fragUV.st);
+    outColor = texture(u_vramTexture, fragUV.st);
     outColor.a = 1.0f;
 }
 )";
@@ -126,11 +124,11 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_shaderProgram = shaderProgram;
     m_vertexShader = vertexShader;
     m_pixelShader = pixelShader;
-    m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "vramTexture");
-    m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "projMatrix");
-    m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "position");
-    m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "texUV");
-    m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "hovered");
+    m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
+    m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
+    m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "i_position");
+    m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
+    m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
 
     m_errorMessage = "";
 }
