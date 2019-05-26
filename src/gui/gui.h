@@ -64,8 +64,9 @@ class GUI final {
     void scheduleSoftReset() { m_scheduleSoftReset = true; }
     void scheduleHardReset() { m_scheduleHardReset = true; }
 
-  private:
     static void checkGL();
+
+  private:
     void saveCfg();
 
     void startFrame();

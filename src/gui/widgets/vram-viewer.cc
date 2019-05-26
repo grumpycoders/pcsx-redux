@@ -27,6 +27,7 @@
 #include "GL/gl3w.h"
 
 #include "core/system.h"
+#include "gui/gui.h"
 #include "gui/widgets/vram-viewer.h"
 
 #define GL_SHADER_VERSION "#version 300 es\n"
@@ -47,10 +48,16 @@ void main() {
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
 uniform sampler2D u_vramTexture;
+uniform vec2 u_origin;
+uniform vec2 u_resolution;
+uniform vec2 u_mousePos;
+uniform bool u_hovered;
 in vec2 fragUV;
 out vec4 outColor;
+layout(origin_upper_left) in vec4 gl_FragCoord;
 
 void main() {
+    vec2 fragCoord = gl_fragCoord.xy - u_origin;
     outColor = texture(u_vramTexture, fragUV.st);
     outColor.a = 1.0f;
 }
@@ -74,6 +81,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
 
         free(log);
         glDeleteShader(vertexShader);
+        PCSX::GUI::checkGL();
         return;
     }
 
@@ -94,6 +102,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
         free(log);
         glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
+        PCSX::GUI::checkGL();
         return;
     }
 
@@ -117,6 +126,19 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
         glDeleteProgram(shaderProgram);
         glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
+        PCSX::GUI::checkGL();
+        return;
+    }
+
+    int attribLocationVtxPos = glGetAttribLocation(shaderProgram, "i_position");
+    int attribLocationVtxUV = glGetAttribLocation(shaderProgram, "i_texUV");
+
+    if ((attribLocationVtxPos == -1) || (attribLocationVtxUV == -1)) {
+        m_errorMessage = "Missing i_position and/or i_texUV locations";
+        glDeleteProgram(shaderProgram);
+        glDeleteShader(vertexShader);
+        glDeleteShader(pixelShader);
+        PCSX::GUI::checkGL();
         return;
     }
 
@@ -126,11 +148,15 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_pixelShader = pixelShader;
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "i_position");
-    m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
+    m_attribLocationMousePos = glGetUniformLocation(m_shaderProgram, "u_mousePos");
+    m_attribLocationResolution = glGetUniformLocation(m_shaderProgram, "u_resolution");
+    m_attribLocationOrigin = glGetUniformLocation(m_shaderProgram, "u_origin");
+    m_attribLocationVtxPos = attribLocationVtxPos;
+    m_attribLocationVtxUV = attribLocationVtxUV;
 
     m_errorMessage = "";
+    PCSX::GUI::checkGL();
 }
 
 void PCSX::Widgets::VRAMViewer::init() {
@@ -143,14 +169,20 @@ void PCSX::Widgets::VRAMViewer::destroy() {
     if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
     if (m_vertexShader) glDeleteShader(m_vertexShader);
     if (m_pixelShader) glDeleteShader(m_pixelShader);
+    PCSX::GUI::checkGL();
 }
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensions) {
+    m_resolution = dimensions;
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
+    m_origin = ImGui::GetCursorScreenPos();
+    auto mousePos = ImGui::GetIO().MousePos;
+    m_mousePos = ImVec2(mousePos.x - m_origin.x, mousePos.y - m_origin.y);
     ImGui::Image((ImTextureID)textureID, dimensions, ImVec2(0, 0), ImVec2(1, 1));
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+    ImGui::Text("Mouse status: (%0.2f, %0.2f) %shovering", m_mousePos.x, m_mousePos.y, m_hovered ? "" : "not ");
 }
 
 void PCSX::Widgets::VRAMViewer::drawEditor() {
@@ -184,10 +216,14 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform1i(m_attribLocationTex, 0);
     glUniformMatrix4fv(m_attribLocationProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
     glUniform1i(m_attribLocationHovered, m_hovered);
+    glUniform2f(m_attribLocationMousePos, m_mousePos.x, m_mousePos.y);
+    glUniform2f(m_attribLocationResolution, m_resolution.x, m_resolution.y);
+    glUniform2f(m_attribLocationOrigin, m_origin.x, m_origin.y);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    PCSX::GUI::checkGL();
 }

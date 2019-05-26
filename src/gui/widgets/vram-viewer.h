@@ -48,8 +48,14 @@ class VRAMViewer {
     int m_attribLocationVtxPos;
     int m_attribLocationVtxUV;
     int m_attribLocationHovered;
+    int m_attribLocationMousePos;
+    int m_attribLocationResolution;
+    int m_attribLocationOrigin;
 
     bool m_hovered = false;
+    ImVec2 m_mousePos;
+    ImVec2 m_resolution;
+    ImVec2 m_origin;
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
 
