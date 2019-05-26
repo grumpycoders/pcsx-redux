@@ -57,7 +57,7 @@ out vec4 outColor;
 layout(origin_upper_left) in vec4 gl_FragCoord;
 
 void main() {
-    vec2 fragCoord = gl_fragCoord.xy - u_origin;
+    vec2 fragCoord = gl_FragCoord.xy - u_origin;
     outColor = texture(u_vramTexture, fragUV.st);
     outColor.a = 1.0f;
 }
@@ -163,6 +163,7 @@ void PCSX::Widgets::VRAMViewer::init() {
     m_vertexShaderEditor.SetText(s_defaultVertexShader);
     m_pixelShaderEditor.SetText(s_defaultPixelShader);
     compileShader(s_defaultVertexShader, s_defaultPixelShader);
+    SDL_assert(m_shaderProgram);
 }
 
 void PCSX::Widgets::VRAMViewer::destroy() {
@@ -174,6 +175,7 @@ void PCSX::Widgets::VRAMViewer::destroy() {
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensions) {
     m_resolution = dimensions;
+    m_textureID = textureID;
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
     m_origin = ImGui::GetCursorScreenPos();
@@ -225,5 +227,8 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    glBindTexture(GL_TEXTURE_2D, m_textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     PCSX::GUI::checkGL();
 }

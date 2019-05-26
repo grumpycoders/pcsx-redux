@@ -56,6 +56,7 @@ class VRAMViewer {
     ImVec2 m_mousePos;
     ImVec2 m_resolution;
     ImVec2 m_origin;
+    unsigned int m_textureID;
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
 
