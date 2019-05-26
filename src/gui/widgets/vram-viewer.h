@@ -27,11 +27,15 @@ namespace Widgets {
 class VRAMViewer {
   public:
     void init();
-    void draw(unsigned int textureId, ImVec2 dimensions);
+    void draw(unsigned int textureID, ImVec2 dimensions);
 
   private:
-    static void imguiCBtrampoline(const ImDrawList *parent_list, const ImDrawCmd *cmd);
-    void imguiCB(const ImDrawList *parent_list, const ImDrawCmd *cmd);
+    static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
+        VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
+        that->imguiCB(parentList, cmd);
+    }
+    void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
+
     unsigned int m_shaderProgram;
     int m_attribLocationTex;
     int m_attribLocationProjMtx;

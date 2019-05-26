@@ -133,6 +133,8 @@ void PCSX::GUI::init() {
 
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     checkGL();
 
@@ -428,7 +430,8 @@ void PCSX::GUI::endFrame() {
     if (m_showVRAMwindow) {
         ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(_("VRAM"), &m_showVRAMwindow, ImGuiWindowFlags_NoScrollbar)) {
+        if (ImGui::Begin(_("VRAM"), &m_showVRAMwindow,
+                         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
             ImVec2 textureSize = ImGui::GetWindowSize();
             normalizeDimensions(textureSize, 0.5f);
             m_vramViewer.draw(m_VRAMTexture, textureSize);
@@ -439,7 +442,9 @@ void PCSX::GUI::endFrame() {
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(_("Output"), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse)) {
+        if (ImGui::Begin(
+                _("Output"), nullptr,
+                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetWindowSize();
             normalizeDimensions(textureSize, m_renderRatio);
             ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));

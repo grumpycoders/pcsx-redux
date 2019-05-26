@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string>
+#include <utility>
+
 #include "GL/gl3w.h"
 
 #include "gui/widgets/vram-viewer.h"
@@ -29,9 +32,9 @@
 
 static const GLchar *vertexShader = GL_SHADER_VERSION R"(
 precision highp float;
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec2 texUV;
-layout (location = 2) in vec4 color;
+in vec2 position;
+in vec2 texUV;
+in vec4 color;
 uniform mat4 projMatrix;
 out vec2 fragUV;
 out vec4 fragColor;
@@ -48,7 +51,7 @@ precision highp float;
 uniform sampler2D vramTexture;
 in vec2 fragUV;
 in vec4 fragColor;
-layout (location = 0) out vec4 outColor;
+out vec4 outColor;
 
 void main() {
     outColor = fragColor * texture(vramTexture, fragUV.st);
@@ -56,58 +59,80 @@ void main() {
 }
 )";
 
-static GLuint compileShader(const char *VS, const char *PS) {
-    GLuint vertexshader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexshader, 1, &VS, 0);
-    glCompileShader(vertexshader);
-    GLint IsCompiled_VS = 0;
-    glGetShaderiv(vertexshader, GL_COMPILE_STATUS, &IsCompiled_VS);
-    if (IsCompiled_VS == 0) {
+static std::pair<GLuint, std::string> compileShader(const char *VS, const char *PS) {
+    GLint status = 0;
+
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &VS, 0);
+    glCompileShader(vertexShader);
+
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
+    if (status == 0) {
         GLint maxLength;
-        glGetShaderiv(vertexshader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *vertexInfoLog = (char *)malloc(maxLength);
+        glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
+        char *log = (char *)malloc(maxLength);
+        glGetShaderInfoLog(vertexShader, maxLength, &maxLength, log);
 
-        glGetShaderInfoLog(vertexshader, maxLength, &maxLength, vertexInfoLog);
+        std::string error = log;
 
-        SDL_TriggerBreakpoint();
-        assert(false);
+        free(log);
+        glDeleteShader(vertexShader);
 
-        free(vertexInfoLog);
+        return std::make_pair(0, error);
     }
 
-    GLuint fragmentshader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentshader, 1, &PS, 0);
-    glCompileShader(fragmentshader);
-    GLint IsCompiled_PS = 0;
-    glGetShaderiv(fragmentshader, GL_COMPILE_STATUS, &IsCompiled_PS);
-    if (IsCompiled_PS == 0) {
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &PS, 0);
+    glCompileShader(fragmentShader);
+
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &status);
+    if (status == 0) {
         GLint maxLength;
-        glGetShaderiv(fragmentshader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *fragmentInfoLog = (char *)malloc(maxLength);
+        glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+        char *log = (char *)malloc(maxLength);
 
-        glGetShaderInfoLog(fragmentshader, maxLength, &maxLength, fragmentInfoLog);
+        glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, log);
 
-        SDL_TriggerBreakpoint();
-        assert(false);
+        std::string error = log;
 
-        free(fragmentInfoLog);
+        free(log);
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+
+        return std::make_pair(0, error);
     }
 
-    GLuint shaderprogram = glCreateProgram();
-    glAttachShader(shaderprogram, vertexshader);
-    glAttachShader(shaderprogram, fragmentshader);
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
 
-    glLinkProgram(shaderprogram);
+    glLinkProgram(shaderProgram);
 
-    GLint IsLinked = 0;
-    glGetProgramiv(shaderprogram, GL_LINK_STATUS, &IsLinked);
-    assert(IsLinked);
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+    if (status == 0) {
+        GLint maxLength;
+        glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &maxLength);
+        char *log = (char *)malloc(maxLength);
 
-    return shaderprogram;
+        glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, log);
+
+        std::string error = log;
+
+        free(log);
+        glDeleteProgram(shaderProgram);
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+
+        return std::make_pair(0, error);
+    }
+
+    return std::make_pair(shaderProgram, "");
 }
 
 void PCSX::Widgets::VRAMViewer::init() {
-    m_shaderProgram = compileShader(vertexShader, pixelShader);
+    std::string error;
+    std::tie(m_shaderProgram, error) = compileShader(vertexShader, pixelShader);
+    SDL_assert(m_shaderProgram);
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "projMatrix");
     m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "position");
@@ -115,16 +140,11 @@ void PCSX::Widgets::VRAMViewer::init() {
     m_attribLocationVtxColor = glGetAttribLocation(m_shaderProgram, "color");
 }
 
-void PCSX::Widgets::VRAMViewer::draw(unsigned int textureId, ImVec2 dimensions) {
+void PCSX::Widgets::VRAMViewer::draw(unsigned int textureID, ImVec2 dimensions) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
-    ImGui::Image((ImTextureID)textureId, dimensions, ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::Image((ImTextureID)textureID, dimensions, ImVec2(0, 0), ImVec2(1, 1));
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
-}
-
-void PCSX::Widgets::VRAMViewer::imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
-    VRAMViewer *that = reinterpret_cast<VRAMViewer*>(cmd->UserCallbackData);
-    that->imguiCB(parentList, cmd);
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
