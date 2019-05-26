@@ -28,20 +28,26 @@ class VRAMViewer {
   public:
     void init();
     void draw(unsigned int textureID, ImVec2 dimensions);
+    void destroy();
 
   private:
+    std::string compileShader(const char *VS, const char *PS);
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
         VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
         that->imguiCB(parentList, cmd);
     }
     void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
 
-    unsigned int m_shaderProgram;
+    unsigned int m_vertexShader = 0;
+    unsigned int m_pixelShader = 0;
+    unsigned int m_shaderProgram = 0;
     int m_attribLocationTex;
     int m_attribLocationProjMtx;
     int m_attribLocationVtxPos;
     int m_attribLocationVtxUV;
-    int m_attribLocationVtxColor;
+    int m_attribLocationHovered;
+
+    bool m_hovered = false;
 };
 
 }

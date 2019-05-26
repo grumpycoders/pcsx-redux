@@ -30,36 +30,35 @@
 
 #define GL_SHADER_VERSION "#version 300 es\n"
 
-static const GLchar *vertexShader = GL_SHADER_VERSION R"(
+static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 in vec2 position;
 in vec2 texUV;
-in vec4 color;
 uniform mat4 projMatrix;
+uniform uint hoveredIn;
 out vec2 fragUV;
-out vec4 fragColor;
 
 void main() {
     fragUV = texUV;
-    fragColor = color;
     gl_Position = projMatrix * vec4(position.xy, 0.0f, 1.0f);
 }
 )";
 
-static const GLchar *pixelShader = GL_SHADER_VERSION R"(
+static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
 uniform sampler2D vramTexture;
+uniform bool hovered;
 in vec2 fragUV;
-in vec4 fragColor;
 out vec4 outColor;
 
 void main() {
-    outColor = fragColor * texture(vramTexture, fragUV.st);
+    outColor = texture(vramTexture, fragUV.st);
+    outColor = vec4(1.0f) - outColor;
     outColor.a = 1.0f;
 }
 )";
 
-static std::pair<GLuint, std::string> compileShader(const char *VS, const char *PS) {
+std::string PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     GLint status = 0;
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -78,33 +77,33 @@ static std::pair<GLuint, std::string> compileShader(const char *VS, const char *
         free(log);
         glDeleteShader(vertexShader);
 
-        return std::make_pair(0, error);
+        return error;
     }
 
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &PS, 0);
-    glCompileShader(fragmentShader);
+    GLuint pixelShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(pixelShader, 1, &PS, 0);
+    glCompileShader(pixelShader);
 
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &status);
+    glGetShaderiv(pixelShader, GL_COMPILE_STATUS, &status);
     if (status == 0) {
         GLint maxLength;
-        glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+        glGetShaderiv(pixelShader, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *)malloc(maxLength);
 
-        glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, log);
+        glGetShaderInfoLog(pixelShader, maxLength, &maxLength, log);
 
         std::string error = log;
 
         free(log);
         glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        glDeleteShader(pixelShader);
 
-        return std::make_pair(0, error);
+        return error;
     }
 
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
+    glAttachShader(shaderProgram, pixelShader);
 
     glLinkProgram(shaderProgram);
 
@@ -121,29 +120,44 @@ static std::pair<GLuint, std::string> compileShader(const char *VS, const char *
         free(log);
         glDeleteProgram(shaderProgram);
         glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        glDeleteShader(pixelShader);
 
-        return std::make_pair(0, error);
+        return error;
     }
 
-    return std::make_pair(shaderProgram, "");
-}
-
-void PCSX::Widgets::VRAMViewer::init() {
-    std::string error;
-    std::tie(m_shaderProgram, error) = compileShader(vertexShader, pixelShader);
-    SDL_assert(m_shaderProgram);
+    destroy();
+    m_shaderProgram = shaderProgram;
+    m_vertexShader = vertexShader;
+    m_pixelShader = pixelShader;
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "projMatrix");
     m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "position");
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "texUV");
-    m_attribLocationVtxColor = glGetAttribLocation(m_shaderProgram, "color");
+    m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "hovered");
+    return "";
+}
+
+void PCSX::Widgets::VRAMViewer::init() {
+    compileShader(s_defaultVertexShader, s_defaultPixelShader);
+    SDL_assert(m_shaderProgram);
+    SDL_assert(m_attribLocationTex != -1);
+    SDL_assert(m_attribLocationProjMtx != -1);
+    SDL_assert(m_attribLocationVtxPos != -1);
+    SDL_assert(m_attribLocationVtxUV != -1);
+    SDL_assert(m_attribLocationHovered != -1);
+}
+
+void PCSX::Widgets::VRAMViewer::destroy() {
+    if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
+    if (m_vertexShader) glDeleteShader(m_vertexShader);
+    if (m_pixelShader) glDeleteShader(m_pixelShader);
 }
 
 void PCSX::Widgets::VRAMViewer::draw(unsigned int textureID, ImVec2 dimensions) {
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
     ImGui::Image((ImTextureID)textureID, dimensions, ImVec2(0, 0), ImVec2(1, 1));
+    m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 }
 
@@ -159,13 +173,11 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUseProgram(m_shaderProgram);
     glUniform1i(m_attribLocationTex, 0);
     glUniformMatrix4fv(m_attribLocationProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
+    glUniform1i(m_attribLocationHovered, m_hovered);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
-    glEnableVertexAttribArray(m_attribLocationVtxColor);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
-    glVertexAttribPointer(m_attribLocationVtxColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, col));
 }
