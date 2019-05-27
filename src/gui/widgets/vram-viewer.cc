@@ -51,14 +51,49 @@ uniform sampler2D u_vramTexture;
 uniform vec2 u_origin;
 uniform vec2 u_resolution;
 uniform vec2 u_mousePos;
+uniform vec2 u_mouseUV;
 uniform bool u_hovered;
 in vec2 fragUV;
 out vec4 outColor;
 layout(origin_upper_left) in vec4 gl_FragCoord;
 
+uniform bool u_magnify;
+uniform float u_magnifyRadius;
+uniform float u_magnifyAmount;
+const float ridge = 1.0f;
+
+vec4 readTexture(in vec2 pos) {
+    if (pos.x > 1.0f) return vec4(0.0f);
+    if (pos.y > 1.0f) return vec4(0.0f);
+    if (pos.x < 0.0f) return vec4(0.0f);
+    if (pos.y < 0.0f) return vec4(0.0f);
+    return texture(u_vramTexture, pos);
+}
+
 void main() {
+    float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
-    outColor = texture(u_vramTexture, fragUV.st);
+    vec4 fragColor = readTexture(fragUV.st);
+    vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
+    vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
+    float blend = 0.0f;
+
+    outColor = fragColor;
+
+    float distFromCursor = distance(fragCoord, u_mousePos);
+
+    if (distFromCursor < u_magnifyRadius) {
+        blend = 1.0f;
+    } else if (distFromCursor < (u_magnifyRadius + ridge)) {
+        blend = distFromCursor - u_magnifyRadius;
+        blend /= ridge;
+        blend = 1.0f - blend;
+    }
+
+    if (!u_magnify) blend = 0.0f;
+
+    outColor = blend * magnifyColor + (1.0f - blend) * fragColor;
+
     outColor.a = 1.0f;
 }
 )";
@@ -150,8 +185,12 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
     m_attribLocationMousePos = glGetUniformLocation(m_shaderProgram, "u_mousePos");
+    m_attribLocationMouseUV = glGetUniformLocation(m_shaderProgram, "u_mouseUV");
     m_attribLocationResolution = glGetUniformLocation(m_shaderProgram, "u_resolution");
     m_attribLocationOrigin = glGetUniformLocation(m_shaderProgram, "u_origin");
+    m_attribLocationMagnify = glGetUniformLocation(m_shaderProgram, "u_magnify");
+    m_attribLocationMagnifyRadius = glGetUniformLocation(m_shaderProgram, "u_magnifyRadius");
+    m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
     m_attribLocationVtxPos = attribLocationVtxPos;
     m_attribLocationVtxUV = attribLocationVtxUV;
 
@@ -181,10 +220,25 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensio
     m_origin = ImGui::GetCursorScreenPos();
     auto mousePos = ImGui::GetIO().MousePos;
     m_mousePos = ImVec2(mousePos.x - m_origin.x, mousePos.y - m_origin.y);
+    ImVec2 mouseUV = ImVec2(1024.0f * m_mousePos.x / m_resolution.x, 512.0f * m_mousePos.y / m_resolution.y);
     ImGui::Image((ImTextureID)textureID, dimensions, ImVec2(0, 0), ImVec2(1, 1));
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
     ImGui::Text("Mouse status: (%0.2f, %0.2f) %shovering", m_mousePos.x, m_mousePos.y, m_hovered ? "" : "not ");
+    ImGui::Text("Mouse UV location: (%0.2f, %0.2f)", mouseUV.x, mouseUV.y);
+    ImGui::Text("MagnifyAmount: %0.2f", m_magnifyAmount);
+    ImGui::Text("MagnifyRadius: %0.2f", m_magnifyRadius);
+    const auto &io = ImGui::GetIO();
+    m_magnify = io.KeyCtrl;
+    if (io.MouseWheel != 0.0f && io.KeyCtrl) {
+        if (io.KeyShift) {
+            m_magnifyRadius += io.MouseWheel * 10.0f;
+            if (m_magnifyRadius <= 0.0f) m_magnifyRadius = 0.0f;
+        } else {
+            m_magnifyAmount += io.MouseWheel;
+            while ((-1.0f <= m_magnifyAmount) && (m_magnifyAmount <= 1.0f)) m_magnifyAmount += io.MouseWheel;
+        }
+    }
 }
 
 void PCSX::Widgets::VRAMViewer::drawEditor() {
@@ -219,8 +273,17 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniformMatrix4fv(m_attribLocationProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
     glUniform1i(m_attribLocationHovered, m_hovered);
     glUniform2f(m_attribLocationMousePos, m_mousePos.x, m_mousePos.y);
+    ImVec2 mouseUV = ImVec2(m_mousePos.x / m_resolution.x, m_mousePos.y / m_resolution.y);
+    glUniform2f(m_attribLocationMouseUV, mouseUV.x, mouseUV.y);
     glUniform2f(m_attribLocationResolution, m_resolution.x, m_resolution.y);
     glUniform2f(m_attribLocationOrigin, m_origin.x, m_origin.y);
+    glUniform1i(m_attribLocationMagnify, m_magnify);
+    if (m_magnifyAmount < 0.0f) {
+        glUniform1f(m_attribLocationMagnifyAmount, -1.0f / m_magnifyAmount);
+    } else {
+        glUniform1f(m_attribLocationMagnifyAmount, m_magnifyAmount);
+    }
+    glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),

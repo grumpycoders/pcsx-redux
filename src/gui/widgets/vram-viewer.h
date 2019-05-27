@@ -49,10 +49,17 @@ class VRAMViewer {
     int m_attribLocationVtxUV;
     int m_attribLocationHovered;
     int m_attribLocationMousePos;
+    int m_attribLocationMouseUV;
     int m_attribLocationResolution;
     int m_attribLocationOrigin;
+    int m_attribLocationMagnify;
+    int m_attribLocationMagnifyRadius;
+    int m_attribLocationMagnifyAmount;
 
     bool m_hovered = false;
+    bool m_magnify = false;
+    float m_magnifyAmount = 5.0f;
+    float m_magnifyRadius = 150.0f;
     ImVec2 m_mousePos;
     ImVec2 m_resolution;
     ImVec2 m_origin;
