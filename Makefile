@@ -29,6 +29,7 @@ SRC_CPP := $(wildcard third_party/imgui/*.cpp)
 SRC_CPP += third_party/imgui/examples/imgui_impl_opengl3.cpp
 SRC_CPP += third_party/imgui/examples/imgui_impl_sdl.cpp
 SRC_CPP += third_party/imgui/misc/cpp/imgui_stdlib.cpp
+SRC_CPP += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRC_C := third_party/imgui/examples/libs/gl3w/GL/gl3w.c
 OBJECTS := $(patsubst %.cc,%.o,$(SRC_CC))
 OBJECTS += $(patsubst %.cpp,%.o,$(SRC_CPP))
