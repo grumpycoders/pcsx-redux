@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "imgui.h"
 #include "ImGuiColorTextEdit/TextEditor.h"
+#include "imgui.h"
 
 namespace PCSX {
 namespace Widgets {
@@ -29,6 +29,10 @@ class VRAMViewer {
   public:
     void init();
     void drawVRAM(unsigned int textureID, ImVec2 dimensions);
+    void resetView() {
+        m_cornerTL = {0.0f, 0.0f};
+        m_cornerBR = {1.0f, 1.0f};
+    }
     void drawEditor();
     void destroy();
 
@@ -55,6 +59,8 @@ class VRAMViewer {
     int m_attribLocationMagnify;
     int m_attribLocationMagnifyRadius;
     int m_attribLocationMagnifyAmount;
+    int m_attribLocationCornerTL;
+    int m_attribLocationCornerBR;
 
     bool m_hovered = false;
     bool m_magnify = false;
@@ -63,6 +69,8 @@ class VRAMViewer {
     ImVec2 m_mousePos;
     ImVec2 m_resolution;
     ImVec2 m_origin;
+    ImVec2 m_cornerTL = {0.0f, 0.0f};
+    ImVec2 m_cornerBR = {1.0f, 1.0f};
     unsigned int m_textureID;
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
@@ -70,5 +78,5 @@ class VRAMViewer {
     std::string m_errorMessage;
 };
 
-}
-}
+}  // namespace Widgets
+}  // namespace PCSX

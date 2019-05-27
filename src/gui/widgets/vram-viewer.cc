@@ -36,11 +36,18 @@ static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 in vec2 i_position;
 in vec2 i_texUV;
+uniform vec2 u_mouseUV;
 uniform mat4 u_projMatrix;
+uniform vec2 u_cornerTL;
+uniform vec2 u_cornerBR;
+flat out vec2 mouseUV;
 out vec2 fragUV;
 
 void main() {
-    fragUV = i_texUV;
+	vec2 dimensions = u_cornerBR - u_cornerTL;
+	vec2 translation = (vec2(0.0f) - u_cornerTL) / dimensions;
+	mouseUV = u_mouseUV / dimensions + translation;
+    fragUV = i_texUV / dimensions + translation;
     gl_Position = u_projMatrix * vec4(i_position.xy, 0.0f, 1.0f);
 }
 )";
@@ -51,8 +58,8 @@ uniform sampler2D u_vramTexture;
 uniform vec2 u_origin;
 uniform vec2 u_resolution;
 uniform vec2 u_mousePos;
-uniform vec2 u_mouseUV;
 uniform bool u_hovered;
+in vec2 mouseUV;
 in vec2 fragUV;
 out vec4 outColor;
 layout(origin_upper_left) in vec4 gl_FragCoord;
@@ -74,8 +81,8 @@ void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
     vec4 fragColor = readTexture(fragUV.st);
-    vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
-    vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
+    vec2 magnifyVector = (fragUV.st - mouseUV) / u_magnifyAmount;
+    vec4 magnifyColor = readTexture(magnifyVector + mouseUV);
 
     float blend = u_magnify ?
         smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, u_mousePos)) :
@@ -180,6 +187,8 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_attribLocationMagnify = glGetUniformLocation(m_shaderProgram, "u_magnify");
     m_attribLocationMagnifyRadius = glGetUniformLocation(m_shaderProgram, "u_magnifyRadius");
     m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
+    m_attribLocationCornerTL = glGetUniformLocation(m_shaderProgram, "u_cornerTL");
+    m_attribLocationCornerBR = glGetUniformLocation(m_shaderProgram, "u_cornerBR");
     m_attribLocationVtxPos = attribLocationVtxPos;
     m_attribLocationVtxUV = attribLocationVtxUV;
 
@@ -203,29 +212,74 @@ void PCSX::Widgets::VRAMViewer::destroy() {
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensions) {
     m_resolution = dimensions;
+    dimensions = {m_cornerBR.x - m_cornerTL.x, m_cornerBR.y - m_cornerTL.y};
+    ImVec2 translation = {(0.0f - m_cornerTL.x) / dimensions.x, (0.0f - m_cornerTL.y) / dimensions.y};
     m_textureID = textureID;
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
     m_origin = ImGui::GetCursorScreenPos();
     auto mousePos = ImGui::GetIO().MousePos;
     m_mousePos = ImVec2(mousePos.x - m_origin.x, mousePos.y - m_origin.y);
-    ImVec2 mouseUV = ImVec2(1024.0f * m_mousePos.x / m_resolution.x, 512.0f * m_mousePos.y / m_resolution.y);
-    ImGui::Image((ImTextureID)textureID, dimensions, ImVec2(0, 0), ImVec2(1, 1));
+    ImVec2 mouseNorm = ImVec2(m_mousePos.x / m_resolution.x, m_mousePos.y / m_resolution.y);
+    ImVec2 mouseUV = {1024.0f * (mouseNorm.x / dimensions.x + translation.x), 512.0f * (mouseNorm.y / dimensions.y + translation.y)};
+    ImGui::Image((ImTextureID)textureID, m_resolution, ImVec2(0, 0), ImVec2(1, 1));
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
-    ImGui::Text("Mouse status: (%0.2f, %0.2f) %shovering", m_mousePos.x, m_mousePos.y, m_hovered ? "" : "not ");
-    ImGui::Text("Mouse UV location: (%0.2f, %0.2f)", mouseUV.x, mouseUV.y);
-    ImGui::Text("MagnifyAmount: %0.2f", m_magnifyAmount);
-    ImGui::Text("MagnifyRadius: %0.2f", m_magnifyRadius);
+    ImGui::Text(_("Cursor location: (%3.0f, %3.0f)"), mouseUV.x, mouseUV.y);
     const auto &io = ImGui::GetIO();
+    if (!m_hovered) {
+        m_magnify = false;
+        return;
+    }
     m_magnify = io.KeyCtrl;
-    if (io.MouseWheel != 0.0f && io.KeyCtrl) {
-        if (io.KeyShift) {
-            m_magnifyRadius += io.MouseWheel * 10.0f;
-            if (m_magnifyRadius <= 0.0f) m_magnifyRadius = 0.0f;
+    if (io.MouseWheel != 0.0f) {
+        if (io.KeyCtrl) {
+            if (io.KeyShift) {
+                m_magnifyRadius += io.MouseWheel * 10.0f;
+                if (m_magnifyRadius <= 0.0f) m_magnifyRadius = 0.0f;
+            } else {
+                m_magnifyAmount += io.MouseWheel;
+                while ((-1.0f <= m_magnifyAmount) && (m_magnifyAmount <= 1.0f)) m_magnifyAmount += io.MouseWheel;
+            }
         } else {
-            m_magnifyAmount += io.MouseWheel;
-            while ((-1.0f <= m_magnifyAmount) && (m_magnifyAmount <= 1.0f)) m_magnifyAmount += io.MouseWheel;
+            static const float increment = 1.2f;
+            const float step = io.MouseWheel > 0.0f ? increment * io.MouseWheel : -1.0f / (increment * io.MouseWheel);
+            ImVec2 newDimensions = {dimensions.x * step, dimensions.y * step};
+            if (newDimensions.x <= 1.0f) newDimensions.x = 1.0f;
+            if (newDimensions.y <= 1.0f) newDimensions.y = 1.0f;
+            ImVec2 dimensionsDiff = {newDimensions.x - dimensions.x, newDimensions.y - dimensions.y};
+            dimensions = newDimensions;
+            m_cornerTL.x -= dimensionsDiff.x * mouseNorm.x;
+            m_cornerTL.y -= dimensionsDiff.y * mouseNorm.y;
+            if (m_cornerTL.x >= 0.0f) m_cornerTL.x = 0.0f;
+            if (m_cornerTL.y >= 0.0f) m_cornerTL.y = 0.0f;
+            m_cornerBR.x = m_cornerTL.x + dimensions.x;
+            m_cornerBR.y = m_cornerTL.y + dimensions.y;
+            if (m_cornerBR.x <= 1.0f) {
+                m_cornerBR.x = 1.0f;
+                m_cornerTL.x = m_cornerBR.x - dimensions.x;
+            }
+            if (m_cornerBR.y <= 1.0f) {
+                m_cornerBR.y = 1.0f;
+                m_cornerTL.y = m_cornerBR.y - dimensions.y;
+            }
+        }
+    } else if (io.MouseDown[2]) {
+        ImVec2 dimensions = {m_cornerBR.x - m_cornerTL.x, m_cornerBR.y - m_cornerTL.y};
+        ImVec2 mouseDeltaNorm = {io.MouseDelta.x / m_resolution.x, io.MouseDelta.y / m_resolution.y};
+        m_cornerTL.x += mouseDeltaNorm.x;
+        m_cornerTL.y += mouseDeltaNorm.y;
+        if (m_cornerTL.x >= 0.0f) m_cornerTL.x = 0.0f;
+        if (m_cornerTL.y >= 0.0f) m_cornerTL.y = 0.0f;
+        m_cornerBR.x = m_cornerTL.x + dimensions.x;
+        m_cornerBR.y = m_cornerTL.y + dimensions.y;
+        if (m_cornerBR.x <= 1.0f) {
+            m_cornerBR.x = 1.0f;
+            m_cornerTL.x = m_cornerBR.x - dimensions.x;
+        }
+        if (m_cornerBR.y <= 1.0f) {
+            m_cornerBR.y = 1.0f;
+            m_cornerTL.y = m_cornerBR.y - dimensions.y;
         }
     }
 }
@@ -273,6 +327,8 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
         glUniform1f(m_attribLocationMagnifyAmount, m_magnifyAmount);
     }
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
+    glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
+    glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),

@@ -438,6 +438,8 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("View"))) {
+                    if (ImGui::MenuItem(_("Reset view"))) m_vramViewer.resetView();
+                    ImGui::Separator();
                     ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showVRAMShaderEditor);
                     ImGui::EndMenu();
                 }
