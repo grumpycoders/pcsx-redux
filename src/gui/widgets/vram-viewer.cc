@@ -60,7 +60,7 @@ layout(origin_upper_left) in vec4 gl_FragCoord;
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
-const float ridge = 1.0f;
+const float ridge = 1.5f;
 
 vec4 readTexture(in vec2 pos) {
     if (pos.x > 1.0f) return vec4(0.0f);
@@ -76,23 +76,12 @@ void main() {
     vec4 fragColor = readTexture(fragUV.st);
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
     vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
-    float blend = 0.0f;
 
-    outColor = fragColor;
+    float blend = u_magnify ?
+        smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, u_mousePos)) :
+        0.0f;
 
-    float distFromCursor = distance(fragCoord, u_mousePos);
-
-    if (distFromCursor < u_magnifyRadius) {
-        blend = 1.0f;
-    } else if (distFromCursor < (u_magnifyRadius + ridge)) {
-        blend = distFromCursor - u_magnifyRadius;
-        blend /= ridge;
-        blend = 1.0f - blend;
-    }
-
-    if (!u_magnify) blend = 0.0f;
-
-    outColor = blend * magnifyColor + (1.0f - blend) * fragColor;
+    outColor = mix(fragColor, magnifyColor, blend);
 
     outColor.a = 1.0f;
 }
