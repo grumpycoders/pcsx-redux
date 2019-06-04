@@ -59,7 +59,7 @@ uniform vec2 u_origin;
 uniform vec2 u_resolution;
 uniform vec2 u_mousePos;
 uniform bool u_hovered;
-in vec2 mouseUV;
+flat in vec2 mouseUV;
 in vec2 fragUV;
 out vec4 outColor;
 layout(origin_upper_left) in vec4 gl_FragCoord;
@@ -131,7 +131,6 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
         m_errorMessage = std::string(_("Pixel Shader compilation error:\n")) + log;
 
         free(log);
-        glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
         PCSX::GUI::checkGL();
         return;
