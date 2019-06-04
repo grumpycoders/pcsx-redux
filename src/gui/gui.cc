@@ -144,7 +144,10 @@ void PCSX::GUI::init() {
 
     unsigned counter = 1;
     for (auto& editor : m_mainMemEditors) {
-        editor.title = [counter]() { return (_("Memory Editor #") + std::to_string(counter)).c_str(); };
+        editor.title = [counter, this]() {
+            m_mainMemEditorsTitles[counter - 1] = (_("Memory Editor #") + std::to_string(counter));
+            return m_mainMemEditorsTitles[counter - 1].c_str();
+        };
         counter++;
         editor.show = false;
     }
