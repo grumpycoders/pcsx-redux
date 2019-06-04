@@ -131,6 +131,7 @@ class GUI final {
         }
     };
     MemoryEditorWrapper m_mainMemEditors[8];
+    std::string m_mainMemEditorsTitles[8];
     MemoryEditorWrapper m_parallelPortEditor;
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
