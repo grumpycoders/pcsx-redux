@@ -157,7 +157,7 @@ class impl {
 #if 0
     typedef Setting<bool, typestring_is("Streaming"), true> Streaming;
     typedef Setting<int, typestring_is("Volume"), 3> Volume;
-    typedef Setting<bool, typestring_is("Pitch"), true> StreamingPitch;
+    typedef Setting<bool, typestring_is("Pitch"), false> StreamingPitch;
     typedef Setting<bool, typestring_is("IRQWait"), true> SPUIRQWait;
     typedef Setting<int, typestring_is("Reverb"), 2> Reverb;
     typedef Setting<int, typestring_is("Interp"), 2> Interpolation;
@@ -167,7 +167,7 @@ class impl {
 #else
     typedef Setting<bool, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>, true> Streaming;
     typedef Setting<int, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>, 3> Volume;
-    typedef Setting<bool, irqus::typestring<'P', 'i', 't', 'c', 'h'>, true> StreamingPitch;
+    typedef Setting<bool, irqus::typestring<'P', 'i', 't', 'c', 'h'>, false> StreamingPitch;
     typedef Setting<bool, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>, true> SPUIRQWait;
     typedef Setting<int, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>, 2> Reverb;
     typedef Setting<int, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>, 2> Interpolation;
