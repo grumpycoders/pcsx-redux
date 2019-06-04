@@ -36,6 +36,8 @@ class VRAMViewer {
     void drawEditor();
     void destroy();
 
+    void render(unsigned int VRAMTexture);
+
   private:
     void compileShader(const char *VS, const char *PS);
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -61,6 +63,8 @@ class VRAMViewer {
     int m_attribLocationMagnifyAmount;
     int m_attribLocationCornerTL;
     int m_attribLocationCornerBR;
+    int m_attribLocationAlpha;
+    int m_attribLocationMode;
 
     bool m_hovered = false;
     bool m_magnify = false;
@@ -76,6 +80,19 @@ class VRAMViewer {
     TextEditor m_pixelShaderEditor;
 
     std::string m_errorMessage;
+
+    enum : int {
+        VRAM_24BITS,
+        VRAM_16BITS,
+        VRAM_8BITS,
+        VRAM_4BITS,
+    } m_vramMode = VRAM_16BITS;
+    bool m_vramAlpha = false;
+  public:
+    bool m_showVRAMwindow = false;
+
+  private:
+    bool m_showVRAMShaderEditor = false;
 };
 
 }  // namespace Widgets

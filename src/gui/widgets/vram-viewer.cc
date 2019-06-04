@@ -59,6 +59,8 @@ uniform vec2 u_origin;
 uniform vec2 u_resolution;
 uniform vec2 u_mousePos;
 uniform bool u_hovered;
+uniform bool u_alpha;
+uniform int u_mode;
 flat in vec2 mouseUV;
 in vec2 fragUV;
 out vec4 outColor;
@@ -69,12 +71,59 @@ uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
 const float ridge = 1.5f;
 
+const vec4 grey1 = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+const vec4 grey2 = vec4(0.8f, 0.8f, 0.8f, 1.0f);
+
 vec4 readTexture(in vec2 pos) {
-    if (pos.x > 1.0f) return vec4(0.0f);
-    if (pos.y > 1.0f) return vec4(0.0f);
-    if (pos.x < 0.0f) return vec4(0.0f);
-    if (pos.y < 0.0f) return vec4(0.0f);
-    return texture(u_vramTexture, pos);
+    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 fpos = fract(apos);
+    vec4 ret = vec4(0.0f);
+    if (pos.x > 1.0f) return ret;
+    if (pos.y > 1.0f) return ret;
+    if (pos.x < 0.0f) return ret;
+    if (pos.y < 0.0f) return ret;
+
+    vec4 t = texture(u_vramTexture, pos);
+    float scale = 0.0f;
+    int p = 0;
+
+    int c = (int(t.r * 31.0f) <<  0) |
+            (int(t.g * 31.0f) <<  5) |
+            (int(t.b * 31.0f) << 10) |
+            (int(t.a) << 15);
+
+    switch (u_mode) {
+    case 1:
+        ret = t;
+        break;
+    case 2:
+        scale = 255.0f;
+        if (fpos.x < 0.5f) {
+            p = (c >> 0) & 0xff;
+        } else {
+            p = (c >> 8) & 0xff;
+        }
+        break;
+    case 3:
+        scale = 15.0f;
+        if (fpos.x < 0.25f) {
+            p = (c >> 0) & 0xf;
+        } else if (fpos.x < 0.5f) {
+            p = (c >> 4) & 0xf;
+        } else if (fpos.x < 0.75f) {
+            p = (c >> 8) & 0xf;
+        } else {
+            p = (c >> 12) & 0xf;
+        }
+        break;
+    }
+
+    if (u_mode >= 2) {
+        ret = vec4(float(p) / scale);
+        ret.a = 1.0f;
+    }
+
+    return ret;
 }
 
 void main() {
@@ -90,6 +139,13 @@ void main() {
 
     outColor = mix(fragColor, magnifyColor, blend);
 
+    if (u_alpha) {
+        int x = int(fragCoord.x);
+        int y = int(fragCoord.y);
+        int info = (x >> 4) + (y >> 4);
+        vec4 back = (info & 1) == 0 ? grey1 : grey2;
+        outColor = mix(back, outColor, outColor.a);
+    }
     outColor.a = 1.0f;
 }
 )";
@@ -188,6 +244,8 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
     m_attribLocationCornerTL = glGetUniformLocation(m_shaderProgram, "u_cornerTL");
     m_attribLocationCornerBR = glGetUniformLocation(m_shaderProgram, "u_cornerBR");
+    m_attribLocationAlpha = glGetUniformLocation(m_shaderProgram, "u_alpha");
+    m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
     m_attribLocationVtxPos = attribLocationVtxPos;
     m_attribLocationVtxUV = attribLocationVtxUV;
 
@@ -220,7 +278,8 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensio
     auto mousePos = ImGui::GetIO().MousePos;
     m_mousePos = ImVec2(mousePos.x - m_origin.x, mousePos.y - m_origin.y);
     ImVec2 mouseNorm = ImVec2(m_mousePos.x / m_resolution.x, m_mousePos.y / m_resolution.y);
-    ImVec2 mouseUV = {1024.0f * (mouseNorm.x / dimensions.x + translation.x), 512.0f * (mouseNorm.y / dimensions.y + translation.y)};
+    ImVec2 mouseUV = {1024.0f * (mouseNorm.x / dimensions.x + translation.x),
+                      512.0f * (mouseNorm.y / dimensions.y + translation.y)};
     ImGui::Image((ImTextureID)textureID, m_resolution, ImVec2(0, 0), ImVec2(1, 1));
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
@@ -328,6 +387,8 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
     glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
     glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
+    glUniform1i(m_attribLocationAlpha, m_vramAlpha);
+    glUniform1i(m_attribLocationMode, m_vramMode);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
@@ -338,4 +399,51 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     PCSX::GUI::checkGL();
+}
+
+void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
+    if (m_showVRAMwindow) {
+        if (ImGui::Begin(
+                _("VRAM"), &m_showVRAMwindow,
+                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar)) {
+            if (ImGui::BeginMenuBar()) {
+                if (ImGui::BeginMenu(_("File"))) {
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu(_("View"))) {
+                    if (ImGui::MenuItem(_("Reset view"))) resetView();
+                    ImGui::Separator();
+                    if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
+                        m_vramMode = VRAM_24BITS;
+                    }
+                    if (ImGui::MenuItem(_("View VRAM in 16 bits"), nullptr, m_vramMode == VRAM_16BITS)) {
+                        m_vramMode = VRAM_16BITS;
+                    }
+                    if (ImGui::MenuItem(_("View VRAM in 8 bits"), nullptr, m_vramMode == VRAM_8BITS)) {
+                        m_vramMode = VRAM_8BITS;
+                    }
+                    if (ImGui::MenuItem(_("View VRAM in 4 bits"), nullptr, m_vramMode == VRAM_4BITS)) {
+                        m_vramMode = VRAM_4BITS;
+                    }
+                    ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_vramAlpha);
+                    ImGui::Separator();
+                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showVRAMShaderEditor);
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenuBar();
+            }
+            ImVec2 textureSize = ImGui::GetContentRegionAvail();
+            static const float ratios[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
+            GUI::normalizeDimensions(textureSize, ratios[m_vramMode]);
+            drawVRAM(VRAMTexture, textureSize);
+        }
+        ImGui::End();
+    }
+
+    if (m_showVRAMShaderEditor) {
+        if (ImGui::Begin(_("VRAM Shader Editor"), &m_showVRAMShaderEditor)) {
+            drawEditor();
+        }
+        ImGui::End();
+    }
 }

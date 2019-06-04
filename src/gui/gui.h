@@ -76,7 +76,8 @@ class GUI final {
     void biosCounters();
     void about();
 
-    void normalizeDimensions(ImVec2 &vec, float ratio) {
+  public:
+    static void normalizeDimensions(ImVec2 &vec, float ratio) {
         float r = vec.y / vec.x;
         if (r > ratio) {
             vec.y = vec.x * ratio;
@@ -85,6 +86,7 @@ class GUI final {
         }
     }
 
+  private:
     SDL_Window *m_window = nullptr;
     SDL_GLContext m_glContext = nullptr;
     unsigned int m_VRAMTexture = 0;
@@ -106,18 +108,15 @@ class GUI final {
         bool, irqus::typestring<'F', 'u', 'l', 'l', 's', 'c', 'r', 'e', 'e', 'n', 'R', 'e', 'n', 'd', 'e', 'r'>, true>
         FullscreenRender;
     typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'M', 'e', 'n', 'u'>> ShowMenu;
-    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'V', 'R', 'A', 'M'>> ShowVRAM;
     typedef Setting<bool,
                     irqus::typestring<'S', 'h', 'o', 'w', 'B', 'i', 'o', 's', 'C', 'o', 'u', 'n', 't', 'e', 'r', 's'>>
         ShowBiosCounters;
     typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'L', 'o', 'g'>> ShowLog;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowVRAM, ShowBiosCounters, ShowLog> settings;
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog> settings;
 
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     bool m_showDemo = false;
-    bool &m_showVRAMwindow = {settings.get<ShowVRAM>().value};
-    bool m_showVRAMShaderEditor;
     bool m_showAbout = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {

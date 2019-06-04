@@ -369,7 +369,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                ImGui::MenuItem(_("Show VRAM"), nullptr, &m_showVRAMwindow);
+                ImGui::MenuItem(_("Show VRAM"), nullptr, &m_vramViewer.m_showVRAMwindow);
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
@@ -427,37 +427,9 @@ void PCSX::GUI::endFrame() {
 
     if (m_showDemo) ImGui::ShowDemoWindow();
 
-    if (m_showVRAMwindow) {
-        ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(
-                _("VRAM"), &m_showVRAMwindow,
-                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar)) {
-            if (ImGui::BeginMenuBar()) {
-                if (ImGui::BeginMenu(_("File"))) {
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu(_("View"))) {
-                    if (ImGui::MenuItem(_("Reset view"))) m_vramViewer.resetView();
-                    ImGui::Separator();
-                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showVRAMShaderEditor);
-                    ImGui::EndMenu();
-                }
-                ImGui::EndMenuBar();
-            }
-            ImVec2 textureSize = ImGui::GetContentRegionAvail();
-            normalizeDimensions(textureSize, 0.5f);
-            m_vramViewer.drawVRAM(m_VRAMTexture, textureSize);
-        }
-        ImGui::End();
-    }
-
-    if (m_showVRAMShaderEditor) {
-        if (ImGui::Begin(_("VRAM Shader Editor"), &m_showVRAMShaderEditor)) {
-            m_vramViewer.drawEditor();
-        }
-        ImGui::End();
-    }
+    ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
+    m_vramViewer.render(m_VRAMTexture);
 
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
