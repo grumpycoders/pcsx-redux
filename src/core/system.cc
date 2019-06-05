@@ -27,7 +27,7 @@
 
 PCSX::System* PCSX::g_system = NULL;
 
-bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::path & path) {
+bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::path& path) {
     std::unique_ptr<File> in(new File(path));
     int c;
     std::string currentString = "";
@@ -50,10 +50,15 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
     uint64_t hashValue;
     std::map<uint64_t, std::string> locale;
 
-    if (in->failed()) return false;
+    if (in->failed()) {
+        return false;
+    }
 
     while ((c = in->getc()) >= 0) {
-        if (c == '\n') {
+        if (c == '\n' || c == '\r') {
+            if (inString) {
+                return false;
+            }
             inComment = false;
             newLine = true;
             continue;
@@ -66,7 +71,9 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
                 continue;
             }
             if (c == '\"') {
-                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) return false;
+                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) {
+                    return false;
+                }
                 inString = true;
                 continue;
             }
@@ -103,14 +110,28 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
                         inlined = c - '0';
                     } else {
                         switch (c) {
-                            case 'b': singleChar[0] = '\b'; break;
-                            case 't': singleChar[0] = '\t'; break;
-                            case 'n': singleChar[0] = '\n'; break;
-                            case 'f': singleChar[0] = '\f'; break;
-                            case 'r': singleChar[0] = '\r'; break;
-                            case '\\': singleChar[0] = '\\'; break;
+                            case 'b':
+                                singleChar[0] = '\b';
+                                break;
+                            case 't':
+                                singleChar[0] = '\t';
+                                break;
+                            case 'n':
+                                singleChar[0] = '\n';
+                                break;
+                            case 'f':
+                                singleChar[0] = '\f';
+                                break;
+                            case 'r':
+                                singleChar[0] = '\r';
+                                break;
+                            case '\\':
+                                singleChar[0] = '\\';
+                                break;
                             case '"':
-                            case '\'': singleChar[0] = c; break;
+                            case '\'':
+                                singleChar[0] = c;
+                                break;
                             default:
                                 currentString += '\\';
                                 singleChar[0] = c;
@@ -154,14 +175,18 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
                     switch (state) {
                         case WAITING_MSGIDTOKEN:
                             if (token.length() == 5) {
-                                if (token != "msgid") return false;
+                                if (token != "msgid") {
+                                    return false;
+                                }
                                 token = "";
                                 state = WAITING_MSGID;
                             }
                             break;
                         case WAITING_MSGSTRTOKEN:
                             if (token.length() == 6) {
-                                if (token != "msgstr") return false;
+                                if (token != "msgstr") {
+                                    return false;
+                                }
                                 token = "";
                                 state = WAITING_MSGSTR;
                             }
@@ -172,7 +197,9 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
         }
     }
 
-    if (inString || (state != WAITING_MSGIDTOKEN)) return false;
+    if (inString || (state != WAITING_MSGIDTOKEN)) {
+        return false;
+    }
 
     if (currentString != "") locale[hashValue] = currentString;
     m_locales[name] = locale;
