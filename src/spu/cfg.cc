@@ -48,7 +48,7 @@ bool PCSX::SPU::impl::configure() {
     ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
 XA audio and audio tracks.)"));
-    static const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
+    const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
     changed |= ImGui::Checkbox(_("Change streaming pitch"), &settings.get<StreamingPitch>().value);
     ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
@@ -57,12 +57,12 @@ in sync, by changing its pitch. Consumes more CPU.)"));
     ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)"));
-    static const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
-                                         _("Accurate - best quality, but slower")};
+    const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
+                                  _("Accurate - best quality, but slower")};
     changed |= ImGui::Combo(_("Reverb"), &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
-    static const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
-                                                _("Gaussian interpolation - good quality"),
-                                                _("Cubic interpolation - better treble")};
+    const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
+                                         _("Gaussian interpolation - good quality"),
+                                         _("Cubic interpolation - better treble")};
     changed |= ImGui::Combo(_("Interpolation"), &settings.get<Interpolation>().value, interpolationValues,
                             IM_ARRAYSIZE(interpolationValues));
     changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
