@@ -27,10 +27,9 @@
 
 PCSX::System* PCSX::g_system = NULL;
 
-bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::path & path) {
+bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::path& path) {
     std::unique_ptr<File> in(new File(path));
     int c;
-    std::stringstream ss;
     std::string currentString = "";
     std::string token = "";
     std::string singleChar = ".";
@@ -38,6 +37,9 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
     bool inComment = false;
     bool inString = false;
     bool gotBackquote = false;
+    unsigned inlineIndex = 0;
+    unsigned shift = 0;
+    uint8_t inlined = 0;
     enum : int {
         WAITING_MSGIDTOKEN,
         WAITING_MSGID,
@@ -48,10 +50,15 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
     uint64_t hashValue;
     std::map<uint64_t, std::string> locale;
 
-    if (in->failed()) return false;
+    if (in->failed()) {
+        return false;
+    }
 
     while ((c = in->getc()) >= 0) {
-        if (c == '\n') {
+        if (c == '\n' || c == '\r') {
+            if (inString) {
+                return false;
+            }
             inComment = false;
             newLine = true;
             continue;
@@ -64,29 +71,86 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
                 continue;
             }
             if (c == '\"') {
-                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) return false;
-                ss << "\"";
+                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) {
+                    return false;
+                }
                 inString = true;
                 continue;
             }
         }
         if (inString) {
             singleChar[0] = c;
-            ss << singleChar;
             if (c == '\"' && !gotBackquote) {
-                std::string quotedString;
-                ss >> std::quoted(quotedString);
-                currentString += quotedString;
                 inString = false;
+            } else if (gotBackquote) {
+                if (inlineIndex) {
+                    inlineIndex++;
+                    inlined <<= shift;
+                    if (c >= '0' && c <= '9') {
+                        inlined += c - '0';
+                    } else if (c >= 'a' && c <= 'f') {
+                        inlined += c - 'a' + 10;
+                    } else if (c >= 'A' && c <= 'F') {
+                        inlined += c - 'A' + 10;
+                    }
+                    if (inlineIndex == 3) {
+                        gotBackquote = false;
+                        singleChar[0] = inlined;
+                        currentString += singleChar;
+                        inlineIndex = 0;
+                    }
+                } else {
+                    if (c == 'x') {
+                        inlineIndex = 1;
+                        shift = 4;
+                        inlined = 0;
+                    } else if (c >= '0' && c <= '7') {
+                        inlineIndex = 1;
+                        shift = 3;
+                        inlined = c - '0';
+                    } else {
+                        switch (c) {
+                            case 'b':
+                                singleChar[0] = '\b';
+                                break;
+                            case 't':
+                                singleChar[0] = '\t';
+                                break;
+                            case 'n':
+                                singleChar[0] = '\n';
+                                break;
+                            case 'f':
+                                singleChar[0] = '\f';
+                                break;
+                            case 'r':
+                                singleChar[0] = '\r';
+                                break;
+                            case '\\':
+                                singleChar[0] = '\\';
+                                break;
+                            case '"':
+                            case '\'':
+                                singleChar[0] = c;
+                                break;
+                            default:
+                                currentString += '\\';
+                                singleChar[0] = c;
+                                break;
+                        }
+                        currentString += singleChar;
+                        gotBackquote = false;
+                    }
+                }
+            } else {
+                gotBackquote = c == '\\';
+                if (!gotBackquote) currentString += singleChar;
             }
-            gotBackquote = c == '\\';
         } else {
             if (c == ' ' || c == '\t') continue;
             switch (state) {
                 case WAITING_MSGID:
                 case WAITING_MSGSTR:
                     if (c == '\"') {
-                        ss << "\"";
                         inString = true;
                         (*reinterpret_cast<int*>(&state))++;
                         if (state == STATE_MAX) state = WAITING_MSGIDTOKEN;
@@ -111,14 +175,18 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
                     switch (state) {
                         case WAITING_MSGIDTOKEN:
                             if (token.length() == 5) {
-                                if (token != "msgid") return false;
+                                if (token != "msgid") {
+                                    return false;
+                                }
                                 token = "";
                                 state = WAITING_MSGID;
                             }
                             break;
                         case WAITING_MSGSTRTOKEN:
                             if (token.length() == 6) {
-                                if (token != "msgstr") return false;
+                                if (token != "msgstr") {
+                                    return false;
+                                }
                                 token = "";
                                 state = WAITING_MSGSTR;
                             }
@@ -129,7 +197,9 @@ bool PCSX::System::loadLocale(const std::string & name, const std::filesystem::p
         }
     }
 
-    if (inString || (state != WAITING_MSGIDTOKEN)) return false;
+    if (inString || (state != WAITING_MSGIDTOKEN)) {
+        return false;
+    }
 
     if (currentString != "") locale[hashValue] = currentString;
     m_locales[name] = locale;

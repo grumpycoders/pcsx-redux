@@ -167,22 +167,23 @@ using json = nlohmann::json;
 int main(int argc, char **argv) {
     const flags::args args(argc, argv);
 
+    SystemImpl *system = new SystemImpl;
+    PCSX::g_system = system;
+    std::filesystem::path self = argv[0];
+    std::filesystem::path binDir = self.parent_path();
+    system->setBinDir(binDir);
+    system->loadAllLocales();
+
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         assert(0);
     }
 
-    SystemImpl *system = new SystemImpl;
-    PCSX::g_system = system;
     s_gui = new PCSX::GUI(args);
     s_gui->init();
     system->m_enableStdout = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingStdout>();
     const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().string();
     if (!logfile.empty()) system->useLogfile(logfile);
 
-    std::filesystem::path self = argv[0];
-    std::filesystem::path binDir = self.parent_path();
-    system->setBinDir(binDir);
-    system->loadAllLocales();
     system->activateLocale(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLocale>());
 
     LoadPlugins();
