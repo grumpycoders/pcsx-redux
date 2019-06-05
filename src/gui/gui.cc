@@ -592,7 +592,7 @@ bool PCSX::GUI::configure() {
         }
 
         {
-            static const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
+            const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
             auto& cdda = settings.get<Emulator::SettingCDDA>().value;
             if (ImGui::BeginCombo(_("CDDA"), labels[cdda])) {
                 int counter = 0;
