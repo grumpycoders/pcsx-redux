@@ -148,7 +148,10 @@ void PCSX::GUI::init() {
 
     unsigned counter = 1;
     for (auto& editor : m_mainMemEditors) {
-        editor.title = [counter]() { return (_("Memory Editor #") + std::to_string(counter)).c_str(); };
+        editor.title = [counter, this]() {
+            m_mainMemEditorsTitles[counter - 1] = (_("Memory Editor #") + std::to_string(counter));
+            return m_mainMemEditorsTitles[counter - 1].c_str();
+        };
         counter++;
         editor.show = false;
     }
@@ -588,7 +591,7 @@ bool PCSX::GUI::configure() {
         }
 
         {
-            static const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
+            const char* labels[] = {_("Disabled"), _("Little Endian"), _("Big Endian")};
             auto& cdda = settings.get<Emulator::SettingCDDA>().value;
             if (ImGui::BeginCombo(_("CDDA"), labels[cdda])) {
                 int counter = 0;
