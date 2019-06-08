@@ -128,7 +128,7 @@ void PCSX::GUI::init() {
         std::string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
-    ImGui_ImplOpenGL3_Init();
+    ImGui_ImplOpenGL3_Init("#version 300 es");
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
     glGenTextures(1, &m_VRAMTexture);
