@@ -273,9 +273,6 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     auto mousePos = ImGui::GetIO().MousePos;
     m_mousePos = mousePos - m_origin;
 
-    // static const float ratios[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
-    ImVec2 dimensions = m_cornerBR - m_cornerTL;
-
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
 
@@ -286,6 +283,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     // ResolutionBR = m_resolution
     // --> texTL = 0 - (cornerTL - 0) / dimensions = -corner / dimensions
     // --> texBR = 1 - (cornerBR - m_resolution) / dimensions
+    ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
     ImGui::Image((ImTextureID)textureID, m_resolution, texTL, texBR);
@@ -400,15 +398,19 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
                     ImGui::Separator();
                     if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
                         m_vramMode = VRAM_24BITS;
+                        modeChanged();
                     }
                     if (ImGui::MenuItem(_("View VRAM in 16 bits"), nullptr, m_vramMode == VRAM_16BITS)) {
                         m_vramMode = VRAM_16BITS;
+                        modeChanged();
                     }
                     if (ImGui::MenuItem(_("View VRAM in 8 bits"), nullptr, m_vramMode == VRAM_8BITS)) {
                         m_vramMode = VRAM_8BITS;
+                        modeChanged();
                     }
                     if (ImGui::MenuItem(_("View VRAM in 4 bits"), nullptr, m_vramMode == VRAM_4BITS)) {
                         m_vramMode = VRAM_4BITS;
+                        modeChanged();
                     }
                     ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_vramAlpha);
                     ImGui::Separator();
@@ -428,4 +430,15 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
         }
         ImGui::End();
     }
+}
+
+void PCSX::Widgets::VRAMViewer::modeChanged() {
+    ImVec2 dimensions = m_cornerBR - m_cornerTL;
+    ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
+    ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
+    float focusX = texTL.x + (texBR.x - texTL.x) / 2.0f;
+    float newX = dimensions.y / RATIOS[m_vramMode];
+    float deltaX = newX - dimensions.x;
+    m_cornerTL.x = m_cornerTL.x - deltaX * focusX;
+    m_cornerBR.x = m_cornerTL.x + newX;
 }

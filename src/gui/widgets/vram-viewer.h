@@ -30,7 +30,7 @@ class VRAMViewer {
     void init();
     void resetView() {
         m_cornerTL = {0.0f, 0.0f};
-        m_cornerBR = {1024.0f, 512.0f};
+        m_cornerBR = {512.0f / RATIOS[m_vramMode], 512.0f};
     }
     void drawEditor();
     void destroy();
@@ -38,8 +38,10 @@ class VRAMViewer {
     void render(unsigned int VRAMTexture);
 
   private:
+    static inline const float RATIOS[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
     void drawVRAM(unsigned int textureID);
     void compileShader(const char *VS, const char *PS);
+    void modeChanged();
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
         VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
         that->imguiCB(parentList, cmd);
