@@ -30,7 +30,7 @@ class VRAMViewer {
     void init();
     void resetView() {
         m_cornerTL = {0.0f, 0.0f};
-        m_cornerBR = {1.0f, 1.0f};
+        m_cornerBR = {1024.0f, 512.0f};
     }
     void drawEditor();
     void destroy();
