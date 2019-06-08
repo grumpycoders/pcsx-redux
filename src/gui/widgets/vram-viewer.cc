@@ -26,6 +26,10 @@
 
 #include "GL/gl3w.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+#include "imgui_internal.h"
+
 #include "core/system.h"
 #include "gui/gui.h"
 #include "gui/widgets/vram-viewer.h"
@@ -36,18 +40,11 @@ static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 in vec2 i_position;
 in vec2 i_texUV;
-uniform vec2 u_mouseUV;
 uniform mat4 u_projMatrix;
-uniform vec2 u_cornerTL;
-uniform vec2 u_cornerBR;
-flat out vec2 mouseUV;
 out vec2 fragUV;
 
 void main() {
-	vec2 dimensions = u_cornerBR - u_cornerTL;
-	vec2 translation = (vec2(0.0f) - u_cornerTL) / dimensions;
-	mouseUV = u_mouseUV / dimensions + translation;
-    fragUV = i_texUV / dimensions + translation;
+    fragUV = i_texUV;
     gl_Position = u_projMatrix * vec4(i_position.xy, 0.0f, 1.0f);
 }
 )";
@@ -61,7 +58,9 @@ uniform vec2 u_mousePos;
 uniform bool u_hovered;
 uniform bool u_alpha;
 uniform int u_mode;
-flat in vec2 mouseUV;
+uniform vec2 u_mouseUV;
+uniform vec2 u_cornerTL;
+uniform vec2 u_cornerBR;
 in vec2 fragUV;
 out vec4 outColor;
 layout(origin_upper_left) in vec4 gl_FragCoord;
@@ -130,8 +129,8 @@ void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
     vec4 fragColor = readTexture(fragUV.st);
-    vec2 magnifyVector = (fragUV.st - mouseUV) / u_magnifyAmount;
-    vec4 magnifyColor = readTexture(magnifyVector + mouseUV);
+    vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
+    vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
 
     float blend = u_magnify ?
         smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, u_mousePos)) :
@@ -267,24 +266,39 @@ void PCSX::Widgets::VRAMViewer::destroy() {
     PCSX::GUI::checkGL();
 }
 
-void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensions) {
-    m_resolution = dimensions;
-    dimensions = {m_cornerBR.x - m_cornerTL.x, m_cornerBR.y - m_cornerTL.y};
-    ImVec2 translation = {(0.0f - m_cornerTL.x) / dimensions.x, (0.0f - m_cornerTL.y) / dimensions.y};
+void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     m_textureID = textureID;
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    drawList->AddCallback(imguiCBtrampoline, this);
+    m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();
     auto mousePos = ImGui::GetIO().MousePos;
-    m_mousePos = ImVec2(mousePos.x - m_origin.x, mousePos.y - m_origin.y);
-    ImVec2 mouseNorm = ImVec2(m_mousePos.x / m_resolution.x, m_mousePos.y / m_resolution.y);
-    ImVec2 mouseUV = {1024.0f * (mouseNorm.x / dimensions.x + translation.x),
-                      512.0f * (mouseNorm.y / dimensions.y + translation.y)};
-    ImGui::Image((ImTextureID)textureID, m_resolution, ImVec2(0, 0), ImVec2(1, 1));
+    m_mousePos = mousePos - m_origin;
+
+    // static const float ratios[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
+    ImVec2 dimensions = m_cornerBR - m_cornerTL;
+
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    drawList->AddCallback(imguiCBtrampoline, this);
+
+    // TexCoord - (TexturePoint - ResolutionPoint) / dimensions
+    // TexCoordTL = 0, 0
+    // TexCoordBR = 1, 1
+    // ResolutionTL = 0, 0
+    // ResolutionBR = m_resolution
+    // --> texTL = 0 - (cornerTL - 0) / dimensions = -corner / dimensions
+    // --> texBR = 1 - (cornerBR - m_resolution) / dimensions
+    ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
+    ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
+    ImGui::Image((ImTextureID)textureID, m_resolution, texTL, texBR);
+
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
+
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
-    ImGui::Text(_("Cursor location: (%3.0f, %3.0f)"), mouseUV.x, mouseUV.y);
+
     const auto &io = ImGui::GetIO();
+
+    ImVec2 texSpan = texBR - texTL;
+    m_mouseUV = texTL + texSpan * m_mousePos / m_resolution;
+
     if (!m_hovered) {
         m_magnify = false;
         return;
@@ -302,43 +316,15 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID, ImVec2 dimensio
         } else {
             static const float increment = 1.2f;
             const float step = io.MouseWheel > 0.0f ? increment * io.MouseWheel : -1.0f / (increment * io.MouseWheel);
-            ImVec2 newDimensions = {dimensions.x * step, dimensions.y * step};
-            if (newDimensions.x <= 1.0f) newDimensions.x = 1.0f;
-            if (newDimensions.y <= 1.0f) newDimensions.y = 1.0f;
-            ImVec2 dimensionsDiff = {newDimensions.x - dimensions.x, newDimensions.y - dimensions.y};
-            dimensions = newDimensions;
-            m_cornerTL.x -= dimensionsDiff.x * mouseNorm.x;
-            m_cornerTL.y -= dimensionsDiff.y * mouseNorm.y;
-            if (m_cornerTL.x >= 0.0f) m_cornerTL.x = 0.0f;
-            if (m_cornerTL.y >= 0.0f) m_cornerTL.y = 0.0f;
-            m_cornerBR.x = m_cornerTL.x + dimensions.x;
-            m_cornerBR.y = m_cornerTL.y + dimensions.y;
-            if (m_cornerBR.x <= 1.0f) {
-                m_cornerBR.x = 1.0f;
-                m_cornerTL.x = m_cornerBR.x - dimensions.x;
-            }
-            if (m_cornerBR.y <= 1.0f) {
-                m_cornerBR.y = 1.0f;
-                m_cornerTL.y = m_cornerBR.y - dimensions.y;
-            }
+
+            ImVec2 newDimensions = dimensions * step;
+            ImVec2 dimensionsDiff = newDimensions - dimensions;
+            m_cornerTL -= dimensionsDiff * m_mouseUV;
+            m_cornerBR = m_cornerTL + newDimensions;
         }
     } else if (io.MouseDown[2]) {
-        ImVec2 dimensions = {m_cornerBR.x - m_cornerTL.x, m_cornerBR.y - m_cornerTL.y};
-        ImVec2 mouseDeltaNorm = {io.MouseDelta.x / m_resolution.x, io.MouseDelta.y / m_resolution.y};
-        m_cornerTL.x += mouseDeltaNorm.x;
-        m_cornerTL.y += mouseDeltaNorm.y;
-        if (m_cornerTL.x >= 0.0f) m_cornerTL.x = 0.0f;
-        if (m_cornerTL.y >= 0.0f) m_cornerTL.y = 0.0f;
-        m_cornerBR.x = m_cornerTL.x + dimensions.x;
-        m_cornerBR.y = m_cornerTL.y + dimensions.y;
-        if (m_cornerBR.x <= 1.0f) {
-            m_cornerBR.x = 1.0f;
-            m_cornerTL.x = m_cornerBR.x - dimensions.x;
-        }
-        if (m_cornerBR.y <= 1.0f) {
-            m_cornerBR.y = 1.0f;
-            m_cornerTL.y = m_cornerBR.y - dimensions.y;
-        }
+        m_cornerTL += io.MouseDelta;
+        m_cornerBR = m_cornerTL + dimensions;
     }
 }
 
@@ -374,8 +360,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniformMatrix4fv(m_attribLocationProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
     glUniform1i(m_attribLocationHovered, m_hovered);
     glUniform2f(m_attribLocationMousePos, m_mousePos.x, m_mousePos.y);
-    ImVec2 mouseUV = ImVec2(m_mousePos.x / m_resolution.x, m_mousePos.y / m_resolution.y);
-    glUniform2f(m_attribLocationMouseUV, mouseUV.x, mouseUV.y);
+    glUniform2f(m_attribLocationMouseUV, m_mouseUV.x, m_mouseUV.y);
     glUniform2f(m_attribLocationResolution, m_resolution.x, m_resolution.y);
     glUniform2f(m_attribLocationOrigin, m_origin.x, m_origin.y);
     glUniform1i(m_attribLocationMagnify, m_magnify);
@@ -432,10 +417,7 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
                 }
                 ImGui::EndMenuBar();
             }
-            ImVec2 textureSize = ImGui::GetContentRegionAvail();
-            static const float ratios[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
-            GUI::normalizeDimensions(textureSize, ratios[m_vramMode]);
-            drawVRAM(VRAMTexture, textureSize);
+            drawVRAM(VRAMTexture);
         }
         ImGui::End();
     }

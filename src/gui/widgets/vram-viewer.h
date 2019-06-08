@@ -28,7 +28,6 @@ namespace Widgets {
 class VRAMViewer {
   public:
     void init();
-    void drawVRAM(unsigned int textureID, ImVec2 dimensions);
     void resetView() {
         m_cornerTL = {0.0f, 0.0f};
         m_cornerBR = {1.0f, 1.0f};
@@ -39,6 +38,7 @@ class VRAMViewer {
     void render(unsigned int VRAMTexture);
 
   private:
+    void drawVRAM(unsigned int textureID);
     void compileShader(const char *VS, const char *PS);
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
         VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
@@ -71,10 +71,11 @@ class VRAMViewer {
     float m_magnifyAmount = 5.0f;
     float m_magnifyRadius = 150.0f;
     ImVec2 m_mousePos;
+    ImVec2 m_mouseUV;
     ImVec2 m_resolution;
     ImVec2 m_origin;
     ImVec2 m_cornerTL = {0.0f, 0.0f};
-    ImVec2 m_cornerBR = {1.0f, 1.0f};
+    ImVec2 m_cornerBR = {1024.0f, 512.0f};
     unsigned int m_textureID;
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
