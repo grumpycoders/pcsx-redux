@@ -56,8 +56,6 @@ class VRAMViewer {
     }
     void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
 
-    unsigned int m_vertexShader = 0;
-    unsigned int m_pixelShader = 0;
     unsigned int m_shaderProgram = 0;
     int m_attribLocationTex;
     int m_attribLocationProjMtx;

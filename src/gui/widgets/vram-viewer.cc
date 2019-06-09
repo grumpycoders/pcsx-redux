@@ -89,9 +89,9 @@ vec4 readTexture(in vec2 pos) {
     float scale = 0.0f;
     int p = 0;
 
-    int c = (int(t.r * 31.0f) <<  0) |
-            (int(t.g * 31.0f) <<  5) |
-            (int(t.b * 31.0f) << 10) |
+    int c = (int(t.r * 31.0f + 0.5f) <<  0) |
+            (int(t.g * 31.0f + 0.5f) <<  5) |
+            (int(t.b * 31.0f + 0.5f) << 10) |
             (int(t.a) << 15);
 
     switch (u_mode) {
@@ -197,6 +197,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
         m_errorMessage = std::string(_("Pixel Shader compilation error:\n")) + log;
 
         free(log);
+        glDeleteShader(vertexShader);
         glDeleteShader(pixelShader);
         PCSX::GUI::checkGL();
         return;
@@ -239,9 +240,10 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     }
 
     destroy();
+    glDeleteShader(vertexShader);
+    glDeleteShader(pixelShader);
+
     m_shaderProgram = shaderProgram;
-    m_vertexShader = vertexShader;
-    m_pixelShader = pixelShader;
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
@@ -274,8 +276,6 @@ void PCSX::Widgets::VRAMViewer::init() {
 
 void PCSX::Widgets::VRAMViewer::destroy() {
     if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
-    if (m_vertexShader) glDeleteShader(m_vertexShader);
-    if (m_pixelShader) glDeleteShader(m_pixelShader);
     PCSX::GUI::checkGL();
 }
 
