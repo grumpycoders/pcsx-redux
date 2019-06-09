@@ -109,7 +109,13 @@ class GUI final {
                     irqus::typestring<'S', 'h', 'o', 'w', 'B', 'i', 'o', 's', 'C', 'o', 'u', 'n', 't', 'e', 'r', 's'>>
         ShowBiosCounters;
     typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'L', 'o', 'g'>> ShowLog;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowVRAM, ShowBiosCounters, ShowLog> settings;
+    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'P', 'o', 's', 'X'>, SDL_WINDOWPOS_CENTERED>
+        WindowPosX;
+    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'P', 'o', 's', 'Y'>, SDL_WINDOWPOS_CENTERED>
+        WindowPosY;
+    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'S', 'i', 'z', 'e', 'X'>, 1280> WindowSizeX;
+    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'S', 'i', 'z', 'e', 'Y'>, 800> WindowSizeY;
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowVRAM, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY> settings;
 
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};

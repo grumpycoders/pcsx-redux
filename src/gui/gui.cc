@@ -109,6 +109,8 @@ void PCSX::GUI::init() {
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
             }
+            SDL_SetWindowPosition(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
+            SDL_SetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator.m_spu->setCfg(j);
         } else {
             saveCfg();
@@ -174,6 +176,9 @@ void PCSX::GUI::saveCfg() {
     std::ofstream cfg("pcsx.json");
     json j;
 
+    SDL_GetWindowPosition(m_window, &settings.get<WindowPosX>().value, &settings.get<WindowPosY>().value);
+    SDL_GetWindowSize(m_window, &settings.get<WindowSizeX>().value, &settings.get<WindowSizeY>().value);
+
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
     j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator.settings.serialize();
@@ -198,6 +203,15 @@ void PCSX::GUI::startFrame() {
                     passthrough = false;
                 } else {
                     keyset.insert(sc);
+                }
+                break;
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_MOVED:
+                    case SDL_WINDOWEVENT_RESIZED:
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        saveCfg();
+                        break;
                 }
                 break;
         }
