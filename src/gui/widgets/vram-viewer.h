@@ -75,6 +75,7 @@ class VRAMViewer {
     int m_attribLocationGreyscale;
     int m_attribLocationMode;
     int m_attribLocationClut;
+    int m_attribLocation24shift;
 
     bool m_hovered = false;
     bool m_magnify = false;
@@ -100,6 +101,8 @@ class VRAMViewer {
     } m_vramMode = VRAM_16BITS;
     bool m_alpha = false;
     bool m_greyscale = false;
+    bool m_selectingClut = false;
+    int m_24shift = 0;
   public:
     bool m_show = false;
 

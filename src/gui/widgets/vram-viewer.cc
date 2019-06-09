@@ -61,6 +61,7 @@ uniform int u_mode;
 uniform vec2 u_mouseUV;
 uniform vec2 u_cornerTL;
 uniform vec2 u_cornerBR;
+uniform int u_24shift;
 in vec2 fragUV;
 out vec4 outColor;
 layout(origin_upper_left) in vec4 gl_FragCoord;
@@ -76,25 +77,62 @@ uniform vec2 u_clut;
 const vec4 grey1 = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 const vec4 grey2 = vec4(0.8f, 0.8f, 0.8f, 1.0f);
 
+int texelToRaw(in vec4 t) {
+    int c = (int(t.r * 31.0f + 0.5f) <<  0) |
+            (int(t.g * 31.0f + 0.5f) <<  5) |
+            (int(t.b * 31.0f + 0.5f) << 10) |
+            (int(t.a) << 15);
+    return c;
+}
+
 vec4 readTexture(in vec2 pos) {
     vec2 apos = vec2(1024.0f, 512.0f) * pos;
     vec2 fpos = fract(apos);
+    ivec2 ipos = ivec2(apos);
     vec4 ret = vec4(0.0f);
     if (pos.x > 1.0f) return ret;
     if (pos.y > 1.0f) return ret;
     if (pos.x < 0.0f) return ret;
     if (pos.y < 0.0f) return ret;
 
-    vec4 t = texture(u_vramTexture, pos);
     float scale = 0.0f;
     int p = 0;
-
-    int c = (int(t.r * 31.0f + 0.5f) <<  0) |
-            (int(t.g * 31.0f + 0.5f) <<  5) |
-            (int(t.b * 31.0f + 0.5f) << 10) |
-            (int(t.a) << 15);
+    vec4 t = texture(u_vramTexture, pos);
+    int c = texelToRaw(t);
 
     switch (u_mode) {
+    case 0:
+        {
+            ret.a = 1.0f;
+            vec4 tb = texture(u_vramTexture, pos - vec2(1.0 / 1024.0f, 0.0f));
+            vec4 ta = texture(u_vramTexture, pos + vec2(1.0 / 1024.0f, 0.0f));
+            int cb = texelToRaw(tb);
+            int ca = texelToRaw(ta);
+            switch ((ipos.x + u_24shift) % 3) {
+                case 0:
+                    ret.r = float((c >> 0) & 0xff) / 255.0f;
+                    ret.g = float((c >> 8) & 0xff) / 255.0f;
+                    ret.b = float((ca >> 0) & 0xff) / 255.0f;
+                    break;
+                case 1:
+                    if (fpos.x < 0.5f) {
+                        ret.r = float((cb >> 0) & 0xff) / 255.0f;
+                        ret.g = float((cb >> 8) & 0xff) / 255.0f;
+                        ret.b = float((c >> 0) & 0xff) / 255.0f;
+                    } else {
+                        ret.r = float((c >> 8) & 0xff) / 255.0f;
+                        ret.g = float((ca >> 0) & 0xff) / 255.0f;
+                        ret.b = float((ca >> 8) & 0xff) / 255.0f;
+                    }
+                    break;
+                case 2:
+                    ret.r = float((cb >> 8) & 0xff) / 255.0f;
+                    ret.g = float((c >> 0) & 0xff) / 255.0f;
+                    ret.b = float((c >> 8) & 0xff) / 255.0f;
+                    break;
+            }
+        }
+        break;
     case 1:
         ret = t;
         break;
@@ -260,6 +298,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_attribLocationGreyscale = glGetUniformLocation(m_shaderProgram, "u_greyscale");
     m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
     m_attribLocationClut = glGetUniformLocation(m_shaderProgram, "u_clut");
+    m_attribLocation24shift = glGetUniformLocation(m_shaderProgram, "u_24shift");
     m_attribLocationVtxPos = attribLocationVtxPos;
     m_attribLocationVtxUV = attribLocationVtxUV;
 
@@ -300,11 +339,12 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
     ImGui::Image((ImTextureID)textureID, m_resolution, texTL, texBR);
-    if (m_clutDestination) {
+    if (m_clutDestination && m_selectingClut) {
         m_clutDestination->m_clut = m_mouseUV;
     }
 
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
+    if (ImGui::IsItemClicked()) m_selectingClut = false;
 
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 
@@ -394,6 +434,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     }
     glUniform1i(m_attribLocationMode, m_vramMode);
     glUniform2f(m_attribLocationClut, m_clut.x, m_clut.y);
+    glUniform1i(m_attribLocation24shift, m_24shift);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
@@ -418,6 +459,7 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
                     if (ImGui::MenuItem(_("Reset view"))) resetView();
                     if (!m_clutDestination) {
                         ImGui::Separator();
+                        ImGui::SliderInt(_("24 bits shift"), &m_24shift, 0, 2);
                         if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
                             m_vramMode = VRAM_24BITS;
                             modeChanged();
@@ -434,6 +476,8 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
                             m_vramMode = VRAM_4BITS;
                             modeChanged();
                         }
+                    } else {
+                        ImGui::MenuItem(_("Select a CLUT"), nullptr, &m_selectingClut);
                     }
                     ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
                     ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
