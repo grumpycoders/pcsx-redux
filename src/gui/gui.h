@@ -132,8 +132,8 @@ class GUI final {
             editor.DrawWindow(title(), mem, size, baseAddr);
         }
     };
+    std::string m_stringHolder;
     MemoryEditorWrapper m_mainMemEditors[8];
-    std::string m_mainMemEditorsTitles[8];
     MemoryEditorWrapper m_parallelPortEditor;
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
@@ -152,7 +152,9 @@ class GUI final {
     bool m_scheduleSoftReset = false;
     bool m_scheduleHardReset = false;
 
-    Widgets::VRAMViewer m_vramViewer;
+    Widgets::VRAMViewer m_mainVRAMviewer;
+    Widgets::VRAMViewer m_clutVRAMviewer;
+    Widgets::VRAMViewer m_VRAMviewers[4];
 };
 
 }  // namespace PCSX

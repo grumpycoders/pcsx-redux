@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <functional>
+#include <string>
+
 #include "ImGuiColorTextEdit/TextEditor.h"
 #include "imgui.h"
 
@@ -28,6 +31,11 @@ namespace Widgets {
 class VRAMViewer {
   public:
     void init();
+    void setTitle(std::function<std::string()> title) { m_title = title; }
+    void setClutDestination(VRAMViewer *destination) {
+        m_clutDestination = destination;
+        destination->m_hasClut = true;
+    }
     void resetView() {
         m_cornerTL = {0.0f, 0.0f};
         m_cornerBR = {512.0f / RATIOS[m_vramMode], 512.0f};
@@ -66,7 +74,9 @@ class VRAMViewer {
     int m_attribLocationCornerTL;
     int m_attribLocationCornerBR;
     int m_attribLocationAlpha;
+    int m_attribLocationGreyscale;
     int m_attribLocationMode;
+    int m_attribLocationClut;
 
     bool m_hovered = false;
     bool m_magnify = false;
@@ -90,12 +100,18 @@ class VRAMViewer {
         VRAM_8BITS,
         VRAM_4BITS,
     } m_vramMode = VRAM_16BITS;
-    bool m_vramAlpha = false;
+    bool m_alpha = false;
+    bool m_greyscale = false;
   public:
-    bool m_showVRAMwindow = false;
+    bool m_show = false;
 
   private:
-    bool m_showVRAMShaderEditor = false;
+    bool m_showEditor = false;
+    std::function<std::string()> m_title;
+
+    bool m_hasClut = false;
+    ImVec2 m_clut;
+    VRAMViewer *m_clutDestination = nullptr;
 };
 
 }  // namespace Widgets

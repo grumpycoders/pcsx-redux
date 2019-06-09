@@ -144,13 +144,24 @@ void PCSX::GUI::init() {
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
 
-    m_vramViewer.init();
-
+    m_mainVRAMviewer.init();
+    m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
+    m_clutVRAMviewer.init();
+    m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
     unsigned counter = 1;
+    for (auto& viewer : m_VRAMviewers) {
+        m_VRAMviewers->init();
+        m_VRAMviewers->setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
+        counter++;
+    }
+
+    m_clutVRAMviewer.setClutDestination(&m_mainVRAMviewer);
+
+    counter = 1;
     for (auto& editor : m_mainMemEditors) {
         editor.title = [counter, this]() {
-            m_mainMemEditorsTitles[counter - 1] = (_("Memory Editor #") + std::to_string(counter));
-            return m_mainMemEditorsTitles[counter - 1].c_str();
+            m_stringHolder = (_("Memory Editor #") + std::to_string(counter));
+            return m_stringHolder.c_str();
         };
         counter++;
         editor.show = false;
@@ -372,7 +383,17 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                ImGui::MenuItem(_("Show VRAM"), nullptr, &m_vramViewer.m_showVRAMwindow);
+                if (ImGui::BeginMenu(_("VRAM viewers"))) {
+                    ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
+                    ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
+                    unsigned counter = 1;
+                    for (auto& viewer : m_VRAMviewers) {
+                        std::string title = _("Show VRAM viewer #") + std::to_string(counter);
+                        ImGui::MenuItem(title.c_str(), nullptr, &viewer.m_show);
+                        counter++;
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
@@ -432,7 +453,9 @@ void PCSX::GUI::endFrame() {
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_vramViewer.render(m_VRAMTexture);
+    m_mainVRAMviewer.render(m_VRAMTexture);
+    m_clutVRAMviewer.render(m_VRAMTexture);
+    for (auto& viewer : m_VRAMviewers) viewer.render(m_VRAMTexture);
 
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);

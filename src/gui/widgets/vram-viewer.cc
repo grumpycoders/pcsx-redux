@@ -70,6 +70,9 @@ uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
 const float ridge = 1.5f;
 
+uniform bool u_greyscale;
+uniform vec2 u_clut;
+
 const vec4 grey1 = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 const vec4 grey2 = vec4(0.8f, 0.8f, 0.8f, 1.0f);
 
@@ -118,8 +121,16 @@ vec4 readTexture(in vec2 pos) {
     }
 
     if (u_mode >= 2) {
-        ret = vec4(float(p) / scale);
-        ret.a = 1.0f;
+        if (u_greyscale) {
+            ret = vec4(float(p) / scale);
+            ret.a = 1.0f;
+        } else {
+            ret = texture(u_vramTexture, u_clut + vec2(float(p) * 1.0f / 1024.0f, 0.0f));
+        }
+    } else if (u_greyscale) {
+         ret = vec4(0.299, 0.587, 0.114, 0.0f) * ret;
+         ret = vec4(ret.r + ret.g + ret.b);
+         ret.a = 1.0f;
     }
 
     return ret;
@@ -244,7 +255,9 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_attribLocationCornerTL = glGetUniformLocation(m_shaderProgram, "u_cornerTL");
     m_attribLocationCornerBR = glGetUniformLocation(m_shaderProgram, "u_cornerBR");
     m_attribLocationAlpha = glGetUniformLocation(m_shaderProgram, "u_alpha");
+    m_attribLocationGreyscale = glGetUniformLocation(m_shaderProgram, "u_greyscale");
     m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
+    m_attribLocationClut = glGetUniformLocation(m_shaderProgram, "u_clut");
     m_attribLocationVtxPos = attribLocationVtxPos;
     m_attribLocationVtxUV = attribLocationVtxUV;
 
@@ -287,6 +300,9 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
     ImGui::Image((ImTextureID)textureID, m_resolution, texTL, texBR);
+    if (m_clutDestination) {
+        m_clutDestination->m_clut = m_mouseUV;
+    }
 
     m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
 
@@ -370,8 +386,14 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
     glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
     glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
-    glUniform1i(m_attribLocationAlpha, m_vramAlpha);
+    glUniform1i(m_attribLocationAlpha, m_alpha);
+    if (!m_hasClut && m_vramMode >= 2) {
+        glUniform1i(m_attribLocationGreyscale, 1);
+    } else {
+        glUniform1i(m_attribLocationGreyscale, m_greyscale);
+    }
     glUniform1i(m_attribLocationMode, m_vramMode);
+    glUniform2f(m_attribLocationClut, m_clut.x, m_clut.y);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
@@ -385,36 +407,38 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
 }
 
 void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
-    if (m_showVRAMwindow) {
-        if (ImGui::Begin(
-                _("VRAM"), &m_showVRAMwindow,
-                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar)) {
+    if (m_show) {
+        auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
+        if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
             if (ImGui::BeginMenuBar()) {
                 if (ImGui::BeginMenu(_("File"))) {
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("View"))) {
                     if (ImGui::MenuItem(_("Reset view"))) resetView();
+                    if (!m_clutDestination) {
+                        ImGui::Separator();
+                        if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
+                            m_vramMode = VRAM_24BITS;
+                            modeChanged();
+                        }
+                        if (ImGui::MenuItem(_("View VRAM in 16 bits"), nullptr, m_vramMode == VRAM_16BITS)) {
+                            m_vramMode = VRAM_16BITS;
+                            modeChanged();
+                        }
+                        if (ImGui::MenuItem(_("View VRAM in 8 bits"), nullptr, m_vramMode == VRAM_8BITS)) {
+                            m_vramMode = VRAM_8BITS;
+                            modeChanged();
+                        }
+                        if (ImGui::MenuItem(_("View VRAM in 4 bits"), nullptr, m_vramMode == VRAM_4BITS)) {
+                            m_vramMode = VRAM_4BITS;
+                            modeChanged();
+                        }
+                    }
+                    ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
+                    ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
                     ImGui::Separator();
-                    if (ImGui::MenuItem(_("View VRAM in 24 bits"), nullptr, m_vramMode == VRAM_24BITS)) {
-                        m_vramMode = VRAM_24BITS;
-                        modeChanged();
-                    }
-                    if (ImGui::MenuItem(_("View VRAM in 16 bits"), nullptr, m_vramMode == VRAM_16BITS)) {
-                        m_vramMode = VRAM_16BITS;
-                        modeChanged();
-                    }
-                    if (ImGui::MenuItem(_("View VRAM in 8 bits"), nullptr, m_vramMode == VRAM_8BITS)) {
-                        m_vramMode = VRAM_8BITS;
-                        modeChanged();
-                    }
-                    if (ImGui::MenuItem(_("View VRAM in 4 bits"), nullptr, m_vramMode == VRAM_4BITS)) {
-                        m_vramMode = VRAM_4BITS;
-                        modeChanged();
-                    }
-                    ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_vramAlpha);
-                    ImGui::Separator();
-                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showVRAMShaderEditor);
+                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showEditor);
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();
@@ -424,8 +448,8 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
         ImGui::End();
     }
 
-    if (m_showVRAMShaderEditor) {
-        if (ImGui::Begin(_("VRAM Shader Editor"), &m_showVRAMShaderEditor)) {
+    if (m_showEditor) {
+        if (ImGui::Begin(_("VRAM Shader Editor"), &m_showEditor)) {
             drawEditor();
         }
         ImGui::End();
