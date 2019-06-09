@@ -441,7 +441,7 @@ void PCSX::GUI::endFrame() {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(_("Output"), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse)) {
-            ImVec2 textureSize = ImGui::GetWindowSize();
+            ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
         }
