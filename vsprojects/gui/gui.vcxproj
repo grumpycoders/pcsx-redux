@@ -140,6 +140,7 @@
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
@@ -148,6 +149,7 @@
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
+    <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />
     <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -396,9 +396,6 @@ void DoBufferSwap() {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
     checkGL();
 
-    int x, y;
-    x = PSXDisplay.DisplayPosition.x;
-    y = PSXDisplay.DisplayPosition.y;
     if (PSXDisplay.RGB24) {
         glBindTexture(GL_TEXTURE_2D, vramTexture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

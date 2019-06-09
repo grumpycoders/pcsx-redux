@@ -35,6 +35,7 @@
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/vram-viewer.h"
 #include "main/settings.h"
 
 namespace PCSX {
@@ -63,8 +64,9 @@ class GUI final {
     void scheduleSoftReset() { m_scheduleSoftReset = true; }
     void scheduleHardReset() { m_scheduleHardReset = true; }
 
-  private:
     static void checkGL();
+
+  private:
     void saveCfg();
 
     void startFrame();
@@ -74,7 +76,8 @@ class GUI final {
     void biosCounters();
     void about();
 
-    void normalizeDimensions(ImVec2 &vec, float ratio) {
+  public:
+    static void normalizeDimensions(ImVec2 &vec, float ratio) {
         float r = vec.y / vec.x;
         if (r > ratio) {
             vec.y = vec.x * ratio;
@@ -83,6 +86,7 @@ class GUI final {
         }
     }
 
+  private:
     SDL_Window *m_window = nullptr;
     SDL_GLContext m_glContext = nullptr;
     unsigned int m_VRAMTexture = 0;
@@ -104,7 +108,6 @@ class GUI final {
         bool, irqus::typestring<'F', 'u', 'l', 'l', 's', 'c', 'r', 'e', 'e', 'n', 'R', 'e', 'n', 'd', 'e', 'r'>, true>
         FullscreenRender;
     typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'M', 'e', 'n', 'u'>> ShowMenu;
-    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'V', 'R', 'A', 'M'>> ShowVRAM;
     typedef Setting<bool,
                     irqus::typestring<'S', 'h', 'o', 'w', 'B', 'i', 'o', 's', 'C', 'o', 'u', 'n', 't', 'e', 'r', 's'>>
         ShowBiosCounters;
@@ -115,12 +118,12 @@ class GUI final {
         WindowPosY;
     typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'S', 'i', 'z', 'e', 'X'>, 1280> WindowSizeX;
     typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'S', 'i', 'z', 'e', 'Y'>, 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowVRAM, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY> settings;
-
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
+             WindowSizeY>
+        settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     bool m_showDemo = false;
-    bool &m_showVRAMwindow = {settings.get<ShowVRAM>().value};
     bool m_showAbout = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
@@ -132,12 +135,10 @@ class GUI final {
         std::function<const char *()> title;
         bool &show = editor.Open;
         void MenuItem() { ImGui::MenuItem(title(), nullptr, &show); }
-        void draw(void *mem, size_t size, uint32_t baseAddr = 0) {
-            editor.DrawWindow(title(), mem, size, baseAddr);
-        }
+        void draw(void *mem, size_t size, uint32_t baseAddr = 0) { editor.DrawWindow(title(), mem, size, baseAddr); }
     };
+    std::string m_stringHolder;
     MemoryEditorWrapper m_mainMemEditors[8];
-    std::string m_mainMemEditorsTitles[8];
     MemoryEditorWrapper m_parallelPortEditor;
     MemoryEditorWrapper m_scratchPadEditor;
     MemoryEditorWrapper m_hwrEditor;
@@ -155,6 +156,10 @@ class GUI final {
     const flags::args &m_args;
     bool m_scheduleSoftReset = false;
     bool m_scheduleHardReset = false;
+
+    Widgets::VRAMViewer m_mainVRAMviewer;
+    Widgets::VRAMViewer m_clutVRAMviewer;
+    Widgets::VRAMViewer m_VRAMviewers[4];
 };
 
 }  // namespace PCSX

@@ -135,7 +135,9 @@ void PCSX::GUI::init() {
 
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5, 1024, 512);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     checkGL();
 
     // offscreen stuff
@@ -144,11 +146,24 @@ void PCSX::GUI::init() {
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
 
+    m_mainVRAMviewer.init();
+    m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
+    m_clutVRAMviewer.init();
+    m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
     unsigned counter = 1;
+    for (auto& viewer : m_VRAMviewers) {
+        m_VRAMviewers->init();
+        m_VRAMviewers->setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
+        counter++;
+    }
+
+    m_clutVRAMviewer.setClutDestination(&m_mainVRAMviewer);
+
+    counter = 1;
     for (auto& editor : m_mainMemEditors) {
         editor.title = [counter, this]() {
-            m_mainMemEditorsTitles[counter - 1] = (_("Memory Editor #") + std::to_string(counter));
-            return m_mainMemEditorsTitles[counter - 1].c_str();
+            m_stringHolder = (_("Memory Editor #") + std::to_string(counter));
+            return m_stringHolder.c_str();
         };
         counter++;
         editor.show = false;
@@ -382,7 +397,17 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                ImGui::MenuItem(_("Show VRAM"), nullptr, &m_showVRAMwindow);
+                if (ImGui::BeginMenu(_("VRAM viewers"))) {
+                    ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
+                    ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
+                    unsigned counter = 1;
+                    for (auto& viewer : m_VRAMviewers) {
+                        std::string title = _("Show VRAM viewer #") + std::to_string(counter);
+                        ImGui::MenuItem(title.c_str(), nullptr, &viewer.m_show);
+                        counter++;
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
@@ -440,21 +465,18 @@ void PCSX::GUI::endFrame() {
 
     if (m_showDemo) ImGui::ShowDemoWindow();
 
-    if (m_showVRAMwindow) {
-        ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(_("VRAM"), &m_showVRAMwindow, ImGuiWindowFlags_NoScrollbar)) {
-            ImVec2 textureSize = ImGui::GetWindowSize();
-            normalizeDimensions(textureSize, 0.5f);
-            ImGui::Image((ImTextureID)m_VRAMTexture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
-        }
-        ImGui::End();
-    }
+    ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
+    m_mainVRAMviewer.render(m_VRAMTexture);
+    m_clutVRAMviewer.render(m_VRAMTexture);
+    for (auto& viewer : m_VRAMviewers) viewer.render(m_VRAMTexture);
 
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(_("Output"), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse)) {
+        if (ImGui::Begin(
+                _("Output"), nullptr,
+                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
