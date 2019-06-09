@@ -152,8 +152,8 @@ void PCSX::GUI::init() {
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
     unsigned counter = 1;
     for (auto& viewer : m_VRAMviewers) {
-        m_VRAMviewers->init();
-        m_VRAMviewers->setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
+        viewer.init();
+        viewer.setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
         counter++;
     }
 
