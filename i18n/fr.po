@@ -1,12 +1,11 @@
 # Translators:
+# Nicolas Noble, 2019
 # Christophe Péguillat <christophe.peguillat@gmail.com>, 2019
-#
+# 
 msgid ""
 msgstr ""
-"Last-Translator: Christophe Péguillat <christophe.peguillat@gmail.com>, "
-"2019\n"
-"Language-Team: French (https://www.transifex.com/grumpycoders/teams/99251/"
-"fr/)\n"
+"Last-Translator: Christophe Péguillat <christophe.peguillat@gmail.com>, 2019\n"
+"Language-Team: French (https://www.transifex.com/grumpycoders/teams/99251/fr/)\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,8 +19,7 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier "
-"appropriés.\n"
+"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier appropriés.\n"
 
 #: src/core/cdriso.cc:810
 #, c-format
@@ -59,7 +57,7 @@ msgstr "À propos de PCSX-Redux"
 
 #: src/spu/cfg.cc:61
 msgid "Accurate - best quality, but slower"
-msgstr ""
+msgstr "Fidèle - meilleure qualité, mais plus lent"
 
 #: src/core/cdriso.cc:530
 #, c-format
@@ -99,6 +97,8 @@ msgid ""
 "Attempts to make the CPU-to-SPU audio stream\n"
 "in sync, by changing its pitch. Consumes more CPU."
 msgstr ""
+"Tente de synchroniser le flux audio du CPU vers le SPU en modifiant sa "
+"hauteur. Consomme plus de CPU."
 
 #: src/gui/gui.cc:157
 msgid "BIOS"
@@ -110,7 +110,7 @@ msgstr "Compteurs du BIOS"
 
 #: src/gui/gui.cc:607
 msgid "BIOS HLE"
-msgstr ""
+msgstr "BIOS HLE"
 
 #: src/gui/gui.cc:610
 msgid "BIOS file"
@@ -118,31 +118,31 @@ msgstr "Fichier du BIOS"
 
 #: src/gui/gui.cc:592
 msgid "Big Endian"
-msgstr ""
+msgstr "Big Endian"
 
 #: src/gui/widgets/breakpoints.cc:48
 msgid "Break on byte read map "
-msgstr ""
+msgstr "Break on byte read map"
 
 #: src/gui/widgets/breakpoints.cc:53
 msgid "Break on byte write map"
-msgstr ""
+msgstr "Break on byte write map"
 
 #: src/gui/widgets/breakpoints.cc:47
 msgid "Break on execution map"
-msgstr ""
+msgstr "Break on execution map"
 
 #: src/gui/widgets/breakpoints.cc:50
 msgid "Break on half read map "
-msgstr ""
+msgstr "Break on half read map"
 
 #: src/gui/widgets/breakpoints.cc:55
 msgid "Break on half write map"
-msgstr ""
+msgstr "Break on half write map"
 
 #: src/gui/widgets/breakpoints.cc:52
 msgid "Break on word read map "
-msgstr ""
+msgstr "Break on word read map"
 
 #: src/gui/widgets/breakpoints.cc:57
 msgid "Break on word write map"
@@ -190,7 +190,7 @@ msgstr "Annuler"
 
 #: src/spu/cfg.cc:53
 msgid "Change streaming pitch"
-msgstr ""
+msgstr "Change le ton du flux audio"
 
 #: src/core/cheat.cc:126
 #, c-format
@@ -297,7 +297,7 @@ msgstr "Impossible d'ouvrir le fichier source %s\n"
 
 #: src/spu/cfg.cc:65
 msgid "Cubic interpolation - better treble"
-msgstr ""
+msgstr "Interpolation cubique - meilleurs aigus"
 
 #: src/gui/widgets/assembly.cc:445 src/gui/gui.cc:366
 msgid "Debug"
@@ -313,7 +313,7 @@ msgstr "Décoder les vidéos MDEC en N&B"
 
 #: src/spu/cfg.cc:70
 msgid "Decoded buffers IRQ"
-msgstr ""
+msgstr "IRQ quand tampons décodés"
 
 #: src/core/cdriso.cc:523
 #, c-format
@@ -335,10 +335,11 @@ msgstr "Désactivé"
 #: src/gui/widgets/assembly.cc:487
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
 msgstr ""
+"Display arrows for jumps. This might crowd the display a bit too much."
 
 #: src/spu/cfg.cc:69
 msgid "Downmixes stereo to mono."
-msgstr ""
+msgstr "Flux audio en mono au lieu de stéréo."
 
 #: src/gui/widgets/assembly.cc:483
 msgid "Draw arrows for jumps"
@@ -362,7 +363,7 @@ msgstr "Activer les compteurs"
 
 #: src/spu/cfg.cc:47
 msgid "Enable streaming"
-msgstr ""
+msgstr "Active le flux audio"
 
 #: src/core/psxmem.cc:42
 msgid "Error allocating memory!"
@@ -447,15 +448,15 @@ msgstr "GPU"
 
 #: src/spu/cfg.cc:64
 msgid "Gaussian interpolation - good quality"
-msgstr ""
+msgstr "Interpolation gaussienne - bonne qualité"
 
 #: src/spu/cfg.cc:71
 msgid "Generates IRQs when buffers are decoded."
-msgstr ""
+msgstr "Génère des IRQ lorsque les tampons sont décodés."
 
 #: src/gui/gui.cc:353
 msgid "Hard Reset"
-msgstr "Redémarrage matériel"
+msgstr "Bouton 'Reset'"
 
 #: src/gui/gui.cc:155
 msgid "Hardware Registers"
@@ -471,7 +472,7 @@ msgstr "Origine"
 
 #: src/spu/cfg.cc:66
 msgid "Interpolation"
-msgstr ""
+msgstr "Interpolation"
 
 #: src/core/ppf.cc:212
 #, c-format
@@ -480,12 +481,11 @@ msgstr "Patch PPF invalide :%s.\n"
 
 #: src/gui/gui.cc:592
 msgid "Little Endian"
-msgstr ""
+msgstr "Little Endian"
 
 #: src/gui/widgets/assembly.h:58
-#, fuzzy
 msgid "Load Symbols"
-msgstr "Charger les symboles de la map"
+msgstr "Charger les Symboles"
 
 #: src/gui/widgets/assembly.cc:442
 msgid "Load symbols map"
@@ -523,59 +523,59 @@ msgstr "Langue"
 
 #: src/gui/gui.cc:652
 msgid "Log events"
-msgstr ""
+msgstr "Journal des événements"
 
 #: src/gui/gui.cc:650
 msgid "Log new syscalls"
-msgstr ""
+msgstr "Journal des nouveaux syscalls"
 
 #: src/gui/gui.cc:451
 msgid "Logs"
-msgstr ""
+msgstr "Journaux"
 
 #: src/spu/cfg.cc:51
 msgid "Loud"
-msgstr ""
+msgstr "Fort"
 
 #: src/spu/cfg.cc:51
 msgid "Loudest"
-msgstr ""
+msgstr "Très fort"
 
 #: src/spu/cfg.cc:51
 msgid "Low"
-msgstr ""
+msgstr "Faible"
 
 #: src/gui/widgets/breakpoints.cc:36
 msgid "Map byte reads         "
-msgstr ""
+msgstr "Map byte reads"
 
 #: src/gui/widgets/breakpoints.cc:41
 msgid "Map byte writes        "
-msgstr ""
+msgstr "Map byte writes"
 
 #: src/gui/widgets/breakpoints.cc:35
 msgid "Map execution"
-msgstr ""
+msgstr "Map execution"
 
 #: src/gui/widgets/breakpoints.cc:38
 msgid "Map half reads         "
-msgstr ""
+msgstr "Map half reads"
 
 #: src/gui/widgets/breakpoints.cc:43
 msgid "Map half writes        "
-msgstr ""
+msgstr "Map half writes"
 
 #: src/gui/widgets/breakpoints.cc:40
 msgid "Map word reads         "
-msgstr ""
+msgstr "Map word reads"
 
 #: src/gui/widgets/breakpoints.cc:45
 msgid "Map word writes        "
-msgstr ""
+msgstr "Map word writes"
 
 #: src/spu/cfg.cc:51
 msgid "Medium"
-msgstr ""
+msgstr "Moyen"
 
 #: src/gui/gui.cc:637
 msgid "Memorize"
@@ -600,11 +600,11 @@ msgstr "Divers"
 
 #: src/spu/cfg.cc:68
 msgid "Mono"
-msgstr ""
+msgstr "Mono"
 
 #: src/spu/cfg.cc:46
 msgid "Muted"
-msgstr ""
+msgstr "Muet"
 
 #: src/core/sio.cc:772
 #, c-format
@@ -615,7 +615,7 @@ msgstr ""
 
 #: src/spu/cfg.cc:60 src/spu/cfg.cc:63
 msgid "None - fastest"
-msgstr ""
+msgstr "Sans - plus rapide"
 
 #: src/gui/widgets/filedialog.cc:295
 msgid "OK"
@@ -632,9 +632,8 @@ msgid "Open ISO"
 msgstr "Ouvrir un ISO"
 
 #: src/gui/gui.h:140
-#, fuzzy
 msgid "Open Image"
-msgstr "Ouvrir un ISO"
+msgstr "Ouvrir un fichier image"
 
 #: src/gui/gui.cc:324
 msgid "Open LID"
@@ -672,7 +671,7 @@ msgstr "Pause"
 
 #: src/spu/cfg.cc:56
 msgid "Pause SPU waiting for CPU IRQ"
-msgstr ""
+msgstr "Suspendre le SPU en attendant l'IRQ du CPU"
 
 #: src/core/plugins.cc:721
 msgid "Plugins loaded.\n"
@@ -696,7 +695,7 @@ msgstr "Registres"
 
 #: src/gui/gui.cc:557
 msgid "Reload locales"
-msgstr ""
+msgstr "Recharger les langues"
 
 #: src/gui/widgets/assembly.cc:698
 msgid "Remove breakpoint from here"
@@ -712,7 +711,7 @@ msgstr "Reprendre"
 
 #: src/spu/cfg.cc:62
 msgid "Reverb"
-msgstr ""
+msgstr "Réverbération"
 
 #: src/gui/widgets/filedialog.cc:142
 msgid "Roots"
@@ -727,9 +726,8 @@ msgid "SPU"
 msgstr "SPU"
 
 #: src/spu/cfg.cc:41
-#, fuzzy
 msgid "SPU configuration"
-msgstr "Configuration"
+msgstr "Configuration du SPU"
 
 #: src/core/sio.cc:839
 #, c-format
@@ -742,7 +740,7 @@ msgstr "Scratch Pad"
 
 #: src/gui/gui.h:141
 msgid "Select BIOS"
-msgstr ""
+msgstr "Sélection du BIOS"
 
 #: src/gui/widgets/assembly.cc:693
 msgid "Set Breakpoint here"
@@ -786,23 +784,23 @@ msgstr "Afficher tous les breakpoints"
 
 #: src/gui/widgets/breakpoints.cc:68
 msgid "Show byte read BPs     "
-msgstr ""
+msgstr "Show byte read BPs"
 
 #: src/gui/widgets/breakpoints.cc:73
 msgid "Show byte write BPs    "
-msgstr ""
+msgstr "Show byte write BPs"
 
 #: src/gui/widgets/breakpoints.cc:67
 msgid "Show exec BPs"
-msgstr ""
+msgstr "Show exec BPs"
 
 #: src/gui/widgets/breakpoints.cc:70
 msgid "Show half read BPs     "
-msgstr ""
+msgstr "Show half read BPs"
 
 #: src/gui/widgets/breakpoints.cc:75
 msgid "Show half write BPs    "
-msgstr ""
+msgstr "Show half write BPs"
 
 #: src/gui/widgets/breakpoints.cc:64
 msgid "Show no breakpoints"
@@ -810,19 +808,19 @@ msgstr "Ne pas afficher de Breakpoints"
 
 #: src/gui/widgets/breakpoints.cc:72
 msgid "Show word read BPs     "
-msgstr ""
+msgstr "Show word read BPs"
 
 #: src/gui/widgets/breakpoints.cc:77
 msgid "Show word write BPs    "
-msgstr ""
+msgstr "Show word write BPs"
 
 #: src/spu/cfg.cc:60
 msgid "Simple - only handles the most common effects"
-msgstr ""
+msgstr "Simple - ne gère que les effets les plus courants"
 
 #: src/spu/cfg.cc:63
 msgid "Simple interpolation"
-msgstr ""
+msgstr "Interpolation simple"
 
 #: src/gui/gui.cc:647
 msgid "Skip unknowns"
@@ -830,7 +828,7 @@ msgstr "Ignorer les inconnus"
 
 #: src/gui/gui.cc:350
 msgid "Soft Reset"
-msgstr "Redémarrage logiciel"
+msgstr "Redémarrage du CPU"
 
 #: src/gui/gui.cc:344
 msgid "Start"
@@ -838,15 +836,15 @@ msgstr "Démarrer"
 
 #: src/gui/widgets/assembly.cc:449 src/gui/widgets/assembly.cc:507
 msgid "Step In"
-msgstr ""
+msgstr "Step In"
 
 #: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:513
 msgid "Step Out"
-msgstr ""
+msgstr "Step Out"
 
 #: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:510
 msgid "Step Over"
-msgstr ""
+msgstr "Step Over"
 
 #: src/spu/cfg.cc:57
 msgid ""
@@ -854,6 +852,9 @@ msgid ""
 "for the main CPU to acknowledge it. Fixes issues\n"
 "with some games, but slows SPU processing."
 msgstr ""
+"Suspend le traitement du SPU pendant un IRQ, en attendant\n"
+" que le CPU principal le reconnaisse. Corrige des problèmes\n"
+" avec certains jeux, mais ralentit le traitement du SPU."
 
 #: src/gui/gui.cc:572
 msgid "System Type"
@@ -879,6 +880,9 @@ msgid ""
 "from the main CPU to the SPU. This includes\n"
 "XA audio and audio tracks."
 msgstr ""
+"Décochez cette case pour couper le canal du flux audio\n"
+"du CPU principal vers le SPU. Cela inclut\n"
+"l'audio XA et les pistes audio."
 
 #: src/core/misc.cc:505
 #, c-format
@@ -895,21 +899,24 @@ msgid "VRAM"
 msgstr "VRAM"
 
 #: src/spu/cfg.cc:52
-#, fuzzy
 msgid "Volume"
-msgstr "Colonnes"
+msgstr "Volume"
 
 #: src/gui/widgets/assembly.cc:470
 msgid ""
 "When combining two instructions into a single pseudo-instruction, add a "
 "placeholder for the second one."
 msgstr ""
+"En combinant deux instructions en une seule pseudo-instruction, ajouter un "
+"espace réservé pour la seconde."
 
 #: src/gui/widgets/assembly.cc:460
 msgid ""
 "When two instructions are detected to be a single pseudo-instruction, "
 "combine them into the actual pseudo-instruction."
 msgstr ""
+"Quand deux instructions sont détectées comme étant une seule pseudo-"
+"instruction, les combiner dans l'actuelle pseudo-instruction."
 
 #: src/gui/widgets/filedialog.cc:232
 msgid "^ Date & Time"
@@ -930,12 +937,12 @@ msgstr "extensions :"
 #: src/core/misc.cc:573
 #, c-format
 msgid "ng Load Bin file: [0x%08x] : %s\n"
-msgstr ""
+msgstr "ng Load Bin file: [0x%08x] : %s\n"
 
 #: src/core/misc.cc:575
 #, c-format
 msgid "ok Load Bin file: [0x%08x] : %s\n"
-msgstr ""
+msgstr "ok Load Bin file: [0x%08x] : %s\n"
 
 #: src/gui/gui.cc:730
 msgid "renderer"
@@ -964,6 +971,3 @@ msgstr "fabriquant"
 #: src/gui/gui.cc:731
 msgid "version"
 msgstr "version OpenGL"
-
-#~ msgid "Filename"
-#~ msgstr "Nom du fichier"
