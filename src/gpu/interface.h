@@ -27,9 +27,9 @@ namespace PCSX {
 
 class GUI;
 
-namespace SoftGPU {
+namespace GPU {
 
-class impl : public GPU {
+class impl : public GPUinterface {
     virtual int32_t init() final;
     virtual int32_t shutdown() final;
     virtual int32_t open(GUI *) final;
@@ -49,13 +49,13 @@ class impl : public GPU {
     virtual int32_t freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) final;
     virtual bool configure() final {
         if (m_showCfg) {
-            return m_softPrim.configure(&m_showCfg);
+            return m_prim.configure(&m_showCfg);
         } else {
             return false;
         }
     }
 
-    SoftPrim m_softPrim;
+    Prim m_prim;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram
@@ -107,6 +107,6 @@ class impl : public GPU {
     //    int iRumbleTime = 0;
 };
 
-}  // namespace SoftGPU
+}  // namespace GPU
 
 }  // namespace PCSX

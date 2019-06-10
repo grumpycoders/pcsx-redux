@@ -689,7 +689,7 @@ void RewindState() {
     LoadStateMem(s_mem_cur_save_count);
 }
 
-static PCSX::GPU::GPUFreeze_t *s_gpufP = NULL;
+static PCSX::GPUinterface::GPUFreeze_t *s_gpufP = NULL;
 static PCSX::SPU::impl::SPUFreeze_t *s_spufP = NULL;
 
 int SaveStateMem(const uint32_t id) { return 0; }
@@ -717,10 +717,10 @@ int SaveStateGz(gzFile f, long *gzsize) {
     gzwrite(f, (void *)&PCSX::g_emulator.m_psxCpu->m_psxRegs, sizeof(PCSX::g_emulator.m_psxCpu->m_psxRegs));
 
     // gpu
-    if (!s_gpufP) s_gpufP = (PCSX::GPU::GPUFreeze_t *)malloc(sizeof(PCSX::GPU::GPUFreeze_t));
+    if (!s_gpufP) s_gpufP = (PCSX::GPUinterface::GPUFreeze_t *)malloc(sizeof(PCSX::GPUinterface::GPUFreeze_t));
     s_gpufP->ulFreezeVersion = 1;
     PCSX::g_emulator.m_gpu->freeze(1, s_gpufP);
-    gzwrite(f, s_gpufP, sizeof(PCSX::GPU::GPUFreeze_t));
+    gzwrite(f, s_gpufP, sizeof(PCSX::GPUinterface::GPUFreeze_t));
 
     // SPU Plugin cannot change during run, so we query size info just once per session
     if (!s_spufP) {
@@ -788,8 +788,8 @@ int LoadStateGz(gzFile f) {
     if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) PCSX::g_emulator.m_psxBios->psxBiosFreeze(0);
 
     // gpu
-    if (!s_gpufP) s_gpufP = (PCSX::GPU::GPUFreeze_t *)malloc(sizeof(PCSX::GPU::GPUFreeze_t));
-    gzread(f, s_gpufP, sizeof(PCSX::GPU::GPUFreeze_t));
+    if (!s_gpufP) s_gpufP = (PCSX::GPUinterface::GPUFreeze_t *)malloc(sizeof(PCSX::GPUinterface::GPUFreeze_t));
+    gzread(f, s_gpufP, sizeof(PCSX::GPUinterface::GPUFreeze_t));
     PCSX::g_emulator.m_gpu->freeze(0, s_gpufP);
 
     // spu

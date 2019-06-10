@@ -6,7 +6,7 @@ namespace PCSX {
 
 class GUI;
 
-class GPU {
+class GPUinterface {
   public:
     int gpuReadStatus();
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
@@ -14,10 +14,10 @@ class GPU {
 
     bool m_showCfg;
     virtual bool configure() = 0;
-    virtual ~GPU() {}
+    virtual ~GPUinterface() {}
 
   private:
-    // Taken from PEOPS SOFTGPU
+    // Taken from PEOPS GPU
     uint32_t s_lUsedAddr[3];
 
     bool CheckForEndlessLoop(uint32_t laddr);

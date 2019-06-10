@@ -39,7 +39,7 @@
 #define GPUSTATUS_DRAWINGALLOWED 0x00000400
 #define GPUSTATUS_DITHER 0x00000200
 
-inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {
+inline bool PCSX::GPUinterface::CheckForEndlessLoop(uint32_t laddr) {
     if (laddr == s_lUsedAddr[1]) return true;
     if (laddr == s_lUsedAddr[2]) return true;
 
@@ -53,7 +53,7 @@ inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {
     return false;
 }
 
-uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
+uint32_t PCSX::GPUinterface::gpuDmaChainSize(uint32_t addr) {
     uint32_t size;
     uint32_t DMACommandCounter = 0;
 
@@ -79,7 +79,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     return size;
 }
 
-int PCSX::GPU::gpuReadStatus() {
+int PCSX::GPUinterface::gpuReadStatus() {
     int hard;
 
     // GPU plugin
@@ -92,7 +92,7 @@ int PCSX::GPU::gpuReadStatus() {
     return hard;
 }
 
-void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
+void PCSX::GPUinterface::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     uint32_t *ptr;
     uint32_t size, bs;
 
@@ -164,7 +164,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     DMA_INTERRUPT(2);
 }
 
-void PCSX::GPU::gpuInterrupt() {
+void PCSX::GPUinterface::gpuInterrupt() {
     HW_DMA2_CHCR &= SWAP_LE32(~0x01000000);
     DMA_INTERRUPT(2);
 }

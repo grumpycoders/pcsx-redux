@@ -26,9 +26,9 @@
 
 namespace PCSX {
 
-namespace SoftGPU {
+namespace GPU {
 
-class SoftPrim : public SoftRenderer {
+class Prim : public Renderer {
   public:
     inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
         if (!bSkipNextFrame) {
@@ -58,7 +58,7 @@ class SoftPrim : public SoftRenderer {
     int iUseDither = 0;
     int32_t GlobalTextREST;
 
-    typedef void (SoftPrim::*func_t)(unsigned char *);
+    typedef void (Prim::*func_t)(unsigned char *);
     typedef const func_t cfunc_t;
     void cmdSTP(unsigned char *baseAddr);
     void cmdTexturePage(unsigned char *baseAddr);
@@ -111,6 +111,6 @@ class SoftPrim : public SoftRenderer {
     int32_t lLowerpart;
 };
 
-}  // namespace SoftGPU
+}  // namespace GPU
 
 }  // namespace PCSX

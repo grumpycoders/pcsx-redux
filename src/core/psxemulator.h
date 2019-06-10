@@ -85,7 +85,7 @@ class CDRom;
 class Cheats;
 class Counters;
 class Debug;
-class GPU;
+class GPUinterface;
 class GTE;
 class HW;
 class MDEC;
@@ -189,7 +189,7 @@ class Emulator {
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<MDEC> m_mdec;
-    std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GPUinterface> m_gpu;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<SPU::impl> m_spu;

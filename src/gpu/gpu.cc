@@ -215,7 +215,7 @@ void GPUdebugSetPC(uint32_t addr)
 #include <time.h>
 time_t tStart;
 
-extern "C" void softGPUdisplayText(char *pText)  // some debug func
+extern "C" void GPUdisplayText(char *pText)  // some debug func
 {
     if (!pText) {
         szDebugText[0] = 0;
@@ -228,7 +228,7 @@ extern "C" void softGPUdisplayText(char *pText)  // some debug func
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUdisplayFlags(uint32_t dwFlags)  // some info func
+extern "C" void GPUdisplayFlags(uint32_t dwFlags)  // some info func
 {
     //    dwCoreFlags = dwFlags;
     // BuildDispMenu(0);
@@ -267,7 +267,7 @@ void DoTextSnapShot(int iNum) {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
+extern "C" void GPUmakeSnapshot(void)  // snapshot of whole vram
 {
     FILE *bmpfile;
     char filename[256];
@@ -343,7 +343,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 // INIT, will be called after lib load... well, just do some var init...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
+int32_t PCSX::GPU::impl::init()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
 
@@ -405,7 +405,7 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
+int32_t PCSX::GPU::impl::open(GUI *gui)  // GPU OPEN
 {
     m_gui = gui;
 #if 0
@@ -433,7 +433,7 @@ int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 // time to leave...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
+int32_t PCSX::GPU::impl::close()  // GPU CLOSE
 {
     //    ReleaseKeyHandler();  // de-subclass window
 
@@ -446,7 +446,7 @@ int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
 // I shot the sheriff
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
+int32_t PCSX::GPU::impl::shutdown()  // GPU SHUTDOWN
 {
     free(psxVSecure);
 
@@ -641,9 +641,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
 void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 {
-    //    softGPUclose();
+    //    GPUclose();
     iWindowMode = !iWindowMode;
-    //    softGPUopen(textureId);
+    //    GPUopen(textureId);
     bChangeWinMode = false;
     bDoVSyncUpdate = true;
 }
@@ -652,7 +652,7 @@ void ChangeWindowMode(void)  // TOGGLE FULLSCREEN - WINDOW
 // gun cursor func: player=0-7, x=0-511, y=0-255
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUcursor(int iPlayer, int x, int y) {
+extern "C" void GPUcursor(int iPlayer, int x, int y) {
     if (iPlayer < 0) return;
     if (iPlayer > 7) return;
 
@@ -671,7 +671,7 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 // update lace is called evry VSync
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::updateLace()  // VSYNC
+void PCSX::GPU::impl::updateLace()  // VSYNC
 {
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
@@ -702,7 +702,7 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 // process read request from GPU status register
 ////////////////////////////////////////////////////////////////////////
 
-uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
+uint32_t PCSX::GPU::impl::readStatus(void)  // READ STATUS
 {
     if (dwActFixes & 1) {
         static int iNumRead = 0;  // odd/even hack
@@ -738,7 +738,7 @@ uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 // these are always single packet commands.
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
+void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
     uint32_t lCommand = (gdata >> 24) & 0xff;
 
@@ -753,7 +753,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PSXDisplay.Disabled = 1;
             DataWriteMode = DataReadMode = DR_NORMAL;
             PSXDisplay.DrawOffset.x = PSXDisplay.DrawOffset.y = 0;
-            m_softPrim.reset();
+            m_prim.reset();
             PSXDisplay.RGB24 = false;
             PSXDisplay.Interlaced = false;
             return;
@@ -1009,7 +1009,7 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
+void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) return;
@@ -1143,7 +1143,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
+void PCSX::GPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
@@ -1235,7 +1235,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_softPrim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
+                m_prim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1253,13 +1253,13 @@ ENDVRAM:
 // this functions will be removed soon (or 'soonish')... not really needed, but some emus want them
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUsetMode(uint32_t gdata) {
+extern "C" void GPUsetMode(uint32_t gdata) {
     // Peops does nothing here...
     // DataWriteMode=(gdata&1)?DR_VRAMTRANSFER:DR_NORMAL;
     // DataReadMode =(gdata&2)?DR_VRAMTRANSFER:DR_NORMAL;
 }
 
-extern "C" int32_t softGPUgetMode(void) {
+extern "C" int32_t GPUgetMode(void) {
     int32_t iT = 0;
 
     if (DataWriteMode == DR_VRAMTRANSFER) iT |= 0x1;
@@ -1271,7 +1271,7 @@ extern "C" int32_t softGPUgetMode(void) {
 // call config dlg
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" int32_t softGPUconfigure(void) { return 0; }
+extern "C" int32_t GPUconfigure(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
 // sets all kind of act fixes
@@ -1312,7 +1312,7 @@ __inline bool CheckForEndlessLoop(uint32_t laddr) {
     return false;
 }
 
-int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
+int32_t PCSX::GPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
     uint32_t dmaMem;
     unsigned char *baseAddrB;
     int16_t count;
@@ -1356,7 +1356,7 @@ typedef struct GPUFREEZETAG {
 
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) {
+int32_t PCSX::GPU::impl::freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) {
     //----------------------------------------------------//
     if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
     {
@@ -1533,7 +1533,7 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 // so you have to use the frontbuffer to get a fully
 // rendered picture
 
-extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
+extern "C" void GPUgetScreenPic(unsigned char *pMem) {}
 
 ////////////////////////////////////////////////////////////////////////
 // func will be called with 128x96x3 BGR data.
@@ -1543,7 +1543,7 @@ extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
 // release your picture data and stop displaying
 // the screen pic
 
-extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
+extern "C" void GPUshowScreenPic(unsigned char *pMem) {
     DestroyPic();           // destroy old pic data
     if (pMem == 0) return;  // done
     CreatePic(pMem);        // create new pic... don't free pMem or something like that... just read from it
@@ -1571,4 +1571,4 @@ void GPUsetframelimit(uint32_t option) {
 
 ////////////////////////////////////////////////////////////////////////
 
-extern "C" void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig) {}
+extern "C" void GPUvisualVibration(uint32_t iSmall, uint32_t iBig) {}

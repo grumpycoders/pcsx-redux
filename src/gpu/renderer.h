@@ -31,9 +31,9 @@
 
 namespace PCSX {
 
-namespace SoftGPU {
+namespace GPU {
 
-class SoftRenderer {
+class Renderer {
   protected:
     bool bUsingTWin = false;
     TWin_t TWin;
@@ -226,6 +226,6 @@ class SoftRenderer {
     void HorzLineFlat(int y, int x0, int x1, uint16_t colour);
 };
 
-}  // namespace SoftGPU
+}  // namespace GPU
 
 }  // namespace PCSX
