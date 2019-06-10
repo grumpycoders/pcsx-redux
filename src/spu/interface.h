@@ -154,27 +154,15 @@ class impl {
     unsigned char *pMixIrq = 0;
 
     // user settings
-#if 0
-    typedef Setting<bool, typestring_is("Streaming"), true> Streaming;
-    typedef Setting<int, typestring_is("Volume"), 3> Volume;
-    typedef Setting<bool, typestring_is("Pitch"), false> StreamingPitch;
-    typedef Setting<bool, typestring_is("IRQWait"), true> SPUIRQWait;
-    typedef Setting<int, typestring_is("Reverb"), 2> Reverb;
-    typedef Setting<int, typestring_is("Interp"), 2> Interpolation;
-    typedef Setting<bool, typestring_is("Mono")> Mono;
-    typedef Setting<bool, typestring_is("DBufIRQ")> DBufIRQ;
-    typedef Setting<bool, typestring_is("Mute")> Mute;
-#else
-    typedef Setting<bool, irqus::typestring<'S', 't', 'r', 'e', 'a', 'm', 'i', 'n', 'g'>, true> Streaming;
-    typedef Setting<int, irqus::typestring<'V', 'o', 'l', 'u', 'm', 'e'>, 3> Volume;
-    typedef Setting<bool, irqus::typestring<'P', 'i', 't', 'c', 'h'>, false> StreamingPitch;
-    typedef Setting<bool, irqus::typestring<'I', 'R', 'Q', 'W', 'a', 'i', 't'>, true> SPUIRQWait;
-    typedef Setting<int, irqus::typestring<'R', 'e', 'v', 'e', 'r', 'b'>, 2> Reverb;
-    typedef Setting<int, irqus::typestring<'I', 'n', 't', 'e', 'r', 'p'>, 2> Interpolation;
-    typedef Setting<bool, irqus::typestring<'M', 'o', 'n', 'o'> > Mono;
-    typedef Setting<bool, irqus::typestring<'D', 'B', 'u', 'f', 'I', 'R', 'Q'> > DBufIRQ;
-    typedef Setting<bool, irqus::typestring<'M', 'u', 't', 'e'> > Mute;
-#endif
+    typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
+    typedef Setting<int, TYPESTRING("Volume"), 3> Volume;
+    typedef Setting<bool, TYPESTRING("Pitch"), false> StreamingPitch;
+    typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
+    typedef Setting<int, TYPESTRING("Reverb"), 2> Reverb;
+    typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
+    typedef Setting<bool, TYPESTRING("Mono")> Mono;
+    typedef Setting<bool, TYPESTRING("DBufIRQ")> DBufIRQ;
+    typedef Setting<bool, TYPESTRING("Mute")> Mute;
     Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute> settings;
 
     // MAIN infos struct for each channel

@@ -110,27 +110,27 @@ class Emulator {
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
     enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
-    typedef Setting<bool, irqus::typestring<'S', 't', 'd', 'o', 'u', 't'>> SettingStdout;
-    typedef SettingPath<irqus::typestring<'L', 'o', 'g', 'f', 'i', 'l', 'e'>> SettingLogfile;
-    typedef SettingPath<irqus::typestring<'M', 'c', 'd', '1'>> SettingMcd1;
-    typedef SettingPath<irqus::typestring<'M', 'c', 'd', '2'>> SettingMcd2;
-    typedef SettingPath<irqus::typestring<'B', 'i', 'o', 's'>> SettingBios;
-    typedef SettingPath<irqus::typestring<'P', 'p', 'f', 'D', 'i', 'r'>> SettingPpfDir;
-    typedef SettingPath<irqus::typestring<'P', 's', 'x', 'E', 'x', 'e'>> SettingPsxExe;
-    typedef Setting<bool, irqus::typestring<'X', 'a'>, true> SettingXa;
-    typedef Setting<bool, irqus::typestring<'S', 'i', 'o', 'I', 'r', 'q'>> SettingSioIrq;
-    typedef Setting<bool, irqus::typestring<'S', 'p', 'u', 'I', 'r', 'q'>> SettingSpuIrq;
-    typedef Setting<bool, irqus::typestring<'B', 'n', 'W', 'M', 'd', 'e', 'c'>> SettingBnWMdec;
-    typedef Setting<bool, irqus::typestring<'A', 'u', 't', 'o', 'V', 'i', 'd', 'e', 'o'>, true> SettingAutoVideo;
-    typedef Setting<VideoType, irqus::typestring<'V', 'i', 'd', 'e', 'o'>, PSX_TYPE_NTSC> SettingVideo;
-    typedef Setting<CDDAType, irqus::typestring<'C', 'D', 'D', 'A'>, CDDA_ENABLED_LE> SettingCDDA;
-    typedef Setting<bool, irqus::typestring<'H', 'L', 'E'>, true> SettingHLE;
-    typedef Setting<bool, irqus::typestring<'F', 'a', 's', 't', 'B', 'o', 'o', 't'>, true> SettingFastBoot;
-    typedef Setting<bool, irqus::typestring<'D', 'e', 'b', 'u', 'g'>> SettingDebug;
-    typedef Setting<bool, irqus::typestring<'V', 'e', 'r', 'b', 'o', 's', 'e'>> SettingVerbose;
-    typedef Setting<bool, irqus::typestring<'R', 'C', 'n', 't', 'F', 'i', 'x'>> SettingRCntFix;
-    typedef SettingPath<irqus::typestring<'I', 's', 'o', 'P', 'a', 't', 'h'>> SettingIsoPath;
-    typedef SettingString<irqus::typestring<'L', 'o', 'c', 'a', 'l', 'e'>> SettingLocale;
+    typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
+    typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
+    typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
+    typedef SettingPath<TYPESTRING("Mcd2")> SettingMcd2;
+    typedef SettingPath<TYPESTRING("Bios")> SettingBios;
+    typedef SettingPath<TYPESTRING("PpfDir")> SettingPpfDir;
+    typedef SettingPath<TYPESTRING("PsxExe")> SettingPsxExe;
+    typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
+    typedef Setting<bool, TYPESTRING("SioIrq")> SettingSioIrq;
+    typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
+    typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
+    typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
+    typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
+    typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
+    typedef Setting<bool, TYPESTRING("HLE"), true> SettingHLE;
+    typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
+    typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
+    typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
+    typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
+    typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
+    typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale>
