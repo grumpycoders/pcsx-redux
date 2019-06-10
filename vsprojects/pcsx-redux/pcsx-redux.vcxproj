@@ -154,6 +154,9 @@
     <ProjectReference Include="..\core\core.vcxproj">
       <Project>{9372d878-f76c-418b-8e2a-8e9896ff575b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\GPU\GPU.vcxproj">
+      <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
     </ProjectReference>
@@ -168,9 +171,6 @@
     </ProjectReference>
     <ProjectReference Include="..\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\soft\soft.vcxproj">
-      <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>
     <ProjectReference Include="..\SPU\SPU.vcxproj">
       <Project>{bf968fd3-ef46-45af-b74e-46a41a96276f}</Project>

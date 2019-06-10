@@ -29,7 +29,7 @@
 #include "core/psxbios.h"
 #include "core/r3000a.h"
 
-#include "gpu/soft/interface.h"
+#include "gpu/interface.h"
 #include "spu/interface.h"
 
 PCSX::Emulator::Emulator()

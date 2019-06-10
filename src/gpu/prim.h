@@ -21,8 +21,8 @@
 
 #include <stdint.h>
 
-#include "gpu/soft/externals.h"
-#include "gpu/soft/soft.h"
+#include "gpu/externals.h"
+#include "gpu/renderer.h"
 
 namespace PCSX {
 

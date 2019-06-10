@@ -44,9 +44,9 @@
 #include <algorithm>
 
 #include "core/system.h"
-#include "gpu/soft/externals.h"
-#include "gpu/soft/fps.h"
-#include "gpu/soft/gpu.h"
+#include "gpu/externals.h"
+#include "gpu/fps.h"
+#include "gpu/gpu.h"
 
 ////////////////////////////////////////////////////////////////////////
 // FPS stuff

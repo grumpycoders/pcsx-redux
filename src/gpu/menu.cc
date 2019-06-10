@@ -62,10 +62,10 @@
 
 #define _IN_MENU
 
-#include "gpu/soft/draw.h"
-#include "gpu/soft/externals.h"
-#include "gpu/soft/gpu.h"
-#include "gpu/soft/menu.h"
+#include "gpu/draw.h"
+#include "gpu/externals.h"
+#include "gpu/gpu.h"
+#include "gpu/menu.h"
 
 uint32_t dwCoreFlags = 0;
 

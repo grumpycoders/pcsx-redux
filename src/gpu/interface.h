@@ -20,8 +20,8 @@
 #pragma once
 
 #include "core/gpu.h"
-#include "gpu/soft/externals.h"
-#include "gpu/soft/prim.h"
+#include "gpu/externals.h"
+#include "gpu/prim.h"
 
 namespace PCSX {
 

@@ -15,66 +15,66 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\gpu\soft\cfg.cc">
+    <ClCompile Include="..\..\src\gpu\cfg.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\draw.cc">
+    <ClCompile Include="..\..\src\gpu\draw.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\fps.cc">
+    <ClCompile Include="..\..\src\gpu\fps.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\gpu.cc">
+    <ClCompile Include="..\..\src\gpu\gpu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\key.cc">
+    <ClCompile Include="..\..\src\gpu\key.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\menu.cc">
+    <ClCompile Include="..\..\src\gpu\menu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\prim.cc">
+    <ClCompile Include="..\..\src\gpu\prim.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\soft.cc">
+    <ClCompile Include="..\..\src\gpu\soft.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft\zn.cc">
+    <ClCompile Include="..\..\src\gpu\zn.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\gpu\soft\cfg.h">
+    <ClInclude Include="..\..\src\gpu\cfg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\draw.h">
+    <ClInclude Include="..\..\src\gpu\draw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\externals.h">
+    <ClInclude Include="..\..\src\gpu\externals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\fps.h">
+    <ClInclude Include="..\..\src\gpu\fps.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\gpu.h">
+    <ClInclude Include="..\..\src\gpu\gpu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\key.h">
+    <ClInclude Include="..\..\src\gpu\key.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\menu.h">
+    <ClInclude Include="..\..\src\gpu\menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\prim.h">
+    <ClInclude Include="..\..\src\gpu\prim.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\resource.h">
+    <ClInclude Include="..\..\src\gpu\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\soft.h">
+    <ClInclude Include="..\..\src\gpu\interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gpu\soft\interface.h">
+    <ClInclude Include="..\..\src\gpu\renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

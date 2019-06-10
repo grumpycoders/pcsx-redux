@@ -127,15 +127,15 @@
 
 #endif
 
-#include "gpu/soft/cfg.h"
-#include "gpu/soft/draw.h"
-#include "gpu/soft/externals.h"
-#include "gpu/soft/fps.h"
-#include "gpu/soft/gpu.h"
-#include "gpu/soft/interface.h"
-#include "gpu/soft/key.h"
-#include "gpu/soft/menu.h"
-#include "gpu/soft/prim.h"
+#include "gpu/cfg.h"
+#include "gpu/draw.h"
+#include "gpu/externals.h"
+#include "gpu/fps.h"
+#include "gpu/gpu.h"
+#include "gpu/interface.h"
+#include "gpu/key.h"
+#include "gpu/menu.h"
+#include "gpu/prim.h"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>

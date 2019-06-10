@@ -52,11 +52,11 @@
 
 #define _IN_KEY
 
-#include "gpu/soft/draw.h"
-#include "gpu/soft/externals.h"
-#include "gpu/soft/gpu.h"
-#include "gpu/soft/key.h"
-#include "gpu/soft/menu.h"
+#include "gpu/draw.h"
+#include "gpu/externals.h"
+#include "gpu/gpu.h"
+#include "gpu/key.h"
+#include "gpu/menu.h"
 
 #ifdef _WIN32
 

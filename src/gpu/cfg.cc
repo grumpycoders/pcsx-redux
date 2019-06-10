@@ -102,9 +102,9 @@
 //#include <vfw.h>
 #include "stdafx.h"
 
-#include "gpu/soft/cfg.h"
-#include "gpu/soft/externals.h"
-#include "gpu/soft/gpu.h"
+#include "gpu/cfg.h"
+#include "gpu/externals.h"
+#include "gpu/gpu.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CONFIG FILE helpers.... used in (non-fpse) Linux and ZN Windows

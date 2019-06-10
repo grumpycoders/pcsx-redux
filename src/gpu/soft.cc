@@ -74,13 +74,13 @@
 
 #include <algorithm>
 
-#include "gpu/soft/externals.h"
-#include "gpu/soft/soft.h"
+#include "gpu/externals.h"
+#include "gpu/renderer.h"
 
 //#define VC_INLINE
-#include "gpu/soft/gpu.h"
-#include "gpu/soft/menu.h"
-#include "gpu/soft/prim.h"
+#include "gpu/gpu.h"
+#include "gpu/menu.h"
+#include "gpu/prim.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
 // "NO EDGE BUFFER" POLY VERSION... FUNCS BASED ON FATMAP.TXT FROM MRI / Doomsday

@@ -28,7 +28,7 @@
 
 #include <stdint.h>
 
-#include "gpu/soft/externals.h"
+#include "gpu/externals.h"
 
 // --------------------------------------------------- //
 // - psx gpu plugin interface prototypes-------------- //
