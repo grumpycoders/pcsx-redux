@@ -103,21 +103,15 @@ class GUI final {
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
 
     // GUI
-    typedef Setting<bool, irqus::typestring<'F', 'u', 'l', 'l', 's', 'c', 'r', 'e', 'e', 'n'>, false> Fullscreen;
-    typedef Setting<
-        bool, irqus::typestring<'F', 'u', 'l', 'l', 's', 'c', 'r', 'e', 'e', 'n', 'R', 'e', 'n', 'd', 'e', 'r'>, true>
-        FullscreenRender;
-    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'M', 'e', 'n', 'u'>> ShowMenu;
-    typedef Setting<bool,
-                    irqus::typestring<'S', 'h', 'o', 'w', 'B', 'i', 'o', 's', 'C', 'o', 'u', 'n', 't', 'e', 'r', 's'>>
-        ShowBiosCounters;
-    typedef Setting<bool, irqus::typestring<'S', 'h', 'o', 'w', 'L', 'o', 'g'>> ShowLog;
-    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'P', 'o', 's', 'X'>, SDL_WINDOWPOS_CENTERED>
-        WindowPosX;
-    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'P', 'o', 's', 'Y'>, SDL_WINDOWPOS_CENTERED>
-        WindowPosY;
-    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'S', 'i', 'z', 'e', 'X'>, 1280> WindowSizeX;
-    typedef Setting<int, irqus::typestring<'W', 'i', 'n', 'd', 'o', 'w', 'S', 'i', 'z', 'e', 'Y'>, 800> WindowSizeY;
+    typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
+    typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
+    typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
+    typedef Setting<bool, TYPESTRING("ShowBiosCounters")> ShowBiosCounters;
+    typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
+    typedef Setting<int, TYPESTRING("WindowPosX"), SDL_WINDOWPOS_CENTERED> WindowPosX;
+    typedef Setting<int, TYPESTRING("WindowPosY"), SDL_WINDOWPOS_CENTERED> WindowPosY;
+    typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
+    typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
              WindowSizeY>
         settings;
