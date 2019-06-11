@@ -153,7 +153,7 @@ void ShowGunCursor(unsigned char *surf) {
     }
 
     const uint32_t crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
-                                              0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
+                                         0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
 
     surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
 
@@ -391,6 +391,7 @@ static void DrawFullscreenQuad(int is24Bit) {
 }
 
 void DoBufferSwap() {
+#if 0
     m_gui->setViewport();
     m_gui->bindVRAMTexture();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
@@ -417,6 +418,7 @@ void DoBufferSwap() {
 
     glBindTexture(GL_TEXTURE_2D, 0);
     checkGL();
+#endif
     m_gui->flip();
 }
 
