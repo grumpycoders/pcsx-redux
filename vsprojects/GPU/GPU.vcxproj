@@ -142,7 +142,7 @@
     <ClCompile Include="..\..\src\gpu\key.cc" />
     <ClCompile Include="..\..\src\gpu\menu.cc" />
     <ClCompile Include="..\..\src\gpu\prim.cc" />
-    <ClCompile Include="..\..\src\gpu\soft.cc" />
+    <ClCompile Include="..\..\src\gpu\renderer.cc" />
     <ClCompile Include="..\..\src\gpu\zn.cc" />
   </ItemGroup>
   <ItemGroup>

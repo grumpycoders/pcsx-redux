@@ -36,7 +36,7 @@
     <ClCompile Include="..\..\src\gpu\prim.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gpu\soft.cc">
+    <ClCompile Include="..\..\src\gpu\renderer.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gpu\zn.cc">
