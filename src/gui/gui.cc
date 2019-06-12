@@ -130,6 +130,7 @@ void PCSX::GUI::init() {
         std::string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
     ImGui_ImplOpenGL3_Init("#version 300 es");
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
@@ -315,7 +316,7 @@ void PCSX::GUI::endFrame() {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
     checkGL();
-    glClearDepthf(0.f);
+    glClearDepthf(0.0f);
     checkGL();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGL();
@@ -329,7 +330,8 @@ void PCSX::GUI::endFrame() {
 
     if (m_fullscreenRender) {
         ImTextureID texture = ImTextureID(m_offscreenTextures[m_currentTexture]);
-        ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f, (h - m_renderSize.y) / 2.0f));
+        auto basePos = ImGui::GetMainViewport()->Pos;
+        ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f + basePos.x, (h - m_renderSize.y) / 2.0f + basePos.y));
         ImGui::SetNextWindowSize(m_renderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -474,14 +476,16 @@ void PCSX::GUI::endFrame() {
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
+        bool outputShown = true;
         if (ImGui::Begin(
-                _("Output"), nullptr,
+                _("Output"), &outputShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::End();
+        if (!outputShown) m_fullscreenRender = true;
     }
 
     if (m_log.m_show) {
@@ -545,8 +549,19 @@ void PCSX::GUI::endFrame() {
     changed |= PCSX::g_emulator.m_gpu->configure();
     changed |= configure();
 
+    auto& io = ImGui::GetIO();
+
     ImGui::Render();
+    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    checkGL();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+        SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+    }
     checkGL();
     glFlush();
     checkGL();
