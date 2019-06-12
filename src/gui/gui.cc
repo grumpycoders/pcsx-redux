@@ -330,7 +330,8 @@ void PCSX::GUI::endFrame() {
 
     if (m_fullscreenRender) {
         ImTextureID texture = ImTextureID(m_offscreenTextures[m_currentTexture]);
-        ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f, (h - m_renderSize.y) / 2.0f));
+        auto basePos = ImGui::GetMainViewport()->Pos;
+        ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f + basePos.x, (h - m_renderSize.y) / 2.0f + basePos.y));
         ImGui::SetNextWindowSize(m_renderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -475,14 +476,16 @@ void PCSX::GUI::endFrame() {
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
+        bool outputShown = true;
         if (ImGui::Begin(
-                _("Output"), nullptr,
+                _("Output"), &outputShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImGui::Image((ImTextureID)m_offscreenTextures[m_currentTexture], textureSize, ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::End();
+        if (!outputShown) m_fullscreenRender = true;
     }
 
     if (m_log.m_show) {
