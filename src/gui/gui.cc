@@ -130,6 +130,7 @@ void PCSX::GUI::init() {
         std::string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
     ImGui_ImplOpenGL3_Init("#version 300 es");
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
@@ -315,7 +316,7 @@ void PCSX::GUI::endFrame() {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
     checkGL();
-    glClearDepthf(0.f);
+    glClearDepthf(0.0f);
     checkGL();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGL();
@@ -545,8 +546,19 @@ void PCSX::GUI::endFrame() {
     changed |= PCSX::g_emulator.m_gpu->configure();
     changed |= configure();
 
+    auto& io = ImGui::GetIO();
+
     ImGui::Render();
+    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    checkGL();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+        SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+    }
     checkGL();
     glFlush();
     checkGL();
