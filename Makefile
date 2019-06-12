@@ -29,7 +29,7 @@ ifeq ($(UNAME_S),Darwin)
 	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
 	LDFLAGS += -mmacosx-version-min=10.15
 else
-	LDFALGS += -lstdc++fs
+	LDFLAGS += -lstdc++fs
 endif
 
 LDFLAGS += -ldl
