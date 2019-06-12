@@ -38,6 +38,12 @@
 #include "gui/widgets/vram-viewer.h"
 #include "main/settings.h"
 
+#if defined(__MACOSX__)
+#define GL_SHADER_VERSION "#version 410\n"
+#else
+#define GL_SHADER_VERSION "#version 300 es\n"
+#endif
+
 namespace PCSX {
 
 class GUI final {

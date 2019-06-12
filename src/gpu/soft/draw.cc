@@ -153,7 +153,7 @@ void ShowGunCursor(unsigned char *surf) {
     }
 
     const uint32_t crCursorColor32[8] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffff00ff,
-                                              0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
+                                         0xffffff00, 0xff00ffff, 0xffffffff, 0xff7f7f7f};
 
     surf += PreviousPSXDisplay.Range.x0 << 2;  // -> add x left border
 
@@ -197,8 +197,6 @@ static void checkGL() {
         abort();
     }
 }
-
-#define GL_SHADER_VERSION "#version 300 es\n"
 
 static const GLchar *passThroughVS = GL_SHADER_VERSION R"(
 in vec2 in_Position;
