@@ -4,6 +4,7 @@ TARGET := pcsx-redux
 PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib
 
 LOCALES := fr
+UNAME_S := $(shell uname -s)
 
 CXXFLAGS := -std=c++2a
 CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
@@ -16,10 +17,22 @@ CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -O3
 CPPFLAGS += -g
 
+ifeq ($(UNAME_S),Darwin)
+	CPPFLAGS += -mmacosx-version-min=10.15
+	CPPFLAGS += -stdlib=libc++
+endif
+
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
-LDFLAGS += -lstdc++fs
+
+ifeq ($(UNAME_S),Darwin)
+	LDFLAGS += -L/usr/local/Cellar/llvm/HEAD-e374798_1/lib
+	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
+	LDFLAGS += -mmacosx-version-min=10.15
+else
+	LDFALGS += -lstdc++fs
+endif
+
 LDFLAGS += -ldl
-LDFLAGS += -lGL
 LDFLAGS += -g
 
 LD := $(CXX)
