@@ -30,6 +30,7 @@ ifeq ($(UNAME_S),Darwin)
 	LDFLAGS += -mmacosx-version-min=10.15
 else
 	LDFLAGS += -lstdc++fs
+	LDFLAGS += -lGL
 endif
 
 LDFLAGS += -ldl
