@@ -132,11 +132,7 @@ void PCSX::GUI::init() {
     }
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
 
-#if defined(__MACOSX__)
-    ImGui_ImplOpenGL3_Init("#version 410");
-#else
-    ImGui_ImplOpenGL3_Init("#version 300 es");
-#endif
+    ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
 
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
