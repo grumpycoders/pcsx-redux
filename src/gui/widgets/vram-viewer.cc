@@ -322,7 +322,8 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     m_textureID = textureID;
     m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();
-    auto mousePos = ImGui::GetIO().MousePos;
+    auto basePos = ImGui::GetWindowViewport()->Pos;
+    auto mousePos = ImGui::GetIO().MousePos - basePos;
     m_mousePos = mousePos - m_origin;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
@@ -351,7 +352,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     const auto &io = ImGui::GetIO();
 
     ImVec2 texSpan = texBR - texTL;
-    m_mouseUV = texTL + texSpan * m_mousePos / m_resolution;
+    m_mouseUV = texTL + texSpan * (m_mousePos + basePos) / m_resolution;
 
     if (!m_hovered) {
         m_magnify = false;
