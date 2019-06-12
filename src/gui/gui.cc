@@ -131,7 +131,13 @@ void PCSX::GUI::init() {
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
+
+#if defined(__MACOSX__)
+    ImGui_ImplOpenGL3_Init("#version 410");
+#else
     ImGui_ImplOpenGL3_Init("#version 300 es");
+#endif
+
     ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
 
     glGenTextures(1, &m_VRAMTexture);
@@ -331,7 +337,8 @@ void PCSX::GUI::endFrame() {
     if (m_fullscreenRender) {
         ImTextureID texture = ImTextureID(m_offscreenTextures[m_currentTexture]);
         auto basePos = ImGui::GetMainViewport()->Pos;
-        ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f + basePos.x, (h - m_renderSize.y) / 2.0f + basePos.y));
+        ImGui::SetNextWindowPos(
+            ImVec2((w - m_renderSize.x) / 2.0f + basePos.x, (h - m_renderSize.y) / 2.0f + basePos.y));
         ImGui::SetNextWindowSize(m_renderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
