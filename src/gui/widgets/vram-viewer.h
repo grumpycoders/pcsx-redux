@@ -36,10 +36,7 @@ class VRAMViewer {
         m_clutDestination = destination;
         destination->m_hasClut = true;
     }
-    void resetView() {
-        m_cornerTL = {0.0f, 0.0f};
-        m_cornerBR = {512.0f / RATIOS[m_vramMode], 512.0f};
-    }
+    void resetView();
     void drawEditor();
     void destroy();
 
@@ -113,6 +110,8 @@ class VRAMViewer {
     bool m_hasClut = false;
     ImVec2 m_clut;
     VRAMViewer *m_clutDestination = nullptr;
+
+    bool m_firstShown = false;
 };
 
 }  // namespace Widgets

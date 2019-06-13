@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
     system->setBinDir(binDir);
     system->loadAllLocales();
 
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING ^ SDL_INIT_VIDEO) != 0) {
         assert(0);
     }
 

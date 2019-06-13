@@ -126,8 +126,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_sdl.cpp" />
     <ClCompile Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.c" />
     <ClCompile Include="..\..\third_party\imgui\imgui.cpp" />
     <ClCompile Include="..\..\third_party\imgui\imgui_demo.cpp" />
@@ -136,8 +136,8 @@
     <ClCompile Include="..\..\third_party\imgui\misc\cpp\imgui_stdlib.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_glfw.h" />
     <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.h" />
-    <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_sdl.h" />
     <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.h" />
     <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\glcorearb.h" />
     <ClInclude Include="..\..\third_party\imgui\imconfig.h" />
@@ -146,7 +146,17 @@
     <ClInclude Include="..\..\third_party\imgui\imstb_textedit.h" />
     <ClInclude Include="..\..\third_party\imgui\misc\cpp\imgui_stdlib.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\glfw.3.3.0.1\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.0.1\build\native\glfw.targets'))" />
+  </Target>
 </Project>
