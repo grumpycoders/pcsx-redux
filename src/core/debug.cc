@@ -81,13 +81,13 @@ void PCSX::Debug::processBefore() {
         auto none = m_breakpoints.end();
         switch (m_stepType) {
             case STEP_IN:
-                triggerBP(none);
+                triggerBP(none, _("Step in"));
                 break;
             case STEP_OVER:
-                if (m_steppingJumps == 0) triggerBP(none);
+                if (m_steppingJumps == 0) triggerBP(none, _("Step over"));
                 break;
             case STEP_OUT:
-                if (m_steppingJumps == -1) triggerBP(none);
+                if (m_steppingJumps == -1) triggerBP(none, _("Step out"));
                 break;
         }
     }
@@ -111,7 +111,7 @@ void PCSX::Debug::startStepping() {
     g_system->resume();
 }
 
-void PCSX::Debug::triggerBP(bpiterator bp) {
+void PCSX::Debug::triggerBP(bpiterator bp, const char * reason) {
     m_stepping = false;
     if (bp != m_breakpoints.end() && bp->second.m_temporary) {
         m_lastBP = m_breakpoints.end();
@@ -119,14 +119,16 @@ void PCSX::Debug::triggerBP(bpiterator bp) {
     } else {
         m_lastBP = bp;
     }
+    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s"), g_emulator.m_psxCpu->m_psxRegs.pc, reason);
     PCSX::g_system->pause();
 }
 
-void PCSX::Debug::checkBP(uint32_t address, BreakpointType type) {
+void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, const char * reason) {
     auto [begin, end] = m_breakpoints.equal_range(address);
     for (auto it = begin; it != end; it++) {
-        if ((it->second.m_type == type) && (it->first == address)) {
-            triggerBP(it);
+        if (it->second.enabled() && (it->second.m_type == type) && (it->first == address)) {
+            if (!reason) reason = s_breakpoint_type_names[type]();
+            triggerBP(it, reason);
             break;
         }
     }
@@ -134,19 +136,19 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type) {
     auto none = m_breakpoints.end();
 
     if (m_breakmp_e && type == BE && !isMapMarked(address, MAP_EXEC)) {
-        triggerBP(none);
+        triggerBP(none, _("Execution map"));
     } else if (m_breakmp_r8 && type == BR1 && !isMapMarked(address, MAP_R8)) {
-        triggerBP(none);
+        triggerBP(none, _("Read 8 map"));
     } else if (m_breakmp_r16 && type == BR2 && !isMapMarked(address, MAP_R16)) {
-        triggerBP(none);
+        triggerBP(none, _("Read 16 map"));
     } else if (m_breakmp_r32 && type == BR4 && !isMapMarked(address, MAP_R32)) {
-        triggerBP(none);
+        triggerBP(none, _("Read 32 map"));
     } else if (m_breakmp_w8 && type == BW1 && !isMapMarked(address, MAP_W8)) {
-        triggerBP(none);
+        triggerBP(none, _("Write 8 map"));
     } else if (m_breakmp_w16 && type == BW2 && !isMapMarked(address, MAP_W16)) {
-        triggerBP(none);
+        triggerBP(none, _("Write 16 map"));
     } else if (m_breakmp_w32 && type == BW4 && !isMapMarked(address, MAP_W32)) {
-        triggerBP(none);
+        triggerBP(none, _("Write 32 map"));
     }
 
     if (m_mapping_r8 && type == BR1) markMap(address, MAP_R8);

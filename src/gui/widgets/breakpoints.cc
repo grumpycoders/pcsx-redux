@@ -110,13 +110,27 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                 break;
         }
         ImVec2 pos = ImGui::GetCursorScreenPos();
-        ImGui::Text("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]);
+        if (it->second.enabled()) {
+            ImGui::Text("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
+        } else {
+            ImGui::TextDisabled("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
+        }
         ImGui::SameLine();
         std::string buttonLabel = _("Remove##");
         buttonLabel += it->first;
-        buttonLabel += Debug::s_breakpoint_type_names[it->second.type()];
-        if (ImGui::Button(buttonLabel.c_str())) {
-            eraseBP = it;
+        buttonLabel += Debug::s_breakpoint_type_names[it->second.type()]();
+        if (ImGui::Button(buttonLabel.c_str())) eraseBP = it;
+        ImGui::SameLine();
+        if (it->second.enabled()) {
+            buttonLabel = _("Disable##");
+            buttonLabel += it->first;
+            buttonLabel += Debug::s_breakpoint_type_names[it->second.type()]();
+            if (ImGui::Button(buttonLabel.c_str())) it->second.disable();
+        } else {
+            buttonLabel = _("Enable##");
+            buttonLabel += it->first;
+            buttonLabel += Debug::s_breakpoint_type_names[it->second.type()]();
+            if (ImGui::Button(buttonLabel.c_str())) it->second.enable();
         }
         if (debugger->lastBP() != it) return true;
         ImVec2 a, b, c, d, e;
@@ -144,9 +158,9 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
     ImGui::InputText("##address", m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
     ImGui::SameLine();
-    if (ImGui::BeginCombo(_("Breakpoint Type"), Debug::s_breakpoint_type_names[m_breakpointType])) {
+    if (ImGui::BeginCombo(_("Breakpoint Type"), Debug::s_breakpoint_type_names[m_breakpointType]())) {
         for (int i = 0; i < 7; i++) {
-            if (ImGui::Selectable(Debug::s_breakpoint_type_names[i], m_breakpointType == i)) {
+            if (ImGui::Selectable(Debug::s_breakpoint_type_names[i](), m_breakpointType == i)) {
                 m_breakpointType = i;
             }
         }
