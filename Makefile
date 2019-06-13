@@ -1,7 +1,7 @@
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 TARGET := pcsx-redux
 
-PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib
+PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib glfw3
 
 LOCALES := fr
 UNAME_S := $(shell uname -s)
@@ -41,7 +41,7 @@ LD := $(CXX)
 SRC_CC := $(call rwildcard,src/,*.cc)
 SRC_CPP := $(wildcard third_party/imgui/*.cpp)
 SRC_CPP += third_party/imgui/examples/imgui_impl_opengl3.cpp
-SRC_CPP += third_party/imgui/examples/imgui_impl_sdl.cpp
+SRC_CPP += third_party/imgui/examples/imgui_impl_glfw.cpp
 SRC_CPP += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRC_CPP += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRC_C := third_party/imgui/examples/libs/gl3w/GL/gl3w.c

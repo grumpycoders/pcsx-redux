@@ -17,7 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL.h>
+#define GLFW_INCLUDE_NONE
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
 #include <assert.h>
 
 #include <fstream>
@@ -29,8 +31,8 @@
 
 #include "GL/gl3w.h"
 #include "imgui.h"
+#include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "imgui_impl_sdl.h"
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -41,6 +43,10 @@
 #include "spu/interface.h"
 
 using json = nlohmann::json;
+
+static void glfw_error_callback(int error, const char* description) {
+    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
 
 void PCSX::GUI::bindVRAMTexture() {
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
@@ -58,39 +64,41 @@ void PCSX::GUI::checkGL() {
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
-        SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
+        glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+        const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        glfwSetWindowMonitor(m_window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
     } else {
-        SDL_SetWindowFullscreen(m_window, 0);
+        glfwSetWindowMonitor(m_window, nullptr, m_glfwPosX, m_glfwPosY, m_glfwSizeX, m_glfwSizeY, GLFW_DONT_CARE);
     }
 }
 
 void PCSX::GUI::init() {
-    // SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
-    if (m_args.get<bool>("fullscreen", false)) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit()) {
+        abort();
+    }
 
-    m_window = SDL_CreateWindow("PCSX-Redux", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800, flags);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    auto monitor = glfwGetPrimaryMonitor();
+
+    m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
     assert(m_window);
-
-    m_glContext = SDL_GL_CreateContext(m_window);
-    assert(m_glContext);
+    glfwMakeContextCurrent(m_window);
+    glfwSwapInterval(0);
 
     int result = gl3wInit();
     assert(result == 0);
 
-    SDL_GL_SetSwapInterval(0);
-
     // Setup ImGui binding
+    IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    auto& io = ImGui::GetIO();
     {
-        ImGui::GetIO().IniFilename = nullptr;
+        io.IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator.settings;
         json j;
@@ -109,8 +117,8 @@ void PCSX::GUI::init() {
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
             }
-            SDL_SetWindowPosition(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
-            SDL_SetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
+            glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
+            glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator.m_spu->setCfg(j);
         } else {
             saveCfg();
@@ -130,12 +138,15 @@ void PCSX::GUI::init() {
         std::string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
     }
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
+    io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
+    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
-
-    ImGui_ImplSDL2_InitForOpenGL(m_window, m_glContext);
-
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -186,16 +197,19 @@ void PCSX::GUI::init() {
 }
 
 void PCSX::GUI::close() {
-    SDL_DestroyWindow(m_window);
-    SDL_Quit();
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+    glfwDestroyWindow(m_window);
+    glfwTerminate();
 }
 
 void PCSX::GUI::saveCfg() {
     std::ofstream cfg("pcsx.json");
     json j;
 
-    SDL_GetWindowPosition(m_window, &settings.get<WindowPosX>().value, &settings.get<WindowPosY>().value);
-    SDL_GetWindowSize(m_window, &settings.get<WindowSizeX>().value, &settings.get<WindowSizeY>().value);
+    glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
+    glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
 
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
     j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
@@ -205,56 +219,22 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    SDL_Event event;
-    std::unordered_set<SDL_Scancode> keyset;
-    SDL_Keymod mods = SDL_GetModState();
-    while (SDL_PollEvent(&event)) {
-        bool passthrough = true;
-        SDL_Scancode sc = event.key.keysym.scancode;
-        switch (event.type) {
-            case SDL_QUIT:
-                PCSX::g_system->quit();
-                break;
-            case SDL_KEYDOWN:
-                if ((mods & KMOD_ALT) && (sc == SDL_SCANCODE_RETURN)) {
-                    setFullscreen(!m_fullscreen);
-                    passthrough = false;
-                } else {
-                    keyset.insert(sc);
-                }
-                break;
-            case SDL_WINDOWEVENT:
-                switch (event.window.event) {
-                    case SDL_WINDOWEVENT_MOVED:
-                    case SDL_WINDOWEVENT_RESIZED:
-                    case SDL_WINDOWEVENT_SIZE_CHANGED:
-                        saveCfg();
-                        break;
-                }
-                break;
-        }
-        if (passthrough) ImGui_ImplSDL2_ProcessEvent(&event);
-    }
+    if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
+    glfwPollEvents();
+
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(m_window);
+    ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    if (ImGui::GetIO().WantSaveIniSettings) {
-        ImGui::GetIO().WantSaveIniSettings = false;
+    auto& io = ImGui::GetIO();
+    if (io.WantSaveIniSettings) {
+        io.WantSaveIniSettings = false;
         saveCfg();
     }
-    SDL_GL_SwapWindow(m_window);
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     checkGL();
 
-    if (!ImGui::GetIO().WantCaptureKeyboard) {
-        for (auto& scancode : keyset) {
-            switch (scancode) {
-                case SDL_SCANCODE_ESCAPE:
-                    m_showMenu = !m_showMenu;
-                    break;
-            }
-        }
-    }
+    if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
+    if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -310,21 +290,8 @@ void PCSX::GUI::endFrame() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGL();
 
-    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
-    checkGL();
-    if (m_fullscreenRender) {
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    } else {
-        glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
-    }
-    checkGL();
-    glClearDepthf(0.0f);
-    checkGL();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    checkGL();
-
     int w, h;
-    SDL_GL_GetDrawableSize(m_window, &w, &h);
+    glfwGetFramebufferSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
     normalizeDimensions(m_renderSize, m_renderRatio);
 
@@ -555,16 +522,29 @@ void PCSX::GUI::endFrame() {
     auto& io = ImGui::GetIO();
 
     ImGui::Render();
-    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    glViewport(0, 0, w, h);
     checkGL();
+    if (m_fullscreenRender) {
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    } else {
+        glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
+    }
+    checkGL();
+    glClearDepthf(0.0f);
+    checkGL();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    checkGL();
+
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
-        SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+        GLFWwindow* backup_current_context = glfwGetCurrentContext();
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
-        SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+        glfwMakeContextCurrent(backup_current_context);
     }
+
+    glfwSwapBuffers(m_window);
     checkGL();
     glFlush();
     checkGL();

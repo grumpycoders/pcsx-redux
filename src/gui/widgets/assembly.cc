@@ -17,7 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL.h>
+#define GLFW_INCLUDE_NONE
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
 
 #include <fstream>
 #include <functional>
@@ -513,15 +515,15 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     DButton(_("Step Out"), !g_system->running(), [&]() mutable {
         g_emulator.m_debug->stepOut(); });
     if (!g_system->running()) {
-        if (ImGui::IsKeyPressed(SDL_SCANCODE_F10)) {
+        if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
             g_emulator.m_debug->stepOver();
-        } else if (ImGui::IsKeyPressed(SDL_SCANCODE_F11)) {
+        } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
             if (ImGui::GetIO().KeyShift) {
                 g_emulator.m_debug->stepOut();
             } else {
                 g_emulator.m_debug->stepIn();
             }
-        } else if (ImGui::IsKeyPressed(SDL_SCANCODE_F5)) {
+        } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
             g_system->resume();
         }
     }
@@ -637,7 +639,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     ImGui::PopStyleColor();
                 }
 
-                for (int i = 0; i < m_numColumns; i++) {
+                for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
                     ImGui::Text("");
                     ImGui::SameLine();
                 }

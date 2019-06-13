@@ -448,10 +448,22 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     PCSX::GUI::checkGL();
 }
 
+void PCSX::Widgets::VRAMViewer::resetView() {
+    m_cornerTL = {0.0f, 0.0f};
+    m_cornerBR = {512.0f / RATIOS[m_vramMode], 512.0f};
+    m_cornerBR *= ImGui::GetWindowDpiScale();
+    m_magnifyAmount = 5.0f;
+    m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
+}
+
 void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
     if (m_show) {
         auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
+            if (!m_firstShown) {
+                resetView();
+                m_firstShown = true;
+            }
             if (ImGui::BeginMenuBar()) {
                 if (ImGui::BeginMenu(_("File"))) {
                     ImGui::EndMenu();
