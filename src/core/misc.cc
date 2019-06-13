@@ -32,6 +32,11 @@
 
 #include "spu/interface.h"
 
+// FIXME: should be put in a more global header.
+#if defined(__linux__) || defined(__MACOSX__)
+#define strnicmp strncasecmp
+#endif
+
 // PSX Executable types
 #define PSX_EXE 1
 #define CPE_EXE 2

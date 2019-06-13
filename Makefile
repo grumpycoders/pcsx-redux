@@ -1,9 +1,10 @@
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 TARGET := pcsx-redux
 
-PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib
+PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib glfw3
 
 LOCALES := fr
+UNAME_S := $(shell uname -s)
 
 CXXFLAGS := -std=c++2a
 CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
@@ -16,10 +17,23 @@ CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -O3
 CPPFLAGS += -g
 
+ifeq ($(UNAME_S),Darwin)
+	CPPFLAGS += -mmacosx-version-min=10.15
+	CPPFLAGS += -stdlib=libc++
+endif
+
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
-LDFLAGS += -lstdc++fs
+
+ifeq ($(UNAME_S),Darwin)
+	LDFLAGS += -L/usr/local/Cellar/llvm/HEAD-e374798_1/lib
+	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
+	LDFLAGS += -mmacosx-version-min=10.15
+else
+	LDFLAGS += -lstdc++fs
+	LDFLAGS += -lGL
+endif
+
 LDFLAGS += -ldl
-LDFLAGS += -lGL
 LDFLAGS += -g
 
 LD := $(CXX)
@@ -27,7 +41,7 @@ LD := $(CXX)
 SRC_CC := $(call rwildcard,src/,*.cc)
 SRC_CPP := $(wildcard third_party/imgui/*.cpp)
 SRC_CPP += third_party/imgui/examples/imgui_impl_opengl3.cpp
-SRC_CPP += third_party/imgui/examples/imgui_impl_sdl.cpp
+SRC_CPP += third_party/imgui/examples/imgui_impl_glfw.cpp
 SRC_CPP += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRC_CPP += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRC_C := third_party/imgui/examples/libs/gl3w/GL/gl3w.c

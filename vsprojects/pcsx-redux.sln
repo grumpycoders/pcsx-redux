@@ -23,7 +23,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2main", "SDLmain\SDLmain
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2", "SDL\SDL.vcxproj", "{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui-sdl-ogl3", "imgui-sdl-ogl3\imgui-sdl-ogl3.vcxproj", "{B86F9380-6228-4B11-87AD-29FDABF95ABB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui-glfw-ogl3", "imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj", "{B86F9380-6228-4B11-87AD-29FDABF95ABB}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gui", "gui\gui.vcxproj", "{6EC7FDF3-1418-40BD-8584-1EEA34AC3E3E}"
 EndProject

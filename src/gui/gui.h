@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <SDL.h>
 #include <stdarg.h>
 
 #include <string>
@@ -37,6 +36,14 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/vram-viewer.h"
 #include "main/settings.h"
+
+#if defined(__MACOSX__)
+#define GL_SHADER_VERSION "#version 410\n"
+#else
+#define GL_SHADER_VERSION "#version 300 es\n"
+#endif
+
+struct GLFWwindow;
 
 namespace PCSX {
 
@@ -87,8 +94,11 @@ class GUI final {
     }
 
   private:
-    SDL_Window *m_window = nullptr;
-    SDL_GLContext m_glContext = nullptr;
+    GLFWwindow *m_window = nullptr;
+    int &m_glfwPosX = settings.get<WindowPosX>().value;
+    int &m_glfwPosY = settings.get<WindowPosY>().value;
+    int &m_glfwSizeX = settings.get<WindowSizeX>().value;
+    int &m_glfwSizeY = settings.get<WindowSizeY>().value;
     unsigned int m_VRAMTexture = 0;
 
     unsigned int m_offscreenFrameBuffer = 0;
@@ -108,8 +118,8 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowBiosCounters")> ShowBiosCounters;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
-    typedef Setting<int, TYPESTRING("WindowPosX"), SDL_WINDOWPOS_CENTERED> WindowPosX;
-    typedef Setting<int, TYPESTRING("WindowPosY"), SDL_WINDOWPOS_CENTERED> WindowPosY;
+    typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
+    typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX,

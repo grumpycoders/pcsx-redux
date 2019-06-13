@@ -198,8 +198,6 @@ static void checkGL() {
     }
 }
 
-#define GL_SHADER_VERSION "#version 300 es\n"
-
 static const GLchar *passThroughVS = GL_SHADER_VERSION R"(
 in vec2 in_Position;
 in vec2 in_Texcoord;
