@@ -31,24 +31,35 @@ namespace PCSX {
 class Debug {
   public:
     enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
-    static inline const char *s_breakpoint_type_names[] = {"Exec",       "Read Byte",   "Read Half", "Read Word",
-                                                           "Write Byte", "Write Healf", "Write Word"};
+    static inline std::function<const char *()> s_breakpoint_type_names[] = {
+      [](){ return _("Exec"); },
+      [](){ return _("Read Byte"); },
+      [](){ return _("Read Half"); },
+      [](){ return _("Read Word"); },
+      [](){ return _("Write Byte"); },
+      [](){ return _("Write Half"); },
+      [](){ return _("Write Word"); },
+    };
 
     void processBefore();
     void processAfter();
-    void checkBP(uint32_t address, BreakpointType type);
+    void checkBP(uint32_t address, BreakpointType type, const char * reason = nullptr);
     std::string generateFlowIDC();
     std::string generateMarkIDC();
 
     class Breakpoint {
       public:
         BreakpointType type() const { return m_type; }
+        bool enabled() const { return m_enabled; }
+        void enable() const { m_enabled = true; }
+        void disable() const { m_enabled = false; }
         Breakpoint(BreakpointType type, bool temporary = false) : m_type(type), m_temporary(temporary) {}
         Breakpoint() : m_type(BE), m_temporary(true) {}
 
       private:
         BreakpointType m_type;
         bool m_temporary;
+        mutable bool m_enabled = true;
         friend class Debug;
     };
 
@@ -103,7 +114,7 @@ class Debug {
 
     void markMap(uint32_t address, int mask);
     bool isMapMarked(uint32_t address, int mask);
-    void triggerBP(bpiterator bp);
+    void triggerBP(bpiterator bp, const char * reason);
 
     enum {
         STEP_IN,
