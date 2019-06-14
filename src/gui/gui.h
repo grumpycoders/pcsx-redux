@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stdarg.h>
+#include <uv.h>
 
 #include <string>
 
@@ -164,6 +165,8 @@ class GUI final {
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;
     Widgets::VRAMViewer m_VRAMviewers[4];
+
+    uv_loop_t m_loop;
 };
 
 }  // namespace PCSX

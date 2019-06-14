@@ -76,6 +76,9 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
 }
 
 void PCSX::GUI::init() {
+    int result = uv_loop_init(&m_loop);
+    assert(result == 0);
+
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
         abort();
@@ -92,7 +95,7 @@ void PCSX::GUI::init() {
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
 
-    int result = gl3wInit();
+    result = gl3wInit();
     assert(result == 0);
 
     // Setup ImGui binding
@@ -204,6 +207,9 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+
+    int result = uv_loop_close(&m_loop);
+    assert(result == 0);
 }
 
 void PCSX::GUI::saveCfg() {
@@ -221,6 +227,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
+    uv_run(&m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();
