@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\uv">
+      <UniqueIdentifier>{081b76fc-5157-44d8-9500-c99fdc570193}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\win">
+      <UniqueIdentifier>{65804581-15ca-4ce5-82a2-07f36afd1bcf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\aix.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\android-ifaddrs.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\bsd.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\darwin.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\errno.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\linux.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\os390.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\posix.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\stdint-msvc2008.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\sunos.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\threadpool.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\tree.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\unix.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\version.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv\win.h">
+      <Filter>Header Files\uv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\include\uv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\heap-inl.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\idna.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\queue.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\strscpy.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\uv-common.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\atomicops-inl.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\handle-inl.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\internal.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\req-inl.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\stream-inl.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\winapi.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\libuv\src\win\winsock.h">
+      <Filter>Source Files\win</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\libuv\src\idna.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\inet.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\strscpy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\threadpool.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\timer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\uv-common.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\uv-data-getter-setters.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\version.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\async.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\core.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\detect-wakeup.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\dl.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\error.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\fs.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\fs-event.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\getaddrinfo.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\getnameinfo.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\handle.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\loop-watcher.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\pipe.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\poll.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\process.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\process-stdio.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\signal.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\snprintf.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\stream.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\tcp.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\thread.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\tty.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\udp.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\util.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\winapi.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\win\winsock.c">
+      <Filter>Source Files\win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\fs-poll.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
