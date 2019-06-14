@@ -13,3 +13,6 @@
 [submodule "third_party/ImGuiColorTextEdit"]
 	path = third_party/ImGuiColorTextEdit
 	url = https://github.com/BalazsJako/ImGuiColorTextEdit.git
+[submodule "third_party/libuv"]
+	path = third_party/libuv
+	url = https://github.com/libuv/libuv.git
