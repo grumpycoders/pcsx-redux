@@ -22,6 +22,8 @@
 #include <GLFW/glfw3.h>
 #include <assert.h>
 
+#include <SDL.h>
+
 #include <fstream>
 #include <iomanip>
 #include <unordered_set>
@@ -221,6 +223,7 @@ void PCSX::GUI::saveCfg() {
 void PCSX::GUI::startFrame() {
     if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
     glfwPollEvents();
+    SDL_PumpEvents();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
