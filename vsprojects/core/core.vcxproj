@@ -70,16 +70,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\third_party;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -211,11 +211,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" />
+    <Import Project="..\packages\glfw.3.3.0.1\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets'))" />
+    <Error Condition="!Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.0.1\build\native\glfw.targets'))" />
   </Target>
 </Project>

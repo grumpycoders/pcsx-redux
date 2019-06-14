@@ -19,28 +19,32 @@
 
 #include <memory.h>
 
+#include "imgui.h"
+#define GLFW_INCLUDE_NONE
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
 #include <SDL.h>
 
 #include "core/pad.h"
 #include "core/psemu_plugin_defs.h"
 
-static const SDL_Scancode s_defaultScancodes[16] = {
-    SDL_SCANCODE_BACKSPACE,  // Select
-    SDL_SCANCODE_UNKNOWN,    // n/a
-    SDL_SCANCODE_UNKNOWN,    // n/a
-    SDL_SCANCODE_RETURN,     // Start
-    SDL_SCANCODE_UP,         // Up
-    SDL_SCANCODE_RIGHT,      // Right
-    SDL_SCANCODE_DOWN,       // Down
-    SDL_SCANCODE_LEFT,       // Left
-    SDL_SCANCODE_A,          // L2
-    SDL_SCANCODE_F,          // R2
-    SDL_SCANCODE_Q,          // L1
-    SDL_SCANCODE_R,          // R1
-    SDL_SCANCODE_S,          // Triangle
-    SDL_SCANCODE_D,          // Circle
-    SDL_SCANCODE_X,          // Cross
-    SDL_SCANCODE_Z,          // Square
+static const int s_defaultScancodes[16] = {
+    GLFW_KEY_BACKSPACE,  // Select
+    511,                 // n/a
+    511,                 // n/a
+    GLFW_KEY_ENTER,      // Start
+    GLFW_KEY_UP,         // Up
+    GLFW_KEY_RIGHT,      // Right
+    GLFW_KEY_DOWN,       // Down
+    GLFW_KEY_LEFT,       // Left
+    GLFW_KEY_A,          // L2
+    GLFW_KEY_F,          // R2
+    GLFW_KEY_Q,          // L1
+    GLFW_KEY_R,          // R1
+    GLFW_KEY_S,          // Triangle
+    GLFW_KEY_D,          // Circle
+    GLFW_KEY_X,          // Cross
+    GLFW_KEY_Z,          // Square
 };
 
 static const SDL_GameControllerButton s_padMapping[16] = {
@@ -94,7 +98,7 @@ uint16_t PCSX::PAD::getButtons() {
     if (!m_connected) return result;
 
     if (m_isKeyboard) {
-        const Uint8* keys = SDL_GetKeyboardState(NULL);
+        const bool* keys = ImGui::GetIO().KeysDown;
         result = 0;
         for (unsigned i = 0; i < 16; i++) result |= !(keys[m_scancodes[i]]) << i;
     } else if (m_pad) {
