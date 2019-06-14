@@ -1,7 +1,7 @@
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 TARGET := pcsx-redux
 
-PACKAGES := libavcodec libavformat libavutil libswresample sdl2 zlib glfw3
+PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib
 
 LOCALES := fr
 UNAME_S := $(shell uname -s)
