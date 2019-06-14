@@ -10,6 +10,6 @@ RUN apt install -y software-properties-common
 RUN apt-add-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic main"
 RUN apt update
 RUN apt install -y make g++-8 clang-9 git
-RUN apt install -y pkg-config libsdl2-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev zlib1g-dev libglfw3-dev libuv-dev
+RUN apt install -y pkg-config libsdl2-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev zlib1g-dev libglfw3-dev libuv1-dev
 
 USER coder
