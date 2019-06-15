@@ -166,6 +166,7 @@
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\spu.cc" />
+    <ClCompile Include="..\..\src\core\sstate.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -204,6 +205,7 @@
     <ClInclude Include="..\..\src\core\sio.h" />
     <ClInclude Include="..\..\src\core\sjisfont.h" />
     <ClInclude Include="..\..\src\core\spu.h" />
+    <ClInclude Include="..\..\src\core\sstate.h" />
     <ClInclude Include="..\..\src\core\system.h" />
   </ItemGroup>
   <ItemGroup>

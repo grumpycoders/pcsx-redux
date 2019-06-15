@@ -79,6 +79,10 @@ class InSlice {
         skipBytes(size);
         return std::string(reinterpret_cast<const char *>(m_data + m_ptr - size), size);
     }
+    void getBytes(uint8_t *data, uint64_t size) {
+        skipBytes(size);
+        memcpy(data, m_data + m_ptr - size, size);
+    }
     void skipBytes(uint64_t size) {
         boundsCheck(size);
         m_ptr += size;
@@ -144,40 +148,44 @@ class OutSlice {
     std::string m_data;
 };
 
-template <typename type, unsigned wireTypeValue>
+template <typename innerType, unsigned wireTypeValue>
 struct FieldType {
+    typedef innerType type;
+    FieldType(){};
+    FieldType(const type &init) : value(init) {}
+    FieldType(type &&init) : value(init) {}
     type value;
     void reset() { value = type(); }
     static constexpr unsigned wireType = wireTypeValue;
     static constexpr bool matches(unsigned otherWireType) { return wireType == otherWireType; }
 };
 
-struct FieldTypeInt32 : public FieldType<int32_t, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt(value); }
+struct Int32 : public FieldType<int32_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     void deserialize(InSlice *slice, unsigned) { value = static_cast<int32_t>(slice->getVarInt()); }
     static constexpr char const typeName[] = "int32";
 };
 
-struct FieldTypeInt64 : public FieldType<int64_t, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt(value); }
+struct Int64 : public FieldType<int64_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getVarInt(); }
     static constexpr char const typeName[] = "int64";
 };
 
-struct FieldTypeUInt32 : public FieldType<uint32_t, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt(value); }
+struct UInt32 : public FieldType<uint32_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     void deserialize(InSlice *slice, unsigned) { value = static_cast<uint32_t>(slice->getVarInt()); }
     static constexpr char const typeName[] = "uint32";
 };
 
-struct FieldTypeUInt64 : public FieldType<uint64_t, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt(value); }
+struct UInt64 : public FieldType<uint64_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getVarInt(); }
     static constexpr char const typeName[] = "uint64";
 };
 
-struct FieldTypeSInt32 : public FieldType<int32_t, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt((value << 1) ^ (value >> 31)); }
+struct SInt32 : public FieldType<int32_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt((value << 1) ^ (value >> 31)); }
     void deserialize(InSlice *slice, unsigned) {
         value = static_cast<int32_t>(slice->getVarInt());
         value = (value >> 1) ^ -(value & 1);
@@ -185,8 +193,8 @@ struct FieldTypeSInt32 : public FieldType<int32_t, 0> {
     static constexpr char const typeName[] = "sint32";
 };
 
-struct FieldTypeSInt64 : public FieldType<int64_t, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt((value << 1) ^ (value >> 63)); }
+struct SInt64 : public FieldType<int64_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt((value << 1) ^ (value >> 63)); }
     void deserialize(InSlice *slice, unsigned) {
         value = slice->getVarInt();
         value = (value >> 1) ^ -(value & 1);
@@ -194,38 +202,26 @@ struct FieldTypeSInt64 : public FieldType<int64_t, 0> {
     static constexpr char const typeName[] = "sint64";
 };
 
-struct FieldTypeBool : public FieldType<bool, 0> {
-    void serialize(OutSlice *slice) { slice->putVarInt(value); }
+struct Bool : public FieldType<bool, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getVarInt(); }
     static constexpr char const typeName[] = "bool";
 };
 
-#if 0
-template<typename enumType>
-struct FieldTypeEnum : FieldType<enumType, 0> {
-    void serialize(OutSlice * slice) {
-        slice->putVarInt(value);
-    }
-    void deserialize(InSlice * slice, unsigned) {
-        value = static_cast<enumType>(slice->getVarInt());
-    }
-};
-#endif
-
-struct FieldTypeFixed64 : public FieldType<uint64_t, 1> {
-    void serialize(OutSlice *slice) { slice->putU64(value); }
+struct Fixed64 : public FieldType<uint64_t, 1> {
+    void serialize(OutSlice *slice) const { slice->putU64(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getU64(); }
     static constexpr char const typeName[] = "fixed64";
 };
 
-struct FieldTypeSFixed64 : public FieldType<int64_t, 1> {
-    void serialize(OutSlice *slice) { slice->putU64(value); }
+struct SFixed64 : public FieldType<int64_t, 1> {
+    void serialize(OutSlice *slice) const { slice->putU64(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getU64(); }
     static constexpr char const typeName[] = "sfixed64";
 };
 
-struct FieldTypeDouble : public FieldType<double, 1> {
-    void serialize(OutSlice *slice) {
+struct Double : public FieldType<double, 1> {
+    void serialize(OutSlice *slice) const {
         union {
             double d;
             uint64_t v;
@@ -244,8 +240,8 @@ struct FieldTypeDouble : public FieldType<double, 1> {
     static constexpr char const typeName[] = "double";
 };
 
-struct FieldTypeString : public FieldType<std::string, 2> {
-    void serialize(OutSlice *slice) {
+struct String : public FieldType<std::string, 2> {
+    void serialize(OutSlice *slice) const {
         slice->putVarInt(value.size());
         slice->putBytes(value);
     }
@@ -253,8 +249,8 @@ struct FieldTypeString : public FieldType<std::string, 2> {
     static constexpr char const typeName[] = "string";
 };
 
-struct FieldTypeBytes : public FieldType<std::string, 2> {
-    void serialize(OutSlice *slice) {
+struct Bytes : public FieldType<std::string, 2> {
+    void serialize(OutSlice *slice) const {
         slice->putVarInt(value.size());
         slice->putBytes(value);
     }
@@ -262,20 +258,52 @@ struct FieldTypeBytes : public FieldType<std::string, 2> {
     static constexpr char const typeName[] = "bytes";
 };
 
-struct FieldTypeFixed32 : public FieldType<uint32_t, 5> {
-    void serialize(OutSlice *slice) { slice->putU32(value); }
+template <size_t amount>
+struct FixedBytes {
+    ~FixedBytes() { free(value); }
+    FixedBytes() {}
+    FixedBytes(const FixedBytes &s) {
+        if (!s.value) return;
+        value = reinterpret_cast<uint8_t *>(malloc(amount));
+        memcpy(value, s.value, amount);
+    }
+    FixedBytes(FixedBytes &&s) {
+        if (!s.value) return;
+        value = s.value;
+        s.value = nullptr;
+    }
+    void serialize(OutSlice *slice) const {
+        slice->putVarInt(amount);
+        slice->putBytes(value, amount);
+    }
+    void deserialize(InSlice *slice, unsigned) {
+        uint64_t size = slice->getVarInt();
+        if (size > amount) throw OutOfBoundError();
+        value = reinterpret_cast<uint8_t *>(malloc(amount));
+        slice->getBytes(value, size);
+    }
+    static constexpr char const typeName[] = "bytes";
+    uint8_t *value = nullptr;
+    typedef uint8_t *type;
+    void reset() { memset(value, 0, amount); }
+    static constexpr unsigned wireType = 2;
+    static constexpr bool matches(unsigned otherWireType) { return otherWireType == 2; }
+};
+
+struct Fixed32 : public FieldType<uint32_t, 5> {
+    void serialize(OutSlice *slice) const { slice->putU32(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getU32(); }
     static constexpr char const typeName[] = "fixed32";
 };
 
-struct FieldTypeSFixed32 : public FieldType<int32_t, 5> {
-    void serialize(OutSlice *slice) { slice->putU32(value); }
+struct SFixed32 : public FieldType<int32_t, 5> {
+    void serialize(OutSlice *slice) const { slice->putU32(value); }
     void deserialize(InSlice *slice, unsigned) { value = slice->getU32(); }
     static constexpr char const typeName[] = "sfixed32";
 };
 
-struct FieldTypeFloat : public FieldType<float, 5> {
-    void serialize(OutSlice *slice) {
+struct Float : public FieldType<float, 5> {
+    void serialize(OutSlice *slice) const {
         union {
             float f;
             uint32_t v;
@@ -300,11 +328,50 @@ template <typename FieldType, typename name, uint64_t fieldNumberValue>
 struct Field;
 template <typename FieldType, char... C, uint64_t fieldNumberValue>
 struct Field<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
+  private:
+    using type = typename FieldType::type;
+
+  public:
+    Field() {}
+    Field(type init) { FieldType::value = init; }
     static constexpr uint64_t fieldNumber = fieldNumberValue;
     typedef irqus::typestring<C...> fieldName;
     static void dumpSchema(std::ostream &stream) {
-        stream << "  " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";" << std::endl;
+        stream << "  " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
+               << std::endl;
     }
+    void serializeFromSnapshot(OutSlice *slice) const { FieldType::serialize(slice); }
+    void deserializeFromSnapshot(InSlice *slice, unsigned wireType) { FieldType::deserialize(slice, wireType); }
+};
+
+template <typename FieldType, typename name, uint64_t fieldNumberValue>
+struct FieldRef;
+template <typename FieldType, char... C, uint64_t fieldNumberValue>
+struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
+  private:
+    using type = typename FieldType::type;
+
+  public:
+    FieldRef(type &dest) : ref(dest) {}
+    static constexpr uint64_t fieldNumber = fieldNumberValue;
+    typedef irqus::typestring<C...> fieldName;
+    static void dumpSchema(std::ostream &stream) {
+        stream << "  " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
+               << std::endl;
+    }
+    void serialize(OutSlice *slice) const {
+        FieldType *field = reinterpret_cast<FieldType *>(&ref);
+        field->serialize(slice);
+    }
+    void deserialize(InSlice *slice, unsigned wireType) {
+        FieldType *field = reinterpret_cast<FieldType *>(&ref);
+        field->deserialize(slice, wireType);
+    }
+    void serializeFromSnapshot(OutSlice *slice) const { serialize(slice); }
+    void deserializeFromSnapshot(InSlice *slice, unsigned wireType) { deserialize(slice, wireType); }
+
+  private:
+    type &ref;
 };
 
 template <typename FieldType, typename name, uint64_t fieldNumberValue>
@@ -312,6 +379,7 @@ struct RepeatedField;
 template <typename FieldType, char... C, uint64_t fieldNumberValue>
 struct RepeatedField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     static constexpr uint64_t fieldNumber = fieldNumberValue;
+    static constexpr unsigned wireType = 2;
     typedef irqus::typestring<C...> fieldName;
     static void dumpSchema(std::ostream &stream) {
         stream << "  repeated " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
@@ -320,7 +388,7 @@ struct RepeatedField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     std::vector<FieldType> value;
     void reset() { value.clear(); }
     static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
-    void serialize(OutSlice *slice) {
+    void serialize(OutSlice *slice) const {
         OutSlice subSlice;
         for (const auto &v : value) {
             v.serialize(&subSlice);
@@ -340,10 +408,57 @@ struct RepeatedField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     }
 };
 
+template <size_t amount, typename FieldType, typename name, uint64_t fieldNumberValue>
+struct RepeatedFieldRef;
+template <size_t amount, typename FieldType, char... C, uint64_t fieldNumberValue>
+struct RepeatedFieldRef<amount, FieldType, irqus::typestring<C...>, fieldNumberValue> {
+    using innerType = typename FieldType::type;
+    RepeatedFieldRef(const RepeatedFieldRef &s) : ref(s.ref), count(s.count) {}
+    RepeatedFieldRef(RepeatedFieldRef &&s) : ref(s.ref), count(s.count) {}
+    RepeatedFieldRef(innerType *init) : ref(init) {}
+    static constexpr uint64_t fieldNumber = fieldNumberValue;
+    static constexpr unsigned wireType = 2;
+    typedef irqus::typestring<C...> fieldName;
+    static void dumpSchema(std::ostream &stream) {
+        stream << "  repeated " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
+               << std::endl;
+    }
+    innerType *ref;
+    size_t count = 0;
+    void reset() { memset(ref, 0, sizeof(FieldType) * amount); }
+    static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
+    void serialize(OutSlice *slice) const {
+        OutSlice subSlice;
+        for (size_t i = 0; i < amount; i++) {
+            FieldType *field = reinterpret_cast<FieldType *>(ref + i);
+            field->serialize(&subSlice);
+        }
+        std::string subSliceData = subSlice.finalize();
+        slice->putVarInt(subSliceData.size());
+        slice->putBytes(subSliceData);
+    }
+    void deserialize(InSlice *slice, unsigned wireType) {
+        uint64_t n = 1;
+        if (FieldType::wireType != wireType) n = slice->getVarInt();
+        if ((n + count) > amount) throw OutOfBoundError();
+        for (uint64_t i = 0; i < n; i++) {
+            FieldType *field = reinterpret_cast<FieldType *>(ref + count++);
+            field->deserialize(slice);
+        }
+    }
+};
+
 template <typename MessageType, typename name, uint64_t fieldNumberValue>
 struct MessageField;
 template <typename MessageType, char... C, uint64_t fieldNumberValue>
 struct MessageField<MessageType, irqus::typestring<C...>, fieldNumberValue> : public MessageType {
+    MessageField() : MessageType() {}
+    MessageField(const MessageType &value) : MessageType(value) {}
+    MessageField(MessageType &value) : MessageType(value) {}
+    template <typename... fields>
+    MessageField(const fields &... values) : MessageType(values...) {}
+    template <typename... fields>
+    MessageField(fields &&... values) : MessageType(values...) {}
     static constexpr bool matches(unsigned wireType) { return wireType == 2; }
     static constexpr unsigned wireType = 2;
     static constexpr uint64_t fieldNumber = fieldNumberValue;
@@ -352,7 +467,7 @@ struct MessageField<MessageType, irqus::typestring<C...>, fieldNumberValue> : pu
         stream << "  " << MessageType::name::data() << " " << fieldName::data() << " = " << fieldNumberValue << ";"
                << std::endl;
     }
-    void serialize(OutSlice *slice) {
+    void serialize(OutSlice *slice) const {
         OutSlice subSlice;
         MessageType::serialize(&subSlice);
         std::string subSliceData = subSlice.finalize();
@@ -369,7 +484,13 @@ template <typename name, typename... fields>
 class Message;
 template <char... C, typename... fields>
 class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...> {
+    using myself = Message<irqus::typestring<C...>, fields...>;
+    using base = std::tuple<fields...>;
+
   public:
+    Message() { verifyIntegrity<0, fields...>(); }
+    Message(const fields &... values) : base(values...) { verifyIntegrity<0, fields...>(); }
+    Message(fields &&... values) : base(values...) { verifyIntegrity<0, fields...>(); }
     static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
     static void dumpSchema(std::ostream &stream) {
         stream << "message " << typeName << " {" << std::endl;
@@ -384,7 +505,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     constexpr field &get() {
         return std::get<field>(*this);
     }
-    void serialize(OutSlice *slice) { serialize<0, fields...>(slice); }
+    void serialize(OutSlice *slice) const { serialize<0, fields...>(slice); }
     constexpr void deserialize(InSlice *slice) {
         while (slice->bytesLeft()) {
             uint64_t fieldNumber = slice->getVarInt();
@@ -411,21 +532,27 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         std::get<index>().reset();
         reset<index + 1, nestedFields...>();
     }
-    constexpr bool hasField(uint64_t fieldNumber) { return hasField<0, fields...>(fieldNumber); }
     template <size_t index>
-    constexpr bool hasField(unsigned fieldNumber) {
+    static constexpr void verifyIntegrity() {}
+    template <size_t index, typename FieldType, typename... nestedFields>
+    static constexpr void verifyIntegrity() {
+        static_assert(!hasField<index, nestedFields...>(FieldType::fieldNumber));
+        verifyIntegrity<index + 1, nestedFields...>();
+    }
+    template <size_t index>
+    static constexpr bool hasField(uint64_t fieldNumber) {
         return false;
     }
     template <size_t index, typename FieldType, typename... nestedFields>
-    constexpr bool hasField(unsigned fieldNumber) {
+    static constexpr bool hasField(uint64_t fieldNumber) {
         if (FieldType::fieldNumber == fieldNumber) return true;
         return hasField<index + 1, nestedFields...>(fieldNumber);
     }
     template <size_t index>
-    constexpr void serialize(OutSlice *slice) {}
+    constexpr void serialize(OutSlice *slice) const {}
     template <size_t index, typename FieldType, typename... nestedFields>
-    constexpr void serialize(OutSlice *slice) {
-        FieldType &field = std::get<index>(*this);
+    constexpr void serialize(OutSlice *slice) const {
+        const FieldType &field = std::get<index>(*this);
         slice->putVarInt((FieldType::fieldNumber << 3) | FieldType::wireType);
         field.serialize(slice);
         serialize<index + 1, nestedFields...>(slice);

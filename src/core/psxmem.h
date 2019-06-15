@@ -42,10 +42,10 @@ namespace PCSX {
 
 class Memory {
   public:
-    int8_t *g_psxM = NULL;  // Kernel & User Memory (2 Meg)
-    int8_t *g_psxP = NULL;  // Parallel Port (64K)
-    int8_t *g_psxR = NULL;  // BIOS ROM (512K)
-    int8_t *g_psxH = NULL;  // Scratch Pad (1K) & Hardware Registers (8K)
+    uint8_t *g_psxM = NULL;  // Kernel & User Memory (2 Meg)
+    uint8_t *g_psxP = NULL;  // Parallel Port (64K)
+    uint8_t *g_psxR = NULL;  // BIOS ROM (512K)
+    uint8_t *g_psxH = NULL;  // Scratch Pad (1K) & Hardware Registers (8K)
 
     uint8_t **g_psxMemWLUT = NULL;
     uint8_t **g_psxMemRLUT = NULL;

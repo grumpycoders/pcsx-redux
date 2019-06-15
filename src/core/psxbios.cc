@@ -2917,7 +2917,7 @@ class BiosImpl : public PCSX::Bios {
     {                                                                                             \
         if (Mode == 1) {                                                                          \
             if (ptr)                                                                              \
-                psxRu32ref(base) = SWAP_LEu32((int8_t *)(ptr)-PCSX::g_emulator.m_psxMem->g_psxM); \
+                psxRu32ref(base) = SWAP_LEu32((uint8_t *)(ptr)-PCSX::g_emulator.m_psxMem->g_psxM); \
             else                                                                                  \
                 psxRu32ref(base) = 0;                                                             \
         } else {                                                                                  \
