@@ -280,13 +280,18 @@ struct FieldTypeFloat : public FieldType<float, 5> {
 
 class CorruptedWireFormat {};
 
-template <typename FieldType, uint64_t fieldNumberValue>
-struct Field : public FieldType {
+template <typename FieldType, typename name, uint64_t fieldNumberValue>
+struct Field;
+template <typename FieldType, char... C, uint64_t fieldNumberValue>
+struct Field<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
     static constexpr uint64_t fieldNumber = fieldNumberValue;
+    typedef irqus::typestring<C...> name;
 };
 
-template <typename FieldType, uint64_t fieldNumberValue>
-struct RepeatedField {
+template <typename FieldType, typename name, uint64_t fieldNumberValue>
+struct RepeatedField;
+template <typename FieldType, char... C, uint64_t fieldNumberValue>
+struct RepeatedField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     static constexpr uint64_t fieldNumber = fieldNumberValue;
     std::vector<FieldType> value;
     void reset() { value.clear(); }
@@ -329,8 +334,10 @@ struct MessageField : public MessageType {
     }
 };
 
-template <typename... fields>
-class Message : private std::tuple<fields...> {
+template <typename name, typename... fields>
+class Message;
+template <char... C, typename... fields>
+class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...> {
   public:
     constexpr void reset() { reset<0, fields...>(); }
     template <typename field>
