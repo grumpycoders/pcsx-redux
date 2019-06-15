@@ -191,6 +191,7 @@
     <ClInclude Include="..\..\src\core\pgxp_value.h" />
     <ClInclude Include="..\..\src\core\plugins.h" />
     <ClInclude Include="..\..\src\core\ppf.h" />
+    <ClInclude Include="..\..\src\core\protobuf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
     <ClInclude Include="..\..\src\core\psxbios.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />
