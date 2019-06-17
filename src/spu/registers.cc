@@ -69,8 +69,8 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
-    const unsigned long r = reg & 0xfff;
+void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
+    const uint32_t r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
 
@@ -80,11 +80,11 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
         switch (r & 0x0f) {
             //------------------------------------------------// r volume
             case 0:
-                SetVolumeL((unsigned char)ch, val);
+                SetVolumeL((uint8_t)ch, val);
                 break;
             //------------------------------------------------// l volume
             case 2:
-                SetVolumeR((unsigned char)ch, val);
+                SetVolumeR((uint8_t)ch, val);
                 break;
             //------------------------------------------------// pitch
             case 4:
@@ -92,12 +92,12 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 break;
             //------------------------------------------------// start
             case 6:
-                s_chan[ch].pStart = spuMemC + ((unsigned long)val << 3);
+                s_chan[ch].pStart = spuMemC + ((uint32_t)val << 3);
                 break;
             //------------------------------------------------// level with pre-calcs
             case 8: {
-                const unsigned long lval = val;
-                unsigned long lx;
+                const uint32_t lval = val;
+                uint32_t lx;
                 //---------------------------------------------//
                 s_chan[ch].ADSRX.get<exAttackModeExp>().value = (lval & 0x8000) ? 1 : 0;
                 s_chan[ch].ADSRX.get<exAttackRate>().value = ((lval >> 8) & 0x007f) ^ 0x7f;
@@ -108,7 +108,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSR.get<AttackModeExp>().value = (lval & 0x8000) ? 1 : 0;  // 0x007f
 
                 lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31UL, lx);             // no overflow on shift!
+                lx = std::min(31U, lx);             // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -134,8 +134,8 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             } break;
             //------------------------------------------------// adsr times with pre-calcs
             case 10: {
-                const unsigned long lval = val;
-                unsigned long lx;
+                const uint32_t lval = val;
+                uint32_t lx;
                 //----------------------------------------------//
                 s_chan[ch].ADSRX.get<exSustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
                 s_chan[ch].ADSRX.get<exSustainIncrease>().value = (lval & 0x4000) ? 0 : 1;
@@ -148,7 +148,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 s_chan[ch].ADSR.get<ReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
 
                 lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31UL, lx);               // values are used to hold the volume
+                lx = std::min(31U, lx);               // values are used to hold the volume
                 if (lx)                                // until a sound stop occurs
                 {                                      // the highest value we reach (due to
                     lx = (1 << lx);                    // overflow checking) is:
@@ -184,7 +184,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             //------------------------------------------------//
             case 14:  // loop?
                 // WaitForSingleObject(s_chan[ch].hMutex,2000);        // -> no multithread fuckups
-                s_chan[ch].pLoop = spuMemC + ((unsigned long)val << 3);
+                s_chan[ch].pLoop = spuMemC + ((uint32_t)val << 3);
                 s_chan[ch].bIgnoreLoop = 1;
                 // ReleaseMutex(s_chan[ch].hMutex);                    // -> oki, on with the thread
                 break;
@@ -199,7 +199,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
     switch (r) {
         //-------------------------------------------------//
         case H_SPUaddr:
-            spuAddr = (unsigned long)val << 3;
+            spuAddr = (uint32_t)val << 3;
             break;
         //-------------------------------------------------//
         case H_SPUdata:
@@ -220,9 +220,9 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             if (val == 0xFFFF || val <= 0x200) {
                 rvb.StartAddr = rvb.CurrAddr = 0;
             } else {
-                const long iv = (unsigned long)val << 2;
+                const long iv = (uint32_t)val << 2;
                 if (rvb.StartAddr != iv) {
-                    rvb.StartAddr = (unsigned long)val << 2;
+                    rvb.StartAddr = (uint32_t)val << 2;
                     rvb.CurrAddr = rvb.StartAddr;
                 }
             }
@@ -230,7 +230,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
         //-------------------------------------------------//
         case H_SPUirqAddr:
             spuIrq = val;
-            pSpuIrq = spuMemC + ((unsigned long)val << 3);
+            pSpuIrq = spuMemC + ((uint32_t)val << 3);
             break;
         //-------------------------------------------------//
         case H_SPUrvolL:
@@ -329,97 +329,97 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             break;
 
         case H_Reverb + 2:
-            rvb.FB_SRC_B = (short)val;
+            rvb.FB_SRC_B = (int16_t)val;
             break;
         case H_Reverb + 4:
-            rvb.IIR_ALPHA = (short)val;
+            rvb.IIR_ALPHA = (int16_t)val;
             break;
         case H_Reverb + 6:
-            rvb.ACC_COEF_A = (short)val;
+            rvb.ACC_COEF_A = (int16_t)val;
             break;
         case H_Reverb + 8:
-            rvb.ACC_COEF_B = (short)val;
+            rvb.ACC_COEF_B = (int16_t)val;
             break;
         case H_Reverb + 10:
-            rvb.ACC_COEF_C = (short)val;
+            rvb.ACC_COEF_C = (int16_t)val;
             break;
         case H_Reverb + 12:
-            rvb.ACC_COEF_D = (short)val;
+            rvb.ACC_COEF_D = (int16_t)val;
             break;
         case H_Reverb + 14:
-            rvb.IIR_COEF = (short)val;
+            rvb.IIR_COEF = (int16_t)val;
             break;
         case H_Reverb + 16:
-            rvb.FB_ALPHA = (short)val;
+            rvb.FB_ALPHA = (int16_t)val;
             break;
         case H_Reverb + 18:
-            rvb.FB_X = (short)val;
+            rvb.FB_X = (int16_t)val;
             break;
         case H_Reverb + 20:
-            rvb.IIR_DEST_A0 = (short)val;
+            rvb.IIR_DEST_A0 = (int16_t)val;
             break;
         case H_Reverb + 22:
-            rvb.IIR_DEST_A1 = (short)val;
+            rvb.IIR_DEST_A1 = (int16_t)val;
             break;
         case H_Reverb + 24:
-            rvb.ACC_SRC_A0 = (short)val;
+            rvb.ACC_SRC_A0 = (int16_t)val;
             break;
         case H_Reverb + 26:
-            rvb.ACC_SRC_A1 = (short)val;
+            rvb.ACC_SRC_A1 = (int16_t)val;
             break;
         case H_Reverb + 28:
-            rvb.ACC_SRC_B0 = (short)val;
+            rvb.ACC_SRC_B0 = (int16_t)val;
             break;
         case H_Reverb + 30:
-            rvb.ACC_SRC_B1 = (short)val;
+            rvb.ACC_SRC_B1 = (int16_t)val;
             break;
         case H_Reverb + 32:
-            rvb.IIR_SRC_A0 = (short)val;
+            rvb.IIR_SRC_A0 = (int16_t)val;
             break;
         case H_Reverb + 34:
-            rvb.IIR_SRC_A1 = (short)val;
+            rvb.IIR_SRC_A1 = (int16_t)val;
             break;
         case H_Reverb + 36:
-            rvb.IIR_DEST_B0 = (short)val;
+            rvb.IIR_DEST_B0 = (int16_t)val;
             break;
         case H_Reverb + 38:
-            rvb.IIR_DEST_B1 = (short)val;
+            rvb.IIR_DEST_B1 = (int16_t)val;
             break;
         case H_Reverb + 40:
-            rvb.ACC_SRC_C0 = (short)val;
+            rvb.ACC_SRC_C0 = (int16_t)val;
             break;
         case H_Reverb + 42:
-            rvb.ACC_SRC_C1 = (short)val;
+            rvb.ACC_SRC_C1 = (int16_t)val;
             break;
         case H_Reverb + 44:
-            rvb.ACC_SRC_D0 = (short)val;
+            rvb.ACC_SRC_D0 = (int16_t)val;
             break;
         case H_Reverb + 46:
-            rvb.ACC_SRC_D1 = (short)val;
+            rvb.ACC_SRC_D1 = (int16_t)val;
             break;
         case H_Reverb + 48:
-            rvb.IIR_SRC_B1 = (short)val;
+            rvb.IIR_SRC_B1 = (int16_t)val;
             break;
         case H_Reverb + 50:
-            rvb.IIR_SRC_B0 = (short)val;
+            rvb.IIR_SRC_B0 = (int16_t)val;
             break;
         case H_Reverb + 52:
-            rvb.MIX_DEST_A0 = (short)val;
+            rvb.MIX_DEST_A0 = (int16_t)val;
             break;
         case H_Reverb + 54:
-            rvb.MIX_DEST_A1 = (short)val;
+            rvb.MIX_DEST_A1 = (int16_t)val;
             break;
         case H_Reverb + 56:
-            rvb.MIX_DEST_B0 = (short)val;
+            rvb.MIX_DEST_B0 = (int16_t)val;
             break;
         case H_Reverb + 58:
-            rvb.MIX_DEST_B1 = (short)val;
+            rvb.MIX_DEST_B1 = (int16_t)val;
             break;
         case H_Reverb + 60:
-            rvb.IN_COEF_L = (short)val;
+            rvb.IN_COEF_L = (int16_t)val;
             break;
         case H_Reverb + 62:
-            rvb.IN_COEF_R = (short)val;
+            rvb.IN_COEF_R = (int16_t)val;
             break;
     }
 
@@ -430,8 +430,8 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
-    const unsigned long r = reg & 0xfff;
+uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
+    const uint32_t r = reg & 0xfff;
 
     iSpuAsyncWait = 0;
 
@@ -447,14 +447,14 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
                                                  // return 1 as well
                     !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
                     return 1;
-                return (unsigned short)(s_chan[ch].ADSRX.get<exEnvelopeVol > ().value >> 16);
+                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol > ().value >> 16);
             }
 
             case 14:  // get loop address
             {
                 const int ch = (r >> 4) - 0xc0;
                 if (s_chan[ch].pLoop == NULL) return 0;
-                return (unsigned short)((s_chan[ch].pLoop - spuMemC) >> 3);
+                return (uint16_t)((s_chan[ch].pLoop - spuMemC) >> 3);
             }
         }
     }
@@ -467,10 +467,10 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
             return spuStat;
 
         case H_SPUaddr:
-            return (unsigned short)(spuAddr >> 3);
+            return (uint16_t)(spuAddr >> 3);
 
         case H_SPUdata: {
-            unsigned short s = spuMem[spuAddr >> 1];
+            uint16_t s = spuMem[spuAddr >> 1];
             spuAddr += 2;
             if (spuAddr > 0x7ffff) spuAddr = 0;
             return s;
@@ -493,7 +493,7 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
 // SOUND ON register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
+void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX COMAND
 {
     int ch;
 
@@ -512,7 +512,7 @@ void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND 
 // SOUND OFF register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
+void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val)  // SOUND OFF PSX COMMAND
 {
     int ch;
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
@@ -528,7 +528,7 @@ void PCSX::SPU::impl::SoundOff(int start, int end, unsigned short val)  // SOUND
 // FMOD register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
+void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX COMMAND
 {
     int ch;
 
@@ -550,7 +550,7 @@ void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON
 // NOISE register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
+void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX COMMAND
 {
     int ch;
 
@@ -572,13 +572,13 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, unsigned short val)  // NOISE 
 // please note: sweep and phase invert are wrong... but I've never seen
 // them used
 
-void PCSX::SPU::impl::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
+void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
 {
     s_chan[ch].iLeftVolRaw = vol;
 
     if (vol & 0x8000)  // sweep?
     {
-        short sInc = 1;                   // -> sweep up?
+        int16_t sInc = 1;                   // -> sweep up?
         if (vol & 0x2000) sInc = -1;      // -> or down?
         if (vol & 0x1000) vol ^= 0xffff;  // -> mmm... phase inverted? have to investigate this
         vol = ((vol & 0x7f) + 1) / 2;     // -> sweep: 0..127 -> 0..64
@@ -599,13 +599,13 @@ void PCSX::SPU::impl::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
 // RIGHT VOLUME register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
+void PCSX::SPU::impl::SetVolumeR(uint8_t ch, int16_t vol)  // RIGHT VOLUME
 {
     s_chan[ch].iRightVolRaw = vol;
 
     if (vol & 0x8000)  // comments... see above :)
     {
-        short sInc = 1;
+        int16_t sInc = 1;
         if (vol & 0x2000) sInc = -1;
         if (vol & 0x1000) vol ^= 0xffff;
         vol = ((vol & 0x7f) + 1) / 2;
@@ -625,7 +625,7 @@ void PCSX::SPU::impl::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 // PITCH register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SetPitch(int ch, unsigned short val)  // SET PITCH
+void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
 {
     int NP;
     if (val > 0x3fff)
@@ -644,7 +644,7 @@ void PCSX::SPU::impl::SetPitch(int ch, unsigned short val)  // SET PITCH
 // REVERB register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
+void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val)  // REVERB ON PSX COMMAND
 {
     int ch;
 
