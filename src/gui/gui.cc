@@ -428,7 +428,8 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator.m_cdromId, ImGui::GetIO().Framerate,
+                1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }
