@@ -108,7 +108,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].ADSR.get<AttackModeExp>().value = (lval & 0x8000) ? 1 : 0;  // 0x007f
 
                 lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31U, lx);             // no overflow on shift!
+                lx = std::min(31U, lx);              // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -119,7 +119,8 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 }
                 s_chan[ch].ADSR.get<AttackTime>().value = lx;
 
-                s_chan[ch].ADSR.get<SustainLevel>().value =  // our adsr vol runs from 0 to 1024, so scale the sustain level
+                s_chan[ch].ADSR.get<SustainLevel>().value =  // our adsr vol runs from 0 to 1024, so scale the sustain
+                                                             // level
                     (1024 * ((lval)&0x000f)) / 15;
 
                 lx = (lval >> 4) & 0x000f;  // decay:
@@ -148,7 +149,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].ADSR.get<ReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
 
                 lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31U, lx);               // values are used to hold the volume
+                lx = std::min(31U, lx);                // values are used to hold the volume
                 if (lx)                                // until a sound stop occurs
                 {                                      // the highest value we reach (due to
                     lx = (1 << lx);                    // overflow checking) is:
@@ -185,7 +186,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             case 14:  // loop?
                 // WaitForSingleObject(s_chan[ch].hMutex,2000);        // -> no multithread fuckups
                 s_chan[ch].pLoop = spuMemC + ((uint32_t)val << 3);
-                s_chan[ch].bIgnoreLoop = 1;
+                s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
                 // ReleaseMutex(s_chan[ch].hMutex);                    // -> oki, on with the thread
                 break;
                 //------------------------------------------------//
@@ -441,13 +442,13 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             {
                 const int ch = (r >> 4) - 0xc0;
 
-                if (s_chan[ch].bNew) return 1;   // we are started, but not processed? return 1
+                if (s_chan[ch].data.get<Chan::New>().value) return 1;  // we are started, but not processed? return 1
                 if (s_chan[ch].ADSRX.get<exVolume>().value &&  // same here... we haven't decoded one sample yet, so no
-                                                            // envelope yet.
-                                                 // return 1 as well
+                                                               // envelope yet.
+                                                               // return 1 as well
                     !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
                     return 1;
-                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol > ().value >> 16);
+                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol>().value >> 16);
             }
 
             case 14:  // get loop address
@@ -501,8 +502,8 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX
     {
         if ((val & 1) && s_chan[ch].pStart)  // mmm... start has to be set before key on !?!
         {
-            s_chan[ch].bIgnoreLoop = 0;
-            s_chan[ch].bNew = 1;
+            s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
+            s_chan[ch].data.get<Chan::New>().value = true;
             dwNewChannel |= (1 << ch);  // bitfield for faster testing
         }
     }
@@ -519,7 +520,7 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val)  // SOUND OFF P
     {
         if (val & 1)  // && s_chan[i].bOn)  mmm...
         {
-            s_chan[ch].bStop = 1;
+            s_chan[ch].data.get<Chan::Stop>().value = false;
         }
     }
 }
@@ -537,11 +538,11 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX C
         if (val & 1)  // -> fmod on/off
         {
             if (ch > 0) {
-                s_chan[ch].bFMod = 1;      // --> sound channel
-                s_chan[ch - 1].bFMod = 2;  // --> freq channel
+                s_chan[ch].data.get<Chan::FMod>().value = 1;      // --> sound channel
+                s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // --> freq channel
             }
         } else {
-            s_chan[ch].bFMod = 0;  // --> turn off fmod
+            s_chan[ch].data.get<Chan::FMod>().value = 0;  // --> turn off fmod
         }
     }
 }
@@ -556,12 +557,7 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX
 
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
-        if (val & 1)  // -> noise on/off
-        {
-            s_chan[ch].bNoise = 1;
-        } else {
-            s_chan[ch].bNoise = 0;
-        }
+        s_chan[ch].data.get<Chan::Noise>().value = !!(val & 1); // -> noise on/off
     }
 }
 
@@ -574,11 +570,11 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX
 
 void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
 {
-    s_chan[ch].iLeftVolRaw = vol;
+    s_chan[ch].data.get<Chan::LeftVolRaw>().value = vol;
 
     if (vol & 0x8000)  // sweep?
     {
-        int16_t sInc = 1;                   // -> sweep up?
+        int16_t sInc = 1;                 // -> sweep up?
         if (vol & 0x2000) sInc = -1;      // -> or down?
         if (vol & 0x1000) vol ^= 0xffff;  // -> mmm... phase inverted? have to investigate this
         vol = ((vol & 0x7f) + 1) / 2;     // -> sweep: 0..127 -> 0..64
@@ -592,7 +588,7 @@ void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
     }
 
     vol &= 0x3fff;
-    s_chan[ch].iLeftVolume = vol;  // store volume
+    s_chan[ch].data.get<Chan::LeftVolume>().value = vol;  // store volume
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -601,7 +597,7 @@ void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
 
 void PCSX::SPU::impl::SetVolumeR(uint8_t ch, int16_t vol)  // RIGHT VOLUME
 {
-    s_chan[ch].iRightVolRaw = vol;
+    s_chan[ch].data.get<Chan::RightVolRaw>().value = vol;
 
     if (vol & 0x8000)  // comments... see above :)
     {
@@ -618,7 +614,7 @@ void PCSX::SPU::impl::SetVolumeR(uint8_t ch, int16_t vol)  // RIGHT VOLUME
 
     vol &= 0x3fff;
 
-    s_chan[ch].iRightVolume = vol;
+    s_chan[ch].data.get<Chan::RightVolume>().value = vol;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -633,11 +629,11 @@ void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
     else
         NP = val;
 
-    s_chan[ch].iRawPitch = NP;
+    s_chan[ch].data.get<Chan::RawPitch>().value = NP;
 
     NP = (44100L * NP) / 4096L;  // calc frequency
     if (NP < 1) NP = 1;          // some security
-    s_chan[ch].iActFreq = NP;    // store frequency
+    s_chan[ch].data.get<Chan::ActFreq>().value = NP;  // store frequency
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -650,11 +646,6 @@ void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val)  // REVERB ON P
 
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
-        if (val & 1)  // -> reverb on/off
-        {
-            s_chan[ch].bReverb = 1;
-        } else {
-            s_chan[ch].bReverb = 0;
-        }
+            s_chan[ch].data.get<Chan::Reverb>().value = !!(val & 1);// -> reverb on/off
     }
 }

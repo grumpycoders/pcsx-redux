@@ -389,7 +389,7 @@ template <typename FieldType, size_t amount, typename name, uint64_t fieldNumber
 struct RepeatedField;
 template <typename FieldType, size_t amount, char... C, uint64_t fieldNumberValue>
 struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValue> {
-    RepeatedField() { value.resize(amount); }
+    RepeatedField() { reset(); }
     static constexpr uint64_t fieldNumber = fieldNumberValue;
     static constexpr unsigned wireType = 2;
     typedef irqus::typestring<C...> fieldName;
@@ -398,7 +398,10 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
                << std::endl;
     }
     std::vector<FieldType> value;
-    void reset() { value.clear(); }
+    void reset() {
+        value.clear();
+        value.resize(amount);
+    }
     static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
     void serialize(OutSlice *slice) const {
         OutSlice subSlice;
@@ -549,7 +552,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     void reset() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     void reset() {
-        std::get<index>().reset();
+        std::get<index>(*this).reset();
         reset<index + 1, nestedFields...>();
     }
     template <size_t index>

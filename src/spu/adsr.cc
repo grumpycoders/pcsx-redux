@@ -84,8 +84,8 @@ int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
     unsigned long int disp;
     signed long int EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
 
-    if (ch->bStop)  // should be stopped:
-    {               // do release
+    if (ch->data.get<Chan::Stop>().value)  // should be stopped:
+    {                                      // do release
         if (ch->ADSRX.get<exReleaseModeExp>().value) {
             disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
         } else {
@@ -95,7 +95,7 @@ int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
 
         if (EnvelopeVol < 0) {
             EnvelopeVol = 0;
-            ch->bOn = 0;
+            ch->data.get<Chan::On>().value = 0;
         }
 
         ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;

@@ -43,6 +43,7 @@ class impl {
     long init(void);
     long shutdown(void);
     long close(void);
+    void wipeChannels();
     // void playSample(uint8_t);
     void writeRegister(uint32_t, uint16_t);
     uint16_t readRegister(uint32_t);

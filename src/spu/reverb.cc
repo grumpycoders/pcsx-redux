@@ -100,19 +100,19 @@ void PCSX::SPU::impl::SetREVERB(unsigned short val) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
-    if (pChannel->bReverb && (spuCtrl & 0x80))  // reverb possible?
+    if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & 0x80))  // reverb possible?
     {
         if (settings.get<Reverb>() == 2)
-            pChannel->bRVBActive = 1;
+            pChannel->data.get<Chan::RVBActive>().value = 1;
         else if (settings.get<Reverb>() == 1 && iReverbOff > 0)  // -> fake reverb used?
         {
-            pChannel->bRVBActive = 1;  // -> activate it
-            pChannel->iRVBOffset = iReverbOff * 45;
-            pChannel->iRVBRepeat = iReverbRepeat * 45;
-            pChannel->iRVBNum = iReverbNum;
+            pChannel->data.get<Chan::RVBActive>().value = true;  // -> activate it
+            pChannel->data.get<Chan::RVBOffset>().value = iReverbOff * 45;
+            pChannel->data.get<Chan::RVBRepeat>().value = iReverbRepeat * 45;
+            pChannel->data.get<Chan::RVBNum>().value = iReverbNum;
         }
     } else
-        pChannel->bRVBActive = 0;  // else -> no reverb
+        pChannel->data.get<Chan::RVBActive>().value = false;  // else -> no reverb
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -134,8 +134,10 @@ void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
         return;
     else if (settings.get<Reverb>() == 2)  // -------------------------------- // Neil's reverb
     {
-        const int iRxl = (pChannel->sval * pChannel->iLeftVolume) / 0x4000;
-        const int iRxr = (pChannel->sval * pChannel->iRightVolume) / 0x4000;
+        const int iRxl =
+            (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::LeftVolume>().value) / 0x4000;
+        const int iRxr =
+            (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::RightVolume>().value) / 0x4000;
 
         ns <<= 1;
 
@@ -148,11 +150,12 @@ void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
 
         // we use the half channel volume (/0x8000) for the first reverb effects, quarter for next and so on
 
-        int iRxl = (pChannel->sval * pChannel->iLeftVolume) / 0x8000;
-        int iRxr = (pChannel->sval * pChannel->iRightVolume) / 0x8000;
+        int iRxl = (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::LeftVolume>().value) / 0x8000;
+        int iRxr = (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::RightVolume>().value) / 0x8000;
 
-        for (iRn = 1; iRn <= pChannel->iRVBNum; iRn++, iRr += pChannel->iRVBRepeat, iRxl /= 2, iRxr /= 2) {
-            pN = sRVBPlay + ((pChannel->iRVBOffset + iRr + ns) << 1);
+        for (iRn = 1; iRn <= pChannel->data.get<Chan::RVBNum>().value;
+             iRn++, iRr += pChannel->data.get<Chan::RVBRepeat>().value, iRxl /= 2, iRxr /= 2) {
+            pN = sRVBPlay + ((pChannel->data.get<Chan::RVBOffset>().value + iRr + ns) << 1);
             if (pN >= sRVBEnd) pN = sRVBStart + (pN - sRVBEnd);
 
             (*pN) += iRxl;

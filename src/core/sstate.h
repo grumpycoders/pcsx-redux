@@ -21,6 +21,7 @@
 
 #include "core/protobuf.h"
 #include "main/settings.h"
+#include "spu/types.h"
 
 namespace PCSX {
 
@@ -87,7 +88,12 @@ typedef Protobuf::Message<TYPESTRING("XA"), XAFrequency, XANBits, XAStereo, XANS
 typedef Protobuf::MessageField<XA, TYPESTRING("xa"), 3> XAField;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq"), 4> SPUIrq;
 typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("irqptr"), 5> SPUIrqPtr;
-typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr> SPU;
+typedef Protobuf::MessageField<::PCSX::SPU::Chan::Data, TYPESTRING("data"), 1> Data;
+typedef Protobuf::MessageField<::PCSX::SPU::ADSRInfo, TYPESTRING("adsr"), 2> ADSRInfo;
+typedef Protobuf::MessageField<::PCSX::SPU::ADSRInfoEx, TYPESTRING("adsr_ex"), 3> ADSRInfoEx;
+typedef Protobuf::Message<TYPESTRING("Channel"), Data, ADSRInfo, ADSRInfoEx> Channel;
+typedef Protobuf::RepeatedField<Channel, 24, TYPESTRING("channel"), 6> Channels;
+typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels> SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 7> SPUField;
 
 typedef Protobuf::Message<TYPESTRING("SaveState"), VersionString, Version, ThumbnailField, MemoryField, RegistersField,
