@@ -582,7 +582,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     template <typename FieldTypeTest, size_t index, typename FieldType, typename... nestedFields>
     static constexpr bool hasFieldType() {
         if (std::is_same<FieldTypeTest, FieldType>()) return true;
-        return hasFieldType<FieldTypeTest, index + 1, nestedFields>();
+        return hasFieldType<FieldTypeTest, index + 1, nestedFields...>();
     }
     template <size_t index>
     constexpr void serialize(OutSlice *slice) const {}
