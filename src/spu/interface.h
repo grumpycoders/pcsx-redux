@@ -25,6 +25,7 @@
 #include "json.hpp"
 
 #include "core/decode_xa.h"
+#include "core/sstate.h"
 #include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
@@ -63,6 +64,8 @@ class impl {
         xa_decode_t xa;
         unsigned char *SPUInfo;
     };
+
+    void save(SaveStates::SPU &);
 
     long freeze(uint32_t, SPUFreeze_t *);
     void async(uint32_t);
@@ -145,13 +148,12 @@ class impl {
     int bSPUIsOpen;
 
     // psx buffer / addresses
-
-    unsigned short regArea[10000];
-    unsigned short spuMem[256 * 1024];
-    unsigned char *spuMemC;
-    unsigned char *pSpuIrq = 0;
-    unsigned char *pSpuBuffer;
-    unsigned char *pMixIrq = 0;
+    uint16_t regArea[10000];
+    uint16_t spuMem[256 * 1024];
+    uint8_t *spuMemC;
+    uint8_t *pSpuIrq = 0;
+    uint8_t *pSpuBuffer;
+    uint8_t *pMixIrq = 0;
 
     // user settings
     typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;

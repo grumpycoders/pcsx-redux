@@ -31,7 +31,6 @@
 #include "flags.h"
 #include "json.hpp"
 
-#include "GL/gl3w.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -41,6 +40,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
 
@@ -333,6 +333,15 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Close ISO"))) {
                     PCSX::g_emulator.m_cdrom->m_iso.close();
                     CheckCdrom();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem(_("Dump save state proto schema"))) {
+                    std::ofstream schema("sstate.proto");
+                    SaveStates::ProtoFile::dumpSchema(schema);
+                }
+                if (ImGui::MenuItem(_("Save state"))) {
+                    std::ofstream save("sstate");
+                    save << SaveStates::save();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {

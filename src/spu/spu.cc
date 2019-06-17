@@ -498,8 +498,8 @@ void PCSX::SPU::impl::MainThread() {
                             if (start == (unsigned char *)-1)  // special "stop" sign
                             {
                                 pChannel->bOn = 0;  // -> turn everything off
-                                pChannel->ADSRX.lVolume = 0;
-                                pChannel->ADSRX.EnvelopeVol = 0;
+                                pChannel->ADSRX.get<exVolume>().value = 0;
+                                pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
                                 goto ENDX;  // -> and done for this channel
                             }
 
@@ -871,7 +871,7 @@ void PCSX::SPU::impl::SetupStreams() {
         // we don't use mutex sync... not needed, would only
         // slow us down:
         //   s_chan[i].hMutex=CreateMutex(NULL,FALSE,NULL);
-        s_chan[i].ADSRX.SustainLevel = 0xf << 27;  // -> init sustain
+        s_chan[i].ADSRX.get<exSustainLevel>().value = 0xf << 27;  // -> init sustain
         s_chan[i].iMute = false;
         s_chan[i].iIrqDone = 0;
         s_chan[i].pLoop = spuMemC;

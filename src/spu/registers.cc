@@ -99,13 +99,13 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 const unsigned long lval = val;
                 unsigned long lx;
                 //---------------------------------------------//
-                s_chan[ch].ADSRX.AttackModeExp = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.AttackRate = ((lval >> 8) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.DecayRate = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
-                s_chan[ch].ADSRX.SustainLevel = (lval & 0x000f) << 27;
+                s_chan[ch].ADSRX.get<exAttackModeExp>().value = (lval & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exAttackRate>().value = ((lval >> 8) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exSustainLevel>().value = (lval & 0x000f) << 27;
                 //---------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
+                s_chan[ch].ADSR.get<AttackModeExp>().value = (lval & 0x8000) ? 1 : 0;  // 0x007f
 
                 lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
                 lx = std::min(31UL, lx);             // no overflow on shift!
@@ -117,9 +117,9 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                         lx = (lx / 10000L) * ATTACK_MS;
                     if (!lx) lx = 1;
                 }
-                s_chan[ch].ADSR.AttackTime = lx;
+                s_chan[ch].ADSR.get<AttackTime>().value = lx;
 
-                s_chan[ch].ADSR.SustainLevel =  // our adsr vol runs from 0 to 1024, so scale the sustain level
+                s_chan[ch].ADSR.get<SustainLevel>().value =  // our adsr vol runs from 0 to 1024, so scale the sustain level
                     (1024 * ((lval)&0x000f)) / 15;
 
                 lx = (lval >> 4) & 0x000f;  // decay:
@@ -128,23 +128,24 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
                     if (!lx) lx = 1;
                 }
-                s_chan[ch].ADSR.DecayTime =  // so calc how long does it take to run from 100% to the wanted sus level
-                    (lx * (1024 - s_chan[ch].ADSR.SustainLevel)) / 1024;
+                s_chan[ch].ADSR.get<DecayTime>().value =  // so calc how long does it take to run from 100% to the
+                                                          // wanted sus level
+                    (lx * (1024 - s_chan[ch].ADSR.get<SustainLevel>().value)) / 1024;
             } break;
             //------------------------------------------------// adsr times with pre-calcs
             case 10: {
                 const unsigned long lval = val;
                 unsigned long lx;
                 //----------------------------------------------//
-                s_chan[ch].ADSRX.SustainModeExp = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.SustainIncrease = (lval & 0x4000) ? 0 : 1;
-                s_chan[ch].ADSRX.SustainRate = ((lval >> 6) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
-                s_chan[ch].ADSRX.ReleaseRate = 4 * ((lval & 0x001f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exSustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exSustainIncrease>().value = (lval & 0x4000) ? 0 : 1;
+                s_chan[ch].ADSRX.get<exSustainRate>().value = ((lval >> 6) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((lval & 0x001f) ^ 0x1f);
                 //----------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.SustainModeExp = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSR.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSR.get<SustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSR.get<ReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
 
                 lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
                 lx = std::min(31UL, lx);               // values are used to hold the volume
@@ -157,10 +158,10 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                         lx = (lx / 10000L) * SUSTAIN_MS;  // should be enuff... if the stop doesn't
                     if (!lx) lx = 1;                      // come in this time span, I don't care :)
                 }
-                s_chan[ch].ADSR.SustainTime = lx;
+                s_chan[ch].ADSR.get<SustainTime>().value = lx;
 
                 lx = (lval & 0x001f);
-                s_chan[ch].ADSR.ReleaseVal = lx;
+                s_chan[ch].ADSR.get<ReleaseVal>().value = lx;
                 if (lx)              // release time from 100% to 0%
                 {                    // note: the release time will be
                     lx = (1 << lx);  // adjusted when a stop is coming,
@@ -170,12 +171,12 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                         lx = (lx / 10000L) * RELEASE_MS;  // run from (current volume) to 0%
                     if (!lx) lx = 1;
                 }
-                s_chan[ch].ADSR.ReleaseTime = lx;
+                s_chan[ch].ADSR.get<ReleaseTime>().value = lx;
 
                 if (lval & 0x4000)  // add/dec flag
-                    s_chan[ch].ADSR.SustainModeDec = -1;
+                    s_chan[ch].ADSR.get<SustainModeDec>().value = -1;
                 else
-                    s_chan[ch].ADSR.SustainModeDec = 1;
+                    s_chan[ch].ADSR.get<SustainModeDec>().value = 1;
             } break;
             //------------------------------------------------// adsr volume... mmm have to investigate this
             case 12:
@@ -441,11 +442,12 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
                 const int ch = (r >> 4) - 0xc0;
 
                 if (s_chan[ch].bNew) return 1;   // we are started, but not processed? return 1
-                if (s_chan[ch].ADSRX.lVolume &&  // same here... we haven't decoded one sample yet, so no envelope yet.
+                if (s_chan[ch].ADSRX.get<exVolume>().value &&  // same here... we haven't decoded one sample yet, so no
+                                                            // envelope yet.
                                                  // return 1 as well
-                    !s_chan[ch].ADSRX.EnvelopeVol)
+                    !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
                     return 1;
-                return (unsigned short)(s_chan[ch].ADSRX.EnvelopeVol >> 16);
+                return (unsigned short)(s_chan[ch].ADSRX.get<exEnvelopeVol > ().value >> 16);
             }
 
             case 14:  // get loop address

@@ -1401,6 +1401,12 @@ int32_t PCSX::SoftGPU::impl::freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) {
     return 1;
 }
 
+void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
+    gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
+    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////

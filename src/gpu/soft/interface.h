@@ -55,6 +55,8 @@ class impl : public GPU {
         }
     }
 
+    virtual void save(SaveStates::GPU &gpu) final;
+
     SoftPrim m_softPrim;
 
     ////////////////////////////////////////////////////////////////////////

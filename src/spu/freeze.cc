@@ -61,6 +61,39 @@ typedef struct {
 // SPUFREEZE: called by main emu on savestate load/save
 ////////////////////////////////////////////////////////////////////////
 
+void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
+    RemoveThread();
+    spu.get<SaveStates::SPURam>().copyFrom(reinterpret_cast<uint8_t*>(spuMem));
+    spu.get<SaveStates::SPUPorts>().copyFrom(reinterpret_cast<uint8_t*>(regArea));
+    if (xapGlobal && XAPlay != XAFeed) {
+        auto &xa = spu.get<SaveStates::XAField>();
+        xa.get<SaveStates::XAFrequency>().value = xapGlobal->freq;
+        xa.get<SaveStates::XANBits>().value = xapGlobal->nbits;
+        xa.get<SaveStates::XANSamples>().value = xapGlobal->nsamples;
+        xa.get<SaveStates::XAStereo>().value = xapGlobal->stereo;
+        auto &left = xa.get<SaveStates::XAADPCMLeft>();
+        left.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->left.y0;
+        left.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->left.y1;
+        auto &right = xa.get<SaveStates::XAADPCMLeft>();
+        right.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->right.y0;
+        right.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->right.y1;
+        xa.get<SaveStates::XAPCM>().copyFrom(reinterpret_cast<uint8_t*>(xapGlobal->pcm));
+    }
+    spu.get<SaveStates::SPUIrq>().value = spuIrq;
+    if (pSpuIrq) spu.get<SaveStates::SPUIrqPtr>().value = uintptr_t(pSpuIrq - spuMemC);
+
+#if 0
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        memcpy((void *)&pFO->s_chan[i], (void *)&s_chan[i], sizeof(SPUCHAN));
+        if (pFO->s_chan[i].pStart) pFO->s_chan[i].pStart -= (unsigned long)spuMemC;
+        if (pFO->s_chan[i].pCurr) pFO->s_chan[i].pCurr -= (unsigned long)spuMemC;
+        if (pFO->s_chan[i].pLoop) pFO->s_chan[i].pLoop -= (unsigned long)spuMemC;
+    }
+#endif
+
+    SetupThread();
+}
+
 long PCSX::SPU::impl::freeze(uint32_t ulFreezeMode, SPUFreeze_t *pF) {
     int i;
     SPUOSSFreeze_t *pFO;
@@ -183,7 +216,7 @@ void PCSX::SPU::impl::LoadStateUnknown(SPUFreeze_t *pF) {
         s_chan[i].bOn = 0;
         s_chan[i].bNew = 0;
         s_chan[i].bStop = 0;
-        s_chan[i].ADSR.lVolume = 0;
+        s_chan[i].ADSR.get<lVolume>().value = 0;
         s_chan[i].pLoop = spuMemC;
         s_chan[i].pStart = spuMemC;
         s_chan[i].pLoop = spuMemC;

@@ -106,15 +106,17 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text("Attack:\nDecay:\nSustain:\nRelease:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.AttackRate ^ 0x7f, (ADSRX.DecayRate ^ 0x1f) / 4,
-                            ADSRX.SustainRate ^ 0x7f, (ADSRX.ReleaseRate ^ 0x1f) / 4);
+                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.get<exAttackRate>().value ^ 0x7f,
+                            (ADSRX.get<exDecayRate>().value ^ 0x1f) / 4, ADSRX.get<exSustainRate>().value ^ 0x7f,
+                            (ADSRX.get<exReleaseRate>().value ^ 0x1f) / 4);
             }
             ImGui::NextColumn();
             {
                 ImGui::Text("Sustain level:\nSustain inc:\nCurr adsr vol:\nRaw enveloppe");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%08x", ADSRX.SustainLevel >> 27, ADSRX.SustainIncrease, ADSRX.lVolume,
-                            ADSRX.EnvelopeVol);
+                ImGui::Text("%i\n%i\n%i\n%08x", ADSRX.get<exSustainLevel>().value >> 27,
+                            ADSRX.get<exSustainIncrease>().value, ADSRX.get<exVolume>().value,
+                            ADSRX.get<exEnvelopeVol>().value);
             }
             ImGui::Columns(1);
             ImGui::Separator();

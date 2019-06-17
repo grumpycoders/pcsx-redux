@@ -54,14 +54,49 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("interrupt"), 8> Interru
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("scycle"), 1> IntSCycle;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle"), 2> IntCycle;
 typedef Protobuf::Message<TYPESTRING("InterruptCycles"), IntSCycle, IntCycle> IntCycles;
-typedef Protobuf::MessageField<IntCycles, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
-typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, IntCyclesField> Registers;
+typedef Protobuf::RepeatedField<IntCycles, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
+typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
+typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("icache_valid"), 12> ICacheValid;
+typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, IntCyclesField,
+                          ICacheAddr, ICacheCode, ICacheValid>
+    Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 5> RegistersField;
 
-typedef Protobuf::Message<TYPESTRING("SaveState"), VersionString, Version, ThumbnailField, MemoryField, RegistersField>
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("status"), 1> GPUStatus;
+typedef Protobuf::Field<Protobuf::FixedBytes<0x400>, TYPESTRING("control"), 2> GPUControl;
+typedef Protobuf::Field<Protobuf::FixedBytes<0x00400000>, TYPESTRING("vram"), 3> GPUVRam;
+typedef Protobuf::Message<TYPESTRING("GPU"), GPUStatus, GPUControl, GPUVRam> GPU;
+typedef Protobuf::MessageField<GPU, TYPESTRING("gpu"), 6> GPUField;
+
+typedef Protobuf::Field<Protobuf::FixedBytes<0x80000>, TYPESTRING("ram"), 1> SPURam;
+typedef Protobuf::Field<Protobuf::FixedBytes<0x200>, TYPESTRING("ports"), 2> SPUPorts;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("frequency"), 1> XAFrequency;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("nbits"), 2> XANBits;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("stereo"), 3> XAStereo;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("nsamples"), 4> XANSamples;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("y0"), 1> ADPCMDecodeY0;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("y1"), 2> ADPCMDecodeY1;
+typedef Protobuf::Message<TYPESTRING("ADPCMDecode"), ADPCMDecodeY0, ADPCMDecodeY1> ADPCMDecode;
+typedef Protobuf::MessageField<ADPCMDecode, TYPESTRING("left"), 5> XAADPCMLeft;
+typedef Protobuf::MessageField<ADPCMDecode, TYPESTRING("right"), 6> XAADPCMRight;
+typedef Protobuf::Field<Protobuf::FixedBytes<32768>, TYPESTRING("pcm"), 7> XAPCM;
+typedef Protobuf::Message<TYPESTRING("XA"), XAFrequency, XANBits, XAStereo, XANSamples, XAADPCMLeft, XAADPCMRight,
+                          XAPCM>
+    XA;
+typedef Protobuf::MessageField<XA, TYPESTRING("xa"), 3> XAField;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq"), 4> SPUIrq;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("irqptr"), 5> SPUIrqPtr;
+typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr> SPU;
+typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 7> SPUField;
+
+typedef Protobuf::Message<TYPESTRING("SaveState"), VersionString, Version, ThumbnailField, MemoryField, RegistersField,
+                          GPUField, SPUField>
     SaveState;
 
-typedef Protobuf::ProtoFile<Thumbnail, Memory, IntCycles, Registers, SaveState> ProtoFile;
+typedef Protobuf::ProtoFile<Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA, SPU, SaveState> ProtoFile;
+
+SaveState constructSaveState();
 
 std::string save();
 }  // namespace SaveStates

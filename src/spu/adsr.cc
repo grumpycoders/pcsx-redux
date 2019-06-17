@@ -73,95 +73,95 @@ PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
 
 void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
 {
-    pChannel->ADSRX.lVolume = 1;  // and init some adsr vars
-    pChannel->ADSRX.State = 0;
-    pChannel->ADSRX.EnvelopeVol = 0;
+    pChannel->ADSRX.get<exVolume>().value = 1;  // and init some adsr vars
+    pChannel->ADSRX.get<exState>().value = 0;
+    pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
     unsigned long int disp;
-    signed long int EnvelopeVol = ch->ADSRX.EnvelopeVol;
+    signed long int EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
 
     if (ch->bStop)  // should be stopped:
     {               // do release
-        if (ch->ADSRX.ReleaseModeExp) {
+        if (ch->ADSRX.get<exReleaseModeExp>().value) {
             disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
         } else {
             disp = -0x0C + 32;
         }
-        EnvelopeVol -= m_table[ch->ADSRX.ReleaseRate + disp];
+        EnvelopeVol -= m_table[ch->ADSRX.get<exReleaseRate>().value + disp];
 
         if (EnvelopeVol < 0) {
             EnvelopeVol = 0;
             ch->bOn = 0;
         }
 
-        ch->ADSRX.EnvelopeVol = EnvelopeVol;
-        ch->ADSRX.lVolume = (EnvelopeVol >>= 21);
+        ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+        ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
         return EnvelopeVol;
     } else  // not stopped yet?
     {
-        if (ch->ADSRX.State == 0)  // -> attack
+        if (ch->ADSRX.get<exState>().value == 0)  // -> attack
         {
             disp = -0x10 + 32;
-            if (ch->ADSRX.AttackModeExp) {
+            if (ch->ADSRX.get<exAttackModeExp>().value) {
                 if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
             }
-            EnvelopeVol += m_table[ch->ADSRX.AttackRate + disp];
+            EnvelopeVol += m_table[ch->ADSRX.get<exAttackRate>().value + disp];
 
             if (EnvelopeVol < 0) {
                 EnvelopeVol = 0x7FFFFFFF;
-                ch->ADSRX.State = 1;
+                ch->ADSRX.get<exState>().value = 1;
             }
 
-            ch->ADSRX.EnvelopeVol = EnvelopeVol;
-            ch->ADSRX.lVolume = (EnvelopeVol >>= 21);
+            ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+            ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
             return EnvelopeVol;
         }
         //--------------------------------------------------//
-        if (ch->ADSRX.State == 1)  // -> decay
+        if (ch->ADSRX.get<exState>().value == 1)  // -> decay
         {
             disp = m_tableDisp[(EnvelopeVol >> 28) & 0x7];
-            EnvelopeVol -= m_table[ch->ADSRX.DecayRate + disp];
+            EnvelopeVol -= m_table[ch->ADSRX.get<exDecayRate>().value + disp];
 
             if (EnvelopeVol < 0) EnvelopeVol = 0;
-            if (EnvelopeVol <= ch->ADSRX.SustainLevel) {
-                ch->ADSRX.State = 2;
+            if (EnvelopeVol <= ch->ADSRX.get<exSustainLevel>().value) {
+                ch->ADSRX.get<exState>().value = 2;
             }
 
-            ch->ADSRX.EnvelopeVol = EnvelopeVol;
-            ch->ADSRX.lVolume = (EnvelopeVol >>= 21);
+            ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+            ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
             return EnvelopeVol;
         }
         //--------------------------------------------------//
-        if (ch->ADSRX.State == 2)  // -> sustain
+        if (ch->ADSRX.get<exState>().value == 2)  // -> sustain
         {
-            if (ch->ADSRX.SustainIncrease) {
+            if (ch->ADSRX.get<exSustainIncrease>().value) {
                 disp = -0x10 + 32;
-                if (ch->ADSRX.SustainModeExp) {
+                if (ch->ADSRX.get<exSustainModeExp>().value) {
                     if (EnvelopeVol >= 0x60000000) disp = -0x18 + 32;
                 }
-                EnvelopeVol += m_table[ch->ADSRX.SustainRate + disp];
+                EnvelopeVol += m_table[ch->ADSRX.get<exSustainRate>().value + disp];
 
                 if (EnvelopeVol < 0) {
                     EnvelopeVol = 0x7FFFFFFF;
                 }
             } else {
-                if (ch->ADSRX.SustainModeExp) {
+                if (ch->ADSRX.get<exSustainModeExp>().value) {
                     disp = m_tableDisp[((EnvelopeVol >> 28) & 0x7) + 8];
                 } else {
                     disp = -0x0F + 32;
                 }
-                EnvelopeVol -= m_table[ch->ADSRX.SustainRate + disp];
+                EnvelopeVol -= m_table[ch->ADSRX.get<exSustainRate>().value + disp];
 
                 if (EnvelopeVol < 0) {
                     EnvelopeVol = 0;
                 }
             }
-            ch->ADSRX.EnvelopeVol = EnvelopeVol;
-            ch->ADSRX.lVolume = (EnvelopeVol >>= 21);
+            ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
+            ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 21);
             return EnvelopeVol;
         }
     }

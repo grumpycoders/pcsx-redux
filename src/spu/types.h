@@ -19,46 +19,55 @@
 
 #pragma once
 
+#include "core/protobuf.h"
+
 namespace PCSX {
 
 namespace SPU {
 
+#if 0
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING(""), >;
+#endif
+
 // MAIN CHANNEL STRUCT
 
 // ADSR INFOS PER CHANNEL
-struct ADSRInfo {
-    int AttackModeExp;
-    long AttackTime;
-    long DecayTime;
-    long SustainLevel;
-    int SustainModeExp;
-    long SustainModeDec;
-    long SustainTime;
-    int ReleaseModeExp;
-    unsigned long ReleaseVal;
-    long ReleaseTime;
-    long ReleaseStartTime;
-    long ReleaseVol;
-    long lTime;
-    long lVolume;
-};
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_mode_exp"), 1> AttackModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_time"), 2> AttackTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("decay_time"), 3> DecayTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_level"), 4> SustainLevel;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_mode_exp"), 5> SustainModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_mode_dec"), 6> SustainModeDec;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_time"), 7> SustainTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_mode_exp"), 8> ReleaseModeExp;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("release_val"), 9> ReleaseVal;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_time"), 10> ReleaseTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_start_time"), 11> ReleaseStartTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_vol"), 12> ReleaseVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("time"), 13> lTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("volume"), 14> lVolume;
+typedef Protobuf::Message<TYPESTRING("ADSRInfo"), AttackModeExp, AttackTime, DecayTime, SustainLevel, SustainModeExp,
+                          SustainModeDec, SustainTime, ReleaseModeExp, ReleaseVal, ReleaseTime, ReleaseStartTime,
+                          ReleaseVol, lTime, lVolume>
+    ADSRInfo;
 
-struct ADSRInfoEx {
-    int State;
-    int AttackModeExp;
-    int AttackRate;
-    int DecayRate;
-    int SustainLevel;
-    int SustainModeExp;
-    int SustainIncrease;
-    int SustainRate;
-    int ReleaseModeExp;
-    int ReleaseRate;
-    int EnvelopeVol;
-    long lVolume;
-    long lDummy1;
-    long lDummy2;
-};
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("state"), 1> exState;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_mode_exp"), 2> exAttackModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_rate"), 3> exAttackRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("decay_rate"), 4> exDecayRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_level"), 5> exSustainLevel;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_mode_exp"), 6> exSustainModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_increase"), 7> exSustainIncrease;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_rate"), 8> exSustainRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_mode_exp"), 9> exReleaseModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_rate"), 10> exReleaseRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("envelope_vol"), 11> exEnvelopeVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("volume"), 12> exVolume;
+
+typedef Protobuf::Message<TYPESTRING("ADSRInfoEx"), exState, exAttackModeExp, exAttackRate, exDecayRate, exSustainLevel,
+                          exSustainModeExp, exSustainIncrease, exSustainRate, exReleaseModeExp, exReleaseRate,
+                          exEnvelopeVol, exVolume>
+    ADSRInfoEx;
 
 struct SPUCHAN {
     int bNew;  // start flag
@@ -70,9 +79,9 @@ struct SPUCHAN {
                       // interpolation (thanx xodnizel!), and can be used for even better interpolations, eh? :)
     int sval;
 
-    unsigned char *pStart;  // start ptr into sound mem
-    unsigned char *pCurr;   // current pos in sound mem
-    unsigned char *pLoop;   // loop ptr in sound mem
+    uint8_t *pStart;  // start ptr into sound mem
+    uint8_t *pCurr;   // current pos in sound mem
+    uint8_t *pLoop;   // loop ptr in sound mem
 
     int bOn;           // is channel active (sample playing?)
     int bStop;         // is channel stopped (sample _can_ still be playing, ADSR Release phase)
