@@ -43,10 +43,10 @@ typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardwar
 typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, Parallel, Hardware> Memory;
 typedef Protobuf::MessageField<Memory, TYPESTRING("memory"), 4> MemoryField;
 
-typedef Protobuf::RepeatedFieldRef<34, Protobuf::UInt32, TYPESTRING("gpr"), 1> GPR;
-typedef Protobuf::RepeatedFieldRef<32, Protobuf::UInt32, TYPESTRING("cp0"), 2> CP0;
-typedef Protobuf::RepeatedFieldRef<32, Protobuf::UInt32, TYPESTRING("cp2d"), 3> CP2D;
-typedef Protobuf::RepeatedFieldRef<32, Protobuf::UInt32, TYPESTRING("cp2c"), 4> CP2C;
+typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 34, TYPESTRING("gpr"), 1> GPR;
+typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("cp0"), 2> CP0;
+typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("cp2d"), 3> CP2D;
+typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("cp2c"), 4> CP2C;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pc"), 5> PC;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("code"), 6> Code;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("cycle"), 7> Cycle;
@@ -54,7 +54,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("interrupt"), 8> Interru
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("scycle"), 1> IntSCycle;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle"), 2> IntCycle;
 typedef Protobuf::Message<TYPESTRING("InterruptCycles"), IntSCycle, IntCycle> IntCycles;
-typedef Protobuf::RepeatedField<IntCycles, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
+typedef Protobuf::RepeatedField<IntCycles, 2, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
 typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
 typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("icache_valid"), 12> ICacheValid;

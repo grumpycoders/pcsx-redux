@@ -385,10 +385,11 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
     type copy;
 };
 
-template <typename FieldType, typename name, uint64_t fieldNumberValue>
+template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
 struct RepeatedField;
-template <typename FieldType, char... C, uint64_t fieldNumberValue>
-struct RepeatedField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
+template <typename FieldType, size_t amount, char... C, uint64_t fieldNumberValue>
+struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValue> {
+    RepeatedField() { value.resize(amount); }
     static constexpr uint64_t fieldNumber = fieldNumberValue;
     static constexpr unsigned wireType = 2;
     typedef irqus::typestring<C...> fieldName;
@@ -420,10 +421,10 @@ struct RepeatedField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     constexpr bool hasData() const { return !value.empty(); }
 };
 
-template <size_t amount, typename FieldType, typename name, uint64_t fieldNumberValue>
+template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
 struct RepeatedFieldRef;
-template <size_t amount, typename FieldType, char... C, uint64_t fieldNumberValue>
-struct RepeatedFieldRef<amount, FieldType, irqus::typestring<C...>, fieldNumberValue> {
+template <typename FieldType, size_t amount, char... C, uint64_t fieldNumberValue>
+struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberValue> {
     using innerType = typename FieldType::type;
     RepeatedFieldRef(const RepeatedFieldRef &s) : ref(s.ref), count(s.count) {}
     RepeatedFieldRef(RepeatedFieldRef &&s) : ref(s.ref), count(s.count) {}
@@ -567,11 +568,11 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         if (FieldType::fieldNumber == fieldNumber) return true;
         return hasField<index + 1, nestedFields...>(fieldNumber);
     }
-    template<typename FieldType>
+    template <typename FieldType>
     static constexpr bool hasFieldType() {
         return hasFieldType<FieldType, 0, fields...>();
     }
-    template<typename FieldType, size_t index>
+    template <typename FieldType, size_t index>
     static constexpr bool hasFieldType() {
         return false;
     }
