@@ -173,6 +173,7 @@ class Settings : private std::tuple<settings...> {
 
 }  // namespace PCSX
 
+#ifdef _MSC_VER
 #define TYPESTRING_MAX_CONST_CHAR 99
 
 #define TYPESTRING_MIN(a, b) (a) < (b) ? (a) : (b)
@@ -199,3 +200,7 @@ class Settings : private std::tuple<settings...> {
 
 #define ts_getChr(name, ii) \
     ((TYPESTRING_MIN(ii, TYPESTRING_MAX_CONST_CHAR)) < sizeof(name) / sizeof(*name) ? name[ii] : 0)
+
+#else
+#define TYPESTRING(s) typestring_is(s)
+#endif

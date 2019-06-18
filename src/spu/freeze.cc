@@ -63,6 +63,7 @@ typedef struct {
 
 void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     RemoveThread();
+
     spu.get<SaveStates::SPURam>().copyFrom(reinterpret_cast<uint8_t *>(spuMem));
     spu.get<SaveStates::SPUPorts>().copyFrom(reinterpret_cast<uint8_t *>(regArea));
     if (xapGlobal && XAPlay != XAFeed) {
@@ -85,12 +86,10 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     for (unsigned i = 0; i < MAXCHAN; i++) {
         auto &channel = spu.get<SaveStates::Channels>().value[i];
         auto &data = channel.get<SaveStates::Data>();
-        #if 0
         data = s_chan[i].data;
-        channel.get<ADSRInfo>() = s_chan[i].ADSR;
-        channel.get<ADSRInfoEx>() = s_chan[i].ADSRX;
-        #endif
-        auto storePtr = [&](uint8_t *ptr, Protobuf::Int32 &val) {
+        channel.get<SaveStates::ADSRInfo>() = s_chan[i].ADSR;
+        channel.get<SaveStates::ADSRInfoEx>() = s_chan[i].ADSRX;
+        auto storePtr = [=](uint8_t *ptr, Protobuf::Int32 &val) {
             if (ptr) {
                 val.value = ptr - spuMemC;
             } else {

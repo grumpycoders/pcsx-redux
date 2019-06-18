@@ -136,8 +136,8 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", (uint32_t)ch.pStart - (uint32_t)spuMemC,
-                            (uint32_t)ch.pCurr - (uint32_t)spuMemC, (uint32_t)ch.pLoop - (uint32_t)spuMemC,
+                ImGui::Text("%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC,
+                            ch.pCurr - spuMemC, ch.pLoop - spuMemC,
                             ch.data.get<Chan::RightVolume>().value, ch.data.get<Chan::RightVolRaw>().value,
                             ch.data.get<Chan::LeftVolume>().value, ch.data.get<Chan::LeftVolRaw>().value,
                             ch.data.get<Chan::ActFreq>().value, ch.data.get<Chan::UsedFreq>().value);
