@@ -32,6 +32,7 @@ void SPUirq(void);
 namespace {
 
 class CDRomImpl : public PCSX::CDRom {
+    // savestate stuff starts here
     uint8_t m_OCUP;
     uint8_t m_Reg1Mode;
     uint8_t m_Reg2;
@@ -95,6 +96,7 @@ class CDRomImpl : public PCSX::CDRom {
         uint8_t Absolute[3];
     } m_subq;
     bool m_TrackChanged;
+    // end savestate
 
     /* CD-ROM magic numbers */
     enum {
