@@ -114,28 +114,28 @@ class InSlice {
 
 class OutSlice {
   public:
-    constexpr void putU8(uint8_t value) { m_data += std::string(reinterpret_cast<const char *>(&value), 1); }
-    constexpr void putU16(uint16_t value) {
+    void putU8(uint8_t value) { m_data += std::string(reinterpret_cast<const char *>(&value), 1); }
+    void putU16(uint16_t value) {
         putU8(value & 0xff);
         value >>= 8;
         putU8(value & 0xff);
     }
-    constexpr void putU32(uint32_t value) {
+    void putU32(uint32_t value) {
         putU16(value & 0xffff);
         value >>= 16;
         putU16(value & 0xffff);
     }
-    constexpr void putU64(uint64_t value) {
+    void putU64(uint64_t value) {
         putU32(value & 0xffffffff);
         value >>= 32;
         putU32(value & 0xffffffff);
     }
-    constexpr void putBytes(const uint8_t *bytes, uint64_t size) {
+    void putBytes(const uint8_t *bytes, uint64_t size) {
         m_data += std::string(reinterpret_cast<const char *>(bytes), size);
     }
-    constexpr void putBytes(const std::string &str) { m_data += str; }
-    constexpr void putSlice(OutSlice *slice) { m_data += slice->m_data; }
-    constexpr void putVarInt(uint64_t value) {
+    void putBytes(const std::string &str) { m_data += str; }
+    void putSlice(OutSlice *slice) { m_data += slice->m_data; }
+    void putVarInt(uint64_t value) {
         uint8_t b = 0;
         do {
             b = value & 0x7f;
@@ -162,32 +162,59 @@ struct FieldType {
     constexpr bool hasData() const { return value == innerType(); }
 };
 
+#if 0
+struct Int8 : public FieldType<int8_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<int8_t>(slice->getVarInt()); }
+    static constexpr char const typeName[] = "int32";
+};
+#endif
+
+struct Int16 : public FieldType<int16_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<int16_t>(slice->getVarInt()); }
+    static constexpr char const typeName[] = "int32";
+};
+
+
 struct Int32 : public FieldType<int32_t, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<int32_t>(slice->getVarInt()); }
     static constexpr char const typeName[] = "int32";
 };
 
 struct Int64 : public FieldType<int64_t, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getVarInt(); }
     static constexpr char const typeName[] = "int64";
 };
 
+struct UInt8 : public FieldType<uint8_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<uint8_t>(slice->getVarInt()); }
+    static constexpr char const typeName[] = "uint32";
+};
+
+struct UInt16 : public FieldType<uint16_t, 0> {
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<uint16_t>(slice->getVarInt()); }
+    static constexpr char const typeName[] = "uint32";
+};
+
 struct UInt32 : public FieldType<uint32_t, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<uint32_t>(slice->getVarInt()); }
     static constexpr char const typeName[] = "uint32";
 };
 
 struct UInt64 : public FieldType<uint64_t, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getVarInt(); }
     static constexpr char const typeName[] = "uint64";
 };
 
 struct SInt32 : public FieldType<int32_t, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt((value << 1) ^ (value >> 31)); }
+    void serialize(OutSlice *slice) const { slice->putVarInt((value << 1) ^ (value >> 31)); }
     constexpr void deserialize(InSlice *slice, unsigned) {
         value = static_cast<int32_t>(slice->getVarInt());
         value = (value >> 1) ^ -(value & 1);
@@ -196,7 +223,7 @@ struct SInt32 : public FieldType<int32_t, 0> {
 };
 
 struct SInt64 : public FieldType<int64_t, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt((value << 1) ^ (value >> 63)); }
+    void serialize(OutSlice *slice) const { slice->putVarInt((value << 1) ^ (value >> 63)); }
     constexpr void deserialize(InSlice *slice, unsigned) {
         value = slice->getVarInt();
         value = (value >> 1) ^ -(value & 1);
@@ -205,19 +232,19 @@ struct SInt64 : public FieldType<int64_t, 0> {
 };
 
 struct Bool : public FieldType<bool, 0> {
-    constexpr void serialize(OutSlice *slice) const { slice->putVarInt(value); }
+    void serialize(OutSlice *slice) const { slice->putVarInt(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getVarInt(); }
     static constexpr char const typeName[] = "bool";
 };
 
 struct Fixed64 : public FieldType<uint64_t, 1> {
-    constexpr void serialize(OutSlice *slice) const { slice->putU64(value); }
+    void serialize(OutSlice *slice) const { slice->putU64(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getU64(); }
     static constexpr char const typeName[] = "fixed64";
 };
 
 struct SFixed64 : public FieldType<int64_t, 1> {
-    constexpr void serialize(OutSlice *slice) const { slice->putU64(value); }
+    void serialize(OutSlice *slice) const { slice->putU64(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getU64(); }
     static constexpr char const typeName[] = "sfixed64";
 };
@@ -241,20 +268,20 @@ struct Double : public FieldType<double, 1> {
 };
 
 struct String : public FieldType<std::string, 2> {
-    constexpr void serialize(OutSlice *slice) const {
+    void serialize(OutSlice *slice) const {
         slice->putVarInt(value.size());
         slice->putBytes(value);
     }
-    constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getBytes(slice->getVarInt()); }
+    void deserialize(InSlice *slice, unsigned) { value = slice->getBytes(slice->getVarInt()); }
     static constexpr char const typeName[] = "string";
 };
 
 struct Bytes : public FieldType<std::string, 2> {
-    constexpr void serialize(OutSlice *slice) const {
+    void serialize(OutSlice *slice) const {
         slice->putVarInt(value.size());
         slice->putBytes(value);
     }
-    constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getBytes(slice->getVarInt()); }
+    void deserialize(InSlice *slice, unsigned) { value = slice->getBytes(slice->getVarInt()); }
     static constexpr char const typeName[] = "bytes";
 };
 
@@ -302,19 +329,19 @@ struct FixedBytes {
 };
 
 struct Fixed32 : public FieldType<uint32_t, 5> {
-    constexpr void serialize(OutSlice *slice) const { slice->putU32(value); }
+    void serialize(OutSlice *slice) const { slice->putU32(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getU32(); }
     static constexpr char const typeName[] = "fixed32";
 };
 
 struct SFixed32 : public FieldType<int32_t, 5> {
-    constexpr void serialize(OutSlice *slice) const { slice->putU32(value); }
+    void serialize(OutSlice *slice) const { slice->putU32(value); }
     constexpr void deserialize(InSlice *slice, unsigned) { value = slice->getU32(); }
     static constexpr char const typeName[] = "sfixed32";
 };
 
 struct Float : public FieldType<float, 5> {
-    constexpr void serialize(OutSlice *slice) const {
+    void serialize(OutSlice *slice) const {
         union {
             float f;
             uint32_t v;

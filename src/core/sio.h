@@ -24,6 +24,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 
 namespace PCSX {
 
@@ -72,11 +73,11 @@ class SIO {
     uint16_t s_ctrlReg;
     uint16_t s_baudReg;
 
-    unsigned int s_bufcount;
-    unsigned int s_parp;
-    unsigned int s_mcdst, s_rdwr;
-    unsigned char s_adrH, s_adrL;
-    unsigned int s_padst;
+    uint32_t s_bufcount;
+    uint32_t s_parp;
+    uint32_t s_mcdst, s_rdwr;
+    uint8_t s_adrH, s_adrL;
+    uint32_t s_padst;
     unsigned int s_gsdonglest;
 
     static const size_t DONGLE_SIZE = 0x40 * 0x1000;
@@ -130,6 +131,8 @@ class SIO {
     void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
+
+    friend SaveStates::SaveState SaveStates::constructSaveState();
 };
 
 }  // namespace PCSX

@@ -66,7 +66,7 @@ typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 5> RegistersF
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("status"), 1> GPUStatus;
 typedef Protobuf::Field<Protobuf::FixedBytes<0x400>, TYPESTRING("control"), 2> GPUControl;
-typedef Protobuf::Field<Protobuf::FixedBytes<0x00400000>, TYPESTRING("vram"), 3> GPUVRam;
+typedef Protobuf::Field<Protobuf::FixedBytes<0x00100000>, TYPESTRING("vram"), 3> GPUVRam;
 typedef Protobuf::Message<TYPESTRING("GPU"), GPUStatus, GPUControl, GPUVRam> GPU;
 typedef Protobuf::MessageField<GPU, TYPESTRING("gpu"), 6> GPUField;
 
@@ -96,11 +96,30 @@ typedef Protobuf::RepeatedField<Channel, 24, TYPESTRING("channel"), 6> Channels;
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels> SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 7> SPUField;
 
+typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1010>, TYPESTRING("buf"), 1> SIOBuf;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("stat_reg"), 2> SIOStatReg;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mode_reg"), 3> SIOModeReg;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("ctrl_reg"), 4> SIOCtrlReg;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("baud_reg"), 5> SIOBaudReg;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buf_count"), 6> SIOBufCount;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("parp"), 7> SIOParP;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_st"), 8> SIOMCDSt;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("rdwr"), 9> SIORDWR;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("adrh"), 10> SIOAdrH;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("adrl"), 11> SIOAdrL;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_st"), 12> SIOPadSt;
+typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuf, SIOStatReg, SIOModeReg, SIOCtrlReg, SIOBaudReg, SIOBufCount,
+                          SIOParP, SIOMCDSt, SIORDWR, SIOAdrH, SIOAdrL, SIOPadSt>
+    SIO;
+typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 8> SIOField;
+
 typedef Protobuf::Message<TYPESTRING("SaveState"), VersionString, Version, ThumbnailField, MemoryField, RegistersField,
-                          GPUField, SPUField>
+                          GPUField, SPUField, SIOField>
     SaveState;
 
-typedef Protobuf::ProtoFile<Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA, SPU, SaveState> ProtoFile;
+typedef Protobuf::ProtoFile<Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA, ::PCSX::SPU::Chan::Data,
+                            ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO, SaveState>
+    ProtoFile;
 
 SaveState constructSaveState();
 

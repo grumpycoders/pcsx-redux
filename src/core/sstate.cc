@@ -22,12 +22,14 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sio.h"
 #include "spu/interface.h"
 
 PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
     // clang-format off
     uint8_t * icacheAddr = g_emulator.m_psxCpu->m_psxRegs.ICache_Addr;
     uint8_t * icacheCode = g_emulator.m_psxCpu->m_psxRegs.ICache_Code;
+    uint8_t * sioBuf = g_emulator.m_sio->s_buf;
     return SaveState {
         VersionString {},
         Version {},
@@ -54,6 +56,20 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         GPU {},
         SPU {},
+        SIO {
+            SIOBuf { sioBuf },
+            SIOStatReg { g_emulator.m_sio->s_statReg },
+            SIOModeReg { g_emulator.m_sio->s_modeReg },
+            SIOCtrlReg { g_emulator.m_sio->s_ctrlReg },
+            SIOBaudReg { g_emulator.m_sio->s_baudReg },
+            SIOBufCount { g_emulator.m_sio->s_bufcount },
+            SIOParP { g_emulator.m_sio->s_parp },
+            SIOMCDSt { g_emulator.m_sio->s_mcdst },
+            SIORDWR { g_emulator.m_sio->s_rdwr },
+            SIOAdrH { g_emulator.m_sio->s_adrH },
+            SIOAdrL { g_emulator.m_sio->s_adrL },
+            SIOPadSt { g_emulator.m_sio->s_padst },
+      }
     };
     // clang-format on
 }

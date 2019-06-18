@@ -129,7 +129,7 @@ typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("fmod"), 29> FMod;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_num"), 30> RVBNum;
 // old noise val for this channel
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("old_noise"), 31> OldNoise;
-typedef Protobuf::Message<TYPESTRING("Channel"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
+typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
                           Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
                           RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, RVBOffset, RVBRepeat, Noise, FMod,
                           RVBNum, OldNoise>
