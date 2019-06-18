@@ -483,183 +483,180 @@ void PCSX::SPU::impl::MainThread() {
             for (ch = 0; ch < MAXCHAN;
                  ch++, pChannel++)  // loop em all... we will collect 1 ms of sound of each playing channel
             {
+                if (pChannel->data.get<PCSX::SPU::Chan::New>().value) {
+                    StartSound(pChannel);        // start new sound
+                    dwNewChannel &= ~(1 << ch);  // clear new channel bit
+                }
+
+                if (!pChannel->data.get<PCSX::SPU::Chan::On>().value) continue;  // channel not playing? next
+
+                if (pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value !=
+                    pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value)  // new psx frequency?
+                    VoiceChangeFrequency(pChannel);
+
+                ns = 0;
+                while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
-                    if (pChannel->data.get<PCSX::SPU::Chan::New>().value) {
-                        StartSound(pChannel);        // start new sound
-                        dwNewChannel &= ~(1 << ch);  // clear new channel bit
-                    }
+                    if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
+                        FModChangeFrequency(pChannel, ns);
 
-                    if (!pChannel->data.get<PCSX::SPU::Chan::On>().value) continue;  // channel not playing? next
-
-                    if (pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value !=
-                        pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value)  // new psx frequency?
-                        VoiceChangeFrequency(pChannel);
-
-                    ns = 0;
-                    while (ns < NSSIZE)  // loop until 1 ms of data is reached
-                    {
-                        if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
-                            FModChangeFrequency(pChannel, ns);
-
-                        while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
-                            if (pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
-                            {
-                                start = pChannel->pCurr;  // set up the current pos
-
-                                if (start == (unsigned char *)-1)  // special "stop" sign
-                                {
-                                    pChannel->data.get<PCSX::SPU::Chan::On>().value = false;  // -> turn everything off
-                                    pChannel->ADSRX.get<exVolume>().value = 0;
-                                    pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
-                                    goto ENDX;  // -> and done for this channel
-                                }
-
-                                pChannel->data.get<PCSX::SPU::Chan::SBPos>().value = 0;
-
-                                //////////////////////////////////////////// spu irq handler here? mmm... do it later
-
-                                s_1 = pChannel->data.get<PCSX::SPU::Chan::s_1>().value;
-                                s_2 = pChannel->data.get<PCSX::SPU::Chan::s_2>().value;
-
-                                predict_nr = (int)*start;
-                                start++;
-                                shift_factor = predict_nr & 0xf;
-                                predict_nr >>= 4;
-                                flags = (int)*start;
-                                start++;
-
-                                // -------------------------------------- //
-
-                                for (nSample = 0; nSample < 28; start++) {
-                                    d = (int)*start;
-                                    s = ((d & 0xf) << 12);
-                                    if (s & 0x8000) s |= 0xffff0000;
-
-                                    fa = (s >> shift_factor);
-                                    fa = fa + ((s_1 * f[predict_nr][0]) >> 6) + ((s_2 * f[predict_nr][1]) >> 6);
-                                    s_2 = s_1;
-                                    s_1 = fa;
-                                    s = ((d & 0xf0) << 8);
-
-                                    pChannel->data.get<PCSX::SPU::Chan::SB>().value[nSample++].value = fa;
-
-                                    if (s & 0x8000) s |= 0xffff0000;
-                                    fa = (s >> shift_factor);
-                                    fa = fa + ((s_1 * f[predict_nr][0]) >> 6) + ((s_2 * f[predict_nr][1]) >> 6);
-                                    s_2 = s_1;
-                                    s_1 = fa;
-
-                                    pChannel->data.get<PCSX::SPU::Chan::SB>().value[nSample++].value = fa;
-                                }
-
-                                //////////////////////////////////////////// irq check
-
-                                if (irqCallback && (spuCtrl & 0x40))  // some callback and irq active?
-                                {
-                                    if ((pSpuIrq > start - 16 &&  // irq address reached?
-                                         pSpuIrq <= start) ||
-                                        ((flags & 1) &&  // special: irq on looping addr, when stop/loop flag is set
-                                         (pSpuIrq > pChannel->pLoop - 16 && pSpuIrq <= pChannel->pLoop))) {
-                                        pChannel->data.get<PCSX::SPU::Chan::IrqDone>().value = 1;  // -> debug flag
-                                        irqCallback();                                             // -> call main emu
-
-                                        if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
-                                        {
-                                            iSpuAsyncWait = 1;
-                                            bIRQReturn = 1;
-                                        }
-                                    }
-                                }
-
-                                //////////////////////////////////////////// flag handler
-
-                                if ((flags & 4) && (!pChannel->data.get<PCSX::SPU::Chan::IgnoreLoop>().value))
-                                    pChannel->pLoop = start - 16;  // loop adress
-
-                                if (flags & 1)  // 1: stop/loop
-                                {
-                                    // We play this block out first...
-                                    // if(!(flags&2))                          // 1+2: do loop... otherwise: stop
-                                    if (flags != 3 ||
-                                        pChannel->pLoop == NULL)  // PETE: if we don't check exactly for 3, loop hang
-                                                                  // ups will happen (DQ4, for example)
-                                    {                             // and checking if pLoop is set avoids crashes, yeah
-                                        start = (unsigned char *)-1;
-                                    } else {
-                                        start = pChannel->pLoop;
-                                    }
-                                }
-
-                                pChannel->pCurr = start;  // store values for next cycle
-                                pChannel->data.get<PCSX::SPU::Chan::s_1>().value = s_1;
-                                pChannel->data.get<PCSX::SPU::Chan::s_2>().value = s_2;
-
-                                ////////////////////////////////////////////
-
-                                if (bIRQReturn)  // special return for "spu irq - wait for cpu action"
-                                {
-                                    bIRQReturn = 0;
-                                    Uint32 dwWatchTime = SDL_GetTicks() + 2500;
-
-                                    while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
-                                }
-
-                                ////////////////////////////////////////////
-
-                            GOON:;
-                            }
-
-                            fa = pChannel->data.get<PCSX::SPU::Chan::SB>()
-                                     .value[pChannel->data.get<PCSX::SPU::Chan::SBPos>().value++]
-                                     .value;  // get sample data
-
-                            StoreInterpolationVal(pChannel, fa);  // store val for later interpolation
-
-                            pChannel->data.get<PCSX::SPU::Chan::spos>().value -= 0x10000L;
-                        }
-
-                        ////////////////////////////////////////////////
-
-                        if (pChannel->data.get<PCSX::SPU::Chan::Noise>().value)
-                            fa = iGetNoiseVal(pChannel);  // get noise val
-                        else
-                            fa = iGetInterpolationVal(pChannel);  // get sample val
-
-                        pChannel->data.get<PCSX::SPU::Chan::sval>().value =
-                            (m_adsr.mix(pChannel) * fa) / 1023;  // mix adsr
-
-                        if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
-                            iFMod[ns] = pChannel->data.get<PCSX::SPU::Chan::sval>()
-                                            .value;  // -> store 1T sample data, use that to do fmod on next channel
-                        else                         // no fmod freq channel
+                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
+                        if (pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
                         {
-                            //////////////////////////////////////////////
-                            // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
+                            start = pChannel->pCurr;  // set up the current pos
 
-                            if (pChannel->data.get<PCSX::SPU::Chan::Mute>().value)
-                                pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;  // debug mute
-                            else {
-                                SSumL[ns] += (pChannel->data.get<PCSX::SPU::Chan::sval>().value *
-                                              pChannel->data.get<PCSX::SPU::Chan::LeftVolume>().value) /
-                                             0x4000L;
-                                SSumR[ns] += (pChannel->data.get<PCSX::SPU::Chan::sval>().value *
-                                              pChannel->data.get<PCSX::SPU::Chan::RightVolume>().value) /
-                                             0x4000L;
+                            if (start == (unsigned char *)-1)  // special "stop" sign
+                            {
+                                pChannel->data.get<PCSX::SPU::Chan::On>().value = false;  // -> turn everything off
+                                pChannel->ADSRX.get<exVolume>().value = 0;
+                                pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
+                                goto ENDX;  // -> and done for this channel
                             }
 
-                            //////////////////////////////////////////////
-                            // now let us store sound data for reverb
+                            pChannel->data.get<PCSX::SPU::Chan::SBPos>().value = 0;
 
-                            if (pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) StoreREVERB(pChannel, ns);
+                            //////////////////////////////////////////// spu irq handler here? mmm... do it later
+
+                            s_1 = pChannel->data.get<PCSX::SPU::Chan::s_1>().value;
+                            s_2 = pChannel->data.get<PCSX::SPU::Chan::s_2>().value;
+
+                            predict_nr = (int)*start;
+                            start++;
+                            shift_factor = predict_nr & 0xf;
+                            predict_nr >>= 4;
+                            flags = (int)*start;
+                            start++;
+
+                            // -------------------------------------- //
+
+                            for (nSample = 0; nSample < 28; start++) {
+                                d = (int)*start;
+                                s = ((d & 0xf) << 12);
+                                if (s & 0x8000) s |= 0xffff0000;
+
+                                fa = (s >> shift_factor);
+                                fa = fa + ((s_1 * f[predict_nr][0]) >> 6) + ((s_2 * f[predict_nr][1]) >> 6);
+                                s_2 = s_1;
+                                s_1 = fa;
+                                s = ((d & 0xf0) << 8);
+
+                                pChannel->data.get<PCSX::SPU::Chan::SB>().value[nSample++].value = fa;
+
+                                if (s & 0x8000) s |= 0xffff0000;
+                                fa = (s >> shift_factor);
+                                fa = fa + ((s_1 * f[predict_nr][0]) >> 6) + ((s_2 * f[predict_nr][1]) >> 6);
+                                s_2 = s_1;
+                                s_1 = fa;
+
+                                pChannel->data.get<PCSX::SPU::Chan::SB>().value[nSample++].value = fa;
+                            }
+
+                            //////////////////////////////////////////// irq check
+
+                            if (irqCallback && (spuCtrl & 0x40))  // some callback and irq active?
+                            {
+                                if ((pSpuIrq > start - 16 &&  // irq address reached?
+                                     pSpuIrq <= start) ||
+                                    ((flags & 1) &&  // special: irq on looping addr, when stop/loop flag is set
+                                     (pSpuIrq > pChannel->pLoop - 16 && pSpuIrq <= pChannel->pLoop))) {
+                                    pChannel->data.get<PCSX::SPU::Chan::IrqDone>().value = 1;  // -> debug flag
+                                    irqCallback();                                             // -> call main emu
+
+                                    if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
+                                    {
+                                        iSpuAsyncWait = 1;
+                                        bIRQReturn = 1;
+                                    }
+                                }
+                            }
+
+                            //////////////////////////////////////////// flag handler
+
+                            if ((flags & 4) && (!pChannel->data.get<PCSX::SPU::Chan::IgnoreLoop>().value))
+                                pChannel->pLoop = start - 16;  // loop adress
+
+                            if (flags & 1)  // 1: stop/loop
+                            {
+                                // We play this block out first...
+                                // if(!(flags&2))                          // 1+2: do loop... otherwise: stop
+                                if (flags != 3 ||
+                                    pChannel->pLoop == NULL)  // PETE: if we don't check exactly for 3, loop hang
+                                                              // ups will happen (DQ4, for example)
+                                {                             // and checking if pLoop is set avoids crashes, yeah
+                                    start = (unsigned char *)-1;
+                                } else {
+                                    start = pChannel->pLoop;
+                                }
+                            }
+
+                            pChannel->pCurr = start;  // store values for next cycle
+                            pChannel->data.get<PCSX::SPU::Chan::s_1>().value = s_1;
+                            pChannel->data.get<PCSX::SPU::Chan::s_2>().value = s_2;
+
+                            ////////////////////////////////////////////
+
+                            if (bIRQReturn)  // special return for "spu irq - wait for cpu action"
+                            {
+                                bIRQReturn = 0;
+                                Uint32 dwWatchTime = SDL_GetTicks() + 2500;
+
+                                while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
+                            }
+
+                            ////////////////////////////////////////////
+
+                        GOON:;
                         }
 
-                        ////////////////////////////////////////////////
-                        // ok, go on until 1 ms data of this channel is collected
+                        fa = pChannel->data.get<PCSX::SPU::Chan::SB>()
+                                 .value[pChannel->data.get<PCSX::SPU::Chan::SBPos>().value++]
+                                 .value;  // get sample data
 
-                        ns++;
-                        pChannel->data.get<PCSX::SPU::Chan::spos>().value +=
-                            pChannel->data.get<PCSX::SPU::Chan::sinc>().value;
+                        StoreInterpolationVal(pChannel, fa);  // store val for later interpolation
+
+                        pChannel->data.get<PCSX::SPU::Chan::spos>().value -= 0x10000L;
                     }
+
+                    ////////////////////////////////////////////////
+
+                    if (pChannel->data.get<PCSX::SPU::Chan::Noise>().value)
+                        fa = iGetNoiseVal(pChannel);  // get noise val
+                    else
+                        fa = iGetInterpolationVal(pChannel);  // get sample val
+
+                    pChannel->data.get<PCSX::SPU::Chan::sval>().value = (m_adsr.mix(pChannel) * fa) / 1023;  // mix adsr
+
+                    if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
+                        iFMod[ns] = pChannel->data.get<PCSX::SPU::Chan::sval>()
+                                        .value;  // -> store 1T sample data, use that to do fmod on next channel
+                    else                         // no fmod freq channel
+                    {
+                        //////////////////////////////////////////////
+                        // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
+
+                        if (pChannel->data.get<PCSX::SPU::Chan::Mute>().value)
+                            pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;  // debug mute
+                        else {
+                            SSumL[ns] += (pChannel->data.get<PCSX::SPU::Chan::sval>().value *
+                                          pChannel->data.get<PCSX::SPU::Chan::LeftVolume>().value) /
+                                         0x4000L;
+                            SSumR[ns] += (pChannel->data.get<PCSX::SPU::Chan::sval>().value *
+                                          pChannel->data.get<PCSX::SPU::Chan::RightVolume>().value) /
+                                         0x4000L;
+                        }
+
+                        //////////////////////////////////////////////
+                        // now let us store sound data for reverb
+
+                        if (pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) StoreREVERB(pChannel, ns);
+                    }
+
+                    ////////////////////////////////////////////////
+                    // ok, go on until 1 ms data of this channel is collected
+
+                    ns++;
+                    pChannel->data.get<PCSX::SPU::Chan::spos>().value +=
+                        pChannel->data.get<PCSX::SPU::Chan::sinc>().value;
                 }
             ENDX:;
             }

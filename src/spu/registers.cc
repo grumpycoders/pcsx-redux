@@ -520,7 +520,7 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val)  // SOUND OFF P
     {
         if (val & 1)  // && s_chan[i].bOn)  mmm...
         {
-            s_chan[ch].data.get<Chan::Stop>().value = false;
+            s_chan[ch].data.get<Chan::Stop>().value = true;
         }
     }
 }

@@ -43,7 +43,7 @@
 
 PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
 {
-    unsigned long r, rs, rd;
+    uint32_t r, rs, rd;
     int i;
 
     memset(m_table, 0,
@@ -81,8 +81,8 @@ void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
 ////////////////////////////////////////////////////////////////////////
 
 int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
-    unsigned long int disp;
-    signed long int EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
+    uint32_t disp;
+    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
 
     if (ch->data.get<Chan::Stop>().value)  // should be stopped:
     {                                      // do release
@@ -95,7 +95,7 @@ int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
 
         if (EnvelopeVol < 0) {
             EnvelopeVol = 0;
-            ch->data.get<Chan::On>().value = 0;
+            ch->data.get<Chan::On>().value = false;
         }
 
         ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
