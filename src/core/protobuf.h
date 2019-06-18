@@ -32,6 +32,8 @@
 
 #include "typestring.hh"
 
+#pragma optimize("gt", on)
+
 namespace PCSX {
 
 class OutOfBoundError {};
@@ -675,3 +677,5 @@ class ProtoFile : private std::tuple<fields...> {
 }  // namespace Protobuf
 
 }  // namespace PCSX
+
+#pragma optimize("", on)

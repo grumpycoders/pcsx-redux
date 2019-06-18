@@ -210,8 +210,8 @@ static inline void InterpolateDown(PCSX::SPU::SPUCHAN *pChannel) {
 ////////////////////////////////////////////////////////////////////////
 // helpers for gauss interpolation
 
-#define gval0 (((short *)(&SB[29].value))[gpos])
-#define gval(x) (((short *)(&SB[29].value))[(gpos + x) & 3])
+#define gval0 (((int16_t *)(&SB[29].value))[gpos])
+#define gval(x) (((int16_t *)(&SB[29].value))[(gpos + x) & 3])
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -425,7 +425,7 @@ inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
 
 void PCSX::SPU::impl::MainThread() {
     int s_1, s_2, fa, ns, voldiv = settings.get<Volume>();
-    unsigned char *start;
+    uint8_t *start;
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
     int bIRQReturn = 0;
@@ -505,7 +505,7 @@ void PCSX::SPU::impl::MainThread() {
                         {
                             start = pChannel->pCurr;  // set up the current pos
 
-                            if (start == (unsigned char *)-1)  // special "stop" sign
+                            if (start == (uint8_t *)-1)  // special "stop" sign
                             {
                                 pChannel->data.get<PCSX::SPU::Chan::On>().value = false;  // -> turn everything off
                                 pChannel->ADSRX.get<exVolume>().value = 0;
@@ -583,7 +583,7 @@ void PCSX::SPU::impl::MainThread() {
                                     pChannel->pLoop == NULL)  // PETE: if we don't check exactly for 3, loop hang
                                                               // ups will happen (DQ4, for example)
                                 {                             // and checking if pLoop is set avoids crashes, yeah
-                                    start = (unsigned char *)-1;
+                                    start = (uint8_t *)-1;
                                 } else {
                                     start = pChannel->pLoop;
                                 }
@@ -757,20 +757,20 @@ void PCSX::SPU::impl::MainThread() {
 
             if (irqQSound) {
                 uint32_t *pl = (uint32_t *)XAPlay;
-                short *ps = (short *)pSpuBuffer;
-                int g, iBytes = ((unsigned char *)pS) - ((unsigned char *)pSpuBuffer);
+                int16_t *ps = (int16_t *)pSpuBuffer;
+                int g, iBytes = ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer);
                 iBytes /= 2;
                 for (g = 0; g < iBytes; g++) {
                     *pl++ = *ps++;
                 }
 
-                irqQSound((unsigned char *)pSpuBuffer, (uint32_t *)XAPlay, iBytes / 2);
+                irqQSound((uint8_t *)pSpuBuffer, (uint32_t *)XAPlay, iBytes / 2);
             }
 
             //-------------------------------------------------//
 
-            m_sound.feedStreamData((unsigned char *)pSpuBuffer, ((unsigned char *)pS) - ((unsigned char *)pSpuBuffer));
-            pS = (short *)pSpuBuffer;
+            m_sound.feedStreamData((uint8_t *)pSpuBuffer, ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer));
+            pS = (int16_t *)pSpuBuffer;
             iCycle = 0;
         }
     }
@@ -818,7 +818,7 @@ void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
 ////////////////////////////////////////////////////////////////////////
 
 long PCSX::SPU::impl::init(void) {
-    spuMemC = (unsigned char *)spuMem;  // just small setup
+    spuMemC = (uint8_t *)spuMem;  // just small setup
     wipeChannels();
     return 0;
 }
@@ -844,7 +844,7 @@ void PCSX::SPU::impl::SetupThread() {
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(iFMod, 0, NSSIZE * sizeof(int));
 
-    pS = (short *)pSpuBuffer;  // setup soundbuffer pointer
+    pS = (int16_t *)pSpuBuffer;  // setup soundbuffer pointer
 
     bEndThread = 0;  // init thread vars
     bThreadEnded = 0;
@@ -878,7 +878,7 @@ void PCSX::SPU::impl::RemoveThread() {
 void PCSX::SPU::impl::SetupStreams() {
     int i;
 
-    pSpuBuffer = (unsigned char *)malloc(32768);  // alloc mixing buffer
+    pSpuBuffer = (uint8_t *)malloc(32768);  // alloc mixing buffer
 
     if (settings.get<Reverb>() == 1)
         i = 88200 * 2;
@@ -950,7 +950,7 @@ bool PCSX::SPU::impl::open() {
     spuAddr = 0xffffffff;
     bEndThread = 0;
     bThreadEnded = 0;
-    spuMemC = (unsigned char *)spuMem;
+    spuMemC = (uint8_t *)spuMem;
     pMixIrq = 0;
     wipeChannels();
     pSpuIrq = 0;
@@ -1013,13 +1013,13 @@ void PCSX::SPU::impl::about(void) {}
 
 void PCSX::SPU::impl::registerCallback(void (*callback)(void)) { irqCallback = callback; }
 
-void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(unsigned short, unsigned short)) {
+void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t)) {
     cddavCallback = CDDAVcallback;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::playCDDAchannel(short *data, int size) {
+void PCSX::SPU::impl::playCDDAchannel(int16_t *data, int size) {
     m_cdda.freq = 44100;
     m_cdda.nsamples = size / 4;
     m_cdda.stereo = 1;
