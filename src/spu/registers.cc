@@ -37,11 +37,11 @@
 //
 //*************************************************************************//
 
+#pragma optimize("2", on)
+
 #define NOMINMAX
 
 #include <algorithm>
-
-#define _IN_REGISTERS
 
 #include "spu/externals.h"
 #include "spu/interface.h"

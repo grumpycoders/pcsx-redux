@@ -33,7 +33,7 @@
 //
 //*************************************************************************//
 
-#define _IN_FREEZE
+#pragma optimize("2", on)
 
 #include "spu/externals.h"
 #include "spu/interface.h"

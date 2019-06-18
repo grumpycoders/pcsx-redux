@@ -32,7 +32,7 @@
 
 #include "typestring.hh"
 
-#pragma optimize("gt", on)
+#pragma optimize("2", on)
 
 namespace PCSX {
 
