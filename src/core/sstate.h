@@ -148,34 +148,33 @@ typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("file"), 32> CDFile;
 typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("channel"), 33> CDChannel;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("suceeded"), 34> CDSuceeded;
 typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("first_sector"), 35> CDFirstSector;
-typedef Protobuf::MessageField<XA, TYPESTRING("xa"), 36> CDXA;
-typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("irq"), 37> CDIRQ;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("irq_repeated"), 38> CDIrqRepeated;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("e_cycle"), 39> CDECycle;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("seeked"), 40> CDSeeked;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("read_scheduled"), 41> CDReadRescheduled;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("drive_state"), 42> CDDriveState;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("fast_forward"), 43> CDFastForward;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("fast_backward"), 44> CDFastBackward;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_left"), 45> CDAttenuatorLeftToLeft;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_right"), 46> CDAttenuatorLeftToRight;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_right"), 47> CDAttenuatorRightToRight;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_left"), 48> CDAttenuatorRightToLeft;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_left_t"), 49> CDAttenuatorLeftToLeftT;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_right_t"), 50> CDAttenuatorLeftToRightT;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_right_t"), 51> CDAttenuatorRightToRightT;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_left_t"), 52> CDAttenuatorRightToLeftT;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_track"), 53> CDSubQTrack;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_index"), 54> CDSubQIndex;
-typedef Protobuf::FieldValue<Protobuf::FixedBytes<3>, TYPESTRING("subq_relative"), 55> CDSubQRelative;
-typedef Protobuf::FieldValue<Protobuf::FixedBytes<3>, TYPESTRING("subq_absolute"), 56> CDSubQAbsolute;
-typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("track_changed"), 57> CDTrackChanged;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("irq"), 36> CDIRQ;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("irq_repeated"), 37> CDIrqRepeated;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("e_cycle"), 38> CDECycle;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("seeked"), 39> CDSeeked;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("read_scheduled"), 40> CDReadRescheduled;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("drive_state"), 41> CDDriveState;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("fast_forward"), 42> CDFastForward;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("fast_backward"), 43> CDFastBackward;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_left"), 44> CDAttenuatorLeftToLeft;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_right"), 45> CDAttenuatorLeftToRight;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_right"), 46> CDAttenuatorRightToRight;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_left"), 47> CDAttenuatorRightToLeft;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_left_t"), 48> CDAttenuatorLeftToLeftT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_right_t"), 49> CDAttenuatorLeftToRightT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_right_t"), 50> CDAttenuatorRightToRightT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_left_t"), 51> CDAttenuatorRightToLeftT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_track"), 52> CDSubQTrack;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_index"), 53> CDSubQIndex;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<3>, TYPESTRING("subq_relative"), 54> CDSubQRelative;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<3>, TYPESTRING("subq_absolute"), 55> CDSubQAbsolute;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("track_changed"), 56> CDTrackChanged;
 
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDOCUP, CDReg1Mode, CDReg2, CDCmdProcess, CDCtrl, CDStat, CDStatP, CDTransfer, CDTransferIndex,
     CDPrev, CDParam, CDResult, CDParamC, CDParamP, CDResultC, CDResultP, CDResultReady, CDCmd, CDRead, CDSetLocPending,
     CDReading, CDResultTN, CDResultTD, CDSetSectorPlay, CDSetSectorEnd, CDSetSector, CDTrack, CDPlay, CDMuted,
-    CDCurTrack, CDMode, CDFile, CDChannel, CDSuceeded, CDFirstSector, CDXA, CDIRQ, CDIrqRepeated, CDECycle, CDSeeked,
+    CDCurTrack, CDMode, CDFile, CDChannel, CDSuceeded, CDFirstSector, CDIRQ, CDIrqRepeated, CDECycle, CDSeeked,
     CDReadRescheduled, CDDriveState, CDFastForward, CDFastBackward, CDAttenuatorLeftToLeft, CDAttenuatorLeftToRight,
     CDAttenuatorRightToRight, CDAttenuatorRightToLeft, CDAttenuatorLeftToLeftT, CDAttenuatorLeftToRightT,
     CDAttenuatorRightToRightT, CDAttenuatorRightToLeftT, CDSubQTrack, CDSubQIndex, CDSubQRelative, CDSubQAbsolute,

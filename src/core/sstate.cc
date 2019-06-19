@@ -104,7 +104,6 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDChannel { g_emulator.m_cdrom->m_Channel },
             CDSuceeded { g_emulator.m_cdrom->m_suceeded },
             CDFirstSector { g_emulator.m_cdrom->m_FirstSector },
-            CDXA { },
             CDIRQ { g_emulator.m_cdrom->m_Irq },
             CDIrqRepeated { g_emulator.m_cdrom->m_IrqRepeated },
             CDECycle { g_emulator.m_cdrom->m_eCycle },
