@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/sstate.h"
+#include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -27,9 +28,6 @@
 
 PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
     // clang-format off
-    uint8_t * icacheAddr = g_emulator.m_psxCpu->m_psxRegs.ICache_Addr;
-    uint8_t * icacheCode = g_emulator.m_psxCpu->m_psxRegs.ICache_Code;
-    uint8_t * sioBuf = g_emulator.m_sio->s_buf;
     return SaveState {
         VersionString {},
         Version {},
@@ -50,14 +48,14 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             Cycle { g_emulator.m_psxCpu->m_psxRegs.cycle },
             Interrupt { g_emulator.m_psxCpu->m_psxRegs.interrupt },
             IntCyclesField {},
-            ICacheAddr { icacheAddr },
-            ICacheCode { icacheCode },
+            ICacheAddr { g_emulator.m_psxCpu->m_psxRegs.ICache_Addr },
+            ICacheCode { g_emulator.m_psxCpu->m_psxRegs.ICache_Code },
             ICacheValid { g_emulator.m_psxCpu->m_psxRegs.ICache_valid }
         },
         GPU {},
         SPU {},
         SIO {
-            SIOBuf { sioBuf },
+            SIOBuf { g_emulator.m_sio->s_buf },
             SIOStatReg { g_emulator.m_sio->s_statReg },
             SIOModeReg { g_emulator.m_sio->s_modeReg },
             SIOCtrlReg { g_emulator.m_sio->s_ctrlReg },
@@ -69,7 +67,66 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             SIOAdrH { g_emulator.m_sio->s_adrH },
             SIOAdrL { g_emulator.m_sio->s_adrL },
             SIOPadSt { g_emulator.m_sio->s_padst },
-      }
+        },
+        CDRom {
+            CDOCUP { g_emulator.m_cdrom->m_OCUP },
+            CDReg1Mode { g_emulator.m_cdrom->m_Reg1Mode },
+            CDReg2 { g_emulator.m_cdrom->m_Reg2 },
+            CDCmdProcess { g_emulator.m_cdrom->m_CmdProcess },
+            CDCtrl { g_emulator.m_cdrom->m_Ctrl },
+            CDStat { g_emulator.m_cdrom->m_Stat },
+            CDStatP { g_emulator.m_cdrom->m_StatP },
+            CDTransfer { reinterpret_cast<uint8_t*>(g_emulator.m_cdrom->m_Transfer) },
+            CDTransferIndex { g_emulator.m_cdrom->m_transferIndex },
+            CDPrev { g_emulator.m_cdrom->m_Prev },
+            CDParam { g_emulator.m_cdrom->m_Param },
+            CDResult { g_emulator.m_cdrom->m_Result },
+            CDParamC { g_emulator.m_cdrom->m_ParamC },
+            CDParamP { g_emulator.m_cdrom->m_ParamP },
+            CDResultC { g_emulator.m_cdrom->m_ResultC },
+            CDResultP { g_emulator.m_cdrom->m_ResultP },
+            CDResultReady { g_emulator.m_cdrom->m_ResultReady },
+            CDCmd { g_emulator.m_cdrom->m_Cmd },
+            CDRead { g_emulator.m_cdrom->m_Read },
+            CDSetLocPending { g_emulator.m_cdrom->m_SetlocPending },
+            CDReading { g_emulator.m_cdrom->m_Reading },
+            CDResultTN { g_emulator.m_cdrom->m_ResultTN },
+            CDResultTD { g_emulator.m_cdrom->m_ResultTD },
+            CDSetSectorPlay { g_emulator.m_cdrom->m_SetSectorPlay },
+            CDSetSectorEnd { g_emulator.m_cdrom->m_SetSectorEnd },
+            CDSetSector { g_emulator.m_cdrom->m_SetSector },
+            CDTrack { g_emulator.m_cdrom->m_Track },
+            CDPlay { g_emulator.m_cdrom->m_Play },
+            CDMuted { g_emulator.m_cdrom->m_Muted },
+            CDCurTrack { g_emulator.m_cdrom->m_CurTrack },
+            CDMode { g_emulator.m_cdrom->m_Mode },
+            CDFile { g_emulator.m_cdrom->m_File },
+            CDChannel { g_emulator.m_cdrom->m_Channel },
+            CDSuceeded { g_emulator.m_cdrom->m_suceeded },
+            CDFirstSector { g_emulator.m_cdrom->m_FirstSector },
+            CDXA { },
+            CDIRQ { g_emulator.m_cdrom->m_Irq },
+            CDIrqRepeated { g_emulator.m_cdrom->m_IrqRepeated },
+            CDECycle { g_emulator.m_cdrom->m_eCycle },
+            CDSeeked { g_emulator.m_cdrom->m_Seeked },
+            CDReadRescheduled { g_emulator.m_cdrom->m_ReadRescheduled },
+            CDDriveState { g_emulator.m_cdrom->m_DriveState },
+            CDFastForward { g_emulator.m_cdrom->m_FastForward },
+            CDFastBackward { g_emulator.m_cdrom->m_FastBackward },
+            CDAttenuatorLeftToLeft { g_emulator.m_cdrom->m_AttenuatorLeftToLeft },
+            CDAttenuatorLeftToRight { g_emulator.m_cdrom->m_AttenuatorLeftToRight },
+            CDAttenuatorRightToRight { g_emulator.m_cdrom->m_AttenuatorRightToRight },
+            CDAttenuatorRightToLeft { g_emulator.m_cdrom->m_AttenuatorRightToLeft },
+            CDAttenuatorLeftToLeftT { g_emulator.m_cdrom->m_AttenuatorLeftToLeftT },
+            CDAttenuatorLeftToRightT { g_emulator.m_cdrom->m_AttenuatorLeftToRightT },
+            CDAttenuatorRightToRightT { g_emulator.m_cdrom->m_AttenuatorRightToRightT },
+            CDAttenuatorRightToLeftT { g_emulator.m_cdrom->m_AttenuatorRightToLeftT },
+            CDSubQTrack { g_emulator.m_cdrom->m_subq.Track },
+            CDSubQIndex { g_emulator.m_cdrom->m_subq.Index },
+            CDSubQRelative { g_emulator.m_cdrom->m_subq.Relative },
+            CDSubQAbsolute { g_emulator.m_cdrom->m_subq.Absolute },
+            CDTrackChanged { g_emulator.m_cdrom->m_TrackChanged }
+        }
     };
     // clang-format on
 }

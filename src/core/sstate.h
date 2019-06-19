@@ -37,10 +37,10 @@ typedef Protobuf::Field<Protobuf::Bytes, TYPESTRING("blue"), 5> Blue;
 typedef Protobuf::Message<TYPESTRING("Thumbnail"), Width, Height, Red, Green, Blue> Thumbnail;
 typedef Protobuf::MessageField<Thumbnail, TYPESTRING("thumbnail"), 3> ThumbnailField;
 
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x00200000>, TYPESTRING("ram"), 1> RAM;
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x00080000>, TYPESTRING("rom"), 2> ROM;
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x00010000>, TYPESTRING("parallel"), 3> Parallel;
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardware"), 4> Hardware;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x00200000>, TYPESTRING("ram"), 1> RAM;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x00080000>, TYPESTRING("rom"), 2> ROM;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x00010000>, TYPESTRING("parallel"), 3> Parallel;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardware"), 4> Hardware;
 typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, Parallel, Hardware> Memory;
 typedef Protobuf::MessageField<Memory, TYPESTRING("memory"), 4> MemoryField;
 
@@ -56,8 +56,8 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("scycle"), 1> IntSCycle;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle"), 2> IntCycle;
 typedef Protobuf::Message<TYPESTRING("InterruptCycles"), IntSCycle, IntCycle> IntCycles;
 typedef Protobuf::RepeatedField<IntCycles, 2, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("icache_valid"), 12> ICacheValid;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, IntCyclesField,
                           ICacheAddr, ICacheCode, ICacheValid>
@@ -96,7 +96,7 @@ typedef Protobuf::RepeatedField<Channel, 24, TYPESTRING("channel"), 6> Channels;
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels> SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 7> SPUField;
 
-typedef Protobuf::FieldRef<Protobuf::FixedBytes<0x1010>, TYPESTRING("buf"), 1> SIOBuf;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<0x1010>, TYPESTRING("buf"), 1> SIOBuf;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("stat_reg"), 2> SIOStatReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mode_reg"), 3> SIOModeReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("ctrl_reg"), 4> SIOCtrlReg;
@@ -113,12 +113,82 @@ typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuf, SIOStatReg, SIOModeReg, SIO
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 8> SIOField;
 
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("ocup"), 1> CDOCUP;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("reg1_mode"), 2> CDReg1Mode;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("reg2"), 3> CDReg2;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("cmd_process"), 4> CDCmdProcess;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("ctrl"), 5> CDCtrl;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("stat"), 6> CDStat;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("stat_p"), 7> CDStatP;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<2352>, TYPESTRING("transfer"), 8> CDTransfer;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("transfer_index"), 9> CDTransferIndex;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<4>, TYPESTRING("prev"), 10> CDPrev;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<8>, TYPESTRING("param"), 11> CDParam;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<16>, TYPESTRING("result"), 12> CDResult;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("param_c"), 13> CDParamC;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("param_p"), 14> CDParamP;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("result_c"), 15> CDResultC;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("result_p"), 16> CDResultP;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("result_ready"), 17> CDResultReady;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("cmd"), 18> CDCmd;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("read"), 19> CDRead;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("set_loc_pending"), 20> CDSetLocPending;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("reading"), 21> CDReading;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<6>, TYPESTRING("result_tn"), 22> CDResultTN;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<4>, TYPESTRING("result_td"), 23> CDResultTD;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<4>, TYPESTRING("set_sector_play"), 24> CDSetSectorPlay;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<4>, TYPESTRING("set_sector_end"), 25> CDSetSectorEnd;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<4>, TYPESTRING("set_sector"), 26> CDSetSector;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("track"), 27> CDTrack;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("play"), 28> CDPlay;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("muted"), 29> CDMuted;
+typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("cur_track"), 30> CDCurTrack;
+typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("mode"), 31> CDMode;
+typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("file"), 32> CDFile;
+typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("channel"), 33> CDChannel;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("suceeded"), 34> CDSuceeded;
+typedef Protobuf::FieldRef<Protobuf::Int32, TYPESTRING("first_sector"), 35> CDFirstSector;
+typedef Protobuf::MessageField<XA, TYPESTRING("xa"), 36> CDXA;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("irq"), 37> CDIRQ;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("irq_repeated"), 38> CDIrqRepeated;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("e_cycle"), 39> CDECycle;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("seeked"), 40> CDSeeked;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("read_scheduled"), 41> CDReadRescheduled;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("drive_state"), 42> CDDriveState;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("fast_forward"), 43> CDFastForward;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("fast_backward"), 44> CDFastBackward;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_left"), 45> CDAttenuatorLeftToLeft;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_right"), 46> CDAttenuatorLeftToRight;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_right"), 47> CDAttenuatorRightToRight;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_left"), 48> CDAttenuatorRightToLeft;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_left_t"), 49> CDAttenuatorLeftToLeftT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_left_to_right_t"), 50> CDAttenuatorLeftToRightT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_right_t"), 51> CDAttenuatorRightToRightT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("attenuator_right_to_left_t"), 52> CDAttenuatorRightToLeftT;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_track"), 53> CDSubQTrack;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_index"), 54> CDSubQIndex;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<3>, TYPESTRING("subq_relative"), 55> CDSubQRelative;
+typedef Protobuf::FieldValue<Protobuf::FixedBytes<3>, TYPESTRING("subq_absolute"), 56> CDSubQAbsolute;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("track_changed"), 57> CDTrackChanged;
+
+typedef Protobuf::Message<
+    TYPESTRING("CDRom"), CDOCUP, CDReg1Mode, CDReg2, CDCmdProcess, CDCtrl, CDStat, CDStatP, CDTransfer, CDTransferIndex,
+    CDPrev, CDParam, CDResult, CDParamC, CDParamP, CDResultC, CDResultP, CDResultReady, CDCmd, CDRead, CDSetLocPending,
+    CDReading, CDResultTN, CDResultTD, CDSetSectorPlay, CDSetSectorEnd, CDSetSector, CDTrack, CDPlay, CDMuted,
+    CDCurTrack, CDMode, CDFile, CDChannel, CDSuceeded, CDFirstSector, CDXA, CDIRQ, CDIrqRepeated, CDECycle, CDSeeked,
+    CDReadRescheduled, CDDriveState, CDFastForward, CDFastBackward, CDAttenuatorLeftToLeft, CDAttenuatorLeftToRight,
+    CDAttenuatorRightToRight, CDAttenuatorRightToLeft, CDAttenuatorLeftToLeftT, CDAttenuatorLeftToRightT,
+    CDAttenuatorRightToRightT, CDAttenuatorRightToLeftT, CDSubQTrack, CDSubQIndex, CDSubQRelative, CDSubQAbsolute,
+    CDTrackChanged>
+    CDRom;
+typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 9> CDRomField;
+
 typedef Protobuf::Message<TYPESTRING("SaveState"), VersionString, Version, ThumbnailField, MemoryField, RegistersField,
-                          GPUField, SPUField, SIOField>
+                          GPUField, SPUField, SIOField, CDRomField>
     SaveState;
 
 typedef Protobuf::ProtoFile<Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA, ::PCSX::SPU::Chan::Data,
-                            ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO, SaveState>
+                            ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO, CDRom, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

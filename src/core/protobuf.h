@@ -410,6 +410,36 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
     type copy;
 };
 
+template <typename FieldType, typename name, uint64_t fieldNumberValue>
+struct FieldValue;
+template <typename FieldType, char... C, uint64_t fieldNumberValue>
+struct FieldValue<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
+  private:
+    using type = typename FieldType::type;
+
+  public:
+    FieldValue(const type &dest) : ref(dest) {}
+    static constexpr uint64_t fieldNumber = fieldNumberValue;
+    typedef irqus::typestring<C...> fieldName;
+    static constexpr void dumpSchema(std::ostream &stream) {
+        stream << "    " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
+               << std::endl;
+    }
+    constexpr void serialize(OutSlice *slice) const {
+        FieldType *field = reinterpret_cast<FieldType *>(ref);
+        field->serialize(slice);
+    }
+    constexpr void deserialize(InSlice *slice, unsigned wireType) {
+        FieldType *field = reinterpret_cast<FieldType *>(ref);
+        field->deserialize(slice, wireType);
+    }
+    constexpr void reset() {}
+
+  private:
+    type ref;
+    type copy;
+};
+
 template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
 struct RepeatedField;
 template <typename FieldType, size_t amount, char... C, uint64_t fieldNumberValue>
