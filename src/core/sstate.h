@@ -182,12 +182,33 @@ typedef Protobuf::Message<
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 9> CDRomField;
 
+typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("mode"), 1> RcntMode;
+typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("target"), 2> RcntTarget;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("rate"), 3> RcntRate;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq"), 4> RcntIRQ;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("counter_state"), 5> RcntCounterState;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq_state"), 6> RcntIRQState;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle"), 7> RcntCycle;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle_start"), 8> RcntCycleStart;
+typedef Protobuf::Message<TYPESTRING("Rcnt"), RcntMode, RcntTarget, RcntRate, RcntIRQ, RcntCounterState, RcntIRQState,
+                          RcntCycle, RcntCycleStart>
+    Rcnt;
+typedef Protobuf::RepeatedField<Rcnt, 4, TYPESTRING("rcnts"), 1> Rcnts;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCount;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("spu_sync_count"), 3> SPUSyncCount;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("psx_nexts_counter"), 5> PSXNextsCounter;
+typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, SPUSyncCount, PSXNextCounter, PSXNextsCounter>
+    Counters;
+typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
+
 typedef Protobuf::Message<TYPESTRING("SaveState"), VersionString, Version, ThumbnailField, MemoryField, RegistersField,
-                          GPUField, SPUField, SIOField, CDRomField>
+                          GPUField, SPUField, SIOField, CDRomField, CountersField>
     SaveState;
 
 typedef Protobuf::ProtoFile<Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA, ::PCSX::SPU::Chan::Data,
-                            ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO, CDRom, SaveState>
+                            ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO, CDRom, Rcnt, Counters,
+                            SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

@@ -20,6 +20,7 @@
 #include "core/sstate.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
+#include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -125,7 +126,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDSubQRelative { g_emulator.m_cdrom->m_subq.Relative },
             CDSubQAbsolute { g_emulator.m_cdrom->m_subq.Absolute },
             CDTrackChanged { g_emulator.m_cdrom->m_TrackChanged }
-        }
+        },
+        Counters {}
     };
     // clang-format on
 }
@@ -158,6 +160,8 @@ std::string PCSX::SaveStates::save() {
     intCyclesToState(state);
     g_emulator.m_gpu->save(state.get<GPUField>());
     g_emulator.m_spu->save(state.get<SPUField>());
+
+    g_emulator.m_psxCounters->save(state.get<CountersField>());
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
