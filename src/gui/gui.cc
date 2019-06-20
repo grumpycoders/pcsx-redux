@@ -345,7 +345,7 @@ void PCSX::GUI::endFrame() {
                     save << SaveStates::save();
                 }
                 if (ImGui::MenuItem(_("Load state"))) {
-                    zstr::ifstream save("sstate", std::ios::binary | std::ios::ate);
+                    zstr::ifstream save("sstate", std::ios::binary);
                     std::ostringstream os;
                     constexpr unsigned buff_size = 1 << 16;
                     char* buff = new char[buff_size];

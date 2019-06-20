@@ -42,9 +42,10 @@ class InSlice {
   public:
     constexpr uint64_t bytesLeft() { return m_size - m_ptr; }
     InSlice(const uint8_t *data, uint64_t size) : m_data(data), m_size(size) {}
-    InSlice getSubSlice(uint64_t size) const {
+    InSlice getSubSlice(uint64_t size) {
         boundsCheck(size);
-        return InSlice(m_data + m_ptr, size);
+        m_ptr += size;
+        return InSlice(m_data + m_ptr - size, size);
     }
     constexpr uint8_t getU8() {
         boundsCheck(1);
