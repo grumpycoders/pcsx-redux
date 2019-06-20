@@ -159,7 +159,7 @@ struct FieldType {
     void reset() { value = type(); }
     static constexpr unsigned wireType = wireTypeValue;
     static constexpr bool matches(unsigned otherWireType) { return wireType == otherWireType; }
-    constexpr bool hasData() const { return value == innerType(); }
+    constexpr bool hasData() const { return value != innerType(); }
 };
 
 #if 0
