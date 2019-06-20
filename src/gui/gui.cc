@@ -30,6 +30,7 @@
 
 #include "flags.h"
 #include "json.hpp"
+#include "zstr.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -340,16 +341,22 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
                 if (ImGui::MenuItem(_("Save state"))) {
-                    std::ofstream save("sstate", std::ios::binary);
+                    zstr::ofstream save("sstate", std::ios::binary);
                     save << SaveStates::save();
                 }
                 if (ImGui::MenuItem(_("Load state"))) {
-                    std::ifstream save("sstate", std::ios::binary | std::ios::ate);
-                    auto fileSize = save.tellg();
-                    save.seekg(0, std::ios::beg);
-                    std::string data(fileSize, 0);
-                    save.read(data.data(), fileSize);
-                    SaveStates::load(data);
+                    zstr::ifstream save("sstate", std::ios::binary | std::ios::ate);
+                    std::ostringstream os;
+                    constexpr unsigned buff_size = 1 << 16;
+                    char* buff = new char[buff_size];
+                    while (true) {
+                        save.read(buff, buff_size);
+                        std::streamsize cnt = save.gcount();
+                        if (cnt == 0) break;
+                        os.write(buff, cnt);
+                    }
+                    delete[] buff;
+                    SaveStates::load(os.str());
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
@@ -437,7 +444,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             ImGui::Separator();
             ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator.m_cdromId, ImGui::GetIO().Framerate,
-                1000.0f / ImGui::GetIO().Framerate);
+                        1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }

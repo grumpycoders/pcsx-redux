@@ -16,3 +16,6 @@
 [submodule "third_party/libuv"]
 	path = third_party/libuv
 	url = https://github.com/libuv/libuv.git
+[submodule "third_party/zstr"]
+	path = third_party/zstr
+	url = https://github.com/mateidavid/zstr.git
