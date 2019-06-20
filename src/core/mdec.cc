@@ -626,3 +626,22 @@ int PCSX::MDEC::mdecFreeze(gzFile f, int Mode) {
 
     return 0;
 }
+
+void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+    uint32_t v;
+
+    mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
+    mdecSave.get<SaveStates::MDECReg1>().value = mdec.reg1;
+    mdecSave.get<SaveStates::MDECRl>().value = reinterpret_cast<uint8_t *>(mdec.rl) - base;
+    mdecSave.get<SaveStates::MDECRlEnd>().value = reinterpret_cast<uint8_t* >(mdec.rl_end) - base;
+    mdecSave.get<SaveStates::MDECBlockBufferPos>().value = mdec.block_buffer_pos ? mdec.block_buffer_pos - base : 0;
+    mdecSave.get<SaveStates::MDECBlockBuffer>().copyFrom(mdec.block_buffer);
+    mdecSave.get<SaveStates::MDECDMAADR>().value = mdec.pending_dma1.adr;
+    mdecSave.get<SaveStates::MDECDMABCR>().value = mdec.pending_dma1.bcr;
+    mdecSave.get<SaveStates::MDECDMACHCR>().value = mdec.pending_dma1.chcr;
+    for (int i = 0; i < 64; i++) {
+        mdecSave.get<SaveStates::MDECIQY>().value[i].value = iq_y[i];
+        mdecSave.get<SaveStates::MDECIQUV>().value[i].value = iq_uv[i];
+    }
+}

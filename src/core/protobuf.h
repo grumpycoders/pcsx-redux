@@ -324,7 +324,10 @@ struct FixedBytes {
     }
     constexpr void copyTo(uint8_t *dst) const { memcpy(dst, value, amount); }
     typedef uint8_t *type;
-    constexpr void reset() { memset(value, 0, amount); }
+    constexpr void reset() {
+        allocate();
+        memset(value, 0, amount);
+    }
     static constexpr unsigned wireType = 2;
     static constexpr bool matches(unsigned otherWireType) { return otherWireType == 2; }
     constexpr bool hasData() const { return value; }
@@ -400,7 +403,7 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
         field->serialize(slice);
     }
     constexpr void deserialize(InSlice *slice, unsigned wireType) {
-        FieldType *field = reinterpret_cast<FieldType *>(&ref);
+        FieldType *field = reinterpret_cast<FieldType *>(&copy);
         field->deserialize(slice, wireType);
     }
     constexpr void reset() {}
@@ -411,14 +414,14 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
 };
 
 template <typename FieldType, typename name, uint64_t fieldNumberValue>
-struct FieldValue;
+struct FieldPtr;
 template <typename FieldType, char... C, uint64_t fieldNumberValue>
-struct FieldValue<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
+struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
   private:
     using type = typename FieldType::type;
 
   public:
-    FieldValue(const type &dest) : ref(dest) {}
+    FieldPtr(const type &dest) : ref(dest) {}
     static constexpr uint64_t fieldNumber = fieldNumberValue;
     typedef irqus::typestring<C...> fieldName;
     static constexpr void dumpSchema(std::ostream &stream) {
@@ -683,6 +686,26 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
 
     template<bool> struct staticAssert;
     template<> struct staticAssert<true>{};
+};
+
+template <typename name>
+class EmptyMessage;
+template <char... C>
+class EmptyMessage<irqus::typestring<C...>> {
+    using myself = EmptyMessage<irqus::typestring<C...>>;
+
+  public:
+    static constexpr bool isMessage = true;
+    using type = myself;
+    using name = irqus::typestring<C...>;
+    static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
+    static constexpr void dumpSchema(std::ostream &stream) {
+        stream << "message " << name::data() << " { }" << std::endl << std::endl;
+    }
+    constexpr void reset() { }
+    constexpr void serialize(OutSlice *slice) const { }
+    constexpr void deserialize(InSlice *slice) { }
+    constexpr bool hasData() const { return false; }
 };
 
 template <typename... fields>

@@ -20,6 +20,7 @@
 #include "core/sstate.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
+#include "core/mdec.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -30,14 +31,16 @@
 PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
     // clang-format off
     return SaveState {
-        VersionString {},
-        Version {},
+        SaveStateInfo {
+            VersionString {},
+            Version {}
+        },
         Thumbnail {},
         Memory {
             RAM { g_emulator.m_psxMem->g_psxM },
             ROM { g_emulator.m_psxMem->g_psxR },
             Parallel { g_emulator.m_psxMem->g_psxP },
-            Hardware { g_emulator.m_psxMem->g_psxH }
+            HardwareMemory { g_emulator.m_psxMem->g_psxH }
         },
         Registers {
             GPR { g_emulator.m_psxCpu->m_psxRegs.GPR.r },
@@ -127,7 +130,9 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDSubQAbsolute { g_emulator.m_cdrom->m_subq.Absolute },
             CDTrackChanged { g_emulator.m_cdrom->m_TrackChanged }
         },
-        Counters {}
+        Hardware {},
+        Counters {},
+        MDEC {}
     };
     // clang-format on
 }
@@ -154,14 +159,15 @@ static void intCyclesToState(PCSX::SaveStates::SaveState& state) {
 std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
 
-    state.get<VersionString>().value = "PCSX-Redux SaveState v1";
-    state.get<Version>().value = 1;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v1";
+    state.get<SaveStateInfoField>().get<Version>().value = 1;
 
     intCyclesToState(state);
     g_emulator.m_gpu->save(state.get<GPUField>());
     g_emulator.m_spu->save(state.get<SPUField>());
 
     g_emulator.m_psxCounters->save(state.get<CountersField>());
+    g_emulator.m_mdec->save(state.get<MDECField>());
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
