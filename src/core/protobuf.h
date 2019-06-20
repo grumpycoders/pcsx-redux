@@ -397,7 +397,7 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> {
                << std::endl;
     }
     constexpr void serialize(OutSlice *slice) const {
-        FieldType *field = reinterpret_cast<FieldType *>(&ref);
+        const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
         field->serialize(slice);
     }
     constexpr void deserialize(InSlice *slice, unsigned wireType) {
@@ -407,7 +407,7 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     constexpr void reset() {}
     constexpr void commit() { ref = copy; }
     constexpr bool hasData() const {
-        const FieldType *field = reinterpret_cast<FieldType *>(&ref);
+        const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
         return field->hasData();
     }
     static constexpr bool matches(unsigned wireType) { return FieldType::matches(wireType); }
@@ -434,17 +434,17 @@ struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> {
                << std::endl;
     }
     constexpr void serialize(OutSlice *slice) const {
-        FieldType *field = reinterpret_cast<FieldType *>(ref);
+        const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
         field->serialize(slice);
     }
     constexpr void deserialize(InSlice *slice, unsigned wireType) { copy.deserialize(slice, wireType); }
     constexpr void reset() {}
     constexpr void commit() {
-        FieldType *field = reinterpret_cast<FieldType *>(ref);
+        FieldType *field = reinterpret_cast<FieldType *>(&ref);
         field->copyFrom(copy.value);
     }
     constexpr bool hasData() const {
-        const FieldType *field = reinterpret_cast<FieldType *>(ref);
+        const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
         return field->hasData();
     }
     static constexpr bool matches(unsigned wireType) { return FieldType::matches(wireType); }
