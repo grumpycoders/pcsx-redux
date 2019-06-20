@@ -219,21 +219,24 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("bcr"), 8> MDECDMABCR;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("chcr"), 9> MDECDMACHCR;
 typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("iq_y"), 10> MDECIQY;
 typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("iq_uv"), 11> MDECIQUV;
-typedef Protobuf::Message<TYPESTRING("MDEC"), MDECReg0, MDECReg1, MDECRl, MDECRlEnd, MDECBlockBufferPos, MDECBlockBuffer, MDECDMAADR, MDECDMABCR, MDECDMACHCR, MDECIQY, MDECIQUV> MDEC;
+typedef Protobuf::Message<TYPESTRING("MDEC"), MDECReg0, MDECReg1, MDECRl, MDECRlEnd, MDECBlockBufferPos,
+                          MDECBlockBuffer, MDECDMAADR, MDECDMABCR, MDECDMACHCR, MDECIQY, MDECIQUV>
+    MDEC;
 typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
                           GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField>
     SaveState;
 
-typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA, ::PCSX::SPU::Chan::Data,
-                            ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO, CDRom, Hardware, Rcnt, Counters,
-                            MDEC, SaveState>
+typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA,
+                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
+                            CDRom, Hardware, Rcnt, Counters, MDEC, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();
 
 std::string save();
+bool load(const std::string& data);
 }  // namespace SaveStates
 
 }  // namespace PCSX

@@ -21,8 +21,6 @@
  * PSX assembly interpreter.
  */
 
-#pragma optimize("2", on)
-
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gte.h"

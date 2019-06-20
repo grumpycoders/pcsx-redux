@@ -24,12 +24,8 @@
 //
 //*************************************************************************//
 
-#pragma optimize("2", on)
-
 #include "spu/externals.h"
 #include "spu/interface.h"
-
-#pragma optimize("2", on)
 
 ////////////////////////////////////////////////////////////////////////
 // READ DMA (one value)

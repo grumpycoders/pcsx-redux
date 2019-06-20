@@ -173,3 +173,18 @@ std::string PCSX::SaveStates::save() {
     state.serialize(&slice);
     return slice.finalize();
 }
+
+bool PCSX::SaveStates::load(const std::string& data) {
+    SaveState state = constructSaveState();
+
+    Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+    try {
+        state.deserialize(&slice, 0);
+    } catch(...) {
+        return false;
+    }
+
+    state.commit();
+
+    return true;
+}

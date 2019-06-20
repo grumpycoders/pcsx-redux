@@ -340,8 +340,16 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
                 if (ImGui::MenuItem(_("Save state"))) {
-                    std::ofstream save("sstate");
+                    std::ofstream save("sstate", std::ios::binary);
                     save << SaveStates::save();
+                }
+                if (ImGui::MenuItem(_("Load state"))) {
+                    std::ifstream save("sstate", std::ios::binary | std::ios::ate);
+                    auto fileSize = save.tellg();
+                    save.seekg(0, std::ios::beg);
+                    std::string data(fileSize, 0);
+                    save.read(data.data(), fileSize);
+                    SaveStates::load(data);
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {

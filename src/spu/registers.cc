@@ -37,8 +37,6 @@
 //
 //*************************************************************************//
 
-#pragma optimize("2", on)
-
 #define NOMINMAX
 
 #include <algorithm>

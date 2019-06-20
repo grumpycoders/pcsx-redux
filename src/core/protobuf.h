@@ -32,8 +32,6 @@
 
 #include "typestring.hh"
 
-#pragma optimize("2", on)
-
 namespace PCSX {
 
 class OutOfBoundError {};
@@ -177,7 +175,6 @@ struct Int16 : public FieldType<int16_t, 0> {
     constexpr void deserialize(InSlice *slice, unsigned) { value = static_cast<int16_t>(slice->getVarInt()); }
     static constexpr char const typeName[] = "int32";
 };
-
 
 struct Int32 : public FieldType<int32_t, 0> {
     void serialize(OutSlice *slice) const { slice->putVarInt(value); }
@@ -381,12 +378,13 @@ struct Field<FieldType, irqus::typestring<C...>, fieldNumberValue> : public Fiel
         stream << "    " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
                << std::endl;
     }
+    constexpr void commit() {}
 };
 
 template <typename FieldType, typename name, uint64_t fieldNumberValue>
 struct FieldRef;
 template <typename FieldType, char... C, uint64_t fieldNumberValue>
-struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
+struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> {
   private:
     using type = typename FieldType::type;
 
@@ -407,6 +405,13 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
         field->deserialize(slice, wireType);
     }
     constexpr void reset() {}
+    constexpr void commit() { ref = copy; }
+    constexpr bool hasData() const {
+        const FieldType *field = reinterpret_cast<FieldType *>(&ref);
+        return field->hasData();
+    }
+    static constexpr bool matches(unsigned wireType) { return FieldType::matches(wireType); }
+    static constexpr unsigned wireType = FieldType::wireType;
 
   private:
     type &ref;
@@ -416,7 +421,7 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
 template <typename FieldType, typename name, uint64_t fieldNumberValue>
 struct FieldPtr;
 template <typename FieldType, char... C, uint64_t fieldNumberValue>
-struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> : public FieldType {
+struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> {
   private:
     using type = typename FieldType::type;
 
@@ -432,15 +437,22 @@ struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> : public F
         FieldType *field = reinterpret_cast<FieldType *>(ref);
         field->serialize(slice);
     }
-    constexpr void deserialize(InSlice *slice, unsigned wireType) {
-        FieldType *field = reinterpret_cast<FieldType *>(ref);
-        field->deserialize(slice, wireType);
-    }
+    constexpr void deserialize(InSlice *slice, unsigned wireType) { copy.deserialize(slice, wireType); }
     constexpr void reset() {}
+    constexpr void commit() {
+        FieldType *field = reinterpret_cast<FieldType *>(ref);
+        field->copyFrom(copy.value);
+    }
+    constexpr bool hasData() const {
+        const FieldType *field = reinterpret_cast<FieldType *>(ref);
+        return field->hasData();
+    }
+    static constexpr bool matches(unsigned wireType) { return FieldType::matches(wireType); }
+    static constexpr unsigned wireType = FieldType::wireType;
 
   private:
     type ref;
-    type copy;
+    FieldType copy;
 };
 
 template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
@@ -475,11 +487,12 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
         if (FieldType::wireType != wireType) n = slice->getVarInt();
         for (uint64_t i = 0; i < n; i++) {
             FieldType field;
-            field.deserialize(slice);
+            field.deserialize(slice, FieldType::wireType);
             value.push_back(field);
         }
     }
     constexpr bool hasData() const { return !value.empty(); }
+    constexpr void commit() {}
 };
 
 template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
@@ -498,6 +511,7 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
                << std::endl;
     }
     innerType *ref;
+    innerType copy[amount];
     size_t count = 0;
     constexpr void reset() { memset(ref, 0, sizeof(FieldType) * amount); }
     static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
@@ -517,11 +531,12 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
         if ((n + count) > amount) throw OutOfBoundError();
         count += n;
         for (uint64_t i = 0; i < n; i++) {
-            FieldType *field = reinterpret_cast<FieldType *>(ref + count++);
-            field->deserialize(slice);
+            FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
+            field->deserialize(slice, FieldType::wireType);
         }
     }
     constexpr bool hasData() const { return true; }
+    constexpr void commit() { memcpy(ref, copy, amount * sizeof(innerType)); }
 };
 
 template <typename MessageType, typename name, uint64_t fieldNumberValue>
@@ -550,9 +565,9 @@ struct MessageField<MessageType, irqus::typestring<C...>, fieldNumberValue> : pu
         slice->putVarInt(subSliceData.size());
         slice->putBytes(subSliceData);
     }
-    void deserialize(InSlice *slice) {
+    void deserialize(InSlice *slice, unsigned wireType) {
         InSlice subSlice = slice->getSubSlice(slice->getVarInt());
-        MessageType::deserialize(subSlice);
+        MessageType::deserialize(&subSlice, wireType);
     }
 };
 
@@ -565,6 +580,8 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
 
   public:
     static constexpr bool isMessage = true;
+    static constexpr unsigned wireType = 2;
+    static constexpr bool matches(unsigned wireType) { return wireType == 2; }
     using type = myself;
     Message() { verifyIntegrity<0, fields...>(); }
     Message(const fields &... values) : base(values...) { verifyIntegrity<0, fields...>(); }
@@ -578,16 +595,16 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     constexpr void reset() { reset<0, fields...>(); }
     template <typename FieldType>
     constexpr const FieldType &get() const {
-        (void) staticAssert<hasFieldType<FieldType>()>{};
+        (void)staticAssert<hasFieldType<FieldType>()>{};
         return std::get<FieldType>(*this);
     }
     template <typename FieldType>
     constexpr FieldType &get() {
-        (void) staticAssert<hasFieldType<FieldType>()>{};
+        (void)staticAssert<hasFieldType<FieldType>()>{};
         return std::get<FieldType>(*this);
     }
     constexpr void serialize(OutSlice *slice) const { serialize<0, fields...>(slice); }
-    constexpr void deserialize(InSlice *slice) {
+    constexpr void deserialize(InSlice *slice, unsigned wireType) {
         while (slice->bytesLeft()) {
             uint64_t fieldNumber = slice->getVarInt();
             unsigned wireType = fieldNumber & 7;
@@ -596,6 +613,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         }
     }
     constexpr bool hasData() const { return hasData<0, fields...>(); }
+    constexpr void commit() { commit<0, fields...>(); }
 
   private:
     template <size_t index>
@@ -618,7 +636,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     static constexpr void verifyIntegrity() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     static constexpr void verifyIntegrity() {
-        (void) staticAssert<!hasField<index, nestedFields...>(FieldType::fieldNumber)>{};
+        (void)staticAssert<!hasField<index, nestedFields...>(FieldType::fieldNumber)>{};
         verifyIntegrity<index + 1, nestedFields...>();
     }
     template <size_t index>
@@ -631,7 +649,9 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         return hasField<index + 1, nestedFields...>(fieldNumber);
     }
     template <typename FieldTypeTest>
-    static constexpr bool hasFieldType() { return std::disjunction<std::is_same<FieldTypeTest, fields>...>::value; }
+    static constexpr bool hasFieldType() {
+        return std::disjunction<std::is_same<FieldTypeTest, fields>...>::value;
+    }
     template <size_t index>
     constexpr void serialize(OutSlice *slice) const {}
     template <size_t index, typename FieldType, typename... nestedFields>
@@ -684,8 +704,19 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         return hasData<index + 1, nestedFields...>();
     }
 
-    template<bool> struct staticAssert;
-    template<> struct staticAssert<true>{};
+    template <size_t index>
+    constexpr void commit() {}
+    template <size_t index, typename FieldType, typename... nestedFields>
+    constexpr void commit() {
+        FieldType &field = std::get<index>(*this);
+        field.commit();
+        commit<index + 1, nestedFields...>();
+    }
+
+    template <bool>
+    struct staticAssert;
+    template <>
+    struct staticAssert<true> {};
 };
 
 template <typename name>
@@ -696,16 +727,18 @@ class EmptyMessage<irqus::typestring<C...>> {
 
   public:
     static constexpr bool isMessage = true;
+    static constexpr unsigned wireType = 2;
     using type = myself;
     using name = irqus::typestring<C...>;
     static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
     static constexpr void dumpSchema(std::ostream &stream) {
         stream << "message " << name::data() << " { }" << std::endl << std::endl;
     }
-    constexpr void reset() { }
-    constexpr void serialize(OutSlice *slice) const { }
-    constexpr void deserialize(InSlice *slice) { }
+    constexpr void reset() {}
+    constexpr void serialize(OutSlice *slice) const {}
+    constexpr void deserialize(InSlice *slice, unsigned wireType) {}
     constexpr bool hasData() const { return false; }
+    constexpr void commit() {}
 };
 
 template <typename... fields>
@@ -730,5 +763,3 @@ class ProtoFile : private std::tuple<fields...> {
 }  // namespace Protobuf
 
 }  // namespace PCSX
-
-#pragma optimize("", on)

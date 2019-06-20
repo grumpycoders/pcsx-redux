@@ -17,8 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma optimize("2", on)
-
 #include <SDL.h>
 #include <assert.h>
 #include <memory.h>
