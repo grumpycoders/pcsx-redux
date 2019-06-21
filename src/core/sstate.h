@@ -58,7 +58,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("interrupt"), 8> Interru
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("scycle"), 1> IntSCycle;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle"), 2> IntCycle;
 typedef Protobuf::Message<TYPESTRING("InterruptCycles"), IntSCycle, IntCycle> IntCycles;
-typedef Protobuf::RepeatedField<IntCycles, 2, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
+typedef Protobuf::RepeatedField<IntCycles, 32, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("icache_valid"), 12> ICacheValid;
