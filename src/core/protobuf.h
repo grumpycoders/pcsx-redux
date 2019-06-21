@@ -489,16 +489,25 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
         if (FieldType::wireType != wireType) {
             InSlice subSlice = slice->getSubSlice(slice->getVarInt());
             while (subSlice.bytesLeft()) {
-                if (count >= amount) throw OutOfBoundError();
-                value[count++].deserialize(&subSlice, FieldType::wireType);
+                deserializeOne(&subSlice, wireType);
             }
         } else {
-            if (count >= amount) throw OutOfBoundError();
-            value[count++].deserialize(slice, FieldType::wireType);
+            deserializeOne(slice, wireType);
         }
     }
     constexpr bool hasData() const { return !value.empty(); }
     constexpr void commit() {}
+
+  private:
+      constexpr void deserializeOne(InSlice* slice, unsigned wireType) {
+          if (count >= amount) throw OutOfBoundError();
+          if (FieldType::wireType) {
+              InSlice subSlice = slice->getSubSlice(slice->getVarInt());
+              value[count++].deserialize(&subSlice, FieldType::wireType);
+          } else {
+              value[count++].deserialize(slice, wireType);
+          }
+      }
 };
 
 template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
@@ -538,18 +547,26 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
         if (FieldType::wireType != wireType) {
             InSlice subSlice = slice->getSubSlice(slice->getVarInt());
             while (subSlice.bytesLeft()) {
-                if (count >= amount) throw OutOfBoundError();
-                FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
-                field->deserialize(&subSlice, FieldType::wireType);
+                deserializeOne(&subSlice, wireType);
             }
         } else {
-            if (count >= amount) throw OutOfBoundError();
-            FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
-            field->deserialize(slice, FieldType::wireType);
+            deserializeOne(slice, wireType);
         }
     }
     constexpr bool hasData() const { return true; }
     constexpr void commit() { memcpy(ref, copy, amount * sizeof(innerType)); }
+
+  private:
+    constexpr void deserializeOne(InSlice *slice, unsigned wireType) {
+        if (count >= amount) throw OutOfBoundError();
+        FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
+        if (FieldType::wireType == 2) {
+            InSlice subSlice = slice->getSubSlice(slice->getVarInt());
+            field->deserialize(&subSlice, FieldType::wireType);
+        } else {
+            field->deserialize(slice, FieldType::wireType);
+        }
+    }
 };
 
 template <typename MessageType, typename name, uint64_t fieldNumberValue>
