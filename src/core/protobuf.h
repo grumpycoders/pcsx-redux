@@ -469,9 +469,11 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
                << std::endl;
     }
     std::vector<FieldType> value;
+    size_t count = 0;
     constexpr void reset() {
         value.clear();
         value.resize(amount);
+        count = 0;
     }
     static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
     void serialize(OutSlice *slice) const {
@@ -484,12 +486,15 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
         slice->putBytes(subSliceData);
     }
     void deserialize(InSlice *slice, unsigned wireType) {
-        uint64_t n = 1;
-        if (FieldType::wireType != wireType) n = slice->getVarInt();
-        for (uint64_t i = 0; i < n; i++) {
-            FieldType field;
-            field.deserialize(slice, FieldType::wireType);
-            value.push_back(field);
+        if (FieldType::wireType != wireType) {
+            InSlice subSlice = slice->getSubSlice(slice->getVarInt());
+            while (subSlice.bytesLeft()) {
+                if (count >= amount) throw OutOfBoundError();
+                value[count++].deserialize(&subSlice, FieldType::wireType);
+            }
+        } else {
+            if (count >= amount) throw OutOfBoundError();
+            value[count++].deserialize(slice, FieldType::wireType);
         }
     }
     constexpr bool hasData() const { return !value.empty(); }
@@ -514,7 +519,10 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
     innerType *ref;
     innerType copy[amount];
     size_t count = 0;
-    constexpr void reset() { memset(ref, 0, sizeof(FieldType) * amount); }
+    constexpr void reset() {
+        memset(ref, 0, sizeof(FieldType) * amount);
+        count = 0;
+    }
     static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
     void serialize(OutSlice *slice) const {
         OutSlice subSlice;
@@ -527,11 +535,15 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
         slice->putBytes(subSliceData);
     }
     constexpr void deserialize(InSlice *slice, unsigned wireType) {
-        uint64_t n = 1;
-        if (FieldType::wireType != wireType) n = slice->getVarInt();
-        if ((n + count) > amount) throw OutOfBoundError();
-        count += n;
-        for (uint64_t i = 0; i < n; i++) {
+        if (FieldType::wireType != wireType) {
+            InSlice subSlice = slice->getSubSlice(slice->getVarInt());
+            while (subSlice.bytesLeft()) {
+                if (count >= amount) throw OutOfBoundError();
+                FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
+                field->deserialize(&subSlice, FieldType::wireType);
+            }
+        } else {
+            if (count >= amount) throw OutOfBoundError();
             FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
             field->deserialize(slice, FieldType::wireType);
         }

@@ -25,10 +25,6 @@ namespace PCSX {
 
 namespace SPU {
 
-#if 0
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING(""), >;
-#endif
-
 // MAIN CHANNEL STRUCT
 
 // ADSR INFOS PER CHANNEL
