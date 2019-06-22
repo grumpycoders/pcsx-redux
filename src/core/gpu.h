@@ -44,13 +44,6 @@ class GPU {
     uint32_t gpuDmaChainSize(uint32_t addr);
 
   public:
-    typedef struct {
-        uint32_t ulFreezeVersion;
-        uint32_t ulStatus;
-        uint32_t ulControl[256];
-        unsigned char psxVRam[1024 * 512 * 2];
-    } GPUFreeze_t;
-
     virtual int32_t init() = 0;
     virtual int32_t shutdown() = 0;
     virtual int32_t open(GUI *) = 0;
@@ -64,12 +57,12 @@ class GPU {
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void updateLace() = 0;
     virtual void save(SaveStates::GPU &gpu) = 0;
+    virtual void load(const SaveStates::GPU &gpu) = 0;
 
     virtual void keypressed(int key) {}
     virtual void displayText(char *pText) { PCSX::g_system->printf("%s\n", pText); }
     virtual void makeSnapshot(void) {}
     virtual void toggleDebug(void) {}
-    virtual int32_t freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) = 0;
     virtual int32_t getScreenPic(unsigned char *pMem) { return -1; }
     virtual int32_t showScreenPic(unsigned char *pMem) { return -1; }
     virtual void clearDynarec(void (*callback)(void)) {}

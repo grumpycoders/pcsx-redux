@@ -46,7 +46,6 @@ class impl : public GPU {
     virtual void writeStatus(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
-    virtual int32_t freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) final;
     virtual bool configure() final {
         if (m_showCfg) {
             return m_softPrim.configure(&m_showCfg);
@@ -56,6 +55,7 @@ class impl : public GPU {
     }
 
     virtual void save(SaveStates::GPU &gpu) final;
+    virtual void load(const SaveStates::GPU &gpu) final;
 
     SoftPrim m_softPrim;
 

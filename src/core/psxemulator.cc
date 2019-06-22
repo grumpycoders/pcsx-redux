@@ -81,7 +81,6 @@ void PCSX::Emulator::EmuShutdown() {
     m_psxMem->psxMemShutdown();
     m_psxCpu->psxShutdown();
 
-    CleanupMemSaveStates();
     m_pad1->shutdown();
     m_pad2->shutdown();
 }
@@ -99,7 +98,7 @@ void PCSX::Emulator::EmuUpdate() {
     }
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
-        CreateRewindState();
+        //CreateRewindState();
     }
 }
 

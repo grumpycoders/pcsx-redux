@@ -532,7 +532,7 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
     constexpr void commit() {}
 
   private:
-    constexpr void deserializeOne(InSlice *slice, unsigned wireType) {
+    void deserializeOne(InSlice *slice, unsigned wireType) {
         if (count >= amount) throw OutOfBoundError();
         if (FieldType::wireType == 2) {
             InSlice subSlice = slice->getSubSlice(slice->getVarInt());
@@ -589,7 +589,7 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
             slice->putBytes(subSliceData);
         }
     }
-    constexpr void deserialize(InSlice *slice, unsigned wireType) {
+    void deserialize(InSlice *slice, unsigned wireType) {
         if (FieldType::wireType != wireType) {
             InSlice subSlice = slice->getSubSlice(slice->getVarInt());
             while (subSlice.bytesLeft()) {
@@ -603,7 +603,7 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
     constexpr void commit() { memcpy(ref, copy, amount * sizeof(innerType)); }
 
   private:
-    constexpr void deserializeOne(InSlice *slice, unsigned wireType) {
+    void deserializeOne(InSlice *slice, unsigned wireType) {
         if (count >= amount) throw OutOfBoundError();
         FieldType *field = reinterpret_cast<FieldType *>(copy + count++);
         if (FieldType::wireType == 2) {
@@ -672,12 +672,12 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     constexpr void reset() { reset<0, fields...>(); }
     template <typename FieldType>
     constexpr const FieldType &get() const {
-        (void)staticAssert<hasFieldType<FieldType>()>{};
+        static_assert(hasFieldType<FieldType>());
         return std::get<FieldType>(*this);
     }
     template <typename FieldType>
     constexpr FieldType &get() {
-        (void)staticAssert<hasFieldType<FieldType>()>{};
+        static_assert(hasFieldType<FieldType>());
         return std::get<FieldType>(*this);
     }
     static constexpr bool needsToSerializeHeader() { return false; }
@@ -714,7 +714,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     static constexpr void verifyIntegrity() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     static constexpr void verifyIntegrity() {
-        (void)staticAssert<!hasField<index, nestedFields...>(FieldType::fieldNumber)>{};
+        static_assert(!hasField<index, nestedFields...>(FieldType::fieldNumber));
         verifyIntegrity<index + 1, nestedFields...>();
     }
     template <size_t index>
@@ -792,11 +792,6 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         field.commit();
         commit<index + 1, nestedFields...>();
     }
-
-    template <bool>
-    struct staticAssert;
-    template <>
-    struct staticAssert<true> {};
 };
 
 template <typename name>

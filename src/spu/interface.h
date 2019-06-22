@@ -56,19 +56,9 @@ class impl {
     long test(void);
     void about(void);
 
-    struct SPUFreeze_t {
-        char PluginName[8];
-        uint32_t PluginVersion;
-        uint32_t Size;
-        uint8_t SPUPorts[0x200];
-        uint8_t SPURam[0x80000];
-        xa_decode_t xa;
-        uint8_t *SPUInfo;
-    };
-
     void save(SaveStates::SPU &);
+    void load(const SaveStates::SPU &);
 
-    long freeze(uint32_t, SPUFreeze_t *);
     void async(uint32_t);
     void playCDDAchannel(int16_t *, int);
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
@@ -98,10 +88,6 @@ class impl {
 
     // ~ 1 ms of data
     static const size_t NSSIZE = 45;
-
-    // freeze
-    void LoadStateV5(SPUFreeze_t *);
-    void LoadStateUnknown(SPUFreeze_t *);
 
     // spu
     void MainThread();

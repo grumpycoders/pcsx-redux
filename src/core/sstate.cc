@@ -184,7 +184,16 @@ bool PCSX::SaveStates::load(const std::string& data) {
         return false;
     }
 
+    if (state.get<SaveStateInfoField>().get<Version>().value != 1) { return false; }
+
+    PCSX::g_emulator.m_psxCpu->Reset();
     state.commit();
+    intCyclesFromState(state);
+    g_emulator.m_gpu->load(state.get<GPUField>());
+    g_emulator.m_spu->load(state.get<SPUField>());
+
+    g_emulator.m_psxCounters->load(state.get<CountersField>());
+    g_emulator.m_mdec->load(state.get<MDECField>());
 
     return true;
 }

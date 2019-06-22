@@ -598,35 +598,6 @@ void PCSX::MDEC::mdec1Interrupt() {
     return;
 }
 
-int PCSX::MDEC::mdecFreeze(gzFile f, int Mode) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
-    uint32_t v;
-
-    gzfreeze(&mdec.reg0, sizeof(mdec.reg0));
-    gzfreeze(&mdec.reg1, sizeof(mdec.reg1));
-
-    // old code used to save raw pointers..
-    v = (uint8_t *)mdec.rl - base;
-    gzfreeze(&v, sizeof(v));
-    mdec.rl = (uint16_t *)(base + (v & 0xffffe));
-    v = (uint8_t *)mdec.rl_end - base;
-    gzfreeze(&v, sizeof(v));
-    mdec.rl_end = (uint16_t *)(base + (v & 0xffffe));
-
-    v = 0;
-    if (mdec.block_buffer_pos) v = mdec.block_buffer_pos - base;
-    gzfreeze(&v, sizeof(v));
-    mdec.block_buffer_pos = 0;
-    if (v) mdec.block_buffer_pos = base + (v & 0xfffff);
-
-    gzfreeze(&mdec.block_buffer, sizeof(mdec.block_buffer));
-    gzfreeze(&mdec.pending_dma1, sizeof(mdec.pending_dma1));
-    gzfreeze(iq_y, sizeof(iq_y));
-    gzfreeze(iq_uv, sizeof(iq_uv));
-
-    return 0;
-}
-
 void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
     uint32_t v;
@@ -640,8 +611,28 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
     mdecSave.get<SaveStates::MDECDMAADR>().value = mdec.pending_dma1.adr;
     mdecSave.get<SaveStates::MDECDMABCR>().value = mdec.pending_dma1.bcr;
     mdecSave.get<SaveStates::MDECDMACHCR>().value = mdec.pending_dma1.chcr;
-    for (int i = 0; i < 64; i++) {
+    for (unsigned i = 0; i < 64; i++) {
         mdecSave.get<SaveStates::MDECIQY>().value[i].value = iq_y[i];
         mdecSave.get<SaveStates::MDECIQUV>().value[i].value = iq_uv[i];
+    }
+}
+
+void PCSX::MDEC::load(const PCSX::SaveStates::MDEC & mdecSave) {
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+    uint32_t v;
+
+    mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;
+    mdec.reg1 = mdecSave.get<SaveStates::MDECReg1>().value;
+    mdec.rl = reinterpret_cast<uint16_t*>(mdecSave.get<SaveStates::MDECRl>().value + base);
+    mdec.rl_end = reinterpret_cast<uint16_t*>(mdecSave.get<SaveStates::MDECRlEnd>().value + base);
+    const auto & pos = mdecSave.get<SaveStates::MDECBlockBufferPos>().value;
+    mdec.block_buffer_pos = pos ? pos + base : nullptr;
+    mdecSave.get<SaveStates::MDECBlockBuffer>().copyTo(mdec.block_buffer);
+    mdec.pending_dma1.adr = mdecSave.get<SaveStates::MDECDMAADR>().value;
+    mdec.pending_dma1.bcr = mdecSave.get<SaveStates::MDECDMABCR>().value;
+    mdec.pending_dma1.chcr = mdecSave.get<SaveStates::MDECDMACHCR>().value;
+    for (unsigned i = 0; i < 64; i++) {
+        iq_y[i] = mdecSave.get<SaveStates::MDECIQY>().value[i].value;
+        iq_uv[i] = mdecSave.get<SaveStates::MDECIQUV>().value[i].value;
     }
 }

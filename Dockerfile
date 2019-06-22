@@ -13,3 +13,7 @@ RUN apt install -y make g++-8 clang-9 git
 RUN apt install -y pkg-config libsdl2-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev zlib1g-dev libglfw3-dev libuv1-dev
 
 USER coder
+
+ENV CC clang-9
+ENV CXX clang++-9
+ENV LD clang++-9
