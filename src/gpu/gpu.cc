@@ -1349,13 +1349,13 @@ int32_t PCSX::GPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 // Freeze
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
+void PCSX::GPU::impl::save(SaveStates::GPU &gpu) {
     gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
     gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t*>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
 }
 
-void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
+void PCSX::GPU::impl::load(const SaveStates::GPU &gpu) {
     lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
     gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t*>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
