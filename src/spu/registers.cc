@@ -41,8 +41,6 @@
 
 #include <algorithm>
 
-#define _IN_REGISTERS
-
 #include "spu/externals.h"
 #include "spu/interface.h"
 #include "spu/registers.h"
@@ -69,8 +67,8 @@
 // WRITE REGISTERS: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
-    const unsigned long r = reg & 0xfff;
+void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
+    const uint32_t r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
 
@@ -80,11 +78,11 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
         switch (r & 0x0f) {
             //------------------------------------------------// r volume
             case 0:
-                SetVolumeL((unsigned char)ch, val);
+                SetVolumeL((uint8_t)ch, val);
                 break;
             //------------------------------------------------// l volume
             case 2:
-                SetVolumeR((unsigned char)ch, val);
+                SetVolumeR((uint8_t)ch, val);
                 break;
             //------------------------------------------------// pitch
             case 4:
@@ -92,23 +90,23 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                 break;
             //------------------------------------------------// start
             case 6:
-                s_chan[ch].pStart = spuMemC + ((unsigned long)val << 3);
+                s_chan[ch].pStart = spuMemC + ((uint32_t)val << 3);
                 break;
             //------------------------------------------------// level with pre-calcs
             case 8: {
-                const unsigned long lval = val;
-                unsigned long lx;
+                const uint32_t lval = val;
+                uint32_t lx;
                 //---------------------------------------------//
-                s_chan[ch].ADSRX.AttackModeExp = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.AttackRate = ((lval >> 8) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.DecayRate = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
-                s_chan[ch].ADSRX.SustainLevel = (lval & 0x000f) << 27;
+                s_chan[ch].ADSRX.get<exAttackModeExp>().value = (lval & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exAttackRate>().value = ((lval >> 8) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exSustainLevel>().value = (lval & 0x000f) << 27;
                 //---------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.AttackModeExp = (lval & 0x8000) ? 1 : 0;  // 0x007f
+                s_chan[ch].ADSR.get<AttackModeExp>().value = (lval & 0x8000) ? 1 : 0;  // 0x007f
 
                 lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31UL, lx);             // no overflow on shift!
+                lx = std::min(31U, lx);              // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -117,9 +115,10 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                         lx = (lx / 10000L) * ATTACK_MS;
                     if (!lx) lx = 1;
                 }
-                s_chan[ch].ADSR.AttackTime = lx;
+                s_chan[ch].ADSR.get<AttackTime>().value = lx;
 
-                s_chan[ch].ADSR.SustainLevel =  // our adsr vol runs from 0 to 1024, so scale the sustain level
+                s_chan[ch].ADSR.get<SustainLevel>().value =  // our adsr vol runs from 0 to 1024, so scale the sustain
+                                                             // level
                     (1024 * ((lval)&0x000f)) / 15;
 
                 lx = (lval >> 4) & 0x000f;  // decay:
@@ -128,26 +127,27 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
                     if (!lx) lx = 1;
                 }
-                s_chan[ch].ADSR.DecayTime =  // so calc how long does it take to run from 100% to the wanted sus level
-                    (lx * (1024 - s_chan[ch].ADSR.SustainLevel)) / 1024;
+                s_chan[ch].ADSR.get<DecayTime>().value =  // so calc how long does it take to run from 100% to the
+                                                          // wanted sus level
+                    (lx * (1024 - s_chan[ch].ADSR.get<SustainLevel>().value)) / 1024;
             } break;
             //------------------------------------------------// adsr times with pre-calcs
             case 10: {
-                const unsigned long lval = val;
-                unsigned long lx;
+                const uint32_t lval = val;
+                uint32_t lx;
                 //----------------------------------------------//
-                s_chan[ch].ADSRX.SustainModeExp = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.SustainIncrease = (lval & 0x4000) ? 0 : 1;
-                s_chan[ch].ADSRX.SustainRate = ((lval >> 6) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
-                s_chan[ch].ADSRX.ReleaseRate = 4 * ((lval & 0x001f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exSustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exSustainIncrease>().value = (lval & 0x4000) ? 0 : 1;
+                s_chan[ch].ADSRX.get<exSustainRate>().value = ((lval >> 6) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((lval & 0x001f) ^ 0x1f);
                 //----------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.SustainModeExp = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSR.ReleaseModeExp = (lval & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSR.get<SustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSR.get<ReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
 
                 lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31UL, lx);               // values are used to hold the volume
+                lx = std::min(31U, lx);                // values are used to hold the volume
                 if (lx)                                // until a sound stop occurs
                 {                                      // the highest value we reach (due to
                     lx = (1 << lx);                    // overflow checking) is:
@@ -157,10 +157,10 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                         lx = (lx / 10000L) * SUSTAIN_MS;  // should be enuff... if the stop doesn't
                     if (!lx) lx = 1;                      // come in this time span, I don't care :)
                 }
-                s_chan[ch].ADSR.SustainTime = lx;
+                s_chan[ch].ADSR.get<SustainTime>().value = lx;
 
                 lx = (lval & 0x001f);
-                s_chan[ch].ADSR.ReleaseVal = lx;
+                s_chan[ch].ADSR.get<ReleaseVal>().value = lx;
                 if (lx)              // release time from 100% to 0%
                 {                    // note: the release time will be
                     lx = (1 << lx);  // adjusted when a stop is coming,
@@ -170,12 +170,12 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
                         lx = (lx / 10000L) * RELEASE_MS;  // run from (current volume) to 0%
                     if (!lx) lx = 1;
                 }
-                s_chan[ch].ADSR.ReleaseTime = lx;
+                s_chan[ch].ADSR.get<ReleaseTime>().value = lx;
 
                 if (lval & 0x4000)  // add/dec flag
-                    s_chan[ch].ADSR.SustainModeDec = -1;
+                    s_chan[ch].ADSR.get<SustainModeDec>().value = -1;
                 else
-                    s_chan[ch].ADSR.SustainModeDec = 1;
+                    s_chan[ch].ADSR.get<SustainModeDec>().value = 1;
             } break;
             //------------------------------------------------// adsr volume... mmm have to investigate this
             case 12:
@@ -183,8 +183,8 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             //------------------------------------------------//
             case 14:  // loop?
                 // WaitForSingleObject(s_chan[ch].hMutex,2000);        // -> no multithread fuckups
-                s_chan[ch].pLoop = spuMemC + ((unsigned long)val << 3);
-                s_chan[ch].bIgnoreLoop = 1;
+                s_chan[ch].pLoop = spuMemC + ((uint32_t)val << 3);
+                s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
                 // ReleaseMutex(s_chan[ch].hMutex);                    // -> oki, on with the thread
                 break;
                 //------------------------------------------------//
@@ -198,7 +198,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
     switch (r) {
         //-------------------------------------------------//
         case H_SPUaddr:
-            spuAddr = (unsigned long)val << 3;
+            spuAddr = (uint32_t)val << 3;
             break;
         //-------------------------------------------------//
         case H_SPUdata:
@@ -219,9 +219,9 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             if (val == 0xFFFF || val <= 0x200) {
                 rvb.StartAddr = rvb.CurrAddr = 0;
             } else {
-                const long iv = (unsigned long)val << 2;
+                const long iv = (uint32_t)val << 2;
                 if (rvb.StartAddr != iv) {
-                    rvb.StartAddr = (unsigned long)val << 2;
+                    rvb.StartAddr = (uint32_t)val << 2;
                     rvb.CurrAddr = rvb.StartAddr;
                 }
             }
@@ -229,7 +229,7 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
         //-------------------------------------------------//
         case H_SPUirqAddr:
             spuIrq = val;
-            pSpuIrq = spuMemC + ((unsigned long)val << 3);
+            pSpuIrq = spuMemC + ((uint32_t)val << 3);
             break;
         //-------------------------------------------------//
         case H_SPUrvolL:
@@ -328,97 +328,97 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
             break;
 
         case H_Reverb + 2:
-            rvb.FB_SRC_B = (short)val;
+            rvb.FB_SRC_B = (int16_t)val;
             break;
         case H_Reverb + 4:
-            rvb.IIR_ALPHA = (short)val;
+            rvb.IIR_ALPHA = (int16_t)val;
             break;
         case H_Reverb + 6:
-            rvb.ACC_COEF_A = (short)val;
+            rvb.ACC_COEF_A = (int16_t)val;
             break;
         case H_Reverb + 8:
-            rvb.ACC_COEF_B = (short)val;
+            rvb.ACC_COEF_B = (int16_t)val;
             break;
         case H_Reverb + 10:
-            rvb.ACC_COEF_C = (short)val;
+            rvb.ACC_COEF_C = (int16_t)val;
             break;
         case H_Reverb + 12:
-            rvb.ACC_COEF_D = (short)val;
+            rvb.ACC_COEF_D = (int16_t)val;
             break;
         case H_Reverb + 14:
-            rvb.IIR_COEF = (short)val;
+            rvb.IIR_COEF = (int16_t)val;
             break;
         case H_Reverb + 16:
-            rvb.FB_ALPHA = (short)val;
+            rvb.FB_ALPHA = (int16_t)val;
             break;
         case H_Reverb + 18:
-            rvb.FB_X = (short)val;
+            rvb.FB_X = (int16_t)val;
             break;
         case H_Reverb + 20:
-            rvb.IIR_DEST_A0 = (short)val;
+            rvb.IIR_DEST_A0 = (int16_t)val;
             break;
         case H_Reverb + 22:
-            rvb.IIR_DEST_A1 = (short)val;
+            rvb.IIR_DEST_A1 = (int16_t)val;
             break;
         case H_Reverb + 24:
-            rvb.ACC_SRC_A0 = (short)val;
+            rvb.ACC_SRC_A0 = (int16_t)val;
             break;
         case H_Reverb + 26:
-            rvb.ACC_SRC_A1 = (short)val;
+            rvb.ACC_SRC_A1 = (int16_t)val;
             break;
         case H_Reverb + 28:
-            rvb.ACC_SRC_B0 = (short)val;
+            rvb.ACC_SRC_B0 = (int16_t)val;
             break;
         case H_Reverb + 30:
-            rvb.ACC_SRC_B1 = (short)val;
+            rvb.ACC_SRC_B1 = (int16_t)val;
             break;
         case H_Reverb + 32:
-            rvb.IIR_SRC_A0 = (short)val;
+            rvb.IIR_SRC_A0 = (int16_t)val;
             break;
         case H_Reverb + 34:
-            rvb.IIR_SRC_A1 = (short)val;
+            rvb.IIR_SRC_A1 = (int16_t)val;
             break;
         case H_Reverb + 36:
-            rvb.IIR_DEST_B0 = (short)val;
+            rvb.IIR_DEST_B0 = (int16_t)val;
             break;
         case H_Reverb + 38:
-            rvb.IIR_DEST_B1 = (short)val;
+            rvb.IIR_DEST_B1 = (int16_t)val;
             break;
         case H_Reverb + 40:
-            rvb.ACC_SRC_C0 = (short)val;
+            rvb.ACC_SRC_C0 = (int16_t)val;
             break;
         case H_Reverb + 42:
-            rvb.ACC_SRC_C1 = (short)val;
+            rvb.ACC_SRC_C1 = (int16_t)val;
             break;
         case H_Reverb + 44:
-            rvb.ACC_SRC_D0 = (short)val;
+            rvb.ACC_SRC_D0 = (int16_t)val;
             break;
         case H_Reverb + 46:
-            rvb.ACC_SRC_D1 = (short)val;
+            rvb.ACC_SRC_D1 = (int16_t)val;
             break;
         case H_Reverb + 48:
-            rvb.IIR_SRC_B1 = (short)val;
+            rvb.IIR_SRC_B1 = (int16_t)val;
             break;
         case H_Reverb + 50:
-            rvb.IIR_SRC_B0 = (short)val;
+            rvb.IIR_SRC_B0 = (int16_t)val;
             break;
         case H_Reverb + 52:
-            rvb.MIX_DEST_A0 = (short)val;
+            rvb.MIX_DEST_A0 = (int16_t)val;
             break;
         case H_Reverb + 54:
-            rvb.MIX_DEST_A1 = (short)val;
+            rvb.MIX_DEST_A1 = (int16_t)val;
             break;
         case H_Reverb + 56:
-            rvb.MIX_DEST_B0 = (short)val;
+            rvb.MIX_DEST_B0 = (int16_t)val;
             break;
         case H_Reverb + 58:
-            rvb.MIX_DEST_B1 = (short)val;
+            rvb.MIX_DEST_B1 = (int16_t)val;
             break;
         case H_Reverb + 60:
-            rvb.IN_COEF_L = (short)val;
+            rvb.IN_COEF_L = (int16_t)val;
             break;
         case H_Reverb + 62:
-            rvb.IN_COEF_R = (short)val;
+            rvb.IN_COEF_R = (int16_t)val;
             break;
     }
 
@@ -429,8 +429,8 @@ void PCSX::SPU::impl::writeRegister(unsigned long reg, unsigned short val) {
 // READ REGISTER: called by main emu
 ////////////////////////////////////////////////////////////////////////
 
-unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
-    const unsigned long r = reg & 0xfff;
+uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
+    const uint32_t r = reg & 0xfff;
 
     iSpuAsyncWait = 0;
 
@@ -440,19 +440,20 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
             {
                 const int ch = (r >> 4) - 0xc0;
 
-                if (s_chan[ch].bNew) return 1;   // we are started, but not processed? return 1
-                if (s_chan[ch].ADSRX.lVolume &&  // same here... we haven't decoded one sample yet, so no envelope yet.
-                                                 // return 1 as well
-                    !s_chan[ch].ADSRX.EnvelopeVol)
+                if (s_chan[ch].data.get<Chan::New>().value) return 1;  // we are started, but not processed? return 1
+                if (s_chan[ch].ADSRX.get<exVolume>().value &&  // same here... we haven't decoded one sample yet, so no
+                                                               // envelope yet.
+                                                               // return 1 as well
+                    !s_chan[ch].ADSRX.get<exEnvelopeVol>().value)
                     return 1;
-                return (unsigned short)(s_chan[ch].ADSRX.EnvelopeVol >> 16);
+                return (uint16_t)(s_chan[ch].ADSRX.get<exEnvelopeVol>().value >> 16);
             }
 
             case 14:  // get loop address
             {
                 const int ch = (r >> 4) - 0xc0;
                 if (s_chan[ch].pLoop == NULL) return 0;
-                return (unsigned short)((s_chan[ch].pLoop - spuMemC) >> 3);
+                return (uint16_t)((s_chan[ch].pLoop - spuMemC) >> 3);
             }
         }
     }
@@ -465,10 +466,10 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
             return spuStat;
 
         case H_SPUaddr:
-            return (unsigned short)(spuAddr >> 3);
+            return (uint16_t)(spuAddr >> 3);
 
         case H_SPUdata: {
-            unsigned short s = spuMem[spuAddr >> 1];
+            uint16_t s = spuMem[spuAddr >> 1];
             spuAddr += 2;
             if (spuAddr > 0x7ffff) spuAddr = 0;
             return s;
@@ -491,7 +492,7 @@ unsigned short PCSX::SPU::impl::readRegister(unsigned long reg) {
 // SOUND ON register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND ON PSX COMAND
+void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX COMAND
 {
     int ch;
 
@@ -499,8 +500,8 @@ void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND 
     {
         if ((val & 1) && s_chan[ch].pStart)  // mmm... start has to be set before key on !?!
         {
-            s_chan[ch].bIgnoreLoop = 0;
-            s_chan[ch].bNew = 1;
+            s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
+            s_chan[ch].data.get<Chan::New>().value = true;
             dwNewChannel |= (1 << ch);  // bitfield for faster testing
         }
     }
@@ -510,14 +511,14 @@ void PCSX::SPU::impl::SoundOn(int start, int end, unsigned short val)  // SOUND 
 // SOUND OFF register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SoundOff(int start, int end, unsigned short val)  // SOUND OFF PSX COMMAND
+void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val)  // SOUND OFF PSX COMMAND
 {
     int ch;
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
         if (val & 1)  // && s_chan[i].bOn)  mmm...
         {
-            s_chan[ch].bStop = 1;
+            s_chan[ch].data.get<Chan::Stop>().value = true;
         }
     }
 }
@@ -526,7 +527,7 @@ void PCSX::SPU::impl::SoundOff(int start, int end, unsigned short val)  // SOUND
 // FMOD register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON PSX COMMAND
+void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX COMMAND
 {
     int ch;
 
@@ -535,11 +536,11 @@ void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON
         if (val & 1)  // -> fmod on/off
         {
             if (ch > 0) {
-                s_chan[ch].bFMod = 1;      // --> sound channel
-                s_chan[ch - 1].bFMod = 2;  // --> freq channel
+                s_chan[ch].data.get<Chan::FMod>().value = 1;      // --> sound channel
+                s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // --> freq channel
             }
         } else {
-            s_chan[ch].bFMod = 0;  // --> turn off fmod
+            s_chan[ch].data.get<Chan::FMod>().value = 0;  // --> turn off fmod
         }
     }
 }
@@ -548,18 +549,13 @@ void PCSX::SPU::impl::FModOn(int start, int end, unsigned short val)  // FMOD ON
 // NOISE register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::NoiseOn(int start, int end, unsigned short val)  // NOISE ON PSX COMMAND
+void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX COMMAND
 {
     int ch;
 
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
-        if (val & 1)  // -> noise on/off
-        {
-            s_chan[ch].bNoise = 1;
-        } else {
-            s_chan[ch].bNoise = 0;
-        }
+        s_chan[ch].data.get<Chan::Noise>().value = !!(val & 1); // -> noise on/off
     }
 }
 
@@ -570,13 +566,13 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, unsigned short val)  // NOISE 
 // please note: sweep and phase invert are wrong... but I've never seen
 // them used
 
-void PCSX::SPU::impl::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
+void PCSX::SPU::impl::SetVolumeL(uint8_t ch, int16_t vol)  // LEFT VOLUME
 {
-    s_chan[ch].iLeftVolRaw = vol;
+    s_chan[ch].data.get<Chan::LeftVolRaw>().value = vol;
 
     if (vol & 0x8000)  // sweep?
     {
-        short sInc = 1;                   // -> sweep up?
+        int16_t sInc = 1;                 // -> sweep up?
         if (vol & 0x2000) sInc = -1;      // -> or down?
         if (vol & 0x1000) vol ^= 0xffff;  // -> mmm... phase inverted? have to investigate this
         vol = ((vol & 0x7f) + 1) / 2;     // -> sweep: 0..127 -> 0..64
@@ -590,20 +586,20 @@ void PCSX::SPU::impl::SetVolumeL(unsigned char ch, short vol)  // LEFT VOLUME
     }
 
     vol &= 0x3fff;
-    s_chan[ch].iLeftVolume = vol;  // store volume
+    s_chan[ch].data.get<Chan::LeftVolume>().value = vol;  // store volume
 }
 
 ////////////////////////////////////////////////////////////////////////
 // RIGHT VOLUME register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
+void PCSX::SPU::impl::SetVolumeR(uint8_t ch, int16_t vol)  // RIGHT VOLUME
 {
-    s_chan[ch].iRightVolRaw = vol;
+    s_chan[ch].data.get<Chan::RightVolRaw>().value = vol;
 
     if (vol & 0x8000)  // comments... see above :)
     {
-        short sInc = 1;
+        int16_t sInc = 1;
         if (vol & 0x2000) sInc = -1;
         if (vol & 0x1000) vol ^= 0xffff;
         vol = ((vol & 0x7f) + 1) / 2;
@@ -616,14 +612,14 @@ void PCSX::SPU::impl::SetVolumeR(unsigned char ch, short vol)  // RIGHT VOLUME
 
     vol &= 0x3fff;
 
-    s_chan[ch].iRightVolume = vol;
+    s_chan[ch].data.get<Chan::RightVolume>().value = vol;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // PITCH register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::SetPitch(int ch, unsigned short val)  // SET PITCH
+void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
 {
     int NP;
     if (val > 0x3fff)
@@ -631,28 +627,23 @@ void PCSX::SPU::impl::SetPitch(int ch, unsigned short val)  // SET PITCH
     else
         NP = val;
 
-    s_chan[ch].iRawPitch = NP;
+    s_chan[ch].data.get<Chan::RawPitch>().value = NP;
 
     NP = (44100L * NP) / 4096L;  // calc frequency
     if (NP < 1) NP = 1;          // some security
-    s_chan[ch].iActFreq = NP;    // store frequency
+    s_chan[ch].data.get<Chan::ActFreq>().value = NP;  // store frequency
 }
 
 ////////////////////////////////////////////////////////////////////////
 // REVERB register write
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::ReverbOn(int start, int end, unsigned short val)  // REVERB ON PSX COMMAND
+void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val)  // REVERB ON PSX COMMAND
 {
     int ch;
 
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
-        if (val & 1)  // -> reverb on/off
-        {
-            s_chan[ch].bReverb = 1;
-        } else {
-            s_chan[ch].bReverb = 0;
-        }
+            s_chan[ch].data.get<Chan::Reverb>().value = !!(val & 1);// -> reverb on/off
     }
 }

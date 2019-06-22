@@ -23,6 +23,8 @@ ipch/
 
 vsprojects/packages
 
+.Trash-1000/
+
 # Linux files
 *.o
 *.dep

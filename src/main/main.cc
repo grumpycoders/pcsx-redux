@@ -22,11 +22,13 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include <iostream>
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 #include "flags.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
@@ -166,6 +168,11 @@ using json = nlohmann::json;
 
 int main(int argc, char **argv) {
     const flags::args args(argc, argv);
+
+    if (args.get<bool>("dumpproto")) {
+        PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
+        return 0;
+    }
 
     SystemImpl *system = new SystemImpl;
     PCSX::g_system = system;

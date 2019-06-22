@@ -14,6 +14,7 @@ CPPFLAGS += -Ithird_party/imgui
 CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui_club
+CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -O3
 CPPFLAGS += -g
 

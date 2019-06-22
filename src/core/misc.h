@@ -50,20 +50,8 @@ bool CheckCdrom();
 int Load(const char *ExePath);
 int LoadLdrFile(const char *LdrPath);
 
-int SaveState(const char *file);
-int SaveStateMem(const uint32_t id);
-int SaveStateGz(gzFile f, long *gzsize);
-int LoadState(const char *file);
-int LoadStateMem(const uint32_t id);
-int LoadStateGz(gzFile f);
-int CheckState(const char *file);
-
 int SendPcsxInfo();
 int RecvPcsxInfo();
-
-void CreateRewindState();     // Creates save state and stores it to volatile memory
-void RewindState();           // Restores state previously created with CreateRewindState();
-void CleanupMemSaveStates();  // Removes all save states stored by memory funcs like CreateRewindState()
 
 void trim(char *str);
 uint16_t calcCrc(uint8_t *d, int len);

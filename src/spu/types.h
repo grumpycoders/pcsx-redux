@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "core/protobuf.h"
+
 namespace PCSX {
 
 namespace SPU {
@@ -26,76 +28,116 @@ namespace SPU {
 // MAIN CHANNEL STRUCT
 
 // ADSR INFOS PER CHANNEL
-struct ADSRInfo {
-    int AttackModeExp;
-    long AttackTime;
-    long DecayTime;
-    long SustainLevel;
-    int SustainModeExp;
-    long SustainModeDec;
-    long SustainTime;
-    int ReleaseModeExp;
-    unsigned long ReleaseVal;
-    long ReleaseTime;
-    long ReleaseStartTime;
-    long ReleaseVol;
-    long lTime;
-    long lVolume;
-};
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_mode_exp"), 1> AttackModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_time"), 2> AttackTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("decay_time"), 3> DecayTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_level"), 4> SustainLevel;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_mode_exp"), 5> SustainModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_mode_dec"), 6> SustainModeDec;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_time"), 7> SustainTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_mode_exp"), 8> ReleaseModeExp;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("release_val"), 9> ReleaseVal;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_time"), 10> ReleaseTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_start_time"), 11> ReleaseStartTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_vol"), 12> ReleaseVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("time"), 13> lTime;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("volume"), 14> lVolume;
+typedef Protobuf::Message<TYPESTRING("ADSRInfo"), AttackModeExp, AttackTime, DecayTime, SustainLevel, SustainModeExp,
+                          SustainModeDec, SustainTime, ReleaseModeExp, ReleaseVal, ReleaseTime, ReleaseStartTime,
+                          ReleaseVol, lTime, lVolume>
+    ADSRInfo;
 
-struct ADSRInfoEx {
-    int State;
-    int AttackModeExp;
-    int AttackRate;
-    int DecayRate;
-    int SustainLevel;
-    int SustainModeExp;
-    int SustainIncrease;
-    int SustainRate;
-    int ReleaseModeExp;
-    int ReleaseRate;
-    int EnvelopeVol;
-    long lVolume;
-    long lDummy1;
-    long lDummy2;
-};
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("state"), 1> exState;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_mode_exp"), 2> exAttackModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("attack_rate"), 3> exAttackRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("decay_rate"), 4> exDecayRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_level"), 5> exSustainLevel;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_mode_exp"), 6> exSustainModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_increase"), 7> exSustainIncrease;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sustain_rate"), 8> exSustainRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_mode_exp"), 9> exReleaseModeExp;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_rate"), 10> exReleaseRate;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("envelope_vol"), 11> exEnvelopeVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("volume"), 12> exVolume;
+
+typedef Protobuf::Message<TYPESTRING("ADSRInfoEx"), exState, exAttackModeExp, exAttackRate, exDecayRate, exSustainLevel,
+                          exSustainModeExp, exSustainIncrease, exSustainRate, exReleaseModeExp, exReleaseRate,
+                          exEnvelopeVol, exVolume>
+    ADSRInfoEx;
+
+namespace Chan {
+// start flag
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("new"), 1> New;
+// mixing stuff
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sb_pos"), 2> SBPos;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_pos"), 3> spos;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_inc"), 4> sinc;
+typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("sb"), 5> SB;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sval"), 6> sval;
+
+// start ptr into sound mem
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("start"), 7> StartPtr;
+// current pos in sound mem
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("current"), 8> CurrPtr;
+// loop ptr in sound mem
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("loop"), 9> LoopPtr;
+
+// is channel active (sample playing?)
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("on"), 10> On;
+// is channel stopped (sample _can_ still be playing, ADSR Release phase)
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("stop"), 11> Stop;
+// can we do reverb on this channel? must have ctrl register bit, to get active
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("reverb"), 12> Reverb;
+// current psx pitch
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("act_freq"), 13> ActFreq;
+// current pc pitch
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("used_freq"), 14> UsedFreq;
+// left volume
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left_volume"), 15> LeftVolume;
+// left psx volume value
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left_vol_raw"), 16> LeftVolRaw;
+// ignore loop bit, if an external loop address is used
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ignore_loop"), 17> IgnoreLoop;
+// mute mode
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("mute"), 18> Mute;
+// right volume
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("right_volume"), 19> RightVolume;
+// right psx volume value
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("right_vol_raw"), 20> RightVolRaw;
+// raw pitch (0...3fff)
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("raw_pitch"), 21> RawPitch;
+// debug irq done flag
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("irq_done"), 22> IrqDone;
+// last decoding infos
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_1"), 23> s_1;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_2"), 24> s_2;
+// reverb active flag
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("rvb_active"), 25> RVBActive;
+// reverb offset
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_offset"), 26> RVBOffset;
+// reverb repeat
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_repeat"), 27> RVBRepeat;
+// noise active flag
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("noise"), 28> Noise;
+// freq mod (0=off, 1=sound channel, 2=freq channel)
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("fmod"), 29> FMod;
+// another reverb helper
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_num"), 30> RVBNum;
+// old noise val for this channel
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("old_noise"), 31> OldNoise;
+typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
+                          Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
+                          RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, RVBOffset, RVBRepeat, Noise, FMod,
+                          RVBNum, OldNoise>
+    Data;
+}  // namespace Chan
 
 struct SPUCHAN {
-    int bNew;  // start flag
+    uint8_t *pStart;  // start ptr into sound mem
+    uint8_t *pCurr;   // current pos in sound mem
+    uint8_t *pLoop;   // loop ptr in sound mem
 
-    int iSBPos;  // mixing stuff
-    int spos;
-    int sinc;
-    int SB[32 + 32];  // Pete added another 32 dwords in 1.6 ... prevents overflow issues with gaussian/cubic
-                      // interpolation (thanx xodnizel!), and can be used for even better interpolations, eh? :)
-    int sval;
-
-    unsigned char *pStart;  // start ptr into sound mem
-    unsigned char *pCurr;   // current pos in sound mem
-    unsigned char *pLoop;   // loop ptr in sound mem
-
-    int bOn;           // is channel active (sample playing?)
-    int bStop;         // is channel stopped (sample _can_ still be playing, ADSR Release phase)
-    int bReverb;       // can we do reverb on this channel? must have ctrl register bit, to get active
-    int iActFreq;      // current psx pitch
-    int iUsedFreq;     // current pc pitch
-    int iLeftVolume;   // left volume
-    int iLeftVolRaw;   // left psx volume value
-    int bIgnoreLoop;   // ignore loop bit, if an external loop address is used
-    bool iMute;        // mute mode
-    int iRightVolume;  // right volume
-    int iRightVolRaw;  // right psx volume value
-    int iRawPitch;     // raw pitch (0...3fff)
-    int iIrqDone;      // debug irq done flag
-    int s_1;           // last decoding infos
-    int s_2;
-    int bRVBActive;    // reverb active flag
-    int iRVBOffset;    // reverb offset
-    int iRVBRepeat;    // reverb repeat
-    int bNoise;        // noise active flag
-    int bFMod;         // freq mod (0=off, 1=sound channel, 2=freq channel)
-    int iRVBNum;       // another reverb helper
-    int iOldNoise;     // old noise val for this channel
+    Chan::Data data;
     ADSRInfo ADSR;     // active ADSR settings
     ADSRInfoEx ADSRX;  // next ADSR settings (will be moved to active on sample start)
 };

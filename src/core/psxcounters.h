@@ -23,6 +23,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 
 namespace PCSX {
 
@@ -106,7 +107,8 @@ class Counters {
     uint32_t psxRcntRmode(uint32_t index);
     uint32_t psxRcntRtarget(uint32_t index);
 
-    int32_t psxRcntFreeze(gzFile f, int32_t Mode);
+    void save(PCSX::SaveStates::Counters &counters);
+    void load(const PCSX::SaveStates::Counters & counters);
 };
 
 }  // namespace PCSX

@@ -30,8 +30,8 @@
 
 #include "flags.h"
 #include "json.hpp"
+#include "zstr.hpp"
 
-#include "GL/gl3w.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -41,6 +41,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
 
@@ -335,6 +336,29 @@ void PCSX::GUI::endFrame() {
                     CheckCdrom();
                 }
                 ImGui::Separator();
+                if (ImGui::MenuItem(_("Dump save state proto schema"))) {
+                    std::ofstream schema("sstate.proto");
+                    SaveStates::ProtoFile::dumpSchema(schema);
+                }
+                if (ImGui::MenuItem(_("Save state"))) {
+                    zstr::ofstream save("sstate", std::ios::binary);
+                    save << SaveStates::save();
+                }
+                if (ImGui::MenuItem(_("Load state"))) {
+                    zstr::ifstream save("sstate", std::ios::binary);
+                    std::ostringstream os;
+                    constexpr unsigned buff_size = 1 << 16;
+                    char* buff = new char[buff_size];
+                    while (true) {
+                        save.read(buff, buff_size);
+                        std::streamsize cnt = save.gcount();
+                        if (cnt == 0) break;
+                        os.write(buff, cnt);
+                    }
+                    delete[] buff;
+                    SaveStates::load(os.str());
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
                     PCSX::g_emulator.m_cdrom->setCdOpenCaseTime(-1);
                     PCSX::g_emulator.m_cdrom->lidInterrupt();
@@ -420,7 +444,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             ImGui::Separator();
             ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator.m_cdromId, ImGui::GetIO().Framerate,
-                1000.0f / ImGui::GetIO().Framerate);
+                        1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }
