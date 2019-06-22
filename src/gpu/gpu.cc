@@ -1349,44 +1349,16 @@ int32_t PCSX::GPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 // Freeze
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct GPUFREEZETAG {
-    uint32_t ulFreezeVersion;           // should be always 1 for now (set by main emu)
-    uint32_t ulStatus;                  // current gpu status
-    uint32_t ulControl[256];            // latest control register values
-    unsigned char psxVRam[1024 * 1024 * 2];  // current VRam image (full 2 MB for ZN)
-} GPUFreeze_t;
+void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
+    gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
+    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
+}
 
-////////////////////////////////////////////////////////////////////////
-
-int32_t PCSX::GPU::impl::freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) {
-    //----------------------------------------------------//
-    if (ulGetFreezeData == 2)  // 2: info, which save slot is selected? (just for display)
-    {
-        int32_t lSlotNum = *((int32_t *)pF);
-        if (lSlotNum < 0) return 0;
-        if (lSlotNum > 8) return 0;
-        lSelectedSlot = lSlotNum + 1;
-        // BuildDispMenu(0);
-        return 1;
-    }
-    //----------------------------------------------------//
-    if (!pF) return 0;  // some checks
-    if (pF->ulFreezeVersion != 1) return 0;
-
-    if (ulGetFreezeData == 1)  // 1: get data
-    {
-        pF->ulStatus = lGPUstatusRet;
-        memcpy(pF->ulControl, ulStatusControl, 256 * sizeof(uint32_t));
-        memcpy(pF->psxVRam, psxVub, 1024 * iGPUHeight * 2);
-
-        return 1;
-    }
-
-    if (ulGetFreezeData != 0) return 0;  // 0: set data
-
-    lGPUstatusRet = pF->ulStatus;
-    memcpy(ulStatusControl, pF->ulControl, 256 * sizeof(uint32_t));
-    memcpy(psxVub, pF->psxVRam, 1024 * iGPUHeight * 2);
+void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
+    lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
+    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
 
     // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT
 
@@ -1399,8 +1371,6 @@ int32_t PCSX::GPU::impl::freeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF) {
     writeStatus(ulStatusControl[7]);
     writeStatus(ulStatusControl[5]);
     writeStatus(ulStatusControl[4]);
-
-    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

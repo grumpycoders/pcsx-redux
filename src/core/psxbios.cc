@@ -2330,35 +2330,20 @@ class BiosImpl : public PCSX::Bios {
 #include "sjisfont.h"
 
     void psxBiosInit() final {
-        uint32_t base, size;
         uint32_t *ptr;
         int i;
         uLongf len;
 
         for (i = 0; i < 256; i++) {
-            m_biosA0[i] = NULL;
-            m_biosB0[i] = NULL;
-            m_biosC0[i] = NULL;
-        }
-        m_biosA0[0x03] = &BiosImpl::psxBios_write;
-        m_biosA0[0x3e] = &BiosImpl::psxBios_puts;
-        m_biosA0[0x3f] = &BiosImpl::psxBios_printf;
-
-        m_biosB0[0x35] = &BiosImpl::psxBios_write;
-        m_biosB0[0x3d] = &BiosImpl::psxBios_putchar;
-        m_biosB0[0x3f] = &BiosImpl::psxBios_puts;
-
-        if (m_realBiosLoaded) return;
-
-        for (i = 0; i < 256; i++) {
-            if (m_biosA0[i] == NULL) m_biosA0[i] = &BiosImpl::psxBios_dummy;
-            if (m_biosB0[i] == NULL) m_biosB0[i] = &BiosImpl::psxBios_dummy;
-            if (m_biosC0[i] == NULL) m_biosC0[i] = &BiosImpl::psxBios_dummy;
+            m_biosA0[i] = &BiosImpl::psxBios_dummy;
+            m_biosB0[i] = &BiosImpl::psxBios_dummy;
+            m_biosC0[i] = &BiosImpl::psxBios_dummy;
         }
 
         m_biosA0[0x00] = &BiosImpl::psxBios_open;
         m_biosA0[0x01] = &BiosImpl::psxBios_lseek;
         m_biosA0[0x02] = &BiosImpl::psxBios_read;
+        m_biosA0[0x03] = &BiosImpl::psxBios_write;
         m_biosA0[0x04] = &BiosImpl::psxBios_close;
         // m_biosA0[0x05] = &BiosImpl::psxBios_ioctl;
         // m_biosA0[0x06] = &BiosImpl::psxBios_exit;
@@ -2417,6 +2402,8 @@ class BiosImpl : public PCSX::Bios {
         m_biosA0[0x3b] = &BiosImpl::psxBios_getchar;
         m_biosA0[0x3c] = &BiosImpl::psxBios_putchar;
         // m_biosA0[0x3d] = &BiosImpl::psxBios_gets;
+        m_biosA0[0x3e] = &BiosImpl::psxBios_puts;
+        m_biosA0[0x3f] = &BiosImpl::psxBios_printf;
         // m_biosA0[0x40] = &BiosImpl::psxBios_sys_a0_40;
         // m_biosA0[0x41] = &BiosImpl::psxBios_LoadTest;
         m_biosA0[0x42] = &BiosImpl::psxBios_Load;
@@ -2588,6 +2575,7 @@ class BiosImpl : public PCSX::Bios {
         m_biosB0[0x32] = &BiosImpl::psxBios_open;
         m_biosB0[0x33] = &BiosImpl::psxBios_lseek;
         m_biosB0[0x34] = &BiosImpl::psxBios_read;
+        m_biosB0[0x35] = &BiosImpl::psxBios_write;
         m_biosB0[0x36] = &BiosImpl::psxBios_close;
         // m_biosB0[0x37] = &BiosImpl::psxBios_ioctl;
         // m_biosB0[0x38] = &BiosImpl::psxBios_exit;
@@ -2595,7 +2583,9 @@ class BiosImpl : public PCSX::Bios {
         // m_biosB0[0x3a] = &BiosImpl::psxBios_getc;
         // m_biosB0[0x3b] = &BiosImpl::psxBios_putc;
         m_biosB0[0x3c] = &BiosImpl::psxBios_getchar;
+        m_biosB0[0x3d] = &BiosImpl::psxBios_putchar;
         // m_biosB0[0x3e] = &BiosImpl::psxBios_gets;
+        m_biosB0[0x3f] = &BiosImpl::psxBios_puts;
         // m_biosB0[0x40] = &BiosImpl::psxBios_cd;
         m_biosB0[0x41] = &BiosImpl::psxBios_format;
         m_biosB0[0x42] = &BiosImpl::psxBios_firstfile;
@@ -2658,18 +2648,6 @@ class BiosImpl : public PCSX::Bios {
         // m_biosC0[0x1c] = &BiosImpl::psxBios_PatchAOTable;
         //************** THE END ***************************************
         /**/
-        base = 0x1000;
-        size = sizeof(EvCB) * 32;
-        s_Event = reinterpret_cast<EvCB *>(&PCSX::g_emulator.m_psxMem->g_psxR[base]);
-        base += size * 6;
-        memset(s_Event, 0, size * 6);
-        s_HwEV = s_Event;
-        s_EvEV = s_Event + 32;
-        s_RcEV = s_Event + 32 * 2;
-        s_UeEV = s_Event + 32 * 3;
-        s_SwEV = s_Event + 32 * 4;
-        s_ThEV = s_Event + 32 * 5;
-
         ptr = (uint32_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x0874];  // b0 table
         ptr[0] = SWAP_LEu32(0x4c54 - 0x884);
 
@@ -2703,7 +2681,6 @@ class BiosImpl : public PCSX::Bios {
                 psxMu32ref(0x4d98) = SWAP_LEu32(0x946f000a);
         */
         // opcode HLE
-        psxRu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 4);
         psxMu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 0);
         psxMu32ref(0x00a0) = SWAP_LEu32((0x3b << 26) | 1);
         psxMu32ref(0x00b0) = SWAP_LEu32((0x3b << 26) | 2);
@@ -2720,16 +2697,30 @@ class BiosImpl : public PCSX::Bios {
         // initial RNG seed
         psxMu32ref(0x9010) = SWAP_LEu32(0xac20cc00);
 
+        // memory size 2 MB
+        psxHu32ref(0x1060) = SWAP_LEu32(0x00000b88);
+
+        m_hleSoftCall = false;
+
+        uint32_t base = 0x1000;
+        uint32_t size = sizeof(EvCB) * 32;
+        s_Event = reinterpret_cast<EvCB *>(&PCSX::g_emulator.m_psxMem->g_psxR[base]);
+        s_HwEV = s_Event;
+        s_EvEV = s_Event + 32;
+        s_RcEV = s_Event + 32 * 2;
+        s_UeEV = s_Event + 32 * 3;
+        s_SwEV = s_Event + 32 * 4;
+        s_ThEV = s_Event + 32 * 5;
+        if (m_realBiosLoaded) return;
+        memset(s_Event, 0, size * 6);
+
+        // bootstrap
+        psxRu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 4);
         // fonts
         len = 0x80000 - 0x66000;
         uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));
         len = 0x80000 - 0x69d68;
         uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
-
-        // memory size 2 MB
-        psxHu32ref(0x1060) = SWAP_LEu32(0x00000b88);
-
-        m_hleSoftCall = false;
     }
 
     void psxBiosShutdown() final {}
@@ -2926,7 +2917,7 @@ class BiosImpl : public PCSX::Bios {
     {                                                                                             \
         if (Mode == 1) {                                                                          \
             if (ptr)                                                                              \
-                psxRu32ref(base) = SWAP_LEu32((int8_t *)(ptr)-PCSX::g_emulator.m_psxMem->g_psxM); \
+                psxRu32ref(base) = SWAP_LEu32((uint8_t *)(ptr)-PCSX::g_emulator.m_psxMem->g_psxM); \
             else                                                                                  \
                 psxRu32ref(base) = 0;                                                             \
         } else {                                                                                  \

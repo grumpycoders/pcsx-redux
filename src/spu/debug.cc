@@ -29,30 +29,31 @@ void PCSX::SPU::impl::debug() {
         m_lastUpdated += 50;
         delta -= 50;
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
-            if (!s_chan[ch].bOn) {
+            if (!s_chan[ch].data.get<Chan::On>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = EMPTY;
                 m_channelDebugData[ch][m_currentDebugSample] = 0.0f;
             };
-            if (s_chan[ch].iIrqDone) {
+            if (s_chan[ch].data.get<Chan::IrqDone>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = IRQ;
                 m_channelDebugData[ch][m_currentDebugSample] = 0.0f;
-                s_chan[ch].iIrqDone = 0;
+                s_chan[ch].data.get<Chan::IrqDone>().value = 0;
                 continue;
             }
 
-            if (s_chan[ch].iMute) {
+            if (s_chan[ch].data.get<Chan::Mute>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = MUTED;
-            } else if (s_chan[ch].bNoise) {
+            } else if (s_chan[ch].data.get<Chan::Noise>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = NOISE;
-            } else if (s_chan[ch].bFMod == 1) {
+            } else if (s_chan[ch].data.get<Chan::FMod>().value == 1) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = FMOD1;
-            } else if (s_chan[ch].bFMod == 2) {
+            } else if (s_chan[ch].data.get<Chan::FMod>().value == 2) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = FMOD2;
             } else {
                 m_channelDebugTypes[ch][m_currentDebugSample] = DATA;
             }
 
-            m_channelDebugData[ch][m_currentDebugSample] = fabsf((float)s_chan[ch].sval / 32768.0f);
+            m_channelDebugData[ch][m_currentDebugSample] =
+                fabsf((float)s_chan[ch].data.get<Chan::sval>().value / 32768.0f);
         }
         if (++m_currentDebugSample == DEBUG_SAMPLES) m_currentDebugSample = 0;
     }
@@ -74,7 +75,7 @@ void PCSX::SPU::impl::debug() {
                 std::string label3 = "Ch" + std::to_string(ch);
                 ImGui::PlotHistogram(label1.c_str(), m_channelDebugData[ch], DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f);
                 ImGui::SameLine();
-                ImGui::Checkbox(label2.c_str(), &s_chan[ch].iMute);
+                ImGui::Checkbox(label2.c_str(), &s_chan[ch].data.get<Chan::Mute>().value);
                 ImGui::SameLine();
                 if (ImGui::RadioButton(label3.c_str(), m_selectedChannel == ch)) m_selectedChannel = ch;
                 ImGui::NextColumn();
@@ -83,13 +84,13 @@ void PCSX::SPU::impl::debug() {
         ImGui::Columns(1);
         if (ImGui::Button("Mute all", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0))) {
             for (unsigned ch = 0; ch < MAXCHAN; ch++) {
-                s_chan[ch].iMute = true;
+                s_chan[ch].data.get<Chan::Mute>().value = true;
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("Unmute all", ImVec2(-1, 0))) {
             for (unsigned ch = 0; ch < MAXCHAN; ch++) {
-                s_chan[ch].iMute = false;
+                s_chan[ch].data.get<Chan::Mute>().value = false;
             }
         }
         ImGui::EndChild();
@@ -106,15 +107,17 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text("Attack:\nDecay:\nSustain:\nRelease:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.AttackRate ^ 0x7f, (ADSRX.DecayRate ^ 0x1f) / 4,
-                            ADSRX.SustainRate ^ 0x7f, (ADSRX.ReleaseRate ^ 0x1f) / 4);
+                ImGui::Text("%i\n%i\n%i\n%i", ADSRX.get<exAttackRate>().value ^ 0x7f,
+                            (ADSRX.get<exDecayRate>().value ^ 0x1f) / 4, ADSRX.get<exSustainRate>().value ^ 0x7f,
+                            (ADSRX.get<exReleaseRate>().value ^ 0x1f) / 4);
             }
             ImGui::NextColumn();
             {
                 ImGui::Text("Sustain level:\nSustain inc:\nCurr adsr vol:\nRaw enveloppe");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%08x", ADSRX.SustainLevel >> 27, ADSRX.SustainIncrease, ADSRX.lVolume,
-                            ADSRX.EnvelopeVol);
+                ImGui::Text("%i\n%i\n%i\n%08x", ADSRX.get<exSustainLevel>().value >> 27,
+                            ADSRX.get<exSustainIncrease>().value, ADSRX.get<exVolume>().value,
+                            ADSRX.get<exEnvelopeVol>().value);
             }
             ImGui::Columns(1);
             ImGui::Separator();
@@ -123,17 +126,21 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text("On:\nStop:\nNoise:\nFMod:\nReverb:\nRvb active:\nRvb number:\nRvb offset:\nRvb repeat:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i", ch.bOn, ch.bStop, ch.bNoise, ch.bFMod, ch.bReverb,
-                            ch.bRVBActive, ch.iRVBNum, ch.iRVBOffset, ch.iRVBRepeat);
+                ImGui::Text("%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i\n%i", ch.data.get<Chan::On>().value,
+                            ch.data.get<Chan::Stop>().value, ch.data.get<Chan::Noise>().value,
+                            ch.data.get<Chan::FMod>().value, ch.data.get<Chan::Reverb>().value,
+                            ch.data.get<Chan::RVBActive>().value, ch.data.get<Chan::RVBNum>().value,
+                            ch.data.get<Chan::RVBOffset>().value, ch.data.get<Chan::RVBRepeat>().value);
             }
             ImGui::NextColumn();
             {
                 ImGui::Text("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:");
                 ImGui::SameLine();
-                ImGui::Text(
-                    "%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", (unsigned long)ch.pStart - (unsigned long)spuMemC,
-                    (unsigned long)ch.pCurr - (unsigned long)spuMemC, (unsigned long)ch.pLoop - (unsigned long)spuMemC,
-                    ch.iRightVolume, ch.iRightVolRaw, ch.iLeftVolume, ch.iLeftVolRaw, ch.iActFreq, ch.iUsedFreq);
+                ImGui::Text("%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC,
+                            ch.pCurr - spuMemC, ch.pLoop - spuMemC,
+                            ch.data.get<Chan::RightVolume>().value, ch.data.get<Chan::RightVolRaw>().value,
+                            ch.data.get<Chan::LeftVolume>().value, ch.data.get<Chan::LeftVolRaw>().value,
+                            ch.data.get<Chan::ActFreq>().value, ch.data.get<Chan::UsedFreq>().value);
             }
             ImGui::Columns(1);
             ImGui::BeginChild("##debugSPUXA", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);

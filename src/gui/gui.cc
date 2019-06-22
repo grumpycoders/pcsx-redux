@@ -22,14 +22,16 @@
 #include <GLFW/glfw3.h>
 #include <assert.h>
 
+#include <SDL.h>
+
 #include <fstream>
 #include <iomanip>
 #include <unordered_set>
 
 #include "flags.h"
 #include "json.hpp"
+#include "zstr.hpp"
 
-#include "GL/gl3w.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -39,6 +41,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
 
@@ -74,6 +77,9 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
 }
 
 void PCSX::GUI::init() {
+    int result = uv_loop_init(&m_loop);
+    assert(result == 0);
+
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
         abort();
@@ -90,7 +96,7 @@ void PCSX::GUI::init() {
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
 
-    int result = gl3wInit();
+    result = gl3wInit();
     assert(result == 0);
 
     // Setup ImGui binding
@@ -202,6 +208,9 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
+
+    int result = uv_loop_close(&m_loop);
+    assert(result == 0);
 }
 
 void PCSX::GUI::saveCfg() {
@@ -219,8 +228,10 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
+    uv_run(&m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
     glfwPollEvents();
+    SDL_PumpEvents();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -321,6 +332,29 @@ void PCSX::GUI::endFrame() {
                     CheckCdrom();
                 }
                 ImGui::Separator();
+                if (ImGui::MenuItem(_("Dump save state proto schema"))) {
+                    std::ofstream schema("sstate.proto");
+                    SaveStates::ProtoFile::dumpSchema(schema);
+                }
+                if (ImGui::MenuItem(_("Save state"))) {
+                    zstr::ofstream save("sstate", std::ios::binary);
+                    save << SaveStates::save();
+                }
+                if (ImGui::MenuItem(_("Load state"))) {
+                    zstr::ifstream save("sstate", std::ios::binary);
+                    std::ostringstream os;
+                    constexpr unsigned buff_size = 1 << 16;
+                    char* buff = new char[buff_size];
+                    while (true) {
+                        save.read(buff, buff_size);
+                        std::streamsize cnt = save.gcount();
+                        if (cnt == 0) break;
+                        os.write(buff, cnt);
+                    }
+                    delete[] buff;
+                    SaveStates::load(os.str());
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
                     PCSX::g_emulator.m_cdrom->setCdOpenCaseTime(-1);
                     PCSX::g_emulator.m_cdrom->lidInterrupt();
@@ -405,7 +439,8 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator.m_cdromId, ImGui::GetIO().Framerate,
+                        1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }

@@ -33,10 +33,10 @@ int PCSX::Memory::psxMemInit() {
     g_psxMemRLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     g_psxMemWLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
 
-    g_psxM = (int8_t *)calloc(0x00200000, 1);
-    g_psxP = (int8_t *)calloc(0x00010000, 1);
-    g_psxH = (int8_t *)calloc(0x00010000, 1);
-    g_psxR = (int8_t *)calloc(0x00080000, 1);
+    g_psxM = (uint8_t *)calloc(0x00200000, 1);
+    g_psxP = (uint8_t *)calloc(0x00010000, 1);
+    g_psxH = (uint8_t *)calloc(0x00010000, 1);
+    g_psxR = (uint8_t *)calloc(0x00080000, 1);
 
     if (g_psxMemRLUT == NULL || g_psxMemWLUT == NULL || g_psxM == NULL || g_psxP == NULL || g_psxH == NULL) {
         PCSX::g_system->message("%s", _("Error allocating memory!"));

@@ -69,6 +69,74 @@ class CDRom {
 
     CDRiso m_iso;
     PPF m_ppf;
+
+  protected:
+    // savestate stuff starts here
+    uint8_t m_OCUP;
+    uint8_t m_Reg1Mode;
+    uint8_t m_Reg2;
+    uint8_t m_CmdProcess;
+    uint8_t m_Ctrl;
+    uint8_t m_Stat;
+
+    uint8_t m_StatP;
+
+    uint8_t m_Transfer[CD_FRAMESIZE_RAW];
+    unsigned int m_transferIndex;
+
+    uint8_t m_Prev[4];
+    uint8_t m_Param[8];
+    uint8_t m_Result[16];
+
+    uint8_t m_ParamC;
+    uint8_t m_ParamP;
+    uint8_t m_ResultC;
+    uint8_t m_ResultP;
+    uint8_t m_ResultReady;
+    uint8_t m_Cmd;
+    uint8_t m_Read;
+    uint8_t m_SetlocPending;
+    uint32_t m_Reading;
+
+    uint8_t m_ResultTN[6];
+    uint8_t m_ResultTD[4];
+    uint8_t m_SetSectorPlay[4];
+    uint8_t m_SetSectorEnd[4];
+    uint8_t m_SetSector[4];
+    uint8_t m_Track;
+    bool m_Play, m_Muted;
+    int m_CurTrack;
+    int m_Mode, m_File, m_Channel;
+    bool m_suceeded;
+    int m_FirstSector;
+
+    xa_decode_t m_Xa;
+
+    uint16_t m_Irq;
+    uint8_t m_IrqRepeated;
+    uint32_t m_eCycle;
+
+    uint8_t m_Seeked;
+    uint8_t m_ReadRescheduled;
+
+    uint8_t m_DriveState;
+    uint8_t m_FastForward;
+    uint8_t m_FastBackward;
+
+    uint8_t m_AttenuatorLeftToLeft, m_AttenuatorLeftToRight;
+    uint8_t m_AttenuatorRightToRight, m_AttenuatorRightToLeft;
+    uint8_t m_AttenuatorLeftToLeftT, m_AttenuatorLeftToRightT;
+    uint8_t m_AttenuatorRightToRightT, m_AttenuatorRightToLeftT;
+
+    struct {
+        uint8_t Track;
+        uint8_t Index;
+        uint8_t Relative[3];
+        uint8_t Absolute[3];
+    } m_subq;
+    bool m_TrackChanged;
+    // end savestate
+    friend SaveStates::SaveState SaveStates::constructSaveState();
 };
 
 }  // namespace PCSX

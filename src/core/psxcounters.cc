@@ -382,26 +382,46 @@ void PCSX::Counters::psxRcntInit() {
 
 /******************************************************************************/
 
-int32_t PCSX::Counters::psxRcntFreeze(gzFile f, int32_t Mode) {
-    gzfreeze(&m_rcnts, sizeof(m_rcnts));
-    gzfreeze(&m_hSyncCount, sizeof(m_hSyncCount));
-    gzfreeze(&m_spuSyncCount, sizeof(m_spuSyncCount));
-    gzfreeze(&m_psxNextCounter, sizeof(m_psxNextCounter));
-    gzfreeze(&m_psxNextsCounter, sizeof(m_psxNextsCounter));
-
-    if (Mode == 0) {
-        psxHsyncCalculate();
-        // iCB: recalculate target count in case overclock is changed
-        m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed /
-                             (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
-                              m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
-        if (m_rcnts[1].rate != 1)
-            m_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed /
-                               (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
-                                m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
+    for (unsigned i = 0; i < CounterQuantity; i++) {
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntMode>().value = m_rcnts[i].mode;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntTarget>().value = m_rcnts[i].target;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntRate>().value = m_rcnts[i].rate;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQ>().value = m_rcnts[i].irq;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCounterState>().value = m_rcnts[i].counterState;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value = m_rcnts[i].irqState;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycle>().value = m_rcnts[i].cycle;
+        counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value = m_rcnts[i].cycleStart;
     }
-
-    return 0;
+    counters.get<SaveStates::HSyncCount>().value = m_hSyncCount;
+    counters.get<SaveStates::SPUSyncCount>().value = m_spuSyncCount;
+    counters.get<SaveStates::PSXNextCounter>().value = m_psxNextCounter;
+    counters.get<SaveStates::PSXNextsCounter>().value = m_psxNextsCounter;
 }
 
-/******************************************************************************/
+void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
+    for (unsigned i = 0; i < CounterQuantity; i++) {
+        m_rcnts[i].mode = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntMode>().value;
+        m_rcnts[i].target = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntTarget>().value; 
+        m_rcnts[i].rate = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntRate>().value; 
+        m_rcnts[i].irq = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQ>().value; 
+        m_rcnts[i].counterState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCounterState>().value; 
+        m_rcnts[i].irqState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value; 
+        m_rcnts[i].cycle = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycle>().value; 
+        m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value; 
+    }
+    m_hSyncCount = counters.get<SaveStates::HSyncCount>().value; 
+    m_spuSyncCount = counters.get<SaveStates::SPUSyncCount>().value; 
+    m_psxNextCounter = counters.get<SaveStates::PSXNextCounter>().value; 
+    m_psxNextsCounter = counters.get<SaveStates::PSXNextsCounter>().value;
+
+    psxHsyncCalculate();
+    // iCB: recalculate target count in case overclock is changed
+    m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed /
+                            (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                            m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+    if (m_rcnts[1].rate != 1)
+        m_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed /
+                            (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                            m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+}

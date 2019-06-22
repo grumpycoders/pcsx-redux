@@ -22,7 +22,9 @@
 #include <stdint.h>
 
 #include <SDL.h>
+
 struct PadDataS;
+
 namespace PCSX {
 class PAD {
   public:
@@ -44,7 +46,7 @@ class PAD {
     bool m_connected = false;
     bool m_isKeyboard = false;
     int m_joystick = -1;
-    SDL_Scancode m_scancodes[16];
+    int m_scancodes[16];
     SDL_GameController *m_pad = NULL;
 
     unsigned char m_buf[256];
