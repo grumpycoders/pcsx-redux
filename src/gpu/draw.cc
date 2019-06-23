@@ -389,7 +389,7 @@ static void DrawFullscreenQuad(int is24Bit) {
 }
 
 void DoBufferSwap() {
-#if 0
+#ifndef DO_CRASH
     m_gui->setViewport();
     m_gui->bindVRAMTexture();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);

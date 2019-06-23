@@ -345,7 +345,7 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
 
     szDebugText[0] = 0;  // init debug text buffer
 
-    #if 0
+    #ifndef DO_CRASH
     psxVSecure = (unsigned char *)malloc((iGPUHeight * 2) * 1024 +
                                          (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
@@ -364,7 +364,7 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
 
-    #if 0
+    #ifndef DO_CRASH
     memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
     #endif
     memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
