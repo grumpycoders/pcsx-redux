@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\gpu\cfg.cc" />
+    <ClCompile Include="..\..\src\gpu\debug.cc" />
     <ClCompile Include="..\..\src\gpu\draw.cc" />
     <ClCompile Include="..\..\src\gpu\fps.cc" />
     <ClCompile Include="..\..\src\gpu\gpu.cc" />
@@ -151,6 +152,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gpu\cfg.h" />
+    <ClInclude Include="..\..\src\gpu\debug.h" />
     <ClInclude Include="..\..\src\gpu\draw.h" />
     <ClInclude Include="..\..\src\gpu\externals.h" />
     <ClInclude Include="..\..\src\gpu\fps.h" />

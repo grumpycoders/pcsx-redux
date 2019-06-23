@@ -20,6 +20,7 @@
 #pragma once
 
 #include "core/gpu.h"
+#include "gpu/debug.h"
 #include "gpu/externals.h"
 #include "gpu/prim.h"
 
@@ -57,7 +58,11 @@ class impl : public GPUinterface {
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;
 
+    virtual void debug() final {
+        if (m_showDebug) m_debugger.show();
+    }
     Prim m_prim;
+    Debugger m_debugger = {m_showDebug};
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram

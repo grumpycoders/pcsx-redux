@@ -24,10 +24,7 @@
 //
 //*************************************************************************//
 
-#ifndef _GPU_INTERNALS_H
-#define _GPU_INTERNALS_H
-
-/////////////////////////////////////////////////////////////////////////////
+#pragma once
 
 #define OPAQUEON 10
 #define OPAQUEOFF 11
@@ -59,7 +56,3 @@
 void updateDisplay(void);
 void SetAutoFrameCap(void);
 void SetFixes(void);
-
-/////////////////////////////////////////////////////////////////////////////
-
-#endif  // _GPU_INTERNALS_H

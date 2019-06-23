@@ -425,6 +425,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("Show BIOS counters"), nullptr, &m_showBiosCounters);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator.m_gpu->m_showDebug);
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
@@ -465,6 +466,8 @@ void PCSX::GUI::endFrame() {
             CheckCdrom();
         }
     }
+
+    g_emulator.m_gpu->debug();
 
     if (m_showDemo) ImGui::ShowDemoWindow();
 

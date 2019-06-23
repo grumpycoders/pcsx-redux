@@ -345,13 +345,13 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
 
     szDebugText[0] = 0;  // init debug text buffer
 
-    #ifndef DO_CRASH
+#ifndef DO_CRASH
     psxVSecure = (unsigned char *)malloc((iGPUHeight * 2) * 1024 +
                                          (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
-    #else
+#else
     psxVSecure = nullptr;
-    #endif
+#endif
 
     //!!! ATTENTION !!!
     psxVub = psxVSecure + 512 * 1024;  // security offset into double sized psx vram!
@@ -364,9 +364,9 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
 
-    #ifndef DO_CRASH
+#ifndef DO_CRASH
     memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
-    #endif
+#endif
     memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
 
     SetFPSHandler();
@@ -469,8 +469,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
     if (dwActFixes & 32)  // pc fps calculation fix
     {
-        if (UseFrameLimit) PCFrameCap();  // -> brake
-                                          //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+        if (UseFrameLimit)
+            PCFrameCap();  // -> brake
+                           //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
     //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
@@ -530,7 +531,7 @@ void ChangeDispOffsetsX(void)  // X CENTER
     l &= 0xfffffff8;
 
     if (l == PreviousPSXDisplay.Range.y1) return;  // abusing range.y1 for
-    PreviousPSXDisplay.Range.y1 = (int16_t)l;        // storing last x range and test
+    PreviousPSXDisplay.Range.y1 = (int16_t)l;      // storing last x range and test
 
     if (lx >= PreviousPSXDisplay.DisplayMode.x) {
         PreviousPSXDisplay.Range.x1 = (int16_t)PreviousPSXDisplay.DisplayMode.x;
@@ -618,9 +619,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
-    PreviousPSXDisplay.DisplayMode.x =             // previous will hold
+    PreviousPSXDisplay.DisplayMode.x =            // previous will hold
         std::min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
-    PreviousPSXDisplay.DisplayMode.y =             // the size of my
+    PreviousPSXDisplay.DisplayMode.y =            // the size of my
         std::min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
@@ -698,6 +699,8 @@ void PCSX::GPU::impl::updateLace()  // VSYNC
     }
 
     bDoVSyncUpdate = false;  // vsync done
+
+    m_debugger.nextFrame();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1351,13 +1354,13 @@ int32_t PCSX::GPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
 void PCSX::GPU::impl::save(SaveStates::GPU &gpu) {
     gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
-    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t *>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
 }
 
 void PCSX::GPU::impl::load(const SaveStates::GPU &gpu) {
     lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
-    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t *>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
 
     // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT

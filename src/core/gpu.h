@@ -32,7 +32,8 @@ class GPUinterface {
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
-    bool m_showCfg;
+    bool m_showCfg = false;
+    bool m_showDebug = false;
     virtual bool configure() = 0;
     virtual ~GPUinterface() {}
 
@@ -58,6 +59,7 @@ class GPUinterface {
     virtual void updateLace() = 0;
     virtual void save(SaveStates::GPU &gpu) = 0;
     virtual void load(const SaveStates::GPU &gpu) = 0;
+    virtual void debug() = 0;
 
     virtual void keypressed(int key) {}
     virtual void displayText(char *pText) { PCSX::g_system->printf("%s\n", pText); }
@@ -74,8 +76,6 @@ class GPUinterface {
     virtual void setSpeed(float newSpeed) {}
     virtual void pgxpMemory(unsigned int addr, unsigned char *pVRAM) {}
     virtual void pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
-    virtual int32_t test(void) { return 0; }
-    virtual void about(void) {}
 };
 
 }  // namespace PCSX
