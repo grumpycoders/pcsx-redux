@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include "gpu/debug.h"
 #include "gpu/externals.h"
 #include "gpu/renderer.h"
 
@@ -30,13 +31,14 @@ namespace GPU {
 
 class Prim : public Renderer {
   public:
-    inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
+    inline void callFunc(uint8_t cmd, uint8_t *baseAddr) {
         if (!bSkipNextFrame) {
             (*this.*(funcs[cmd]))(baseAddr);
         } else {
             (*this.*(skip[cmd]))(baseAddr);
         }
     }
+    Debug::Command *debug(uint8_t cmd, uint8_t *baseAddr) { return (*this.*(debugCmds[cmd]))(cmd, baseAddr); }
 
     bool configure(bool *);
 
@@ -58,44 +60,80 @@ class Prim : public Renderer {
     int iUseDither = 0;
     int32_t GlobalTextREST;
 
-    typedef void (Prim::*func_t)(unsigned char *);
+    typedef void (Prim::*func_t)(uint8_t *);
     typedef const func_t cfunc_t;
-    void cmdSTP(unsigned char *baseAddr);
-    void cmdTexturePage(unsigned char *baseAddr);
-    void cmdTextureWindow(unsigned char *baseAddr);
-    void cmdDrawAreaStart(unsigned char *baseAddr);
-    void cmdDrawAreaEnd(unsigned char *baseAddr);
-    void cmdDrawOffset(unsigned char *baseAddr);
-    void primLoadImage(unsigned char *baseAddr);
-    void primStoreImage(unsigned char *baseAddr);
-    void primBlkFill(unsigned char *baseAddr);
-    void primMoveImage(unsigned char *baseAddr);
-    void primTileS(unsigned char *baseAddr);
-    void primTile1(unsigned char *baseAddr);
-    void primTile8(unsigned char *baseAddr);
-    void primTile16(unsigned char *baseAddr);
-    void primSprt8(unsigned char *baseAddr);
-    void primSprt16(unsigned char *baseAddr);
-    void primSprtSRest(unsigned char *baseAddr, uint16_t type);
-    void primSprtS(unsigned char *baseAddr);
-    void primPolyF4(unsigned char *baseAddr);
-    void primPolyG4(unsigned char *baseAddr);
-    void primPolyFT3(unsigned char *baseAddr);
-    void primPolyFT4(unsigned char *baseAddr);
-    void primPolyGT3(unsigned char *baseAddr);
-    void primPolyG3(unsigned char *baseAddr);
-    void primPolyGT4(unsigned char *baseAddr);
-    void primPolyF3(unsigned char *baseAddr);
-    void primLineGSkip(unsigned char *baseAddr);
-    void primLineGEx(unsigned char *baseAddr);
-    void primLineG2(unsigned char *baseAddr);
-    void primLineFSkip(unsigned char *baseAddr);
-    void primLineFEx(unsigned char *baseAddr);
-    void primLineF2(unsigned char *baseAddr);
-    void primNI(unsigned char *baseAddr);
+    typedef Debug::Command *(Prim::*dbgFunc_t)(uint8_t, uint8_t *);
+    typedef const func_t cdbgFunc_t;
+    void cmdSTP(uint8_t *baseAddr);
+    void cmdTexturePage(uint8_t *baseAddr);
+    void cmdTextureWindow(uint8_t *baseAddr);
+    void cmdDrawAreaStart(uint8_t *baseAddr);
+    void cmdDrawAreaEnd(uint8_t *baseAddr);
+    void cmdDrawOffset(uint8_t *baseAddr);
+    void primLoadImage(uint8_t *baseAddr);
+    void primStoreImage(uint8_t *baseAddr);
+    void primBlkFill(uint8_t *baseAddr);
+    void primMoveImage(uint8_t *baseAddr);
+    void primTileS(uint8_t *baseAddr);
+    void primTile1(uint8_t *baseAddr);
+    void primTile8(uint8_t *baseAddr);
+    void primTile16(uint8_t *baseAddr);
+    void primSprt8(uint8_t *baseAddr);
+    void primSprt16(uint8_t *baseAddr);
+    void primSprtSRest(uint8_t *baseAddr, uint16_t type);
+    void primSprtS(uint8_t *baseAddr);
+    void primPolyF4(uint8_t *baseAddr);
+    void primPolyG4(uint8_t *baseAddr);
+    void primPolyFT3(uint8_t *baseAddr);
+    void primPolyFT4(uint8_t *baseAddr);
+    void primPolyGT3(uint8_t *baseAddr);
+    void primPolyG3(uint8_t *baseAddr);
+    void primPolyGT4(uint8_t *baseAddr);
+    void primPolyF3(uint8_t *baseAddr);
+    void primLineGSkip(uint8_t *baseAddr);
+    void primLineGEx(uint8_t *baseAddr);
+    void primLineG2(uint8_t *baseAddr);
+    void primLineFSkip(uint8_t *baseAddr);
+    void primLineFEx(uint8_t *baseAddr);
+    void primLineF2(uint8_t *baseAddr);
+    void primNI(uint8_t *baseAddr);
+
+    Debug::Command *dbgCmdSTP(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgCmdTexturePage(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgCmdTextureWindow(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgCmdDrawAreaStart(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgCmdDrawAreaEnd(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgCmdDrawOffset(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLoadImage(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimStoreImage(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimBlkFill(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimMoveImage(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimTileS(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimTile1(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimTile8(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimTile16(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimSprt8(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimSprt16(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimSprtS(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyF4(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyG4(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyFT3(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyFT4(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyGT3(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyG3(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyGT4(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimPolyF3(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLineGSkip(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLineGEx(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLineG2(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLineFSkip(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLineFEx(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimLineF2(uint8_t cmd, uint8_t *baseAddr);
+    Debug::Command *dbgPrimNI(uint8_t cmd, uint8_t *baseAddr);
 
     static const func_t funcs[256];
     static const func_t skip[256];
+    static const dbgFunc_t debugCmds[256];
 
     void UpdateGlobalTP(uint16_t gdata);
     void SetRenderMode(uint32_t DrawAttributes);

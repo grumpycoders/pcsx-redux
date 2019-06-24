@@ -1264,7 +1264,10 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_prim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
+                m_debugger.addEvent([&]() {
+                    return m_prim.debug(gpuCommand, (uint8_t *)gpuDataM);
+                });
+                m_prim.callFunc(gpuCommand, (uint8_t *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;

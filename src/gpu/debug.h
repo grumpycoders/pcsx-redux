@@ -61,7 +61,10 @@ class Debugger {
     void addEvent(std::function<Debug::Command*()> commandGenerator, bool isInvalidOrEmpty = false) {
         if (!m_frameCapture) return;
         if (isInvalidOrEmpty && !m_captureInvalidAndEmpty) return;
-        m_currentFrameEvents.emplace_back(commandGenerator());
+        if (!commandGenerator) return;
+        Debug::Command* cmd = commandGenerator();
+        if (!cmd) return;
+        m_currentFrameEvents.emplace_back(cmd);
     }
 
   private:

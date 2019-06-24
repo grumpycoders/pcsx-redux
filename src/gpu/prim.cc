@@ -374,7 +374,7 @@ static constexpr inline bool CheckCoordL(int16_t slx0, int16_t sly0, int16_t slx
 // mask stuff... used in silent hill
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::cmdSTP(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::cmdSTP(uint8_t *baseAddr) {
     uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     lGPUstatusRet &= ~0x1800;                 // Clear the necessary bits
@@ -395,7 +395,7 @@ void PCSX::GPU::Prim::cmdSTP(unsigned char *baseAddr) {
 // cmd: Set texture page infos
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::cmdTexturePage(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::cmdTexturePage(uint8_t *baseAddr) {
     uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     UpdateGlobalTP((uint16_t)gdata);
@@ -406,7 +406,7 @@ void PCSX::GPU::Prim::cmdTexturePage(unsigned char *baseAddr) {
 // cmd: turn on/off texture window
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::cmdTextureWindow(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::cmdTextureWindow(uint8_t *baseAddr) {
     uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     uint32_t YAlign, XAlign;
@@ -465,7 +465,7 @@ void PCSX::GPU::Prim::cmdTextureWindow(unsigned char *baseAddr) {
 // cmd: start of drawing area... primitives will be clipped inside
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::cmdDrawAreaStart(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::cmdDrawAreaStart(uint8_t *baseAddr) {
     uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     drawX = gdata & 0x3ff;  // for soft drawing
@@ -485,7 +485,7 @@ void PCSX::GPU::Prim::cmdDrawAreaStart(unsigned char *baseAddr) {
 // cmd: end of drawing area... primitives will be clipped inside
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::cmdDrawAreaEnd(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::cmdDrawAreaEnd(uint8_t *baseAddr) {
     uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     drawW = gdata & 0x3ff;  // for soft drawing
@@ -505,7 +505,7 @@ void PCSX::GPU::Prim::cmdDrawAreaEnd(unsigned char *baseAddr) {
 // cmd: draw offset... will be added to prim coords
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::cmdDrawOffset(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::cmdDrawOffset(uint8_t *baseAddr) {
     uint32_t gdata = ((uint32_t *)baseAddr)[0];
 
     PSXDisplay.DrawOffset.x = (int16_t)(gdata & 0x7ff);
@@ -526,7 +526,7 @@ void PCSX::GPU::Prim::cmdDrawOffset(unsigned char *baseAddr) {
 // cmd: load image to vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLoadImage(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLoadImage(uint8_t *baseAddr) {
     uint16_t *sgpuData = ((uint16_t *)baseAddr);
 
     VRAMWrite.x = sgpuData[2] & 0x3ff;
@@ -545,7 +545,7 @@ void PCSX::GPU::Prim::primLoadImage(unsigned char *baseAddr) {
 // cmd: vram -> psx mem
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primStoreImage(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primStoreImage(uint8_t *baseAddr) {
     uint16_t *sgpuData = ((uint16_t *)baseAddr);
 
     VRAMRead.x = sgpuData[2] & 0x03ff;
@@ -566,7 +566,7 @@ void PCSX::GPU::Prim::primStoreImage(unsigned char *baseAddr) {
 // cmd: blkfill - NO primitive! Doesn't care about draw areas...
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primBlkFill(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primBlkFill(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -594,7 +594,7 @@ void PCSX::GPU::Prim::primBlkFill(unsigned char *baseAddr) {
 // cmd: move image vram -> vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primMoveImage(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primMoveImage(uint8_t *baseAddr) {
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
     int16_t imageY0, imageX0, imageY1, imageX1, imageSX, imageSY, i, j;
@@ -695,7 +695,7 @@ void PCSX::GPU::Prim::primMoveImage(unsigned char *baseAddr) {
 //#define SMALLDEBUG
 //#include <dbgout.h>
 
-void PCSX::GPU::Prim::primTileS(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primTileS(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
     int16_t sW = sgpuData[4] & 0x3ff;
@@ -724,7 +724,7 @@ void PCSX::GPU::Prim::primTileS(unsigned char *baseAddr) {
 // cmd: draw 1 dot Tile (point)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primTile1(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primTile1(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
     int16_t sH = 1;
@@ -753,7 +753,7 @@ void PCSX::GPU::Prim::primTile1(unsigned char *baseAddr) {
 // cmd: draw 8 dot Tile (small rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primTile8(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primTile8(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
     int16_t sH = 8;
@@ -782,7 +782,7 @@ void PCSX::GPU::Prim::primTile8(unsigned char *baseAddr) {
 // cmd: draw 16 dot Tile (medium rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primTile16(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primTile16(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
     int16_t sH = 16;
@@ -811,7 +811,7 @@ void PCSX::GPU::Prim::primTile16(unsigned char *baseAddr) {
 // cmd: small sprite (textured rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primSprt8(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primSprt8(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -836,7 +836,7 @@ void PCSX::GPU::Prim::primSprt8(unsigned char *baseAddr) {
 // cmd: medium sprite (textured rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primSprt16(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primSprt16(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -862,7 +862,7 @@ void PCSX::GPU::Prim::primSprt16(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 // func used on texture coord wrap
-void PCSX::GPU::Prim::primSprtSRest(unsigned char *baseAddr, uint16_t type) {
+void PCSX::GPU::Prim::primSprtSRest(uint8_t *baseAddr, uint16_t type) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
     uint16_t sTypeRest = 0;
@@ -949,7 +949,7 @@ void PCSX::GPU::Prim::primSprtSRest(unsigned char *baseAddr, uint16_t type) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primSprtS(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primSprtS(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
     int16_t sW, sH;
@@ -998,7 +998,7 @@ void PCSX::GPU::Prim::primSprtS(unsigned char *baseAddr) {
 // cmd: flat shaded Poly4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyF4(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyF4(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1028,7 +1028,7 @@ void PCSX::GPU::Prim::primPolyF4(unsigned char *baseAddr) {
 // cmd: smooth shaded Poly4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyG4(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyG4(uint8_t *baseAddr) {
     uint32_t *gpuData = (uint32_t *)baseAddr;
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1058,7 +1058,7 @@ void PCSX::GPU::Prim::primPolyG4(unsigned char *baseAddr) {
 // cmd: flat shaded Texture3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyFT3(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyFT3(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1089,7 +1089,7 @@ void PCSX::GPU::Prim::primPolyFT3(unsigned char *baseAddr) {
 // cmd: flat shaded Texture4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyFT4(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyFT4(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1123,7 +1123,7 @@ void PCSX::GPU::Prim::primPolyFT4(unsigned char *baseAddr) {
 // cmd: smooth shaded Texture3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyGT3(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyGT3(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1160,7 +1160,7 @@ void PCSX::GPU::Prim::primPolyGT3(unsigned char *baseAddr) {
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyG3(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyG3(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1188,7 +1188,7 @@ void PCSX::GPU::Prim::primPolyG3(unsigned char *baseAddr) {
 // cmd: smooth shaded Texture4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyGT4(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyGT4(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1228,7 +1228,7 @@ void PCSX::GPU::Prim::primPolyGT4(unsigned char *baseAddr) {
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primPolyF3(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primPolyF3(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1256,7 +1256,7 @@ void PCSX::GPU::Prim::primPolyF3(unsigned char *baseAddr) {
 // cmd: skipping shaded polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLineGSkip(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLineGSkip(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int iMax = 255;
     int i = 2;
@@ -1277,7 +1277,7 @@ void PCSX::GPU::Prim::primLineGSkip(unsigned char *baseAddr) {
 // cmd: shaded polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLineGEx(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLineGEx(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int iMax = 255;
     uint32_t lc0, lc1;
@@ -1337,7 +1337,7 @@ void PCSX::GPU::Prim::primLineGEx(unsigned char *baseAddr) {
 // cmd: shaded polyline2
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLineG2(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLineG2(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1367,7 +1367,7 @@ void PCSX::GPU::Prim::primLineG2(unsigned char *baseAddr) {
 // cmd: skipping flat polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLineFSkip(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLineFSkip(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int i = 2, iMax = 255;
 
@@ -1386,7 +1386,7 @@ void PCSX::GPU::Prim::primLineFSkip(unsigned char *baseAddr) {
 // cmd: drawing flat polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLineFEx(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLineFEx(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int iMax;
     int16_t slx0, slx1, sly0, sly1;
@@ -1435,7 +1435,7 @@ void PCSX::GPU::Prim::primLineFEx(unsigned char *baseAddr) {
 // cmd: drawing flat polyline2
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primLineF2(unsigned char *baseAddr) {
+void PCSX::GPU::Prim::primLineF2(uint8_t *baseAddr) {
     uint32_t *gpuData = ((uint32_t *)baseAddr);
     int16_t *sgpuData = ((int16_t *)baseAddr);
 
@@ -1466,7 +1466,7 @@ void PCSX::GPU::Prim::primLineF2(unsigned char *baseAddr) {
 // cmd: well, easiest command... not implemented
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::Prim::primNI(unsigned char *baseAddr) {}
+void PCSX::GPU::Prim::primNI(uint8_t *baseAddr) {}
 
 ////////////////////////////////////////////////////////////////////////
 // cmd func ptr table
@@ -1608,4 +1608,71 @@ const PCSX::GPU::Prim::func_t PCSX::GPU::Prim::skip[256] = {
     &Prim::primNI,         &Prim::primNI,         &Prim::primNI,           &Prim::primNI,            // f4
     &Prim::primNI,         &Prim::primNI,         &Prim::primNI,           &Prim::primNI,            // f8
     &Prim::primNI,         &Prim::primNI,         &Prim::primNI,           &Prim::primNI,            // fc
+};
+
+const PCSX::GPU::Prim::dbgFunc_t PCSX::GPU::Prim::debugCmds[256] = {
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimBlkFill,      &Prim::dbgPrimNI,            // 00
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 04
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 08
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 0c
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 10
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 14
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 18
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 1c
+    &Prim::dbgPrimPolyF3,     &Prim::dbgPrimPolyF3,     &Prim::dbgPrimPolyF3,       &Prim::dbgPrimPolyF3,        // 20
+    &Prim::dbgPrimPolyFT3,    &Prim::dbgPrimPolyFT3,    &Prim::dbgPrimPolyFT3,      &Prim::dbgPrimPolyFT3,       // 24
+    &Prim::dbgPrimPolyF4,     &Prim::dbgPrimPolyF4,     &Prim::dbgPrimPolyF4,       &Prim::dbgPrimPolyF4,        // 28
+    &Prim::dbgPrimPolyFT4,    &Prim::dbgPrimPolyFT4,    &Prim::dbgPrimPolyFT4,      &Prim::dbgPrimPolyFT4,       // 2c
+    &Prim::dbgPrimPolyG3,     &Prim::dbgPrimPolyG3,     &Prim::dbgPrimPolyG3,       &Prim::dbgPrimPolyG3,        // 30
+    &Prim::dbgPrimPolyGT3,    &Prim::dbgPrimPolyGT3,    &Prim::dbgPrimPolyGT3,      &Prim::dbgPrimPolyGT3,       // 34
+    &Prim::dbgPrimPolyG4,     &Prim::dbgPrimPolyG4,     &Prim::dbgPrimPolyG4,       &Prim::dbgPrimPolyG4,        // 38
+    &Prim::dbgPrimPolyGT4,    &Prim::dbgPrimPolyGT4,    &Prim::dbgPrimPolyGT4,      &Prim::dbgPrimPolyGT4,       // 3c
+    &Prim::dbgPrimLineF2,     &Prim::dbgPrimLineF2,     &Prim::dbgPrimLineF2,       &Prim::dbgPrimLineF2,        // 40
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 44
+    &Prim::dbgPrimLineFEx,    &Prim::dbgPrimLineFEx,    &Prim::dbgPrimLineFEx,      &Prim::dbgPrimLineFEx,       // 48
+    &Prim::dbgPrimLineFEx,    &Prim::dbgPrimLineFEx,    &Prim::dbgPrimLineFEx,      &Prim::dbgPrimLineFEx,       // 4c
+    &Prim::dbgPrimLineG2,     &Prim::dbgPrimLineG2,     &Prim::dbgPrimLineG2,       &Prim::dbgPrimLineG2,        // 50
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 54
+    &Prim::dbgPrimLineGEx,    &Prim::dbgPrimLineGEx,    &Prim::dbgPrimLineGEx,      &Prim::dbgPrimLineGEx,       // 58
+    &Prim::dbgPrimLineGEx,    &Prim::dbgPrimLineGEx,    &Prim::dbgPrimLineGEx,      &Prim::dbgPrimLineGEx,       // 5c
+    &Prim::dbgPrimTileS,      &Prim::dbgPrimTileS,      &Prim::dbgPrimTileS,        &Prim::dbgPrimTileS,         // 60
+    &Prim::dbgPrimSprtS,      &Prim::dbgPrimSprtS,      &Prim::dbgPrimSprtS,        &Prim::dbgPrimSprtS,         // 64
+    &Prim::dbgPrimTile1,      &Prim::dbgPrimTile1,      &Prim::dbgPrimTile1,        &Prim::dbgPrimTile1,         // 68
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 6c
+    &Prim::dbgPrimTile8,      &Prim::dbgPrimTile8,      &Prim::dbgPrimTile8,        &Prim::dbgPrimTile8,         // 70
+    &Prim::dbgPrimSprt8,      &Prim::dbgPrimSprt8,      &Prim::dbgPrimSprt8,        &Prim::dbgPrimSprt8,         // 74
+    &Prim::dbgPrimTile16,     &Prim::dbgPrimTile16,     &Prim::dbgPrimTile16,       &Prim::dbgPrimTile16,        // 78
+    &Prim::dbgPrimSprt16,     &Prim::dbgPrimSprt16,     &Prim::dbgPrimSprt16,       &Prim::dbgPrimSprt16,        // 7c
+    &Prim::dbgPrimMoveImage,  &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 80
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 84
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 88
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 8c
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 90
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 94
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 98
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // 9c
+    &Prim::dbgPrimLoadImage,  &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // a0
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // a4
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // a8
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // ac
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // b0
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // b4
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // b8
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // bc
+    &Prim::dbgPrimStoreImage, &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // c0
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // c4
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // c8
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // cc
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // d0
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // d4
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // d8
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // dc
+    &Prim::dbgPrimNI,         &Prim::dbgCmdTexturePage, &Prim::dbgCmdTextureWindow, &Prim::dbgCmdDrawAreaStart,  // e0
+    &Prim::dbgCmdDrawAreaEnd, &Prim::dbgCmdDrawOffset,  &Prim::dbgCmdSTP,           &Prim::dbgPrimNI,            // e4
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // e8
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // ec
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // f0
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // f4
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // f8
+    &Prim::dbgPrimNI,         &Prim::dbgPrimNI,         &Prim::dbgPrimNI,           &Prim::dbgPrimNI,            // fc
 };
