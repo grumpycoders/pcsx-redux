@@ -50,10 +50,10 @@ class GPUinterface {
     virtual int32_t open(GUI *) = 0;
     virtual int32_t close() = 0;
     virtual uint32_t readData() = 0;
-    virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
+    virtual void readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) = 0;
     virtual uint32_t readStatus() = 0;
     virtual void writeData(uint32_t gdata) = 0;
-    virtual void writeDataMem(uint32_t *pMem, int iSize) = 0;
+    virtual void writeDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) = 0;
     virtual void writeStatus(uint32_t gdata) = 0;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) = 0;
     virtual void updateLace() = 0;

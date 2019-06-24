@@ -53,6 +53,6 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-void updateDisplay(void);
+bool updateDisplay(void);
 void SetAutoFrameCap(void);
 void SetFixes(void);

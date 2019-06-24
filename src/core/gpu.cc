@@ -106,7 +106,7 @@ void PCSX::GPUinterface::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // G
             }
             // BA blocks * BS words (word = 32-bits)
             size = (bcr >> 16) * (bcr & 0xffff);
-            readDataMem(ptr, size);
+            readDataMem(ptr, size, madr);
             PCSX::g_emulator.m_psxCpu->Clear(madr, size);
 #if 1
             // already 32-bit word size ((size * 4) / 4)
@@ -128,7 +128,7 @@ void PCSX::GPUinterface::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // G
                 break;
             }
             pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
-            writeDataMem(ptr, size);
+            writeDataMem(ptr, size, madr);
 
 #if 0
             // already 32-bit word size ((size * 4) / 4)

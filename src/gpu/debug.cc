@@ -34,11 +34,16 @@ void PCSX::GPU::Debugger::show() {
         }
         if (ImGui::BeginMenu(_("Debug"))) {
             ImGui::MenuItem(_("Enable frame capture"), nullptr, &m_frameCapture);
+            ImGui::MenuItem(_("Capture invalid and empty commands"), nullptr, &m_captureInvalidAndEmpty);
+            ImGui::Separator();
             ImGui::MenuItem(_("Breakpoint on end of frame"), nullptr, &m_breakOnFrame);
+            ImGui::MenuItem(_("Only break on non-empty frame"), nullptr, &m_breakOnNonEmptyFrame);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
     }
+
+    if (ImGui::Button(_("Resume"))) g_system->resume();
 
     for (const auto& cmd : m_lastFrameEvents) {
         std::string title = cmd->title();
@@ -49,6 +54,15 @@ void PCSX::GPU::Debugger::show() {
 }
 
 std::string PCSX::GPU::Debug::VRAMRead::title() {
+    char address[9];
+    std::snprintf(address, 9, "%08x", m_to);
     return std::string("VRAM read (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
-           std::to_string(m_width) + ", " + std::to_string(m_height) + ")";
+           std::to_string(m_width) + ", " + std::to_string(m_height) + ") " + std::to_string(m_size) + " bytes @0x" + address;
+}
+
+std::string PCSX::GPU::Debug::VRAMWrite::title() {
+    char address[9];
+    std::snprintf(address, 9, "%08x", m_from);
+    return std::string("VRAM write (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
+           std::to_string(m_width) + ", " + std::to_string(m_height) + ") " + std::to_string(m_size) + " bytes @0x" + address;
 }

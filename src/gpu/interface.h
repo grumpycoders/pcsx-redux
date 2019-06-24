@@ -37,13 +37,13 @@ class impl : public GPUinterface {
     virtual int32_t close() final;
     virtual uint32_t readData() final {
         uint32_t l;
-        readDataMem(&l, 1);
+        readDataMem(&l, 1, 0xffffffff);
         return lGPUdataRet;
     }
-    virtual void readDataMem(uint32_t *pMem, int iSize) final;
+    virtual void readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) final;
     virtual uint32_t readStatus() final;
-    virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1); }
-    virtual void writeDataMem(uint32_t *pMem, int iSize) final;
+    virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1, 0xffffffff); }
+    virtual void writeDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) final;
     virtual void writeStatus(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;

@@ -128,6 +128,7 @@
 #endif
 
 #include "gpu/cfg.h"
+#include "gpu/debug.h"
 #include "gpu/draw.h"
 #include "gpu/externals.h"
 #include "gpu/fps.h"
@@ -459,12 +460,13 @@ int32_t PCSX::GPU::impl::shutdown()  // GPU SHUTDOWN
 // Update display (swap buffers)
 ////////////////////////////////////////////////////////////////////////
 
-void updateDisplay(void)  // UPDATE DISPLAY
+bool updateDisplay(void)  // UPDATE DISPLAY
 {
+    bool didUpdate = false;
     if (PSXDisplay.Disabled)  // disable?
     {
         DoClearFrontBuffer();  // -> clear frontbuffer
-        return;                // -> and bye
+        return false;          // -> and bye
     }
 
     if (dwActFixes & 32)  // pc fps calculation fix
@@ -484,20 +486,26 @@ void updateDisplay(void)  // UPDATE DISPLAY
         static int fpscount;
         UseFrameSkip = 1;
 
-        if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
-        if (fpscount % 6)                     // -> skip 6/7 frames
+        if (!bSkipNextFrame) {
+            DoBufferSwap();  // -> to skip or not to skip
+            didUpdate = true;
+        }
+        if (fpscount % 6)  // -> skip 6/7 frames
             bSkipNextFrame = true;
         else
             bSkipNextFrame = false;
         fpscount++;
         if (fpscount >= (int)fFrameRateHz) fpscount = 0;
-        return;
+        return false;
     }
 
     if (UseFrameSkip)  // skip ?
     {
-        if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
-        if (dwActFixes & 0xa0)                // -> pc fps calculation fix/old skipping fix
+        if (!bSkipNextFrame) {
+            DoBufferSwap();  // -> to skip or not to skip
+            didUpdate = true;
+        }
+        if (dwActFixes & 0xa0)  // -> pc fps calculation fix/old skipping fix
         {
             if ((fps_skip < fFrameRateHz) && !(bSkipNextFrame))  // -> skip max one in a row
             {
@@ -510,7 +518,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
     } else  // no skip ?
     {
         DoBufferSwap();  // -> swap
+        didUpdate = true;
     }
+    return didUpdate;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -684,23 +694,24 @@ void PCSX::GPU::impl::updateLace()  // VSYNC
     if (PSXDisplay.Interlaced)  // interlaced mode?
     {
         if (bDoVSyncUpdate && PSXDisplay.DisplayMode.x > 0 && PSXDisplay.DisplayMode.y > 0) {
-            updateDisplay();
+            if (updateDisplay()) m_debugger.nextFrame();
         }
     } else  // non-interlaced?
     {
         if (dwActFixes & 64)  // lazy screen update fix
         {
-            if (bDoLazyUpdate && !UseFrameSkip) updateDisplay();
+            if (bDoLazyUpdate && !UseFrameSkip) {
+                if (updateDisplay()) m_debugger.nextFrame();
+            }
             bDoLazyUpdate = false;
         } else {
-            if (bDoVSyncUpdate && !UseFrameSkip)  // some primitives drawn?
-                updateDisplay();                  // -> update display
+            if (bDoVSyncUpdate && !UseFrameSkip) {            // some primitives drawn?
+                if (updateDisplay()) m_debugger.nextFrame();  // -> update display
+            }
         }
     }
 
     bDoVSyncUpdate = false;  // vsync done
-
-    m_debugger.nextFrame();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1014,10 +1025,17 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize) {
+void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
     int i;
 
-    if (DataReadMode != DR_VRAMTRANSFER) return;
+    if (DataReadMode != DR_VRAMTRANSFER) {
+        m_debugger.addEvent([]() { return new Debug::Invalid("DMA read without VRAM TRANSFER"); }, true);
+        return;
+    }
+
+    m_debugger.addEvent(
+        [&]() { return new Debug::VRAMRead(hwAddr, iSize, VRAMRead.x, VRAMRead.y, VRAMRead.Width, VRAMRead.Height); },
+        hwAddr == 0xffffffff || VRAMRead.Width == 0 || VRAMRead.Height == 0);
 
     GPUIsBusy;
 
@@ -1148,7 +1166,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-void PCSX::GPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
+void PCSX::GPU::impl::writeDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
@@ -1160,6 +1178,12 @@ STARTVRAM:
 
     if (DataWriteMode == DR_VRAMTRANSFER) {
         bool bFinished = false;
+
+        m_debugger.addEvent(
+            [&]() {
+                return new Debug::VRAMWrite(hwAddr, iSize, VRAMWrite.x, VRAMWrite.y, VRAMWrite.Width, VRAMWrite.Height);
+            },
+            hwAddr == 0xffffffff || VRAMWrite.Width == 0 || VRAMWrite.Height == 0);
 
         // make sure we are in vram
         while (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
@@ -1338,7 +1362,7 @@ int32_t PCSX::GPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
         dmaMem = addr + 4;
 
-        if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count);
+        if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count, dmaMem);
 
         addr = baseAddrL[addr >> 2] & 0xffffff;
     } while (addr != 0xffffff);
