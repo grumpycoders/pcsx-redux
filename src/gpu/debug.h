@@ -48,7 +48,7 @@ class Debugger {
 
     void nextFrame() {
         if (m_breakOnFrame) {
-            if (m_breakOnNonEmptyFrame) {
+            if (!m_breakOnEmptyFrame) {
                 if (!m_currentFrameEvents.empty()) g_system->pause();
             } else {
                 g_system->pause();
@@ -72,7 +72,7 @@ class Debugger {
     bool m_frameCapture = false;
     bool m_captureInvalidAndEmpty = false;
     bool m_breakOnFrame = false;
-    bool m_breakOnNonEmptyFrame = false;
+    bool m_breakOnEmptyFrame = false;
     std::vector<std::unique_ptr<Debug::Command>> m_currentFrameEvents;
     std::vector<std::unique_ptr<Debug::Command>> m_lastFrameEvents;
 };
@@ -81,6 +81,8 @@ namespace Debug {
 class Invalid : public Command {
   public:
     Invalid(const char* reason) : m_reason(reason) {}
+    Invalid(const std::string& reason) : m_reason(reason) {}
+    Invalid(std::string&& reason) : m_reason(std::move(reason)) {}
     std::string title() final { return m_reason; }
 
   private:
@@ -109,6 +111,80 @@ class VRAMWrite : public Command {
     uint32_t m_from;
     int m_size;
     int16_t m_x, m_y, m_width, m_height;
+};
+
+class Reset : public Command {
+    std::string title() final { return _("WriteSatus CMD 0x00 GPU Reset"); }
+};
+
+class DisplayEnable : public Command {
+  public:
+    DisplayEnable(bool enabled) : m_enabled(enabled) {
+        if (enabled) {
+            m_enabledStr = _("Enabled");
+        } else {
+            m_enabledStr = _("Disabled");
+        }
+    }
+    std::string title() final { return _("WriteSatus CMD 0x03 Display ") + m_enabledStr; }
+
+  private:
+    bool m_enabled;
+    std::string m_enabledStr;
+};
+
+class DMASetup : public Command {
+  public:
+    DMASetup(uint32_t direction) : m_direction(direction) {}
+    std::string title() final;
+
+  private:
+    uint32_t m_direction;
+};
+
+class DisplayStart : public Command {
+  public:
+    DisplayStart(uint32_t data) : m_data(data) {}
+    std::string title() final;
+
+  private:
+    uint32_t m_data;
+};
+
+class HDispRange : public Command {
+  public:
+    HDispRange(uint32_t data) : m_data(data) {}
+    std::string title() final;
+
+  private:
+    uint32_t m_data;
+};
+
+class VDispRange : public Command {
+  public:
+    VDispRange(uint32_t data) : m_data(data) {}
+    std::string title() final;
+
+  private:
+    uint32_t m_data;
+};
+
+class SetDisplayMode : public Command {
+  public:
+    SetDisplayMode(uint32_t data) : m_data(data) {}
+    std::string title() final;
+
+  private:
+    uint32_t m_data;
+};
+
+class GetDisplayInfo : public Command {
+  public:
+    GetDisplayInfo(uint32_t data) : m_data(data) {}
+    std::string title() final;
+
+  private:
+    uint32_t m_data;
 };
 
 }  // namespace Debug

@@ -228,7 +228,7 @@ extern char *pConfigFile;
 
 // zn.c
 extern uint32_t dwGPUVersion;
-extern int iGPUHeight;
+static constexpr inline int iGPUHeight = 512;
 extern int iGPUHeightMask;
 extern int GlobalTextIL;
 extern int iTileCheat;

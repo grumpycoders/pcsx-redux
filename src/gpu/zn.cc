@@ -67,7 +67,6 @@ void GPUkeypressed(int keycode);
 // --------------------------------------------------- //
 
 uint32_t dwGPUVersion = 0;
-int iGPUHeight = 512;
 int iGPUHeightMask = 511;
 int GlobalTextIL = 0;
 int iTileCheat = 0;

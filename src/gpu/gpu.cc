@@ -764,6 +764,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // reset gpu
         case 0x00:
+            m_debugger.addEvent([&]() { return new Debug::Reset(); });
             memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
             lGPUstatusRet = 0x14802000;
             PSXDisplay.Disabled = 1;
@@ -776,7 +777,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // dis/enable display
         case 0x03:
-
+            m_debugger.addEvent([&]() { return new Debug::DisplayEnable(gdata & 1); });
             PreviousPSXDisplay.Disabled = PSXDisplay.Disabled;
             PSXDisplay.Disabled = (gdata & 1);
 
@@ -789,6 +790,8 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // setting transfer mode
         case 0x04:
+            gdata &= 0xffffff;
+            m_debugger.addEvent([&]() { return new Debug::DMASetup(gdata); }, gdata == 1 || gdata > 3);
             gdata &= 0x03;  // Only want the lower two bits
 
             DataWriteMode = DataReadMode = DR_NORMAL;
@@ -801,6 +804,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // setting display position
         case 0x05: {
+            m_debugger.addEvent([&]() { return new Debug::DisplayStart(gdata & 0xffffff); }, gdata & 0xf80000);
             PreviousPSXDisplay.DisplayPosition.x = PSXDisplay.DisplayPosition.x;
             PreviousPSXDisplay.DisplayPosition.y = PSXDisplay.DisplayPosition.y;
 
@@ -863,7 +867,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // setting width
         case 0x06:
-
+            m_debugger.addEvent([&]() { return new Debug::HDispRange(gdata & 0xffffff); });
             PSXDisplay.Range.x0 = (int16_t)(gdata & 0x7ff);
             PSXDisplay.Range.x1 = (int16_t)((gdata >> 12) & 0xfff);
 
@@ -875,6 +879,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // setting height
         case 0x07: {
+            m_debugger.addEvent([&]() { return new Debug::VDispRange(gdata & 0xffffff); });
             PSXDisplay.Range.y0 = (int16_t)(gdata & 0x3ff);
             PSXDisplay.Range.y1 = (int16_t)((gdata >> 10) & 0x3ff);
 
@@ -894,7 +899,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // setting display infos
         case 0x08:
-
+            m_debugger.addEvent([&]() { return new Debug::SetDisplayMode(gdata & 0xffffff); });
             PSXDisplay.DisplayModeNew.x = sDispWidths[(gdata & 0x03) | ((gdata & 0x40) >> 4)];
 
             if (gdata & 0x04)
@@ -943,7 +948,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
         //--------------------------------------------------//
         // ask about GPU version and other stuff
         case 0x10:
-
+            m_debugger.addEvent([&]() { return new Debug::GetDisplayInfo(gdata & 0xffffff); });
             gdata &= 0xff;
 
             switch (gdata) {
@@ -973,6 +978,16 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             }
             return;
             //--------------------------------------------------//
+
+        default:
+            m_debugger.addEvent(
+                [&]() {
+                    char cmd[9];
+                    std::snprintf(cmd, 9, "%08x", gdata);
+                    return new Debug::Invalid(_("Unsupported WriteStatus command 0x") + std::string(cmd));
+                },
+                true);
+            return;
     }
 }
 
@@ -1035,7 +1050,7 @@ void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
 
     m_debugger.addEvent(
         [&]() { return new Debug::VRAMRead(hwAddr, iSize, VRAMRead.x, VRAMRead.y, VRAMRead.Width, VRAMRead.Height); },
-        hwAddr == 0xffffffff || VRAMRead.Width == 0 || VRAMRead.Height == 0);
+        VRAMRead.Width == 0 || VRAMRead.Height == 0);
 
     GPUIsBusy;
 
@@ -1183,7 +1198,7 @@ STARTVRAM:
             [&]() {
                 return new Debug::VRAMWrite(hwAddr, iSize, VRAMWrite.x, VRAMWrite.y, VRAMWrite.Width, VRAMWrite.Height);
             },
-            hwAddr == 0xffffffff || VRAMWrite.Width == 0 || VRAMWrite.Height == 0);
+            VRAMWrite.Width == 0 || VRAMWrite.Height == 0);
 
         // make sure we are in vram
         while (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
@@ -1250,8 +1265,16 @@ ENDVRAM:
                     gpuCommand = command;
                     gpuDataM[0] = gdata;
                     gpuDataP = 1;
-                } else
+                } else {
+                    m_debugger.addEvent(
+                        [&]() {
+                            char cmd[3];
+                            std::snprintf(cmd, 3, "%02x", command);
+                            return new Debug::Invalid(_("Unsupported DMA command 0x") + std::string(cmd));
+                        },
+                        true);
                     continue;
+                }
             } else {
                 gpuDataM[gpuDataP] = gdata;
                 if (gpuDataC > 128) {
@@ -1264,9 +1287,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_debugger.addEvent([&]() {
-                    return m_prim.debug(gpuCommand, (uint8_t *)gpuDataM);
-                });
+                m_debugger.addEvent([&]() { return m_prim.debug(gpuCommand, (uint8_t *)gpuDataM); });
                 m_prim.callFunc(gpuCommand, (uint8_t *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
