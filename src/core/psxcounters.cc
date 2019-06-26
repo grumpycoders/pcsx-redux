@@ -402,17 +402,17 @@ void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
 void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
     for (unsigned i = 0; i < CounterQuantity; i++) {
         m_rcnts[i].mode = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntMode>().value;
-        m_rcnts[i].target = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntTarget>().value; 
-        m_rcnts[i].rate = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntRate>().value; 
-        m_rcnts[i].irq = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQ>().value; 
-        m_rcnts[i].counterState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCounterState>().value; 
+        m_rcnts[i].target = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntTarget>().value;
+        m_rcnts[i].rate = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntRate>().value;
+        m_rcnts[i].irq = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQ>().value;
+        m_rcnts[i].counterState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCounterState>().value;
         m_rcnts[i].irqState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value; 
-        m_rcnts[i].cycle = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycle>().value; 
-        m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value; 
+        m_rcnts[i].cycle = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycle>().value;
+        m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value;
     }
-    m_hSyncCount = counters.get<SaveStates::HSyncCount>().value; 
-    m_spuSyncCount = counters.get<SaveStates::SPUSyncCount>().value; 
-    m_psxNextCounter = counters.get<SaveStates::PSXNextCounter>().value; 
+    m_hSyncCount = counters.get<SaveStates::HSyncCount>().value;
+    m_spuSyncCount = counters.get<SaveStates::SPUSyncCount>().value;
+    m_psxNextCounter = counters.get<SaveStates::PSXNextCounter>().value;
     m_psxNextsCounter = counters.get<SaveStates::PSXNextsCounter>().value;
 
     psxHsyncCalculate();

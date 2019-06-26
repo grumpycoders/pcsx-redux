@@ -60,6 +60,7 @@ class CDRom {
     virtual void write1(uint8_t rt) = 0;
     virtual void write2(uint8_t rt) = 0;
     virtual void write3(uint8_t rt) = 0;
+    virtual void load() = 0;
     virtual int freeze(gzFile f, int Mode) = 0;
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
@@ -110,8 +111,11 @@ class CDRom {
     bool m_suceeded;
     int m_FirstSector;
 
+  public:
+    // this belongs in the SPU, not here.
     xa_decode_t m_Xa;
 
+  protected:
     uint16_t m_Irq;
     uint8_t m_IrqRepeated;
     uint32_t m_eCycle;

@@ -1513,6 +1513,22 @@ class CDRomImpl : public PCSX::CDRom {
         getCdInfo();
     }
 
+    void load() final {
+        getCdInfo();
+
+        // read right sub data
+        uint8_t tmpp[3];
+        memcpy(tmpp, m_Prev, 3);
+        m_Prev[0]++;
+        ReadTrack(tmpp);
+
+        if (m_Play) {
+            Find_CurTrack(m_SetSectorPlay);
+            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+                m_iso.play(m_SetSectorPlay);
+        }
+    }
+
     int freeze(gzFile f, int Mode) final {
         uint8_t tmpp[3];
 

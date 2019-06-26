@@ -21,6 +21,7 @@
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
+#include "core/psxbios.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -132,7 +133,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         Hardware {},
         Counters {},
-        MDEC {}
+        MDEC {},
+        BiosHLEField {},
     };
     // clang-format on
 }
@@ -168,6 +170,7 @@ std::string PCSX::SaveStates::save() {
 
     g_emulator.m_psxCounters->save(state.get<CountersField>());
     g_emulator.m_mdec->save(state.get<MDECField>());
+    g_emulator.m_psxBios->save(state.get<BiosHLEField>());
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
@@ -180,20 +183,39 @@ bool PCSX::SaveStates::load(const std::string& data) {
     Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
     try {
         state.deserialize(&slice, 0);
-    } catch(...) {
+    } catch (...) {
         return false;
     }
 
-    if (state.get<SaveStateInfoField>().get<Version>().value != 1) { return false; }
+    if (state.get<SaveStateInfoField>().get<Version>().value != 1) {
+        return false;
+    }
 
     PCSX::g_emulator.m_psxCpu->Reset();
     state.commit();
     intCyclesFromState(state);
     g_emulator.m_gpu->load(state.get<GPUField>());
     g_emulator.m_spu->load(state.get<SPUField>());
+    g_emulator.m_cdrom->load();
 
     g_emulator.m_psxCounters->load(state.get<CountersField>());
     g_emulator.m_mdec->load(state.get<MDECField>());
+    g_emulator.m_psxBios->load(state.get<BiosHLEField>());
+
+    auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
+
+    g_emulator.m_cdrom->m_Xa.freq = xa.get<SaveStates::XAFrequency>().value;
+    g_emulator.m_cdrom->m_Xa.nbits = xa.get<SaveStates::XANBits>().value;
+    g_emulator.m_cdrom->m_Xa.nsamples = xa.get<SaveStates::XANSamples>().value;
+    g_emulator.m_cdrom->m_Xa.stereo = xa.get<SaveStates::XAStereo>().value;
+    auto& left = xa.get<SaveStates::XAADPCMLeft>();
+    g_emulator.m_cdrom->m_Xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator.m_cdrom->m_Xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
+    auto& right = xa.get<SaveStates::XAADPCMLeft>();
+    g_emulator.m_cdrom->m_Xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator.m_cdrom->m_Xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
+    xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator.m_cdrom->m_Xa.pcm));
+    g_emulator.m_spu->playADPCMchannel(&g_emulator.m_cdrom->m_Xa);
 
     return true;
 }

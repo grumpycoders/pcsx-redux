@@ -1061,15 +1061,13 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_format() {  // 0x41
-        if (strcmp(Ra0, "bu00:") == 0 &&
-            !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty()) {
+        if (strcmp(Ra0, "bu00:") == 0 && !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty()) {
             PCSX::g_emulator.m_sio->CreateMcd(
                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
             PCSX::g_emulator.m_sio->LoadMcd(
                 1, PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
             v0 = 1;
-        } else if (strcmp(Ra0, "bu10:") == 0 &&
-                   !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty()) {
+        } else if (strcmp(Ra0, "bu10:") == 0 && !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty()) {
             PCSX::g_emulator.m_sio->CreateMcd(
                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
             PCSX::g_emulator.m_sio->LoadMcd(
@@ -2903,49 +2901,94 @@ class BiosImpl : public PCSX::Bios {
             ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
     }
 
-#define bfreeze(ptr, size)                                                          \
-    {                                                                               \
-        if (Mode == 1) memcpy(&PCSX::g_emulator.m_psxMem->g_psxR[base], ptr, size); \
-        if (Mode == 0) memcpy(ptr, &PCSX::g_emulator.m_psxMem->g_psxR[base], size); \
-        base += size;                                                               \
+    template <typename T>
+    static uint32_t fromMemory(T *ptr) {
+        if (ptr) {
+            return reinterpret_cast<uint8_t *>(ptr) - PCSX::g_emulator.m_psxMem->g_psxM;
+        } else {
+            return 0;
+        }
     }
 
-#define bfreezes(ptr) bfreeze(ptr, sizeof(ptr))
-#define bfreezel(ptr) bfreeze(ptr, sizeof(*ptr))
-
-#define bfreezepsxMptr(ptr, type)                                                                 \
-    {                                                                                             \
-        if (Mode == 1) {                                                                          \
-            if (ptr)                                                                              \
-                psxRu32ref(base) = SWAP_LEu32((uint8_t *)(ptr)-PCSX::g_emulator.m_psxMem->g_psxM); \
-            else                                                                                  \
-                psxRu32ref(base) = 0;                                                             \
-        } else {                                                                                  \
-            if (psxRu32(base) != 0)                                                               \
-                ptr = (type *)(PCSX::g_emulator.m_psxMem->g_psxM + psxRu32(base));                \
-            else                                                                                  \
-                (ptr) = NULL;                                                                     \
-        }                                                                                         \
-        base += sizeof(uint32_t);                                                                 \
+    template <typename T>
+    static T *toMemory(uint32_t val) {
+        if (val) {
+            return reinterpret_cast<T *>(PCSX::g_emulator.m_psxMem->g_psxM + val);
+        } else {
+            return nullptr;
+        }
     }
 
-    void psxBiosFreeze(int Mode) final {
-        uint32_t base = 0x40000;
+    void save(PCSX::SaveStates::BiosHLE &state) {
+        state.get<PCSX::SaveStates::BiosJmpInt>().value = fromMemory(s_jmp_int);
+        state.get<PCSX::SaveStates::BiosPadBuf>().value = fromMemory(s_pad_buf);
+        state.get<PCSX::SaveStates::BiosPadBuf1>().value = fromMemory(s_pad_buf1);
+        state.get<PCSX::SaveStates::BiosPadBuf2>().value = fromMemory(s_pad_buf2);
+        state.get<PCSX::SaveStates::BiosHeapAddr>().value = fromMemory(s_heap_addr);
+        state.get<PCSX::SaveStates::BiosPadBuf1Len>().value = s_pad_buf1len;
+        state.get<PCSX::SaveStates::BiosPadBuf2Len>().value = s_pad_buf2len;
+        for (unsigned i = 0; i < 35; i++) {
+            state.get<PCSX::SaveStates::BiosRegs>().value[i].value = s_regs[i];
+        }
+        for (unsigned i = 0; i < 8; i++) {
+            state.get<PCSX::SaveStates::BiosSysIntRP>().value[i].value = s_SysIntRP[i];
+        }
+        state.get<PCSX::SaveStates::BiosCardState>().value = s_CardState;
+        for (unsigned i = 0; i < 8; i++) {
+            auto &thread = state.get<PCSX::SaveStates::BiosThreads>().value[i];
+            thread.get<PCSX::SaveStates::BiosTCBStatus>().value = s_Thread[i].status;
+            thread.get<PCSX::SaveStates::BiosTCBMode>().value = s_Thread[i].mode;
+            for (unsigned j = 0; j < 32; j++) {
+                thread.get<PCSX::SaveStates::BiosTCBReg>().value[j].value = s_Thread[i].reg[j];
+            }
+            thread.get<PCSX::SaveStates::BiosTCBFunc>().value = s_Thread[i].func;
+        }
+        state.get<PCSX::SaveStates::BiosCurThread>().value = s_CurThread;
+        for (unsigned int i = 0; i < 32; i++) {
+            auto &fd = state.get<PCSX::SaveStates::BiosFDescs>().value[i];
+            fd.get<PCSX::SaveStates::BiosFDName>().value = s_FDesc[i].name;
+            fd.get<PCSX::SaveStates::BiosFDMode>().value = s_FDesc[i].mode;
+            fd.get<PCSX::SaveStates::BiosFDOffset>().value = s_FDesc[i].offset;
+            fd.get<PCSX::SaveStates::BiosFDSize>().value = s_FDesc[i].size;
+            fd.get<PCSX::SaveStates::BiosFDMCFile>().value = s_FDesc[i].mcfile;
+        }
+        state.get<PCSX::SaveStates::BiosCardActiveChan>().value = s_card_active_chan;
+    }
 
-        bfreezepsxMptr(s_jmp_int, uint32_t);
-        bfreezepsxMptr(s_pad_buf, int);
-        bfreezepsxMptr(s_pad_buf1, char);
-        bfreezepsxMptr(s_pad_buf2, char);
-        bfreezepsxMptr(s_heap_addr, uint32_t);
-        bfreezel(&s_pad_buf1len);
-        bfreezel(&s_pad_buf2len);
-        bfreezes(s_regs);
-        bfreezes(s_SysIntRP);
-        bfreezel(&s_CardState);
-        bfreezes(s_Thread);
-        bfreezel(&s_CurThread);
-        bfreezes(s_FDesc);
-        bfreezel(&s_card_active_chan);
+    void load(const PCSX::SaveStates::BiosHLE &state) {
+        s_jmp_int = toMemory<uint32_t>(state.get<PCSX::SaveStates::BiosJmpInt>().value);
+        s_pad_buf = toMemory<int>(state.get<PCSX::SaveStates::BiosPadBuf>().value);
+        s_pad_buf1 = toMemory<char>(state.get<PCSX::SaveStates::BiosPadBuf1>().value);
+        s_pad_buf2 = toMemory<char>(state.get<PCSX::SaveStates::BiosPadBuf2>().value);
+        s_heap_addr = toMemory<uint32_t>(state.get<PCSX::SaveStates::BiosHeapAddr>().value);
+        s_pad_buf1len = state.get<PCSX::SaveStates::BiosPadBuf1Len>().value;
+        s_pad_buf2len = state.get<PCSX::SaveStates::BiosPadBuf2Len>().value;
+        for (unsigned i = 0; i < 35; i++) {
+            s_regs[i] = state.get<PCSX::SaveStates::BiosRegs>().value[i].value;
+        }
+        for (unsigned i = 0; i < 8; i++) {
+            s_SysIntRP[i] = state.get<PCSX::SaveStates::BiosSysIntRP>().value[i].value;
+        }
+        s_CardState = state.get<PCSX::SaveStates::BiosCardState>().value;
+        for (unsigned i = 0; i < 8; i++) {
+            const auto &thread = state.get<PCSX::SaveStates::BiosThreads>().value[i];
+            s_Thread[i].status = thread.get<PCSX::SaveStates::BiosTCBStatus>().value;
+            s_Thread[i].mode = thread.get<PCSX::SaveStates::BiosTCBMode>().value;
+            for (unsigned j = 0; j < 32; j++) {
+                s_Thread[i].reg[j] = thread.get<PCSX::SaveStates::BiosTCBReg>().value[j].value;
+            }
+            s_Thread[i].func = thread.get<PCSX::SaveStates::BiosTCBFunc>().value;
+        }
+        s_CurThread = state.get<PCSX::SaveStates::BiosCurThread>().value;
+        for (unsigned int i = 0; i < 32; i++) {
+            const auto &fd = state.get<PCSX::SaveStates::BiosFDescs>().value[i];
+            std::strncpy(s_FDesc[i].name, fd.get<PCSX::SaveStates::BiosFDName>().value.c_str(), 32);
+            s_FDesc[i].mode = fd.get<PCSX::SaveStates::BiosFDMode>().value;
+            s_FDesc[i].offset = fd.get<PCSX::SaveStates::BiosFDOffset>().value;
+            s_FDesc[i].size = fd.get<PCSX::SaveStates::BiosFDSize>().value;
+            s_FDesc[i].mcfile = fd.get<PCSX::SaveStates::BiosFDMCFile>().value;
+        }
+        s_card_active_chan = state.get<PCSX::SaveStates::BiosCardActiveChan>().value;
     }
 };
 
