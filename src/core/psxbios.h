@@ -21,6 +21,8 @@
 
 #include <stdint.h>
 
+#include "core/sstate.h"
+
 namespace PCSX {
 
 class Bios {
@@ -34,11 +36,13 @@ class Bios {
     virtual void psxBiosInit() = 0;
     virtual void psxBiosShutdown() = 0;
     virtual void psxBiosException() = 0;
-    virtual void psxBiosFreeze(int Mode) = 0;
 
     virtual bool callA0(unsigned index) = 0;
     virtual bool callB0(unsigned index) = 0;
     virtual bool callC0(unsigned index) = 0;
+
+    virtual void save(SaveStates::BiosHLE &state) = 0;
+    virtual void load(const SaveStates::BiosHLE &state) = 0;
 
     bool inSoftCall() { return m_hleSoftCall; }
 

@@ -436,7 +436,7 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> {
 
   private:
     type &ref;
-    type copy;
+    type copy = type();
 };
 
 template <typename FieldType, typename name, uint64_t fieldNumberValue>
@@ -474,7 +474,7 @@ struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> {
 
   private:
     type ref;
-    FieldType copy;
+    FieldType copy = FieldType();
 };
 
 template <typename FieldType, size_t amount, typename name, uint64_t fieldNumberValue>
