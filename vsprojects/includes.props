@@ -5,6 +5,10 @@
   <PropertyGroup>
     <IncludePath>$(SolutionDir)..\third_party\zstr\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
