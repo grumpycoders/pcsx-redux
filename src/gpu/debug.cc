@@ -127,14 +127,7 @@ std::string PCSX::GPU::Debug::SetDisplayMode::title() {
     bool inter = (m_data >> 5) & 1;
     bool reverse = (m_data >> 7) & 1;
     const char *widths[8] = {
-        "256",
-        "320",
-        "512",
-        "640",
-        "384",
-        "???(101)",
-        "???(110)",
-        "???(111)",
+        "256", "320", "512", "640", "384", "???(101)", "???(110)", "???(111)",
     };
 
     uint16_t extra = m_data >> 8;
@@ -158,4 +151,31 @@ std::string PCSX::GPU::Debug::SetDisplayMode::title() {
 
 std::string PCSX::GPU::Debug::GetDisplayInfo::title() {
     return _("WriteStatus CMD 0x10 Get Display Info; index: ") + std::to_string(m_data);
+}
+
+std::string PCSX::GPU::Debug::BlockFill::title() {
+    char C[7];
+    std::snprintf(C, 7, "%06x", m_color);
+    return _("DMA CMD - BlockFill(") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" + std::to_string(m_w) +
+           ", " + std::to_string(m_h) + ") #" + C;
+}
+
+std::string PCSX::GPU::Debug::Polygon::title() {
+    std::string ret = _("DMA CMD - Polygon; ");
+    ret += m_iip ? _("shaded; ") : _("flat; ");
+    ret += m_vtx ? "4" : "3";
+    ret += _(" vertices");
+    if (m_tme) ret += _("; textured");
+    if (m_abe) ret += _("; semi transparent");
+    if (m_tge) ret += _("; brightness correction");
+    return ret;
+}
+
+std::string PCSX::GPU::Debug::Line::title() {
+    std::string ret = _("DMA CMD - Line; ");
+    ret += m_iip ? _("shaded; ") : _("flat; ");
+    ret += std::to_string(m_x.size());
+    ret += _(" vertices");
+    if (m_abe) ret += _("; semi transparent");
+    return ret;
 }

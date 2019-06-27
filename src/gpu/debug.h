@@ -190,7 +190,57 @@ class GetDisplayInfo : public Command {
 // ---- dma packets
 
 class ClearCache : public Command {
-    std::string title() final { return "DMA CMD 0x01 - ClearCache"; }
+    std::string title() final { return _("DMA CMD - ClearCache"); }
+};
+
+class BlockFill : public Command {
+  public:
+    BlockFill(uint32_t color, int16_t x, int16_t y, int16_t w, int16_t h)
+        : m_color(color), m_x(x), m_y(y), m_w(w), m_h(h) {}
+    std::string title() final;
+
+  private:
+    const uint32_t m_color;
+    const int16_t m_x, m_y, m_w, m_h;
+};
+
+class Polygon : public Command {
+  public:
+    Polygon(bool iip, bool vtx, bool tme, bool abe, bool tge)
+        : m_iip(iip), m_vtx(vtx), m_tme(tme), m_abe(abe), m_tge(tge) {}
+    void setColor(uint32_t c, unsigned idx) { m_colors[idx] = c; }
+    void setX(int16_t x, unsigned idx) { m_x[idx] = x; }
+    void setY(int16_t y, unsigned idx) { m_y[idx] = y; }
+    void setU(uint8_t u, unsigned idx) { m_u[idx] = u; }
+    void setV(uint8_t v, unsigned idx) { m_v[idx] = v; }
+    void setClutID(uint16_t clutID) { m_clutID = clutID; }
+    void setTexturePage(uint16_t texturePage) { m_texturePage = texturePage; }
+    std::string title() final;
+
+  private:
+    const bool m_iip, m_vtx, m_tme, m_abe, m_tge;
+    uint32_t m_colors[4];
+    int16_t m_x[4];
+    int16_t m_y[4];
+    uint8_t m_u[4];
+    uint8_t m_v[4];
+    uint16_t m_clutID;
+    uint16_t m_texturePage;
+};
+
+class Line : public Command {
+  public:
+    Line(bool iip, bool pll, bool abe) : m_iip(iip), m_pll(pll), m_abe(abe) {}
+    void setColors(const std::vector<uint32_t>& colors) { m_colors = colors; }
+    void setX(const std::vector<int16_t>& x) { m_x = x; }
+    void setY(const std::vector<int16_t>& y) { m_y = y; }
+    std::string title() final;
+
+  private:
+    const bool m_iip, m_pll, m_abe;
+    std::vector<uint32_t> m_colors;
+    std::vector<int16_t> m_x;
+    std::vector<int16_t> m_y;
 };
 
 }  // namespace Debug

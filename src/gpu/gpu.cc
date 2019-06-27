@@ -1253,8 +1253,8 @@ ENDVRAM:
         int transferSize = iSize;
         uint8_t *transferPtr = reinterpret_cast<uint8_t *>(pMem);
         bool breakOut = false;
-        while (!breakOut && transferSize) {
-            bool gotUnderrun = false;
+        bool gotUnderrun = false;
+        while (!breakOut && !gotUnderrun && transferSize) {
             bool gotUnknown = false;
             const uint32_t packetHead = Prim::get32<uint32_t>(transferPtr);
             transferSize -= 1;
@@ -1270,17 +1270,31 @@ ENDVRAM:
                                                           // 01 = 1x1
                                                           // 10 = 8x8
                                                           // 11 = 8x8
+
             const uint32_t packetInfo = packetHead & 0xffffff;
+            const unsigned polyPackets = (3 + vtx) * (tme + 1) + iip * (2 + vtx);
+            const uint32_t color = packetInfo;
             switch (cmdType) {
                 case 0:  // GPU command
                     switch (cmd) {
                         case 0x01:  // clear cache
+                            if (cmd == 0) {
+                                m_debugger.addEvent([]() { return new Debug::ClearCache(); });
+                            } else {
+                                gotUnknown = true;
+                            }
                             break;
                         case 0x02:  // block draw
                             if (transferSize < 2) {
                                 gotUnderrun = true;
                                 transferSize = 0;
                             } else {
+                                transferSize -= 2;
+                                int16_t x = Prim::get16<int16_t>(transferPtr);
+                                int16_t y = Prim::get16<int16_t>(transferPtr);
+                                int16_t w = Prim::get16<int16_t>(transferPtr);
+                                int16_t h = Prim::get16<int16_t>(transferPtr);
+                                m_debugger.addEvent([&]() { return new Debug::BlockFill(color, x, y, w, h); });
                             }
                             break;
                         default:
@@ -1289,9 +1303,103 @@ ENDVRAM:
                     }
                     break;
                 case 1:  // Polygon primitive
+                    if (polyPackets > transferSize) {
+                        gotUnderrun = true;
+                    } else {
+                        transferSize -= polyPackets;
+                        uint32_t colors[4];
+                        int16_t x[4];
+                        int16_t y[4];
+                        uint8_t u[4];
+                        uint8_t v[4];
+                        uint16_t clutID = 0;
+                        uint16_t texturePage = 0;
+                        const unsigned count = 3 + vtx;
+                        for (unsigned i = 0; i < count; i++) {
+                            if (i > 0 && iip) {
+                                colors[i] = Prim::get32<uint32_t>(transferPtr) & 0xffffff;
+                            } else {
+                                colors[i] = color;
+                            }
+                            x[i] = Prim::get16<int16_t>(transferPtr);
+                            y[i] = Prim::get16<int16_t>(transferPtr);
+                            if (tme) {
+                                u[i] = Prim::get8<uint8_t>(transferPtr);
+                                v[i] = Prim::get8<uint8_t>(transferPtr);
+                                uint16_t extra = Prim::get16<uint16_t>(transferPtr);
+                                if (i == 0) {
+                                    clutID = extra;
+                                } else if (i == 1) {
+                                    texturePage = extra;
+                                }
+                            } else {
+                                u[i] = 0;
+                                v[i] = 0;
+                            }
+                        }
+                        if (!vtx) {
+                            colors[3] = 0;
+                            x[3] = 0;
+                            y[3] = 0;
+                            u[3] = 0;
+                            v[3] = 0;
+                        }
+                        m_debugger.addEvent([&]() {
+                            auto ret = new Debug::Polygon(iip, vtx, tme, abe, tge);
+                            ret->setClutID(clutID);
+                            ret->setTexturePage(texturePage);
+                            for (unsigned i = 0; i < 4; i++) {
+                                ret->setX(x[i], i);
+                                ret->setY(y[i], i);
+                                ret->setU(u[i], i);
+                                ret->setV(v[i], i);
+                                ret->setColor(colors[i], i);
+                            }
+                            return ret;
+                        });
+                    }
                     break;
                 case 2:  // Line primitive
-                    break;
+                {
+                    unsigned index = 0;
+                    std::vector<int16_t> xs;
+                    std::vector<int16_t> ys;
+                    std::vector<uint32_t> colors;
+                    while (pll && index != 2) {
+                        if (iip && index) {
+                            if (transferSize == 0) {
+                                gotUnderrun = true;
+                                break;
+                            }
+                            transferSize--;
+                            uint32_t c = Prim::get32<uint32_t>(transferPtr);
+                            if (c == 0x555555) break;
+                            colors.push_back(c);
+                        } else {
+                            colors.push_back(color);
+                        }
+                        if (transferSize == 0) {
+                            gotUnderrun = true;
+                            break;
+                        }
+                        transferSize--;
+                        int16_t x = Prim::get16<int16_t>(transferPtr);
+                        int16_t y = Prim::get16<int16_t>(transferPtr);
+                        if ((x == 0x5555) && (y == 0x5555)) break;
+                        xs.push_back(x);
+                        ys.push_back(y);
+                        index++;
+                    }
+                    if (!gotUnderrun) {
+                        m_debugger.addEvent([&]() {
+                            auto ret = new Debug::Line(iip, pll, abe);
+                            ret->setColors(colors);
+                            ret->setX(xs);
+                            ret->setY(ys);
+                            return ret;
+                        });
+                    }
+                } break;
                 case 3:  // Sprite primitive
                     break;
                 case 4:  // Move image in FB
