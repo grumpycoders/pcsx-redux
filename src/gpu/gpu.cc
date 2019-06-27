@@ -1249,6 +1249,103 @@ STARTVRAM:
 ENDVRAM:
 
     if (DataWriteMode == DR_NORMAL) {
+        // new processing loop
+        int transferSize = iSize;
+        uint8_t *transferPtr = reinterpret_cast<uint8_t *>(pMem);
+        bool breakOut = false;
+        while (!breakOut && transferSize) {
+            bool gotUnderrun = false;
+            bool gotUnknown = false;
+            const uint32_t packetHead = Prim::get32<uint32_t>(transferPtr);
+            transferSize -= 1;
+            const uint8_t cmdType = packetHead >> 29;     // 3 topmost bits = command "type"
+            const uint8_t cmd = packetHead >> 24 & 0x1f;  // 5 next bits = "command", when it's not a bitfield
+            const bool iip = (packetHead >> 28) & 1;      // flat shading or gouraud shading?
+            const bool vtx = (packetHead >> 27) & 1;      // 3 vertices or 4 vertices?
+            const bool pll = (packetHead >> 27) & 1;      // polyline?
+            const bool tme = (packetHead >> 26) & 1;      // texture mapping?
+            const bool abe = (packetHead >> 25) & 1;      // semi transparency?
+            const bool tge = (packetHead >> 24) & 1;      // brightness calculation?
+            const uint8_t size = (packetHead >> 27) & 3;  // 00 = free size
+                                                          // 01 = 1x1
+                                                          // 10 = 8x8
+                                                          // 11 = 8x8
+            const uint32_t packetInfo = packetHead & 0xffffff;
+            switch (cmdType) {
+                case 0:  // GPU command
+                    switch (cmd) {
+                        case 0x01:  // clear cache
+                            break;
+                        case 0x02:  // block draw
+                            if (transferSize < 2) {
+                                gotUnderrun = true;
+                                transferSize = 0;
+                            } else {
+                            }
+                            break;
+                        default:
+                            gotUnknown = true;
+                            break;
+                    }
+                    break;
+                case 1:  // Polygon primitive
+                    break;
+                case 2:  // Line primitive
+                    break;
+                case 3:  // Sprite primitive
+                    break;
+                case 4:  // Move image in FB
+                    if (cmd == 0) {
+                    } else {
+                        gotUnknown = true;
+                    }
+                    break;
+                case 5:  // Send image to FB
+                    if (cmd == 0) {
+                    } else {
+                        gotUnknown = true;
+                    }
+                    break;
+                case 6:  // Copy image from FB
+                    if (cmd == 0) {
+                    } else {
+                        gotUnknown = true;
+                    }
+                    break;
+                case 7:  // Environment command
+                    switch (cmd) {
+                        case 1:  // draw mode setting
+                            break;
+                        case 2:  // texture window setting
+                            break;
+                        case 3:  // set drawing area top left
+                            break;
+                        case 4:  // set drawing area bottom right
+                            break;
+                        case 5:  // drawing offset
+                            break;
+                        case 6:  // mask setting
+                            break;
+                        default:
+                            gotUnknown = true;
+                            break;
+                    }
+                    break;
+            }
+            if (gotUnknown) {
+                m_debugger.addEvent(
+                    [&]() {
+                        char packet[9];
+                        std::snprintf(packet, 9, "%08x", packetHead);
+                        return new Debug::Invalid(_("Unsupported DMA CMD 0x") + std::string(packet));
+                    },
+                    true);
+            }
+            if (gotUnderrun) {
+                m_debugger.addEvent([]() { return new Debug::Invalid(_("Starved GPU DMA buffer")); }, true);
+            }
+        }
+        // old processing loop
         for (; i < iSize;) {
             if (DataWriteMode == DR_VRAMTRANSFER) goto STARTVRAM;
 
@@ -1266,13 +1363,6 @@ ENDVRAM:
                     gpuDataM[0] = gdata;
                     gpuDataP = 1;
                 } else {
-                    m_debugger.addEvent(
-                        [&]() {
-                            char cmd[3];
-                            std::snprintf(cmd, 3, "%02x", command);
-                            return new Debug::Invalid(_("Unsupported DMA command 0x") + std::string(cmd));
-                        },
-                        true);
                     continue;
                 }
             } else {
@@ -1287,7 +1377,6 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_debugger.addEvent([&]() { return m_prim.debug(gpuCommand, (uint8_t *)gpuDataM); });
                 m_prim.callFunc(gpuCommand, (uint8_t *)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games

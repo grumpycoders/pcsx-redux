@@ -187,6 +187,12 @@ class GetDisplayInfo : public Command {
     uint32_t m_data;
 };
 
+// ---- dma packets
+
+class ClearCache : public Command {
+    std::string title() final { return "DMA CMD 0x01 - ClearCache"; }
+};
+
 }  // namespace Debug
 
 }  // namespace GPU
