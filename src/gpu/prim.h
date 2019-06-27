@@ -57,6 +57,26 @@ class Prim : public Renderer {
     }
 
   private:
+    template <typename T>
+    T get8(uint8_t *&base) {
+        uint8_t b = *base++;
+        return *reinterpret_cast<T*>(&b);
+    }
+    template <typename T>
+    T get16(uint8_t *&base) {
+        uint16_t h = *base++;
+        h |= static_cast<uint16_t>(*base++) << 8;
+        return *reinterpret_cast<T*>(&h);
+    }
+    template <typename T>
+    T get32(uint8_t *&base) {
+        uint32_t w = *base++;
+        w |= static_cast<uint32_t>(*base++) << 8;
+        w |= static_cast<uint32_t>(*base++) << 16;
+        w |= static_cast<uint32_t>(*base++) << 24;
+        return *reinterpret_cast<T*>(&w);
+    }
+
     int iUseDither = 0;
     int32_t GlobalTextREST;
 

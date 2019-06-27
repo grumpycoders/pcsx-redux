@@ -70,6 +70,8 @@ std::string PCSX::GPU::Debug::VRAMWrite::title() {
            address;
 }
 
+// ---- WriteStatus ----
+
 std::string PCSX::GPU::Debug::DMASetup::title() {
     switch (m_direction) {
         case 0:
@@ -118,29 +120,33 @@ std::string PCSX::GPU::Debug::VDispRange::title() {
 }
 
 std::string PCSX::GPU::Debug::SetDisplayMode::title() {
-    uint8_t w0 = m_data & 3;
+    uint8_t w = m_data & 3 | (m_data >> 4) & 4;
     bool h = (m_data >> 2) & 1;
     bool mode = (m_data >> 3) & 1;
     bool rgb = (m_data >> 4) & 1;
     bool inter = (m_data >> 5) & 1;
-    bool w1 = (m_data >> 6) & 1;
     bool reverse = (m_data >> 7) & 1;
+    const char *widths[8] = {
+        "256",
+        "320",
+        "512",
+        "640",
+        "384",
+        "???(101)",
+        "???(110)",
+        "???(111)",
+    };
 
     uint16_t extra = m_data >> 8;
 
     std::string ret = _("WriteSatus CMD 0x08 Set Display Mode; width: ");
-    ret += std::to_string(w0);
+    ret += widths[w];
     ret += _("; height: ");
-    ret += h ? "1" : "0";
-    ret += _("; mode: ");
-    ret += mode ? "1" : "0";
-    ret += rgb ? _("; RGB888") : _("; RGB555");
-    ret += inter ? _("; interlaced") : _("; not interlaced");
-    ret += "; w1: ";
-    ret += w1 ? "1" : "0";
-    ret += _("; reverse: ");
-    ret += reverse ? "true" : "false";
-
+    ret += h ? "480" : "240";
+    ret += mode ? "; PAL" : "; NTSC";
+    ret += rgb ? "; RGB888" : "; RGB555";
+    if (inter) ret += _("; interlaced");
+    if (reverse) ret += _("; reversed");
     if (extra) {
         char C[5];
         std::snprintf(C, 5, "%04x", extra);
