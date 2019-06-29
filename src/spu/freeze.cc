@@ -65,17 +65,19 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPURam>().copyFrom(reinterpret_cast<uint8_t *>(spuMem));
     spu.get<SaveStates::SPUPorts>().copyFrom(reinterpret_cast<uint8_t *>(regArea));
     auto &xa = spu.get<SaveStates::XAField>();
-    xa.get<SaveStates::XAFrequency>().value = xapGlobal->freq;
-    xa.get<SaveStates::XANBits>().value = xapGlobal->nbits;
-    xa.get<SaveStates::XANSamples>().value = xapGlobal->nsamples;
-    xa.get<SaveStates::XAStereo>().value = xapGlobal->stereo;
-    auto &left = xa.get<SaveStates::XAADPCMLeft>();
-    left.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->left.y0;
-    left.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->left.y1;
-    auto &right = xa.get<SaveStates::XAADPCMLeft>();
-    right.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->right.y0;
-    right.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->right.y1;
-    xa.get<SaveStates::XAPCM>().copyFrom(reinterpret_cast<uint8_t *>(xapGlobal->pcm));
+    if (xapGlobal) {
+        xa.get<SaveStates::XAFrequency>().value = xapGlobal->freq;
+        xa.get<SaveStates::XANBits>().value = xapGlobal->nbits;
+        xa.get<SaveStates::XANSamples>().value = xapGlobal->nsamples;
+        xa.get<SaveStates::XAStereo>().value = xapGlobal->stereo;
+        auto &left = xa.get<SaveStates::XAADPCMLeft>();
+        left.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->left.y0;
+        left.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->left.y1;
+        auto &right = xa.get<SaveStates::XAADPCMLeft>();
+        right.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->right.y0;
+        right.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->right.y1;
+        xa.get<SaveStates::XAPCM>().copyFrom(reinterpret_cast<uint8_t *>(xapGlobal->pcm));
+    }
     spu.get<SaveStates::SPUIrq>().value = spuIrq;
     if (pSpuIrq) spu.get<SaveStates::SPUIrqPtr>().value = uintptr_t(pSpuIrq - spuMemC);
 
@@ -85,9 +87,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
         data = s_chan[i].data;
         channel.get<SaveStates::ADSRInfo>() = s_chan[i].ADSR;
         channel.get<SaveStates::ADSRInfoEx>() = s_chan[i].ADSRX;
-        auto storePtr = [=](uint8_t *ptr, Protobuf::Int32 &val) {
-            val.value = ptr ? ptr - spuMemC : -1;
-        };
+        auto storePtr = [=](uint8_t *ptr, Protobuf::Int32 &val) { val.value = ptr ? ptr - spuMemC : -1; };
         storePtr(s_chan[i].pStart, data.get<Chan::StartPtr>());
         storePtr(s_chan[i].pCurr, data.get<Chan::CurrPtr>());
         storePtr(s_chan[i].pLoop, data.get<Chan::LoopPtr>());
@@ -115,7 +115,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     xapGlobal = 0;
 
     spuIrq = spu.get<SaveStates::SPUIrq>().value;
-    const auto& pSpuIrqIn = spu.get<SaveStates::SPUIrqPtr>().value;
+    const auto &pSpuIrqIn = spu.get<SaveStates::SPUIrqPtr>().value;
     pSpuIrq = pSpuIrqIn ? pSpuIrqIn + spuMemC : nullptr;
 
     for (unsigned i = 0; i < MAXCHAN; i++) {
