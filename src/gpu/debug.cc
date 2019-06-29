@@ -179,3 +179,11 @@ std::string PCSX::GPU::Debug::Line::title() {
     if (m_abe) ret += _("; semi transparent");
     return ret;
 }
+
+std::string PCSX::GPU::Debug::Blit::title() {
+    std::string ret = _("DMA CMD - Blit (");
+    ret += std::to_string(m_sx) + ", " + std::to_string(m_sy) + ") -> (";
+    ret += std::to_string(m_dx) + ", " + std::to_string(m_dy) + ") +(";
+    ret += std::to_string(m_w) + ", " + std::to_string(m_h) + ")";
+    return ret;
+}

@@ -243,6 +243,16 @@ class Line : public Command {
     std::vector<int16_t> m_y;
 };
 
+class Blit : public Command {
+  public:
+    Blit(int16_t sx, int16_t sy, int16_t dx, int16_t dy, int16_t w, int16_t h)
+        : m_sx(sx), m_sy(sy), m_dx(dx), m_dy(dy), m_w(w), m_h(h) {}
+    std::string title() final;
+
+  private:
+    int16_t m_sx, m_sy, m_dx, m_dy, m_w, m_h;
+};
+
 }  // namespace Debug
 
 }  // namespace GPU

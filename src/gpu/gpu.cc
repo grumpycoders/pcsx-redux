@@ -1401,11 +1401,46 @@ ENDVRAM:
                     }
                 } break;
                 case 3:  // Sprite primitive
-                    break;
+                {
+                    int16_t x = Prim::get16<int16_t>(transferPtr);
+                    int16_t y = Prim::get16<int16_t>(transferPtr);
+                    uint8_t u = 0;
+                    uint8_t v = 0;
+                    uint16_t clutID = 0;
+                    int16_t w, h;
+                    if (tme) {
+                        u = Prim::get8<int8_t>(transferPtr);
+                        v = Prim::get8<int8_t>(transferPtr);
+                        clutID = Prim::get16<uint16_t>(transferPtr);
+                    }
+                    switch (size) {
+                        case 0:
+                            w = Prim::get16<int16_t>(transferPtr);
+                            h = Prim::get16<int16_t>(transferPtr);
+                            break;
+                        case 1:
+                            w = h = 1;
+                            break;
+                        case 2:
+                            w = h = 8;
+                            break;
+                        case 3:
+                            w = h = 16;
+                            break;
+                    }
+                } break;
                 case 4:  // Move image in FB
-                    if (cmd == 0) {
+                    if (transferSize < 3) {
+                        gotUnderrun = true;
                     } else {
-                        gotUnknown = true;
+                        transferSize += 3;
+                        int16_t sx = Prim::get16<int16_t>(transferPtr);
+                        int16_t sy = Prim::get16<int16_t>(transferPtr);
+                        int16_t dx = Prim::get16<int16_t>(transferPtr);
+                        int16_t dy = Prim::get16<int16_t>(transferPtr);
+                        int16_t w = Prim::get16<int16_t>(transferPtr);
+                        int16_t h = Prim::get16<int16_t>(transferPtr);
+                        m_debugger.addEvent([&]() { return new Debug::Blit(sx, sy, dx, dy, w, h); });
                     }
                     break;
                 case 5:  // Send image to FB
