@@ -55,7 +55,22 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             IntCyclesField {},
             ICacheAddr { g_emulator.m_psxCpu->m_psxRegs.ICache_Addr },
             ICacheCode { g_emulator.m_psxCpu->m_psxRegs.ICache_Code },
-            ICacheValid { g_emulator.m_psxCpu->m_psxRegs.ICache_valid }
+            ICacheValid { g_emulator.m_psxCpu->m_psxRegs.ICache_valid },
+            NextIsDelaySlot { g_emulator.m_psxCpu->m_nextIsDelaySlot },
+            DelaySlotInfo1 {
+                DelaySlotIndex { g_emulator.m_psxCpu->m_delayedLoadInfo[0].index },
+                DelaySlotValue { g_emulator.m_psxCpu->m_delayedLoadInfo[0].value },
+                DelaySlotPcValue { g_emulator.m_psxCpu->m_delayedLoadInfo[0].pcValue },
+                DelaySlotActive { g_emulator.m_psxCpu->m_delayedLoadInfo[0].active },
+                DelaySlotPcActive { g_emulator.m_psxCpu->m_delayedLoadInfo[0].pcActive }
+            },
+            DelaySlotInfo2 {
+                DelaySlotIndex { g_emulator.m_psxCpu->m_delayedLoadInfo[1].index },
+                DelaySlotValue { g_emulator.m_psxCpu->m_delayedLoadInfo[1].value },
+                DelaySlotPcValue { g_emulator.m_psxCpu->m_delayedLoadInfo[1].pcValue },
+                DelaySlotActive { g_emulator.m_psxCpu->m_delayedLoadInfo[1].active },
+                DelaySlotPcActive { g_emulator.m_psxCpu->m_delayedLoadInfo[1].pcActive }
+            }
         },
         GPU {},
         SPU {},

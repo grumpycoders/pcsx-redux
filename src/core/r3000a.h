@@ -287,6 +287,37 @@ class R3000Acpu {
     psxRegisters m_psxRegs;
     bool m_booted = false;
 
+    bool m_nextIsDelaySlot = false;
+    bool m_inDelaySlot = false;
+    struct {
+        uint32_t index = 0;
+        uint32_t value = 0;
+        uint32_t pcValue = 0;
+        bool active = false;
+        bool pcActive = false;
+    } m_delayedLoadInfo[2];
+    unsigned m_currentDelayedLoad = 0;
+    uint32_t &delayedLoad(unsigned reg) {
+        if (reg >= 32) abort();
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = reg;
+        return delayedLoad.value;
+    }
+    void delayedLoad(unsigned reg, uint32_t value) {
+        auto &ref = delayedLoad(reg);
+        ref = value;
+    }
+    uint32_t &delayedPCLoad() {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.pcActive = true;
+        return delayedLoad.pcValue;
+    }
+    void delayedPCLoad(uint32_t value) {
+        auto &ref = delayedPCLoad();
+        ref = value;
+    }
+
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
     inline bool hasToRun() {
@@ -553,37 +584,6 @@ class InterpretedCPU : public R3000Acpu {
   private:
     typedef void (InterpretedCPU::*intFunc_t)();
     typedef const intFunc_t cIntFunc_t;
-
-    bool m_nextIsDelaySlot = false;
-    bool m_inDelaySlot = false;
-    struct {
-        unsigned index = 0;
-        uint32_t value = 0;
-        uint32_t pcValue = 0;
-        bool active = false;
-        bool pcActive = false;
-    } m_delayedLoadInfo[2];
-    unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoad(unsigned reg) {
-        if (reg >= 32) abort();
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        delayedLoad.active = true;
-        delayedLoad.index = reg;
-        return delayedLoad.value;
-    }
-    void delayedLoad(unsigned reg, uint32_t value) {
-        auto &ref = delayedLoad(reg);
-        ref = value;
-    }
-    uint32_t &delayedPCLoad() {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        delayedLoad.pcActive = true;
-        return delayedLoad.pcValue;
-    }
-    void delayedPCLoad(uint32_t value) {
-        auto &ref = delayedPCLoad();
-        ref = value;
-    }
 
     cIntFunc_t *s_pPsxBSC = NULL;
     cIntFunc_t *s_pPsxSPC = NULL;
