@@ -74,7 +74,7 @@ void PCSX::R3000Acpu::psxShutdown() {
     Shutdown();
 }
 
-void PCSX::R3000Acpu::psxException(uint32_t code, uint32_t bd) {
+void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     // Set the Cause
     m_psxRegs.CP0.n.Cause = code;
 

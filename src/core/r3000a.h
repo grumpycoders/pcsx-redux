@@ -251,8 +251,7 @@ typedef struct {
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 
-#define _SetLink(x) \
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4;  // Sets the return address in the link register
+#define _SetLink(x) delayedLoad(x, _PC_ + 4);  // Sets the return address in the link register
 
 class R3000Acpu {
   public:
@@ -262,7 +261,7 @@ class R3000Acpu {
                 m_breakpoints[s][c] = false;
             }
         }
-      }
+    }
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
     virtual void Reset() = 0;
@@ -280,7 +279,7 @@ class R3000Acpu {
     static int psxInit();
     void psxReset();
     void psxShutdown();
-    void psxException(uint32_t code, uint32_t bd);
+    void psxException(uint32_t code, bool bd);
     void psxBranchTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
@@ -540,8 +539,6 @@ class InterpretedCPU : public R3000Acpu {
   protected:
     InterpretedCPU(const std::string &name) : R3000Acpu(name) {}
 
-    static int psxTestLoadDelay(int reg, uint32_t tmp);
-    void psxDelayTest(int reg, uint32_t bpc);
     void psxTestSWInts();
 
     static inline const uint32_t g_LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
@@ -557,9 +554,36 @@ class InterpretedCPU : public R3000Acpu {
     typedef void (InterpretedCPU::*intFunc_t)();
     typedef const intFunc_t cIntFunc_t;
 
-    int s_branch = 0;
-    int s_branch2 = 0;
-    uint32_t s_branchPC;
+    bool m_nextIsDelaySlot = false;
+    bool m_inDelaySlot = false;
+    struct {
+        unsigned index = 0;
+        uint32_t value = 0;
+        uint32_t pcValue = 0;
+        bool active = false;
+        bool pcActive = false;
+    } m_delayedLoadInfo[2];
+    unsigned m_currentDelayedLoad = 0;
+    uint32_t &delayedLoad(unsigned reg) {
+        if (reg >= 32) abort();
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = reg;
+        return delayedLoad.value;
+    }
+    void delayedLoad(unsigned reg, uint32_t value) {
+        auto &ref = delayedLoad(reg);
+        ref = value;
+    }
+    uint32_t &delayedPCLoad() {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.pcActive = true;
+        return delayedLoad.pcValue;
+    }
+    void delayedPCLoad(uint32_t value) {
+        auto &ref = delayedPCLoad();
+        ref = value;
+    }
 
     cIntFunc_t *s_pPsxBSC = NULL;
     cIntFunc_t *s_pPsxSPC = NULL;
@@ -569,12 +593,6 @@ class InterpretedCPU : public R3000Acpu {
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
     void execI();
-    void delayRead(int reg, uint32_t bpc);
-    void delayWrite(int reg, uint32_t bpc);
-    void delayReadWrite(int reg, uint32_t bpc);
-    uint32_t psxBranchNoDelay();
-    int psxDelayBranchExec(uint32_t tar);
-    int psxDelayBranchTest(uint32_t tar1);
     void doBranch(uint32_t tar);
 
     void MTC0(int reg, uint32_t val);

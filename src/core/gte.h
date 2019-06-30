@@ -29,15 +29,13 @@ namespace PCSX {
 
 class GTE {
   public:
-    void MFC2() {
+    void MFC2(uint32_t& dest) {
         // CPU[Rt] = GTE_D[Rd]
-        if (!_Rt_) return;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_] = MFC2_internal(_Rd_);
+        dest = MFC2_internal(_Rd_);
     }
-    void CFC2() {
+    void CFC2(uint32_t& dest) {
         // CPU[Rt] = GTE_C[Rd]
-        if (!_Rt_) return;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_] = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
+        dest = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
     }
     void MTC2() { MTC2_internal(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
     void CTC2() { CTC2_internal(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
