@@ -113,7 +113,8 @@ class ix86 {
 
     void x86SetJ8(unsigned slot);
     void x86SetJ32(unsigned slot);
-    void x86Align(unsigned bytes);
+    void x86Align(uintptr_t bytes);
+    void NOP(unsigned bytes, int8_t* at = nullptr);
 
     /********************/
     /* IX86 intructions */
@@ -586,8 +587,6 @@ class ix86 {
     void PSUBWRtoR(mmxRegister to, mmxRegister from);
     void PSUBDRtoR(mmxRegister to, mmxRegister from);
 
-    void MOVQ64ItoR(mmxRegister reg, uint64_t i);  // Prototype.Todo add all consts to end of block.not after jr $+8
-
     void PSUBUSBRtoR(mmxRegister to, mmxRegister from);
     void PSUBUSWRtoR(mmxRegister to, mmxRegister from);
 
@@ -699,7 +698,7 @@ class ix86 {
             }
         }
 
-        assert(0);
+        abort();
         return arraySize;
     }
     unsigned J32Rel(uint8_t cc, uint32_t to) {
@@ -716,7 +715,7 @@ class ix86 {
             }
         }
 
-        assert(0);
+        abort();
         return arraySize;
     }
     void CMOV32RtoR(uint8_t cc, mainRegister to, mainRegister from) {

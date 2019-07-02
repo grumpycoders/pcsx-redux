@@ -592,7 +592,7 @@ class InterpretedCPU : public R3000Acpu {
     cIntFunc_t *s_pPsxCP2 = NULL;
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
-    void execI();
+    bool execI();
     void doBranch(uint32_t tar);
 
     void MTC0(int reg, uint32_t val);

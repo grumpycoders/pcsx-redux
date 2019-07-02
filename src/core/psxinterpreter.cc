@@ -202,8 +202,7 @@ void PCSX::InterpretedCPU::psxMULTU() {
  * Register branch logic                                  *
  * Format:  OP rs, offset                                 *
  *********************************************************/
-#define RepZBranchi32(op) \
-    if (_i32(_rRs_) op 0) doBranch(_BranchTarget_);
+#define RepZBranchi32(op) if (_i32(_rRs_) op 0) doBranch(_BranchTarget_);                                     
 #define RepZBranchLinki32(op)     \
     if (_i32(_rRs_) op 0) {       \
         _SetLink(31);             \
@@ -293,8 +292,8 @@ void PCSX::InterpretedCPU::psxSYSCALL() {
     PCSX::g_emulator.m_psxCpu->psxException(0x20, m_inDelaySlot);
     if (m_inDelaySlot) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (delayedLoad.index != -1) abort();
-        delayedLoad.active = false;
+        if (!delayedLoad.pcActive) abort();
+        delayedLoad.pcActive = false;
     }
 }
 
@@ -303,14 +302,14 @@ void PCSX::InterpretedCPU::psxRFE() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status =
         (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) |
         ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    psxTestSWInts();
 }
 
 /*********************************************************
  * Register branch logic                                  *
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
-#define RepBranchi32(op) \
-    if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_);
+#define RepBranchi32(op) if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_);                                     
 
 void PCSX::InterpretedCPU::psxBEQ() { RepBranchi32(==) }  // Branch if Rs == Rt
 void PCSX::InterpretedCPU::psxBNE() { RepBranchi32(!=) }  // Branch if Rs != Rt
@@ -329,7 +328,9 @@ void PCSX::InterpretedCPU::psxJAL() {
  * Register jump                                          *
  * Format:  OP rs, rd                                     *
  *********************************************************/
-void PCSX::InterpretedCPU::psxJR() { doBranch(_u32(_rRs_)); }
+void PCSX::InterpretedCPU::psxJR() {
+    doBranch(_u32(_rRs_));
+}
 
 void PCSX::InterpretedCPU::psxJALR() {
     uint32_t temp = _u32(_rRs_);
@@ -498,7 +499,7 @@ inline void PCSX::InterpretedCPU::MTC0(int reg, uint32_t val) {
     //  PCSX::g_system->printf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[12] = val;
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status = val;
             psxTestSWInts();
             break;
 
@@ -519,13 +520,13 @@ void PCSX::InterpretedCPU::psxCTC0() { MTC0(_Rd_, _u32(_rRt_)); }
 void PCSX::InterpretedCPU::psxMFC2() {
     // load delay = 1 latency
     if (!_Rt_) return;
-    PCSX::g_emulator.m_gte->MFC2(delayedLoad(_Rt_));
+    delayedLoad(_Rt_) = PCSX::g_emulator.m_gte->MFC2();
 }
 
 void PCSX::InterpretedCPU::psxCFC2() {
     // load delay = 1 latency
     if (!_Rt_) return;
-    PCSX::g_emulator.m_gte->CFC2(delayedLoad(_Rt_));
+    delayedLoad(_Rt_) = PCSX::g_emulator.m_gte->CFC2();
 }
 
 /*********************************************************
@@ -1034,18 +1035,21 @@ void PCSX::InterpretedCPU::Reset() {
     m_inDelaySlot = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
+    m_delayedLoadInfo[0].pcActive = false;
+    m_delayedLoadInfo[1].pcActive = false;
 }
 void PCSX::InterpretedCPU::Execute() {
     while (hasToRun()) execI();
 }
 void PCSX::InterpretedCPU::ExecuteHLEBlock() {
-    while (!m_nextIsDelaySlot) execI();
-    execI();
+    while (!execI())
+        ;
 }
 void PCSX::InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
 void PCSX::InterpretedCPU::Shutdown() {}
 // interpreter execution
-inline void PCSX::InterpretedCPU::execI() {
+inline bool PCSX::InterpretedCPU::execI() {
+    bool ranDelaySlot = false;
     if (m_nextIsDelaySlot) {
         m_inDelaySlot = true;
         m_nextIsDelaySlot = false;
@@ -1078,9 +1082,11 @@ inline void PCSX::InterpretedCPU::execI() {
     }
     if (m_inDelaySlot) {
         m_inDelaySlot = false;
+        ranDelaySlot = true;
         psxBranchTest();
     }
     if (debug) g_emulator.m_debug->processAfter();
+    return ranDelaySlot;
 }
 
 void PCSX::InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {

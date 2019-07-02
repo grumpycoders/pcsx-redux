@@ -119,7 +119,7 @@ void PCSX::Debug::triggerBP(bpiterator bp, const char * reason) {
     } else {
         m_lastBP = bp;
     }
-    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s"), g_emulator.m_psxCpu->m_psxRegs.pc, reason);
+    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s\n"), g_emulator.m_psxCpu->m_psxRegs.pc, reason);
     PCSX::g_system->pause();
 }
 

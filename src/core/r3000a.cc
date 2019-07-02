@@ -94,8 +94,6 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
 
     // Set the Status
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
-
-    if (!g_emulator.m_psxBios->m_realBiosLoaded) PCSX::g_emulator.m_psxBios->psxBiosException();
 }
 
 void PCSX::R3000Acpu::psxBranchTest() {
