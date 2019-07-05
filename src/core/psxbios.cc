@@ -2685,8 +2685,12 @@ class BiosImpl : public PCSX::Bios {
         psxMu32ref(0x0000) = 0;
         psxMu32ref(0x0004) = SWAP_LEu32((0x3b << 26) | 0);
         // exception handler
-        psxMu32ref(0x0080) = 0;
-        psxMu32ref(0x0084) = SWAP_LEu32((0x3b << 26) | 6);
+        psxMu32ref(0x0080) = SWAP_LEu32(0x3c1a0000);  // lui   $k0, 0x0000
+        psxMu32ref(0x0084) = SWAP_LEu32(0x275a0090);  // addiu $k0, 0x0090
+        psxMu32ref(0x0088) = SWAP_LEu32(0x03400008);  // jr    $k0
+        psxMu32ref(0x008c) = SWAP_LEu32(0x275a0008);  // addiu $k0, 0x0008
+        psxMu32ref(0x0090) = SWAP_LEu32(0x03400008);  // jr    $k0
+        psxMu32ref(0x0094) = SWAP_LEu32((0x3b << 26) | 6);
         // a0 calls handler
         psxMu32ref(0x00a0) = 0;
         psxMu32ref(0x00a4) = SWAP_LEu32((0x3b << 26) | 1);
