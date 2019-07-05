@@ -23,8 +23,6 @@
  *           alexey silinov
  */
 
-#if defined(__i386__) || defined(_M_IX86)
-
 #include "core/ix86/ix86.h"
 
 void PCSX::ix86::x86Init(int8_t* ptr) {
@@ -43,7 +41,10 @@ void PCSX::ix86::x86SetJ8(unsigned slot) {
     assert(*j8 == 0);
     uint32_t jump = (m_x86Ptr - (int8_t*)j8) - 1;
 
-    if (jump > 0x7f) printf("j8 greater than 0x7f!!\n");
+    if (jump > 0x7f) {
+        printf("j8 greater than 0x7f!!\n");
+        abort();
+    }
     *j8 = (uint8_t)jump;
 }
 
@@ -56,13 +57,69 @@ void PCSX::ix86::x86SetJ32(unsigned slot) {
     *j32 = (m_x86Ptr - (int8_t*)j32) - 4;
 }
 
-void PCSX::ix86::x86Align(unsigned bytes) {
+void PCSX::ix86::x86Align(uintptr_t bytes) {
     // fordward align
-    int8_t* newPtr = (int8_t*)(((uint32_t)m_x86Ptr + bytes) & ~(bytes - 1));
+    bytes--;
+    int8_t* newPtr = (int8_t*)(((uintptr_t)m_x86Ptr + bytes) & ~bytes);
     // filling with NOPs
-    // we could be more intelligent and fill with variable-sized NOPs instead.
-    memset(m_x86Ptr, 0x90, newPtr - m_x86Ptr);
-    m_x86Ptr = newPtr;
+    NOP(newPtr - m_x86Ptr);
+    assert(m_x86Ptr == newPtr);
+}
+
+void PCSX::ix86::NOP(unsigned bytes, int8_t* at) {
+    if (at) std::swap(at, m_x86Ptr);
+    while (bytes) {
+        unsigned consumed = 0;
+        switch (bytes) {
+            case 1:  // nop
+                write8(0x90);
+                consumed = 1;
+                break;
+            case 2:  // nop (16 bits operands)
+                write16(0x9066);
+                consumed = 2;
+                break;
+            case 3:  // nop dword ptr[eax]
+                write16(0x1f0f);
+                write8(0x00);
+                consumed = 3;
+                break;
+            case 4:  // nop dword ptr[eax + 0x00]
+                write32(0x00401f0f);
+                consumed = 4;
+                break;
+            case 5:  // nop dword ptr[eax + eax + 0x00]
+                write32(0x00441f0f);
+                write8(0x00);
+                consumed = 5;
+                break;
+            case 6:  // nop dword ptr[eax + eax + 0] (16 bits operands)
+                write32(0x441f0f66);
+                write16(0x0000);
+                consumed = 6;
+                break;
+            case 7:  // nop dword ptr[eax + 0x00000000]
+                write32(0x00801f0f);
+                write16(0x0000);
+                write8(0x00);
+                consumed = 7;
+                break;
+            case 8:  // nop dword ptr[eax + eax + 0x00000000]
+                write32(0x00841f0f);
+                write32(0x00000000);
+                consumed = 8;
+                break;
+            case 9:
+            default:  // nop dword ptr[eax + eax + 0x00000000] (16 bits operands)
+                write32(0x841f0f66);
+                write32(0x00000000);
+                write8(0x00);
+                consumed = 9;
+                break;
+        }
+        bytes -= consumed;
+    }
+    if (at) std::swap(at, m_x86Ptr);
 }
 
 /********************/
@@ -666,7 +723,7 @@ unsigned PCSX::ix86::JMP8(uint8_t to) {
         }
     }
 
-    assert(0);
+    abort();
     return arraySize;
 }
 
@@ -684,7 +741,7 @@ unsigned PCSX::ix86::JMP32(uint32_t to) {
         }
     }
 
-    assert(0);
+    abort();
     return arraySize;
 }
 
@@ -779,7 +836,7 @@ unsigned PCSX::ix86::JO32(uint32_t to) { return J32Rel(0x80, to); }
 unsigned PCSX::ix86::JNO32(uint32_t to) { return J32Rel(0x81, to); }
 
 /* call func */
-void PCSX::ix86::CALLFunc(uint32_t func) { CALL32(func - ((uint32_t)m_x86Ptr + 5)); }
+void PCSX::ix86::CALLFunc(uint32_t func) { CALL32(func - ((uintptr_t)m_x86Ptr + 5)); }
 
 /* call rel32 */
 void PCSX::ix86::CALL32(uint32_t to) {
@@ -1206,14 +1263,6 @@ void PCSX::ix86::PSUBDRtoR(mmxRegister to, mmxRegister from) {
     ModRM(3, to, from);
 }
 
-// changed:basara
-// P.s.It's sux.Don't use it offten.
-void PCSX::ix86::MOVQ64ItoR(mmxRegister reg, uint64_t i) {
-    MOVQMtoR(reg, (uint32_t)(m_x86Ptr) + 2 + 7);
-    JMP8(8);
-    write64(i);
-}
-
 void PCSX::ix86::PSUBUSBRtoR(mmxRegister to, mmxRegister from) {
     write16(0xD80F);
     ModRM(3, to, from);
@@ -1579,5 +1628,3 @@ void PCSX::ix86::PFMINRtoR(sseRegister to, sseRegister from) {
     ModRM(3, to, from);
     write8(0x94);
 }
-
-#endif

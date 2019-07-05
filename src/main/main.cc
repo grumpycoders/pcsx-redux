@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
     system->loadAllLocales();
 
     if (SDL_Init(SDL_INIT_EVERYTHING ^ SDL_INIT_VIDEO) != 0) {
-        assert(0);
+        abort();
     }
 
     s_gui = new PCSX::GUI(args);

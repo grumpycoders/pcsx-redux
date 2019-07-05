@@ -70,474 +70,9 @@ GTE_WR(CTC2);
         PSXCPU_LOG("%s\n", ins.c_str());                                                                               \
     }
 
-void PCSX::InterpretedCPU::delayRead(int reg, uint32_t bpc) {
-    uint32_t rold, rnew;
-
-    //  PCSX::g_system->printf("delayRead at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
-
-    rold = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg];
-    cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
-    (*this.*func)();  // branch delay load
-    rnew = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg];
-
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = bpc;
-
-    s_branch = 0;
-
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg] = rold;
-    execI();  // first branch opcode
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg] = rnew;
-
-    PCSX::g_emulator.m_psxCpu->psxBranchTest();
-}
-
-void PCSX::InterpretedCPU::delayWrite(int reg, uint32_t bpc) {
-    /*  PCSX::g_system->printf("delayWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
-
-            PCSX::g_system->printf("%s\n", disR3000AF(PCSX::g_emulator.m_psxCpu->m_psxRegs.code,
-       PCSX::g_emulator.m_psxCpu->m_psxRegs.pc-4)); PCSX::g_system->printf("%s\n", disR3000AF(PSXMu32(bpc), bpc));*/
-
-    // no changes from normal behavior
-    cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
-    (*this.*func)();
-
-    s_branch = 0;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = bpc;
-
-    PCSX::g_emulator.m_psxCpu->psxBranchTest();
-}
-
-void PCSX::InterpretedCPU::delayReadWrite(int reg, uint32_t bpc) {
-    //  PCSX::g_system->printf("delayReadWrite at %x!\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
-
-    // the branch delay load is skipped
-
-    s_branch = 0;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = bpc;
-
-    PCSX::g_emulator.m_psxCpu->psxBranchTest();
-}
-
-// this defines shall be used with the tmp
-// of the next func (instead of _Funct_...)
-#define _tFunct_ ((tmp)&0x3F)       // The funct part of the instruction register
-#define _tRd_ ((tmp >> 11) & 0x1F)  // The rd part of the instruction register
-#define _tRt_ ((tmp >> 16) & 0x1F)  // The rt part of the instruction register
-#define _tRs_ ((tmp >> 21) & 0x1F)  // The rs part of the instruction register
-#define _tSa_ ((tmp >> 6) & 0x1F)   // The sa part of the instruction register
-
-int PCSX::InterpretedCPU::psxTestLoadDelay(int reg, uint32_t tmp) {
-    if (tmp == 0) return 0;  // NOP
-    switch (tmp >> 26) {
-        case 0x00:  // SPECIAL
-            switch (_tFunct_) {
-                case 0x00:  // SLL
-                case 0x02:
-                case 0x03:  // SRL/SRA
-                    if (_tRd_ == reg && _tRt_ == reg)
-                        return 1;
-                    else if (_tRt_ == reg)
-                        return 2;
-                    else if (_tRd_ == reg)
-                        return 3;
-                    break;
-
-                case 0x08:  // JR
-                    if (_tRs_ == reg) return 2;
-                    break;
-                case 0x09:  // JALR
-                    if (_tRd_ == reg && _tRs_ == reg)
-                        return 1;
-                    else if (_tRs_ == reg)
-                        return 2;
-                    else if (_tRd_ == reg)
-                        return 3;
-                    break;
-
-                    // SYSCALL/BREAK just a break;
-
-                case 0x20:
-                case 0x21:
-                case 0x22:
-                case 0x23:
-                case 0x24:
-                case 0x25:
-                case 0x26:
-                case 0x27:
-                case 0x2a:
-                case 0x2b:  // ADD/ADDU...
-                case 0x04:
-                case 0x06:
-                case 0x07:  // SLLV...
-                    if (_tRd_ == reg && (_tRt_ == reg || _tRs_ == reg))
-                        return 1;
-                    else if (_tRt_ == reg || _tRs_ == reg)
-                        return 2;
-                    else if (_tRd_ == reg)
-                        return 3;
-                    break;
-
-                case 0x10:
-                case 0x12:  // MFHI/MFLO
-                    if (_tRd_ == reg) return 3;
-                    break;
-                case 0x11:
-                case 0x13:  // MTHI/MTLO
-                    if (_tRs_ == reg) return 2;
-                    break;
-
-                case 0x18:
-                case 0x19:
-                case 0x1a:
-                case 0x1b:  // MULT/DIV...
-                    if (_tRt_ == reg || _tRs_ == reg) return 2;
-                    break;
-            }
-            break;
-
-        case 0x01:  // REGIMM
-            switch (_tRt_) {
-                case 0x00:
-                case 0x01:
-                case 0x10:
-                case 0x11:  // BLTZ/BGEZ...
-                    // Xenogears - lbu v0 / beq v0
-                    // - no load delay (fixes battle loading)
-                    break;
-
-                    if (_tRs_ == reg) return 2;
-                    break;
-            }
-            break;
-
-        // J would be just a break;
-        case 0x03:  // JAL
-            if (31 == reg) return 3;
-            break;
-
-        case 0x04:
-        case 0x05:  // BEQ/BNE
-            // Xenogears - lbu v0 / beq v0
-            // - no load delay (fixes battle loading)
-            break;
-
-            if (_tRs_ == reg || _tRt_ == reg) return 2;
-            break;
-
-        case 0x06:
-        case 0x07:  // BLEZ/BGTZ
-            // Xenogears - lbu v0 / beq v0
-            // - no load delay (fixes battle loading)
-            break;
-
-            if (_tRs_ == reg) return 2;
-            break;
-
-        case 0x08:
-        case 0x09:
-        case 0x0a:
-        case 0x0b:
-        case 0x0c:
-        case 0x0d:
-        case 0x0e:  // ADDI/ADDIU...
-            if (_tRt_ == reg && _tRs_ == reg)
-                return 1;
-            else if (_tRs_ == reg)
-                return 2;
-            else if (_tRt_ == reg)
-                return 3;
-            break;
-
-        case 0x0f:  // LUI
-            if (_tRt_ == reg) return 3;
-            break;
-
-        case 0x10:  // COP0
-            switch (_tFunct_) {
-                case 0x00:  // MFC0
-                    if (_tRt_ == reg) return 3;
-                    break;
-                case 0x02:  // CFC0
-                    if (_tRt_ == reg) return 3;
-                    break;
-                case 0x04:  // MTC0
-                    if (_tRt_ == reg) return 2;
-                    break;
-                case 0x06:  // CTC0
-                    if (_tRt_ == reg) return 2;
-                    break;
-                    // RFE just a break;
-            }
-            break;
-
-        case 0x12:  // COP2
-            switch (_tFunct_) {
-                case 0x00:
-                    switch (_tRs_) {
-                        case 0x00:  // MFC2
-                            if (_tRt_ == reg) return 3;
-                            break;
-                        case 0x02:  // CFC2
-                            if (_tRt_ == reg) return 3;
-                            break;
-                        case 0x04:  // MTC2
-                            if (_tRt_ == reg) return 2;
-                            break;
-                        case 0x06:  // CTC2
-                            if (_tRt_ == reg) return 2;
-                            break;
-                    }
-                    break;
-                    // RTPS... break;
-            }
-            break;
-
-        case 0x22:
-        case 0x26:  // LWL/LWR
-            if (_tRt_ == reg)
-                return 3;
-            else if (_tRs_ == reg)
-                return 2;
-            break;
-
-        case 0x20:
-        case 0x21:
-        case 0x23:
-        case 0x24:
-        case 0x25:  // LB/LH/LW/LBU/LHU
-            if (_tRt_ == reg && _tRs_ == reg)
-                return 1;
-            else if (_tRs_ == reg)
-                return 2;
-            else if (_tRt_ == reg)
-                return 3;
-            break;
-
-        case 0x28:
-        case 0x29:
-        case 0x2a:
-        case 0x2b:
-        case 0x2e:  // SB/SH/SWL/SW/SWR
-            if (_tRt_ == reg || _tRs_ == reg) return 2;
-            break;
-
-        case 0x32:
-        case 0x3a:  // LWC2/SWC2
-            if (_tRs_ == reg) return 2;
-            break;
-    }
-
-    return 0;
-}
-
-void PCSX::InterpretedCPU::psxDelayTest(int reg, uint32_t bpc) {
-    uint32_t *code;
-    uint32_t tmp;
-
-    // Don't execute yet - just peek
-    code = PCSX::g_emulator.m_psxCpu->Read_ICache(bpc, true);
-
-    tmp = ((code == NULL) ? 0 : SWAP_LE32(*code));
-    s_branch = 1;
-
-    switch (psxTestLoadDelay(reg, tmp)) {
-        case 1:
-            delayReadWrite(reg, bpc);
-            return;
-        case 2:
-            delayRead(reg, bpc);
-            return;
-        case 3:
-            delayWrite(reg, bpc);
-            return;
-    }
-    cIntFunc_t func = s_pPsxBSC[m_psxRegs.code >> 26];
-    (*this.*func)();
-
-    s_branch = 0;
-    m_psxRegs.pc = bpc;
-
-    psxBranchTest();
-}
-
-uint32_t PCSX::InterpretedCPU::psxBranchNoDelay() {
-    uint32_t *code;
-    uint32_t temp;
-
-    code = PCSX::g_emulator.m_psxCpu->Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, true);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
-    switch (_Op_) {
-        case 0x00:  // SPECIAL
-            switch (_Funct_) {
-                case 0x08:  // JR
-                    return _u32(_rRs_);
-                case 0x09:  // JALR
-                    temp = _u32(_rRs_);
-                    if (_Rd_) {
-                        _SetLink(_Rd_);
-                    }
-                    return temp;
-            }
-            break;
-        case 0x01:  // REGIMM
-            switch (_Rt_) {
-                case 0x00:  // BLTZ
-                    if (_i32(_rRs_) < 0) return _BranchTarget_;
-                    break;
-                case 0x01:  // BGEZ
-                    if (_i32(_rRs_) >= 0) return _BranchTarget_;
-                    break;
-                case 0x08:  // BLTZAL
-                    if (_i32(_rRs_) < 0) {
-                        _SetLink(31);
-                        return _BranchTarget_;
-                    }
-                    break;
-                case 0x09:  // BGEZAL
-                    if (_i32(_rRs_) >= 0) {
-                        _SetLink(31);
-                        return _BranchTarget_;
-                    }
-                    break;
-            }
-            break;
-        case 0x02:  // J
-            return _JumpTarget_;
-        case 0x03:  // JAL
-            _SetLink(31);
-            return _JumpTarget_;
-        case 0x04:  // BEQ
-            if (_i32(_rRs_) == _i32(_rRt_)) return _BranchTarget_;
-            break;
-        case 0x05:  // BNE
-            if (_i32(_rRs_) != _i32(_rRt_)) return _BranchTarget_;
-            break;
-        case 0x06:  // BLEZ
-            if (_i32(_rRs_) <= 0) return _BranchTarget_;
-            break;
-        case 0x07:  // BGTZ
-            if (_i32(_rRs_) > 0) return _BranchTarget_;
-            break;
-    }
-
-    return (uint32_t)-1;
-}
-
-int PCSX::InterpretedCPU::psxDelayBranchExec(uint32_t tar) {
-    execI();
-
-    s_branch = 0;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = tar;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;
-    PCSX::g_emulator.m_psxCpu->psxBranchTest();
-    return 1;
-}
-
-int PCSX::InterpretedCPU::psxDelayBranchTest(uint32_t tar1) {
-    uint32_t tar2, tmp1, tmp2;
-
-    tar2 = psxBranchNoDelay();
-    if (tar2 == (uint32_t)-1) return 0;
-
-    debugI();
-
-    /*
-     * Branch in delay slot:
-     * - execute 1 instruction at tar1
-     * - jump to tar2 (target of branch in delay slot; this branch
-     *   has no normal delay slot, instruction at tar1 was fetched instead)
-     */
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = tar1;
-    tmp1 = psxBranchNoDelay();
-    if (tmp1 == (uint32_t)-1) {
-        return psxDelayBranchExec(tar2);
-    }
-    debugI();
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;
-
-    /*
-     * Got a branch at tar1:
-     * - execute 1 instruction at tar2
-     * - jump to target of that branch (tmp1)
-     */
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = tar2;
-    tmp2 = psxBranchNoDelay();
-    if (tmp2 == (uint32_t)-1) {
-        return psxDelayBranchExec(tmp1);
-    }
-    debugI();
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;
-
-    /*
-     * Got a branch at tar2:
-     * - execute 1 instruction at tmp1
-     * - jump to target of that branch (tmp2)
-     */
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = tmp1;
-    return psxDelayBranchExec(tmp2);
-}
-
 inline void PCSX::InterpretedCPU::doBranch(uint32_t tar) {
-    uint32_t *code;
-    uint32_t tmp;
-
-    s_branch2 = s_branch = 1;
-    s_branchPC = tar;
-
-    // notaz: check for branch in delay slot
-    if (psxDelayBranchTest(tar)) return;
-
-    // branch delay slot
-    code = PCSX::g_emulator.m_psxCpu->Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, true);
-
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
-
-    debugI();
-
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc += 4;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle += PCSX::Emulator::BIAS;
-
-    // check for load delay
-    tmp = PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26;
-    switch (tmp) {
-        case 0x10:  // COP0
-            switch (_Rs_) {
-                case 0x00:  // MFC0
-                case 0x02:  // CFC0
-                    psxDelayTest(_Rt_, s_branchPC);
-                    return;
-            }
-            break;
-        case 0x12:  // COP2
-            switch (_Funct_) {
-                case 0x00:
-                    switch (_Rs_) {
-                        case 0x00:  // MFC2
-                        case 0x02:  // CFC2
-                            psxDelayTest(_Rt_, s_branchPC);
-                            return;
-                    }
-                    break;
-            }
-            break;
-        case 0x32:  // LWC2
-            psxDelayTest(_Rt_, s_branchPC);
-            return;
-        default:
-            if (tmp >= 0x20 && tmp <= 0x26) {  // LB/LH/LWL/LW/LBU/LHU/LWR
-                psxDelayTest(_Rt_, s_branchPC);
-                return;
-            }
-            break;
-    }
-
-    cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
-    (*this.*func)();
-
-    s_branch = 0;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = s_branchPC;
-
-    PCSX::g_emulator.m_psxCpu->psxBranchTest();
+    m_nextIsDelaySlot = true;
+    delayedPCLoad(tar);
 }
 
 /*********************************************************
@@ -667,8 +202,7 @@ void PCSX::InterpretedCPU::psxMULTU() {
  * Register branch logic                                  *
  * Format:  OP rs, offset                                 *
  *********************************************************/
-#define RepZBranchi32(op) \
-    if (_i32(_rRs_) op 0) doBranch(_BranchTarget_);
+#define RepZBranchi32(op) if (_i32(_rRs_) op 0) doBranch(_BranchTarget_);                                     
 #define RepZBranchLinki32(op)     \
     if (_i32(_rRs_) op 0) {       \
         _SetLink(31);             \
@@ -755,7 +289,12 @@ void PCSX::InterpretedCPU::psxBREAK() {
 
 void PCSX::InterpretedCPU::psxSYSCALL() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-    PCSX::g_emulator.m_psxCpu->psxException(0x20, s_branch);
+    PCSX::g_emulator.m_psxCpu->psxException(0x20, m_inDelaySlot);
+    if (m_inDelaySlot) {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (!delayedLoad.pcActive) abort();
+        delayedLoad.pcActive = false;
+    }
 }
 
 void PCSX::InterpretedCPU::psxRFE() {
@@ -763,14 +302,14 @@ void PCSX::InterpretedCPU::psxRFE() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status =
         (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0xfffffff0) |
         ((PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status & 0x3c) >> 2);
+    psxTestSWInts();
 }
 
 /*********************************************************
  * Register branch logic                                  *
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
-#define RepBranchi32(op) \
-    if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_);
+#define RepBranchi32(op) if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_);                                     
 
 void PCSX::InterpretedCPU::psxBEQ() { RepBranchi32(==) }  // Branch if Rs == Rt
 void PCSX::InterpretedCPU::psxBNE() { RepBranchi32(!=) }  // Branch if Rs != Rt
@@ -810,16 +349,8 @@ void PCSX::InterpretedCPU::psxJALR() {
 
 void PCSX::InterpretedCPU::psxLB() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (_Rt_) {
-        _i32(_rRt_) = (signed char)PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
+        _i32(delayedLoad(_Rt_)) = (signed char)PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     }
@@ -827,16 +358,8 @@ void PCSX::InterpretedCPU::psxLB() {
 
 void PCSX::InterpretedCPU::psxLBU() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (_Rt_) {
-        _u32(_rRt_) = PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
+        _u32(delayedLoad(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     }
@@ -844,16 +367,8 @@ void PCSX::InterpretedCPU::psxLBU() {
 
 void PCSX::InterpretedCPU::psxLH() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (_Rt_) {
-        _i32(_rRt_) = (short)PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
+        _i32(delayedLoad(_Rt_)) = (short)PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     }
@@ -861,16 +376,8 @@ void PCSX::InterpretedCPU::psxLH() {
 
 void PCSX::InterpretedCPU::psxLHU() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (_Rt_) {
-        _u32(_rRt_) = PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
+        _u32(delayedLoad(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     }
@@ -878,16 +385,8 @@ void PCSX::InterpretedCPU::psxLHU() {
 
 void PCSX::InterpretedCPU::psxLW() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (_Rt_) {
-        _u32(_rRt_) = PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
+        _u32(delayedLoad(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
     }
@@ -899,16 +398,8 @@ void PCSX::InterpretedCPU::psxLWL() {
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (!_Rt_) return;
-    _u32(_rRt_) = (_u32(_rRt_) & g_LWL_MASK[shift]) | (mem << g_LWL_SHIFT[shift]);
+    _u32(delayedLoad(_Rt_)) = (_u32(_rRt_) & g_LWL_MASK[shift]) | (mem << g_LWL_SHIFT[shift]);
 
     /*
     Mem = 1234.  Reg = abcd
@@ -926,16 +417,8 @@ void PCSX::InterpretedCPU::psxLWR() {
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (!_Rt_) return;
-    _u32(_rRt_) = (_u32(_rRt_) & g_LWR_MASK[shift]) | (mem >> g_LWR_SHIFT[shift]);
+    _u32(delayedLoad(_Rt_)) = (_u32(_rRt_) & g_LWR_MASK[shift]) | (mem >> g_LWR_SHIFT[shift]);
 
     /*
     Mem = 1234.  Reg = abcd
@@ -992,39 +475,23 @@ void PCSX::InterpretedCPU::psxSWR() {
  *********************************************************/
 void PCSX::InterpretedCPU::psxMFC0() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (!_Rt_) return;
-
-    _i32(_rRt_) = (int)_rFs_;
+    _i32(delayedLoad(_Rt_)) = (int)_rFs_;
 }
 
 void PCSX::InterpretedCPU::psxCFC0() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
     if (!_Rt_) return;
-
-    _i32(_rRt_) = (int)_rFs_;
+    _i32(delayedLoad(_Rt_)) = (int)_rFs_;
 }
 
 void PCSX::InterpretedCPU::psxTestSWInts() {
     // the next code is untested, if u know please
     // tell me if it works ok or not (linuzappz)
     if (m_psxRegs.CP0.n.Cause & m_psxRegs.CP0.n.Status & 0x0300 && m_psxRegs.CP0.n.Status & 0x1) {
-        psxException(m_psxRegs.CP0.n.Cause, s_branch);
+        bool inDelaySlot = m_inDelaySlot;
+        m_inDelaySlot = false;
+        psxException(m_psxRegs.CP0.n.Cause, inDelaySlot);
     }
 }
 
@@ -1032,7 +499,7 @@ inline void PCSX::InterpretedCPU::MTC0(int reg, uint32_t val) {
     //  PCSX::g_system->printf("MTC0 %d: %x\n", reg, val);
     switch (reg) {
         case 12:  // Status
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[12] = val;
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status = val;
             psxTestSWInts();
             break;
 
@@ -1052,28 +519,14 @@ void PCSX::InterpretedCPU::psxCTC0() { MTC0(_Rd_, _u32(_rRt_)); }
 
 void PCSX::InterpretedCPU::psxMFC2() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
-    PCSX::g_emulator.m_gte->MFC2();
+    if (!_Rt_) return;
+    delayedLoad(_Rt_) = PCSX::g_emulator.m_gte->MFC2();
 }
 
 void PCSX::InterpretedCPU::psxCFC2() {
     // load delay = 1 latency
-    if (s_branch == 0) {
-        // simulate: beq r0,r0,lw+4 / lw / (delay slot)
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
-        doBranch(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc + 4);
-
-        return;
-    }
-
-    PCSX::g_emulator.m_gte->CFC2();
+    if (!_Rt_) return;
+    delayedLoad(_Rt_) = PCSX::g_emulator.m_gte->CFC2();
 }
 
 /*********************************************************
@@ -1576,18 +1029,31 @@ const PCSX::InterpretedCPU::intFunc_t PCSX::InterpretedCPU::s_pgxpPsxBSCMem[64] 
 ///////////////////////////////////////////
 
 bool PCSX::InterpretedCPU::Init() { return true; }
-void PCSX::InterpretedCPU::Reset() { PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = false; }
+void PCSX::InterpretedCPU::Reset() {
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = false;
+    m_nextIsDelaySlot = false;
+    m_inDelaySlot = false;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
+    m_delayedLoadInfo[0].pcActive = false;
+    m_delayedLoadInfo[1].pcActive = false;
+}
 void PCSX::InterpretedCPU::Execute() {
     while (hasToRun()) execI();
 }
 void PCSX::InterpretedCPU::ExecuteHLEBlock() {
-    s_branch2 = 0;
-    while (!s_branch2) execI();
+    while (!execI())
+        ;
 }
 void PCSX::InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
 void PCSX::InterpretedCPU::Shutdown() {}
 // interpreter execution
-inline void PCSX::InterpretedCPU::execI() {
+inline bool PCSX::InterpretedCPU::execI() {
+    bool ranDelaySlot = false;
+    if (m_nextIsDelaySlot) {
+        m_inDelaySlot = true;
+        m_nextIsDelaySlot = false;
+    }
     InterceptBIOS();
     uint32_t *code = PCSX::g_emulator.m_psxCpu->Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, false);
     PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
@@ -1603,7 +1069,24 @@ inline void PCSX::InterpretedCPU::execI() {
     cIntFunc_t func = s_pPsxBSC[PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26];
     (*this.*func)();
 
+    m_currentDelayedLoad ^= 1;
+    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    if (delayedLoad.active) {
+        if (delayedLoad.index >= 32) abort();
+        m_psxRegs.GPR.r[delayedLoad.index] = delayedLoad.value;
+        delayedLoad.active = false;
+    }
+    if (delayedLoad.pcActive) {
+        m_psxRegs.pc = delayedLoad.pcValue;
+        delayedLoad.pcActive = false;
+    }
+    if (m_inDelaySlot) {
+        m_inDelaySlot = false;
+        ranDelaySlot = true;
+        psxBranchTest();
+    }
     if (debug) g_emulator.m_debug->processAfter();
+    return ranDelaySlot;
 }
 
 void PCSX::InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {

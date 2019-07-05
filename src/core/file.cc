@@ -124,7 +124,7 @@ ssize_t PCSX::File::read(void *dest, ssize_t size) {
     return size;
 }
 ssize_t PCSX::File::write(const void *dest, size_t size) {
-    assert(0);
+    abort();
     return -1;
 }
 int PCSX::File::getc() {

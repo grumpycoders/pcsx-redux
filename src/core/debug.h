@@ -31,19 +31,15 @@ namespace PCSX {
 class Debug {
   public:
     enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
-    static inline std::function<const char *()> s_breakpoint_type_names[] = {
-      [](){ return _("Exec"); },
-      [](){ return _("Read Byte"); },
-      [](){ return _("Read Half"); },
-      [](){ return _("Read Word"); },
-      [](){ return _("Write Byte"); },
-      [](){ return _("Write Half"); },
-      [](){ return _("Write Word"); },
+    static inline std::function<const char*()> s_breakpoint_type_names[] = {
+        []() { return _("Exec"); },       []() { return _("Read Byte"); },  []() { return _("Read Half"); },
+        []() { return _("Read Word"); },  []() { return _("Write Byte"); }, []() { return _("Write Half"); },
+        []() { return _("Write Word"); },
     };
 
     void processBefore();
     void processAfter();
-    void checkBP(uint32_t address, BreakpointType type, const char * reason = nullptr);
+    void checkBP(uint32_t address, BreakpointType type, const char* reason = nullptr);
     std::string generateFlowIDC();
     std::string generateMarkIDC();
 
@@ -114,7 +110,14 @@ class Debug {
 
     void markMap(uint32_t address, int mask);
     bool isMapMarked(uint32_t address, int mask);
-    void triggerBP(bpiterator bp, const char * reason);
+    void triggerBP(bpiterator bp, const char* reason);
+    void queueBP(const char* reason) {
+        m_queuedBP = true;
+        m_queuedBPReason = reason;
+    }
+
+    std::string m_queuedBPReason;
+    bool m_queuedBP = false;
 
     enum {
         STEP_IN,
@@ -123,6 +126,7 @@ class Debug {
     } m_stepType;
     bool m_stepping = false;
     int m_steppingJumps = 0;
+    int m_oldSteppingJumps = 0;
 };
 
 }  // namespace PCSX

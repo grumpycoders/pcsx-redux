@@ -21,6 +21,16 @@
  * i386 assembly functions for R3000A core.
  */
 
+#ifndef _WIN32
+#include <sys/mman.h>
+#ifndef MAP_ANONYMOUS
+#ifdef MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+#endif
+#endif
+
+#include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/gte.h"
@@ -30,31 +40,18 @@
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "spu/interface.h"
 
 namespace {
 
 #if defined(__i386__) || defined(_M_IX86)
 
-#ifndef _WIN32
-#ifndef MAP_ANONYMOUS
-#ifdef MAP_ANON
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-#endif
-#endif
-
 class X86DynaRecCPU;
 
 typedef void (X86DynaRecCPU::*func_t)();
 typedef const func_t cfunc_t;
 
-void SysBiosPrintfWrapper(const char *fmt, ...) {
-    va_list a;
-    va_start(a, fmt);
-    PCSX::g_system->biosPrintf(fmt, a);
-    va_end(a);
-}
 uint8_t psxMemRead8Wrapper(uint32_t mem) { return PCSX::g_emulator.m_psxMem->psxMemRead8(mem); }
 uint16_t psxMemRead16Wrapper(uint32_t mem) { return PCSX::g_emulator.m_psxMem->psxMemRead16(mem); }
 uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator.m_psxMem->psxMemRead32(mem); }
@@ -85,7 +82,6 @@ void SPUwriteRegisterWrapper(unsigned long addr, unsigned short value) {
 #define PC_REC32(x) (*(uint32_t *)PC_REC(x))
 
 #define IsConst(reg) (m_iRegs[reg].state == ST_CONST)
-#define IsMapped(reg) (m_iRegs[reg].state == ST_MAPPED)
 
 class X86DynaRecCPU : public PCSX::InterpretedCPU {
   public:
@@ -100,10 +96,6 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
 
-    static void psxDelayTestWrapper(X86DynaRecCPU *that, int reg, uint32_t bpc) { that->psxDelayTest(reg, bpc); }
-    static void psxTestSWIntsWrapper(X86DynaRecCPU *that) { that->psxTestSWInts(); }
-    static void psxBranchTestWrapper(X86DynaRecCPU *that) { that->psxBranchTest(); }
-    static void psxExceptionWrapper(X86DynaRecCPU *that, uint32_t c, uint32_t bd) { that->psxException(c, bd); }
     static void recClearWrapper(X86DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
 
     PCSX::ix86 gen;
@@ -115,27 +107,25 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     char *m_recRAM;   /* and the s_ptr to the blocks here */
     char *m_recROM;   /* and here */
 
-    uint32_t m_pc;     /* recompiler pc */
-    uint32_t m_old_pc; /* recompiler oldpc */
-    uint32_t m_count;  /* recompiler intruction count */
-    int m_branch;      /* set for branch */
-    uint32_t m_target; /* branch target */
-    uint32_t m_resp;
+    uint32_t m_pc; /* recompiler pc */
+
+    bool m_needsStackFrame;
+    bool m_pcInEBX;
+    bool m_stopRecompile;
+
+    uint32_t m_functionPtr;
+    uint32_t m_arg1;
+    uint32_t m_arg2;
+
+    enum iRegState { ST_UNK = 0, ST_CONST = 1 };
 
     typedef struct {
-        int state;
         uint32_t k;
-        int reg;
+        iRegState state;
     } iRegisters;
 
     iRegisters m_iRegs[32];
-    iRegisters m_iRegsS[32];
-
-    static inline const char *txt0 = "PCSX::ix86::EAX = %x : PCSX::ix86::ECX = %x : PCSX::ix86::EDX = %x\n";
-    static inline const char *txt1 = "PCSX::ix86::EAX = %x\n";
-    static inline const char *txt2 = "M32 = %x\n";
-
-    enum { ST_UNK = 0, ST_CONST = 1, ST_MAPPED = 2 };
+    iRegisters m_iRegsSaved[32];
 
     cfunc_t *m_pRecBSC = NULL;
     cfunc_t *m_pRecSPC = NULL;
@@ -157,24 +147,13 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     static const func_t m_pgxpRecCP2BSC[32];
     static const func_t m_pgxpRecBSCMem[64];
 
-    static const unsigned int DYNAREC_BLOCK = 50;
+    static const unsigned DYNAREC_BLOCK = 50;
     static const size_t ALLOC_SIZE = RECMEM_SIZE + 0x1000;
 
-    void MapConst(int reg, uint32_t _const);
-    void iFlushReg(int reg);
+    void MapConst(unsigned reg, uint32_t _const);
+    void iFlushReg(unsigned reg);
     void iFlushRegs();
-    void iPushReg(int reg);
-    void iStoreCycle();
-    void iRet();
-    int iLoadTest();
-    void SetBranch();
-    void iJump(uint32_t branchPC);
-    void iBranch(uint32_t branchPC, int savectx);
-    void iLogX86();
-    void iLogEAX();
-    void iLogM32(uint32_t mem);
-    void iDumpRegs();
-    void iDumpBlock(int8_t *ptr);
+    void iPushReg(unsigned reg);
 
     void recError();
     void execute();
@@ -227,7 +206,6 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
 
     void iLWLk(uint32_t shift);
     void recLWL();
-    void recLWBlock(int count);
 
     void iLWRk(uint32_t shift);
     void recLWR();
@@ -235,7 +213,6 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     void recSB();
     void recSH();
     void recSW();
-    void recSWBlock(int count);
 
     void iSWLk(uint32_t shift);
     void recSWL();
@@ -279,7 +256,30 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     void recRFE();
     void recHLE();
 
+    void testSWInt();
+
     void recRecompile();
+
+    static uint32_t gteMFC2Wrapper() { return PCSX::g_emulator.m_gte->MFC2(); }
+    static uint32_t gteCFC2Wrapper() { return PCSX::g_emulator.m_gte->CFC2(); }
+    void recMFC2() {
+        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code);
+        gen.CALLFunc((uint32_t)gteMFC2Wrapper);
+        gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
+    void recCFC2() {
+        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code);
+        gen.CALLFunc((uint32_t)gteCFC2Wrapper);
+        gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
 
 #define CP2_FUNC(f)                                                         \
     static void gte##f##Wrapper() { PCSX::g_emulator.m_gte->f(); }          \
@@ -290,9 +290,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         /*  branch = 2; */                                                  \
     }
 
-    CP2_FUNC(MFC2);
     CP2_FUNC(MTC2);
-    CP2_FUNC(CFC2);
     CP2_FUNC(CTC2);
     CP2_FUNC(LWC2);
     CP2_FUNC(SWC2);
@@ -323,8 +321,6 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     // PGXP wrapper functions
     /////////////////////////////////////////////
 
-    void pgxpRecNULL() {}
-
     uint32_t m_tempAddr = 0;
     uint32_t m_tempReg1 = 0;
     uint32_t m_tempReg2 = 0;
@@ -334,7 +330,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
 #define PGXP_REC_FUNC_OP(pu, op, nReg) PGXP_psxTraceOp##nReg
 #define PGXP_DBG_OP_E(op)    \
     gen.PUSH32I(DBG_E_##op); \
-    m_resp += 4;
+    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
 #else
 #define PGXP_REC_FUNC_OP(pu, op, nReg) PGXP_##pu##_##op
 #define PGXP_DBG_OP_E(op)
@@ -348,7 +344,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                        \
         PGXP_DBG_OP_E(op)                                   \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, )); \
-        m_resp += 4;                                        \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 4);                  \
         rec##op();                                          \
     }
 
@@ -358,7 +354,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                         \
         PGXP_DBG_OP_E(op)                                    \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 1)); \
-        m_resp += 8;                                         \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 8);                   \
         rec##op();                                           \
     }
 
@@ -376,7 +372,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                                  \
         PGXP_DBG_OP_E(op)                                             \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, nReg));       \
-        m_resp += (4 * nReg) + 4;                                     \
+        gen.ADD32ItoR(PCSX::ix86::ESP, (4 * nReg) + 4);               \
     }
 
 #define PGXP_REC_FUNC_2(pu, op, reg1, reg2)                  \
@@ -386,7 +382,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                         \
         PGXP_DBG_OP_E(op)                                    \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2)); \
-        m_resp += 12;                                        \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 12);                  \
         rec##op();                                           \
     }
 
@@ -407,7 +403,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                                          \
         PGXP_DBG_OP_E(op)                                                     \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));                  \
-        m_resp += 12;                                                         \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 12);                                   \
     }
 
 #define CPU_REG_NC(idx) gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[idx])
@@ -436,7 +432,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                           \
         PGXP_DBG_OP_E(op)                                      \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));   \
-        m_resp += 12;                                          \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 12);                    \
     }
 
 #define PGXP_REC_FUNC_R2_1(pu, op, test, reg1, reg2, reg3)     \
@@ -456,7 +452,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                           \
         PGXP_DBG_OP_E(op)                                      \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 3));   \
-        m_resp += 16;                                          \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 16);                    \
     }
 
 #define PGXP_REC_FUNC_R2_2(pu, op, test, reg1, reg2, reg3, reg4) \
@@ -477,7 +473,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
         gen.PUSH32I(m_psxRegs.code);                             \
         PGXP_DBG_OP_E(op)                                        \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 4));     \
-        m_resp += 20;                                            \
+        gen.ADD32ItoR(PCSX::ix86::ESP, 20);                      \
     }
 
     //#define PGXP_REC_FUNC_R1i_1(pu, op, test, reg1, reg2) \
@@ -581,12 +577,12 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
 
 ///
 
-void X86DynaRecCPU::MapConst(int reg, uint32_t _const) {
-    m_iRegs[reg].k = _const;
+void X86DynaRecCPU::MapConst(unsigned reg, uint32_t value) {
+    m_iRegs[reg].k = value;
     m_iRegs[reg].state = ST_CONST;
 }
 
-void X86DynaRecCPU::iFlushReg(int reg) {
+void X86DynaRecCPU::iFlushReg(unsigned reg) {
     if (IsConst(reg)) {
         gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[reg], m_iRegs[reg].k);
     }
@@ -594,286 +590,15 @@ void X86DynaRecCPU::iFlushReg(int reg) {
 }
 
 void X86DynaRecCPU::iFlushRegs() {
-    for (int i = 1; i < 32; i++) {
-        iFlushReg(i);
-    }
+    for (unsigned i = 1; i < 32; i++) iFlushReg(i);
 }
 
-void X86DynaRecCPU::iPushReg(int reg) {
+void X86DynaRecCPU::iPushReg(unsigned reg) {
     if (IsConst(reg)) {
         gen.PUSH32I(m_iRegs[reg].k);
     } else {
         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[reg]);
     }
-}
-
-void X86DynaRecCPU::iStoreCycle() {
-    m_count = ((m_pc - m_old_pc) / 4) * PCSX::Emulator::BIAS;
-    gen.ADD32ItoM((uint32_t)&m_psxRegs.cycle, m_count);
-}
-
-void X86DynaRecCPU::iRet() {
-    iStoreCycle();
-    if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-    gen.RET();
-}
-
-int X86DynaRecCPU::iLoadTest() {
-    // check for load delay
-    uint32_t tmp = m_psxRegs.code >> 26;
-    switch (tmp) {
-        case 0x10:  // COP0
-            switch (_Rs_) {
-                case 0x00:  // MFC0
-                case 0x02:  // CFC0
-                    return 1;
-            }
-            break;
-        case 0x12:  // COP2
-            switch (_Funct_) {
-                case 0x00:
-                    switch (_Rs_) {
-                        case 0x00:  // MFC2
-                        case 0x02:  // CFC2
-                            return 1;
-                    }
-                    break;
-            }
-            break;
-        case 0x32:  // LWC2
-            return 1;
-        default:
-            if (tmp >= 0x20 && tmp <= 0x26) {  // LB/LH/LWL/LW/LBU/LHU/LWR
-                return 1;
-            }
-            break;
-    }
-    return 0;
-}
-
-/* set a pending branch */
-void X86DynaRecCPU::SetBranch() {
-    func_t func;
-    m_branch = 1;
-    m_psxRegs.code = PSXMu32(m_pc);
-    m_pc += 4;
-
-    if (iLoadTest() == 1) {
-        iFlushRegs();
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, m_psxRegs.code);
-        /* store cycle */
-        m_count = ((m_pc - m_old_pc) / 4) * PCSX::Emulator::BIAS;
-        gen.ADD32ItoM((uint32_t)&m_psxRegs.cycle, m_count);
-        if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-
-        gen.PUSH32M((uint32_t)&m_target);
-        gen.PUSH32I(_Rt_);
-        gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-        gen.CALLFunc((uint32_t)psxDelayTestWrapper);
-        gen.ADD32ItoR(PCSX::ix86::ESP, 3 * 4);
-
-        gen.RET();
-        return;
-    }
-    switch (m_psxRegs.code >> 26) {
-        // Lode Runner (jr - beq)
-
-        // bltz - bgez - bltzal - bgezal / beq - bne - blez - bgtz
-        case 0x01:
-        case 0x04:
-        case 0x05:
-        case 0x06:
-        case 0x07:
-            break;
-
-        default:
-            func = m_pRecBSC[m_psxRegs.code >> 26];
-            (*this.*func)();
-            break;
-    }
-
-    iFlushRegs();
-    iStoreCycle();
-    gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_target);
-    gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EAX);
-    gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-    gen.CALLFunc((uint32_t)psxBranchTestWrapper);
-    m_resp += 4;
-
-    if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-    gen.RET();
-}
-
-void X86DynaRecCPU::iJump(uint32_t branchPC) {
-    m_branch = 1;
-    m_psxRegs.code = PSXMu32(m_pc);
-    m_pc += 4;
-
-    if (iLoadTest() == 1) {
-        iFlushRegs();
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, m_psxRegs.code);
-        /* store cycle */
-        m_count = ((m_pc - m_old_pc) / 4) * PCSX::Emulator::BIAS;
-        gen.ADD32ItoM((uint32_t)&m_psxRegs.cycle, m_count);
-        if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-
-        gen.PUSH32I(branchPC);
-        gen.PUSH32I(_Rt_);
-        gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-        gen.CALLFunc((uint32_t)psxDelayTestWrapper);
-        gen.ADD32ItoR(PCSX::ix86::ESP, 3 * 4);
-
-        gen.RET();
-        return;
-    }
-
-    func_t func = m_pRecBSC[m_psxRegs.code >> 26];
-    (*this.*func)();
-
-    iFlushRegs();
-    iStoreCycle();
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, branchPC);
-    gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-    gen.CALLFunc((uint32_t)psxBranchTestWrapper);
-    m_resp += 4;
-
-    if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-
-    // maybe just happened an interruption, check so
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.pc, branchPC);
-    unsigned slot1 = gen.JE8(0);
-    gen.RET();
-
-    gen.x86SetJ8(slot1);
-    gen.MOV32MtoR(PCSX::ix86::EAX, PC_REC(branchPC));
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-    unsigned slot2 = gen.JNE8(0);
-    gen.RET();
-
-    gen.x86SetJ8(slot2);
-    gen.RET();
-    gen.JMP32R(PCSX::ix86::EAX);
-}
-
-void X86DynaRecCPU::iBranch(uint32_t branchPC, int savectx) {
-    uint32_t respold = 0;
-
-    if (savectx) {
-        respold = m_resp;
-        memcpy(m_iRegsS, m_iRegs, sizeof(m_iRegs));
-    }
-
-    m_branch = 1;
-    m_psxRegs.code = PSXMu32(m_pc);
-
-    // the delay test is only made when the branch is taken
-    // savectx == 0 will mean that :)
-    if (savectx == 0 && iLoadTest() == 1) {
-        iFlushRegs();
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, m_psxRegs.code);
-        /* store cycle */
-        m_count = (((m_pc + 4) - m_old_pc) / 4) * PCSX::Emulator::BIAS;
-        gen.ADD32ItoM((uint32_t)&m_psxRegs.cycle, m_count);
-        if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-
-        gen.PUSH32I(branchPC);
-        gen.PUSH32I(_Rt_);
-        gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-        gen.CALLFunc((uint32_t)psxDelayTestWrapper);
-        gen.ADD32ItoR(PCSX::ix86::ESP, 3 * 4);
-
-        gen.RET();
-        return;
-    }
-
-    m_pc += 4;
-    func_t func = m_pRecBSC[m_psxRegs.code >> 26];
-    (*this.*func)();
-
-    iFlushRegs();
-    iStoreCycle();
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, branchPC);
-    gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-    gen.CALLFunc((uint32_t)psxBranchTestWrapper);
-    m_resp += 4;
-
-    if (m_resp) gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-
-    // maybe just happened an interruption, check so
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.pc, branchPC);
-    unsigned slot1 = gen.JE8(0);
-    gen.RET();
-
-    gen.x86SetJ8(slot1);
-    gen.MOV32MtoR(PCSX::ix86::EAX, PC_REC(branchPC));
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-    unsigned slot2 = gen.JNE8(0);
-    gen.RET();
-
-    gen.x86SetJ8(slot2);
-    gen.JMP32R(PCSX::ix86::EAX);
-
-    m_pc -= 4;
-    if (savectx) {
-        m_resp = respold;
-        memcpy(m_iRegs, m_iRegsS, sizeof(m_iRegs));
-    }
-}
-
-void X86DynaRecCPU::iLogX86() {
-    gen.PUSHA32();
-
-    gen.PUSH32R(PCSX::ix86::EDX);
-    gen.PUSH32R(PCSX::ix86::ECX);
-    gen.PUSH32R(PCSX::ix86::EAX);
-    gen.PUSH32M((uint32_t)&txt0);
-    gen.CALLFunc((uint32_t)SysBiosPrintfWrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4 * 4);
-
-    gen.POPA32();
-}
-
-void X86DynaRecCPU::iLogEAX() {
-    gen.PUSH32R(PCSX::ix86::EAX);
-    gen.PUSH32M((uint32_t)&txt1);
-    gen.CALLFunc((uint32_t)SysBiosPrintfWrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4 * 2);
-}
-
-void X86DynaRecCPU::iLogM32(uint32_t mem) {
-    gen.PUSH32M(mem);
-    gen.PUSH32M((uint32_t)&txt2);
-    gen.CALLFunc((uint32_t)SysBiosPrintfWrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4 * 2);
-}
-
-void X86DynaRecCPU::iDumpRegs() {
-    int i, j;
-
-    printf("%x %x\n", m_psxRegs.pc, m_psxRegs.cycle);
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 8; j++) printf("%x ", m_psxRegs.GPR.r[j * i]);
-        printf("\n");
-    }
-}
-
-void X86DynaRecCPU::iDumpBlock(int8_t *ptr) {
-    FILE *f;
-    uint32_t i;
-
-    PCSX::g_system->printf("dump1 %x:%x, %x\n", m_psxRegs.pc, m_pc, m_psxRegs.cycle);
-
-    for (i = m_psxRegs.pc; i < m_pc; i += 4) {
-        std::string ins = PCSX::Disasm::asString(PSXMu32(i), 0, i);
-        PCSX::g_system->printf("%s\n", ins.c_str());
-    }
-
-    fflush(stdout);
-    f = fopen("dump1", "w");
-    fwrite(ptr, 1, (uint32_t)gen.x86GetPtr() - (uint32_t)ptr, f);
-    fclose(f);
-    system("ndisasmw -u dump1");
-    fflush(stdout);
 }
 
 #define REC_FUNC(f)                                                         \
@@ -914,7 +639,7 @@ bool X86DynaRecCPU::Init() {
     m_psxRecLUT = (uintptr_t *)calloc(0x010000, sizeof(uintptr_t));
 
 #ifndef _WIN32
-    recMem = (int8_t *)mmap(0, ALLOC_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    m_recMem = (int8_t *)mmap(0, ALLOC_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #else
     m_recMem = (int8_t *)VirtualAlloc(NULL, ALLOC_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
@@ -944,7 +669,6 @@ void X86DynaRecCPU::Reset() {
 
     gen.x86Init(m_recMem);
 
-    m_branch = 0;
     memset(m_iRegs, 0, sizeof(m_iRegs));
     m_iRegs[0].state = ST_CONST;
     m_iRegs[0].k = 0;
@@ -956,9 +680,9 @@ void X86DynaRecCPU::Shutdown() {
     if (m_recMem == NULL) return;
     free(m_psxRecLUT);
 #ifndef _WIN32
-    munmap(recMem, ALLOC_SIZE);
+    munmap(m_recMem, ALLOC_SIZE);
 #else
-    VirtualFree(m_recMem, ALLOC_SIZE, MEM_RELEASE);
+    VirtualFree(m_recMem, 0, MEM_RELEASE);
 #endif
     free(m_recRAM);
     free(m_recROM);
@@ -967,13 +691,12 @@ void X86DynaRecCPU::Shutdown() {
 
 void X86DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
-    // ClosePlugins();
     PCSX::g_system->message("Unrecoverable error while running recompiler\n");
     PCSX::g_system->runGui();
 }
 
 void X86DynaRecCPU::execute() {
-    void (**recFunc)() = NULL;
+    uint32_t (**recFunc)() = NULL;
     char *p;
 
     InterceptBIOS();
@@ -981,16 +704,29 @@ void X86DynaRecCPU::execute() {
     p = (char *)PC_REC(m_psxRegs.pc);
 
     if (p != NULL) {
-        recFunc = (void (**)())(uint32_t)p;
+        recFunc = (uint32_t(**)())(uint32_t)p;
     } else {
         recError();
         return;
     }
 
-    if (*recFunc == 0) {
-        recRecompile();
+    const bool &debug = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>();
+
+    if (debug) PCSX::g_emulator.m_debug->processBefore();
+    if (*recFunc == 0) recRecompile();
+    uint32_t newPC = (*recFunc)();
+    if (newPC != 0xffffffff) {
+        m_psxRegs.pc = newPC;
+        psxBranchTest();
+    } else {
+        void (*functionPtr)(uint32_t, uint32_t) = (void (*)(uint32_t, uint32_t))m_functionPtr;
+        if (functionPtr) {
+            functionPtr(m_arg1, m_arg2);
+        } else {
+            psxException(m_arg1, m_arg2);
+        }
     }
-    (*recFunc)();
+    if (debug) PCSX::g_emulator.m_debug->processAfter();
 }
 
 void X86DynaRecCPU::Execute() {
@@ -1020,7 +756,8 @@ void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
 }
 
 void X86DynaRecCPU::recNULL() {
-    //  PCSX::g_system->message("recUNK: %8.8x\n", m_psxRegs.code);
+    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, code %08x\n", m_pc, m_psxRegs.code);
+    recError();
 }
 
 /*********************************************************
@@ -1072,8 +809,6 @@ void X86DynaRecCPU::recADDIU() {
     // Rt = Rs + Im
     if (!_Rt_) return;
 
-    //  iFlushRegs();
-
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
             m_iRegs[_Rt_].k += _Imm_;
@@ -1108,8 +843,6 @@ void X86DynaRecCPU::recADDIU() {
 void X86DynaRecCPU::recADDI() {
     // Rt = Rs + Im
     if (!_Rt_) return;
-
-    //  iFlushRegs();
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -1146,8 +879,6 @@ void X86DynaRecCPU::recSLTI() {
     // Rt = Rs < Im (signed)
     if (!_Rt_) return;
 
-    //  iFlushRegs();
-
     if (IsConst(_Rs_)) {
         MapConst(_Rt_, (int32_t)m_iRegs[_Rs_].k < _Imm_);
     } else {
@@ -1165,8 +896,6 @@ void X86DynaRecCPU::recSLTIU() {
     // Rt = Rs < Im (unsigned)
     if (!_Rt_) return;
 
-    //  iFlushRegs();
-
     if (IsConst(_Rs_)) {
         MapConst(_Rt_, m_iRegs[_Rs_].k < _ImmU_);
     } else {
@@ -1183,8 +912,6 @@ void X86DynaRecCPU::recSLTIU() {
 void X86DynaRecCPU::recANDI() {
     // Rt = Rs And Im
     if (!_Rt_) return;
-
-    //  iFlushRegs();
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -1209,8 +936,6 @@ void X86DynaRecCPU::recORI() {
     // Rt = Rs Or Im
     if (!_Rt_) return;
 
-    //  iFlushRegs();
-
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
             m_iRegs[_Rt_].k |= _ImmU_;
@@ -1234,8 +959,6 @@ void X86DynaRecCPU::recXORI() {
     // Rt = Rs Xor Im
     if (!_Rt_) return;
 
-    //  iFlushRegs();
-
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
             m_iRegs[_Rt_].k ^= _ImmU_;
@@ -1254,15 +977,13 @@ void X86DynaRecCPU::recXORI() {
         }
     }
 }
-//#endif
 // end of * Arithmetic with immediate operand
 
 /*********************************************************
  * Load higher 16 bits of the first word in GPR with imm  *
  * Format:  OP rt, immediate                              *
  *********************************************************/
-/*REC_FUNC(LUI);
-#if 0*/
+// REC_FUNC(LUI);
 void X86DynaRecCPU::recLUI() {
     // Rt = Imm << 16
     if (!_Rt_) return;
@@ -1279,8 +1000,6 @@ void X86DynaRecCPU::recLUI() {
 void X86DynaRecCPU::recADDU() {
     // Rd = Rs + Rt
     if (!_Rd_) return;
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k + m_iRegs[_Rt_].k);
@@ -1354,8 +1073,6 @@ void X86DynaRecCPU::recSUBU() {
     // Rd = Rs - Rt
     if (!_Rd_) return;
 
-    //  iFlushRegs();
-
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k - m_iRegs[_Rt_].k);
     } else if (IsConst(_Rs_)) {
@@ -1387,8 +1104,6 @@ void X86DynaRecCPU::recSUB() {
 void X86DynaRecCPU::recAND() {
     // Rd = Rs And Rt
     if (!_Rd_) return;
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k & m_iRegs[_Rt_].k);
@@ -1433,8 +1148,6 @@ void X86DynaRecCPU::recOR() {
     // Rd = Rs Or Rt
     if (!_Rd_) return;
 
-    //  iFlushRegs();
-
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k | m_iRegs[_Rt_].k);
     } else if (IsConst(_Rs_)) {
@@ -1462,8 +1175,6 @@ void X86DynaRecCPU::recXOR() {
     // Rd = Rs Xor Rt
     if (!_Rd_) return;
 
-    //  iFlushRegs();
-
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k ^ m_iRegs[_Rt_].k);
     } else if (IsConst(_Rs_)) {
@@ -1490,8 +1201,6 @@ void X86DynaRecCPU::recXOR() {
 void X86DynaRecCPU::recNOR() {
     // Rd = Rs Nor Rt
     if (!_Rd_) return;
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, ~(m_iRegs[_Rs_].k | m_iRegs[_Rt_].k));
@@ -1522,8 +1231,6 @@ void X86DynaRecCPU::recNOR() {
 void X86DynaRecCPU::recSLT() {
     // Rd = Rs < Rt (signed)
     if (!_Rd_) return;
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, (int32_t)m_iRegs[_Rs_].k < (int32_t)m_iRegs[_Rt_].k);
@@ -1558,8 +1265,6 @@ void X86DynaRecCPU::recSLTU() {
     // Rd = Rs < Rt (unsigned)
     if (!_Rd_) return;
 
-    //  iFlushRegs();
-
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k < m_iRegs[_Rt_].k);
     } else if (IsConst(_Rs_)) {
@@ -1588,7 +1293,6 @@ void X86DynaRecCPU::recSLTU() {
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
 }
-//#endif
 // End of * Register arithmetic
 
 /*********************************************************
@@ -1596,15 +1300,12 @@ void X86DynaRecCPU::recSLTU() {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 
-/*REC_FUNC(MULT);
-REC_FUNC(MULTU);
-REC_FUNC(DIV);
-REC_FUNC(DIVU);
-#if 0*/
+// REC_FUNC(MULT);
+// REC_FUNC(MULTU);
+// REC_FUNC(DIV);
+// REC_FUNC(DIVU);
 void X86DynaRecCPU::recMULT() {
     // Lo/Hi = Rs * Rt (signed)
-
-    //  iFlushRegs();
 
     if ((IsConst(_Rs_) && m_iRegs[_Rs_].k == 0) || (IsConst(_Rt_) && m_iRegs[_Rt_].k == 0)) {
         gen.XOR32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
@@ -1614,12 +1315,12 @@ void X86DynaRecCPU::recMULT() {
     }
 
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);  // printf("multrsk %x\n", m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
     }
     if (IsConst(_Rt_)) {
-        gen.MOV32ItoR(PCSX::ix86::EDX, m_iRegs[_Rt_].k);  // printf("multrtk %x\n", m_iRegs[_Rt_].k);
+        gen.MOV32ItoR(PCSX::ix86::EDX, m_iRegs[_Rt_].k);
         gen.IMUL32R(PCSX::ix86::EDX);
     } else {
         gen.IMUL32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
@@ -1631,8 +1332,6 @@ void X86DynaRecCPU::recMULT() {
 void X86DynaRecCPU::recMULTU() {
     // Lo/Hi = Rs * Rt (unsigned)
 
-    //  iFlushRegs();
-
     if ((IsConst(_Rs_) && m_iRegs[_Rs_].k == 0) || (IsConst(_Rt_) && m_iRegs[_Rt_].k == 0)) {
         gen.XOR32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
@@ -1641,12 +1340,12 @@ void X86DynaRecCPU::recMULTU() {
     }
 
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);  // printf("multursk %x\n", m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
     }
     if (IsConst(_Rt_)) {
-        gen.MOV32ItoR(PCSX::ix86::EDX, m_iRegs[_Rt_].k);  // printf("multurtk %x\n", m_iRegs[_Rt_].k);
+        gen.MOV32ItoR(PCSX::ix86::EDX, m_iRegs[_Rt_].k);
         gen.MUL32R(PCSX::ix86::EDX);
     } else {
         gen.MUL32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
@@ -1658,7 +1357,6 @@ void X86DynaRecCPU::recMULTU() {
 void X86DynaRecCPU::recDIV() {
     // Lo/Hi = Rs / Rt (signed)
 
-    //  iFlushRegs();
     unsigned slot1;
 
     if (IsConst(_Rt_)) {
@@ -1672,14 +1370,14 @@ void X86DynaRecCPU::recDIV() {
             }
             return;
         }
-        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);  // printf("divrtk %x\n", m_iRegs[_Rt_].k);
+        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.CMP32ItoR(PCSX::ix86::ECX, 0);
         slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);  // printf("divrsk %x\n", m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
     }
@@ -1708,7 +1406,6 @@ void X86DynaRecCPU::recDIV() {
 void X86DynaRecCPU::recDIVU() {
     // Lo/Hi = Rs / Rt (unsigned)
 
-    //  iFlushRegs();
     unsigned slot1;
 
     if (IsConst(_Rt_)) {
@@ -1722,14 +1419,14 @@ void X86DynaRecCPU::recDIVU() {
             }
             return;
         }
-        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);  // printf("divurtk %x\n", m_iRegs[_Rt_].k);
+        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.CMP32ItoR(PCSX::ix86::ECX, 0);
         slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);  // printf("divursk %x\n", m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
     }
@@ -1771,12 +1468,15 @@ void X86DynaRecCPU::iPushOfB() {
     }
 }
 
-//#if 0
 void X86DynaRecCPU::recLB() {
     // Rt = mem[Rs + Im] (signed)
 
-    //  iFlushRegs();
-
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -1784,44 +1484,36 @@ void X86DynaRecCPU::recLB() {
         if ((t & 0xfff0) == 0xbfc0) {
             if (!_Rt_) return;
             // since bios is readonly it won't change
-            MapConst(_Rt_, psxRs8(addr));
+            gen.MOV32ItoR(PCSX::ix86::EDI, psxRs8(addr));
             return;
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVSX32M8toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVSX32M8toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVSX32M8toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVSX32M8toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
             return;
         }
-        //      PCSX::g_system->printf("unhandled r8 %x\n", addr);
     }
 
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead8Wrapper);
-    if (_Rt_) {
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOVSX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-    }
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
+    if (_Rt_) gen.MOVSX32R8toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLBU() {
     // Rt = mem[Rs + Im] (unsigned)
 
-    //  iFlushRegs();
-
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -1829,44 +1521,36 @@ void X86DynaRecCPU::recLBU() {
         if ((t & 0xfff0) == 0xbfc0) {
             if (!_Rt_) return;
             // since bios is readonly it won't change
-            MapConst(_Rt_, psxRu8(addr));
+            gen.MOV32ItoR(PCSX::ix86::EDI, psxRu8(addr));
             return;
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVZX32M8toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVZX32M8toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVZX32M8toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVZX32M8toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
             return;
         }
-        //      PCSX::g_system->printf("unhandled r8u %x\n", addr);
     }
 
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead8Wrapper);
-    if (_Rt_) {
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-    }
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
+    if (_Rt_) gen.MOVZX32R8toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLH() {
     // Rt = mem[Rs + Im] (signed)
 
-    //  iFlushRegs();
-
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -1874,44 +1558,36 @@ void X86DynaRecCPU::recLH() {
         if ((t & 0xfff0) == 0xbfc0) {
             if (!_Rt_) return;
             // since bios is readonly it won't change
-            MapConst(_Rt_, psxRs16(addr));
+            gen.MOV32ItoR(PCSX::ix86::EDI, psxRs16(addr));
             return;
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVSX32M16toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVSX32M16toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVSX32M16toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVSX32M16toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
             return;
         }
-        //      PCSX::g_system->printf("unhandled r16 %x\n", addr);
     }
 
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead16Wrapper);
-    if (_Rt_) {
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOVSX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-    }
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
+    if (_Rt_) gen.MOVSX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLHU() {
     // Rt = mem[Rs + Im] (unsigned)
 
-    //  iFlushRegs();
-
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -1919,37 +1595,26 @@ void X86DynaRecCPU::recLHU() {
         if ((t & 0xfff0) == 0xbfc0) {
             if (!_Rt_) return;
             // since bios is readonly it won't change
-            MapConst(_Rt_, psxRu16(addr));
+            gen.MOV32ItoR(PCSX::ix86::EDI, psxRu16(addr));
             return;
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVZX32M16toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVZX32M16toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOVZX32M16toR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOVZX32M16toR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
             return;
         }
         if (t == 0x1f80) {
             if (addr >= 0x1f801c00 && addr < 0x1f801e00) {
                 if (!_Rt_) return;
-                m_iRegs[_Rt_].state = ST_UNK;
-
                 gen.PUSH32I(addr);
                 gen.CALLFunc((uint32_t)SPUreadRegisterWrapper);
-                gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-                gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-#ifndef __WIN33
-                m_resp += 4;
-#endif
+                gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+                gen.ADD32ItoR(PCSX::ix86::ESP, 4);
                 return;
             }
             switch (addr) {
@@ -1957,61 +1622,50 @@ void X86DynaRecCPU::recLHU() {
                 case 0x1f801110:
                 case 0x1f801120:
                     if (!_Rt_) return;
-                    m_iRegs[_Rt_].state = ST_UNK;
-
                     gen.PUSH32I((addr >> 4) & 0x3);
                     gen.CALLFunc((uint32_t)psxRcntRcountWrapper);
-                    gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-                    gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-                    m_resp += 4;
+                    gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
                     return;
 
                 case 0x1f801104:
                 case 0x1f801114:
                 case 0x1f801124:
                     if (!_Rt_) return;
-                    m_iRegs[_Rt_].state = ST_UNK;
-
                     gen.PUSH32I((addr >> 4) & 0x3);
                     gen.CALLFunc((uint32_t)psxRcntRmodeWrapper);
-                    gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-                    gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-                    m_resp += 4;
+                    gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
                     return;
 
                 case 0x1f801108:
                 case 0x1f801118:
                 case 0x1f801128:
                     if (!_Rt_) return;
-                    m_iRegs[_Rt_].state = ST_UNK;
-
                     gen.PUSH32I((addr >> 4) & 0x3);
                     gen.CALLFunc((uint32_t)psxRcntRtargetWrapper);
-                    gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-                    gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-                    m_resp += 4;
+                    gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
                     return;
             }
         }
-        //      PCSX::g_system->printf("unhandled r16u %x\n", addr);
     }
 
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead16Wrapper);
-    if (_Rt_) {
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOVZX32R16toR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-    }
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
+    if (_Rt_) gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLW() {
     // Rt = mem[Rs + Im] (unsigned)
 
-    //  iFlushRegs();
-
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -2019,23 +1673,17 @@ void X86DynaRecCPU::recLW() {
         if ((t & 0xfff0) == 0xbfc0) {
             if (!_Rt_) return;
             // since bios is readonly it won't change
-            MapConst(_Rt_, psxRu32(addr));
+            gen.MOV32ItoR(PCSX::ix86::EDI, psxRu32(addr));
             return;
         }
         if ((t & 0x1fe0) == 0) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             if (!_Rt_) return;
-            m_iRegs[_Rt_].state = ST_UNK;
-
-            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xfff]);
             return;
         }
         if (t == 0x1f80) {
@@ -2066,40 +1714,28 @@ void X86DynaRecCPU::recLW() {
                 case 0x1f8010f0:
                 case 0x1f8010f4:
                     if (!_Rt_) return;
-                    m_iRegs[_Rt_].state = ST_UNK;
-
-                    gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xffff]);
-                    gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+                    gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xffff]);
                     return;
 
                 case 0x1f801810:
                     if (!_Rt_) return;
-                    m_iRegs[_Rt_].state = ST_UNK;
-
                     gen.CALLFunc((uint32_t)&GPU_readDataWrapper);
-                    gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+                    gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
                     return;
 
                 case 0x1f801814:
                     if (!_Rt_) return;
-                    m_iRegs[_Rt_].state = ST_UNK;
-
                     gen.CALLFunc((uint32_t)&GPU_readStatusWrapper);
-                    gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+                    gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
                     return;
             }
         }
-        //      PCSX::g_system->printf("unhandled r32 %x\n", addr);
     }
 
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead32Wrapper);
-    if (_Rt_) {
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
-    }
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
+    if (_Rt_) gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
+    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::iLWLk(uint32_t shift) {
@@ -2116,6 +1752,12 @@ void X86DynaRecCPU::iLWLk(uint32_t shift) {
 void X86DynaRecCPU::recLWL() {
     // Rt = Rt Merge mem[Rs + Im]
 
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -2123,17 +1765,13 @@ void X86DynaRecCPU::recLWL() {
         if ((t & 0x1fe0) == 0) {
             gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1ffffc]);
             iLWLk(addr & 3);
-
-            m_iRegs[_Rt_].state = ST_UNK;
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xffc]);
             iLWLk(addr & 3);
-
-            m_iRegs[_Rt_].state = ST_UNK;
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOV32RtoM(PCSX::ix86::EDI, PCSX::ix86::EAX);
             return;
         }
     }
@@ -2166,93 +1804,12 @@ void X86DynaRecCPU::recLWL() {
             gen.MOV32MtoR(PCSX::ix86::EDX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         }
         gen.AND32RtoR(PCSX::ix86::EDX, PCSX::ix86::ECX);  // _rRt_ & g_LWL_MASK[shift]
-
         gen.OR32RtoR(PCSX::ix86::EAX, PCSX::ix86::EDX);
-
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+        gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
     } else {
-        //      gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-        m_resp += 8;
+        gen.ADD32ItoR(PCSX::ix86::ESP, 8);
     }
 }
-
-#if 0
- void X86DynaRecCPU::recLWBlock(int count) {
-    uint32_t *code = (uint32_t *)PSXM(pc);
-    int i, respsave;
-// Rt = mem[Rs + Im] (unsigned)
-
-//  iFlushRegs();
-
-    if (IsConst(_Rs_)) {
-        uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
-        int t = addr >> 16;
-
-        if ((t & 0xfff0) == 0xbfc0) {
-            // since bios is readonly it won't change
-            for (i = 0; i < count; i++, code++, addr += 4) {
-                if (_fRt_(*code)) {
-                    MapConst(_fRt_(*code), psxRu32(addr));
-                }
-            }
-            return;
-        }
-        if ((t & 0x1fe0) == 0) {
-            for (i = 0; i < count; i++, code++, addr += 4) {
-                if (!_fRt_(*code))
-                    return;
-                m_iRegs[_fRt_(*code)].state = ST_UNK;
-
-                gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff]);
-                gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_fRt_(*code)], PCSX::ix86::EAX);
-            }
-            return;
-        }
-        if (t == 0x1f80 && addr < 0x1f801000) {
-            for (i = 0; i < count; i++, code++, addr += 4) {
-                if (!_fRt_(*code))
-                    return;
-                m_iRegs[_fRt_(*code)].state = ST_UNK;
-
-                gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-                gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_fRt_(*code)], PCSX::ix86::EAX);
-            }
-            return;
-        }
-    }
-
-    PCSX::g_system->printf("recLWBlock %d: %d\n", count, IsConst(_Rs_));
-    iPushOfB();
-    gen.CALLFunc((uint32_t)psxMemPointer);
-//  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
-
-    respsave = m_resp; m_resp = 0;
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-    unsigned slot1 = gen.JZ32(0);
-    gen.XOR32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);
-    for (i = 0; i < count; i++, code++) {
-        if (_fRt_(*code)) {
-            m_iRegs[_fRt_(*code)].state = ST_UNK;
-
-            gen.MOV32RmStoR(PCSX::ix86::EDX, PCSX::ix86::EAX, PCSX::ix86::ECX, 2);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_fRt_(*code)], PCSX::ix86::EDX);
-        }
-        if (i != (count - 1))
-            gen.INC32R(PCSX::ix86::ECX);
-    }
-    unsigned slot2 = JMP32(0);
-    gen.x86SetJ32(slot1);
-    for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
-        m_psxRegs.code = *code;
-        recLW();
-    }
-    gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-    gen.x86SetJ32(slot2);
-    m_resp = respsave;
-}
-#endif
 
 void X86DynaRecCPU::iLWRk(uint32_t shift) {
     if (IsConst(_Rt_)) {
@@ -2268,6 +1825,12 @@ void X86DynaRecCPU::iLWRk(uint32_t shift) {
 void X86DynaRecCPU::recLWR() {
     // Rt = Rt Merge mem[Rs + Im]
 
+    if (_Rt_) {
+        m_needsStackFrame = true;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        delayedLoad.active = true;
+        delayedLoad.index = _Rt_;
+    }
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
         int t = addr >> 16;
@@ -2275,17 +1838,13 @@ void X86DynaRecCPU::recLWR() {
         if ((t & 0x1fe0) == 0) {
             gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1ffffc]);
             iLWRk(addr & 3);
-
-            m_iRegs[_Rt_].state = ST_UNK;
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
             return;
         }
         if (t == 0x1f80 && addr < 0x1f801000) {
             gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&PCSX::g_emulator.m_psxMem->g_psxH[addr & 0xffc]);
             iLWRk(addr & 3);
-
-            m_iRegs[_Rt_].state = ST_UNK;
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+            gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
             return;
         }
     }
@@ -2319,21 +1878,15 @@ void X86DynaRecCPU::recLWR() {
             gen.MOV32MtoR(PCSX::ix86::EDX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         }
         gen.AND32RtoR(PCSX::ix86::EDX, PCSX::ix86::ECX);  // _rRt_ & g_LWR_MASK[shift]
-
         gen.OR32RtoR(PCSX::ix86::EAX, PCSX::ix86::EDX);
-
-        m_iRegs[_Rt_].state = ST_UNK;
-        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
+        gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
     } else {
-        //      gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-        m_resp += 8;
+        gen.ADD32ItoR(PCSX::ix86::ESP, 8);
     }
 }
 
 void X86DynaRecCPU::recSB() {
     // mem[Rs + Im] = Rt
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
@@ -2351,7 +1904,7 @@ void X86DynaRecCPU::recSB() {
             gen.PUSH32I(addr & ~3);
             gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
             gen.CALLFunc((uint32_t)&recClearWrapper);
-            m_resp += 12;
+            gen.ADD32ItoR(PCSX::ix86::ESP, 12);
             return;
         }
 
@@ -2374,14 +1927,11 @@ void X86DynaRecCPU::recSB() {
     }
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemWrite8Wrapper);
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-    m_resp += 8;
+    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::recSH() {
     // mem[Rs + Im] = Rt
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
@@ -2399,7 +1949,7 @@ void X86DynaRecCPU::recSH() {
             gen.PUSH32I(addr & ~3);
             gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
             gen.CALLFunc((uint32_t)&recClearWrapper);
-            m_resp += 12;
+            gen.ADD32ItoR(PCSX::ix86::ESP, 12);
             return;
         }
 
@@ -2421,7 +1971,7 @@ void X86DynaRecCPU::recSH() {
                 }
                 gen.PUSH32I(addr);
                 gen.CALLFunc((uint32_t)SPUwriteRegisterWrapper);
-                m_resp += 8;
+                gen.ADD32ItoR(PCSX::ix86::ESP, 8);
                 return;
             }
         }
@@ -2435,14 +1985,11 @@ void X86DynaRecCPU::recSH() {
     }
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemWrite16Wrapper);
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-    m_resp += 8;
+    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::recSW() {
     // mem[Rs + Im] = Rt
-
-    //  iFlushRegs();
 
     if (IsConst(_Rs_)) {
         uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
@@ -2460,7 +2007,7 @@ void X86DynaRecCPU::recSW() {
             gen.PUSH32I(addr);
             gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
             gen.CALLFunc((uint32_t)&recClearWrapper);
-            m_resp += 12;
+            gen.ADD32ItoR(PCSX::ix86::ESP, 12);
             return;
         }
 
@@ -2506,7 +2053,7 @@ void X86DynaRecCPU::recSW() {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
                     gen.CALLFunc((uint32_t)GPU_writeDataWrapper);
-                    m_resp += 4;
+                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
                     return;
 
                 case 0x1f801814:
@@ -2516,7 +2063,7 @@ void X86DynaRecCPU::recSW() {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
                     gen.CALLFunc((uint32_t)&GPU_writeStatusWrapper);
-                    m_resp += 4;
+                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
                     return;
             }
         }
@@ -2530,80 +2077,8 @@ void X86DynaRecCPU::recSW() {
     }
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemWrite32Wrapper);
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-    m_resp += 8;
+    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
 }
-//#endif
-
-#if 0
- void X86DynaRecCPU::recSWBlock(int count) {
-    uint32_t *code;
-    int i, respsave;
-// mem[Rs + Im] = Rt
-
-//  iFlushRegs();
-
-    if (IsConst(_Rs_)) {
-        uint32_t addr = m_iRegs[_Rs_].k + _Imm_;
-        int t = addr >> 16;
-        code = (uint32_t *)PSXM(pc);
-
-        if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
-            for (i = 0; i < count; i++, code++, addr += 4) {
-                if (IsConst(_fRt_(*code))) {
-                    gen.MOV32ItoM((uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff], m_iRegs[_fRt_(*code)].k);
-                } else {
-                    gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_fRt_(*code)]);
-                    gen.MOV32RtoM((uint32_t)&PCSX::g_emulator.m_psxMem->g_psxM[addr & 0x1fffff], PCSX::ix86::EAX);
-                }
-            }
-            return;
-        }
-        if (t == 0x1f80 && addr < 0x1f801000) {
-            for (i = 0; i < count; i++, code++, addr += 4) {
-                if (!_fRt_(*code))
-                    return;
-                m_iRegs[_fRt_(*code)].state = ST_UNK;
-
-                gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&g_psxH[addr & 0xfff]);
-                gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_fRt_(*code)], PCSX::ix86::EAX);
-            }
-            return;
-        }
-    }
-
-    PCSX::g_system->printf("recSWBlock %d: %d\n", count, IsConst(_Rs_));
-    iPushOfB();
-    gen.CALLFunc((uint32_t)psxMemPointer);
-//  gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    m_resp += 4;
-
-    respsave = m_resp;
-    m_resp = 0;
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
-    unsigned slot1 = gen.JZ32(0);
-    gen.XOR32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);
-    for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
-        if (IsConst(_fRt_(*code))) {
-            gen.MOV32ItoR(PCSX::ix86::EDX, m_iRegs[_fRt_(*code)].k);
-        } else {
-            gen.MOV32MtoR(PCSX::ix86::EDX, (uint32_t)&m_psxRegs.GPR.r[_fRt_(*code)]);
-        }
-        gen.MOV32RtoRmS(PCSX::ix86::EAX, PCSX::ix86::ECX, 2, PCSX::ix86::EDX);
-        if (i != (count - 1))
-            gen.INC32R(PCSX::ix86::ECX);
-    }
-    unsigned slot2 = JMP32(0);
-    gen.x86SetJ32(slot1);
-    for (i = 0, code = (uint32_t *)PSXM(pc); i < count; i++, code++) {
-        m_psxRegs.code = *code;
-        recSW();
-    }
-    gen.ADD32ItoR(PCSX::ix86::ESP, m_resp);
-    gen.x86SetJ32(slot2);
-    m_resp = respsave;
-}
-#endif
 
 void X86DynaRecCPU::iSWLk(uint32_t shift) {
     if (IsConst(_Rt_)) {
@@ -2681,8 +2156,7 @@ void X86DynaRecCPU::recSWL() {
     gen.PUSH32R(PCSX::ix86::EAX);
 
     gen.CALLFunc((uint32_t)psxMemWrite32Wrapper);
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-    m_resp += 8;
+    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::iSWRk(uint32_t shift) {
@@ -2761,15 +2235,12 @@ void X86DynaRecCPU::recSWR() {
     gen.PUSH32R(PCSX::ix86::EAX);
 
     gen.CALLFunc((uint32_t)psxMemWrite32Wrapper);
-    //  gen.ADD32ItoR(PCSX::ix86::ESP, 8);
-    m_resp += 8;
+    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::recSLL() {
     // Rd = Rt << Sa
     if (!_Rd_) return;
-
-    //  iFlushRegs();
 
     if (IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rt_].k << _Sa_);
@@ -2785,8 +2256,6 @@ void X86DynaRecCPU::recSLL() {
 void X86DynaRecCPU::recSRL() {
     // Rd = Rt >> Sa
     if (!_Rd_) return;
-
-    //  iFlushRegs();
 
     if (IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rt_].k >> _Sa_);
@@ -2905,18 +2374,14 @@ void X86DynaRecCPU::recSRAV() {
 }
 
 void X86DynaRecCPU::recSYSCALL() {
-    iFlushRegs();
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
+    gen.MOV32ItoR(PCSX::ix86::EBX, 0xffffffff);
+    gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
+    gen.MOV32ItoM((uint32_t)&m_arg1, 0x20);
+    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
 
-    gen.MOV32ItoR(PCSX::ix86::EAX, m_pc - 4);
-    gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EAX);
-    gen.PUSH32I(m_branch == 1 ? 1 : 0);
-    gen.PUSH32I(0x20);
-    gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-    gen.CALLFunc((uint32_t)psxExceptionWrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 12);
-
-    m_branch = 2;
-    iRet();
+    m_pcInEBX = true;
+    m_stopRecompile = true;
 }
 
 void X86DynaRecCPU::recBREAK() {}
@@ -2963,230 +2428,190 @@ void X86DynaRecCPU::recMTLO() {
 
 void X86DynaRecCPU::recBLTZ() {
     // Branch if Rs < 0
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
-        return;
-    }
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) return;
 
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k < 0) {
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
         }
+        return;
     }
 
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
     unsigned slot = gen.JL32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.x86SetJ32(slot);
-
-    iBranch(bpc, 0);
-    m_pc += 4;
 }
 
 void X86DynaRecCPU::recBGTZ() {
     // Branch if Rs > 0
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
-        return;
-    }
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) return;
 
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k > 0) {
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
         }
+        return;
     }
 
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
     unsigned slot = gen.JG32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.x86SetJ32(slot);
-
-    iBranch(bpc, 0);
-    m_pc += 4;
 }
 
 void X86DynaRecCPU::recBLTZAL() {
     // Branch if Rs < 0
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    m_nextIsDelaySlot = true;
+    if (IsConst(_Rs_)) {
+        if ((int32_t)m_iRegs[_Rs_].k < 0) {
+            m_needsStackFrame = true;
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            delayedLoad.active = true;
+            delayedLoad.index = 31;
+            gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
+        }
         return;
     }
 
-    if (IsConst(_Rs_)) {
-        if ((int32_t)m_iRegs[_Rs_].k < 0) {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
-        }
-    }
-
+    iFlushReg(31);
+    m_needsStackFrame = true;
+    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    delayedLoad.active = true;
+    delayedLoad.index = 31;
+    gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&m_psxRegs.GPR.n.ra);
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JL32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    unsigned slot = gen.JGE32(0);
+    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
     gen.x86SetJ32(slot);
-
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);
-    iBranch(bpc, 0);
-    m_pc += 4;
 }
 
 void X86DynaRecCPU::recBGEZAL() {
     // Branch if Rs >= 0
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
+    m_nextIsDelaySlot = true;
+    if (IsConst(_Rs_)) {
+        if ((int32_t)m_iRegs[_Rs_].k >= 0) {
+            m_needsStackFrame = true;
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            delayedLoad.active = true;
+            delayedLoad.index = 31;
+            gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
+        }
         return;
     }
 
-    if (IsConst(_Rs_)) {
-        if ((int32_t)m_iRegs[_Rs_].k >= 0) {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
-        }
-    }
-
+    iFlushReg(31);
+    m_needsStackFrame = true;
+    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    delayedLoad.active = true;
+    delayedLoad.index = 31;
+    gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&m_psxRegs.GPR.n.ra);
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JGE32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    unsigned slot = gen.JL32(0);
+    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
     gen.x86SetJ32(slot);
-
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);
-    iBranch(bpc, 0);
-    m_pc += 4;
 }
 
 void X86DynaRecCPU::recJ() {
     // j target
-
-    iJump(_Target_ * 4 + (m_pc & 0xf0000000));
+    uint32_t target = _Target_ * 4 + (m_pc & 0xf0000000);
+    m_nextIsDelaySlot = true;
+    m_stopRecompile = true;
+    m_pcInEBX = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
 }
 
 void X86DynaRecCPU::recJAL() {
     // jal target
-
-    MapConst(31, m_pc + 4);
-
-    iJump(_Target_ * 4 + (m_pc & 0xf0000000));
+    m_needsStackFrame = true;
+    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    delayedLoad.active = true;
+    delayedLoad.index = 31;
+    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+    uint32_t target = _Target_ * 4 + (m_pc & 0xf0000000);
+    m_nextIsDelaySlot = true;
+    m_stopRecompile = true;
+    m_pcInEBX = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
 }
 
 void X86DynaRecCPU::recJR() {
     // jr Rs
-
+    m_nextIsDelaySlot = true;
+    m_stopRecompile = true;
+    m_pcInEBX = true;
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoM((uint32_t)&m_target, m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::EBX, m_iRegs[_Rs_].k);
     } else {
-        gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.MOV32RtoM((uint32_t)&m_target, PCSX::ix86::EAX);
+        gen.MOV32MtoR(PCSX::ix86::EBX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
     }
-
-    SetBranch();
 }
 
 void X86DynaRecCPU::recJALR() {
     // jalr Rs
-
+    m_needsStackFrame = true;
+    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    delayedLoad.active = true;
+    delayedLoad.index = _Rd_;
+    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+    m_nextIsDelaySlot = true;
+    m_stopRecompile = true;
+    m_pcInEBX = true;
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoM((uint32_t)&m_target, m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::EBX, m_iRegs[_Rs_].k);
     } else {
-        gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.MOV32RtoM((uint32_t)&m_target, PCSX::ix86::EAX);
+        gen.MOV32MtoR(PCSX::ix86::EBX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
     }
-
-    if (_Rd_) {
-        MapConst(_Rd_, m_pc + 4);
-    }
-
-    SetBranch();
 }
 
 void X86DynaRecCPU::recBEQ() {
     // Branch if Rs == Rt
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
-        return;
-    }
-
-    if (_Rs_ == _Rt_) {
-        iJump(bpc);
-    } else {
-        if (IsConst(_Rs_) && IsConst(_Rt_)) {
-            if (m_iRegs[_Rs_].k == m_iRegs[_Rt_].k) {
-                iJump(bpc);
-                return;
-            } else {
-                iJump(m_pc + 4);
-                return;
-            }
-        } else if (IsConst(_Rs_)) {
-            gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], m_iRegs[_Rs_].k);
-        } else if (IsConst(_Rt_)) {
-            gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], m_iRegs[_Rt_].k);
-        } else {
-            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-            gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        }
-
-        unsigned slot = gen.JE32(0);
-
-        iBranch(m_pc + 4, 1);
-
-        gen.x86SetJ32(slot);
-
-        iBranch(bpc, 0);
-        m_pc += 4;
-    }
-}
-
-void X86DynaRecCPU::recBNE() {
-    // Branch if Rs != Rt
-    uint32_t bpc = _Imm_ * 4 + m_pc;
-
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
-        return;
-    }
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) return;
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
-        if (m_iRegs[_Rs_].k != m_iRegs[_Rt_].k) {
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
+        if (m_iRegs[_Rs_].k == m_iRegs[_Rt_].k) {
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
         }
+        return;
     } else if (IsConst(_Rs_)) {
         gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], m_iRegs[_Rs_].k);
     } else if (IsConst(_Rt_)) {
@@ -3195,74 +2620,92 @@ void X86DynaRecCPU::recBNE() {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
     }
-    unsigned slot = gen.JNE32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
+    unsigned slot = gen.JE32(0);
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.x86SetJ32(slot);
+}
 
-    iBranch(bpc, 0);
-    m_pc += 4;
+void X86DynaRecCPU::recBNE() {
+    // Branch if Rs != Rt
+    uint32_t target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) return;
+
+    if (IsConst(_Rs_) && IsConst(_Rt_)) {
+        if (m_iRegs[_Rs_].k != m_iRegs[_Rt_].k) {
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
+        }
+        return;
+    } else if (IsConst(_Rs_)) {
+        gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], m_iRegs[_Rs_].k);
+    } else if (IsConst(_Rt_)) {
+        gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], m_iRegs[_Rt_].k);
+    } else {
+        gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
+        gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
+    }
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
+    unsigned slot = gen.JNE32(0);
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
+    gen.x86SetJ32(slot);
 }
 
 void X86DynaRecCPU::recBLEZ() {
     // Branch if Rs <= 0
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
-        return;
-    }
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) return;
 
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k <= 0) {
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
         }
+        return;
     }
 
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
     unsigned slot = gen.JLE32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.x86SetJ32(slot);
-
-    iBranch(bpc, 0);
-    m_pc += 4;
 }
 
 void X86DynaRecCPU::recBGEZ() {
     // Branch if Rs >= 0
-    uint32_t bpc = _Imm_ * 4 + m_pc;
+    uint32_t target = _Imm_ * 4 + m_pc;
 
-    //  iFlushRegs();
-    if (bpc == m_pc + 4 && psxTestLoadDelay(_Rs_, PSXMu32(bpc)) == 0) {
-        return;
-    }
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) return;
 
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k >= 0) {
-            iJump(bpc);
-            return;
-        } else {
-            iJump(m_pc + 4);
-            return;
+            m_pcInEBX = true;
+            m_stopRecompile = true;
+            gen.MOV32ItoR(PCSX::ix86::EBX, target);
         }
+        return;
     }
 
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+    gen.MOV32ItoR(PCSX::ix86::EBX, target);
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
     unsigned slot = gen.JGE32(0);
-
-    iBranch(m_pc + 4, 1);
-
+    gen.MOV32ItoR(PCSX::ix86::EBX, m_pc + 4);
     gen.x86SetJ32(slot);
-
-    iBranch(bpc, 0);
-    m_pc += 4;
 }
 
 void X86DynaRecCPU::recMFC0() {
@@ -3280,42 +2723,47 @@ void X86DynaRecCPU::recCFC0() {
     recMFC0();
 }
 
+void X86DynaRecCPU::testSWInt() {
+    if (!m_pcInEBX) gen.MOV32ItoR(PCSX::ix86::EBX, (uint32_t)m_pc);
+
+    m_pcInEBX = true;
+    m_stopRecompile = true;
+
+    gen.MOV32MtoR(PCSX::ix86::EDX, (uint32_t)&m_psxRegs.CP0.n.Cause);
+    gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
+    gen.AND32RtoR(PCSX::ix86::EAX, PCSX::ix86::EDX);
+    gen.AND32ItoR(PCSX::ix86::EAX, 0x300);
+    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
+    unsigned slot1 = gen.JE8(0);
+    gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
+    gen.AND32ItoR(PCSX::ix86::EAX, 1);
+    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
+    unsigned slot2 = gen.JE8(0);
+    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
+    gen.MOV32RtoM((uint32_t)&m_arg1, PCSX::ix86::EDX);
+    gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot);
+    gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EBX);
+    gen.MOV32ItoR(PCSX::ix86::EBX, 0xffffffff);
+    gen.x86SetJ8(slot1);
+    gen.x86SetJ8(slot2);
+}
+
 void X86DynaRecCPU::recMTC0() {
     // Cop0->Rd = Rt
 
     if (IsConst(_Rt_)) {
-        switch (_Rd_) {
-            case 12:
-                gen.MOV32ItoM((uint32_t)&m_psxRegs.CP0.r[_Rd_], m_iRegs[_Rt_].k);
-                break;
-            case 13:
-                gen.MOV32ItoM((uint32_t)&m_psxRegs.CP0.r[_Rd_], m_iRegs[_Rt_].k & ~(0xfc00));
-                break;
-            default:
-                gen.MOV32ItoM((uint32_t)&m_psxRegs.CP0.r[_Rd_], m_iRegs[_Rt_].k);
-                break;
+        if (_Rd_ == 13) {
+            gen.MOV32ItoM((uint32_t)&m_psxRegs.CP0.n.Cause, m_iRegs[_Rt_].k & ~(0xfc00));
+        } else {
+            gen.MOV32ItoM((uint32_t)&m_psxRegs.CP0.r[_Rd_], m_iRegs[_Rt_].k);
         }
     } else {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        switch (_Rd_) {
-            case 13:
-                gen.AND32ItoR(PCSX::ix86::EAX, ~(0xfc00));
-                break;
-        }
+        if (_Rd_ == 13) gen.AND32ItoR(PCSX::ix86::EAX, ~(0xfc00));
         gen.MOV32RtoM((uint32_t)&m_psxRegs.CP0.r[_Rd_], PCSX::ix86::EAX);
     }
 
-    if (_Rd_ == 12 || _Rd_ == 13) {
-        iFlushRegs();
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);
-        gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-        gen.CALLFunc((uint32_t)psxTestSWIntsWrapper);
-        gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-        if (m_branch == 0) {
-            m_branch = 2;
-            iRet();
-        }
-    }
+    if (_Rd_ == 12 || _Rd_ == 13) testSWInt();
 }
 
 void X86DynaRecCPU::recCTC0() {
@@ -3332,31 +2780,26 @@ void X86DynaRecCPU::recRFE() {
     gen.SHR32ItoR(PCSX::ix86::ECX, 2);
     gen.OR32RtoR(PCSX::ix86::EAX, PCSX::ix86::ECX);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.CP0.n.Status, PCSX::ix86::EAX);
-
-    iFlushRegs();
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);
-    gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
-    gen.CALLFunc((uint32_t)psxTestSWIntsWrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
-    if (m_branch == 0) {
-        m_branch = 2;
-        iRet();
-    }
+    testSWInt();
 }
 
-//
+// HLEs
 
 void X86DynaRecCPU::recHLE() {
-    iFlushRegs();
-
     uint32_t hleCode = PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x03ffffff;
     if (hleCode >= (sizeof(psxHLEt) / sizeof(psxHLEt[0]))) {
         recNULL();
     } else {
-        gen.MOV32ItoR(PCSX::ix86::EAX, (uint32_t)psxHLEt[hleCode]);
-        gen.CALL32R(PCSX::ix86::EAX);
-        m_branch = 2;
-        iRet();
+        if (m_pcInEBX) {
+            gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EBX);
+        } else {
+            gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);
+        }
+        gen.MOV32ItoR(PCSX::ix86::EBX, 0xffffffff);
+        gen.MOV32ItoM((uint32_t)&m_functionPtr, (uint32_t)psxHLEt[hleCode]);
+
+        m_pcInEBX = true;
+        m_stopRecompile = true;
     }
 }
 
@@ -3471,11 +2914,11 @@ const func_t X86DynaRecCPU::m_pgxpRecBSC[64] = {
     &X86DynaRecCPU::pgxpRecLB,   &X86DynaRecCPU::pgxpRecLH,     // 20
     &X86DynaRecCPU::pgxpRecLWL,  &X86DynaRecCPU::pgxpRecLW,     // 22
     &X86DynaRecCPU::pgxpRecLBU,  &X86DynaRecCPU::pgxpRecLHU,    // 24
-    &X86DynaRecCPU::pgxpRecLWR,  &X86DynaRecCPU::pgxpRecNULL,   // 26
+    &X86DynaRecCPU::pgxpRecLWR,  &X86DynaRecCPU::recNULL,       // 26
     &X86DynaRecCPU::pgxpRecSB,   &X86DynaRecCPU::pgxpRecSH,     // 28
     &X86DynaRecCPU::pgxpRecSWL,  &X86DynaRecCPU::pgxpRecSW,     // 2a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 2c
-    &X86DynaRecCPU::pgxpRecSWR,  &X86DynaRecCPU::pgxpRecNULL,   // 2e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 2c
+    &X86DynaRecCPU::pgxpRecSWR,  &X86DynaRecCPU::recNULL,       // 2e
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 30
     &X86DynaRecCPU::pgxpRecLWC2, &X86DynaRecCPU::recNULL,       // 32
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 34
@@ -3487,9 +2930,9 @@ const func_t X86DynaRecCPU::m_pgxpRecBSC[64] = {
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecSPC[64] = {
-    &X86DynaRecCPU::pgxpRecSLL,  &X86DynaRecCPU::pgxpRecNULL,   // 00
+    &X86DynaRecCPU::pgxpRecSLL,  &X86DynaRecCPU::recNULL,       // 00
     &X86DynaRecCPU::pgxpRecSRL,  &X86DynaRecCPU::pgxpRecSRA,    // 02
-    &X86DynaRecCPU::pgxpRecSLLV, &X86DynaRecCPU::pgxpRecNULL,   // 04
+    &X86DynaRecCPU::pgxpRecSLLV, &X86DynaRecCPU::recNULL,       // 04
     &X86DynaRecCPU::pgxpRecSRLV, &X86DynaRecCPU::pgxpRecSRAV,   // 06
     &X86DynaRecCPU::recJR,       &X86DynaRecCPU::recJALR,       // 08
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 0a
@@ -3497,121 +2940,140 @@ const func_t X86DynaRecCPU::m_pgxpRecSPC[64] = {
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 0e
     &X86DynaRecCPU::pgxpRecMFHI, &X86DynaRecCPU::pgxpRecMTHI,   // 10
     &X86DynaRecCPU::pgxpRecMFLO, &X86DynaRecCPU::pgxpRecMTLO,   // 12
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 14
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 16
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 14
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 16
     &X86DynaRecCPU::pgxpRecMULT, &X86DynaRecCPU::pgxpRecMULTU,  // 18
     &X86DynaRecCPU::pgxpRecDIV,  &X86DynaRecCPU::pgxpRecDIVU,   // 1a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 1c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 1e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 1c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 1e
     &X86DynaRecCPU::pgxpRecADD,  &X86DynaRecCPU::pgxpRecADDU,   // 20
     &X86DynaRecCPU::pgxpRecSUB,  &X86DynaRecCPU::pgxpRecSUBU,   // 22
     &X86DynaRecCPU::pgxpRecAND,  &X86DynaRecCPU::pgxpRecOR,     // 24
     &X86DynaRecCPU::pgxpRecXOR,  &X86DynaRecCPU::pgxpRecNOR,    // 26
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 28
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 28
     &X86DynaRecCPU::pgxpRecSLT,  &X86DynaRecCPU::pgxpRecSLTU,   // 2a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 2c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 2e
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 30
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 32
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 34
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 36
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 38
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 3a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 3c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,   // 3e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 2c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 2e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 30
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 32
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 34
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 36
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 38
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3e
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecCP0[32] = {
-    &X86DynaRecCPU::pgxpRecMFC0, &X86DynaRecCPU::pgxpRecNULL,  // 00
-    &X86DynaRecCPU::pgxpRecCFC0, &X86DynaRecCPU::pgxpRecNULL,  // 02
-    &X86DynaRecCPU::pgxpRecMTC0, &X86DynaRecCPU::pgxpRecNULL,  // 04
-    &X86DynaRecCPU::pgxpRecCTC0, &X86DynaRecCPU::pgxpRecNULL,  // 06
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 08
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0e
-    &X86DynaRecCPU::pgxpRecRFE,  &X86DynaRecCPU::pgxpRecNULL,  // 10
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 12
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 14
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 16
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 18
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1e
+    &X86DynaRecCPU::pgxpRecMFC0, &X86DynaRecCPU::recNULL,  // 00
+    &X86DynaRecCPU::pgxpRecCFC0, &X86DynaRecCPU::recNULL,  // 02
+    &X86DynaRecCPU::pgxpRecMTC0, &X86DynaRecCPU::recNULL,  // 04
+    &X86DynaRecCPU::pgxpRecCTC0, &X86DynaRecCPU::recNULL,  // 06
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 0a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 0e
+    &X86DynaRecCPU::pgxpRecRFE,  &X86DynaRecCPU::recNULL,  // 10
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 12
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 16
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 18
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 1a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 1c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 1e
 };
 
 const func_t X86DynaRecCPU::m_pgxpRecCP2BSC[32] = {
-    &X86DynaRecCPU::pgxpRecMFC2, &X86DynaRecCPU::pgxpRecNULL,  // 00
-    &X86DynaRecCPU::pgxpRecCFC2, &X86DynaRecCPU::pgxpRecNULL,  // 02
-    &X86DynaRecCPU::pgxpRecMTC2, &X86DynaRecCPU::pgxpRecNULL,  // 04
-    &X86DynaRecCPU::pgxpRecCTC2, &X86DynaRecCPU::pgxpRecNULL,  // 06
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 08
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 0e
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 10
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 12
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 14
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 16
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 18
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1c
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 1e
+    &X86DynaRecCPU::pgxpRecMFC2, &X86DynaRecCPU::recNULL,  // 00
+    &X86DynaRecCPU::pgxpRecCFC2, &X86DynaRecCPU::recNULL,  // 02
+    &X86DynaRecCPU::pgxpRecMTC2, &X86DynaRecCPU::recNULL,  // 04
+    &X86DynaRecCPU::pgxpRecCTC2, &X86DynaRecCPU::recNULL,  // 06
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 08
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 0a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 0c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 0e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 10
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 12
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 14
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 16
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 18
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 1a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 1c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,  // 1e
 };
 
 // Trace memory functions only
 const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
-    &X86DynaRecCPU::recSPECIAL,  &X86DynaRecCPU::recREGIMM,    // 00
-    &X86DynaRecCPU::recJ,        &X86DynaRecCPU::recJAL,       // 02
-    &X86DynaRecCPU::recBEQ,      &X86DynaRecCPU::recBNE,       // 04
-    &X86DynaRecCPU::recBLEZ,     &X86DynaRecCPU::recBGTZ,      // 06
-    &X86DynaRecCPU::recADDI,     &X86DynaRecCPU::recADDIU,     // 08
-    &X86DynaRecCPU::recSLTI,     &X86DynaRecCPU::recSLTIU,     // 0a
-    &X86DynaRecCPU::recANDI,     &X86DynaRecCPU::recORI,       // 0c
-    &X86DynaRecCPU::recXORI,     &X86DynaRecCPU::recLUI,       // 0e
-    &X86DynaRecCPU::recCOP0,     &X86DynaRecCPU::recNULL,      // 10
-    &X86DynaRecCPU::recCOP2,     &X86DynaRecCPU::recNULL,      // 12
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 14
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 16
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 18
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 1a
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 1c
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 1e
-    &X86DynaRecCPU::pgxpRecLB,   &X86DynaRecCPU::pgxpRecLH,    // 20
-    &X86DynaRecCPU::pgxpRecLWL,  &X86DynaRecCPU::pgxpRecLW,    // 22
-    &X86DynaRecCPU::pgxpRecLBU,  &X86DynaRecCPU::pgxpRecLHU,   // 24
-    &X86DynaRecCPU::pgxpRecLWR,  &X86DynaRecCPU::pgxpRecNULL,  // 26
-    &X86DynaRecCPU::pgxpRecSB,   &X86DynaRecCPU::pgxpRecSH,    // 28
-    &X86DynaRecCPU::pgxpRecSWL,  &X86DynaRecCPU::pgxpRecSW,    // 2a
-    &X86DynaRecCPU::pgxpRecNULL, &X86DynaRecCPU::pgxpRecNULL,  // 2c
-    &X86DynaRecCPU::pgxpRecSWR,  &X86DynaRecCPU::pgxpRecNULL,  // 2e
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 30
-    &X86DynaRecCPU::pgxpRecLWC2, &X86DynaRecCPU::recNULL,      // 32
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 34
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 36
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 38
-    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recHLE,       // 3a
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 3c
-    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,      // 3e
+    &X86DynaRecCPU::recSPECIAL,  &X86DynaRecCPU::recREGIMM,   // 00
+    &X86DynaRecCPU::recJ,        &X86DynaRecCPU::recJAL,      // 02
+    &X86DynaRecCPU::recBEQ,      &X86DynaRecCPU::recBNE,      // 04
+    &X86DynaRecCPU::recBLEZ,     &X86DynaRecCPU::recBGTZ,     // 06
+    &X86DynaRecCPU::recADDI,     &X86DynaRecCPU::recADDIU,    // 08
+    &X86DynaRecCPU::recSLTI,     &X86DynaRecCPU::recSLTIU,    // 0a
+    &X86DynaRecCPU::recANDI,     &X86DynaRecCPU::recORI,      // 0c
+    &X86DynaRecCPU::recXORI,     &X86DynaRecCPU::recLUI,      // 0e
+    &X86DynaRecCPU::recCOP0,     &X86DynaRecCPU::recNULL,     // 10
+    &X86DynaRecCPU::recCOP2,     &X86DynaRecCPU::recNULL,     // 12
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 14
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 16
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 18
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 1a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 1c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 1e
+    &X86DynaRecCPU::pgxpRecLB,   &X86DynaRecCPU::pgxpRecLH,   // 20
+    &X86DynaRecCPU::pgxpRecLWL,  &X86DynaRecCPU::pgxpRecLW,   // 22
+    &X86DynaRecCPU::pgxpRecLBU,  &X86DynaRecCPU::pgxpRecLHU,  // 24
+    &X86DynaRecCPU::pgxpRecLWR,  &X86DynaRecCPU::recNULL,     // 26
+    &X86DynaRecCPU::pgxpRecSB,   &X86DynaRecCPU::pgxpRecSH,   // 28
+    &X86DynaRecCPU::pgxpRecSWL,  &X86DynaRecCPU::pgxpRecSW,   // 2a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 2c
+    &X86DynaRecCPU::pgxpRecSWR,  &X86DynaRecCPU::recNULL,     // 2e
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 30
+    &X86DynaRecCPU::pgxpRecLWC2, &X86DynaRecCPU::recNULL,     // 32
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 34
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 36
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 38
+    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recHLE,      // 3a
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 3c
+    &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 3e
 };
 
 void X86DynaRecCPU::recRecompile() {
     char *p;
-    int8_t *ptr;
-
-    m_resp = 0;
 
     /* if gen.m_x86Ptr reached the mem limit reset whole mem */
-    if (((uint32_t)gen.x86GetPtr() - (uint32_t)m_recMem) >= (RECMEM_SIZE - 0x10000)) Reset();
+    if (((uint32_t)gen.x86GetPtr() - (uint32_t)m_recMem) >= RECMEM_SIZE) {
+        Reset();
+    } else {
+        gen.x86Align(32);
+    }
 
-    gen.x86Align(32);
-    ptr = gen.x86GetPtr();
-
-    PC_REC32(m_psxRegs.pc) = (uint32_t)gen.x86GetPtr();
     m_pc = m_psxRegs.pc;
-    m_old_pc = m_pc;
+    uint32_t old_pc = m_pc;
+    int8_t *startPtr = gen.x86GetPtr();
+    PC_REC32(m_pc) = (uint32_t)startPtr;
+    m_needsStackFrame = false;
+    m_pcInEBX = false;
+    m_nextIsDelaySlot = false;
+    m_inDelaySlot = false;
+    m_stopRecompile = false;
+    m_currentDelayedLoad = 0;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
+    unsigned count = 0;
+    gen.PUSH32R(PCSX::ix86::EBP);
+    gen.MOV32RtoR(PCSX::ix86::EBP, PCSX::ix86::ESP);
+    gen.PUSH32R(PCSX::ix86::EBX);
+    gen.PUSH32R(PCSX::ix86::ESI);
+    gen.PUSH32R(PCSX::ix86::EDI);
+    int8_t *endStackFramePtr = gen.x86GetPtr();
 
-    for (m_count = 0; m_count < DYNAREC_BLOCK;) {
+    while ((count < DYNAREC_BLOCK || m_delayedLoadInfo[0].active || m_delayedLoadInfo[1].active) &&
+           (!m_stopRecompile || m_nextIsDelaySlot)) {
+        if (m_nextIsDelaySlot) {
+            m_inDelaySlot = true;
+            m_nextIsDelaySlot = false;
+        }
         p = (char *)PSXM(m_pc);
         if (p == NULL) {
             recError();
@@ -3619,21 +3081,55 @@ void X86DynaRecCPU::recRecompile() {
         }
         m_psxRegs.code = *(uint32_t *)p;
         m_pc += 4;
-        m_count++;
+        count++;
         func_t func = m_pRecBSC[m_psxRegs.code >> 26];
         (*this.*func)();
 
-        if (m_branch) {
-            m_branch = 0;
-            return;
+        const bool isOtherActive = m_delayedLoadInfo[m_currentDelayedLoad].active;
+        m_currentDelayedLoad ^= 1;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (delayedLoad.active) {
+            delayedLoad.active = false;
+            const unsigned index = delayedLoad.index;
+            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[index], PCSX::ix86::ESI);
+            m_iRegs[index].state = ST_UNK;
         }
+        if (isOtherActive) gen.MOV32RtoR(PCSX::ix86::ESI, PCSX::ix86::EDI);
     }
 
+    // This is slightly inexact: if there's a delayed load in the delay slot of a branch,
+    // then we're flushing it early, before the next instruction had a chance to execute.
+    // This might be fine still, but it can be arranged if needed.
+    m_currentDelayedLoad ^= 1;
+    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    if (delayedLoad.active) {
+        delayedLoad.active = false;
+        const unsigned index = delayedLoad.index;
+        gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[index], PCSX::ix86::ESI);
+        m_iRegs[index].state = ST_UNK;
+    }
     iFlushRegs();
 
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, m_pc);
+    count = ((m_pc - old_pc) / 4) * PCSX::Emulator::BIAS;
+    gen.ADD32ItoM((uint32_t)&m_psxRegs.cycle, count);
 
-    iRet();
+    if (m_pcInEBX) {
+        gen.MOV32RtoR(PCSX::ix86::EAX, PCSX::ix86::EBX);
+    } else {
+        gen.MOV32ItoR(PCSX::ix86::EAX, m_pc);
+    }
+
+    if (m_needsStackFrame || m_pcInEBX) {
+        gen.POP32R(PCSX::ix86::EDI);
+        gen.POP32R(PCSX::ix86::ESI);
+        gen.POP32R(PCSX::ix86::EBX);
+        gen.POP32R(PCSX::ix86::EBP);
+        gen.RET();
+    } else {
+        ptrdiff_t count = endStackFramePtr - startPtr;
+        gen.NOP(count, startPtr);
+        gen.RET();
+    }
 }
 
 void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
@@ -3677,12 +3173,12 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     X86DynaRecCPU() : R3000Acpu("x86 DynaRec") {}
     virtual bool Implemented() final { return false; }
     virtual bool Init() final { return false; }
-    virtual void Reset() final { assert(0); }
-    virtual void Execute() final { assert(0); }
-    virtual void ExecuteHLEBlock() final { assert(0); }
-    virtual void Clear(uint32_t Addr, uint32_t Size) final { assert(0); }
-    virtual void Shutdown() final { assert(0); }
-    virtual void SetPGXPMode(uint32_t pgxpMode) final { assert(0); }
+    virtual void Reset() final { abort(); }
+    virtual void Execute() final { abort(); }
+    virtual void ExecuteHLEBlock() final { abort(); }
+    virtual void Clear(uint32_t Addr, uint32_t Size) final { abort(); }
+    virtual void Shutdown() final { abort(); }
+    virtual void SetPGXPMode(uint32_t pgxpMode) final { abort(); }
 };
 
 #endif
