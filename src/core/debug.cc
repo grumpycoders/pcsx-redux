@@ -73,23 +73,13 @@ void PCSX::Debug::processBefore() {
                         ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9);
     const bool isJRRA = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
                         ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 31;
+    const bool isJRK0 = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 26;
 
     if (m_stepping) {
+        m_oldSteppingJumps = m_steppingJumps;
         if (isJAL || isJALR) m_steppingJumps++;
-        if (isJRRA) m_steppingJumps--;
-
-        auto none = m_breakpoints.end();
-        switch (m_stepType) {
-            case STEP_IN:
-                triggerBP(none, _("Step in"));
-                break;
-            case STEP_OVER:
-                if (m_steppingJumps == 0) triggerBP(none, _("Step over"));
-                break;
-            case STEP_OUT:
-                if (m_steppingJumps == -1) triggerBP(none, _("Step out"));
-                break;
-        }
+        if (isJRRA || isJRK0) m_steppingJumps--;
     }
 
     if (m_mapping_e) {
@@ -102,6 +92,31 @@ void PCSX::Debug::processBefore() {
 void PCSX::Debug::processAfter() {
     const uint32_t& pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
     checkBP(pc, BE);
+
+    if (m_stepping) {
+        const bool gotException = pc == 0x80000080 || pc == 0xbfc00180;
+        if (gotException) m_steppingJumps += 2; // there ought to be two jr $k0
+
+        auto none = m_breakpoints.end();
+        switch (m_stepType) {
+            case STEP_IN:
+                triggerBP(none, _("Step in"));
+                break;
+            case STEP_OVER:
+                if (m_steppingJumps == 0) {
+                    if (m_oldSteppingJumps == 0) {
+                        triggerBP(none, _("Step over"));
+                    } else {
+                        queueBP(_("Step over"));
+                    }
+                }
+                break;
+            case STEP_OUT:
+                if (m_steppingJumps == -1) queueBP(_("Step out"));
+                break;
+        }
+        m_oldSteppingJumps = m_steppingJumps;
+    }
 }
 
 void PCSX::Debug::startStepping() {
@@ -111,7 +126,7 @@ void PCSX::Debug::startStepping() {
     g_system->resume();
 }
 
-void PCSX::Debug::triggerBP(bpiterator bp, const char * reason) {
+void PCSX::Debug::triggerBP(bpiterator bp, const char* reason) {
     m_stepping = false;
     if (bp != m_breakpoints.end() && bp->second.m_temporary) {
         m_lastBP = m_breakpoints.end();
@@ -119,11 +134,17 @@ void PCSX::Debug::triggerBP(bpiterator bp, const char * reason) {
     } else {
         m_lastBP = bp;
     }
-    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s"), g_emulator.m_psxCpu->m_psxRegs.pc, reason);
+    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s\n"), g_emulator.m_psxCpu->m_psxRegs.pc, reason);
     PCSX::g_system->pause();
 }
 
-void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, const char * reason) {
+void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, const char* reason) {
+    auto none = m_breakpoints.end();
+
+    if (m_queuedBP) {
+        triggerBP(none, m_queuedBPReason.c_str());
+        m_queuedBP = false;
+    }
     auto [begin, end] = m_breakpoints.equal_range(address);
     for (auto it = begin; it != end; it++) {
         if (it->second.enabled() && (it->second.m_type == type) && (it->first == address)) {
@@ -132,8 +153,6 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, const char * re
             break;
         }
     }
-
-    auto none = m_breakpoints.end();
 
     if (m_breakmp_e && type == BE && !isMapMarked(address, MAP_EXEC)) {
         triggerBP(none, _("Execution map"));

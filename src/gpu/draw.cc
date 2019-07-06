@@ -463,7 +463,6 @@ uint32_t ulInitDisplay(void) {
     checkGL();
     glGenBuffers(1, &vbo);
     checkGL();
-
     return 1;
 }
 

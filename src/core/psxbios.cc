@@ -2679,15 +2679,42 @@ class BiosImpl : public PCSX::Bios {
                 psxMu32ref(0x4d98) = SWAP_LEu32(0x946f000a);
         */
         // opcode HLE
-        psxMu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 0);
-        psxMu32ref(0x00a0) = SWAP_LEu32((0x3b << 26) | 1);
-        psxMu32ref(0x00b0) = SWAP_LEu32((0x3b << 26) | 2);
-        psxMu32ref(0x00c0) = SWAP_LEu32((0x3b << 26) | 3);
-        psxMu32ref(0x4c54) = SWAP_LEu32((0x3b << 26) | 0);
-        psxMu32ref(0x8000) = SWAP_LEu32((0x3b << 26) | 5);
-        psxMu32ref(0x07a0) = SWAP_LEu32((0x3b << 26) | 0);
-        psxMu32ref(0x0884) = SWAP_LEu32((0x3b << 26) | 0);
-        psxMu32ref(0x0894) = SWAP_LEu32((0x3b << 26) | 0);
+        // Each are prepended with a nop to ensure any potential delayed load will be completed.
+        // They will each change PC directly, either by returning to ra, or by returning to EPC.
+        // ??
+        psxMu32ref(0x0000) = 0;
+        psxMu32ref(0x0004) = SWAP_LEu32((0x3b << 26) | 0);
+        // exception handler
+        psxMu32ref(0x0080) = SWAP_LEu32(0x3c1a0000);  // lui   $k0, 0x0000
+        psxMu32ref(0x0084) = SWAP_LEu32(0x275a0090);  // addiu $k0, 0x0090
+        psxMu32ref(0x0088) = SWAP_LEu32(0x03400008);  // jr    $k0
+        psxMu32ref(0x008c) = SWAP_LEu32(0x275a0008);  // addiu $k0, 0x0008
+        psxMu32ref(0x0090) = SWAP_LEu32(0x03400008);  // jr    $k0
+        psxMu32ref(0x0094) = SWAP_LEu32((0x3b << 26) | 6);
+        // a0 calls handler
+        psxMu32ref(0x00a0) = 0;
+        psxMu32ref(0x00a4) = SWAP_LEu32((0x3b << 26) | 1);
+        // b0 calls handler
+        psxMu32ref(0x00b0) = 0;
+        psxMu32ref(0x00b4) = SWAP_LEu32((0x3b << 26) | 2);
+        // c0 calls handler
+        psxMu32ref(0x00c0) = 0;
+        psxMu32ref(0x00c4) = SWAP_LEu32((0x3b << 26) | 3);
+        // ??
+        psxMu32ref(0x4c54) = 0;
+        psxMu32ref(0x4c58) = SWAP_LEu32((0x3b << 26) | 0);
+        // Exec return (a0 call 43)
+        psxMu32ref(0x8000) = 0;
+        psxMu32ref(0x8004) = SWAP_LEu32((0x3b << 26) | 5);
+        // ??
+        psxMu32ref(0x07a0) = 0;
+        psxMu32ref(0x07a4) = SWAP_LEu32((0x3b << 26) | 0);
+        // ??
+        psxMu32ref(0x0884) = 0;
+        psxMu32ref(0x0888) = SWAP_LEu32((0x3b << 26) | 0);
+        // ??
+        psxMu32ref(0x0894) = 0;
+        psxMu32ref(0x0898) = SWAP_LEu32((0x3b << 26) | 0);
 
         // initial stack pointer for BIOS interrupt
         psxMu32ref(0x6c80) = SWAP_LEu32(0x000085c8);
@@ -2709,11 +2736,20 @@ class BiosImpl : public PCSX::Bios {
         s_UeEV = s_Event + 32 * 3;
         s_SwEV = s_Event + 32 * 4;
         s_ThEV = s_Event + 32 * 5;
+        // All the above is done in the emulated RAM, in the emulator's state, or in the hardware registers.
+        // Anything below here is done by touching the ROM section. Therefore, if the real BIOS has been loaded,
+        // let's not poke into it. A better method might be to do this inconditionally, THEN load the BIOS, if
+        // specified.
+        // In all cases, this ensures that savestates are going to be consistent.
         if (m_realBiosLoaded) return;
         memset(s_Event, 0, size * 6);
 
         // bootstrap
-        psxRu32ref(0x0000) = SWAP_LEu32((0x3b << 26) | 4);
+        psxRu32ref(0x0000) = 0;
+        psxRu32ref(0x0004) = SWAP_LEu32((0x3b << 26) | 4);
+        // exception handler
+        psxRu32ref(0x0180) = 0;
+        psxRu32ref(0x0184) = SWAP_LEu32((0x3b << 26) | 6);
         // fonts
         len = 0x80000 - 0x66000;
         uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));

@@ -62,8 +62,19 @@ typedef Protobuf::RepeatedField<IntCycles, 32, TYPESTRING("interrupt_cycles"), 9
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("icache_valid"), 12> ICacheValid;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("next_is_delay_slot"), 13> NextIsDelaySlot;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("index"), 1> DelaySlotIndex;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("value"), 2> DelaySlotValue;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pc_value"), 3> DelaySlotPcValue;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("active"), 4> DelaySlotActive;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("pc_active"), 5> DelaySlotPcActive;
+typedef Protobuf::Message<TYPESTRING("DelaySlotInfo"), DelaySlotIndex, DelaySlotValue, DelaySlotPcValue,
+                          DelaySlotActive, DelaySlotPcActive>
+    DelaySlotInfo;
+typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_1"), 14> DelaySlotInfo1;
+typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 15> DelaySlotInfo2;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, IntCyclesField,
-                          ICacheAddr, ICacheCode, ICacheValid>
+                          ICacheAddr, ICacheCode, ICacheValid, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
@@ -266,7 +277,7 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
                           BiosHLEField>
     SaveState;
 
-typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, IntCycles, Registers, GPU, ADPCMDecode, XA,
+typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, IntCycles, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
                             CDRom, Hardware, Rcnt, Counters, MDEC, BiosTCB, BiosFileDesc, BiosHLE, SaveState>
     ProtoFile;
