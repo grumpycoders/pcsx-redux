@@ -127,6 +127,7 @@
 
 #endif
 
+#include "core/psxmem.h"
 #include "gpu/cfg.h"
 #include "gpu/debug.h"
 #include "gpu/draw.h"
@@ -181,8 +182,8 @@ static unsigned char gpuCommand = 0;
 static int32_t gpuDataC = 0;
 static int32_t gpuDataP = 0;
 
-VRAMLoad_t VRAMWrite;
-VRAMLoad_t VRAMRead;
+VRAMLoad_t VRAMWriteInfo;
+VRAMLoad_t VRAMReadInfo;
 DATAREGISTERMODES DataWriteMode;
 DATAREGISTERMODES DataReadMode;
 
@@ -392,8 +393,8 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
     DataWriteMode = DR_NORMAL;
 
     // Reset transfer values, to prevent mis-transfer of data
-    memset(&VRAMWrite, 0, sizeof(VRAMLoad_t));
-    memset(&VRAMRead, 0, sizeof(VRAMLoad_t));
+    memset(&VRAMWriteInfo, 0, sizeof(VRAMLoad_t));
+    memset(&VRAMReadInfo, 0, sizeof(VRAMLoad_t));
 
     // device initialised already !
     lGPUstatusRet = 0x14802000;
@@ -795,8 +796,12 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             gdata &= 0x03;  // Only want the lower two bits
 
             DataWriteMode = DataReadMode = DR_NORMAL;
-            if (gdata == 0x02) DataWriteMode = DR_VRAMTRANSFER;
-            if (gdata == 0x03) DataReadMode = DR_VRAMTRANSFER;
+            if (gdata == 0x02) {
+                DataWriteMode = DR_VRAMTRANSFER;
+            }
+            if (gdata == 0x03) {
+                DataReadMode = DR_VRAMTRANSFER;
+            }
             lGPUstatusRet &= ~GPUSTATUS_DMABITS;  // Clear the current settings of the DMA bits
             lGPUstatusRet |= (gdata << 29);       // Set the DMA bits according to the received data
 
@@ -1013,24 +1018,24 @@ __inline void FinishedVRAMWrite(void) {
     // Set register to NORMAL operation
     DataWriteMode = DR_NORMAL;
     // Reset transfer values, to prevent mis-transfer of data
-    VRAMWrite.x = 0;
-    VRAMWrite.y = 0;
-    VRAMWrite.Width = 0;
-    VRAMWrite.Height = 0;
-    VRAMWrite.ColsRemaining = 0;
-    VRAMWrite.RowsRemaining = 0;
+    VRAMWriteInfo.x = 0;
+    VRAMWriteInfo.y = 0;
+    VRAMWriteInfo.Width = 0;
+    VRAMWriteInfo.Height = 0;
+    VRAMWriteInfo.ColsRemaining = 0;
+    VRAMWriteInfo.RowsRemaining = 0;
 }
 
 __inline void FinishedVRAMRead(void) {
     // Set register to NORMAL operation
     DataReadMode = DR_NORMAL;
     // Reset transfer values, to prevent mis-transfer of data
-    VRAMRead.x = 0;
-    VRAMRead.y = 0;
-    VRAMRead.Width = 0;
-    VRAMRead.Height = 0;
-    VRAMRead.ColsRemaining = 0;
-    VRAMRead.RowsRemaining = 0;
+    VRAMReadInfo.x = 0;
+    VRAMReadInfo.y = 0;
+    VRAMReadInfo.Width = 0;
+    VRAMReadInfo.Height = 0;
+    VRAMReadInfo.ColsRemaining = 0;
+    VRAMReadInfo.RowsRemaining = 0;
 
     // Indicate GPU is no longer ready for VRAM data in the STATUS REGISTER
     lGPUstatusRet &= ~GPUSTATUS_READYFORVRAM;
@@ -1044,57 +1049,58 @@ void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) {
-        m_debugger.addEvent([]() { return new Debug::Invalid("DMA read without VRAM TRANSFER"); }, true);
+        m_debugger.addEvent([]() { return new Debug::Verbose(_("Status read")); });
         return;
     }
 
-    m_debugger.addEvent(
-        [&]() { return new Debug::VRAMRead(hwAddr, iSize, VRAMRead.x, VRAMRead.y, VRAMRead.Width, VRAMRead.Height); },
-        VRAMRead.Width == 0 || VRAMRead.Height == 0);
+    m_debugger.addEvent([&]() {
+        return new Debug::VRAMRead(hwAddr, iSize, VRAMReadInfo.x, VRAMReadInfo.y, VRAMReadInfo.Width,
+                                   VRAMReadInfo.Height);
+    });
 
     GPUIsBusy;
 
     // adjust read ptr, if necessary
-    while (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-    while (VRAMRead.ImagePtr < psxVuw) VRAMRead.ImagePtr += iGPUHeight * 1024;
+    while (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+    while (VRAMReadInfo.ImagePtr < psxVuw) VRAMReadInfo.ImagePtr += iGPUHeight * 1024;
 
     for (i = 0; i < iSize; i++) {
         // do 2 seperate 16bit reads for compatibility (wrap issues)
-        if ((VRAMRead.ColsRemaining > 0) && (VRAMRead.RowsRemaining > 0)) {
+        if ((VRAMReadInfo.ColsRemaining > 0) && (VRAMReadInfo.RowsRemaining > 0)) {
             // lower 16 bit
-            lGPUdataRet = (uint32_t)*VRAMRead.ImagePtr;
+            lGPUdataRet = (uint32_t)*VRAMReadInfo.ImagePtr;
 
-            VRAMRead.ImagePtr++;
-            if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-            VRAMRead.RowsRemaining--;
+            VRAMReadInfo.ImagePtr++;
+            if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+            VRAMReadInfo.RowsRemaining--;
 
-            if (VRAMRead.RowsRemaining <= 0) {
-                VRAMRead.RowsRemaining = VRAMRead.Width;
-                VRAMRead.ColsRemaining--;
-                VRAMRead.ImagePtr += 1024 - VRAMRead.Width;
-                if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
+            if (VRAMReadInfo.RowsRemaining <= 0) {
+                VRAMReadInfo.RowsRemaining = VRAMReadInfo.Width;
+                VRAMReadInfo.ColsRemaining--;
+                VRAMReadInfo.ImagePtr += 1024 - VRAMReadInfo.Width;
+                if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
             }
 
             // higher 16 bit (always, even if it's an odd width)
-            lGPUdataRet |= (uint32_t)(*VRAMRead.ImagePtr) << 16;
+            lGPUdataRet |= (uint32_t)(*VRAMReadInfo.ImagePtr) << 16;
 
             *pMem++ = lGPUdataRet;
 
-            if (VRAMRead.ColsRemaining <= 0) {
+            if (VRAMReadInfo.ColsRemaining <= 0) {
                 FinishedVRAMRead();
                 goto ENDREAD;
             }
 
-            VRAMRead.ImagePtr++;
-            if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
-            VRAMRead.RowsRemaining--;
-            if (VRAMRead.RowsRemaining <= 0) {
-                VRAMRead.RowsRemaining = VRAMRead.Width;
-                VRAMRead.ColsRemaining--;
-                VRAMRead.ImagePtr += 1024 - VRAMRead.Width;
-                if (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
+            VRAMReadInfo.ImagePtr++;
+            if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+            VRAMReadInfo.RowsRemaining--;
+            if (VRAMReadInfo.RowsRemaining <= 0) {
+                VRAMReadInfo.RowsRemaining = VRAMReadInfo.Width;
+                VRAMReadInfo.ColsRemaining--;
+                VRAMReadInfo.ImagePtr += 1024 - VRAMReadInfo.Width;
+                if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
             }
-            if (VRAMRead.ColsRemaining <= 0) {
+            if (VRAMReadInfo.ColsRemaining <= 0) {
                 FinishedVRAMRead();
                 goto ENDREAD;
             }
@@ -1181,6 +1187,280 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
+bool PCSX::GPU::impl::BlockFill::processWrite(uint32_t word) {
+    switch (m_count) {
+        case 0:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            m_count++;
+            break;
+        case 1:
+            m_w = word & 0xffff;
+            m_h = word >> 16;
+            m_parent->m_debugger.addEvent([&]() { return new Debug::BlockFill(m_color, m_x, m_y, m_w, m_h); });
+            m_parent->m_defaultReader.setActive();
+            break;
+    }
+    return true;
+}
+
+bool PCSX::GPU::impl::Polygon::processWrite(uint32_t word) {
+    const unsigned count = 3 + m_vtx;
+    switch (m_state) {
+        for (m_count = 0; m_count < count; m_count++) {
+            if (m_count > 0 && m_iip) {
+                m_state = GET_COLOR;
+                return true;
+                case GET_COLOR:
+                    m_colors[m_count] = word & 0xffffff;
+                    m_state = GET_XY;
+            } else {
+                m_colors[m_count] = m_colors[0];
+            }
+            m_state = GET_XY;
+            return true;
+            case GET_XY:
+                m_x[m_count] = word & 0xffff;
+                m_y[m_count] = word >> 16;
+                if (m_tme) {
+                    m_state = GET_UV;
+                    return true;
+                    case GET_UV:
+                        m_u[m_count] = word & 0xff;
+                        m_v[m_count] = (word >> 8) & 0xff;
+                        if (m_count == 0) {
+                            m_clutID = word >> 16;
+                        } else if (m_count == 1) {
+                            m_texturePage = word >> 16;
+                        }
+                } else {
+                    m_u[m_count] = 0;
+                    m_v[m_count] = 0;
+                }
+        }
+        if (!m_vtx) {
+            m_colors[3] = 0;
+            m_x[3] = 0;
+            m_y[3] = 0;
+            m_u[3] = 0;
+            m_v[3] = 0;
+        }
+        m_parent->m_debugger.addEvent([&]() {
+            auto ret = new Debug::Polygon(m_iip, m_vtx, m_tme, m_abe, m_tge);
+            ret->setClutID(m_clutID);
+            ret->setTexturePage(m_texturePage);
+            for (unsigned i = 0; i < 4; i++) {
+                ret->setX(m_x[i], i);
+                ret->setY(m_y[i], i);
+                ret->setU(m_u[i], i);
+                ret->setV(m_v[i], i);
+                ret->setColor(m_colors[i], i);
+            }
+            return ret;
+        });
+        m_parent->m_defaultReader.setActive();
+        return true;
+    }
+    abort();
+    return true;
+}
+
+bool PCSX::GPU::impl::Line::processWrite(uint32_t word) {
+    if (!(m_pll && word == 0x55555555)) {
+        switch (m_state) {
+            case GET_COLOR:
+                if (m_count != 0 && m_iip) {
+                    m_color.push_back(word);
+                    m_state = GET_XY;
+                    return true;
+                } else {
+                    m_color.push_back(m_color0);
+                }
+            case GET_XY:
+                m_x.push_back(word & 0xffff);
+                m_y.push_back(word >> 16);
+                m_count++;
+                if (m_pll || m_count != 2) return true;
+        }
+    }
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::Line(m_iip, m_pll, m_abe);
+        ret->setColors(m_color);
+        ret->setX(m_x);
+        ret->setY(m_y);
+        return ret;
+    });
+    m_parent->m_defaultReader.setActive();
+    return true;
+}
+
+bool PCSX::GPU::impl::Sprite::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_XY:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            if (m_tme) {
+                m_state = GET_UV;
+                return true;
+                case GET_UV:
+                    m_u = word & 0xff;
+                    m_v = (word >> 8) & 0xff;
+                    m_clutID = word >> 16;
+            } else {
+                m_u = m_v = 0;
+                m_clutID = 0;
+            }
+            if (m_size == 0) {
+                m_state = GET_WH;
+                return true;
+            }
+        case GET_WH:
+            switch (m_size) {
+                case 0:
+                    m_w = word & 0xffff;
+                    m_h = word >> 16;
+                    break;
+                case 1:
+                    m_w = m_h = 1;
+                    break;
+                case 2:
+                    m_w = m_h = 8;
+                    break;
+                case 3:
+                    m_w = m_h = 16;
+                    break;
+            }
+    }
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::Sprite(m_tme, m_abe, m_color, m_x, m_y, m_u, m_v, m_clutID, m_w, m_h);
+        return ret;
+    });
+    m_parent->m_defaultReader.setActive();
+    return true;
+}
+
+bool PCSX::GPU::impl::Blit::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_SRC:
+            m_sx = word & 0xffff;
+            m_sy = word >> 16;
+            m_state = GET_DST;
+            return true;
+        case GET_DST:
+            m_dx = word & 0xffff;
+            m_dy = word >> 16;
+            m_state = GET_HW;
+            return true;
+    }
+    m_h = word & 0xffff;
+    m_w = word >> 16;
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::Blit(m_sx, m_sy, m_dx, m_sy, m_h, m_w);
+        return ret;
+    });
+    m_parent->m_defaultReader.setActive();
+    return true;
+}
+
+bool PCSX::GPU::impl::VRAMWrite::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_XY:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            m_state = GET_HW;
+            return true;
+    }
+    m_h = word & 0xffff;
+    m_w = word >> 16;
+    m_parent->m_defaultReader.setActive();
+    return false;
+}
+
+bool PCSX::GPU::impl::VRAMRead::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_XY:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            m_state = GET_HW;
+            return true;
+    }
+    m_h = word & 0xffff;
+    m_w = word >> 16;
+    m_parent->m_defaultReader.setActive();
+    return true;
+}
+
+bool PCSX::GPU::impl::Command::processWrite(uint32_t packetHead) {
+    bool gotUnknown = false;
+    const uint8_t cmdType = packetHead >> 29;     // 3 topmost bits = command "type"
+    const uint8_t cmd = packetHead >> 24 & 0x1f;  // 5 next bits = "command", when it's not a bitfield
+
+    const uint32_t packetInfo = packetHead & 0xffffff;
+    const uint32_t color = packetInfo;
+    switch (cmdType) {
+        case 0:  // GPU command
+            switch (cmd) {
+                case 0x01:  // clear cache
+                    m_parent->m_debugger.addEvent([]() { return new Debug::ClearCache(); });
+                    break;
+                case 0x02:  // block draw
+                    m_parent->m_blockFill.setActive(color);
+                    break;
+                default:
+                    gotUnknown = true;
+                    break;
+            }
+            break;
+        case 1:  // Polygon primitive
+            m_parent->m_polygon.setActive(packetHead);
+            break;
+        case 2:  // Line primitive
+            m_parent->m_line.setActive(packetHead);
+            break;
+        case 3:  // Sprite primitive
+            m_parent->m_sprite.setActive(packetHead);
+            break;
+        case 4:  // Move image in FB
+            m_parent->m_blit.setActive(packetHead);
+            break;
+        case 5:  // Send image to FB
+            m_parent->m_vramWrite.setActive(packetHead);
+            break;
+        case 6:  // Copy image from FB
+            m_parent->m_vramRead.setActive(packetHead);
+            break;
+        case 7:  // Environment command
+            switch (cmd) {
+                case 1:  // draw mode setting
+                    break;
+                case 2:  // texture window setting
+                    break;
+                case 3:  // set drawing area top left
+                    break;
+                case 4:  // set drawing area bottom right
+                    break;
+                case 5:  // drawing offset
+                    break;
+                case 6:  // mask setting
+                    break;
+                default:
+                    gotUnknown = true;
+                    break;
+            }
+            break;
+    }
+    if (gotUnknown) {
+        m_parent->m_debugger.addEvent(
+            [&]() {
+                char packet[9];
+                std::snprintf(packet, 9, "%08x", packetHead);
+                return new Debug::Invalid(_("Unsupported DMA CMD 0x") + std::string(packet));
+            },
+            true);
+    }
+    return true;
+}
+
 void PCSX::GPU::impl::writeDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
     unsigned char command;
     uint32_t gdata = 0;
@@ -1194,19 +1474,18 @@ STARTVRAM:
     if (DataWriteMode == DR_VRAMTRANSFER) {
         bool bFinished = false;
 
-        m_debugger.addEvent(
-            [&]() {
-                return new Debug::VRAMWrite(hwAddr, iSize, VRAMWrite.x, VRAMWrite.y, VRAMWrite.Width, VRAMWrite.Height);
-            },
-            VRAMWrite.Width == 0 || VRAMWrite.Height == 0);
+        m_debugger.addEvent([&]() {
+            return new Debug::VRAMWrite(hwAddr, iSize, VRAMWriteInfo.x, VRAMWriteInfo.y, VRAMWriteInfo.Width,
+                                        VRAMWriteInfo.Height);
+        });
 
         // make sure we are in vram
-        while (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
-        while (VRAMWrite.ImagePtr < psxVuw) VRAMWrite.ImagePtr += iGPUHeight * 1024;
+        while (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= iGPUHeight * 1024;
+        while (VRAMWriteInfo.ImagePtr < psxVuw) VRAMWriteInfo.ImagePtr += iGPUHeight * 1024;
 
         // now do the loop
-        while (VRAMWrite.ColsRemaining > 0) {
-            while (VRAMWrite.RowsRemaining > 0) {
+        while (VRAMWriteInfo.ColsRemaining > 0) {
+            while (VRAMWriteInfo.RowsRemaining > 0) {
                 if (i >= iSize) {
                     goto ENDVRAM;
                 }
@@ -1214,31 +1493,31 @@ STARTVRAM:
 
                 gdata = *pMem++;
 
-                *VRAMWrite.ImagePtr++ = (uint16_t)gdata;
-                if (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
-                VRAMWrite.RowsRemaining--;
+                *VRAMWriteInfo.ImagePtr++ = (uint16_t)gdata;
+                if (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= iGPUHeight * 1024;
+                VRAMWriteInfo.RowsRemaining--;
 
-                if (VRAMWrite.RowsRemaining <= 0) {
-                    VRAMWrite.ColsRemaining--;
-                    if (VRAMWrite.ColsRemaining <= 0)  // last pixel is odd width
+                if (VRAMWriteInfo.RowsRemaining <= 0) {
+                    VRAMWriteInfo.ColsRemaining--;
+                    if (VRAMWriteInfo.ColsRemaining <= 0)  // last pixel is odd width
                     {
-                        gdata = (gdata & 0xFFFF) | (((uint32_t)(*VRAMWrite.ImagePtr)) << 16);
+                        gdata = (gdata & 0xFFFF) | (((uint32_t)(*VRAMWriteInfo.ImagePtr)) << 16);
                         FinishedVRAMWrite();
                         bDoVSyncUpdate = true;
                         goto ENDVRAM;
                     }
-                    VRAMWrite.RowsRemaining = VRAMWrite.Width;
-                    VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
+                    VRAMWriteInfo.RowsRemaining = VRAMWriteInfo.Width;
+                    VRAMWriteInfo.ImagePtr += 1024 - VRAMWriteInfo.Width;
                 }
 
-                *VRAMWrite.ImagePtr++ = (uint16_t)(gdata >> 16);
-                if (VRAMWrite.ImagePtr >= psxVuw_eom) VRAMWrite.ImagePtr -= iGPUHeight * 1024;
-                VRAMWrite.RowsRemaining--;
+                *VRAMWriteInfo.ImagePtr++ = (uint16_t)(gdata >> 16);
+                if (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= iGPUHeight * 1024;
+                VRAMWriteInfo.RowsRemaining--;
             }
 
-            VRAMWrite.RowsRemaining = VRAMWrite.Width;
-            VRAMWrite.ColsRemaining--;
-            VRAMWrite.ImagePtr += 1024 - VRAMWrite.Width;
+            VRAMWriteInfo.RowsRemaining = VRAMWriteInfo.Width;
+            VRAMWriteInfo.ColsRemaining--;
+            VRAMWriteInfo.ImagePtr += 1024 - VRAMWriteInfo.Width;
             bFinished = true;
         }
 
@@ -1249,246 +1528,14 @@ STARTVRAM:
 ENDVRAM:
 
     if (DataWriteMode == DR_NORMAL) {
-        // new processing loop
-        int transferSize = iSize;
-        uint8_t *transferPtr = reinterpret_cast<uint8_t *>(pMem);
-        bool breakOut = false;
-        bool gotUnderrun = false;
-        while (!breakOut && !gotUnderrun && transferSize) {
-            bool gotUnknown = false;
-            const uint32_t packetHead = Prim::get32<uint32_t>(transferPtr);
-            transferSize -= 1;
-            const uint8_t cmdType = packetHead >> 29;     // 3 topmost bits = command "type"
-            const uint8_t cmd = packetHead >> 24 & 0x1f;  // 5 next bits = "command", when it's not a bitfield
-            const bool iip = (packetHead >> 28) & 1;      // flat shading or gouraud shading?
-            const bool vtx = (packetHead >> 27) & 1;      // 3 vertices or 4 vertices?
-            const bool pll = (packetHead >> 27) & 1;      // polyline?
-            const bool tme = (packetHead >> 26) & 1;      // texture mapping?
-            const bool abe = (packetHead >> 25) & 1;      // semi transparency?
-            const bool tge = (packetHead >> 24) & 1;      // brightness calculation?
-            const uint8_t size = (packetHead >> 27) & 3;  // 00 = free size
-                                                          // 01 = 1x1
-                                                          // 10 = 8x8
-                                                          // 11 = 8x8
-
-            const uint32_t packetInfo = packetHead & 0xffffff;
-            const unsigned polyPackets = (3 + vtx) * (tme + 1) + iip * (2 + vtx);
-            const uint32_t color = packetInfo;
-            switch (cmdType) {
-                case 0:  // GPU command
-                    switch (cmd) {
-                        case 0x01:  // clear cache
-                            if (cmd == 0) {
-                                m_debugger.addEvent([]() { return new Debug::ClearCache(); });
-                            } else {
-                                gotUnknown = true;
-                            }
-                            break;
-                        case 0x02:  // block draw
-                            if (transferSize < 2) {
-                                gotUnderrun = true;
-                                transferSize = 0;
-                            } else {
-                                transferSize -= 2;
-                                int16_t x = Prim::get16<int16_t>(transferPtr);
-                                int16_t y = Prim::get16<int16_t>(transferPtr);
-                                int16_t w = Prim::get16<int16_t>(transferPtr);
-                                int16_t h = Prim::get16<int16_t>(transferPtr);
-                                m_debugger.addEvent([&]() { return new Debug::BlockFill(color, x, y, w, h); });
-                            }
-                            break;
-                        default:
-                            gotUnknown = true;
-                            break;
-                    }
-                    break;
-                case 1:  // Polygon primitive
-                    if (polyPackets > transferSize) {
-                        gotUnderrun = true;
-                    } else {
-                        transferSize -= polyPackets;
-                        uint32_t colors[4];
-                        int16_t x[4];
-                        int16_t y[4];
-                        uint8_t u[4];
-                        uint8_t v[4];
-                        uint16_t clutID = 0;
-                        uint16_t texturePage = 0;
-                        const unsigned count = 3 + vtx;
-                        for (unsigned i = 0; i < count; i++) {
-                            if (i > 0 && iip) {
-                                colors[i] = Prim::get32<uint32_t>(transferPtr) & 0xffffff;
-                            } else {
-                                colors[i] = color;
-                            }
-                            x[i] = Prim::get16<int16_t>(transferPtr);
-                            y[i] = Prim::get16<int16_t>(transferPtr);
-                            if (tme) {
-                                u[i] = Prim::get8<uint8_t>(transferPtr);
-                                v[i] = Prim::get8<uint8_t>(transferPtr);
-                                uint16_t extra = Prim::get16<uint16_t>(transferPtr);
-                                if (i == 0) {
-                                    clutID = extra;
-                                } else if (i == 1) {
-                                    texturePage = extra;
-                                }
-                            } else {
-                                u[i] = 0;
-                                v[i] = 0;
-                            }
-                        }
-                        if (!vtx) {
-                            colors[3] = 0;
-                            x[3] = 0;
-                            y[3] = 0;
-                            u[3] = 0;
-                            v[3] = 0;
-                        }
-                        m_debugger.addEvent([&]() {
-                            auto ret = new Debug::Polygon(iip, vtx, tme, abe, tge);
-                            ret->setClutID(clutID);
-                            ret->setTexturePage(texturePage);
-                            for (unsigned i = 0; i < 4; i++) {
-                                ret->setX(x[i], i);
-                                ret->setY(y[i], i);
-                                ret->setU(u[i], i);
-                                ret->setV(v[i], i);
-                                ret->setColor(colors[i], i);
-                            }
-                            return ret;
-                        });
-                    }
-                    break;
-                case 2:  // Line primitive
-                {
-                    unsigned index = 0;
-                    std::vector<int16_t> xs;
-                    std::vector<int16_t> ys;
-                    std::vector<uint32_t> colors;
-                    while (pll && index != 2) {
-                        if (iip && index) {
-                            if (transferSize == 0) {
-                                gotUnderrun = true;
-                                break;
-                            }
-                            transferSize--;
-                            uint32_t c = Prim::get32<uint32_t>(transferPtr);
-                            if (c == 0x555555) break;
-                            colors.push_back(c);
-                        } else {
-                            colors.push_back(color);
-                        }
-                        if (transferSize == 0) {
-                            gotUnderrun = true;
-                            break;
-                        }
-                        transferSize--;
-                        int16_t x = Prim::get16<int16_t>(transferPtr);
-                        int16_t y = Prim::get16<int16_t>(transferPtr);
-                        if ((x == 0x5555) && (y == 0x5555)) break;
-                        xs.push_back(x);
-                        ys.push_back(y);
-                        index++;
-                    }
-                    if (!gotUnderrun) {
-                        m_debugger.addEvent([&]() {
-                            auto ret = new Debug::Line(iip, pll, abe);
-                            ret->setColors(colors);
-                            ret->setX(xs);
-                            ret->setY(ys);
-                            return ret;
-                        });
-                    }
-                } break;
-                case 3:  // Sprite primitive
-                {
-                    int16_t x = Prim::get16<int16_t>(transferPtr);
-                    int16_t y = Prim::get16<int16_t>(transferPtr);
-                    uint8_t u = 0;
-                    uint8_t v = 0;
-                    uint16_t clutID = 0;
-                    int16_t w, h;
-                    if (tme) {
-                        u = Prim::get8<int8_t>(transferPtr);
-                        v = Prim::get8<int8_t>(transferPtr);
-                        clutID = Prim::get16<uint16_t>(transferPtr);
-                    }
-                    switch (size) {
-                        case 0:
-                            w = Prim::get16<int16_t>(transferPtr);
-                            h = Prim::get16<int16_t>(transferPtr);
-                            break;
-                        case 1:
-                            w = h = 1;
-                            break;
-                        case 2:
-                            w = h = 8;
-                            break;
-                        case 3:
-                            w = h = 16;
-                            break;
-                    }
-                } break;
-                case 4:  // Move image in FB
-                    if (transferSize < 3) {
-                        gotUnderrun = true;
-                    } else {
-                        transferSize += 3;
-                        int16_t sx = Prim::get16<int16_t>(transferPtr);
-                        int16_t sy = Prim::get16<int16_t>(transferPtr);
-                        int16_t dx = Prim::get16<int16_t>(transferPtr);
-                        int16_t dy = Prim::get16<int16_t>(transferPtr);
-                        int16_t w = Prim::get16<int16_t>(transferPtr);
-                        int16_t h = Prim::get16<int16_t>(transferPtr);
-                        m_debugger.addEvent([&]() { return new Debug::Blit(sx, sy, dx, dy, w, h); });
-                    }
-                    break;
-                case 5:  // Send image to FB
-                    if (cmd == 0) {
-                    } else {
-                        gotUnknown = true;
-                    }
-                    break;
-                case 6:  // Copy image from FB
-                    if (cmd == 0) {
-                    } else {
-                        gotUnknown = true;
-                    }
-                    break;
-                case 7:  // Environment command
-                    switch (cmd) {
-                        case 1:  // draw mode setting
-                            break;
-                        case 2:  // texture window setting
-                            break;
-                        case 3:  // set drawing area top left
-                            break;
-                        case 4:  // set drawing area bottom right
-                            break;
-                        case 5:  // drawing offset
-                            break;
-                        case 6:  // mask setting
-                            break;
-                        default:
-                            gotUnknown = true;
-                            break;
-                    }
-                    break;
-            }
-            if (gotUnknown) {
-                m_debugger.addEvent(
-                    [&]() {
-                        char packet[9];
-                        std::snprintf(packet, 9, "%08x", packetHead);
-                        return new Debug::Invalid(_("Unsupported DMA CMD 0x") + std::string(packet));
-                    },
-                    true);
-            }
-            if (gotUnderrun) {
-                m_debugger.addEvent([]() { return new Debug::Invalid(_("Starved GPU DMA buffer")); }, true);
-            }
+        uint32_t *newFeed = pMem;
+        size_t transferSize = iSize - i;
+        bool okayToFeed = transferSize;
+        while (okayToFeed) {
+            uint32_t word = SWAP_LEu32(*newFeed++);
+            transferSize--;
+            okayToFeed = m_reader->processWrite(word) && transferSize;
         }
-        // old processing loop
         for (; i < iSize;) {
             if (DataWriteMode == DR_VRAMTRANSFER) goto STARTVRAM;
 

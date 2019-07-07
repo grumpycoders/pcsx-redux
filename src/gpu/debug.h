@@ -35,7 +35,7 @@ namespace Debug {
 
 class Command {
   public:
-    ~Command() {}
+    virtual ~Command() {}
     virtual std::string title() = 0;
 };
 
@@ -87,6 +87,17 @@ class Invalid : public Command {
 
   private:
     std::string m_reason;
+};
+
+class Verbose : public Command {
+  public:
+    Verbose(const char* message) : m_message(message) {}
+    Verbose(const std::string& message) : m_message(message) {}
+    Verbose(std::string&& message) : m_message(std::move(message)) {}
+    std::string title() final { return m_message; }
+
+  private:
+    std::string m_message;
 };
 
 class VRAMRead : public Command {
@@ -241,6 +252,22 @@ class Line : public Command {
     std::vector<uint32_t> m_colors;
     std::vector<int16_t> m_x;
     std::vector<int16_t> m_y;
+};
+
+class Sprite : public Command {
+  public:
+    Sprite(bool tme, bool abe, uint32_t color, int16_t x, int16_t y, uint8_t u, uint8_t v, uint16_t clutID, int16_t w,
+           int16_t h)
+        : m_tme(tme), m_abe(abe), m_color(color), m_x(x), m_y(y), m_u(u), m_v(v), m_clutID(clutID), m_w(w), m_h(h) {}
+    std::string title() final;
+
+  private:
+    bool m_tme, m_abe;
+    uint32_t m_color;
+    int16_t m_x, m_y;
+    uint8_t m_u, m_v;
+    uint16_t m_clutID;
+    int16_t m_w, m_h;
 };
 
 class Blit : public Command {

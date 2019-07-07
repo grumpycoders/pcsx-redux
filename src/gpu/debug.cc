@@ -55,19 +55,29 @@ void PCSX::GPU::Debugger::show() {
 }
 
 std::string PCSX::GPU::Debug::VRAMRead::title() {
-    char address[9];
-    std::snprintf(address, 9, "%08x", m_to);
-    return std::string("VRAM read (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
-           std::to_string(m_width) + ", " + std::to_string(m_height) + ") " + std::to_string(m_size) + " bytes @0x" +
-           address;
+    if (m_to == 0xffffffff) {
+        return std::string("VRAM direct read (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
+               std::to_string(m_width) + ", " + std::to_string(m_height) + ")";
+    } else {
+        char address[9];
+        std::snprintf(address, 9, "%08x", m_to);
+        return std::string("VRAM DMA read (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
+               std::to_string(m_width) + ", " + std::to_string(m_height) + ") " + std::to_string(m_size) +
+               " bytes @0x" + address;
+    }
 }
 
 std::string PCSX::GPU::Debug::VRAMWrite::title() {
-    char address[9];
-    std::snprintf(address, 9, "%08x", m_from);
-    return std::string("VRAM write (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
-           std::to_string(m_width) + ", " + std::to_string(m_height) + ") " + std::to_string(m_size) + " bytes @0x" +
-           address;
+    if (m_from == 0xffffffff) {
+        return std::string("VRAM direct write (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
+               std::to_string(m_width) + ", " + std::to_string(m_height) + ")";
+    } else {
+        char address[9];
+        std::snprintf(address, 9, "%08x", m_from);
+        return std::string("VRAM DMA write (") + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" +
+               std::to_string(m_width) + ", " + std::to_string(m_height) + ") " + std::to_string(m_size) +
+               " bytes @0x" + address;
+    }
 }
 
 // ---- WriteStatus ----
@@ -177,6 +187,18 @@ std::string PCSX::GPU::Debug::Line::title() {
     ret += std::to_string(m_x.size());
     ret += _(" vertices");
     if (m_abe) ret += _("; semi transparent");
+    return ret;
+}
+
+std::string PCSX::GPU::Debug::Sprite::title() {
+    std::string ret;
+    if (m_tme) {
+        ret = _("DMA CMD - Sprite; ");
+    } else {
+        ret = _("DMA CMD - Rectangle; ");
+    }
+    ret += "(" + std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(" + std::to_string(m_w) + ", " +
+           std::to_string(m_h) + ")";
     return ret;
 }
 

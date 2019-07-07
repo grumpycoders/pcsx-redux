@@ -165,8 +165,8 @@ extern int iUseFixes;
 extern bool bDoVSyncUpdate;
 
 // gpu.c
-extern VRAMLoad_t VRAMWrite;
-extern VRAMLoad_t VRAMRead;
+extern VRAMLoad_t VRAMWriteInfo;
+extern VRAMLoad_t VRAMReadInfo;
 extern DATAREGISTERMODES DataWriteMode;
 extern DATAREGISTERMODES DataReadMode;
 extern int iColDepth;

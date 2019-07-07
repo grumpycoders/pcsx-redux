@@ -529,16 +529,16 @@ void PCSX::GPU::Prim::cmdDrawOffset(uint8_t *baseAddr) {
 void PCSX::GPU::Prim::primLoadImage(uint8_t *baseAddr) {
     uint16_t *sgpuData = ((uint16_t *)baseAddr);
 
-    VRAMWrite.x = sgpuData[2] & 0x3ff;
-    VRAMWrite.y = sgpuData[3] & iGPUHeightMask;
-    VRAMWrite.Width = sgpuData[4];
-    VRAMWrite.Height = sgpuData[5];
+    VRAMWriteInfo.x = sgpuData[2] & 0x3ff;
+    VRAMWriteInfo.y = sgpuData[3] & iGPUHeightMask;
+    VRAMWriteInfo.Width = sgpuData[4];
+    VRAMWriteInfo.Height = sgpuData[5];
 
     DataWriteMode = DR_VRAMTRANSFER;
 
-    VRAMWrite.ImagePtr = psxVuw + (VRAMWrite.y << 10) + VRAMWrite.x;
-    VRAMWrite.RowsRemaining = VRAMWrite.Width;
-    VRAMWrite.ColsRemaining = VRAMWrite.Height;
+    VRAMWriteInfo.ImagePtr = psxVuw + (VRAMWriteInfo.y << 10) + VRAMWriteInfo.x;
+    VRAMWriteInfo.RowsRemaining = VRAMWriteInfo.Width;
+    VRAMWriteInfo.ColsRemaining = VRAMWriteInfo.Height;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -548,14 +548,14 @@ void PCSX::GPU::Prim::primLoadImage(uint8_t *baseAddr) {
 void PCSX::GPU::Prim::primStoreImage(uint8_t *baseAddr) {
     uint16_t *sgpuData = ((uint16_t *)baseAddr);
 
-    VRAMRead.x = sgpuData[2] & 0x03ff;
-    VRAMRead.y = sgpuData[3] & iGPUHeightMask;
-    VRAMRead.Width = sgpuData[4];
-    VRAMRead.Height = sgpuData[5];
+    VRAMReadInfo.x = sgpuData[2] & 0x03ff;
+    VRAMReadInfo.y = sgpuData[3] & iGPUHeightMask;
+    VRAMReadInfo.Width = sgpuData[4];
+    VRAMReadInfo.Height = sgpuData[5];
 
-    VRAMRead.ImagePtr = psxVuw + (VRAMRead.y << 10) + VRAMRead.x;
-    VRAMRead.RowsRemaining = VRAMRead.Width;
-    VRAMRead.ColsRemaining = VRAMRead.Height;
+    VRAMReadInfo.ImagePtr = psxVuw + (VRAMReadInfo.y << 10) + VRAMReadInfo.x;
+    VRAMReadInfo.RowsRemaining = VRAMReadInfo.Width;
+    VRAMReadInfo.ColsRemaining = VRAMReadInfo.Height;
 
     DataReadMode = DR_VRAMTRANSFER;
 
