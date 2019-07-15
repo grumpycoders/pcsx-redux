@@ -209,3 +209,82 @@ std::string PCSX::GPU::Debug::Blit::title() {
     ret += std::to_string(m_w) + ", " + std::to_string(m_h) + ")";
     return ret;
 }
+
+std::string PCSX::GPU::Debug::VRAMWriteCmd::title() {
+    std::string ret = _("Preparing VRAM Write (");
+    ret += std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(";
+    ret += std::to_string(m_w) + ", " + std::to_string(m_h) + ")";
+    return ret;
+}
+
+std::string PCSX::GPU::Debug::VRAMReadCmd::title() {
+    std::string ret = _("Preparing VRAM Read (");
+    ret += std::to_string(m_x) + ", " + std::to_string(m_y) + ") +(";
+    ret += std::to_string(m_w) + ", " + std::to_string(m_h) + ")";
+    return ret;
+}
+
+std::string PCSX::GPU::Debug::DrawModeSetting ::title() {
+    std::string ret = _("Draw Mode Setting - texture page: (");
+    ret += std::to_string(m_tx);
+    ret += ", ";
+    ret += std::to_string(m_ty);
+    ret += "); abr: ";
+    ret += std::to_string(m_abr);
+    ret += "; tp: ";
+    ret += std::to_string(m_tp);
+    ret += "; dtd: ";
+    ret += m_dtd ? _("enabled") : _("disabled");
+    ret += "; dfe: ";
+    ret += m_dfe ? _("enabled") : _("disabled");
+    ret += "; td: ";
+    ret += m_td ? _("enabled") : _("disabled");
+    ret += "; txflip: ";
+    ret += m_txflip ? _("enabled") : _("disabled");
+    ret += "; tyflip: ";
+    ret += m_tyflip ? _("enabled") : _("disabled");
+    return ret;
+}
+std::string PCSX::GPU::Debug::TextureWindowSetting::title() {
+    std::string ret = _("Texture Window Setting - mask: (");
+    ret += std::to_string(m_twmx);
+    ret += ", ";
+    ret += std::to_string(m_twmy);
+    ret += _("); offset: (");
+    ret += std::to_string(m_twox);
+    ret += ", ";
+    ret += std::to_string(m_twoy);
+    ret += ")";
+    return ret;
+}
+std::string PCSX::GPU::Debug::SetDrawingAreaTopLeft::title() {
+    std::string ret = _("Set Drawing Area Top Left - (");
+    ret += std::to_string(m_x);
+    ret += ", ";
+    ret += std::to_string(m_y);
+    ret += ")";
+    return ret;
+}
+std::string PCSX::GPU::Debug::SetDrawingAreaBottomRight::title() {
+    std::string ret = _("Set Drawing Area Bottom Right - (");
+    ret += std::to_string(m_x);
+    ret += ", ";
+    ret += std::to_string(m_y);
+    ret += ")";
+    return ret;
+}
+std::string PCSX::GPU::Debug::SetDrawingOffset::title() {
+    std::string ret = _("Set Drawing Offset - (");
+    ret += std::to_string(m_x);
+    ret += ", ";
+    ret += std::to_string(m_y);
+    ret += ")";
+    return ret;
+}
+std::string PCSX::GPU::Debug::SetMaskSettings::title() {
+    std::string ret = _("Set Mask Settings - set mask: ");
+    ret += m_setMask ? _("enabled") : _("disabled");
+    ret += _("; use mask: ");
+    ret += m_useMask ? _("enabled") : _("disabled");
+    return ret;
+}

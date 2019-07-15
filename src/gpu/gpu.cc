@@ -1372,6 +1372,10 @@ bool PCSX::GPU::impl::VRAMWrite::processWrite(uint32_t word) {
     }
     m_h = word & 0xffff;
     m_w = word >> 16;
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::VRAMWriteCmd(m_x, m_y, m_w, m_h);
+        return ret;
+    });
     m_parent->m_defaultReader.setActive();
     return false;
 }
@@ -1386,6 +1390,10 @@ bool PCSX::GPU::impl::VRAMRead::processWrite(uint32_t word) {
     }
     m_h = word & 0xffff;
     m_w = word >> 16;
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::VRAMReadCmd(m_x, m_y, m_w, m_h);
+        return ret;
+    });
     m_parent->m_defaultReader.setActive();
     return true;
 }
@@ -1432,16 +1440,49 @@ bool PCSX::GPU::impl::Command::processWrite(uint32_t packetHead) {
         case 7:  // Environment command
             switch (cmd) {
                 case 1:  // draw mode setting
+                    m_tx = packetInfo & 0x0f;
+                    m_ty = (packetInfo >> 4) & 1;
+                    m_abr = (packetInfo >> 5) & 3;
+                    m_tp = (packetInfo >> 7) & 3;
+                    m_dtd = (packetInfo >> 9) & 1;
+                    m_dfe = (packetInfo >> 10) & 1;
+                    m_td = (packetInfo >> 11) & 1;
+                    m_txflip = (packetInfo >> 12) & 1;
+                    m_tyflip = (packetInfo >> 13) & 1;
+                    m_parent->m_debugger.addEvent(
+                        [&]() { return new Debug::DrawModeSetting(m_tx, m_ty, m_abr, m_tp, m_dtd, m_dfe, m_td, m_txflip, m_tyflip); });
                     break;
                 case 2:  // texture window setting
+                    lGPUInfoVals[INFO_TW] = packetInfo & 0xfffff;
+                    m_twmx = packetInfo & 0x1f;
+                    m_twmy = (packetInfo >> 5) & 0x1f;
+                    m_twox = (packetInfo >> 10) & 0x1f;
+                    m_twoy = (packetInfo >> 15) & 0x1f;
+                    m_parent->m_debugger.addEvent(
+                        [&]() { return new Debug::TextureWindowSetting(m_twmx, m_twmy, m_twox, m_twoy); });
                     break;
                 case 3:  // set drawing area top left
+                    lGPUInfoVals[INFO_DRAWSTART] = packetInfo & 0xfffff;
+                    m_tlx = packetInfo & 0x3ff;
+                    m_tly = (packetInfo >> 10) & 0x3ff;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetDrawingAreaTopLeft(m_tlx, m_tly); });
                     break;
                 case 4:  // set drawing area bottom right
+                    lGPUInfoVals[INFO_DRAWEND] = packetInfo & 0xfffff;
+                    m_brx = packetInfo & 0x3ff;
+                    m_bry = (packetInfo >> 10) & 0x3ff;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetDrawingAreaBottomRight(m_brx, m_bry); });
                     break;
                 case 5:  // drawing offset
+                    lGPUInfoVals[INFO_DRAWOFF] = packetInfo & 0x3fffff;
+                    m_ox = packetInfo & 0x7ff;
+                    m_oy = (packetInfo >> 11) & 7;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetDrawingOffset(m_ox, m_oy); });
                     break;
                 case 6:  // mask setting
+                    m_setMask = packetInfo & 1;
+                    m_useMask = (packetInfo >> 1) & 1;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetMaskSettings(m_setMask, m_useMask); });
                     break;
                 default:
                     gotUnknown = true;

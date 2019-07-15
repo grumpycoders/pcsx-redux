@@ -65,6 +65,29 @@ class impl : public GPUinterface {
 
       protected:
         impl *m_parent;
+
+      private:
+        uint8_t m_tx, m_ty;      // texture page
+        uint8_t m_abr;           // semi transparent mode
+                                 // 0: 0.5*B + 0.5*F
+                                 // 1: 1.0*B + 1.0*F
+                                 // 2: 1.0*B - 1.0*F
+                                 // 3: 1.0*B + 0.25*F
+        uint8_t m_tp;            // texture mode
+                                 // 0: 4-bits clut
+                                 // 1: 8-bit clut
+                                 // 2: 15-bits direct
+        bool m_dtd;              // dither
+        bool m_dfe;              // display area enable
+        bool m_td;               // texture disable
+        bool m_txflip;           // texture flip on X
+        bool m_tyflip;           // texture flip on Y
+        uint8_t m_twmx, m_twmy;  // texture window mask
+        uint8_t m_twox, m_twoy;  // texture window offset
+        uint16_t m_tlx, m_tly;   // drawing area top left
+        uint16_t m_brx, m_bry;   // drawing area bottom right;
+        uint16_t m_ox, m_oy;     // drawing offset
+        bool m_setMask, m_useMask;
     };
 
     class BlockFill : public Command {

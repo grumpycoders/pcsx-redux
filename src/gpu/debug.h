@@ -280,6 +280,81 @@ class Blit : public Command {
     int16_t m_sx, m_sy, m_dx, m_dy, m_w, m_h;
 };
 
+class VRAMWriteCmd : public Command {
+  public:
+    VRAMWriteCmd(int16_t x, int16_t y, int16_t w, int16_t h) : m_x(x), m_y(y), m_w(w), m_h(h) {}
+    std::string title() final;
+
+  private:
+    int16_t m_x, m_y, m_w, m_h;
+};
+
+class VRAMReadCmd : public Command {
+  public:
+    VRAMReadCmd(int16_t x, int16_t y, int16_t w, int16_t h) : m_x(x), m_y(y), m_w(w), m_h(h) {}
+    std::string title() final;
+
+  private:
+    int16_t m_x, m_y, m_w, m_h;
+};
+
+class DrawModeSetting : public Command {
+  public:
+    DrawModeSetting(uint8_t tx, uint8_t ty, uint8_t abr, uint8_t tp, bool dtd, bool dfe, bool td, bool txflip, bool tyflip)
+        : m_tx(tx), m_ty(ty), m_abr(abr), m_tp(tp), m_dtd(dtd), m_dfe(dfe), m_td(td), m_txflip(txflip), m_tyflip(tyflip) {}
+    std::string title() final;
+
+  private:
+    bool m_dtd, m_dfe, m_td, m_txflip, m_tyflip;
+    uint8_t m_tx, m_ty, m_abr, m_tp;
+};
+
+class TextureWindowSetting : public Command {
+  public:
+    TextureWindowSetting(uint8_t twmx, uint8_t twmy, uint8_t twox, uint8_t twoy)
+        : m_twmx(twmx), m_twmy(twmy), m_twox(twox), m_twoy(twoy) {}
+    std::string title() final;
+
+  private:
+    uint8_t m_twmx, m_twmy, m_twox, m_twoy;
+};
+
+class SetDrawingAreaTopLeft : public Command {
+  public:
+    SetDrawingAreaTopLeft(uint16_t x, uint16_t y) : m_x(x), m_y(y) {}
+    std::string title() final;
+
+  private:
+    uint16_t m_x, m_y;
+};
+
+class SetDrawingAreaBottomRight : public Command {
+  public:
+    SetDrawingAreaBottomRight(uint16_t x, uint16_t y) : m_x(x), m_y(y) {}
+    std::string title() final;
+
+  private:
+    uint16_t m_x, m_y;
+};
+
+class SetDrawingOffset : public Command {
+  public:
+    SetDrawingOffset(uint16_t x, uint16_t y) : m_x(x), m_y(y) {}
+    std::string title() final;
+
+  private:
+    uint16_t m_x, m_y;
+};
+
+class SetMaskSettings : public Command {
+  public:
+    SetMaskSettings(bool setMask, bool useMask) : m_setMask(setMask), m_useMask(useMask) {}
+    std::string title() final;
+
+  private:
+    bool m_setMask, m_useMask;
+};
+
 }  // namespace Debug
 
 }  // namespace GPU
