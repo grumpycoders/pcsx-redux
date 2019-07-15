@@ -127,29 +127,7 @@ static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
 
 inline void PCSX::GPU::Prim::UpdateGlobalTP(uint16_t gdata) {
     GlobalTextAddrX = (gdata << 6) & 0x3c0;  // texture addr
-
-    if (iGPUHeight == 1024) {
-        if (dwGPUVersion == 2) {
-            GlobalTextAddrY = ((gdata & 0x60) << 3);
-            GlobalTextIL = (gdata & 0x2000) >> 13;
-            GlobalTextABR = (uint16_t)((gdata >> 7) & 0x3);
-            GlobalTextTP = (gdata >> 9) & 0x3;
-            if (GlobalTextTP == 3) GlobalTextTP = 2;
-            usMirror = 0;
-            lGPUstatusRet = (lGPUstatusRet & 0xffffe000) | (gdata & 0x1fff);
-
-            // tekken dithering? right now only if dithering is forced by user
-            if (iUseDither == 2)
-                iDither = 2;
-            else
-                iDither = 0;
-
-            return;
-        } else {
-            GlobalTextAddrY = (uint16_t)(((gdata << 4) & 0x100) | ((gdata >> 2) & 0x200));
-        }
-    } else
-        GlobalTextAddrY = (gdata << 4) & 0x100;
+    GlobalTextAddrY = (gdata << 4) & 0x100;
 
     usMirror = gdata & 0x3000;
 
@@ -470,15 +448,9 @@ void PCSX::GPU::Prim::cmdDrawAreaStart(uint8_t *baseAddr) {
 
     drawX = gdata & 0x3ff;  // for soft drawing
 
-    if (dwGPUVersion == 2) {
-        lGPUInfoVals[INFO_DRAWSTART] = gdata & 0x3FFFFF;
-        drawY = (gdata >> 12) & 0x3ff;
-        if (drawY >= 1024) drawY = 1023;  // some security
-    } else {
-        lGPUInfoVals[INFO_DRAWSTART] = gdata & 0xFFFFF;
-        drawY = (gdata >> 10) & 0x3ff;
-        if (drawY >= 512) drawY = 511;  // some security
-    }
+    lGPUInfoVals[INFO_DRAWSTART] = gdata & 0xFFFFF;
+    drawY = (gdata >> 10) & 0x3ff;
+    if (drawY >= 512) drawY = 511;  // some security
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -490,15 +462,9 @@ void PCSX::GPU::Prim::cmdDrawAreaEnd(uint8_t *baseAddr) {
 
     drawW = gdata & 0x3ff;  // for soft drawing
 
-    if (dwGPUVersion == 2) {
-        lGPUInfoVals[INFO_DRAWEND] = gdata & 0x3FFFFF;
-        drawH = (gdata >> 12) & 0x3ff;
-        if (drawH >= 1024) drawH = 1023;  // some security
-    } else {
-        lGPUInfoVals[INFO_DRAWEND] = gdata & 0xFFFFF;
-        drawH = (gdata >> 10) & 0x3ff;
-        if (drawH >= 512) drawH = 511;  // some security
-    }
+    lGPUInfoVals[INFO_DRAWEND] = gdata & 0xFFFFF;
+    drawH = (gdata >> 10) & 0x3ff;
+    if (drawH >= 512) drawH = 511;  // some security
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -510,13 +476,8 @@ void PCSX::GPU::Prim::cmdDrawOffset(uint8_t *baseAddr) {
 
     PSXDisplay.DrawOffset.x = (int16_t)(gdata & 0x7ff);
 
-    if (dwGPUVersion == 2) {
-        lGPUInfoVals[INFO_DRAWOFF] = gdata & 0x7FFFFF;
-        PSXDisplay.DrawOffset.y = (int16_t)((gdata >> 12) & 0x7ff);
-    } else {
-        lGPUInfoVals[INFO_DRAWOFF] = gdata & 0x3FFFFF;
-        PSXDisplay.DrawOffset.y = (int16_t)((gdata >> 11) & 0x7ff);
-    }
+    lGPUInfoVals[INFO_DRAWOFF] = gdata & 0x3FFFFF;
+    PSXDisplay.DrawOffset.y = (int16_t)((gdata >> 11) & 0x7ff);
 
     PSXDisplay.DrawOffset.y = (int16_t)(((int)PSXDisplay.DrawOffset.y << 21) >> 21);
     PSXDisplay.DrawOffset.x = (int16_t)(((int)PSXDisplay.DrawOffset.x << 21) >> 21);
@@ -622,9 +583,7 @@ void PCSX::GPU::Prim::primMoveImage(uint8_t *baseAddr) {
     //
     // and here's the hack for it:
 
-    if (iGPUHeight == 1024 && sgpuData[7] > 1024) return;
-
-    if ((imageY0 + imageSY) > iGPUHeight || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > iGPUHeight ||
+    if ((imageY0 + imageSY) > 512 || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > 512 ||
         (imageX1 + imageSX) > 1024) {
         int i, j;
         for (j = 0; j < imageSY; j++)

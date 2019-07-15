@@ -1013,10 +1013,10 @@ void PCSX::GPU::Renderer::FillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t 
     x0 = std::max(x0, static_cast<int16_t>(drawX));
     y0 = std::max(y0, static_cast<int16_t>(drawY));
 
-    if (y0 >= iGPUHeight) return;
+    if (y0 >= 512) return;
     if (x0 > 1023) return;
 
-    if (y1 > iGPUHeight) y1 = iGPUHeight;
+    if (y1 > 512) y1 = 512;
     if (x1 > 1024) x1 = 1024;
 
     dx = x1 - x0;
@@ -1088,10 +1088,10 @@ void PCSX::GPU::Renderer::FillSoftwareArea(int16_t x0, int16_t y0, int16_t x1,  
     if (y0 > y1) return;
     if (x0 > x1) return;
 
-    if (y0 >= iGPUHeight) return;
+    if (y0 >= 512) return;
     if (x0 > 1023) return;
 
-    if (y1 > iGPUHeight) y1 = iGPUHeight;
+    if (y1 > 512) y1 = 512;
     if (x1 > 1024) x1 = 1024;
 
     dx = x1 - x0;

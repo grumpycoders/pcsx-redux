@@ -227,8 +227,6 @@ extern bool bSSSPSXLimit;
 extern char *pConfigFile;
 
 // zn.c
-extern uint32_t dwGPUVersion;
-static constexpr inline int iGPUHeight = 512;
 extern int iGPUHeightMask;
 extern int GlobalTextIL;
 extern int iTileCheat;

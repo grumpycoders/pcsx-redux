@@ -139,21 +139,6 @@
 #include "gpu/menu.h"
 #include "gpu/prim.h"
 
-//#define SMALLDEBUG
-//#include <dbgout.h>
-
-////////////////////////////////////////////////////////////////////////
-// PPDK developer must change libraryName field and can change revision and build
-////////////////////////////////////////////////////////////////////////
-
-const unsigned char version = 1;  // do not touch - library for PSEmu 1.x
-const unsigned char revision = 1;
-const unsigned char build = 18;  // increase that with each version
-
-static const char *libraryName = "P.E.Op.S. Soft Driver";
-
-static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
-
 ////////////////////////////////////////////////////////////////////////
 // memory image of the PSX vram
 ////////////////////////////////////////////////////////////////////////
@@ -277,7 +262,7 @@ extern "C" void GPUmakeSnapshot(void)  // snapshot of whole vram
     uint16_t color;
     uint32_t snapshotnr = 0;
 
-    height = iGPUHeight;
+    height = 512;
 
     size = height * 1024 * 3 + 0x38;
 
@@ -348,7 +333,7 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
     szDebugText[0] = 0;  // init debug text buffer
 
 #ifndef DO_CRASH
-    psxVSecure = (unsigned char *)malloc((iGPUHeight * 2) * 1024 +
+    psxVSecure = (unsigned char *)malloc((512 * 2) * 1024 +
                                          (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
 #else
@@ -364,10 +349,10 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
     psxVuw = (uint16_t *)psxVub;
     psxVul = (uint32_t *)psxVub;
 
-    psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
+    psxVuw_eom = psxVuw + 1024 * 512;  // pre-calc of end of vram
 
 #ifndef DO_CRASH
-    memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
+    memset(psxVSecure, 0x00, (512 * 2) * 1024 + (1024 * 1024));
 #endif
     memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
 
@@ -575,9 +560,9 @@ void ChangeDispOffsetsY(void)  // Y CENTER
 
     // new
 
-    if ((PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) > iGPUHeight) {
-        int dy1 = iGPUHeight - PreviousPSXDisplay.DisplayModeNew.x;
-        int dy2 = (PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) - iGPUHeight;
+    if ((PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) > 512) {
+        int dy1 = 512 - PreviousPSXDisplay.DisplayModeNew.x;
+        int dy2 = (PreviousPSXDisplay.DisplayModeNew.x + PSXDisplay.DisplayModeNew.y) - 512;
 
         if (dy1 >= dy2) {
             PreviousPSXDisplay.DisplayModeNew.y = -dy2;
@@ -827,20 +812,14 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             */
 
             // new
-            if (iGPUHeight == 1024) {
-                if (dwGPUVersion == 2)
-                    PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 12) & 0x3ff);
-                else
-                    PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x3ff);
-            } else
-                PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
+            PSXDisplay.DisplayPosition.y = (int16_t)((gdata >> 10) & 0x1ff);
 
             // store the same val in some helper var, we need it on later compares
             PreviousPSXDisplay.DisplayModeNew.x = PSXDisplay.DisplayPosition.y;
 
-            if ((PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y) > iGPUHeight) {
-                int dy1 = iGPUHeight - PSXDisplay.DisplayPosition.y;
-                int dy2 = (PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y) - iGPUHeight;
+            if ((PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y) > 512) {
+                int dy1 = 512 - PSXDisplay.DisplayPosition.y;
+                int dy2 = (PSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y) - 512;
 
                 if (dy1 >= dy2) {
                     PreviousPSXDisplay.DisplayModeNew.y = -dy2;
@@ -971,10 +950,7 @@ void PCSX::GPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
                     lGPUdataRet = lGPUInfoVals[INFO_DRAWOFF];  // draw offset
                     return;
                 case 0x07:
-                    if (dwGPUVersion == 2)
-                        lGPUdataRet = 0x01;
-                    else
-                        lGPUdataRet = 0x02;  // gpu type
+                    lGPUdataRet = 0x02;  // gpu type
                     return;
                 case 0x08:
                 case 0x0F:  // some bios addr?
@@ -1061,8 +1037,8 @@ void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
     GPUIsBusy;
 
     // adjust read ptr, if necessary
-    while (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
-    while (VRAMReadInfo.ImagePtr < psxVuw) VRAMReadInfo.ImagePtr += iGPUHeight * 1024;
+    while (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= 512 * 1024;
+    while (VRAMReadInfo.ImagePtr < psxVuw) VRAMReadInfo.ImagePtr += 512 * 1024;
 
     for (i = 0; i < iSize; i++) {
         // do 2 seperate 16bit reads for compatibility (wrap issues)
@@ -1071,14 +1047,14 @@ void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
             lGPUdataRet = (uint32_t)*VRAMReadInfo.ImagePtr;
 
             VRAMReadInfo.ImagePtr++;
-            if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+            if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= 512 * 1024;
             VRAMReadInfo.RowsRemaining--;
 
             if (VRAMReadInfo.RowsRemaining <= 0) {
                 VRAMReadInfo.RowsRemaining = VRAMReadInfo.Width;
                 VRAMReadInfo.ColsRemaining--;
                 VRAMReadInfo.ImagePtr += 1024 - VRAMReadInfo.Width;
-                if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+                if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= 512 * 1024;
             }
 
             // higher 16 bit (always, even if it's an odd width)
@@ -1092,13 +1068,13 @@ void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
             }
 
             VRAMReadInfo.ImagePtr++;
-            if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+            if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= 512 * 1024;
             VRAMReadInfo.RowsRemaining--;
             if (VRAMReadInfo.RowsRemaining <= 0) {
                 VRAMReadInfo.RowsRemaining = VRAMReadInfo.Width;
                 VRAMReadInfo.ColsRemaining--;
                 VRAMReadInfo.ImagePtr += 1024 - VRAMReadInfo.Width;
-                if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= iGPUHeight * 1024;
+                if (VRAMReadInfo.ImagePtr >= psxVuw_eom) VRAMReadInfo.ImagePtr -= 512 * 1024;
             }
             if (VRAMReadInfo.ColsRemaining <= 0) {
                 FinishedVRAMRead();
@@ -1521,8 +1497,8 @@ STARTVRAM:
         });
 
         // make sure we are in vram
-        while (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= iGPUHeight * 1024;
-        while (VRAMWriteInfo.ImagePtr < psxVuw) VRAMWriteInfo.ImagePtr += iGPUHeight * 1024;
+        while (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= 512 * 1024;
+        while (VRAMWriteInfo.ImagePtr < psxVuw) VRAMWriteInfo.ImagePtr += 512 * 1024;
 
         // now do the loop
         while (VRAMWriteInfo.ColsRemaining > 0) {
@@ -1535,7 +1511,7 @@ STARTVRAM:
                 gdata = *pMem++;
 
                 *VRAMWriteInfo.ImagePtr++ = (uint16_t)gdata;
-                if (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= iGPUHeight * 1024;
+                if (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= 512 * 1024;
                 VRAMWriteInfo.RowsRemaining--;
 
                 if (VRAMWriteInfo.RowsRemaining <= 0) {
@@ -1552,7 +1528,7 @@ STARTVRAM:
                 }
 
                 *VRAMWriteInfo.ImagePtr++ = (uint16_t)(gdata >> 16);
-                if (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= iGPUHeight * 1024;
+                if (VRAMWriteInfo.ImagePtr >= psxVuw_eom) VRAMWriteInfo.ImagePtr -= 512 * 1024;
                 VRAMWriteInfo.RowsRemaining--;
             }
 
@@ -1674,7 +1650,7 @@ int32_t PCSX::GPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
     baseAddrB = (unsigned char *)baseAddrL;
 
     do {
-        if (iGPUHeight == 512) addr &= 0x1FFFFC;
+        addr &= 0x1FFFFC;
         if (DMACommandCounter++ > 2000000) break;
         if (::CheckForEndlessLoop(addr)) break;
 
