@@ -45,10 +45,10 @@ class GPUinterface {
     uint32_t gpuDmaChainSize(uint32_t addr);
 
   public:
-    virtual int32_t init() = 0;
-    virtual int32_t shutdown() = 0;
-    virtual int32_t open(GUI *) = 0;
-    virtual int32_t close() = 0;
+    virtual void init() = 0;
+    virtual void shutdown() = 0;
+    virtual void open(GUI *) = 0;
+    virtual void close() = 0;
     virtual uint32_t readData() = 0;
     virtual void readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) = 0;
     virtual uint32_t readStatus() = 0;

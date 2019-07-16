@@ -1,131 +1,28 @@
 /***************************************************************************
-                          gpu.c  -  description
-                             -------------------
-    begin                : Sun Oct 28 2001
-    copyright            : (C) 2001 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2008/05/17 - Pete
-// - added GPUvisualVibration and "visual rumble" stuff
-//
-// 2008/02/03 - Pete
-// - added GPUsetframelimit and GPUsetfix ("fake gpu busy states")
-//
-// 2007/11/03 - Pete
-// - new way to create save state picture (Vista)
-//
-// 2004/01/31 - Pete
-// - added zn bits
-//
-// 2003/01/04 - Pete
-// - the odd/even bit hack (CronoCross status screen) is now a special game fix
-//
-// 2003/01/04 - Pete
-// - fixed wrapped y display position offset - Legend of Legaia
-//
-// 2002/11/24 - Pete
-// - added new frameskip func support
-//
-// 2002/11/02 - Farfetch'd & Pete
-// - changed the y display pos handling
-//
-// 2002/10/03 - Farfetch'd & Pete
-// - added all kind of tiny stuff (gpureset, gpugetinfo, dmachain align, polylines...)
-//
-// 2002/10/03 - Pete
-// - fixed gpuwritedatamem & now doing every data processing with it
-//
-// 2002/08/31 - Pete
-// - delayed odd/even toggle for FF8 intro scanlines
-//
-// 2002/08/03 - Pete
-// - "Sprite 1" command count added
-//
-// 2002/08/03 - Pete
-// - handles "screen disable" correctly
-//
-// 2002/07/28 - Pete
-// - changed dmachain handler (monkey hero)
-//
-// 2002/06/15 - Pete
-// - removed dmachain fixes, added dma endless loop detection instead
-//
-// 2002/05/31 - Lewpy
-// - Win95/NT "disable screensaver" fix
-//
-// 2002/05/30 - Pete
-// - dmawrite/read wrap around
-//
-// 2002/05/15 - Pete
-// - Added dmachain "0" check game fix
-//
-// 2002/04/20 - linuzappz
-// - added iFastFwd stuff
-//
-// 2002/02/18 - linuzappz
-// - Added DGA2 support to PIC stuff
-//
-// 2002/02/10 - Pete
-// - Added dmacheck for The Mummy and T'ai Fu
-//
-// 2002/01/13 - linuzappz
-// - Added timing in the GPUdisplayText func
-//
-// 2002/01/06 - lu
-// - Added some #ifdef for the linux configurator
-//
-// 2002/01/05 - Pete
-// - fixed unwanted screen clearing on horizontal centering (causing
-//   flickering in linux version)
-//
-// 2001/12/10 - Pete
-// - fix for Grandia in ChangeDispOffsetsX
-//
-// 2001/12/05 - syo (syo68k@geocities.co.jp)
-// - added disable screen saver for "stop screen saver" option
-//
-// 2001/11/20 - linuzappz
-// - added Soft and About DlgProc calls in GPUconfigure and
-//   GPUabout, for linux
-//
-// 2001/11/09 - Darko Matesic
-// - added recording frame in updateLace and stop recording
-//   in GPUclose (if it is still recording)
-//
-// 2001/10/28 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #define NOMINMAX
 
 #include <stdint.h>
+#include <time.h>
 
 #include <algorithm>
-
-#ifdef _WIN32
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "resource.h"
-
-#endif
 
 #include "core/psxmem.h"
 #include "gpu/cfg.h"
@@ -139,33 +36,10 @@
 #include "gpu/menu.h"
 #include "gpu/prim.h"
 
-////////////////////////////////////////////////////////////////////////
-// memory image of the PSX vram
-////////////////////////////////////////////////////////////////////////
-
-unsigned char *psxVSecure;
-unsigned char *psxVub;
-signed char *psxVsb;
-uint16_t *psxVuw;
-uint16_t *psxVuw_eom;
-int16_t *psxVsw;
-uint32_t *psxVul;
-int32_t *psxVsl;
 
 ////////////////////////////////////////////////////////////////////////
 // GPU globals
 ////////////////////////////////////////////////////////////////////////
-
-int32_t lGPUstatusRet;
-char szDispBuf[64];
-char szMenuBuf[36];
-char szDebugText[512];
-uint32_t ulStatusControl[256];
-
-static uint32_t gpuDataM[256];
-static unsigned char gpuCommand = 0;
-static int32_t gpuDataC = 0;
-static int32_t gpuDataP = 0;
 
 VRAMLoad_t VRAMWriteInfo;
 VRAMLoad_t VRAMReadInfo;
@@ -182,178 +56,14 @@ PSXDisplay_t PreviousPSXDisplay;
 int32_t lSelectedSlot = 0;
 bool bChangeWinMode = false;
 bool bDoLazyUpdate = false;
-uint32_t lGPUInfoVals[16];
 int iFakePrimBusy = 0;
 int iRumbleVal = 0;
 int iRumbleTime = 0;
-
-////////////////////////////////////////////////////////////////////////
-// some misc external display funcs
-////////////////////////////////////////////////////////////////////////
-
-/*
-uint32_t PCADDR;
-void GPUdebugSetPC(uint32_t addr)
-{
- PCADDR=addr;
-}
-*/
-
-#include <time.h>
 time_t tStart;
 
-extern "C" void GPUdisplayText(char *pText)  // some debug func
-{
-    if (!pText) {
-        szDebugText[0] = 0;
-        return;
-    }
-    if (strlen(pText) > 511) return;
-    time(&tStart);
-    strcpy(szDebugText, pText);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-extern "C" void GPUdisplayFlags(uint32_t dwFlags)  // some info func
-{
-    //    dwCoreFlags = dwFlags;
-    // BuildDispMenu(0);
-}
-
-////////////////////////////////////////////////////////////////////////
-// Snapshot func
-////////////////////////////////////////////////////////////////////////
-
-char *pGetConfigInfos(int iCfg) { return nullptr; }
-
-void DoTextSnapShot(int iNum) {
-    FILE *txtfile;
-    char szTxt[256];
-    char *pB;
-
-#ifdef _WIN32
-    sprintf(szTxt, "SNAP\\PEOPSSOFT%03d.txt", iNum);
-#else
-    sprintf(szTxt, "%s/peopssoft%03d.txt", getenv("HOME"), iNum);
-#endif
-
-    if ((txtfile = fopen(szTxt, "wb")) == NULL) return;
-    //----------------------------------------------------//
-    pB = pGetConfigInfos(0);
-    if (pB) {
-        fwrite(pB, strlen(pB), 1, txtfile);
-        free(pB);
-    }
-    fclose(txtfile);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-extern "C" void GPUmakeSnapshot(void)  // snapshot of whole vram
-{
-    FILE *bmpfile;
-    char filename[256];
-    unsigned char header[0x36];
-    int32_t size, height;
-    unsigned char line[1024 * 3];
-    int16_t i, j;
-    unsigned char empty[2] = {0, 0};
-    uint16_t color;
-    uint32_t snapshotnr = 0;
-
-    height = 512;
-
-    size = height * 1024 * 3 + 0x38;
-
-    // fill in proper values for BMP
-
-    // hardcoded BMP header
-    memset(header, 0, 0x36);
-    header[0] = 'B';
-    header[1] = 'M';
-    header[2] = size & 0xff;
-    header[3] = (size >> 8) & 0xff;
-    header[4] = (size >> 16) & 0xff;
-    header[5] = (size >> 24) & 0xff;
-    header[0x0a] = 0x36;
-    header[0x0e] = 0x28;
-    header[0x12] = 1024 % 256;
-    header[0x13] = 1024 / 256;
-    header[0x16] = height % 256;
-    header[0x17] = height / 256;
-    header[0x1a] = 0x01;
-    header[0x1c] = 0x18;
-    header[0x26] = 0x12;
-    header[0x27] = 0x0B;
-    header[0x2A] = 0x12;
-    header[0x2B] = 0x0B;
-
-    // increment snapshot value & try to get filename
-    do {
-        snapshotnr++;
-#ifdef _WIN32
-        sprintf(filename, "SNAP\\PEOPSSOFT%03d.bmp", snapshotnr);
-#else
-        sprintf(filename, "%s/peopssoft%03ld.bmp", getenv("HOME"), snapshotnr);
-#endif
-
-        bmpfile = fopen(filename, "rb");
-        if (bmpfile == NULL) break;
-        fclose(bmpfile);
-    } while (true);
-
-    // try opening new snapshot file
-    if ((bmpfile = fopen(filename, "wb")) == NULL) return;
-
-    fwrite(header, 0x36, 1, bmpfile);
-    for (i = height - 1; i >= 0; i--) {
-        for (j = 0; j < 1024; j++) {
-            color = psxVuw[i * 1024 + j];
-            line[j * 3 + 2] = (color << 3) & 0xf1;
-            line[j * 3 + 1] = (color >> 2) & 0xf1;
-            line[j * 3 + 0] = (color >> 7) & 0xf1;
-        }
-        fwrite(line, 1024 * 3, 1, bmpfile);
-    }
-    fwrite(empty, 0x2, 1, bmpfile);
-    fclose(bmpfile);
-
-    DoTextSnapShot(snapshotnr);
-}
-
-////////////////////////////////////////////////////////////////////////
-// INIT, will be called after lib load... well, just do some var init...
-////////////////////////////////////////////////////////////////////////
-
-int32_t PCSX::GPU::impl::init()  // GPU INIT
+void PCSX::GPU::impl::init()  // GPU INIT
 {
     memset(ulStatusControl, 0, 256 * sizeof(uint32_t));  // init save state scontrol field
-
-    szDebugText[0] = 0;  // init debug text buffer
-
-#ifndef DO_CRASH
-    psxVSecure = (unsigned char *)malloc((512 * 2) * 1024 +
-                                         (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
-    if (!psxVSecure) return -1;
-#else
-    psxVSecure = nullptr;
-#endif
-
-    //!!! ATTENTION !!!
-    psxVub = psxVSecure + 512 * 1024;  // security offset into double sized psx vram!
-
-    psxVsb = (signed char *)psxVub;  // different ways of accessing PSX VRAM
-    psxVsw = (int16_t *)psxVub;
-    psxVsl = (int32_t *)psxVub;
-    psxVuw = (uint16_t *)psxVub;
-    psxVul = (uint32_t *)psxVub;
-
-    psxVuw_eom = psxVuw + 1024 * 512;  // pre-calc of end of vram
-
-#ifndef DO_CRASH
-    memset(psxVSecure, 0x00, (512 * 2) * 1024 + (1024 * 1024));
-#endif
     memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
 
     SetFPSHandler();
@@ -386,60 +96,22 @@ int32_t PCSX::GPU::impl::init()  // GPU INIT
     GPUIsIdle;
     GPUIsReadyForCommands;
     bDoVSyncUpdate = true;
-
-    return 0;
 }
 
-////////////////////////////////////////////////////////////////////////
-// Here starts all...
-////////////////////////////////////////////////////////////////////////
-
-int32_t PCSX::GPU::impl::open(GUI *gui)  // GPU OPEN
-{
+void PCSX::GPU::impl::open(GUI *gui) {
     m_gui = gui;
-#if 0
-    SetKeyHandler();  // sub-class window
-
-    if (bChangeWinMode)
-        ReadWinSizeConfig();  // alt+enter toggle?
-    else                      // or first time startup?
-    {
-        ReadGPUConfig();  // read registry
-        InitFPS();
-    }
-#else
     InitFPS();
-#endif
 
     bDoVSyncUpdate = true;
 
     ulInitDisplay();  // setup direct draw
-
-    return 0;
 }
 
-////////////////////////////////////////////////////////////////////////
-// time to leave...
-////////////////////////////////////////////////////////////////////////
-
-int32_t PCSX::GPU::impl::close()  // GPU CLOSE
-{
-    //    ReleaseKeyHandler();  // de-subclass window
-
+void PCSX::GPU::impl::close() {
     CloseDisplay();  // shutdown direct draw
-
-    return 0;
 }
 
-////////////////////////////////////////////////////////////////////////
-// I shot the sheriff
-////////////////////////////////////////////////////////////////////////
-
-int32_t PCSX::GPU::impl::shutdown()  // GPU SHUTDOWN
-{
-    free(psxVSecure);
-
-    return 0;  // nothinh to do
+void PCSX::GPU::impl::shutdown() {
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -461,11 +133,6 @@ bool updateDisplay(void)  // UPDATE DISPLAY
             PCFrameCap();  // -> brake
                            //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
-
-    //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
-    //    {
-    //        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
-    //    }
 
     if (iFastFwd)  // fastfwd ?
     {
@@ -1089,79 +756,6 @@ void PCSX::GPU::impl::readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) {
 ENDREAD:
     GPUIsIdle;
 }
-
-////////////////////////////////////////////////////////////////////////
-// processes data send to GPU data register
-// extra table entries for fixing polyline troubles
-////////////////////////////////////////////////////////////////////////
-
-const unsigned char primTableCX[256] = {
-    // 00
-    0, 0, 3, 0, 0, 0, 0, 0,
-    // 08
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 10
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 18
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 20
-    4, 4, 4, 4, 7, 7, 7, 7,
-    // 28
-    5, 5, 5, 5, 9, 9, 9, 9,
-    // 30
-    6, 6, 6, 6, 9, 9, 9, 9,
-    // 38
-    8, 8, 8, 8, 12, 12, 12, 12,
-    // 40
-    3, 3, 3, 3, 0, 0, 0, 0,
-    // 48
-    //  5,5,5,5,6,6,6,6,    // FLINE
-    254, 254, 254, 254, 254, 254, 254, 254,
-    // 50
-    4, 4, 4, 4, 0, 0, 0, 0,
-    // 58
-    //  7,7,7,7,9,9,9,9,    // GLINE
-    255, 255, 255, 255, 255, 255, 255, 255,
-    // 60
-    3, 3, 3, 3, 4, 4, 4, 4,
-    // 68
-    2, 2, 2, 2, 3, 3, 3, 3,  // 3=SPRITE1???
-                             // 70
-    2, 2, 2, 2, 3, 3, 3, 3,
-    // 78
-    2, 2, 2, 2, 3, 3, 3, 3,
-    // 80
-    4, 0, 0, 0, 0, 0, 0, 0,
-    // 88
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 90
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // 98
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // a0
-    3, 0, 0, 0, 0, 0, 0, 0,
-    // a8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // b0
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // b8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // c0
-    3, 0, 0, 0, 0, 0, 0, 0,
-    // c8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // d0
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // d8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // e0
-    0, 1, 1, 1, 1, 1, 1, 0,
-    // e8
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // f0
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // f8
-    0, 0, 0, 0, 0, 0, 0, 0};
 
 bool PCSX::GPU::impl::BlockFill::processWrite(uint32_t word) {
     switch (m_count) {

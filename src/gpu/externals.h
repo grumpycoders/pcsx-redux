@@ -78,12 +78,6 @@
 #define GPUSTATUS_DRAWINGALLOWED 0x00000400
 #define GPUSTATUS_DITHER 0x00000200
 
-#define GPUIsBusy (lGPUstatusRet &= ~GPUSTATUS_IDLE)
-#define GPUIsIdle (lGPUstatusRet |= GPUSTATUS_IDLE)
-
-#define GPUIsNotReadyForCommands (lGPUstatusRet &= ~GPUSTATUS_READYFORCOMMANDS)
-#define GPUIsReadyForCommands (lGPUstatusRet |= GPUSTATUS_READYFORCOMMANDS)
-
 /////////////////////////////////////////////////////////////////////////////
 
 struct VRAMLoad_t {
@@ -171,9 +165,6 @@ extern DATAREGISTERMODES DataWriteMode;
 extern DATAREGISTERMODES DataReadMode;
 extern int iColDepth;
 extern int iWindowMode;
-extern char szDispBuf[];
-extern char szMenuBuf[];
-extern char szDebugText[];
 extern int16_t sDispWidths[];
 extern bool bDebugText;
 // extern unsigned int   iMaxDMACommandCounter;
@@ -181,21 +172,10 @@ extern bool bDebugText;
 extern PSXDisplay_t PSXDisplay;
 extern PSXDisplay_t PreviousPSXDisplay;
 extern bool bSkipNextFrame;
-extern int32_t lGPUstatusRet;
 extern int32_t drawingLines;
-extern unsigned char *psxVSecure;
-extern unsigned char *psxVub;
-extern signed char *psxVsb;
-extern uint16_t *psxVuw;
-extern int16_t *psxVsw;
-extern uint32_t *psxVul;
-extern int32_t *psxVsl;
-extern uint16_t *psxVuw_eom;
 extern bool bChangeWinMode;
 extern int32_t lSelectedSlot;
 extern uint32_t dwLaceCnt;
-extern uint32_t lGPUInfoVals[];
-extern uint32_t ulStatusControl[];
 extern int iRumbleVal;
 extern int iRumbleTime;
 

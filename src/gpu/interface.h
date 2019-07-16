@@ -31,10 +31,10 @@ class GUI;
 namespace GPU {
 
 class impl : public GPUinterface {
-    virtual int32_t init() final;
-    virtual int32_t shutdown() final;
-    virtual int32_t open(GUI *) final;
-    virtual int32_t close() final;
+    virtual void init() final;
+    virtual void shutdown() final;
+    virtual void open(GUI *) final;
+    virtual void close() final;
     virtual uint32_t readData() final {
         uint32_t l;
         readDataMem(&l, 1, 0xffffffff);
@@ -61,6 +61,7 @@ class impl : public GPUinterface {
         Command(impl *parent) : m_parent(parent) {}
         virtual ~Command() {}
         virtual bool processWrite(uint32_t word);
+        virtual bool wantsFullMemory() { return false; }
         void setActive() { m_parent->m_reader = this; }
 
       protected:
@@ -256,33 +257,12 @@ class impl : public GPUinterface {
     Debugger m_debugger = {m_showDebug};
 
     ////////////////////////////////////////////////////////////////////////
-    // memory image of the PSX vram
-    ////////////////////////////////////////////////////////////////////////
-
-    //    unsigned char *psxVSecure;
-    //    unsigned char *psxVub;
-    //    signed char *psxVsb;
-    //    uint16_t *psxVuw;
-    //    uint16_t *psxVuw_eom;
-    //    int16_t *psxVsw;
-    //    uint32_t *psxVul;
-    //    int32_t *psxVsl;
-
-    ////////////////////////////////////////////////////////////////////////
     // GPU globals
     ////////////////////////////////////////////////////////////////////////
 
     int32_t lGPUdataRet;
-    //    int32_t lGPUstatusRet;
-    //    char szDispBuf[64];
-    //    char szMenuBuf[36];
-    //    char szDebugText[512];
-    //    uint32_t ulStatusControl[256];
-
-    //    uint32_t gpuDataM[256];
-    //    unsigned char gpuCommand = 0;
-    //    int32_t gpuDataC = 0;
-    //    int32_t gpuDataP = 0;
+    int32_t lGPUstatusRet;
+    uint32_t ulStatusControl[256];
 
     //    VRAMLoad_t VRAMWrite;
     //    VRAMLoad_t VRAMRead;
@@ -299,10 +279,16 @@ class impl : public GPUinterface {
     //    int32_t lSelectedSlot = 0;
     //    bool bChangeWinMode = false;
     //    bool bDoLazyUpdate = false;
-    //    uint32_t lGPUInfoVals[16];
+    uint32_t lGPUInfoVals[16];
     //    int iFakePrimBusy = 0;
     //    int iRumbleVal = 0;
     //    int iRumbleTime = 0;
+
+    inline void GPUIsBusy() { lGPUstatusRet &= ~GPUSTATUS_IDLE; }
+    inline void GPUIsIdle() { lGPUstatusRet |= GPUSTATUS_IDLE; }
+
+    inline void GPUIsNotReadyForCommands() { lGPUstatusRet &= ~GPUSTATUS_READYFORCOMMANDS; }
+    inline void GPUIsReadyForCommands() { lGPUstatusRet |= GPUSTATUS_READYFORCOMMANDS; }
 };
 
 }  // namespace GPU
