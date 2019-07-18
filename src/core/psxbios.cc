@@ -1299,13 +1299,19 @@ class BiosImpl : public PCSX::Bios {
             case 0x01:
             case 0x02:
             case 0x03:
-                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() ? 0x8 : 0x2;
+                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() ||
+                              !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()
+                          ? 0x8
+                          : 0x2;
                 break;
             case 0x10:
             case 0x11:
             case 0x12:
             case 0x13:
-                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty() ? 0x8 : 0x2;
+                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty() ||
+                              !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()
+                          ? 0x8
+                          : 0x2;
                 break;
             default:
                 PSXBIOS_LOG("psxBios_%s: UNKNOWN PORT 0x%x\n", A0names[0xab], s_card_active_chan);
