@@ -78,13 +78,6 @@ class SIO {
     uint32_t s_mcdst, s_rdwr;
     uint8_t s_adrH, s_adrL;
     uint32_t s_padst;
-    unsigned int s_gsdonglest;
-
-    static const size_t DONGLE_SIZE = 0x40 * 0x1000;
-
-    unsigned int s_dongleBank;
-    unsigned char s_dongleData[DONGLE_SIZE];
-    int s_dongleInit;
 
   public:
     static const uint64_t MCD_SECT_SIZE = 8 * 16;
@@ -107,16 +100,12 @@ class SIO {
     void netError();
 
     void sioInterrupt();
-    int sioFreeze(gzFile f, int Mode);
 
     void LoadMcd(int mcd, const char *str);
     void LoadMcds(const char *mcd1, const char *mcd2);
     void SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t size);
     void CreateMcd(const char *mcd);
     void ConvertMcd(const char *mcd, const char *data);
-
-    void LoadDongle(const char *filename);
-    void SaveDongle(const char *filename);
 
     typedef struct {
         char Title[48 + 1];       // Title in ASCII
