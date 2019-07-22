@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,48 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-/*
- * SIO functions.
- */
-
 #include <sys/stat.h>
 
 #include "core/misc.h"
 #include "core/pad.h"
 #include "core/sio.h"
 
-// *** FOR WORKS ON PADS AND MEMORY CARDS *****
-
-#if 0
-// Breaks Twisted Metal 2 intro
-#define SIO_INT(eCycle)                                                                     \
-    {                                                                                       \
-        if (!PCSX::g_emulator.config().SioIrq) {                                            \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
-        }                                                                                   \
-                                                                                            \
-        s_statReg &= ~RX_RDY;                                                               \
-        s_statReg &= ~TX_RDY;                                                               \
-    }
-#endif
-
-#define SIO_INT(eCycle)                                                                     \
-    {                                                                                       \
-        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {              \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);      \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle; \
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =        \
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;                                 \
-        }                                                                                   \
-    }
-
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator.m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
-#define SIO_CYCLES (s_baudReg * 8)
+#define SIO_CYCLES (m_baudReg * 8)
 
 // rely on this for now - someone's actual testing
 //#define SIO_CYCLES (PCSX::g_emulator.m_psxClockSpeed / 57600)
@@ -71,11 +39,10 @@
 // ePSXe 1.7.0
 //#define SIO_CYCLES 635
 
-void PCSX::SIO::sioWrite8(uint8_t value) {
-    PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, s_parp, s_padst, s_mcdst);
-    switch (s_padst) {
-        case 1:
-            SIO_INT(SIO_CYCLES);
+void PCSX::SIO::writePad(uint8_t value) {
+    switch (m_padState) {
+        case PAD_STATE_READ_TYPE:
+            updateCycles(SIO_CYCLES);
             /*
             $41-4F
             $41 = Find bits in poll respones
@@ -93,312 +60,297 @@ void PCSX::SIO::sioWrite8(uint8_t value) {
             $12 = Mouse
             */
 
-            if ((value & 0x40) == 0x40) {
-                s_padst = 2;
-                s_parp = 1;
-                if (!PCSX::g_emulator.config().UseNet) {
-                    switch (s_ctrlReg & 0x2002) {
-                        case 0x0002:
-                            s_buf[s_parp] = PCSX::g_emulator.m_pad1->poll(value);
-                            break;
-                        case 0x2002:
-                            s_buf[s_parp] = PCSX::g_emulator.m_pad2->poll(value);
-                            break;
-                    }
-                } /* else {
-//                  PCSX::g_system->printf("%x: %x, %x, %x, %x\n", s_ctrlReg&0x2002, s_buf[2], s_buf[3], s_buf[4],
-s_buf[5]);
-                 }*/
+            if (value & 0x40) {
+                m_padState = PAD_STATE_READ_DATA;
+                m_bufferIndex = 1;
+                switch (m_ctrlReg & 0x2002) {
+                    case 0x0002:
+                        m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad1->poll(value);
+                        break;
+                    case 0x2002:
+                        m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad2->poll(value);
+                        break;
+                }
 
-                if (!(s_buf[s_parp] & 0x0f)) {
-                    s_bufcount = 2 + 32;
+                if (!(m_buffer[m_bufferIndex] & 0x0f)) {
+                    m_maxBufferIndex = 2 + 32;
                 } else {
-                    s_bufcount = 2 + (s_buf[s_parp] & 0x0f) * 2;
+                    m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
                 }
 
                 // Digital / Dual Shock Controller
-                if (s_buf[s_parp] == 0x41) {
+                if (m_buffer[m_bufferIndex] == 0x41) {
                     switch (value) {
                         // enter config mode
                         case 0x43:
-                            s_buf[1] = 0x43;
+                            m_buffer[1] = 0x43;
                             break;
 
                         // get status
                         case 0x45:
-                            s_buf[1] = 0xf3;
+                            m_buffer[1] = 0xf3;
                             break;
                     }
                 }
 
                 // NegCon - Wipeout 3
-                if (s_buf[s_parp] == 0x23) {
+                if (m_buffer[m_bufferIndex] == 0x23) {
                     switch (value) {
                         // enter config mode
                         case 0x43:
-                            s_buf[1] = 0x79;
+                            m_buffer[1] = 0x79;
                             break;
 
                         // get status
                         case 0x45:
-                            s_buf[1] = 0xf3;
+                            m_buffer[1] = 0xf3;
                             break;
                     }
                 }
-            } else
-                s_padst = 0;
+            } else {
+                m_padState = PAD_STATE_IDLE;
+            }
             return;
-        case 2:
-            s_parp++;
-            /*          if (s_buf[1] == 0x45) {
-                                            s_buf[s_parp] = 0;
-                                            SIO_INT(SIO_CYCLES);
+        case PAD_STATE_READ_DATA:
+            m_bufferIndex++;
+            /*          if (m_buffer[1] == 0x45) {
+                                            m_buffer[m_bufferIndex] = 0;
+                                            updateCycles(SIO_CYCLES);
                                             return;
                                     }*/
-            if (!PCSX::g_emulator.config().UseNet) {
-                switch (s_ctrlReg & 0x2002) {
-                    case 0x0002:
-                        s_buf[s_parp] = PCSX::g_emulator.m_pad1->poll(value);
-                        break;
-                    case 0x2002:
-                        s_buf[s_parp] = PCSX::g_emulator.m_pad2->poll(value);
-                        break;
-                }
+            switch (m_ctrlReg & 0x2002) {
+                case 0x0002:
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad1->poll(value);
+                    break;
+                case 0x2002:
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad2->poll(value);
+                    break;
             }
 
-            if (s_parp == s_bufcount) {
-                s_padst = 0;
+            if (m_bufferIndex == m_maxBufferIndex) {
+                m_padState = PAD_STATE_IDLE;
                 return;
             }
-            SIO_INT(SIO_CYCLES);
+            updateCycles(SIO_CYCLES);
             return;
     }
+}
 
-    switch (s_mcdst) {
-        case 1:
-            SIO_INT(SIO_CYCLES);
-            if (s_rdwr) {
-                s_parp++;
+void PCSX::SIO::writeMcd(uint8_t value) {
+    switch (m_mcdState) {
+        case MCD_STATE_READ_COMMAND:
+            updateCycles(SIO_CYCLES);
+            if (m_mcdReadWriteState) {
+                m_bufferIndex++;
                 return;
             }
-            s_parp = 1;
+            m_bufferIndex = 1;
             switch (value) {
-                case 0x52:
-                    s_rdwr = 1;
+                case 'R':
+                    m_mcdReadWriteState = MCD_READWRITE_STATE_READ;
                     break;
-                case 0x57:
-                    s_rdwr = 2;
+                case 'W':
+                    m_mcdReadWriteState = MCD_READWRITE_STATE_WRITE;
                     break;
                 default:
-                    s_mcdst = 0;
+                    m_mcdState = MCD_STATE_IDLE;
             }
             return;
-        case 2:  // address H
-            SIO_INT(SIO_CYCLES);
-            s_adrH = value;
-            *s_buf = 0;
-            s_parp = 0;
-            s_bufcount = 1;
-            s_mcdst = 3;
+        case MCD_STATE_READ_ADDR_HIGH:
+            updateCycles(SIO_CYCLES);
+            m_mcdAddrHigh = value;
+            *m_buffer = 0;
+            m_bufferIndex = 0;
+            m_maxBufferIndex = 1;
+            m_mcdState = MCD_STATE_READ_ADDR_LOW;
             return;
-        case 3:  // address L
-            SIO_INT(SIO_CYCLES);
-            s_adrL = value;
-            *s_buf = s_adrH;
-            s_parp = 0;
-            s_bufcount = 1;
-            s_mcdst = 4;
+        case MCD_STATE_READ_ADDR_LOW:
+            updateCycles(SIO_CYCLES);
+            m_mcdAddrLow = value;
+            *m_buffer = m_mcdAddrHigh;
+            m_bufferIndex = 0;
+            m_maxBufferIndex = 1;
+            m_mcdState = MCD_STATE_READ_ACK;
             return;
-        case 4:
-            SIO_INT(SIO_CYCLES);
-            s_parp = 0;
-            switch (s_rdwr) {
-                case 1:  // read
-                    s_buf[0] = 0x5c;
-                    s_buf[1] = 0x5d;
-                    s_buf[2] = s_adrH;
-                    s_buf[3] = s_adrL;
-                    switch (s_ctrlReg & 0x2002) {
+        case MCD_STATE_READ_ACK:
+            updateCycles(SIO_CYCLES);
+            m_bufferIndex = 0;
+            switch (m_mcdReadWriteState) {
+                case MCD_READWRITE_STATE_READ:
+                    m_buffer[0] = 0x5c;
+                    m_buffer[1] = 0x5d;
+                    m_buffer[2] = m_mcdAddrHigh;
+                    m_buffer[3] = m_mcdAddrLow;
+                    switch (m_ctrlReg & 0x2002) {
                         case 0x0002:
-                            memcpy(&s_buf[4], g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, 128);
+                            memcpy(&m_buffer[4], g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             break;
                         case 0x2002:
-                            memcpy(&s_buf[4], g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, 128);
+                            memcpy(&m_buffer[4], g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             break;
                     }
                     {
                         char xorsum = 0;
                         int i;
-                        for (i = 2; i < 128 + 4; i++) xorsum ^= s_buf[i];
-                        s_buf[132] = xorsum;
+                        for (i = 2; i < 128 + 4; i++) xorsum ^= m_buffer[i];
+                        m_buffer[132] = xorsum;
                     }
-                    s_buf[133] = 0x47;
-                    s_bufcount = 133;
+                    m_buffer[133] = 0x47;
+                    m_maxBufferIndex = 133;
                     break;
-                case 2:  // write
-                    s_buf[0] = s_adrL;
-                    s_buf[1] = value;
-                    s_buf[129] = 0x5c;
-                    s_buf[130] = 0x5d;
-                    s_buf[131] = 0x47;
-                    s_bufcount = 131;
-                    s_cardh[1] &= ~MCDST_CHANGED;
+                case MCD_READWRITE_STATE_WRITE:
+                    m_buffer[0] = m_mcdAddrLow;
+                    m_buffer[1] = value;
+                    m_buffer[129] = 0x5c;
+                    m_buffer[130] = 0x5d;
+                    m_buffer[131] = 0x47;
+                    m_maxBufferIndex = 131;
                     break;
             }
-            s_mcdst = 5;
+            m_mcdState = MCD_STATE_READWRITE_DATA;
             return;
-        case 5:
-            s_parp++;
-            if (s_rdwr == 2) {
-                if (s_parp < 128) s_buf[s_parp + 1] = value;
+        case MCD_STATE_READWRITE_DATA:
+            m_bufferIndex++;
+            if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
+                if (m_bufferIndex < 128) m_buffer[m_bufferIndex + 1] = value;
             }
-            SIO_INT(SIO_CYCLES);
-            return;
-    }
-
-    switch (value) {
-        case 0x01:                // start pad
-            s_statReg |= RX_RDY;  // Transfer is Ready
-
-            if (!PCSX::g_emulator.config().UseNet) {
-                switch (s_ctrlReg & 0x2002) {
-                    case 0x0002:
-                        s_buf[0] = PCSX::g_emulator.m_pad1->startPoll();
-                        break;
-                    case 0x2002:
-                        s_buf[0] = PCSX::g_emulator.m_pad2->startPoll();
-                        break;
-                }
-            } else {
-                if ((s_ctrlReg & 0x2002) == 0x0002) {
-                    int i, j;
-
-                    PCSX::g_emulator.m_pad1->startPoll();
-                    s_buf[0] = 0;
-                    s_buf[1] = PCSX::g_emulator.m_pad1->poll(0x42);
-                    if (!(s_buf[1] & 0x0f)) {
-                        s_bufcount = 32;
-                    } else {
-                        s_bufcount = (s_buf[1] & 0x0f) * 2;
-                    }
-                    s_buf[2] = PCSX::g_emulator.m_pad1->poll(0);
-                    i = 3;
-                    j = s_bufcount;
-                    while (j--) {
-                        s_buf[i++] = PCSX::g_emulator.m_pad1->poll(0);
-                    }
-                    s_bufcount += 3;
-
-                    if (NET_sendPadData(s_buf, s_bufcount) == -1) netError();
-
-                    if (NET_recvPadData(s_buf, 1) == -1) netError();
-                    if (NET_recvPadData(s_buf + 128, 2) == -1) netError();
-                } else {
-                    memcpy(s_buf, s_buf + 128, 32);
-                }
-            }
-
-            s_bufcount = 2;
-            s_parp = 0;
-            s_padst = 1;
-            SIO_INT(SIO_CYCLES);
-            return;
-        case 0x81:  // start memcard
-                    // case 0x82: case 0x83: case 0x84: // Multitap memcard access
-            s_statReg |= RX_RDY;
-
-            // Chronicles of the Sword - no memcard = password options
-            if (PCSX::g_emulator.config().NoMemcard ||
-                (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() &&
-                 PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty())) {
-                memset(s_buf, 0x00, 4);
-            } else {
-                memcpy(s_buf, s_cardh, 4);
-                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() ||
-                    !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
-                    s_buf[2] = 0;  // is card 1 plugged? (Codename Tenka)
-                }
-                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty() ||
-                    !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
-                    s_buf[3] = 0;  // is card 2 plugged?
-                }
-            }
-
-            s_parp = 0;
-            s_bufcount = 3;
-            s_mcdst = 1;
-            s_rdwr = 0;
-            SIO_INT(SIO_CYCLES);
-            return;
-
-        default:  // no hardware found
-            s_statReg |= RX_RDY;
+            updateCycles(SIO_CYCLES);
             return;
     }
 }
 
-void PCSX::SIO::sioWriteStat16(uint16_t value) {}
+void PCSX::SIO::write8(uint8_t value) {
+    PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
+    if (m_padState) {
+        writePad(value);
+        return;
+    }
+    if (m_mcdState) {
+        writeMcd(value);
+        return;
+    }
+    switch (value) {
+        case 0x01:                  // start pad
+            m_statusReg |= RX_RDY;  // Transfer is Ready
 
-void PCSX::SIO::sioWriteMode16(uint16_t value) { s_modeReg = value; }
+            switch (m_ctrlReg & 0x2002) {
+                case 0x0002:
+                    m_buffer[0] = PCSX::g_emulator.m_pad1->startPoll();
+                    break;
+                case 0x2002:
+                    m_buffer[0] = PCSX::g_emulator.m_pad2->startPoll();
+                    break;
+            }
 
-void PCSX::SIO::sioWriteCtrl16(uint16_t value) {
-    PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, s_parp, s_padst, s_mcdst);
-    s_ctrlReg = value & ~RESET_ERR;
-    if (value & RESET_ERR) s_statReg &= ~IRQ;
-    if ((s_ctrlReg & SIO_RESET) || (!s_ctrlReg)) {
-        s_padst = 0;
-        s_mcdst = 0;
-        s_parp = 0;
-        s_statReg = TX_RDY | TX_EMPTY;
+            m_maxBufferIndex = 2;
+            m_bufferIndex = 0;
+            m_padState = PAD_STATE_READ_TYPE;
+            updateCycles(SIO_CYCLES);
+            return;
+        case 0x81:  // start memcard
+                    // case 0x82: case 0x83: case 0x84: // Multitap memcard access
+            m_statusReg |= RX_RDY;
+
+            memset(m_buffer, 0, 4);
+            if ((m_ctrlReg & 0x2002) == 0x0002) {
+                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                    m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
+                    m_buffer[2] = 0x5a;
+                    m_buffer[3] = 0x5d;
+                    m_wasMcd1Inserted = true;
+                } else {
+                    m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
+                }
+            } else if ((m_ctrlReg & 0x2002) == 0x2002) {
+                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                    m_buffer[1] = m_wasMcd2Inserted ? 0 : MCDST_CHANGED;
+                    m_buffer[2] = 0x5a;
+                    m_buffer[3] = 0x5d;
+                    m_wasMcd2Inserted = true;
+                } else {
+                    m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
+                }
+            }
+
+            m_bufferIndex = 0;
+            m_maxBufferIndex = 3;
+            m_mcdState = MCD_STATE_READ_COMMAND;
+            m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
+            updateCycles(SIO_CYCLES);
+            return;
+
+        default:  // no hardware found
+            m_statusReg |= RX_RDY;
+            return;
+    }
+}
+
+void PCSX::SIO::writeStatus16(uint16_t value) {}
+
+void PCSX::SIO::writeMode16(uint16_t value) { m_modeReg = value; }
+
+void PCSX::SIO::writeCtrl16(uint16_t value) {
+    PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
+    m_ctrlReg = value & ~RESET_ERR;
+    if (value & RESET_ERR) m_statusReg &= ~IRQ;
+    if ((m_ctrlReg & SIO_RESET) || (!m_ctrlReg)) {
+        m_padState = PAD_STATE_IDLE;
+        m_mcdState = MCD_STATE_IDLE;
+        m_bufferIndex = 0;
+        m_statusReg = TX_RDY | TX_EMPTY;
         PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
     }
 }
 
-void PCSX::SIO::sioWriteBaud16(uint16_t value) { s_baudReg = value; }
+void PCSX::SIO::writeBaud16(uint16_t value) { m_baudReg = value; }
 
 uint8_t PCSX::SIO::sioRead8() {
-    unsigned char ret = 0;
+    uint8_t ret = 0;
 
-    if ((s_statReg & RX_RDY) /* && (s_ctrlReg & RX_PERM)*/) {
-        //      s_statReg &= ~RX_OVERRUN;
-        ret = s_buf[s_parp];
-        if (s_parp == s_bufcount) {
-            s_statReg &= ~RX_RDY;  // Receive is not Ready now
-            if (s_mcdst == 5) {
-                s_mcdst = 0;
-                if (s_rdwr == 2) {
-                    switch (s_ctrlReg & 0x2002) {
+    if ((m_statusReg & RX_RDY) /* && (m_ctrlReg & RX_PERM)*/) {
+        //      m_statusReg &= ~RX_OVERRUN;
+        ret = m_buffer[m_bufferIndex];
+        if (m_bufferIndex == m_maxBufferIndex) {
+            m_statusReg &= ~RX_RDY;  // Receive is not Ready now
+            if (m_mcdState == MCD_STATE_READWRITE_DATA) {
+                m_mcdState = MCD_STATE_IDLE;
+                if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
+                    switch (m_ctrlReg & 0x2002) {
                         case 0x0002:
-                            memcpy(g_mcd1Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
-                                    g_mcd1Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                                memcpy(g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
+                                SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
+                                        g_mcd1Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
+                            }
                             break;
                         case 0x2002:
-                            memcpy(g_mcd2Data + (s_adrL | (s_adrH << 8)) * 128, &s_buf[1], 128);
-                            SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
-                                    g_mcd2Data, (s_adrL | (s_adrH << 8)) * 128, 128);
+                            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                                memcpy(g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
+                                SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
+                                        g_mcd2Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
+                            }
                             break;
                     }
                 }
             }
-            if (s_padst == 2) s_padst = 0;
-            if (s_mcdst == 1) {
-                s_mcdst = 2;
-                s_statReg |= RX_RDY;
+            if (m_padState == PAD_STATE_READ_DATA) m_padState = PAD_STATE_IDLE;
+            if (m_mcdState == MCD_STATE_READ_COMMAND) {
+                m_mcdState = MCD_STATE_READ_ADDR_HIGH;
+                m_statusReg |= RX_RDY;
             }
         }
     }
 
-    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, s_parp, s_statReg,
-            s_buf[s_parp > 0 ? s_parp - 1 : 0], s_buf[s_parp],
-            s_buf[s_parp < BUFFER_SIZE - 1 ? s_parp + 1 : BUFFER_SIZE - 1]);
+    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
+            m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
+            m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
     return ret;
 }
 
-uint16_t PCSX::SIO::sioReadStat16() {
+uint16_t PCSX::SIO::readStatus16() {
     uint16_t hard;
 
-    hard = s_statReg;
+    hard = m_statusReg;
 
 #if 0
     // wait for IRQ first
@@ -413,11 +365,11 @@ uint16_t PCSX::SIO::sioReadStat16() {
     return hard;
 }
 
-uint16_t PCSX::SIO::sioReadMode16() { return s_modeReg; }
+uint16_t PCSX::SIO::readMode16() { return m_modeReg; }
 
-uint16_t PCSX::SIO::sioReadCtrl16() { return s_ctrlReg; }
+uint16_t PCSX::SIO::readCtrl16() { return m_ctrlReg; }
 
-uint16_t PCSX::SIO::sioReadBaud16() { return s_baudReg; }
+uint16_t PCSX::SIO::readBaud16() { return m_baudReg; }
 
 void PCSX::SIO::netError() {
     // ClosePlugins();
@@ -429,17 +381,17 @@ void PCSX::SIO::netError() {
     PCSX::g_system->runGui();
 }
 
-void PCSX::SIO::sioInterrupt() {
+void PCSX::SIO::interrupt() {
     PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
     //  PCSX::g_system->printf("Sio Interrupt\n");
-    s_statReg |= IRQ;
+    m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
 
 #if 0
     // Rhapsody: fixes input problems
     // Twisted Metal 2: breaks intro
-    s_statReg |= TX_RDY;
-    s_statReg |= RX_RDY;
+    m_statusReg |= TX_RDY;
+    m_statusReg |= RX_RDY;
 #endif
 }
 
@@ -449,8 +401,14 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
     char filepath[MAXPATHLEN] = {'\0'};
     const char *apppath = GetAppPath();
 
-    if (mcd == 1) data = g_mcd1Data;
-    if (mcd == 2) data = g_mcd2Data;
+    if (mcd == 1) {
+        data = g_mcd1Data;
+        m_wasMcd1Inserted = false;
+    }
+    if (mcd == 2) {
+        data = g_mcd2Data;
+        m_wasMcd2Inserted = false;
+    }
 
     if (*str == 0) {
         PCSX::g_system->printf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
@@ -491,9 +449,6 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
         fread(data, 1, MCD_SIZE, f);
         fclose(f);
     }
-
-    // flag indicating entries have not yet been read (i.e. new card plugged)
-    s_cardh[1] |= MCDST_CHANGED;
 }
 
 void PCSX::SIO::LoadMcds(const char *mcd1, const char *mcd2) {
