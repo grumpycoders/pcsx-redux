@@ -140,9 +140,7 @@ class Emulator {
         settings;
     class PcsxConfig {
       public:
-        bool UseNet = false;
         bool VSyncWA = false;
-        bool NoMemcard = false;
         bool PerGameMcd = false;
         bool Widescreen = false;
         bool HideCursor = false;

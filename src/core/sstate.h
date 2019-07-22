@@ -115,20 +115,21 @@ typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, 
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 
-typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1010>, TYPESTRING("buf"), 1> SIOBuf;
-typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("stat_reg"), 2> SIOStatReg;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1010>, TYPESTRING("buffer"), 1> SIOBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("status_reg"), 2> SIOStatusReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mode_reg"), 3> SIOModeReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("ctrl_reg"), 4> SIOCtrlReg;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("baud_reg"), 5> SIOBaudReg;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buf_count"), 6> SIOBufCount;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("parp"), 7> SIOParP;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_st"), 8> SIOMCDSt;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("rdwr"), 9> SIORDWR;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("adrh"), 10> SIOAdrH;
-typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("adrl"), 11> SIOAdrL;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_st"), 12> SIOPadSt;
-typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuf, SIOStatReg, SIOModeReg, SIOCtrlReg, SIOBaudReg, SIOBufCount,
-                          SIOParP, SIOMCDSt, SIORDWR, SIOAdrH, SIOAdrL, SIOPadSt>
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buffer_max_index"), 6> SIOBufferMaxIndex;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buffer_index"), 7> SIOBufferIndex;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_state"), 8> SIOMCDState;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_readwrite_state"), 9> SIOMCDReadWriteState;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd_addr_high"), 10> SIOMCDAddrHigh;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd_addr_low"), 11> SIOMCDAddrLow;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state"), 12> SIOPadState;
+typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg,
+                          SIOBufferMaxIndex, SIOBufferIndex, SIOMCDState, SIOMCDReadWriteState, SIOMCDAddrHigh,
+                          SIOMCDAddrLow, SIOPadState>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -58,33 +58,55 @@ class SIO {
 
     static const size_t BUFFER_SIZE = 0x1010;
 
-    uint8_t s_buf[BUFFER_SIZE];
-
-    //[0] -> dummy
-    //[1] -> memory card status flag
-    //[2] -> card 1 id, 0x5a->plugged, any other not plugged
-    //[3] -> card 2 id, 0x5d->plugged, any other not plugged
-    uint8_t s_cardh[4] = {0x00, 0x08, 0x5a, 0x5d};
+    uint8_t m_buffer[BUFFER_SIZE];
 
     // Transfer Ready and the Buffer is Empty
-    // static unsigned short s_statReg = 0x002b;
-    uint16_t s_statReg = TX_RDY | TX_EMPTY;
-    uint16_t s_modeReg;
-    uint16_t s_ctrlReg;
-    uint16_t s_baudReg;
+    // static unsigned short m_statusReg = 0x002b;
+    uint16_t m_statusReg = TX_RDY | TX_EMPTY;
+    uint16_t m_modeReg;
+    uint16_t m_ctrlReg;
+    uint16_t m_baudReg;
 
-    uint32_t s_bufcount;
-    uint32_t s_parp;
-    uint32_t s_mcdst, s_rdwr;
-    uint8_t s_adrH, s_adrL;
-    uint32_t s_padst;
-    unsigned int s_gsdonglest;
-
-    static const size_t DONGLE_SIZE = 0x40 * 0x1000;
-
-    unsigned int s_dongleBank;
-    unsigned char s_dongleData[DONGLE_SIZE];
-    int s_dongleInit;
+    uint32_t m_maxBufferIndex;
+    uint32_t m_bufferIndex;
+    uint32_t m_mcdState, m_mcdReadWriteState;
+    enum {
+        MCD_STATE_IDLE = 0,
+        MCD_STATE_READ_COMMAND = 1,
+        MCD_STATE_READ_ADDR_HIGH = 2,
+        MCD_STATE_READ_ADDR_LOW = 3,
+        MCD_STATE_READ_ACK = 4,
+        MCD_STATE_READWRITE_DATA = 5,
+    };
+    enum {
+        MCD_READWRITE_STATE_IDLE = 0,
+        MCD_READWRITE_STATE_READ = 1,
+        MCD_READWRITE_STATE_WRITE = 2,
+    };
+    uint8_t m_mcdAddrHigh, m_mcdAddrLow;
+    bool m_wasMcd1Inserted = false;
+    bool m_wasMcd2Inserted = false;
+    uint32_t m_padState;
+    enum {
+        PAD_STATE_IDLE = 0,
+        PAD_STATE_READ_TYPE = 1,
+        PAD_STATE_READ_DATA = 2,
+    };
+    inline void updateCycles(uint32_t eCycle) {
+        if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;
+            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =
+                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        }
+#if 0
+// Breaks Twisted Metal 2 intro
+        m_statusReg &= ~RX_RDY;
+        m_statusReg &= ~TX_RDY;
+#endif
+    }
+    void writePad(uint8_t value);
+    void writeMcd(uint8_t value);
 
   public:
     static const uint64_t MCD_SECT_SIZE = 8 * 16;
@@ -92,31 +114,27 @@ class SIO {
 
     char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
 
-    void sioWrite8(uint8_t value);
-    void sioWriteStat16(uint16_t value);
-    void sioWriteMode16(uint16_t value);
-    void sioWriteCtrl16(uint16_t value);
-    void sioWriteBaud16(uint16_t value);
+    void write8(uint8_t value);
+    void writeStatus16(uint16_t value);
+    void writeMode16(uint16_t value);
+    void writeCtrl16(uint16_t value);
+    void writeBaud16(uint16_t value);
 
     uint8_t sioRead8();
-    uint16_t sioReadStat16();
-    uint16_t sioReadMode16();
-    uint16_t sioReadCtrl16();
-    uint16_t sioReadBaud16();
+    uint16_t readStatus16();
+    uint16_t readMode16();
+    uint16_t readCtrl16();
+    uint16_t readBaud16();
 
     void netError();
 
-    void sioInterrupt();
-    int sioFreeze(gzFile f, int Mode);
+    void interrupt();
 
     void LoadMcd(int mcd, const char *str);
     void LoadMcds(const char *mcd1, const char *mcd2);
     void SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t size);
     void CreateMcd(const char *mcd);
     void ConvertMcd(const char *mcd, const char *data);
-
-    void LoadDongle(const char *filename);
-    void SaveDongle(const char *filename);
 
     typedef struct {
         char Title[48 + 1];       // Title in ASCII

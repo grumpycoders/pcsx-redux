@@ -341,7 +341,7 @@ unsigned char stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 unsigned char mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
 unsigned char analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-static int s_bufcount, bufc;
+static int m_maxBufferIndex, bufc;
 
 PadDataS padd1, padd2;
 
@@ -356,7 +356,7 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             mousepar[6] = pad->moveY;
 
             memcpy(s_buf, mousepar, 7);
-            s_bufcount = 6;
+            m_maxBufferIndex = 6;
             break;
         case PSE_PAD_TYPE_NEGCON:  // npc101/npc104(slph00001/slph00069)
             analogpar[1] = 0x23;
@@ -368,7 +368,7 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             analogpar[8] = pad->leftJoyY;
 
             memcpy(s_buf, analogpar, 9);
-            s_bufcount = 8;
+            m_maxBufferIndex = 8;
             break;
         case PSE_PAD_TYPE_ANALOGPAD:  // scph1150
             analogpar[1] = 0x73;
@@ -380,7 +380,7 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             analogpar[8] = pad->leftJoyY;
 
             memcpy(s_buf, analogpar, 9);
-            s_bufcount = 8;
+            m_maxBufferIndex = 8;
             break;
         case PSE_PAD_TYPE_ANALOGJOY:  // scph1110
             analogpar[1] = 0x53;
@@ -392,7 +392,7 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             analogpar[8] = pad->leftJoyY;
 
             memcpy(s_buf, analogpar, 9);
-            s_bufcount = 8;
+            m_maxBufferIndex = 8;
             break;
         case PSE_PAD_TYPE_STANDARD:
         default:
@@ -400,14 +400,14 @@ unsigned char _PADstartPoll(PadDataS *pad) {
             stdpar[4] = pad->buttonStatus >> 8;
 
             memcpy(s_buf, stdpar, 5);
-            s_bufcount = 4;
+            m_maxBufferIndex = 4;
     }
 
     return s_buf[bufc++];
 }
 
 unsigned char _PADpoll(unsigned char value) {
-    if (bufc > s_bufcount) return 0;
+    if (bufc > m_maxBufferIndex) return 0;
     return s_buf[bufc++];
 }
 
@@ -553,43 +553,6 @@ static int LoadPAD2plugin() {
 }
 #endif
 
-void NET__setInfo(netInfo *info) {}
-void NET__keypressed(int key) {}
-long NET__configure(void) { return 0; }
-long NET__test(void) { return 0; }
-void NET__about(void) {}
-
-#define LoadNetSym1(dest, name) LoadSym(NET_##dest, NET##dest, name, true);
-
-#define LoadNetSymN(dest, name) LoadSym(NET_##dest, NET##dest, name, false);
-
-#define LoadNetSym0(dest, name)                  \
-    LoadSym(NET_##dest, NET##dest, name, false); \
-    if (NET_##dest == NULL) NET_##dest = (NET##dest)NET__##dest;
-
-static int LoadNETplugin() {
-#if 0
-    LoadNetSym1(init, "NETinit");
-    LoadNetSym1(shutdown, "NETshutdown");
-    LoadNetSym1(open, "NETopen");
-    LoadNetSym1(close, "NETclose");
-    LoadNetSymN(sendData, "NETsendData");
-    LoadNetSymN(recvData, "NETrecvData");
-    LoadNetSym1(sendPadData, "NETsendPadData");
-    LoadNetSym1(recvPadData, "NETrecvPadData");
-    LoadNetSym1(queryPlayer, "NETqueryPlayer");
-    LoadNetSym1(pause, "NETpause");
-    LoadNetSym1(resume, "NETresume");
-    LoadNetSym0(setInfo, "NETsetInfo");
-    LoadNetSym0(keypressed, "NETkeypressed");
-    LoadNetSym0(configure, "NETconfigure");
-    LoadNetSym0(test, "NETtest");
-    LoadNetSym0(about, "NETabout");
-#endif
-
-    return 0;
-}
-
 #ifdef ENABLE_SIO1API
 
 long SIO1__init(void) { return 0; }
@@ -649,7 +612,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
     LoadSio1Sym0(writeData8, "SIO1writeData8");
     LoadSio1Sym0(writeData16, "SIO1writeData16");
     LoadSio1Sym0(writeData32, "SIO1writeData32");
-    LoadSio1Sym0(writeStat16, "SIO1writeStat16");
+    LoadSio1Sym0(writeStatus16, "SIO1writeStat16");
     LoadSio1Sym0(writeStat32, "SIO1writeStat32");
     LoadSio1Sym0(writeMode16, "SIO1writeMode16");
     LoadSio1Sym0(writeMode32, "SIO1writeMode32");
@@ -660,7 +623,7 @@ static int LoadSIO1plugin(const char *SIO1dll) {
     LoadSio1Sym0(readData8, "SIO1readData8");
     LoadSio1Sym0(readData16, "SIO1readData16");
     LoadSio1Sym0(readData32, "SIO1readData32");
-    LoadSio1Sym0(readStat16, "SIO1readStat16");
+    LoadSio1Sym0(readStatus16, "SIO1readStat16");
     LoadSio1Sym0(readStat32, "SIO1readStat32");
     LoadSio1Sym0(readMode16, "SIO1readMode16");
     LoadSio1Sym0(readMode32, "SIO1readMode32");
@@ -684,7 +647,6 @@ int LoadPlugins() {
     ReleasePlugins();
 
     if (LoadGPUplugin() == -1) return -1;
-    if (LoadNETplugin() == -1) PCSX::g_emulator.config().UseNet = false;
 
 #ifdef ENABLE_SIO1API
     if (LoadSIO1plugin() == -1) return -1;
@@ -702,14 +664,6 @@ int LoadPlugins() {
         return -1;
     }
 
-    if (PCSX::g_emulator.config().UseNet) {
-        ret = NET_init();
-        if (ret < 0) {
-            PCSX::g_system->message(_("Error initializing NetPlay plugin: %d"), ret);
-            return -1;
-        }
-    }
-
 #ifdef ENABLE_SIO1API
     ret = SIO1_init();
     if (ret < 0) {
@@ -723,15 +677,9 @@ int LoadPlugins() {
 }
 
 void ReleasePlugins() {
-    if (PCSX::g_emulator.config().UseNet) {
-        long ret = NET_close();
-        if (ret < 0) PCSX::g_emulator.config().UseNet = false;
-    }
-
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
     PCSX::g_emulator.m_gpu->shutdown();
     PCSX::g_emulator.m_spu->shutdown();
-    if (PCSX::g_emulator.config().UseNet && NET_shutdown) NET_shutdown();
 
 #ifdef ENABLE_SIO1API
     SIO1_shutdown();

@@ -143,7 +143,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {  // sio
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SIO].sCycle) >= m_psxRegs.intCycle[PSXINT_SIO].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
-                PCSX::g_emulator.m_sio->sioInterrupt();
+                PCSX::g_emulator.m_sio->interrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_CDR)) {  // cdr

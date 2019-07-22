@@ -92,19 +92,19 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f801044:
-            hard = PCSX::g_emulator.m_sio->sioReadStat16();
+            hard = PCSX::g_emulator.m_sio->readStatus16();
             PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f801048:
-            hard = PCSX::g_emulator.m_sio->sioReadMode16();
+            hard = PCSX::g_emulator.m_sio->readMode16();
             PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f80104a:
-            hard = PCSX::g_emulator.m_sio->sioReadCtrl16();
+            hard = PCSX::g_emulator.m_sio->readCtrl16();
             PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f80104e:
-            hard = PCSX::g_emulator.m_sio->sioReadBaud16();
+            hard = PCSX::g_emulator.m_sio->readBaud16();
             PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
 #ifdef ENABLE_SIO1API
@@ -302,7 +302,7 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
 void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
     switch (add) {
         case 0x1f801040:
-            PCSX::g_emulator.m_sio->sioWrite8(value);
+            PCSX::g_emulator.m_sio->write8(value);
             break;
 #ifdef ENABLE_SIO1API
         case 0x1f801050:
@@ -334,24 +334,24 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
 void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
     switch (add) {
         case 0x1f801040:
-            PCSX::g_emulator.m_sio->sioWrite8((unsigned char)value);
-            PCSX::g_emulator.m_sio->sioWrite8((unsigned char)(value >> 8));
+            PCSX::g_emulator.m_sio->write8((unsigned char)value);
+            PCSX::g_emulator.m_sio->write8((unsigned char)(value >> 8));
             PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f801044:
-            PCSX::g_emulator.m_sio->sioWriteStat16(value);
+            PCSX::g_emulator.m_sio->writeStatus16(value);
             PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f801048:
-            PCSX::g_emulator.m_sio->sioWriteMode16(value);
+            PCSX::g_emulator.m_sio->writeMode16(value);
             PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f80104a:  // control register
-            PCSX::g_emulator.m_sio->sioWriteCtrl16(value);
+            PCSX::g_emulator.m_sio->writeCtrl16(value);
             PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f80104e:  // baudrate register
-            PCSX::g_emulator.m_sio->sioWriteBaud16(value);
+            PCSX::g_emulator.m_sio->writeBaud16(value);
             PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
 #ifdef ENABLE_SIO1API
@@ -469,10 +469,10 @@ inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
 void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
     switch (add) {
         case 0x1f801040:
-            PCSX::g_emulator.m_sio->sioWrite8((unsigned char)value);
-            PCSX::g_emulator.m_sio->sioWrite8((unsigned char)((value & 0xff) >> 8));
-            PCSX::g_emulator.m_sio->sioWrite8((unsigned char)((value & 0xff) >> 16));
-            PCSX::g_emulator.m_sio->sioWrite8((unsigned char)((value & 0xff) >> 24));
+            PCSX::g_emulator.m_sio->write8((unsigned char)value);
+            PCSX::g_emulator.m_sio->write8((unsigned char)((value & 0xff) >> 8));
+            PCSX::g_emulator.m_sio->write8((unsigned char)((value & 0xff) >> 16));
+            PCSX::g_emulator.m_sio->write8((unsigned char)((value & 0xff) >> 24));
             PAD_LOG("sio write32 %x\n", value);
             return;
 #ifdef ENABLE_SIO1API
