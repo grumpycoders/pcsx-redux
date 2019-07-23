@@ -92,7 +92,7 @@ class SIO {
         PAD_STATE_READ_TYPE = 1,
         PAD_STATE_READ_DATA = 2,
     };
-    inline void updateCycles(uint32_t eCycle) {
+    inline void scheduleInterrupt(uint32_t eCycle) {
         if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {
             PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);
             PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;

@@ -87,6 +87,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             SIOMCDAddrHigh { g_emulator.m_sio->m_mcdAddrHigh },
             SIOMCDAddrLow { g_emulator.m_sio->m_mcdAddrLow },
             SIOPadState { g_emulator.m_sio->m_padState },
+            SIOWasMCD1Inserted { g_emulator.m_sio->m_wasMcd1Inserted },
+            SIOWasMCD2Inserted { g_emulator.m_sio->m_wasMcd2Inserted },
         },
         CDRom {
             CDOCUP { g_emulator.m_cdrom->m_OCUP },
