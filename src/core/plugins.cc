@@ -34,6 +34,137 @@ static char ExeFile[MAXPATHLEN] = "";
 static char AppPath[MAXPATHLEN] = "";  // Application path(== pcsxr.exe directory)
 static char LdrFile[MAXPATHLEN] = "";  // bin-load file
 
+#if 0
+
+GPUupdateLace GPU_updateLace;
+GPUinit GPU_init;
+GPUshutdown GPU_shutdown;
+GPUconfigure GPU_configure;
+GPUtest GPU_test;
+GPUabout GPU_about;
+GPUopen GPU_open;
+GPUclose GPU_close;
+GPUreadStatus GPU_readStatus;
+GPUreadData GPU_readData;
+GPUreadDataMem GPU_readDataMem;
+GPUwriteStatus GPU_writeStatus;
+GPUwriteData GPU_writeData;
+GPUwriteDataMem GPU_writeDataMem;
+GPUdmaChain GPU_dmaChain;
+GPUkeypressed GPU_keypressed;
+GPUdisplayText GPU_displayText;
+GPUmakeSnapshot GPU_makeSnapshot;
+GPUtoggleDebug GPU_toggleDebug;
+GPUfreeze GPU_freeze;
+GPUgetScreenPic GPU_getScreenPic;
+GPUshowScreenPic GPU_showScreenPic;
+GPUclearDynarec GPU_clearDynarec;
+GPUhSync GPU_hSync;
+GPUvBlank GPU_vBlank;
+GPUvisualVibration GPU_visualVibration;
+GPUcursor GPU_cursor;
+GPUaddVertex GPU_addVertex;
+GPUsetSpeed GPU_setSpeed;
+GPUpgxpMemory GPU_pgxpMemory;
+GPUpgxpCacheVertex GPU_pgxpCacheVertex;
+
+extern "C" {
+
+#ifdef _WIN32
+long softGPUopen(unsigned int texture);
+#else
+long softGPUopen(unsigned long *disp, const char *CapText, const char *CfgFile);
+#endif
+void softGPUdisplayText(char *pText);
+void softGPUdisplayFlags(uint32_t dwFlags);
+void softGPUmakeSnapshot(void);
+long softGPUinit();
+long softGPUclose();
+long softGPUshutdown();
+void softGPUcursor(int iPlayer, int x, int y);
+void softGPUupdateLace(void);
+uint32_t softGPUreadStatus(void);
+void softGPUwriteStatus(uint32_t gdata);
+void softGPUreadDataMem(uint32_t *pMem, int iSize);
+uint32_t softGPUreadData(void);
+void softGPUwriteDataMem(uint32_t *pMem, int iSize);
+void softGPUwriteData(uint32_t gdata);
+void softGPUsetMode(uint32_t gdata);
+long softGPUgetMode(void);
+long softGPUdmaChain(uint32_t *baseAddrL, uint32_t addr);
+long softGPUconfigure(void);
+void softGPUabout(void);
+long softGPUtest(void);
+long softGPUfreeze(uint32_t ulGetFreezeData, GPUFreeze_t *pF);
+long softGPUgetScreenPic(unsigned char *pMem);
+long softGPUshowScreenPic(unsigned char *pMem);
+#ifndef _WIN32
+void softGPUkeypressed(int keycode);
+#endif
+void softGPUhSync(int val);
+void softGPUvSync(int val);
+void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig);
+void softGPUvBlank(int val);
+}
+
+#endif
+
+#if 0
+SPUconfigure SPU_configure;
+SPUabout SPU_about;
+SPUinit SPU_init;
+SPUshutdown SPU_shutdown;
+SPUtest SPU_test;
+SPUopen SPU_open;
+SPUclose SPU_close;
+SPUplaySample SPU_playSample;
+SPUwriteRegister SPU_writeRegister;
+SPUreadRegister SPU_readRegister;
+SPUwriteDMA SPU_writeDMA;
+SPUreadDMA SPU_readDMA;
+SPUwriteDMAMem SPU_writeDMAMem;
+SPUreadDMAMem SPU_readDMAMem;
+SPUplayADPCMchannel SPU_playADPCMchannel;
+SPUfreeze SPU_freeze;
+SPUregisterCallback SPU_registerCallback;
+SPUasync SPU_async;
+SPUplayCDDAchannel SPU_playCDDAchannel;
+#endif
+
+#if 0
+PADconfigure PAD1_configure;
+PADabout PAD1_about;
+PADinit PAD1_init;
+PADshutdown PAD1_shutdown;
+PADtest PAD1_test;
+PADopen PAD1_open;
+PADclose PAD1_close;
+PADquery PAD1_query;
+PADreadPort1 PAD1_readPort1;
+PADkeypressed PAD1_keypressed;
+PADstartPoll PAD1_startPoll;
+PADpoll PCSX::g_emulator.m_pad1->poll;
+PADsetSensitive PAD1_setSensitive;
+PADregisterVibration PAD1_registerVibration;
+PADregisterCursor PAD1_registerCursor;
+
+PADconfigure PAD2_configure;
+PADabout PAD2_about;
+PADinit PAD2_init;
+PADshutdown PAD2_shutdown;
+PADtest PAD2_test;
+PADopen PAD2_open;
+PADclose PAD2_close;
+PADquery PAD2_query;
+PADreadPort2 PAD2_readPort2;
+PADkeypressed PAD2_keypressed;
+PADstartPoll PAD2_startPoll;
+PADpoll PCSX::g_emulator.m_pad2->poll;
+PADsetSensitive PAD2_setSensitive;
+PADregisterVibration PAD2_registerVibration;
+PADregisterCursor PAD2_registerCursor;
+#endif
+
 NETinit NET_init;
 NETshutdown NET_shutdown;
 NETopen NET_open;
@@ -109,49 +240,6 @@ static const char *err;
         } else                             \
             SysLibError();                 \
     }
-
-#include <stdlib.h>
-#include <string.h>
-
-#include "decode_xa.h"
-#include "psxemulator.h"
-
-void NET__setInfo(netInfo *info) {}
-void NET__keypressed(int key) {}
-long NET__configure(void) { return 0; }
-long NET__test(void) { return 0; }
-void NET__about(void) {}
-
-#define LoadNetSym1(dest, name) LoadSym(NET_##dest, NET##dest, name, true);
-
-#define LoadNetSymN(dest, name) LoadSym(NET_##dest, NET##dest, name, false);
-
-#define LoadNetSym0(dest, name)                  \
-    LoadSym(NET_##dest, NET##dest, name, false); \
-    if (NET_##dest == NULL) NET_##dest = (NET##dest)NET__##dest;
-
-static int LoadNETplugin() {
-#if 0
-    LoadNetSym1(init, "NETinit");
-    LoadNetSym1(shutdown, "NETshutdown");
-    LoadNetSym1(open, "NETopen");
-    LoadNetSym1(close, "NETclose");
-    LoadNetSymN(sendData, "NETsendData");
-    LoadNetSymN(recvData, "NETrecvData");
-    LoadNetSym1(sendPadData, "NETsendPadData");
-    LoadNetSym1(recvPadData, "NETrecvPadData");
-    LoadNetSym1(queryPlayer, "NETqueryPlayer");
-    LoadNetSym1(pause, "NETpause");
-    LoadNetSym1(resume, "NETresume");
-    LoadNetSym0(setInfo, "NETsetInfo");
-    LoadNetSym0(keypressed, "NETkeypressed");
-    LoadNetSym0(configure, "NETconfigure");
-    LoadNetSym0(test, "NETtest");
-    LoadNetSym0(about, "NETabout");
-#endif
-
-    return 0;
-}
 
 #ifdef ENABLE_SIO1API
 
@@ -246,30 +334,16 @@ int LoadPlugins() {
 
     ReleasePlugins();
 
-    if (LoadNETplugin() == -1) PCSX::g_emulator.config().UseNet = false;
-
 #ifdef ENABLE_SIO1API
     if (LoadSIO1plugin() == -1) return -1;
 #endif
 
     PCSX::g_emulator.m_cdrom->m_iso.init();
-    ret = PCSX::g_emulator.m_gpu->init();
-    if (ret < 0) {
-        PCSX::g_system->message(_("Error initializing GPU plugin: %d"), ret);
-        return -1;
-    }
+    PCSX::g_emulator.m_gpu->init();
     ret = PCSX::g_emulator.m_spu->init();
     if (ret < 0) {
         PCSX::g_system->message(_("Error initializing SPU plugin: %d"), ret);
         return -1;
-    }
-
-    if (PCSX::g_emulator.config().UseNet) {
-        ret = NET_init();
-        if (ret < 0) {
-            PCSX::g_system->message(_("Error initializing NetPlay plugin: %d"), ret);
-            return -1;
-        }
     }
 
 #ifdef ENABLE_SIO1API
@@ -285,15 +359,9 @@ int LoadPlugins() {
 }
 
 void ReleasePlugins() {
-    if (PCSX::g_emulator.config().UseNet) {
-        long ret = NET_close();
-        if (ret < 0) PCSX::g_emulator.config().UseNet = false;
-    }
-
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
     PCSX::g_emulator.m_gpu->shutdown();
     PCSX::g_emulator.m_spu->shutdown();
-    if (PCSX::g_emulator.config().UseNet && NET_shutdown) NET_shutdown();
 
 #ifdef ENABLE_SIO1API
     SIO1_shutdown();

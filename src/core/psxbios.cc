@@ -1299,22 +1299,25 @@ class BiosImpl : public PCSX::Bios {
             case 0x01:
             case 0x02:
             case 0x03:
-                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() ? 0x8 : 0x2;
+                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().empty() ||
+                              !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()
+                          ? 0x8
+                          : 0x2;
                 break;
             case 0x10:
             case 0x11:
             case 0x12:
             case 0x13:
-                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty() ? 0x8 : 0x2;
+                ret = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().empty() ||
+                              !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()
+                          ? 0x8
+                          : 0x2;
                 break;
             default:
                 PSXBIOS_LOG("psxBios_%s: UNKNOWN PORT 0x%x\n", A0names[0xab], s_card_active_chan);
                 ret = 0x11;
                 break;
         }
-
-        // COTS password option
-        if (PCSX::g_emulator.config().NoMemcard) ret = 0x8;
 
         DeliverEvent(0x11, 0x2);  // 0xf0000011, 0x0004
         DeliverEvent(0x81, ret);  // 0xf4000001, 0x0004
@@ -2783,64 +2786,40 @@ class BiosImpl : public PCSX::Bios {
         if (s_pad_buf != NULL) {
             uint32_t *buf = (uint32_t *)s_pad_buf;
 
-            if (!PCSX::g_emulator.config().UseNet) {
-                PCSX::g_emulator.m_pad1->startPoll();
-                if (PCSX::g_emulator.m_pad1->poll(0x42) == 0x23) {
-                    PCSX::g_emulator.m_pad1->poll(0);
-                    *buf = PCSX::g_emulator.m_pad1->poll(0) << 8;
-                    *buf |= PCSX::g_emulator.m_pad1->poll(0);
-                    PCSX::g_emulator.m_pad1->poll(0);
-                    *buf &= ~((PCSX::g_emulator.m_pad1->poll(0) > 0x20) ? 1 << 6 : 0);
-                    *buf &= ~((PCSX::g_emulator.m_pad1->poll(0) > 0x20) ? 1 << 7 : 0);
-                } else {
-                    PCSX::g_emulator.m_pad1->poll(0);
-                    *buf = PCSX::g_emulator.m_pad1->poll(0) << 8;
-                    *buf |= PCSX::g_emulator.m_pad1->poll(0);
-                }
-
-                PCSX::g_emulator.m_pad2->startPoll();
-                if (PCSX::g_emulator.m_pad2->poll(0x42) == 0x23) {
-                    PCSX::g_emulator.m_pad2->poll(0);
-                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 24;
-                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 16;
-                    PCSX::g_emulator.m_pad2->poll(0);
-                    *buf &= ~((PCSX::g_emulator.m_pad2->poll(0) > 0x20) ? 1 << 22 : 0);
-                    *buf &= ~((PCSX::g_emulator.m_pad2->poll(0) > 0x20) ? 1 << 23 : 0);
-                } else {
-                    PCSX::g_emulator.m_pad2->poll(0);
-                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 24;
-                    *buf |= PCSX::g_emulator.m_pad2->poll(0) << 16;
-                }
-            } else {
-                uint16_t data;
-
-                PCSX::g_emulator.m_pad1->startPoll();
-                PCSX::g_emulator.m_pad1->poll(0x42);
+            PCSX::g_emulator.m_pad1->startPoll();
+            if (PCSX::g_emulator.m_pad1->poll(0x42) == 0x23) {
                 PCSX::g_emulator.m_pad1->poll(0);
-                data = PCSX::g_emulator.m_pad1->poll(0) << 8;
-                data |= PCSX::g_emulator.m_pad1->poll(0);
+                *buf = PCSX::g_emulator.m_pad1->poll(0) << 8;
+                *buf |= PCSX::g_emulator.m_pad1->poll(0);
+                PCSX::g_emulator.m_pad1->poll(0);
+                *buf &= ~((PCSX::g_emulator.m_pad1->poll(0) > 0x20) ? 1 << 6 : 0);
+                *buf &= ~((PCSX::g_emulator.m_pad1->poll(0) > 0x20) ? 1 << 7 : 0);
+            } else {
+                PCSX::g_emulator.m_pad1->poll(0);
+                *buf = PCSX::g_emulator.m_pad1->poll(0) << 8;
+                *buf |= PCSX::g_emulator.m_pad1->poll(0);
+            }
 
-                if (NET_sendPadData(&data, 2) == -1) PCSX::g_emulator.m_sio->netError();
-
-                if (NET_recvPadData(&((uint16_t *)buf)[0], 1) == -1) PCSX::g_emulator.m_sio->netError();
-                if (NET_recvPadData(&((uint16_t *)buf)[1], 2) == -1) PCSX::g_emulator.m_sio->netError();
+            PCSX::g_emulator.m_pad2->startPoll();
+            if (PCSX::g_emulator.m_pad2->poll(0x42) == 0x23) {
+                PCSX::g_emulator.m_pad2->poll(0);
+                *buf |= PCSX::g_emulator.m_pad2->poll(0) << 24;
+                *buf |= PCSX::g_emulator.m_pad2->poll(0) << 16;
+                PCSX::g_emulator.m_pad2->poll(0);
+                *buf &= ~((PCSX::g_emulator.m_pad2->poll(0) > 0x20) ? 1 << 22 : 0);
+                *buf &= ~((PCSX::g_emulator.m_pad2->poll(0) > 0x20) ? 1 << 23 : 0);
+            } else {
+                PCSX::g_emulator.m_pad2->poll(0);
+                *buf |= PCSX::g_emulator.m_pad2->poll(0) << 24;
+                *buf |= PCSX::g_emulator.m_pad2->poll(0) << 16;
             }
         }
-        if (PCSX::g_emulator.config().UseNet && s_pad_buf1 != NULL && s_pad_buf2 != NULL) {
+        if (s_pad_buf1) {
             psxBios_PADpoll(1);
+        }
 
-            if (NET_sendPadData(s_pad_buf1, i) == -1) PCSX::g_emulator.m_sio->netError();
-
-            if (NET_recvPadData(s_pad_buf1, 1) == -1) PCSX::g_emulator.m_sio->netError();
-            if (NET_recvPadData(s_pad_buf2, 2) == -1) PCSX::g_emulator.m_sio->netError();
-        } else {
-            if (s_pad_buf1) {
-                psxBios_PADpoll(1);
-            }
-
-            if (s_pad_buf2) {
-                psxBios_PADpoll(2);
-            }
+        if (s_pad_buf2) {
+            psxBios_PADpoll(2);
         }
 
         if (psxHu32(0x1070) & 0x1) {  // Vsync

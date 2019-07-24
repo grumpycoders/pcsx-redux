@@ -1,8 +1,6 @@
-# Dockerfile for grumpycoders/pcsx-redux-code-server
+# Dockerfile for grumpycoders/pcsx-redux-build
 
-FROM codercom/code-server:1.1156-vsc1.33.1
-
-USER root
+FROM ubuntu:18.04
 
 RUN apt update
 RUN apt install -y wget gnupg
@@ -13,9 +11,5 @@ RUN apt-add-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic ma
 RUN apt update
 RUN apt install -y make g++-8 clang-9 git
 RUN apt install -y pkg-config libsdl2-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev zlib1g-dev libglfw3-dev libuv1-dev
-
-USER coder
-
-ENV CC clang-9
-ENV CXX clang++-9
-ENV LD clang++-9
+RUN mkdir /project
+WORKDIR /project
