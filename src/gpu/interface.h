@@ -42,8 +42,15 @@ class impl : public GPUinterface {
     }
     virtual void readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) final;
     virtual uint32_t readStatus() final;
-    virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1, 0xffffffff); }
-    virtual void writeDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) final;
+    virtual void writeData(uint32_t word) final {
+        GPUIsBusy();
+        GPUIsNotReadyForCommands();
+        m_processor->processWrite(word);
+        lGPUdataRet = word;
+        GPUIsReadyForCommands();
+        GPUIsIdle();
+    }
+    virtual void writeDataMem(const uint32_t *pMem, int iSize, uint32_t hwAddr) final;
     virtual void writeStatus(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
@@ -60,9 +67,13 @@ class impl : public GPUinterface {
       public:
         Command(impl *parent) : m_parent(parent) {}
         virtual ~Command() {}
-        virtual bool processWrite(uint32_t word);
-        virtual bool wantsFullMemory() { return false; }
-        void setActive() { m_parent->m_reader = this; }
+        virtual void processWrite(uint32_t word);
+        virtual uint32_t processRead() { return 0; }
+        virtual bool wantsFullMemoryRead() { return false; }
+        virtual bool wantsFullMemoryWrite() { return false; }
+        virtual int writeFullMemory(const uint32_t *feed, int transferSize) { return 0; }
+        virtual int readFullMemory(uint32_t *feed, int transferSize) { return 0; }
+        void setActive() { m_parent->m_processor = this; }
 
       protected:
         impl *m_parent;
@@ -95,11 +106,11 @@ class impl : public GPUinterface {
       public:
         BlockFill(impl *parent) : Command(parent) {}
         void setActive(uint32_t color) {
-            m_parent->m_reader = this;
+            m_parent->m_processor = this;
             m_color = color;
             m_count = 0;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
 
       private:
         uint32_t m_color;
@@ -111,7 +122,7 @@ class impl : public GPUinterface {
       public:
         Polygon(impl *parent) : Command(parent) {}
         void setActive(uint32_t packetHead) {
-            m_parent->m_reader = this;
+            m_parent->m_processor = this;
             m_iip = (packetHead >> 28) & 1;  // flat shading or gouraud shading?
             m_vtx = (packetHead >> 27) & 1;  // 3 vertices or 4 vertices?
             m_tme = (packetHead >> 26) & 1;  // texture mapping?
@@ -123,7 +134,7 @@ class impl : public GPUinterface {
             m_state = GET_XY;
             m_colors[0] = packetHead & 0xffffff;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
 
       private:
         bool m_iip, m_vtx, m_tme, m_abe, m_tge;
@@ -142,7 +153,7 @@ class impl : public GPUinterface {
       public:
         Line(impl *parent) : Command(parent) {}
         void setActive(uint32_t packetHead) {
-            m_parent->m_reader = this;
+            m_parent->m_processor = this;
             m_iip = (packetHead >> 28) & 1;  // flat shading or gouraud shading?
             m_pll = (packetHead >> 27) & 1;  // polyline?
             m_abe = (packetHead >> 25) & 1;  // semi transparency?
@@ -153,7 +164,7 @@ class impl : public GPUinterface {
             m_state = GET_COLOR;
             m_color0 = packetHead & 0xffffff;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
 
       private:
         bool m_iip, m_pll, m_abe;
@@ -178,7 +189,7 @@ class impl : public GPUinterface {
             m_color = packetHead & 0xffffff;
             m_state = GET_XY;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
 
       private:
         bool m_tme, m_abe;
@@ -198,7 +209,7 @@ class impl : public GPUinterface {
             m_color = packetHead & 0xffffff;
             m_state = GET_SRC;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
 
       private:
         uint32_t m_color;
@@ -213,12 +224,14 @@ class impl : public GPUinterface {
             m_color = packetHead & 0xffffff;
             m_state = GET_XY;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
+        bool wantsFullMemoryWrite() final { return m_state == GET_PIXELS; }
+        int writeFullMemory(const uint32_t *feed, int transferSize) final;
 
       private:
         uint32_t m_color;
         int16_t m_x, m_y, m_w, m_h;
-        enum { GET_XY, GET_HW } m_state;
+        enum { GET_XY, GET_HW, GET_PIXELS } m_state;
     };
 
     class VRAMRead : public Command {
@@ -228,16 +241,18 @@ class impl : public GPUinterface {
             m_color = packetHead & 0xffffff;
             m_state = GET_XY;
         }
-        bool processWrite(uint32_t word) final;
+        void processWrite(uint32_t word) final;
+        bool wantsFullMemoryRead() final { return m_state == READ_PIXELS; }
+        int readFullMemory(uint32_t *feed, int transferSize) final;
 
       private:
         uint32_t m_color;
         int16_t m_x, m_y, m_w, m_h;
-        enum { GET_XY, GET_HW } m_state;
+        enum { GET_XY, GET_HW, READ_PIXELS } m_state;
     };
 
   public:
-    Command m_defaultReader = {this};
+    Command m_defaultProcessor = {this};
     BlockFill m_blockFill = {this};
     Polygon m_polygon = {this};
     Line m_line = {this};
@@ -245,7 +260,7 @@ class impl : public GPUinterface {
     Blit m_blit = {this};
     VRAMWrite m_vramWrite = {this};
     VRAMRead m_vramRead = {this};
-    Command *m_reader = &m_defaultReader;
+    Command *m_processor = &m_defaultProcessor;
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;
@@ -263,6 +278,8 @@ class impl : public GPUinterface {
     int32_t lGPUdataRet;
     int32_t lGPUstatusRet;
     uint32_t ulStatusControl[256];
+
+    enum DmaDirection { DMA_IDLE, DMA_FIFO, DMA_WRITE, DMA_READ } m_dmaDirection;
 
     //    VRAMLoad_t VRAMWrite;
     //    VRAMLoad_t VRAMRead;

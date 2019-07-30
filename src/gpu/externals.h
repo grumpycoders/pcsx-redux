@@ -57,11 +57,6 @@
 #define SEMITRANSBIT(x) ((x >> 25) & 0x1)
 #define PSXRGB(r, g, b) ((g << 10) | (b << 5) | r)
 
-#define DATAREGISTERMODES uint16_t
-
-#define DR_NORMAL 0
-#define DR_VRAMTRANSFER 1
-
 #define GPUSTATUS_ODDLINES 0x80000000
 #define GPUSTATUS_DMABITS 0x60000000  // Two bits
 #define GPUSTATUS_READYFORCOMMANDS 0x10000000
@@ -77,18 +72,6 @@
 #define GPUSTATUS_MASKDRAWN 0x00000800
 #define GPUSTATUS_DRAWINGALLOWED 0x00000400
 #define GPUSTATUS_DITHER 0x00000200
-
-/////////////////////////////////////////////////////////////////////////////
-
-struct VRAMLoad_t {
-    int16_t x;
-    int16_t y;
-    int16_t Width;
-    int16_t Height;
-    int16_t RowsRemaining;
-    int16_t ColsRemaining;
-    uint16_t *ImagePtr;
-};
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -159,10 +142,6 @@ extern int iUseFixes;
 extern bool bDoVSyncUpdate;
 
 // gpu.c
-extern VRAMLoad_t VRAMWriteInfo;
-extern VRAMLoad_t VRAMReadInfo;
-extern DATAREGISTERMODES DataWriteMode;
-extern DATAREGISTERMODES DataReadMode;
 extern int iColDepth;
 extern int iWindowMode;
 extern int16_t sDispWidths[];

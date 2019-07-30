@@ -91,6 +91,7 @@
 ////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
+#if 0
 
 // configuration items
 uint32_t dwCfgFixes;
@@ -1568,3 +1569,327 @@ const PCSX::GPU::Prim::func_t PCSX::GPU::Prim::skip[256] = {
     &Prim::primNI,         &Prim::primNI,         &Prim::primNI,           &Prim::primNI,            // f8
     &Prim::primNI,         &Prim::primNI,         &Prim::primNI,           &Prim::primNI,            // fc
 };
+
+#endif
+
+#include "gpu/interface.h"
+
+void PCSX::GPU::impl::BlockFill::processWrite(uint32_t word) {
+    switch (m_count) {
+        case 0:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            m_count++;
+            break;
+        case 1:
+            m_w = word & 0xffff;
+            m_h = word >> 16;
+            m_parent->m_debugger.addEvent([&]() { return new Debug::BlockFill(m_color, m_x, m_y, m_w, m_h); });
+            m_parent->m_defaultProcessor.setActive();
+            break;
+    }
+}
+
+void PCSX::GPU::impl::Polygon::processWrite(uint32_t word) {
+    const unsigned count = 3 + m_vtx;
+    switch (m_state) {
+        for (m_count = 0; m_count < count; m_count++) {
+            if (m_count > 0 && m_iip) {
+                m_state = GET_COLOR;
+                return;
+                case GET_COLOR:
+                    m_colors[m_count] = word & 0xffffff;
+                    m_state = GET_XY;
+            } else {
+                m_colors[m_count] = m_colors[0];
+            }
+            m_state = GET_XY;
+            return;
+            case GET_XY:
+                m_x[m_count] = word & 0xffff;
+                m_y[m_count] = word >> 16;
+                if (m_tme) {
+                    m_state = GET_UV;
+                    return;
+                    case GET_UV:
+                        m_u[m_count] = word & 0xff;
+                        m_v[m_count] = (word >> 8) & 0xff;
+                        if (m_count == 0) {
+                            m_clutID = word >> 16;
+                        } else if (m_count == 1) {
+                            m_texturePage = word >> 16;
+                        }
+                } else {
+                    m_u[m_count] = 0;
+                    m_v[m_count] = 0;
+                }
+        }
+        if (!m_vtx) {
+            m_colors[3] = 0;
+            m_x[3] = 0;
+            m_y[3] = 0;
+            m_u[3] = 0;
+            m_v[3] = 0;
+        }
+        m_parent->m_debugger.addEvent([&]() {
+            auto ret = new Debug::Polygon(m_iip, m_vtx, m_tme, m_abe, m_tge);
+            ret->setClutID(m_clutID);
+            ret->setTexturePage(m_texturePage);
+            for (unsigned i = 0; i < 4; i++) {
+                ret->setX(m_x[i], i);
+                ret->setY(m_y[i], i);
+                ret->setU(m_u[i], i);
+                ret->setV(m_v[i], i);
+                ret->setColor(m_colors[i], i);
+            }
+            return ret;
+        });
+        m_parent->m_defaultProcessor.setActive();
+        return;
+    }
+    abort();
+}
+
+void PCSX::GPU::impl::Line::processWrite(uint32_t word) {
+    if (!(m_pll && word == 0x55555555)) {
+        switch (m_state) {
+            case GET_COLOR:
+                if (m_count != 0 && m_iip) {
+                    m_color.push_back(word);
+                    m_state = GET_XY;
+                    return;
+                } else {
+                    m_color.push_back(m_color0);
+                }
+            case GET_XY:
+                m_x.push_back(word & 0xffff);
+                m_y.push_back(word >> 16);
+                m_count++;
+                if (m_pll || m_count != 2) return;
+        }
+    }
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::Line(m_iip, m_pll, m_abe);
+        ret->setColors(m_color);
+        ret->setX(m_x);
+        ret->setY(m_y);
+        return ret;
+    });
+    m_parent->m_defaultProcessor.setActive();
+}
+
+void PCSX::GPU::impl::Sprite::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_XY:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            if (m_tme) {
+                m_state = GET_UV;
+                return;
+                case GET_UV:
+                    m_u = word & 0xff;
+                    m_v = (word >> 8) & 0xff;
+                    m_clutID = word >> 16;
+            } else {
+                m_u = m_v = 0;
+                m_clutID = 0;
+            }
+            if (m_size == 0) {
+                m_state = GET_WH;
+                return;
+            }
+        case GET_WH:
+            switch (m_size) {
+                case 0:
+                    m_w = word & 0xffff;
+                    m_h = word >> 16;
+                    break;
+                case 1:
+                    m_w = m_h = 1;
+                    break;
+                case 2:
+                    m_w = m_h = 8;
+                    break;
+                case 3:
+                    m_w = m_h = 16;
+                    break;
+            }
+    }
+    m_parent->m_debugger.addEvent([&]() {
+        auto ret = new Debug::Sprite(m_tme, m_abe, m_color, m_x, m_y, m_u, m_v, m_clutID, m_w, m_h);
+        return ret;
+    });
+    m_parent->m_defaultProcessor.setActive();
+}
+
+void PCSX::GPU::impl::Blit::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_SRC:
+            m_sx = word & 0xffff;
+            m_sy = word >> 16;
+            m_state = GET_DST;
+            return;
+        case GET_DST:
+            m_dx = word & 0xffff;
+            m_dy = word >> 16;
+            m_state = GET_HW;
+            return;
+        case GET_HW:
+            m_h = word & 0xffff;
+            m_w = word >> 16;
+            m_parent->m_debugger.addEvent([&]() {
+                auto ret = new Debug::Blit(m_sx, m_sy, m_dx, m_sy, m_h, m_w);
+                return ret;
+            });
+            m_parent->m_defaultProcessor.setActive();
+            return;
+    }
+}
+
+void PCSX::GPU::impl::VRAMWrite::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_XY:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            m_state = GET_HW;
+            return;
+        case GET_HW:
+            m_h = word & 0xffff;
+            m_w = word >> 16;
+            m_parent->m_debugger.addEvent([&]() {
+                auto ret = new Debug::VRAMWriteCmd(m_x, m_y, m_w, m_h);
+                return ret;
+            });
+            m_state = GET_PIXELS;
+            return;
+        case GET_PIXELS:
+            return;
+    }
+    m_parent->m_defaultProcessor.setActive();
+}
+
+void PCSX::GPU::impl::VRAMRead::processWrite(uint32_t word) {
+    switch (m_state) {
+        case GET_XY:
+            m_x = word & 0xffff;
+            m_y = word >> 16;
+            m_state = GET_HW;
+            return;
+        case GET_HW:
+            m_h = word & 0xffff;
+            m_w = word >> 16;
+            m_parent->m_debugger.addEvent([&]() {
+                auto ret = new Debug::VRAMReadCmd(m_x, m_y, m_w, m_h);
+                return ret;
+            });
+            m_state = READ_PIXELS;
+            m_parent->lGPUstatusRet |= GPUSTATUS_READYFORVRAM;
+            return;
+    }
+    m_parent->m_defaultProcessor.setActive();
+}
+
+void PCSX::GPU::impl::Command::processWrite(uint32_t packetHead) {
+    bool gotUnknown = false;
+    const uint8_t cmdType = packetHead >> 29;     // 3 topmost bits = command "type"
+    const uint8_t cmd = packetHead >> 24 & 0x1f;  // 5 next bits = "command", when it's not a bitfield
+
+    const uint32_t packetInfo = packetHead & 0xffffff;
+    const uint32_t color = packetInfo;
+    switch (cmdType) {
+        case 0:  // GPU command
+            switch (cmd) {
+                case 0x01:  // clear cache
+                    m_parent->m_debugger.addEvent([]() { return new Debug::ClearCache(); });
+                    break;
+                case 0x02:  // block draw
+                    m_parent->m_blockFill.setActive(color);
+                    break;
+                default:
+                    gotUnknown = true;
+                    break;
+            }
+            break;
+        case 1:  // Polygon primitive
+            m_parent->m_polygon.setActive(packetHead);
+            break;
+        case 2:  // Line primitive
+            m_parent->m_line.setActive(packetHead);
+            break;
+        case 3:  // Sprite primitive
+            m_parent->m_sprite.setActive(packetHead);
+            break;
+        case 4:  // Move image in FB
+            m_parent->m_blit.setActive(packetHead);
+            break;
+        case 5:  // Send image to FB
+            m_parent->m_vramWrite.setActive(packetHead);
+            break;
+        case 6:  // Copy image from FB
+            m_parent->m_vramRead.setActive(packetHead);
+            break;
+        case 7:  // Environment command
+            switch (cmd) {
+                case 1:  // draw mode setting
+                    m_tx = packetInfo & 0x0f;
+                    m_ty = (packetInfo >> 4) & 1;
+                    m_abr = (packetInfo >> 5) & 3;
+                    m_tp = (packetInfo >> 7) & 3;
+                    m_dtd = (packetInfo >> 9) & 1;
+                    m_dfe = (packetInfo >> 10) & 1;
+                    m_td = (packetInfo >> 11) & 1;
+                    m_txflip = (packetInfo >> 12) & 1;
+                    m_tyflip = (packetInfo >> 13) & 1;
+                    m_parent->m_debugger.addEvent([&]() {
+                        return new Debug::DrawModeSetting(m_tx, m_ty, m_abr, m_tp, m_dtd, m_dfe, m_td, m_txflip,
+                                                          m_tyflip);
+                    });
+                    break;
+                case 2:  // texture window setting
+                    m_parent->lGPUInfoVals[INFO_TW] = packetInfo & 0xfffff;
+                    m_twmx = packetInfo & 0x1f;
+                    m_twmy = (packetInfo >> 5) & 0x1f;
+                    m_twox = (packetInfo >> 10) & 0x1f;
+                    m_twoy = (packetInfo >> 15) & 0x1f;
+                    m_parent->m_debugger.addEvent(
+                        [&]() { return new Debug::TextureWindowSetting(m_twmx, m_twmy, m_twox, m_twoy); });
+                    break;
+                case 3:  // set drawing area top left
+                    m_parent->lGPUInfoVals[INFO_DRAWSTART] = packetInfo & 0xfffff;
+                    m_tlx = packetInfo & 0x3ff;
+                    m_tly = (packetInfo >> 10) & 0x3ff;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetDrawingAreaTopLeft(m_tlx, m_tly); });
+                    break;
+                case 4:  // set drawing area bottom right
+                    m_parent->lGPUInfoVals[INFO_DRAWEND] = packetInfo & 0xfffff;
+                    m_brx = packetInfo & 0x3ff;
+                    m_bry = (packetInfo >> 10) & 0x3ff;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetDrawingAreaBottomRight(m_brx, m_bry); });
+                    break;
+                case 5:  // drawing offset
+                    m_parent->lGPUInfoVals[INFO_DRAWOFF] = packetInfo & 0x3fffff;
+                    m_ox = packetInfo & 0x7ff;
+                    m_oy = (packetInfo >> 11) & 7;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetDrawingOffset(m_ox, m_oy); });
+                    break;
+                case 6:  // mask setting
+                    m_setMask = packetInfo & 1;
+                    m_useMask = (packetInfo >> 1) & 1;
+                    m_parent->m_debugger.addEvent([&]() { return new Debug::SetMaskSettings(m_setMask, m_useMask); });
+                    break;
+                default:
+                    gotUnknown = true;
+                    break;
+            }
+            break;
+    }
+    if (gotUnknown) {
+        m_parent->m_debugger.addEvent(
+            [&]() {
+                char packet[9];
+                std::snprintf(packet, 9, "%08x", packetHead);
+                return new Debug::Invalid(_("Unsupported DMA CMD 0x") + std::string(packet));
+            },
+            true);
+    }
+}
