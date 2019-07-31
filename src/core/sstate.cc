@@ -90,61 +90,61 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         CDRom {
             CDOCUP { g_emulator.m_cdrom->m_OCUP },
-            CDReg1Mode { g_emulator.m_cdrom->m_Reg1Mode },
-            CDReg2 { g_emulator.m_cdrom->m_Reg2 },
-            CDCmdProcess { g_emulator.m_cdrom->m_CmdProcess },
-            CDCtrl { g_emulator.m_cdrom->m_Ctrl },
-            CDStat { g_emulator.m_cdrom->m_Stat },
-            CDStatP { g_emulator.m_cdrom->m_StatP },
-            CDTransfer { reinterpret_cast<uint8_t*>(g_emulator.m_cdrom->m_Transfer) },
+            CDReg1Mode { g_emulator.m_cdrom->m_reg1Mode },
+            CDReg2 { g_emulator.m_cdrom->m_reg2 },
+            CDCmdProcess { g_emulator.m_cdrom->m_cmdProcess },
+            CDCtrl { g_emulator.m_cdrom->m_ctrl },
+            CDStat { g_emulator.m_cdrom->m_stat },
+            CDStatP { g_emulator.m_cdrom->m_statP },
+            CDTransfer { reinterpret_cast<uint8_t*>(g_emulator.m_cdrom->m_transfer) },
             CDTransferIndex { g_emulator.m_cdrom->m_transferIndex },
-            CDPrev { g_emulator.m_cdrom->m_Prev },
-            CDParam { g_emulator.m_cdrom->m_Param },
-            CDResult { g_emulator.m_cdrom->m_Result },
-            CDParamC { g_emulator.m_cdrom->m_ParamC },
-            CDParamP { g_emulator.m_cdrom->m_ParamP },
-            CDResultC { g_emulator.m_cdrom->m_ResultC },
-            CDResultP { g_emulator.m_cdrom->m_ResultP },
-            CDResultReady { g_emulator.m_cdrom->m_ResultReady },
-            CDCmd { g_emulator.m_cdrom->m_Cmd },
-            CDRead { g_emulator.m_cdrom->m_Read },
-            CDSetLocPending { g_emulator.m_cdrom->m_SetlocPending },
-            CDReading { g_emulator.m_cdrom->m_Reading },
-            CDResultTN { g_emulator.m_cdrom->m_ResultTN },
-            CDResultTD { g_emulator.m_cdrom->m_ResultTD },
-            CDSetSectorPlay { g_emulator.m_cdrom->m_SetSectorPlay },
-            CDSetSectorEnd { g_emulator.m_cdrom->m_SetSectorEnd },
-            CDSetSector { g_emulator.m_cdrom->m_SetSector },
-            CDTrack { g_emulator.m_cdrom->m_Track },
-            CDPlay { g_emulator.m_cdrom->m_Play },
-            CDMuted { g_emulator.m_cdrom->m_Muted },
-            CDCurTrack { g_emulator.m_cdrom->m_CurTrack },
-            CDMode { g_emulator.m_cdrom->m_Mode },
-            CDFile { g_emulator.m_cdrom->m_File },
-            CDChannel { g_emulator.m_cdrom->m_Channel },
+            CDPrev { g_emulator.m_cdrom->m_prev },
+            CDParam { g_emulator.m_cdrom->m_param },
+            CDResult { g_emulator.m_cdrom->m_result },
+            CDParamC { g_emulator.m_cdrom->m_paramC },
+            CDParamP { g_emulator.m_cdrom->m_paramP },
+            CDResultC { g_emulator.m_cdrom->m_resultC },
+            CDResultP { g_emulator.m_cdrom->m_resultP },
+            CDResultReady { g_emulator.m_cdrom->m_resultReady },
+            CDCmd { g_emulator.m_cdrom->m_cmd },
+            CDRead { g_emulator.m_cdrom->m_read },
+            CDSetLocPending { g_emulator.m_cdrom->m_setlocPending },
+            CDReading { g_emulator.m_cdrom->m_reading },
+            CDResultTN { g_emulator.m_cdrom->m_resultTN },
+            CDResultTD { g_emulator.m_cdrom->m_resultTD },
+            CDSetSectorPlay { g_emulator.m_cdrom->m_setSectorPlay },
+            CDSetSectorEnd { g_emulator.m_cdrom->m_setSectorEnd },
+            CDSetSector { g_emulator.m_cdrom->m_setSector },
+            CDTrack { g_emulator.m_cdrom->m_track },
+            CDPlay { g_emulator.m_cdrom->m_play },
+            CDMuted { g_emulator.m_cdrom->m_muted },
+            CDCurTrack { g_emulator.m_cdrom->m_curTrack },
+            CDMode { g_emulator.m_cdrom->m_mode },
+            CDFile { g_emulator.m_cdrom->m_file },
+            CDChannel { g_emulator.m_cdrom->m_channel },
             CDSuceeded { g_emulator.m_cdrom->m_suceeded },
-            CDFirstSector { g_emulator.m_cdrom->m_FirstSector },
-            CDIRQ { g_emulator.m_cdrom->m_Irq },
-            CDIrqRepeated { g_emulator.m_cdrom->m_IrqRepeated },
+            CDFirstSector { g_emulator.m_cdrom->m_firstSector },
+            CDIRQ { g_emulator.m_cdrom->m_irq },
+            CDIrqRepeated { g_emulator.m_cdrom->m_irqRepeated },
             CDECycle { g_emulator.m_cdrom->m_eCycle },
-            CDSeeked { g_emulator.m_cdrom->m_Seeked },
-            CDReadRescheduled { g_emulator.m_cdrom->m_ReadRescheduled },
-            CDDriveState { g_emulator.m_cdrom->m_DriveState },
-            CDFastForward { g_emulator.m_cdrom->m_FastForward },
-            CDFastBackward { g_emulator.m_cdrom->m_FastBackward },
-            CDAttenuatorLeftToLeft { g_emulator.m_cdrom->m_AttenuatorLeftToLeft },
-            CDAttenuatorLeftToRight { g_emulator.m_cdrom->m_AttenuatorLeftToRight },
-            CDAttenuatorRightToRight { g_emulator.m_cdrom->m_AttenuatorRightToRight },
-            CDAttenuatorRightToLeft { g_emulator.m_cdrom->m_AttenuatorRightToLeft },
-            CDAttenuatorLeftToLeftT { g_emulator.m_cdrom->m_AttenuatorLeftToLeftT },
-            CDAttenuatorLeftToRightT { g_emulator.m_cdrom->m_AttenuatorLeftToRightT },
-            CDAttenuatorRightToRightT { g_emulator.m_cdrom->m_AttenuatorRightToRightT },
-            CDAttenuatorRightToLeftT { g_emulator.m_cdrom->m_AttenuatorRightToLeftT },
-            CDSubQTrack { g_emulator.m_cdrom->m_subq.Track },
-            CDSubQIndex { g_emulator.m_cdrom->m_subq.Index },
-            CDSubQRelative { g_emulator.m_cdrom->m_subq.Relative },
-            CDSubQAbsolute { g_emulator.m_cdrom->m_subq.Absolute },
-            CDTrackChanged { g_emulator.m_cdrom->m_TrackChanged }
+            CDSeeked { g_emulator.m_cdrom->m_seeked },
+            CDReadRescheduled { g_emulator.m_cdrom->m_readRescheduled },
+            CDDriveState { g_emulator.m_cdrom->m_driveState },
+            CDFastForward { g_emulator.m_cdrom->m_fastForward },
+            CDFastBackward { g_emulator.m_cdrom->m_fastBackward },
+            CDAttenuatorLeftToLeft { g_emulator.m_cdrom->m_attenuatorLeftToLeft },
+            CDAttenuatorLeftToRight { g_emulator.m_cdrom->m_attenuatorLeftToRight },
+            CDAttenuatorRightToRight { g_emulator.m_cdrom->m_attenuatorRightToRight },
+            CDAttenuatorRightToLeft { g_emulator.m_cdrom->m_attenuatorRightToLeft },
+            CDAttenuatorLeftToLeftT { g_emulator.m_cdrom->m_attenuatorLeftToLeftT },
+            CDAttenuatorLeftToRightT { g_emulator.m_cdrom->m_attenuatorLeftToRightT },
+            CDAttenuatorRightToRightT { g_emulator.m_cdrom->m_attenuatorRightToRightT },
+            CDAttenuatorRightToLeftT { g_emulator.m_cdrom->m_attenuatorRightToLeftT },
+            CDSubQTrack { g_emulator.m_cdrom->m_subq.track },
+            CDSubQIndex { g_emulator.m_cdrom->m_subq.index },
+            CDSubQRelative { g_emulator.m_cdrom->m_subq.relative },
+            CDSubQAbsolute { g_emulator.m_cdrom->m_subq.absolute },
+            CDTrackChanged { g_emulator.m_cdrom->m_trackChanged }
         },
         Hardware {},
         Counters {},
@@ -219,18 +219,18 @@ bool PCSX::SaveStates::load(const std::string& data) {
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
-    g_emulator.m_cdrom->m_Xa.freq = xa.get<SaveStates::XAFrequency>().value;
-    g_emulator.m_cdrom->m_Xa.nbits = xa.get<SaveStates::XANBits>().value;
-    g_emulator.m_cdrom->m_Xa.nsamples = xa.get<SaveStates::XANSamples>().value;
-    g_emulator.m_cdrom->m_Xa.stereo = xa.get<SaveStates::XAStereo>().value;
+    g_emulator.m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
+    g_emulator.m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
+    g_emulator.m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
+    g_emulator.m_cdrom->m_xa.stereo = xa.get<SaveStates::XAStereo>().value;
     auto& left = xa.get<SaveStates::XAADPCMLeft>();
-    g_emulator.m_cdrom->m_Xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
-    g_emulator.m_cdrom->m_Xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
+    g_emulator.m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator.m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
     auto& right = xa.get<SaveStates::XAADPCMLeft>();
-    g_emulator.m_cdrom->m_Xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
-    g_emulator.m_cdrom->m_Xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
-    xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator.m_cdrom->m_Xa.pcm));
-    g_emulator.m_spu->playADPCMchannel(&g_emulator.m_cdrom->m_Xa);
+    g_emulator.m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator.m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
+    xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator.m_cdrom->m_xa.pcm));
+    g_emulator.m_spu->playADPCMchannel(&g_emulator.m_cdrom->m_xa);
 
     return true;
 }

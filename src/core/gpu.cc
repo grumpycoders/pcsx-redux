@@ -110,10 +110,10 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PCSX::g_emulator.m_psxCpu->Clear(madr, size);
 #if 1
             // already 32-bit word size ((size * 4) / 4)
-            GPUDMA_INT(size);
+            scheduleGPUDMAIRQ(size);
 #else
             // Experimental burst dma transfer (0.333x max)
-            GPUDMA_INT(size / 3);
+            scheduleGPUDMAIRQ(size / 3);
 #endif
             return;
 
@@ -132,10 +132,10 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
 
 #if 0
             // already 32-bit word size ((size * 4) / 4)
-            GPUDMA_INT(size);
+            scheduleGPUDMAIRQ(size);
 #else
             // X-Files video interlace. Experimental delay depending of BS.
-            GPUDMA_INT((7 * size) / bs);
+            scheduleGPUDMAIRQ((7 * size) / bs);
 #endif
             return;
 
@@ -152,7 +152,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Final Fantasy 4 = internal vram time (todo)
             // Rebel Assault 2 = parse linked list in pieces (todo)
             // Vampire Hunter D = allow edits to linked list (todo)
-            GPUDMA_INT(size);
+            scheduleGPUDMAIRQ(size);
             return;
 
         default:
