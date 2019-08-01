@@ -51,7 +51,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             // Harry Potter and the Philosopher's Stone - max 0.5x DMA length
             // uint32_t dmalen=64 + ((bcr >> 18) * (bcr & 0xffff)); // less linear to DMA length which should work with
             // both games above?
-            SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 2);
+            scheduleSPUDMAIRQ((bcr >> 16) * (bcr & 0xffff) / 2);
             return;
 
         case 0x01000200:  // spu to cpu transfer
@@ -66,10 +66,10 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             PCSX::g_emulator.m_psxCpu->Clear(madr, size);
 
 #if 1
-            SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 2);
+            scheduleSPUDMAIRQ((bcr >> 16) * (bcr & 0xffff) / 2);
 #else
             // Experimental burst dma transfer (0.333x max)
-            SPUDMA_INT((bcr >> 16) * (bcr & 0xffff) / 3);
+            scheduleSPUDMAIRQ((bcr >> 16) * (bcr & 0xffff) / 3);
 #endif
             return;
 
@@ -107,10 +107,10 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         *mem = 0xffffff;
 
 #if 1
-        GPUOTCDMA_INT(size);
+        scheduleGPUOTCDMAIRQ(size);
 #else
         // Experimental burst dma transfer (0.333x max)
-        GPUOTCDMA_INT(size / 3);
+        scheduleGPUOTCDMAIRQ(size / 3);
 #endif
         return;
     } else {
