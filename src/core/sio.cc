@@ -42,7 +42,7 @@
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
         case PAD_STATE_READ_TYPE:
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             /*
             $41-4F
             $41 = Find bits in poll respones
@@ -115,7 +115,7 @@ void PCSX::SIO::writePad(uint8_t value) {
             m_bufferIndex++;
             /*          if (m_buffer[1] == 0x45) {
                                             m_buffer[m_bufferIndex] = 0;
-                                            updateCycles(SIO_CYCLES);
+                                            scheduleInterrupt(SIO_CYCLES);
                                             return;
                                     }*/
             switch (m_ctrlReg & 0x2002) {
@@ -131,7 +131,7 @@ void PCSX::SIO::writePad(uint8_t value) {
                 m_padState = PAD_STATE_IDLE;
                 return;
             }
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             return;
     }
 }
@@ -139,7 +139,7 @@ void PCSX::SIO::writePad(uint8_t value) {
 void PCSX::SIO::writeMcd(uint8_t value) {
     switch (m_mcdState) {
         case MCD_STATE_READ_COMMAND:
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             if (m_mcdReadWriteState) {
                 m_bufferIndex++;
                 return;
@@ -157,7 +157,7 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             }
             return;
         case MCD_STATE_READ_ADDR_HIGH:
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             m_mcdAddrHigh = value;
             *m_buffer = 0;
             m_bufferIndex = 0;
@@ -165,7 +165,7 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             m_mcdState = MCD_STATE_READ_ADDR_LOW;
             return;
         case MCD_STATE_READ_ADDR_LOW:
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             m_mcdAddrLow = value;
             *m_buffer = m_mcdAddrHigh;
             m_bufferIndex = 0;
@@ -173,7 +173,7 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             m_mcdState = MCD_STATE_READ_ACK;
             return;
         case MCD_STATE_READ_ACK:
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             m_bufferIndex = 0;
             switch (m_mcdReadWriteState) {
                 case MCD_READWRITE_STATE_READ:
@@ -214,7 +214,7 @@ void PCSX::SIO::writeMcd(uint8_t value) {
             if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
                 if (m_bufferIndex < 128) m_buffer[m_bufferIndex + 1] = value;
             }
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             return;
     }
 }
@@ -245,7 +245,7 @@ void PCSX::SIO::write8(uint8_t value) {
             m_maxBufferIndex = 2;
             m_bufferIndex = 0;
             m_padState = PAD_STATE_READ_TYPE;
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             return;
         case 0x81:  // start memcard
                     // case 0x82: case 0x83: case 0x84: // Multitap memcard access
@@ -276,7 +276,7 @@ void PCSX::SIO::write8(uint8_t value) {
             m_maxBufferIndex = 3;
             m_mcdState = MCD_STATE_READ_COMMAND;
             m_mcdReadWriteState = MCD_READWRITE_STATE_IDLE;
-            updateCycles(SIO_CYCLES);
+            scheduleInterrupt(SIO_CYCLES);
             return;
 
         default:  // no hardware found
