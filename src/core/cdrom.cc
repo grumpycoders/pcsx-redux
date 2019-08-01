@@ -525,6 +525,7 @@ class CDRomImpl : public PCSX::CDRom {
             if (m_setlocPending) {
                 memcpy(m_setSectorPlay, m_setSector, 4);
                 m_setlocPending = 0;
+                m_locationChanged = true;
             }
             Find_CurTrack(m_setSectorPlay);
             ReadTrack(m_setSectorPlay);
@@ -559,7 +560,12 @@ class CDRomImpl : public PCSX::CDRom {
             }
         }
 
-        scheduleCDPlayIRQ(cdReadTime);
+        if (m_locationChanged) {
+            scheduleCDPlayIRQ(cdReadTime * 30);
+            m_locationChanged = false;
+        } else {
+            scheduleCDPlayIRQ(cdReadTime);
+        }
 
         // update for CdlGetlocP/autopause
         generate_subq(m_setSectorPlay);
@@ -618,6 +624,7 @@ class CDRomImpl : public PCSX::CDRom {
                 if (m_setlocPending) {
                     memcpy(m_setSectorPlay, m_setSector, 4);
                     m_setlocPending = 0;
+                    m_locationChanged = true;
                 }
 
                 // BIOS CD Player
@@ -938,6 +945,7 @@ class CDRomImpl : public PCSX::CDRom {
                 if (m_setlocPending) {
                     memcpy(m_setSectorPlay, m_setSector, 4);
                     m_setlocPending = 0;
+                    m_locationChanged = true;
                 }
                 Find_CurTrack(m_setSectorPlay);
 
@@ -1142,7 +1150,13 @@ class CDRomImpl : public PCSX::CDRom {
         m_read = 0;
         m_readRescheduled = 0;
 
-        scheduleCDReadIRQ((m_mode & MODE_SPEED) ? (cdReadTime / 2) : cdReadTime);
+        uint32_t delay = (m_mode & MODE_SPEED) ? (cdReadTime / 2) : cdReadTime;
+        if (m_locationChanged) {
+            scheduleCDReadIRQ(delay * 30);
+            m_locationChanged = false;
+        } else {
+            scheduleCDReadIRQ(delay);
+        }
 
         /*
         Croc 2: $40 - only FORM1 (*)
@@ -1462,6 +1476,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_cmd = 0;
         m_read = 0;
         m_setlocPending = 0;
+        m_locationChanged = false;
         m_reading = 0;
 
         memset(m_resultTN, 0, sizeof(m_resultTN));

@@ -144,7 +144,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDSubQIndex { g_emulator.m_cdrom->m_subq.index },
             CDSubQRelative { g_emulator.m_cdrom->m_subq.relative },
             CDSubQAbsolute { g_emulator.m_cdrom->m_subq.absolute },
-            CDTrackChanged { g_emulator.m_cdrom->m_trackChanged }
+            CDTrackChanged { g_emulator.m_cdrom->m_trackChanged },
+            CDLocationChanged { g_emulator.m_cdrom->m_locationChanged }
         },
         Hardware {},
         Counters {},

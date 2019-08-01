@@ -97,6 +97,7 @@ class CDRom {
     uint8_t m_cmd;
     uint8_t m_read;
     uint8_t m_setlocPending;
+    bool m_locationChanged;
     uint32_t m_reading;
 
     uint8_t m_resultTN[6];
