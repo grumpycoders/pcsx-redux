@@ -91,7 +91,6 @@
 ////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
-#if 0
 
 // configuration items
 uint32_t dwCfgFixes;
@@ -118,6 +117,7 @@ bool PCSX::GPU::Prim::configure(bool *show) {
     return changed;
 }
 
+#if 0
 static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
     return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
@@ -1768,6 +1768,8 @@ void PCSX::GPU::impl::VRAMWrite::processWrite(uint32_t word) {
     m_parent->m_defaultProcessor.setActive();
 }
 
+int PCSX::GPU::impl::VRAMWrite::writeFullMemory(const uint32_t *feed, int transferSize) { return transferSize; }
+
 void PCSX::GPU::impl::VRAMRead::processWrite(uint32_t word) {
     switch (m_state) {
         case GET_XY:
@@ -1788,6 +1790,8 @@ void PCSX::GPU::impl::VRAMRead::processWrite(uint32_t word) {
     }
     m_parent->m_defaultProcessor.setActive();
 }
+
+int PCSX::GPU::impl::VRAMRead::readFullMemory(uint32_t *feed, int transferSize) { return transferSize; }
 
 void PCSX::GPU::impl::Command::processWrite(uint32_t packetHead) {
     bool gotUnknown = false;

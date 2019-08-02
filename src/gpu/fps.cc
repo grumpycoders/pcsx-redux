@@ -98,8 +98,9 @@ void CheckFrameRate(void) {
         calcfps();  // -> calc fps display in skipping mode
     } else          // non-skipping mode:
     {
-        if (UseFrameLimit) FrameCap();  // -> do it
-                                        //        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
+        if (UseFrameLimit)
+            FrameCap();  // -> do it
+                         //        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
     }
 }
 
@@ -522,6 +523,7 @@ void PCcalcfps(void) {
 ////////////////////////////////////////////////////////////////////////
 
 void SetAutoFrameCap(void) {
+#if 0
     if (iFrameLimit == 1) {
         fFrameRateHz = fFrameRate;
         if (UsePerformanceCounter)
@@ -555,6 +557,7 @@ void SetAutoFrameCap(void) {
         else
             dwFrameRateTicks = (1000 / (Uint32)fFrameRateHz);
     }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
