@@ -368,10 +368,14 @@ void PCSX::GUI::endFrame() {
                     PCSX::g_emulator.m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem(_("Memory Card 1 inserted"), nullptr,
-                                &g_emulator.settings.get<Emulator::SettingMcd1Inserted>().value);
-                ImGui::MenuItem(_("Memory Card 2 inserted"), nullptr,
-                                &g_emulator.settings.get<Emulator::SettingMcd2Inserted>().value);
+                if (ImGui::MenuItem(_("Memory Card 1 inserted"), nullptr,
+                                    &g_emulator.settings.get<Emulator::SettingMcd1Inserted>().value)) {
+                    g_emulator.m_sio->interrupt();
+                }
+                if (ImGui::MenuItem(_("Memory Card 2 inserted"), nullptr,
+                                    &g_emulator.settings.get<Emulator::SettingMcd2Inserted>().value)) {
+                    g_emulator.m_sio->interrupt();
+                }
                 if (ImGui::MenuItem(_("Quit"))) {
                     PCSX::g_system->quit();
                 }

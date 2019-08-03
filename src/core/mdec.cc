@@ -421,7 +421,7 @@ void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
             /* sanity check */
             if (mdec.rl_end <= mdec.rl) {
-                MDECINDMA_INT(size / 4);
+                scheduleMDECINDMAIRQ(size / 4);
                 return;
             }
 
@@ -442,13 +442,13 @@ void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
             iqtab_init(iq_uv, p + 64);
         }
 
-            MDECINDMA_INT(size / 4);
+            scheduleMDECINDMAIRQ(size / 4);
             return;
 
         case 0x6:  // cosine table
             // printf("mdec cosine table\n");
 
-            MDECINDMA_INT(size / 4);
+            scheduleMDECINDMAIRQ(size / 4);
             return;
 
         default:
@@ -551,7 +551,7 @@ void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
         }
 
         /* define the power of mdec */
-        MDECOUTDMA_INT((int)((dmacnt * MDEC_BIAS)));
+        scheduleMDECOUTDMAIRQ((int)((dmacnt * MDEC_BIAS)));
     }
 }
 

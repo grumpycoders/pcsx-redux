@@ -74,71 +74,72 @@ class CDRom {
   protected:
     // savestate stuff starts here
     uint8_t m_OCUP;
-    uint8_t m_Reg1Mode;
-    uint8_t m_Reg2;
-    uint8_t m_CmdProcess;
-    uint8_t m_Ctrl;
-    uint8_t m_Stat;
+    uint8_t m_reg1Mode;
+    uint8_t m_reg2;
+    uint8_t m_cmdProcess;
+    uint8_t m_ctrl;
+    uint8_t m_stat;
 
-    uint8_t m_StatP;
+    uint8_t m_statP;
 
-    uint8_t m_Transfer[CD_FRAMESIZE_RAW];
+    uint8_t m_transfer[CD_FRAMESIZE_RAW];
     unsigned int m_transferIndex;
 
-    uint8_t m_Prev[4];
-    uint8_t m_Param[8];
-    uint8_t m_Result[16];
+    uint8_t m_prev[4];
+    uint8_t m_param[8];
+    uint8_t m_result[16];
 
-    uint8_t m_ParamC;
-    uint8_t m_ParamP;
-    uint8_t m_ResultC;
-    uint8_t m_ResultP;
-    uint8_t m_ResultReady;
-    uint8_t m_Cmd;
-    uint8_t m_Read;
-    uint8_t m_SetlocPending;
-    uint32_t m_Reading;
+    uint8_t m_paramC;
+    uint8_t m_paramP;
+    uint8_t m_resultC;
+    uint8_t m_resultP;
+    uint8_t m_resultReady;
+    uint8_t m_cmd;
+    uint8_t m_read;
+    uint8_t m_setlocPending;
+    bool m_locationChanged;
+    uint32_t m_reading;
 
-    uint8_t m_ResultTN[6];
-    uint8_t m_ResultTD[4];
-    uint8_t m_SetSectorPlay[4];
-    uint8_t m_SetSectorEnd[4];
-    uint8_t m_SetSector[4];
-    uint8_t m_Track;
-    bool m_Play, m_Muted;
-    int m_CurTrack;
-    int m_Mode, m_File, m_Channel;
+    uint8_t m_resultTN[6];
+    uint8_t m_resultTD[4];
+    uint8_t m_setSectorPlay[4];
+    uint8_t m_setSectorEnd[4];
+    uint8_t m_setSector[4];
+    uint8_t m_track;
+    bool m_play, m_muted;
+    int m_curTrack;
+    int m_mode, m_file, m_channel;
     bool m_suceeded;
-    int m_FirstSector;
+    int m_firstSector;
 
   public:
     // this belongs in the SPU, not here.
-    xa_decode_t m_Xa;
+    xa_decode_t m_xa;
 
   protected:
-    uint16_t m_Irq;
-    uint8_t m_IrqRepeated;
+    uint16_t m_irq;
+    uint8_t m_irqRepeated;
     uint32_t m_eCycle;
 
-    uint8_t m_Seeked;
-    uint8_t m_ReadRescheduled;
+    uint8_t m_seeked;
+    uint8_t m_readRescheduled;
 
-    uint8_t m_DriveState;
-    uint8_t m_FastForward;
-    uint8_t m_FastBackward;
+    uint8_t m_driveState;
+    uint8_t m_fastForward;
+    uint8_t m_fastBackward;
 
-    uint8_t m_AttenuatorLeftToLeft, m_AttenuatorLeftToRight;
-    uint8_t m_AttenuatorRightToRight, m_AttenuatorRightToLeft;
-    uint8_t m_AttenuatorLeftToLeftT, m_AttenuatorLeftToRightT;
-    uint8_t m_AttenuatorRightToRightT, m_AttenuatorRightToLeftT;
+    uint8_t m_attenuatorLeftToLeft, m_attenuatorLeftToRight;
+    uint8_t m_attenuatorRightToRight, m_attenuatorRightToLeft;
+    uint8_t m_attenuatorLeftToLeftT, m_attenuatorLeftToRightT;
+    uint8_t m_attenuatorRightToRightT, m_attenuatorRightToLeftT;
 
     struct {
-        uint8_t Track;
-        uint8_t Index;
-        uint8_t Relative[3];
-        uint8_t Absolute[3];
+        uint8_t track;
+        uint8_t index;
+        uint8_t relative[3];
+        uint8_t absolute[3];
     } m_subq;
-    bool m_TrackChanged;
+    bool m_trackChanged;
     // end savestate
     friend SaveStates::SaveState SaveStates::constructSaveState();
 };

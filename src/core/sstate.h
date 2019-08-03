@@ -127,9 +127,11 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd_readwrite_state"), 
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd_addr_high"), 10> SIOMCDAddrHigh;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd_addr_low"), 11> SIOMCDAddrLow;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state"), 12> SIOPadState;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("was_mcd1_inserted"), 13> SIOWasMCD1Inserted;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("was_mcd2_inserted"), 14> SIOWasMCD2Inserted;
 typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg,
                           SIOBufferMaxIndex, SIOBufferIndex, SIOMCDState, SIOMCDReadWriteState, SIOMCDAddrHigh,
-                          SIOMCDAddrLow, SIOPadState>
+                          SIOMCDAddrLow, SIOPadState, SIOWasMCD1Inserted, SIOWasMCD2Inserted>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 
@@ -189,6 +191,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("subq_index"), 53> CDSubQ
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<3>, TYPESTRING("subq_relative"), 54> CDSubQRelative;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<3>, TYPESTRING("subq_absolute"), 55> CDSubQAbsolute;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("track_changed"), 56> CDTrackChanged;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("location_changed"), 57> CDLocationChanged;
 
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDOCUP, CDReg1Mode, CDReg2, CDCmdProcess, CDCtrl, CDStat, CDStatP, CDTransfer, CDTransferIndex,
@@ -198,7 +201,7 @@ typedef Protobuf::Message<
     CDReadRescheduled, CDDriveState, CDFastForward, CDFastBackward, CDAttenuatorLeftToLeft, CDAttenuatorLeftToRight,
     CDAttenuatorRightToRight, CDAttenuatorRightToLeft, CDAttenuatorLeftToLeftT, CDAttenuatorLeftToRightT,
     CDAttenuatorRightToRightT, CDAttenuatorRightToLeftT, CDSubQTrack, CDSubQIndex, CDSubQRelative, CDSubQAbsolute,
-    CDTrackChanged>
+    CDTrackChanged, CDLocationChanged>
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 8> CDRomField;
 
