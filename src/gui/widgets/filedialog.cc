@@ -100,8 +100,12 @@ bool PCSX::Widgets::FileDialog::draw() {
     if (ImGui::BeginPopupModal(m_title(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (m_cacheDirty) {
             fillRoots();
-            if (!std::filesystem::exists(m_currentPath)) setToCurrentPath();
-            if (!std::filesystem::is_directory(m_currentPath)) setToCurrentPath();
+            try {
+                if (!std::filesystem::exists(m_currentPath)) setToCurrentPath();
+                if (!std::filesystem::is_directory(m_currentPath)) setToCurrentPath();
+            } catch (...) {
+                setToCurrentPath();
+            }
             m_spaceInfo = std::filesystem::space(m_currentPath);
             for (auto& p : std::filesystem::directory_iterator(m_currentPath)) {
                 if (p.is_directory()) {
