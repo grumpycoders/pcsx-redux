@@ -688,6 +688,7 @@ void X86DynaRecCPU::Shutdown() {
 
 void X86DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
+    PCSX::g_system->stop();
     PCSX::g_system->message("Unrecoverable error while running recompiler\n");
     PCSX::g_system->runGui();
 }
@@ -3065,8 +3066,9 @@ void X86DynaRecCPU::recRecompile() {
     gen.PUSH32R(PCSX::ix86::EDI);
     int8_t *endStackFramePtr = gen.x86GetPtr();
 
-    while ((count < DYNAREC_BLOCK || m_delayedLoadInfo[0].active || m_delayedLoadInfo[1].active) &&
-           (!m_stopRecompile || m_nextIsDelaySlot)) {
+    while (
+        ((count < DYNAREC_BLOCK || m_delayedLoadInfo[0].active || m_delayedLoadInfo[1].active) && !m_stopRecompile) ||
+        m_nextIsDelaySlot) {
         if (m_nextIsDelaySlot) {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
