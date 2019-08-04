@@ -36,8 +36,7 @@ class impl : public GPUinterface {
     virtual void open(GUI *) final;
     virtual void close() final;
     virtual uint32_t readData() final {
-        uint32_t l;
-        readDataMem(&l, 1, 0xffffffff);
+        m_processor->processRead();
         return lGPUdataRet;
     }
     virtual void readDataMem(uint32_t *pMem, int iSize, uint32_t hwAddr) final;

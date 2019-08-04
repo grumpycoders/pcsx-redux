@@ -1848,6 +1848,8 @@ void PCSX::GPU::impl::Command::processWrite(uint32_t packetHead) {
                         return new Debug::DrawModeSetting(m_tx, m_ty, m_abr, m_tp, m_dtd, m_dfe, m_td, m_txflip,
                                                           m_tyflip);
                     });
+                    m_parent->lGPUstatusRet &= ~0x07ff;
+                    m_parent->lGPUstatusRet |= (packetInfo & 0x07ff);
                     break;
                 case 2:  // texture window setting
                     m_parent->lGPUInfoVals[INFO_TW] = packetInfo & 0xfffff;
