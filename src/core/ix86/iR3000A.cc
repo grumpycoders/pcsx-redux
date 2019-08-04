@@ -72,18 +72,15 @@ void SPUwriteRegisterWrapper(unsigned long addr, unsigned short value) {
     PCSX::g_emulator.m_spu->writeRegister(addr, value);
 }
 
-#undef PC_REC
-#undef PC_REC8
-#undef PC_REC16
-#undef PC_REC32
-#define PC_REC(x) (m_psxRecLUT[(x) >> 16] + ((x)&0xffff))
-#define PC_REC8(x) (*(uint8_t *)PC_REC(x))
-#define PC_REC16(x) (*(uint16_t *)PC_REC(x))
-#define PC_REC32(x) (*(uint32_t *)PC_REC(x))
-
-#define IsConst(reg) (m_iRegs[reg].state == ST_CONST)
-
 class X86DynaRecCPU : public PCSX::InterpretedCPU {
+    inline uintptr_t PC_REC(uint32_t addr) {
+        uintptr_t base = m_psxRecLUT[addr >> 16];
+        uint32_t offset = addr & 0xffff;
+        return base + offset;
+    }
+    inline bool IsPcValid(uint32_t addr) { return m_psxRecLUT[addr >> 16]; }
+    inline bool IsConst(unsigned reg) { return m_iRegs[reg].state == ST_CONST; }
+
   public:
     X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
 
@@ -703,7 +700,7 @@ void X86DynaRecCPU::execute() {
 
     p = (char *)PC_REC(m_psxRegs.pc);
 
-    if (p != NULL) {
+    if (p != NULL && IsPcValid(m_psxRegs.pc)) {
         recFunc = (uint32_t(**)())(uint32_t)p;
     } else {
         recError();
@@ -3051,7 +3048,7 @@ void X86DynaRecCPU::recRecompile() {
     m_pc = m_psxRegs.pc;
     uint32_t old_pc = m_pc;
     int8_t *startPtr = gen.x86GetPtr();
-    PC_REC32(m_pc) = (uint32_t)startPtr;
+    (*(uint32_t *)PC_REC(m_pc)) = (uint32_t)startPtr;
     m_needsStackFrame = false;
     m_pcInEBX = false;
     m_nextIsDelaySlot = false;
