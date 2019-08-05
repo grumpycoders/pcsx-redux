@@ -84,6 +84,18 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 
 namespace {
 struct StringDisasm : public PCSX::Disasm {
+    uint8_t *ptr(uint32_t addr) {
+        uint8_t *lut = PCSX::g_emulator.m_psxMem->g_psxMemRLUT[addr >> 16];
+        if (lut) {
+            return lut + (addr & 0xffff);
+        } else {
+            static uint8_t dummy[4] = {0, 0, 0, 0};
+            return dummy;
+        }
+    }
+    uint8_t mem8(uint32_t addr) { return *ptr(addr); }
+    uint16_t mem16(uint32_t addr) { return SWAP_LE16(*(int16_t *)ptr(addr)); }
+    uint32_t mem32(uint32_t addr) { return SWAP_LE32(*(int32_t *)ptr(addr)); }
     void append(const char *str, ...) {
         va_list va;
         va_start(va, str);
@@ -108,29 +120,47 @@ struct StringDisasm : public PCSX::Disasm {
         comma();
         append("$");
         append(s_disRNameGPR[reg]);
+        if (m_withValues) {
+            append("(%08x)", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg]);
+        }
     }
     virtual void CP0(uint8_t reg) final {
         comma();
         append("$");
         append(s_disRNameCP0[reg]);
+        if (m_withValues) {
+            append("(%08x)", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[reg]);
+        }
     }
     virtual void CP2D(uint8_t reg) final {
         comma();
         append("$");
         append(s_disRNameCP2D[reg]);
+        if (m_withValues) {
+            append("(%08x)", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[reg]);
+        }
     }
     virtual void CP2C(uint8_t reg) final {
         comma();
         append("$");
         append(s_disRNameCP2C[reg]);
+        if (m_withValues) {
+            append("(%08x)", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.r[reg]);
+        }
     }
     virtual void HI() final {
         comma();
         append("$hi");
+        if (m_withValues) {
+            append("(%08x)", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi);
+        }
     }
     virtual void LO() final {
         comma();
         append("$lo");
+        if (m_withValues) {
+            append("(%08x)", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo);
+        }
     }
     virtual void Imm(uint16_t value) final {
         comma();
@@ -155,14 +185,41 @@ struct StringDisasm : public PCSX::Disasm {
         } else {
             append("0x%4.4x(%s)", offset, s_disRNameGPR[reg]);
         }
+        if (m_withValues) {
+            uint32_t addr = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[reg] + offset;
+            switch (size) {
+                case 1:
+                    append("([%8.8x] = %2.2x)", addr, mem8(addr));
+                    break;
+                case 2:
+                    append("([%8.8x] = %4.4x)", addr, mem16(addr));
+                    break;
+                case 4:
+                    append("([%8.8x] = %8.8x)", addr, mem32(addr));
+                    break;
+            }
+        }
     }
     virtual void BranchDest(uint32_t value) final {
         comma();
         append("0x%8.8x", value);
     }
-    virtual void Offset(uint32_t value, int size) final {
+    virtual void Offset(uint32_t addr, int size) final {
         comma();
-        append("0x%8.8x", value);
+        append("0x%8.8x", addr);
+        if (m_withValues) {
+            switch (size) {
+                case 1:
+                    append("([%8.8x] = %2.2x)", addr, mem8(addr));
+                    break;
+                case 2:
+                    append("([%8.8x] = %4.4x)", addr, mem16(addr));
+                    break;
+                case 4:
+                    append("([%8.8x] = %8.8x)", addr, mem32(addr));
+                    break;
+            }
+        }
     }
     virtual void reset() final {
         m_buf[0] = 0;
@@ -171,9 +228,11 @@ struct StringDisasm : public PCSX::Disasm {
     char m_buf[512];
     size_t m_len = 0;
     bool m_gotArg = false;
+    bool m_withValues = false;
 
   public:
     std::string get() { return m_buf; }
+    void setValues(bool withValues) { m_withValues = withValues; }
 };
 }  // namespace
 
@@ -937,8 +996,9 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 3c
 };
 
-std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext) {
+std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool withValues) {
     StringDisasm strd;
+    strd.setValues(withValues);
     strd.process(code, nextCode, pc, skipNext);
     char buf[64];
     snprintf(buf, 64, "%8.8x %8.8x: ", pc, code);

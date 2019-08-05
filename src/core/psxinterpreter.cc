@@ -64,10 +64,11 @@ GTE_WR(CTC2);
 
 // These macros are used to assemble the repassembler functions
 
-#define debugI()                                                                                                       \
-    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVerbose>()) {                                             \
-        std::string ins = Disasm::asString(g_emulator.m_psxCpu->m_psxRegs.code, 0, g_emulator.m_psxCpu->m_psxRegs.pc); \
-        PSXCPU_LOG("%s\n", ins.c_str());                                                                               \
+#define debugI()                                                                                                      \
+    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVerbose>()) {                                            \
+        std::string ins = Disasm::asString(g_emulator.m_psxCpu->m_psxRegs.code, 0, g_emulator.m_psxCpu->m_psxRegs.pc, \
+                                           nullptr, true);                                                            \
+        PSXCPU_LOG("%s\n", ins.c_str());                                                                              \
     }
 
 inline void PCSX::InterpretedCPU::doBranch(uint32_t tar) {
