@@ -80,6 +80,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     }
     inline bool IsPcValid(uint32_t addr) { return m_psxRecLUT[addr >> 16]; }
     inline bool IsConst(unsigned reg) { return m_iRegs[reg].state == ST_CONST; }
+    inline bool Implemented() final { return true; }
 
   public:
     X86DynaRecCPU() : R3000Acpu("x86 DynaRec") {}
