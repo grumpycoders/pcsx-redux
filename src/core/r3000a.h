@@ -251,8 +251,7 @@ typedef struct {
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 
-#define _SetLink(x) \
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4  // Sets the return address in the link register
+#define _SetLink(x) delayedLoad(x, _PC_ + 4);  // Sets the return address in the link register
 
 class R3000Acpu {
   public:
