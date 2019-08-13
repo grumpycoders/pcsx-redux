@@ -97,20 +97,6 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
 }
 
 void PCSX::R3000Acpu::psxBranchTest() {
-    // GameShark Sampler: Give VSync pin some delay before exception eats it
-    if (psxHu32(0x1070) & psxHu32(0x1074)) {
-        if ((m_psxRegs.CP0.n.Status & 0x401) == 0x401) {
-            uint32_t opcode;
-
-            // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
-            opcode = SWAP_LE32(*Read_ICache(m_psxRegs.pc, true));
-            if (((opcode >> 24) & 0xfe) != 0x4a) {
-                PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
-                psxException(0x400, 0);
-            }
-        }
-    }
-
 #if 0
     if( SPU_async )
     {
@@ -225,6 +211,18 @@ void PCSX::R3000Acpu::psxBranchTest() {
                 m_psxRegs.intCycle[PSXINT_CDRLID].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDRLID);
                 PCSX::g_emulator.m_cdrom->lidSeekInterrupt();
+            }
+        }
+    }
+    if (psxHu32(0x1070) & psxHu32(0x1074)) {
+        if ((m_psxRegs.CP0.n.Status & 0x401) == 0x401) {
+            uint32_t opcode;
+
+            // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
+            opcode = SWAP_LE32(*Read_ICache(m_psxRegs.pc, true));
+            if (((opcode >> 24) & 0xfe) != 0x4a) {
+                PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
+                psxException(0x400, 0);
             }
         }
     }
