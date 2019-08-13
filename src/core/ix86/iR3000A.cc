@@ -72,7 +72,7 @@ void SPUwriteRegisterWrapper(unsigned long addr, unsigned short value) {
     PCSX::g_emulator.m_spu->writeRegister(addr, value);
 }
 
-class X86DynaRecCPU : public PCSX::InterpretedCPU {
+class X86DynaRecCPU : public PCSX::R3000Acpu {
     inline uintptr_t PC_REC(uint32_t addr) {
         uintptr_t base = m_psxRecLUT[addr >> 16];
         uint32_t offset = addr & 0xffff;
@@ -82,7 +82,7 @@ class X86DynaRecCPU : public PCSX::InterpretedCPU {
     inline bool IsConst(unsigned reg) { return m_iRegs[reg].state == ST_CONST; }
 
   public:
-    X86DynaRecCPU() : InterpretedCPU("x86 DynaRec") {}
+    X86DynaRecCPU() : R3000Acpu("x86 DynaRec") {}
 
   private:
     virtual bool Init() final;
@@ -661,6 +661,8 @@ bool X86DynaRecCPU::Init() {
 }
 
 void X86DynaRecCPU::Reset() {
+    R3000Acpu::Reset();
+
     memset(m_recRAM, 0, 0x200000);
     memset(m_recROM, 0, 0x080000);
 
@@ -669,8 +671,6 @@ void X86DynaRecCPU::Reset() {
     memset(m_iRegs, 0, sizeof(m_iRegs));
     m_iRegs[0].state = ST_CONST;
     m_iRegs[0].k = 0;
-
-    InterpretedCPU::Reset();
 }
 
 void X86DynaRecCPU::Shutdown() {
@@ -3159,8 +3159,6 @@ void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
             break;
     }
 
-    // set interpreter mode too
-    InterpretedCPU::SetPGXPMode(pgxpMode);
     // reset to ensure new func tables are used
     Reset();
 }
