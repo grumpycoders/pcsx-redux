@@ -236,7 +236,9 @@ void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
 }
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
-    return std::unique_ptr<PCSX::R3000Acpu>(new PCSX::InterpretedCPU);
+    std::unique_ptr<PCSX::R3000Acpu> cpu = getInterpreted();
+    if (cpu->Implemented()) return cpu;
+    return nullptr;
 }
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {

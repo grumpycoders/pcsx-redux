@@ -251,7 +251,8 @@ typedef struct {
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 
-#define _SetLink(x) delayedLoad(x, _PC_ + 4);  // Sets the return address in the link register
+#define _SetLink(x) \
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4  // Sets the return address in the link register
 
 class R3000Acpu {
   public:
@@ -264,7 +265,6 @@ class R3000Acpu {
     }
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
-    virtual void Reset() = 0;
     virtual void Execute() = 0;         /* executes up to a debug break */
     virtual void ExecuteHLEBlock() = 0; /* executes up to a jump, to run an HLE softcall;
                                            debug breaks won't happen until after the softcall */
@@ -287,6 +287,7 @@ class R3000Acpu {
     psxRegisters m_psxRegs;
     bool m_booted = false;
 
+    virtual void Reset() { m_psxRegs.ICache_valid = false; }
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
@@ -320,6 +321,14 @@ class R3000Acpu {
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
+    static inline const uint32_t g_LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
+    static inline const uint32_t g_LWL_SHIFT[4] = {24, 16, 8, 0};
+    static inline const uint32_t g_LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+    static inline const uint32_t g_LWR_SHIFT[4] = {0, 8, 16, 24};
+    static inline const uint32_t g_SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
+    static inline const uint32_t g_SWL_SHIFT[4] = {24, 16, 8, 0};
+    static inline const uint32_t g_SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
+    static inline const uint32_t g_SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!g_system->running()) return false;
         if (!m_booted) {
@@ -554,256 +563,6 @@ TODO:
     const std::string m_name;
 };
 
-/* The dynarec CPU will still call into the interpreted CPU for the delay slot checks. */
-class InterpretedCPU : public R3000Acpu {
-  public:
-    InterpretedCPU() : R3000Acpu("Interpreted") {}
-    virtual bool Implemented() final { return true; }
-    virtual bool Init() override;
-    virtual void Reset() override;
-    virtual void Execute() override;
-    virtual void ExecuteHLEBlock() override;
-    virtual void Clear(uint32_t Addr, uint32_t Size) override;
-    virtual void Shutdown() override;
-    virtual void SetPGXPMode(uint32_t pgxpMode) override;
-
-  protected:
-    InterpretedCPU(const std::string &name) : R3000Acpu(name) {}
-
-    void psxTestSWInts();
-
-    static inline const uint32_t g_LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
-    static inline const uint32_t g_LWL_SHIFT[4] = {24, 16, 8, 0};
-    static inline const uint32_t g_LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
-    static inline const uint32_t g_LWR_SHIFT[4] = {0, 8, 16, 24};
-    static inline const uint32_t g_SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
-    static inline const uint32_t g_SWL_SHIFT[4] = {24, 16, 8, 0};
-    static inline const uint32_t g_SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
-    static inline const uint32_t g_SWR_SHIFT[4] = {0, 8, 16, 24};
-
-  private:
-    typedef void (InterpretedCPU::*intFunc_t)();
-    typedef const intFunc_t cIntFunc_t;
-
-    cIntFunc_t *s_pPsxBSC = NULL;
-    cIntFunc_t *s_pPsxSPC = NULL;
-    cIntFunc_t *s_pPsxREG = NULL;
-    cIntFunc_t *s_pPsxCP0 = NULL;
-    cIntFunc_t *s_pPsxCP2 = NULL;
-    cIntFunc_t *s_pPsxCP2BSC = NULL;
-
-    bool execI();
-    void doBranch(uint32_t tar);
-
-    void MTC0(int reg, uint32_t val);
-
-    /* Arithmetic with immediate operand */
-    void psxADDI();
-    void psxADDIU();
-    void psxANDI();
-    void psxORI();
-    void psxXORI();
-    void psxSLTI();
-    void psxSLTIU();
-
-    /* Register arithmetic */
-    void psxADD();
-    void psxADDU();
-    void psxSUB();
-    void psxSUBU();
-    void psxAND();
-    void psxOR();
-    void psxXOR();
-    void psxNOR();
-    void psxSLT();
-    void psxSLTU();
-
-    /* Register mult/div & Register trap logic */
-    void psxDIV();
-    void psxDIVU();
-    void psxMULT();
-    void psxMULTU();
-
-    /* Register branch logic */
-    void psxBGEZ();
-    void psxBGEZAL();
-    void psxBGTZ();
-    void psxBLEZ();
-    void psxBLTZ();
-    void psxBLTZAL();
-
-    /* Shift arithmetic with constant shift */
-    void psxSLL();
-    void psxSRA();
-    void psxSRL();
-
-    /* Shift arithmetic with variant register shift */
-    void psxSLLV();
-    void psxSRAV();
-    void psxSRLV();
-
-    /* Load higher 16 bits of the first word in GPR with imm */
-    void psxLUI();
-
-    /* Move from HI/LO to GPR */
-    void psxMFHI();
-    void psxMFLO();
-
-    /* Move to GPR to HI/LO & Register jump */
-    void psxMTHI();
-    void psxMTLO();
-
-    /* Special purpose instructions */
-    void psxBREAK();
-    void psxSYSCALL();
-    void psxRFE();
-
-    /* Register branch logic */
-    void psxBEQ();
-    void psxBNE();
-
-    /* Jump to target */
-    void psxJ();
-    void psxJAL();
-
-    /* Register jump */
-    void psxJR();
-    void psxJALR();
-
-    /* Load and store for GPR */
-    void psxLB();
-    void psxLBU();
-    void psxLH();
-    void psxLHU();
-    void psxLW();
-
-  private:
-    void psxLWL();
-    void psxLWR();
-    void psxSB();
-    void psxSH();
-    void psxSW();
-    void psxSWL();
-    void psxSWR();
-
-    /* Moves between GPR and COPx */
-    void psxMFC0();
-    void psxCFC0();
-    void psxMTC0();
-    void psxCTC0();
-    void psxMFC2();
-    void psxCFC2();
-
-    /* Misc */
-    void psxNULL();
-    void psxSPECIAL();
-    void psxREGIMM();
-    void psxCOP0();
-    void psxCOP2();
-    void psxBASIC();
-    void psxHLE();
-
-    /* GTE wrappers */
-#define GTE_WR(n) void gte##n();
-    GTE_WR(LWC2);
-    GTE_WR(SWC2);
-    GTE_WR(RTPS);
-    GTE_WR(NCLIP);
-    GTE_WR(OP);
-    GTE_WR(DPCS);
-    GTE_WR(INTPL);
-    GTE_WR(MVMVA);
-    GTE_WR(NCDS);
-    GTE_WR(CDP);
-    GTE_WR(NCDT);
-    GTE_WR(NCCS);
-    GTE_WR(CC);
-    GTE_WR(NCS);
-    GTE_WR(NCT);
-    GTE_WR(SQR);
-    GTE_WR(DCPL);
-    GTE_WR(DPCT);
-    GTE_WR(AVSZ3);
-    GTE_WR(AVSZ4);
-    GTE_WR(RTPT);
-    GTE_WR(GPF);
-    GTE_WR(GPL);
-    GTE_WR(NCCT);
-    GTE_WR(MTC2);
-    GTE_WR(CTC2);
-#undef GTE_WR
-
-    static const intFunc_t s_psxBSC[64];
-    static const intFunc_t s_psxSPC[64];
-    static const intFunc_t s_psxREG[32];
-    static const intFunc_t s_psxCP0[32];
-    static const intFunc_t s_psxCP2[64];
-    static const intFunc_t s_psxCP2BSC[32];
-
-    void pgxpPsxNULL();
-    void pgxpPsxADDI();
-    void pgxpPsxADDIU();
-    void pgxpPsxANDI();
-    void pgxpPsxORI();
-    void pgxpPsxXORI();
-    void pgxpPsxSLTI();
-    void pgxpPsxSLTIU();
-    void pgxpPsxLUI();
-    void pgxpPsxADD();
-    void pgxpPsxADDU();
-    void pgxpPsxSUB();
-    void pgxpPsxSUBU();
-    void pgxpPsxAND();
-    void pgxpPsxOR();
-    void pgxpPsxXOR();
-    void pgxpPsxNOR();
-    void pgxpPsxSLT();
-    void pgxpPsxSLTU();
-    void pgxpPsxMULT();
-    void pgxpPsxMULTU();
-    void pgxpPsxDIV();
-    void pgxpPsxDIVU();
-    void pgxpPsxSB();
-    void pgxpPsxSH();
-    void pgxpPsxSW();
-    void pgxpPsxSWL();
-    void pgxpPsxSWR();
-    void pgxpPsxLWL();
-    void pgxpPsxLW();
-    void pgxpPsxLWR();
-    void pgxpPsxLH();
-    void pgxpPsxLHU();
-    void pgxpPsxLB();
-    void pgxpPsxLBU();
-    void pgxpPsxSLL();
-    void pgxpPsxSRL();
-    void pgxpPsxSRA();
-    void pgxpPsxSLLV();
-    void pgxpPsxSRLV();
-    void pgxpPsxSRAV();
-    void pgxpPsxMFHI();
-    void pgxpPsxMTHI();
-    void pgxpPsxMFLO();
-    void pgxpPsxMTLO();
-    void pgxpPsxMFC2();
-    void pgxpPsxCFC2();
-    void pgxpPsxMTC2();
-    void pgxpPsxCTC2();
-    void pgxpPsxLWC2();
-    void pgxpPsxSWC2();
-    void pgxpPsxMFC0();
-    void pgxpPsxCFC0();
-    void pgxpPsxMTC0();
-    void pgxpPsxCTC0();
-    void pgxpPsxRFE();
-
-    static const intFunc_t s_pgxpPsxBSC[64];
-    static const intFunc_t s_pgxpPsxSPC[64];
-    static const intFunc_t s_pgxpPsxCP0[32];
-    static const intFunc_t s_pgxpPsxCP2BSC[32];
-    static const intFunc_t s_pgxpPsxBSCMem[64];
-};
-
 class Cpus {
   public:
     static std::unique_ptr<R3000Acpu> Interpreted();
@@ -811,6 +570,7 @@ class Cpus {
 
   private:
     static std::unique_ptr<R3000Acpu> getX86DynaRec();
+    static std::unique_ptr<R3000Acpu> getInterpreted();
 };
 
 }  // namespace PCSX
