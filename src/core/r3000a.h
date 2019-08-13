@@ -287,7 +287,7 @@ class R3000Acpu {
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
-    virtual bool Implemented() { return false; }
+    virtual bool Implemented() = 0;
 
     const std::string &getName() { return m_name; }
 
