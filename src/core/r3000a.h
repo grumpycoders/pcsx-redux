@@ -293,20 +293,22 @@ class R3000Acpu {
     struct {
         uint32_t index = 0;
         uint32_t value = 0;
+        uint32_t mask = 0;
         uint32_t pcValue = 0;
         bool active = false;
         bool pcActive = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoad(unsigned reg) {
+    uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = reg;
+        delayedLoad.mask = mask;
         return delayedLoad.value;
     }
-    void delayedLoad(unsigned reg, uint32_t value) {
-        auto &ref = delayedLoad(reg);
+    void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
+        auto &ref = delayedLoadRef(reg, mask);
         ref = value;
     }
     uint32_t &delayedPCLoad() {

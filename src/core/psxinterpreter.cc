@@ -589,7 +589,7 @@ void InterpretedCPU::psxJALR() {
 void InterpretedCPU::psxLB() {
     // load delay = 1 latency
     if (_Rt_) {
-        _i32(delayedLoad(_Rt_)) = (signed char)PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
+        _i32(delayedLoadRef(_Rt_)) = (signed char)PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     }
@@ -598,7 +598,7 @@ void InterpretedCPU::psxLB() {
 void InterpretedCPU::psxLBU() {
     // load delay = 1 latency
     if (_Rt_) {
-        _u32(delayedLoad(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
+        _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead8(_oB_);
     }
@@ -607,7 +607,7 @@ void InterpretedCPU::psxLBU() {
 void InterpretedCPU::psxLH() {
     // load delay = 1 latency
     if (_Rt_) {
-        _i32(delayedLoad(_Rt_)) = (short)PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
+        _i32(delayedLoadRef(_Rt_)) = (short)PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     }
@@ -616,7 +616,7 @@ void InterpretedCPU::psxLH() {
 void InterpretedCPU::psxLHU() {
     // load delay = 1 latency
     if (_Rt_) {
-        _u32(delayedLoad(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
+        _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead16(_oB_);
     }
@@ -625,7 +625,7 @@ void InterpretedCPU::psxLHU() {
 void InterpretedCPU::psxLW() {
     // load delay = 1 latency
     if (_Rt_) {
-        _u32(delayedLoad(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
+        _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
     } else {
         PCSX::g_emulator.m_psxMem->psxMemRead32(_oB_);
     }
@@ -638,7 +638,7 @@ void InterpretedCPU::psxLWL() {
 
     // load delay = 1 latency
     if (!_Rt_) return;
-    _u32(delayedLoad(_Rt_)) = (_u32(_rRt_) & g_LWL_MASK[shift]) | (mem << g_LWL_SHIFT[shift]);
+    _u32(delayedLoadRef(_Rt_, g_LWL_MASK[shift])) = mem << g_LWL_SHIFT[shift];
 
     /*
     Mem = 1234.  Reg = abcd
@@ -657,7 +657,7 @@ void InterpretedCPU::psxLWR() {
 
     // load delay = 1 latency
     if (!_Rt_) return;
-    _u32(delayedLoad(_Rt_)) = (_u32(_rRt_) & g_LWR_MASK[shift]) | (mem >> g_LWR_SHIFT[shift]);
+    _u32(delayedLoadRef(_Rt_, g_LWR_MASK[shift])) = mem >> g_LWR_SHIFT[shift];
 
     /*
     Mem = 1234.  Reg = abcd
@@ -715,13 +715,13 @@ void InterpretedCPU::psxSWR() {
 void InterpretedCPU::psxMFC0() {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoad(_Rt_)) = (int)_rFs_;
+    _i32(delayedLoadRef(_Rt_)) = (int)_rFs_;
 }
 
 void InterpretedCPU::psxCFC0() {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoad(_Rt_)) = (int)_rFs_;
+    _i32(delayedLoadRef(_Rt_)) = (int)_rFs_;
 }
 
 void InterpretedCPU::psxTestSWInts() {
@@ -759,13 +759,13 @@ void InterpretedCPU::psxCTC0() { MTC0(_Rd_, _u32(_rRt_)); }
 void InterpretedCPU::psxMFC2() {
     // load delay = 1 latency
     if (!_Rt_) return;
-    delayedLoad(_Rt_) = PCSX::g_emulator.m_gte->MFC2();
+    delayedLoadRef(_Rt_) = PCSX::g_emulator.m_gte->MFC2();
 }
 
 void InterpretedCPU::psxCFC2() {
     // load delay = 1 latency
     if (!_Rt_) return;
-    delayedLoad(_Rt_) = PCSX::g_emulator.m_gte->CFC2();
+    delayedLoadRef(_Rt_) = PCSX::g_emulator.m_gte->CFC2();
 }
 
 /*********************************************************
@@ -1310,7 +1310,8 @@ inline bool InterpretedCPU::execI() {
     auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     if (delayedLoad.active) {
         if (delayedLoad.index >= 32) abort();
-        m_psxRegs.GPR.r[delayedLoad.index] = delayedLoad.value;
+        m_psxRegs.GPR.r[delayedLoad.index] &= delayedLoad.mask;
+        m_psxRegs.GPR.r[delayedLoad.index] |= delayedLoad.value;
         delayedLoad.active = false;
     }
     if (delayedLoad.pcActive) {
