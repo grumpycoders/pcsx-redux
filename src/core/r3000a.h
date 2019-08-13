@@ -251,8 +251,24 @@ typedef struct {
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 
-#define _SetLink(x) \
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[x] = _PC_ + 4  // Sets the return address in the link register
+/*
+The "SetLink" mechanism uses the delay slot. This may sound counter intuitive, but this is the only way to
+properly handle this specific sequence of instructions:
+
+    beq someFalseCondition, out
+    lw  $ra, someOffset($sp)
+    jal someFunction
+    nop
+    [...]
+out:
+    jr  $ra
+    nop
+
+Without the change, the lw $ra will apply itself after jal happens, thus overriding the value the jal will
+have loaded into this register. This probably means this is also how the real CPU handles this, otherwise,
+this wouldn't work at all.
+*/
+#define _SetLink(x) delayedLoad(x, _PC_ + 4);  // Sets the return address in the link register
 
 class R3000Acpu {
   public:
