@@ -638,7 +638,7 @@ void InterpretedCPU::psxLWL() {
 
     // load delay = 1 latency
     if (!_Rt_) return;
-    _u32(delayedLoadRef(_Rt_, g_LWL_MASK[shift])) = mem << g_LWL_SHIFT[shift];
+    _u32(delayedLoadRef(_Rt_, LWL_MASK[shift])) = mem << LWL_SHIFT[shift];
 
     /*
     Mem = 1234.  Reg = abcd
@@ -657,7 +657,7 @@ void InterpretedCPU::psxLWR() {
 
     // load delay = 1 latency
     if (!_Rt_) return;
-    _u32(delayedLoadRef(_Rt_, g_LWR_MASK[shift])) = mem >> g_LWR_SHIFT[shift];
+    _u32(delayedLoadRef(_Rt_, LWR_MASK[shift])) = mem >> LWR_SHIFT[shift];
 
     /*
     Mem = 1234.  Reg = abcd
@@ -679,7 +679,7 @@ void InterpretedCPU::psxSWL() {
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
     PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
-                                             (_u32(_rRt_) >> g_SWL_SHIFT[shift]) | (mem & g_SWL_MASK[shift]));
+                                             (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
 
@@ -696,7 +696,7 @@ void InterpretedCPU::psxSWR() {
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
     PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
-                                             (_u32(_rRt_) << g_SWR_SHIFT[shift]) | (mem & g_SWR_MASK[shift]));
+                                             (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
 
     /*
     Mem = 1234.  Reg = abcd

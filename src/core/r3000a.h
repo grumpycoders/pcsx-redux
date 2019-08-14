@@ -339,14 +339,17 @@ class R3000Acpu {
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
-    static inline const uint32_t g_LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
-    static inline const uint32_t g_LWL_SHIFT[4] = {24, 16, 8, 0};
-    static inline const uint32_t g_LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
-    static inline const uint32_t g_LWR_SHIFT[4] = {0, 8, 16, 24};
-    static inline const uint32_t g_SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
-    static inline const uint32_t g_SWL_SHIFT[4] = {24, 16, 8, 0};
-    static inline const uint32_t g_SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
-    static inline const uint32_t g_SWR_SHIFT[4] = {0, 8, 16, 24};
+    static inline const uint32_t MASKS[7] = {0, 0xffffff, 0xffff, 0xff, 0xff000000, 0xffff0000, 0xffffff00};
+    static inline const uint32_t LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
+    static inline const uint32_t LWL_MASK_INDEX[4] = {1, 2, 3, 0};
+    static inline const uint32_t LWL_SHIFT[4] = {24, 16, 8, 0};
+    static inline const uint32_t LWR_MASK[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+    static inline const uint32_t LWR_MASK_INDEX[4] = {0, 4, 5, 6};
+    static inline const uint32_t LWR_SHIFT[4] = {0, 8, 16, 24};
+    static inline const uint32_t SWL_MASK[4] = {0xffffff00, 0xffff0000, 0xff000000, 0};
+    static inline const uint32_t SWL_SHIFT[4] = {24, 16, 8, 0};
+    static inline const uint32_t SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
+    static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!g_system->running()) return false;
         if (!m_booted) {
