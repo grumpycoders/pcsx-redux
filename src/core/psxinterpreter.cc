@@ -479,15 +479,15 @@ void InterpretedCPU::psxSRL() {
  *********************************************************/
 void InterpretedCPU::psxSLLV() {
     if (!_Rd_) return;
-    _u32(_rRd_) = _u32(_rRt_) << _u32(_rRs_);
+    _u32(_rRd_) = _u32(_rRt_) << (_u32(_rRs_) & 0x1f);
 }  // Rd = Rt << rs
 void InterpretedCPU::psxSRAV() {
     if (!_Rd_) return;
-    _i32(_rRd_) = _i32(_rRt_) >> _u32(_rRs_);
+    _i32(_rRd_) = _i32(_rRt_) >> (_u32(_rRs_) & 0x1f);
 }  // Rd = Rt >> rs (arithmetic)
 void InterpretedCPU::psxSRLV() {
     if (!_Rd_) return;
-    _u32(_rRd_) = _u32(_rRt_) >> _u32(_rRs_);
+    _u32(_rRd_) = _u32(_rRt_) >> (_u32(_rRs_) & 0x1f);
 }  // Rd = Rt >> rs (logical)
 
 /*********************************************************
