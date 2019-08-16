@@ -21,6 +21,8 @@
  * Sound (SPU) functions.
  */
 
+#include "core/r3000a.h"
 #include "core/spu.h"
 
-void SPUirq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x200); }
+void PCSX::SPUInterface::interrupt() { psxHu32ref(0x1070) |= SWAP_LEu32(0x200); }
+void PCSX::SPUInterface::scheduleInterrupt() { PCSX::g_emulator.m_psxCpu->m_psxRegs.spuInterrupt = true; }

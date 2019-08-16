@@ -28,6 +28,7 @@
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
+#include "core/spu.h"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
@@ -123,6 +124,10 @@ void PCSX::R3000Acpu::psxBranchTest() {
     if ((m_psxRegs.cycle - PCSX::g_emulator.m_psxCounters->m_psxNextsCounter) >=
         PCSX::g_emulator.m_psxCounters->m_psxNextCounter)
         PCSX::g_emulator.m_psxCounters->psxRcntUpdate();
+
+    if (m_psxRegs.spuInterrupt.exchange(false)) {
+        PCSX::g_emulator.m_spu->interrupt();
+    }
 
     if (m_psxRegs.interrupt) {
         if ((m_psxRegs.interrupt & (1 << PSXINT_SIO)) &&

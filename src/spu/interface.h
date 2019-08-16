@@ -26,6 +26,7 @@
 
 #include "core/decode_xa.h"
 #include "core/sstate.h"
+#include "core/spu.h"
 #include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
@@ -35,7 +36,7 @@ namespace PCSX {
 
 namespace SPU {
 
-class impl {
+class impl : public SPUInterface {
   public:
     using json = nlohmann::json;
     bool open();
@@ -51,8 +52,7 @@ class impl {
     uint16_t readDMA(void);
     void writeDMAMem(uint16_t *, int);
     void readDMAMem(uint16_t *, int);
-    void playADPCMchannel(xa_decode_t *);
-    void registerCallback(void (*callback)(void));
+    virtual void playADPCMchannel(xa_decode_t *) final;
     long test(void);
     void about(void);
 
@@ -76,8 +76,6 @@ class impl {
             settings.reset();
         }
     }
-    bool m_showDebug = false;
-    bool m_showCfg = false;
 
   private:
     // sound buffer sizes
@@ -172,7 +170,6 @@ class impl {
     SDL_Thread *hMainThread;
     uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
-    void (*irqCallback)(void) = 0;  // func of main emu, called on spu irq
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
     void (*irqQSound)(uint8_t *, uint32_t *, uint32_t) = 0;
 

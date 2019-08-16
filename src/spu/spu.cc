@@ -553,14 +553,14 @@ void PCSX::SPU::impl::MainThread() {
 
                             //////////////////////////////////////////// irq check
 
-                            if (irqCallback && (spuCtrl & 0x40))  // some callback and irq active?
+                            if ((spuCtrl & 0x40))  // some callback and irq active?
                             {
                                 if ((pSpuIrq > start - 16 &&  // irq address reached?
                                      pSpuIrq <= start) ||
                                     ((flags & 1) &&  // special: irq on looping addr, when stop/loop flag is set
                                      (pSpuIrq > pChannel->pLoop - 16 && pSpuIrq <= pChannel->pLoop))) {
                                     pChannel->data.get<PCSX::SPU::Chan::IrqDone>().value = 1;  // -> debug flag
-                                    irqCallback();                                             // -> call main emu
+                                    scheduleInterrupt();                                       // -> call main emu
 
                                     if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
                                     {
@@ -730,13 +730,13 @@ void PCSX::SPU::impl::MainThread() {
         // Also note: we abuse the channel 0-3 irq debug display for those irqs
         // (since that's the easiest way to display such irqs in debug mode :))
 
-        if (pMixIrq && irqCallback)  // pMixIRQ will only be set, if the config option is active
+        if (pMixIrq)  // pMixIRQ will only be set, if the config option is active
         {
             for (ns = 0; ns < NSSIZE; ns++) {
                 if ((spuCtrl & 0x40) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
                     for (ch = 0; ch < 4; ch++) {
                         if (pSpuIrq >= pMixIrq + (ch * 0x400) && pSpuIrq < pMixIrq + (ch * 0x400) + 2) {
-                            irqCallback();
+                            scheduleInterrupt();
                             s_chan[ch].data.get<PCSX::SPU::Chan::IrqDone>().value = 1;
                         }
                     }
@@ -1011,11 +1011,7 @@ void PCSX::SPU::impl::about(void) {}
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::registerCallback(void (*callback)(void)) { irqCallback = callback; }
-
-void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t)) {
-    cddavCallback = CDDAVcallback;
-}
+void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t)) { cddavCallback = CDDAVcallback; }
 
 ////////////////////////////////////////////////////////////////////////
 

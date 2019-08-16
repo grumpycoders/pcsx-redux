@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <memory>
 
 #include "core/psxbios.h"
@@ -169,6 +170,7 @@ typedef struct {
     uint32_t code;   /* The instruction */
     uint32_t cycle;
     uint32_t interrupt;
+    std::atomic<bool> spuInterrupt;
     struct {
         uint32_t sCycle, cycle;
     } intCycle[32];
