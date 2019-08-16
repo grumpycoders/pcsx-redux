@@ -28,6 +28,7 @@
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
+#include "core/spu.h"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));

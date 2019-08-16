@@ -21,6 +21,7 @@
 
 #include "json.hpp"
 
+#include "core/decode_xa.h"
 #include "core/plugins.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
