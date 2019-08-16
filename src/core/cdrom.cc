@@ -223,7 +223,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_play = false;
             m_fastForward = 0;
             m_fastBackward = 0;
-            PCSX::g_emulator.m_spu->registerCallback(SPUirq);
+            // PCSX::g_emulator.m_spu->registerCallback(SPUirq);
         }
     }
 
@@ -268,7 +268,7 @@ class CDRomImpl : public PCSX::CDRom {
         if ((PCSX::g_emulator.m_spu->readRegister(H_SPUirqAddr) * 8) >= 0x800) return;
 
         // turn off plugin SPU IRQ decoded buffer handling
-        PCSX::g_emulator.m_spu->registerCallback(0);
+        // PCSX::g_emulator.m_spu->registerCallback(0);
 
         /*
         Vib Ribbon
