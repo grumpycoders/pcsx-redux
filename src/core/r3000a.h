@@ -252,7 +252,7 @@ typedef struct {
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 
 /*
-The "SetLink" mechanism uses the delay slot. This may sound counter intuitive, but this is the only way to
+The "SetLink" mechanism uses the delayed load. This may sound counter intuitive, but this is the only way to
 properly handle this specific sequence of instructions:
 
     beq someFalseCondition, out

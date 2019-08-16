@@ -72,7 +72,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
                 DelaySlotPcValue { g_emulator.m_psxCpu->m_delayedLoadInfo[1].pcValue },
                 DelaySlotActive { g_emulator.m_psxCpu->m_delayedLoadInfo[1].active },
                 DelaySlotPcActive { g_emulator.m_psxCpu->m_delayedLoadInfo[1].pcActive }
-            }
+            },
+            CurrentDelayedLoad { g_emulator.m_psxCpu->m_currentDelayedLoad }
         },
         GPU {},
         SPU {},

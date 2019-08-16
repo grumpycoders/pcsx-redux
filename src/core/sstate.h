@@ -74,8 +74,10 @@ typedef Protobuf::Message<TYPESTRING("DelaySlotInfo"), DelaySlotIndex, DelaySlot
     DelaySlotInfo;
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_1"), 14> DelaySlotInfo1;
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 15> DelaySlotInfo2;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("current_delayed_load"), 16> CurrentDelayedLoad;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, IntCyclesField,
-                          ICacheAddr, ICacheCode, ICacheValid, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2>
+                          ICacheAddr, ICacheCode, ICacheValid, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2,
+                          CurrentDelayedLoad>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
