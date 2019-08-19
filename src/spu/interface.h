@@ -39,37 +39,33 @@ namespace SPU {
 class impl : public SPUInterface {
   public:
     using json = nlohmann::json;
-    bool open();
+    bool open() final;
     // SPU Functions
-    long init(void);
-    long shutdown(void);
-    long close(void);
+    long init(void) final;
+    long shutdown(void) final;
+    long close(void) final;
     void wipeChannels();
     // void playSample(uint8_t);
-    void writeRegister(uint32_t, uint16_t);
-    uint16_t readRegister(uint32_t);
-    void writeDMA(uint16_t);
-    uint16_t readDMA(void);
-    void writeDMAMem(uint16_t *, int);
-    void readDMAMem(uint16_t *, int);
+    void writeRegister(uint32_t, uint16_t) final;
+    uint16_t readRegister(uint32_t) final;
+    void writeDMAMem(uint16_t *, int) final;
+    void readDMAMem(uint16_t *, int) final;
     virtual void playADPCMchannel(xa_decode_t *) final;
-    long test(void);
-    void about(void);
 
-    void save(SaveStates::SPU &);
-    void load(const SaveStates::SPU &);
+    void save(SaveStates::SPU &) final;
+    void load(const SaveStates::SPU &) final;
 
-    void async(uint32_t);
-    void playCDDAchannel(int16_t *, int);
+    void async(uint32_t) final;
+    void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
 
     // num of channels
     static const size_t MAXCHAN = 24;
 
-    void debug();
-    bool configure();
-    json getCfg() { return settings.serialize(); }
-    void setCfg(const json &j) {
+    void debug() final;
+    bool configure() final;
+    json getCfg() final { return settings.serialize(); }
+    void setCfg(const json &j) final {
         if (j.count("SPU") && j["SPU"].is_object()) {
             settings.deserialize(j["SPU"]);
         } else {

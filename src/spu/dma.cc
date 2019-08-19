@@ -28,27 +28,10 @@
 #include "spu/interface.h"
 
 ////////////////////////////////////////////////////////////////////////
-// READ DMA (one value)
-////////////////////////////////////////////////////////////////////////
-
-unsigned short PCSX::SPU::impl::readDMA(void) {
-    unsigned short s;
-
-    s = spuMem[spuAddr >> 1];
-
-    spuAddr += 2;
-    if (spuAddr > 0x7ffff) spuAddr = 0;
-
-    iSpuAsyncWait = 0;
-
-    return s;
-}
-
-////////////////////////////////////////////////////////////////////////
 // READ DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::readDMAMem(unsigned short* pusPSXMem, int iSize) {
+void PCSX::SPU::impl::readDMAMem(uint16_t* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {
@@ -69,23 +52,10 @@ void PCSX::SPU::impl::readDMAMem(unsigned short* pusPSXMem, int iSize) {
 // the memory irq address?
 
 ////////////////////////////////////////////////////////////////////////
-// WRITE DMA (one value)
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::writeDMA(unsigned short val) {
-    spuMem[spuAddr >> 1] = val;  // spu addr got by writeregister
-
-    spuAddr += 2;                        // inc spu addr
-    if (spuAddr > 0x7ffff) spuAddr = 0;  // wrap
-
-    iSpuAsyncWait = 0;
-}
-
-////////////////////////////////////////////////////////////////////////
 // WRITE DMA (many values)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::writeDMAMem(unsigned short* pusPSXMem, int iSize) {
+void PCSX::SPU::impl::writeDMAMem(uint16_t* pusPSXMem, int iSize) {
     int i;
 
     for (i = 0; i < iSize; i++) {
