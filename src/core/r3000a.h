@@ -302,7 +302,14 @@ class R3000Acpu {
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
+    void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
+        m_psxRegs.interrupt |= (1 << interrupt);
+        m_psxRegs.intCycle[interrupt].cycle = eCycle;
+        m_psxRegs.intCycle[interrupt].sCycle = m_psxRegs.cycle;
+    }
+
     psxRegisters m_psxRegs;
+    float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_booted = false;
 
     virtual void Reset() { m_psxRegs.ICache_valid = false; }

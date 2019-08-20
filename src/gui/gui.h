@@ -83,6 +83,7 @@ class GUI final {
     bool configure();
     void biosCounters();
     void about();
+    void interruptsScaler();
 
   public:
     static void normalizeDimensions(ImVec2 &vec, float ratio) {
@@ -130,6 +131,7 @@ class GUI final {
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     bool m_showDemo = false;
     bool m_showAbout = false;
+    bool m_showInterruptsScaler = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
         MemoryEditorWrapper() {

@@ -94,10 +94,7 @@ class SIO {
     };
     inline void scheduleInterrupt(uint32_t eCycle) {
         if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+            g_emulator.m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
         }
 #if 0
 // Breaks Twisted Metal 2 intro
