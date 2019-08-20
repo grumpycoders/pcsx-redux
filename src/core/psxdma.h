@@ -26,38 +26,23 @@
 #include "core/r3000a.h"
 
 static inline void scheduleGPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_GPUDMA);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_GPUDMA].cycle = eCycle;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_GPUDMA].sCycle =
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+    PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_GPUDMA, eCycle);
 }
 
 static inline void scheduleSPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SPUDMA);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SPUDMA].cycle = eCycle;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SPUDMA].sCycle =
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+    PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_SPUDMA, eCycle);
 }
 
 static inline void scheduleMDECOUTDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_MDECOUTDMA);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_MDECOUTDMA].cycle = eCycle;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_MDECOUTDMA].sCycle =
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+    PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_MDECOUTDMA, eCycle);
 }
 
 static inline void scheduleMDECINDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_MDECINDMA);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_MDECINDMA].cycle = eCycle;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_MDECINDMA].sCycle =
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+    PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_MDECINDMA, eCycle);
 }
 
 static inline void scheduleGPUOTCDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_GPUOTCDMA);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_GPUOTCDMA].cycle = eCycle;
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_GPUOTCDMA].sCycle =
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+    PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_GPUOTCDMA, eCycle);
 }
 
 /*
