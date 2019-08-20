@@ -304,7 +304,7 @@ class R3000Acpu {
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         m_psxRegs.interrupt |= (1 << interrupt);
-        m_psxRegs.intCycle[interrupt].cycle = eCycle;
+        m_psxRegs.intCycle[interrupt].cycle = eCycle * m_interruptScales[interrupt];
         m_psxRegs.intCycle[interrupt].sCycle = m_psxRegs.cycle;
     }
 
