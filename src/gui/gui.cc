@@ -436,6 +436,7 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show BIOS counters"), nullptr, &m_showBiosCounters);
+                ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
                 ImGui::Separator();
@@ -556,6 +557,7 @@ void PCSX::GUI::endFrame() {
 
     about();
     biosCounters();
+    interruptsScaler();
 
     PCSX::g_emulator.m_spu->debug();
     changed |= PCSX::g_emulator.m_spu->configure();
@@ -789,6 +791,26 @@ void PCSX::GUI::biosCounters() {
             ImGui::Text(name);
         }
         ImGui::EndChild();
+    }
+    ImGui::End();
+}
+
+void PCSX::GUI::interruptsScaler() {
+    if (!m_showInterruptsScaler) return;
+    static const char* names[] = {
+        "SIO",         "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",      "GPU Busy",
+        "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek", "CDR Play"};
+    if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
+        if (ImGui::Button(_("Reset all"))) {
+            for (auto& scale : g_emulator.m_psxCpu->m_interruptScales) {
+                scale = 1.0f;
+            }
+        }
+        unsigned counter = 0;
+        for (auto& scale : g_emulator.m_psxCpu->m_interruptScales) {
+            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", 5.0f);
+            counter++;
+        }
     }
     ImGui::End();
 }
