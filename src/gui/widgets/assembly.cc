@@ -878,10 +878,11 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
 
     if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
     if (m_symbolsFileDialog.draw()) {
-        std::vector<std::string> filesToOpen = m_symbolsFileDialog.selected();
+        std::vector<std::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
-            file.open(fileName);
+            // oh the irony
+            file.open(reinterpret_cast<const char *>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;

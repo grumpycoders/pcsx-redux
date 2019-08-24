@@ -44,6 +44,46 @@
 #include "core/system.h"
 #include "gui/widgets/filedialog.h"
 
+struct InputTextCallback_UserData
+{
+    std::u8string*          Str;
+    ImGuiInputTextCallback  ChainCallback;
+    void*                   ChainCallbackUserData;
+};
+
+static int InputTextCallback(ImGuiInputTextCallbackData* data)
+{
+    InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+    {
+        // Resize string callback
+        // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+        std::u8string* str = user_data->Str;
+        IM_ASSERT(data->Buf == reinterpret_cast<const char *>(str->c_str()));
+        str->resize(data->BufTextLen);
+        data->Buf = (char*)str->c_str();
+    }
+    else if (user_data->ChainCallback)
+    {
+        // Forward to user callback, if any
+        data->UserData = user_data->ChainCallbackUserData;
+        return user_data->ChainCallback(data);
+    }
+    return 0;
+}
+
+static bool InputText(const char* label, std::u8string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL)
+{
+    IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+    flags |= ImGuiInputTextFlags_CallbackResize;
+
+    InputTextCallback_UserData cb_user_data;
+    cb_user_data.Str = str;
+    cb_user_data.ChainCallback = callback;
+    cb_user_data.ChainCallbackUserData = user_data;
+    return ImGui::InputText(label, const_cast<char*>(reinterpret_cast<const char*>(str->c_str())), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+}
+
 #ifdef _WIN32
 void PCSX::Widgets::FileDialog::fillRoots() {
     DWORD drivesMask = GetLogicalDrives();
@@ -83,7 +123,7 @@ void PCSX::Widgets::FileDialog::fillRoots() {
     }
 }
 #else
-void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({"/", "(root)"}); }
+void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({u8"/", "(root)"}); }
 #endif
 
 void PCSX::Widgets::FileDialog::openDialog() {
@@ -92,7 +132,7 @@ void PCSX::Widgets::FileDialog::openDialog() {
     m_sorter.name = SORT_DOWN;
     m_sorter.size = UNSORTED;
     m_sorter.date = UNSORTED;
-    m_newFile = "";
+    m_newFile = u8"";
 }
 
 bool PCSX::Widgets::FileDialog::draw() {
@@ -135,12 +175,12 @@ bool PCSX::Widgets::FileDialog::draw() {
 
         bool goHome = false;
         bool goUp = false;
-        std::string goDown = "";
+        std::u8string goDown = u8"";
         File* selected = nullptr;
 
         if (ImGui::Button(_("Home"))) goHome = true;
         ImGui::SameLine();
-        ImGui::Text(m_currentPath.u8string().c_str());
+        ImGui::Text(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
         {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
             if (ImGui::TreeNode(_("Roots"))) {
@@ -156,7 +196,7 @@ bool PCSX::Widgets::FileDialog::draw() {
                     goUp = true;
                 }
                 for (auto& p : m_directories) {
-                    if (ImGui::Selectable(p.c_str(), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                    if (ImGui::Selectable(reinterpret_cast<const char*>(p.c_str()), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
                         goDown = p;
                     }
                 }
@@ -256,8 +296,8 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::Separator();
 
             for (auto& p : m_files) {
-                std::string label = std::string("##") + p.filename;
-                if (ImGui::Selectable(label.c_str(), p.selected, ImGuiSelectableFlags_SpanAllColumns)) {
+                std::u8string label = std::u8string(u8"##") + p.filename;
+                if (ImGui::Selectable(reinterpret_cast<const char *>(label.c_str()), p.selected, ImGuiSelectableFlags_SpanAllColumns)) {
                     for (auto& f : m_files) f.selected = false;
                     p.selected = true;
                     if (m_flags & NewFile) {
@@ -265,7 +305,7 @@ bool PCSX::Widgets::FileDialog::draw() {
                     }
                 }
                 ImGui::SameLine();
-                ImGui::Text(p.filename.c_str());
+                ImGui::Text(reinterpret_cast<const char*>(p.filename.c_str()));
                 ImGui::NextColumn();
                 ImGui::Text(std::to_string(p.size).c_str());
                 ImGui::NextColumn();
@@ -277,18 +317,18 @@ bool PCSX::Widgets::FileDialog::draw() {
 
             ImGui::EndChild();
         }
-        std::string selectedStr;
+        std::u8string selectedStr;
         bool gotSelected = selected;
         if (m_flags & NewFile) {
-            ImGui::Text(m_currentPath.u8string().c_str());
+            ImGui::Text(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
             ImGui::SameLine();
             std::string label = std::string("##") + m_title() + "Filename";
-            ImGui::InputText(label.c_str(), &m_newFile);
+            InputText(label.c_str(), &m_newFile);
             selectedStr = m_newFile;
             gotSelected = !m_newFile.empty();
         } else {
-            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : "...")).u8string();
-            ImGui::Text(selectedStr.c_str());
+            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : u8"...")).u8string();
+            ImGui::Text(reinterpret_cast<const char*>(selectedStr.c_str()));
         }
         if (!gotSelected) {
             const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
@@ -315,7 +355,7 @@ bool PCSX::Widgets::FileDialog::draw() {
             m_currentPath = m_currentPath.parent_path();
             nukeCache();
         } else if (!goDown.empty()) {
-            m_currentPath = m_currentPath / std::filesystem::u8path(goDown);
+            m_currentPath = m_currentPath / goDown;
             nukeCache();
         } else if (goHome) {
             setToCurrentPath();

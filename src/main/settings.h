@@ -104,7 +104,7 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
         value = v;
         return *this;
     }
-    std::string string() const { return value.u8string(); }
+    std::u8string string() const { return value.u8string(); }
     bool empty() const { return value.u8string().empty(); }
     json serialize() const { return value.u8string(); }
     void deserialize(const json &j) {

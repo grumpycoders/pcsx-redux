@@ -159,7 +159,7 @@ class SystemImpl : public PCSX::System {
         if (m_logfile) fclose(m_logfile);
     }
 
-    void useLogfile(const std::string &filename) { m_logfile = fopen(filename.c_str(), "w"); }
+    void useLogfile(const std::u8string &filename) { m_logfile = fopen(reinterpret_cast<const char*>(filename.c_str()), "w"); }
 
     bool m_enableStdout = false;
 };

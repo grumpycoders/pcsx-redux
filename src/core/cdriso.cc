@@ -797,7 +797,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
                 m_ti[m_numtracks + 1].handle = new File(filepath / tmpb);
             }
 
-            strcpy(m_ti[m_numtracks + 1].filepath, m_ti[m_numtracks + 1].handle->filename().u8string().c_str());
+            strcpy(m_ti[m_numtracks + 1].filepath, reinterpret_cast<const char *>(m_ti[m_numtracks + 1].handle->filename().u8string().c_str()));
 
             // update global offset if this is not first file in this .cue
             if (m_numtracks + 1 > 1) {

@@ -36,6 +36,7 @@ class File {
     void flush();
     File(void* data, ssize_t size);
     File(const std::filesystem::path& filename) : File(filename.u8string()) {}
+    File(const std::u8string& filename) : File(reinterpret_cast<const char*>(filename.c_str())) {}
     File(const std::string& filename) : File(filename.c_str()) {}
     File(const char* filename);
     ~File() { close(); }

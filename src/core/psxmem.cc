@@ -78,7 +78,7 @@ void PCSX::Memory::psxMemReset() {
     g_emulator.m_psxBios->m_realBiosLoaded = false;
 
     // Load BIOS
-    std::string biosPath = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().string();
+    std::u8string biosPath = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().string();
     if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) {
         f = new File(biosPath);
         if (f->failed()) {
