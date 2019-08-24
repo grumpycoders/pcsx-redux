@@ -395,11 +395,10 @@ void PCSX::SIO::interrupt() {
 #endif
 }
 
-void PCSX::SIO::LoadMcd(int mcd, const char *str) {
+void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
     FILE *f;
     char *data = NULL;
-    char filepath[MAXPATHLEN] = {'\0'};
-    const char *apppath = GetAppPath();
+    const char * fname = reinterpret_cast<const char *>(str.c_str());
 
     if (mcd == 1) {
         data = g_mcd1Data;
@@ -410,24 +409,15 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
         m_wasMcd2Inserted = false;
     }
 
-    if (*str == 0) {
-        PCSX::g_system->printf(_("No memory card value was specified - card %i is not plugged.\n"), mcd);
-        return;
-    }
-
-    // Getting full application path.
-    memmove(filepath, apppath, strlen(apppath));
-    strcat(filepath, str);
-
-    f = fopen(filepath, "rb");
+    f = fopen(fname, "rb");
     if (f == NULL) {
-        PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), filepath);
-        CreateMcd(filepath);
-        f = fopen(filepath, "rb");
+        PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
+        CreateMcd(str);
+        f = fopen(fname, "rb");
         if (f != NULL) {
             struct stat buf;
 
-            if (stat(filepath, &buf) != -1) {
+            if (stat(fname, &buf) != -1) {
                 if (buf.st_size == MCD_SIZE + 64)
                     fseek(f, 64, SEEK_SET);
                 else if (buf.st_size == MCD_SIZE + 3904)
@@ -436,11 +426,11 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
             fread(data, 1, MCD_SIZE, f);
             fclose(f);
         } else
-            PCSX::g_system->message(_("Memory card %s failed to load!\n"), filepath);
+            PCSX::g_system->message(_("Memory card %s failed to load!\n"), fname);
     } else {
         struct stat buf;
-        PCSX::g_system->printf(_("Loading memory card %s\n"), filepath);
-        if (stat(filepath, &buf) != -1) {
+        PCSX::g_system->printf(_("Loading memory card %s\n"), fname);
+        if (stat(fname, &buf) != -1) {
             if (buf.st_size == MCD_SIZE + 64)
                 fseek(f, 64, SEEK_SET);
             else if (buf.st_size == MCD_SIZE + 3904)
@@ -451,19 +441,20 @@ void PCSX::SIO::LoadMcd(int mcd, const char *str) {
     }
 }
 
-void PCSX::SIO::LoadMcds(const char *mcd1, const char *mcd2) {
+void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
     LoadMcd(1, mcd1);
     LoadMcd(2, mcd2);
 }
 
-void PCSX::SIO::SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t size) {
+void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
     FILE *f;
+    const char * fname = reinterpret_cast<const char*>(mcd.c_str());
 
-    f = fopen(mcd, "r+b");
+    f = fopen(fname, "r+b");
     if (f != NULL) {
         struct stat buf;
 
-        if (stat(mcd, &buf) != -1) {
+        if (stat(fname, &buf) != -1) {
             if (buf.st_size == MCD_SIZE + 64)
                 fseek(f, adr + 64, SEEK_SET);
             else if (buf.st_size == MCD_SIZE + 3904)
@@ -475,7 +466,7 @@ void PCSX::SIO::SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t 
 
         fwrite(data + adr, 1, size, f);
         fclose(f);
-        PCSX::g_system->printf(_("Saving memory card %s\n"), mcd);
+        PCSX::g_system->printf(_("Saving memory card %s\n"), fname);
         return;
     }
 
@@ -491,17 +482,18 @@ void PCSX::SIO::SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t 
     ConvertMcd(mcd, data);
 }
 
-void PCSX::SIO::CreateMcd(const char *mcd) {
+void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
     FILE *f;
+    const char * fname = reinterpret_cast<const char *>(mcd.c_str());
     struct stat buf;
     int s = MCD_SIZE;
     int i = 0, j;
 
-    f = fopen(mcd, "wb");
+    f = fopen(fname, "wb");
     if (f == NULL) return;
 
-    if (stat(mcd, &buf) != -1) {
-        if ((buf.st_size == MCD_SIZE + 3904) || strstr(mcd, ".gme")) {
+    if (stat(fname, &buf) != -1) {
+        if ((buf.st_size == MCD_SIZE + 3904) || strstr(fname, ".gme")) {
             s = s + 3904;
             fputc('1', f);
             s--;
@@ -547,7 +539,7 @@ void PCSX::SIO::CreateMcd(const char *mcd) {
             s--;
             fputc(0xff, f);
             while (s-- > (MCD_SIZE + 1)) fputc(0, f);
-        } else if ((buf.st_size == MCD_SIZE + 64) || strstr(mcd, ".mem") || strstr(mcd, ".vgs")) {
+        } else if ((buf.st_size == MCD_SIZE + 64) || strstr(fname, ".mem") || strstr(fname, ".vgs")) {
             s = s + 64;
             fputc('V', f);
             s--;
@@ -642,18 +634,19 @@ void PCSX::SIO::CreateMcd(const char *mcd) {
     fclose(f);
 }
 
-void PCSX::SIO::ConvertMcd(const char *mcd, const char *data) {
+void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
     FILE *f;
+    const char * fname = reinterpret_cast<const char*>(mcd.c_str());
     int i = 0;
     int s = MCD_SIZE;
 
-    if (strstr(mcd, ".gme")) {
-        f = fopen(mcd, "wb");
+    if (strstr(fname, ".gme")) {
+        f = fopen(fname, "wb");
         if (f != NULL) {
             fwrite(data - 3904, 1, MCD_SIZE + 3904, f);
             fclose(f);
         }
-        f = fopen(mcd, "r+");
+        f = fopen(fname, "r+");
         s = s + 3904;
         fputc('1', f);
         s--;
@@ -700,13 +693,13 @@ void PCSX::SIO::ConvertMcd(const char *mcd, const char *data) {
         fputc(0xff, f);
         while (s-- > (MCD_SIZE + 1)) fputc(0, f);
         fclose(f);
-    } else if (strstr(mcd, ".mem") || strstr(mcd, ".vgs")) {
-        f = fopen(mcd, "wb");
+    } else if (strstr(fname, ".mem") || strstr(fname, ".vgs")) {
+        f = fopen(fname, "wb");
         if (f != NULL) {
             fwrite(data - 64, 1, MCD_SIZE + 64, f);
             fclose(f);
         }
-        f = fopen(mcd, "r+");
+        f = fopen(fname, "r+");
         s = s + 64;
         fputc('V', f);
         s--;
@@ -732,7 +725,7 @@ void PCSX::SIO::ConvertMcd(const char *mcd, const char *data) {
         while (s-- > (MCD_SIZE + 1)) fputc(0, f);
         fclose(f);
     } else {
-        f = fopen(mcd, "wb");
+        f = fopen(fname, "wb");
         if (f != NULL) {
             fwrite(data, 1, MCD_SIZE, f);
             fclose(f);

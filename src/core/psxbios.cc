@@ -1696,7 +1696,7 @@ class BiosImpl : public PCSX::Bios {
         pc0 = ra;
     }
 
-    void buopen(int mcd, char *ptr, const char *cfg) {
+    void buopen(int mcd, char *ptr, const PCSX::u8string cfg) {
         int i;
         uint8_t *fptr = reinterpret_cast<uint8_t *>(ptr);
 
@@ -1770,12 +1770,12 @@ class BiosImpl : public PCSX::Bios {
 
         if (!strncmp(Ra0, "bu00", 4)) {
             buopen(1, PCSX::g_emulator.m_sio->g_mcd1Data,
-                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str());
+                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string());
         }
 
         if (!strncmp(Ra0, "bu10", 4)) {
             buopen(2, PCSX::g_emulator.m_sio->g_mcd2Data,
-                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
+                   PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string());
         }
 
         pc0 = ra;
@@ -1816,13 +1816,13 @@ class BiosImpl : public PCSX::Bios {
     }
 
     template <int mcd>
-    const char *getmcdName() {
+    const PCSX::u8string getmcdName() {
         if (mcd == 1) {
-            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str();
+            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string();
         } else if (mcd == 2) {
-            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str();
+            return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string();
         }
-        return NULL;
+        return MAKEU8(u8"");
     }
 
     template <int mcd>
