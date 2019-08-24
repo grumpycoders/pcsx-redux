@@ -129,11 +129,11 @@ class SIO {
 
     void interrupt();
 
-    void LoadMcd(int mcd, const std::u8string str);
-    void LoadMcds(const std::u8string mcd1, const std::u8string mcd2);
-    void SaveMcd(const std::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void CreateMcd(const std::u8string mcd);
-    void ConvertMcd(const std::u8string mcd, const char *data);
+    void LoadMcd(int mcd, const PCSX::u8string str);
+    void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
+    void SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void CreateMcd(const PCSX::u8string mcd);
+    void ConvertMcd(const PCSX::u8string mcd, const char *data);
 
     typedef struct {
         char Title[48 + 1];       // Title in ASCII

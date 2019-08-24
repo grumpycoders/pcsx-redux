@@ -878,7 +878,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
 
     if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
     if (m_symbolsFileDialog.draw()) {
-        std::vector<std::u8string> filesToOpen = m_symbolsFileDialog.selected();
+        std::vector<PCSX::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
             // oh the irony

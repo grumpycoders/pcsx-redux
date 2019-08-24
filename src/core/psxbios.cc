@@ -1696,7 +1696,7 @@ class BiosImpl : public PCSX::Bios {
         pc0 = ra;
     }
 
-    void buopen(int mcd, char *ptr, const std::u8string cfg) {
+    void buopen(int mcd, char *ptr, const PCSX::u8string cfg) {
         int i;
         uint8_t *fptr = reinterpret_cast<uint8_t *>(ptr);
 
@@ -1816,13 +1816,13 @@ class BiosImpl : public PCSX::Bios {
     }
 
     template <int mcd>
-    const std::u8string getmcdName() {
+    const PCSX::u8string getmcdName() {
         if (mcd == 1) {
             return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string();
         } else if (mcd == 2) {
             return PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string();
         }
-        return NULL;
+        return MAKEU8(u8"");
     }
 
     template <int mcd>

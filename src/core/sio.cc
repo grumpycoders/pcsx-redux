@@ -395,7 +395,7 @@ void PCSX::SIO::interrupt() {
 #endif
 }
 
-void PCSX::SIO::LoadMcd(int mcd, const std::u8string str) {
+void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
     FILE *f;
     char *data = NULL;
     const char * fname = reinterpret_cast<const char *>(str.c_str());
@@ -441,12 +441,12 @@ void PCSX::SIO::LoadMcd(int mcd, const std::u8string str) {
     }
 }
 
-void PCSX::SIO::LoadMcds(const std::u8string mcd1, const std::u8string mcd2) {
+void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
     LoadMcd(1, mcd1);
     LoadMcd(2, mcd2);
 }
 
-void PCSX::SIO::SaveMcd(const std::u8string mcd, const char *data, uint32_t adr, size_t size) {
+void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
     FILE *f;
     const char * fname = reinterpret_cast<const char*>(mcd.c_str());
 
@@ -482,7 +482,7 @@ void PCSX::SIO::SaveMcd(const std::u8string mcd, const char *data, uint32_t adr,
     ConvertMcd(mcd, data);
 }
 
-void PCSX::SIO::CreateMcd(const std::u8string mcd) {
+void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
     FILE *f;
     const char * fname = reinterpret_cast<const char *>(mcd.c_str());
     struct stat buf;
@@ -634,7 +634,7 @@ void PCSX::SIO::CreateMcd(const std::u8string mcd) {
     fclose(f);
 }
 
-void PCSX::SIO::ConvertMcd(const std::u8string mcd, const char *data) {
+void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
     FILE *f;
     const char * fname = reinterpret_cast<const char*>(mcd.c_str());
     int i = 0;
