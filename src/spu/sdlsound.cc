@@ -26,16 +26,18 @@
 #include "spu/sdlsound.h"
 
 void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len, unsigned streamId) {
-    if ((BUFFER_SIZE - m_streams[streamId].ptrBegin) < len) {
-        size_t subLen = BUFFER_SIZE - m_streams[streamId].ptrBegin;
+    auto & str = m_streams[streamId];
+    if ((BUFFER_SIZE - str.ptrBegin) < len) {
+        size_t subLen = BUFFER_SIZE - str.ptrBegin;
         dequeueLocked(stream, subLen, streamId);
         len -= subLen;
         dequeueLocked(stream + subLen, len, streamId);
         return;
     }
-    memcpy(stream, m_streams[streamId].buffer + m_streams[streamId].ptrBegin, len);
-    m_streams[streamId].ptrBegin += len;
-    if (m_streams[streamId].ptrBegin == BUFFER_SIZE) m_streams[streamId].ptrBegin = 0;
+    memcpy(stream, str.buffer + str.ptrBegin, len);
+    str.ptrBegin += len;
+    if (str.ptrBegin == BUFFER_SIZE) str.ptrBegin = 0;
+    SDL_CondSignal(str.condition);
 }
 
 void PCSX::SPU::SDLsound::callback(Uint8* stream, int len) {
@@ -99,8 +101,12 @@ void PCSX::SPU::SDLsound::setup() {
 
     m_streams[0].mutex = SDL_CreateMutex();
     m_streams[1].mutex = SDL_CreateMutex();
-    assert(m_streams[0].mutex);
-    assert(m_streams[1].mutex);
+    m_streams[0].condition = SDL_CreateCond();
+    m_streams[1].condition = SDL_CreateCond();
+    SDL_assert_always(m_streams[0].mutex);
+    SDL_assert_always(m_streams[1].mutex);
+    SDL_assert_always(m_streams[0].condition);
+    SDL_assert_always(m_streams[1].condition);
 }
 
 void PCSX::SPU::SDLsound::remove() {
@@ -108,6 +114,8 @@ void PCSX::SPU::SDLsound::remove() {
     m_dev = 0;
     SDL_DestroyMutex(m_streams[0].mutex);
     SDL_DestroyMutex(m_streams[1].mutex);
+    SDL_DestroyCond(m_streams[0].condition);
+    SDL_DestroyCond(m_streams[1].condition);
 }
 
 unsigned long PCSX::SPU::SDLsound::getBytesBuffered(unsigned streamId) {
@@ -127,17 +135,34 @@ unsigned long PCSX::SPU::SDLsound::getBytesBuffered(unsigned streamId) {
 }
 
 void PCSX::SPU::SDLsound::enqueueLocked(const uint8_t* data, size_t len, unsigned streamId) {
-    if (len > (BUFFER_SIZE - m_streams[streamId].ptrEnd)) {
-        size_t subLen = BUFFER_SIZE - m_streams[streamId].ptrEnd;
+    auto & str = m_streams[streamId];
+
+    while (true) {
+        size_t available;
+        if (str.ptrEnd >= str.ptrBegin) {
+            available = BUFFER_SIZE - (str.ptrEnd - str.ptrBegin);
+        } else {
+            available = str.ptrBegin - str.ptrEnd;
+        }
+
+        if (len >= available) {
+            SDL_CondWait(str.condition, str.mutex);
+        } else {
+            break;
+        }
+    }
+
+    if (len > (BUFFER_SIZE - str.ptrEnd)) {
+        size_t subLen = BUFFER_SIZE - str.ptrEnd;
         enqueueLocked(data, subLen, streamId);
         len -= subLen;
         enqueueLocked(data + subLen, len, streamId);
         return;
     }
 
-    memcpy(m_streams[streamId].buffer + m_streams[streamId].ptrEnd, data, len);
-    m_streams[streamId].ptrEnd += len;
-    if (m_streams[streamId].ptrEnd == BUFFER_SIZE) m_streams[streamId].ptrEnd = 0;
+    memcpy(str.buffer + str.ptrEnd, data, len);
+    str.ptrEnd += len;
+    if (str.ptrEnd == BUFFER_SIZE) str.ptrEnd = 0;
 }
 
 void PCSX::SPU::SDLsound::feedStreamData(unsigned char* pSound, long lBytes, unsigned streamId) {

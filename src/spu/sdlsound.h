@@ -31,6 +31,7 @@ class SDLsound {
     void setup();
     void remove();
     unsigned long getBytesBuffered(unsigned streamId = 0);
+    unsigned long getFreeBytes(unsigned streamId = 0) { return BUFFER_SIZE - getBytesBuffered(streamId); }
     void feedStreamData(unsigned char* pSound, long lBytes, unsigned streamId = 0);
 
   private:
@@ -50,6 +51,7 @@ class SDLsound {
         uint32_t ptrBegin = 0, ptrEnd = 0;
         uint8_t buffer[BUFFER_SIZE];
         SDL_mutex* mutex;
+        SDL_cond* condition;
     } m_streams[2];
 
     SDL_AudioSpec m_specs;
