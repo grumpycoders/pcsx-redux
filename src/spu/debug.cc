@@ -136,22 +136,20 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC,
-                            ch.pCurr - spuMemC, ch.pLoop - spuMemC,
-                            ch.data.get<Chan::RightVolume>().value, ch.data.get<Chan::RightVolRaw>().value,
-                            ch.data.get<Chan::LeftVolume>().value, ch.data.get<Chan::LeftVolRaw>().value,
-                            ch.data.get<Chan::ActFreq>().value, ch.data.get<Chan::UsedFreq>().value);
+                ImGui::Text("%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC, ch.pCurr - spuMemC,
+                            ch.pLoop - spuMemC, ch.data.get<Chan::RightVolume>().value,
+                            ch.data.get<Chan::RightVolRaw>().value, ch.data.get<Chan::LeftVolume>().value,
+                            ch.data.get<Chan::LeftVolRaw>().value, ch.data.get<Chan::ActFreq>().value,
+                            ch.data.get<Chan::UsedFreq>().value);
             }
             ImGui::Columns(1);
             ImGui::BeginChild("##debugSPUXA", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, 0), true);
             {
                 ImGui::Text("XA");
-                ImGui::Text("Freq:\nStereo:\nSamples:\nBuffered:\nVolume:\n");
+                ImGui::Text("Freq:\nStereo:\nSamples:\nVolume:\n");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n%i\n%5i  %5i", xapGlobal ? xapGlobal->freq : 0,
-                            xapGlobal ? xapGlobal->stereo : 0, xapGlobal ? xapGlobal->nsamples : 0,
-                            XAPlay <= XAFeed ? XAPlay - XAFeed : (XAFeed - XAStart) + (XAEnd - XAPlay), iLeftXAVol,
-                            iRightXAVol);
+                ImGui::Text("%i\n%i\n%i\n%5i  %5i", xapGlobal ? xapGlobal->freq : 0, xapGlobal ? xapGlobal->stereo : 0,
+                            xapGlobal ? xapGlobal->nsamples : 0, iLeftXAVol, iRightXAVol);
             }
             ImGui::EndChild();
             ImGui::SameLine();

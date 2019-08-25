@@ -123,7 +123,6 @@ class impl : public SPUInterface {
     int MixREVERBRight();
 
     // xa
-    void MixXA();
     void FeedXA(xa_decode_t *xap);
 
     int bSPUIsOpen;
@@ -167,7 +166,6 @@ class impl : public SPUInterface {
     uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
-    void (*irqQSound)(uint8_t *, uint32_t *, uint32_t) = 0;
 
     // certain globals (were local before, but with the new timeproc I need em global)
 
@@ -194,13 +192,6 @@ class impl : public SPUInterface {
 
     // XA
     xa_decode_t *xapGlobal = 0;
-
-    uint32_t *XAFeed = NULL;
-    uint32_t *XAPlay = NULL;
-    uint32_t *XAStart = NULL;
-    uint32_t *XAEnd = NULL;
-    uint32_t XARepeat = 0;
-    uint32_t XALastVal = 0;
 
     int iLeftXAVol = 32767;
     int iRightXAVol = 32767;

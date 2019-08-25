@@ -665,9 +665,6 @@ void PCSX::SPU::impl::MainThread() {
         //---------------------------------------------------//
         //- here we have another 1 ms of sound data
         //---------------------------------------------------//
-        // mix XA infos (if any)
-
-        if (XAPlay != XAFeed || XARepeat) MixXA();
 
         ///////////////////////////////////////////////////////
         // mix all channels (including reverb) into one buffer
@@ -753,22 +750,6 @@ void PCSX::SPU::impl::MainThread() {
         // wanna have around 1/60 sec (16.666 ms) updates
 
         if (iCycle++ > 16) {
-            //- zn qsound mixer callback ----------------------//
-
-            if (irqQSound) {
-                uint32_t *pl = (uint32_t *)XAPlay;
-                int16_t *ps = (int16_t *)pSpuBuffer;
-                int g, iBytes = ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer);
-                iBytes /= 2;
-                for (g = 0; g < iBytes; g++) {
-                    *pl++ = *ps++;
-                }
-
-                irqQSound((uint8_t *)pSpuBuffer, (uint32_t *)XAPlay, iBytes / 2);
-            }
-
-            //-------------------------------------------------//
-
             m_sound.feedStreamData((uint8_t *)pSpuBuffer, ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer));
             pS = (int16_t *)pSpuBuffer;
             iCycle = 0;
@@ -890,12 +871,6 @@ void PCSX::SPU::impl::SetupStreams() {
     sRVBEnd = sRVBStart + i;
     sRVBPlay = sRVBStart;
 
-    XAStart =  // alloc xa buffer
-        (uint32_t *)malloc(44100 * 4);
-    XAPlay = XAStart;
-    XAFeed = XAStart;
-    XAEnd = XAStart + 44100;
-
     for (i = 0; i < MAXCHAN; i++)  // loop sound channels
     {
         // we don't use mutex sync... not needed, would only
@@ -921,19 +896,6 @@ void PCSX::SPU::impl::RemoveStreams(void) {
     pSpuBuffer = NULL;
     free(sRVBStart);  // free reverb buffer
     sRVBStart = 0;
-    free(XAStart);  // free XA buffer
-    XAStart = 0;
-
-    /*
-     int i;
-     for(i=0;i<MAXCHAN;i++)
-      {
-       WaitForSingleObject(s_chan[i].hMutex,2000);
-       ReleaseMutex(s_chan[i].hMutex);
-       if(s_chan[i].hMutex)
-        {CloseHandle(s_chan[i].hMutex);s_chan[i].hMutex=0;}
-      }
-    */
 }
 
 ////////////////////////////////////////////////////////////////////////
