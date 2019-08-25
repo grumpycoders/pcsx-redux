@@ -27,8 +27,6 @@
 
 #include "spu/interface.h"
 
-void SPUirq(void);
-
 namespace {
 
 class CDRomImpl : public PCSX::CDRom {

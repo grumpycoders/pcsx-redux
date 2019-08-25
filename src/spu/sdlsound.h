@@ -30,8 +30,9 @@ class SDLsound {
     SDLsound(bool& muted) : m_muted(muted) {}
     void setup();
     void remove();
-    unsigned long getBytesBuffered();
-    void feedStreamData(unsigned char* pSound, long lBytes);
+    unsigned long getBytesBuffered(unsigned streamId = 0);
+    unsigned long getFreeBytes(unsigned streamId = 0) { return BUFFER_SIZE - getBytesBuffered(streamId); }
+    void feedStreamData(unsigned char* pSound, long lBytes, unsigned streamId = 0);
 
   private:
     void callback(Uint8* stream, int len);
@@ -39,16 +40,21 @@ class SDLsound {
         SDLsound* that = static_cast<SDLsound*>(userdata);
         that->callback(stream, len);
     }
-    void dequeueLocked(uint8_t* stream, size_t len);
-    void enqueueLocked(const uint8_t* data, size_t len);
+    void dequeueLocked(uint8_t* stream, size_t len, unsigned streamId);
+    void enqueueLocked(const uint8_t* data, size_t len, unsigned streamId);
 
     static const size_t BUFFER_SIZE = 32 * 1024 * 4;
 
-    SDL_AudioDeviceID s_dev = 0;
-    uint32_t s_ptrBegin = 0, s_ptrEnd = 0;
-    uint8_t s_buffer[BUFFER_SIZE];
-    SDL_mutex* s_mutex;
-    SDL_AudioSpec s_specs;
+    SDL_AudioDeviceID m_dev = 0;
+
+    struct {
+        uint32_t ptrBegin = 0, ptrEnd = 0;
+        uint8_t buffer[BUFFER_SIZE];
+        SDL_mutex* mutex;
+        SDL_cond* condition;
+    } m_streams[2];
+
+    SDL_AudioSpec m_specs;
     bool& m_muted;
 };
 
