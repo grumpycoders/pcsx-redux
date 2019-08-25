@@ -971,7 +971,5 @@ void PCSX::SPU::impl::playCDDAchannel(int16_t *data, int size) {
     m_cdda.stereo = 1;
     m_cdda.nbits = 16;
     memcpy(m_cdda.pcm, data, size);
-    iLeftXAVol = 32767;
-    iRightXAVol = 32767;
     FeedXA(&m_cdda);
 }

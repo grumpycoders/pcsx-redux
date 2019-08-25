@@ -41,10 +41,10 @@ static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, iPlace, vl, vr;
 
-    uint32_t XABuffer[8192];
+    uint32_t XABuffer[32 * 1024];
     uint32_t *XAFeed = XABuffer;
 
-    iPlace = 8192;
+    iPlace = 32 * 1024;
 
     if (!bSPUIsOpen) return;
 
@@ -53,7 +53,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
     if (!iSize) return;                             // none? bye
 
-    SDL_assert_always(iSize <= 8192);
+    SDL_assert_always(iSize <= 32 * 1024);
 
     //----------------------------------------------------//
     if (settings.get<StreamingPitch>())  // pitch change option?
