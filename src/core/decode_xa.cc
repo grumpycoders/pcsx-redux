@@ -23,7 +23,7 @@
 
 #include "core/decode_xa.h"
 
-//#define FIXED
+#define FIXED
 
 #define NOT(_X_) (!(_X_))
 #define XACLAMP(_X_, _MI_, _MA_)    \
@@ -44,9 +44,19 @@ static const double s_K0[4] = {0.0, 0.9375, 1.796875, 1.53125};
 
 static const double s_K1[4] = {0.0, 0.0, -0.8125, -0.859375};
 #else
-static const int s_K0[4] = {0.0 * (1 << SHC), 0.9375 * (1 << SHC), 1.796875 * (1 << SHC), 1.53125 * (1 << SHC)};
+static const int s_K0[4] = {
+    static_cast<int>(0.0 * (1 << SHC)),
+    static_cast<int>(0.9375 * (1 << SHC)),
+    static_cast<int>(1.796875 * (1 << SHC)),
+    static_cast<int>(1.53125 * (1 << SHC))
+};
 
-static const int s_K1[4] = {0.0 * (1 << SHC), 0.0 * (1 << SHC), -0.8125 * (1 << SHC), -0.859375 * (1 << SHC)};
+static const int s_K1[4] = {
+    static_cast<int>(0.0 * (1 << SHC)),
+    static_cast<int>(0.0 * (1 << SHC)),
+    static_cast<int>(-0.8125 * (1 << SHC)),
+    static_cast<int>(-0.859375 * (1 << SHC))
+};
 #endif
 
 #define BLKSIZ 28 /* block size (32 - 4 nibbles) */
@@ -66,14 +76,14 @@ static void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
 #define IK1(fid) (-s_K1[fid])
 #endif
 
-static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_range, const void *vblockp, short *destp,
+static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_range, const void *vblockp, int16_t *destp,
                                        int inc) {
     int i;
     int range, filterid;
     int32_t fy0, fy1;
     const uint16_t *blockp;
 
-    blockp = (const unsigned short *)vblockp;
+    blockp = (const uint16_t *)vblockp;
     filterid = (filter_range >> 4) & 0x0f;
     range = (filter_range >> 0) & 0x0f;
 
@@ -85,13 +95,13 @@ static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_rang
         int32_t x0, x1, x2, x3;
 
         y = *blockp++;
-        x3 = (short)(y & 0xf000) >> range;
+        x3 = (int16_t)(y & 0xf000) >> range;
         x3 <<= SH;
-        x2 = (short)((y << 4) & 0xf000) >> range;
+        x2 = (int16_t)((y << 4) & 0xf000) >> range;
         x2 <<= SH;
-        x1 = (short)((y << 8) & 0xf000) >> range;
+        x1 = (int16_t)((y << 8) & 0xf000) >> range;
         x1 <<= SH;
-        x0 = (short)((y << 12) & 0xf000) >> range;
+        x0 = (int16_t)((y << 12) & 0xf000) >> range;
         x0 <<= SH;
 
         x0 -= (IK0(filterid) * fy0 + (IK1(filterid) * fy1)) >> SHC;
@@ -127,12 +137,12 @@ static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_rang
 static const int s_headtable[4] = {0, 2, 8, 10};
 
 //===========================================
-static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {
+static void xa_decode_data(xa_decode_t *xdp, uint8_t *srcp) {
     const uint8_t *sound_groupsp;
     const uint8_t *sound_datap, *sound_datap2;
     int i, j, k, nbits;
     uint16_t data[4096], *datap;
-    short *destp;
+    int16_t *destp;
 
     destp = xdp->pcm;
     nbits = xdp->nbits == 4 ? 4 : 2;
@@ -285,7 +295,7 @@ typedef struct {
 #define SUB_AUDIO 2
 
 //============================================
-static int parse_xa_audio_sector(xa_decode_t *xdp, xa_subheader_t *subheadp, unsigned char *sectorp,
+static int parse_xa_audio_sector(xa_decode_t *xdp, xa_subheader_t *subheadp, uint8_t *sectorp,
                                  int is_first_sector) {
     if (is_first_sector) {
         switch (AUDIO_CODING_GET_FREQ(subheadp->coding)) {
@@ -344,7 +354,7 @@ static int parse_xa_audio_sector(xa_decode_t *xdp, xa_subheader_t *subheadp, uns
 //===                  - 0 for any other successive sector
 //=== return -1 if error
 //================================================================
-int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_sector) {
+int32_t xa_decode_sector(xa_decode_t *xdp, uint8_t *sectorp, int is_first_sector) {
     if (parse_xa_audio_sector(xdp, (xa_subheader_t *)sectorp, sectorp + sizeof(xa_subheader_t), is_first_sector))
         return -1;
 
