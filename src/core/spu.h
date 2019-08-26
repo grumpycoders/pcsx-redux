@@ -64,10 +64,10 @@ class SPUInterface {
     virtual bool configure() = 0;
     virtual void save(SaveStates::SPU &) = 0;
     virtual void load(const SaveStates::SPU &) = 0;
+    virtual ~SPUInterface() {}
 
     bool m_showDebug = false;
     bool m_showCfg = false;
-
 
   protected:
     void scheduleInterrupt();
