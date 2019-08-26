@@ -458,8 +458,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(_(
-                    "When two instructions are detected to be a single pseudo-instruction, combine them into the "
+                ImGui::TextWrapped(
+                    _("When two instructions are detected to be a single pseudo-instruction, combine them into the "
                       "actual pseudo-instruction."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
@@ -468,8 +468,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(_(
-                    "When combining two instructions into a single pseudo-instruction, add a placeholder for the "
+                ImGui::TextWrapped(
+                    _("When combining two instructions into a single pseudo-instruction, add a placeholder for the "
                       "second one."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
@@ -478,7 +478,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(_("Add a small visible notch to indicate instructions that are on the delay slot of a branch."));
+                ImGui::TextWrapped(
+                    _("Add a small visible notch to indicate instructions that are on the delay slot of a branch."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
@@ -499,21 +500,19 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     DummyAsm dummy;
 
     uint32_t pc = virtToReal(m_registers->pc);
+    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>().value);
+    ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
     DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
     ImGui::SameLine();
-    DButton(_("Resume"), !g_system->running(), [&]() mutable {
-        g_system->resume(); });
+    DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
     ImGui::SameLine();
-    DButton(_("Step In"), !g_system->running(), [&]() mutable {
-        g_emulator.m_debug->stepIn(); });
+    DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
     ImGui::SameLine();
-    DButton(_("Step Over"), !g_system->running(), [&]() mutable {
-        g_emulator.m_debug->stepOver(); });
+    DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
     ImGui::SameLine();
-    DButton(_("Step Out"), !g_system->running(), [&]() mutable {
-        g_emulator.m_debug->stepOut(); });
+    DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
             g_emulator.m_debug->stepOver();
@@ -588,7 +587,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
+            process(
+                addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
         }
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
@@ -878,10 +878,11 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
 
     if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
     if (m_symbolsFileDialog.draw()) {
-        std::vector<std::string> filesToOpen = m_symbolsFileDialog.selected();
+        std::vector<PCSX::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
-            file.open(fileName);
+            // oh the irony
+            file.open(reinterpret_cast<const char *>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;

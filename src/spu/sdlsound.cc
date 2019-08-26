@@ -25,91 +25,148 @@
 
 #include "spu/sdlsound.h"
 
-void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len) {
-    if ((BUFFER_SIZE - s_ptrBegin) < len) {
-        size_t subLen = BUFFER_SIZE - s_ptrBegin;
-        dequeueLocked(stream, subLen);
+void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len, unsigned streamId) {
+    auto & str = m_streams[streamId];
+    if ((BUFFER_SIZE - str.ptrBegin) < len) {
+        size_t subLen = BUFFER_SIZE - str.ptrBegin;
+        dequeueLocked(stream, subLen, streamId);
         len -= subLen;
-        dequeueLocked(stream + subLen, len);
+        dequeueLocked(stream + subLen, len, streamId);
         return;
     }
-    memcpy(stream, s_buffer + s_ptrBegin, len);
-    s_ptrBegin += len;
-    if (s_ptrBegin == BUFFER_SIZE) s_ptrBegin = 0;
+    memcpy(stream, str.buffer + str.ptrBegin, len);
+    str.ptrBegin += len;
+    if (str.ptrBegin == BUFFER_SIZE) str.ptrBegin = 0;
+    SDL_CondSignal(str.condition);
 }
 
 void PCSX::SPU::SDLsound::callback(Uint8* stream, int len) {
-    SDL_LockMutex(s_mutex);
+    if (m_muted) {
+        memset(stream, 0, len);
+        return;
+    }
+
+    auto str = m_streams;
+
+    SDL_LockMutex(str->mutex);
     size_t available;
-    if (s_ptrEnd >= s_ptrBegin) {
-        available = s_ptrEnd - s_ptrBegin;
+    if (str->ptrEnd >= str->ptrBegin) {
+        available = str->ptrEnd - str->ptrBegin;
     } else {
-        available = s_ptrEnd + BUFFER_SIZE - s_ptrBegin;
+        available = str->ptrEnd + BUFFER_SIZE - str->ptrBegin;
     }
 
     if (available < len) {
-        dequeueLocked(stream, available);
-        memset(stream + available, 0, len - available);
+        dequeueLocked(stream, available, 0);
     } else {
-        dequeueLocked(stream, len);
+        dequeueLocked(stream, len, 0);
     }
-    SDL_UnlockMutex(s_mutex);
+    SDL_UnlockMutex(str->mutex);
+    if (available < len) {
+        memset(stream + available, 0, len - available);
+    }
+
+    str = m_streams + 1;
+
+    SDL_LockMutex(str->mutex);
+    if (str->ptrEnd >= str->ptrBegin) {
+        available = str->ptrEnd - str->ptrBegin;
+    } else {
+        available = str->ptrEnd + BUFFER_SIZE - str->ptrBegin;
+    }
+    if (available == 0) {
+        SDL_UnlockMutex(str->mutex);
+        return;
+    }
+    Uint8 xaStream[0x1000];
+    SDL_assert_always(len <= 0x1000);
+    if (available < len) {
+        len = available;
+    }
+    dequeueLocked(xaStream, len, 1);
+    SDL_UnlockMutex(str->mutex);
+    SDL_MixAudioFormat(stream, xaStream, m_specs.format, len, SDL_MIX_MAXVOLUME);
 }
 
 void PCSX::SPU::SDLsound::setup() {
-    SDL_zero(s_specs);
-    s_specs.freq = 44100;
-    s_specs.format = AUDIO_S16LSB;
-    s_specs.channels = 2;
-    s_specs.samples = 1024;
-    s_specs.callback = callbackTrampoline;
-    s_specs.userdata = this;
-    s_dev = SDL_OpenAudioDevice(NULL, 0, &s_specs, NULL, 0 /* SDL_AUDIO_ALLOW_SAMPLES_CHANGE */);
-    if (s_dev) SDL_PauseAudioDevice(s_dev, 0);
+    SDL_zero(m_specs);
+    m_specs.freq = 44100;
+    m_specs.format = AUDIO_S16LSB;
+    m_specs.channels = 2;
+    m_specs.samples = 1024;
+    m_specs.callback = callbackTrampoline;
+    m_specs.userdata = this;
+    m_dev = SDL_OpenAudioDevice(NULL, 0, &m_specs, NULL, 0 /* SDL_AUDIO_ALLOW_SAMPLES_CHANGE */);
+    if (m_dev) SDL_PauseAudioDevice(m_dev, 0);
 
-    s_mutex = SDL_CreateMutex();
-    assert(s_mutex);
+    m_streams[0].mutex = SDL_CreateMutex();
+    m_streams[1].mutex = SDL_CreateMutex();
+    m_streams[0].condition = SDL_CreateCond();
+    m_streams[1].condition = SDL_CreateCond();
+    SDL_assert_always(m_streams[0].mutex);
+    SDL_assert_always(m_streams[1].mutex);
+    SDL_assert_always(m_streams[0].condition);
+    SDL_assert_always(m_streams[1].condition);
 }
 
 void PCSX::SPU::SDLsound::remove() {
-    if (s_dev) SDL_CloseAudioDevice(s_dev);
-    s_dev = 0;
-    SDL_DestroyMutex(s_mutex);
+    if (m_dev) SDL_CloseAudioDevice(m_dev);
+    m_dev = 0;
+    SDL_DestroyMutex(m_streams[0].mutex);
+    SDL_DestroyMutex(m_streams[1].mutex);
+    SDL_DestroyCond(m_streams[0].condition);
+    SDL_DestroyCond(m_streams[1].condition);
 }
 
-unsigned long PCSX::SPU::SDLsound::getBytesBuffered(void) {
+unsigned long PCSX::SPU::SDLsound::getBytesBuffered(unsigned streamId) {
     unsigned long r;
 
-    SDL_LockMutex(s_mutex);
+    SDL_LockMutex(m_streams[streamId].mutex);
 
-    if (s_ptrEnd >= s_ptrBegin) {
-        r = s_ptrEnd - s_ptrBegin;
+    if (m_streams[streamId].ptrEnd >= m_streams[streamId].ptrBegin) {
+        r = m_streams[streamId].ptrEnd - m_streams[streamId].ptrBegin;
     } else {
-        r = s_ptrEnd + BUFFER_SIZE - s_ptrBegin;
+        r = m_streams[streamId].ptrEnd + BUFFER_SIZE - m_streams[streamId].ptrBegin;
     }
 
-    SDL_UnlockMutex(s_mutex);
+    SDL_UnlockMutex(m_streams[streamId].mutex);
 
     return r;
 }
 
-void PCSX::SPU::SDLsound::enqueueLocked(const uint8_t* data, size_t len) {
-    if (len > (BUFFER_SIZE - s_ptrEnd)) {
-        size_t subLen = BUFFER_SIZE - s_ptrEnd;
-        enqueueLocked(data, subLen);
+void PCSX::SPU::SDLsound::enqueueLocked(const uint8_t* data, size_t len, unsigned streamId) {
+    auto & str = m_streams[streamId];
+
+    while (true) {
+        size_t available;
+        if (str.ptrEnd >= str.ptrBegin) {
+            available = BUFFER_SIZE - (str.ptrEnd - str.ptrBegin);
+        } else {
+            available = str.ptrBegin - str.ptrEnd;
+        }
+
+        if (len >= available) {
+            SDL_CondWait(str.condition, str.mutex);
+        } else {
+            break;
+        }
+    }
+
+    if (len > (BUFFER_SIZE - str.ptrEnd)) {
+        size_t subLen = BUFFER_SIZE - str.ptrEnd;
+        enqueueLocked(data, subLen, streamId);
         len -= subLen;
-        enqueueLocked(data + subLen, len);
+        enqueueLocked(data + subLen, len, streamId);
         return;
     }
 
-    memcpy(s_buffer + s_ptrEnd, data, len);
-    if (m_muted) memset(s_buffer + s_ptrEnd, 0, len);
-    s_ptrEnd += len;
-    if (s_ptrEnd == BUFFER_SIZE) s_ptrEnd = 0;
+    memcpy(str.buffer + str.ptrEnd, data, len);
+    str.ptrEnd += len;
+    if (str.ptrEnd == BUFFER_SIZE) str.ptrEnd = 0;
 }
 
-void PCSX::SPU::SDLsound::feedStreamData(unsigned char* pSound, long lBytes) {
-    SDL_LockMutex(s_mutex);
-    enqueueLocked(pSound, lBytes);
-    SDL_UnlockMutex(s_mutex);
+void PCSX::SPU::SDLsound::feedStreamData(unsigned char* pSound, long lBytes, unsigned streamId) {
+    SDL_LockMutex(m_streams[streamId].mutex);
+    enqueueLocked(pSound, lBytes, streamId);
+    SDL_UnlockMutex(m_streams[streamId].mutex);
 }

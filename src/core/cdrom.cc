@@ -27,8 +27,6 @@
 
 #include "spu/interface.h"
 
-void SPUirq(void);
-
 namespace {
 
 class CDRomImpl : public PCSX::CDRom {
@@ -162,49 +160,31 @@ class CDRomImpl : public PCSX::CDRom {
 
     // interrupt
     static inline void scheduleCDIRQ(uint32_t eCycle) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDR);
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDR].cycle = eCycle;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDR].sCycle =
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDR, eCycle);
     }
 
     // readInterrupt
     static inline void scheduleCDReadIRQ(uint32_t eCycle) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDREAD);
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDREAD].cycle = eCycle;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDREAD].sCycle =
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, eCycle);
     }
 
     // decodedBufferInterrupt
     static inline void scheduleDecodeBufferIRQ(uint32_t eCycle) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRDBUF);
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDBUF].cycle = eCycle;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDBUF].sCycle =
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRDBUF, eCycle);
     }
 
     // lidSeekInterrupt
     static inline void scheduleCDLidIRQ(uint32_t eCycle) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRLID);
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRLID].cycle = eCycle;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRLID].sCycle =
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRLID, eCycle);
     }
 
     // playInterrupt
     static inline void scheduleCDPlayIRQ(uint32_t eCycle) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRPLAY);
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRPLAY].cycle = eCycle;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRPLAY].sCycle =
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRPLAY, eCycle);
     }
 
     static inline void scheduleCDDMAIRQ(uint32_t eCycle) {
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_CDRDMA);
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDMA].cycle = eCycle;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_CDRDMA].sCycle =
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+        PCSX::g_emulator.m_psxCpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, eCycle);
     }
 
     inline void StopReading() {
@@ -223,7 +203,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_play = false;
             m_fastForward = 0;
             m_fastBackward = 0;
-            PCSX::g_emulator.m_spu->registerCallback(SPUirq);
+            // PCSX::g_emulator.m_spu->registerCallback(SPUirq);
         }
     }
 
@@ -268,7 +248,7 @@ class CDRomImpl : public PCSX::CDRom {
         if ((PCSX::g_emulator.m_spu->readRegister(H_SPUirqAddr) * 8) >= 0x800) return;
 
         // turn off plugin SPU IRQ decoded buffer handling
-        PCSX::g_emulator.m_spu->registerCallback(0);
+        // PCSX::g_emulator.m_spu->registerCallback(0);
 
         /*
         Vib Ribbon

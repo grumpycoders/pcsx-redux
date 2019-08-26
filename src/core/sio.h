@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "core/plugins.h"
 #include "core/psemu_plugin_defs.h"
 #include "core/psxemulator.h"
@@ -94,10 +96,7 @@ class SIO {
     };
     inline void scheduleInterrupt(uint32_t eCycle) {
         if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt |= (1 << PCSX::PSXINT_SIO);
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].cycle = eCycle;
-            PCSX::g_emulator.m_psxCpu->m_psxRegs.intCycle[PCSX::PSXINT_SIO].sCycle =
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle;
+            g_emulator.m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
         }
 #if 0
 // Breaks Twisted Metal 2 intro
@@ -130,11 +129,11 @@ class SIO {
 
     void interrupt();
 
-    void LoadMcd(int mcd, const char *str);
-    void LoadMcds(const char *mcd1, const char *mcd2);
-    void SaveMcd(const char *mcd, const char *data, uint32_t adr, size_t size);
-    void CreateMcd(const char *mcd);
-    void ConvertMcd(const char *mcd, const char *data);
+    void LoadMcd(int mcd, const PCSX::u8string str);
+    void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
+    void SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void CreateMcd(const PCSX::u8string mcd);
+    void ConvertMcd(const PCSX::u8string mcd, const char *data);
 
     typedef struct {
         char Title[48 + 1];       // Title in ASCII

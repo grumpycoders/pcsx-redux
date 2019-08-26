@@ -194,7 +194,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\main\settings.h" />
+    <ClInclude Include="..\..\third_party\atomicops.h" />
     <ClInclude Include="..\..\third_party\json.hpp" />
+    <ClInclude Include="..\..\third_party\readerwriterqueue.h" />
     <ClInclude Include="..\..\third_party\typestring.hh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -435,6 +435,16 @@ void PCSX::SPU::impl::MainThread() {
 
     while (!bEndThread)  // until we are shutting down
     {
+        {
+            bool hasWrites;
+            do {
+                RegisterWrite write;
+                hasWrites = m_registersWritesQueue.try_dequeue(write);
+                if (hasWrites) {
+                    writeRegisterAtomic(write.registerIndex, write.value);
+                }
+            } while (hasWrites);
+        }
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
         // enuff free place in the dsound/oss buffer to
@@ -447,8 +457,8 @@ void PCSX::SPU::impl::MainThread() {
         {                    // (at least one bit 0 ... MAXCHANNEL is set?)
             iSecureStart++;  // -> set iSecure
             if (iSecureStart > 5)
-                iSecureStart = 0;  //    (if it is set 5 times - that means on 5 tries a new samples has been started -
-                                   //    in a row, we will reset it, to give the sound update a chance)
+                iSecureStart = 0;  //    (if it is set 5 times - that means on 5 tries a new samples has been
+                                   //    started - in a row, we will reset it, to give the sound update a chance)
         } else
             iSecureStart = 0;  // 0: no new channel should start
 
@@ -553,18 +563,18 @@ void PCSX::SPU::impl::MainThread() {
 
                             //////////////////////////////////////////// irq check
 
-                            if (irqCallback && (spuCtrl & 0x40))  // some callback and irq active?
+                            if ((spuCtrl & 0x40))  // some callback and irq active?
                             {
                                 if ((pSpuIrq > start - 16 &&  // irq address reached?
                                      pSpuIrq <= start) ||
                                     ((flags & 1) &&  // special: irq on looping addr, when stop/loop flag is set
                                      (pSpuIrq > pChannel->pLoop - 16 && pSpuIrq <= pChannel->pLoop))) {
                                     pChannel->data.get<PCSX::SPU::Chan::IrqDone>().value = 1;  // -> debug flag
-                                    irqCallback();                                             // -> call main emu
+                                    scheduleInterrupt();                                       // -> call main emu
 
                                     if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
                                     {
-                                        iSpuAsyncWait = 1;
+                                        iSpuAsyncWait.store(1);
                                         bIRQReturn = 1;
                                     }
                                 }
@@ -600,7 +610,7 @@ void PCSX::SPU::impl::MainThread() {
                                 bIRQReturn = 0;
                                 Uint32 dwWatchTime = SDL_GetTicks() + 2500;
 
-                                while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
+                                while (iSpuAsyncWait.load() && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
                             }
 
                             ////////////////////////////////////////////
@@ -665,9 +675,6 @@ void PCSX::SPU::impl::MainThread() {
         //---------------------------------------------------//
         //- here we have another 1 ms of sound data
         //---------------------------------------------------//
-        // mix XA infos (if any)
-
-        if (XAPlay != XAFeed || XARepeat) MixXA();
 
         ///////////////////////////////////////////////////////
         // mix all channels (including reverb) into one buffer
@@ -730,13 +737,13 @@ void PCSX::SPU::impl::MainThread() {
         // Also note: we abuse the channel 0-3 irq debug display for those irqs
         // (since that's the easiest way to display such irqs in debug mode :))
 
-        if (pMixIrq && irqCallback)  // pMixIRQ will only be set, if the config option is active
+        if (pMixIrq)  // pMixIRQ will only be set, if the config option is active
         {
             for (ns = 0; ns < NSSIZE; ns++) {
                 if ((spuCtrl & 0x40) && pSpuIrq && pSpuIrq < spuMemC + 0x1000) {
                     for (ch = 0; ch < 4; ch++) {
                         if (pSpuIrq >= pMixIrq + (ch * 0x400) && pSpuIrq < pMixIrq + (ch * 0x400) + 2) {
-                            irqCallback();
+                            scheduleInterrupt();
                             s_chan[ch].data.get<PCSX::SPU::Chan::IrqDone>().value = 1;
                         }
                     }
@@ -753,22 +760,6 @@ void PCSX::SPU::impl::MainThread() {
         // wanna have around 1/60 sec (16.666 ms) updates
 
         if (iCycle++ > 16) {
-            //- zn qsound mixer callback ----------------------//
-
-            if (irqQSound) {
-                uint32_t *pl = (uint32_t *)XAPlay;
-                int16_t *ps = (int16_t *)pSpuBuffer;
-                int g, iBytes = ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer);
-                iBytes /= 2;
-                for (g = 0; g < iBytes; g++) {
-                    *pl++ = *ps++;
-                }
-
-                irqQSound((uint8_t *)pSpuBuffer, (uint32_t *)XAPlay, iBytes / 2);
-            }
-
-            //-------------------------------------------------//
-
             m_sound.feedStreamData((uint8_t *)pSpuBuffer, ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer));
             pS = (int16_t *)pSpuBuffer;
             iCycle = 0;
@@ -790,10 +781,10 @@ void PCSX::SPU::impl::MainThread() {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::async(uint32_t cycle) {
-    if (iSpuAsyncWait) {
+    if (iSpuAsyncWait.load()) {
         iSpuAsyncWait++;
-        if (iSpuAsyncWait <= 64) return;
-        iSpuAsyncWait = 0;
+        if (iSpuAsyncWait.load() <= 64) return;
+        iSpuAsyncWait.store(0);
     }
 }
 
@@ -890,12 +881,6 @@ void PCSX::SPU::impl::SetupStreams() {
     sRVBEnd = sRVBStart + i;
     sRVBPlay = sRVBStart;
 
-    XAStart =  // alloc xa buffer
-        (uint32_t *)malloc(44100 * 4);
-    XAPlay = XAStart;
-    XAFeed = XAStart;
-    XAEnd = XAStart + 44100;
-
     for (i = 0; i < MAXCHAN; i++)  // loop sound channels
     {
         // we don't use mutex sync... not needed, would only
@@ -921,19 +906,6 @@ void PCSX::SPU::impl::RemoveStreams(void) {
     pSpuBuffer = NULL;
     free(sRVBStart);  // free reverb buffer
     sRVBStart = 0;
-    free(XAStart);  // free XA buffer
-    XAStart = 0;
-
-    /*
-     int i;
-     for(i=0;i<MAXCHAN;i++)
-      {
-       WaitForSingleObject(s_chan[i].hMutex,2000);
-       ReleaseMutex(s_chan[i].hMutex);
-       if(s_chan[i].hMutex)
-        {CloseHandle(s_chan[i].hMutex);s_chan[i].hMutex=0;}
-      }
-    */
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -994,28 +966,12 @@ long PCSX::SPU::impl::close(void) {
 long PCSX::SPU::impl::shutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
-// SPUTEST: we don't test, we are always fine ;)
-////////////////////////////////////////////////////////////////////////
-
-long PCSX::SPU::impl::test(void) { return 0; }
-
-////////////////////////////////////////////////////////////////////////
-// SPUABOUT: show about window
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::about(void) {}
-
-////////////////////////////////////////////////////////////////////////
 // SETUP CALLBACKS
 // this functions will be called once,
 // passes a callback that should be called on SPU-IRQ/cdda volume change
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::registerCallback(void (*callback)(void)) { irqCallback = callback; }
-
-void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t)) {
-    cddavCallback = CDDAVcallback;
-}
+void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t)) { cddavCallback = CDDAVcallback; }
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -1025,7 +981,5 @@ void PCSX::SPU::impl::playCDDAchannel(int16_t *data, int size) {
     m_cdda.stereo = 1;
     m_cdda.nbits = 16;
     memcpy(m_cdda.pcm, data, size);
-    iLeftXAVol = 32767;
-    iRightXAVol = 32767;
     FeedXA(&m_cdda);
 }

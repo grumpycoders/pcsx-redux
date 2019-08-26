@@ -93,12 +93,12 @@ static std::optional<T> get(const argument_map& options, const std::string_view&
 
 // Since the values are already stored as strings, there's no need to use `>>`.
 template <>
-static std::optional<std::string_view> get(const argument_map& options, const std::string_view& option) {
+std::optional<std::string_view> get(const argument_map& options, const std::string_view& option) {
     return get_value(options, option);
 }
 
 template <>
-static std::optional<std::string> get(const argument_map& options, const std::string_view& option) {
+std::optional<std::string> get(const argument_map& options, const std::string_view& option) {
     if (const auto view = get<std::string_view>(options, option)) {
         return std::string(*view);
     }
@@ -110,7 +110,7 @@ static std::optional<std::string> get(const argument_map& options, const std::st
 // present.
 constexpr std::array<const char*, 5> falsities{{"0", "n", "no", "f", "false"}};
 template <>
-static std::optional<bool> get(const argument_map& options, const std::string_view& option) {
+std::optional<bool> get(const argument_map& options, const std::string_view& option) {
     if (const auto value = get_value(options, option)) {
         return std::none_of(falsities.begin(), falsities.end(), [&value](auto falsity) { return *value == falsity; });
     }

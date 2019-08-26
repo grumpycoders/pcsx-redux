@@ -35,49 +35,25 @@ static uint16_t loword(uint32_t v) { return v & 0xffff; }
 static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 
 ////////////////////////////////////////////////////////////////////////
-// MIX XA
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::MixXA() {
-    int ns;
-
-    for (ns = 0; ns < PCSX::SPU::impl::NSSIZE && XAPlay != XAFeed; ns++) {
-        XALastVal = *XAPlay++;
-        if (XAPlay == XAEnd) XAPlay = XAStart;
-        SSumL[ns] += (((int16_t)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
-        SSumR[ns] += (((int16_t)((XALastVal >> 16) & 0xffff)) * iRightXAVol) / 32767;
-    }
-
-    if (XAPlay == XAFeed && XARepeat) {
-        XARepeat--;
-        for (; ns < NSSIZE; ns++) {
-            SSumL[ns] += (((int16_t)(XALastVal & 0xffff)) * iLeftXAVol) / 32767;
-            SSumR[ns] += (((int16_t)((XALastVal >> 16) & 0xffff)) * iRightXAVol) / 32767;
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
 // FEED XA
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, iPlace, vl, vr;
 
+    uint32_t XABuffer[32 * 1024];
+    uint32_t *XAFeed = XABuffer;
+
+    iPlace = 32 * 1024;
+
     if (!bSPUIsOpen) return;
 
     xapGlobal = xap;  // store info for save states
-    XARepeat = 100;   // set up repeat
 
     iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
     if (!iSize) return;                             // none? bye
 
-    if (XAFeed < XAPlay)
-        iPlace = XAPlay - XAFeed;  // how much space in my buf?
-    else
-        iPlace = (XAEnd - XAFeed) + (XAPlay - XAStart);
-
-    if (iPlace == 0) return;  // no place at all
+    SDL_assert_always(iSize <= 32 * 1024);
 
     //----------------------------------------------------//
     if (settings.get<StreamingPitch>())  // pitch change option?
@@ -169,13 +145,6 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 l = (l1 & 0xffff) | (l2 << 16);
 
                 *XAFeed++ = l;
-
-                if (XAFeed == XAEnd) XAFeed = XAStart;
-                if (XAFeed == XAPlay) {
-                    if (XAPlay != XAStart) XAFeed = XAPlay - 1;
-                    break;
-                }
-
                 spos += sinc;
             }
         } else {
@@ -207,13 +176,6 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 }
 
                 *XAFeed++ = l;
-
-                if (XAFeed == XAEnd) XAFeed = XAStart;
-                if (XAFeed == XAPlay) {
-                    if (XAPlay != XAStart) XAFeed = XAPlay - 1;
-                    break;
-                }
-
                 spos += sinc;
             }
         }
@@ -251,13 +213,6 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 if (l1 > 32767) l1 = 32767;
                 l = (l1 & 0xffff) | (l1 << 16);
                 *XAFeed++ = l;
-
-                if (XAFeed == XAEnd) XAFeed = XAStart;
-                if (XAFeed == XAPlay) {
-                    if (XAPlay != XAStart) XAFeed = XAPlay - 1;
-                    break;
-                }
-
                 spos += sinc;
             }
         } else {
@@ -284,15 +239,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 }
 
                 *XAFeed++ = (l | (l << 16));
-
-                if (XAFeed == XAEnd) XAFeed = XAStart;
-                if (XAFeed == XAPlay) {
-                    if (XAPlay != XAStart) XAFeed = XAPlay - 1;
-                    break;
-                }
-
                 spos += sinc;
             }
         }
     }
+
+    m_sound.feedStreamData((uint8_t *)XABuffer, (XAFeed - XABuffer) * sizeof(uint32_t), 1);
 }

@@ -32,5 +32,11 @@
     <ClInclude Include="..\..\src\main\settings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\third_party\atomicops.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\readerwriterqueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

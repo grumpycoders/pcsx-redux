@@ -685,7 +685,7 @@ int RecvPcsxInfo() {
             PCSX::g_system->close();
             return -1;
         }
-        PCSX::g_emulator.m_psxCpu->Reset();
+        PCSX::g_emulator.m_psxCpu->psxReset();
     }
 
     return 0;

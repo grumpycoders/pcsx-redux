@@ -17,13 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __SPU_H__
-#define __SPU_H__
+#pragma once
 
+#include "json.hpp"
+
+#include "core/decode_xa.h"
 #include "core/plugins.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/sstate.h"
 
 /*
 #define H_SPUirqAddr 0x0da4
@@ -37,6 +40,37 @@
 #define H_SPUoff2 0x0d8e
 */
 
-void SPUirq(void);
+namespace PCSX {
 
-#endif
+class SPUInterface {
+  public:
+    using json = nlohmann::json;
+
+    void interrupt();
+    virtual bool open() = 0;
+    virtual long init(void) = 0;
+    virtual long shutdown(void) = 0;
+    virtual long close(void) = 0;
+    virtual uint16_t readRegister(uint32_t) = 0;
+    virtual void writeRegister(uint32_t, uint16_t) = 0;
+    virtual void playCDDAchannel(int16_t *, int) = 0;
+    virtual void playADPCMchannel(xa_decode_t *) = 0;
+    virtual void async(uint32_t) = 0;
+    virtual void writeDMAMem(uint16_t *, int) = 0;
+    virtual void readDMAMem(uint16_t *, int) = 0;
+    virtual json getCfg() = 0;
+    virtual void setCfg(const json &j) = 0;
+    virtual void debug() = 0;
+    virtual bool configure() = 0;
+    virtual void save(SaveStates::SPU &) = 0;
+    virtual void load(const SaveStates::SPU &) = 0;
+    virtual ~SPUInterface() {}
+
+    bool m_showDebug = false;
+    bool m_showCfg = false;
+
+  protected:
+    void scheduleInterrupt();
+};
+
+}  // namespace PCSX

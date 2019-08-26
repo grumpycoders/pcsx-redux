@@ -133,16 +133,16 @@ void PCSX::GUI::init() {
         setFullscreen(m_fullscreen);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
-            emuSettings.get<Emulator::SettingMcd1>() = "memcard1.mcd";
+            emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
         }
 
         if (emuSettings.get<Emulator::SettingMcd2>().empty()) {
-            emuSettings.get<Emulator::SettingMcd2>() = "memcard2.mcd";
+            emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
-        std::string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
-        std::string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
-        PCSX::g_emulator.m_sio->LoadMcds(path1.c_str(), path2.c_str());
+        PCSX::u8string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
+        PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
+        PCSX::g_emulator.m_sio->LoadMcds(path1, path2);
     }
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -432,6 +432,7 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show BIOS counters"), nullptr, &m_showBiosCounters);
+                ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator.m_gpu->m_showDebug);
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
@@ -466,10 +467,10 @@ void PCSX::GUI::endFrame() {
     if (m_openIsoFileDialog.draw()) {
         isoPath.value = m_openIsoFileDialog.m_currentPath;
         changed = true;
-        std::vector<std::string> fileToOpen = m_openIsoFileDialog.selected();
+        std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator.m_cdrom->m_iso.close();
-            SetIsoFile(fileToOpen[0].c_str());
+            SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
             PCSX::g_emulator.m_cdrom->m_iso.open();
             CheckCdrom();
         }
@@ -555,6 +556,7 @@ void PCSX::GUI::endFrame() {
 
     about();
     biosCounters();
+    interruptsScaler();
 
     PCSX::g_emulator.m_spu->debug();
     changed |= PCSX::g_emulator.m_spu->configure();
@@ -686,7 +688,7 @@ bool PCSX::GUI::configure() {
         changed |= ImGui::Checkbox(_("BIOS HLE"), &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox(_("Fast boot"), &settings.get<Emulator::SettingFastBoot>().value);
         auto bios = settings.get<Emulator::SettingBios>().string();
-        ImGui::InputText(_("BIOS file"), const_cast<char*>(bios.c_str()), bios.length(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(), ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
     }
@@ -694,7 +696,7 @@ bool PCSX::GUI::configure() {
 
     if (selectBiosDialog) m_selectBiosDialog.openDialog();
     if (m_selectBiosDialog.draw()) {
-        std::vector<std::string> fileToOpen = m_selectBiosDialog.selected();
+        std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
         if (!fileToOpen.empty()) settings.get<Emulator::SettingBios>().value = fileToOpen[0];
     }
     return changed;
@@ -788,6 +790,26 @@ void PCSX::GUI::biosCounters() {
             ImGui::Text(name);
         }
         ImGui::EndChild();
+    }
+    ImGui::End();
+}
+
+void PCSX::GUI::interruptsScaler() {
+    if (!m_showInterruptsScaler) return;
+    static const char* names[] = {
+        "SIO",         "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",      "GPU Busy",
+        "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek", "CDR Play"};
+    if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
+        if (ImGui::Button(_("Reset all"))) {
+            for (auto& scale : g_emulator.m_psxCpu->m_interruptScales) {
+                scale = 1.0f;
+            }
+        }
+        unsigned counter = 0;
+        for (auto& scale : g_emulator.m_psxCpu->m_interruptScales) {
+            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", 5.0f);
+            counter++;
+        }
     }
     ImGui::End();
 }

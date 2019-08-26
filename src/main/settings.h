@@ -31,6 +31,8 @@
 #include "json.hpp"
 #include "typestring.hh"
 
+#include "core/system.h"
+
 namespace PCSX {
 
 template <typename type, typename name, type defaultValue = type()>
@@ -104,7 +106,7 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
         value = v;
         return *this;
     }
-    std::string string() const { return value.u8string(); }
+    PCSX::u8string string() const { return value.u8string(); }
     bool empty() const { return value.u8string().empty(); }
     json serialize() const { return value.u8string(); }
     void deserialize(const json &j) {
