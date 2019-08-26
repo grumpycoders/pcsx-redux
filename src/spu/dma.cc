@@ -40,7 +40,7 @@ void PCSX::SPU::impl::readDMAMem(uint16_t* pusPSXMem, int iSize) {
         if (spuAddr > 0x7ffff) spuAddr = 0;   // wrap
     }
 
-    iSpuAsyncWait.store(0);
+    iSpuAsyncWait = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ void PCSX::SPU::impl::writeDMAMem(uint16_t* pusPSXMem, int iSize) {
         if (spuAddr > 0x7ffff) spuAddr = 0;   // wrap
     }
 
-    iSpuAsyncWait.store(0);
+    iSpuAsyncWait = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////

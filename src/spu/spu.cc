@@ -435,16 +435,6 @@ void PCSX::SPU::impl::MainThread() {
 
     while (!bEndThread)  // until we are shutting down
     {
-        {
-            bool hasWrites;
-            do {
-                RegisterWrite write;
-                hasWrites = m_registersWritesQueue.try_dequeue(write);
-                if (hasWrites) {
-                    writeRegisterAtomic(write.registerIndex, write.value);
-                }
-            } while (hasWrites);
-        }
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
         // enuff free place in the dsound/oss buffer to
@@ -457,8 +447,8 @@ void PCSX::SPU::impl::MainThread() {
         {                    // (at least one bit 0 ... MAXCHANNEL is set?)
             iSecureStart++;  // -> set iSecure
             if (iSecureStart > 5)
-                iSecureStart = 0;  //    (if it is set 5 times - that means on 5 tries a new samples has been
-                                   //    started - in a row, we will reset it, to give the sound update a chance)
+                iSecureStart = 0;  //    (if it is set 5 times - that means on 5 tries a new samples has been started -
+                                   //    in a row, we will reset it, to give the sound update a chance)
         } else
             iSecureStart = 0;  // 0: no new channel should start
 
@@ -574,7 +564,7 @@ void PCSX::SPU::impl::MainThread() {
 
                                     if (settings.get<SPUIRQWait>())  // -> option: wait after irq for main emu
                                     {
-                                        iSpuAsyncWait.store(1);
+                                        iSpuAsyncWait = 1;
                                         bIRQReturn = 1;
                                     }
                                 }
@@ -610,7 +600,7 @@ void PCSX::SPU::impl::MainThread() {
                                 bIRQReturn = 0;
                                 Uint32 dwWatchTime = SDL_GetTicks() + 2500;
 
-                                while (iSpuAsyncWait.load() && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
+                                while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
                             }
 
                             ////////////////////////////////////////////
@@ -781,10 +771,10 @@ void PCSX::SPU::impl::MainThread() {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::async(uint32_t cycle) {
-    if (iSpuAsyncWait.load()) {
+    if (iSpuAsyncWait) {
         iSpuAsyncWait++;
-        if (iSpuAsyncWait.load() <= 64) return;
-        iSpuAsyncWait.store(0);
+        if (iSpuAsyncWait <= 64) return;
+        iSpuAsyncWait = 0;
     }
 }
 
