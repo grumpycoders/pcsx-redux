@@ -68,6 +68,15 @@
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
+    RegisterWrite write;
+
+    write.registerIndex = reg;
+    write.value = val;
+
+    m_registersWritesQueue.enqueue(write);
+}
+
+void PCSX::SPU::impl::writeRegisterAtomic(uint32_t reg, uint16_t val) {
     const uint32_t r = reg & 0xfff;
 
     regArea[(r - 0xc00) >> 1] = val;
@@ -190,8 +199,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 //------------------------------------------------//
         }
 
-        iSpuAsyncWait = 0;
-
+        iSpuAsyncWait.store(0);
         return;
     }
 
@@ -422,7 +430,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
     }
 
-    iSpuAsyncWait = 0;
+    iSpuAsyncWait.store(0);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -432,7 +440,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
     const uint32_t r = reg & 0xfff;
 
-    iSpuAsyncWait = 0;
+    iSpuAsyncWait.store(0);
 
     if (r >= 0x0c00 && r < 0x0d80) {
         switch (r & 0x0f) {
@@ -555,7 +563,7 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX
 
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
-        s_chan[ch].data.get<Chan::Noise>().value = !!(val & 1); // -> noise on/off
+        s_chan[ch].data.get<Chan::Noise>().value = !!(val & 1);  // -> noise on/off
     }
 }
 
@@ -629,8 +637,8 @@ void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
 
     s_chan[ch].data.get<Chan::RawPitch>().value = NP;
 
-    NP = (44100L * NP) / 4096L;  // calc frequency
-    if (NP < 1) NP = 1;          // some security
+    NP = (44100L * NP) / 4096L;                       // calc frequency
+    if (NP < 1) NP = 1;                               // some security
     s_chan[ch].data.get<Chan::ActFreq>().value = NP;  // store frequency
 }
 
@@ -644,6 +652,6 @@ void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val)  // REVERB ON P
 
     for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
     {
-            s_chan[ch].data.get<Chan::Reverb>().value = !!(val & 1);// -> reverb on/off
+        s_chan[ch].data.get<Chan::Reverb>().value = !!(val & 1);  // -> reverb on/off
     }
 }
