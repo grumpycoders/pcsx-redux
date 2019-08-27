@@ -23,11 +23,10 @@
 #include <stdint.h>
 
 #include "json.hpp"
-#include "readerwriterqueue.h"
 
 #include "core/decode_xa.h"
-#include "core/spu.h"
 #include "core/sstate.h"
+#include "core/spu.h"
 #include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
@@ -75,12 +74,6 @@ class impl : public SPUInterface {
     }
 
   private:
-    struct RegisterWrite {
-        uint32_t registerIndex;
-        uint16_t value;
-    };
-    moodycamel::ReaderWriterQueue<RegisterWrite> m_registersWritesQueue;
-    void writeRegisterAtomic(uint32_t, uint16_t);
     // sound buffer sizes
     // 400 ms complete sound buffer
     static const size_t SOUNDSIZE = 70560;
@@ -186,7 +179,7 @@ class impl : public SPUInterface {
     int lastch = -1;       // last channel processed on spu irq in timer mode
     int lastns = 0;        // last ns pos
     int iSecureStart = 0;  // secure start counter
-    std::atomic<int> iSpuAsyncWait;
+    int iSpuAsyncWait = 0;
 
     // REVERB info and timing vars...
 
