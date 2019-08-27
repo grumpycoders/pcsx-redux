@@ -1593,6 +1593,11 @@ void PCSX::GPU::impl::BlockFill::processWrite(uint32_t word) {
 void PCSX::GPU::impl::Polygon::processWrite(uint32_t word) {
     const unsigned count = 3 + m_vtx;
     switch (m_state) {
+        // The initializer in this for loop will never get reached,
+        // but I'm keeping it there for readability. It's actually
+        // done in the setActive call.
+        // The rest of the loop will activate properly, depending
+        // on the various parameters.
         for (m_count = 0; m_count < count; m_count++) {
             if (m_count > 0 && m_iip) {
                 m_state = GET_COLOR;
