@@ -8,6 +8,7 @@ CC = clang-9
 
 ARCHFLAGS = -march=mips32r3 -mabi=32 -EL -msoft-float -Wa,-msoft-float
 ARCHFLAGS += -target mipsel-none-eabi -ccc-gcc-name $(PREFIX)-gcc
+INCLUDES = include
 CPPFLAGS = -mno-gpopt -mno-extern-sdata -fomit-frame-pointer
 CPPFLAGS += -ffunction-sections -fdata-sections
 CPPFLAGS += -fno-builtin
@@ -32,4 +33,4 @@ $(TARGET).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $(TARGET).elf $(OBJS)
 
 %.o: %.s
-	$(CC) $(ARCHFLAGS) -g -c -o $@ $<
+	$(CC) $(ARCHFLAGS) $(addprefix -I, $(INCLUDES)) -g -c -o $@ $<
