@@ -210,15 +210,40 @@ cache_init_2:
     nop
 
     // now we are ready for a typical crt0
-    // TODO: clear out bss section, and copy data section, once we figure out
-    // how they will work.
+    la    $t0, __data_start
+    la    $t1, __data_end
+    la    $t2, __rom_data_start
+
+    beq   $t0, $t1, data_copy_skip
+
+data_copy:
+    lw    $t3, 0($t0)
+    sw    $t3, 0($t2)
+    addiu $t0, 4
+    addiu $t2, 4
+    bne   $t0, $t1, data_copy
+
+data_copy_skip:
+    la    $t0, __bss_start
+    la    $t1, __bss_end
+
+    beq   $t0, $t1, bss_init_skip
+
+bss_init:
+    sw    $0, 0($t0)
+    addiu $t0, 4
+    bne   $t0, $t1, bss_init
+
+bss_init_skip:
 
     // technically have to set $gp, but we are not using it, so, not
-    // TODO: use a constant from the ldscript instead
-    li    $sp, 0x801fff00
+    la    $sp, __sp
     move  $fp, $sp
 
     li    $t0, 0xb88
     sw    $t0, RAM_SIZE
 
-    j     main
+    jal   main
+
+stop:
+    b     stop

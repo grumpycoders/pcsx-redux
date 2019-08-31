@@ -5,23 +5,28 @@ EXTERN(_reset)
 ENTRY(_reset)
 
 MEMORY {
-    ram     : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
-    rom     : ORIGIN = 0xbfc00000, LENGTH = 512K
-    dcache  : ORIGIN = 0x1f800000, LENGTH = 0x400
+    kseg0a (rwx): ORIGIN = 0x00000000, LENGTH = 0x9000
+    kseg0b (rwx): ORIGIN = 0x00009000, LENGTH = 2M - 0x9000
+    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
+    rom (rx)    : ORIGIN = 0xbfc00000, LENGTH = 512K
+    dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
-__ram_top  = ORIGIN(ram) + LENGTH(ram);
-__sp        = __ram_top - 0x100;
+__ram_top       = ORIGIN(ram) + LENGTH(ram);
+__sp            = __ram_top - 0x100;
 
 __dcache        = ORIGIN(dcache);
 __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
+__rom_data_len  = (__data_end - __data_start);
+__bss_len       = (__bss_end - __bss_start);
+
 SECTIONS {
-    . = ORIGIN(ram);
     __text_start = .;
     .text : {
         *(.boot)
         *(.init)
+        KEEP (*(SORT_NONE(.fini)))
         *(.text.unlikely .text.*_unlikely .text.unlikely.*)
         *(.text.exit .text.exit.*)
         *(.text.startup .text.startup.*)
@@ -31,7 +36,6 @@ SECTIONS {
     } > rom
 
     .fini : {
-        KEEP (*(SORT_NONE(.fini)))
     } > rom
     . = ALIGN(4);
     __text_end = .;
@@ -44,44 +48,15 @@ SECTIONS {
         *(.rodata1)
     } > rom
 
-    .sdata2 : {
-        *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
-    } > ram
-
-    __sbss2_start = .;
-    .sbss2 : {
-        *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
-    } > ram
-    __sbss2_end = .;
-
-    .jcr : {
-        KEEP (*(.jcr))
-    } > ram
-
-    .data.rel.ro : {
-        *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*)
-    } > rom
-
     __data_start = .;
     .data : {
+        __rom_data_start = .;
         *(.data .data.* .gnu.linkonce.d.*)
-    } > ram
-
-    .data1 : {
         *(.data1)
-    } > ram
-
-    .got.plt : {
         *(.got.plt)
-    } > ram
-
-    .got : {
         *(.got)
-    } > ram
+    } > kseg0b AT > rom
 
-    .sdata : {
-        *(.sdata .sdata.* .gnu.linkonce.s.*)
-    } > ram
     . = ALIGN(4);
     __data_end = .;
 
@@ -90,13 +65,11 @@ SECTIONS {
         *(.dynsbss)
         *(.sbss .sbss.* .gnu.linkonce.sb.*)
         *(.scommon)
-    } > ram
-
-    .bss : {
         *(.dynbss)
         *(.bss .bss.* .gnu.linkonce.b.*)
         *(COMMON)
-    } > ram
+    } > kseg0b
+
     . = ALIGN(4);
     __bss_end = .;
 
