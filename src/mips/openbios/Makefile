@@ -1,7 +1,8 @@
-TARGET = bios
+TARGET = openbios
 
 SRCS = \
-boot/boot.s
+boot/boot.s \
+main/main.c
 
 PREFIX = mipsel-linux-gnu
 CC = clang-9
@@ -9,7 +10,7 @@ CC = clang-9
 ARCHFLAGS = -march=mips32r3 -mabi=32 -EL -msoft-float -Wa,-msoft-float
 ARCHFLAGS += -target mipsel-none-eabi -ccc-gcc-name $(PREFIX)-gcc
 INCLUDES = include
-CPPFLAGS = -mno-gpopt -mno-extern-sdata -fomit-frame-pointer
+CPPFLAGS = -mno-gpopt -fomit-frame-pointer
 CPPFLAGS += -ffunction-sections -fdata-sections
 CPPFLAGS += -fno-builtin
 CPPFLAGS += $(ARCHFLAGS)
