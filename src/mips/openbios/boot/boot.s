@@ -1,4 +1,4 @@
-.include "hwregs.inc"
+.include "common/hardware/hwregs.inc"
 
     .section .boot, "ax", @progbits
     .align 2
