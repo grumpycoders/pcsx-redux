@@ -17,14 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
+#pragma once
 
-int main() {
-    muteSpu();
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        ((void(*)()) 0x1f000080)();
-    }
+#include "hwregs.h"
 
-    return 0;
+static inline void muteSpu() {
+    SPU_REVERB_R = 0;
+    SPU_REVERB_L = 0;
+    SPU_MVOL_R = 0;
+    SPU_MVOL_L = 0;
 }
