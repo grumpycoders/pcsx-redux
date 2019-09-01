@@ -17,8 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "common/hardware/cop0.h"
 #include "common/hardware/spu.h"
 #include "common/util/djbhash.h"
+
+static void start(const char* systemPath, const char* exePath);
 
 int main() {
     muteSpu();
@@ -26,5 +29,13 @@ int main() {
         ((void(*)()) 0x1f000080)();
     }
 
+    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
+
     return 0;
+}
+
+
+void start(const char* systemPath, const char* exePath) {
+    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
+    muteSpu();
 }
