@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "common/compiler/stdint.h"
 
 uint32_t readCOP0Status();
 void writeCOP0Status(uint32_t);

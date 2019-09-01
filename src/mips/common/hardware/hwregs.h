@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "common/compiler/stdint.h"
 
 #define HW_U8(x) (*(volatile uint8_t *)(x))
 #define HW_U16(x) (*(volatile uint16_t *)(x))

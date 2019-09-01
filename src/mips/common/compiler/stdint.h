@@ -17,26 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/compiler/stdint.h"
-#include "openbios/kernel/handlers.h"
+#pragma once
 
-__attribute__((section(".a0table"))) uint32_t A0table[192];
-uint32_t B0table[192];
-uint32_t C0table[192];
-
-extern void A0Vector();
-extern void B0Vector();
-extern void C0Vector();
-
-static void installHandler(const uint32_t * src, uint32_t * dst) {
-    dst[0] = src[0];
-    dst[1] = src[1];
-    dst[2] = src[2];
-    dst[3] = src[3];
-}
-
-void installKernelHandlers() {
-    installHandler(A0Vector, (uint32_t *) 0xa0);
-    installHandler(B0Vector, (uint32_t *) 0xb0);
-    installHandler(C0Vector, (uint32_t *) 0xc0);
-}
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed int int32_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
