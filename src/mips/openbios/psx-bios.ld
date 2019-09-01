@@ -24,8 +24,8 @@ EXTERN(_reset)
 ENTRY(_reset)
 
 MEMORY {
-    kseg0a (rwx): ORIGIN = 0x00000000, LENGTH = 0x9000
-    kseg0b (rwx): ORIGIN = 0x00009000, LENGTH = 2M - 0x9000
+    kseg0a (rwx): ORIGIN = 0x00000000, LENGTH = 0x200
+    kseg0b (rwx): ORIGIN = 0x00000200, LENGTH = 2M - 0x200
     ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     rom (rx)    : ORIGIN = 0xbfc00000, LENGTH = 512K
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
@@ -70,6 +70,7 @@ SECTIONS {
     __data_start = .;
     .data : {
         __rom_data_start = .;
+        *(.a0table)
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)
         *(.got.plt)

@@ -17,31 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/cop0.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
-#include "openbios/kernel/handlers.h"
+    .section .text, "ax", @progbits
+    .set noreorder
 
-static void start(const char* systemPath, const char* exePath);
+    .align 2
+    .global readCOP0Status
+    .type readCOP0Status, @function
+readCOP0Status:
+    mfc0  $v0, $12
+    nop
+    jr    $ra
+    nop
 
-int main() {
-    *((uint32_t*) 0x60) = 0x02;
-    *((uint32_t*) 0x64) = 0x00;
-    *((uint32_t*) 0x68) = 0xff;
-    muteSpu();
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        ((void(*)()) 0x1f000080)();
-    }
-
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-
-    return 0;
-}
-
-
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
-
-    installKernelHandlers();
-}
+    .align 2
+    .global writeCOP0Status
+    .type writeCOP0Status, @function
+writeCOP0Status:
+    mtc0  $a0, $12
+    nop
+    jr    $ra
+    nop

@@ -17,31 +17,86 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/cop0.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
-#include "openbios/kernel/handlers.h"
+    .section .text, "ax", @progbits
+    .set noreorder
 
-static void start(const char* systemPath, const char* exePath);
+    .align 2
+    .global ExceptVector
+    .type ExceptVector, @function
 
-int main() {
-    *((uint32_t*) 0x60) = 0x02;
-    *((uint32_t*) 0x64) = 0x00;
-    *((uint32_t*) 0x68) = 0xff;
-    muteSpu();
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        ((void(*)()) 0x1f000080)();
-    }
+ExceptVector:
 
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
+    .align 2
+    .global InterruptVector
+    .type InterruptVector, @function
 
-    return 0;
-}
+InterruptVector:
 
+    .align 2
+    .global A0Vector
+    .global A0Handler
+    .type A0Vector, @function
 
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
+A0Vector:
+    la    $t0, A0Handler
+    jr    $t0
+    nop
 
-    installKernelHandlers();
-}
+    .align 2
+    .global B0Vector
+    .global B0Handler
+    .type B0Vector, @function
+
+B0Vector:
+    la    $t0, B0Handler
+    jr    $t0
+    nop
+
+    .align 2
+    .global C0Vector
+    .global C0Handler
+    .type C0Vector, @function
+
+C0Vector:
+    la    $t0, C0Handler
+    jr    $t0
+    nop
+
+    .align 2
+    .global A0table
+    .type A0Handler, @function
+
+A0Handler:
+    la    $t0, A0table
+    sll   $t1, 1
+    add   $t0, $t1
+    lw    $t0, 0($t0)
+    nop
+    jr    $t0
+    nop
+
+    .align 2
+    .global B0table
+    .type B0Handler, @function
+
+B0Handler:
+    la    $t0, B0table
+    sll   $t1, 1
+    add   $t0, $t1
+    lw    $t0, 0($t0)
+    nop
+    jr    $t0
+    nop
+
+    .align 2
+    .global C0table
+    .type C0Handler, @function
+
+C0Handler:
+    la    $t0, C0table
+    sll   $t1, 1
+    add   $t0, $t1
+    lw    $t0, 0($t0)
+    nop
+    jr    $t0
+    nop

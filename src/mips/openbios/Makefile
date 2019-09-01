@@ -1,9 +1,11 @@
 TARGET = openbios
 
 SRCS = \
-boot/boot.s \
 ../common/hardware/cop0.s \
-main/main.c
+boot/boot.s \
+kernel/handlers.c \
+kernel/vectors.s \
+main/main.c \
 
 LDSCRIPT = psx-bios.ld
 

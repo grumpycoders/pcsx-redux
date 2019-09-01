@@ -17,31 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/cop0.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
-#include "openbios/kernel/handlers.h"
+#pragma once
 
-static void start(const char* systemPath, const char* exePath);
+#include <stdint.h>
 
-int main() {
-    *((uint32_t*) 0x60) = 0x02;
-    *((uint32_t*) 0x64) = 0x00;
-    *((uint32_t*) 0x68) = 0xff;
-    muteSpu();
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        ((void(*)()) 0x1f000080)();
-    }
+#define HW_U8(x) (*(volatile uint8_t *)(x))
+#define HW_U16(x) (*(volatile uint16_t *)(x))
+#define HW_U32(x) (*(volatile uint32_t *)(x))
+#define HW_S8(x) (*(volatile int8_t *)(x))
+#define HW_S16(x) (*(volatile int16_t *)(x))
+#define HW_S32(x) (*(volatile int32_t *)(x))
 
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-
-    return 0;
-}
-
-
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
-
-    installKernelHandlers();
-}
+#define SPU_MVOL_L HW_U16(0x1f801d80)
+#define SPU_MVOL_R HW_U16(0x1f801d82)
+#define SPU_REVERB_L HW_U16(0x1f801d84)
+#define SPU_REVERB_R HW_U16(0x1f801d86)

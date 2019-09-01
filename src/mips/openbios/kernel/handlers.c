@@ -17,31 +17,27 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/cop0.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
+#include <stdint.h>
+
 #include "openbios/kernel/handlers.h"
 
-static void start(const char* systemPath, const char* exePath);
+__attribute__((section(".a0table"))) uint32_t A0table[192];
+uint32_t B0table[192];
+uint32_t C0table[192];
 
-int main() {
-    *((uint32_t*) 0x60) = 0x02;
-    *((uint32_t*) 0x64) = 0x00;
-    *((uint32_t*) 0x68) = 0xff;
-    muteSpu();
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        ((void(*)()) 0x1f000080)();
-    }
+extern void A0Vector();
+extern void B0Vector();
+extern void C0Vector();
 
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-
-    return 0;
+static void installHandler(const uint32_t * src, uint32_t * dst) {
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    dst[3] = src[3];
 }
 
-
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
-
-    installKernelHandlers();
+void installKernelHandlers() {
+    installHandler(A0Vector, (uint32_t *) 0xa0);
+    installHandler(B0Vector, (uint32_t *) 0xb0);
+    installHandler(C0Vector, (uint32_t *) 0xc0);
 }
