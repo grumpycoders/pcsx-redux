@@ -127,12 +127,12 @@ breakAsmHandler:
     lw    $3, 0x184($0)
     lw    $4, 0x188($0)
     lw    $5, 0x18c($0)
-    lw    $6, 0x194($0)
     mtlo  $2
     mthi  $3
     mtc0  $4, $12
+    nop
     mtc0  $5, $13
-    mtc0  $6, $10
+    nop
     lw    $1, 0x104($0)
     lw    $2, 0x108($0)
     lw    $3, 0x10c($0)
@@ -162,7 +162,7 @@ breakAsmHandler:
     lw    $28, 0x170($0)
     lw    $29, 0x174($0)
     lw    $30, 0x178($0)
-    lw    $k0, 0x198($0)
+    lw    $k0, 0x194($0)
     lw    $31, 0x17c($0)
     jr    $k0
     .word 0x42000010 // rfe
