@@ -145,7 +145,6 @@ typedef struct {
     uint32_t SR;
     uint32_t Cause;
     uint32_t EPC;
-    uint32_t RA;
 } InterruptData;
 
 void breakHandler(InterruptData* data) {

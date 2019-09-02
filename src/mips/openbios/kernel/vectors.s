@@ -17,28 +17,136 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-    .section .text, "ax", @progbits
     .set noreorder
+    .section .data, "ax", @progbits
+    .align 2
+    .global generalHandler
+    .type generalHandler, @function
+
+generalHandler:
+    sw    $0, 0x100($0)
+    sw    $1, 0x104($0)
+    sw    $2, 0x108($0)
+    sw    $3, 0x10c($0)
+    sw    $4, 0x110($0)
+    sw    $5, 0x114($0)
+    sw    $6, 0x118($0)
+    sw    $7, 0x11c($0)
+    sw    $8, 0x120($0)
+    sw    $9, 0x124($0)
+    sw    $10, 0x128($0)
+    sw    $11, 0x12c($0)
+    sw    $12, 0x130($0)
+    sw    $13, 0x134($0)
+    sw    $14, 0x138($0)
+    sw    $15, 0x13c($0)
+    sw    $16, 0x140($0)
+    sw    $17, 0x144($0)
+    sw    $18, 0x148($0)
+    sw    $19, 0x14c($0)
+    sw    $20, 0x150($0)
+    sw    $21, 0x154($0)
+    sw    $22, 0x158($0)
+    sw    $23, 0x15c($0)
+    sw    $24, 0x160($0)
+    sw    $25, 0x164($0)
+    sw    $0, 0x168($0)
+    sw    $0, 0x16c($0)
+    sw    $28, 0x170($0)
+    sw    $29, 0x174($0)
+    sw    $30, 0x178($0)
+    sw    $31, 0x17c($0)
+
+    mflo  $t0
+    nop
+    mfhi  $t1
+    nop
+    mfc0  $t2, $12
+    nop
+    mfc0  $t3, $13
+    nop
+    mfc0  $t4, $14
+    nop
+
+    sw    $t0, 0x180($0)
+    sw    $t1, 0x184($0)
+    sw    $t2, 0x188($0)
+    sw    $t3, 0x18c($0)
+    sw    $t4, 0x190($0)
+
+    jalr  $k1
+    li    $a0, 0x100
+
+    move  $k1, $0
+
+    lw    $t0, 0x180($0)
+    lw    $t1, 0x184($0)
+    lw    $t2, 0x188($0)
+    lw    $t3, 0x18c($0)
+    lw    $k0, 0x190($0)
+    mtlo  $t0
+    nop
+    mthi  $t1
+    nop
+    mtc0  $t2, $12
+    nop
+    mtc0  $t3, $13
+    nop
+    lw    $1, 0x104($0)
+    lw    $2, 0x108($0)
+    lw    $3, 0x10c($0)
+    lw    $4, 0x110($0)
+    lw    $5, 0x114($0)
+    lw    $6, 0x118($0)
+    lw    $7, 0x11c($0)
+    lw    $8, 0x120($0)
+    lw    $9, 0x124($0)
+    lw    $10, 0x128($0)
+    lw    $11, 0x12c($0)
+    lw    $12, 0x130($0)
+    lw    $13, 0x134($0)
+    lw    $14, 0x138($0)
+    lw    $15, 0x13c($0)
+    lw    $16, 0x140($0)
+    lw    $17, 0x144($0)
+    lw    $18, 0x148($0)
+    lw    $19, 0x14c($0)
+    lw    $20, 0x150($0)
+    lw    $21, 0x154($0)
+    lw    $22, 0x158($0)
+    lw    $23, 0x15c($0)
+    lw    $24, 0x160($0)
+    lw    $25, 0x164($0)
+    lw    $28, 0x170($0)
+    lw    $29, 0x174($0)
+    lw    $30, 0x178($0)
+    lw    $31, 0x17c($0)
+    jr    $k0
+    .word 0x42000010 // rfe
+
+    .section .text, "ax", @progbits
 
     .align 2
     .global breakVector
-    .global breakAsmHandler
+    .global breakHandler
     .type breakVector, @function
 
 breakVector:
-    la    $k0, breakAsmHandler
+    ori   $k0, $0, %lo(generalHandler)
+    lui   $k1, %hi(breakHandler)
     jr    $k0
-    nop
+    ori   $k1, %lo(breakHandler)
 
     .align 2
     .global interruptVector
-    .global interruptAsmHandler
+    .global interruptHandler
     .type interruptVector, @function
 
 interruptVector:
-    la    $k0, interruptAsmHandler
+    ori   $k0, $0, %lo(generalHandler)
+    lui   $k1, %hi(interruptHandler)
     jr    $k0
-    nop
+    ori   $k1, %lo(interruptHandler)
 
     .align 2
     .global A0Vector
@@ -69,216 +177,6 @@ C0Vector:
     la    $t0, C0Handler
     jr    $t0
     nop
-
-    .section .data, "ax", @progbits
-    .align 2
-    .global breakHandler
-    .type breakAsmHandler, @function
-
-breakAsmHandler:
-    sw    $0, 0x100($0)
-    sw    $1, 0x104($0)
-    sw    $2, 0x108($0)
-    sw    $3, 0x10c($0)
-    mflo  $2
-    nop
-    mfhi  $3
-    nop
-    sw    $2, 0x180($0)
-    sw    $3, 0x184($0)
-    mfc0  $2, $12
-    nop
-    sw    $4, 0x110($0)
-    sw    $2, 0x188($0)
-    mfc0  $2, $13
-    nop
-    sw    $5, 0x114($0)
-    sw    $2, 0x18c($0)
-    mfc0  $2, $14
-    nop
-    sw    $6, 0x118($0)
-    sw    $2, 0x190($0)
-    sw    $7, 0x11c($0)
-    sw    $8, 0x120($0)
-    sw    $9, 0x124($0)
-    sw    $10, 0x128($0)
-    sw    $11, 0x12c($0)
-    sw    $12, 0x130($0)
-    sw    $13, 0x134($0)
-    sw    $14, 0x138($0)
-    sw    $15, 0x13c($0)
-    sw    $16, 0x140($0)
-    sw    $17, 0x144($0)
-    sw    $18, 0x148($0)
-    sw    $19, 0x14c($0)
-    sw    $20, 0x150($0)
-    sw    $21, 0x154($0)
-    sw    $22, 0x158($0)
-    sw    $23, 0x15c($0)
-    sw    $24, 0x160($0)
-    sw    $25, 0x164($0)
-    sw    $26, 0x168($0)
-    sw    $27, 0x16c($0)
-    sw    $28, 0x170($0)
-    sw    $29, 0x174($0)
-    sw    $30, 0x178($0)
-    sw    $31, 0x17c($0)
-
-    la    $t0, breakHandler
-    jalr  $t0
-    li    $a0, 0x100
-
-    lw    $2, 0x180($0)
-    lw    $3, 0x184($0)
-    lw    $4, 0x188($0)
-    lw    $5, 0x18c($0)
-    mtlo  $2
-    nop
-    mthi  $3
-    nop
-    mtc0  $4, $12
-    nop
-    mtc0  $5, $13
-    nop
-    lw    $1, 0x104($0)
-    lw    $2, 0x108($0)
-    lw    $3, 0x10c($0)
-    lw    $4, 0x110($0)
-    lw    $5, 0x114($0)
-    lw    $6, 0x118($0)
-    lw    $7, 0x11c($0)
-    lw    $8, 0x120($0)
-    lw    $9, 0x124($0)
-    lw    $10, 0x128($0)
-    lw    $11, 0x12c($0)
-    lw    $12, 0x130($0)
-    lw    $13, 0x134($0)
-    lw    $14, 0x138($0)
-    lw    $15, 0x13c($0)
-    lw    $16, 0x140($0)
-    lw    $17, 0x144($0)
-    lw    $18, 0x148($0)
-    lw    $19, 0x14c($0)
-    lw    $20, 0x150($0)
-    lw    $21, 0x154($0)
-    lw    $22, 0x158($0)
-    lw    $23, 0x15c($0)
-    lw    $24, 0x160($0)
-    lw    $25, 0x164($0)
-    lw    $27, 0x16c($0)
-    lw    $28, 0x170($0)
-    lw    $29, 0x174($0)
-    lw    $30, 0x178($0)
-    lw    $k0, 0x194($0)
-    lw    $31, 0x17c($0)
-    jr    $k0
-    .word 0x42000010 // rfe
-
-    .align 2
-    .global interruptHandler
-    .type interruptAsmHandler, @function
-
-interruptAsmHandler:
-    sw    $0, 0x100($0)
-    sw    $1, 0x104($0)
-    sw    $2, 0x108($0)
-    sw    $3, 0x10c($0)
-    mflo  $2
-    nop
-    mfhi  $3
-    nop
-    sw    $2, 0x180($0)
-    sw    $3, 0x184($0)
-    mfc0  $2, $12
-    nop
-    sw    $4, 0x110($0)
-    sw    $2, 0x188($0)
-    mfc0  $2, $13
-    nop
-    sw    $5, 0x114($0)
-    sw    $2, 0x18c($0)
-    mfc0  $2, $14
-    nop
-    sw    $6, 0x118($0)
-    sw    $2, 0x190($0)
-    sw    $7, 0x11c($0)
-    sw    $8, 0x120($0)
-    sw    $9, 0x124($0)
-    sw    $10, 0x128($0)
-    sw    $11, 0x12c($0)
-    sw    $12, 0x130($0)
-    sw    $13, 0x134($0)
-    sw    $14, 0x138($0)
-    sw    $15, 0x13c($0)
-    sw    $16, 0x140($0)
-    sw    $17, 0x144($0)
-    sw    $18, 0x148($0)
-    sw    $19, 0x14c($0)
-    sw    $20, 0x150($0)
-    sw    $21, 0x154($0)
-    sw    $22, 0x158($0)
-    sw    $23, 0x15c($0)
-    sw    $24, 0x160($0)
-    sw    $25, 0x164($0)
-    sw    $26, 0x168($0)
-    sw    $27, 0x16c($0)
-    sw    $28, 0x170($0)
-    sw    $29, 0x174($0)
-    sw    $30, 0x178($0)
-    sw    $31, 0x17c($0)
-
-    la    $t0, interruptHandler
-    jalr  $t0
-    li    $a0, 0x100
-
-    lw    $2, 0x180($0)
-    lw    $3, 0x184($0)
-    lw    $4, 0x188($0)
-    lw    $5, 0x18c($0)
-    lw    $6, 0x194($0)
-    mtlo  $2
-    nop
-    mthi  $3
-    nop
-    mtc0  $4, $12
-    nop
-    mtc0  $5, $13
-    nop
-    mtc0  $6, $10
-    nop
-    lw    $1, 0x104($0)
-    lw    $2, 0x108($0)
-    lw    $3, 0x10c($0)
-    lw    $4, 0x110($0)
-    lw    $5, 0x114($0)
-    lw    $6, 0x118($0)
-    lw    $7, 0x11c($0)
-    lw    $8, 0x120($0)
-    lw    $9, 0x124($0)
-    lw    $10, 0x128($0)
-    lw    $11, 0x12c($0)
-    lw    $12, 0x130($0)
-    lw    $13, 0x134($0)
-    lw    $14, 0x138($0)
-    lw    $15, 0x13c($0)
-    lw    $16, 0x140($0)
-    lw    $17, 0x144($0)
-    lw    $18, 0x148($0)
-    lw    $19, 0x14c($0)
-    lw    $20, 0x150($0)
-    lw    $21, 0x154($0)
-    lw    $22, 0x158($0)
-    lw    $23, 0x15c($0)
-    lw    $24, 0x160($0)
-    lw    $25, 0x164($0)
-    lw    $27, 0x16c($0)
-    lw    $28, 0x170($0)
-    lw    $29, 0x174($0)
-    lw    $30, 0x178($0)
-    lw    $k0, 0x198($0)
-    lw    $31, 0x17c($0)
-    jr    $k0
-    .word 0x42000010 // rfe
 
     .section .text, "ax", @progbits
     .align 2
