@@ -81,16 +81,21 @@ breakAsmHandler:
     sw    $2, 0x108($0)
     sw    $3, 0x10c($0)
     mflo  $2
+    nop
     mfhi  $3
+    nop
     sw    $2, 0x180($0)
     sw    $3, 0x184($0)
     mfc0  $2, $12
+    nop
     sw    $4, 0x110($0)
     sw    $2, 0x188($0)
     mfc0  $2, $13
+    nop
     sw    $5, 0x114($0)
     sw    $2, 0x18c($0)
     mfc0  $2, $14
+    nop
     sw    $6, 0x118($0)
     sw    $2, 0x190($0)
     sw    $7, 0x11c($0)
@@ -128,7 +133,9 @@ breakAsmHandler:
     lw    $4, 0x188($0)
     lw    $5, 0x18c($0)
     mtlo  $2
+    nop
     mthi  $3
+    nop
     mtc0  $4, $12
     nop
     mtc0  $5, $13
@@ -177,16 +184,21 @@ interruptAsmHandler:
     sw    $2, 0x108($0)
     sw    $3, 0x10c($0)
     mflo  $2
+    nop
     mfhi  $3
+    nop
     sw    $2, 0x180($0)
     sw    $3, 0x184($0)
     mfc0  $2, $12
+    nop
     sw    $4, 0x110($0)
     sw    $2, 0x188($0)
     mfc0  $2, $13
+    nop
     sw    $5, 0x114($0)
     sw    $2, 0x18c($0)
     mfc0  $2, $14
+    nop
     sw    $6, 0x118($0)
     sw    $2, 0x190($0)
     sw    $7, 0x11c($0)
@@ -225,10 +237,15 @@ interruptAsmHandler:
     lw    $5, 0x18c($0)
     lw    $6, 0x194($0)
     mtlo  $2
+    nop
     mthi  $3
+    nop
     mtc0  $4, $12
+    nop
     mtc0  $5, $13
+    nop
     mtc0  $6, $10
+    nop
     lw    $1, 0x104($0)
     lw    $2, 0x108($0)
     lw    $3, 0x10c($0)
