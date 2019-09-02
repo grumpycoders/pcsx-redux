@@ -20,100 +20,101 @@
 #include "common/compiler/stdint.h"
 #include "openbios/kernel/handlers.h"
 
-static int nullFunction() { return 0; }
+void unimplemented();
+void breakVector();
+void interruptVector();
+void A0Vector();
+void B0Vector();
+void C0Vector();
 
 __attribute__((section(".a0table"))) uint32_t A0table[0xc0] = {
-    nullFunction, nullFunction, nullFunction, nullFunction, // 00
-    nullFunction, nullFunction, nullFunction, nullFunction, // 04
-    nullFunction, nullFunction, nullFunction, nullFunction, // 08
-    nullFunction, nullFunction, nullFunction, nullFunction, // 0c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 10
-    nullFunction, nullFunction, nullFunction, nullFunction, // 14
-    nullFunction, nullFunction, nullFunction, nullFunction, // 18
-    nullFunction, nullFunction, nullFunction, nullFunction, // 1c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 20
-    nullFunction, nullFunction, nullFunction, nullFunction, // 24
-    nullFunction, nullFunction, nullFunction, nullFunction, // 28
-    nullFunction, nullFunction, nullFunction, nullFunction, // 2c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 30
-    nullFunction, nullFunction, nullFunction, nullFunction, // 34
-    nullFunction, nullFunction, nullFunction, nullFunction, // 38
-    nullFunction, nullFunction, nullFunction, nullFunction, // 3c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 40
-    nullFunction, nullFunction, nullFunction, nullFunction, // 44
-    nullFunction, nullFunction, nullFunction, nullFunction, // 48
-    nullFunction, nullFunction, nullFunction, nullFunction, // 4c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 50
-    nullFunction, nullFunction, nullFunction, nullFunction, // 54
-    nullFunction, nullFunction, nullFunction, nullFunction, // 58
-    nullFunction, nullFunction, nullFunction, nullFunction, // 5c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 60
-    nullFunction, nullFunction, nullFunction, nullFunction, // 64
-    nullFunction, nullFunction, nullFunction, nullFunction, // 68
-    nullFunction, nullFunction, nullFunction, nullFunction, // 6c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 70
-    nullFunction, nullFunction, nullFunction, nullFunction, // 74
-    nullFunction, nullFunction, nullFunction, nullFunction, // 78
-    nullFunction, nullFunction, nullFunction, nullFunction, // 7c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 80
-    nullFunction, nullFunction, nullFunction, nullFunction, // 84
-    nullFunction, nullFunction, nullFunction, nullFunction, // 88
-    nullFunction, nullFunction, nullFunction, nullFunction, // 8c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 90
-    nullFunction, nullFunction, nullFunction, nullFunction, // 94
-    nullFunction, nullFunction, nullFunction, nullFunction, // 98
-    nullFunction, nullFunction, nullFunction, nullFunction, // 9c
-    nullFunction, nullFunction, nullFunction, nullFunction, // a0
-    nullFunction, nullFunction, nullFunction, nullFunction, // a4
-    nullFunction, nullFunction, nullFunction, nullFunction, // a8
-    nullFunction, nullFunction, nullFunction, nullFunction, // ac
-    nullFunction, nullFunction, nullFunction, nullFunction, // b0
-    nullFunction, nullFunction, nullFunction, nullFunction, // b4
-    nullFunction, nullFunction, nullFunction, nullFunction, // b8
-    nullFunction, nullFunction, nullFunction, nullFunction, // bc
+    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+    unimplemented, unimplemented, unimplemented, unimplemented, // 04
+    unimplemented, unimplemented, unimplemented, unimplemented, // 08
+    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 10
+    unimplemented, unimplemented, unimplemented, unimplemented, // 14
+    unimplemented, unimplemented, unimplemented, unimplemented, // 18
+    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 20
+    unimplemented, unimplemented, unimplemented, unimplemented, // 24
+    unimplemented, unimplemented, unimplemented, unimplemented, // 28
+    unimplemented, unimplemented, unimplemented, unimplemented, // 2c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 30
+    unimplemented, unimplemented, unimplemented, unimplemented, // 34
+    unimplemented, unimplemented, unimplemented, unimplemented, // 38
+    unimplemented, unimplemented, unimplemented, unimplemented, // 3c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 40
+    unimplemented, unimplemented, unimplemented, unimplemented, // 44
+    unimplemented, unimplemented, unimplemented, unimplemented, // 48
+    unimplemented, unimplemented, unimplemented, unimplemented, // 4c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 50
+    unimplemented, unimplemented, unimplemented, unimplemented, // 54
+    unimplemented, unimplemented, unimplemented, unimplemented, // 58
+    unimplemented, unimplemented, unimplemented, unimplemented, // 5c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 60
+    unimplemented, unimplemented, unimplemented, unimplemented, // 64
+    unimplemented, unimplemented, unimplemented, unimplemented, // 68
+    unimplemented, unimplemented, unimplemented, unimplemented, // 6c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 70
+    unimplemented, unimplemented, unimplemented, unimplemented, // 74
+    unimplemented, unimplemented, unimplemented, unimplemented, // 78
+    unimplemented, unimplemented, unimplemented, unimplemented, // 7c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 80
+    unimplemented, unimplemented, unimplemented, unimplemented, // 84
+    unimplemented, unimplemented, unimplemented, unimplemented, // 88
+    unimplemented, unimplemented, unimplemented, unimplemented, // 8c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 90
+    unimplemented, unimplemented, unimplemented, unimplemented, // 94
+    unimplemented, unimplemented, unimplemented, unimplemented, // 98
+    unimplemented, unimplemented, unimplemented, unimplemented, // 9c
+    unimplemented, unimplemented, unimplemented, unimplemented, // a0
+    unimplemented, unimplemented, unimplemented, unimplemented, // a4
+    unimplemented, unimplemented, unimplemented, unimplemented, // a8
+    unimplemented, unimplemented, unimplemented, unimplemented, // ac
+    unimplemented, unimplemented, unimplemented, unimplemented, // b0
+    unimplemented, unimplemented, unimplemented, unimplemented, // b4
+    unimplemented, unimplemented, unimplemented, unimplemented, // b8
+    unimplemented, unimplemented, unimplemented, unimplemented, // bc
 };
 
 uint32_t B0table[0x60] = {
-    nullFunction, nullFunction, nullFunction, nullFunction, // 00
-    nullFunction, nullFunction, nullFunction, nullFunction, // 04
-    nullFunction, nullFunction, nullFunction, nullFunction, // 08
-    nullFunction, nullFunction, nullFunction, nullFunction, // 0c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 10
-    nullFunction, nullFunction, nullFunction, nullFunction, // 14
-    nullFunction, nullFunction, nullFunction, nullFunction, // 18
-    nullFunction, nullFunction, nullFunction, nullFunction, // 1c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 20
-    nullFunction, nullFunction, nullFunction, nullFunction, // 24
-    nullFunction, nullFunction, nullFunction, nullFunction, // 28
-    nullFunction, nullFunction, nullFunction, nullFunction, // 2c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 30
-    nullFunction, nullFunction, nullFunction, nullFunction, // 34
-    nullFunction, nullFunction, nullFunction, nullFunction, // 38
-    nullFunction, nullFunction, nullFunction, nullFunction, // 3c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 40
-    nullFunction, nullFunction, nullFunction, nullFunction, // 44
-    nullFunction, nullFunction, nullFunction, nullFunction, // 48
-    nullFunction, nullFunction, nullFunction, nullFunction, // 4c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 50
-    nullFunction, nullFunction, nullFunction, nullFunction, // 54
-    nullFunction, nullFunction, nullFunction, nullFunction, // 58
-    nullFunction, nullFunction, nullFunction, nullFunction, // 5c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+    unimplemented, unimplemented, unimplemented, unimplemented, // 04
+    unimplemented, unimplemented, unimplemented, unimplemented, // 08
+    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 10
+    unimplemented, unimplemented, unimplemented, unimplemented, // 14
+    unimplemented, unimplemented, unimplemented, unimplemented, // 18
+    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 20
+    unimplemented, unimplemented, unimplemented, unimplemented, // 24
+    unimplemented, unimplemented, unimplemented, unimplemented, // 28
+    unimplemented, unimplemented, unimplemented, unimplemented, // 2c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 30
+    unimplemented, unimplemented, unimplemented, unimplemented, // 34
+    unimplemented, unimplemented, unimplemented, unimplemented, // 38
+    unimplemented, unimplemented, unimplemented, unimplemented, // 3c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 40
+    unimplemented, unimplemented, unimplemented, unimplemented, // 44
+    unimplemented, unimplemented, unimplemented, unimplemented, // 48
+    unimplemented, unimplemented, unimplemented, unimplemented, // 4c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 50
+    unimplemented, unimplemented, unimplemented, unimplemented, // 54
+    unimplemented, unimplemented, unimplemented, unimplemented, // 58
+    unimplemented, unimplemented, unimplemented, unimplemented, // 5c
 };
 
 uint32_t C0table[0x20] = {
-    nullFunction, nullFunction, nullFunction, nullFunction, // 00
-    nullFunction, nullFunction, nullFunction, nullFunction, // 04
-    nullFunction, nullFunction, nullFunction, nullFunction, // 08
-    nullFunction, nullFunction, nullFunction, nullFunction, // 0c
-    nullFunction, nullFunction, nullFunction, nullFunction, // 10
-    nullFunction, nullFunction, nullFunction, nullFunction, // 14
-    nullFunction, nullFunction, nullFunction, nullFunction, // 18
-    nullFunction, nullFunction, nullFunction, nullFunction, // 1c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+    unimplemented, unimplemented, unimplemented, unimplemented, // 04
+    unimplemented, unimplemented, unimplemented, unimplemented, // 08
+    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
+    unimplemented, unimplemented, unimplemented, unimplemented, // 10
+    unimplemented, unimplemented, unimplemented, unimplemented, // 14
+    unimplemented, unimplemented, unimplemented, unimplemented, // 18
+    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
 };
-
-extern void A0Vector();
-extern void B0Vector();
-extern void C0Vector();
 
 static void installHandler(const uint32_t * src, uint32_t * dst) {
     dst[0] = src[0];
@@ -123,7 +124,15 @@ static void installHandler(const uint32_t * src, uint32_t * dst) {
 }
 
 void installKernelHandlers() {
+    installHandler(breakVector, (uint32_t *) 0x40);
+    installHandler(interruptVector, (uint32_t *) 0x80);
     installHandler(A0Vector, (uint32_t *) 0xa0);
     installHandler(B0Vector, (uint32_t *) 0xb0);
     installHandler(C0Vector, (uint32_t *) 0xc0);
+}
+
+void breakHandler(void * data) {
+}
+
+void interruptHandler(void * data) {
 }
