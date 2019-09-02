@@ -30,7 +30,7 @@ int main() {
     *((uint32_t*) 0x68) = 0xff;
     muteSpu();
     if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        ((void(*)()) 0x1f000080)();
+        (*((void(**)()) 0x1f000080))();
     }
 
     start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
