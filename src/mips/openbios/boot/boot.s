@@ -29,6 +29,12 @@ _reset:
     li    $t0, (19 << 16) | 0x243f
     sw    $t0, SBUS_DEV2_CTRL
 
+    nop
+
+    // set ram size
+    li    $t0, (5 << 9) | 0x188
+    sw    $t0, RAM_SIZE
+
     // this may be here to let the hardware pick up the new bus settings
     // before moving on with the actual code.
     nop
