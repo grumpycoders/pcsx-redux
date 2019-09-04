@@ -524,7 +524,13 @@ void InterpretedCPU::psxMTLO() { _rLo_ = _rRs_; }  // Lo = Rs
  * Format:  OP                                            *
  *********************************************************/
 void InterpretedCPU::psxBREAK() {
-    // Break exception - psx rom doens't handles this
+    PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
+    PCSX::g_emulator.m_psxCpu->psxException(0x30, m_inDelaySlot);
+    if (m_inDelaySlot) {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (!delayedLoad.pcActive) abort();
+        delayedLoad.pcActive = false;
+    }
 }
 
 void InterpretedCPU::psxSYSCALL() {
