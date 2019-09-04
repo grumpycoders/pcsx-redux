@@ -152,14 +152,14 @@ _boot:
     la    $t1, __data_end
     la    $t2, __rom_data_start
 
-    beq   $t0, $t1, data_copy_skip
+    beq   $t1, $t2, data_copy_skip
 
 data_copy:
     lw    $t3, 0($t0)
     sw    $t3, 0($t2)
     addiu $t0, 4
     addiu $t2, 4
-    bne   $t0, $t1, data_copy
+    bne   $t1, $t2, data_copy
 
 data_copy_skip:
     la    $t0, __bss_start
@@ -178,6 +178,7 @@ bss_init_skip:
     la    $sp, __sp
     move  $fp, $sp
 
+    // not sure it is needed a second time.
     li    $t0, 0xb88
     sw    $t0, RAM_SIZE
 
