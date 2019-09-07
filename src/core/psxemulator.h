@@ -107,6 +107,13 @@ class Emulator {
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
     enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
+    struct OverlaySetting {
+        typedef SettingPath<TYPESTRING("Filename")> Filename;
+        typedef Setting<uint32_t, TYPESTRING("Address")> Address;
+        typedef Setting<bool, TYPESTRING("Enabled")> Enabled;
+        typedef Settings<Filename, Address, Enabled> type;
+    };
+    typedef SettingArray<TYPESTRING("Overlay"), OverlaySetting::type> SettingOverlay;
     typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
     typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
@@ -133,7 +140,7 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted>
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingOverlay>
         settings;
     class PcsxConfig {
       public:
