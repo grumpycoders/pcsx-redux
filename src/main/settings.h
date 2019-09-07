@@ -120,7 +120,7 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
 template <typename name, typename nestedSettings>
 class SettingNested;
 template <char... C, typename nestedSettings>
-class SettingNested<irqus::typestring<C...>, typename nestedSettings> : public nestedSettings {
+class SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
   public:
     typedef irqus::typestring<C...> name;
 };
@@ -128,7 +128,7 @@ class SettingNested<irqus::typestring<C...>, typename nestedSettings> : public n
 template <typename name, typename nestedSetting>
 class SettingArray;
 template <char... C, typename nestedSetting>
-class SettingArray<irqus::typestring<C...>, typename nestedSetting> : public std::vector<nestedSetting> {
+class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
     using json = nlohmann::json;
 
   public:
