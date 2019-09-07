@@ -21,9 +21,9 @@
  * PSX memory functions.
  */
 
+#include "core/psxmem.h"
 #include "core/debug.h"
 #include "core/file.h"
-#include "core/psxmem.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
 
@@ -70,17 +70,15 @@ int PCSX::Memory::psxMemInit() {
 }
 
 void PCSX::Memory::psxMemReset() {
-    File *f;
-
     memset(g_psxM, 0, 0x00200000);
     memset(g_psxP, 0, 0x00010000);
-    memset(g_psxR, 0, 0x80000);
+    memset(g_psxR, 0, 0x00080000);
     g_emulator.m_psxBios->m_realBiosLoaded = false;
 
     // Load BIOS
     PCSX::u8string biosPath = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().string();
     if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) {
-        f = new File(biosPath);
+        File *f = new File(biosPath);
         if (f->failed()) {
             PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), biosPath.c_str());
             PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
@@ -92,18 +90,23 @@ void PCSX::Memory::psxMemReset() {
         }
         delete f;
 
-		if(g_emulator.m_psxBios->m_realBiosLoaded)
-		{
-			PCSX::u8string overlayPath = "overlay.bin";
-			f = new File(overlayPath);
-			uint32_t offs = 0x18000;
-			if (!f->failed()) {
-				f->read(g_psxR + offs, 0x80000 - offs);
-				f->close();
-				PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), overlayPath.c_str());
-			}
-			delete f;
-		}
+        if (g_emulator.m_psxBios->m_realBiosLoaded) {
+            for (auto &overlay : g_emulator.settings.get<Emulator::SettingBiosOverlay>()) {
+                if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
+                const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>();
+                File *f = new File(filename);
+                const auto &offset = overlay.get<Emulator::OverlaySetting::Address>();
+                if (!f->failed()) {
+                    f->seek(0, SEEK_END);
+                    auto size = f->tell();
+                    if (size + offset >= 0x00080000) size = 0x00080000 - offset;
+                    f->read(g_psxR + offset, size);
+                    f->close();
+                    PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string().c_str());
+                }
+                delete f;
+            }
+        }
     }
 }
 
