@@ -91,6 +91,19 @@ void PCSX::Memory::psxMemReset() {
             g_emulator.m_psxBios->m_realBiosLoaded = true;
         }
         delete f;
+
+		if(g_emulator.m_psxBios->m_realBiosLoaded)
+		{
+			PCSX::u8string overlayPath = "overlay.bin";
+			f = new File(overlayPath);
+			uint32_t offs = 0x18000;
+			if (!f->failed()) {
+				f->read(g_psxR + offs, 0x80000 - offs);
+				f->close();
+				PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), overlayPath.c_str());
+			}
+			delete f;
+		}
     }
 }
 
