@@ -35,6 +35,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_stdlib.h"
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -403,7 +404,18 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Configuration"))) {
-                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
+                if (ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg)) {
+                    auto& overlays = g_emulator.settings.get<Emulator::SettingBiosOverlay>();
+                    m_overlayAddresses.resize(overlays.size());
+                    unsigned counter = 0;
+                    for (auto& overlay : overlays) {
+                        const auto address = overlay.get<Emulator::OverlaySetting::Address>().value;
+                        char addressStr[32];
+                        std::snprintf(addressStr, 32, "0x%08x", address);
+                        m_overlayAddresses[counter] = addressStr;
+                        counter++;
+                    }
+                }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator.m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator.m_spu->m_showCfg);
                 ImGui::EndMenu();
@@ -612,6 +624,8 @@ static void ShowHelpMarker(const char* desc) {
 bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
+    bool selectBiosOverlayDialog = false;
+    unsigned selectBiosOverlayId = 0;
     auto& settings = PCSX::g_emulator.settings;
     if (!m_showCfg) return false;
 
@@ -689,16 +703,70 @@ bool PCSX::GUI::configure() {
         changed |= ImGui::Checkbox(_("BIOS HLE"), &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox(_("Fast boot"), &settings.get<Emulator::SettingFastBoot>().value);
         auto bios = settings.get<Emulator::SettingBios>().string();
-        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(),
+                         ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
+        if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
+            auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
+            if (ImGui::Button(_("Add one entry"))) overlays.push_back({});
+            m_overlayAddresses.resize(overlays.size());
+            int counter = 0;
+            int overlayToRemove = -1;
+            for (auto& overlay : overlays) {
+                std::string id = "overlay" + std::to_string(counter);
+                ImGui::BeginChild(id.c_str(), ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 5.0f), true);
+                auto overlayFilename = overlay.get<Emulator::OverlaySetting::Filename>().string();
+                ImGui::InputText(_("Filename"),
+                                 const_cast<char*>(reinterpret_cast<const char*>(overlayFilename.c_str())),
+                                 overlayFilename.length(), ImGuiInputTextFlags_ReadOnly);
+                ImGui::SameLine();
+                if (ImGui::Button("...")) {
+                    selectBiosOverlayDialog = true;
+                    selectBiosOverlayId = counter;
+                }
+                if (ImGui::InputText(_("Loading Address"), &m_overlayAddresses[counter],
+                                     ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    char* endPtr;
+                    uint32_t address = strtoul(m_overlayAddresses[counter].c_str(), &endPtr, 0);
+                    if (!m_overlayAddresses[counter].empty() && !*endPtr) {
+                        overlay.get<Emulator::OverlaySetting::Address>().value = address;
+                        changed = true;
+                    }
+                }
+                ImGui::Checkbox(_("Enabled"), &overlay.get<Emulator::OverlaySetting::Enabled>().value);
+                ImGui::SameLine();
+                if (ImGui::Button(_("Remove"))) {
+                    overlayToRemove = counter;
+                }
+                ImGui::EndChild();
+                counter++;
+            }
+            if (overlayToRemove >= 0) {
+                overlays.erase(overlays.begin() + overlayToRemove);
+            }
+        }
     }
     ImGui::End();
 
     if (selectBiosDialog) m_selectBiosDialog.openDialog();
     if (m_selectBiosDialog.draw()) {
         std::vector<PCSX::u8string> fileToOpen = m_selectBiosDialog.selected();
-        if (!fileToOpen.empty()) settings.get<Emulator::SettingBios>().value = fileToOpen[0];
+        if (!fileToOpen.empty()) {
+            settings.get<Emulator::SettingBios>().value = fileToOpen[0];
+            changed = true;
+        }
+    }
+
+    if (selectBiosOverlayDialog) m_selectBiosOverlayDialog.openDialog();
+    if (m_selectBiosOverlayDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_selectBiosOverlayDialog.selected();
+        if (!fileToOpen.empty()) {
+            settings.get<Emulator::SettingBiosOverlay>()[selectBiosOverlayId]
+                .get<Emulator::OverlaySetting::Filename>()
+                .value = fileToOpen[0];
+            changed = true;
+        }
     }
     return changed;
 }
