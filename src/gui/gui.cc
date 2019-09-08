@@ -756,7 +756,8 @@ bool PCSX::GUI::configure() {
                         changed = true;
                     }
                 }
-                if (ImGui::Checkbox(_("Enabled"), &overlay.get<Emulator::OverlaySetting::Enabled>().value)) changed = true;
+                if (ImGui::Checkbox(_("Enabled"), &overlay.get<Emulator::OverlaySetting::Enabled>().value))
+                    changed = true;
                 ImGui::SameLine();
                 if (ImGui::Button(_("Remove"))) {
                     overlayToRemove = counter;
