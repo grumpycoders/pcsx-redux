@@ -105,7 +105,7 @@ void PCSX::Memory::psxMemReset() {
                     f->seek(0, SEEK_END);
                     auto fsize = f->tell();
 
-					auto &foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
+					auto foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
 					if(foffset < 0) {
 						// negative offset means from end of file
 						foffset = foffset + fsize;
@@ -125,9 +125,9 @@ void PCSX::Memory::psxMemReset() {
 						
 						fsize = fsize - foffset;
 
-						auto &loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
+						auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
 
-						auto &lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
+						auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
 
 						if(lsize <= 0) {
 							

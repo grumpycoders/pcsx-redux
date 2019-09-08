@@ -732,8 +732,7 @@ bool PCSX::GUI::configure() {
                     selectBiosOverlayDialog = true;
                     selectBiosOverlayId = counter;
                 }
-                if (ImGui::InputText(_("File Offset"), &m_overlayFileOffsets[counter],
-                                     ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (ImGui::InputText(_("File Offset"), &m_overlayFileOffsets[counter])) {
                     char* endPtr;
                     uint32_t offset = strtoul(m_overlayFileOffsets[counter].c_str(), &endPtr, 0);
                     if (!m_overlayFileOffsets[counter].empty() && !*endPtr) {
@@ -741,8 +740,7 @@ bool PCSX::GUI::configure() {
                         changed = true;
                     }
                 }
-                if (ImGui::InputText(_("Load Offset"), &m_overlayLoadOffsets[counter],
-                                     ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (ImGui::InputText(_("Load Offset"), &m_overlayLoadOffsets[counter])) {
                     char* endPtr;
                     uint32_t offset = strtoul(m_overlayLoadOffsets[counter].c_str(), &endPtr, 0);
                     if (!m_overlayLoadOffsets[counter].empty() && !*endPtr) {
@@ -750,8 +748,7 @@ bool PCSX::GUI::configure() {
                         changed = true;
                     }
                 }
-                if (ImGui::InputText(_("Load Size"), &m_overlayLoadSizes[counter],
-                                     ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (ImGui::InputText(_("Load Size"), &m_overlayLoadSizes[counter])) {
                     char* endPtr;
                     uint32_t size = strtoul(m_overlayLoadSizes[counter].c_str(), &endPtr, 0);
                     if (!m_overlayLoadSizes[counter].empty() && !*endPtr) {
@@ -759,10 +756,11 @@ bool PCSX::GUI::configure() {
                         changed = true;
                     }
                 }
-                ImGui::Checkbox(_("Enabled"), &overlay.get<Emulator::OverlaySetting::Enabled>().value);
+                if (ImGui::Checkbox(_("Enabled"), &overlay.get<Emulator::OverlaySetting::Enabled>().value)) changed = true;
                 ImGui::SameLine();
                 if (ImGui::Button(_("Remove"))) {
                     overlayToRemove = counter;
+                    changed = true;
                 }
                 ImGui::EndChild();
                 counter++;
