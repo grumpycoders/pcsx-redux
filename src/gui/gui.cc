@@ -406,13 +406,18 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("Configuration"))) {
                 if (ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg)) {
                     auto& overlays = g_emulator.settings.get<Emulator::SettingBiosOverlay>();
-                    m_overlayAddresses.resize(overlays.size());
+                    m_overlayFileOffsets.resize(overlays.size());
+                    m_overlayLoadOffsets.resize(overlays.size());
+                    m_overlayLoadSizes.resize(overlays.size());
                     unsigned counter = 0;
                     for (auto& overlay : overlays) {
-                        const auto address = overlay.get<Emulator::OverlaySetting::Address>().value;
-                        char addressStr[32];
-                        std::snprintf(addressStr, 32, "0x%08x", address);
-                        m_overlayAddresses[counter] = addressStr;
+                        char str[32];
+                        std::snprintf(str, 32, "0x%08x", overlay.get<Emulator::OverlaySetting::FileOffset>().value);
+                        m_overlayFileOffsets[counter] = str;
+                        std::snprintf(str, 32, "0x%08x", overlay.get<Emulator::OverlaySetting::LoadOffset>().value);
+                        m_overlayLoadOffsets[counter] = str;
+                        std::snprintf(str, 32, "0x%08x", overlay.get<Emulator::OverlaySetting::LoadSize>().value);
+                        m_overlayLoadSizes[counter] = str;
                         counter++;
                     }
                 }
@@ -710,12 +715,14 @@ bool PCSX::GUI::configure() {
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});
-            m_overlayAddresses.resize(overlays.size());
+            m_overlayFileOffsets.resize(overlays.size());
+            m_overlayLoadOffsets.resize(overlays.size());
+            m_overlayLoadSizes.resize(overlays.size());
             int counter = 0;
             int overlayToRemove = -1;
             for (auto& overlay : overlays) {
                 std::string id = "overlay" + std::to_string(counter);
-                ImGui::BeginChild(id.c_str(), ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 5.0f), true);
+                ImGui::BeginChild(id.c_str(), ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 7.0f), true);
                 auto overlayFilename = overlay.get<Emulator::OverlaySetting::Filename>().string();
                 ImGui::InputText(_("Filename"),
                                  const_cast<char*>(reinterpret_cast<const char*>(overlayFilename.c_str())),
@@ -725,12 +732,30 @@ bool PCSX::GUI::configure() {
                     selectBiosOverlayDialog = true;
                     selectBiosOverlayId = counter;
                 }
-                if (ImGui::InputText(_("Loading Address"), &m_overlayAddresses[counter],
+                if (ImGui::InputText(_("File Offset"), &m_overlayFileOffsets[counter],
                                      ImGuiInputTextFlags_EnterReturnsTrue)) {
                     char* endPtr;
-                    uint32_t address = strtoul(m_overlayAddresses[counter].c_str(), &endPtr, 0);
-                    if (!m_overlayAddresses[counter].empty() && !*endPtr) {
-                        overlay.get<Emulator::OverlaySetting::Address>().value = address;
+                    uint32_t offset = strtoul(m_overlayFileOffsets[counter].c_str(), &endPtr, 0);
+                    if (!m_overlayFileOffsets[counter].empty() && !*endPtr) {
+                        overlay.get<Emulator::OverlaySetting::FileOffset>().value = offset;
+                        changed = true;
+                    }
+                }
+                if (ImGui::InputText(_("Load Offset"), &m_overlayLoadOffsets[counter],
+                                     ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    char* endPtr;
+                    uint32_t offset = strtoul(m_overlayLoadOffsets[counter].c_str(), &endPtr, 0);
+                    if (!m_overlayLoadOffsets[counter].empty() && !*endPtr) {
+                        overlay.get<Emulator::OverlaySetting::LoadOffset>().value = offset;
+                        changed = true;
+                    }
+                }
+                if (ImGui::InputText(_("Load Size"), &m_overlayLoadSizes[counter],
+                                     ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    char* endPtr;
+                    uint32_t size = strtoul(m_overlayLoadSizes[counter].c_str(), &endPtr, 0);
+                    if (!m_overlayLoadSizes[counter].empty() && !*endPtr) {
+                        overlay.get<Emulator::OverlaySetting::LoadSize>().value = size;
                         changed = true;
                     }
                 }

@@ -109,9 +109,11 @@ class Emulator {
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
     struct OverlaySetting {
         typedef SettingPath<TYPESTRING("Filename")> Filename;
-        typedef Setting<uint32_t, TYPESTRING("Address")> Address;
+        typedef Setting<uint32_t, TYPESTRING("FileOffset")> FileOffset;
+        typedef Setting<uint32_t, TYPESTRING("LoadOffset")> LoadOffset;
+        typedef Setting<uint32_t, TYPESTRING("LoadSize")> LoadSize;
         typedef Setting<bool, TYPESTRING("Enabled")> Enabled;
-        typedef Settings<Filename, Address, Enabled> type;
+        typedef Settings<Filename, FileOffset, LoadOffset, LoadSize, Enabled> type;
     };
     typedef SettingArray<TYPESTRING("Overlay"), OverlaySetting::type> SettingBiosOverlay;
     typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;

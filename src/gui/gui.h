@@ -156,7 +156,9 @@ class GUI final {
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
     Widgets::Breakpoints m_breakpoints;
-    std::vector<std::string> m_overlayAddresses;
+    std::vector<std::string> m_overlayFileOffsets;
+    std::vector<std::string> m_overlayLoadOffsets;
+    std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
     bool &m_showBiosCounters = {settings.get<ShowBiosCounters>().value};

@@ -70,9 +70,10 @@ int PCSX::Memory::psxMemInit() {
 }
 
 void PCSX::Memory::psxMemReset() {
+	const uint32_t bios_size = 0x00080000;
     memset(g_psxM, 0, 0x00200000);
     memset(g_psxP, 0, 0x00010000);
-    memset(g_psxR, 0, 0x00080000);
+    memset(g_psxR, 0, bios_size);
     g_emulator.m_psxBios->m_realBiosLoaded = false;
 
     // Load BIOS
@@ -83,7 +84,7 @@ void PCSX::Memory::psxMemReset() {
             PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), biosPath.c_str());
             PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
         } else {
-            f->read(g_psxR, 0x80000);
+            f->read(g_psxR, bios_size);
             f->close();
             PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.c_str());
             g_emulator.m_psxBios->m_realBiosLoaded = true;
@@ -94,16 +95,85 @@ void PCSX::Memory::psxMemReset() {
             for (auto &overlay : g_emulator.settings.get<Emulator::SettingBiosOverlay>()) {
                 if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
                 const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>();
+                bool failed = false;
                 File *f = new File(filename);
-                const auto &offset = overlay.get<Emulator::OverlaySetting::Address>();
-                if (!f->failed()) {
+                if (f->failed()) {
+					PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+					failed = true;
+				}
+				else {
                     f->seek(0, SEEK_END);
-                    auto size = f->tell();
-                    if (size + offset >= 0x00080000) size = 0x00080000 - offset;
-                    f->read(g_psxR + offset, size);
-                    f->close();
-                    PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string().c_str());
+                    auto fsize = f->tell();
+
+					auto &foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
+					if(foffset < 0) {
+						// negative offset means from end of file
+						foffset = foffset + fsize;
+
+						if(foffset < 0) {
+							// fail if the negative offset is more than the total file size
+							PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+							failed = true;
+						}
+					}
+					else if(foffset > fsize) {
+						PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+						failed = true;
+					}
+					if(!failed) {
+						f->seek(foffset, SEEK_SET);
+						
+						fsize = fsize - foffset;
+
+						auto &loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
+
+						auto &lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
+
+						if(lsize <= 0) {
+							
+							// lsize <= 0 means "from file size"
+							
+							lsize = fsize + lsize;
+							
+							if(lsize < 0) {
+								PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+								failed = true;
+							}
+						}
+						if(!failed) {
+							if(lsize > fsize) {
+								PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+								failed = true;
+							}
+
+							if(!failed) {
+
+								if(loffset < 0) {
+									// negative offset means from end of device memory region
+									
+									loffset = loffset + bios_size;
+									
+									if(loffset < 0) {
+										// fail if the negative offset is more than the BIOS size
+										PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+										failed = true;
+									}
+								}
+								else if(loffset > bios_size) {
+									PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+									failed = true;
+								}
+								
+								if(!failed) {
+									f->read(g_psxR + loffset, lsize);
+									PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string().c_str());
+								}
+							}
+						}
+					}
                 }
+                
+				f->close();
                 delete f;
             }
         }
