@@ -630,7 +630,6 @@ bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
     bool selectBiosOverlayDialog = false;
-    unsigned selectBiosOverlayId = 0;
     auto& settings = PCSX::g_emulator.settings;
     if (!m_showCfg) return false;
 
@@ -730,7 +729,7 @@ bool PCSX::GUI::configure() {
                 ImGui::SameLine();
                 if (ImGui::Button("...")) {
                     selectBiosOverlayDialog = true;
-                    selectBiosOverlayId = counter;
+                    m_selectedBiosOverlayId = counter;
                 }
                 if (ImGui::InputText(_("File Offset"), &m_overlayFileOffsets[counter])) {
                     char* endPtr;
@@ -785,7 +784,7 @@ bool PCSX::GUI::configure() {
     if (m_selectBiosOverlayDialog.draw()) {
         std::vector<PCSX::u8string> fileToOpen = m_selectBiosOverlayDialog.selected();
         if (!fileToOpen.empty()) {
-            settings.get<Emulator::SettingBiosOverlay>()[selectBiosOverlayId]
+            settings.get<Emulator::SettingBiosOverlay>()[m_selectedBiosOverlayId]
                 .get<Emulator::OverlaySetting::Filename>()
                 .value = fileToOpen[0];
             changed = true;

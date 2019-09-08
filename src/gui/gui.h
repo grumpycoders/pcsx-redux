@@ -155,6 +155,7 @@ class GUI final {
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
+    int m_selectedBiosOverlayId;
     Widgets::Breakpoints m_breakpoints;
     std::vector<std::string> m_overlayFileOffsets;
     std::vector<std::string> m_overlayLoadOffsets;
