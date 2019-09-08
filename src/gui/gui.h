@@ -154,7 +154,12 @@ class GUI final {
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
+    Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
+    int m_selectedBiosOverlayId;
     Widgets::Breakpoints m_breakpoints;
+    std::vector<std::string> m_overlayFileOffsets;
+    std::vector<std::string> m_overlayLoadOffsets;
+    std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
     bool &m_showBiosCounters = {settings.get<ShowBiosCounters>().value};

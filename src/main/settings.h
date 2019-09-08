@@ -55,7 +55,7 @@ class Setting<type, irqus::typestring<C...>, defaultValue> {
     }
     json serialize() const { return value; }
     void deserialize(const json &j) { value = j; }
-    void setDefault() { value = defaultValue; }
+    void reset() { value = defaultValue; }
     type value = defaultValue;
 };
 
@@ -82,7 +82,7 @@ class SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
     const char *c_str() const { return value.c_str(); }
     json serialize() const { return value; }
     void deserialize(const json &j) { value = j; }
-    void setDefault() { value = defaultValue::data(); }
+    void reset() { value = defaultValue::data(); }
     type value = defaultValue::data();
 };
 
@@ -113,8 +113,45 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
         std::string str = j;
         value = std::filesystem::u8path(str);
     }
-    void setDefault() { value = defaultValue::data(); }
+    void reset() { value = defaultValue::data(); }
     type value = defaultValue::data();
+};
+
+template <typename name, typename nestedSettings>
+class SettingNested;
+template <char... C, typename nestedSettings>
+class SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
+  public:
+    typedef irqus::typestring<C...> name;
+};
+
+template <typename name, typename nestedSetting>
+class SettingArray;
+template <char... C, typename nestedSetting>
+class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<nestedSetting> {
+    using json = nlohmann::json;
+
+  public:
+    typedef irqus::typestring<C...> name;
+    json serialize() const {
+        auto ret = json::array();
+        for (auto &item : *this) {
+            ret.push_back(item.serialize());
+        }
+        return ret;
+    }
+    void deserialize(const json &j) {
+        for (auto &item : j) {
+            nestedSetting s;
+            s.deserialize(item);
+            this->push_back(s);
+        }
+    }
+    void reset() {
+        for (auto &item : *this) {
+            item.reset();
+        }
+    }
 };
 
 template <typename... settings>
@@ -144,7 +181,7 @@ class Settings : private std::tuple<settings...> {
     template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void reset() {
         settingType &setting = std::get<index>(*this);
-        setting.setDefault();
+        setting.reset();
         reset<index + 1, nestedSettings...>();
     }
     template <size_t index>
@@ -156,18 +193,18 @@ class Settings : private std::tuple<settings...> {
         serialize<index + 1, nestedSettings...>(j);
     }
     template <size_t index>
-    constexpr void deserialize(const json &j, bool setDefault = true) {}
+    constexpr void deserialize(const json &j, bool doReset = true) {}
     template <size_t index, typename settingType, typename... nestedSettings>
-    constexpr void deserialize(const json &j, bool setDefault = true) {
+    constexpr void deserialize(const json &j, bool doReset = true) {
         settingType &setting = std::get<index>(*this);
         try {
             if (j.find(settingType::name::data()) != j.end()) {
                 setting.deserialize(j[settingType::name::data()]);
-            } else if (setDefault) {
-                setting.setDefault();
+            } else if (doReset) {
+                setting.reset();
             }
         } catch (...) {
-            if (setDefault) setting.setDefault();
+            if (doReset) setting.reset();
         }
         deserialize<index + 1, nestedSettings...>(j);
     }
