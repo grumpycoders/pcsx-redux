@@ -719,6 +719,7 @@ bool PCSX::GUI::configure() {
             m_overlayLoadSizes.resize(overlays.size());
             int counter = 0;
             int overlayToRemove = -1;
+            int swapMe = -1;
             for (auto& overlay : overlays) {
                 std::string id = "overlay" + std::to_string(counter);
                 ImGui::BeginChild(id.c_str(), ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 7.0f), true);
@@ -760,13 +761,28 @@ bool PCSX::GUI::configure() {
                 ImGui::SameLine();
                 if (ImGui::Button(_("Remove"))) {
                     overlayToRemove = counter;
-                    changed = true;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(_("Move up"))) {
+                    swapMe = counter - 1;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(_("Move down"))) {
+                    swapMe = counter;
                 }
                 ImGui::EndChild();
                 counter++;
             }
             if (overlayToRemove >= 0) {
                 overlays.erase(overlays.begin() + overlayToRemove);
+                changed = true;
+            }
+            if ((swapMe >= 0) && (swapMe != (overlays.size() - 1))) {
+                std::iter_swap(overlays.begin() + swapMe, overlays.begin() + swapMe + 1);
+                std::iter_swap(m_overlayFileOffsets.begin() + swapMe, m_overlayFileOffsets.begin() + swapMe + 1);
+                std::iter_swap(m_overlayLoadOffsets.begin() + swapMe, m_overlayLoadOffsets.begin() + swapMe + 1);
+                std::iter_swap(m_overlayLoadSizes.begin() + swapMe, m_overlayLoadSizes.begin() + swapMe + 1);
+                changed = true;
             }
         }
     }
