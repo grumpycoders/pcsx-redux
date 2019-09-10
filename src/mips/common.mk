@@ -1,9 +1,8 @@
-PREFIX = mipsel-linux-gnu
+PREFIX = mipsel-elf
 
-CC = clang-9
+CC = $(PREFIX)-gcc
 
-ARCHFLAGS = -march=mips32r3 -mabi=32 -EL -msoft-float -Wa,-msoft-float
-ARCHFLAGS += -target mipsel-none-eabi -ccc-gcc-name $(PREFIX)-gcc
+ARCHFLAGS = -march=mips1 -mabi=32 -EL -msoft-float -Wa,-msoft-float
 CPPFLAGS = -mno-gpopt -fomit-frame-pointer
 CPPFLAGS += -ffunction-sections -fdata-sections
 CPPFLAGS += -fno-builtin
@@ -31,4 +30,4 @@ $(TARGET).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $(TARGET).elf $(OBJS)
 
 %.o: %.s
-	$(CC) $(ARCHFLAGS) -I.. -g -c -o $@ $<
+	clang-9 --target=mipsel-elf $(ARCHFLAGS) -I.. -g -c -o $@ $<
