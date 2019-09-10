@@ -71,8 +71,9 @@ int PCSX::Memory::psxMemInit() {
 
 void PCSX::Memory::psxMemReset() {
     const uint32_t bios_size = 0x00080000;
+    const uint32_t exp1_size = 0x00010000;
     memset(g_psxM, 0, 0x00200000);
-    memset(g_psxP, 0, 0x00010000);
+    memset(g_psxP, 0, exp1_size);
     memset(g_psxR, 0, bios_size);
     g_emulator.m_psxBios->m_realBiosLoaded = false;
 
@@ -179,6 +180,92 @@ void PCSX::Memory::psxMemReset() {
             }
         }
     }
+
+	for (auto &overlay : g_emulator.settings.get<Emulator::SettingExp1Overlay>()) {
+		if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
+		const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>();
+		auto foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
+		auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
+		auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
+		bool failed = false;
+		File *f = new File(filename);
+
+		if (f->failed()) {
+			PCSX::g_system->message(_("Could not open Expansion 1 Overlay:\"%s\"!\n"), filename.string().c_str());
+			failed = true;
+		}
+
+		ssize_t fsize;
+		if (!failed) {
+			f->seek(0, SEEK_END);
+			fsize = f->tell();
+
+			if (foffset < 0) {
+				// negative offset means from end of file
+				foffset = foffset + fsize;
+
+				if (foffset < 0) {
+					// fail if the negative offset is more than the total file size
+					PCSX::g_system->message(_("Invalid file offset for Expansion 1 Overlay:\"%s\"!\n"),
+											filename.string().c_str());
+					failed = true;
+				}
+			} else if (foffset > fsize) {
+				PCSX::g_system->message(_("Invalid file offset for Expansion 1 Overlay:\"%s\"!\n"),
+										filename.string().c_str());
+				failed = true;
+			}
+		}
+		if (!failed) {
+			f->seek(foffset, SEEK_SET);
+
+			fsize = fsize - foffset;
+
+			if (lsize <= 0) {
+				// lsize <= 0 means "from file size"
+
+				lsize = fsize + lsize;
+
+				if (lsize < 0) {
+					PCSX::g_system->message(_("Invalid load size specified Expansion 1 Overlay:\"%s\"!\n"),
+											filename.string().c_str());
+					failed = true;
+				}
+			}
+		}
+		if (!failed) {
+			if (lsize > fsize) {
+				PCSX::g_system->message(_("Invalid load size specified Expansion 1 Overlay:\"%s\"!\n"),
+										filename.string().c_str());
+				failed = true;
+			}
+		}
+		if (!failed) {
+			if (loffset < 0) {
+				// negative offset means from end of device memory region
+
+				loffset = loffset + exp1_size;
+
+				if (loffset < 0) {
+					// fail if the negative offset is more than the Expansion 1 size
+					PCSX::g_system->message(_("Invalid load offset for Expansion 1 Overlay:\"%s\"!\n"),
+											filename.string().c_str());
+					failed = true;
+				}
+			} else if (loffset > exp1_size) {
+				PCSX::g_system->message(_("Invalid load offset for Expansion 1 Overlay:\"%s\"!\n"),
+										filename.string().c_str());
+				failed = true;
+			}
+		}
+		if (!failed) {
+			f->read(g_psxP + loffset, lsize);
+			PCSX::g_system->printf(_("Loaded Expansion 1 overlay: %s\n"), filename.string().c_str());
+		}
+
+		f->close();
+		delete f;
+	}
 }
 
 void PCSX::Memory::psxMemShutdown() {

@@ -115,7 +115,9 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("Enabled")> Enabled;
         typedef Settings<Filename, FileOffset, LoadOffset, LoadSize, Enabled> type;
     };
-    typedef SettingArray<TYPESTRING("Overlay"), OverlaySetting::type> SettingBiosOverlay;
+    typedef SettingArray<TYPESTRING("BiosOverlay"), OverlaySetting::type> SettingBiosOverlay;
+    typedef SettingArray<TYPESTRING("Exp1Overlay"), OverlaySetting::type> SettingExp1Overlay;
+    
     typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
     typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
@@ -142,7 +144,7 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay>
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingExp1Overlay>
         settings;
     class PcsxConfig {
       public:
