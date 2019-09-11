@@ -26,18 +26,18 @@
     .type _reset, @function
 
 _reset:
-    // set bios memory bus width and speed.
+    /* set bios memory bus width and speed. */
     li    $t0, (19 << 16) | 0x243f
     sw    $t0, SBUS_DEV2_CTRL
 
     nop
 
-    // set ram size
+    /* set ram size */
     li    $t0, (5 << 9) | 0x188
     sw    $t0, RAM_SIZE
 
-    // this may be here to let the hardware pick up the new bus settings
-    // before moving on with the actual code.
+    /* this may be here to let the hardware pick up the new bus settings
+       before moving on with the actual code. */
     nop
     nop
     nop
@@ -59,7 +59,7 @@ _reset:
     nop
     nop
 
-    // jumping over the interrupt vector.
+    /* jumping over the interrupt vector. */
     j     _boot
 
 
@@ -69,7 +69,7 @@ _reset:
     .type _boot, @function
 
 _boot:
-    // initializing all of the buses now
+    /* initializing all of the buses now */
     li    $t0, 0x31125
     sw    $t0, SBUS_COM_CTRL
 
@@ -94,7 +94,7 @@ _boot:
     li    $t0, 0x70777
     sw    $t0, SBUS_DEV8_CTRL
 
-    // clearing out all registers
+    /* clearing out all registers */
     move  $1, $0
     move  $2, $0
     move  $3, $0
@@ -129,7 +129,7 @@ _boot:
 
     jal  flushCache
 
-    // ensuring cop0 is fully reset
+    /* ensuring cop0 is fully reset */
     mtc0  $0, $7
     nop
     mtc0  $0, $3
@@ -147,7 +147,7 @@ _boot:
     mtc0  $0, $13
     nop
 
-    // now we are ready for a typical crt0
+    /* now we are ready for a typical crt0 */
     la    $t0, __data_start
     la    $t1, __data_end
     la    $t2, __rom_data_start
@@ -174,11 +174,11 @@ bss_init:
 
 bss_init_skip:
 
-    // technically have to set $gp, but we are not using it, so, not
+    /* technically have to set $gp, but we are not using it, so, not */
     la    $sp, __sp
     move  $fp, $sp
 
-    // not sure it is needed a second time.
+    /* not sure it is needed a second time. */
     li    $t0, 0xb88
     sw    $t0, RAM_SIZE
 
