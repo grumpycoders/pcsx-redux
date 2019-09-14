@@ -15,6 +15,7 @@ CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/imgui_club
+CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -O3
 CPPFLAGS += -g
@@ -25,6 +26,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
+LDFLAGS += third_party/luajit/src/libluajit.a
 
 ifeq ($(UNAME_S),Darwin)
 	LDFLAGS += -L/usr/local/Cellar/llvm/HEAD-e374798_1/lib
@@ -53,7 +55,10 @@ OBJECTS += $(patsubst %.c,%.o,$(SRC_C))
 
 all: dep $(TARGET)
 
-$(TARGET): $(OBJECTS)
+third_party/luajit/src/libluajit.a:
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit amalg
+
+$(TARGET): $(OBJECTS) third_party/luajit/src/libluajit.a
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
 
 %.o: %.c
@@ -76,6 +81,7 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS) $(TARGET) $(DEPS)
+	$(MAKE) -C third_party/luajit clean
 
 gitclean:
 	git clean -f -d -x
