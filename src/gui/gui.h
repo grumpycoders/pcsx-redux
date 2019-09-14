@@ -29,6 +29,7 @@
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
+#include "core/luawrapper.h"
 #include "core/system.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
@@ -174,6 +175,7 @@ class GUI final {
     Widgets::VRAMViewer m_VRAMviewers[4];
 
     uv_loop_t m_loop;
+    Lua m_lua;
 };
 
 }  // namespace PCSX
