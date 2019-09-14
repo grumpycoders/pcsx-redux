@@ -19,3 +19,6 @@
 [submodule "third_party/zstr"]
 	path = third_party/zstr
 	url = https://github.com/mateidavid/zstr.git
+[submodule "third_party/luajit"]
+	path = third_party/luajit
+	url = https://github.com/LuaJIT/LuaJIT.git
