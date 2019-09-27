@@ -122,7 +122,7 @@ generalHandler:
     lw    $30, 0x178($0)
     lw    $31, 0x17c($0)
     jr    $k0
-    .word 0x42000010 // rfe
+    .word 0x42000010 /* rfe */
 
     .section .text, "ax", @progbits
 
