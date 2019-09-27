@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-OUTPUT_FORMAT("elf32-littlemips")
+OUTPUT_FORMAT("elf32-tradlittlemips")
 OUTPUT_ARCH(mips)
 
 EXTERN(_reset)

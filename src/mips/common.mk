@@ -1,20 +1,18 @@
-PREFIX = mipsel-elf
+PREFIX = mipsel-linux-gnu
 
 CC = $(PREFIX)-gcc
 
-ARCHFLAGS = -march=mips1 -mabi=32 -EL -msoft-float -Wa,-msoft-float
+ARCHFLAGS = -march=mips1 -mabi=32 -EL -msoft-float -Wa,-msoft-float -fno-pic -mno-shared -mno-abicalls
 CPPFLAGS = -mno-gpopt -fomit-frame-pointer
-CPPFLAGS += -ffunction-sections -fdata-sections
 CPPFLAGS += -fno-builtin
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I..
 
 LDFLAGS = -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
-LDFLAGS += -g
 
-CPPFLAGS += -O3
-CPPFLAGS += -g
+LDFLAGS += -g -O3 -flto
+CPPFLAGS += -g -O3 -flto
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
@@ -30,4 +28,4 @@ $(TARGET).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $(TARGET).elf $(OBJS)
 
 %.o: %.s
-	clang-9 --target=mipsel-elf $(ARCHFLAGS) -I.. -g -c -o $@ $<
+	$(CC) $(ARCHFLAGS) -I.. -g -c -o $@ $<
