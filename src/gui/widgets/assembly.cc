@@ -438,10 +438,12 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     float glyphWidth = ImGui::GetFontSize();
 
     bool openSymbolsDialog = false;
+    bool openDumpDialog = false;
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu(_("File"))) {
             openSymbolsDialog = ImGui::MenuItem(_("Load symbols map"));
+            openDumpDialog = ImGui::MenuItem(_("Dump memory"));
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Debug"))) {
@@ -884,6 +886,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             // oh the irony
             file.open(reinterpret_cast<const char *>(fileName.c_str()));
             if (!file) continue;
+          
             while (!file.eof()) {
                 std::string addressString;
                 std::string name;
@@ -894,6 +897,24 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 if (!addressValid) continue;
                 m_symbols[address] = name;
             }
+        }
+    }
+    
+    uint32_t dump_addr = 0x00030000;
+    uint32_t dump_size = 0x000D0000;
+
+    if (openDumpDialog) m_dumpFileDialog.openDialog();
+    if (m_dumpFileDialog.draw()) {
+        std::vector<PCSX::u8string> filesToOpen = m_dumpFileDialog.selected();
+        for (auto fileName : filesToOpen) {
+            std::ofstream file;
+            file.open(reinterpret_cast<const char *>(fileName.c_str()), std::ios::binary);
+            if (!file) continue;
+			file.write(reinterpret_cast<const char*>(m_memory->g_psxM + dump_addr), dump_size);                        
+			file.close();
+			PCSX::g_system->message(_("Dumped 0x%08X-0x%08X to file \"%s\"\n"),
+									dump_addr, dump_addr + dump_size,
+									fileName.c_str());
         }
     }
 }

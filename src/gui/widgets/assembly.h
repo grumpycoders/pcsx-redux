@@ -56,6 +56,7 @@ class Assembly : private Disasm {
     char m_jumpAddressString[20];
     std::map<uint32_t, std::string> m_symbols;
     FileDialog m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
+    FileDialog m_dumpFileDialog = {[]() { return _("Dump Memory"); }};
     MemoryEditor* m_mainMemoryEditor = nullptr;
     MemoryEditor* m_hwMemoryEditor = nullptr;
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
