@@ -18,6 +18,7 @@ jobs:
           name: Build
           command: |
             make -j 2
+            make -C src/mips/shell -j 2
             make -C src/mips/openbios -j 2
 
 workflows:
