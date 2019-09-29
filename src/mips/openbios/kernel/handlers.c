@@ -27,7 +27,7 @@ void A0Vector();
 void B0Vector();
 void C0Vector();
 
-__attribute__((section(".a0table"))) uint32_t A0table[0xc0] = {
+__attribute__((section(".a0table"))) void * A0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
@@ -78,7 +78,7 @@ __attribute__((section(".a0table"))) uint32_t A0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // bc
 };
 
-uint32_t B0table[0x60] = {
+void *B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
@@ -105,7 +105,7 @@ uint32_t B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c
 };
 
-uint32_t C0table[0x20] = {
+void * C0table[0x20] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
@@ -116,11 +116,11 @@ uint32_t C0table[0x20] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 1c
 };
 
-static void installHandler(const uint32_t * src, uint32_t * dst) {
-    dst[0] = src[0];
-    dst[1] = src[1];
-    dst[2] = src[2];
-    dst[3] = src[3];
+static void installHandler(const void * src, void * dst) {
+    ((uint32_t *) dst)[0] = ((uint32_t *) src)[0];
+    ((uint32_t *) dst)[1] = ((uint32_t *) src)[1];
+    ((uint32_t *) dst)[2] = ((uint32_t *) src)[2];
+    ((uint32_t *) dst)[3] = ((uint32_t *) src)[3];
 }
 
 void installKernelHandlers() {
