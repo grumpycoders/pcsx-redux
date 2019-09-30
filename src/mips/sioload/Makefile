@@ -5,15 +5,10 @@ SRCS = \
 	crt0/crt0.S \
 	src/main.c \
 
+LIBS = ../ps1sdk/libps1sdk.a
+
 LDSCRIPT = ../psx-exe.ld
-
-CPPFLAGS = -Iinclude -Isrc -I${PS1SDK}/include
-
-LDFLAGS =  -L${PS1SDK}/lib -lps1
-
-## If "TLOAD_ADDR" was specified in the Makefile, pass it to the linker.
-ifneq ($(strip $(TLOAD_ADDR)),)
-LDFLAGS += -Wl,--defsym,TLOAD_ADDR=$(TLOAD_ADDR)
-endif
+CPPFLAGS := -I../ps1sdk/include
+LDFLAGS := -L../ps1sdk -lps1sdk
 
 include ../common.mk

@@ -1,4 +1,4 @@
-TARGET = lib/libps1.a
+TARGET = libps1sdk.a
 
 SRCS = \
 	src/syscalls.S \

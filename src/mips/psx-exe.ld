@@ -27,6 +27,7 @@ ENTRY(_start)
 TLOAD_ADDR = DEFINED(_TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
 
 MEMORY {
+    loader      : ORIGIN = 0x8000f800, LENGTH = 2048
     ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
@@ -38,73 +39,10 @@ __dcache        = ORIGIN(dcache);
 __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
 __bss_len       = (__bss_end - __bss_start);
-__ftext_len		= (__ftext_end - __ftext_start);
-__fdata_len		= (__fdata_end - __fdata_start);
+__ftext_len     = (__ftext_end - __ftext_start);
+__fdata_len     = (__fdata_end - __fdata_start);
 
 SECTIONS {
-    __text_start = .;
-	__ftext_start = ABSOLUTE(.);
-    .text TLOAD_ADDR : {
-        *(.start)
-        *(.init)
-        KEEP (*(SORT_NONE(.fini)))
-        *(.text.unlikely .text.*_unlikely .text.unlikely.*)
-        *(.text.exit .text.exit.*)
-        *(.text.startup .text.startup.*)
-        *(.text.hot .text.hot.*)
-        *(.text .stub .text.* .gnu.linkonce.t.*)
-        . = ALIGN(16);
-    } > ram
-
-    .fini : {
-        . = ALIGN(16);
-    } > ram
-
-    . = ALIGN(16);
-    __text_end = .;
-	__ftext_end = ABSOLUTE(.);
-    
-    __fdata_start = ABSOLUTE(.);
-
-    .rodata : {
-        *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
-    } > ram
-
-    .rodata1 : {
-        *(.rodata1)
-    } > ram
-
-    __data_start = .;
-    .data : {
-        *(.a0table)
-        *(.data .data.* .gnu.linkonce.d.*)
-        *(.data1)
-        *(.got.plt)
-        *(.got)
-    } > ram
-
-    . = ALIGN(4);
-    __data_end = .;
-	__fdata_end = .;
-    __bss_start = .;
-    .sbss : {
-        *(.dynsbss)
-        *(.sbss .sbss.* .gnu.linkonce.sb.*)
-        *(.scommon)
-        *(.dynbss)
-        *(.bss .bss.* .gnu.linkonce.b.*)
-        *(COMMON)
-    } > ram
-
-    . = ALIGN(4);
-    __bss_end = .;
-
-    __end = .;
-
-    /* pad file to be a multiple of 2048 bytes.  Needed for loading from CD-ROM. */
-   /* .__pad : { BYTE(0); . = ALIGN(2048); }*/
-    . = ADDR(.text) - 0x800;
-    
     .PSX_EXE_Header : {
         /*
             0x0000 - 0x0007 : "PS-X EXE"
@@ -115,10 +53,10 @@ SECTIONS {
         LONG(0); LONG(0);
 
         /* 0x0010 - 0x0013 : entry point */
-        LONG(DEFINED(_start) ? ABSOLUTE(_start) : __text_start);
+        LONG(ABSOLUTE(_start));
 
         /* 0x0014 - 0x0017 : initial value of $gp */
-        LONG(DEFINED(_gp) ? ABSOLUTE(_gp) : 0);
+        LONG(0);
 
         /* 0x0018 - 0x001B : Memory address to load "text" section to. */
         /*
@@ -149,7 +87,70 @@ SECTIONS {
         /*
         . = ADDR(.text);
         */
-    }
+    } > loader
+
+    __ftext_start = ABSOLUTE(.);
+    .text TLOAD_ADDR : {
+        *(.start)
+        *(.init)
+        KEEP (*(SORT_NONE(.fini)))
+        *(.text.unlikely .text.*_unlikely .text.unlikely.*)
+        *(.text.exit .text.exit.*)
+        *(.text.startup .text.startup.*)
+        *(.text.hot .text.hot.*)
+        *(.text .stub .text.* .gnu.linkonce.t.*)
+        . = ALIGN(16);
+    } > ram
+
+    .fini : {
+        . = ALIGN(16);
+    } > ram
+
+    . = ALIGN(16);
+    __text_end = .;
+    __ftext_end = ABSOLUTE(.);
+
+    __fdata_start = ABSOLUTE(.);
+
+    .rodata : {
+        *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
+    } > ram
+
+    .rodata1 : {
+        *(.rodata1)
+    } > ram
+
+    __data_start = .;
+    .data : {
+        *(.a0table)
+        *(.data .data.* .gnu.linkonce.d.*)
+        *(.data1)
+        *(.got.plt)
+        *(.got)
+    } > ram
+
+    . = ALIGN(4);
+    __data_end = .;
+    __fdata_end = .;
+    __bss_start = .;
+    .sbss : {
+        *(.dynsbss)
+        *(.sbss .sbss.* .gnu.linkonce.sb.*)
+        *(.scommon)
+        *(.dynbss)
+        *(.bss .bss.* .gnu.linkonce.b.*)
+        *(COMMON)
+    } > ram
+
+    . = ALIGN(4);
+    __bss_end = .;
+
+    __end = .;
+
+    /* pad file to be a multiple of 2048 bytes.  Needed for loading from CD-ROM. */
+   /* .__pad : { BYTE(0); . = ALIGN(2048); }*/
+    . = ADDR(.text) - 0x800;
+
 
     /DISCARD/ : { *(.MIPS.abiflags) }
 

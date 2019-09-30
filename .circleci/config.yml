@@ -19,6 +19,7 @@ jobs:
           command: |
             make -j 2
             make -C src/mips/hello -j 2
+            make -C src/mips/sioload -j 2
             make -C src/mips/shell -j 2
             make -C src/mips/openbios -j 2
 
