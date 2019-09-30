@@ -1,4 +1,5 @@
-TARGET = shell
+TARGET = shell.bin
+LOAD_ADDR = 0x80030000
 
 SRCS = \
 ../common/hardware/cop0.s \

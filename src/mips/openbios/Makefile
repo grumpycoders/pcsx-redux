@@ -1,4 +1,4 @@
-TARGET = openbios
+TARGET = openbios.bin
 
 SRCS = \
 ../common/hardware/cop0.s \
