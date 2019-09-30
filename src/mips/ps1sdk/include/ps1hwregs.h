@@ -1,0 +1,527 @@
+/*
+ * PS1 hardware register definitions
+ */
+
+#ifndef _PS1HWREGS_H
+#define	_PS1HWREGS_H
+
+#ifdef	__cplusplus
+extern "C" {
+#endif
+
+#define A_PS1_HWREG_BASE 0x1F800000
+
+/* 16-bit offsets for the PS1 hardware registers based at 0x1F800000 */
+/* Useful as offsets for assembler. */
+
+// DEV0: PIO Expansion Port.
+// DEV1: Unknown
+// DEV2: BIOS ROM chip(BIOS)
+// DEV4: Sound Processing Unit(SPU)
+// DEV5: CD-ROM interface(CDROM)
+// DEV8: Development hardware in the official dev kit.
+
+// SBUS device address registers.
+#define O_PS1_SBUS_DEV0_ADDR    (0x1000)
+#define O_PS1_SBUS_DEV8_ADDR    (0x1004)
+
+// SBUS device control registers.
+#define O_PS1_SBUS_DEV0_CTRL    (0x1008)
+#define O_PS1_SBUS_DEV1_CTRL    (0x100C)
+#define O_PS1_SBUS_DEV2_CTRL    (0x1010)
+#define O_PS1_SBUS_DEV4_CTRL    (0x1014)
+#define O_PS1_SBUS_DEV5_CTRL    (0x1018)
+#define O_PS1_SBUS_DEV8_CTRL    (0x101C)
+
+// SBUS common control register.
+#define O_PS1_SBUS_COM_CTRL     (0x1020)
+
+#define O_PS1_SIO0_DATA (0x1040)
+#define O_PS1_SIO0_STATUS (0x1044)
+#define O_PS1_SIO0_MODE (0x1048)
+#define O_PS1_SIO0_CONTROL (0x104A)
+#define O_PS1_SIO0_BAUD (0x104E)
+
+#define O_PS1_SIO1_DATA (0x1050)
+#define O_PS1_SIO1_STATUS (0x1054)
+#define O_PS1_SIO1_MODE (0x1058)
+#define O_PS1_SIO1_CONTROL (0x105A)
+#define O_PS1_SIO1_BAUD (0x105E)
+
+#define O_PS1_RAM_SIZE (0x1060)
+
+#define O_PS1_I_STAT (0x1070)
+#define O_PS1_I_MASK (0x1074)
+
+#define O_PS1_DMA_CH0_MADR (0x1080)
+#define O_PS1_DMA_CH0_BCR (0x1084)
+#define O_PS1_DMA_CH0_CHCR (0x1088)
+
+#define O_PS1_DMA_CH1_MADR (0x1090)
+#define O_PS1_DMA_CH1_BCR (0x1094)
+#define O_PS1_DMA_CH1_CHCR (0x1098)
+
+#define O_PS1_DMA_CH2_MADR (0x10A0)
+#define O_PS1_DMA_CH2_BCR (0x10A4)
+#define O_PS1_DMA_CH2_CHCR (0x10A8)
+
+#define O_PS1_DMA_CH3_MADR (0x10B0)
+#define O_PS1_DMA_CH3_BCR (0x10B4)
+#define O_PS1_DMA_CH3_CHCR (0x10B8)
+
+#define O_PS1_DMA_CH4_MADR (0x10C0)
+#define O_PS1_DMA_CH4_BCR (0x10C4)
+#define O_PS1_DMA_CH4_CHCR (0x10C8)
+
+#define O_PS1_DMA_CH5_MADR (0x10D0)
+#define O_PS1_DMA_CH5_BCR (0x10D4)
+#define O_PS1_DMA_CH5_CHCR (0x10D8)
+
+#define O_PS1_DMA_CH6_MADR (0x10E0)
+#define O_PS1_DMA_CH6_BCR (0x10E4)
+#define O_PS1_DMA_CH6_CHCR (0x10E8)
+
+#define O_PS1_DMA_PCR (0x10F0)
+#define O_PS1_DMA_ICR (0x10F4)
+
+#define O_PS1_T0_COUNT (0x1100)
+#define O_PS1_T0_MODE (0x1104)
+#define O_PS1_T0_TARGET (0x1108)
+#define O_PS1_T1_COUNT (0x1110)
+#define O_PS1_T1_MODE (0x1114)
+#define O_PS1_T1_TARGET (0x1118)
+#define O_PS1_T2_COUNT (0x1120)
+#define O_PS1_T2_MODE (0x1124)
+#define O_PS1_T2_TARGET (0x1128)
+
+#define O_PS1_CDROM0 (0x1800)
+#define O_PS1_CDROM1 (0x1801)
+#define O_PS1_CDROM2 (0x1802)
+#define O_PS1_CDROM3 (0x1803)
+
+#define O_PS1_GPU_REG0 (0x1810)
+#define O_PS1_GPU_REG1 (0x1814)
+
+#define O_PS1_MDEC_REG0 (0x1820)
+#define O_PS1_MDEC_REG1 (0x1824)
+
+#define O_PS1_SPU_MVOL_L (0x1D80)
+#define O_PS1_SPU_MVOL_R (0x1D82)
+
+#define O_PS1_SPU_REVERB_L (0x1D84)
+#define O_PS1_SPU_REVERB_R (0x1D86)
+
+#define O_PS1_SPU_KEY_ON1 (0x1D88)
+#define O_PS1_SPU_KEY_ON2 (0x1D8A)
+
+#define O_PS1_SPU_KEY_OFF1 (0x1D8C)
+#define O_PS1_SPU_KEY_OFF2 (0x1D8E)
+
+#define O_PS1_SPU_KEY_MODEFM1 (0x1D90)
+#define O_PS1_SPU_KEY_MODEFM2 (0x1D92)
+
+#define O_PS1_SPU_KEY_MODENOISE1 (0x1D94)
+#define O_PS1_SPU_KEY_MODENOISE2 (0x1D96)
+
+#define O_PS1_SPU_KEY_MODEREVERB1 (0x1D98)
+#define O_PS1_SPU_KEY_MODEREVERB2 (0x1D9A)
+
+#define O_PS1_SPU_KEY_CHANNELACTIVE1 (0x1D9C)
+#define O_PS1_SPU_KEY_CHANNELACTIVE2 (0x1D9E)
+
+#define O_PS1_SPU_U_E (0x1DA2)
+
+#define O_PS1_SPU_SB_ADDR (0x1DA6)
+
+#define O_PS1_SPU_DATA (0x1DA8)
+
+#define O_PS1_SPU_REG0 (0x1DAA)
+
+#define O_PS1_SPU_REG1 (0x1DAC)
+#define O_PS1_SPU_STATUS (0x1DAE)
+
+#define O_PS1_SPU_CDMVOL_L (0x1DB0)
+#define O_PS1_SPU_CDMVOL_R (0x1DB2)
+
+#define O_PS1_SPU_EXTVOL_L (0x1DB4)
+#define O_PS1_SPU_EXTVOL_R (0x1DB6)
+
+#define O_PS1_SPU_REVERBCONFIG (0x1DC0)
+
+#define O_PS1_SPU_FACTORLEFT (0x1DFC)
+#define O_PS1_SPU_FACTORRIGHT (0x1DFE)
+
+#define O_PS1_DBG_R20   (0x2020)
+#define O_PS1_DBG_R21   (0x2021)
+#define O_PS1_DBG_R22   (0x2022)
+#define O_PS1_DBG_R23   (0x2023)
+#define O_PS1_DBG_R24   (0x2024)
+#define O_PS1_DBG_R25   (0x2025)
+#define O_PS1_DBG_R26   (0x2026)
+#define O_PS1_DBG_R27   (0x2027)
+#define O_PS1_DBG_R28   (0x2028)
+#define O_PS1_DBG_R29   (0x2029)
+#define O_PS1_DBG_R2A   (0x202A)
+#define O_PS1_DBG_R2B   (0x202B)
+#define O_PS1_DBG_R2C   (0x202C)
+#define O_PS1_DBG_R2D   (0x202D)
+#define O_PS1_DBG_R2E   (0x202E)
+#define O_PS1_DBG_R2F   (0x202F)
+#define O_PS1_DBG_R30   (0x2030)
+#define O_PS1_DBG_DIPS  (0x2040)
+#define O_PS1_DBG_R41   (0x2041)
+#define O_PS1_DBG_R42   (0x2042)
+#define O_PS1_DBG_R43   (0x2043)
+
+/* Definitions of PS1 hardware register full physical addresses */
+
+#define A_PS1_SBUS_DEV0_ADDR (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV0_ADDR)
+#define A_PS1_SBUS_DEV8_ADDR (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV8_ADDR)
+
+#define A_PS1_SBUS_DEV0_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV0_CTRL)
+#define A_PS1_SBUS_DEV1_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV1_CTRL)
+#define A_PS1_SBUS_DEV2_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV2_CTRL)
+#define A_PS1_SBUS_DEV4_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV4_CTRL)
+#define A_PS1_SBUS_DEV5_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV5_CTRL)
+#define A_PS1_SBUS_DEV8_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_DEV8_CTRL)
+
+#define A_PS1_SBUS_COM_CTRL (A_PS1_HWREG_BASE + O_PS1_SBUS_COM_CTRL)
+
+#define A_PS1_SIO0_DATA (A_PS1_HWREG_BASE + O_PS1_SIO0_DATA)
+#define A_PS1_SIO0_STATUS (A_PS1_HWREG_BASE + O_PS1_SIO0_STATUS)
+#define A_PS1_SIO0_MODE (A_PS1_HWREG_BASE + O_PS1_SIO0_MODE)
+#define A_PS1_SIO0_CONTROL (A_PS1_HWREG_BASE + O_PS1_SIO0_CONTROL)
+#define A_PS1_SIO0_BAUD (A_PS1_HWREG_BASE + O_PS1_SIO0_BAUD)
+
+#define A_PS1_SIO1_DATA (A_PS1_HWREG_BASE + O_PS1_SIO1_DATA)
+#define A_PS1_SIO1_STATUS (A_PS1_HWREG_BASE + O_PS1_SIO1_STATUS)
+#define A_PS1_SIO1_MODE (A_PS1_HWREG_BASE + O_PS1_SIO1_MODE)
+#define A_PS1_SIO1_CONTROL (A_PS1_HWREG_BASE + O_PS1_SIO1_CONTROL)
+#define A_PS1_SIO1_BAUD (A_PS1_HWREG_BASE + O_PS1_SIO1_BAUD)
+
+#define A_PS1_RAM_SIZE (A_PS1_HWREG_BASE + O_PS1_RAM_SIZE)
+
+#define A_PS1_I_STAT (A_PS1_HWREG_BASE + O_PS1_I_STAT)
+#define A_PS1_I_MASK (A_PS1_HWREG_BASE + O_PS1_I_MASK)
+
+#define A_PS1_DMA_CH0_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH0_MADR)
+#define A_PS1_DMA_CH0_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH0_BCR)
+#define A_PS1_DMA_CH0_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH0_CHCR)
+
+#define A_PS1_DMA_CH1_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH1_MADR)
+#define A_PS1_DMA_CH1_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH1_BCR)
+#define A_PS1_DMA_CH1_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH1_CHCR)
+
+#define A_PS1_DMA_CH2_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH2_MADR)
+
+#define A_PS1_DMA_CH2_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH2_BCR)
+#define A_PS1_DMA_CH2_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH2_CHCR)
+#define A_PS1_DMA_CH3_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH3_MADR)
+#define A_PS1_DMA_CH3_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH3_BCR)
+#define A_PS1_DMA_CH3_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH3_CHCR)
+#define A_PS1_DMA_CH4_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH4_MADR)
+#define A_PS1_DMA_CH4_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH4_BCR)
+#define A_PS1_DMA_CH4_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH4_CHCR)
+#define A_PS1_DMA_CH5_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH5_MADR)
+#define A_PS1_DMA_CH5_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH5_BCR)
+#define A_PS1_DMA_CH5_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH5_CHCR)
+#define A_PS1_DMA_CH6_MADR (A_PS1_HWREG_BASE + O_PS1_DMA_CH6_MADR)
+#define A_PS1_DMA_CH6_BCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH6_BCR)
+#define A_PS1_DMA_CH6_CHCR (A_PS1_HWREG_BASE + O_PS1_DMA_CH6_CHCR)
+#define A_PS1_DMA_PCR (A_PS1_HWREG_BASE + O_PS1_DMA_PCR)
+#define A_PS1_DMA_ICR (A_PS1_HWREG_BASE + O_PS1_DMA_ICR)
+#define A_PS1_T0_COUNT (A_PS1_HWREG_BASE + O_PS1_T0_COUNT)
+#define A_PS1_T0_MODE (A_PS1_HWREG_BASE + O_PS1_T0_MODE)
+#define A_PS1_T0_TARGET (A_PS1_HWREG_BASE + O_PS1_T0_TARGET)
+#define A_PS1_T1_COUNT (A_PS1_HWREG_BASE + O_PS1_T1_COUNT)
+#define A_PS1_T1_MODE (A_PS1_HWREG_BASE + O_PS1_T1_MODE)
+#define A_PS1_T1_TARGET (A_PS1_HWREG_BASE + O_PS1_T1_TARGET)
+#define A_PS1_T2_COUNT (A_PS1_HWREG_BASE + O_PS1_T2_COUNT)
+#define A_PS1_T2_MODE (A_PS1_HWREG_BASE + O_PS1_T2_MODE)
+#define A_PS1_T2_TARGET (A_PS1_HWREG_BASE + O_PS1_T2_TARGET)
+
+#define A_PS1_CDROM0 (A_PS1_HWREG_BASE + O_PS1_CDROM0)
+#define A_PS1_CDROM1 (A_PS1_HWREG_BASE + O_PS1_CDROM1)
+#define A_PS1_CDROM2 (A_PS1_HWREG_BASE + O_PS1_CDROM2)
+#define A_PS1_CDROM3 (A_PS1_HWREG_BASE + O_PS1_CDROM3)
+
+#define A_PS1_GPU_REG0 (A_PS1_HWREG_BASE + O_PS1_GPU_REG0)
+#define A_PS1_GPU_REG1 (A_PS1_HWREG_BASE + O_PS1_GPU_REG1)
+
+#define A_PS1_MDEC_REG0 (A_PS1_HWREG_BASE + O_PS1_MDEC_REG0)
+#define A_PS1_MDEC_REG1 (A_PS1_HWREG_BASE + O_PS1_MDEC_REG1)
+
+#define A_PS1_SPU_MVOL_L (A_PS1_HWREG_BASE + O_PS1_SPU_MVOL_L)
+#define A_PS1_SPU_MVOL_R (A_PS1_HWREG_BASE + O_PS1_SPU_MVOL_R)
+
+#define A_PS1_SPU_REVERB_L (A_PS1_HWREG_BASE + O_PS1_SPU_REVERB_L)
+#define A_PS1_SPU_REVERB_R (A_PS1_HWREG_BASE + O_PS1_SPU_REVERB_R)
+
+#define A_PS1_SPU_KEY_ON1 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_ON1)
+#define A_PS1_SPU_KEY_ON2 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_ON2)
+
+#define A_PS1_SPU_KEY_OFF1 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_OFF1)
+#define A_PS1_SPU_KEY_OFF2 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_OFF2)
+
+#define A_PS1_SPU_KEY_MODEFM1 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_MODEFM1)
+#define A_PS1_SPU_KEY_MODEFM2 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_MODEFM2)
+
+#define A_PS1_SPU_KEY_MODENOISE1 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_MODENOISE1)
+#define A_PS1_SPU_KEY_MODENOISE2 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_MODENOISE2)
+
+#define A_PS1_SPU_KEY_MODEREVERB1 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_MODEREVERB1)
+#define A_PS1_SPU_KEY_MODEREVERB2 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_MODEREVERB2)
+
+#define A_PS1_SPU_KEY_CHANNELACTIVE1 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_CHANNELACTIVE1)
+#define A_PS1_SPU_KEY_CHANNELACTIVE2 (A_PS1_HWREG_BASE + O_PS1_SPU_KEY_CHANNELACTIVE2)
+
+#define A_PS1_SPU_U_E (A_PS1_HWREG_BASE + O_PS1_SPU_U_E)
+
+#define A_PS1_SPU_SB_ADDR (A_PS1_HWREG_BASE + O_PS1_SPU_SB_ADDR)
+
+#define A_PS1_SPU_DATA (A_PS1_HWREG_BASE + O_PS1_SPU_DATA)
+
+#define A_PS1_SPU_REG0 (A_PS1_HWREG_BASE + O_PS1_SPU_REG0)
+
+#define A_PS1_SPU_REG1 (A_PS1_HWREG_BASE + O_PS1_SPU_REG1)
+#define A_PS1_SPU_STATUS (A_PS1_HWREG_BASE + O_PS1_SPU_STATUS)
+
+#define A_PS1_SPU_CDMVOL_L (A_PS1_HWREG_BASE + O_PS1_SPU_CDMVOL_L)
+#define A_PS1_SPU_CDMVOL_R (A_PS1_HWREG_BASE + O_PS1_SPU_CDMVOL_R)
+
+#define A_PS1_SPU_EXTVOL_L (A_PS1_HWREG_BASE + O_PS1_SPU_EXTVOL_L)
+#define A_PS1_SPU_EXTVOL_R (A_PS1_HWREG_BASE + O_PS1_SPU_EXTVOL_R)
+
+#define A_PS1_SPU_REVERBCONFIG (A_PS1_HWREG_BASE + O_PS1_SPU_REVERBCONFIG)
+
+#define A_PS1_SPU_FACTORLEFT (A_PS1_HWREG_BASE + O_PS1_SPU_FACTORLEFT)
+#define A_PS1_SPU_FACTORRIGHT (A_PS1_HWREG_BASE + O_PS1_SPU_FACTORRIGHT)
+
+#define A_PS1_DBG_R20 (A_PS1_HWREG_BASE + O_PS1_DBG_R20)
+#define A_PS1_DBG_R21 (A_PS1_HWREG_BASE + O_PS1_DBG_R21)
+#define A_PS1_DBG_R22 (A_PS1_HWREG_BASE + O_PS1_DBG_R22)
+#define A_PS1_DBG_R23 (A_PS1_HWREG_BASE + O_PS1_DBG_R23)
+#define A_PS1_DBG_R24 (A_PS1_HWREG_BASE + O_PS1_DBG_R24)
+#define A_PS1_DBG_R25 (A_PS1_HWREG_BASE + O_PS1_DBG_R25)
+#define A_PS1_DBG_R26 (A_PS1_HWREG_BASE + O_PS1_DBG_R26)
+#define A_PS1_DBG_R27 (A_PS1_HWREG_BASE + O_PS1_DBG_R27)
+#define A_PS1_DBG_R28 (A_PS1_HWREG_BASE + O_PS1_DBG_R28)
+#define A_PS1_DBG_R29 (A_PS1_HWREG_BASE + O_PS1_DBG_R29)
+#define A_PS1_DBG_R2A (A_PS1_HWREG_BASE + O_PS1_DBG_R2A)
+#define A_PS1_DBG_R2B (A_PS1_HWREG_BASE + O_PS1_DBG_R2B)
+#define A_PS1_DBG_R2C (A_PS1_HWREG_BASE + O_PS1_DBG_R2C)
+#define A_PS1_DBG_R2D (A_PS1_HWREG_BASE + O_PS1_DBG_R2D)
+#define A_PS1_DBG_R2E (A_PS1_HWREG_BASE + O_PS1_DBG_R2E)
+#define A_PS1_DBG_R2F (A_PS1_HWREG_BASE + O_PS1_DBG_R2F)
+#define A_PS1_DBG_R30 (A_PS1_HWREG_BASE + O_PS1_DBG_R30)
+#define A_PS1_DBG_DIPS (A_PS1_HWREG_BASE + O_PS1_DBG_DIPS)
+#define A_PS1_DBG_R41 (A_PS1_HWREG_BASE + O_PS1_DBG_R41)
+#define A_PS1_DBG_R42 (A_PS1_HWREG_BASE + O_PS1_DBG_R42)
+#define A_PS1_DBG_R43 (A_PS1_HWREG_BASE + O_PS1_DBG_R43)
+
+
+/* Definitions of pointers to PS1 hardware registers */
+
+#define R_PS1_SBUS_DEV0_ADDR ((vuint32_t *) (A_PS1_SBUS_DEV0_ADDR))
+#define R_PS1_SBUS_DEV8_ADDR ((vuint32_t *) (A_PS1_SBUS_DEV8_ADDR))
+
+#define R_PS1_SBUS_DEV0_CTRL ((vuint32_t *) (A_PS1_SBUS_DEV0_CTRL))
+#define R_PS1_SBUS_DEV1_CTRL ((vuint32_t *) (A_PS1_SBUS_DEV1_CTRL))
+#define R_PS1_SBUS_DEV2_CTRL ((vuint32_t *) (A_PS1_SBUS_DEV2_CTRL))
+#define R_PS1_SBUS_DEV4_CTRL ((vuint32_t *) (A_PS1_SBUS_DEV4_CTRL))
+#define R_PS1_SBUS_DEV5_CTRL ((vuint32_t *) (A_PS1_SBUS_DEV5_CTRL))
+#define R_PS1_SBUS_DEV8_CTRL ((vuint32_t *) (A_PS1_SBUS_DEV8_CTRL))
+
+#define R_PS1_SBUS_COM_CTRL ((vuint32_t *) (A_PS1_SBUS_COM_CTRL))
+
+#define R_PS1_SIO0_DATA ((vuint8_t *) (A_PS1_SIO0_DATA))
+#define R_PS1_SIO0_STAT ((vuint16_t *) (A_PS1_SIO0_STATUS))
+#define R_PS1_SIO0_MODE ((vuint16_t *) (A_PS1_SIO0_MODE))
+#define R_PS1_SIO0_CTRL ((vuint16_t *) (A_PS1_SIO0_CONTROL))
+#define R_PS1_SIO0_BAUD ((vuint16_t *) (A_PS1_SIO0_BAUD))
+
+#define R_PS1_SIO1_DATA ((vuint8_t *) (A_PS1_SIO1_DATA))
+#define R_PS1_SIO1_STAT ((vuint16_t *) (A_PS1_SIO1_STATUS))
+#define R_PS1_SIO1_MODE ((vuint16_t *) (A_PS1_SIO1_MODE))
+#define R_PS1_SIO1_CTRL ((vuint16_t *) (A_PS1_SIO1_CONTROL))
+#define R_PS1_SIO1_BAUD ((vuint16_t *) (A_PS1_SIO1_BAUD))
+
+#define R_PS1_RAM_SIZE ((vuint32_t *) (A_PS1_RAM_SIZE))
+
+#define R_PS1_I_STAT ((vuint32_t *) (A_PS1_I_STAT))
+#define R_PS1_I_MASK ((vuint32_t *) (A_PS1_I_MASK))
+
+#define R_PS1_DMA_CH0_MADR ((vuint32_t *) (A_PS1_DMA_CH0_MADR))
+#define R_PS1_DMA_CH0_BCR ((vuint32_t *) (A_PS1_DMA_CH0_BCR))
+#define R_PS1_DMA_CH0_CHCR ((vuint32_t *) (A_PS1_DMA_CH0_CHCR))
+
+#define R_PS1_DMA_CH1_MADR ((vuint32_t *) (A_PS1_DMA_CH1_MADR))
+#define R_PS1_DMA_CH1_BCR ((vuint32_t *) (A_PS1_DMA_CH1_BCR))
+#define R_PS1_DMA_CH1_CHCR ((vuint32_t *) (A_PS1_DMA_CH1_CHCR))
+
+#define R_PS1_DMA_CH2_MADR ((vuint32_t *) (A_PS1_DMA_CH2_MADR))
+
+#define R_PS1_DMA_CH2_BCR ((vuint32_t *) (A_PS1_DMA_CH2_BCR))
+#define R_PS1_DMA_CH2_CHCR ((vuint32_t *) (A_PS1_DMA_CH2_CHCR))
+#define R_PS1_DMA_CH3_MADR ((vuint32_t *) (A_PS1_DMA_CH3_MADR))
+#define R_PS1_DMA_CH3_BCR ((vuint32_t *) (A_PS1_DMA_CH3_BCR))
+#define R_PS1_DMA_CH3_CHCR ((vuint32_t *) (A_PS1_DMA_CH3_CHCR))
+#define R_PS1_DMA_CH4_MADR ((vuint32_t *) (A_PS1_DMA_CH4_MADR))
+#define R_PS1_DMA_CH4_BCR ((vuint32_t *) (A_PS1_DMA_CH4_BCR))
+#define R_PS1_DMA_CH4_CHCR ((vuint32_t *) (A_PS1_DMA_CH4_CHCR))
+#define R_PS1_DMA_CH5_MADR ((vuint32_t *) (A_PS1_DMA_CH5_MADR))
+#define R_PS1_DMA_CH5_BCR ((vuint32_t *) (A_PS1_DMA_CH5_BCR))
+#define R_PS1_DMA_CH5_CHCR ((vuint32_t *) (A_PS1_DMA_CH5_CHCR))
+#define R_PS1_DMA_CH6_MADR ((vuint32_t *) (A_PS1_DMA_CH6_MADR))
+#define R_PS1_DMA_CH6_BCR ((vuint32_t *) (A_PS1_DMA_CH6_BCR))
+#define R_PS1_DMA_CH6_CHCR ((vuint32_t *) (A_PS1_DMA_CH6_CHCR))
+#define R_PS1_DMA_PCR ((vuint32_t *) (A_PS1_DMA_PCR))
+#define R_PS1_DMA_ICR ((vuint32_t *) (A_PS1_DMA_ICR))
+
+#define R_PS1_Tx_COUNT(__x) ((vuint16_t *) (A_PS1_T0_COUNT + ((__x) * 0x10)))
+#define R_PS1_Tx_MODE(__x) ((vuint16_t *) (A_PS1_T0_MODE + ((__x) * 0x10)))
+#define R_PS1_Tx_TARGET(__x) ((vuint16_t *) (A_PS1_T0_TARGET + ((__x) * 0x10)))
+
+#define R_PS1_T0_COUNT ((vuint16_t *) (A_PS1_T0_COUNT))
+#define R_PS1_T0_MODE ((vuint16_t *) (A_PS1_T0_MODE))
+#define R_PS1_T0_TARGET ((vuint16_t *) (A_PS1_T0_TARGET))
+#define R_PS1_T1_COUNT ((vuint16_t *) (A_PS1_T1_COUNT))
+#define R_PS1_T1_MODE ((vuint16_t *) (A_PS1_T1_MODE))
+#define R_PS1_T1_TARGET ((vuint16_t *) (A_PS1_T1_TARGET))
+#define R_PS1_T2_COUNT ((vuint16_t *) (A_PS1_T2_COUNT))
+#define R_PS1_T2_MODE ((vuint16_t *) (A_PS1_T2_MODE))
+#define R_PS1_T2_TARGET ((vuint16_t *) (A_PS1_T2_TARGET))
+
+#define R_PS1_CDROM0 ((vuint8_t *) (A_PS1_CDROM0))
+#define R_PS1_CDROM1 ((vuint8_t *) (A_PS1_CDROM1))
+#define R_PS1_CDROM2 ((vuint8_t *) (A_PS1_CDROM2))
+#define R_PS1_CDROM3 ((vuint8_t *) (A_PS1_CDROM3))
+
+#define R_PS1_GPU_REG0 ((vuint32_t *) (A_PS1_GPU_REG0))
+#define R_PS1_GPU_REG1 ((vuint32_t *) (A_PS1_GPU_REG1))
+
+#define R_PS1_MDEC_REG0 ((vuint32_t *) (A_PS1_MDEC_REG0))
+#define R_PS1_MDEC_REG1 ((vuint32_t *) (A_PS1_MDEC_REG1))
+
+#define R_PS1_SPU_MVOL_L ((vuint16_t *) (A_PS1_SPU_MVOL_L))
+#define R_PS1_SPU_MVOL_R ((vuint16_t *) (A_PS1_SPU_MVOL_R))
+
+#define R_PS1_SPU_REVERB_L ((vuint16_t *) (A_PS1_SPU_REVERB_L))
+#define R_PS1_SPU_REVERB_R ((vuint16_t *) (A_PS1_SPU_REVERB_R))
+
+#define R_PS1_SPU_KEY_ON1 ((vuint16_t *) (A_PS1_SPU_KEY_ON1))
+#define R_PS1_SPU_KEY_ON2 ((vuint16_t *) (A_PS1_SPU_KEY_ON2))
+
+#define R_PS1_SPU_KEY_OFF1 ((vuint16_t *) (A_PS1_SPU_KEY_OFF1))
+#define R_PS1_SPU_KEY_OFF2 ((vuint16_t *) (A_PS1_SPU_KEY_OFF2))
+
+#define R_PS1_SPU_KEY_MODEFM1 ((vuint16_t *) (A_PS1_SPU_KEY_MODEFM1))
+#define R_PS1_SPU_KEY_MODEFM2 ((vuint16_t *) (A_PS1_SPU_KEY_MODEFM2))
+
+#define R_PS1_SPU_KEY_MODENOISE1 ((vuint16_t *) (A_PS1_SPU_KEY_MODENOISE1))
+#define R_PS1_SPU_KEY_MODENOISE2 ((vuint16_t *) (A_PS1_SPU_KEY_MODENOISE2))
+
+#define R_PS1_SPU_KEY_MODEREVERB1 ((vuint16_t *) (A_PS1_SPU_KEY_MODEREVERB1))
+#define R_PS1_SPU_KEY_MODEREVERB2 ((vuint16_t *) (A_PS1_SPU_KEY_MODEREVERB2))
+
+#define R_PS1_SPU_KEY_CHANNELACTIVE1 ((vuint16_t *) (A_PS1_SPU_KEY_CHANNELACTIVE1))
+#define R_PS1_SPU_KEY_CHANNELACTIVE2 ((vuint16_t *) (A_PS1_SPU_KEY_CHANNELACTIVE2))
+
+#define R_PS1_SPU_U_E ((vuint16_t *) (A_PS1_SPU_U_E))
+
+#define R_PS1_SPU_SB_ADDR ((vuint16_t *) (A_PS1_SPU_SB_ADDR))
+
+#define R_PS1_SPU_DATA ((vuint16_t *) (A_PS1_SPU_DATA))
+
+#define R_PS1_SPU_REG0 ((vuint16_t *) (A_PS1_SPU_REG0))
+
+#define R_PS1_SPU_REG1 ((vuint16_t *) (A_PS1_SPU_REG1))
+#define R_PS1_SPU_STATUS ((vuint16_t *) (A_PS1_SPU_STATUS))
+
+#define R_PS1_SPU_CDMVOL_L ((vuint16_t *) (A_PS1_SPU_CDMVOL_L))
+#define R_PS1_SPU_CDMVOL_R ((vuint16_t *) (A_PS1_SPU_CDMVOL_R))
+
+#define R_PS1_SPU_EXTVOL_L ((vuint16_t *) (A_PS1_SPU_EXTVOL_L))
+#define R_PS1_SPU_EXTVOL_R ((vuint16_t *) (A_PS1_SPU_EXTVOL_R))
+
+#define R_PS1_SPU_REVERBCONFIG ((vuint16_t *) (A_PS1_SPU_REVERBCONFIG))
+
+#define R_PS1_SPU_FACTORLEFT ((vuint16_t *) (A_PS1_SPU_FACTORLEFT))
+#define R_PS1_SPU_FACTORRIGHT ((vuint16_t *) (A_PS1_SPU_FACTORRIGHT))
+
+#define R_PS1_DBG_R20 ((vuint8_t *) A_PS1_DBG_R20)
+#define R_PS1_DBG_R21 ((vuint8_t *) A_PS1_DBG_R21)
+#define R_PS1_DBG_R22 ((vuint8_t *) A_PS1_DBG_R22)
+#define R_PS1_DBG_R23 ((vuint8_t *) A_PS1_DBG_R23)
+#define R_PS1_DBG_R24 ((vuint8_t *) A_PS1_DBG_R24)
+#define R_PS1_DBG_R25 ((vuint8_t *) A_PS1_DBG_R25)
+#define R_PS1_DBG_R26 ((vuint8_t *) A_PS1_DBG_R26)
+#define R_PS1_DBG_R27 ((vuint8_t *) A_PS1_DBG_R27)
+#define R_PS1_DBG_R28 ((vuint8_t *) A_PS1_DBG_R28)
+#define R_PS1_DBG_R29 ((vuint8_t *) A_PS1_DBG_R29)
+#define R_PS1_DBG_R2A ((vuint8_t *) A_PS1_DBG_R2A)
+#define R_PS1_DBG_R2B ((vuint8_t *) A_PS1_DBG_R2B)
+#define R_PS1_DBG_R2C ((vuint8_t *) A_PS1_DBG_R2C)
+#define R_PS1_DBG_R2D ((vuint8_t *) A_PS1_DBG_R2D)
+#define R_PS1_DBG_R2E ((vuint8_t *) A_PS1_DBG_R2E)
+#define R_PS1_DBG_R2F ((vuint8_t *) A_PS1_DBG_R2F)
+#define R_PS1_DBG_R30 ((vuint8_t *) A_PS1_DBG_R30)
+#define R_PS1_DBG_DIPS ((vuint8_t *) A_PS1_DBG_DIPS)
+#define R_PS1_DBG_R41 ((vuint8_t *) A_PS1_DBG_R41)
+#define R_PS1_DBG_R42 ((vuint8_t *) A_PS1_DBG_R42)
+#define R_PS1_DBG_R43 ((vuint8_t *) A_PS1_DBG_R43)
+
+/* PS1 interrupts */
+
+// V-Blank(external)
+#define PS1_IRQ_VB      (0)
+// GPU(external)
+#define PS1_IRQ_GPU     (1)
+// CD-ROM Controller(external)
+#define PS1_IRQ_CD      (2)
+// DMA Controller(internal)
+#define PS1_IRQ_DMAC    (3)
+// Root-Counter 0(internal)
+#define PS1_IRQ_RC0     (4)
+// Root-Counter 1(internal)
+#define PS1_IRQ_RC1     (5)
+// Root-Counter 2(internal)
+#define PS1_IRQ_RC2     (6)
+// SIO TX(internal)
+#define PS1_IRQ_SIO0  (7)
+// SIO RX(internal)
+#define PS1_IRQ_SIO1  (8)
+// SPU(external)
+#define PS1_IRQ_SPU     (9)
+// PIO(external)
+#define PS1_IRQ_PIO     (10)
+// SIO1(internal) - VERIFY THIS!
+//#define PS1_IRQ_SIO1    (11)
+
+// Bits for DMA CHCR(Channel Control) Registers
+#define PS1_CHCR_BIT0   (1 <<  0)
+#define PS1_CHCR_BIT9   (1 <<  9)
+#define PS1_CHCR_BIT10  (1 << 10)
+#define PS1_CHCR_BIT24  (1 << 24)
+
+// Bits for GPU Status register
+#define PS1_GPU_IDLE    (1 << 26)
+#define PS1_GPU_BIT28   (1 << 28)
+#define PS1_GPU_BIT29   (1 << 29)
+#define PS1_GPU_BIT30   (1 << 30)
+
+// DMA channels
+#define PS1_DMA_CH_MDEC_IN  (0)
+#define PS1_DMA_CH_MDEC_OUT (1)
+#define PS1_DMA_CH_GPU      (2)
+#define PS1_DMA_CH_CDROM    (3)
+#define PS1_DMA_CH_SPU      (4)
+#define PS1_DMA_CH_5        (5)
+#define PS1_DMA_CH_6        (6)
+
+#ifdef	__cplusplus
+}
+#endif
+
+#endif	/* _PS1HWREGS_H */
+
