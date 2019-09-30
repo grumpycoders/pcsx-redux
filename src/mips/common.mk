@@ -8,7 +8,7 @@ ARCHFLAGS = -march=mips1 -mabi=32 -EL -msoft-float -Wa,-msoft-float -fno-pic -mn
 CPPFLAGS = -mno-gpopt -fomit-frame-pointer
 CPPFLAGS += -fno-builtin
 CPPFLAGS += $(ARCHFLAGS)
-CPPFLAGS += -I.. -I../common/include
+CPPFLAGS += -I..
 
 LDFLAGS += -Wl,-Map=$(TARGETBASE).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections -Wl,-v
 LDFLAGS += $(ARCHFLAGS)
