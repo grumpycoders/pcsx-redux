@@ -28,8 +28,8 @@ clean:
 $(TARGETBASE).bin: $(TARGETBASE).elf
 	$(PREFIX)-objcopy -O binary $< $@
 
-$(TARGETBASE).psx: $(OBJS)
-	$(CC) $(LDFLAGS) -g -o $@ $(OBJS)
+$(TARGETBASE).psx: $(TARGETBASE).elf
+	$(PREFIX)-objcopy -O binary $< $@
 
 $(TARGETBASE).a : $(OBJS)
 	$(AR) cru $(TARGET) $(OBJS)
