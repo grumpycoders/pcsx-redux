@@ -95,7 +95,10 @@ _boot:
     sw    $t0, SBUS_DEV8_CTRL
 
     /* clearing out all registers */
+    .set push
+    .set noat
     move  $1, $0
+    .set pop
     move  $2, $0
     move  $3, $0
     move  $4, $0

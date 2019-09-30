@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+    .set push
     .set noreorder
     .section .data, "ax", @progbits
     .align 2
@@ -25,7 +26,10 @@
 
 generalHandler:
     sw    $0, 0x100($0)
+    .set push
+    .set noat
     sw    $1, 0x104($0)
+    .set pop
     sw    $2, 0x108($0)
     sw    $3, 0x10c($0)
     sw    $4, 0x110($0)
@@ -92,7 +96,10 @@ generalHandler:
     nop
     mtc0  $t3, $13
     nop
+    .set push
+    .set noat
     lw    $1, 0x104($0)
+    .set pop
     lw    $2, 0x108($0)
     lw    $3, 0x10c($0)
     lw    $4, 0x110($0)
@@ -227,3 +234,5 @@ unimplemented:
     nop
     jr    $ra
     nop
+
+    .set pop
