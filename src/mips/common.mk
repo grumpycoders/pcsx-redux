@@ -1,16 +1,18 @@
 PREFIX = mipsel-linux-gnu
 
 CC = $(PREFIX)-gcc
+AR = $(PREFIX)-ar
 
 TARGETBASE = $(basename $(TARGET))
 
 ARCHFLAGS = -march=mips1 -mabi=32 -EL -msoft-float -Wa,-msoft-float -fno-pic -mno-shared -mno-abicalls
-CPPFLAGS = -mno-gpopt -fomit-frame-pointer
+ARCHFLAGS += -mno-gpopt -fomit-frame-pointer -nostartfiles -nostdinc -fno-builtin -fno-pic
+
 CPPFLAGS += -fno-builtin
 CPPFLAGS += $(ARCHFLAGS)
-CPPFLAGS += -I.. -I../common/include
+CPPFLAGS += -I..
 
-LDFLAGS += -Wl,-Map=$(TARGETBASE).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections -Wl,-v
+LDFLAGS += -Wl,-Map=$(TARGETBASE).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
 
 LDFLAGS += -g -O3 -flto
@@ -29,6 +31,9 @@ $(TARGETBASE).bin: $(TARGETBASE).elf
 $(TARGETBASE).psx: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $@ $(OBJS)
 
+$(TARGETBASE).a : $(OBJS)
+	$(AR) cru $(TARGET) $(OBJS)
+
 $(TARGETBASE).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $(TARGETBASE).elf $(OBJS)
 
@@ -37,3 +42,4 @@ $(TARGETBASE).elf: $(OBJS)
 
 %.o: %.s
 	$(CC) $(ARCHFLAGS) -I.. -g -c -o $@ $<
+
