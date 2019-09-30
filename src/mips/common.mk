@@ -27,7 +27,8 @@ $(TARGETBASE).bin: $(TARGETBASE).elf
 	$(PREFIX)-objcopy -O binary $< $@
 
 $(TARGETBASE).psx: $(OBJS)
-	$(CC) $(LDFLAGS) -g -o $@ $(OBJS)
+	$(CC) $(LDFLAGS) -g -o $(TARGETBASE).elf $(OBJS)
+	$(PREFIX)-objcopy -O binary $(TARGETBASE).elf $@
 
 $(TARGETBASE).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $(TARGETBASE).elf $(OBJS)
