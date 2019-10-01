@@ -9,16 +9,16 @@
 */
 
 #ifndef _STDIO_H
-#define	_STDIO_H
+#define _STDIO_H
 
-#include <stdarg.h>
 #include "stddef.h"
+#include <stdarg.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#define	BUFSIZ 1024
+#define BUFSIZ 1024
 #define EOF (-1)
 
 #ifndef SEEK_SET
@@ -33,22 +33,21 @@ extern "C" {
 #define SEEK_END 2
 #endif
 
-int rename(const char *oldname, const char *newname);
+int rename(const char* oldname, const char* newname);
 #define remove(___name) erase(___name)
 
-int printf(const char *fmt, ...);
-int sprintf(char *buffer, const char *fmt, ...);
+int printf(const char* fmt, ...);
+int sprintf(char* buffer, const char* fmt, ...);
 
 char getc(int);
 char getchar(void);
-char *gets(char *);
+char* gets(char*);
 void putc(char, int);
 void putchar(char);
-void puts(const char *);
+void puts(const char*);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _STDIO_H */
-
+#endif /* _STDIO_H */

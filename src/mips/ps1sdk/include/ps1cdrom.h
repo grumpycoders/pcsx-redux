@@ -12,8 +12,7 @@
 #define _PS1_CDROM_H_
 
 // PS1 CD-ROM Commands
-enum
-{
+enum {
     PS1_CdSync = 0x00,
     PS1_CdNop = 0x01,
     PS1_CdSetloc = 0x02,
@@ -49,21 +48,57 @@ enum
 };
 
 // macros for reading CD-ROM registers.
-#define M_CD_RD_IFSTAT(__res) { __res = *R_PS1_CDROM0; }
-#define M_CD_RD_RESULT(__res) { __res = *R_PS1_CDROM1; }
-#define M_CD_RD_DATA(__res) { __res = *R_PS1_CDROM2; }
-#define M_CD_RD_INTMASK(__res) { *R_PS1_CDROM0 = 0; __res = *R_PS1_CDROM3 & 0x1F; }
-#define M_CD_RD_INTSTAT(__res) { *R_PS1_CDROM0 = 1; __res = *R_PS1_CDROM3 & 0x1F; }
+#define M_CD_RD_IFSTAT(__res)                                                                                          \
+    {                                                                                                                  \
+        __res = *R_PS1_CDROM0;                                                                                         \
+    }
+#define M_CD_RD_RESULT(__res)                                                                                          \
+    {                                                                                                                  \
+        __res = *R_PS1_CDROM1;                                                                                         \
+    }
+#define M_CD_RD_DATA(__res)                                                                                            \
+    {                                                                                                                  \
+        __res = *R_PS1_CDROM2;                                                                                         \
+    }
+#define M_CD_RD_INTMASK(__res)                                                                                         \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 0;                                                                                             \
+        __res = *R_PS1_CDROM3 & 0x1F;                                                                                  \
+    }
+#define M_CD_RD_INTSTAT(__res)                                                                                         \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 1;                                                                                             \
+        __res = *R_PS1_CDROM3 & 0x1F;                                                                                  \
+    }
 
 // macros for writing CD-ROM registers.
-#define M_CD_WR_CMD(__val) { *R_PS1_CDROM0 = 0; *R_PS1_CDROM1 = (__val); }
-#define M_CD_WR_PARAM(__val) { *R_PS1_CDROM0 = 0; *R_PS1_CDROM2 = (__val); }
-#define M_CD_WR_CHPCTRL(__val) { *R_PS1_CDROM0 = 0; *R_PS1_CDROM3 = (__val); }
-#define M_CD_WR_INTMASK(__val) { *R_PS1_CDROM0 = 1; *R_PS1_CDROM2 = (__val) & 0x1F; }
-#define M_CD_WR_CLRCTRL(__val) { *R_PS1_CDROM0 = 1; *R_PS1_CDROM3 = (__val); }
+#define M_CD_WR_CMD(__val)                                                                                             \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 0;                                                                                             \
+        *R_PS1_CDROM1 = (__val);                                                                                       \
+    }
+#define M_CD_WR_PARAM(__val)                                                                                           \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 0;                                                                                             \
+        *R_PS1_CDROM2 = (__val);                                                                                       \
+    }
+#define M_CD_WR_CHPCTRL(__val)                                                                                         \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 0;                                                                                             \
+        *R_PS1_CDROM3 = (__val);                                                                                       \
+    }
+#define M_CD_WR_INTMASK(__val)                                                                                         \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 1;                                                                                             \
+        *R_PS1_CDROM2 = (__val)&0x1F;                                                                                  \
+    }
+#define M_CD_WR_CLRCTRL(__val)                                                                                         \
+    {                                                                                                                  \
+        *R_PS1_CDROM0 = 1;                                                                                             \
+        *R_PS1_CDROM3 = (__val);                                                                                       \
+    }
 
-enum
-{
+enum {
     CdIntrNone = 0,
     CdIntrDataRdy = 1,
     CdIntrComplete = 2,
@@ -73,8 +108,7 @@ enum
 };
 
 // bits for "status" byte returned by commands.
-enum
-{
+enum {
     CdStatusCmdErr = (1 << 0), // command error
     CdStatusStandby = (1 << 1), // spindle motor rotating
     CdStatusUnk2 = (1 << 2), // unknown
@@ -85,8 +119,7 @@ enum
     CdStatusPlay = (1 << 7) // playing CD-DA
 };
 
-enum
-{
+enum {
     CD_IFSTAT_RA0 = (1 << 0),
     CD_IFSTAT_RA1 = (1 << 1),
     CD_IFSTAT_ADPCM_BUSY = (1 << 2),
@@ -98,4 +131,3 @@ enum
 };
 
 #endif // _PS1_CDROM_H_
-

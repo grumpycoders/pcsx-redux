@@ -9,9 +9,9 @@
 */
 
 #ifndef _ASSERT_H
-#define	_ASSERT_H
+#define _ASSERT_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -20,15 +20,14 @@ extern "C" {
 #endif
 
 #ifndef NDEBUG
-    void __assert(const char *, const char *, int);
-    #define assert(e) ((e) ? (void) 0 : __assert(#e, __FILE__, __LINE__))
+void __assert(const char*, const char*, int);
+#define assert(e) ((e) ? (void)0 : __assert(#e, __FILE__, __LINE__))
 #else
-    #define assert(ignore) ((void) 0)
+#define assert(ignore) ((void)0)
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _ASSERT_H */
-
+#endif /* _ASSERT_H */

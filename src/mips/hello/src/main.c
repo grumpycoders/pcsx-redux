@@ -19,7 +19,4 @@
 
 #include "common/hardware/cop0.h"
 
-int main()
-{
-    return 0;
-}
+int main() { return 0; }

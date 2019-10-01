@@ -9,9 +9,9 @@
 */
 
 #ifndef _PSTYPES_H
-#define	_PSTYPES_H
+#define _PSTYPES_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -28,9 +28,8 @@ typedef volatile unsigned int vuint32_t;
 
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _PSTYPES_H */
-
+#endif /* _PSTYPES_H */

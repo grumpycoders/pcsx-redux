@@ -31,7 +31,7 @@ all: $(TARGET)
 	$(MAKE) -C ../ps1sdk all
 
 clean:
-	rm -f $(OBJS) $(TARGETBASE).psx $(TARGETBASE).elf $(TARGET).map $(TARGETBASE).bin $(TARGET)
+	rm -f $(OBJS) $(TARGETBASE).psx $(TARGETBASE).elf $(TARGETBASE).map $(TARGETBASE).bin $(TARGET)
 
 $(TARGETBASE).bin: $(TARGETBASE).elf
 	$(PREFIX)-objcopy -O binary $< $@

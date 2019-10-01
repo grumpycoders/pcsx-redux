@@ -9,21 +9,20 @@
 */
 
 #ifndef _FILEIO_H
-#define	_FILEIO_H
+#define _FILEIO_H
 
 #include "types.h"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL ((void*)0)
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _FILEIO_H */
-
+#endif /* _FILEIO_H */
