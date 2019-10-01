@@ -43,27 +43,23 @@
 #include "core/system.h"
 #include "gui/widgets/filedialog.h"
 
-struct InputTextCallback_UserData
-{
-    PCSX::u8string*          Str;
-    ImGuiInputTextCallback  ChainCallback;
-    void*                   ChainCallbackUserData;
+struct InputTextCallback_UserData {
+    PCSX::u8string* Str;
+    ImGuiInputTextCallback ChainCallback;
+    void* ChainCallbackUserData;
 };
 
-static int InputTextCallback(ImGuiInputTextCallbackData* data)
-{
+static int InputTextCallback(ImGuiInputTextCallbackData* data) {
     InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
-    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-    {
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
         // Resize string callback
-        // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+        // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back
+        // to what we want.
         PCSX::u8string* str = user_data->Str;
-        IM_ASSERT(data->Buf == reinterpret_cast<const char *>(str->c_str()));
+        IM_ASSERT(data->Buf == reinterpret_cast<const char*>(str->c_str()));
         str->resize(data->BufTextLen);
         data->Buf = (char*)str->c_str();
-    }
-    else if (user_data->ChainCallback)
-    {
+    } else if (user_data->ChainCallback) {
         // Forward to user callback, if any
         data->UserData = user_data->ChainCallbackUserData;
         return user_data->ChainCallback(data);
@@ -71,8 +67,8 @@ static int InputTextCallback(ImGuiInputTextCallbackData* data)
     return 0;
 }
 
-static bool InputText(const char* label, PCSX::u8string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL)
-{
+static bool InputText(const char* label, PCSX::u8string* str, ImGuiInputTextFlags flags = 0,
+                      ImGuiInputTextCallback callback = NULL, void* user_data = NULL) {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
 
@@ -80,7 +76,8 @@ static bool InputText(const char* label, PCSX::u8string* str, ImGuiInputTextFlag
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputText(label, const_cast<char*>(reinterpret_cast<const char*>(str->c_str())), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputText(label, const_cast<char*>(reinterpret_cast<const char*>(str->c_str())), str->capacity() + 1,
+                            flags, InputTextCallback, &cb_user_data);
 }
 
 #ifdef _WIN32
@@ -195,7 +192,8 @@ bool PCSX::Widgets::FileDialog::draw() {
                     goUp = true;
                 }
                 for (auto& p : m_directories) {
-                    if (ImGui::Selectable(reinterpret_cast<const char*>(p.c_str()), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                    if (ImGui::Selectable(reinterpret_cast<const char*>(p.c_str()), false, 0,
+                                          ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
                         goDown = p;
                     }
                 }
@@ -296,7 +294,8 @@ bool PCSX::Widgets::FileDialog::draw() {
 
             for (auto& p : m_files) {
                 PCSX::u8string label = MAKEU8(u8"##") + p.filename;
-                if (ImGui::Selectable(reinterpret_cast<const char *>(label.c_str()), p.selected, ImGuiSelectableFlags_SpanAllColumns)) {
+                if (ImGui::Selectable(reinterpret_cast<const char*>(label.c_str()), p.selected,
+                                      ImGuiSelectableFlags_SpanAllColumns)) {
                     for (auto& f : m_files) f.selected = false;
                     p.selected = true;
                     if (m_flags & NewFile) {
@@ -326,7 +325,8 @@ bool PCSX::Widgets::FileDialog::draw() {
             selectedStr = m_newFile;
             gotSelected = !m_newFile.empty();
         } else {
-            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : MAKEU8(u8"..."))).u8string();
+            selectedStr =
+                (m_currentPath / std::filesystem::path(selected ? selected->filename : MAKEU8(u8"..."))).u8string();
             ImGui::Text(reinterpret_cast<const char*>(selectedStr.c_str()));
         }
         if (!gotSelected) {

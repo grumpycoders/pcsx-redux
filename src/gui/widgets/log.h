@@ -39,7 +39,7 @@ class Log {
     void addLog(const char* fmt, va_list args);
     void draw(const char* title);
 
-    bool & m_show;
+    bool& m_show;
 
   private:
     ImGuiTextBuffer m_buffer;

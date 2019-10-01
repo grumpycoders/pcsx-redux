@@ -93,7 +93,7 @@ struct VRAMLoad_t {
     int16_t Height;
     int16_t RowsRemaining;
     int16_t ColsRemaining;
-    uint16_t *ImagePtr;
+    uint16_t* ImagePtr;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -149,7 +149,7 @@ namespace PCSX {
 class GUI;
 }
 
-extern PCSX::GUI *m_gui;
+extern PCSX::GUI* m_gui;
 extern bool bVsync_Key;
 
 extern int iFastFwd;
@@ -183,14 +183,14 @@ extern PSXDisplay_t PreviousPSXDisplay;
 extern bool bSkipNextFrame;
 extern int32_t lGPUstatusRet;
 extern int32_t drawingLines;
-extern unsigned char *psxVSecure;
-extern unsigned char *psxVub;
-extern signed char *psxVsb;
-extern uint16_t *psxVuw;
-extern int16_t *psxVsw;
-extern uint32_t *psxVul;
-extern int32_t *psxVsl;
-extern uint16_t *psxVuw_eom;
+extern unsigned char* psxVSecure;
+extern unsigned char* psxVub;
+extern signed char* psxVsb;
+extern uint16_t* psxVuw;
+extern int16_t* psxVsw;
+extern uint32_t* psxVul;
+extern int32_t* psxVsl;
+extern uint16_t* psxVuw_eom;
 extern bool bChangeWinMode;
 extern int32_t lSelectedSlot;
 extern uint32_t dwLaceCnt;
@@ -224,7 +224,7 @@ extern bool bSSSPSXLimit;
 // key.c
 
 // cfg.c
-extern char *pConfigFile;
+extern char* pConfigFile;
 
 // zn.c
 extern uint32_t dwGPUVersion;

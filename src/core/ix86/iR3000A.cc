@@ -94,16 +94,16 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
 
-    static void recClearWrapper(X86DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
+    static void recClearWrapper(X86DynaRecCPU* that, uint32_t a, uint32_t s) { that->Clear(a, s); }
 
     PCSX::ix86 gen;
 
-    uintptr_t *m_psxRecLUT;
+    uintptr_t* m_psxRecLUT;
     static const size_t RECMEM_SIZE = 8 * 1024 * 1024;
 
-    int8_t *m_recMem; /* the recompiled blocks will be here */
-    char *m_recRAM;   /* and the s_ptr to the blocks here */
-    char *m_recROM;   /* and here */
+    int8_t* m_recMem; /* the recompiled blocks will be here */
+    char* m_recRAM;   /* and the s_ptr to the blocks here */
+    char* m_recROM;   /* and here */
 
     uint32_t m_pc; /* recompiler pc */
 
@@ -125,12 +125,12 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     iRegisters m_iRegs[32];
     iRegisters m_iRegsSaved[32];
 
-    cfunc_t *m_pRecBSC = NULL;
-    cfunc_t *m_pRecSPC = NULL;
-    cfunc_t *m_pRecREG = NULL;
-    cfunc_t *m_pRecCP0 = NULL;
-    cfunc_t *m_pRecCP2 = NULL;
-    cfunc_t *m_pRecCP2BSC = NULL;
+    cfunc_t* m_pRecBSC = NULL;
+    cfunc_t* m_pRecSPC = NULL;
+    cfunc_t* m_pRecREG = NULL;
+    cfunc_t* m_pRecCP0 = NULL;
+    cfunc_t* m_pRecCP2 = NULL;
+    cfunc_t* m_pRecCP2BSC = NULL;
 
     static const func_t m_recBSC[64];
     static const func_t m_recSPC[64];
@@ -262,7 +262,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.CALLFunc((uint32_t)gteMFC2Wrapper);
         gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -271,7 +271,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.CALLFunc((uint32_t)gteCFC2Wrapper);
         gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -631,17 +631,17 @@ void X86DynaRecCPU::iPushReg(unsigned reg) {
 bool X86DynaRecCPU::Init() {
     int i;
 
-    m_psxRecLUT = (uintptr_t *)calloc(0x010000, sizeof(uintptr_t));
+    m_psxRecLUT = (uintptr_t*)calloc(0x010000, sizeof(uintptr_t));
 
 #ifndef _WIN32
-    m_recMem = (int8_t *)mmap(0, ALLOC_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    m_recMem = (int8_t*)mmap(0, ALLOC_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #else
-    m_recMem = (int8_t *)VirtualAlloc(NULL, ALLOC_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    m_recMem = (int8_t*)VirtualAlloc(NULL, ALLOC_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
     memset(m_recMem, 0, ALLOC_SIZE);
 
-    m_recRAM = (char *)calloc(0x200000, 1);
-    m_recROM = (char *)calloc(0x080000, 1);
+    m_recRAM = (char*)calloc(0x200000, 1);
+    m_recROM = (char*)calloc(0x080000, 1);
     if (m_recRAM == NULL || m_recROM == NULL || m_recMem == NULL || m_psxRecLUT == NULL) {
         PCSX::g_system->message("Error allocating memory");
         return false;
@@ -693,11 +693,11 @@ void X86DynaRecCPU::recError() {
 
 void X86DynaRecCPU::execute() {
     uint32_t (**recFunc)() = NULL;
-    char *p;
+    char* p;
 
     InterceptBIOS();
 
-    p = (char *)PC_REC(m_psxRegs.pc);
+    p = (char*)PC_REC(m_psxRegs.pc);
 
     if (p != NULL && IsPcValid(m_psxRegs.pc)) {
         recFunc = (uint32_t(**)())(uint32_t)p;
@@ -706,7 +706,7 @@ void X86DynaRecCPU::execute() {
         return;
     }
 
-    const bool &debug = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>();
+    const bool& debug = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>();
 
     if (debug) PCSX::g_emulator.m_debug->processBefore();
     if (*recFunc == 0) recRecompile();
@@ -743,12 +743,12 @@ void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
         offset &= 0x1fffff;
 
         if (offset >= DYNAREC_BLOCK * 4)
-            memset((void *)PC_REC(Addr - DYNAREC_BLOCK * 4), 0, DYNAREC_BLOCK * 4);
+            memset((void*)PC_REC(Addr - DYNAREC_BLOCK * 4), 0, DYNAREC_BLOCK * 4);
         else
-            memset((void *)PC_REC(Addr - offset), 0, offset);
+            memset((void*)PC_REC(Addr - offset), 0, offset);
     }
 
-    memset((void *)PC_REC(Addr), 0, Size * 4);
+    memset((void*)PC_REC(Addr), 0, Size * 4);
 }
 
 void X86DynaRecCPU::recNULL() {
@@ -1469,7 +1469,7 @@ void X86DynaRecCPU::recLB() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -1506,7 +1506,7 @@ void X86DynaRecCPU::recLBU() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -1543,7 +1543,7 @@ void X86DynaRecCPU::recLH() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -1580,7 +1580,7 @@ void X86DynaRecCPU::recLHU() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -1658,7 +1658,7 @@ void X86DynaRecCPU::recLW() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -1739,7 +1739,7 @@ void X86DynaRecCPU::recLWL() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -1800,7 +1800,7 @@ void X86DynaRecCPU::recLWR() {
 
     if (_Rt_) {
         m_needsStackFrame = true;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = _Rt_;
     }
@@ -2471,7 +2471,7 @@ void X86DynaRecCPU::recBLTZAL() {
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k < 0) {
             m_needsStackFrame = true;
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
             delayedLoad.active = true;
             delayedLoad.index = 31;
             gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
@@ -2484,7 +2484,7 @@ void X86DynaRecCPU::recBLTZAL() {
 
     iFlushReg(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
     delayedLoad.index = 31;
     gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&m_psxRegs.GPR.n.ra);
@@ -2506,7 +2506,7 @@ void X86DynaRecCPU::recBGEZAL() {
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k >= 0) {
             m_needsStackFrame = true;
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
             delayedLoad.active = true;
             delayedLoad.index = 31;
             gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
@@ -2519,7 +2519,7 @@ void X86DynaRecCPU::recBGEZAL() {
 
     iFlushReg(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
     delayedLoad.index = 31;
     gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&m_psxRegs.GPR.n.ra);
@@ -2545,7 +2545,7 @@ void X86DynaRecCPU::recJ() {
 void X86DynaRecCPU::recJAL() {
     // jal target
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
     delayedLoad.index = 31;
     gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
@@ -2571,7 +2571,7 @@ void X86DynaRecCPU::recJR() {
 void X86DynaRecCPU::recJALR() {
     // jalr Rs
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
     delayedLoad.index = _Rd_;
     gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
@@ -3026,7 +3026,7 @@ const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
 };
 
 void X86DynaRecCPU::recRecompile() {
-    char *p;
+    char* p;
 
     /* if gen.m_x86Ptr reached the mem limit reset whole mem */
     if (((uint32_t)gen.x86GetPtr() - (uint32_t)m_recMem) >= RECMEM_SIZE) {
@@ -3037,8 +3037,8 @@ void X86DynaRecCPU::recRecompile() {
 
     m_pc = m_psxRegs.pc;
     uint32_t old_pc = m_pc;
-    int8_t *startPtr = gen.x86GetPtr();
-    (*(uint32_t *)PC_REC(m_pc)) = (uint32_t)startPtr;
+    int8_t* startPtr = gen.x86GetPtr();
+    (*(uint32_t*)PC_REC(m_pc)) = (uint32_t)startPtr;
     m_needsStackFrame = false;
     m_pcInEBP = false;
     m_nextIsDelaySlot = false;
@@ -3053,7 +3053,7 @@ void X86DynaRecCPU::recRecompile() {
     gen.XOR32RtoR(PCSX::ix86::EBX, PCSX::ix86::EBX);
     gen.PUSH32R(PCSX::ix86::ESI);
     gen.PUSH32R(PCSX::ix86::EDI);
-    int8_t *endStackFramePtr = gen.x86GetPtr();
+    int8_t* endStackFramePtr = gen.x86GetPtr();
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
@@ -3070,7 +3070,7 @@ void X86DynaRecCPU::recRecompile() {
 
     auto processDelayedLoad = [&]() {
         m_currentDelayedLoad ^= 1;
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (delayedLoad.active) {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
@@ -3095,12 +3095,12 @@ void X86DynaRecCPU::recRecompile() {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
         }
-        p = (char *)PSXM(m_pc);
+        p = (char*)PSXM(m_pc);
         if (p == NULL) {
             recError();
             return;
         }
-        m_psxRegs.code = *(uint32_t *)p;
+        m_psxRegs.code = *(uint32_t*)p;
         m_pc += 4;
         count++;
         func_t func = m_pRecBSC[m_psxRegs.code >> 26];
@@ -3138,7 +3138,7 @@ void X86DynaRecCPU::recRecompile() {
         gen.RET();
     } else {
         ptrdiff_t count = endStackFramePtr - startPtr;
-        (*(uint32_t *)PC_REC(old_pc)) = (uint32_t)endStackFramePtr;
+        (*(uint32_t*)PC_REC(old_pc)) = (uint32_t)endStackFramePtr;
         gen.NOP(count, startPtr);
         gen.RET();
     }

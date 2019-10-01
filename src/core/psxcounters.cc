@@ -28,7 +28,7 @@
 
 /******************************************************************************/
 
-void PCSX::Counters::verboseLog(int32_t level, const char *str, ...) {
+void PCSX::Counters::verboseLog(int32_t level, const char* str, ...) {
     va_list va;
     va_start(va, str);
     PSXHW_LOGV(str, va);
@@ -382,7 +382,7 @@ void PCSX::Counters::psxRcntInit() {
 
 /******************************************************************************/
 
-void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
+void PCSX::Counters::save(PCSX::SaveStates::Counters& counters) {
     for (unsigned i = 0; i < CounterQuantity; i++) {
         counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntMode>().value = m_rcnts[i].mode;
         counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntTarget>().value = m_rcnts[i].target;
@@ -399,14 +399,14 @@ void PCSX::Counters::save(PCSX::SaveStates::Counters &counters) {
     counters.get<SaveStates::PSXNextsCounter>().value = m_psxNextsCounter;
 }
 
-void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
+void PCSX::Counters::load(const PCSX::SaveStates::Counters& counters) {
     for (unsigned i = 0; i < CounterQuantity; i++) {
         m_rcnts[i].mode = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntMode>().value;
         m_rcnts[i].target = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntTarget>().value;
         m_rcnts[i].rate = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntRate>().value;
         m_rcnts[i].irq = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQ>().value;
         m_rcnts[i].counterState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCounterState>().value;
-        m_rcnts[i].irqState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value; 
+        m_rcnts[i].irqState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value;
         m_rcnts[i].cycle = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycle>().value;
         m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value;
     }
@@ -418,10 +418,10 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
     psxHsyncCalculate();
     // iCB: recalculate target count in case overclock is changed
     m_rcnts[3].target = (PCSX::g_emulator.m_psxClockSpeed /
-                            (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
-                            m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
+                         (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                          m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
     if (m_rcnts[1].rate != 1)
         m_rcnts[1].rate = (PCSX::g_emulator.m_psxClockSpeed /
-                            (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
+                           (FrameRate[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()] *
                             m_HSyncTotal[PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()]));
 }

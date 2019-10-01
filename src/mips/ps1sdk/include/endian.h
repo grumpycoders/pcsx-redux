@@ -8,4 +8,4 @@
 /* PlayStation 1 is little-endian */
 #define __BYTE_ORDER __LITTLE_ENDIAN
 
-#endif // #ifndef _ENDIAN_H
+#endif  // #ifndef _ENDIAN_H

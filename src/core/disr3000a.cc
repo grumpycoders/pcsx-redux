@@ -28,28 +28,28 @@
 #include "core/r3000a.h"
 
 // Names of registers
-const char *PCSX::Disasm::s_disRNameGPR[] = {
+const char* PCSX::Disasm::s_disRNameGPR[] = {
     "r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",  // 00
     "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",  // 08
     "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",  // 10
     "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra",  // 18
 };
 
-const char *PCSX::Disasm::s_disRNameCP2D[] = {
+const char* PCSX::Disasm::s_disRNameCP2D[] = {
     "vxy0", "vz0",  "vxy1", "vz1",  "vxy2", "vz2",  "rgb",  "otz",   // 00
     "ir0",  "ir1",  "ir2",  "ir3",  "sxy0", "sxy1", "sxy2", "sxyp",  // 08
     "sz0",  "sz1",  "sz2",  "sz3",  "rgb0", "rgb1", "rgb2", "res1",  // 10
     "mac0", "mac1", "mac2", "mac3", "irgb", "orgb", "lzcs", "lzcr",  // 18
 };
 
-const char *PCSX::Disasm::s_disRNameCP2C[] = {
+const char* PCSX::Disasm::s_disRNameCP2C[] = {
     "r11r12", "r13r21", "r22r23", "r31r32", "r33", "trx",  "try",  "trz",   // 00
     "l11l12", "l13l21", "l22l23", "l31l32", "l33", "rbk",  "bbk",  "gbk",   // 08
     "lr1lr2", "lr3lg1", "lg2lg3", "lb1lb2", "lb3", "rfc",  "gfc",  "bfc",   // 10
     "ofx",    "ofy",    "h",      "dqa",    "dqb", "zsf3", "zsf4", "flag",  // 18
 };
 
-const char *PCSX::Disasm::s_disRNameCP0[] = {
+const char* PCSX::Disasm::s_disRNameCP0[] = {
     "Index",    "Random",   "EntryLo0", "EntryLo1",  // 00
     "Context",  "PageMask", "Wired",    "+Checkme",  // 04
     "BadVAddr", "Count",    "EntryHi",  "Compare",   // 08
@@ -70,7 +70,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 #undef _Target_
 
 #define declare(n) \
-    void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext)
+    void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext, bool* delaySlotNext)
 #define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
@@ -84,8 +84,8 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 
 namespace {
 struct StringDisasm : public PCSX::Disasm {
-    uint8_t *ptr(uint32_t addr) {
-        uint8_t *lut = PCSX::g_emulator.m_psxMem->g_psxMemRLUT[addr >> 16];
+    uint8_t* ptr(uint32_t addr) {
+        uint8_t* lut = PCSX::g_emulator.m_psxMem->g_psxMemRLUT[addr >> 16];
         if (lut) {
             return lut + (addr & 0xffff);
         } else {
@@ -94,9 +94,9 @@ struct StringDisasm : public PCSX::Disasm {
         }
     }
     uint8_t mem8(uint32_t addr) { return *ptr(addr); }
-    uint16_t mem16(uint32_t addr) { return SWAP_LE16(*(int16_t *)ptr(addr)); }
-    uint32_t mem32(uint32_t addr) { return SWAP_LE32(*(int32_t *)ptr(addr)); }
-    void append(const char *str, ...) {
+    uint16_t mem16(uint32_t addr) { return SWAP_LE16(*(int16_t*)ptr(addr)); }
+    uint32_t mem32(uint32_t addr) { return SWAP_LE32(*(int32_t*)ptr(addr)); }
+    void append(const char* str, ...) {
         va_list va;
         va_start(va, str);
         char buf[64];
@@ -111,7 +111,7 @@ struct StringDisasm : public PCSX::Disasm {
         m_gotArg = true;
     }
     virtual void Invalid() final { strcpy(m_buf, "*** Bad OP ***"); }
-    virtual void OpCode(const char *name) final {
+    virtual void OpCode(const char* name) final {
         std::sprintf(m_buf, "%-7s", name);
         m_gotArg = false;
         m_len = 7;
@@ -996,7 +996,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 3c
 };
 
-std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool withValues) {
+std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext, bool withValues) {
     StringDisasm strd;
     strd.setValues(withValues);
     strd.process(code, nextCode, pc, skipNext);

@@ -32,7 +32,7 @@ class VRAMViewer {
   public:
     void init();
     void setTitle(std::function<std::string()> title) { m_title = title; }
-    void setClutDestination(VRAMViewer *destination) {
+    void setClutDestination(VRAMViewer* destination) {
         m_clutDestination = destination;
         destination->m_hasClut = true;
     }
@@ -45,13 +45,13 @@ class VRAMViewer {
   private:
     static inline const float RATIOS[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
     void drawVRAM(unsigned int textureID);
-    void compileShader(const char *VS, const char *PS);
+    void compileShader(const char* VS, const char* PS);
     void modeChanged();
-    static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
-        VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
+    static void imguiCBtrampoline(const ImDrawList* parentList, const ImDrawCmd* cmd) {
+        VRAMViewer* that = reinterpret_cast<VRAMViewer*>(cmd->UserCallbackData);
         that->imguiCB(parentList, cmd);
     }
-    void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
+    void imguiCB(const ImDrawList* parentList, const ImDrawCmd* cmd);
 
     unsigned int m_shaderProgram = 0;
     int m_attribLocationTex;
@@ -100,6 +100,7 @@ class VRAMViewer {
     bool m_greyscale = false;
     bool m_selectingClut = false;
     int m_24shift = 0;
+
   public:
     bool m_show = false;
 
@@ -109,7 +110,7 @@ class VRAMViewer {
 
     bool m_hasClut = false;
     ImVec2 m_clut;
-    VRAMViewer *m_clutDestination = nullptr;
+    VRAMViewer* m_clutDestination = nullptr;
 
     bool m_firstShown = false;
 };

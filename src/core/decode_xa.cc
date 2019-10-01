@@ -52,7 +52,7 @@ static const int s_K1[4] = {0.0 * (1 << SHC), 0.0 * (1 << SHC), -0.8125 * (1 << 
 #define BLKSIZ 28 /* block size (32 - 4 nibbles) */
 
 //===========================================
-static void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
+static void ADPCM_InitDecode(ADPCM_Decode_t* decp) {
     decp->y0 = 0;
     decp->y1 = 0;
 }
@@ -66,14 +66,14 @@ static void ADPCM_InitDecode(ADPCM_Decode_t *decp) {
 #define IK1(fid) (-s_K1[fid])
 #endif
 
-static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_range, const void *vblockp, short *destp,
+static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t* decp, uint8_t filter_range, const void* vblockp, short* destp,
                                        int inc) {
     int i;
     int range, filterid;
     int32_t fy0, fy1;
-    const uint16_t *blockp;
+    const uint16_t* blockp;
 
-    blockp = (const unsigned short *)vblockp;
+    blockp = (const unsigned short*)vblockp;
     filterid = (filter_range >> 4) & 0x0f;
     range = (filter_range >> 0) & 0x0f;
 
@@ -127,12 +127,12 @@ static inline void ADPCM_DecodeBlock16(ADPCM_Decode_t *decp, uint8_t filter_rang
 static const int s_headtable[4] = {0, 2, 8, 10};
 
 //===========================================
-static void xa_decode_data(xa_decode_t *xdp, unsigned char *srcp) {
-    const uint8_t *sound_groupsp;
+static void xa_decode_data(xa_decode_t* xdp, unsigned char* srcp) {
+    const uint8_t* sound_groupsp;
     const uint8_t *sound_datap, *sound_datap2;
     int i, j, k, nbits;
     uint16_t data[4096], *datap;
-    short *destp;
+    short* destp;
 
     destp = xdp->pcm;
     nbits = xdp->nbits == 4 ? 4 : 2;
@@ -285,7 +285,7 @@ typedef struct {
 #define SUB_AUDIO 2
 
 //============================================
-static int parse_xa_audio_sector(xa_decode_t *xdp, xa_subheader_t *subheadp, unsigned char *sectorp,
+static int parse_xa_audio_sector(xa_decode_t* xdp, xa_subheader_t* subheadp, unsigned char* sectorp,
                                  int is_first_sector) {
     if (is_first_sector) {
         switch (AUDIO_CODING_GET_FREQ(subheadp->coding)) {
@@ -344,8 +344,8 @@ static int parse_xa_audio_sector(xa_decode_t *xdp, xa_subheader_t *subheadp, uns
 //===                  - 0 for any other successive sector
 //=== return -1 if error
 //================================================================
-int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_sector) {
-    if (parse_xa_audio_sector(xdp, (xa_subheader_t *)sectorp, sectorp + sizeof(xa_subheader_t), is_first_sector))
+int32_t xa_decode_sector(xa_decode_t* xdp, unsigned char* sectorp, int is_first_sector) {
+    if (parse_xa_audio_sector(xdp, (xa_subheader_t*)sectorp, sectorp + sizeof(xa_subheader_t), is_first_sector))
         return -1;
 
     return 0;

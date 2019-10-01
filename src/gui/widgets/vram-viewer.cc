@@ -36,7 +36,7 @@
 
 #define GL_SHADER_VERSION "#version 300 es\n"
 
-static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
+static const GLchar* s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 in vec2 i_position;
 in vec2 i_texUV;
@@ -49,7 +49,7 @@ void main() {
 }
 )";
 
-static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
+static const GLchar* s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
 uniform sampler2D u_vramTexture;
 uniform vec2 u_origin;
@@ -198,7 +198,7 @@ void main() {
 }
 )";
 
-void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
+void PCSX::Widgets::VRAMViewer::compileShader(const char* VS, const char* PS) {
     GLint status = 0;
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -209,7 +209,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     if (status == 0) {
         GLint maxLength;
         glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (char *)malloc(maxLength);
+        char* log = (char*)malloc(maxLength);
         glGetShaderInfoLog(vertexShader, maxLength, &maxLength, log);
 
         m_errorMessage = std::string(_("Vertex Shader compilation error:\n")) + log;
@@ -228,7 +228,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     if (status == 0) {
         GLint maxLength;
         glGetShaderiv(pixelShader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (char *)malloc(maxLength);
+        char* log = (char*)malloc(maxLength);
 
         glGetShaderInfoLog(pixelShader, maxLength, &maxLength, log);
 
@@ -251,7 +251,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     if (status == 0) {
         GLint maxLength;
         glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (char *)malloc(maxLength);
+        char* log = (char*)malloc(maxLength);
 
         glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, log);
 
@@ -326,7 +326,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     auto mousePos = ImGui::GetIO().MousePos - basePos;
     m_mousePos = mousePos - m_origin;
 
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
 
     // TexCoord - (TexturePoint - ResolutionPoint) / dimensions
@@ -349,7 +349,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
 
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 
-    const auto &io = ImGui::GetIO();
+    const auto& io = ImGui::GetIO();
 
     ImVec2 texSpan = texBR - texTL;
     m_mouseUV = texTL + texSpan * (m_mousePos + basePos) / m_resolution;
@@ -385,7 +385,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
 
 void PCSX::Widgets::VRAMViewer::drawEditor() {
     auto contents = ImGui::GetContentRegionAvail();
-    ImGuiStyle &style = ImGui::GetStyle();
+    ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = heightSeparator * 2 + 5 * ImGui::GetTextLineHeightWithSpacing();
     float width = contents.x / 2 - style.ItemInnerSpacing.x;
@@ -401,7 +401,7 @@ void PCSX::Widgets::VRAMViewer::drawEditor() {
     }
 }
 
-void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
+void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList* parentList, const ImDrawCmd* cmd) {
     GLint imguiProgramID;
     glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
 
@@ -439,9 +439,9 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
+                          (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+                          (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
     glBindTexture(GL_TEXTURE_2D, m_textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

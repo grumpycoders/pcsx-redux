@@ -38,11 +38,11 @@ static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 // FEED XA
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
+void PCSX::SPU::impl::FeedXA(xa_decode_t* xap) {
     int sinc, spos, i, iSize, iPlace, vl, vr;
 
     uint32_t XABuffer[32 * 1024];
-    uint32_t *XAFeed = XABuffer;
+    uint32_t* XAFeed = XABuffer;
 
     iPlace = 32 * 1024;
 
@@ -99,7 +99,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     sinc = (xap->nsamples << 16) / iSize;  // calc freq by num / size
 
     if (xap->stereo) {
-        uint32_t *pS = (uint32_t *)xap->pcm;
+        uint32_t* pS = (uint32_t*)xap->pcm;
         uint32_t l = 0;
 
         if (settings.get<StreamingPitch>()) {
@@ -180,7 +180,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
         }
     } else {
-        uint16_t *pS = (uint16_t *)xap->pcm;
+        uint16_t* pS = (uint16_t*)xap->pcm;
         uint32_t l;
         int16_t s = 0;
 
@@ -244,5 +244,5 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
         }
     }
 
-    m_sound.feedStreamData((uint8_t *)XABuffer, (XAFeed - XABuffer) * sizeof(uint32_t), 1);
+    m_sound.feedStreamData((uint8_t*)XABuffer, (XAFeed - XABuffer) * sizeof(uint32_t), 1);
 }

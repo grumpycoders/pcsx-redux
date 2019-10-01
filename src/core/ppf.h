@@ -26,27 +26,27 @@ class PPF {
   public:
     void BuildPPFCache();
     void FreePPFCache();
-    void CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f);
+    void CheckPPFCache(uint8_t* pB, uint8_t m, uint8_t s, uint8_t f);
 
   private:
     struct PPF_DATA {
         int32_t addr;
         int32_t pos;
         int32_t anz;
-        struct PPF_DATA *pNext;
+        struct PPF_DATA* pNext;
     };
 
     struct PPF_CACHE {
         int32_t addr;
-        struct PPF_DATA *pNext;
+        struct PPF_DATA* pNext;
     };
 
-    PPF_CACHE *s_ppfCache = nullptr;
+    PPF_CACHE* s_ppfCache = nullptr;
     PPF_DATA *s_ppfHead = nullptr, *s_ppfLast = nullptr;
     int s_iPPFNum = 0;
 
     void FillPPFCache();
-    void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem);
+    void AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t* ppfmem);
 };
 
 }  // namespace PCSX

@@ -131,9 +131,9 @@ class SIO {
 
     void LoadMcd(int mcd, const PCSX::u8string str);
     void LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2);
-    void SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void SaveMcd(const PCSX::u8string mcd, const char* data, uint32_t adr, size_t size);
     void CreateMcd(const PCSX::u8string mcd);
-    void ConvertMcd(const PCSX::u8string mcd, const char *data);
+    void ConvertMcd(const PCSX::u8string mcd, const char* data);
 
     typedef struct {
         char Title[48 + 1];       // Title in ASCII
@@ -145,7 +145,7 @@ class SIO {
         uint8_t Flags;
     } McdBlock;
 
-    void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
+    void GetMcdBlockInfo(int mcd, int block, McdBlock* info);
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
 

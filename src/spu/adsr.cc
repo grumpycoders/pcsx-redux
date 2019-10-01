@@ -71,7 +71,7 @@ PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
+void PCSX::SPU::ADSR::start(SPUCHAN* pChannel)  // MIX ADSR
 {
     pChannel->ADSRX.get<exVolume>().value = 1;  // and init some adsr vars
     pChannel->ADSRX.get<exState>().value = 0;
@@ -80,7 +80,7 @@ void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
+int PCSX::SPU::ADSR::mix(SPUCHAN* ch) {
     uint32_t disp;
     int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
 

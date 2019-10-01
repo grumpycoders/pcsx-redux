@@ -587,8 +587,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(
-                addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
+            process(addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
         }
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
@@ -882,7 +881,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         for (auto fileName : filesToOpen) {
             std::ifstream file;
             // oh the irony
-            file.open(reinterpret_cast<const char *>(fileName.c_str()));
+            file.open(reinterpret_cast<const char*>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;

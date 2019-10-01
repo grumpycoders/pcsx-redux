@@ -40,10 +40,12 @@ class ADSR {
 
   private:
     static inline const uint32_t m_tableDisp[] = {
-        -0x18 + 0 + 32, -0x18 + 4 + 32,  -0x18 + 6 + 32,  -0x18 + 8 + 32,  // release/decay
+        -0x18 + 0 + 32, -0x18 + 4 + 32,  -0x18 + 6 + 32,
+        -0x18 + 8 + 32,  // release/decay
         -0x18 + 9 + 32, -0x18 + 10 + 32, -0x18 + 11 + 32, -0x18 + 12 + 32,
 
-        -0x1B + 0 + 32, -0x1B + 4 + 32,  -0x1B + 6 + 32,  -0x1B + 8 + 32,  // sustain
+        -0x1B + 0 + 32, -0x1B + 4 + 32,  -0x1B + 6 + 32,
+        -0x1B + 8 + 32,  // sustain
         -0x1B + 9 + 32, -0x1B + 10 + 32, -0x1B + 11 + 32, -0x1B + 12 + 32,
     };
 

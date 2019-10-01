@@ -50,12 +50,12 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     typedef void (InterpretedCPU::*intFunc_t)();
     typedef const intFunc_t cIntFunc_t;
 
-    cIntFunc_t *s_pPsxBSC = NULL;
-    cIntFunc_t *s_pPsxSPC = NULL;
-    cIntFunc_t *s_pPsxREG = NULL;
-    cIntFunc_t *s_pPsxCP0 = NULL;
-    cIntFunc_t *s_pPsxCP2 = NULL;
-    cIntFunc_t *s_pPsxCP2BSC = NULL;
+    cIntFunc_t* s_pPsxBSC = NULL;
+    cIntFunc_t* s_pPsxSPC = NULL;
+    cIntFunc_t* s_pPsxREG = NULL;
+    cIntFunc_t* s_pPsxCP0 = NULL;
+    cIntFunc_t* s_pPsxCP2 = NULL;
+    cIntFunc_t* s_pPsxCP2BSC = NULL;
 
     bool execI();
     void doBranch(uint32_t tar);
@@ -527,7 +527,7 @@ void InterpretedCPU::psxBREAK() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
     PCSX::g_emulator.m_psxCpu->psxException(0x30, m_inDelaySlot);
     if (m_inDelaySlot) {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (!delayedLoad.pcActive) abort();
         delayedLoad.pcActive = false;
     }
@@ -537,7 +537,7 @@ void InterpretedCPU::psxSYSCALL() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc -= 4;
     PCSX::g_emulator.m_psxCpu->psxException(0x20, m_inDelaySlot);
     if (m_inDelaySlot) {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (!delayedLoad.pcActive) abort();
         delayedLoad.pcActive = false;
     }
@@ -684,8 +684,7 @@ void InterpretedCPU::psxSWL() {
     uint32_t shift = addr & 3;
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
-    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
-                                             (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
 
@@ -701,8 +700,7 @@ void InterpretedCPU::psxSWR() {
     uint32_t shift = addr & 3;
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
-    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
-                                             (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
 
     /*
     Mem = 1234.  Reg = abcd
@@ -1298,9 +1296,9 @@ inline bool InterpretedCPU::execI() {
         m_nextIsDelaySlot = false;
     }
     InterceptBIOS();
-    uint32_t *code = PCSX::g_emulator.m_psxCpu->Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, false);
+    uint32_t* code = PCSX::g_emulator.m_psxCpu->Read_ICache(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, false);
     PCSX::g_emulator.m_psxCpu->m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
-    const bool &debug = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>();
+    const bool& debug = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>();
 
     debugI();
 
@@ -1313,7 +1311,7 @@ inline bool InterpretedCPU::execI() {
     (*this.*func)();
 
     m_currentDelayedLoad ^= 1;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     if (delayedLoad.active) {
         if (delayedLoad.index >= 32) abort();
         m_psxRegs.GPR.r[delayedLoad.index] &= delayedLoad.mask;

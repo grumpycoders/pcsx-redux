@@ -60,15 +60,15 @@ struct iso_directory_record {
 };
 
 // local extern
-static void trim_key(char *str, char key);
-static void split(char *str, char key, char *pout);
+static void trim_key(char* str, char key);
+static void split(char* str, char key, char* pout);
 
-void mmssdd(char *b, char *p) {
+void mmssdd(char* b, char* p) {
     int m, s, d;
 #if defined(__BIGENDIAN__)
     int block = (b[0] & 0xff) | ((b[1] & 0xff) << 8) | ((b[2] & 0xff) << 16) | (b[3] << 24);
 #else
-    int block = *((int *)b);
+    int block = *((int*)b);
 #endif
 
     block += 150;
@@ -119,10 +119,10 @@ void mmssdd(char *b, char *p) {
     READTRACK();                  \
     memcpy(_dir + 2048, buf + 12, 2048);
 
-int GetCdromFile(uint8_t *mdir, uint8_t *time, const char *filename) {
-    struct iso_directory_record *dir;
+int GetCdromFile(uint8_t* mdir, uint8_t* time, const char* filename) {
+    struct iso_directory_record* dir;
     uint8_t ddir[4096];
-    uint8_t *buf;
+    uint8_t* buf;
     int i;
 
     // only try to scan if a filename is given
@@ -130,26 +130,26 @@ int GetCdromFile(uint8_t *mdir, uint8_t *time, const char *filename) {
 
     i = 0;
     while (i < 4096) {
-        dir = (struct iso_directory_record *)&mdir[i];
+        dir = (struct iso_directory_record*)&mdir[i];
         if (dir->length[0] == 0) {
             return -1;
         }
         i += dir->length[0];
 
         if (dir->flags[0] & 0x2) {  // it's a dir
-            if (!strnicmp((char *)&dir->name[0], filename, dir->name_len[0])) {
+            if (!strnicmp((char*)&dir->name[0], filename, dir->name_len[0])) {
                 if (filename[dir->name_len[0]] != '\\') continue;
 
                 filename += dir->name_len[0] + 1;
 
-                mmssdd(dir->extent, (char *)time);
+                mmssdd(dir->extent, (char*)time);
                 READDIR(ddir);
                 i = 0;
                 mdir = ddir;
             }
         } else {
-            if (!strnicmp((char *)&dir->name[0], filename, strlen(filename))) {
-                mmssdd(dir->extent, (char *)time);
+            if (!strnicmp((char*)&dir->name[0], filename, strlen(filename))) {
+                mmssdd(dir->extent, (char*)time);
                 break;
             }
         }
@@ -159,7 +159,7 @@ int GetCdromFile(uint8_t *mdir, uint8_t *time, const char *filename) {
 
 bool LoadCdrom() {
     EXE_HEADER tmpHead;
-    struct iso_directory_record *dir;
+    struct iso_directory_record* dir;
     uint8_t time[4], *buf;
     uint8_t mdir[4096];
     char exename[256];
@@ -175,9 +175,9 @@ bool LoadCdrom() {
     READTRACK();
 
     // skip head and sub, and go to the root directory record
-    dir = (struct iso_directory_record *)&buf[12 + 156];
+    dir = (struct iso_directory_record*)&buf[12 + 156];
 
-    mmssdd(dir->extent, (char *)time);
+    mmssdd(dir->extent, (char*)time);
 
     READDIR(mdir);
 
@@ -191,11 +191,11 @@ bool LoadCdrom() {
         // read the SYSTEM.CNF
         READTRACK();
 
-        sscanf((char *)buf + 12, "BOOT = cdrom:\\%255s", exename);
+        sscanf((char*)buf + 12, "BOOT = cdrom:\\%255s", exename);
         if (GetCdromFile(mdir, time, exename) == -1) {
-            sscanf((char *)buf + 12, "BOOT = cdrom:%255s", exename);
+            sscanf((char*)buf + 12, "BOOT = cdrom:%255s", exename);
             if (GetCdromFile(mdir, time, exename) == -1) {
-                char *ptr = strstr(reinterpret_cast<char *>(buf + 12), "cdrom:");
+                char* ptr = strstr(reinterpret_cast<char*>(buf + 12), "cdrom:");
                 if (ptr != NULL) {
                     ptr += 6;
                     while (*ptr == '\\' || *ptr == '/') ptr++;
@@ -226,7 +226,7 @@ bool LoadCdrom() {
 
     // Read the rest of the main executable
     while (tmpHead.t_size) {
-        void *ptr = (void *)PSXM(tmpHead.t_addr);
+        void* ptr = (void*)PSXM(tmpHead.t_addr);
 
         incTime();
         READTRACK();
@@ -240,13 +240,13 @@ bool LoadCdrom() {
     return true;
 }
 
-bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
-    struct iso_directory_record *dir;
+bool LoadCdromFile(const char* filename, EXE_HEADER* head) {
+    struct iso_directory_record* dir;
     uint8_t time[4], *buf;
     uint8_t mdir[4096];
     char exename[256];
     uint32_t size, addr;
-    void *psxaddr;
+    void* psxaddr;
 
     if (sscanf(filename, "cdrom:\\%255s", exename) <= 0) {
         // Some games omit backslash (NFS4)
@@ -263,9 +263,9 @@ bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
     READTRACK();
 
     // skip head and sub, and go to the root directory record
-    dir = (struct iso_directory_record *)&buf[12 + 156];
+    dir = (struct iso_directory_record*)&buf[12 + 156];
 
-    mmssdd(dir->extent, (char *)time);
+    mmssdd(dir->extent, (char*)time);
 
     READDIR(mdir);
 
@@ -285,7 +285,7 @@ bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
         incTime();
         READTRACK();
 
-        psxaddr = (void *)PSXM(addr);
+        psxaddr = (void*)PSXM(addr);
         assert(psxaddr != NULL);
         memcpy(psxaddr, buf + 12, 2048);
 
@@ -297,9 +297,9 @@ bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
 }
 
 bool CheckCdrom() {
-    struct iso_directory_record *dir;
+    struct iso_directory_record* dir;
     unsigned char time[4];
-    unsigned char *buf;
+    unsigned char* buf;
     unsigned char mdir[4096];
     char exename[256];
     int i, len, c;
@@ -316,24 +316,24 @@ bool CheckCdrom() {
     memset(PCSX::g_emulator.m_cdromId, 0, sizeof(PCSX::g_emulator.m_cdromId));
     memset(exename, 0, sizeof(exename));
 
-    strncpy(PCSX::g_emulator.m_cdromLabel, reinterpret_cast<char *>(buf + 52), 32);
+    strncpy(PCSX::g_emulator.m_cdromLabel, reinterpret_cast<char*>(buf + 52), 32);
 
     // skip head and sub, and go to the root directory record
-    dir = (struct iso_directory_record *)&buf[12 + 156];
+    dir = (struct iso_directory_record*)&buf[12 + 156];
 
-    mmssdd(dir->extent, (char *)time);
+    mmssdd(dir->extent, (char*)time);
 
     READDIR(mdir);
 
     if (GetCdromFile(mdir, time, "SYSTEM.CNF;1") != -1) {
         READTRACK();
 
-        sscanf((char *)buf + 12, "BOOT = cdrom:\\%255s", exename);
+        sscanf((char*)buf + 12, "BOOT = cdrom:\\%255s", exename);
         if (GetCdromFile(mdir, time, exename) == -1) {
-            sscanf((char *)buf + 12, "BOOT = cdrom:%255s", exename);
+            sscanf((char*)buf + 12, "BOOT = cdrom:%255s", exename);
             if (GetCdromFile(mdir, time, exename) == -1) {
-                char *ptr =
-                    strstr(reinterpret_cast<char *>(buf + 12), "cdrom:");  // possibly the executable is in some subdir
+                char* ptr =
+                    strstr(reinterpret_cast<char*>(buf + 12), "cdrom:");  // possibly the executable is in some subdir
                 if (ptr != NULL) {
                     ptr += 6;
                     while (*ptr == '\\' || *ptr == '/') ptr++;
@@ -407,11 +407,11 @@ bool CheckCdrom() {
     return true;
 }
 
-static int PSXGetFileType(FILE *f) {
+static int PSXGetFileType(FILE* f) {
     unsigned long current;
     uint8_t mybuf[sizeof(EXE_HEADER)];  // EXE_HEADER currently biggest
-    EXE_HEADER *exe_hdr;
-    FILHDR *coff_hdr;
+    EXE_HEADER* exe_hdr;
+    FILHDR* coff_hdr;
     size_t amt;
 
     memset(mybuf, 0, sizeof(mybuf));
@@ -420,12 +420,12 @@ static int PSXGetFileType(FILE *f) {
     amt = fread(mybuf, sizeof(mybuf), 1, f);
     fseek(f, current, SEEK_SET);
 
-    exe_hdr = (EXE_HEADER *)mybuf;
+    exe_hdr = (EXE_HEADER*)mybuf;
     if (memcmp(exe_hdr->id, "PS-X EXE", 8) == 0) return PSX_EXE;
 
     if (mybuf[0] == 'C' && mybuf[1] == 'P' && mybuf[2] == 'E') return CPE_EXE;
 
-    coff_hdr = (FILHDR *)mybuf;
+    coff_hdr = (FILHDR*)mybuf;
     if (SWAP_LEu16(coff_hdr->f_magic) == 0x0162) return COFF_EXE;
 
     return INVALID_EXE;
@@ -433,7 +433,7 @@ static int PSXGetFileType(FILE *f) {
 
 static void LoadLibPS() {
     char buf[MAXPATHLEN];
-    FILE *f;
+    FILE* f;
 
     // Load Net Yaroze runtime library (if exists)
     sprintf(buf, "%s/libps.exe",
@@ -447,8 +447,8 @@ static void LoadLibPS() {
     }
 }
 
-int Load(const char *ExePath) {
-    FILE *tmpFile;
+int Load(const char* ExePath) {
+    FILE* tmpFile;
     EXE_HEADER tmpHead;
     FILHDR coffHead;
     AOUTHDR optHead;
@@ -457,7 +457,7 @@ int Load(const char *ExePath) {
     int retval = 0;
     uint8_t opcode;
     uint32_t section_address, section_size;
-    void *psxmaddr;
+    void* psxmaddr;
 
     strncpy(PCSX::g_emulator.m_cdromId, "SLUS99999", 9);
     strncpy(PCSX::g_emulator.m_cdromLabel, "SLUS_999.99", 11);
@@ -552,10 +552,10 @@ int Load(const char *ExePath) {
     return retval;
 }
 
-static int LoadBin(unsigned long addr, char *filename) {
+static int LoadBin(unsigned long addr, char* filename) {
     int result = -1;
 
-    FILE *f;
+    FILE* f;
     long len;
     unsigned long mem = addr & 0x001fffff;
 
@@ -582,8 +582,8 @@ static int LoadBin(unsigned long addr, char *filename) {
     return result;
 }
 
-int LoadLdrFile(const char *LdrPath) {
-    FILE *tmpFile;
+int LoadLdrFile(const char* LdrPath) {
+    FILE* tmpFile;
     int retval = 0;  //-1 is error, 0 is success
 
     tmpFile = fopen(LdrPath, "rt");
@@ -599,9 +599,9 @@ int LoadLdrFile(const char *LdrPath) {
         while (index <= 15 && fgets(&sztext[index][0], 254, tmpFile)) {
             char szaddr[256];
             char szpath[256];
-            char *psrc = &sztext[index][0];
-            char *paddr;
-            char *ppath;
+            char* psrc = &sztext[index][0];
+            char* paddr;
+            char* ppath;
             int len;
             unsigned long addr = 0L;
 
@@ -692,11 +692,11 @@ int RecvPcsxInfo() {
 }
 
 // remove the leading and trailing spaces in a string
-void trim(char *str) { trim_key(str, ' '); }
+void trim(char* str) { trim_key(str, ' '); }
 
-static void trim_key(char *str, char key) {
+static void trim_key(char* str, char key) {
     int pos = 0;
-    char *dest = str;
+    char* dest = str;
 
     // skip leading blanks
     while (str[pos] <= key && str[pos] > 0) pos++;
@@ -713,9 +713,9 @@ static void trim_key(char *str, char key) {
 }
 
 // split by the keys codes in strings
-static void split(char *str, char key, char *pout) {
-    char *psrc = str;
-    char *pdst = pout;
+static void split(char* str, char key, char* pout) {
+    char* psrc = str;
+    char* pdst = pout;
     int len = strlen(str);
     int i;
     for (i = 0; i < len; i++) {
@@ -764,7 +764,7 @@ static unsigned short crctab[256] = {
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0,  // f8
 };
 
-uint16_t calcCrc(uint8_t *d, int len) {
+uint16_t calcCrc(uint8_t* d, int len) {
     uint16_t crc = 0;
     int i;
 

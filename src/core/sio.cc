@@ -396,9 +396,9 @@ void PCSX::SIO::interrupt() {
 }
 
 void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
-    FILE *f;
-    char *data = NULL;
-    const char * fname = reinterpret_cast<const char *>(str.c_str());
+    FILE* f;
+    char* data = NULL;
+    const char* fname = reinterpret_cast<const char*>(str.c_str());
 
     if (mcd == 1) {
         data = g_mcd1Data;
@@ -446,9 +446,9 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
     LoadMcd(2, mcd2);
 }
 
-void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
-    FILE *f;
-    const char * fname = reinterpret_cast<const char*>(mcd.c_str());
+void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char* data, uint32_t adr, size_t size) {
+    FILE* f;
+    const char* fname = reinterpret_cast<const char*>(mcd.c_str());
 
     f = fopen(fname, "r+b");
     if (f != NULL) {
@@ -483,8 +483,8 @@ void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr
 }
 
 void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
-    FILE *f;
-    const char * fname = reinterpret_cast<const char *>(mcd.c_str());
+    FILE* f;
+    const char* fname = reinterpret_cast<const char*>(mcd.c_str());
     struct stat buf;
     int s = MCD_SIZE;
     int i = 0, j;
@@ -634,9 +634,9 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
     fclose(f);
 }
 
-void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
-    FILE *f;
-    const char * fname = reinterpret_cast<const char*>(mcd.c_str());
+void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char* data) {
+    FILE* f;
+    const char* fname = reinterpret_cast<const char*>(mcd.c_str());
     int i = 0;
     int s = MCD_SIZE;
 
@@ -733,7 +733,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
     }
 }
 
-void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
+void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock* Info) {
     char *data = NULL, *ptr, *str, *sstr;
     unsigned short clut[16];
     unsigned short c;
@@ -810,12 +810,12 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     ptr = data + block * 8192 + 0x60;  // icon palette data
 
     for (i = 0; i < 16; i++) {
-        clut[i] = *((unsigned short *)ptr);
+        clut[i] = *((unsigned short*)ptr);
         ptr += 2;
     }
 
     for (i = 0; i < Info->IconCount; i++) {
-        uint16_t *icon = &Info->Icon[i * 16 * 16];
+        uint16_t* icon = &Info->Icon[i * 16 * 16];
 
         ptr = data + block * 8192 + 128 + 128 * i;  // icon data
 

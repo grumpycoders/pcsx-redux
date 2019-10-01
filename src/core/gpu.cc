@@ -93,13 +93,13 @@ int PCSX::GPU::gpuReadStatus() {
 }
 
 void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
-    uint32_t *ptr;
+    uint32_t* ptr;
     uint32_t size, bs;
 
     switch (chcr) {
         case 0x01000200:  // vram2mem
             PSXDMA_LOG("*** DMA2 GPU - vram2mem *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
-            ptr = (uint32_t *)PSXM(madr);
+            ptr = (uint32_t*)PSXM(madr);
             if (ptr == NULL) {
                 PSXDMA_LOG("*** DMA2 GPU - vram2mem *** NULL Pointer!!!\n");
                 break;
@@ -122,7 +122,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             size = (bcr >> 16) * bs;  // BA blocks * BS words (word = 32-bits)
             PSXDMA_LOG("*** DMA 2 - GPU mem2vram *** %lx addr = %lxh, BCR %lxh => size %d = BA(%d) * BS(%xh)\n", chcr,
                        madr, bcr, size, size / bs, size / (bcr >> 16));
-            ptr = (uint32_t *)PSXM(madr);
+            ptr = (uint32_t*)PSXM(madr);
             if (ptr == NULL) {
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
                 break;
@@ -144,7 +144,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU dma chain *** %8.8lx addr = %lx size = %lx\n", chcr, madr, bcr);
 
             size = gpuDmaChainSize(madr);
-            dmaChain((uint32_t *)PCSX::g_emulator.m_psxMem->g_psxM, madr & 0x1fffff);
+            dmaChain((uint32_t*)PCSX::g_emulator.m_psxMem->g_psxM, madr & 0x1fffff);
 
             // Tekken 3 = use 1.0 only (not 1.5x)
 

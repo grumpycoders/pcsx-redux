@@ -25,6 +25,4 @@ static inline uint32_t djbProcess(uint32_t hash, const char str[], unsigned n) {
     return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
 }
 
-static inline uint32_t djbHash(const char * str, unsigned n) {
-    return djbProcess(5381, str, n);
-}
+static inline uint32_t djbHash(const char* str, unsigned n) { return djbProcess(5381, str, n); }

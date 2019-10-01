@@ -30,7 +30,7 @@ namespace SoftGPU {
 
 class SoftPrim : public SoftRenderer {
   public:
-    inline void callFunc(uint8_t cmd, unsigned char *baseAddr) {
+    inline void callFunc(uint8_t cmd, unsigned char* baseAddr) {
         if (!bSkipNextFrame) {
             (*this.*(funcs[cmd]))(baseAddr);
         } else {
@@ -38,7 +38,7 @@ class SoftPrim : public SoftRenderer {
         }
     }
 
-    bool configure(bool *);
+    bool configure(bool*);
 
     inline void reset() {
         GlobalTextAddrX = 0;
@@ -58,41 +58,41 @@ class SoftPrim : public SoftRenderer {
     int iUseDither = 0;
     int32_t GlobalTextREST;
 
-    typedef void (SoftPrim::*func_t)(unsigned char *);
+    typedef void (SoftPrim::*func_t)(unsigned char*);
     typedef const func_t cfunc_t;
-    void cmdSTP(unsigned char *baseAddr);
-    void cmdTexturePage(unsigned char *baseAddr);
-    void cmdTextureWindow(unsigned char *baseAddr);
-    void cmdDrawAreaStart(unsigned char *baseAddr);
-    void cmdDrawAreaEnd(unsigned char *baseAddr);
-    void cmdDrawOffset(unsigned char *baseAddr);
-    void primLoadImage(unsigned char *baseAddr);
-    void primStoreImage(unsigned char *baseAddr);
-    void primBlkFill(unsigned char *baseAddr);
-    void primMoveImage(unsigned char *baseAddr);
-    void primTileS(unsigned char *baseAddr);
-    void primTile1(unsigned char *baseAddr);
-    void primTile8(unsigned char *baseAddr);
-    void primTile16(unsigned char *baseAddr);
-    void primSprt8(unsigned char *baseAddr);
-    void primSprt16(unsigned char *baseAddr);
-    void primSprtSRest(unsigned char *baseAddr, uint16_t type);
-    void primSprtS(unsigned char *baseAddr);
-    void primPolyF4(unsigned char *baseAddr);
-    void primPolyG4(unsigned char *baseAddr);
-    void primPolyFT3(unsigned char *baseAddr);
-    void primPolyFT4(unsigned char *baseAddr);
-    void primPolyGT3(unsigned char *baseAddr);
-    void primPolyG3(unsigned char *baseAddr);
-    void primPolyGT4(unsigned char *baseAddr);
-    void primPolyF3(unsigned char *baseAddr);
-    void primLineGSkip(unsigned char *baseAddr);
-    void primLineGEx(unsigned char *baseAddr);
-    void primLineG2(unsigned char *baseAddr);
-    void primLineFSkip(unsigned char *baseAddr);
-    void primLineFEx(unsigned char *baseAddr);
-    void primLineF2(unsigned char *baseAddr);
-    void primNI(unsigned char *baseAddr);
+    void cmdSTP(unsigned char* baseAddr);
+    void cmdTexturePage(unsigned char* baseAddr);
+    void cmdTextureWindow(unsigned char* baseAddr);
+    void cmdDrawAreaStart(unsigned char* baseAddr);
+    void cmdDrawAreaEnd(unsigned char* baseAddr);
+    void cmdDrawOffset(unsigned char* baseAddr);
+    void primLoadImage(unsigned char* baseAddr);
+    void primStoreImage(unsigned char* baseAddr);
+    void primBlkFill(unsigned char* baseAddr);
+    void primMoveImage(unsigned char* baseAddr);
+    void primTileS(unsigned char* baseAddr);
+    void primTile1(unsigned char* baseAddr);
+    void primTile8(unsigned char* baseAddr);
+    void primTile16(unsigned char* baseAddr);
+    void primSprt8(unsigned char* baseAddr);
+    void primSprt16(unsigned char* baseAddr);
+    void primSprtSRest(unsigned char* baseAddr, uint16_t type);
+    void primSprtS(unsigned char* baseAddr);
+    void primPolyF4(unsigned char* baseAddr);
+    void primPolyG4(unsigned char* baseAddr);
+    void primPolyFT3(unsigned char* baseAddr);
+    void primPolyFT4(unsigned char* baseAddr);
+    void primPolyGT3(unsigned char* baseAddr);
+    void primPolyG3(unsigned char* baseAddr);
+    void primPolyGT4(unsigned char* baseAddr);
+    void primPolyF3(unsigned char* baseAddr);
+    void primLineGSkip(unsigned char* baseAddr);
+    void primLineGEx(unsigned char* baseAddr);
+    void primLineG2(unsigned char* baseAddr);
+    void primLineFSkip(unsigned char* baseAddr);
+    void primLineFEx(unsigned char* baseAddr);
+    void primLineF2(unsigned char* baseAddr);
+    void primNI(unsigned char* baseAddr);
 
     static const func_t funcs[256];
     static const func_t skip[256];

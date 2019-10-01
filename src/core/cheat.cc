@@ -43,8 +43,8 @@ void PCSX::Cheats::ClearAllCheats() {
 }
 
 // load cheats from the specific filename
-void PCSX::Cheats::LoadCheats(const char *filename) {
-    FILE *fp;
+void PCSX::Cheats::LoadCheats(const char* filename) {
+    FILE* fp;
     char buf[256];
     int count = 0;
     unsigned int t1, t2;
@@ -73,9 +73,9 @@ void PCSX::Cheats::LoadCheats(const char *filename) {
                 if (g_cheats == NULL) {
                     assert(g_numCheats == 0);
                     assert(s_numCheatsAllocated == ALLOC_INCREMENT);
-                    g_cheats = (Cheat *)malloc(sizeof(Cheat) * s_numCheatsAllocated);
+                    g_cheats = (Cheat*)malloc(sizeof(Cheat) * s_numCheatsAllocated);
                 } else {
-                    g_cheats = (Cheat *)realloc(g_cheats, sizeof(Cheat) * s_numCheatsAllocated);
+                    g_cheats = (Cheat*)realloc(g_cheats, sizeof(Cheat) * s_numCheatsAllocated);
                 }
             }
 
@@ -104,9 +104,9 @@ void PCSX::Cheats::LoadCheats(const char *filename) {
             if (g_cheatCodes == NULL) {
                 assert(g_numCodes == 0);
                 assert(s_numCodesAllocated == ALLOC_INCREMENT);
-                g_cheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * s_numCodesAllocated);
+                g_cheatCodes = (CheatCode*)malloc(sizeof(CheatCode) * s_numCodesAllocated);
             } else {
-                g_cheatCodes = (CheatCode *)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
+                g_cheatCodes = (CheatCode*)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
             }
         }
 
@@ -127,8 +127,8 @@ void PCSX::Cheats::LoadCheats(const char *filename) {
 }
 
 // save all cheats to the specified filename
-void PCSX::Cheats::SaveCheats(const char *filename) {
-    FILE *fp;
+void PCSX::Cheats::SaveCheats(const char* filename) {
+    FILE* fp;
     int i, j;
 
     fp = fopen(filename, "w");
@@ -269,7 +269,7 @@ void PCSX::Cheats::ApplyCheats() {
     }
 }
 
-int PCSX::Cheats::AddCheat(const char *descr, char *code) {
+int PCSX::Cheats::AddCheat(const char* descr, char* code) {
     int c = 1;
     char *p1, *p2;
 
@@ -279,9 +279,9 @@ int PCSX::Cheats::AddCheat(const char *descr, char *code) {
         if (g_cheats == NULL) {
             assert(g_numCheats == 0);
             assert(s_numCheatsAllocated == ALLOC_INCREMENT);
-            g_cheats = (Cheat *)malloc(sizeof(Cheat) * s_numCheatsAllocated);
+            g_cheats = (Cheat*)malloc(sizeof(Cheat) * s_numCheatsAllocated);
         } else {
-            g_cheats = (Cheat *)realloc(g_cheats, sizeof(Cheat) * s_numCheatsAllocated);
+            g_cheats = (Cheat*)realloc(g_cheats, sizeof(Cheat) * s_numCheatsAllocated);
         }
     }
 
@@ -314,9 +314,9 @@ int PCSX::Cheats::AddCheat(const char *descr, char *code) {
                 if (g_cheatCodes == NULL) {
                     assert(g_numCodes == 0);
                     assert(s_numCodesAllocated == ALLOC_INCREMENT);
-                    g_cheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * s_numCodesAllocated);
+                    g_cheatCodes = (CheatCode*)malloc(sizeof(CheatCode) * s_numCodesAllocated);
                 } else {
-                    g_cheatCodes = (CheatCode *)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
+                    g_cheatCodes = (CheatCode*)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
                 }
             }
 
@@ -350,7 +350,7 @@ void PCSX::Cheats::RemoveCheat(int index) {
     g_numCheats--;
 }
 
-int PCSX::Cheats::EditCheat(int index, const char *descr, char *code) {
+int PCSX::Cheats::EditCheat(int index, const char* descr, char* code) {
     int c = 1;
     int prev = g_numCodes;
     char *p1, *p2;
@@ -381,9 +381,9 @@ int PCSX::Cheats::EditCheat(int index, const char *descr, char *code) {
                 if (g_cheatCodes == NULL) {
                     assert(g_numCodes == 0);
                     assert(s_numCodesAllocated == ALLOC_INCREMENT);
-                    g_cheatCodes = (CheatCode *)malloc(sizeof(CheatCode) * s_numCodesAllocated);
+                    g_cheatCodes = (CheatCode*)malloc(sizeof(CheatCode) * s_numCodesAllocated);
                 } else {
-                    g_cheatCodes = (CheatCode *)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
+                    g_cheatCodes = (CheatCode*)realloc(g_cheatCodes, sizeof(CheatCode) * s_numCodesAllocated);
                 }
             }
 
@@ -432,7 +432,7 @@ void PCSX::Cheats::CheatSearchBackupMemory() {
 
 void PCSX::Cheats::CheatSearchInitBackupMemory() {
     if (g_prevM == NULL) {
-        g_prevM = (int8_t *)malloc(0x200000);
+        g_prevM = (int8_t*)malloc(0x200000);
         CheatSearchBackupMemory();
     }
 }
@@ -442,9 +442,9 @@ void PCSX::Cheats::CheatSearchAddResult(uint32_t addr) {
         s_numSearchResultsAllocated += ALLOC_INCREMENT;
 
         if (g_searchResults == NULL) {
-            g_searchResults = (uint32_t *)malloc(sizeof(uint32_t) * s_numSearchResultsAllocated);
+            g_searchResults = (uint32_t*)malloc(sizeof(uint32_t) * s_numSearchResultsAllocated);
         } else {
-            g_searchResults = (uint32_t *)realloc(g_searchResults, sizeof(uint32_t) * s_numSearchResultsAllocated);
+            g_searchResults = (uint32_t*)realloc(g_searchResults, sizeof(uint32_t) * s_numSearchResultsAllocated);
         }
     }
 

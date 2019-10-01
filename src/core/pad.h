@@ -37,8 +37,8 @@ class PAD {
     unsigned char poll(unsigned char);
 
   private:
-    void readPort(PadDataS *pad);
-    unsigned char startPoll(PadDataS *pad);
+    void readPort(PadDataS* pad);
+    unsigned char startPoll(PadDataS* pad);
     uint16_t getButtons();
 
     pad_t m_padIdx = PAD1;
@@ -47,7 +47,7 @@ class PAD {
     bool m_isKeyboard = false;
     int m_joystick = -1;
     int m_scancodes[16];
-    SDL_GameController *m_pad = NULL;
+    SDL_GameController* m_pad = NULL;
 
     unsigned char m_buf[256];
     unsigned char m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};

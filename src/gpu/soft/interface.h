@@ -32,19 +32,19 @@ namespace SoftGPU {
 class impl : public GPU {
     virtual int32_t init() final;
     virtual int32_t shutdown() final;
-    virtual int32_t open(GUI *) final;
+    virtual int32_t open(GUI*) final;
     virtual int32_t close() final;
     virtual uint32_t readData() final {
         uint32_t l;
         readDataMem(&l, 1);
         return lGPUdataRet;
     }
-    virtual void readDataMem(uint32_t *pMem, int iSize) final;
+    virtual void readDataMem(uint32_t* pMem, int iSize) final;
     virtual uint32_t readStatus() final;
     virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1); }
-    virtual void writeDataMem(uint32_t *pMem, int iSize) final;
+    virtual void writeDataMem(uint32_t* pMem, int iSize) final;
     virtual void writeStatus(uint32_t gdata) final;
-    virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
+    virtual int32_t dmaChain(uint32_t* baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
     virtual bool configure() final {
         if (m_showCfg) {
@@ -54,8 +54,8 @@ class impl : public GPU {
         }
     }
 
-    virtual void save(SaveStates::GPU &gpu) final;
-    virtual void load(const SaveStates::GPU &gpu) final;
+    virtual void save(SaveStates::GPU& gpu) final;
+    virtual void load(const SaveStates::GPU& gpu) final;
 
     SoftPrim m_softPrim;
 

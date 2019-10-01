@@ -133,9 +133,9 @@ typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB,
 }  // namespace Chan
 
 struct SPUCHAN {
-    uint8_t *pStart;  // start ptr into sound mem
-    uint8_t *pCurr;   // current pos in sound mem
-    uint8_t *pLoop;   // loop ptr in sound mem
+    uint8_t* pStart;  // start ptr into sound mem
+    uint8_t* pCurr;   // current pos in sound mem
+    uint8_t* pLoop;   // loop ptr in sound mem
 
     Chan::Data data;
     ADSRInfo ADSR;     // active ADSR settings

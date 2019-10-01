@@ -88,7 +88,7 @@ typedef struct {
 } EXEC;
 
 static void hleExecRet() {
-    EXEC *header = (EXEC *)PSXM(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0);
+    EXEC* header = (EXEC*)PSXM(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0);
 
     PCSX::g_system->biosPrintf("ExecRet %x: %x\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.s0, header->ret);
 
@@ -102,8 +102,6 @@ static void hleExecRet() {
     PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra;
 }
 
-static void hleException() {
-    PCSX::g_emulator.m_psxBios->psxBiosException();
-}
+static void hleException() { PCSX::g_emulator.m_psxBios->psxBiosException(); }
 
 const HLE_t psxHLEt[8] = {hleDummy, hleA0, hleB0, hleC0, hleBootstrap, hleExecRet, hleException, hleDummy};

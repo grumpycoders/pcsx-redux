@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/system.h"
 #include "gui/widgets/log.h"
+#include "core/system.h"
 
 void PCSX::Widgets::Log::clear() {
     m_buffer.clear();

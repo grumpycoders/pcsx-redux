@@ -2,7 +2,7 @@
 
 #include "core/pgxp_value.h"
 
-void SetValue(PGXP_value *pV, uint32_t psxV) {
+void SetValue(PGXP_value* pV, uint32_t psxV) {
     psx_value psx;
     psx.d = psxV;
 
@@ -13,7 +13,7 @@ void SetValue(PGXP_value *pV, uint32_t psxV) {
     pV->value = psx.d;
 }
 
-void MakeValid(PGXP_value *pV, uint32_t psxV) {
+void MakeValid(PGXP_value* pV, uint32_t psxV) {
     psx_value psx;
     psx.d = psxV;
     if (VALID_01 != (pV->flags & VALID_01)) {
@@ -25,17 +25,17 @@ void MakeValid(PGXP_value *pV, uint32_t psxV) {
     }
 }
 
-void Validate(PGXP_value *pV, uint32_t psxV) {
+void Validate(PGXP_value* pV, uint32_t psxV) {
     // assume pV is not NULL
     pV->flags &= (pV->value == psxV) ? ALL : INV_VALID_ALL;
 }
 
-void MaskValidate(PGXP_value *pV, uint32_t psxV, uint32_t mask, uint32_t validMask) {
+void MaskValidate(PGXP_value* pV, uint32_t psxV, uint32_t mask, uint32_t validMask) {
     // assume pV is not NULL
     pV->flags &= ((pV->value & mask) == (psxV & mask)) ? ALL : (ALL ^ (validMask));
 }
 
-uint32_t ValueToTolerance(PGXP_value *pV, uint32_t psxV, float tolerance) {
+uint32_t ValueToTolerance(PGXP_value* pV, uint32_t psxV, float tolerance) {
     psx_value psx;
     psx.d = psxV;
     uint32_t retFlags = VALID_ALL;
@@ -51,7 +51,7 @@ uint32_t ValueToTolerance(PGXP_value *pV, uint32_t psxV, float tolerance) {
 
 double f16Sign(double in) {
     uint32_t s = in * (double)((uint32_t)1 << 16);
-    return ((double)*((int32_t *)&s)) / (double)((int32_t)1 << 16);
+    return ((double)*((int32_t*)&s)) / (double)((int32_t)1 << 16);
 }
 double f16Unsign(double in) { return (in >= 0) ? in : ((double)in + (double)USHRT_MAX + 1); }
 double fu16Trunc(double in) {

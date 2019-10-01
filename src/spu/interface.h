@@ -25,8 +25,8 @@
 #include "json.hpp"
 
 #include "core/decode_xa.h"
-#include "core/sstate.h"
 #include "core/spu.h"
+#include "core/sstate.h"
 #include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
@@ -48,15 +48,15 @@ class impl : public SPUInterface {
     // void playSample(uint8_t);
     void writeRegister(uint32_t, uint16_t) final;
     uint16_t readRegister(uint32_t) final;
-    void writeDMAMem(uint16_t *, int) final;
-    void readDMAMem(uint16_t *, int) final;
-    virtual void playADPCMchannel(xa_decode_t *) final;
+    void writeDMAMem(uint16_t*, int) final;
+    void readDMAMem(uint16_t*, int) final;
+    virtual void playADPCMchannel(xa_decode_t*) final;
 
-    void save(SaveStates::SPU &) final;
-    void load(const SaveStates::SPU &) final;
+    void save(SaveStates::SPU&) final;
+    void load(const SaveStates::SPU&) final;
 
     void async(uint32_t) final;
-    void playCDDAchannel(int16_t *, int) final;
+    void playCDDAchannel(int16_t*, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
 
     // num of channels
@@ -65,7 +65,7 @@ class impl : public SPUInterface {
     void debug() final;
     bool configure() final;
     json getCfg() final { return settings.serialize(); }
-    void setCfg(const json &j) final {
+    void setCfg(const json& j) final {
         if (j.count("SPU") && j["SPU"].is_object()) {
             settings.deserialize(j["SPU"]);
         } else {
@@ -85,8 +85,8 @@ class impl : public SPUInterface {
 
     // spu
     void MainThread();
-    static int MainThreadTrampoline(void *arg) {
-        impl *that = static_cast<impl *>(arg);
+    static int MainThreadTrampoline(void* arg) {
+        impl* that = static_cast<impl*>(arg);
         that->MainThread();
         return 0;
     }
@@ -94,12 +94,12 @@ class impl : public SPUInterface {
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
-    void StartSound(SPUCHAN *pChannel);
-    void VoiceChangeFrequency(SPUCHAN *pChannel);
-    void FModChangeFrequency(SPUCHAN *pChannel, int ns);
-    int iGetNoiseVal(SPUCHAN *pChannel);
-    void StoreInterpolationVal(SPUCHAN *pChannel, int fa);
-    int iGetInterpolationVal(SPUCHAN *pChannel);
+    void StartSound(SPUCHAN* pChannel);
+    void VoiceChangeFrequency(SPUCHAN* pChannel);
+    void FModChangeFrequency(SPUCHAN* pChannel, int ns);
+    int iGetNoiseVal(SPUCHAN* pChannel);
+    void StoreInterpolationVal(SPUCHAN* pChannel, int fa);
+    int iGetInterpolationVal(SPUCHAN* pChannel);
 
     // registers
     void SoundOn(int start, int end, uint16_t val);
@@ -117,23 +117,23 @@ class impl : public SPUInterface {
     void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
     void InitREVERB();
     void SetREVERB(uint16_t val);
-    void StartREVERB(SPUCHAN *pChannel);
-    void StoreREVERB(SPUCHAN *pChannel, int ns);
+    void StartREVERB(SPUCHAN* pChannel);
+    void StoreREVERB(SPUCHAN* pChannel, int ns);
     int MixREVERBLeft(int ns);
     int MixREVERBRight();
 
     // xa
-    void FeedXA(xa_decode_t *xap);
+    void FeedXA(xa_decode_t* xap);
 
     int bSPUIsOpen;
 
     // psx buffer / addresses
     uint16_t regArea[10000];
     uint16_t spuMem[256 * 1024];
-    uint8_t *spuMemC;
-    uint8_t *pSpuIrq = 0;
-    uint8_t *pSpuBuffer;
-    uint8_t *pMixIrq = 0;
+    uint8_t* spuMemC;
+    uint8_t* pSpuIrq = 0;
+    uint8_t* pSpuBuffer;
+    uint8_t* pMixIrq = 0;
 
     // user settings
     typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
@@ -162,7 +162,7 @@ class impl : public SPUInterface {
     int bThreadEnded = 0;
     int bSpuInit = 0;
 
-    SDL_Thread *hMainThread;
+    SDL_Thread* hMainThread;
     uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
@@ -174,7 +174,7 @@ class impl : public SPUInterface {
     int SSumL[NSSIZE];
     int iFMod[NSSIZE];
     int iCycle = 0;
-    int16_t *pS;
+    int16_t* pS;
 
     int lastch = -1;       // last channel processed on spu irq in timer mode
     int lastns = 0;        // last ns pos
@@ -183,15 +183,15 @@ class impl : public SPUInterface {
 
     // REVERB info and timing vars...
 
-    int *sRVBPlay = 0;
-    int *sRVBEnd = 0;
-    int *sRVBStart = 0;
+    int* sRVBPlay = 0;
+    int* sRVBEnd = 0;
+    int* sRVBStart = 0;
     int iReverbOff = -1;  // some delay factor for reverb
     int iReverbRepeat = 0;
     int iReverbNum = 1;
 
     // XA
-    xa_decode_t *xapGlobal = 0;
+    xa_decode_t* xapGlobal = 0;
 
     int iLeftXAVol = 32767;
     int iRightXAVol = 32767;
@@ -199,10 +199,10 @@ class impl : public SPUInterface {
     int gauss_ptr = 0;
     int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-    int &gvall0() { return gauss_window[gauss_ptr]; }
-    int &gvall(int pos) { return gauss_window[(gauss_ptr + pos) & 3]; }
-    int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
-    int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
+    int& gvall0() { return gauss_window[gauss_ptr]; }
+    int& gvall(int pos) { return gauss_window[(gauss_ptr + pos) & 3]; }
+    int& gvalr0() { return gauss_window[4 + gauss_ptr]; }
+    int& gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
     ADSR m_adsr;
     SDLsound m_sound = {settings.get<Mute>().value};

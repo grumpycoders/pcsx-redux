@@ -64,27 +64,27 @@
  * CD-ROM Mode (used int CdlSetmode)
  */
 
-#define CdlModeStream 0x100 /* Normal Streaming                     */
+#define CdlModeStream 0x100  /* Normal Streaming                     */
 #define CdlModeStream2 0x120 /* SUB HEADER information includes      */
-#define CdlModeSpeed 0x80 /* 0: normal speed      1: double speed */
-#define CdlModeRT 0x40 /* 0: ADPCM off         1: ADPCM on     */
-#define CdlModeSize1 0x20 /* 0: 2048 byte         1: 2340byte     */
-#define CdlModeSize0 0x10 /* 0: -                 1: 2328byte     */
-#define CdlModeSF 0x08 /* 0: Channel off       1: Channel on   */
-#define CdlModeRept 0x04 /* 0: Report off        1: Report on    */
-#define CdlModeAP 0x02 /* 0: AutoPause off     1: AutoPause on */
-#define CdlModeDA 0x01 /* 0: CD-DA off         1: CD-DA on     */
+#define CdlModeSpeed 0x80    /* 0: normal speed      1: double speed */
+#define CdlModeRT 0x40       /* 0: ADPCM off         1: ADPCM on     */
+#define CdlModeSize1 0x20    /* 0: 2048 byte         1: 2340byte     */
+#define CdlModeSize0 0x10    /* 0: -                 1: 2328byte     */
+#define CdlModeSF 0x08       /* 0: Channel off       1: Channel on   */
+#define CdlModeRept 0x04     /* 0: Report off        1: Report on    */
+#define CdlModeAP 0x02       /* 0: AutoPause off     1: AutoPause on */
+#define CdlModeDA 0x01       /* 0: CD-DA off         1: CD-DA on     */
 
 /*
  * Status Contents
  */
-#define CdlStatPlay 0x80 /* playing CD-DA */
-#define CdlStatSeek 0x40 /* seeking */
-#define CdlStatRead 0x20 /* reading data sectors */
+#define CdlStatPlay 0x80      /* playing CD-DA */
+#define CdlStatSeek 0x40      /* seeking */
+#define CdlStatRead 0x20      /* reading data sectors */
 #define CdlStatShellOpen 0x10 /* once shell open */
 #define CdlStatSeekError 0x04 /* seek error detected */
-#define CdlStatStandby 0x02 /* spindle motor rotating */
-#define CdlStatError 0x01 /* command error detected */
+#define CdlStatStandby 0x02   /* spindle motor rotating */
+#define CdlStatError 0x01     /* command error detected */
 
 /*
  * Macros for CdGetDiskType()
@@ -121,12 +121,12 @@
 /*
  * Interrupts
  */
-#define CdlNoIntr 0x00 /* No interrupt */
-#define CdlDataReady 0x01 /* Data Ready */
-#define CdlComplete 0x02 /* Command Complete */
+#define CdlNoIntr 0x00      /* No interrupt */
+#define CdlDataReady 0x01   /* Data Ready */
+#define CdlComplete 0x02    /* Command Complete */
 #define CdlAcknowledge 0x03 /* Acknowledge (reserved) */
-#define CdlDataEnd 0x04 /* End of Data Detected */
-#define CdlDiskError 0x05 /* Error Detected */
+#define CdlDataEnd 0x04     /* End of Data Detected */
+#define CdlDiskError 0x05   /* Error Detected */
 
 /*
  * Library Macros
@@ -166,7 +166,7 @@ typedef struct {
     u_char minute; /* minute (BCD) */
     u_char second; /* second (BCD) */
     u_char sector; /* sector (BCD) */
-    u_char track; /* track (void) */
+    u_char track;  /* track (void) */
 } CdlLOC;
 
 /*
@@ -196,8 +196,8 @@ typedef struct {
 #define CdlMAXLEVEL 8 /* max levels of directories */
 
 typedef struct {
-    CdlLOC pos; /* file location */
-    u_long size; /* file size */
+    CdlLOC pos;    /* file location */
+    u_long size;   /* file size */
     char name[16]; /* file name (body) */
 } CdlFILE;
 
@@ -234,7 +234,7 @@ typedef struct {
 
 #define EDC 0
 #define SECTOR_SIZE (512) /* Sector Size (word) */
-#define HEADER_SIZE (8) /* Header Size (word) */
+#define HEADER_SIZE (8)   /* Header Size (word) */
 
 #define StSTATUS 0x00
 #define StVER 0x00

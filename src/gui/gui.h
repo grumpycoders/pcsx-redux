@@ -50,7 +50,7 @@ namespace PCSX {
 
 class GUI final {
   public:
-    GUI(const flags::args &args) : m_args(args) {}
+    GUI(const flags::args& args) : m_args(args) {}
     void init();
     void close();
     void update();
@@ -58,14 +58,14 @@ class GUI final {
     void bindVRAMTexture();
     void setViewport();
     void setFullscreen(bool);
-    void addLog(const char *fmt, ...) {
+    void addLog(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
         addLog(fmt, args);
         va_end(args);
     }
-    void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
-    void addNotification(const char *fmt, va_list args) {
+    void addLog(const char* fmt, va_list args) { m_log.addLog(fmt, args); }
+    void addNotification(const char* fmt, va_list args) {
         // TODO
         // SDL_TriggerBreakpoint();
     }
@@ -86,7 +86,7 @@ class GUI final {
     void interruptsScaler();
 
   public:
-    static void normalizeDimensions(ImVec2 &vec, float ratio) {
+    static void normalizeDimensions(ImVec2& vec, float ratio) {
         float r = vec.y / vec.x;
         if (r > ratio) {
             vec.y = vec.x * ratio;
@@ -96,11 +96,11 @@ class GUI final {
     }
 
   private:
-    GLFWwindow *m_window = nullptr;
-    int &m_glfwPosX = settings.get<WindowPosX>().value;
-    int &m_glfwPosY = settings.get<WindowPosY>().value;
-    int &m_glfwSizeX = settings.get<WindowSizeX>().value;
-    int &m_glfwSizeY = settings.get<WindowSizeY>().value;
+    GLFWwindow* m_window = nullptr;
+    int& m_glfwPosX = settings.get<WindowPosX>().value;
+    int& m_glfwPosY = settings.get<WindowPosY>().value;
+    int& m_glfwSizeX = settings.get<WindowSizeX>().value;
+    int& m_glfwSizeY = settings.get<WindowSizeY>().value;
     unsigned int m_VRAMTexture = 0;
 
     unsigned int m_offscreenFrameBuffer = 0;
@@ -112,7 +112,7 @@ class GUI final {
     ImVec2 m_renderSize = ImVec2(1, 1);
 
     float m_renderRatio = 3.0f / 4.0f;
-    bool &m_fullscreen = {settings.get<Fullscreen>().value};
+    bool& m_fullscreen = {settings.get<Fullscreen>().value};
 
     // GUI
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
@@ -127,8 +127,8 @@ class GUI final {
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
              WindowSizeY>
         settings;
-    bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
-    bool &m_showMenu = {settings.get<ShowMenu>().value};
+    bool& m_fullscreenRender = {settings.get<FullscreenRender>().value};
+    bool& m_showMenu = {settings.get<ShowMenu>().value};
     bool m_showDemo = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
@@ -139,10 +139,10 @@ class GUI final {
             editor.OptUpperCaseHex = false;
         }
         MemoryEditor editor;
-        std::function<const char *()> title;
-        bool &show = editor.Open;
+        std::function<const char*()> title;
+        bool& show = editor.Open;
         void MenuItem() { ImGui::MenuItem(title(), nullptr, &show); }
-        void draw(void *mem, size_t size, uint32_t baseAddr = 0) { editor.DrawWindow(title(), mem, size, baseAddr); }
+        void draw(void* mem, size_t size, uint32_t baseAddr = 0) { editor.DrawWindow(title(), mem, size, baseAddr); }
     };
     std::string m_stringHolder;
     MemoryEditorWrapper m_mainMemEditors[8];
@@ -162,10 +162,10 @@ class GUI final {
     std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
-    bool &m_showBiosCounters = {settings.get<ShowBiosCounters>().value};
+    bool& m_showBiosCounters = {settings.get<ShowBiosCounters>().value};
     bool m_skipBiosUnknowns = true;
 
-    const flags::args &m_args;
+    const flags::args& m_args;
     bool m_scheduleSoftReset = false;
     bool m_scheduleHardReset = false;
 

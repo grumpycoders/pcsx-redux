@@ -100,14 +100,14 @@ int iUseFixes;
 // ??
 bool bDoVSyncUpdate = false;
 
-bool PCSX::SoftGPU::SoftPrim::configure(bool *show) {
+bool PCSX::SoftGPU::SoftPrim::configure(bool* show) {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Soft GPU configuration", show)) {
         ImGui::End();
     }
-    static const char *ditherValues[] = {"No dithering (fastest)", "Game dependend dithering (slow)",
+    static const char* ditherValues[] = {"No dithering (fastest)", "Game dependend dithering (slow)",
                                          "Always dither g-shaded polygons (slowest)"};
     changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
     changed |= ImGui::Checkbox("UseFrameLimit", &UseFrameLimit);
@@ -374,8 +374,8 @@ static constexpr inline bool CheckCoordL(int16_t slx0, int16_t sly0, int16_t slx
 // mask stuff... used in silent hill
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::cmdSTP(unsigned char *baseAddr) {
-    uint32_t gdata = ((uint32_t *)baseAddr)[0];
+void PCSX::SoftGPU::SoftPrim::cmdSTP(unsigned char* baseAddr) {
+    uint32_t gdata = ((uint32_t*)baseAddr)[0];
 
     lGPUstatusRet &= ~0x1800;                 // Clear the necessary bits
     lGPUstatusRet |= ((gdata & 0x03) << 11);  // Set the necessary bits
@@ -395,8 +395,8 @@ void PCSX::SoftGPU::SoftPrim::cmdSTP(unsigned char *baseAddr) {
 // cmd: Set texture page infos
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::cmdTexturePage(unsigned char *baseAddr) {
-    uint32_t gdata = ((uint32_t *)baseAddr)[0];
+void PCSX::SoftGPU::SoftPrim::cmdTexturePage(unsigned char* baseAddr) {
+    uint32_t gdata = ((uint32_t*)baseAddr)[0];
 
     UpdateGlobalTP((uint16_t)gdata);
     GlobalTextREST = (gdata & 0x00ffffff) >> 9;
@@ -406,8 +406,8 @@ void PCSX::SoftGPU::SoftPrim::cmdTexturePage(unsigned char *baseAddr) {
 // cmd: turn on/off texture window
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(unsigned char *baseAddr) {
-    uint32_t gdata = ((uint32_t *)baseAddr)[0];
+void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(unsigned char* baseAddr) {
+    uint32_t gdata = ((uint32_t*)baseAddr)[0];
 
     uint32_t YAlign, XAlign;
 
@@ -465,8 +465,8 @@ void PCSX::SoftGPU::SoftPrim::cmdTextureWindow(unsigned char *baseAddr) {
 // cmd: start of drawing area... primitives will be clipped inside
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::cmdDrawAreaStart(unsigned char *baseAddr) {
-    uint32_t gdata = ((uint32_t *)baseAddr)[0];
+void PCSX::SoftGPU::SoftPrim::cmdDrawAreaStart(unsigned char* baseAddr) {
+    uint32_t gdata = ((uint32_t*)baseAddr)[0];
 
     drawX = gdata & 0x3ff;  // for soft drawing
 
@@ -485,8 +485,8 @@ void PCSX::SoftGPU::SoftPrim::cmdDrawAreaStart(unsigned char *baseAddr) {
 // cmd: end of drawing area... primitives will be clipped inside
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::cmdDrawAreaEnd(unsigned char *baseAddr) {
-    uint32_t gdata = ((uint32_t *)baseAddr)[0];
+void PCSX::SoftGPU::SoftPrim::cmdDrawAreaEnd(unsigned char* baseAddr) {
+    uint32_t gdata = ((uint32_t*)baseAddr)[0];
 
     drawW = gdata & 0x3ff;  // for soft drawing
 
@@ -505,8 +505,8 @@ void PCSX::SoftGPU::SoftPrim::cmdDrawAreaEnd(unsigned char *baseAddr) {
 // cmd: draw offset... will be added to prim coords
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::cmdDrawOffset(unsigned char *baseAddr) {
-    uint32_t gdata = ((uint32_t *)baseAddr)[0];
+void PCSX::SoftGPU::SoftPrim::cmdDrawOffset(unsigned char* baseAddr) {
+    uint32_t gdata = ((uint32_t*)baseAddr)[0];
 
     PSXDisplay.DrawOffset.x = (int16_t)(gdata & 0x7ff);
 
@@ -526,8 +526,8 @@ void PCSX::SoftGPU::SoftPrim::cmdDrawOffset(unsigned char *baseAddr) {
 // cmd: load image to vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLoadImage(unsigned char *baseAddr) {
-    uint16_t *sgpuData = ((uint16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLoadImage(unsigned char* baseAddr) {
+    uint16_t* sgpuData = ((uint16_t*)baseAddr);
 
     VRAMWrite.x = sgpuData[2] & 0x3ff;
     VRAMWrite.y = sgpuData[3] & iGPUHeightMask;
@@ -545,8 +545,8 @@ void PCSX::SoftGPU::SoftPrim::primLoadImage(unsigned char *baseAddr) {
 // cmd: vram -> psx mem
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primStoreImage(unsigned char *baseAddr) {
-    uint16_t *sgpuData = ((uint16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primStoreImage(unsigned char* baseAddr) {
+    uint16_t* sgpuData = ((uint16_t*)baseAddr);
 
     VRAMRead.x = sgpuData[2] & 0x03ff;
     VRAMRead.y = sgpuData[3] & iGPUHeightMask;
@@ -566,9 +566,9 @@ void PCSX::SoftGPU::SoftPrim::primStoreImage(unsigned char *baseAddr) {
 // cmd: blkfill - NO primitive! Doesn't care about draw areas...
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primBlkFill(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primBlkFill(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     int16_t sX = sgpuData[2];
     int16_t sY = sgpuData[3];
@@ -594,8 +594,8 @@ void PCSX::SoftGPU::SoftPrim::primBlkFill(unsigned char *baseAddr) {
 // cmd: move image vram -> vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char* baseAddr) {
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     int16_t imageY0, imageX0, imageY1, imageX1, imageSX, imageSY, i, j;
 
@@ -658,8 +658,8 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
         uint16_t LineOffset;
         int dx = imageSX >> 1;
 
-        SRCPtr = (uint32_t *)(psxVuw + (1024 * imageY0) + imageX0);
-        DSTPtr = (uint32_t *)(psxVuw + (1024 * imageY1) + imageX1);
+        SRCPtr = (uint32_t*)(psxVuw + (1024 * imageY0) + imageX0);
+        DSTPtr = (uint32_t*)(psxVuw + (1024 * imageY1) + imageX1);
 
         LineOffset = 512 - dx;
 
@@ -695,9 +695,9 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
 //#define SMALLDEBUG
 //#include <dbgout.h>
 
-void PCSX::SoftGPU::SoftPrim::primTileS(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primTileS(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
     int16_t sW = sgpuData[4] & 0x3ff;
     int16_t sH = sgpuData[5] & iGPUHeightMask;  // mmm... limit tiles to 0x1ff or height?
 
@@ -724,9 +724,9 @@ void PCSX::SoftGPU::SoftPrim::primTileS(unsigned char *baseAddr) {
 // cmd: draw 1 dot Tile (point)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primTile1(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primTile1(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
     int16_t sH = 1;
     int16_t sW = 1;
 
@@ -753,9 +753,9 @@ void PCSX::SoftGPU::SoftPrim::primTile1(unsigned char *baseAddr) {
 // cmd: draw 8 dot Tile (small rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primTile8(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primTile8(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
     int16_t sH = 8;
     int16_t sW = 8;
 
@@ -782,9 +782,9 @@ void PCSX::SoftGPU::SoftPrim::primTile8(unsigned char *baseAddr) {
 // cmd: draw 16 dot Tile (medium rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primTile16(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primTile16(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
     int16_t sH = 16;
     int16_t sW = 16;
 
@@ -811,9 +811,9 @@ void PCSX::SoftGPU::SoftPrim::primTile16(unsigned char *baseAddr) {
 // cmd: small sprite (textured rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primSprt8(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primSprt8(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -836,9 +836,9 @@ void PCSX::SoftGPU::SoftPrim::primSprt8(unsigned char *baseAddr) {
 // cmd: medium sprite (textured rect)
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primSprt16(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primSprt16(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -862,9 +862,9 @@ void PCSX::SoftGPU::SoftPrim::primSprt16(unsigned char *baseAddr) {
 ////////////////////////////////////////////////////////////////////////
 
 // func used on texture coord wrap
-void PCSX::SoftGPU::SoftPrim::primSprtSRest(unsigned char *baseAddr, uint16_t type) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primSprtSRest(unsigned char* baseAddr, uint16_t type) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
     uint16_t sTypeRest = 0;
 
     int16_t s;
@@ -949,9 +949,9 @@ void PCSX::SoftGPU::SoftPrim::primSprtSRest(unsigned char *baseAddr, uint16_t ty
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primSprtS(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primSprtS(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
     int16_t sW, sH;
 
     lx0 = sgpuData[2];
@@ -998,9 +998,9 @@ void PCSX::SoftGPU::SoftPrim::primSprtS(unsigned char *baseAddr) {
 // cmd: flat shaded Poly4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyF4(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyF4(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1028,9 +1028,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyF4(unsigned char *baseAddr) {
 // cmd: smooth shaded Poly4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyG4(unsigned char *baseAddr) {
-    uint32_t *gpuData = (uint32_t *)baseAddr;
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyG4(unsigned char* baseAddr) {
+    uint32_t* gpuData = (uint32_t*)baseAddr;
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1058,9 +1058,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyG4(unsigned char *baseAddr) {
 // cmd: flat shaded Texture3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyFT3(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyFT3(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1089,9 +1089,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyFT3(unsigned char *baseAddr) {
 // cmd: flat shaded Texture4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyFT4(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyFT4(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1123,9 +1123,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyFT4(unsigned char *baseAddr) {
 // cmd: smooth shaded Texture3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyGT3(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyGT3(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1160,9 +1160,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyGT3(unsigned char *baseAddr) {
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyG3(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyG3(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1188,9 +1188,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyG3(unsigned char *baseAddr) {
 // cmd: smooth shaded Texture4
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyGT4(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyGT4(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1228,9 +1228,9 @@ void PCSX::SoftGPU::SoftPrim::primPolyGT4(unsigned char *baseAddr) {
 // cmd: smooth shaded Poly3
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primPolyF3(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primPolyF3(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1256,8 +1256,8 @@ void PCSX::SoftGPU::SoftPrim::primPolyF3(unsigned char *baseAddr) {
 // cmd: skipping shaded polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLineGSkip(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLineGSkip(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
     int iMax = 255;
     int i = 2;
 
@@ -1277,8 +1277,8 @@ void PCSX::SoftGPU::SoftPrim::primLineGSkip(unsigned char *baseAddr) {
 // cmd: shaded polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLineGEx(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLineGEx(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
     int iMax = 255;
     uint32_t lc0, lc1;
     int16_t slx0, slx1, sly0, sly1;
@@ -1337,9 +1337,9 @@ void PCSX::SoftGPU::SoftPrim::primLineGEx(unsigned char *baseAddr) {
 // cmd: shaded polyline2
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLineG2(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLineG2(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1367,8 +1367,8 @@ void PCSX::SoftGPU::SoftPrim::primLineG2(unsigned char *baseAddr) {
 // cmd: skipping flat polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLineFSkip(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLineFSkip(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
     int i = 2, iMax = 255;
 
     ly1 = (int16_t)((gpuData[1] >> 16) & 0xffff);
@@ -1386,8 +1386,8 @@ void PCSX::SoftGPU::SoftPrim::primLineFSkip(unsigned char *baseAddr) {
 // cmd: drawing flat polylines
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLineFEx(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLineFEx(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
     int iMax;
     int16_t slx0, slx1, sly0, sly1;
     int i = 2;
@@ -1435,9 +1435,9 @@ void PCSX::SoftGPU::SoftPrim::primLineFEx(unsigned char *baseAddr) {
 // cmd: drawing flat polyline2
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primLineF2(unsigned char *baseAddr) {
-    uint32_t *gpuData = ((uint32_t *)baseAddr);
-    int16_t *sgpuData = ((int16_t *)baseAddr);
+void PCSX::SoftGPU::SoftPrim::primLineF2(unsigned char* baseAddr) {
+    uint32_t* gpuData = ((uint32_t*)baseAddr);
+    int16_t* sgpuData = ((int16_t*)baseAddr);
 
     lx0 = sgpuData[2];
     ly0 = sgpuData[3];
@@ -1466,7 +1466,7 @@ void PCSX::SoftGPU::SoftPrim::primLineF2(unsigned char *baseAddr) {
 // cmd: well, easiest command... not implemented
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftPrim::primNI(unsigned char *baseAddr) {}
+void PCSX::SoftGPU::SoftPrim::primNI(unsigned char* baseAddr) {}
 
 ////////////////////////////////////////////////////////////////////////
 // cmd func ptr table

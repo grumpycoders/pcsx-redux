@@ -34,13 +34,13 @@ void spuInterrupt() {
 }
 
 void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
-    uint16_t *ptr;
+    uint16_t* ptr;
     uint32_t size;
 
     switch (chcr) {
         case 0x01000201:  // cpu to spu transfer
             PSXDMA_LOG("*** DMA4 SPU - mem2spu *** %x addr = %x size = %x\n", chcr, madr, bcr);
-            ptr = (uint16_t *)PSXM(madr);
+            ptr = (uint16_t*)PSXM(madr);
             if (ptr == NULL) {
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
                 break;
@@ -56,7 +56,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
 
         case 0x01000200:  // spu to cpu transfer
             PSXDMA_LOG("*** DMA4 SPU - spu2mem *** %x addr = %x size = %x\n", chcr, madr, bcr);
-            ptr = (uint16_t *)PSXM(madr);
+            ptr = (uint16_t*)PSXM(madr);
             if (ptr == NULL) {
                 PSXDMA_LOG("*** DMA4 SPU - spu2mem *** NULL Pointer!!!\n");
                 break;
@@ -84,7 +84,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
 
 void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     uint32_t size;
-    uint32_t *mem = (uint32_t *)PSXM(madr);
+    uint32_t* mem = (uint32_t*)PSXM(madr);
 
     PSXDMA_LOG("*** DMA6 OT *** %x addr = %x size = %x\n", chcr, madr, bcr);
 

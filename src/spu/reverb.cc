@@ -99,7 +99,7 @@ void PCSX::SPU::impl::SetREVERB(unsigned short val) {
 // START REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
+void PCSX::SPU::impl::StartREVERB(SPUCHAN* pChannel) {
     if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & 0x80))  // reverb possible?
     {
         if (settings.get<Reverb>() == 2)
@@ -129,7 +129,7 @@ void PCSX::SPU::impl::InitREVERB() {
 // STORE REVERB
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
+void PCSX::SPU::impl::StoreREVERB(SPUCHAN* pChannel, int ns) {
     if (settings.get<Reverb>() == 0)
         return;
     else if (settings.get<Reverb>() == 2)  // -------------------------------- // Neil's reverb
@@ -145,7 +145,7 @@ void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
         *(sRVBStart + ns + 1) += iRxr;
     } else  // --------------------------------------------- // Pete's easy fake reverb
     {
-        int *pN;
+        int* pN;
         int iRn, iRr = 0;
 
         // we use the half channel volume (/0x8000) for the first reverb effects, quarter for next and so on
@@ -169,7 +169,7 @@ void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
 
 inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
 {
-    short *p = (short *)spuMem;
+    short* p = (short*)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
@@ -181,7 +181,7 @@ inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: ta
 inline void PCSX::SPU::impl::s_buffer(int iOff,
                                       int iVal)  // set_buffer content helper: takes care about wraps and clipping
 {
-    short *p = (short *)spuMem;
+    short* p = (short*)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
@@ -195,7 +195,7 @@ inline void PCSX::SPU::impl::s_buffer(int iOff,
 inline void PCSX::SPU::impl::s_buffer1(
     int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
 {
-    short *p = (short *)spuMem;
+    short* p = (short*)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;
     while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
     while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);

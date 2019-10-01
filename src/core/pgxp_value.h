@@ -109,11 +109,11 @@ typedef enum { VALID_HALF = (1 << 0) } PGXP_half_flags;
 static const PGXP_value PGXP_value_invalid_address = {0.f, 0.f, 0.f, 0, 0, 0, INVALID_ADDRESS, 0, 0};
 static const PGXP_value PGXP_value_zero = {0.f, 0.f, 0.f, 0, 0, VALID_ALL, 0, 0, 0};
 
-void SetValue(PGXP_value *pV, uint32_t psxV);
-void MakeValid(PGXP_value *pV, uint32_t psxV);
-void Validate(PGXP_value *pV, uint32_t psxV);
-void MaskValidate(PGXP_value *pV, uint32_t psxV, uint32_t mask, uint32_t validMask);
-uint32_t ValueToTolerance(PGXP_value *pV, uint32_t psxV, float tolerance);
+void SetValue(PGXP_value* pV, uint32_t psxV);
+void MakeValid(PGXP_value* pV, uint32_t psxV);
+void Validate(PGXP_value* pV, uint32_t psxV);
+void MaskValidate(PGXP_value* pV, uint32_t psxV, uint32_t mask, uint32_t validMask);
+uint32_t ValueToTolerance(PGXP_value* pV, uint32_t psxV, float tolerance);
 
 double f16Sign(double in);
 double f16Unsign(double in);

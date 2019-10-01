@@ -30,13 +30,13 @@ namespace PCSX {
 
 class Disasm {
   public:
-    static const char *s_disRNameGPR[];
-    static const char *s_disRNameCP2D[];
-    static const char *s_disRNameCP2C[];
-    static const char *s_disRNameCP0[];
+    static const char* s_disRNameGPR[];
+    static const char* s_disRNameCP2D[];
+    static const char* s_disRNameCP2C[];
+    static const char* s_disRNameCP0[];
 
 #define declare(n) \
-    void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool *delaySlotNext = nullptr)
+    void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext = nullptr, bool* delaySlotNext = nullptr)
 
     declare(process) {
         if (skipNext && *skipNext) {
@@ -49,12 +49,13 @@ class Disasm {
         (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
     }
 
-    static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool withValues = false);
+    static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext = nullptr,
+                                bool withValues = false);
     virtual void reset() {}
 
   protected:
     virtual void Invalid() = 0;
-    virtual void OpCode(const char *str) = 0;
+    virtual void OpCode(const char* str) = 0;
     virtual void GPR(uint8_t reg) = 0;
     virtual void CP0(uint8_t reg) = 0;
     virtual void CP2C(uint8_t reg) = 0;
@@ -71,8 +72,8 @@ class Disasm {
 
   private:
     // Type definition of our functions
-    typedef void (Disasm::*TdisR3000AF)(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext,
-                                        bool *delaySlotNext);
+    typedef void (Disasm::*TdisR3000AF)(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext,
+                                        bool* delaySlotNext);
     typedef const TdisR3000AF cTdisR3000AF;
     static const TdisR3000AF s_disR3000A[];
     static const TdisR3000AF s_disR3000A_COP0[];

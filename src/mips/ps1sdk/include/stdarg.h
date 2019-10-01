@@ -17,7 +17,7 @@ extern "C" {
 
 #define __va_rounded_size(T) (((sizeof(T) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))
 
-#define va_arg(ap, T)                                                                                                  \
+#define va_arg(ap, T) \
     (ap = (va_list)((char*)(ap) + __va_rounded_size(T)), *((T*)(void*)((char*)(ap)-__va_rounded_size(T))))
 
 #define va_start(ap, last_arg) (ap = ((char*)&(last_arg) + __va_rounded_size(last_arg)))

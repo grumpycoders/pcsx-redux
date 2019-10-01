@@ -148,22 +148,22 @@ const unsigned char version = 1;  // do not touch - library for PSEmu 1.x
 const unsigned char revision = 1;
 const unsigned char build = 18;  // increase that with each version
 
-static const char *libraryName = "P.E.Op.S. Soft Driver";
+static const char* libraryName = "P.E.Op.S. Soft Driver";
 
-static const char *PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
+static const char* PluginAuthor = "Pete Bernert and the P.E.Op.S. team";
 
 ////////////////////////////////////////////////////////////////////////
 // memory image of the PSX vram
 ////////////////////////////////////////////////////////////////////////
 
-unsigned char *psxVSecure;
-unsigned char *psxVub;
-signed char *psxVsb;
-uint16_t *psxVuw;
-uint16_t *psxVuw_eom;
-int16_t *psxVsw;
-uint32_t *psxVul;
-int32_t *psxVsl;
+unsigned char* psxVSecure;
+unsigned char* psxVub;
+signed char* psxVsb;
+uint16_t* psxVuw;
+uint16_t* psxVuw_eom;
+int16_t* psxVsw;
+uint32_t* psxVul;
+int32_t* psxVsl;
 
 ////////////////////////////////////////////////////////////////////////
 // GPU globals
@@ -215,7 +215,7 @@ void GPUdebugSetPC(uint32_t addr)
 #include <time.h>
 time_t tStart;
 
-extern "C" void softGPUdisplayText(char *pText)  // some debug func
+extern "C" void softGPUdisplayText(char* pText)  // some debug func
 {
     if (!pText) {
         szDebugText[0] = 0;
@@ -238,16 +238,16 @@ extern "C" void softGPUdisplayFlags(uint32_t dwFlags)  // some info func
 // Snapshot func
 ////////////////////////////////////////////////////////////////////////
 
-char *pGetConfigInfos(int iCfg) {
-    char *pB = (char *)malloc(32767);
+char* pGetConfigInfos(int iCfg) {
+    char* pB = (char*)malloc(32767);
 
     return pB;
 }
 
 void DoTextSnapShot(int iNum) {
-    FILE *txtfile;
+    FILE* txtfile;
     char szTxt[256];
-    char *pB;
+    char* pB;
 
 #ifdef _WIN32
     sprintf(szTxt, "SNAP\\PEOPSSOFT%03d.txt", iNum);
@@ -269,7 +269,7 @@ void DoTextSnapShot(int iNum) {
 
 extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 {
-    FILE *bmpfile;
+    FILE* bmpfile;
     char filename[256];
     unsigned char header[0x36];
     int32_t size, height;
@@ -349,18 +349,18 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 
     szDebugText[0] = 0;  // init debug text buffer
 
-    psxVSecure = (unsigned char *)malloc((iGPUHeight * 2) * 1024 +
-                                         (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
+    psxVSecure = (unsigned char*)malloc((iGPUHeight * 2) * 1024 +
+                                        (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
 
     //!!! ATTENTION !!!
     psxVub = psxVSecure + 512 * 1024;  // security offset into double sized psx vram!
 
-    psxVsb = (signed char *)psxVub;  // different ways of accessing PSX VRAM
-    psxVsw = (int16_t *)psxVub;
-    psxVsl = (int32_t *)psxVub;
-    psxVuw = (uint16_t *)psxVub;
-    psxVul = (uint32_t *)psxVub;
+    psxVsb = (signed char*)psxVub;  // different ways of accessing PSX VRAM
+    psxVsw = (int16_t*)psxVub;
+    psxVsl = (int32_t*)psxVub;
+    psxVuw = (uint16_t*)psxVub;
+    psxVul = (uint32_t*)psxVub;
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
 
@@ -405,7 +405,7 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 // Here starts all...
 ////////////////////////////////////////////////////////////////////////
 
-int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
+int32_t PCSX::SoftGPU::impl::open(GUI* gui)  // GPU OPEN
 {
     m_gui = gui;
 #if 0
@@ -467,8 +467,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
     if (dwActFixes & 32)  // pc fps calculation fix
     {
-        if (UseFrameLimit) PCFrameCap();  // -> brake
-                                          //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+        if (UseFrameLimit)
+            PCFrameCap();  // -> brake
+                           //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
     //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
@@ -528,7 +529,7 @@ void ChangeDispOffsetsX(void)  // X CENTER
     l &= 0xfffffff8;
 
     if (l == PreviousPSXDisplay.Range.y1) return;  // abusing range.y1 for
-    PreviousPSXDisplay.Range.y1 = (int16_t)l;        // storing last x range and test
+    PreviousPSXDisplay.Range.y1 = (int16_t)l;      // storing last x range and test
 
     if (lx >= PreviousPSXDisplay.DisplayMode.x) {
         PreviousPSXDisplay.Range.x1 = (int16_t)PreviousPSXDisplay.DisplayMode.x;
@@ -616,9 +617,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
-    PreviousPSXDisplay.DisplayMode.x =             // previous will hold
+    PreviousPSXDisplay.DisplayMode.x =            // previous will hold
         std::min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
-    PreviousPSXDisplay.DisplayMode.y =             // the size of my
+    PreviousPSXDisplay.DisplayMode.y =            // the size of my
         std::min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
@@ -1009,7 +1010,7 @@ __inline void FinishedVRAMRead(void) {
 // core read from vram
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
+void PCSX::SoftGPU::impl::readDataMem(uint32_t* pMem, int iSize) {
     int i;
 
     if (DataReadMode != DR_VRAMTRANSFER) return;
@@ -1106,7 +1107,7 @@ const unsigned char primTableCX[256] = {
     3, 3, 3, 3, 4, 4, 4, 4,
     // 68
     2, 2, 2, 2, 3, 3, 3, 3,  // 3=SPRITE1???
-                             // 70
+    // 70
     2, 2, 2, 2, 3, 3, 3, 3,
     // 78
     2, 2, 2, 2, 3, 3, 3, 3,
@@ -1143,7 +1144,7 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
-void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
+void PCSX::SoftGPU::impl::writeDataMem(uint32_t* pMem, int iSize) {
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
@@ -1235,7 +1236,7 @@ ENDVRAM:
 
             if (gpuDataP == gpuDataC) {
                 gpuDataC = gpuDataP = 0;
-                m_softPrim.callFunc(gpuCommand, (unsigned char *)gpuDataM);
+                m_softPrim.callFunc(gpuCommand, (unsigned char*)gpuDataM);
 
                 if (dwEmuFixes & 0x0001 || dwActFixes & 0x0400)  // hack for emulating "gpu busy" in some games
                     iFakePrimBusy = 4;
@@ -1312,9 +1313,9 @@ __inline bool CheckForEndlessLoop(uint32_t laddr) {
     return false;
 }
 
-int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
+int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t* baseAddrL, uint32_t addr) {
     uint32_t dmaMem;
-    unsigned char *baseAddrB;
+    unsigned char* baseAddrB;
     int16_t count;
     unsigned int DMACommandCounter = 0;
 
@@ -1322,7 +1323,7 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
     lUsedAddr[0] = lUsedAddr[1] = lUsedAddr[2] = 0xffffff;
 
-    baseAddrB = (unsigned char *)baseAddrL;
+    baseAddrB = (unsigned char*)baseAddrL;
 
     do {
         if (iGPUHeight == 512) addr &= 0x1FFFFC;
@@ -1348,21 +1349,21 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct GPUFREEZETAG {
-    uint32_t ulFreezeVersion;           // should be always 1 for now (set by main emu)
-    uint32_t ulStatus;                  // current gpu status
-    uint32_t ulControl[256];            // latest control register values
+    uint32_t ulFreezeVersion;                // should be always 1 for now (set by main emu)
+    uint32_t ulStatus;                       // current gpu status
+    uint32_t ulControl[256];                 // latest control register values
     unsigned char psxVRam[1024 * 1024 * 2];  // current VRam image (full 2 MB for ZN)
 } GPUFreeze_t;
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
+void PCSX::SoftGPU::impl::save(SaveStates::GPU& gpu) {
     gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
     gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t*>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
 }
 
-void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
+void PCSX::SoftGPU::impl::load(const SaveStates::GPU& gpu) {
     lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
     gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t*>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
@@ -1481,7 +1482,7 @@ unsigned char cFont[10][120] = {
 
 ////////////////////////////////////////////////////////////////////////
 
-void PaintPicDot(unsigned char *p, unsigned char c) {
+void PaintPicDot(unsigned char* p, unsigned char c) {
     if (c == 0) {
         *p++ = 0x00;
         *p++ = 0x00;
@@ -1512,7 +1513,7 @@ void PaintPicDot(unsigned char *p, unsigned char c) {
 // so you have to use the frontbuffer to get a fully
 // rendered picture
 
-extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
+extern "C" void softGPUgetScreenPic(unsigned char* pMem) {}
 
 ////////////////////////////////////////////////////////////////////////
 // func will be called with 128x96x3 BGR data.
@@ -1522,7 +1523,7 @@ extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
 // release your picture data and stop displaying
 // the screen pic
 
-extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
+extern "C" void softGPUshowScreenPic(unsigned char* pMem) {
     DestroyPic();           // destroy old pic data
     if (pMem == 0) return;  // done
     CreatePic(pMem);        // create new pic... don't free pMem or something like that... just read from it

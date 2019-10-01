@@ -65,7 +65,7 @@ class CDRomImpl : public PCSX::CDRom {
         CdlReadToc = 30,
     };
 
-    static const inline char *CmdName[] = {
+    static const inline char* CmdName[] = {
         "CdlSync",     "CdlNop",     "CdlSetloc", "CdlPlay",  "CdlForward", "CdlBackward",  "CdlReadN",   "CdlStandby",
         "CdlStop",     "CdlPause",   "CdlInit",   "CdlMute",  "CdlDemute",  "CdlSetfilter", "CdlSetmode", "CdlGetmode",
         "CdlGetlocL",  "CdlGetlocP", "CdlReadT",  "CdlGetTN", "CdlGetTD",   "CdlSeekL",     "CdlSeekP",   "CdlSetclock",
@@ -141,8 +141,8 @@ class CDRomImpl : public PCSX::CDRom {
 
     struct CdrStat cdr_stat;
 
-    static constexpr unsigned int msf2sec(const uint8_t *msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
-    static constexpr void sec2msf(unsigned int s, uint8_t *msf) {
+    static constexpr unsigned int msf2sec(const uint8_t* msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
+    static constexpr void sec2msf(unsigned int s, uint8_t* msf) {
         msf[0] = s / 75 / 60;
         s = s - msf[0] * 75 * 60;
         msf[1] = s / 75;
@@ -150,7 +150,7 @@ class CDRomImpl : public PCSX::CDRom {
         msf[2] = s;
     }
     // for that weird psemu API..
-    static constexpr unsigned int fsm2sec(const uint8_t *msf) { return ((msf[2] * 60 + msf[1]) * 75) + msf[0]; }
+    static constexpr unsigned int fsm2sec(const uint8_t* msf) { return ((msf[2] * 60 + msf[1]) * 75) + msf[0]; }
 
     static const uint32_t H_SPUirqAddr = 0x1f801da4;
     static const uint32_t H_SPUaddr = 0x1f801da6;
@@ -334,7 +334,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    void Find_CurTrack(const uint8_t *time) {
+    void Find_CurTrack(const uint8_t* time) {
         int current, sect;
 
         current = msf2sec(time);
@@ -347,7 +347,7 @@ class CDRomImpl : public PCSX::CDRom {
         CDR_LOG("Find_CurTrack *** %02d %02d\n", m_curTrack, current);
     }
 
-    void generate_subq(const uint8_t *time) {
+    void generate_subq(const uint8_t* time) {
         unsigned char start[3], next[3];
         unsigned int this_s, start_s, next_s, pregap;
         int relative_s;
@@ -394,9 +394,9 @@ class CDRomImpl : public PCSX::CDRom {
         m_subq.absolute[2] = itob(time[2]);
     }
 
-    void ReadTrack(const uint8_t *time) {
+    void ReadTrack(const uint8_t* time) {
         unsigned char tmp[3];
-        struct SubQ *subq;
+        struct SubQ* subq;
         uint16_t crc;
 
         tmp[0] = itob(time[0]);
@@ -410,9 +410,9 @@ class CDRomImpl : public PCSX::CDRom {
         m_suceeded = m_iso.readTrack(tmp);
         memcpy(m_prev, tmp, 3);
 
-        subq = (struct SubQ *)m_iso.getBufferSub();
+        subq = (struct SubQ*)m_iso.getBufferSub();
         if (subq != NULL && m_curTrack == 1) {
-            crc = calcCrc((uint8_t *)subq + 12, 10);
+            crc = calcCrc((uint8_t*)subq + 12, 10);
             if (crc == (((uint16_t)subq->CRC[0] << 8) | subq->CRC[1])) {
                 m_subq.track = subq->TrackNumber;
                 m_subq.index = subq->IndexNumber;
@@ -526,8 +526,8 @@ class CDRomImpl : public PCSX::CDRom {
         if (!m_muted) {
             m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
 
-            attenuate((int16_t *)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
-            PCSX::g_emulator.m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
+            attenuate((int16_t*)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
+            PCSX::g_emulator.m_spu->playCDDAchannel((short*)m_transfer, CD_FRAMESIZE_RAW);
         }
 
         m_setSectorPlay[2]++;
@@ -891,7 +891,7 @@ class CDRomImpl : public PCSX::CDRom {
                 }
                 m_result[0] |= (m_result[1] >> 4) & 0x08;
 
-                strncpy((char *)&m_result[4], "PCSX", 4);
+                strncpy((char*)&m_result[4], "PCSX", 4);
                 m_stat = Complete;
                 break;
 
@@ -943,7 +943,7 @@ class CDRomImpl : public PCSX::CDRom {
                 // Crusaders of Might and Magic - update getlocl now
                 // - fixes cutscene speech
                 {
-                    uint8_t *buf = m_iso.getBuffer();
+                    uint8_t* buf = m_iso.getBuffer();
                     if (buf != NULL) memcpy(m_transfer, buf, 8);
                 }
 
@@ -1024,7 +1024,7 @@ class CDRomImpl : public PCSX::CDRom {
         return v;
     }
 
-    void attenuate(int16_t *buf, int samples, int stereo) final {
+    void attenuate(int16_t* buf, int samples, int stereo) final {
         int i, l, r;
         int ll = m_attenuatorLeftToLeft;
         int lr = m_attenuatorLeftToRight;
@@ -1054,7 +1054,7 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void readInterrupt() final {
-        uint8_t *buf;
+        uint8_t* buf;
 
         if (!m_reading) return;
 
@@ -1353,7 +1353,7 @@ class CDRomImpl : public PCSX::CDRom {
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) final {
         uint32_t cdsize;
         unsigned i;
-        uint8_t *ptr;
+        uint8_t* ptr;
 
         CDR_LOG("dma() Log: *** DMA 3 *** %x addr = %x size = %x\n", chcr, madr, bcr);
 
@@ -1384,7 +1384,7 @@ class CDRomImpl : public PCSX::CDRom {
                     }
                 }
 
-                ptr = (uint8_t *)PSXM(madr);
+                ptr = (uint8_t*)PSXM(madr);
                 if (ptr == NULL) {
                     CDR_LOG("dma() Log: *** DMA 3 *** NULL Pointer!\n");
                     break;
@@ -1568,4 +1568,4 @@ class CDRomImpl : public PCSX::CDRom {
 
 }  // namespace
 
-PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
+PCSX::CDRom* PCSX::CDRom::factory() { return new CDRomImpl; }

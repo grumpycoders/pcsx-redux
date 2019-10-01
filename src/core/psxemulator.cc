@@ -98,7 +98,7 @@ void PCSX::Emulator::EmuUpdate() {
     }
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
-        //CreateRewindState();
+        // CreateRewindState();
     }
 }
 

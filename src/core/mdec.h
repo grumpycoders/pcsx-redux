@@ -42,8 +42,8 @@ class MDEC {
     static const unsigned DSIZE = 8;
     static const unsigned DSIZE2 = DSIZE * DSIZE;
 
-    void save(SaveStates::MDEC & mdecSave);
-    void load(const SaveStates::MDEC & mdecSave);
+    void save(SaveStates::MDEC& mdecSave);
+    void load(const SaveStates::MDEC& mdecSave);
 
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock
@@ -69,9 +69,9 @@ class MDEC {
     struct {
         uint32_t reg0;
         uint32_t reg1;
-        uint16_t *rl;
-        uint16_t *rl_end;
-        uint8_t *block_buffer_pos;
+        uint16_t* rl;
+        uint16_t* rl_end;
+        uint8_t* block_buffer_pos;
         uint8_t block_buffer[16 * 16 * 3];
         struct _pending_dma1 pending_dma1;
     } mdec;
@@ -96,11 +96,11 @@ class MDEC {
         289301,  401273,  377991,  340183,  289301,  227303,  156569, 79818    // 38
     };
 
-    void putlinebw15(uint16_t *image, int *Yblk);
-    void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb);
-    void yuv2rgb15(int *blk, unsigned short *image);
-    void iqtab_init(int *iqtab, unsigned char *iq_y);
-    unsigned short *rl2blk(int *blk, unsigned short *mdec_rl);
+    void putlinebw15(uint16_t* image, int* Yblk);
+    void putquadrgb15(uint16_t* image, int* Yblk, int Cr, int Cb);
+    void yuv2rgb15(int* blk, unsigned short* image);
+    void iqtab_init(int* iqtab, unsigned char* iq_y);
+    unsigned short* rl2blk(int* blk, unsigned short* mdec_rl);
 };
 
 }  // namespace PCSX

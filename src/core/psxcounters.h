@@ -31,7 +31,7 @@ class Counters {
   private:
     /******************************************************************************/
     static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
-    static void verboseLog(int32_t level, const char *str, ...);
+    static void verboseLog(int32_t level, const char* str, ...);
     uint32_t psxRcntRcountInternal(uint32_t index);
     void psxRcntWcountInternal(uint32_t index, uint32_t value);
 
@@ -107,8 +107,8 @@ class Counters {
     uint32_t psxRcntRmode(uint32_t index);
     uint32_t psxRcntRtarget(uint32_t index);
 
-    void save(PCSX::SaveStates::Counters &counters);
-    void load(const PCSX::SaveStates::Counters & counters);
+    void save(PCSX::SaveStates::Counters& counters);
+    void load(const PCSX::SaveStates::Counters& counters);
 };
 
 }  // namespace PCSX

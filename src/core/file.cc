@@ -51,9 +51,9 @@ ssize_t PCSX::File::tell() {
 void PCSX::File::flush() {
     if (m_handle) fflush(m_handle);
 }
-PCSX::File::File(void *data, ssize_t size) {
+PCSX::File::File(void* data, ssize_t size) {
     if (data) {
-        m_data = static_cast<uint8_t *>(data);
+        m_data = static_cast<uint8_t*>(data);
     } else {
         assert(size == 1);
         m_data = &m_internalBuffer;
@@ -61,7 +61,7 @@ PCSX::File::File(void *data, ssize_t size) {
     m_size = size;
 }
 #ifdef _WIN32
-PCSX::File::File(const char *filename) : m_filename(filename) {
+PCSX::File::File(const char* filename) : m_filename(filename) {
 #ifdef UNICODE
     int needed;
     LPWSTR str;
@@ -79,14 +79,14 @@ PCSX::File::File(const char *filename) : m_filename(filename) {
 #endif
 }
 #else
-PCSX::File::File(const char *filename) { m_handle = fopen(filename, "rb"); }
+PCSX::File::File(const char* filename) { m_handle = fopen(filename, "rb"); }
 #endif
-char *PCSX::File::gets(char *s, int size) {
+char* PCSX::File::gets(char* s, int size) {
     if (m_handle) return fgets(s, size, m_handle);
     if (!m_data) return nullptr;
     if (m_size == m_ptr) return nullptr;
     int c;
-    char *ptr = s;
+    char* ptr = s;
     if (!size) return nullptr;
     size--;
     while (true) {
@@ -114,7 +114,7 @@ std::string PCSX::File::gets() {
         ret += c;
     }
 }
-ssize_t PCSX::File::read(void *dest, ssize_t size) {
+ssize_t PCSX::File::read(void* dest, ssize_t size) {
     if (m_handle) return fread(dest, 1, size, m_handle);
     if (!m_data) return -1;
     size = std::max(m_size - m_ptr, size);
@@ -123,7 +123,7 @@ ssize_t PCSX::File::read(void *dest, ssize_t size) {
     m_ptr += size;
     return size;
 }
-ssize_t PCSX::File::write(const void *dest, size_t size) {
+ssize_t PCSX::File::write(const void* dest, size_t size) {
     abort();
     return -1;
 }

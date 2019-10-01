@@ -26,20 +26,20 @@
 namespace PCSX {
 
 struct LogName {
-    const char *name;
+    const char* name;
 };
 
-template <const LogName &name, bool enabled>
+template <const LogName& name, bool enabled>
 class Logger {
   public:
-    static void Log(const char *fmt, ...) {
+    static void Log(const char* fmt, ...) {
         if (!enabled) return;
         va_list a;
         va_start(a, fmt);
         g_system->log(name.name, fmt, a);
         va_end(a);
     }
-    static void LogVA(const char *fmt, va_list a) {
+    static void LogVA(const char* fmt, va_list a) {
         if (!enabled) return;
         g_system->log(name.name, fmt, a);
     }

@@ -185,25 +185,25 @@ typedef struct {
 
 #if defined(__BIGENDIAN__)
 
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
+#define _i32(x) reinterpret_cast<int32_t*>(&x)[0]
+#define _u32(x) reinterpret_cast<uint32_t*>(&x)[0]
 
-#define _i16(x) reinterpret_cast<int16_t *>(&x)[1]
-#define _u16(x) reinterpret_cast<uint16_t *>(&x)[1]
+#define _i16(x) reinterpret_cast<int16_t*>(&x)[1]
+#define _u16(x) reinterpret_cast<uint16_t*>(&x)[1]
 
-#define _i8(x) reinterpret_cast<int8_t *>(&x)[3]
-#define _u8(x) reinterpret_cast<uint8_t *>(&x)[3]
+#define _i8(x) reinterpret_cast<int8_t*>(&x)[3]
+#define _u8(x) reinterpret_cast<uint8_t*>(&x)[3]
 
 #else
 
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
+#define _i32(x) reinterpret_cast<int32_t*>(&x)[0]
+#define _u32(x) reinterpret_cast<uint32_t*>(&x)[0]
 
-#define _i16(x) reinterpret_cast<int16_t *>(&x)[0]
-#define _u16(x) reinterpret_cast<uint16_t *>(&x)[0]
+#define _i16(x) reinterpret_cast<int16_t*>(&x)[0]
+#define _u16(x) reinterpret_cast<uint16_t*>(&x)[0]
 
-#define _i8(x) reinterpret_cast<int8_t *>(&x)[0]
-#define _u8(x) reinterpret_cast<uint8_t *>(&x)[0]
+#define _i8(x) reinterpret_cast<int8_t*>(&x)[0]
+#define _u8(x) reinterpret_cast<uint8_t*>(&x)[0]
 
 #endif
 
@@ -291,7 +291,7 @@ class R3000Acpu {
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
     virtual bool Implemented() = 0;
 
-    const std::string &getName() { return m_name; }
+    const std::string& getName() { return m_name; }
 
   public:
     static int psxInit();
@@ -324,30 +324,30 @@ class R3000Acpu {
         bool pcActive = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
+    uint32_t& delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = reg;
         delayedLoad.mask = mask;
         return delayedLoad.value;
     }
     void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
-        auto &ref = delayedLoadRef(reg, mask);
+        auto& ref = delayedLoadRef(reg, mask);
         ref = value;
     }
-    uint32_t &delayedPCLoad() {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+    uint32_t& delayedPCLoad() {
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.pcActive = true;
         return delayedLoad.pcValue;
     }
     void delayedPCLoad(uint32_t value) {
-        auto &ref = delayedPCLoad();
+        auto& ref = delayedPCLoad();
         ref = value;
     }
 
   protected:
-    R3000Acpu(const std::string &name) : m_name(name) {}
+    R3000Acpu(const std::string& name) : m_name(name) {}
     static inline const uint32_t MASKS[7] = {0, 0xffffff, 0xffff, 0xff, 0xff000000, 0xffff0000, 0xffffff00};
     static inline const uint32_t LWL_MASK[4] = {0xffffff, 0xffff, 0xff, 0};
     static inline const uint32_t LWL_MASK_INDEX[4] = {1, 2, 3, 0};
@@ -362,7 +362,7 @@ class R3000Acpu {
     inline bool hasToRun() {
         if (!g_system->running()) return false;
         if (!m_booted) {
-            uint32_t &pc = m_psxRegs.pc;
+            uint32_t& pc = m_psxRegs.pc;
             if (pc == 0x80030000) {
                 m_booted = true;
                 if (g_emulator.settings.get<PCSX::Emulator::SettingFastBoot>()) pc = m_psxRegs.GPR.n.ra;
@@ -394,7 +394,7 @@ class R3000Acpu {
                 if (m_savedCounters[0][call] == 0) {
                     if (m_breakpointOnNew) g_system->pause();
                     if (m_logNewSyscalls) {
-                        const char *name = Bios::getA0name(call);
+                        const char* name = Bios::getA0name(call);
                         g_system->printf("Bios call a0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
                     }
                     m_counters[0][call]++;
@@ -418,7 +418,7 @@ class R3000Acpu {
                 if (m_savedCounters[1][call] == 0) {
                     if (m_breakpointOnNew) g_system->pause();
                     if (m_logNewSyscalls) {
-                        const char *name = Bios::getB0name(call);
+                        const char* name = Bios::getB0name(call);
                         g_system->printf("Bios call b0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
                     }
                 }
@@ -455,7 +455,7 @@ class R3000Acpu {
                 if (m_savedCounters[2][call] == 0) {
                     if (m_breakpointOnNew) g_system->pause();
                     if (m_logNewSyscalls) {
-                        const char *name = Bios::getC0name(call);
+                        const char* name = Bios::getC0name(call);
                         g_system->printf("Bios call c0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
                     }
                 }
@@ -515,7 +515,7 @@ class R3000Acpu {
     bool m_breakpointOnNew = false;
     bool m_debugKernel = false;
     bool m_logEvents = false;
-    const uint64_t *getCounters(int syscall) { return m_counters[syscall]; }
+    const uint64_t* getCounters(int syscall) { return m_counters[syscall]; }
     /*
 Formula One 2001
 - Use old CPU cache code when the RAM location is
@@ -526,7 +526,7 @@ TODO:
 - Isolate D-cache from RAM
 */
 
-    inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
+    inline uint32_t* Read_ICache(uint32_t pc, bool isolate) {
         uint32_t pc_bank, pc_offset, pc_cache;
         uint8_t *IAddr, *ICode;
 
@@ -546,13 +546,13 @@ TODO:
         }
 
         // uncached
-        if (pc_bank >= 0xa0) return (uint32_t *)PSXM(pc);
+        if (pc_bank >= 0xa0) return (uint32_t*)PSXM(pc);
 
         // cached - RAM
         if (pc_bank == 0x80 || pc_bank == 0x00) {
-            if (SWAP_LE32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
+            if (SWAP_LE32(*(uint32_t*)(IAddr + pc_cache)) == pc_offset) {
                 // Cache hit - return last opcode used
-                return (uint32_t *)(ICode + pc_cache);
+                return (uint32_t*)(ICode + pc_cache);
             } else {
                 // Cache miss - addresses don't match
                 // - default: 0xffffffff (not init)
@@ -563,21 +563,21 @@ TODO:
                     pc_cache &= ~0xf;
 
                     // address line
-                    *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
-                    *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
-                    *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
-                    *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
+                    *(uint32_t*)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
+                    *(uint32_t*)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
+                    *(uint32_t*)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
+                    *(uint32_t*)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
 
                     // opcode line
                     pc_offset = pc & ~0xf;
-                    *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
-                    *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
-                    *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
-                    *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
+                    *(uint32_t*)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
+                    *(uint32_t*)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
+                    *(uint32_t*)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
+                    *(uint32_t*)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
                 }
 
                 // normal code
-                return (uint32_t *)PSXM(pc);
+                return (uint32_t*)PSXM(pc);
             }
         }
 
@@ -586,7 +586,7 @@ TODO:
         */
 
         // default
-        return (uint32_t *)PSXM(pc);
+        return (uint32_t*)PSXM(pc);
     }
 
   private:

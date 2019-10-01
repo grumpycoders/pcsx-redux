@@ -113,7 +113,8 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         if (it->second.enabled()) {
             ImGui::Text("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
         } else {
-            ImGui::TextDisabled("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
+            ImGui::TextDisabled("  %8.8x - %-20s", it->first,
+                                PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
         }
         ImGui::SameLine();
         std::string buttonLabel = _("Remove##");

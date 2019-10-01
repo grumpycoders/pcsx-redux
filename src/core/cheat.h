@@ -30,7 +30,7 @@ class Cheats {
     } CheatCode;
 
     typedef struct {
-        char *Descr;
+        char* Descr;
         int First;  // index of the first cheat code
         int n;      // number of cheat codes for this cheat
         int Enabled;
@@ -38,14 +38,14 @@ class Cheats {
 
     void ClearAllCheats();
 
-    void LoadCheats(const char *filename);
-    void SaveCheats(const char *filename);
+    void LoadCheats(const char* filename);
+    void SaveCheats(const char* filename);
 
     void ApplyCheats();
 
-    int AddCheat(const char *descr, char *code);
+    int AddCheat(const char* descr, char* code);
     void RemoveCheat(int index);
-    int EditCheat(int index, const char *descr, char *code);
+    int EditCheat(int index, const char* descr, char* code);
 
     void FreeCheatSearchResults();
     void FreeCheatSearchMem();
@@ -80,9 +80,9 @@ class Cheats {
     void CheatSearchNoChange32();
 
 #define PREVM(mem) (&g_prevM[mem])
-#define PrevMu8(mem) (*(uint8_t *)PREVM(mem))
-#define PrevMu16(mem) (SWAP_LE16(*(uint16_t *)PREVM(mem)))
-#define PrevMu32(mem) (SWAP_LE32(*(uint32_t *)PREVM(mem)))
+#define PrevMu8(mem) (*(uint8_t*)PREVM(mem))
+#define PrevMu16(mem) (SWAP_LE16(*(uint16_t*)PREVM(mem)))
+#define PrevMu32(mem) (SWAP_LE32(*(uint32_t*)PREVM(mem)))
 
     // cheat types
     enum {
@@ -106,12 +106,12 @@ class Cheats {
     };
 
   private:
-    Cheat *g_cheats = NULL;
-    CheatCode *g_cheatCodes = NULL;
+    Cheat* g_cheats = NULL;
+    CheatCode* g_cheatCodes = NULL;
     int g_numCodes = 0;
 
-    int8_t *g_prevM = NULL;
-    uint32_t *g_searchResults = NULL;
+    int8_t* g_prevM = NULL;
+    uint32_t* g_searchResults = NULL;
     int g_numSearchResults = 0;
 
     int g_numCheats = 0;

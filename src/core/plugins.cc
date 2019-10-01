@@ -221,7 +221,7 @@ SIO1registerCallback SIO1_registerCallback;
 
 #endif
 
-static const char *err;
+static const char* err;
 
 #define CheckErr(func)                                                     \
     {                                                                      \
@@ -598,7 +598,7 @@ void SIO1__registerCallback(void (*callback)(void)){};
     LoadSym(SIO1_##dest, SIO1##dest, name, false); \
     if (SIO1_##dest == NULL) SIO1_##dest = (SIO1##dest)SIO1__##dest;
 
-static int LoadSIO1plugin(const char *SIO1dll) {
+static int LoadSIO1plugin(const char* SIO1dll) {
     LoadSio1Sym0(init, "SIO1init");
     LoadSio1Sym0(shutdown, "SIO1shutdown");
     LoadSio1Sym0(open, "SIO1open");
@@ -686,7 +686,7 @@ void ReleasePlugins() {
 #endif
 }
 
-void SetIsoFile(const char *filename) {
+void SetIsoFile(const char* filename) {
     if (filename == NULL) {
         IsoFile[0] = '\0';
         return;
@@ -694,7 +694,7 @@ void SetIsoFile(const char *filename) {
     strncpy(IsoFile, filename, MAXPATHLEN);
 }
 
-void SetExeFile(const char *filename) {
+void SetExeFile(const char* filename) {
     if (filename == NULL) {
         ExeFile[0] = '\0';
         return;
@@ -703,7 +703,7 @@ void SetExeFile(const char *filename) {
 }
 
 // Set pcsxr.exe directory. This is not contain filename(and ext)).
-void SetAppPath(const char *apppath) {
+void SetAppPath(const char* apppath) {
     if (apppath == NULL) {
         AppPath[0] = '\0';
         return;
@@ -711,7 +711,7 @@ void SetAppPath(const char *apppath) {
     strncpy(AppPath, apppath, MAXPATHLEN);
 }
 
-void SetLdrFile(const char *ldrfile) {
+void SetLdrFile(const char* ldrfile) {
     if (ldrfile == NULL) {
         LdrFile[0] = '\0';
         return;
@@ -719,10 +719,10 @@ void SetLdrFile(const char *ldrfile) {
     strncpy(LdrFile, ldrfile, MAXPATHLEN);
 }
 
-const char *GetIsoFile(void) { return IsoFile; }
+const char* GetIsoFile(void) { return IsoFile; }
 
-const char *GetExeFile(void) { return ExeFile; }
+const char* GetExeFile(void) { return ExeFile; }
 
-const char *GetAppPath(void) { return AppPath; }
+const char* GetAppPath(void) { return AppPath; }
 
-const char *GetLdrFile(void) { return LdrFile; }
+const char* GetLdrFile(void) { return LdrFile; }

@@ -19,13 +19,13 @@ extern "C" {
 
 #if 0
 UNSUPPORTED
-#define F_DUPFD 0x0000 /* Duplicate file descriptor. */
-#define F_GETFD 0x0000 /* Get file descriptor flags. */
-#define F_SETFD 0x0000 /* Set file descriptor flags. */
-#define F_GETFL 0x0000 /* Get file status flags and file access modes. */
-#define F_SETFL 0x0000 /* Set file status flags. */
-#define F_GETLK 0x0000 /* Get record locking information. */
-#define F_SETLK 0x0000 /* Set record locking information. */
+#define F_DUPFD 0x0000  /* Duplicate file descriptor. */
+#define F_GETFD 0x0000  /* Get file descriptor flags. */
+#define F_SETFD 0x0000  /* Set file descriptor flags. */
+#define F_GETFL 0x0000  /* Get file status flags and file access modes. */
+#define F_SETFL 0x0000  /* Set file status flags. */
+#define F_GETLK 0x0000  /* Get record locking information. */
+#define F_SETLK 0x0000  /* Set record locking information. */
 #define F_SETLKW 0x0000 /* Set record locking information; wait if blocked. */
 #endif
 
@@ -42,19 +42,19 @@ UNSUPPORTED
 #define O_TRUNC 0x0400 /* Truncate flag. */
 
 /* File status flags used for open() and fcntl(): */
-#define O_APPEND 0x0100 /* Set append mode. */
+#define O_APPEND 0x0100   /* Set append mode. */
 #define O_NONBLOCK 0x0004 /* Non-blocking mode. */
-#define O_SYNC 0x0000 /* Write according to synchronized I/O file integrity completion. */
+#define O_SYNC 0x0000     /* Write according to synchronized I/O file integrity completion. */
 
 /* PS1-specific file status flags used for open() and fcntl(): */
-#define O_SCAN 0x1000 /* Scan type */
-#define O_RCOM 0x2000 /* Remote command entry */
-#define O_NBUF 0x4000 /* No ring buffer and console interrupt */
+#define O_SCAN 0x1000   /* Scan type */
+#define O_RCOM 0x2000   /* Remote command entry */
+#define O_NBUF 0x4000   /* No ring buffer and console interrupt */
 #define O_NOWAIT 0x8000 /* Asynchronous I/O mode */
 
 /* File access modes used for open() and fcntl() */
-#define O_RDONLY 0x0001 /* Open for reading only. */
-#define O_WRONLY 0x0002 /* Open for writing only. */
+#define O_RDONLY 0x0001              /* Open for reading only. */
+#define O_WRONLY 0x0002              /* Open for writing only. */
 #define O_RDWR (O_RDONLY | O_WRONLY) /* Open for reading and writing. */
 
 /* Mask for use with file access modes */

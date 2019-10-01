@@ -115,7 +115,7 @@ int iFastFwd = 0;
 PSXPoint_t ptCursorPoint[8];
 uint16_t usCursorActive = 0;
 
-PCSX::GUI *m_gui;
+PCSX::GUI* m_gui;
 bool bVsync_Key = false;
 
 ////////////////////////////////////////////////////////////////////////
@@ -141,7 +141,7 @@ void DoClearFrontBuffer(void)  // CLEAR PRIMARY BUFFER
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
-void ShowGunCursor(unsigned char *surf) {
+void ShowGunCursor(unsigned char* surf) {
     uint16_t dx = (uint16_t)PreviousPSXDisplay.Range.x1;
     uint16_t dy = (uint16_t)PreviousPSXDisplay.DisplayMode.y;
     int x, y, iPlayer, sx, ex, sy, ey;
@@ -183,9 +183,9 @@ void ShowGunCursor(unsigned char *surf) {
             if (ey > dy) ey = dy;
 
             for (x = tx, y = sy; y < ey; y += 2)  // -> do dotted y line
-                *((uint32_t *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
+                *((uint32_t*)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
             for (y = ty, x = sx; x < ex; x += 2)  // -> do dotted x line
-                *((uint32_t *)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
+                *((uint32_t*)((surf) + (y * pitch) + x * 4)) = crCursorColor32[iPlayer];
         }
     }
 }
@@ -198,7 +198,7 @@ static void checkGL() {
     }
 }
 
-static const GLchar *passThroughVS = GL_SHADER_VERSION R"(
+static const GLchar* passThroughVS = GL_SHADER_VERSION R"(
 in vec2 in_Position;
 in vec2 in_Texcoord;
 
@@ -209,7 +209,7 @@ void main(void) {
 }
 )";
 
-static const GLchar *PS_16 = GL_SHADER_VERSION R"(
+static const GLchar* PS_16 = GL_SHADER_VERSION R"(
 precision highp float;
 in highp vec2 v_texcoord;
 
@@ -223,7 +223,7 @@ void main(void) {
 }
 )";
 
-static const GLchar *PS_24 = GL_SHADER_VERSION R"(
+static const GLchar* PS_24 = GL_SHADER_VERSION R"(
 precision highp float;
 in highp vec2 v_texcoord;
 
@@ -237,7 +237,7 @@ void main(void) {
 }
 )";
 
-static GLuint compileShader(const char *VS, const char *PS) {
+static GLuint compileShader(const char* VS, const char* PS) {
     GLuint vertexshader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexshader, 1, &VS, 0);
     glCompileShader(vertexshader);
@@ -246,7 +246,7 @@ static GLuint compileShader(const char *VS, const char *PS) {
     if (IsCompiled_VS == 0) {
         GLint maxLength;
         glGetShaderiv(vertexshader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *vertexInfoLog = (char *)malloc(maxLength);
+        char* vertexInfoLog = (char*)malloc(maxLength);
 
         glGetShaderInfoLog(vertexshader, maxLength, &maxLength, vertexInfoLog);
 
@@ -264,7 +264,7 @@ static GLuint compileShader(const char *VS, const char *PS) {
     if (IsCompiled_PS == 0) {
         GLint maxLength;
         glGetShaderiv(fragmentshader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *fragmentInfoLog = (char *)malloc(maxLength);
+        char* fragmentInfoLog = (char*)malloc(maxLength);
 
         glGetShaderInfoLog(fragmentshader, maxLength, &maxLength, fragmentInfoLog);
 
@@ -368,14 +368,14 @@ static void DrawFullscreenQuad(int is24Bit) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     checkGL();
     glVertexAttribPointer(vertexp, 3, GL_FLOAT, GL_FALSE, sizeof(s_vertexData),
-                          (void *)&((s_vertexData *)NULL)->positions);
+                          (void*)&((s_vertexData*)NULL)->positions);
     checkGL();
     glEnableVertexAttribArray(vertexp);
     checkGL();
 
     if (texcoordp != -1) {
         glVertexAttribPointer(texcoordp, 2, GL_FLOAT, GL_FALSE, sizeof(s_vertexData),
-                              (void *)&((s_vertexData *)NULL)->textures);
+                              (void*)&((s_vertexData*)NULL)->textures);
         glEnableVertexAttribArray(texcoordp);
     }
 
@@ -452,12 +452,12 @@ uint32_t ulInitDisplay(void) {
     glGenVertexArrays(1, &vao_handle);
     checkGL();
     shaderprogram16 = compileShader(passThroughVS, PS_16);
-    vertexp = glGetAttribLocation(shaderprogram16, (const GLchar *)"in_Position");
-    texcoordp = glGetAttribLocation(shaderprogram16, (const GLchar *)"in_Texcoord");
+    vertexp = glGetAttribLocation(shaderprogram16, (const GLchar*)"in_Position");
+    texcoordp = glGetAttribLocation(shaderprogram16, (const GLchar*)"in_Texcoord");
     checkGL();
     shaderprogram24 = compileShader(passThroughVS, PS_24);
-    assert(vertexp == glGetAttribLocation(shaderprogram24, (const GLchar *)"in_Position"));
-    assert(texcoordp == glGetAttribLocation(shaderprogram24, (const GLchar *)"in_Texcoord"));
+    assert(vertexp == glGetAttribLocation(shaderprogram24, (const GLchar*)"in_Position"));
+    assert(texcoordp == glGetAttribLocation(shaderprogram24, (const GLchar*)"in_Texcoord"));
     checkGL();
     glGenBuffers(1, &vbo);
     checkGL();
@@ -472,7 +472,7 @@ void CloseDisplay(void) {
 
 ////////////////////////////////////////////////////////////////////////
 
-void CreatePic(unsigned char *pMem) {}
+void CreatePic(unsigned char* pMem) {}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 

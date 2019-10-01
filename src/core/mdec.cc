@@ -43,20 +43,20 @@
 #define FIX_1_847759065 SCALER(31000253, AAN_CONST_SCALE)  // A2
 #define FIX_2_613125930 SCALER(43840978, AAN_CONST_SCALE)  // B2
 
-static inline void fillcol(int *blk, int val) {
+static inline void fillcol(int* blk, int val) {
     blk[0 * PCSX::MDEC::DSIZE] = blk[1 * PCSX::MDEC::DSIZE] = blk[2 * PCSX::MDEC::DSIZE] = blk[3 * PCSX::MDEC::DSIZE] =
         blk[4 * PCSX::MDEC::DSIZE] = blk[5 * PCSX::MDEC::DSIZE] = blk[6 * PCSX::MDEC::DSIZE] =
             blk[7 * PCSX::MDEC::DSIZE] = val;
 }
 
-static inline void fillrow(int *blk, int val) {
+static inline void fillrow(int* blk, int val) {
     blk[0] = blk[1] = blk[2] = blk[3] = blk[4] = blk[5] = blk[6] = blk[7] = val;
 }
 
-static void idct(int *block, int used_col) {
+static void idct(int* block, int used_col) {
     int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     int z5, z10, z11, z12, z13;
-    int *ptr;
+    int* ptr;
     int i;
 
     // the block has only the DC coefficient
@@ -187,7 +187,7 @@ enum {
     MDEC1_RESET = 0x80000000,
 };
 
-void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
+void PCSX::MDEC::iqtab_init(int* iqtab, unsigned char* iq_y) {
     int i;
 
     for (i = 0; i < DSIZE2; i++) {
@@ -197,9 +197,9 @@ void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
 
 #define MDEC_END_OF_DATA 0xfe00
 
-unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
+unsigned short* PCSX::MDEC::rl2blk(int* blk, unsigned short* mdec_rl) {
     int i, k, q_scale, rl, used_col;
-    int *iqtab;
+    int* iqtab;
 
     memset(blk, 0, 6 * DSIZE2 * sizeof(int));
     iqtab = iq_uv;
@@ -260,7 +260,7 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
 #define CLAMP_SCALE8(a) (CLAMP8(SCALE8(a)))
 #define CLAMP_SCALE5(a) (CLAMP5(SCALE5(a)))
 
-inline void PCSX::MDEC::putlinebw15(uint16_t *image, int *Yblk) {
+inline void PCSX::MDEC::putlinebw15(uint16_t* image, int* Yblk) {
     int i;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
 
@@ -271,7 +271,7 @@ inline void PCSX::MDEC::putlinebw15(uint16_t *image, int *Yblk) {
     }
 }
 
-inline void PCSX::MDEC::putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb) {
+inline void PCSX::MDEC::putquadrgb15(uint16_t* image, int* Yblk, int Cr, int Cb) {
     int Y, R, G, B;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
     R = MULR(Cr);
@@ -289,11 +289,11 @@ inline void PCSX::MDEC::putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb)
     image[17] = MAKERGB15(CLAMP_SCALE5(Y + R), CLAMP_SCALE5(Y + G), CLAMP_SCALE5(Y + B), A);
 }
 
-inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
+inline void PCSX::MDEC::yuv2rgb15(int* blk, unsigned short* image) {
     int x, y;
-    int *Yblk = blk + DSIZE2 * 2;
-    int *Crblk = blk;
-    int *Cbblk = blk + DSIZE2;
+    int* Yblk = blk + DSIZE2 * 2;
+    int* Crblk = blk;
+    int* Cbblk = blk + DSIZE2;
 
     if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBnWMdec>()) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 24) {
@@ -312,7 +312,7 @@ inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
     }
 }
 
-static inline void putlinebw24(uint8_t *image, int *Yblk) {
+static inline void putlinebw24(uint8_t* image, int* Yblk) {
     int i;
     unsigned char Y;
     for (i = 0; i < 8 * 3; i += 3, Yblk++) {
@@ -323,7 +323,7 @@ static inline void putlinebw24(uint8_t *image, int *Yblk) {
     }
 }
 
-static inline void putquadrgb24(uint8_t *image, int *Yblk, int Cr, int Cb) {
+static inline void putquadrgb24(uint8_t* image, int* Yblk, int Cr, int Cb) {
     int Y, R, G, B;
 
     R = MULR(Cr);
@@ -348,11 +348,11 @@ static inline void putquadrgb24(uint8_t *image, int *Yblk, int Cr, int Cb) {
     image[17 * 3 + 2] = CLAMP_SCALE8(Y + B);
 }
 
-void yuv2rgb24(int *blk, uint8_t *image) {
+void yuv2rgb24(int* blk, uint8_t* image) {
     int x, y;
-    int *Yblk = blk + PCSX::MDEC::DSIZE2 * 2;
-    int *Crblk = blk;
-    int *Cbblk = blk + PCSX::MDEC::DSIZE2;
+    int* Yblk = blk + PCSX::MDEC::DSIZE2 * 2;
+    int* Crblk = blk;
+    int* Cbblk = blk + PCSX::MDEC::DSIZE2;
 
     if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBnWMdec>()) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
@@ -375,7 +375,7 @@ void PCSX::MDEC::mdecInit(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (uint16_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+    mdec.rl = (uint16_t*)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
 }
 
 // command register
@@ -413,7 +413,7 @@ void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
     switch (cmd >> 28) {
         case 0x3:  // decode
-            mdec.rl = (uint16_t *)PSXM(adr);
+            mdec.rl = (uint16_t*)PSXM(adr);
             /* now the mdec is busy till all data are decoded */
             mdec.reg1 |= MDEC1_BUSY;
             /* detect the end of decoding */
@@ -434,7 +434,7 @@ void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
         case 0x4:  // quantization table upload
         {
-            uint8_t *p = (uint8_t *)PSXM(adr);
+            uint8_t* p = (uint8_t*)PSXM(adr);
             // printf("uploading new quantization table\n");
             // printmatrixu8(p);
             // printmatrixu8(p + 64);
@@ -470,7 +470,7 @@ void PCSX::MDEC::mdec0Interrupt() {
 
 void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     int blk[DSIZE2 * 6];
-    uint8_t *image;
+    uint8_t* image;
     int size;
     int dmacnt;
 
@@ -489,7 +489,7 @@ void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
         mdec.pending_dma1.chcr = chcr;
         /* do not free the dma */
     } else {
-        image = (uint8_t *)PSXM(adr);
+        image = (uint8_t*)PSXM(adr);
 
         if (mdec.reg0 & MDEC0_RGB24) {
             /* 16 bits decoding
@@ -508,14 +508,14 @@ void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
             while (size >= SIZE_OF_16B_BLOCK) {
                 mdec.rl = rl2blk(blk, mdec.rl);
-                yuv2rgb15(blk, (uint16_t *)image);
+                yuv2rgb15(blk, (uint16_t*)image);
                 image += SIZE_OF_16B_BLOCK;
                 size -= SIZE_OF_16B_BLOCK;
             }
 
             if (size != 0) {
                 mdec.rl = rl2blk(blk, mdec.rl);
-                yuv2rgb15(blk, (uint16_t *)mdec.block_buffer);
+                yuv2rgb15(blk, (uint16_t*)mdec.block_buffer);
                 memcpy(image, mdec.block_buffer, size);
                 mdec.block_buffer_pos = mdec.block_buffer + size;
             }
@@ -598,14 +598,14 @@ void PCSX::MDEC::mdec1Interrupt() {
     return;
 }
 
-void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+void PCSX::MDEC::save(PCSX::SaveStates::MDEC& mdecSave) {
+    uint8_t* base = (uint8_t*)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
     mdecSave.get<SaveStates::MDECReg1>().value = mdec.reg1;
-    mdecSave.get<SaveStates::MDECRl>().value = reinterpret_cast<uint8_t *>(mdec.rl) - base;
-    mdecSave.get<SaveStates::MDECRlEnd>().value = reinterpret_cast<uint8_t* >(mdec.rl_end) - base;
+    mdecSave.get<SaveStates::MDECRl>().value = reinterpret_cast<uint8_t*>(mdec.rl) - base;
+    mdecSave.get<SaveStates::MDECRlEnd>().value = reinterpret_cast<uint8_t*>(mdec.rl_end) - base;
     mdecSave.get<SaveStates::MDECBlockBufferPos>().value = mdec.block_buffer_pos ? mdec.block_buffer_pos - base : 0;
     mdecSave.get<SaveStates::MDECBlockBuffer>().copyFrom(mdec.block_buffer);
     mdecSave.get<SaveStates::MDECDMAADR>().value = mdec.pending_dma1.adr;
@@ -617,15 +617,15 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
     }
 }
 
-void PCSX::MDEC::load(const PCSX::SaveStates::MDEC & mdecSave) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+void PCSX::MDEC::load(const PCSX::SaveStates::MDEC& mdecSave) {
+    uint8_t* base = (uint8_t*)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;
     mdec.reg1 = mdecSave.get<SaveStates::MDECReg1>().value;
     mdec.rl = reinterpret_cast<uint16_t*>(mdecSave.get<SaveStates::MDECRl>().value + base);
     mdec.rl_end = reinterpret_cast<uint16_t*>(mdecSave.get<SaveStates::MDECRlEnd>().value + base);
-    const auto & pos = mdecSave.get<SaveStates::MDECBlockBufferPos>().value;
+    const auto& pos = mdecSave.get<SaveStates::MDECBlockBufferPos>().value;
     mdec.block_buffer_pos = pos ? pos + base : nullptr;
     mdecSave.get<SaveStates::MDECBlockBuffer>().copyTo(mdec.block_buffer);
     mdec.pending_dma1.adr = mdecSave.get<SaveStates::MDECDMAADR>().value;

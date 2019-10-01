@@ -53,21 +53,20 @@ class SPUInterface {
     virtual long close(void) = 0;
     virtual uint16_t readRegister(uint32_t) = 0;
     virtual void writeRegister(uint32_t, uint16_t) = 0;
-    virtual void playCDDAchannel(int16_t *, int) = 0;
-    virtual void playADPCMchannel(xa_decode_t *) = 0;
+    virtual void playCDDAchannel(int16_t*, int) = 0;
+    virtual void playADPCMchannel(xa_decode_t*) = 0;
     virtual void async(uint32_t) = 0;
-    virtual void writeDMAMem(uint16_t *, int) = 0;
-    virtual void readDMAMem(uint16_t *, int) = 0;
+    virtual void writeDMAMem(uint16_t*, int) = 0;
+    virtual void readDMAMem(uint16_t*, int) = 0;
     virtual json getCfg() = 0;
-    virtual void setCfg(const json &j) = 0;
+    virtual void setCfg(const json& j) = 0;
     virtual void debug() = 0;
     virtual bool configure() = 0;
-    virtual void save(SaveStates::SPU &) = 0;
-    virtual void load(const SaveStates::SPU &) = 0;
+    virtual void save(SaveStates::SPU&) = 0;
+    virtual void load(const SaveStates::SPU&) = 0;
 
     bool m_showDebug = false;
     bool m_showCfg = false;
-
 
   protected:
     void scheduleInterrupt();

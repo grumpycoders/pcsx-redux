@@ -107,7 +107,7 @@ static const char *B0names[] = {
 };
 // clang-format on
 
-static const char *C0names[] = {
+static const char* C0names[] = {
     "InitRCnt",           "InitException",     "SysEnqIntRP",      "SysDeqIntRP",             // 00
     "get_free_EvCB_slot", "get_free_TCB_slot", "ExceptionHandler", "InstallExeptionHandler",  // 04
     "SysInitMemory",      "SysInitKMem",       "ChangeClearRCnt",  "SystemError",             // 08
@@ -118,7 +118,7 @@ static const char *C0names[] = {
     "PatchAOTable",       "GetDeviceStatus"                                                   // 1c
 };
 
-const char *PCSX::Bios::getA0name(uint8_t call) {
+const char* PCSX::Bios::getA0name(uint8_t call) {
     unsigned count = sizeof(A0names) / sizeof(A0names[0]);
     if (call < count) {
         return A0names[call];
@@ -126,7 +126,7 @@ const char *PCSX::Bios::getA0name(uint8_t call) {
         return nullptr;
     }
 }
-const char *PCSX::Bios::getB0name(uint8_t call) {
+const char* PCSX::Bios::getB0name(uint8_t call) {
     unsigned count = sizeof(B0names) / sizeof(B0names[0]);
     if (call < count) {
         return B0names[call];
@@ -134,7 +134,7 @@ const char *PCSX::Bios::getB0name(uint8_t call) {
         return nullptr;
     }
 }
-const char *PCSX::Bios::getC0name(uint8_t call) {
+const char* PCSX::Bios::getC0name(uint8_t call) {
     unsigned count = sizeof(C0names) / sizeof(C0names[0]);
     if (call < count) {
         return C0names[call];
@@ -177,12 +177,12 @@ const char *PCSX::Bios::getC0name(uint8_t call) {
 #define ra (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.ra)
 #define pc0 (PCSX::g_emulator.m_psxCpu->m_psxRegs.pc)
 
-#define Ra0 (assert(PSXM(a0) != NULL), (char *)PSXM(a0))
-#define Ra1 (assert(PSXM(a1) != NULL), (char *)PSXM(a1))
-#define Ra2 (assert(PSXM(a2) != NULL), (char *)PSXM(a2))
-#define Ra3 (assert(PSXM(a3) != NULL), (char *)PSXM(a3))
-#define Rv0 (assert(PSXM(v0) != NULL), (char *)PSXM(v0))
-#define Rsp (assert(PSXM(sp) != NULL), (char *)PSXM(sp))
+#define Ra0 (assert(PSXM(a0) != NULL), (char*)PSXM(a0))
+#define Ra1 (assert(PSXM(a1) != NULL), (char*)PSXM(a1))
+#define Ra2 (assert(PSXM(a2) != NULL), (char*)PSXM(a2))
+#define Ra3 (assert(PSXM(a3) != NULL), (char*)PSXM(a3))
+#define Rv0 (assert(PSXM(v0) != NULL), (char*)PSXM(v0))
+#define Rsp (assert(PSXM(sp) != NULL), (char*)PSXM(sp))
 
 class BiosImpl : public PCSX::Bios {
     typedef struct {
@@ -247,21 +247,21 @@ class BiosImpl : public PCSX::Bios {
         uint32_t mcfile;
     } FileDesc;
 
-    uint32_t *s_jmp_int = NULL;
-    int *s_pad_buf = NULL;
+    uint32_t* s_jmp_int = NULL;
+    int* s_pad_buf = NULL;
     char *s_pad_buf1 = NULL, *s_pad_buf2 = NULL;
     int s_pad_buf1len, s_pad_buf2len;
 
     uint32_t s_regs[35];
-    EvCB *s_Event;
-    EvCB *s_HwEV;  // 0xf0
-    EvCB *s_EvEV;  // 0xf1
-    EvCB *s_RcEV;  // 0xf2
-    EvCB *s_UeEV;  // 0xf3
-    EvCB *s_SwEV;  // 0xf4
-    EvCB *s_ThEV;  // 0xff
-    uint32_t *s_heap_addr = NULL;
-    uint32_t *s_heap_end = NULL;
+    EvCB* s_Event;
+    EvCB* s_HwEV;  // 0xf0
+    EvCB* s_EvEV;  // 0xf1
+    EvCB* s_RcEV;  // 0xf2
+    EvCB* s_UeEV;  // 0xf3
+    EvCB* s_SwEV;  // 0xf4
+    EvCB* s_ThEV;  // 0xff
+    uint32_t* s_heap_addr = NULL;
+    uint32_t* s_heap_end = NULL;
     uint32_t s_SysIntRP[8];
     int s_CardState = -1;
     TCB s_Thread[8];
@@ -337,7 +337,7 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_atoi() {  // 0x10
         int32_t n = 0, f = 0;
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
 
         for (;; p++) {
             switch (*p) {
@@ -365,7 +365,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_setjmp() {  // 0x13
-        uint32_t *jmp_buf = (uint32_t *)Ra0;
+        uint32_t* jmp_buf = (uint32_t*)Ra0;
         int i;
 
         PSXBIOS_LOG("psxBios_%s\n", A0names[0x13]);
@@ -382,7 +382,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_longjmp() {  // 0x14
-        uint32_t *jmp_buf = (uint32_t *)Ra0;
+        uint32_t* jmp_buf = (uint32_t*)Ra0;
         int i;
 
         PSXBIOS_LOG("psxBios_%s\n", A0names[0x14]);
@@ -399,7 +399,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strcat() {  // 0x15
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
 
         PSXBIOS_LOG("psxBios_%s: %s, %s\n", A0names[0x15], Ra0, Ra1);
 
@@ -414,7 +414,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strncat() {  // 0x16
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
         int32_t n = a2;
 
         PSXBIOS_LOG("psxBios_%s: %s (%x), %s (%x), %d\n", A0names[0x16], Ra0, a0, Ra1, a1, a2);
@@ -434,7 +434,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strcmp() {  // 0x17
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
 
         PSXBIOS_LOG("psxBios_%s: %s (%x), %s (%x)\n", A0names[0x17], Ra0, a0, Ra1, a1);
 
@@ -451,7 +451,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strncmp() {  // 0x18
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
         int32_t n = a2;
 
         PSXBIOS_LOG("psxBios_%s: %s (%x), %s (%x), %d\n", A0names[0x18], Ra0, a0, Ra1, a1, a2);
@@ -469,7 +469,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strcpy() {  // 0x19
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
         while ((*p1++ = *p2++) != '\0')
             ;
 
@@ -478,7 +478,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strncpy() {  // 0x1a
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
         int32_t n = a2, i;
 
         for (i = 0; i < n; i++) {
@@ -497,18 +497,18 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strlen() {  // 0x1b
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
         v0 = 0;
         while (*p++) v0++;
         pc0 = ra;
     }
 
     void psxBios_index() {  // 0x1c
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
 
         do {
             if (*p == a1) {
-                v0 = a0 + (p - (char *)Ra0);
+                v0 = a0 + (p - (char*)Ra0);
                 pc0 = ra;
                 return;
             }
@@ -519,12 +519,12 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_rindex() {  // 0x1d
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
 
         v0 = 0;
 
         do {
-            if (*p == a1) v0 = a0 + (p - (char *)Ra0);
+            if (*p == a1) v0 = a0 + (p - (char*)Ra0);
         } while (*p++ != '\0');
 
         pc0 = ra;
@@ -539,12 +539,12 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strpbrk() {  // 0x20
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1, *scanp, c, sc;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1, *scanp, c, sc;
 
         while ((c = *p1++) != '\0') {
             for (scanp = p2; (sc = *scanp++) != '\0';) {
                 if (sc == c) {
-                    v0 = a0 + (p1 - 1 - (char *)Ra0);
+                    v0 = a0 + (p1 - 1 - (char*)Ra0);
                     pc0 = ra;
                     return;
                 }
@@ -559,32 +559,32 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_strspn() {  // 0x21
         char *p1, *p2;
 
-        for (p1 = (char *)Ra0; *p1 != '\0'; p1++) {
-            for (p2 = (char *)Ra1; *p2 != '\0' && *p2 != *p1; p2++)
+        for (p1 = (char*)Ra0; *p1 != '\0'; p1++) {
+            for (p2 = (char*)Ra1; *p2 != '\0' && *p2 != *p1; p2++)
                 ;
             if (*p2 == '\0') break;
         }
 
-        v0 = p1 - (char *)Ra0;
+        v0 = p1 - (char*)Ra0;
         pc0 = ra;
     }
 
     void psxBios_strcspn() {  // 0x22
         char *p1, *p2;
 
-        for (p1 = (char *)Ra0; *p1 != '\0'; p1++) {
-            for (p2 = (char *)Ra1; *p2 != '\0' && *p2 != *p1; p2++)
+        for (p1 = (char*)Ra0; *p1 != '\0'; p1++) {
+            for (p2 = (char*)Ra1; *p2 != '\0' && *p2 != *p1; p2++)
                 ;
             if (*p2 != '\0') break;
         }
 
-        v0 = p1 - (char *)Ra0;
+        v0 = p1 - (char*)Ra0;
         pc0 = ra;
     }
 
     void psxBios_strtok() {  // 0x23
-        char *pcA0 = (char *)Ra0;
-        char *pcRet = strtok(pcA0, (char *)Ra1);
+        char* pcA0 = (char*)Ra0;
+        char* pcRet = strtok(pcA0, (char*)Ra1);
         if (pcRet)
             v0 = a0 + pcRet - pcA0;
         else
@@ -593,11 +593,11 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_strstr() {  // 0x24
-        char *p = (char *)Ra0, *p1, *p2;
+        char *p = (char*)Ra0, *p1, *p2;
 
         while (*p != '\0') {
             p1 = p;
-            p2 = (char *)Ra1;
+            p2 = (char*)Ra1;
 
             while (*p1 != '\0' && *p2 != '\0' && *p1 == *p2) {
                 p1++;
@@ -605,7 +605,7 @@ class BiosImpl : public PCSX::Bios {
             }
 
             if (*p2 == '\0') {
-                v0 = a0 + (p - (char *)Ra0);
+                v0 = a0 + (p - (char*)Ra0);
                 pc0 = ra;
                 return;
             }
@@ -630,21 +630,21 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_bcopy() {  // 0x27
-        char *p1 = (char *)Ra1, *p2 = (char *)Ra0;
+        char *p1 = (char*)Ra1, *p2 = (char*)Ra0;
         while ((int32_t)a2-- > 0) *p1++ = *p2++;
 
         pc0 = ra;
     }
 
     void psxBios_bzero() {  // 0x28
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
         while ((int32_t)a1-- > 0) *p++ = '\0';
 
         pc0 = ra;
     }
 
     void psxBios_bcmp() {  // 0x29
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
 
         if (a0 == 0 || a1 == 0) {
             v0 = 0;
@@ -665,7 +665,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_memcpy() {  // 0x2a
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
         while ((int32_t)a2-- > 0) *p1++ = *p2++;
 
         v0 = a0;
@@ -673,7 +673,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_memset() {  // 0x2b
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
         while ((int32_t)a2-- > 0) *p++ = (char)a1;
         a2 = 0;
         v0 = a0;
@@ -683,7 +683,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_memmove() {  // 0x2c
-        char *p1 = (char *)Ra0, *p2 = (char *)Ra1;
+        char *p1 = (char*)Ra0, *p2 = (char*)Ra1;
 
         if (p2 <= p1 && p2 + a2 > p1) {
             a2++;  // BUG: copy one more byte here
@@ -703,11 +703,11 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_memchr() {  // 0x2e
-        char *p = (char *)Ra0;
+        char* p = (char*)Ra0;
 
         while ((int32_t)a2-- > 0) {
             if (*p++ != (int8_t)a1) continue;
-            v0 = a0 + (p - (char *)Ra0 - 1);
+            v0 = a0 + (p - (char*)Ra0 - 1);
             pc0 = ra;
             return;
         }
@@ -730,11 +730,11 @@ class BiosImpl : public PCSX::Bios {
 
     uint32_t qscmpfunc, qswidth;
 
-    inline int qscmp(char *a, char *b) {
+    inline int qscmp(char* a, char* b) {
         uint32_t sa0 = a0;
 
-        a0 = sa0 + (a - (char *)PSXM(sa0));
-        a1 = sa0 + (b - (char *)PSXM(sa0));
+        a0 = sa0 + (a - (char*)PSXM(sa0));
+        a1 = sa0 + (b - (char*)PSXM(sa0));
 
         softCall2(qscmpfunc);
 
@@ -742,7 +742,7 @@ class BiosImpl : public PCSX::Bios {
         return (int32_t)v0;
     }
 
-    inline void qexchange(char *i, char *j) {
+    inline void qexchange(char* i, char* j) {
         char t;
         int n = qswidth;
 
@@ -753,7 +753,7 @@ class BiosImpl : public PCSX::Bios {
         } while (--n);
     }
 
-    inline void q3exchange(char *i, char *j, char *k) {
+    inline void q3exchange(char* i, char* j, char* k) {
         char t;
         int n = qswidth;
 
@@ -765,7 +765,7 @@ class BiosImpl : public PCSX::Bios {
         } while (--n);
     }
 
-    void qsort_main(char *a, char *l) {
+    void qsort_main(char* a, char* l) {
         char *i, *j, *lp, *hp;
         int c;
         unsigned int n;
@@ -828,7 +828,7 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_qsort() {  // 0x31
         qswidth = a2;
         qscmpfunc = a3;
-        qsort_main((char *)Ra0, (char *)Ra0 + a1 * a2);
+        qsort_main((char*)Ra0, (char*)Ra0 + a1 * a2);
 
         pc0 = ra;
     }
@@ -865,7 +865,7 @@ class BiosImpl : public PCSX::Bios {
             }
 
             // next chunk
-            chunk = (uint32_t *)((uintptr_t)chunk + csize + 4);
+            chunk = (uint32_t*)((uintptr_t)chunk + csize + 4);
         }
         // if neccessary free memory on end of heap
         if (colflag == 1) *newchunk = SWAP_LE32(dsize | 1);
@@ -885,7 +885,7 @@ class BiosImpl : public PCSX::Bios {
 
         // search an unused chunk that is big enough until the end of the heap
         while ((dsize > csize || cstat == 0) && chunk < s_heap_end) {
-            chunk = (uint32_t *)((uintptr_t)chunk + csize + 4);
+            chunk = (uint32_t*)((uintptr_t)chunk + csize + 4);
             csize = ((uint32_t)*chunk) & 0xfffffffc;
             cstat = ((uint32_t)*chunk) & 1;
         }
@@ -905,7 +905,7 @@ class BiosImpl : public PCSX::Bios {
         } else {
             // split free chunk
             *chunk = SWAP_LE32(dsize);
-            newchunk = (uint32_t *)((uintptr_t)chunk + dsize + 4);
+            newchunk = (uint32_t*)((uintptr_t)chunk + dsize + 4);
             *newchunk = SWAP_LE32((csize - dsize - 4) & 0xfffffffc | 1);
         }
 
@@ -919,9 +919,9 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_free() {  // 0x34
         PSXBIOS_LOG("psxBios_%s\n", A0names[0x34]);
 
-        PCSX::g_system->biosPrintf("free %x: %x bytes\n", a0, *(uint32_t *)(Ra0 - 4));
+        PCSX::g_system->biosPrintf("free %x: %x bytes\n", a0, *(uint32_t*)(Ra0 - 4));
 
-        *(uint32_t *)(Ra0 - 4) |= 1;  // set chunk to free
+        *(uint32_t*)(Ra0 - 4) |= 1;  // set chunk to free
         pc0 = ra;
     }
 
@@ -957,8 +957,8 @@ class BiosImpl : public PCSX::Bios {
 
         size &= 0xfffffffc;
 
-        s_heap_addr = (uint32_t *)Ra0;
-        s_heap_end = (uint32_t *)((uint8_t *)s_heap_addr + size);
+        s_heap_addr = (uint32_t*)Ra0;
+        s_heap_end = (uint32_t*)((uint8_t*)s_heap_addr + size);
         *s_heap_addr = SWAP_LE32(size | 1);
 
         PCSX::g_system->biosPrintf("InitHeap %x,%x : %lx %x\n", a0, a1,
@@ -976,7 +976,7 @@ class BiosImpl : public PCSX::Bios {
         char tmp[1024];
         char tmp2[1024];
         uint32_t save[4];
-        char *ptmp = tmp;
+        char* ptmp = tmp;
         int n = 1, i = 0, j;
 
         memcpy(save, Rsp, 4 * 4);
@@ -1038,7 +1038,7 @@ class BiosImpl : public PCSX::Bios {
                             n++;
                             break;
                         case 's':
-                            ptmp += sprintf(ptmp, tmp2, (char *)PSXM(psxMu32(sp + n * 4)));
+                            ptmp += sprintf(ptmp, tmp2, (char*)PSXM(psxMu32(sp + n * 4)));
                             n++;
                             break;
                         case '%':
@@ -1089,7 +1089,7 @@ class BiosImpl : public PCSX::Bios {
         PSXBIOS_LOG("psxBios_%s: %s, %x\n", A0names[0x42], Ra0, a1);
 
         if (LoadCdromFile(Ra0, &eheader) == 0) {
-            memcpy(Ra1, ((char *)&eheader) + 16, sizeof(EXEC));
+            memcpy(Ra1, ((char*)&eheader) + 16, sizeof(EXEC));
             v0 = 1;
         } else
             v0 = 0;
@@ -1102,7 +1102,7 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_Exec() {  // 43
-        EXEC *header = (EXEC *)Ra0;
+        EXEC* header = (EXEC*)Ra0;
         uint32_t tmp;
 
         PSXBIOS_LOG("psxBios_%s: %x, %x, %x\n", A0names[0x43], a0, a1, a2);
@@ -1141,7 +1141,7 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_GPU_dw() {  // 0x46
         int size;
-        int32_t *ptr;
+        int32_t* ptr;
 
         PSXBIOS_LOG("psxBios_%s\n", A0names[0x46]);
 
@@ -1149,7 +1149,7 @@ class BiosImpl : public PCSX::Bios {
         PCSX::g_emulator.m_gpu->writeData((a1 << 16) | (a0 & 0xffff));
         PCSX::g_emulator.m_gpu->writeData((a3 << 16) | (a2 & 0xffff));
         size = (a2 * a3 + 1) / 2;
-        ptr = (int32_t *)PSXM(Rsp[4]);  // that is correct?
+        ptr = (int32_t*)PSXM(Rsp[4]);  // that is correct?
         do {
             PCSX::g_emulator.m_gpu->writeData(SWAP_LE32(*ptr));
             ptr++;
@@ -1186,7 +1186,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_GPU_cwb() {  // 0x4a
-        int32_t *ptr = (int32_t *)Ra0;
+        int32_t* ptr = (int32_t*)Ra0;
         int size = a1;
         while (size--) {
             PCSX::g_emulator.m_gpu->writeData(SWAP_LE32(*ptr));
@@ -1223,7 +1223,7 @@ class BiosImpl : public PCSX::Bios {
 #undef s_addr
 
     void psxBios_LoadExec() {  // 51
-        EXEC *header = (EXEC *)PSXM(0xf000);
+        EXEC* header = (EXEC*)PSXM(0xf000);
         uint32_t s_addr, s_size;
 
         PSXBIOS_LOG("psxBios_%s: %s: %x,%x\n", A0names[0x51], Ra0, a1, a2);
@@ -1612,9 +1612,9 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_InitPAD() {  // 0x12
         PSXBIOS_LOG("psxBios_%s\n", B0names[0x12]);
 
-        s_pad_buf1 = (char *)Ra0;
+        s_pad_buf1 = (char*)Ra0;
         s_pad_buf1len = a1;
-        s_pad_buf2 = (char *)Ra2;
+        s_pad_buf2 = (char*)Ra2;
         s_pad_buf2len = a3;
 
         v0 = 1;
@@ -1643,7 +1643,7 @@ class BiosImpl : public PCSX::Bios {
 
         PCSX::g_emulator.m_hw->psxHwWrite16(0x1f801074,
                                             (uint16_t)(PCSX::g_emulator.m_hw->psxHwRead16(0x1f801074) | 0x1));
-        s_pad_buf = (int *)Ra1;
+        s_pad_buf = (int*)Ra1;
         *s_pad_buf = -1;
         PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status |= 0x401;
         pc0 = ra;
@@ -1677,7 +1677,7 @@ class BiosImpl : public PCSX::Bios {
     void psxBios_HookEntryInt() {  // 19
         PSXBIOS_LOG("psxBios_%s\n", B0names[0x19]);
 
-        s_jmp_int = (uint32_t *)Ra0;
+        s_jmp_int = (uint32_t*)Ra0;
         pc0 = ra;
     }
 
@@ -1696,9 +1696,9 @@ class BiosImpl : public PCSX::Bios {
         pc0 = ra;
     }
 
-    void buopen(int mcd, char *ptr, const PCSX::u8string cfg) {
+    void buopen(int mcd, char* ptr, const PCSX::u8string cfg) {
         int i;
-        uint8_t *fptr = reinterpret_cast<uint8_t *>(ptr);
+        uint8_t* fptr = reinterpret_cast<uint8_t*>(ptr);
 
         strcpy(s_FDesc[1 + mcd].name, Ra0 + 5);
         s_FDesc[1 + mcd].offset = 0;
@@ -1707,14 +1707,14 @@ class BiosImpl : public PCSX::Bios {
         for (i = 1; i < 16; i++) {
             fptr += 128;
             if ((*fptr & 0xF0) != 0x50) continue;
-            if (strcmp(s_FDesc[1 + mcd].name, reinterpret_cast<char *>(fptr) + 0xa)) continue;
+            if (strcmp(s_FDesc[1 + mcd].name, reinterpret_cast<char*>(fptr) + 0xa)) continue;
             s_FDesc[1 + mcd].mcfile = i;
             PCSX::g_system->biosPrintf("open %s\n", fptr + 0xa);
             v0 = 1 + mcd;
             break;
         }
         if (a1 & 0x200 && v0 == -1) { /* FCREAT */
-            fptr = reinterpret_cast<uint8_t *>(ptr);
+            fptr = reinterpret_cast<uint8_t*>(ptr);
             for (i = 1; i < 16; i++) {
                 int j, checksum, nblk = a1 >> 16;
                 uint8_t *pptr, *fptr2;
@@ -1728,7 +1728,7 @@ class BiosImpl : public PCSX::Bios {
                 fptr[5] = 0x20 * nblk;
                 fptr[6] = 0x00;
                 fptr[7] = 0x00;
-                strcpy(reinterpret_cast<char *>(fptr) + 0xa, s_FDesc[1 + mcd].name);
+                strcpy(reinterpret_cast<char*>(fptr) + 0xa, s_FDesc[1 + mcd].name);
                 pptr = fptr2 = fptr;
                 for (j = 2; j <= nblk; j++) {
                     int k;
@@ -1752,7 +1752,7 @@ class BiosImpl : public PCSX::Bios {
                 PCSX::g_system->biosPrintf("openC %s %d\n", ptr, nblk);
                 v0 = 1 + mcd;
                 /* just go ahead and resave them all */
-                PCSX::g_emulator.m_sio->SaveMcd(cfg, reinterpret_cast<char *>(ptr), 128, 128 * 15);
+                PCSX::g_emulator.m_sio->SaveMcd(cfg, reinterpret_cast<char*>(ptr), 128, 128 * 15);
                 break;
             }
             /* shouldn't this return ENOSPC if i == 16? */
@@ -1806,7 +1806,7 @@ class BiosImpl : public PCSX::Bios {
     }
 
     template <int mcd>
-    char *getmcdData() {
+    char* getmcdData() {
         if (mcd == 1) {
             return PCSX::g_emulator.m_sio->g_mcd1Data;
         } else if (mcd == 2) {
@@ -1829,7 +1829,7 @@ class BiosImpl : public PCSX::Bios {
     void buread() {
         PCSX::g_system->biosPrintf("read %d: %x,%x (%s)\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2,
                                    getmcdData<mcd>() + 128 * s_FDesc[1 + mcd].mcfile + 0xa);
-        char *ptr = getmcdData<mcd>() + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
+        char* ptr = getmcdData<mcd>() + 8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
         memcpy(Ra1, ptr, a2);
         if (s_FDesc[1 + mcd].mode & 0x8000)
             v0 = 0;
@@ -1865,7 +1865,7 @@ class BiosImpl : public PCSX::Bios {
     void buwrite() {
         uint32_t offset = +8192 * s_FDesc[1 + mcd].mcfile + s_FDesc[1 + mcd].offset;
         PCSX::g_system->biosPrintf("write %d: %x,%x\n", s_FDesc[1 + mcd].mcfile, s_FDesc[1 + mcd].offset, a2);
-        char *ptr = getmcdData<mcd>() + offset;
+        char* ptr = getmcdData<mcd>() + offset;
         memcpy(ptr, Ra1, a2);
         s_FDesc[1 + mcd].offset += a2;
         PCSX::g_emulator.m_sio->SaveMcd(getmcdName<mcd>(), getmcdData<mcd>(), offset, a2);
@@ -1883,7 +1883,7 @@ class BiosImpl : public PCSX::Bios {
 
     void psxBios_write() {  // 0x35/0x03
         if (a0 == 1) {      // stdout
-            char *ptr = Ra1;
+            char* ptr = Ra1;
 
             while (a2 > 0) {
                 PCSX::g_system->biosPrintf("%c", *ptr++);
@@ -1945,11 +1945,11 @@ class BiosImpl : public PCSX::Bios {
     int nfile;
 
     template <int mcd>
-    void bufile(struct DIRENTRY *dir) {
+    void bufile(struct DIRENTRY* dir) {
         while (nfile < 16) {
             int match = 1;
 
-            char *ptr = getmcdData<mcd>() + 128 * (nfile + 1);
+            char* ptr = getmcdData<mcd>() + 128 * (nfile + 1);
             nfile++;
             if ((*ptr & 0xF0) != 0x50) continue;
             /* Bug link files show up as free block. */
@@ -1990,7 +1990,7 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_firstfile() {  // 42
-        struct DIRENTRY *dir = (struct DIRENTRY *)Ra1;
+        struct DIRENTRY* dir = (struct DIRENTRY*)Ra1;
 
         PSXBIOS_LOG("psxBios_%s: %s\n", B0names[0x42], Ra0);
 
@@ -2016,7 +2016,7 @@ class BiosImpl : public PCSX::Bios {
      */
 
     void psxBios_nextfile() {  // 43
-        struct DIRENTRY *dir = (struct DIRENTRY *)Ra0;
+        struct DIRENTRY* dir = (struct DIRENTRY*)Ra0;
 
         PSXBIOS_LOG("psxBios_%s: %s\n", B0names[0x43], dir->name);
 
@@ -2037,7 +2037,7 @@ class BiosImpl : public PCSX::Bios {
     void burename() {
         for (int i = 1; i < 16; i++) {
             int namelen, j, chksum = 0;
-            char *ptr = getmcdData<mcd>() + 128 * i;
+            char* ptr = getmcdData<mcd>() + 128 * i;
             if ((*ptr & 0xF0) != 0x50) continue;
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;
             namelen = strlen(Ra1 + 5);
@@ -2074,7 +2074,7 @@ class BiosImpl : public PCSX::Bios {
     template <int mcd>
     void budelete() {
         for (int i = 1; i < 16; i++) {
-            char *ptr = getmcdData<mcd>() + 128 * i;
+            char* ptr = getmcdData<mcd>() + 128 * i;
             if ((*ptr & 0xF0) != 0x50) continue;
             if (strcmp(Ra0 + 5, ptr + 0xa)) continue;
             *ptr = (*ptr & 0xf) | 0xA0;
@@ -2294,11 +2294,11 @@ class BiosImpl : public PCSX::Bios {
     }
 
     void psxBios_ChangeClearRCnt() {  // 0a
-        uint32_t *ptr;
+        uint32_t* ptr;
 
         PSXBIOS_LOG("psxBios_%s: %x, %x\n", C0names[0x0a], a0, a1);
 
-        ptr = (uint32_t *)PSXM((a0 << 2) + 0x8600);
+        ptr = (uint32_t*)PSXM((a0 << 2) + 0x8600);
         v0 = *ptr;
         *ptr = a1;
 
@@ -2331,7 +2331,7 @@ class BiosImpl : public PCSX::Bios {
 #include "sjisfont.h"
 
     void psxBiosInit() final {
-        uint32_t *ptr;
+        uint32_t* ptr;
         int i;
         uLongf len;
 
@@ -2649,10 +2649,10 @@ class BiosImpl : public PCSX::Bios {
         // m_biosC0[0x1c] = &BiosImpl::psxBios_PatchAOTable;
         //************** THE END ***************************************
         /**/
-        ptr = (uint32_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x0874];  // b0 table
+        ptr = (uint32_t*)&PCSX::g_emulator.m_psxMem->g_psxM[0x0874];  // b0 table
         ptr[0] = SWAP_LEu32(0x4c54 - 0x884);
 
-        ptr = (uint32_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x0674];  // c0 table
+        ptr = (uint32_t*)&PCSX::g_emulator.m_psxMem->g_psxM[0x0674];  // c0 table
         ptr[6] = SWAP_LEu32(0xc80);
 
         memset(s_SysIntRP, 0, sizeof(s_SysIntRP));
@@ -2674,7 +2674,7 @@ class BiosImpl : public PCSX::Bios {
         psxMu32ref(0x0150) = SWAP_LEu32(0x160);
         psxMu32ref(0x0154) = SWAP_LEu32(0x320);
         psxMu32ref(0x0160) = SWAP_LEu32(0x248);
-        strcpy((char *)&PCSX::g_emulator.m_psxMem->g_psxM[0x248], "bu");
+        strcpy((char*)&PCSX::g_emulator.m_psxMem->g_psxM[0x248], "bu");
         /*  psxMu32ref(0x0ca8) = SWAP_LEu32(0x1f410004);
                 psxMu32ref(0x0cf0) = SWAP_LEu32(0x3c020000);
                 psxMu32ref(0x0cf4) = SWAP_LEu32(0x2442641c);
@@ -2732,7 +2732,7 @@ class BiosImpl : public PCSX::Bios {
 
         uint32_t base = 0x1000;
         uint32_t size = sizeof(EvCB) * 32;
-        s_Event = reinterpret_cast<EvCB *>(&PCSX::g_emulator.m_psxMem->g_psxR[base]);
+        s_Event = reinterpret_cast<EvCB*>(&PCSX::g_emulator.m_psxMem->g_psxR[base]);
         s_HwEV = s_Event;
         s_EvEV = s_Event + 32;
         s_RcEV = s_Event + 32 * 2;
@@ -2755,9 +2755,9 @@ class BiosImpl : public PCSX::Bios {
         psxRu32ref(0x0184) = SWAP_LEu32((0x3b << 26) | 6);
         // fonts
         len = 0x80000 - 0x66000;
-        uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));
+        uncompress((Bytef*)(PCSX::g_emulator.m_psxMem->g_psxR + 0x66000), &len, font_8140, sizeof(font_8140));
         len = 0x80000 - 0x69d68;
-        uncompress((Bytef *)(PCSX::g_emulator.m_psxMem->g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
+        uncompress((Bytef*)(PCSX::g_emulator.m_psxMem->g_psxR + 0x69d68), &len, font_889f, sizeof(font_889f));
     }
 
     void psxBiosShutdown() final {}
@@ -2784,7 +2784,7 @@ class BiosImpl : public PCSX::Bios {
 
         //  if (psxHu32(0x1070) & 0x1) { // Vsync
         if (s_pad_buf != NULL) {
-            uint32_t *buf = (uint32_t *)s_pad_buf;
+            uint32_t* buf = (uint32_t*)s_pad_buf;
 
             PCSX::g_emulator.m_pad1->startPoll();
             if (PCSX::g_emulator.m_pad1->poll(0x42) == 0x23) {
@@ -2857,7 +2857,7 @@ class BiosImpl : public PCSX::Bios {
 
                 for (i = 0; i < 8; i++) {
                     if (s_SysIntRP[i]) {
-                        uint32_t *queue = (uint32_t *)PSXM(s_SysIntRP[i]);
+                        uint32_t* queue = (uint32_t*)PSXM(s_SysIntRP[i]);
 
                         s0 = queue[2];
                         softCall(queue[1]);
@@ -2917,24 +2917,24 @@ class BiosImpl : public PCSX::Bios {
     }
 
     template <typename T>
-    static uint32_t fromMemory(T *ptr) {
+    static uint32_t fromMemory(T* ptr) {
         if (ptr) {
-            return reinterpret_cast<uint8_t *>(ptr) - PCSX::g_emulator.m_psxMem->g_psxM;
+            return reinterpret_cast<uint8_t*>(ptr) - PCSX::g_emulator.m_psxMem->g_psxM;
         } else {
             return 0;
         }
     }
 
     template <typename T>
-    static T *toMemory(uint32_t val) {
+    static T* toMemory(uint32_t val) {
         if (val) {
-            return reinterpret_cast<T *>(PCSX::g_emulator.m_psxMem->g_psxM + val);
+            return reinterpret_cast<T*>(PCSX::g_emulator.m_psxMem->g_psxM + val);
         } else {
             return nullptr;
         }
     }
 
-    void save(PCSX::SaveStates::BiosHLE &state) {
+    void save(PCSX::SaveStates::BiosHLE& state) {
         state.get<PCSX::SaveStates::BiosJmpInt>().value = fromMemory(s_jmp_int);
         state.get<PCSX::SaveStates::BiosPadBuf>().value = fromMemory(s_pad_buf);
         state.get<PCSX::SaveStates::BiosPadBuf1>().value = fromMemory(s_pad_buf1);
@@ -2950,7 +2950,7 @@ class BiosImpl : public PCSX::Bios {
         }
         state.get<PCSX::SaveStates::BiosCardState>().value = s_CardState;
         for (unsigned i = 0; i < 8; i++) {
-            auto &thread = state.get<PCSX::SaveStates::BiosThreads>().value[i];
+            auto& thread = state.get<PCSX::SaveStates::BiosThreads>().value[i];
             thread.get<PCSX::SaveStates::BiosTCBStatus>().value = s_Thread[i].status;
             thread.get<PCSX::SaveStates::BiosTCBMode>().value = s_Thread[i].mode;
             for (unsigned j = 0; j < 32; j++) {
@@ -2960,7 +2960,7 @@ class BiosImpl : public PCSX::Bios {
         }
         state.get<PCSX::SaveStates::BiosCurThread>().value = s_CurThread;
         for (unsigned int i = 0; i < 32; i++) {
-            auto &fd = state.get<PCSX::SaveStates::BiosFDescs>().value[i];
+            auto& fd = state.get<PCSX::SaveStates::BiosFDescs>().value[i];
             fd.get<PCSX::SaveStates::BiosFDName>().value = s_FDesc[i].name;
             fd.get<PCSX::SaveStates::BiosFDMode>().value = s_FDesc[i].mode;
             fd.get<PCSX::SaveStates::BiosFDOffset>().value = s_FDesc[i].offset;
@@ -2970,7 +2970,7 @@ class BiosImpl : public PCSX::Bios {
         state.get<PCSX::SaveStates::BiosCardActiveChan>().value = s_card_active_chan;
     }
 
-    void load(const PCSX::SaveStates::BiosHLE &state) {
+    void load(const PCSX::SaveStates::BiosHLE& state) {
         s_jmp_int = toMemory<uint32_t>(state.get<PCSX::SaveStates::BiosJmpInt>().value);
         s_pad_buf = toMemory<int>(state.get<PCSX::SaveStates::BiosPadBuf>().value);
         s_pad_buf1 = toMemory<char>(state.get<PCSX::SaveStates::BiosPadBuf1>().value);
@@ -2986,7 +2986,7 @@ class BiosImpl : public PCSX::Bios {
         }
         s_CardState = state.get<PCSX::SaveStates::BiosCardState>().value;
         for (unsigned i = 0; i < 8; i++) {
-            const auto &thread = state.get<PCSX::SaveStates::BiosThreads>().value[i];
+            const auto& thread = state.get<PCSX::SaveStates::BiosThreads>().value[i];
             s_Thread[i].status = thread.get<PCSX::SaveStates::BiosTCBStatus>().value;
             s_Thread[i].mode = thread.get<PCSX::SaveStates::BiosTCBMode>().value;
             for (unsigned j = 0; j < 32; j++) {
@@ -2996,7 +2996,7 @@ class BiosImpl : public PCSX::Bios {
         }
         s_CurThread = state.get<PCSX::SaveStates::BiosCurThread>().value;
         for (unsigned int i = 0; i < 32; i++) {
-            const auto &fd = state.get<PCSX::SaveStates::BiosFDescs>().value[i];
+            const auto& fd = state.get<PCSX::SaveStates::BiosFDescs>().value[i];
             std::strncpy(s_FDesc[i].name, fd.get<PCSX::SaveStates::BiosFDName>().value.c_str(), 32);
             s_FDesc[i].mode = fd.get<PCSX::SaveStates::BiosFDMode>().value;
             s_FDesc[i].offset = fd.get<PCSX::SaveStates::BiosFDOffset>().value;
@@ -3007,4 +3007,4 @@ class BiosImpl : public PCSX::Bios {
     }
 };
 
-PCSX::Bios *PCSX::Bios::factory() { return new BiosImpl(); }
+PCSX::Bios* PCSX::Bios::factory() { return new BiosImpl(); }

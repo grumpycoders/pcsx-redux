@@ -26,8 +26,8 @@
 
 // using a linked data list, and address array
 void PCSX::PPF::FillPPFCache() {
-    PPF_DATA *p;
-    PPF_CACHE *pc;
+    PPF_DATA* p;
+    PPF_CACHE* pc;
     int32_t lastaddr;
 
     p = s_ppfHead;
@@ -42,7 +42,7 @@ void PCSX::PPF::FillPPFCache() {
 
     if (s_iPPFNum <= 0) return;
 
-    pc = s_ppfCache = (PPF_CACHE *)malloc(s_iPPFNum * sizeof(PPF_CACHE));
+    pc = s_ppfCache = (PPF_CACHE*)malloc(s_iPPFNum * sizeof(PPF_CACHE));
 
     s_iPPFNum--;
     p = s_ppfHead;
@@ -60,13 +60,13 @@ void PCSX::PPF::FillPPFCache() {
 }
 
 void PCSX::PPF::FreePPFCache() {
-    PPF_DATA *p = s_ppfHead;
-    void *pn;
+    PPF_DATA* p = s_ppfHead;
+    void* pn;
 
     while (p != NULL) {
         pn = p->pNext;
         free(p);
-        p = (PPF_DATA *)pn;
+        p = (PPF_DATA*)pn;
     }
     s_ppfHead = NULL;
     s_ppfLast = NULL;
@@ -75,7 +75,7 @@ void PCSX::PPF::FreePPFCache() {
     s_ppfCache = NULL;
 }
 
-void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
+void PCSX::PPF::CheckPPFCache(uint8_t* pB, uint8_t m, uint8_t s, uint8_t f) {
     PPF_CACHE *pcstart, *pcend, *pcpos;
     int addr = PCSX::CDRom::MSF2SECT(PCSX::CDRom::btoi(m), PCSX::CDRom::btoi(s), PCSX::CDRom::btoi(f)), pos, anz, start;
 
@@ -106,7 +106,7 @@ void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
     }
 
     if (addr == pcpos->addr) {
-        PPF_DATA *p = pcpos->pNext;
+        PPF_DATA* p = pcpos->pNext;
         while (p != NULL && p->addr == addr) {
             pos = p->pos - (PCSX::CDRom::CD_FRAMESIZE_RAW - PCSX::CDRom::DATA_SIZE);
             anz = p->anz;
@@ -116,15 +116,15 @@ void PCSX::PPF::CheckPPFCache(uint8_t *pB, uint8_t m, uint8_t s, uint8_t f) {
                 anz -= start;
             } else
                 start = 0;
-            memcpy(pB + pos, (unsigned char *)(p + 1) + start, anz);
+            memcpy(pB + pos, (unsigned char*)(p + 1) + start, anz);
             p = p->pNext;
         }
     }
 }
 
-void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem) {
+void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t* ppfmem) {
     if (s_ppfHead == NULL) {
-        s_ppfHead = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
+        s_ppfHead = (PPF_DATA*)malloc(sizeof(PPF_DATA) + anz);
         s_ppfHead->addr = ladr;
         s_ppfHead->pNext = NULL;
         s_ppfHead->pos = pos;
@@ -133,9 +133,9 @@ void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem
         s_iPPFNum = 1;
         s_ppfLast = s_ppfHead;
     } else {
-        PPF_DATA *p = s_ppfHead;
-        PPF_DATA *plast = NULL;
-        PPF_DATA *padd;
+        PPF_DATA* p = s_ppfHead;
+        PPF_DATA* plast = NULL;
+        PPF_DATA* padd;
 
         if (ladr > s_ppfLast->addr || (ladr == s_ppfLast->addr && pos > s_ppfLast->pos)) {
             p = NULL;
@@ -155,7 +155,7 @@ void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem
             }
         }
 
-        padd = (PPF_DATA *)malloc(sizeof(PPF_DATA) + anz);
+        padd = (PPF_DATA*)malloc(sizeof(PPF_DATA) + anz);
         padd->addr = ladr;
         padd->pNext = p;
         padd->pos = pos;
@@ -172,7 +172,7 @@ void PCSX::PPF::AddToPPF(int32_t ladr, int32_t pos, int32_t anz, uint8_t *ppfmem
 }
 
 void PCSX::PPF::BuildPPFCache() {
-    FILE *ppffile;
+    FILE* ppffile;
     char buffer[12];
     char method, undo = 0, blockcheck = 0;
     int dizlen = 0, dizyn;

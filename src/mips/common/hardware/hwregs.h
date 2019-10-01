@@ -21,12 +21,12 @@
 
 #include "common/compiler/stdint.h"
 
-#define HW_U8(x) (*(volatile uint8_t *)(x))
-#define HW_U16(x) (*(volatile uint16_t *)(x))
-#define HW_U32(x) (*(volatile uint32_t *)(x))
-#define HW_S8(x) (*(volatile int8_t *)(x))
-#define HW_S16(x) (*(volatile int16_t *)(x))
-#define HW_S32(x) (*(volatile int32_t *)(x))
+#define HW_U8(x) (*(volatile uint8_t*)(x))
+#define HW_U16(x) (*(volatile uint16_t*)(x))
+#define HW_U32(x) (*(volatile uint32_t*)(x))
+#define HW_S8(x) (*(volatile int8_t*)(x))
+#define HW_S16(x) (*(volatile int16_t*)(x))
+#define HW_S32(x) (*(volatile int32_t*)(x))
 
 #define SPU_MVOL_L HW_U16(0x1f801d80)
 #define SPU_MVOL_R HW_U16(0x1f801d82)

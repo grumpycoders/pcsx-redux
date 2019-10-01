@@ -30,30 +30,30 @@ typedef int (*FlashSectEraseFunc)(uint32_t base_addr, uint32_t sect_addr, int wa
 typedef int (*FlashSectProgFunc)(uint32_t base_addr, uint32_t sect_addr, void* data, int len, int wait);
 
 typedef struct st_FlashMemoryDevice {
-    const char* name; // pointer to ASCII-Z string containing the name of the device.
-    uint16_t man_id; // manufacturer ID.
-    uint16_t prod_id; // product ID.
-    uint32_t attr; // attributes.
-    uint32_t n_total_bytes; // total number of bytes in the device.
+    const char* name;        // pointer to ASCII-Z string containing the name of the device.
+    uint16_t man_id;         // manufacturer ID.
+    uint16_t prod_id;        // product ID.
+    uint32_t attr;           // attributes.
+    uint32_t n_total_bytes;  // total number of bytes in the device.
 
-    FlashMapperFunc mapper; // pointer to function which handles "mapping" for this chip.
+    FlashMapperFunc mapper;  // pointer to function which handles "mapping" for this chip.
 
-    FlashChipUnprotectFunc chip_unprotect; // pointer to function which "unprotects" this chip for programming.
-    int chip_unprot_wait; // number of milliseconds to wait after doing a "chip_unlock".
-    FlashChipProtectFunc chip_protect; // pointer to function which "protects" this chip to disable programming.
-    int chip_prot_wait; // number of milliseconds to wait after doing a "chip_lock".
+    FlashChipUnprotectFunc chip_unprotect;  // pointer to function which "unprotects" this chip for programming.
+    int chip_unprot_wait;                   // number of milliseconds to wait after doing a "chip_unlock".
+    FlashChipProtectFunc chip_protect;      // pointer to function which "protects" this chip to disable programming.
+    int chip_prot_wait;                     // number of milliseconds to wait after doing a "chip_lock".
 
-    FlashChipEraseFunc chip_erase; // pointer to function which erases this entire chip.
-    int chip_erase_wait; // number of milliseconds to wait after doing a "chip_erase".
-    FlashSectEraseFunc sect_erase; // pointer to function which erases a single sector of this chip.
-    int sect_erase_wait; // number of milliseconds to wait after doing a "sect_erase".
-    FlashSectProgFunc sect_prog; // pointer to function which programs a single sector of this chip.
-    int sect_prog_wait; // number of milliseconds to wait after doing a "sect_prog".
+    FlashChipEraseFunc chip_erase;  // pointer to function which erases this entire chip.
+    int chip_erase_wait;            // number of milliseconds to wait after doing a "chip_erase".
+    FlashSectEraseFunc sect_erase;  // pointer to function which erases a single sector of this chip.
+    int sect_erase_wait;            // number of milliseconds to wait after doing a "sect_erase".
+    FlashSectProgFunc sect_prog;    // pointer to function which programs a single sector of this chip.
+    int sect_prog_wait;             // number of milliseconds to wait after doing a "sect_prog".
 
-    int n_blocks; // number of blocks in the following array.
+    int n_blocks;  // number of blocks in the following array.
     struct {
-        uint32_t n_sects; // number of sectors in this block.
-        uint32_t sect_sz; // size, in bytes, of each sector in this block.
+        uint32_t n_sects;  // number of sectors in this block.
+        uint32_t sect_sz;  // size, in bytes, of each sector in this block.
     } blocks[];
 } FlashMemoryDevice;
 
@@ -91,15 +91,14 @@ void flash_chip_protect(FlashMemoryDevice* dev, uint32_t base_addr);
 
 int flash_chip_erase(FlashMemoryDevice* dev, uint32_t base_addr);
 int flash_sect_erase(FlashMemoryDevice* dev, uint32_t base_addr, uint32_t sect_addr);
-int flash_lookup_sect(
-    FlashMemoryDevice* dev, uint32_t off, uint32_t* p_sect_addr, uint32_t* p_sect_off, int* p_sect_size);
+int flash_lookup_sect(FlashMemoryDevice* dev, uint32_t off, uint32_t* p_sect_addr, uint32_t* p_sect_off,
+                      int* p_sect_size);
 int flash_sect_prog(FlashMemoryDevice* dev, uint32_t base_addr, uint32_t sect_addr, void* data, int n_bytes);
 int flash_blank_check(void* start, int n);
 void flash_wait_toggle(uint32_t addr);
 void delay_ns(int n);
 
-static inline void flash_unlock_cycle(uint32_t base_addr, uint8_t cmd)
-{
+static inline void flash_unlock_cycle(uint32_t base_addr, uint8_t cmd) {
     //    base_addr &= 0xFFFE0000;
 
     ((vuint8_t*)base_addr)[0x5555] = 0xAA;

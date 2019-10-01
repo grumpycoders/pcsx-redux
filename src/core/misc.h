@@ -45,13 +45,13 @@ typedef struct {
 } EXE_HEADER;
 
 bool LoadCdrom();
-bool LoadCdromFile(const char *filename, EXE_HEADER *head);
+bool LoadCdromFile(const char* filename, EXE_HEADER* head);
 bool CheckCdrom();
-int Load(const char *ExePath);
-int LoadLdrFile(const char *LdrPath);
+int Load(const char* ExePath);
+int LoadLdrFile(const char* LdrPath);
 
 int SendPcsxInfo();
 int RecvPcsxInfo();
 
-void trim(char *str);
-uint16_t calcCrc(uint8_t *d, int len);
+void trim(char* str);
+uint16_t calcCrc(uint8_t* d, int len);

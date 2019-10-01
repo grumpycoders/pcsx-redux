@@ -42,7 +42,7 @@ enum {
 #define isdigit(___ch) (__isctype(___ch, CTYPE_NUMER))
 #define isgraph(___ch) (isprint(___ch) && !isspace(___ch))
 #define islower(___ch) (__isctype(___ch, CTYPE_LCASE))
-#define isprint(___ch)                                                                                                 \
+#define isprint(___ch) \
     (__isctype(___ch, (CTYPE_UCASE | CTYPE_LCASE | CTYPE_NUMER | CTYPE_WSPAC | CTYPE_PUNCT | CTYPE_BLANK)))
 #define ispunct(___ch) (__isctype(___ch, CTYPE_PUNCT))
 #define isspace(___ch) (__isctype(___ch, (CTYPE_WSPAC | CTYPE_BLANK)))
@@ -52,4 +52,4 @@ enum {
 #define _toupper(___ch) (islower(___ch) ? ((___ch)-0x20) : (___ch))
 #define _tolower(___ch) (isupper(___ch) ? ((___ch) + 0x20) : (___ch))
 
-#endif // _PS1_CTYPE_H_
+#endif  // _PS1_CTYPE_H_

@@ -20,9 +20,9 @@
 #include <SDL.h>
 
 #include <filesystem>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -33,10 +33,10 @@
 #include "gui/gui.h"
 #include "spu/interface.h"
 
-static PCSX::GUI *s_gui;
+static PCSX::GUI* s_gui;
 
 class SystemImpl : public PCSX::System {
-    virtual void printf(const char *fmt, ...) final {
+    virtual void printf(const char* fmt, ...) final {
         // print message to debugging console
         va_list a;
         va_start(a, fmt);
@@ -56,7 +56,7 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void biosPrintf(const char *fmt, ...) final {
+    virtual void biosPrintf(const char* fmt, ...) final {
         // print message to debugging console
         va_list a;
         va_start(a, fmt);
@@ -76,7 +76,7 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void vbiosPrintf(const char *fmt, va_list a) final {
+    virtual void vbiosPrintf(const char* fmt, va_list a) final {
         if (m_logfile) {
             va_list c;
             va_copy(c, a);
@@ -92,7 +92,7 @@ class SystemImpl : public PCSX::System {
         s_gui->addLog(fmt, a);
     }
 
-    virtual void message(const char *fmt, ...) final {
+    virtual void message(const char* fmt, ...) final {
         // display message to user as a pop-up
         va_list a;
         va_start(a, fmt);
@@ -113,7 +113,7 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
-    virtual void log(const char *facility, const char *fmt, va_list a) final {
+    virtual void log(const char* facility, const char* fmt, va_list a) final {
         if (m_logfile) {
             va_list c;
             va_copy(c, a);
@@ -152,21 +152,23 @@ class SystemImpl : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
-    FILE *m_logfile = nullptr;
+    FILE* m_logfile = nullptr;
 
   public:
     ~SystemImpl() {
         if (m_logfile) fclose(m_logfile);
     }
 
-    void useLogfile(const PCSX::u8string &filename) { m_logfile = fopen(reinterpret_cast<const char*>(filename.c_str()), "w"); }
+    void useLogfile(const PCSX::u8string& filename) {
+        m_logfile = fopen(reinterpret_cast<const char*>(filename.c_str()), "w");
+    }
 
     bool m_enableStdout = false;
 };
 
 using json = nlohmann::json;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     const flags::args args(argc, argv);
 
     if (args.get<bool>("dumpproto")) {
@@ -174,7 +176,7 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    SystemImpl *system = new SystemImpl;
+    SystemImpl* system = new SystemImpl;
     PCSX::g_system = system;
     std::filesystem::path self = argv[0];
     std::filesystem::path binDir = self.parent_path();
@@ -188,7 +190,7 @@ int main(int argc, char **argv) {
     s_gui = new PCSX::GUI(args);
     s_gui->init();
     system->m_enableStdout = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingStdout>();
-    const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().string();
+    const auto& logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().string();
     if (!logfile.empty()) system->useLogfile(logfile);
 
     system->activateLocale(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLocale>());

@@ -35,7 +35,7 @@ typedef std::u8string u8string;
 #define MAKEU8(x) x
 #else
 typedef std::string u8string;
-#define MAKEU8(x) reinterpret_cast<const char *>(x)
+#define MAKEU8(x) reinterpret_cast<const char*>(x)
 #endif
 
 class System {
@@ -45,15 +45,15 @@ class System {
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
     // Printf used by bios syscalls
-    virtual void biosPrintf(const char *fmt, ...) = 0;
-    virtual void vbiosPrintf(const char *fmt, va_list va) = 0;
+    virtual void biosPrintf(const char* fmt, ...) = 0;
+    virtual void vbiosPrintf(const char* fmt, va_list va) = 0;
     // Printf used by the code in general, to indicate errors most of the time
     // TODO: convert them all to logs
-    virtual void printf(const char *fmt, ...) = 0;
+    virtual void printf(const char* fmt, ...) = 0;
     // Add a log line
-    virtual void log(const char *facility, const char *fmt, va_list a) = 0;
+    virtual void log(const char* facility, const char* fmt, va_list a) = 0;
     // Message used to print msg to users
-    virtual void message(const char *fmt, ...) = 0;
+    virtual void message(const char* fmt, ...) = 0;
     // Called on VBlank (to update i.e. pads)
     virtual void update() = 0;
     // Returns to the Gui
@@ -82,10 +82,10 @@ class System {
     static inline constexpr uint64_t ctHash(const char (&str)[S]) {
         return djbProcess(5381, str, S - 1);
     }
-    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
-    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
+    static inline constexpr uint64_t hash(const char* str, size_t n) { return djbProcess(5381, str, n); }
+    static inline uint64_t hash(const std::string& str) { return djbProcess(5381, str.c_str(), str.length()); }
 
-    const char *getStr(uint64_t hash, const char *str) {
+    const char* getStr(uint64_t hash, const char* str) {
         auto ret = m_i18n.find(hash);
         if (ret == m_i18n.end()) return str;
         return ret->second.c_str();
@@ -94,7 +94,7 @@ class System {
     void loadAllLocales() {
         static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}, {"Deutsch", "de.po"}};
 
-        for (auto &l : locales) {
+        for (auto& l : locales) {
             if (loadLocale(l.first, m_binDir / "i18n" / l.second)) {
             } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second)) {
             } else if (loadLocale(l.first, m_binDir / l.second)) {
@@ -104,8 +104,8 @@ class System {
         }
     }
 
-    bool loadLocale(const std::string &name, const std::filesystem::path &path);
-    void activateLocale(const std::string &name) {
+    bool loadLocale(const std::string& name, const std::filesystem::path& path);
+    void activateLocale(const std::string& name) {
         if (name == "English") {
             m_currentLocale = "English";
             m_i18n = {};
@@ -119,7 +119,7 @@ class System {
     std::string localeName() { return m_currentLocale; }
     std::vector<std::string> localesNames() {
         std::vector<std::string> locales;
-        for (auto &l : m_locales) {
+        for (auto& l : m_locales) {
             locales.push_back(l.first);
         }
         return locales;
@@ -134,7 +134,7 @@ class System {
     std::filesystem::path m_binDir;
 };
 
-extern System *g_system;
+extern System* g_system;
 
 }  // namespace PCSX
 

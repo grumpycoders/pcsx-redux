@@ -95,7 +95,7 @@ void PCSX::Debug::processAfter() {
 
     if (m_stepping) {
         const bool gotException = pc == 0x80000080 || pc == 0xbfc00180;
-        if (gotException) m_steppingJumps += 2; // there ought to be two jr $k0
+        if (gotException) m_steppingJumps += 2;  // there ought to be two jr $k0
 
         auto none = m_breakpoints.end();
         switch (m_stepType) {
