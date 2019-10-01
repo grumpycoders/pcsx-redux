@@ -34,7 +34,7 @@
 #define SIO_POKE8(__d) sio_poke8(__d, 0)
 #endif
 
-#define SIO_PEEK32() (((SIO_PEEK8() | (SIO_PEEK8() << 8) | (SIO_PEEK8() << 16) | (SIO_PEEK8() << 24))
+#define SIO_PEEK32() (SIO_PEEK8() | (SIO_PEEK8() << 8) | (SIO_PEEK8() << 16) | (SIO_PEEK8() << 24))
 
 void sioload(void) {
     int i;

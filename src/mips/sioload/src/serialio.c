@@ -180,7 +180,7 @@ int sio_poke8(uint8_t data, uint32_t timeout) {
 }
 
 uint8_t sio_get_byte(void) {
-    uint8_t t ret;
+    uint8_t ret;
 
     // RTR(Ready To Receive akia "RTS"/Request to Send): on
     sio_set_ctrl_m(~(SIO_CTRL_RTR_EN), SIO_CTRL_RTR_EN);
@@ -201,7 +201,7 @@ _done:
 }
 
 void sio_put_byte(uint8_t d) {
-    while ((sio_get_stat() & (SR_TXU | SR_TXRDY)) != (SR_TXU | SR_TXRDY))
+    while ((sio_get_stat() & (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY)) != (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY))
         ;
     *R_PS1_SIO1_DATA = d;
 }
