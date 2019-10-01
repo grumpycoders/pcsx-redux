@@ -33,3 +33,4 @@ vsprojects/packages
 /memcard1.mcd
 /memcard2.mcd
 
+src/.clang-format
