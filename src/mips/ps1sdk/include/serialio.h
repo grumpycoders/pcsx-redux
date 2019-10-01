@@ -135,6 +135,9 @@ void sio_clear_error(void);
 void sio_reset_driver(void);
 void init_sio(uint32_t baud);
 
+uint8_t sio_get_byte(void);
+void sio_put_byte(uint8_t d);
+
 //~ void sio_init(int port_no, int baud);
 
 //~ int sio_reset(int port_no);

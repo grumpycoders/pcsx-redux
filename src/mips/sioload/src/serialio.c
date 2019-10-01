@@ -32,9 +32,6 @@ typedef struct {
 static port_config_t config = {0, 0, 0, 0};
 
 #define SIO1_BAUD_DIV (2073600)
-// I don't understand this... PsyQ says "bps must be in the range 9600 - 2073600 and evenly divisible into 2073600"
-// but reversing libsio shows 2116800 being divided by baud, not 2073600??
-//#define SIO1_BAUD_DIV (2116800)
 
 static inline void sio_set_ctrl_m(uint16_t mask, uint16_t ctrl) {
     *R_PS1_SIO1_CTRL = ((*R_PS1_SIO1_CTRL) & mask) | ctrl;
@@ -79,7 +76,7 @@ static inline uint16_t sio_get_ctrl(void) {
 
 static inline uint16_t sio_get_mode(void) { return *R_PS1_SIO1_MODE & 0x1FFF; }
 
-static inline uint16_t sio_get_baud(void) { return SIO1_BAUD_DIV / (*R_PS1_SIO1_BAUD); }
+static inline uint32_t sio_get_baud(void) { return SIO1_BAUD_DIV / (*R_PS1_SIO1_BAUD); }
 
 void sio_reset(void) { *R_PS1_SIO1_CTRL = SIO_CTRL_RESET_INT | SIO_CTRL_RESET_ERR; }
 
@@ -99,7 +96,7 @@ int sio_peek8(uint32_t timeout) {
 
     // this may not be necessary. Some UARTs won't transfer if yout don't though.
 
-    // assert RTR(Ready To Receive akia "RTS"/Request to Send)
+    // RTR(Ready To Receive akia "RTS"/Request to Send): on
     sio_set_ctrl_m(~(SIO_CTRL_RTR_EN), SIO_CTRL_RTR_EN);
 
     // wait for data in the RX FIFO
@@ -118,7 +115,7 @@ int sio_peek8(uint32_t timeout) {
     ret = *R_PS1_SIO1_DATA;
 
 _done:
-    // deassert RTR
+    // RTR/RTS: off
     sio_set_ctrl_m(~(SIO_CTRL_RTR_EN), 0);
 
     return ret;
@@ -141,7 +138,6 @@ uint32_t sio_peek32(uint32_t timeout) {
 }
 
 // FIXME: add sio_poke16 and 32
-
 int sio_poke8(uint8_t data, uint32_t timeout) {
     volatile uint8_t d;
 
@@ -181,6 +177,33 @@ int sio_poke8(uint8_t data, uint32_t timeout) {
     // push the byte into the TX FIFO
     *R_PS1_SIO1_DATA = data;
     return data;
+}
+
+uint8_t sio_get_byte(void) {
+    uint8_t t ret;
+
+    // RTR(Ready To Receive akia "RTS"/Request to Send): on
+    sio_set_ctrl_m(~(SIO_CTRL_RTR_EN), SIO_CTRL_RTR_EN);
+
+    // wait for data in the RX FIFO
+
+    while (!(sio_get_stat() & SIO_STAT_RX_RDY))
+        ;
+
+    // pop a byte from the RX FIFO
+    ret = *R_PS1_SIO1_DATA;
+
+_done:
+    // RTR/RTS: off
+    sio_set_ctrl_m(~(SIO_CTRL_RTR_EN), 0);
+
+    return ret;
+}
+
+void sio_put_byte(uint8_t d) {
+    while ((sio_get_stat() & (SR_TXU | SR_TXRDY)) != (SR_TXU | SR_TXRDY))
+        ;
+    *R_PS1_SIO1_DATA = d;
 }
 
 void init_sio(uint32_t baud) {

@@ -25,6 +25,17 @@
 
 #include "common/hardware/cop0.h"
 
+// switch between implementations
+#if 1
+#define SIO_PEEK8() sio_get_byte()
+#define SIO_POKE8(__d) sio_put_byte(__d)
+#else
+#define SIO_PEEK8() sio_peek8(0)
+#define SIO_POKE8(__d) sio_poke8(__d, 0)
+#endif
+
+#define SIO_PEEK32() (((SIO_PEEK8() | (SIO_PEEK8() << 8) | (SIO_PEEK8() << 16) | (SIO_PEEK8() << 24))
+
 void sioload(void) {
     int i;
     int sync;
@@ -35,24 +46,24 @@ void sioload(void) {
         write_addr, n_load;
 
     while (1) {
-        sio_poke8('X', 0);  // sends an X to pc
+        SIO_POKE8('X');  // sends an X to pc
     }
 
     do {
-        sync = sio_peek8(10000);
+        sync = SIO_PEEK8();
     } while (sync != 99);
 
     for (i = 0; i < sizeof(header_buf); i++) {
-        header_buf[i] = sio_peek8(0);
+        header_buf[i] = SIO_PEEK8();
     }
 
     // ignored
-    x_addr = sio_peek32(0);
-    write_addr = sio_peek32(0);
-    n_load = sio_peek32(0);
+    x_addr = SIO_PEEK32();
+    write_addr = SIO_PEEK32();
+    n_load = SIO_PEEK32();
 
     for (i = 0; i < n_load; i++) {
-        ((uint8_t*)write_addr)[i] = sio_peek8(0);
+        ((uint8_t*)write_addr)[i] = SIO_PEEK8();
     }
 
     // could at least send back a kiss goodbye...
