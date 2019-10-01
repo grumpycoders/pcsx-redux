@@ -4,6 +4,7 @@ SRCS = \
 	../common/hardware/cop0.s \
 	crt0/crt0.S \
 	src/main.c \
+	src/serialio.c \
 
 LIBS = ../ps1sdk/libps1sdk.a
 

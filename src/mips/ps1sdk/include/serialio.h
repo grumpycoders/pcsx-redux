@@ -43,6 +43,7 @@ extern "C" {
 #define SIO_STAT_TX_EMPTY 0x0004
 #define SIO_STAT_RX_RDY 0x0002
 #define SIO_STAT_TX_RDY 0x0001
+#define SIO_STAT_MASK (0x03FF)
 
 // bits for CONTROL
 
@@ -56,6 +57,7 @@ extern "C" {
 #define SIO_CTRL_BUF4 0x0200
 #define SIO_CTRL_BUF2 0x0100
 #define SIO_CTRL_BUF1 0x0000
+// why is there nothing for bit 7? CTRL_BUFx is bits 9-10
 #define SIO_CTRL_RESET_INT 0x0040
 // enable RTS driver(inverted)
 #define SIO_CTRL_RTS_EN 0x0020
@@ -68,6 +70,7 @@ extern "C" {
 #define SIO_CTRL_DTR_EN 0x0002
 // enable TXD
 #define SIO_CTRL_TX_EN 0x0001
+#define SIO_CTRL_MASK (0x1FFF)
 
 /*
  *  SIO1
@@ -89,34 +92,48 @@ extern "C" {
 
 // Bits for MODE
 
-// MODE: Baud Rate multiplier(??)
-// NOTE: supposedly these 2 bits should always be "10"(2)..
-#define SIO_MODE_BR_1 0x0001
-#define SIO_MODE_BR_16 0x0002
-#define SIO_MODE_BR_64 0x0003
+// MODE: Stop Bits
+// bits 6-7
+#define SIO_MODE_SB_1 0x0040
+#define SIO_MODE_SB_1_5 0x0080
+#define SIO_MODE_SB_2 0x00C0
+
+// MODE: Parity
+// bits 4-5
+#define SIO_MODE_P_NONE 0x0000
+#define SIO_MODE_P_ODD 0x0010
+#define SIO_MODE_P_EVEN 0x0030
 
 // MODE: Character Length(Bits Per Character)
+// bits 2-3
 #define SIO_MODE_CHLEN_5 0x0000
 #define SIO_MODE_CHLEN_6 0x0004
 #define SIO_MODE_CHLEN_7 0x0008
 #define SIO_MODE_CHLEN_8 0x000C
 
-// MODE: Parity
-#define SIO_MODE_P_NONE 0x0000
-#define SIO_MODE_P_ODD 0x0010
-#define SIO_MODE_P_EVEN 0x0030
+// MODE: Baud Rate multiplier(??)
+// NOTE: supposedly these 2 bits should always be "10"(2)..
+// bits 0-1
+#define SIO_MODE_BR_1 0x0001
+#define SIO_MODE_BR_16 0x0002
+#define SIO_MODE_BR_64 0x0003
 
-// MODE: Stop Bits
-#define SIO_MODE_SB_1 0x0040
-#define SIO_MODE_SB_1_5 0x0080
-#define SIO_MODE_SB_2 0x00C0
+#define SIO_MODE_MASK 0x00FF
 
 /* prototypes */
 
-uint8_t read_sio(void);
-void write_sio(uint8_t d);
+int sio_peek8(uint32_t timeout);
+uint32_t sio_peek32(uint32_t timeout);
+uint16_t sio_peek16(uint32_t timeout);
+
+int sio_poke8(uint8_t data, uint32_t timeout);
+int sio_poke16(uint16_t data, uint32_t timeout);
+int sio_poke32(uint32_t data, uint32_t timeout);
+
+void sio_reset(void);
+void sio_clear_error(void);
+void sio_reset_driver(void);
 void init_sio(uint32_t baud);
-uint32_t sio_read32(void);
 
 //~ void sio_init(int port_no, int baud);
 
