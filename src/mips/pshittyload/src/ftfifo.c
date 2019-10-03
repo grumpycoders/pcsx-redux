@@ -17,13 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "ftfifo.h"
 #include <fileio.h>
 #include <ps1hwregs.h>
 #include <ps1sdk.h>
 #include <serialio.h>
 #include <stdio.h>
 #include "common/hardware/cop0.h"
+#include "ftfifo.h"
 
 uint8_t FT_peek8(uint32_t timeout, int *presult) {
     int res = 0;
