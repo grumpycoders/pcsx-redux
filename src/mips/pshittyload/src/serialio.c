@@ -193,7 +193,6 @@ uint8_t sio_get_byte(void) {
     // pop a byte from the RX FIFO
     ret = *R_PS1_SIO1_DATA;
 
-_done:
     // RTR/RTS: off
     sio_set_ctrl_m(~(SIO_CTRL_RTR_EN), 0);
 
