@@ -57,6 +57,11 @@ int main(int argc, char ** argv) {
         }
     }
 
+    if (!in_name) {
+        error("Missing input filename");
+        return -1;
+    }
+
     if (!out_name) {
         size_t in_len = strlen(in_name);
         out_template = malloc(in_len + 8);
