@@ -1,4 +1,4 @@
-TARGET = hello.psx
+TARGET = serial.psx
 TLOAD_ADDR = 0x80010000
 SRCS = \
 	../common/hardware/cop0.s \

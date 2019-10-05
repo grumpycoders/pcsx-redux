@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// hello?
+
+
 #include <fileio.h>
 #include <ps1hwregs.h>
 #include <ps1sdk.h>
