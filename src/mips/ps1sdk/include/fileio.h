@@ -14,6 +14,7 @@
 extern "C" {
 #endif
 
+/* IoBlock flags */
 #define O_RDONLY (0x0001)
 #define O_WRONLY (0x0002)
 #define O_RDWR (0x0003)
@@ -26,6 +27,7 @@ extern "C" {
 
 #define FSCAN 0x1000
 
+/* "whence" for seek functions */
 #ifndef SEEK_SET
 #define SEEK_SET 0
 #endif
@@ -37,6 +39,7 @@ extern "C" {
 #endif
 
 /* device types */
+/* for DeviceDriver.type */
 #define DEV_TYPE_CHAR (1 << 0)  /* character device */
 #define DEV_TYPE_TTY (1 << 1)   /* TTY/console */
 #define DEV_TYPE_BLOCK (1 << 2) /* block device */
@@ -44,6 +47,7 @@ extern "C" {
 #define DEV_TYPE_FS (1 << 4)
 
 /* device FIFO flags */
+/* for device_fifo.flags */
 #define DEV_FIFO_RAW (1 << 0)     /* don't interpret special chars */
 #define DEV_FIFO_STOPPED (1 << 1) /* stop output */
 #define DEV_FIFO_BREAK (1 << 2)   /* cntl-c raise console interrpt */
@@ -56,7 +60,7 @@ typedef struct st_device_fifo {
     char buf[256];   // 0x0C - FIFO buffer.
 } device_fifo;
 
-#define M_FIFO_FLUSH(__fifo) ((__fifo)->rd_ptr = (__fifo)->wr_ptr = (__fifo)->buf)
+#define M_FIFO_PURGE(__fifo) ((__fifo)->rd_ptr = (__fifo)->wr_ptr = (__fifo)->buf)
 #define M_IS_FIFO_EMPTY(__fifo) ((__fifo)->rd_ptr == (__fifo)->wr_ptr)
 #define M_IS_FIFO_STOPPED(__fifo) ((__fifo)->flags & DEV_FIFO_STOPPED)
 #define stdin (0)
@@ -64,42 +68,43 @@ typedef struct st_device_fifo {
 
 /* sizeof() == 0x2C(44) */
 typedef struct st_PS1_IoBlock {
-    int flags;                        // 0x00
-    int dev_no;                       // 0x04
-    char* buf;                        // 0x08 - address of the I/O buffer.
-    uint32_t ccount;                  // 0x0C - character count
-    uint32_t cur_pos;                 // 0x10 - current position in file.
-    int fstype;                       // 0x14 - type of file system.
-    int errno;                        // 0x18 - last "errno"
-    struct st_FileSystemDriver* fsd;  // 0x1C - pointer to fsd
-    uint32_t size;                    // 0x20
-    uint32_t head;                    // 0x24
-    uint32_t fd;                      // 0x28 file descriptor
+    int flags;                      // 0x00 - see IoBlock flags(TODO: fixme?)
+    int dev_no;                     // 0x04 - ?
+    char* buf;                      // 0x08 - address of the I/O buffer.
+    uint32_t ccount;                // 0x0C - character count
+    uint32_t cur_pos;               // 0x10 - current position in file.
+    int fstype;                     // 0x14 - type of file system.
+    int errno;                      // 0x18 - last "errno"
+    struct st_DeviceDriver* dd;     // 0x1C - pointer to fsd
+    uint32_t size;                  // 0x20 - file size?
+    uint32_t head;                  // 0x24 - ?
+    uint32_t fd;                    // 0x28 file descriptor
 } IoBlock;
 
+#warning "FIXME: add argument names to prototypes in DeviceDriver struct in fileio.h"
 /* sizeof() == 0x50(80) */
-typedef struct st_FileSystemDriver {
-    const char* name;     // 0x00 - pointer to unique name identifying file system.
-    uint32_t modes;       // 0x04 -
+typedef struct st_DeviceDriver {
+    const char* name;     // 0x00 - pointer to unique name identifying device.
+    uint32_t type;        // 0x04 - bitmask. see Device Types.
     uint32_t block_size;  // 0x08 - size, in bytes, of a block.
-    const char* desc;     // 0x0C - pointer to ASCII-Z description of file system.
-    int (*init)();        // 0x10 - pointer to "init" function. Called by AddDevice()
-    int (*open)();        // 0x14 - pointer to "open" function.
-    int (*strategy)();    // 0x18 - pointer to "strategy" function.
-    int (*close)();       // 0x1C - pointer to "close" function.
-    int (*ioctl)();       // 0x20 - pointer to "ioctl" function.
-    int (*read)();        // 0x24 - pointer to "read" function.
-    int (*write)();       // 0x28 - pointer to "write" function.
-    int (*delete)();      // 0x2C - pointer to "delete" function.
-    int (*undelete)();    // 0x30 - pointer to "undelete" function.
+    const char* desc;     // 0x0C - pointer to ASCII-Z description of device.
+    int (*init)(IoBlock *iob);        // 0x10 - pointer to "init" function. Called by AddDevice()
+    int (*open)(IoBlock *iob, const char *fname, int mode);        // 0x14 - pointer to "open" function.
+    int (*strategy)(IoBlock *iob, int cmd);    // 0x18 - pointer to "strategy" function.
+    int (*close)(IoBlock *iob);       // 0x1C - pointer to "close" function.
+    int (*ioctl)(IoBlock *iob, int cmd, int param);       // 0x20 - pointer to "ioctl" function.
+    int (*read)(IoBlock *iob, void *p, int size);        // 0x24 - pointer to "read" function.
+    int (*write)(IoBlock *iob, const void *p, int size);       // 0x28 - pointer to "write" function.
+    int (*delete)(IoBlock *iob, const char *name);      // 0x2C - pointer to "delete" function.
+    int (*undelete)(IoBlock *iob, const char *name);    // 0x30 - pointer to "undelete" function.
     int (*firstfile)();   // 0x34 - pointer to "firstfile" function.
     int (*nextfile)();    // 0x38 - pointer to "nextfile" function.
     int (*format)();      // 0x3C - pointer to "format" function.
-    int (*chdir)();       // 0x40 - pointer to "cd" function.
-    int (*rename)();      // 0x44 - pointer to "rename" function.
-    int (*deinit)();      // 0x48 - pointer to "deinit" function.  Called by RemDevice()
-    int (*call15)();      // 0x4C - pointer to "lseek" function.
-} FileSystemDriver;
+    int (*chdir)(const char *path);       // 0x40 - pointer to "cd" function.
+    int (*rename)(const char *oldname, const char *newname);      // 0x44 - pointer to "rename" function.
+    int (*deinit)(IoBlock *iob);      // 0x48 - pointer to "deinit" function.  Called by RemDevice()
+    int (*lseek)(IoBlock*iob, int pos, int whence);       // 0x4C - pointer to "lseek" function.
+} DeviceDriver;
 
 typedef struct st_DirEntry {
     char name[20];             // 0x00 - ASCII file name.
@@ -110,23 +115,12 @@ typedef struct st_DirEntry {
     uint8_t system[4];         // 0x24 - ??? unused?
 } DirEntry;
 
-int AddDevice(const FileSystemDriver* fsd);
-int DelDevice(const char* fs_name);
+int AddDevice(const DeviceDriver* dd);
+int DelDevice(const char* dev_name);
 
-int open(const char*, uint32_t);
-int close(int);
-int lseek(int, int, int);
-int read(int, void*, int);
-int write(int, const void*, int);
-int ioctl(int, int, int);
+#warning "FIXME: add argument names to prototypes in fileio.h"
 DirEntry* firstfile(const char*, DirEntry*);
 DirEntry* nextfile(DirEntry*);
-
-int erase(const char*);
-int undelete(const char*);
-int format(const char*);
-int rename(const char*, const char*);
-int chdir(const char*);
 
 #ifdef __cplusplus
 }

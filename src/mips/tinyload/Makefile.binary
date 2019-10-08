@@ -1,0 +1,14 @@
+TARGET = tinyload.bin
+TLOAD_ADDR = 0x80030000
+SRCS = \
+	crt0-dummy/crt0.S \
+	src/main.c \
+	src/syscalls.S
+
+LIBS =
+
+LDSCRIPT = shell.ld
+CPPFLAGS := -I../ps1sdk/include -Isrc -Iinclude
+LDFLAGS :=
+
+include ../common.mk

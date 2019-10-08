@@ -21,6 +21,8 @@ extern "C" {
 #define NULL ((void*)0)
 #endif
 
+int chdir(const char* path);
+
 #ifdef __cplusplus
 }
 #endif

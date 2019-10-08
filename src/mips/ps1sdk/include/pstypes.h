@@ -11,6 +11,8 @@
 #ifndef _PSTYPES_H
 #define _PSTYPES_H
 
+#include <sys/types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

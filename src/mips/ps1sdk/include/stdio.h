@@ -33,8 +33,17 @@ extern "C" {
 #define SEEK_END 2
 #endif
 
+int open(const char*, uint32_t);
+int close(int);
+int lseek(int, int, int);
+int read(int, void*, int);
+int write(int, const void*, int);
+int ioctl(int, int, int);
+
+int remove(const char* path);
+int undelete(const char* path);
+int format(const char* path);
 int rename(const char* oldname, const char* newname);
-#define remove(___name) erase(___name)
 
 int printf(const char* fmt, ...);
 int sprintf(char* buffer, const char* fmt, ...);

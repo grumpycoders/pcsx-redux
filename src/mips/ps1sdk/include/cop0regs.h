@@ -1,80 +1,11 @@
-#ifndef _MIPSREGS_H
-#define _MIPSREGS_H
+/* COP0 Registers */
+
+#ifndef _COP0REGS_H
+#define _COP0REGS_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* general registers */
-
-#define r0 $0
-#define r1 $1
-#define r2 $2
-#define r3 $3
-#define r4 $4
-#define r5 $5
-#define r6 $6
-#define r7 $7
-#define r8 $8
-#define r9 $9
-#define r10 $10
-#define r11 $11
-#define r12 $12
-#define r13 $13
-#define r14 $14
-#define r15 $15
-#define r16 $16
-#define r17 $17
-#define r18 $18
-#define r19 $19
-#define r20 $20
-#define r21 $21
-#define r22 $22
-#define r23 $23
-#define r24 $24
-#define r25 $25
-#define r26 $26
-#define r27 $27
-#define r28 $28
-#define r29 $29
-#define r30 $30
-#define r31 $31
-
-#define zero $0
-//#define at      $1
-#define v0 $2
-#define v1 $3
-#define a0 $4
-#define a1 $5
-#define a2 $6
-#define a3 $7
-#define t0 $8
-#define t1 $9
-#define t2 $10
-#define t3 $11
-#define t4 $12
-#define t5 $13
-#define t6 $14
-#define t7 $15
-#define s0 $16
-#define s1 $17
-#define s2 $18
-#define s3 $19
-#define s4 $20
-#define s5 $21
-#define s6 $22
-#define s7 $23
-#define t8 $24
-#define t9 $25
-#define k0 $26
-#define k1 $27
-#define gp $28
-#define sp $29
-#define s8 $30
-#define fp $30
-#define ra $31
-
-/* COP0 Registers */
 
 /* BreakPoint Control */
 #define C0_BPC $3
@@ -186,4 +117,4 @@ extern "C" {
 }
 #endif
 
-#endif /* _MIPSREGS_H */
+#endif /* _COP0REGS_H */

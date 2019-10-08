@@ -52,7 +52,7 @@ int ReadExecHeader(int fd, ExecInfo* exec);
 int LoadEx(const char* fname, ExecInfo* exec);
 int LoadExBuffer(const void* fbuf, ExecInfo* exec);
 void LoadExecEx(const void* f, uint32_t stack_addr, int stack_size);
-int ExecEx(ExecInfo* exec, int arg1, int arg2);
+int ExecEx(ExecInfo* exec, uint32_t stack_addr, uint32_t stack_size);
 
 #ifdef __cplusplus
 }

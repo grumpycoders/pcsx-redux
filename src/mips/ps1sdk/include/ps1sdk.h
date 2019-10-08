@@ -11,13 +11,13 @@
 #ifndef _LIBPS1_H
 #define _LIBPS1_H
 
+#include <stddef.h>
+#include <pstypes.h>
+#include <exec.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <exec.h>
-#include <stddef.h>
-#include <sys/types.h>
 
 #define EV_DESC_MASK 0xFF000000
 
@@ -317,6 +317,8 @@ int FastBootDisc(int rem96);
 int PAD_init(uint32_t type, void* buf);
 int PAD_dr(void);
 int InitPAD(void* buf1, int len1, void* buf2, int len2);
+
+void FlushCache(void);
 
 void delay_ms(uint32_t n);
 

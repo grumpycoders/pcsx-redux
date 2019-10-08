@@ -21,6 +21,7 @@ jobs:
             make -C src/mips/serial -j 2
             make -C src/mips/hello -j 2
             make -C src/mips/pshittyload -j 2
+            make -C src/mips/tinyload -j 2
             make -C src/mips/shell -j 2
             make -C src/mips/openbios -j 2
 

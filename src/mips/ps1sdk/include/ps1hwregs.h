@@ -448,6 +448,7 @@ extern "C" {
 #define R_PS1_SPU_FACTORLEFT ((vuint16_t*)(A_PS1_SPU_FACTORLEFT))
 #define R_PS1_SPU_FACTORRIGHT ((vuint16_t*)(A_PS1_SPU_FACTORRIGHT))
 
+/* DBG is part of the Expansion 2 hardware and is not present in retail consoles */
 #define R_PS1_DBG_R20 ((vuint8_t*)A_PS1_DBG_R20)
 #define R_PS1_DBG_R21 ((vuint8_t*)A_PS1_DBG_R21)
 #define R_PS1_DBG_R22 ((vuint8_t*)A_PS1_DBG_R22)
@@ -470,53 +471,19 @@ extern "C" {
 #define R_PS1_DBG_R42 ((vuint8_t*)A_PS1_DBG_R42)
 #define R_PS1_DBG_R43 ((vuint8_t*)A_PS1_DBG_R43)
 
-/* PS1 interrupts */
-
-// V-Blank(external)
-#define PS1_IRQ_VB (0)
-// GPU(external)
-#define PS1_IRQ_GPU (1)
-// CD-ROM Controller(external)
-#define PS1_IRQ_CD (2)
-// DMA Controller(internal)
-#define PS1_IRQ_DMAC (3)
-// Root-Counter 0(internal)
-#define PS1_IRQ_RC0 (4)
-// Root-Counter 1(internal)
-#define PS1_IRQ_RC1 (5)
-// Root-Counter 2(internal)
-#define PS1_IRQ_RC2 (6)
-// SIO TX(internal)
-#define PS1_IRQ_SIO0 (7)
-// SIO RX(internal)
-#define PS1_IRQ_SIO1 (8)
-// SPU(external)
-#define PS1_IRQ_SPU (9)
-// PIO(external)
-#define PS1_IRQ_PIO (10)
-// SIO1(internal) - VERIFY THIS!
-//#define PS1_IRQ_SIO1    (11)
-
 // Bits for DMA CHCR(Channel Control) Registers
-#define PS1_CHCR_BIT0 (1 << 0)
-#define PS1_CHCR_BIT9 (1 << 9)
-#define PS1_CHCR_BIT10 (1 << 10)
-#define PS1_CHCR_BIT24 (1 << 24)
+// FIXME: properly define bits 0, 9, 10 and 24
+#define PS1_CHCR_BIT0   (1 << 0)
+#define PS1_CHCR_BIT9   (1 << 9)
+#define PS1_CHCR_BIT10  (1 << 10)
+#define PS1_CHCR_BIT24  (1 << 24)
 
 // Bits for GPU Status register
-#define PS1_GPU_IDLE (1 << 26)
-#define PS1_GPU_BIT28 (1 << 28)
-#define PS1_GPU_BIT29 (1 << 29)
-#define PS1_GPU_BIT30 (1 << 30)
-
-// DMA channels
-#define PS1_DMA_CH_MDEC_IN (0)
-#define PS1_DMA_CH_MDEC_OUT (1)
-#define PS1_DMA_CH_GPU (2)
-#define PS1_DMA_CH_CDROM (3)
-#define PS1_DMA_CH_SPU (4)
-#define PS1_DMA_CH_5 (5)
-#define PS1_DMA_CH_6 (6)
+// FIXME: properly define bits 28, 29 and 30
+#define PS1_GPU_IDLE    (1 << 26)
+#define PS1_GPU_BIT28   (1 << 28)
+#define PS1_GPU_BIT29   (1 << 29)
+#define PS1_GPU_BIT30   (1 << 30)
 
 #ifdef __cplusplus
 }
