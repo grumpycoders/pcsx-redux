@@ -59,6 +59,7 @@ SECTIONS {
         __init_array_start = .;
         KEEP (*(SORT(.init_array.*)))
         KEEP (*(.init_array))
+        KEEP (*(.ctors))
         . = ALIGN(4);
         __init_array_end = .;
 
@@ -67,6 +68,7 @@ SECTIONS {
         __fini_array_start = .;
         KEEP (*(.fini_array))
         KEEP (*(SORT(.fini_array.*)))
+        KEEP (*(.dtors))
         . = ALIGN(4);
         __fini_array_end = .;
 
