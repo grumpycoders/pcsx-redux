@@ -35,5 +35,6 @@ void sio1_init() {
 }
 
 void sio1_putc(uint8_t byte) {
+    while ((SIO1_STAT & 1) == 0);
     SIO1_DATA = byte;
 }
