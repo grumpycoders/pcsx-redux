@@ -182,7 +182,7 @@ bss_init_skip:
     li    $t0, 0xb88
     sw    $t0, RAM_SIZE
 
-    jal   main
+    jal   _ucsdk_start
 
 stop:
     b     stop

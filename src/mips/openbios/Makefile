@@ -9,6 +9,8 @@ kernel/vectors.s \
 main/main.c \
 \
 uC-sdk-glue/BoardConsole.c \
+uC-sdk-glue/BoardInit.c \
+uC-sdk-glue/init.c \
 \
 ../../../third_party/uC-sdk/libc/src/cxx-glue.c \
 ../../../third_party/uC-sdk/libc/src/errno.c \
