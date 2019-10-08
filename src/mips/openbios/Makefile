@@ -10,4 +10,6 @@ main/main.c \
 
 LDSCRIPT = psx-bios.ld
 
+CPPFLAGS = -DNOFLOATINGPOINT
+
 include ../common.mk
