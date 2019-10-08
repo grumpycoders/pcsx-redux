@@ -2,8 +2,9 @@ PREFIX = mipsel-linux-gnu
 
 CC = $(PREFIX)-gcc
 
-ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32 -ffunction-sections
-CPPFLAGS += -mno-gpopt -fomit-frame-pointer
+ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32
+ARCHFLAGS += -fno-stack-protector -nostdlib -ffreestanding
+CPPFLAGS += -mno-gpopt -fomit-frame-pointer -ffunction-sections
 CPPFLAGS += -fno-builtin
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I..

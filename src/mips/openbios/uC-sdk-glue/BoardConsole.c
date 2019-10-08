@@ -21,6 +21,7 @@
 #include "BoardConsole.h"
 
 void BoardConsoleInit() {
+    
 }
 
 void BoardConsolePuts(const char * str) {
