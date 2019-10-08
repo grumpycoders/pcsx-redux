@@ -31,6 +31,8 @@ MEMORY {
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
+STACK_SIZE      = 0x10000;
+
 __ram_top       = ORIGIN(ram) + LENGTH(ram);
 __sp            = __ram_top - 0x100;
 
@@ -39,6 +41,8 @@ __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
 __rom_data_len  = (__data_end - __data_start);
 __bss_len       = (__bss_end - __bss_start);
+
+__stack_start   = ORIGIN(ram) + LENGTH(ram) - STACK_SIZE;
 
 SECTIONS {
     __text_start = .;
@@ -92,6 +96,8 @@ SECTIONS {
 
     . = ALIGN(4);
     __bss_end = .;
+
+    __heap_start = .;
 
     __end = .;
 

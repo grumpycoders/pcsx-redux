@@ -17,6 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <devfs.h>
+#include <stdio.h>
+#include <fio.h>
+
 #include "common/hardware/cop0.h"
 #include "common/hardware/spu.h"
 #include "common/util/djbhash.h"
@@ -29,6 +33,12 @@ int main() {
     *((uint32_t*) 0x64) = 0x00;
     *((uint32_t*) 0x68) = 0xff;
     muteSpu();
+
+    register_devfs();
+    register_stdio_devices();
+
+    printf("OpenBIOS starting.\n");
+
     if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
         (*((void(**)()) 0x1f000080))();
     }
