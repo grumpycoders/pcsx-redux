@@ -17,23 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "common/hardware/hwregs.h"
+#include "common/hardware/sio1.h"
 
-#include "common/compiler/stdint.h"
+void sio1_init() {
+    // enable TX and RX, and nothing else
+    SIO1_CTRL = 5;
+    // 01001110
+    // Baudrate Reload Factor: MUL16 (2)
+    // Character length: 8 (3)
+    // Parity Disabled
+    // Parity Type: irrelevant
+    // Stop bit length: 1 (1)
+    //  --> 8N1
+    SIO1_MODE = 0x4e;
+    SIO1_BAUD = 2073600 / 115200;
+}
 
-#define HW_U8(x) (*(volatile uint8_t *)(x))
-#define HW_U16(x) (*(volatile uint16_t *)(x))
-#define HW_U32(x) (*(volatile uint32_t *)(x))
-#define HW_S8(x) (*(volatile int8_t *)(x))
-#define HW_S16(x) (*(volatile int16_t *)(x))
-#define HW_S32(x) (*(volatile int32_t *)(x))
-
-#define SPU_MVOL_L HW_U16(0x1f801d80)
-#define SPU_MVOL_R HW_U16(0x1f801d82)
-#define SPU_REVERB_L HW_U16(0x1f801d84)
-#define SPU_REVERB_R HW_U16(0x1f801d86)
-
-#define SIO1_DATA HW_U8(0x1f801050)
-#define SIO1_MODE HW_U16(0x1f801058)
-#define SIO1_CTRL HW_U16(0x1f80105a)
-#define SIO1_BAUD HW_U16(0x1f80105e)
+void sio1_putc(uint8_t byte) {
+    SIO1_DATA = byte;
+}

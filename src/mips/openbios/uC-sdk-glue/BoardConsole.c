@@ -20,14 +20,23 @@
 #include <stdio.h>
 #include "BoardConsole.h"
 
+#include "common/hardware/sio1.h"
+
 void BoardConsoleInit() {
-    
+    sio1_init();
 }
 
 void BoardConsolePuts(const char * str) {
+    char c;
+    while ((c = *str++)) sio1_putc(c);
 }
 
 void BoardConsolePutc(int c) {
+    sio1_putc(c);
+}
+
+static void xprintfCallback(const char * str, int strsize, void * opaque0) {
+    while (strsize--) sio1_putc(*str++);
 }
 
 void BoardConsolePrintf(const char * fmt, ...) {
@@ -35,11 +44,6 @@ void BoardConsolePrintf(const char * fmt, ...) {
     va_start(ap, fmt);
     BoardConsoleVPrintf(fmt, ap);
     va_end(ap);
-}
-
-static void xprintfCallback(const char * str, int strsize, void * opaque0) {
-    while (strsize--)
-        BoardConsolePutc(*str++);
 }
 
 void BoardConsoleVPrintf(const char * fmt, va_list ap) {

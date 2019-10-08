@@ -2,6 +2,7 @@ TARGET = openbios
 
 SRCS = \
 ../common/hardware/cop0.s \
+../common/hardware/sio1.c \
 boot/boot.s \
 kernel/flushcache.s \
 kernel/handlers.c \
