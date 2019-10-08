@@ -48,8 +48,28 @@ SECTIONS {
     __text_start = .;
     .text : {
         *(.boot)
+
         *(.init)
+        . = ALIGN(4);
+        __preinit_array_start = .;
+        KEEP (*(SORT(.preinit_array.*)))
+        KEEP (*(.preinit_array))
+        . = ALIGN(4);
+        __preinit_array_end = .;
+        __init_array_start = .;
+        KEEP (*(SORT(.init_array.*)))
+        KEEP (*(.init_array))
+        . = ALIGN(4);
+        __init_array_end = .;
+
         KEEP (*(SORT_NONE(.fini)))
+        . = ALIGN(4);
+        __fini_array_start = .;
+        KEEP (*(.fini_array))
+        KEEP (*(SORT(.fini_array.*)))
+        . = ALIGN(4);
+        __fini_array_end = .;
+
         *(.text.unlikely .text.*_unlikely .text.unlikely.*)
         *(.text.exit .text.exit.*)
         *(.text.startup .text.startup.*)
@@ -58,8 +78,6 @@ SECTIONS {
         . = ALIGN(4);
     } > rom
 
-    .fini : {
-    } > rom
     . = ALIGN(4);
     __text_end = .;
 
