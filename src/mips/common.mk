@@ -12,8 +12,8 @@ CPPFLAGS += -I..
 LDFLAGS = -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
 
-LDFLAGS += -g -O3 -flto
-CPPFLAGS += -g -O3 -flto
+LDFLAGS += -g -Os
+CPPFLAGS += -g -Os
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
