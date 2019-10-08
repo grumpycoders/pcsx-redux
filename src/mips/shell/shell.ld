@@ -24,7 +24,7 @@ EXTERN(_start)
 ENTRY(_start)
 
 MEMORY {
-    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
+    ram (rwx)   : ORIGIN = 0x80030000, LENGTH = 2M - 0x30000
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
