@@ -1,14 +1,15 @@
-TARGET = tinyload.psx
+TARGET = tinyload.bin
 TLOAD_ADDR = 0x80030000
 SRCS = \
 	crt0/crt0.S \
 	src/main.c \
-	src/syscalls.S
-
+	src/exec.S \
+	src/flushcache.s
+	
 LIBS =
 
-LDSCRIPT = ../psx-exe.ld
-CPPFLAGS := -I../ps1sdk/include -Isrc -Iinclude
+LDSCRIPT = ../shell/shell.ld
+CPPFLAGS := -Isrc -Iinclude
 LDFLAGS :=
 
 include ../common.mk
