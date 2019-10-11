@@ -31,6 +31,8 @@ MEMORY {
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
+STACK_SIZE      = 0x10000;
+
 __ram_top       = ORIGIN(ram) + LENGTH(ram);
 __sp            = __ram_top - 0x100;
 
@@ -40,12 +42,36 @@ __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 __rom_data_len  = (__data_end - __data_start);
 __bss_len       = (__bss_end - __bss_start);
 
+__stack_start   = ORIGIN(ram) + LENGTH(ram) - STACK_SIZE;
+
 SECTIONS {
     __text_start = .;
     .text : {
         *(.boot)
+
         *(.init)
+        . = ALIGN(4);
+        __preinit_array_start = .;
+        KEEP (*(SORT(.preinit_array.*)))
+        KEEP (*(.preinit_array))
+        . = ALIGN(4);
+        __preinit_array_end = .;
+        __init_array_start = .;
+        KEEP (*(SORT(.init_array.*)))
+        KEEP (*(.init_array))
+        KEEP (*(.ctors))
+        . = ALIGN(4);
+        __init_array_end = .;
+
         KEEP (*(SORT_NONE(.fini)))
+        . = ALIGN(4);
+        __fini_array_start = .;
+        KEEP (*(.fini_array))
+        KEEP (*(SORT(.fini_array.*)))
+        KEEP (*(.dtors))
+        . = ALIGN(4);
+        __fini_array_end = .;
+
         *(.text.unlikely .text.*_unlikely .text.unlikely.*)
         *(.text.exit .text.exit.*)
         *(.text.startup .text.startup.*)
@@ -54,8 +80,6 @@ SECTIONS {
         . = ALIGN(4);
     } > rom
 
-    .fini : {
-    } > rom
     . = ALIGN(4);
     __text_end = .;
 
@@ -92,6 +116,8 @@ SECTIONS {
 
     . = ALIGN(4);
     __bss_end = .;
+
+    __heap_start = .;
 
     __end = .;
 

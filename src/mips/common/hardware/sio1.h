@@ -17,49 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <devfs.h>
-#include <stdio.h>
-#include <fio.h>
+#pragma once
 
-#include "common/hardware/cop0.h"
-#include "common/hardware/sio1.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
-#include "openbios/kernel/handlers.h"
+#include <stdint.h>
 
-static void start(const char* systemPath, const char* exePath);
-
-int main() {
-    *((uint32_t*) 0x60) = 0x02;
-    *((uint32_t*) 0x64) = 0x00;
-    *((uint32_t*) 0x68) = 0xff;
-    muteSpu();
-
-    sio1_init();
-    register_devfs();
-    register_stdio_devices();
-
-    printf("OpenBIOS starting.\r\n");
-
-    printf("Checking for EXP1...\r\n");
-
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        void(*ptr)() = *(void(**)()) 0x1f000080;
-        printf("Signature match, jumping to %p\r\n", ptr);
-        (*ptr)();
-    } else {
-        printf("Signature not matching - skipping EXP1\r\n");
-    }
-
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-
-    return 0;
-}
-
-
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
-
-    installKernelHandlers();
-}
+void sio1_init();
+void sio1_putc(uint8_t byte);
