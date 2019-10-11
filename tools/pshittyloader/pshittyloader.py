@@ -12,7 +12,6 @@ sys.stdout.write("\npshittyloader.py\n\n");
 
 if args < 2:
         sys.stdout.write("   usage :  pshittyload.py DEV FILE\n\n")
-        sys.exit()
 
 else:
         devPath = sys.argv[1]
@@ -20,9 +19,6 @@ else:
 
         filesize = os.path.getsize(filePath)
 
-if ((filesize % 2048) != 0):
-        sys.stderr.write("ERROR: executable file size must be a multiple of 2048 bytes\n")
-else:
         nchunks = int(filesize / 2048)
         inputfile = open(filePath, 'rb')
 
@@ -31,6 +27,8 @@ else:
         sys.stdout.write("Executable:\n")
         sys.stdout.write("  Name:           {}\n".format(filePath))
         sys.stdout.write("  Size(bytes):    {}\n".format(filesize))
+
+        ser = serial.Serial(devPath, bps, writeTimeout = 1)
 
         sys.stdout.write('\n- Waiting for remote device...\n')
 
@@ -50,7 +48,7 @@ else:
             d = inputfile.read(2048)
             ser.write(d)
             sys.stdout.write('- [%s%s]\r' % ((int((100/nchunks) * i)), "%"))
-            sys.stdout.flush()            
+            sys.stdout.flush()
             i += 1
 
         sys.stdout.write('\n- Done!\n')
