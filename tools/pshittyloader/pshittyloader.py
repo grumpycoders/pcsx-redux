@@ -10,7 +10,7 @@ args = int(len(sys.argv))
 
 sys.stdout.write("\npshittyloader.py\n\n");		
 
-if args < 4:
+if args < 2:
 	sys.stdout.write("   usage :  pshittyload.py DEV FILE\n\n")
 	
 else:
