@@ -29,16 +29,17 @@ else:
         sys.stdout.write("  Size(bytes):    {}\n".format(filesize))
 
         ser = serial.Serial(devPath, bps, writeTimeout = 1)
-
         sys.stdout.write('\n- Waiting for remote device...\n')
 
         # send 'P', 'L' and expect '+' in response.
-        b = '!'
-        while b != '+':
-            ser.write('P')
-            ser.write('L')
+        b = b'!'
+        while b != b'+':
+            ser.flushInput()
+            ser.flushOutput()
+            ser.write(b'P')
+            ser.write(b'L')
             b = ser.read()
-            if b != '+':
+            if b != b'+':
                 sys.stdout.write("Bad sync response: {}\n".format(b))
 
         sys.stdout.write('- Sending File...\n')
