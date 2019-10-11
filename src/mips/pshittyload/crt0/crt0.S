@@ -28,37 +28,10 @@
     .global main
     .global _start
     .type _start, @function
+.ent _start
 _start:
-                la      t0, __bss_start
-                la      t1, __bss_end
-                addiu   t1, t1, 3
-                srl     t1, t1, 2
-                sll     t1, t1, 2
-                beq     t0, t1, _zero_bss_done
-                nop
-
-_zero_bss:
-				sw      zero, 0(t0)
-                addiu   t0, t0, 4
-                bne     t0, t1, _zero_bss
-                nop
-
-_zero_bss_done:
-/*                la      gp, _gp*/
                 li      a0, 0
                 j       main
                 li      a1, 0
-
-/*
 .end _start
-.data
-
-.bss
-*/
-                .extern __bss_start
-                .extern __bss_end
-                .extern _gp
-/* int _main(int argc, const char **argv, const char **envp) */
-                .extern main
-                
 .set pop

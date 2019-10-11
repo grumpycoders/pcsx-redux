@@ -17,165 +17,148 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <fileio.h>
-#include <ps1hwregs.h>
-#include <ps1sdk.h>
-#include <serialio.h>
-#include <stdio.h>
-#include "common/hardware/cop0.h"
-#include "ftfifo.h"
+#include "common/compiler/stdint.h"
+#include "serialio.h"
+#include "exec.h"
 
-// switch between implementations
-#if 1
-#define COMMS_INIT() (0)
-#define COMMS_PEEK8 FT_peek8
-#define COMMS_PEEK16 FT_peek16
-#define COMMS_PEEK32 FT_peek32
+extern void flushCache(void);
 
-#define COMMS_POKE8(__d, __timeout) FT_poke8(__d, __timeout)
-#define COMMS_POKE16(__d, __timeout) FT_poke16(__d, __timeout)
-#define COMMS_POKE32(__d, __timeout) FT_poke32(__d, __timeout)
+// un-comment this to use some error recovery stuff.
+//#define ENHANCED_ERROR
+
+// un-comment this to use RTS/CTS flow control
+//#define USE_RTSCTS
+
+#define _BIOS_Buffer ((void *) 0xA000B080) 
+
+#ifdef USE_RTSCTS
+#define RTR_ON() { *R_PS1_SIO1_CTRL |= SIO_CTRL_RTR_EN;} }
+#define RTR_OFF() { *R_PS1_SIO1_CTRL &= ~(SIO_CTRL_RTR_EN); }
 #else
-#define COMMS_INIT() sio_init(115200)
+#define RTR_ON(){}
+#define RTR_OFF(){}
 #endif
 
-/*
- * pshitty protocol:
- *
- * host writes 'P','S' then reads a byte from comms
- * ps reads 1 byte, if it's not 'P', discard it. and try gain.
- * ps reads 1 byte, if it's not 'S', writes '!'(NAK) then returns to waiting for 'P'
- * ps writes '+'(ACK)
- *
- * Host writes 32-bit load address(little endian)
- * Host writes 32-bit file size(little endian)
- * Reads 1 byte response from ps
- * ps reads load address and file size.
- * if load address + (file size - 2048) is invalid, ps writes '!' NAK and returns to syncing
- * ps writes '+'(ACK)
- * If host receives a NAK, returns to start of protocol.
- * Host writes the whole file(file size number bytes)
- * Host reads 1 byte, fails if not received after a resonable time(maybe 5 seconds)
- * ps reads 2048 bytes into exehdr buffer.
- * ps reads (file size - 2048) bytes to load address
- * ps writes ACK
- * ps calls Exec(&(exehdr->exec), 1, 0);
- * If host read a NAK, success! Otherwise failure.
- * ps writes NAK(this should never happen unless Exec fails or the main() of the exe returns.
- * ps returns to syncing
- *
- */
+#define SIO1_BAUD_DIV (2073600)
+#define BAUD_RATE (115200)
 
-// wait for remote to send 'P', 'S'
-// if the second char is not 'S', responds with a '!'(NAK) before continuing to wait.
-// otherwise sends a '+'(ACK) and returns
-void pshitty_sync(void) {
-    int res = 0;
-    while (1) {
-        uint8_t d = COMMS_PEEK8(0, &res);
-        if (res != 0) continue;
-        if (d != 'P') {
-            continue;
-        }
+#define SIO1_RX_Ready() (((*R_PS1_SIO1_STAT) & SIO_STAT_RX_RDY) == 0)
 
-        d = COMMS_PEEK8(0, &res);
-        if (res != 0) continue;
-        if (d != 'S') {
-            COMMS_POKE8('!', 0);  // NAK
-        } else {
-            COMMS_POKE8('+', 0);  // ACK
-            return;
+#define SIO1_TX_Ready() (((*R_PS1_SIO1_STAT) & (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY)) == (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY))
+
+// true if RX Overrun, Frame Error or Parity Error occured
+// otherwise false
+#define SIO1_Err() (((*R_PS1_SIO1_STAT) & (SIO_STAT_RX_OVRN_ERR | SIO_STAT_FRAME_ERR | SIO_STAT_PARITY_ERR)) != 0)
+
+// these are the default values for the corresponding registers
+static const uint16_t
+    // init with TX and RX enabled.
+    def_ctrl =  (SIO_CTRL_RX_EN | SIO_CTRL_TX_EN), 
+    /* 8bit, no-parity, 1 stop-bit */
+    def_mode = (SIO_MODE_CHLEN_8 | SIO_MODE_P_NONE | SIO_MODE_SB_1 | SIO_MODE_BR_16),
+    def_baud = (2073600/BAUD_RATE);
+
+static inline void tl_setup(uint32_t ctrl, uint32_t mode, uint32_t baud)
+{
+    *R_PS1_SIO1_CTRL = ctrl;
+    *R_PS1_SIO1_MODE = mode;
+    *R_PS1_SIO1_BAUD = baud;
+}
+
+// sets the SIO1 registers to their default values
+static inline void tl_init(void) { tl_setup(def_ctrl, def_mode, def_baud); }
+
+// get 1 byte from SIO1 RX FIFO
+static inline uint8_t tl_get(void)
+{
+    RTR_ON();
+    while(!SIO1_RX_Ready());
+    uint8_t d = *R_PS1_SIO1_DATA;
+    RTR_OFF();
+    return d;
+}
+
+void sio_reset(void) { *R_PS1_SIO1_CTRL = SIO_CTRL_RESET_INT | SIO_CTRL_RESET_ERR; }
+
+// this needs more investigation.
+void sio_reset_driver(void) { tl_setup(SIO_CTRL_RESET_INT, 0x0000, 0x0000); }
+
+// I think this is wrong and should be the same as sio_reset().
+//void sio_clear_error(void) { *R_PS1_SIO1_CTRL = (SIO_CTRL_RESET_ERR); }
+
+static inline void tl_put(uint8_t d)
+{
+#ifdef ENHANCED_ERROR
+    volatile uint8_t x;
+
+    if (SIO1_Err()) {
+
+        // I guess this is to preserve the data that's currently in the TX FIFO?
+        x = *R_PS1_SIO1_DATA;
+
+        while (SIO1_Err()) {
+            // reset the interrupt and error
+            sio_reset();
+
+            delay_ms(5);
+
+            // restore the TX FIFO?
+            *R_PS1_SIO1_DATA = x;
+
+            // restore mode and ctrl
+            *R_PS1_SIO1_MODE = (def_mode);
+            *R_PS1_SIO1_CTRL = (def_ctrl);
         }
     }
+#endif
+    while(!SIO1_TX_Ready());
+//    while (((*R_PS1_SIO1_STAT) & (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY)) != (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY));
+
+    // push the byte into the TX FIFO
+    *R_PS1_SIO1_DATA = d;
 }
 
-void pshitty_loader(void) {
-    uint8_t buf[2048];
-    int err = 0;
-    uint32_t load_addr, load_len;
-    EXE_Header *exehdr = (EXE_Header *)buf;
+static inline uint16_t tl_get16(void) { return (tl_get() | (tl_get() << 8)); }
+static inline uint32_t tl_get32(void) { return (tl_get16() | (tl_get16() << 16)); }
 
-    while (1) {
-        int rv = -1;
-        int res = 0;
+static inline uint16_t tl_put16(uint16_t d) { tl_put(d & 0xFF); tl_put(d >> 8); }
+static inline uint16_t tl_put32(uint32_t d) { tl_put16(d & 0xFFFF); tl_put(d >> 16); }
 
-        pshitty_sync();
+int TinyLoad(EXE_Header *header)
+{
+    int i;
+    
+    // load the 2048-byte header of the EXE into "header" and the "text" of the into
+    //  the "text_addr" specified by the header.
+    for(i = 0; i < 2048; i++) ((uint8_t *) header)[i] = tl_get();
+    for(i = 0; i < header->exec.text_size; i++) ((uint8_t *) header->exec.text_addr)[i] = tl_get();
 
-        load_addr = COMMS_PEEK32(1000, &res);
-        if (res != 0) goto error;
+    flushCache();
+    return 1;
+}
 
-        load_len = COMMS_PEEK32(1000, &res);
-        if (res != 0) goto error;
+void main(void)
+{
+    int rv = 1;
+    uint8_t d;
+    EXE_Header *header = (EXE_Header *) _BIOS_Buffer;
+    uint32_t stack_addr = 0x801FFF00, stack_size = (0x00200000 - 0x1100);
 
-        if (load_len < sizeof(buf)) {
-            goto error;
-        }
+    while(rv != 0)
+    {
+        tl_init(); // (re-) initialize SIO1
 
-        for (int i = 0; i < sizeof(buf); i++) {
-            buf[i] = COMMS_PEEK8(1000, &res);
-            if (res != 0) break;
-        }
-        if (res != 0) goto error;
-
-        load_len -= sizeof(buf);
-
-        for (int i = 0; i < load_len; i++) {
-            ((uint8_t *)load_addr)[i] = COMMS_PEEK8(1000, &res);
-            if (res != 0) break;
-        }
-        if (res != 0) goto error;
-
-        exehdr->exec.stack_addr = 0x801FFF00;
-        exehdr->exec.stack_size = 0;
-        EnterCriticalSection();
-        rv = Exec(&(exehdr->exec), 1, 0);
-
-    error:
-        COMMS_POKE32(rv, 10000);
+        // loop until we get 'P', 'L'
+        // when we get a 'P' and another character, we send a response char:
+        //  '+': if we got an 'L'
+        //  '-': if we got something else
+        do
+        {
+            do { d = tl_get(); } while (d != 'P');
+            tl_put((d = tl_get()) == 'L' ? '+' : '-' );
+        } while(d != 'L');
+        
+        TinyLoad(header);
+        rv = Exec2(&header->exec, stack_addr, stack_size);
     }
-}
-
-//~ void load_exec_this(void *dest, void *src, int len, void *entry)
-//~ {
-//~ memcpy(dest, src, len);
-//~ FlushCache();
-//~ if(entry == NULL) entry = dest;
-
-//~ ((void) entry)();
-//~ }
-
-//~ load_exec_this((void *) 0x80100000, &fifo_echo_shell_bin, sizeof(fifo_echo_shell_bin), 0);
-
-// extern long _sio_control(unsigned long cmd, unsigned long arg, unsigned long param);
-
-//~ int Sio1Callback (void (*func)())
-//~ {
-//~ return InterruptCallback(8, func);
-//~ }
-
-// NOTE: This will remove whatever "tty" device is installed and
-// install the kernel "dummy" console driver.
-int DelSIO(void) {
-    close(stdin);
-    close(stdout);
-    DelDevice("tty");
-
-    //    sio_reset();
-
-    AddDummyConsoleDevice();
-
-    if (open("tty00:", O_RDONLY) != stdin) return 1;
-    if (open("tty00:", O_WRONLY) != stdout) return 1;
-
-    return 0;
-}
-
-int main(void) {
-    //    DelSIO();  // removes the "tty" device
-
-    COMMS_INIT();
-
-    pshitty_loader();
-
-    return 0;
 }
