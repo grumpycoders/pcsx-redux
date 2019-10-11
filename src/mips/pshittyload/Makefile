@@ -4,8 +4,9 @@ SRCS = \
 	crt0/crt0.S \
 	src/main.c \
 	src/exec.S \
-	src/flushcache.s
-	
+	src/flushcache.s \
+	src/syscalls.S
+
 LIBS =
 
 LDSCRIPT = ../shell/shell.ld
