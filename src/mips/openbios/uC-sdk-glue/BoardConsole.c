@@ -17,26 +17,27 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <stddef.h>
 #include <stdio.h>
 #include "BoardConsole.h"
 
-#include "common/hardware/sio1.h"
+static volatile char * portA = NULL;
 
 void BoardConsoleInit() {
-    sio1_init();
+    portA = (volatile char*) 0x1f000000;
 }
 
 void BoardConsolePuts(const char * str) {
     char c;
-    while ((c = *str++)) sio1_putc(c);
+    while ((c = *str++)) *portA = c;
 }
 
 void BoardConsolePutc(int c) {
-    sio1_putc(c);
+    *portA = c;
 }
 
 static void xprintfCallback(const char * str, int strsize, void * opaque0) {
-    while (strsize--) sio1_putc(*str++);
+    while (strsize--) *portA = *str++;
 }
 
 void BoardConsolePrintf(const char * fmt, ...) {
