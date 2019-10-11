@@ -46,6 +46,7 @@ def uploadexe():
         sys.stdout.write("\nSpeed      : {}bps\n".format(bps))
         sys.stdout.write("EXE Name   : {}\n".format(filename))
         sys.stdout.write("EXE Size   : {} bytes\n\n".format(filesize))
+        ser = serial.Serial(serialport,bps,writeTimeout = 1)
         cont = 'y'
         if cont != 'y':
                 quit()
