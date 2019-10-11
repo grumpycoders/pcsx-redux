@@ -21,7 +21,8 @@
 #include "serialio.h"
 #include "exec.h"
 
-extern void flushCache(void);
+void flushCache(void);
+int printf(const char * fmt, ...);
 
 // un-comment this to use some error recovery stuff.
 //#define ENHANCED_ERROR
@@ -42,7 +43,7 @@ extern void flushCache(void);
 #define SIO1_BAUD_DIV (2073600)
 #define BAUD_RATE (115200)
 
-#define SIO1_RX_Ready() (((*R_PS1_SIO1_STAT) & SIO_STAT_RX_RDY) == 0)
+#define SIO1_RX_Ready() (((*R_PS1_SIO1_STAT) & SIO_STAT_RX_RDY) != 0)
 
 #define SIO1_TX_Ready() (((*R_PS1_SIO1_STAT) & (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY)) == (SIO_STAT_TX_EMPTY | SIO_STAT_TX_RDY))
 
@@ -139,9 +140,13 @@ int TinyLoad(EXE_Header *header)
 
 void main(void)
 {
+    printf("pshittyload starting...\r\n");
     int rv = 1;
     uint8_t d;
+    uint32_t oldStat = 0xffffffff;
     EXE_Header *header = (EXE_Header *) _BIOS_Buffer;
+
+    printf("Starting our busy loop.\r\n");
 
     while(rv != 0)
     {
@@ -153,10 +158,13 @@ void main(void)
         //  '-': if we got something else
         do
         {
+            uint16_t newStat = *R_PS1_SIO1_STAT;
+            if (newStat != oldStat) printf("STAT=%04x\r\n", newStat);
+            oldStat = newStat;
             do { d = tl_get(); } while (d != 'P');
             tl_put((d = tl_get()) == 'L' ? '+' : '-' );
         } while(d != 'L');
-        
+
         TinyLoad(header);
         rv = Exec2(&header->exec, 0, 0);
     }
