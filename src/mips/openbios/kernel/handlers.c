@@ -17,10 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <stdarg.h>
+#include <stdio.h>
+
 #include "osdebug.h"
 
 #include "openbios/kernel/handlers.h"
 #include "common/compiler/stdint.h"
+
+static int printf_impl(const char * fmt, ...) {
+    int r;
+    va_list ap;
+    va_start(ap, fmt);
+    r = vprintf(fmt, ap);
+    va_end(ap);
+
+    return r;
+}
 
 void unimplemented();
 void breakVector();
@@ -45,7 +58,7 @@ __attribute__((section(".a0table"))) void* A0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented,  // 30
     unimplemented, unimplemented, unimplemented, unimplemented,  // 34
     unimplemented, unimplemented, unimplemented, unimplemented,  // 38
-    unimplemented, unimplemented, unimplemented, unimplemented,  // 3c
+    unimplemented, unimplemented, unimplemented, printf_impl  ,  // 3c
     unimplemented, unimplemented, unimplemented, unimplemented,  // 40
     unimplemented, unimplemented, unimplemented, unimplemented,  // 44
     unimplemented, unimplemented, unimplemented, unimplemented,  // 48
@@ -167,4 +180,5 @@ void breakHandler(InterruptData* data) {}
 void interruptHandler(InterruptData* data) {
     osDbgPrintf("***Exception***\r\n");
     printInterruptData(data);
+    while(1);
 }
