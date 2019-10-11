@@ -17,48 +17,24 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <devfs.h>
-#include <stdio.h>
-#include <fio.h>
-
-#include "common/hardware/cop0.h"
+#include "common/hardware/hwregs.h"
 #include "common/hardware/sio1.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
-#include "openbios/kernel/handlers.h"
 
-static void start(const char* systemPath, const char* exePath);
-
-int main() {
-    *((uint32_t*)0x60) = 0x02;
-    *((uint32_t*)0x64) = 0x00;
-    *((uint32_t*)0x68) = 0xff;
-    muteSpu();
-
-    sio1_init();
-    register_devfs();
-    register_stdio_devices();
-
-    printf("OpenBIOS starting.\r\n");
-
-    printf("Checking for EXP1...\r\n");
-
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        void(*ptr)() = *(void(**)()) 0x1f000080;
-        printf("Signature match, jumping to %p\r\n", ptr);
-        (*ptr)();
-    } else {
-        printf("Signature not matching - skipping EXP1\r\n");
-    }
-
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-
-    return 0;
+void sio1_init() {
+    // enable TX and RX, and nothing else
+    SIO1_CTRL = 5;
+    // 01001110
+    // Baudrate Reload Factor: MUL16 (2)
+    // Character length: 8 (3)
+    // Parity Disabled
+    // Parity Type: irrelevant
+    // Stop bit length: 1 (1)
+    //  --> 8N1
+    SIO1_MODE = 0x4e;
+    SIO1_BAUD = 2073600 / 115200;
 }
 
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
-
-    installKernelHandlers();
+void sio1_putc(uint8_t byte) {
+    while ((SIO1_STAT & 1) == 0);
+    SIO1_DATA = byte;
 }

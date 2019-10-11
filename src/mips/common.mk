@@ -10,9 +10,9 @@ endif
 
 TARGETBASE = $(basename $(TARGET))
 
-ARCHFLAGS = -march=mips1 -mabi=32 -EL -msoft-float -Wa,-msoft-float -fno-pic -mno-shared -mno-abicalls
-ARCHFLAGS += -mno-gpopt -fomit-frame-pointer -nostartfiles -nostdinc -fno-builtin -fno-pic -fno-stack-protector
-
+ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32
+ARCHFLAGS += -fno-stack-protector -nostdlib -ffreestanding
+CPPFLAGS += -mno-gpopt -fomit-frame-pointer -ffunction-sections
 CPPFLAGS += -fno-builtin
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I..
@@ -20,8 +20,8 @@ CPPFLAGS += -I..
 LDFLAGS += -Wl,-Map=$(TARGETBASE).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS) -L../ps1sdk
 
-LDFLAGS += -g -O3 -flto
-CPPFLAGS += -g -O3 -flto
+LDFLAGS += -g -Os
+CPPFLAGS += -g -Os
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 

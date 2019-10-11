@@ -17,48 +17,36 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <devfs.h>
+#include <stddef.h>
 #include <stdio.h>
-#include <fio.h>
+#include "BoardConsole.h"
 
-#include "common/hardware/cop0.h"
-#include "common/hardware/sio1.h"
-#include "common/hardware/spu.h"
-#include "common/util/djbhash.h"
-#include "openbios/kernel/handlers.h"
+static volatile char * portA = NULL;
 
-static void start(const char* systemPath, const char* exePath);
-
-int main() {
-    *((uint32_t*)0x60) = 0x02;
-    *((uint32_t*)0x64) = 0x00;
-    *((uint32_t*)0x68) = 0xff;
-    muteSpu();
-
-    sio1_init();
-    register_devfs();
-    register_stdio_devices();
-
-    printf("OpenBIOS starting.\r\n");
-
-    printf("Checking for EXP1...\r\n");
-
-    if (djbHash((const char *) 0x1f000084, 44) == 0xf0772daf) {
-        void(*ptr)() = *(void(**)()) 0x1f000080;
-        printf("Signature match, jumping to %p\r\n", ptr);
-        (*ptr)();
-    } else {
-        printf("Signature not matching - skipping EXP1\r\n");
-    }
-
-    start("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-
-    return 0;
+void BoardConsoleInit() {
+    portA = (volatile char*) 0x1f000000;
 }
 
-void start(const char* systemPath, const char* exePath) {
-    writeCOP0Status(readCOP0Status() & 0xfffffbfe);
-    muteSpu();
+void BoardConsolePuts(const char * str) {
+    char c;
+    while ((c = *str++)) *portA = c;
+}
 
-    installKernelHandlers();
+void BoardConsolePutc(int c) {
+    *portA = c;
+}
+
+static void xprintfCallback(const char * str, int strsize, void * opaque0) {
+    while (strsize--) *portA = *str++;
+}
+
+void BoardConsolePrintf(const char * fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    BoardConsoleVPrintf(fmt, ap);
+    va_end(ap);
+}
+
+void BoardConsoleVPrintf(const char * fmt, va_list ap) {
+    vxprintf(xprintfCallback, NULL, fmt, ap);
 }

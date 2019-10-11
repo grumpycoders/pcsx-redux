@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "osdebug.h"
+
 #include "openbios/kernel/handlers.h"
 #include "common/compiler/stdint.h"
 
@@ -147,6 +149,22 @@ typedef struct {
     uint32_t EPC;
 } InterruptData;
 
+static void printInterruptData(InterruptData* data) {
+    osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", data->EPC, data->SR, data->Cause);
+    osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", data->GPR.r[ 0], data->GPR.r[ 1], data->GPR.r[ 2], data->GPR.r[ 3]);
+    osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", data->GPR.r[ 4], data->GPR.r[ 5], data->GPR.r[ 6], data->GPR.r[ 7]);
+    osDbgPrintf("t0 = %p - t1 = %p - t2 = %p - t3 = %p\r\n", data->GPR.r[ 8], data->GPR.r[ 9], data->GPR.r[10], data->GPR.r[11]);
+    osDbgPrintf("t4 = %p - t5 = %p - t6 = %p - t7 = %p\r\n", data->GPR.r[12], data->GPR.r[13], data->GPR.r[14], data->GPR.r[15]);
+    osDbgPrintf("s0 = %p - s1 = %p - s2 = %p - s3 = %p\r\n", data->GPR.r[16], data->GPR.r[17], data->GPR.r[18], data->GPR.r[19]);
+    osDbgPrintf("s4 = %p - s5 = %p - s6 = %p - s7 = %p\r\n", data->GPR.r[20], data->GPR.r[21], data->GPR.r[22], data->GPR.r[23]);
+    osDbgPrintf("t8 = %p - t9 = %p - k0 = %p - k1 = %p\r\n", data->GPR.r[24], data->GPR.r[25], data->GPR.r[26], data->GPR.r[27]);
+    osDbgPrintf("gp = %p - sp = %p - s8 = %p - ra = %p\r\n", data->GPR.r[28], data->GPR.r[29], data->GPR.r[30], data->GPR.r[31]);
+    osDbgPrintf("hi = %p - lo = %p\r\n", data->GPR.r[32], data->GPR.r[33]);
+}
+
 void breakHandler(InterruptData* data) {}
 
-void interruptHandler(InterruptData* data) {}
+void interruptHandler(InterruptData* data) {
+    osDbgPrintf("***Exception***\r\n");
+    printInterruptData(data);
+}
