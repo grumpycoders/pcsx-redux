@@ -173,6 +173,67 @@ bss_init:
     bne   $t0, $t1, bss_init
 
 bss_init_skip:
+    /* Displays the following:
+
+      **********
+      0123456789
+      **********
+
+    */
+    li    $t3, 42
+    lui   $t1, 0x1f00
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    li    $t0, 13
+    sb    $t0, 0($t1)
+    li    $t0, 10
+    sb    $t0, 0($t1)
+    li    $t0, '0'
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    addiu $t0, 1
+    sb    $t0, 0($t1)
+    li    $t0, 13
+    sb    $t0, 0($t1)
+    li    $t0, 10
+    sb    $t0, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    sb    $t3, 0($t1)
+    li    $t0, 13
+    sb    $t0, 0($t1)
+    li    $t0, 10
+    sb    $t0, 0($t1)
 
     /* technically have to set $gp, but we are not using it, so, not */
     la    $sp, __sp
