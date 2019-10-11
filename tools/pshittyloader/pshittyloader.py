@@ -35,10 +35,10 @@ else:
         # send 'P', 'L' and expect '+' in response.
         b = '!'
         while b != '+':
-            ser.write('P')
-            ser.write('L')
+            ser.write('P'.encode())
+            ser.write('L'.encode())
             b = ser.read()
-            if b != '+':
+            if b.decode() != '+':
                 sys.stdout.write("Bad sync response: {}\n".format(b))
 
         sys.stdout.write('- Sending File...\n')
