@@ -48,7 +48,7 @@ typedef struct st_EXE_Header {
     uint8_t __pad[1912];      // 0x88-0x7FF
 } EXE_Header;
 
-int Exec2(ExecInfo* exec, uint32_t stack_addr, uint32_t stack_size);
+int Exec2(ExecInfo* exec, uint32_t arg0, uint32_t arg1);
 
 #ifdef __cplusplus
 }

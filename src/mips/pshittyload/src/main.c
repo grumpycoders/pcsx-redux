@@ -142,7 +142,6 @@ void main(void)
     int rv = 1;
     uint8_t d;
     EXE_Header *header = (EXE_Header *) _BIOS_Buffer;
-    uint32_t stack_addr = 0x801FFF00, stack_size = (0x00200000 - 0x1100);
 
     while(rv != 0)
     {
@@ -159,6 +158,6 @@ void main(void)
         } while(d != 'L');
         
         TinyLoad(header);
-        rv = Exec2(&header->exec, stack_addr, stack_size);
+        rv = Exec2(&header->exec, 0, 0);
     }
 }
