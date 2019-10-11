@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-#define EV_DESC_MASK 0xFF000000
+enum { EV_DESC_MASK = 0xFF000000 };
 
 enum {
     EV_DESC_HW = 0xF0000000,
@@ -111,29 +111,18 @@ enum {
     TASK_STAT_ACTIVE = 0x4000,  // active
 };
 
-typedef struct st_TableInfo {
-    void* buf;
-    int size;
-} TableInfo;
-
-struct TCBH {
-    struct TCB* entry; /* NULL */
-    uint32_t flag;
-};
+/* Table Info */
+// alias "struct ToT"
+/* sizeof() == 0x08(8) */
+typedef struct TableInfo_st {
+    uint32_t *head;
+    int32_t size;
+} TableInfo_t;
 
 typedef struct st_Queue {
     void* head;
     void* tail;
 } Queue;
-
-/* Interrupt Control Block(IntrCB) */
-/* sizeof() == 0x10(16) */
-typedef struct st_IntrCB {
-    struct st_IntrCB* next;  // 0x00
-    void* func1;             // 0x04 - called if "func0" returns non-zero.  Can be NULL.
-    void* func0;             // 0x08 - called first.  Should return 0 if "func1" should be called.
-    uint32_t __pad;          // 0x0C
-} IntrCB;
 
 // sizeof() == 0x30(48)
 typedef struct st_EntryInt {
@@ -151,76 +140,97 @@ typedef struct st_EntryInt {
     uint32_t r_gp;  // 0x2C
 } EntryInt;
 
+// sizeof() == 0xA0(160)
+typedef struct IntrHandlerRegFrame_st
+{
+    uint32_t r_zero; // 0x00
+    uint32_t r_at; // 0x04
+    uint32_t r_v0; // 0x08
+    uint32_t r_v1; // 0x0C
+
+    uint32_t r_a0; // 0x10
+    uint32_t r_a1; // 0x14
+    uint32_t r_a2; // 0x18
+    uint32_t r_a3; // 0x1C
+
+    uint32_t r_t0; // 0x20
+    uint32_t r_t1; // 0x24
+    uint32_t r_t2; // 0x28
+    uint32_t r_t3; // 0x2C
+
+    uint32_t r_t4; // 0x30
+    uint32_t r_t5; // 0x34
+    uint32_t r_t6; // 0x38
+    uint32_t r_t7; // 0x3C
+    
+    uint32_t r_s0; // 0x40
+    uint32_t r_s1; // 0x44
+    uint32_t r_s2; // 0x48
+    uint32_t r_s3; // 0x4C
+
+    uint32_t r_s4; // 0x50
+    uint32_t r_s5; // 0x54
+    uint32_t r_s6; // 0x58
+    uint32_t r_s7; // 0x5C
+
+    uint32_t r_t8; // 0x60
+    uint32_t r_t9; // 0x64
+    uint32_t r_k0; // 0x68
+    uint32_t r_k1; // 0x6C
+
+    uint32_t r_gp; // 0x70
+    uint32_t r_sp; // 0x74
+    uint32_t r_fp; // 0x78    
+    uint32_t r_ra; // 0x7C
+    
+    uint32_t r_pc; // 0x80
+    uint32_t r_hi; // 0x84
+    uint32_t r_lo; // 0x88
+    uint32_t r_c0_status; // 0x8C
+    
+    uint32_t r_c0_cause; // 0x90
+    uint32_t r_unk94; // 0x94
+    uint32_t r_unk98; // 0x98
+    uint32_t r_unk9C; // 0x9C
+} IntrHandlerRegFrame;
+
 /* Task Control Block(TaskCB) */
+/* alias "struct TCB" */
 /* sizeof() == 0xC0(192) */
-typedef struct st_TaskCB {
+typedef struct TaskCB_st {
     uint32_t status;  // 0x00
     uint32_t mode;    // 0x04
-    uint32_t r_zero;  // 0x08
-    uint32_t r_at;    // 0x0C
-    uint32_t r_v0;    // 0x10
-    uint32_t r_v1;    // 0x14
-
-    uint32_t r_a0;  // 0x18
-    uint32_t r_a1;  // 0x1C
-    uint32_t r_a2;  // 0x20
-    uint32_t r_a3;  // 0x24
-
-    uint32_t r_t0;  // 0x28
-    uint32_t r_t1;  // 0x2C
-    uint32_t r_t2;  // 0x30
-    uint32_t r_t3;  // 0x34
-    uint32_t r_t4;  // 0x38
-    uint32_t r_t5;  // 0x3C
-    uint32_t r_t6;  // 0x40
-    uint32_t r_t7;  // 0x44
-
-    uint32_t r_s0;  // 0x48
-    uint32_t r_s1;  // 0x4C
-    uint32_t r_s2;  // 0x50
-    uint32_t r_s3;  // 0x54
-    uint32_t r_s4;  // 0x58
-    uint32_t r_s5;  // 0x5C
-    uint32_t r_s6;  // 0x60
-    uint32_t r_s7;  // 0x64
-
-    uint32_t r_t8;  // 0x68
-    uint32_t r_t9;  // 0x6C
-
-    uint32_t r_k0;  // 0x70
-    uint32_t r_k1;  // 0x74
-
-    uint32_t r_gp;  // 0x78
-    uint32_t r_sp;  // 0x7C
-    uint32_t r_fp;  // 0x80
-
-    uint32_t r_ra;  // 0x84
-
-    uint32_t r_pc;  // 0x88
-
-    uint32_t r_hi;  // 0x8C
-    uint32_t r_lo;  // 0x90
-
-    uint32_t r_status;  // 0x94
-    uint32_t r_cause;   // 0x98
-
-    uint32_t r_unk9C;  // 0x9C
-    uint32_t r_unkA0;  // 0xA0
-    uint32_t r_unkA4;  // 0xA4
-
+    IntrHandlerRegFrame regs;  // 0x08-0x9B
     uint32_t system[6];  // 0xA8-0xBF
-} TaskCB;
+} TaskCB_t;
+
+// alias "struct TCBH"
+typedef struct TCBH_st
+{
+    TaskCB_t *entry;
+    int32_t flag;
+} TCBH_t;
 
 /* Event Control Block(EventCB) */
+/* alias "struct EvCB" */
 /* sizeof() == 0x1C(28) */
 typedef struct st_EventCB {
     uint32_t desc;          // 0x00-0x03
-    uint32_t status;        // 0x04-0x07
-    uint32_t spec;          // 0x08-0x0B
-    uint32_t mode;          // 0x0C-0x0F
-    uint32_t (*handler)();  // 0x10-0x13
-    uint32_t system[2];     // 0x14-0x1B
+    int32_t status;        // 0x04-0x07
+    int32_t spec;          // 0x08-0x0B
+    int32_t mode;          // 0x0C-0x0F
+    int32_t (*handler)();  // 0x10-0x13
+    int32_t system[2];     // 0x14-0x1B
 } EventCB;
+
+/* Interrupt Control Block(IntrCB) */
+/* sizeof() == 0x10(16) */
+typedef struct st_IntrCB {
+    struct st_IntrCB* next;  // 0x00 - set by SysEnqIntr
+    uint32_t (*func1)(int);  // 0x04 - called if "func0" returns non-zero.  Can be NULL.
+    uint32_t (*func0)(int);  // 0x08 - called first.  Should return 0 if "func1" should be called.
+    uint32_t __pad;          // 0x0C - unused
+} IntrCB;
 
 // sizeof() == 0x0C(12)
 typedef struct st_SystemConf {
@@ -229,21 +239,9 @@ typedef struct st_SystemConf {
     uint32_t stack;  // 0x08
 } SystemConf;
 
-typedef struct st_FixedPool {
-    int entry_size;
-    int max_entries;  // number of entries in the pool
-    uint32_t* masks;
-    void* entries;
-} FixedPool;
-
 void* malloc(uint32_t size);
 void* calloc(uint32_t size);
 void free(void* p);
-
-uint32_t fpool_create(int entry_size, int max_entries);
-void fpool_destroy(uint32_t pool_id);
-void* fpool_alloc(uint32_t pool_id);
-void fpool_free(uint32_t pool_id, void* p);
 
 /* Kernel API calls */
 

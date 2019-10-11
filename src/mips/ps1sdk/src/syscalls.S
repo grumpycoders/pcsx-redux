@@ -22,8 +22,19 @@
 .type \label, @function
 .ent \label
 \label:
-                li      a0, callNum
-                syscall
+                li      a0, \callNum
+                syscall 0
+                jr      ra
+                nop
+.end \label
+.endm
+
+.macro M_BREAK, label, code
+.global \label
+.type \label, @function
+.ent \label
+\label:
+                break \code
                 jr      ra
                 nop
 .end \label
@@ -290,6 +301,8 @@ M_KCALL PatchAOTable, 0xC0, 0x001C
 M_SYSCALL   Exception, 0
 M_SYSCALL   EnterCriticalSection, 1
 M_SYSCALL   ExitCriticalSection, 2
+
+M_BREAK     PCInit, 0x0101
 
 .global GetCOP0_STATUS
 .type GetCOP0_STATUS, @function

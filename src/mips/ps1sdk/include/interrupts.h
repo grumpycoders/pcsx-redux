@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+
 /* PS1 IRQs */
 
 // V-Blank(external)
@@ -26,10 +27,10 @@ extern "C" {
 // Root-Counter 2(internal)
 #define PS1_IRQ_RC2 (6)
 
-// FIXME: verify these 2.  It doesn't make sense how they're labeled/described.
-// SIO TX(internal)
+// SIO0, pads/card(internal)
 #define PS1_IRQ_SIO0 (7)
-// SIO RX(internal)
+
+// SIO1, serial port(internal)
 #define PS1_IRQ_SIO1 (8)
 
 // SPU(external)
