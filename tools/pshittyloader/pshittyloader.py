@@ -1,98 +1,55 @@
 #!/usr/bin/env python3
-# sioload.py serial EXE upload.
-#
-#
-# Runs on Python 3.7 - requires the pyserial libaries to be installed (do this via PyPi/pip)
-# by @danhans42 (instag/twitter/psxdev/@gmail.com)
 
 import sys
 import serial
 import os
-import time
-from time import sleep
 
 bps=115200
 
 args = int(len(sys.argv))
 
-def progress(count, total, status=''):
-    bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
-    percents = round(100.0 * count / float(total), 1)
-    bar = '=' * filled_len + '-' * (bar_len - filled_len)
-    sys.stdout.write('- %s Data [%s] %s%s %s\r' % (stat,bar, percents, '%', status))
-    sys.stdout.flush()
+sys.stdout.write("\npshittyloader.py\n\n");     
 
-def usage():
-	sys.stdout.write("   usage :  sioload.py <command> <port> <file>\n\n")
-	sys.stdout.write("commands\n")
-	sys.stdout.write("     -run : upload & execute PSX-EXE @115.2k (PSXSERIAL/UNIROM/HITSERIAL compatible)\n")
-	sys.stdout.write("     -trun: upload & execute PSX-EXE @345.6k (SIOLOADER only)\n\n")
-	sys.stdout.write("where <port> is the name of your serial port and <file> is the name of the file to upload/download\n\n")
-	sys.stdout.write("      eg  : sioload.py -run /dev/ttyUSB0 greentro.exe\n")
-	sys.stdout.write("            sioload.py -trun COM5 trancetro.exe\n")
+if args < 2:
+    sys.stdout.write("   usage :  pshittyload.py DEV FILE\n\n")
+    
+else:
+    devPath = sys.argv[1]
+    filePath = sys.argv[2]
+        
+    filesize = os.path.getsize(filePath)
+    
+    if ((filesize % 2048) != 0):
+        sys.stderr.write("ERROR: executable file size must be a multiple of 2048 bytes\n")
+    else:
+        nchunks = int(filesize / 2048)
+        inputfile = open(filePath, 'rb')
 
+        sys.stdout.write("Port:             {}\n".format(devPath))
+        sys.stdout.write("Speed(bps):       {}\n".format(bps))
+        sys.stdout.write("Executable:\n")
+        sys.stdout.write("  Name:           {}\n".format(filePath))
+        sys.stdout.write("  Size(bytes):    {}\n".format(filesize))
 
+        sys.stdout.write('\n- Waiting for remote device...\n')
 
-def uploadexe():
-	serialport = sys.argv[2]
-	filename = sys.argv[3]
-	filesize = os.path.getsize(filename)
-	inputfile = open(filename, 'rb')
-	inputfile.seek(0, 0)
-	blockcount = int (filesize /2048)
-	sys.stdout.write("Port       : ")
-	sys.stdout.write(serialport)
-	sys.stdout.write("\nSpeed      : {}bps\n".format(bps))
-	sys.stdout.write("EXE Name   : {}\n".format(filename))
-	sys.stdout.write("EXE Size   : {} bytes\n\n".format(filesize))
-	cont = 'y'
-	if cont != 'y':
-		quit()
-	else:
-        d = '!'
-        while d != '+'
+        # send 'P', 'L' and expect '+' in response.
+        b = '!'
+        while b != '+':
             ser.write('P')
             ser.write('L')
-            d = ser.read()
+            b = ser.read()
+            if b != '+':
+                sys.stdout.write("Bad sync response: {}\n".format(b))
 
-		sys.stdout.write('- Sending File...\n')
-		packet = 1
-		offset = 2048
-		while packet < blockcount:
-			inputfile.seek(packet*2048,0)
-			bin = inputfile.read(2048)
-			progress(packet, blockcount-1, status='')
-			ser.write(bin)
-			offset += 2048
-			packet += 1
-		EOF = 0
-		while EOF < 2048:
-			ser.write(b'\x00')
-			EOF += 1
-		sys.stdout.write('\n- Executing')
+        sys.stdout.write('- Sending File...\n')
+        
+        i = 1
+        while i <= nchunks:
+            d = inputfile.read(2048)
+            ser.write(d)
+            sys.stdout.write('- [%s%s]\r' % (int((100/nchunks) * i)))
+            sys.stdout.flush()            
+            i += 1
 
-#main
-
-		
-sys.stdout.write('\sioload.py - by @danhans42\n\n')
-
-if args < 4:
-	sys.stdout.write("error: insufficient parameters\n\n")
-	usage()
-	
-else:
-	command = sys.argv[1]
-	serialport = sys.argv[2]
-	file = sys.argv[3]
-	
-	if  command == "-run":
-		stat = "Uploading"
-		uploadexe()
-	elif command == "-trun":
-		stat = "Uploading"
-		bps = 1036800
-		uploadexe()
-	else:
-		sys.stdout.write("error: invalid command\n\n")
-		usage()
+        sys.stdout.write('\n- Done!\n')
