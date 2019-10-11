@@ -9,6 +9,8 @@ kernel/handlers.c \
 kernel/vectors.s \
 main/main.c \
 \
+romfs_data.c \
+\
 uC-sdk-glue/BoardConsole.c \
 uC-sdk-glue/BoardInit.c \
 uC-sdk-glue/init.c \
@@ -44,3 +46,14 @@ CPPFLAGS += -I../../../third_party/uC-sdk/os/include
 CPPFLAGS += -IuC-sdk-glue
 
 include ../common.mk
+
+romfs_data.c: ../pshittyload/pshittyload.bin ../../../third_party/uC-sdk/tools/romfs/mkromfs
+	mkdir -p romfs
+	cp ../pshittyload/pshittyload.bin romfs
+	../../../third_party/uC-sdk/tools/romfs/mkromfs -d romfs -c romfs romfs_data.c
+
+../../../third_party/uC-sdk/tools/romfs/mkromfs:
+	CPU_FAMILY=mips ROOTDIR=../.. $(MAKE) -C ../../../third_party/uC-sdk/tools/romfs mkromfs
+
+../pshittyload/pshittyload.bin:
+	$(MAKE) -C ../pshittyload

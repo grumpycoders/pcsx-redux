@@ -192,7 +192,7 @@ C0Vector:
 
 A0Handler:
     la    $t0, A0table
-    sll   $t2, $t1, 1
+    sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xa0
@@ -205,7 +205,7 @@ A0Handler:
 
 B0Handler:
     la    $t0, B0table
-    sll   $t2, $t1, 1
+    sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xb0
@@ -218,7 +218,7 @@ B0Handler:
 
 C0Handler:
     la    $t0, C0table
-    sll   $t2, $t1, 1
+    sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xc0

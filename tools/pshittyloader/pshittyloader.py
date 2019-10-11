@@ -8,16 +8,16 @@ bps=115200
 
 args = int(len(sys.argv))
 
-sys.stdout.write("\npshittyloader.py\n\n");     
+sys.stdout.write("\npshittyloader.py\n\n");		
 
-if args < 2:
-    sys.stdout.write("   usage :  pshittyload.py DEV FILE\n\n")
-    
+if args < 4:
+	sys.stdout.write("   usage :  pshittyload.py DEV FILE\n\n")
+	
 else:
-    devPath = sys.argv[1]
-    filePath = sys.argv[2]
-        
-    filesize = os.path.getsize(filePath)
+	devPath = sys.argv[1]
+	filePath = sys.argv[2]
+    	
+	filesize = os.path.getsize(filePath)
     
     if ((filesize % 2048) != 0):
         sys.stderr.write("ERROR: executable file size must be a multiple of 2048 bytes\n")
@@ -35,11 +35,11 @@ else:
 
         # send 'P', 'L' and expect '+' in response.
         b = '!'
-        while b != '+':
+        while b != '+'
             ser.write('P')
             ser.write('L')
             b = ser.read()
-            if b != '+':
+            if b != '+'
                 sys.stdout.write("Bad sync response: {}\n".format(b))
 
         sys.stdout.write('- Sending File...\n')
@@ -48,7 +48,7 @@ else:
         while i <= nchunks:
             d = inputfile.read(2048)
             ser.write(d)
-            sys.stdout.write('- [%s%s]\r' % (int((100/nchunks) * i)))
+            sys.stdout.write('- [%s%s]\r' % ((int((100/nchunks) * i)), "%"))
             sys.stdout.flush()            
             i += 1
 

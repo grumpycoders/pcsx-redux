@@ -120,11 +120,11 @@ extern "C" {
 
 #define SIO_MODE_MASK 0x00FF
 
-#define R_PS1_SIO1_DATA ((volatile uint8_t *) 0x1050)
-#define R_PS1_SIO1_STAT ((volatile uint16_t *) 0x1054)
-#define R_PS1_SIO1_MODE ((volatile uint16_t *) 0x1058)
-#define R_PS1_SIO1_CTRL ((volatile uint16_t *) 0x105A)
-#define R_PS1_SIO1_BAUD ((volatile uint16_t *) 0x105E)
+#define R_PS1_SIO1_DATA ((volatile uint8_t *) 0x1F801050)
+#define R_PS1_SIO1_STAT ((volatile uint16_t *) 0x1F801054)
+#define R_PS1_SIO1_MODE ((volatile uint16_t *) 0x1F801058)
+#define R_PS1_SIO1_CTRL ((volatile uint16_t *) 0x1F80105A)
+#define R_PS1_SIO1_BAUD ((volatile uint16_t *) 0x1F80105E)
 
 /* prototypes */
 

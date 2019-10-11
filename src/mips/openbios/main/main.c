@@ -18,14 +18,17 @@
  ***************************************************************************/
 
 #include <devfs.h>
-#include <stdio.h>
 #include <fio.h>
+#include <romfs.h>
+#include <unistd.h>
 
 #include "common/hardware/cop0.h"
 #include "common/hardware/sio1.h"
 #include "common/hardware/spu.h"
 #include "common/util/djbhash.h"
 #include "openbios/kernel/handlers.h"
+
+extern const char romfs[];
 
 static void start(const char* systemPath, const char* exePath);
 
@@ -36,8 +39,13 @@ int main() {
     muteSpu();
 
     sio1_init();
+    sio1_putc('H');
+    sio1_putc('i');
+    sio1_putc('\r');
+    sio1_putc('\n');
     register_devfs();
     register_stdio_devices();
+    register_romfs("romfs", (uint8_t *) romfs);
 
     printf("OpenBIOS starting.\r\n");
 
@@ -61,4 +69,27 @@ void start(const char* systemPath, const char* exePath) {
     muteSpu();
 
     installKernelHandlers();
+
+    void(*shell)() = (void(*)()) 0x80030000;
+
+    printf("Trying to load the shell...\r\n");
+    int shellFile = open("/romfs/pshittyload.bin", O_RDONLY);
+    if (shellFile >= 0) {
+        ssize_t size = read(shellFile, shell, 0x80200000 - 0x80030000);
+        printf("Shell found, read %i bytes from it.\r\n", size);
+        close(shellFile);
+        uint8_t* shellData = (uint8_t*) shell;
+        for (ssize_t i = 0; i < size; i++) {
+            if ((i % 16) == 0) {
+                printf("\r\n%08X - ", i);
+            }
+            printf("%02x ", shellData[i]);
+        }
+        printf("\r\n");
+        printf("Executing the shell.\r\n");
+        shell();
+        printf("Shell is done running.\r\n");
+    } else {
+        printf("Shell not found.\r\n");
+    }
 }

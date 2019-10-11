@@ -44,6 +44,7 @@ _delay_ms_l2:
                 nop
 .end delay_ms
 
+M_KCALL printf, 0xA0, 0x003F
 M_KCALL FlushCache, 0xA0, 0x0044
 
 M_SYSCALL   EnterCriticalSection, 1
