@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from array import array
 import sys
 import serial
 import os
@@ -41,10 +42,13 @@ else:
             b = ser.read()
             if b != b'+':
                 sys.stdout.write("Bad sync response: {}\n".format(b))
-
+                
         sys.stdout.write('- Sending File...\n')
 
-        d = inputfile.read(filesize)
-        ser.write(d)
+        # defines an array which can  hold unsigned bytes
+        data = array('B')
+        with open(filePath, 'rb') as f:
+            data.fromfile(f, filesize)
+            ser.write(data)
 
-        sys.stdout.write('\n- Done!\n')
+            sys.stdout.write('\n- Done!\n')
