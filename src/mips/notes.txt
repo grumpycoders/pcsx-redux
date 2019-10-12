@@ -1,0 +1,1 @@
+git fetch --all / git checkout -b local-branch-name upstream/master / do some commits / git push --set-upstream origin local-branch-name

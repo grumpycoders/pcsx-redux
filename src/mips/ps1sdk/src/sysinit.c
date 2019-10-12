@@ -20,3 +20,17 @@ void SystemInit(int rem96)
 {
 
 }
+.text:00000028                 lhu     date_code, 0xBFC00102
+.text:00000030                 li      $v1, 8
+.text:00000034                 andi    date_code, 0xFFFF
+.text:00000038                 move    x, $zero
+.text:0000003C
+.text:0000003C _l1:                                     # CODE XREF: SystemInit+54↓j
+.text:0000003C                 sll     $a1, x, 1        # a1 = i * 2
+.text:00000040                 sll     x, 3             # x *= 8
+.text:00000044                 srl     $a0, date_code, 28
+.text:00000048                 addu    x, $a1, x
+.text:0000004C                 addiu   $v1, -1
+.text:00000050                 addu    x, $a0, x
+.text:00000054                 bnez    $v1, _l1
+.text:00000058                 sll     date_code, 4

@@ -6,6 +6,7 @@ SRCS = \
 	src/pshittysio.c \
 	src/exec.S \
 	src/flushcache.s \
+	src/flash.c \
 	src/syscalls.S
 
 LIBS =

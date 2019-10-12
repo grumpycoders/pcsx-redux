@@ -10,14 +10,16 @@ extern "C" {
 #endif
 
 // DMA channels
-// FIXME: properly define channels 5 and 6
-#define PS1_DMA_CH_MDEC_IN      (0)
-#define PS1_DMA_CH_MDEC_OUT     (1)
-#define PS1_DMA_CH_GPU          (2)
-#define PS1_DMA_CH_CDROM        (3)
-#define PS1_DMA_CH_SPU          (4)
-#define PS1_DMA_CH_5            (5)
-#define PS1_DMA_CH_6            (6)
+enum
+{
+    DMA_CH_MDEC_IN      = (0),
+    DMA_CH_MDEC_OUT     = (1),
+    DMA_CH_GPU          = (2), // list + image data
+    DMA_CH_CDROM        = (3),
+    DMA_CH_SPU          = (4),
+    DMA_CH_EXP1         = (5),
+    DMA_CH_GPU_OTC      = (6), // (reverse clear the Ordering Table)
+};
 
 #ifdef __cplusplus
 }

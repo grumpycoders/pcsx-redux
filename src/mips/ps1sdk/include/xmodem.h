@@ -10,10 +10,15 @@ extern "C" {
 #define MAX_XM_SEND_RETRY 10
 
 #define XM_SOH 1
+
 #define XM_STX 2
+// end of transfer
 #define XM_EOT 4
+// acknowledge
 #define XM_ACK 6
+// negative acknowledge
 #define XM_NAK 21
+// cancel
 #define XM_CAN 24
 
 typedef int (*PeekFunc)(uint8_t* ch, int timeout);

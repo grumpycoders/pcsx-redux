@@ -13,6 +13,7 @@
 
 extern unsigned char __ctype_table[];
 
+
 enum {
     // uppercase alphabetic
     CTYPE_UCASE = (1 << 0),

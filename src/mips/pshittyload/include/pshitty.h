@@ -11,6 +11,8 @@ extern "C" {
 
 extern void flushCache(void);
 extern int printf(const char * fmt, ...);
+void shortWait(uint32_t n);
+void longWait(uint32_t n);
 
 #ifdef __cplusplus
 }

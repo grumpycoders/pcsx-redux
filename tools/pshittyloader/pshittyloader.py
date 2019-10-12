@@ -29,7 +29,7 @@ else:
         sys.stdout.write("  Name:           {}\n".format(filePath))
         sys.stdout.write("  Size(bytes):    {}\n".format(filesize))
 
-        ser = serial.Serial(devPath, bps, writeTimeout = 1)
+        ser = serial.Serial(devPath, bps, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE)
         sys.stdout.write('\n- Waiting for remote device...\n')
 
         # send 'P', 'L' and expect '+' in response.
