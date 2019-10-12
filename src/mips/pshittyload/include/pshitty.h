@@ -9,7 +9,7 @@ extern "C" {
 #include "exec.h"
 #include "serialio.h"
 
-extern void flushCache(void);
+extern void FlushCache(void);
 extern int printf(const char * fmt, ...);
 
 #ifdef __cplusplus

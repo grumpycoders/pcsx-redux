@@ -34,7 +34,7 @@
 #endif
 
 #define SIO1_BAUD_DIV (2073600)
-#define BAUD_RATE (115200)
+#define BAUD_RATE (57600)
 
 #define SIO1_RX_Ready() (((*R_PS1_SIO1_STAT) & SIO_STAT_RX_RDY) != 0)
 

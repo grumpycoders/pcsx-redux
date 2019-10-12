@@ -35,6 +35,8 @@ static int printf_impl(const char * fmt, ...) {
     return r;
 }
 
+void flushCache();
+
 void unimplemented();
 void breakVector();
 void interruptVector();
@@ -60,7 +62,7 @@ __attribute__((section(".a0table"))) void* A0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented,  // 38
     unimplemented, unimplemented, unimplemented, printf_impl  ,  // 3c
     unimplemented, unimplemented, unimplemented, unimplemented,  // 40
-    unimplemented, unimplemented, unimplemented, unimplemented,  // 44
+    flushCache,    unimplemented, unimplemented, unimplemented,  // 44
     unimplemented, unimplemented, unimplemented, unimplemented,  // 48
     unimplemented, unimplemented, unimplemented, unimplemented,  // 4c
     unimplemented, unimplemented, unimplemented, unimplemented,  // 50
