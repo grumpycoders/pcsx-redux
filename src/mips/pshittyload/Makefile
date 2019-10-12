@@ -5,7 +5,6 @@ SRCS = \
 	src/main.c \
 	src/pshittysio.c \
 	src/exec.S \
-	src/flushcache.s \
 	src/flash.c \
 	src/syscalls.S
 
@@ -16,3 +15,4 @@ CPPFLAGS := -Isrc -Iinclude -I../ps1sdk/include
 LDFLAGS :=
 
 include ../common.mk
+

@@ -5,7 +5,7 @@ import sys
 import serial
 import os
 
-bps=115200
+bps=57600
 
 args = int(len(sys.argv))
 
@@ -42,7 +42,6 @@ else:
             b = ser.read()
             if b != b'+':
                 sys.stdout.write("Bad sync response: {}\n".format(b))
-                
         sys.stdout.write('- Sending File...\n')
 
         # defines an array which can  hold unsigned bytes

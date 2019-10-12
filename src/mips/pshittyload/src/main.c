@@ -29,13 +29,24 @@ int psLoad(ExecInfo *exec)
 
     // load the 2048-byte header of the EXE into "header" and the "text" of the into
     //  the "text_addr" specified by the header.
-    for(i = 0; i < 2048; i++) ((uint8_t *) hdr)[i] = psio_get();
-    
-    for(i = 0; i < sizeof(ExecInfo); i++) ((uint8_t *) exec)[i] = ((uint8_t *) &hdr->exec)[i];
+    printf("psLoad() reading 2048 bytes first.\r\n");
+    for(i = 0; i < 2048; i++) {
+        uint8_t b = psio_get();
+        ((uint8_t *) hdr)[i] = b;
+    }
 
-    for(i = 0; i < hdr->exec.text_size; i++) ((uint8_t *) hdr->exec.text_addr)[i] = psio_get();
+    for(i = 0; i < sizeof(ExecInfo); i++) {
+        ((uint8_t *) exec)[i] = ((uint8_t *) &hdr->exec)[i];
+    }
 
-    flushCache();
+    printf("psLoad() reading %i bytes\r\n", hdr->exec.text_size);
+    for(i = 0; i < hdr->exec.text_size; i++) {
+        uint8_t b = psio_get();
+        ((uint8_t *) hdr->exec.text_addr)[i] = b;
+    }
+
+    printf("\r\nDone, calling flushCache()\r\n");
+    FlushCache();
     return 1;
 }
 
@@ -59,8 +70,10 @@ void main(void)
             do { d = psio_get(); } while (d != 'P');
             psio_put((d = psio_get()) == 'L' ? '+' : '-' );
         } while(d != 'L');
+        printf("Got PL signature, calling psLoad(%p)\r\n", info);
 
         psLoad(info);
+        printf("psLoad(%p) done, calling Exec2(%p)\r\n", info, info);
         rv = Exec2(info, 0, 0);
     }
 }

@@ -79,13 +79,6 @@ void start(const char* systemPath, const char* exePath) {
         printf("Shell found, read %i bytes from it.\r\n", size);
         close(shellFile);
         uint8_t* shellData = (uint8_t*) shell;
-        for (ssize_t i = 0; i < size; i++) {
-            if ((i % 16) == 0) {
-                printf("\r\n%08X - ", i);
-            }
-            printf("%02x ", shellData[i]);
-        }
-        printf("\r\n");
         printf("Executing the shell.\r\n");
         shell();
         printf("Shell is done running.\r\n");
