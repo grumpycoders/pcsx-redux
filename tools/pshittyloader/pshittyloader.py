@@ -20,7 +20,6 @@ else:
 
         filesize = os.path.getsize(filePath)
 
-        nchunks = int(filesize / 2048)
         inputfile = open(filePath, 'rb')
 
         sys.stdout.write("Port:             {}\n".format(devPath))
@@ -42,12 +41,11 @@ else:
             b = ser.read()
             if b != b'+':
                 sys.stdout.write("Bad sync response: {}\n".format(b))
-        sys.stdout.write('- Sending File...\n')
 
+        sys.stdout.write('- Sending File...\n')
         # defines an array which can  hold unsigned bytes
         data = array('B')
         with open(filePath, 'rb') as f:
             data.fromfile(f, filesize)
             ser.write(data)
-
             sys.stdout.write('\n- Done!\n')
