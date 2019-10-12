@@ -44,12 +44,7 @@ else:
 
         sys.stdout.write('- Sending File...\n')
 
-        i = 1
-        while i <= nchunks:
-            d = inputfile.read(2048)
-            ser.write(d)
-            sys.stdout.write('- [%s%s]\r' % ((int((100/nchunks) * i)), "%"))
-            sys.stdout.flush()
-            i += 1
+        d = inputfile.read(filesize)
+        ser.write(d)
 
         sys.stdout.write('\n- Done!\n')
