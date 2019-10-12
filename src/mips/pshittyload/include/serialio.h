@@ -127,6 +127,16 @@ extern "C" {
 #define R_PS1_SIO1_BAUD ((volatile uint16_t *) 0x1F80105E)
 
 /* prototypes */
+void psio_init(void);
+void sio_reset(void);
+
+uint8_t psio_get(void);
+uint16_t psio_get16(void);
+uint32_t psio_get32(void);
+
+void psio_put(uint8_t d);
+void psio_put16(uint16_t d);
+void psio_put32(uint32_t d);
 
 #ifdef __cplusplus
 }

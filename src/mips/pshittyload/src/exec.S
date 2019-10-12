@@ -55,13 +55,14 @@ _no_bss:
                     lw      t1, ExecInfo_stack_size(s0)
                     nop
                     add     t0, t1
-                    move    sp, t0
-                    move    fp, sp
+                    move    sp, t0 /* sp = ExecInfo.stack_addr + ExecInfo.stack_size; */
+                    move    fp, sp /* fp = sp */
 
 
 _no_stack:                               
                     lw      t3, ExecInfo_entry(s0)
                     lw      gp, ExecInfo_init_gp(s0)
+
                     move    a0, a1
                     jalr    t3
                     move    a1, a2
@@ -74,3 +75,4 @@ _no_stack:
                     jr      ra
                     li      v0, 1
 .end Exec2
+.set pop

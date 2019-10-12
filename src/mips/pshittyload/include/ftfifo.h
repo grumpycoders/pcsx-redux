@@ -10,6 +10,22 @@ extern "C" {
 #define FTFIFO_STAT_RXRDY (1 << 0)
 #define FTFIFO_STAT_TXRDY (1 << 1)
 
+#define FTFIFO_RX_Ready() ((*FTFIFO_STAT & (FTFIFO_STAT_RXRDY)) == (FTFIFO_STAT_RXRDY))
+#define FTFIFO_TX_Ready() ((*FTFIFO_STAT & (FTFIFO_STAT_TXRDY)) == (FTFIFO_STAT_TXRDY))
+#define FTFIFO_Ready() ((*FTFIFO_STAT & (FTFIFO_STAT_RXRDY | FTFIFO_STAT_TXRDY)) == (FTFIFO_STAT_RXRDY | FTFIFO_STAT_TXRDY))
+
+static inline uint8_t FT_get(void)
+{
+    while(!FTFIFO_RX_Ready());
+    return *FTFIFO_DATA;
+}
+
+static inline void FT_put(uint8_t d)
+{
+    while(!FTFIFO_TX_Ready());
+    *FTFIFO_DATA = d;    
+}
+
 uint8_t FT_peek8(uint32_t timeout, int *presult);
 uint16_t FT_peek16(uint32_t timeout, int *presult);
 uint32_t FT_peek32(uint32_t timeout, int *presult);
