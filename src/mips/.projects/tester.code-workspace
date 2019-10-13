@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "/data/code/PS/PS1/pcsx-redux/src/mips/tester/src"
+		},
+		{
+			"path": "/data/code/PS/PS1/pcsx-redux/src/mips/tester/crt0"
+		},
+		{
+			"path": "/data/code/PS/PS1/pcsx-redux/src/mips/tester/include"
+		}
+	]
+}
