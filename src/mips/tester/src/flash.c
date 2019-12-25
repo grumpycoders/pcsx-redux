@@ -3,9 +3,9 @@
 // performs a 3-byte "unlock cycle"
 #define M_FlashUnlockCycle(__base, __cmd) \
 { \
-    ((volatile uint8_t *) __base)[0xAAA] = 0xAA; \
-    ((volatile uint8_t *) __base)[0x555] = 0x55; \
-    ((volatile uint8_t *) __base)[0xAAA] = (__cmd); \
+    ((volatile uint8_t *) __base)[0xAAA] = ((uint8_t) 0xAA); \
+    ((volatile uint8_t *) __base)[0x555] = ((uint8_t) 0x55); \
+    ((volatile uint8_t *) __base)[0xAAA] = ((uint8_t) (__cmd)); \
 }
 
 void FlashUnlockCycle(void *base, uint8_t cmd) { M_FlashUnlockCycle(base, cmd); }
@@ -32,9 +32,9 @@ void Flash_SectorErase(void *base, uint32_t offset)
 {
     M_FlashUnlockCycle(base, 0x80); // Unlock Cycle 1
     
-    ((volatile uint8_t *) base)[0xAAA] = 0xAA; // Unlock Cycle 2
-    ((volatile uint8_t *) base)[0x555] = 0x55;
-    ((volatile uint8_t *) base)[offset] = 0x30;
+    ((volatile uint8_t *) base)[0xAAA] = (uint8_t) 0xAA; // Unlock Cycle 2
+    ((volatile uint8_t *) base)[0x555] = (uint8_t) 0x55;
+    ((volatile uint8_t *) base)[offset] = (uint8_t) 0x30;
 
     // wait for operation to complete.
     while(isBitToggling(base + offset));
@@ -106,7 +106,7 @@ void Flash_ProgramFast(void *base, uint32_t offs, void *src, uint32_t size)
 uint32_t flash_detect(void *base, uint16_t *p_mid, uint16_t *p_did)
 {
 	uint16_t man_id, dev_id;
-	uint8_t *p = (uint8_t *) base;
+	volatile uint8_t *p = (volatile uint8_t *) base;
     
     Flash_Autoselect(base); // enter Autoselect mode
 	
