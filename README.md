@@ -40,3 +40,5 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - memory card manager
 - HLE bios
 - ...
+
+![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)
