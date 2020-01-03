@@ -201,6 +201,7 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" />
     <Import Project="..\packages\glfw.3.3.0.1\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" />
+    <Import Project="..\packages\ftd2xx.native.2.12.28\build\native\ftd2xx.native.targets" Condition="Exists('..\packages\ftd2xx.native.2.12.28\build\native\ftd2xx.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -208,5 +209,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets'))" />
     <Error Condition="!Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.0.1\build\native\glfw.targets'))" />
+    <Error Condition="!Exists('..\packages\ftd2xx.native.2.12.28\build\native\ftd2xx.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ftd2xx.native.2.12.28\build\native\ftd2xx.native.targets'))" />
   </Target>
 </Project>
