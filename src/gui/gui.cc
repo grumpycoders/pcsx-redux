@@ -465,6 +465,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
+                ImGui::MenuItem(_("FTDI"), nullptr, &m_showFTDI);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -570,6 +571,10 @@ void PCSX::GUI::endFrame() {
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
+    }
+
+    if (m_showFTDI) {
+        m_ftdi.draw(_("FTDI"));
     }
 
     about();

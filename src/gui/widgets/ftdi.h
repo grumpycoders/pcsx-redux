@@ -19,45 +19,20 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <stdarg.h>
 
-#include <string>
-#include <vector>
+#include "imgui.h"
 
 namespace PCSX {
+namespace Widgets {
 
-namespace FTDI {
-
-class DeviceList;
-class Device {
+class FTDI {
   public:
-    bool isLocked() const { return m_locked; }
-    bool isHighSpeed() const { return m_highSpeed; }
-    uint16_t getVendorID() const { return m_vendorID; }
-    uint16_t getDeviceID() const { return m_deviceID; }
-    uint32_t getType() const { return m_type; }
-    const std::string& getSerial() const { return m_serial; }
-    const std::string& getDescription() const { return m_description; }
+    FTDI(bool& show) : m_show(show) {}
+    void draw(const char* title);
 
-  private:
-    bool m_locked = false;
-    bool m_highSpeed = false;
-    uint16_t m_vendorID = 0;
-    uint16_t m_deviceID = 0;
-    uint32_t m_type = 0;
-    std::string m_serial = "";
-    std::string m_description = "";
-    void* m_handle = nullptr;
-
-    friend class DeviceList;
+    bool& m_show;
 };
 
-class DeviceList {
-  public:
-    static void scan();
-    static const std::vector<Device>& get();
-};
-
-}  // namespace FTDI
-
+}  // namespace Widgets
 }  // namespace PCSX

@@ -24,18 +24,17 @@
 
 #include <string>
 
-#include "flags.h"
-
-#include "imgui.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
-
 #include "core/system.h"
+#include "flags.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/ftdi.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/vram-viewer.h"
+#include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "main/settings.h"
 
 #if defined(__MACOSX__)
@@ -132,6 +131,7 @@ class GUI final {
     bool m_showDemo = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
+    bool m_showFTDI = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
         MemoryEditorWrapper() {
@@ -172,6 +172,8 @@ class GUI final {
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;
     Widgets::VRAMViewer m_VRAMviewers[4];
+
+    Widgets::FTDI m_ftdi = {m_showFTDI};
 
     uv_loop_t m_loop;
 };

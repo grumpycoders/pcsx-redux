@@ -17,47 +17,33 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "gui/widgets/ftdi.h"
 
-#include <stdint.h>
+#include "core/system.h"
+#include "ftdi/abstract.h"
 
-#include <string>
-#include <vector>
+void PCSX::Widgets::FTDI::draw(const char* title) {
+    if (!ImGui::Begin(title, &m_show)) {
+        ImGui::End();
+        return;
+    }
 
-namespace PCSX {
+    if (ImGui::Button(_("Scan"))) ::PCSX::FTDI::DeviceList::scan();
 
-namespace FTDI {
+    auto& devices = ::PCSX::FTDI::DeviceList::get();
 
-class DeviceList;
-class Device {
-  public:
-    bool isLocked() const { return m_locked; }
-    bool isHighSpeed() const { return m_highSpeed; }
-    uint16_t getVendorID() const { return m_vendorID; }
-    uint16_t getDeviceID() const { return m_deviceID; }
-    uint32_t getType() const { return m_type; }
-    const std::string& getSerial() const { return m_serial; }
-    const std::string& getDescription() const { return m_description; }
+    ImGui::Text((std::to_string(devices.size()) + " devices detected").c_str());
+    ImGui::Separator();
+    for (auto& d : devices) {        
+        ImGui::Text("Vendor Id: %04x", d.getVendorID());
+        ImGui::Text("Device Id: %04x", d.getDeviceID());
+        ImGui::Text("Type: %i", d.getType());
+        ImGui::Text("Serial: %s", d.getSerial().c_str());
+        ImGui::Text("Description: %s", d.getDescription().c_str());
+        ImGui::Text("Locked: %s", d.isLocked() ? "true" : "false");
+        ImGui::Text("High Speed: %s", d.isHighSpeed() ? "true" : "false");
+        ImGui::Separator();
+    }
 
-  private:
-    bool m_locked = false;
-    bool m_highSpeed = false;
-    uint16_t m_vendorID = 0;
-    uint16_t m_deviceID = 0;
-    uint32_t m_type = 0;
-    std::string m_serial = "";
-    std::string m_description = "";
-    void* m_handle = nullptr;
-
-    friend class DeviceList;
-};
-
-class DeviceList {
-  public:
-    static void scan();
-    static const std::vector<Device>& get();
-};
-
-}  // namespace FTDI
-
-}  // namespace PCSX
+    ImGui::End();
+}
