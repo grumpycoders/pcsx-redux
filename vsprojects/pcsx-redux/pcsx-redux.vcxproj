@@ -158,6 +158,9 @@
     <ProjectReference Include="..\core\core.vcxproj">
       <Project>{9372d878-f76c-418b-8e2a-8e9896ff575b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\ftdi\ftdi.vcxproj">
+      <Project>{832d8d53-3ee4-43d7-b5df-48b249ce0709}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
     </ProjectReference>
