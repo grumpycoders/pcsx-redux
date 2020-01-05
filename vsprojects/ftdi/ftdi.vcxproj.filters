@@ -26,5 +26,8 @@
     <ClCompile Include="..\..\src\ftdi\abstract-ftd2xx-win32.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ftdi\abstract-libusb-posix.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
