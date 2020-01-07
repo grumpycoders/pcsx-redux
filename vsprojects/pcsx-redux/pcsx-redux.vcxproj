@@ -185,6 +185,9 @@
     <ProjectReference Include="..\SPU\SPU.vcxproj">
       <Project>{bf968fd3-ef46-45af-b74e-46a41a96276f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\support\support.vcxproj">
+      <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\zlib\zlib.vcxproj">
       <Project>{3125e078-7261-48c4-803e-4b29ceeaa56b}</Project>
     </ProjectReference>

@@ -22,9 +22,9 @@
 
 #include <stdio.h>
 
-#include "core/file.h"
 #include "core/plugins.h"
 #include "core/psxemulator.h"
+#include "support/file.h"
 
 namespace PCSX {
 
