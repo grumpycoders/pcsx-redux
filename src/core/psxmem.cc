@@ -23,9 +23,9 @@
 
 #include "core/psxmem.h"
 #include "core/debug.h"
-#include "core/file.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
+#include "support/file.h"
 
 int PCSX::Memory::psxMemInit() {
     int i;

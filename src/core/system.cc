@@ -22,8 +22,8 @@
 #include <iomanip>
 #include <sstream>
 
-#include "core/file.h"
 #include "core/system.h"
+#include "support/file.h"
 
 PCSX::System* PCSX::g_system = NULL;
 

@@ -32,6 +32,7 @@
 #include "flags.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
+#include "support/slice.h"
 
 static PCSX::GUI *s_gui;
 
@@ -168,6 +169,7 @@ using json = nlohmann::json;
 
 int main(int argc, char **argv) {
     const flags::args args(argc, argv);
+    PCSX::Slice slice;
 
     if (args.get<bool>("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
