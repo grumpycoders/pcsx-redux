@@ -144,7 +144,6 @@
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.cc" />
-    <ClCompile Include="..\..\src\core\file.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc" />
@@ -181,7 +180,6 @@
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
-    <ClInclude Include="..\..\src\core\file.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
@@ -196,7 +194,6 @@
     <ClInclude Include="..\..\src\core\pgxp_value.h" />
     <ClInclude Include="..\..\src\core\plugins.h" />
     <ClInclude Include="..\..\src\core\ppf.h" />
-    <ClInclude Include="..\..\src\core\protobuf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
     <ClInclude Include="..\..\src\core\psxbios.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />

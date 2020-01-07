@@ -19,7 +19,7 @@
 
 #include <algorithm>
 
-#include "core/file.h"
+#include "support/file.h"
 
 const uint8_t PCSX::File::m_internalBuffer = 0;
 void PCSX::File::close() {
