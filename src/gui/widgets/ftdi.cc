@@ -28,9 +28,9 @@ void PCSX::Widgets::FTDI::draw(const char* title) {
         return;
     }
 
-    if (ImGui::Button(_("Scan"))) ::PCSX::FTDI::DeviceList::scan();
+    if (ImGui::Button(_("Scan"))) ::PCSX::FTDI::Devices::scan();
 
-    auto& devices = ::PCSX::FTDI::DeviceList::get();
+    auto& devices = ::PCSX::FTDI::Devices::get();
 
     ImGui::Text((std::to_string(devices.size()) + " devices detected").c_str());
     ImGui::Separator();

@@ -28,7 +28,7 @@ namespace PCSX {
 
 namespace FTDI {
 
-class DeviceList;
+class Devices;
 class Device {
   public:
     bool isLocked() const { return m_locked; }
@@ -49,13 +49,15 @@ class Device {
     std::string m_description = "";
     void* m_handle = nullptr;
 
-    friend class DeviceList;
+    friend class Devices;
 };
 
-class DeviceList {
+class Devices {
   public:
     static void scan();
     static const std::vector<Device>& get();
+    static void startThread();
+    static void stopThread();
 };
 
 }  // namespace FTDI

@@ -23,8 +23,8 @@
 
 static std::vector<PCSX::FTDI::Device> s_devices;
 
-void PCSX::FTDI::DeviceList::scan() { abort(); }
+void PCSX::FTDI::Devices::scan() { abort(); }
 
-const std::vector<PCSX::FTDI::Device>& PCSX::FTDI::DeviceList::get() { return s_devices; }
+const std::vector<PCSX::FTDI::Device>& PCSX::FTDI::Devices::get() { return s_devices; }
 
 #endif

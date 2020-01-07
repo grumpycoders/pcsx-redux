@@ -20,12 +20,18 @@
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
+
+#include <assert.h>
+#include <windows.h>
+
+#include <mutex>
+
 #include "ftd2xx.h"
 #include "ftdi/abstract.h"
 
 static std::vector<PCSX::FTDI::Device> s_devices;
 
-void PCSX::FTDI::DeviceList::scan() {
+void PCSX::FTDI::Devices::scan() {
     FT_STATUS status;
     DWORD numDevs = 0;
 
@@ -55,6 +61,40 @@ void PCSX::FTDI::DeviceList::scan() {
     delete[] nodes;
 }
 
-const std::vector<PCSX::FTDI::Device>& PCSX::FTDI::DeviceList::get() { return s_devices; }
+const std::vector<PCSX::FTDI::Device>& PCSX::FTDI::Devices::get() { return s_devices; }
+
+static HANDLE s_thread = nullptr;
+static HANDLE s_exitEvent = nullptr;
+static bool s_threadRunning = false;
+
+static DWORD WINAPI threadProc(LPVOID parameter) {
+    bool exitting = false;
+    SetThreadDescription(GetCurrentThread(), L"abstract ftd2xx thread");
+    while (!exitting) {
+        HANDLE objects[1];
+        objects[0] = s_exitEvent;
+        DWORD idx = WaitForMultipleObjects(1, objects, FALSE, INFINITE);
+        exitting = idx == WAIT_OBJECT_0;
+    }
+    CloseHandle(s_exitEvent);
+    s_exitEvent = nullptr;
+    s_threadRunning = false;
+    return 0;
+}
+
+void PCSX::FTDI::Devices::startThread() {
+    assert(!s_threadRunning);
+    s_exitEvent = CreateEvent(nullptr, FALSE, FALSE, L"abstract ftd2xx exit event");
+    s_threadRunning = true;
+    s_thread = CreateThread(nullptr, 0, threadProc, nullptr, 0, nullptr);
+}
+
+void PCSX::FTDI::Devices::stopThread() {
+    assert(s_threadRunning);
+    SetEvent(s_exitEvent);
+    WaitForSingleObject(s_thread, INFINITE);
+    s_thread = nullptr;
+    assert(!s_threadRunning);
+}
 
 #endif
