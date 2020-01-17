@@ -49,6 +49,17 @@ namespace PCSX {
 
 class GUI final {
   public:
+    static void DButton(const char *label, bool enabled, std::function<void(void)> clicked) {
+        if (!enabled) {
+            const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+            ImGui::PushStyleColor(ImGuiCol_Button, lolight);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, lolight);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, lolight);
+        }
+        if (ImGui::Button(label) && enabled) clicked();
+        if (!enabled) ImGui::PopStyleColor(3);
+    }
+
     GUI(const flags::args &args) : m_args(args) {}
     void init();
     void close();

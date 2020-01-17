@@ -21,6 +21,7 @@
 
 #include "core/system.h"
 #include "ftdi/abstract.h"
+#include "gui/gui.h"
 
 void PCSX::Widgets::FTDI::draw(const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -30,11 +31,19 @@ void PCSX::Widgets::FTDI::draw(const char* title) {
 
     if (ImGui::Button(_("Scan"))) ::PCSX::FTDI::Devices::scan();
 
-    auto& devices = ::PCSX::FTDI::Devices::get();
+    bool isThreadRunning = ::PCSX::FTDI::Devices::isThreadRunning();
+    GUI::DButton("Start Thread", !isThreadRunning, []() { ::PCSX::FTDI::Devices::startThread(); });
+    GUI::DButton("Stop Thread", isThreadRunning, []() { ::PCSX::FTDI::Devices::stopThread(); });
 
-    ImGui::Text((std::to_string(devices.size()) + " devices detected").c_str());
+    unsigned count = 0;
+    ::PCSX::FTDI::Devices::iterate([&count](::PCSX::FTDI::Device& d) mutable {
+        count++;
+        return true;
+    });
+
+    ImGui::Text((std::to_string(count) + " devices detected").c_str());
     ImGui::Separator();
-    for (auto& d : devices) {        
+    ::PCSX::FTDI::Devices::iterate([](::PCSX::FTDI::Device& d) {
         ImGui::Text("Vendor Id: %04x", d.getVendorID());
         ImGui::Text("Device Id: %04x", d.getDeviceID());
         ImGui::Text("Type: %i", d.getType());
@@ -43,7 +52,8 @@ void PCSX::Widgets::FTDI::draw(const char* title) {
         ImGui::Text("Locked: %s", d.isLocked() ? "true" : "false");
         ImGui::Text("High Speed: %s", d.isHighSpeed() ? "true" : "false");
         ImGui::Separator();
-    }
+        return true;
+    });
 
     ImGui::End();
 }

@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -29,8 +30,12 @@ namespace PCSX {
 namespace FTDI {
 
 class Devices;
+namespace Private {
+class DeviceData;
+}
 class Device {
   public:
+    ~Device();
     bool isLocked() const { return m_locked; }
     bool isHighSpeed() const { return m_highSpeed; }
     uint16_t getVendorID() const { return m_vendorID; }
@@ -38,6 +43,11 @@ class Device {
     uint32_t getType() const { return m_type; }
     const std::string& getSerial() const { return m_serial; }
     const std::string& getDescription() const { return m_description; }
+
+    bool isOpened() const;
+
+    void open();
+    void close();
 
   private:
     bool m_locked = false;
@@ -47,7 +57,8 @@ class Device {
     uint32_t m_type = 0;
     std::string m_serial = "";
     std::string m_description = "";
-    void* m_handle = nullptr;
+
+    Private::DeviceData* m_private;
 
     friend class Devices;
 };
@@ -55,9 +66,13 @@ class Device {
 class Devices {
   public:
     static void scan();
-    static const std::vector<Device>& get();
+    static void iterate(std::function<bool(Device&)>);
+    static bool isThreadRunning();
     static void startThread();
     static void stopThread();
+
+    // technically private, but difficult to enforce properly
+    static void threadProc();
 };
 
 }  // namespace FTDI

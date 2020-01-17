@@ -31,6 +31,7 @@
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "gui/gui.h"
 #include "gui/widgets/assembly.h"
 
 #include "imgui_memory_editor/imgui_memory_editor.h"
@@ -69,17 +70,6 @@ uint32_t virtToReal(uint32_t virt) {
     }
     return pc;
 };
-
-void DButton(const char* label, bool enabled, std::function<void(void)> clicked) {
-    if (!enabled) {
-        const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
-        ImGui::PushStyleColor(ImGuiCol_Button, lolight);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, lolight);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, lolight);
-    }
-    if (ImGui::Button(label) && enabled) clicked();
-    if (!enabled) ImGui::PopStyleColor(3);
-}
 
 class DummyAsm : public PCSX::Disasm {
     virtual void Invalid() final {}
@@ -504,15 +494,15 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
-    DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
+    GUI::DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
     ImGui::SameLine();
-    DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
+    GUI::DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
     ImGui::SameLine();
-    DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
+    GUI::DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
     ImGui::SameLine();
-    DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
+    GUI::DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
     ImGui::SameLine();
-    DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
+    GUI::DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
             g_emulator.m_debug->stepOver();
@@ -693,17 +683,17 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 std::string contextMenuTitle = "assembly address menu ";
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
-                    DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
+                    GUI::DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
                         PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE, true);
                         ImGui::CloseCurrentPopup();
                         PCSX::g_system->resume();
                     });
-                    DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
+                    GUI::DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
                         PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE);
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
-                    DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
+                    GUI::DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
                         PCSX::g_emulator.m_debug->eraseBP(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
