@@ -105,6 +105,8 @@ class GUI final {
         }
     }
 
+    uv_loop_t *loop() { return &m_loop; }
+
   private:
     GLFWwindow *m_window = nullptr;
     int &m_glfwPosX = settings.get<WindowPosX>().value;

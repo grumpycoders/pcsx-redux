@@ -21,9 +21,12 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <functional>
 #include <string>
-#include <vector>
+
+#include "gui/gui.h"
+#include "support/slice.h"
 
 namespace PCSX {
 
@@ -35,6 +38,7 @@ class DeviceData;
 }
 class Device {
   public:
+    Device();
     ~Device();
     bool isLocked() const { return m_locked; }
     bool isHighSpeed() const { return m_highSpeed; }
@@ -49,6 +53,9 @@ class Device {
     void open();
     void close();
 
+    // technically private, but difficult to enforce properly
+    void asyncCallback() {}
+
   private:
     bool m_locked = false;
     bool m_highSpeed = false;
@@ -58,7 +65,30 @@ class Device {
     std::string m_serial = "";
     std::string m_description = "";
 
-    Private::DeviceData* m_private;
+    Private::DeviceData* m_private = nullptr;
+
+    static const unsigned SLICES_COUNT = 256;
+    Slice m_slices[SLICES_COUNT];
+    std::atomic_uint16_t m_slicesIndexes = 0;
+
+    uv_async_t m_async;
+
+    unsigned usedSlices() {
+        uint16_t indexes = m_slicesIndexes.load();
+        unsigned first = indexes & 0xff;
+        unsigned last = (indexes >> 8) & 0xff;
+        if (last < first) last += 256;
+        return last - first;
+    }
+
+    unsigned availableSlices() { return 256 - usedSlices(); }
+
+    Slice& allocateSlice() {
+        while (availableSlices() == 0)
+            ;
+        uint16_t indexes = m_slicesIndexes.fetch_add(0x100);
+        return m_slices[(indexes >> 8) & 0xff];
+    }
 
     friend class Devices;
 };
@@ -70,6 +100,7 @@ class Devices {
     static bool isThreadRunning();
     static void startThread();
     static void stopThread();
+    static void setGUI(GUI*);
 
     // technically private, but difficult to enforce properly
     static void threadProc();

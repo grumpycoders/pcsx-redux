@@ -1,4 +1,4 @@
-/***************************************************************************
+/***s************************************************************************
  *   Copyright (C) 2019 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -51,7 +51,8 @@ class DeviceData {
 }  // namespace FTDI
 }  // namespace PCSX
 
-static std::vector<PCSX::FTDI::Device> s_devices;
+static PCSX::FTDI::Device* s_devices = nullptr;
+static unsigned s_numDevs = 0;
 static HANDLE s_thread;
 static std::atomic_bool s_exitThread;
 static bool s_threadRunning = false;
@@ -59,21 +60,36 @@ static HANDLE s_kickEvent = nullptr;
 static std::shared_mutex s_listLock;
 static unsigned s_numOpened = 0;
 
+static PCSX::GUI* s_gui = nullptr;
+
+static void asyncCallbackTrampoline(uv_async_t* handle) {
+    PCSX::FTDI::Device* device = (PCSX::FTDI::Device*)handle->data;
+    device->asyncCallback();
+}
+
+static void asyncCloseCallback(uv_handle_t* handle) {}
+
+PCSX::FTDI::Device::Device() {
+    uv_async_init(s_gui->loop(), &m_async, asyncCallbackTrampoline);
+    m_async.data = this;
+}
+
 PCSX::FTDI::Device::~Device() {
     assert(m_private->m_state == Private::DeviceData::STATE_CLOSED);
     assert(!m_private->m_event);
     assert(!m_private->m_handle);
     delete m_private;
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_async), asyncCloseCallback);
 }
 
 void PCSX::FTDI::Device::open() {
-    std::shared_lock<std::shared_mutex> guard(s_listLock);
+    std::unique_lock<std::shared_mutex> guard(s_listLock);
     assert(m_private->m_state == Private::DeviceData::STATE_CLOSED);
     m_private->m_state = Private::DeviceData::STATE_OPEN_PENDING;
     SetEvent(s_kickEvent);
 }
 void PCSX::FTDI::Device::close() {
-    std::shared_lock<std::shared_mutex> guard(s_listLock);
+    std::unique_lock<std::shared_mutex> guard(s_listLock);
     assert(m_private->m_state == Private::DeviceData::STATE_OPENED);
     m_private->m_state = Private::DeviceData::STATE_CLOSE_PENDING;
     SetEvent(s_kickEvent);
@@ -85,19 +101,22 @@ void PCSX::FTDI::Devices::scan() {
     DWORD numDevs = 0;
 
     std::unique_lock<std::shared_mutex> guard(s_listLock);
-    if (s_numOpened != 0) return;
+    // we can't modify the list if there's any device that's still opened
+    if (s_numDevs != 0) return;
 
-    s_devices.clear();
+    delete[] s_devices;
+    s_numDevs = 0;
     status = FT_CreateDeviceInfoList(&numDevs);
 
     if (status != FT_OK || numDevs == 0) return;
+    s_numDevs = numDevs;
 
     FT_DEVICE_LIST_INFO_NODE* nodes = new FT_DEVICE_LIST_INFO_NODE[numDevs];
 
     status = FT_GetDeviceInfoList(nodes, &numDevs);
 
     if (status == FT_OK && numDevs != 0) {
-        s_devices.resize(numDevs);
+        s_devices = new Device[numDevs];
         for (DWORD i = 0; i < numDevs; i++) {
             const FT_DEVICE_LIST_INFO_NODE* n = nodes + i;
             s_devices[i].m_locked = n->Flags & FT_FLAGS_OPENED;
@@ -116,8 +135,8 @@ void PCSX::FTDI::Devices::scan() {
 
 void PCSX::FTDI::Devices::iterate(std::function<bool(Device&)> iter) {
     std::shared_lock<std::shared_mutex> guard(s_listLock);
-    for (auto& d : s_devices) {
-        if (!iter(d)) break;
+    for (unsigned i = 0; i < s_numDevs; i++) {
+        if (!iter(s_devices[i])) break;
     }
 }
 
@@ -125,11 +144,14 @@ void PCSX::FTDI::Devices::threadProc() {
     SetThreadDescription(GetCurrentThread(), L"abstract ftd2xx thread");
     while (!s_exitThread) {
         std::vector<HANDLE> objects;
+        std::vector<Device*> devices;
         objects.push_back(s_kickEvent);
+        devices.push_back(nullptr);
         {
             std::shared_lock<std::shared_mutex> guard(s_listLock);
 
-            for (auto& device : s_devices) {
+            for (unsigned i = 0; i < s_numDevs; i++) {
+                auto& device = s_devices[i];
                 switch (device.m_private->m_state) {
                     case Private::DeviceData::STATE_OPEN_PENDING:
                         s_numOpened++;
@@ -142,6 +164,7 @@ void PCSX::FTDI::Devices::threadProc() {
                         device.m_private->m_state = Private::DeviceData::STATE_OPENED;
                     case Private::DeviceData::STATE_OPENED:
                         objects.push_back(device.m_private->m_event);
+                        devices.push_back(&device);
                         break;
                     case Private::DeviceData::STATE_CLOSE_PENDING:
                         s_numOpened--;
@@ -158,6 +181,10 @@ void PCSX::FTDI::Devices::threadProc() {
         do {
             assert(objects.size() <= MAXIMUM_WAIT_OBJECTS);
             idx = WaitForMultipleObjects(objects.size(), objects.data(), FALSE, INFINITE);
+            Device* device = devices[idx - WAIT_OBJECT_0];
+            if (!device) continue;
+            DWORD events;
+            FT_GetEventStatus(device->m_private->m_handle, &events);
         } while (idx != WAIT_OBJECT_0);
     }
     CloseHandle(s_kickEvent);
@@ -188,5 +215,7 @@ void PCSX::FTDI::Devices::stopThread() {
 }
 
 bool PCSX::FTDI::Devices::isThreadRunning() { return s_threadRunning; }
+
+void PCSX::FTDI::Devices::setGUI(GUI* gui) { s_gui = gui; }
 
 #endif

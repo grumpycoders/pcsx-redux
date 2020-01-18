@@ -30,6 +30,7 @@
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "flags.h"
+#include "ftdi/abstract.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
 #include "support/slice.h"
@@ -197,6 +198,7 @@ int main(int argc, char **argv) {
     LoadPlugins();
     PCSX::g_emulator.m_gpu->open(s_gui);
     PCSX::g_emulator.m_spu->open();
+    PCSX::FTDI::Devices::setGUI(s_gui);
 
     PCSX::g_emulator.EmuInit();
     PCSX::g_emulator.EmuReset();
