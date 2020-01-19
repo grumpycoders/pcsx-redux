@@ -227,6 +227,8 @@ int main(int argc, char **argv) {
     PCSX::g_emulator.m_gpu->shutdown();
     PCSX::g_emulator.m_cdrom->m_iso.shutdown();
 
+    PCSX::FTDI::Devices::shutdown();
+
     s_gui->close();
 
     delete s_gui;

@@ -49,12 +49,14 @@ class Device {
     const std::string& getDescription() const { return m_description; }
 
     bool isOpened() const;
+    bool isBusy() const;
 
     void open();
     void close();
 
     // technically private, but difficult to enforce properly
     void asyncCallback() {}
+    void asyncCloseCallback() { m_asyncClosed = true; }
 
   private:
     bool m_locked = false;
@@ -72,6 +74,7 @@ class Device {
     std::atomic_uint16_t m_slicesIndexes = 0;
 
     uv_async_t m_async;
+    bool m_asyncClosed = false;
 
     unsigned usedSlices() {
         uint16_t indexes = m_slicesIndexes.load();
@@ -96,6 +99,7 @@ class Device {
 class Devices {
   public:
     static void scan();
+    static void shutdown();
     static void iterate(std::function<bool(Device&)>);
     static bool isThreadRunning();
     static void startThread();

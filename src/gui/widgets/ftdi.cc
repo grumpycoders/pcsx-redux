@@ -43,7 +43,9 @@ void PCSX::Widgets::FTDI::draw(const char* title) {
 
     ImGui::Text((std::to_string(count) + " devices detected").c_str());
     ImGui::Separator();
-    ::PCSX::FTDI::Devices::iterate([](::PCSX::FTDI::Device& d) {
+    ::PCSX::FTDI::Device* devToClose = nullptr;
+    ::PCSX::FTDI::Device* devToOpen = nullptr;
+    ::PCSX::FTDI::Devices::iterate([&](::PCSX::FTDI::Device& d) mutable {
         ImGui::Text("Vendor Id: %04x", d.getVendorID());
         ImGui::Text("Device Id: %04x", d.getDeviceID());
         ImGui::Text("Type: %i", d.getType());
@@ -51,9 +53,23 @@ void PCSX::Widgets::FTDI::draw(const char* title) {
         ImGui::Text("Description: %s", d.getDescription().c_str());
         ImGui::Text("Locked: %s", d.isLocked() ? "true" : "false");
         ImGui::Text("High Speed: %s", d.isHighSpeed() ? "true" : "false");
+        ImGui::Text("Opened: %s", d.isOpened() ? "true" : "false");
+        if (d.isOpened() && !d.isBusy()) {
+            if (ImGui::Button("Close")) {
+                devToClose = &d;
+            }
+        } else if (!d.isBusy()) {
+            if (ImGui::Button("Open")) {
+                devToOpen = &d;
+            }
+        } else {
+            ImGui::Text("Device is busy");
+        }
         ImGui::Separator();
         return true;
     });
-
     ImGui::End();
+
+    if (devToClose) devToClose->close();
+    if (devToOpen) devToOpen->open();
 }

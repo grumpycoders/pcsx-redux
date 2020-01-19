@@ -67,7 +67,10 @@ static void asyncCallbackTrampoline(uv_async_t* handle) {
     device->asyncCallback();
 }
 
-static void asyncCloseCallback(uv_handle_t* handle) {}
+static void asyncCloseCallbackTrampoline(uv_handle_t* handle) {
+    PCSX::FTDI::Device* device = reinterpret_cast<PCSX::FTDI::Device*>(handle->data);
+    device->asyncCloseCallback();
+}
 
 PCSX::FTDI::Device::Device() {
     uv_async_init(s_gui->loop(), &m_async, asyncCallbackTrampoline);
@@ -79,7 +82,9 @@ PCSX::FTDI::Device::~Device() {
     assert(!m_private->m_event);
     assert(!m_private->m_handle);
     delete m_private;
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_async), asyncCloseCallback);
+    uv_loop_t* loop = m_async.loop;
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_async), asyncCloseCallbackTrampoline);
+    while (!m_asyncClosed) uv_run(loop, UV_RUN_ONCE);
 }
 
 void PCSX::FTDI::Device::open() {
@@ -95,6 +100,10 @@ void PCSX::FTDI::Device::close() {
     SetEvent(s_kickEvent);
 }
 bool PCSX::FTDI::Device::isOpened() const { return m_private->m_state == Private::DeviceData::STATE_OPENED; }
+bool PCSX::FTDI::Device::isBusy() const {
+    return m_private->m_state == Private::DeviceData::STATE_CLOSE_PENDING ||
+           m_private->m_state == Private::DeviceData::STATE_OPEN_PENDING;
+}
 
 void PCSX::FTDI::Devices::scan() {
     FT_STATUS status;
@@ -185,6 +194,7 @@ void PCSX::FTDI::Devices::threadProc() {
             if (!device) continue;
             DWORD events;
             FT_GetEventStatus(device->m_private->m_handle, &events);
+            printf("%i", events);
         } while (idx != WAIT_OBJECT_0);
     }
     CloseHandle(s_kickEvent);
@@ -215,6 +225,31 @@ void PCSX::FTDI::Devices::stopThread() {
 }
 
 bool PCSX::FTDI::Devices::isThreadRunning() { return s_threadRunning; }
+
+void PCSX::FTDI::Devices::shutdown() {
+    if (!isThreadRunning()) startThread();
+    {
+        bool run = true;
+        while (run) {
+            run = false;
+            std::unique_lock<std::shared_mutex> guard(s_listLock);
+            for (unsigned i = 0; i < s_numDevs; i++) {
+                auto& device = s_devices[i];
+                switch (device.m_private->m_state) {
+                    case Private::DeviceData::STATE_OPENED:
+                        device.close();
+                    case Private::DeviceData::STATE_CLOSE_PENDING:
+                    case Private::DeviceData::STATE_OPEN_PENDING:
+                        run = true;
+                        break;
+                }
+            }
+        }
+    }
+    stopThread();
+    delete[] s_devices;
+    s_numDevs = 0;
+}
 
 void PCSX::FTDI::Devices::setGUI(GUI* gui) { s_gui = gui; }
 
