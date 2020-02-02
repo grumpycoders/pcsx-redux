@@ -206,7 +206,7 @@ class Settings : private std::tuple<settings...> {
         } catch (...) {
             if (doReset) setting.reset();
         }
-        deserialize<index + 1, nestedSettings...>(j);
+        deserialize<index + 1, nestedSettings...>(j, doReset);
     }
 };
 
