@@ -43,7 +43,6 @@ class List final {
 
             m_next->m_prev = m_prev->m_next = this;
 
-            src.m_prev = src.m_next = nullptr;
             src.m_parent = nullptr;
         }
         ~Node() { unlink(); }
@@ -57,7 +56,6 @@ class List final {
         void unlinkInternal() {
             m_next->m_prev = m_prev;
             m_prev->m_next = m_next;
-            m_prev = m_next = nullptr;
             m_parent = nullptr;
         }
         friend class List;
@@ -71,9 +69,9 @@ class List final {
       public:
         IteratorBase(Base* node = nullptr) : m_node(node) { static_assert(std::is_base_of<Base, Derived>::value); }
         template <class srcDerived, class srcBase>
-        IteratorBase(const IteratorBase<srcDerived, srcBase> & src) : m_node(src.m_node) {}
+        IteratorBase(const IteratorBase<srcDerived, srcBase>& src) : m_node(src.m_node) {}
         template <class srcDerived, class srcBase>
-        IteratorBase& operator=(const IteratorBase<srcDerived, srcBase> & src) {
+        IteratorBase& operator=(const IteratorBase<srcDerived, srcBase>& src) {
             m_node = src.m_node;
             return *this;
         }
@@ -132,10 +130,7 @@ class List final {
     const_iterator cend() const { return const_iterator(&m_tail); }
     bool empty() const { return m_count == 0; }
     void clear() {
-        for (Node* ptr = m_head.m_next; ptr; ptr = ptr->m_next) {
-            ptr->m_next = ptr->m_prev = nullptr;
-            ptr->m_parent = nullptr;
-        }
+        for (Node* ptr = m_head.m_next; ptr; ptr = ptr->m_next) ptr->m_parent = nullptr;
         m_head.m_next = m_tail.m_prev = nullptr;
         m_count = 0;
     }
