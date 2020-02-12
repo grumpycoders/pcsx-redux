@@ -39,9 +39,11 @@ class List final {
         Node(Node&& src) {
             m_prev = src.m_prev;
             m_next = src.m_next;
-            src.m_prev = src.m_next = nullptr;
-            m_next->m_prev = m_prev->m_next = this;
             m_parent = src.m_parent;
+
+            m_next->m_prev = m_prev->m_next = this;
+
+            src.m_prev = src.m_next = nullptr;
             src.m_parent = nullptr;
         }
         ~Node() { unlink(); }
@@ -65,7 +67,7 @@ class List final {
 
   private:
     template <class Derived, class Base>
-    class IteratorBase final : public std::iterator<std::bidirectional_iterator_tag, int> {
+    class IteratorBase final : public std::iterator<std::bidirectional_iterator_tag, Derived> {
       public:
         IteratorBase(Base* node = nullptr) : m_node(node) { static_assert(std::is_base_of<Base, Derived>::value); }
         template <class srcDerived, class srcBase>
