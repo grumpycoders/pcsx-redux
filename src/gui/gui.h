@@ -36,7 +36,7 @@
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/vram-viewer.h"
-#include "main/settings.h"
+#include "support/settings.h"
 
 #if defined(__MACOSX__)
 #define GL_SHADER_VERSION "#version 410\n"

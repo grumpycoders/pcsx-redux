@@ -153,7 +153,9 @@
     <ClInclude Include="..\..\src\support\hashtable.h" />
     <ClInclude Include="..\..\src\support\list.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
+    <ClInclude Include="..\..\src\support\settings.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
+    <ClInclude Include="..\..\third_party\json.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

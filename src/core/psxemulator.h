@@ -41,7 +41,7 @@
 #include <memory>
 #include <string>
 
-#include "main/settings.h"
+#include "support/settings.h"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
