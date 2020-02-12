@@ -195,7 +195,7 @@ class List final {
         node->unlinkInternal();
         m_count--;
     }
-    bool isLinked(Node* node) { return this == node->m_parent; }
+    bool contains(Node* node) { return this == node->m_parent; }
 
   private:
     unsigned m_count = 0;
