@@ -69,18 +69,18 @@ class List final {
       public:
         IteratorBase(Base* node = nullptr) : m_node(node) { static_assert(std::is_base_of<Base, Derived>::value); }
         template <class srcDerived, class srcBase>
-        IteratorBase(IteratorBase<srcDerived, srcBase> const& src) : m_node(src.m_node) {}
+        IteratorBase(const IteratorBase<srcDerived, srcBase> & src) : m_node(src.m_node) {}
         template <class srcDerived, class srcBase>
-        IteratorBase& operator=(IteratorBase<srcDerived, srcBase> const& src) {
+        IteratorBase& operator=(const IteratorBase<srcDerived, srcBase> & src) {
             m_node = src.m_node;
             return *this;
         }
         template <class srcDerived, class srcBase>
-        bool operator==(IteratorBase<srcDerived, srcBase> const& src) {
+        bool operator==(const IteratorBase<srcDerived, srcBase>& src) {
             return m_node == src.m_node;
         }
         template <class srcDerived, class srcBase>
-        bool operator!=(IteratorBase<srcDerived, srcBase> const& src) {
+        bool operator!=(const IteratorBase<srcDerived, srcBase>& src) {
             return m_node != src.m_node;
         }
         Derived& operator*() const { return *static_cast<Derived*>(m_node); }
@@ -112,7 +112,7 @@ class List final {
 
   public:
     typedef IteratorBase<T, Node> iterator;
-    typedef IteratorBase<T const, Node const> const_iterator;
+    typedef IteratorBase<const T, const Node> const_iterator;
 
     List() {
         m_head.m_prev = nullptr;
@@ -187,7 +187,7 @@ class List final {
         return iterator(node);
     }
     const_iterator buildConstIterator(Node* node) const {
-        if (!isLinked(node)) return end();
+        if (!contains(node)) return end();
         return const_iterator(node);
     }
     void unlink(Node* node) {
