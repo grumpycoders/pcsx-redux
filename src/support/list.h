@@ -41,6 +41,8 @@ class List final {
             m_next = src.m_next;
             src.m_prev = src.m_next = nullptr;
             m_next->m_prev = m_prev->m_next = this;
+            m_parent = src.m_parent;
+            src.m_parent = nullptr;
         }
         ~Node() { unlink(); }
         bool isLinked() const { return m_parent; }
@@ -54,6 +56,7 @@ class List final {
             m_next->m_prev = m_prev;
             m_prev->m_next = m_next;
             m_prev = m_next = nullptr;
+            m_parent = nullptr;
         }
         friend class List;
         Node *m_prev = nullptr, *m_next = nullptr;
