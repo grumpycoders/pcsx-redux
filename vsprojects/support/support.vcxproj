@@ -150,6 +150,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\support\file.h" />
+    <ClInclude Include="..\..\src\support\list.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
   </ItemGroup>
