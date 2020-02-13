@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{a66c282e-a3ae-4679-99fb-efa40d1d211e}</ProjectGuid>
+    <ProjectGuid>{50eb9a3c-cc0b-4d74-bcf3-8e6c8b778e5a}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
     <ConfigurationType>Application</ConfigurationType>
@@ -36,7 +36,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\tests\support\list.cc" />
+    <ClCompile Include="..\..\..\tests\support\hashtable.cc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\support\support.vcxproj">

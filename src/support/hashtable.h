@@ -53,11 +53,10 @@ class HashTable final {
             if (!isLinked()) return;
             m_parent->unlink(this);
         }
+        const Key& getKey() { return m_key; }
 
       private:
-        void unlinkInternal() {
-            m_parent = nullptr;
-        }
+        void unlinkInternal() { m_parent = nullptr; }
         friend class HashTable;
         Key m_key;
         Node* m_next = nullptr;
