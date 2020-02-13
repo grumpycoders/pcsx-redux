@@ -10,6 +10,7 @@ CXXFLAGS := -std=c++2a
 CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
+CPPFLAGS += -Ithird_party/googletest/googletest/include
 CPPFLAGS += -Ithird_party/imgui
 CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
 CPPFLAGS += -Ithird_party/imgui/examples
@@ -51,6 +52,11 @@ OBJECTS := $(patsubst %.cc,%.o,$(SRC_CC))
 OBJECTS += $(patsubst %.cpp,%.o,$(SRC_CPP))
 OBJECTS += $(patsubst %.c,%.o,$(SRC_C))
 
+NONMAIN_OBJECTS := $(filter-out src/main/main.o,$(OBJECTS))
+
+TESTS_SRC := $(call rwildcard,tests/,*.cc)
+TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
+
 all: dep $(TARGET)
 
 $(TARGET): $(OBJECTS)
@@ -75,7 +81,10 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(DEPS)
+	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o
+
+gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc
 
 gitclean:
 	git clean -f -d -x
@@ -91,7 +100,24 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-.PHONY: all clean gitclean regen-i18n
+define gentest
+$(1): $(1).o $(NONMAIN_OBJECTS) gtest-all.o
+	$(LD) -o $(1) $(NONMAIN_OBJECTS) gtest-all.o $(1).o -Ithird_party/googletest/googletest/include third_party/googletest/googletest/src/gtest_main.cc $(LDFLAGS)
+
+endef
+
+$(foreach t,$(TESTS),$(eval $(call gentest,$(t))))
+
+tests: $(TESTS)
+
+define newline
+$(1)
+endef
+
+runtests: tests
+	$(foreach t,$(TESTS),$(call newline,$(t)))
+
+.PHONY: all clean gitclean regen-i18n tests runtests
 
 DEPS := $(patsubst %.cc,%.dep,$(SRC_CC))
 DEPS += $(patsubst %.cpp,%.dep,$(SRC_CPP))

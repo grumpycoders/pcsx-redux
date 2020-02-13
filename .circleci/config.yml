@@ -17,9 +17,13 @@ jobs:
       - run:
           name: Build
           command: |
-            make -j 2
+            make -j 2 tests
             make -C src/mips/shell -j 2
             make -C src/mips/openbios -j 2
+      - run:
+          name: Test
+          command: |
+            make runtests
 
 workflows:
   version: 2
