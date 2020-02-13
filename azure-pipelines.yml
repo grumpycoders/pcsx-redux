@@ -50,6 +50,14 @@ steps:
       vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: |
+      **\*.exe
+      !**\pcsx-redux.exe
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
