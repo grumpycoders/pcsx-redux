@@ -15,11 +15,11 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
-- task: AzurePowerShell@5
+- task: PowerShell@2
   inputs:
-    ScriptType: 'InlineScript'
-    Inline: 'wget https://christiansoltenborn.gallerycdn.vsassets.io/extensions/christiansoltenborn/googletestadapter/0.17.1.1389/1571333606547/GoogleTestAdapter-0.17.1.vsix -OutFile GoogleTestAdapter-0.17.1.zip'
-    azurePowerShellVersion: 'LatestVersion'
+    targetType: 'InlineScript'
+    script: |
+      wget https://christiansoltenborn.gallerycdn.vsassets.io/extensions/christiansoltenborn/googletestadapter/0.17.1.1389/1571333606547/GoogleTestAdapter-0.17.1.vsix -OutFile GoogleTestAdapter-0.17.1.zip
 
 - task: ExtractFiles@1
   inputs:
