@@ -193,6 +193,9 @@ class List final {
         m_count--;
     }
     bool contains(Node* node) { return this == node->m_parent; }
+    void destroyAll() {
+        while (m_count) delete m_head.m_next;
+    }
 
   private:
     unsigned m_count = 0;
