@@ -70,6 +70,7 @@ steps:
       !**\pcsx-redux.exe
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'
+    codeCoverageEnabled: True
 
 - task: PublishBuildArtifacts@1
   inputs:
