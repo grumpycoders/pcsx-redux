@@ -3,7 +3,7 @@
 FROM ubuntu:18.04
 
 RUN apt update
-RUN apt install -y wget gnupg
+RUN apt install -y wget gnupg curl
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 RUN apt update
 RUN apt install -y software-properties-common

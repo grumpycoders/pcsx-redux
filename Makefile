@@ -1,5 +1,6 @@
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 TARGET := pcsx-redux
+BUILD ?= Release
 
 PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib
 
@@ -17,8 +18,14 @@ CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -Ithird_party/zstr/src
-CPPFLAGS += -O3
 CPPFLAGS += -g
+
+CPPFLAGS_Release += -O3
+
+CPPFLAGS_Debug += -O0
+
+CPPFLAGS_Coverage += -O0
+CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
 
 ifeq ($(UNAME_S),Darwin)
 	CPPFLAGS += -mmacosx-version-min=10.15
@@ -38,6 +45,11 @@ endif
 
 LDFLAGS += -ldl
 LDFLAGS += -g
+
+LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+
+CPPFLAGS += $(CPPFLAGS_$(BUILD))
+LDFLAGS += $(LDFLAGS_$(BUILD))
 
 LD := $(CXX)
 
@@ -100,24 +112,13 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-define gentest
-$(1): $(1).o $(NONMAIN_OBJECTS) gtest-all.o
-	$(LD) -o $(1) $(NONMAIN_OBJECTS) gtest-all.o $(1).o -Ithird_party/googletest/googletest/include third_party/googletest/googletest/src/gtest_main.cc $(LDFLAGS)
+pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
+	$(LD) -o pcsx-redux-tests $(NONMAIN_OBJECTS) gtest-all.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include third_party/googletest/googletest/src/gtest_main.cc $(LDFLAGS)
 
-endef
+runtests: pcsx-redux-tests
+	./pcsx-redux-tests
 
-$(foreach t,$(TESTS),$(eval $(call gentest,$(t))))
-
-tests: $(TESTS)
-
-define newline
-$(1)
-endef
-
-runtests: tests
-	$(foreach t,$(TESTS),$(call newline,$(t)))
-
-.PHONY: all clean gitclean regen-i18n tests runtests
+.PHONY: all clean gitclean regen-i18n runtests
 
 DEPS := $(patsubst %.cc,%.dep,$(SRC_CC))
 DEPS += $(patsubst %.cpp,%.dep,$(SRC_CPP))
