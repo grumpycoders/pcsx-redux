@@ -46,6 +46,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\support\hashtable.cc" />
+    <ClCompile Include="..\..\..\tests\support\list.cc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\support\support.vcxproj">
