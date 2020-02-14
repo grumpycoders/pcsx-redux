@@ -47,6 +47,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "list", "tests\support\list.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hashtable", "tests\support\hashtable.vcxproj", "{50EB9A3C-CC0B-4D74-BCF3-8E6C8B778E5A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "memoryleakdetector", "tests\memoryleakdetector\memoryleakdetector.vcxproj", "{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -167,6 +169,14 @@ Global
 		{50EB9A3C-CC0B-4D74-BCF3-8E6C8B778E5A}.Release|x64.Build.0 = Release|x64
 		{50EB9A3C-CC0B-4D74-BCF3-8E6C8B778E5A}.Release|x86.ActiveCfg = Release|Win32
 		{50EB9A3C-CC0B-4D74-BCF3-8E6C8B778E5A}.Release|x86.Build.0 = Release|Win32
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Debug|x64.ActiveCfg = Debug|x64
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Debug|x64.Build.0 = Debug|x64
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Debug|x86.ActiveCfg = Debug|Win32
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Debug|x86.Build.0 = Debug|Win32
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Release|x64.ActiveCfg = Release|x64
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Release|x64.Build.0 = Release|x64
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Release|x86.ActiveCfg = Release|Win32
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -188,9 +198,10 @@ Global
 		{2B8BC54D-C883-48E3-ABE4-9A769736DC1C} = {9D5A1DB2-E74D-4CDD-8377-9EA08CF4AADE}
 		{A66C282E-A3AE-4679-99FB-EFA40D1D211E} = {2B8BC54D-C883-48E3-ABE4-9A769736DC1C}
 		{50EB9A3C-CC0B-4D74-BCF3-8E6C8B778E5A} = {2B8BC54D-C883-48E3-ABE4-9A769736DC1C}
+		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650} = {9D5A1DB2-E74D-4CDD-8377-9EA08CF4AADE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal
