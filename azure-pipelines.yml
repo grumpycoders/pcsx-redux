@@ -76,3 +76,8 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
+
+- task: publishHtml@1
+  inputs:
+    artifactName: 'blah.html'
+    htmlFilePath: 'test.html'
