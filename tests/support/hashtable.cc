@@ -17,19 +17,20 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "support/hashtable.h"
+
 #include <algorithm>
 
 #include "gtest/gtest.h"
-#include "support/hashtable.h"
 
 struct Element;
 typedef PCSX::Intrusive::HashTable<int, Element> HashTableType;
 struct Element : public HashTableType::Node {
-	Element(int tag = 0) : m_tag(tag) {}
-	int m_tag = 0;
+    Element(int tag = 0) : m_tag(tag) {}
+    int m_tag = 0;
 };
 
 TEST(BasicHashTable, EmptyHashTable) {
-	HashTableType hashtab;
-	EXPECT_TRUE(hashtab.empty());
+    HashTableType hashtab;
+    EXPECT_TRUE(hashtab.empty());
 }
