@@ -158,3 +158,47 @@ TEST(AdvancedHashTable, Iterator) {
 
     hashtab.destroyAll();
 }
+
+struct FlawedHash {
+    static constexpr uint32_t hash(const int& key) { return 42; }
+    static constexpr bool isEqual(const int& lhs, const int& rhs) { return lhs == rhs; }
+};
+struct FlawedHashElement;
+typedef PCSX::Intrusive::HashTable<int, FlawedHashElement, FlawedHash> FlawedHashTableType;
+struct FlawedHashElement : public FlawedHashTableType::Node {
+    FlawedHashElement(int tag = 0) : m_tag(tag) {}
+    int m_tag = 0;
+};
+TEST(FlawedHashTable, DeleteMany) {
+    FlawedHashTableType hashtab;
+    for (unsigned i = 0; i < 256; i++) {
+        hashtab.insert(i, new FlawedHashElement(i));
+    }
+    EXPECT_EQ(hashtab.size(), 256);
+    for (unsigned i = 0; i < 256; i++) {
+        auto p = hashtab.find(i);
+        EXPECT_FALSE(p == hashtab.end());
+        FlawedHashElement& n = *p;
+        EXPECT_EQ(n.getKey(), i);
+        EXPECT_EQ(n.m_tag, i);
+
+        delete &n;
+    }
+
+    EXPECT_TRUE(hashtab.empty());
+
+    for (unsigned i = 0; i < 42; i++) {
+        hashtab.insert(i, new FlawedHashElement(i));
+    }
+    EXPECT_EQ(hashtab.size(), 42);
+    for (unsigned i = 0; i < 42; i++) {
+        auto p = hashtab.find(i);
+        EXPECT_FALSE(p == hashtab.end());
+        FlawedHashElement& n = *p;
+        EXPECT_EQ(n.getKey(), i);
+        EXPECT_EQ(n.m_tag, i);
+    }
+
+    hashtab.destroyAll();
+    EXPECT_TRUE(hashtab.empty());
+}
