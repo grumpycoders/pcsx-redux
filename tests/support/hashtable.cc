@@ -23,10 +23,10 @@
 
 #include "gtest/gtest.h"
 
-struct Element;
-typedef PCSX::Intrusive::HashTable<int, Element> HashTableType;
-struct Element : public HashTableType::Node {
-    Element(int tag = 0) : m_tag(tag) {}
+struct HashElement;
+typedef PCSX::Intrusive::HashTable<int, HashElement> HashTableType;
+struct HashElement : public HashTableType::Node {
+    HashElement(int tag = 0) : m_tag(tag) {}
     int m_tag = 0;
 };
 
@@ -35,10 +35,55 @@ TEST(BasicHashTable, EmptyHashTable) {
     EXPECT_TRUE(hashtab.empty());
 }
 
-TEST(BasicHashTable, Insert) {
+TEST(BasicHashTable, InsertOne) {
     HashTableType hashtab;
-    hashtab.insert(42, new Element(42));
+    hashtab.insert(42, new HashElement(42));
     EXPECT_FALSE(hashtab.empty());
+    auto p = hashtab.find(42);
+    EXPECT_FALSE(p == hashtab.end());
+    HashElement& n = *p;
+    EXPECT_EQ(n.getKey(), 42);
+    EXPECT_EQ(n.m_tag, 42);
+    hashtab.destroyAll();
+    EXPECT_TRUE(hashtab.empty());
+}
+
+TEST(BasicHashTable, InsertMany) {
+    HashTableType hashtab;
+    for (unsigned i = 0; i < 42; i++) {
+        hashtab.insert(i, new HashElement(i));
+    }
+    EXPECT_EQ(hashtab.size(), 42);
+    for (unsigned i = 0; i < 42; i++) {
+        auto p = hashtab.find(i);
+        EXPECT_FALSE(p == hashtab.end());
+        HashElement& n = *p;
+        EXPECT_EQ(n.getKey(), i);
+        EXPECT_EQ(n.m_tag, i);
+    }
+
+    hashtab.destroyAll();
+    EXPECT_TRUE(hashtab.empty());
+}
+
+TEST(BasicHashTable, UseAfterDestroy) {
+    HashTableType hashtab;
+    for (unsigned i = 0; i < 42; i++) {
+        hashtab.insert(i, new HashElement(i));
+    }
+    hashtab.destroyAll();
+    for (unsigned i = 0; i < 42; i++) {
+        hashtab.insert(100 + i, new HashElement(100 + i));
+    }
+    EXPECT_EQ(hashtab.size(), 42);
+    for (unsigned i = 0; i < 42; i++) {
+        auto p = hashtab.find(100 + i);
+        EXPECT_FALSE(p == hashtab.end());
+        HashElement& n = *p;
+        EXPECT_EQ(n.getKey(), 100 + i);
+        EXPECT_EQ(n.m_tag, 100 + i);
+    }
+
     hashtab.destroyAll();
     EXPECT_TRUE(hashtab.empty());
 }

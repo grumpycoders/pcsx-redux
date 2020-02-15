@@ -107,8 +107,8 @@ class HashTable final {
     typedef IteratorBase<const T, const Node> const_iterator;
 
     HashTable(unsigned initLog = 1) {
-        m_array.resize(1 << initLog);
-        m_mask = (1 << initLog) - 1;
+        m_array.resize(1U << initLog);
+        m_mask = (1U << initLog) - 1;
         m_bits = initLog;
     }
 
@@ -142,6 +142,7 @@ class HashTable final {
 
         node->m_next = m_array[bucket];
         m_array[bucket] = node;
+        node->m_parent = this;
 
         m_count++;
         return iterator(node);
@@ -190,16 +191,18 @@ class HashTable final {
     bool contains(Node* node) { return this == node->m_parent; }
     void destroyAll() {
         for (auto& i : m_array) destroyAll(i);
+        auto oldSize = m_array.size();
         m_array.clear();
+        m_array.resize(oldSize);
         m_count = 0;
     }
 
   private:
     void maybeGrow() {
-        if ((1 << m_bits) > m_count) return;
+        if ((1U << m_bits) > m_count) return;
         std::vector<Node*> newArray;
         m_bits++;
-        const uint32_t mask = m_mask = (1 << m_bits) - 1;
+        const uint32_t mask = m_mask = (1U << m_bits) - 1;
         newArray.resize(mask + 1);
 
         for (auto& i : m_array) {

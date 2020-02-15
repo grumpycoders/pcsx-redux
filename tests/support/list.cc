@@ -23,10 +23,10 @@
 
 #include "gtest/gtest.h"
 
-struct Element;
-typedef PCSX::Intrusive::List<Element> ListType;
-struct Element : public ListType::Node {
-    Element(int tag = 0) : m_tag(tag) {}
+struct ListElement;
+typedef PCSX::Intrusive::List<ListElement> ListType;
+struct ListElement : public ListType::Node {
+    ListElement(int tag = 0) : m_tag(tag) {}
     int m_tag = 0;
 };
 
@@ -37,9 +37,9 @@ TEST(BasicList, EmptyList) {
 
 TEST(BasicList, PushBackIterator) {
     ListType list;
-    list.push_back(new Element(1));
-    list.push_back(new Element(2));
-    list.push_back(new Element(3));
+    list.push_back(new ListElement(1));
+    list.push_back(new ListElement(2));
+    list.push_back(new ListElement(3));
     EXPECT_FALSE(list.empty());
     EXPECT_EQ(list.size(), 3);
 
@@ -56,9 +56,9 @@ TEST(BasicList, PushBackIterator) {
 
 TEST(BasicList, PushFrontIterator) {
     ListType list;
-    list.push_front(new Element(1));
-    list.push_front(new Element(2));
-    list.push_front(new Element(3));
+    list.push_front(new ListElement(1));
+    list.push_front(new ListElement(2));
+    list.push_front(new ListElement(3));
     EXPECT_FALSE(list.empty());
     EXPECT_EQ(list.size(), 3);
 
@@ -74,13 +74,38 @@ TEST(BasicList, PushFrontIterator) {
     EXPECT_TRUE(list.empty());
 }
 
+TEST(BasicList, UseAfterDestroy) {
+    ListType list;
+    list.push_front(new ListElement(1));
+    list.push_front(new ListElement(2));
+    list.push_front(new ListElement(3));
+    list.destroyAll();
+    list.push_front(new ListElement(4));
+    list.push_front(new ListElement(5));
+    list.push_front(new ListElement(6));
+
+    EXPECT_FALSE(list.empty());
+    EXPECT_EQ(list.size(), 3);
+
+    ListType::iterator i = list.end();
+    i--;
+    EXPECT_EQ(i->m_tag, 4);
+    i--;
+    EXPECT_EQ(i->m_tag, 5);
+    i--;
+    EXPECT_EQ(i->m_tag, 6);
+    EXPECT_TRUE(i == list.begin());
+    list.destroyAll();
+    EXPECT_TRUE(list.empty());
+}
+
 TEST(AdvancedList, MoveElement) {
     ListType list;
-    list.push_back(new Element(1));
-    list.push_back(new Element(2));
-    list.push_back(new Element(3));
+    list.push_back(new ListElement(1));
+    list.push_back(new ListElement(2));
+    list.push_back(new ListElement(3));
 
-    auto i = std::find_if(list.begin(), list.end(), [](Element& e) { return e.m_tag == 2; });
+    auto i = std::find_if(list.begin(), list.end(), [](ListElement& e) { return e.m_tag == 2; });
     list.push_front(&*i);
     EXPECT_EQ(list.size(), 3);
     i = list.begin();
@@ -97,13 +122,13 @@ TEST(AdvancedList, TwoListsExclusive) {
     ListType list1;
     ListType list2;
 
-    Element *e1, *e2, *e3;
+    ListElement *e1, *e2, *e3;
 
-    list1.push_back(e1 = new Element(1));
-    list1.push_back(e2 = new Element(2));
-    list1.push_back(e3 = new Element(3));
+    list1.push_back(e1 = new ListElement(1));
+    list1.push_back(e2 = new ListElement(2));
+    list1.push_back(e3 = new ListElement(3));
 
-    auto i = std::find_if(list1.begin(), list1.end(), [](Element& e) { return e.m_tag == 2; });
+    auto i = std::find_if(list1.begin(), list1.end(), [](ListElement& e) { return e.m_tag == 2; });
     list2.push_front(&*i);
     EXPECT_EQ(list1.size(), 2);
     i = list1.begin();
@@ -135,11 +160,11 @@ TEST(AdvancedList, TwoListsExclusive) {
 
 TEST(AdvancedList, ListSwap) {
     ListType list1, list2;
-    Element *e1, *e2, *e3;
+    ListElement *e1, *e2, *e3;
 
-    list1.push_back(e1 = new Element(1));
-    list2.push_back(e2 = new Element(2));
-    list1.push_back(e3 = new Element(3));
+    list1.push_back(e1 = new ListElement(1));
+    list2.push_back(e2 = new ListElement(2));
+    list1.push_back(e3 = new ListElement(3));
 
     EXPECT_EQ(list1.size(), 2);
     auto i = list1.begin();
@@ -182,15 +207,18 @@ TEST(AdvancedList, ListSwap) {
     EXPECT_FALSE(list1.contains(e1));
     EXPECT_TRUE(list1.contains(e2));
     EXPECT_FALSE(list1.contains(e3));
+
+    list1.destroyAll();
+    list2.destroyAll();
 }
 
 TEST(AdvancedList, Append) {
     ListType list1, list2;
-    Element *e1, *e2, *e3;
+    ListElement *e1, *e2, *e3;
 
-    list1.push_back(e1 = new Element(1));
-    list2.push_back(e2 = new Element(2));
-    list1.push_back(e3 = new Element(3));
+    list1.push_back(e1 = new ListElement(1));
+    list2.push_back(e2 = new ListElement(2));
+    list1.push_back(e3 = new ListElement(3));
 
     ListType swap;
     swap.append(list1);
@@ -215,15 +243,18 @@ TEST(AdvancedList, Append) {
     EXPECT_FALSE(list1.contains(e1));
     EXPECT_TRUE(list1.contains(e2));
     EXPECT_FALSE(list1.contains(e3));
+
+    list1.destroyAll();
+    list2.destroyAll();
 }
 
 TEST(AdvancedList, Prepend) {
     ListType list1, list2;
-    Element *e1, *e2, *e3;
+    ListElement *e1, *e2, *e3;
 
-    list1.push_back(e1 = new Element(1));
-    list2.push_back(e2 = new Element(2));
-    list1.push_back(e3 = new Element(3));
+    list1.push_back(e1 = new ListElement(1));
+    list2.push_back(e2 = new ListElement(2));
+    list1.push_back(e3 = new ListElement(3));
 
     ListType swap;
     swap.prepend(list1);
@@ -248,29 +279,32 @@ TEST(AdvancedList, Prepend) {
     EXPECT_FALSE(list1.contains(e1));
     EXPECT_TRUE(list1.contains(e2));
     EXPECT_FALSE(list1.contains(e3));
+
+    list1.destroyAll();
+    list2.destroyAll();
 }
 
 TEST(AlgorithmList, FindIf) {
     ListType list;
-    list.push_back(new Element(1));
+    list.push_back(new ListElement(1));
     auto e1 = --list.end();
-    list.push_back(new Element(2));
+    list.push_back(new ListElement(2));
     auto e2 = --list.end();
-    list.push_back(new Element(3));
+    list.push_back(new ListElement(3));
     auto e3 = --list.end();
 
     auto i = list.begin();
-    auto f = std::find_if(list.begin(), list.end(), [](Element& e) { return e.m_tag == 1; });
+    auto f = std::find_if(list.begin(), list.end(), [](ListElement& e) { return e.m_tag == 1; });
     EXPECT_TRUE(f == i);
     EXPECT_TRUE(f == e1);
     EXPECT_EQ(f->m_tag, 1);
     i++;
-    f = std::find_if(list.begin(), list.end(), [](Element& e) { return e.m_tag == 2; });
+    f = std::find_if(list.begin(), list.end(), [](ListElement& e) { return e.m_tag == 2; });
     EXPECT_TRUE(f == i);
     EXPECT_TRUE(f == e2);
     EXPECT_EQ(f->m_tag, 2);
     i++;
-    f = std::find_if(list.begin(), list.end(), [](Element& e) { return e.m_tag == 3; });
+    f = std::find_if(list.begin(), list.end(), [](ListElement& e) { return e.m_tag == 3; });
     EXPECT_TRUE(f == i);
     EXPECT_TRUE(f == e3);
     EXPECT_EQ(f->m_tag, 3);
