@@ -87,3 +87,40 @@ TEST(BasicHashTable, UseAfterDestroy) {
     hashtab.destroyAll();
     EXPECT_TRUE(hashtab.empty());
 }
+TEST(AdvancedHashTable, Eviction) {
+    HashTableType hashtab;
+    HashElement* e1 = new HashElement(1);
+    HashElement* e2 = new HashElement(2);
+
+    hashtab.insert(42, e1);
+    hashtab.insert(42, e2);
+
+    EXPECT_EQ(hashtab.size(), 1);
+    EXPECT_FALSE(hashtab.contains(e1));
+    EXPECT_TRUE(hashtab.contains(e2));
+    EXPECT_FALSE(e1->isLinked());
+    EXPECT_TRUE(e2->isLinked());
+
+    auto i = hashtab.find(42);
+    EXPECT_EQ(i->m_tag, 2);
+    hashtab.destroyAll();
+    delete e1;
+}
+TEST(AdvancedHashTable, Iterator) {
+    HashTableType hashtab;
+    for (unsigned i = 0; i < 64; i++) {
+        hashtab.insert(i, new HashElement(i));
+    }
+    EXPECT_EQ(hashtab.size(), 64);
+    uint64_t seen = 0;
+
+    for (auto& i : hashtab) {
+        int tag = i.m_tag;
+        EXPECT_FALSE(seen & (1ULL << tag));
+        seen |= (1ULL << tag);
+    }
+
+    EXPECT_EQ(seen, 0xffffffffffffffffULL);
+
+    hashtab.destroyAll();
+}

@@ -87,16 +87,23 @@ class HashTable final {
         Derived& operator*() const { return *static_cast<Derived*>(m_node); }
         Derived* operator->() const { return static_cast<Derived*>(m_node); }
         IteratorBase& operator++() {
-            m_node = m_node->m_next;
+            next();
             return *this;
         }
         IteratorBase operator++(int) {
             IteratorBase copy(*this);
-            m_node = m_node->m_next;
+            next();
             return copy;
         }
 
       private:
+        void next() {
+            Node* node = m_node;
+            auto parent = node->m_parent;
+            uint32_t hash = node->m_hash;
+            node = m_node = node->m_next;
+            if (!node && parent) m_node = parent->findNext(hash);
+        }
         friend class HashTable;
 
         Base* m_node = nullptr;
@@ -105,6 +112,9 @@ class HashTable final {
   public:
     typedef IteratorBase<T, Node> iterator;
     typedef IteratorBase<const T, const Node> const_iterator;
+
+    friend class IteratorBase<T, Node>;
+    friend class IteratorBase<const T, const Node>;
 
     HashTable(unsigned initLog = 1) {
         m_array.resize(1U << initLog);
@@ -220,6 +230,13 @@ class HashTable final {
     Node* findFirst() {
         for (auto& i : m_array) {
             if (i) return i;
+        }
+        return nullptr;
+    }
+    Node* findNext(uint32_t hash) {
+        unsigned bucket = hash & m_mask;
+        for (bucket++; bucket < m_array.size(); bucket++) {
+            if (m_array[bucket]) return m_array[bucket];
         }
         return nullptr;
     }
