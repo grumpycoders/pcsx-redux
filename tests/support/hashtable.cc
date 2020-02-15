@@ -72,12 +72,12 @@ TEST(BasicHashTable, DeleteMany) {
         hashtab.insert(i, new HashElement(i));
     }
     EXPECT_EQ(hashtab.size(), 256);
-    for (unsigned i = 0; i < 256; i++) {
-        auto p = hashtab.find(i);
+    for (unsigned i = 256; i != 0; i--) {
+        auto p = hashtab.find(i - 1);
         EXPECT_FALSE(p == hashtab.end());
         HashElement& n = *p;
-        EXPECT_EQ(n.getKey(), i);
-        EXPECT_EQ(n.m_tag, i);
+        EXPECT_EQ(n.getKey(), i - 1);
+        EXPECT_EQ(n.m_tag, i - 1);
 
         delete &n;
     }
