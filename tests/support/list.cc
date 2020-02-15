@@ -23,8 +23,6 @@
 
 #include "gtest/gtest.h"
 
-namespace List {
-
 struct Element;
 typedef PCSX::Intrusive::List<Element> ListType;
 struct Element : public ListType::Node {
@@ -135,6 +133,123 @@ TEST(AdvancedList, TwoListsExclusive) {
     list2.destroyAll();
 }
 
+TEST(AdvancedList, ListSwap) {
+    ListType list1, list2;
+    Element *e1, *e2, *e3;
+
+    list1.push_back(e1 = new Element(1));
+    list2.push_back(e2 = new Element(2));
+    list1.push_back(e3 = new Element(3));
+
+    EXPECT_EQ(list1.size(), 2);
+    auto i = list1.begin();
+    EXPECT_EQ(i->m_tag, 1);
+    i++;
+    EXPECT_EQ(i->m_tag, 3);
+    EXPECT_TRUE(++i == list1.end());
+
+    EXPECT_EQ(list2.size(), 1);
+    i = list2.begin();
+    EXPECT_EQ(i->m_tag, 2);
+    EXPECT_TRUE(++i == list2.end());
+
+    EXPECT_TRUE(list1.contains(e1));
+    EXPECT_FALSE(list1.contains(e2));
+    EXPECT_TRUE(list1.contains(e3));
+
+    EXPECT_FALSE(list2.contains(e1));
+    EXPECT_TRUE(list2.contains(e2));
+    EXPECT_FALSE(list2.contains(e3));
+
+    list1.swap(list2);
+
+    EXPECT_EQ(list2.size(), 2);
+    i = list2.begin();
+    EXPECT_EQ(i->m_tag, 1);
+    i++;
+    EXPECT_EQ(i->m_tag, 3);
+    EXPECT_TRUE(++i == list2.end());
+
+    EXPECT_EQ(list1.size(), 1);
+    i = list1.begin();
+    EXPECT_EQ(i->m_tag, 2);
+    EXPECT_TRUE(++i == list1.end());
+
+    EXPECT_TRUE(list2.contains(e1));
+    EXPECT_FALSE(list2.contains(e2));
+    EXPECT_TRUE(list2.contains(e3));
+
+    EXPECT_FALSE(list1.contains(e1));
+    EXPECT_TRUE(list1.contains(e2));
+    EXPECT_FALSE(list1.contains(e3));
+}
+
+TEST(AdvancedList, Append) {
+    ListType list1, list2;
+    Element *e1, *e2, *e3;
+
+    list1.push_back(e1 = new Element(1));
+    list2.push_back(e2 = new Element(2));
+    list1.push_back(e3 = new Element(3));
+
+    ListType swap;
+    swap.append(list1);
+    list1.append(list2);
+    list2.append(swap);
+    EXPECT_EQ(list2.size(), 2);
+    auto i = list2.begin();
+    EXPECT_EQ(i->m_tag, 1);
+    i++;
+    EXPECT_EQ(i->m_tag, 3);
+    EXPECT_TRUE(++i == list2.end());
+
+    EXPECT_EQ(list1.size(), 1);
+    i = list1.begin();
+    EXPECT_EQ(i->m_tag, 2);
+    EXPECT_TRUE(++i == list1.end());
+
+    EXPECT_TRUE(list2.contains(e1));
+    EXPECT_FALSE(list2.contains(e2));
+    EXPECT_TRUE(list2.contains(e3));
+
+    EXPECT_FALSE(list1.contains(e1));
+    EXPECT_TRUE(list1.contains(e2));
+    EXPECT_FALSE(list1.contains(e3));
+}
+
+TEST(AdvancedList, Prepend) {
+    ListType list1, list2;
+    Element *e1, *e2, *e3;
+
+    list1.push_back(e1 = new Element(1));
+    list2.push_back(e2 = new Element(2));
+    list1.push_back(e3 = new Element(3));
+
+    ListType swap;
+    swap.prepend(list1);
+    list1.prepend(list2);
+    list2.prepend(swap);
+    EXPECT_EQ(list2.size(), 2);
+    auto i = list2.begin();
+    EXPECT_EQ(i->m_tag, 1);
+    i++;
+    EXPECT_EQ(i->m_tag, 3);
+    EXPECT_TRUE(++i == list2.end());
+
+    EXPECT_EQ(list1.size(), 1);
+    i = list1.begin();
+    EXPECT_EQ(i->m_tag, 2);
+    EXPECT_TRUE(++i == list1.end());
+
+    EXPECT_TRUE(list2.contains(e1));
+    EXPECT_FALSE(list2.contains(e2));
+    EXPECT_TRUE(list2.contains(e3));
+
+    EXPECT_FALSE(list1.contains(e1));
+    EXPECT_TRUE(list1.contains(e2));
+    EXPECT_FALSE(list1.contains(e3));
+}
+
 TEST(AlgorithmList, FindIf) {
     ListType list;
     list.push_back(new Element(1));
@@ -162,5 +277,3 @@ TEST(AlgorithmList, FindIf) {
     list.destroyAll();
     EXPECT_TRUE(list.empty());
 }
-
-}  // namespace List

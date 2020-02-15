@@ -145,15 +145,7 @@ class List final {
         return iterator(node);
     }
     void merge(iterator i, List& list) {
-        if (list.empty()) return;
-        Node* node = i.m_node;
-        list.m_head.m_next->m_prev = node->m_prev;
-        node->m_prev->m_next = list.m_head.m_next;
-        list.m_tail.m_prev->m_next = node;
-        node->m_prev = list.m_tail.m_prev;
-        m_count += list.m_count;
-        list.m_count = 0;
-        list.m_head.m_next = list.m_tail.m_prev = nullptr;
+        while (!list.empty()) insert(i, &*list.begin());
     }
     iterator erase(iterator i) {
         Node* node = i.m_node;
@@ -174,10 +166,14 @@ class List final {
     void prepend(List& list) { merge(begin(), list); }
     void append(List& list) { merge(end(), list); }
     void swap(List& list) {
-        List swp;
-        swp.append(*this);
-        append(list);
-        list.append(swp);
+        unsigned localCount = size();
+        unsigned remoteCount = list.size();
+        for (unsigned i = 0; i < localCount; i++) {
+            list.push_back(&*begin());
+        }
+        for (unsigned i = 0; i < remoteCount; i++) {
+            push_back(&*list.begin());
+        }
     }
     iterator buildIterator(Node* node) const {
         if (!isLinked(node)) return end();

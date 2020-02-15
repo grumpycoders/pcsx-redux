@@ -23,8 +23,6 @@
 
 #include "gtest/gtest.h"
 
-namespace HashTable {
-
 struct Element;
 typedef PCSX::Intrusive::HashTable<int, Element> HashTableType;
 struct Element : public HashTableType::Node {
@@ -36,5 +34,3 @@ TEST(BasicHashTable, EmptyHashTable) {
     HashTableType hashtab;
     EXPECT_TRUE(hashtab.empty());
 }
-
-}  // namespace HashTable
