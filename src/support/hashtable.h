@@ -188,6 +188,11 @@ class HashTable final {
         m_count--;
     }
     bool contains(Node* node) { return this == node->m_parent; }
+    void destroyAll() {
+        for (auto& i : m_array) destroyAll(i);
+        m_array.clear();
+        m_count = 0;
+    }
 
   private:
     void maybeGrow() {
@@ -214,6 +219,13 @@ class HashTable final {
             if (i) return i;
         }
         return nullptr;
+    }
+    void destroyAll(Node* node) {
+        if (!node) return;
+        Node* next = node->m_next;
+        node->m_parent = nullptr;
+        delete node;
+        destroyAll(next);
     }
     std::vector<Node*> m_array;
     unsigned m_count = 0;

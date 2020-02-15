@@ -34,3 +34,11 @@ TEST(BasicHashTable, EmptyHashTable) {
     HashTableType hashtab;
     EXPECT_TRUE(hashtab.empty());
 }
+
+TEST(BasicHashTable, Insert) {
+    HashTableType hashtab;
+    hashtab.insert(42, new Element(42));
+    EXPECT_FALSE(hashtab.empty());
+    hashtab.destroyAll();
+    EXPECT_TRUE(hashtab.empty());
+}
