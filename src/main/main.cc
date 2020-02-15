@@ -20,9 +20,9 @@
 #include <SDL.h>
 
 #include <filesystem>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -32,7 +32,6 @@
 #include "flags.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
-#include "support/slice.h"
 
 static PCSX::GUI *s_gui;
 
@@ -160,7 +159,9 @@ class SystemImpl : public PCSX::System {
         if (m_logfile) fclose(m_logfile);
     }
 
-    void useLogfile(const PCSX::u8string &filename) { m_logfile = fopen(reinterpret_cast<const char*>(filename.c_str()), "w"); }
+    void useLogfile(const PCSX::u8string &filename) {
+        m_logfile = fopen(reinterpret_cast<const char *>(filename.c_str()), "w");
+    }
 
     bool m_enableStdout = false;
 };
@@ -169,7 +170,6 @@ using json = nlohmann::json;
 
 int main(int argc, char **argv) {
     const flags::args args(argc, argv);
-    PCSX::Slice slice;
 
     if (args.get<bool>("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);

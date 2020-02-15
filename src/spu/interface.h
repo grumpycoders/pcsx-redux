@@ -27,10 +27,10 @@
 #include "core/decode_xa.h"
 #include "core/sstate.h"
 #include "core/spu.h"
-#include "main/settings.h"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
 #include "spu/types.h"
+#include "support/settings.h"
 
 namespace PCSX {
 

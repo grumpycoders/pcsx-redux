@@ -15,6 +15,18 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
+- task: PowerShell@2
+  inputs:
+    targetType: 'InlineScript'
+    script: |
+      wget https://christiansoltenborn.gallerycdn.vsassets.io/extensions/christiansoltenborn/googletestadapter/0.17.1.1389/1571333606547/GoogleTestAdapter-0.17.1.vsix -OutFile GoogleTestAdapter-0.17.1.zip
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'GoogleTestAdapter-0.17.1.zip'
+    destinationFolder: 'GoogleTestAdapter'
+    cleanDestinationFolder: true'
+
 - task: CopyFiles@2
   inputs:
     Contents: |
@@ -49,6 +61,16 @@ steps:
       vsprojects/x64/Release/*.exe
       vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
+
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: |
+      **\*.exe
+      !**\pcsx-redux.exe
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    pathtoCustomTestAdapters: 'GoogleTestAdapter'
+    codeCoverageEnabled: True
 
 - task: PublishBuildArtifacts@1
   inputs:

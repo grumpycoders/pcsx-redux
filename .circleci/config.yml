@@ -17,12 +17,52 @@ jobs:
       - run:
           name: Build
           command: |
-            make -j 2
+            make -j 2 all pcsx-redux-tests
             make -C src/mips/shell -j 2
             make -C src/mips/openbios -j 2
+      - run:
+          name: Test
+          command: |
+            make runtests
+  coverage:
+    docker:
+      - image: grumpycoders/pcsx-redux-build:latest
+    environment:
+      CC: clang-9
+      CXX: clang++-9
+      LD: clang++-9
+      LLVM_PROFILE_FILE: /tmp/llvm_profile/profile-%p.profraw
+      BUILD: Coverage
+    steps:
+      - checkout
+      - run:
+          name: submodules
+          command: |
+            git submodule update --init --recursive
+      - run:
+          name: Build
+          command: |
+            make -j 2 all pcsx-redux-tests
+      - run:
+          name: Test
+          command: |
+            make runtests
+      - run:
+          name: Merge code coverage
+          command: |
+            llvm-profdata-9 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
+      - run:
+          name: Convert code coverage
+          command: |
+            llvm-cov-9 show ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.txt
+      - run:
+          name: Upload Code Coverage
+          command: |
+            bash <(curl -s https://codecov.io/bash)
 
 workflows:
   version: 2
   build_and_test:
     jobs:
       - build
+      - coverage
