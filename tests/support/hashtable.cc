@@ -154,7 +154,7 @@ TEST(AdvancedHashTable, Iterator) {
         seen |= (1ULL << tag);
     }
 
-    EXPECT_EQ(seen, 0xffffffffffffffffULL);
+    EXPECT_EQ(seen, 0);
 
     hashtab.destroyAll();
 }
