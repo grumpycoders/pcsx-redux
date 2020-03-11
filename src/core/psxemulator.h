@@ -95,6 +95,7 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
+class UV;
 
 class Emulator {
   private:
@@ -202,6 +203,7 @@ class Emulator {
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
+    std::unique_ptr<UV> m_uv;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

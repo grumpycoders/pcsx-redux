@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/psxemulator.h"
+
 #include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/debug.h"
@@ -28,7 +29,7 @@
 #include "core/ppf.h"
 #include "core/psxbios.h"
 #include "core/r3000a.h"
-
+#include "core/uv_wrapper.h"
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
 
@@ -46,7 +47,8 @@ PCSX::Emulator::Emulator()
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
       m_pad1(new PCSX::PAD(PAD::PAD1)),
-      m_pad2(new PCSX::PAD(PAD::PAD2)) {}
+      m_pad2(new PCSX::PAD(PAD::PAD2)),
+      m_uv(new PCSX::UV) {}
 
 PCSX::Emulator::~Emulator() {}
 
@@ -98,7 +100,7 @@ void PCSX::Emulator::EmuUpdate() {
     }
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
-        //CreateRewindState();
+        // CreateRewindState();
     }
 }
 

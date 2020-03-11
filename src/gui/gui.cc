@@ -18,24 +18,16 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#include "gui/gui.h"
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <assert.h>
-
 #include <SDL.h>
+#include <assert.h>
 
 #include <fstream>
 #include <iomanip>
 #include <unordered_set>
-
-#include "flags.h"
-#include "json.hpp"
-#include "zstr.hpp"
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_stdlib.h"
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -43,8 +35,15 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
-#include "gui/gui.h"
+#include "core/uv_wrapper.h"
+#include "flags.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_stdlib.h"
+#include "json.hpp"
 #include "spu/interface.h"
+#include "zstr.hpp"
 
 using json = nlohmann::json;
 
@@ -78,9 +77,7 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
 }
 
 void PCSX::GUI::init() {
-    int result = uv_loop_init(&m_loop);
-    assert(result == 0);
-
+    PCSX::g_emulator.m_uv->init();
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
         abort();
@@ -97,7 +94,7 @@ void PCSX::GUI::init() {
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
 
-    result = gl3wInit();
+    int result = gl3wInit();
     assert(result == 0);
 
     // Setup ImGui binding
@@ -209,9 +206,7 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
-
-    int result = uv_loop_close(&m_loop);
-    assert(result == 0);
+    PCSX::g_emulator.m_uv->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -229,7 +224,6 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    uv_run(&m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();
@@ -247,6 +241,8 @@ void PCSX::GUI::startFrame() {
 
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
     if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
+
+    PCSX::g_emulator.m_uv->run();
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
