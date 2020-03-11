@@ -21,9 +21,10 @@
 
 #include <stdarg.h>
 
+namespace PCSX {
+
 struct psxRegisters;
 
-namespace PCSX {
 namespace Widgets {
 
 class Registers {

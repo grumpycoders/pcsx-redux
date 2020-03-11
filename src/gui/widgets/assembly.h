@@ -27,10 +27,11 @@
 #include "core/disr3000a.h"
 #include "gui/widgets/filedialog.h"
 
-struct psxRegisters;
 struct MemoryEditor;
 
 namespace PCSX {
+
+struct psxRegisters;
 
 class Memory;
 
