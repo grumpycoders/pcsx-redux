@@ -22,6 +22,8 @@ ipch/
 *.VC.VC.opendb
 
 vsprojects/packages
+vsprojects/PredictedInputCache_*.dat
+
 
 .Trash-1000/
 
@@ -32,4 +34,3 @@ vsprojects/packages
 /pcsx.json
 /memcard1.mcd
 /memcard2.mcd
-
