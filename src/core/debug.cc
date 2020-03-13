@@ -17,14 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/debug.h"
+
 #include <iomanip>
 #include <sstream>
 
-#include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/uv_wrapper.h"
 
 enum {
     MAP_EXEC = 1,
@@ -95,7 +97,7 @@ void PCSX::Debug::processAfter() {
 
     if (m_stepping) {
         const bool gotException = pc == 0x80000080 || pc == 0xbfc00180;
-        if (gotException) m_steppingJumps += 2; // there ought to be two jr $k0
+        if (gotException) m_steppingJumps += 2;  // there ought to be two jr $k0
 
         auto none = m_breakpoints.end();
         switch (m_stepType) {
@@ -202,4 +204,35 @@ std::string PCSX::Debug::generateMarkIDC() {
     }
     ss << "}\r\n";
     return ss.str();
+}
+
+void PCSX::Debug::onNewConnectionTrampoline(uv_stream_t* server, int status) {
+    Debug* self = static_cast<Debug*>(server->data);
+    self->onNewConnection(status);
+}
+
+void PCSX::Debug::onNewConnection(int status) {
+    if (status < 0) return;
+    DebugClient* client = new DebugClient(m_server.loop);
+    if (client->accept(&m_server)) {
+        m_clients.push_back(client);
+    } else {
+        delete client;
+    }
+}
+
+void PCSX::Debug::startServer(int port) {
+    assert(m_serverStatus == SERVER_STOPPED);
+    uv_tcp_init(&PCSX::g_emulator.m_uv->m_loop, &m_server);
+
+    m_server.data = this;
+
+    struct sockaddr_in bindAddr;
+    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
+    assert(result == 0);
+    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
+    assert(result == 0);
+    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
+
+    m_serverStatus = SERVER_STARTED;
 }

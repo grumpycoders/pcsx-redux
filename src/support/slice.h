@@ -29,6 +29,8 @@ class Slice {
     Slice() : m_isInlined(false), m_isOwned(false), m_size(0) {
         m_data.ptr = nullptr;
     }
+    Slice(const Slice &) = delete;
+    Slice(Slice &&) = delete;
     ~Slice() { maybeFree(); }
     void copy(const void * data, uint32_t size) {
         assert(size < (1 << 30));

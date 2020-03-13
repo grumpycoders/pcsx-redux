@@ -18,6 +18,8 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#include "gui/widgets/assembly.h"
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
@@ -25,14 +27,11 @@
 #include <functional>
 #include <iostream>
 
-#include "imgui.h"
-
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "gui/widgets/assembly.h"
-
+#include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
@@ -513,6 +512,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
     ImGui::SameLine();
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
+    DButton(_("Start server"), g_emulator.m_debug->getServerStatus() == Debug::SERVER_STOPPED,
+            [&]() mutable { g_emulator.m_debug->startServer(); });
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
             g_emulator.m_debug->stepOver();
@@ -882,7 +883,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         for (auto fileName : filesToOpen) {
             std::ifstream file;
             // oh the irony
-            file.open(reinterpret_cast<const char *>(fileName.c_str()));
+            file.open(reinterpret_cast<const char*>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;

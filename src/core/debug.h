@@ -19,10 +19,13 @@
 
 #pragma once
 
+#include <uv.h>
+
 #include <functional>
 #include <map>
 #include <string>
 
+#include "core/debug_client.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
 
@@ -30,6 +33,11 @@ namespace PCSX {
 
 class Debug {
   public:
+    enum DebugServerStatus {
+        SERVER_STOPPED,
+        SERVER_STARTED,
+    };
+    DebugServerStatus getServerStatus() { return m_serverStatus; }
     enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
     static inline std::function<const char*()> s_breakpoint_type_names[] = {
         []() { return _("Exec"); },       []() { return _("Read Byte"); },  []() { return _("Read Half"); },
@@ -42,6 +50,8 @@ class Debug {
     void checkBP(uint32_t address, BreakpointType type, const char* reason = nullptr);
     std::string generateFlowIDC();
     std::string generateMarkIDC();
+
+    void startServer(int port = 12345);
 
     class Breakpoint {
       public:
@@ -127,6 +137,13 @@ class Debug {
     bool m_stepping = false;
     int m_steppingJumps = 0;
     int m_oldSteppingJumps = 0;
+
+    DebugServerStatus m_serverStatus = SERVER_STOPPED;
+    uv_tcp_t m_server;
+    DebugClient::ListType m_clients;
+
+    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
+    void onNewConnection(int status);
 };
 
 }  // namespace PCSX
