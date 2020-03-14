@@ -19,8 +19,11 @@
 
 #pragma once
 
+#include <stdarg.h>
+#include <stdio.h>
 #include <uv.h>
 
+#include <limits>
 #include <string>
 
 #include "support/hashtable.h"
@@ -31,12 +34,55 @@ namespace PCSX {
 
 class DebugClient : public Intrusive::List<DebugClient>::Node {
   public:
-    DebugClient(uv_loop_t* loop);
+    DebugClient(uv_loop_t* loop) {
+        uv_tcp_init(loop, &m_tcp);
+        m_tcp.data = this;
+    }
     typedef Intrusive::List<DebugClient> ListType;
 
-    bool accept(uv_tcp_t* server);
-    void close();
-    void write(const std::string& msg);
+    bool accept(uv_tcp_t* server) {
+        assert(m_status == CLOSED);
+        if (uv_accept(reinterpret_cast<uv_stream_t*>(server), reinterpret_cast<uv_stream_t*>(&m_tcp)) == 0) {
+            uv_read_start(reinterpret_cast<uv_stream_t*>(&m_tcp), allocTrampoline, readTrampoline);
+            m_status = OPEN;
+            write("000 PCSX-Redux Debug Console\r\n");
+        }
+        return m_status == OPEN;
+    }
+    void close() {
+        assert(m_status == OPEN);
+        m_status = CLOSING;
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
+    }
+    void write(const std::string& msg) {
+        auto* req = new WriteRequest();
+        assert(msg.size() <= std::numeric_limits<uint32_t>::max());
+        req->m_slice.copy(msg.data(), msg.size());
+        req->enqueue(this);
+    }
+    template <size_t L>
+    void write(const char (&str)[L]) {
+        auto* req = new WriteRequest();
+        static_assert((L - 1) <= std::numeric_limits<uint32_t>::max());
+        req->m_slice.borrow(str, L - 1);
+        req->enqueue(this);
+    }
+    void writef(const char* fmt, ...) {
+        va_list a;
+        va_start(a, fmt);
+        auto* req = new WriteRequest();
+#ifdef _WIN32
+        size_t len = _vscprintf(fmt, a);
+        char* msg = (char*)malloc(len + 1);
+        vsnprintf(msg, len + 1, fmt, a);
+#else
+        char* msg = vasprintf(fmt, a);
+        size_t len = strlen(msg);
+#endif
+        req->m_slice.acquire(msg, len);
+        req->enqueue(this);
+        va_end(a);
+    }
 
   private:
     struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
@@ -63,16 +109,36 @@ class DebugClient : public Intrusive::List<DebugClient>::Node {
         DebugClient* client = static_cast<DebugClient*>(handle->data);
         client->alloc(suggestedSize, buf);
     }
-    void alloc(size_t suggestedSize, uv_buf_t* buf);
+    void alloc(size_t suggestedSize, uv_buf_t* buf) {
+        assert(!m_allocated);
+        m_allocated = true;
+        buf->base = m_buffer;
+        buf->len = sizeof(m_buffer);
+    }
     static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
         DebugClient* client = static_cast<DebugClient*>(stream->data);
         client->read(nread, buf);
+    }
+    void read(ssize_t nread, const uv_buf_t* buf) {
+        m_allocated = false;
+        if (nread < 0) {
+            close();
+            return;
+        } else if (nread == 0) {
+            return;
+        }
+
+        Slice slice;
+        slice.borrow(m_buffer, nread);
+
+        processData(slice);
     }
     static void closeCB(uv_handle_t* handle) {
         DebugClient* client = static_cast<DebugClient*>(handle->data);
         delete client;
     }
-    void read(ssize_t nread, const uv_buf_t* buf);
+    void processData(const Slice& slice);
+
     uv_tcp_t m_tcp;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
 

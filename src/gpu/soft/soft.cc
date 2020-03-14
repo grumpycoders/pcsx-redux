@@ -70,8 +70,6 @@
 //
 //*************************************************************************//
 
-#define NOMINMAX
-
 #include <algorithm>
 
 #include "gpu/soft/externals.h"

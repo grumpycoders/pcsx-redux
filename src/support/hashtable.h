@@ -34,7 +34,7 @@ struct DefaultHashTable {};
 
 template <typename Key>
 struct Hash {
-    static constexpr uint32_t hash(const Key& key) { return std::hash<Key>{}(key); }
+    static constexpr uint32_t hash(const Key& key) { return static_cast<uint32_t>(std::hash<Key>{}(key)); }
     static constexpr bool isEqual(const Key& lhs, const Key& rhs) { return std::equal_to<Key>{}(lhs, rhs); }
 };
 
@@ -117,7 +117,7 @@ class HashTable final {
     friend class IteratorBase<const T, const Node>;
 
     HashTable(unsigned initLog = 1) {
-        m_array.resize(1U << initLog);
+        m_array.resize(1ULL << initLog);
         m_mask = (1U << initLog) - 1;
         m_bits = initLog;
     }

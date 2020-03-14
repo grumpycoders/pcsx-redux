@@ -37,8 +37,6 @@
 //
 //*************************************************************************//
 
-#define NOMINMAX
-
 #include <algorithm>
 
 #include "spu/externals.h"
