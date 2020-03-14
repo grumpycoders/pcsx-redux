@@ -138,12 +138,29 @@ class DebugClient : public Intrusive::List<DebugClient>::Node {
         delete client;
     }
     void processData(const Slice& slice);
+    void processCommand();
+    Slice passthroughData(const Slice& slice);
 
     uv_tcp_t m_tcp;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
 
     char m_buffer[BUFFER_SIZE];
     bool m_allocated = false;
+
+    enum {
+        FIRST_CHAR,
+        SECOND_CHAR,
+        THIRD_CHAR,
+        CMD_WHITESPACE,
+        ARGUMENT1,
+        ARGUMENT2,
+        FAILED_CMD,
+        DATA_PASSTHROUGH
+    } m_state = FIRST_CHAR;
+    uint32_t m_cmd = 0;
+    std::string m_fullCmd;
+    char m_separator = 0;
+    std::string m_argument1, m_argument2;
 };
 
 }  // namespace PCSX

@@ -19,7 +19,7 @@
 
 #include "core/debug_client.h"
 
-/*
+/* clang-format off
 
 PCSX-Redux Debug console protocol description, version 2.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,14 +61,17 @@ Basic commands (1xx):
     Get protocol version. Returns "1.0" or "2.0" at the moment, in a 202
     message. Semantic versionning rules should apply.
 103
-    Get status. Will reply with a 203 message.
+    Get status.
+    Will reply with a 203 message.
 110
-    Get PC. Will reply with a 210 message.
+    Get PC.
+    Will reply with a 210 message.
 111 [reg]
     Get GP register, or all, if no argument.
     Will reply with one or more 211 messages.
 112
-    Get LO/HI registers. Will reply with a 212 message.
+    Get LO/HI registers.
+    Will reply with 212 messages.
 113 [reg]
     Get COP0 register, or all, if no argument.
     Will reply with one or more 213 messages.
@@ -82,15 +85,20 @@ Basic commands (1xx):
     Disassemble current PC, or given PC.
     Will reply with 219 message.
 121 <reg>=<value>
-    Set a GP register. Will return a 221 message.
+    Set a GP register.
+    Will return a 221 message.
 122 <LO|HI>=<value>
-    Set LO or HI register. Will return a 222 message.
+    Set LO or HI register.
+    Will return a 222 message.
 123 <reg>=<value>
-    Set a COP0 register. Will return a 223 message.
+    Set a COP0 register.
+    Will return a 223 message.
 124 <reg>=<value>
-    Set a COP2 control register. Will return a 224 message.
+    Set a COP2 control register.
+    Will return a 224 message.
 125 <reg>=<value>
-    Set a COP2 data register. Will return a 225 message.
+    Set a COP2 data register.
+    Will return a 225 message.
 130 <size>@<addr>
     Dumps a range of memory, of size bytes starting at addr.
     Will reply with a 230 message.
@@ -254,8 +262,139 @@ Error messages (5xx):
 531, 532, 533 <message>
     Invalid breakpoint address.
 
+clang-format on
 */
 
-void PCSX::DebugClient::processData(const Slice& slice) {
-
+static bool isWhitespace(char c) {
+    switch (c) {
+        case ' ':
+        case '\t':
+        case '\r':
+        case '\n':
+            return true;
+    }
+    return false;
 }
+
+static int fromHex(char c) {
+    if ((c >= '0') && (c <= '9')) return c - '0';
+    if ((c >= 'A') && (c <= 'F')) return c + 10 - 'A';
+    if ((c >= 'a') && (c <= 'f')) return c + 10 - 'a';
+    return -1;
+}
+
+void PCSX::DebugClient::processData(const Slice& slice) {
+    const char* ptr = reinterpret_cast<const char*>(slice.data());
+    auto size = slice.size();
+    int v = 0;
+    while (size) {
+        if (m_state == DATA_PASSTHROUGH) {
+            Slice passthrough;
+            passthrough.borrow(ptr, size);
+            passthrough = passthroughData(passthrough);
+            ptr = reinterpret_cast<const char*>(passthrough.data());
+            size = passthrough.size();
+            continue;
+        }
+        char c = *ptr++;
+        size--;
+        if (!((c == '\r') || (c == '\n'))) m_fullCmd += c;
+        switch (m_state) {
+            case FIRST_CHAR:
+                if (isWhitespace(c)) break;
+                v = fromHex(c);
+                if (v < 0) {
+                    m_state = FAILED_CMD;
+                } else {
+                    m_state = SECOND_CHAR;
+                    m_cmd |= (v << 8);
+                }
+                break;
+            case SECOND_CHAR:
+                v = fromHex(c);
+                if (v < 0) {
+                    m_state = FAILED_CMD;
+                } else {
+                    m_state = THIRD_CHAR;
+                    m_cmd |= (v << 4);
+                }
+                break;
+            case THIRD_CHAR:
+                v = fromHex(c);
+                if (v < 0) {
+                    m_state = FAILED_CMD;
+                } else {
+                    m_state = CMD_WHITESPACE;
+                    m_cmd |= v;
+                }
+                break;
+            case CMD_WHITESPACE:
+                if (c == ' ' || c == '\t') break;
+                m_state = ARGUMENT1;
+                m_argument1 += c;
+                break;
+            case ARGUMENT1:
+                if (c == '@' || c == '=') {
+                    m_separator = c;
+                    m_state = ARGUMENT2;
+                    break;
+                }
+                if (c == '\r') break;
+                if (c == '\n') {
+                    processCommand();
+                } else {
+                    m_argument1 += c;
+                }
+                break;
+            case ARGUMENT2:
+                if (c == '\r') break;
+                if (c == '\n') {
+                    processCommand();
+                } else {
+                    m_argument2 += c;
+                }
+                break;
+            case FAILED_CMD:
+                if (c == '\r') break;
+                if (c == '\n') {
+                    writef("500 Invalid command '%s'\r\n", m_fullCmd.c_str());
+                    m_cmd = 0;
+                    m_fullCmd.clear();
+                    m_argument1.clear();
+                    m_argument2.clear();
+                    m_separator = 0;
+                    m_state = FIRST_CHAR;
+                }
+                break;
+        }
+    }
+}
+
+void PCSX::DebugClient::processCommand() {
+    switch (m_cmd) {
+        case 0x100:
+            if (m_separator) {
+                writef("200 %s%c%s\r\n", m_argument1.c_str(), m_separator, m_argument2.c_str());
+            } else {
+                writef("200 %s\r\n", m_argument1.c_str());
+            }
+            break;
+        case 0x101:
+            write("201 PCSX-Redux\r\n");
+            break;
+        case 0x102:
+            write("202 2.0\r\n");
+            break;
+        default:
+            writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
+            break;
+    }
+    m_cmd = 0;
+    m_fullCmd.clear();
+    m_argument1.clear();
+    m_argument2.clear();
+    m_separator = 0;
+    m_state = FIRST_CHAR;
+}
+
+PCSX::Slice PCSX::DebugClient::passthroughData(const Slice& slice) { return slice; }

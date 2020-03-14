@@ -37,10 +37,12 @@ class Slice {
     Slice &operator=(const Slice &other) {
         maybeFree();
         copyFrom(other);
+        return *this;
     }
     Slice &operator=(Slice &&other) {
         maybeFree();
         moveFrom(std::move(other));
+        return *this;
     }
     void copy(const void *data, uint32_t size) {
         assert(size < (1 << 30));
