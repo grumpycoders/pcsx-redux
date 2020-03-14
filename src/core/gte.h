@@ -22,6 +22,9 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
+// WTF termio
+#undef NCCS
+
 #define gteoB (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
 #define gteop (PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x1ffffff)
 
