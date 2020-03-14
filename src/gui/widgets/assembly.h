@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string.h>
 
 #include <map>
 #include <string>
