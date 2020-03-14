@@ -38,10 +38,11 @@ Some commands are only available on certain versions of the protocol.
 Check version protocol to be certain of what you can expect to use.
 
 The protocol is fairly lenient, and will not close the connection if
-something invalid is sent. The emulation is a state machine however,
-and the client is supposed to try and refresh its state as much as
-possible. The architecture means that more than one client is possible.
-However, it isn't recommended at this time.
+something invalid is sent. The protocol is meant to be as stateless
+as possible. The emulation is a state machine however, and the client
+is advised to try and refresh its state as much as possible. The
+architecture means that more than one client is possible. However,
+it isn't recommended at this time.
 
 Version 1.0 of the protocol is what I wrote back in 2004. Version 2.0
 tries to address some of the mistakes done then, and add some more
@@ -53,28 +54,33 @@ Basic commands (1xx):
 --------------------
 100 <message>
     Sends a message. Will be replied with a 200 reply, followed by the message.
-    Use it as a test
+    Use it as a test.
 101
-    Get PCSX-Redux version.
+    Get PCSX-Redux version. Will reply with a 201 message.
 102
-    Get protocol version. Returns "1.0" or "2.0" at the moment.
-    Semantic versionning rules should apply.
+    Get protocol version. Returns "1.0" or "2.0" at the moment, in a 202
+    message. Semantic versionning rules should apply.
 103
-    Get status
+    Get status. Will reply with a 203 message.
 110
-    Get PC.
+    Get PC. Will reply with a 210 message.
 111 [reg]
     Get GP register, or all, if no argument.
+    Will reply with one or more 211 messages.
 112
-    Get LO/HI registers.
+    Get LO/HI registers. Will reply with a 212 message.
 113 [reg]
     Get COP0 register, or all, if no argument.
+    Will reply with one or more 213 messages.
 114 [reg]
     Get COP2 control register, or all, if no argument.
+    Will reply with one or more 214 messages.
 115 [reg]
     Get COP2 data register, or all, if no argument.
+    Will reply with one or more 215 messages.
 119 [pc]
     Disassemble current PC, or given PC.
+    Will reply with 219 message.
 121 <reg>=<value>
     Set a GP register. Will return a 221 message.
 122 <LO|HI>=<value>
@@ -87,9 +93,11 @@ Basic commands (1xx):
     Set a COP2 data register. Will return a 225 message.
 130 <size>@<addr>
     Dumps a range of memory, of size bytes starting at addr.
+    Will reply with a 230 message.
 140 <size>@<addr>
     Set a range of memory, of size bytes starting at addr.
     Will have to send immediately exactly size bytes afterward.
+    Will reply a 240 message.
 150 [number]
     Start/reset mapping execution flow, or stop it if number = 0
 151 [number]
