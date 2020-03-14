@@ -19,6 +19,17 @@
 
 #include "core/debug_client.h"
 
+#include <stdint.h>
+
+#include <limits>
+#include <utility>
+
+#include "core/debug.h"
+#include "core/disr3000a.h"
+#include "core/gpu.h"
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
+
 /* clang-format off
 
 PCSX-Redux Debug console protocol description, version 2.0
@@ -139,36 +150,50 @@ Basic commands (1xx):
 
 Execution flow control commands (3xx):
 -------------------------------------
-300 [number]
+300 [address]
     Get a list of the actual breakpoints. Will get '400' answers.
-301 [number]
-    Delete a breakpoint, or all, if no arguments.
-310 <address>
+    If [address] is present, filter only breakpoints at this address.
+    May return 530 if no breakpoints present.
+301 [address]
+    Delete breakpoints at specified address, or all, if no arguments.
+    May return 530 if no breakpoint found. Returns 401 as an ack.
+310 <address>[!]
     Set an exec breakpoint.
-320 <address>
+    If optional ! is present, breakpoint is temporary.
+320 <address>[!]
     Set a read breakpoint, 1 byte / 8 bits.
-321 <address>
+    If optional ! is present, breakpoint is temporary.
+321 <address>[!]
     Set a read breakpoint, 2 bytes / 16 bits, has to be on an even address.
-322 <address>
+    If optional ! is present, breakpoint is temporary.
+322 <address>[!]
     Set a read breakpoint, 4 bytes / 32 bits, address has to be 4-bytes aligned.
-330 <address>
+    If optional ! is present, breakpoint is temporary.
+330 <address>[!]
     Set a write breakpoint, 1 byte / 8 bits.
-331 <address>
+    If optional ! is present, breakpoint is temporary.
+331 <address>[!]
     Set a write breakpoint, 2 bytes / 16 bits, has to be on an even address.
-332 <address>
+    If optional ! is present, breakpoint is temporary.
+332 <address>[!]
     Set a write breakpoint, 4 bytes / 32 bits, address has to be 4-bytes aligned.
+    If optional ! is present, breakpoint is temporary.
 390
-    Pause execution. Equivalent to a breakpoint.
+    Pause execution. Equivalent to a breakpoint. Should get acknowledged with
+    a 030 message.
 391
-    Restart execution.
-395 [number]
-    Trace execution, 1 instruction by default. Formatted using %i.
-396 [number]
-    Disassemble and print current PC in trace mode.
+    Restart execution. Should get acknowledged with a 032 message.
+392
+    Step in. Will issue a 031 followed by a 030.
+393
+    Step over. Will issue a 031 followed by a 030.
+394
+    Step out. Will issue a 031 followed by a 030, if successful. The step over
+    might never pause the execution again.
 398
     Soft (quick) reset.
 399
-    Reset.
+    Hard reset.
 
 Server outputs:
 ~~~~~~~~~~~~~~
@@ -176,10 +201,10 @@ Spontaneous messages (0xx):
 --------------------------
 000 <message>
     Greeting banner.
-010 / 011 / 012 / 013 / 014 / 015 / 016
-    Execution hit mapping flow automatic breakpoint.
-030 <number>@<PC>
-    Execution hit breakpoint, emulation is paused. Display PC's value.
+030 <PC>
+    Execution paused for any reason.
+031
+    Execution resumed.
 
 Basic commands acknowledge (2xx):
 --------------------------------
@@ -190,7 +215,7 @@ Basic commands acknowledge (2xx):
 202 <message>
     Reply protocol version. Currently, 2.0
 203 <status>
-    status = 0: running; = 1: paused; = 2: trace
+    status = 0: running; = 1: paused
 210 PC=<value>
     Display current program counter.
 211 <reg>=<value>
@@ -228,8 +253,9 @@ Basic commands acknowledge (2xx):
 
 Execution flow control commands acknowledge (4xx):
 -------------------------------------------------
-400 <number>@<address>-<type>
+400 <address>-<type>[!]
     Display breakpoint, where 'type' can be of BE, BR1, BR2, BR4, BW1, BW2 or BW4.
+    Optional ! indicates breakpoint is temporary.
 401 <message>
     Breakpoint deleting acknowledge.
 410, 420, 421, 422, 430, 431, 432 <number>
@@ -238,10 +264,6 @@ Execution flow control commands acknowledge (4xx):
     Pausing.
 491 <message>
     Resuming.
-495 <message>
-    Tracing.
-496 <message>
-    Printing.
 498 <message>
     Soft resetting.
 499 <message>
@@ -276,12 +298,30 @@ static bool isWhitespace(char c) {
     return false;
 }
 
-static int fromHex(char c) {
+static int fromHexChar(char c) {
     if ((c >= '0') && (c <= '9')) return c - '0';
     if ((c >= 'A') && (c <= 'F')) return c + 10 - 'A';
     if ((c >= 'a') && (c <= 'f')) return c + 10 - 'a';
     return -1;
 }
+
+static std::pair<uint32_t, bool> parseHexNumber(const char* str) {
+    uint64_t value = 0;
+    bool valid = false;
+    char c;
+
+    while ((c = *str++)) {
+        int v = fromHexChar(c);
+        if (v < 0) return std::pair<uint32_t, bool>(0, false);
+        value <<= 4;
+        value |= v;
+        if (value > std::numeric_limits<uint32_t>::max()) return std::pair<uint32_t, bool>(0, false);
+    }
+
+    return std::pair<uint32_t, bool>(value, valid);
+}
+
+static std::pair<uint32_t, bool> parseHexNumber(const std::string& str) { return parseHexNumber(str.c_str()); }
 
 void PCSX::DebugClient::processData(const Slice& slice) {
     const char* ptr = reinterpret_cast<const char*>(slice.data());
@@ -302,7 +342,7 @@ void PCSX::DebugClient::processData(const Slice& slice) {
         switch (m_state) {
             case FIRST_CHAR:
                 if (isWhitespace(c)) break;
-                v = fromHex(c);
+                v = fromHexChar(c);
                 if (v < 0) {
                     m_state = FAILED_CMD;
                 } else {
@@ -311,7 +351,7 @@ void PCSX::DebugClient::processData(const Slice& slice) {
                 }
                 break;
             case SECOND_CHAR:
-                v = fromHex(c);
+                v = fromHexChar(c);
                 if (v < 0) {
                     m_state = FAILED_CMD;
                 } else {
@@ -320,7 +360,7 @@ void PCSX::DebugClient::processData(const Slice& slice) {
                 }
                 break;
             case THIRD_CHAR:
-                v = fromHex(c);
+                v = fromHexChar(c);
                 if (v < 0) {
                     m_state = FAILED_CMD;
                 } else {
@@ -371,6 +411,10 @@ void PCSX::DebugClient::processData(const Slice& slice) {
 }
 
 void PCSX::DebugClient::processCommand() {
+    auto& debugger = g_emulator.m_debug;
+    auto& regs = g_emulator.m_psxCpu->m_psxRegs;
+    uint32_t value;
+    bool valid;
     switch (m_cmd) {
         case 0x100:
             if (m_separator) {
@@ -384,6 +428,32 @@ void PCSX::DebugClient::processCommand() {
             break;
         case 0x102:
             write("202 2.0\r\n");
+            break;
+        case 0x103:
+            writef("203 %i\r\n", g_system->running() ? 0 : 1);
+            break;
+        case 0x110:
+            writef("210 PC=%08X\r\n", regs.pc);
+            break;
+        case 0x111:
+            if (m_argument1.empty()) {
+                for (unsigned i = 0; i < 32; i++) {
+                    writef("211 %02X=%08X\r\n", i, regs.GPR.r[i]);
+                }
+            } else {
+                std::tie(value, valid) = parseHexNumber(m_argument1);
+                if (valid && value < 32) {
+                    writef("211 %02X=%08X\r\n", value, regs.GPR.r[value]);
+                } else if (valid) {
+                    writef("511 Invalid GPR register:\r\n", value);
+                } else {
+                    writef("511 Malformed 111 command '%s'\r\n", m_fullCmd.c_str());
+                }
+            }
+
+            break;
+        case 0x112:
+            writef("212 LO=%08X HI=%08X\r\n", regs.GPR.r[33], regs.GPR.r[34]);
             break;
         default:
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
