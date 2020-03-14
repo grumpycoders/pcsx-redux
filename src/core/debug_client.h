@@ -71,13 +71,14 @@ class DebugClient : public Intrusive::List<DebugClient>::Node {
         va_list a;
         va_start(a, fmt);
         auto* req = new WriteRequest();
+        size_t len;
+        char* msg;
 #ifdef _WIN32
-        size_t len = _vscprintf(fmt, a);
-        char* msg = (char*)malloc(len + 1);
+        len = _vscprintf(fmt, a);
+        msg = (char*)malloc(len + 1);
         vsnprintf(msg, len + 1, fmt, a);
 #else
-        char* msg = vasprintf(fmt, a);
-        size_t len = strlen(msg);
+        len = vasprintf(&msg, fmt, a);
 #endif
         req->m_slice.acquire(msg, len);
         req->enqueue(this);
