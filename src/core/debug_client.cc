@@ -22,6 +22,8 @@
 #include <stdint.h>
 
 #include <limits>
+#include <map>
+#include <string>
 #include <utility>
 
 #include "core/debug.h"
@@ -274,14 +276,12 @@ Error messages (5xx):
 500 <message>
     Command not understood.
 511 <message>
-    Invalid GPR register.
-512 <message>
-    Invalid LO/HI register.
-513, 514 <message>
+    Invalid register.
+513
     Invalid range or address.
 530 <message>
     Non existant breakpoint.
-531, 532, 533 <message>
+531 <message>
     Invalid breakpoint address.
 
 clang-format on
@@ -413,8 +413,6 @@ void PCSX::DebugClient::processData(const Slice& slice) {
 void PCSX::DebugClient::processCommand() {
     auto& debugger = g_emulator.m_debug;
     auto& regs = g_emulator.m_psxCpu->m_psxRegs;
-    uint32_t value;
-    bool valid;
     switch (m_cmd) {
         case 0x100:
             if (m_separator) {
@@ -435,26 +433,135 @@ void PCSX::DebugClient::processCommand() {
         case 0x110:
             writef("210 PC=%08X\r\n", regs.pc);
             break;
-        case 0x111:
+        case 0x111: {
             if (m_argument1.empty()) {
                 for (unsigned i = 0; i < 32; i++) {
                     writef("211 %02X=%08X\r\n", i, regs.GPR.r[i]);
                 }
             } else {
-                std::tie(value, valid) = parseHexNumber(m_argument1);
+                auto [value, valid] = parseHexNumber(m_argument1);
                 if (valid && value < 32) {
                     writef("211 %02X=%08X\r\n", value, regs.GPR.r[value]);
                 } else if (valid) {
-                    writef("511 Invalid GPR register:\r\n", value);
+                    writef("511 Invalid GPR register: %02X\r\n", value);
                 } else {
-                    writef("511 Malformed 111 command '%s'\r\n", m_fullCmd.c_str());
+                    writef("500 Malformed 111 command '%s'\r\n", m_fullCmd.c_str());
                 }
             }
-
             break;
+        }
         case 0x112:
-            writef("212 LO=%08X HI=%08X\r\n", regs.GPR.r[33], regs.GPR.r[34]);
+            writef("212 LO=%08X HI=%08X\r\n", regs.GPR.n.lo, regs.GPR.n.hi);
             break;
+        case 0x113: {
+            if (m_argument1.empty()) {
+                for (unsigned i = 0; i < 32; i++) {
+                    writef("213 %02X=%08X\r\n", i, regs.CP0.r[i]);
+                }
+            } else {
+                auto [value, valid] = parseHexNumber(m_argument1);
+                if (valid && value < 32) {
+                    writef("213 %02X=%08X\r\n", value, regs.CP0.r[value]);
+                } else if (valid) {
+                    writef("511 Invalid COP0 register: %02X\r\n", value);
+                } else {
+                    writef("500 Malformed 113 command '%s'\r\n", m_fullCmd.c_str());
+                }
+            }
+            break;
+        }
+        case 0x114: {
+            if (m_argument1.empty()) {
+                for (unsigned i = 0; i < 32; i++) {
+                    writef("214 %02X=%08X\r\n", i, regs.CP2C.r[i]);
+                }
+            } else {
+                auto [value, valid] = parseHexNumber(m_argument1);
+                if (valid && value < 32) {
+                    writef("214 %02X=%08X\r\n", value, regs.CP2C.r[value]);
+                } else if (valid) {
+                    writef("511 Invalid COP2C register: %02X\r\n", value);
+                } else {
+                    writef("500 Malformed 114 command '%s'\r\n", m_fullCmd.c_str());
+                }
+            }
+            break;
+        }
+        case 0x115: {
+            if (m_argument1.empty()) {
+                for (unsigned i = 0; i < 32; i++) {
+                    writef("215 %02X=%08X\r\n", i, regs.CP2D.r[i]);
+                }
+            } else {
+                auto [value, valid] = parseHexNumber(m_argument1);
+                if (valid && value < 32) {
+                    writef("215 %02X=%08X\r\n", value, regs.CP2D.r[value]);
+                } else if (valid) {
+                    writef("511 Invalid COP2D register: %02X\r\n", value);
+                } else {
+                    writef("500 Malformed 115 command '%s'\r\n", m_fullCmd.c_str());
+                }
+            }
+            break;
+        }
+        case 0x119: {
+            uint32_t pc = regs.pc;
+            bool valid = true;
+            if (m_argument1.empty()) {
+                std::tie(pc, valid) = parseHexNumber(m_argument1);
+                if (!valid) {
+                    writef("500 Malformed 119 command '%s'\r\n", m_fullCmd.c_str());
+                    break;
+                }
+            }
+            char* p = (char*)PSXM(pc);
+            if (p == NULL) {
+                writef("513 Invalid address in 119 command %08X\r\n", pc);
+                break;
+            }
+            uint32_t code = *(uint32_t*)p;
+            std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
+            writef("219 %s\r\n", ins.c_str());
+            break;
+        }
+        case 0x121:
+        case 0x123:
+        case 0x124:
+        case 0x125: {
+            auto [reg, validr] = parseHexNumber(m_argument1);
+            auto [value, validv] = parseHexNumber(m_argument2);
+            if (m_argument1.empty() || m_argument2.empty() || m_separator != '=' || !validr || !validv) {
+                writef("500 Malformed %X command '%s'\r\n", m_cmd, m_fullCmd.c_str());
+                break;
+            }
+            if (reg > 32) {
+                static const std::map<uint32_t, const char*> names = {
+                    std::pair(0x121, "GPR"),
+                    std::pair(0x123, "COP0"),
+                    std::pair(0x124, "COP2C"),
+                    std::pair(0x125, "COP2D"),
+                };
+                writef("511 Invalid %s register: %02X\r\n", names.find(m_cmd)->second, value);
+                break;
+            }
+
+            switch (m_cmd) {
+                case 0x121:
+                    regs.GPR.r[reg] = value;
+                    break;
+                case 0x123:
+                    regs.CP0.r[reg] = value;
+                    break;
+                case 0x124:
+                    regs.CP2C.r[reg] = value;
+                    break;
+                case 0x125:
+                    regs.CP2D.r[reg] = value;
+                    break;
+            }
+            writef("%X %02X=%08X\r\n", m_cmd + 0x100, reg, value);
+            break;
+        }
         default:
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
             break;
