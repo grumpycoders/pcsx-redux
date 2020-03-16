@@ -55,8 +55,7 @@ The protocol is fairly lenient, and will not close the connection if
 something invalid is sent. The protocol is meant to be as stateless
 as possible. The emulation is a state machine however, and the client
 is advised to try and refresh its state as much as possible. The
-architecture means that more than one client is possible. However,
-it isn't recommended at this time.
+architecture means that more than one client is possible.
 
 Version 1.0 of the protocol is what I wrote back in 2004. Version 2.0
 tries to address some of the mistakes done then, and add some more
