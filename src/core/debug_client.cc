@@ -61,6 +61,10 @@ Version 1.0 of the protocol is what I wrote back in 2004. Version 2.0
 tries to address some of the mistakes done then, and add some more
 functions, based on the newest features of PCSX-Redux now.
 
+Important caevat: this protocol is in no way secure, and can heavily
+cause bug exploits. Do not expose running processes onto an untrusted
+network or clients.
+
 Client inputs:
 ~~~~~~~~~~~~~
 Basic commands (1xx):
@@ -114,11 +118,13 @@ Basic commands (1xx):
     Will return a 225 message.
 130 <size>@<addr>
     Dumps a range of memory, of size bytes starting at addr.
-    Will reply with a 230 message.
+    Will reply with a 230 message. Little checks are done on this command,
+    and it's easy to crash the emulator using it, or leaking data.
 140 <size>@<addr>
     Set a range of memory, of size bytes starting at addr.
     Will have to send immediately exactly size bytes afterward.
-    Will reply a 240 message.
+    Will reply with a 240 message. Little checks are done on this command,
+    and it's easy to crash or cause arbitrary code execution from it.
 150 [number]
     Start/reset mapping execution flow, or stop it if number = 0
 151 [number]
