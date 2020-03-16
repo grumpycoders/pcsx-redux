@@ -524,6 +524,19 @@ void PCSX::DebugClient::processCommand() {
             writef("219 %s\r\n", ins.c_str());
             break;
         }
+        case 0x122: {
+            bool isHi = m_argument1 == "HI";
+            bool isLo = m_argument1 == "LO";
+            auto [value, valid] = parseHexNumber(m_argument2);
+            if (m_argument2.empty() || (m_separator != '=') || !(isHi || isLo) || !valid) {
+                writef("500 Malformed %X command '%s'\r\n", m_cmd, m_fullCmd.c_str());
+                break;
+            }
+            if (isHi) regs.GPR.n.hi = value;
+            if (isLo) regs.GPR.n.lo = value;
+            writef("222 %s=%08X\r\n", isHi ? "HI" : "LO", value);
+            break;
+        }
         case 0x121:
         case 0x123:
         case 0x124:
@@ -562,9 +575,10 @@ void PCSX::DebugClient::processCommand() {
             writef("%X %02X=%08X\r\n", m_cmd + 0x100, reg, value);
             break;
         }
-        default:
+        default: {
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
             break;
+        }
     }
     m_cmd = 0;
     m_fullCmd.clear();
