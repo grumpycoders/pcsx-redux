@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <limits>
 #include <map>
 #include <string>
@@ -451,7 +452,7 @@ void PCSX::DebugClient::processCommand() {
                 } else if (valid) {
                     writef("511 Invalid GPR register: %02X\r\n", value);
                 } else {
-                    writef("500 Malformed 111 command '%s'\r\n", m_fullCmd.c_str());
+                    malformed();
                 }
             }
             break;
@@ -471,7 +472,7 @@ void PCSX::DebugClient::processCommand() {
                 } else if (valid) {
                     writef("511 Invalid COP0 register: %02X\r\n", value);
                 } else {
-                    writef("500 Malformed 113 command '%s'\r\n", m_fullCmd.c_str());
+                    malformed();
                 }
             }
             break;
@@ -488,7 +489,7 @@ void PCSX::DebugClient::processCommand() {
                 } else if (valid) {
                     writef("511 Invalid COP2C register: %02X\r\n", value);
                 } else {
-                    writef("500 Malformed 114 command '%s'\r\n", m_fullCmd.c_str());
+                    malformed();
                 }
             }
             break;
@@ -505,7 +506,7 @@ void PCSX::DebugClient::processCommand() {
                 } else if (valid) {
                     writef("511 Invalid COP2D register: %02X\r\n", value);
                 } else {
-                    writef("500 Malformed 115 command '%s'\r\n", m_fullCmd.c_str());
+                    malformed();
                 }
             }
             break;
@@ -516,13 +517,13 @@ void PCSX::DebugClient::processCommand() {
             if (m_argument1.empty()) {
                 std::tie(pc, valid) = parseHexNumber(m_argument1);
                 if (!valid) {
-                    writef("500 Malformed 119 command '%s'\r\n", m_fullCmd.c_str());
+                    malformed();
                     break;
                 }
             }
             char* p = (char*)PSXM(pc);
-            if (p == NULL) {
-                writef("513 Invalid address in 119 command %08X\r\n", pc);
+            if (p == nullptr) {
+                writef("513 Invalid address in 119 command: %08X\r\n", pc);
                 break;
             }
             uint32_t code = *(uint32_t*)p;
@@ -550,7 +551,7 @@ void PCSX::DebugClient::processCommand() {
             auto [reg, validr] = parseHexNumber(m_argument1);
             auto [value, validv] = parseHexNumber(m_argument2);
             if (m_argument1.empty() || m_argument2.empty() || m_separator != '=' || !validr || !validv) {
-                writef("500 Malformed %X command '%s'\r\n", m_cmd, m_fullCmd.c_str());
+                malformed();
                 break;
             }
             if (reg > 32) {
@@ -581,6 +582,43 @@ void PCSX::DebugClient::processCommand() {
             writef("%X %02X=%08X\r\n", m_cmd + 0x100, reg, value);
             break;
         }
+        case 0x130: {
+            auto [size, valids] = parseHexNumber(m_argument1);
+            auto [addr, valida] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || m_argument2.empty() || m_separator != '@' || !valids || !valida) {
+                malformed();
+                break;
+            }
+            char* p = (char*)PSXM(addr);
+            if (p == nullptr) {
+                writef("513 Invalid address in 130 command: %08X\r\n", addr);
+                break;
+            }
+            writef("230 %08X@%08X\r\n", size, addr);
+            Slice slice;
+            slice.borrow(p, size);
+            write(slice);
+            break;
+        }
+        case 0x140: {
+            auto [size, valids] = parseHexNumber(m_argument1);
+            auto [addr, valida] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || m_argument2.empty() || m_separator != '@' || !valids || !valida) {
+                malformed();
+                break;
+            }
+            char* p = (char*)PSXM(addr);
+            if (p == nullptr) {
+                writef("513 Invalid address in 140 command: %08X\r\n", addr);
+                break;
+            }
+            m_140ptr = p;
+            m_140size = size;
+            m_140cmdaddr = addr;
+            m_140cmdsize = size;
+            m_state = DATA_PASSTHROUGH;
+            return;
+        }
         default: {
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
             break;
@@ -594,4 +632,21 @@ void PCSX::DebugClient::processCommand() {
     m_state = FIRST_CHAR;
 }
 
-PCSX::Slice PCSX::DebugClient::passthroughData(const Slice& slice) { return slice; }
+PCSX::Slice PCSX::DebugClient::passthroughData(Slice slice) {
+    assert(m_cmd == 0x140);
+    uint32_t size = std::min(slice.size(), m_140size);
+    memcpy(m_140ptr, slice.data(), size);
+    m_140ptr += size;
+    m_140size -= size;
+
+    if (m_140size == 0) {
+        writef("240 %08X@%08X\r\n", m_140cmdsize, m_140cmdaddr);
+        m_cmd = 0;
+        m_fullCmd.clear();
+        m_argument1.clear();
+        m_argument2.clear();
+        m_separator = 0;
+        m_state = FIRST_CHAR;
+    }
+    return slice;
+}

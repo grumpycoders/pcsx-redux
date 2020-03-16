@@ -54,6 +54,11 @@ class DebugClient : public Intrusive::List<DebugClient>::Node {
         m_status = CLOSING;
         uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
     }
+    void write(const Slice& slice) {
+        auto* req = new WriteRequest();
+        req->m_slice = slice;
+        req->enqueue(this);
+    }
     void write(const std::string& msg) {
         auto* req = new WriteRequest();
         assert(msg.size() <= std::numeric_limits<uint32_t>::max());
@@ -140,7 +145,8 @@ class DebugClient : public Intrusive::List<DebugClient>::Node {
     }
     void processData(const Slice& slice);
     void processCommand();
-    Slice passthroughData(const Slice& slice);
+    Slice passthroughData(Slice slice);
+    void malformed() { writef("500 Malformed %X command '%s'\r\n", m_cmd, m_fullCmd.c_str()); }
 
     uv_tcp_t m_tcp;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
@@ -162,6 +168,10 @@ class DebugClient : public Intrusive::List<DebugClient>::Node {
     std::string m_fullCmd;
     char m_separator = 0;
     std::string m_argument1, m_argument2;
+    char* m_140ptr;
+    uint32_t m_140size;
+    uint32_t m_140cmdaddr;
+    uint32_t m_140cmdsize;
 };
 
 }  // namespace PCSX
