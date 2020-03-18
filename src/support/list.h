@@ -65,8 +65,14 @@ class List final {
 
   private:
     template <class Derived, class Base>
-    class IteratorBase final : public std::iterator<std::bidirectional_iterator_tag, Derived> {
+    class IteratorBase final {
       public:
+        typedef std::bidirectional_iterator_tag iterator_category;
+        typedef Derived value_type;
+        typedef ptrdiff_t difference_type;
+        typedef Derived* pointer;
+        typedef Derived& reference;
+
         IteratorBase(Base* node = nullptr) : m_node(node) { static_assert(std::is_base_of<Base, Derived>::value); }
         template <class srcDerived, class srcBase>
         IteratorBase(const IteratorBase<srcDerived, srcBase>& src) : m_node(src.m_node) {}
