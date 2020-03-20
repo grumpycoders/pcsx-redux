@@ -236,3 +236,20 @@ void PCSX::Debug::startServer(int port) {
 
     m_serverStatus = SERVER_STARTED;
 }
+
+void PCSX::Debug::resetMapE() { resetMap(MAP_EXEC | MAP_EXEC_JAL); }
+void PCSX::Debug::resetMapR8() { resetMap(MAP_R8); }
+void PCSX::Debug::resetMapR16() { resetMap(MAP_R16); }
+void PCSX::Debug::resetMapR32() { resetMap(MAP_R32); }
+void PCSX::Debug::resetMapW8() { resetMap(MAP_W8); }
+void PCSX::Debug::resetMapW16() { resetMap(MAP_W16); }
+void PCSX::Debug::resetMapW32() { resetMap(MAP_W32); }
+
+void PCSX::Debug::resetMap(uint8_t mask) {
+    mask ^= 0xff;
+    int i;
+    for (i = 0; i < sizeof(m_mainMemoryMap); i++) m_mainMemoryMap[i] &= mask;
+    for (i = 0; i < sizeof(m_biosMemoryMap); i++) m_biosMemoryMap[i] &= mask;
+    for (i = 0; i < sizeof(m_parpMemoryMap); i++) m_parpMemoryMap[i] &= mask;
+    for (i = 0; i < sizeof(m_scratchPadMap); i++) m_scratchPadMap[i] &= mask;
+}

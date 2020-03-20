@@ -33,6 +33,7 @@ namespace PCSX {
 
 class Debug {
   public:
+    Debug() { resetMap(0xff); }
     enum DebugServerStatus {
         SERVER_STOPPED,
         SERVER_STARTED,
@@ -82,6 +83,14 @@ class Debug {
         startStepping();
     }
 
+    void resetMapE();
+    void resetMapR8();
+    void resetMapR16();
+    void resetMapR32();
+    void resetMapW8();
+    void resetMapW16();
+    void resetMapW32();
+
     bool m_mapping_e = false;
     bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
     bool m_mapping_w8 = false, m_mapping_w16 = false, m_mapping_w32 = false;
@@ -90,6 +99,8 @@ class Debug {
     bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
 
   private:
+    void resetMap(uint8_t mask);
+
     void startStepping();
     typedef std::multimap<uint32_t, Breakpoint> BreakpointList;
 
