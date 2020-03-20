@@ -723,6 +723,104 @@ void PCSX::DebugClient::processCommand() {
             writef("256 Mapping of write32 flow %s\r\n", enable ? "started" : "stopped");
             break;
         }
+        case 0x160: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_e = true;
+            } else {
+                debugger->m_breakmp_e = false;
+            }
+            writef("260 Break on map of exec flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x161: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_r8 = true;
+            } else {
+                debugger->m_breakmp_r8 = false;
+            }
+            writef("261 Break on map of read8 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x162: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_r16 = true;
+            } else {
+                debugger->m_breakmp_r16 = false;
+            }
+            writef("262 Break on map of read16 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x163: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_r32 = true;
+            } else {
+                debugger->m_breakmp_r32 = false;
+            }
+            writef("263 Break on map of read32 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x164: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_w8 = true;
+            } else {
+                debugger->m_breakmp_w8 = false;
+            }
+            writef("264 Break on map of write8 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x165: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_w16 = true;
+            } else {
+                debugger->m_breakmp_w16 = false;
+            }
+            writef("265 Break on map of write16 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x166: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->m_breakmp_w32 = true;
+            } else {
+                debugger->m_breakmp_w32 = false;
+            }
+            writef("266 Break on map of write32 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
         default: {
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
             break;
