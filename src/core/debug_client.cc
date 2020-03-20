@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <limits>
 #include <map>
+#include <fstream>
 #include <string>
 #include <utility>
 
@@ -819,6 +820,16 @@ void PCSX::DebugClient::processCommand() {
                 debugger->m_breakmp_w32 = false;
             }
             writef("266 Break on map of write32 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x170: {
+            std::ofstream flow("flow.idc", std::ios::trunc);
+            auto flowStr = debugger->generateFlowIDC();
+            flow.write(flowStr.c_str(), flowStr.size());
+            std::ofstream mark("markcode.idc", std::ios::trunc);
+            auto markStr = debugger->generateMarkIDC();
+            flow.write(markStr.c_str(), markStr.size());
+            write("270 flow.idc and markcode.idc dumped\r\n");
             break;
         }
         default: {
