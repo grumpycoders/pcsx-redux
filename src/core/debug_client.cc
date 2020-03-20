@@ -618,6 +618,111 @@ void PCSX::DebugClient::processCommand() {
             m_state = DATA_PASSTHROUGH;
             return;
         }
+        case 0x150: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapE();
+                debugger->m_mapping_e = true;
+            } else {
+                debugger->m_mapping_e = false;
+            }
+            writef("250 Mapping of exec flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x151: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapR8();
+                debugger->m_mapping_r8 = true;
+            } else {
+                debugger->m_mapping_r8 = false;
+            }
+            writef("251 Mapping of read8 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x152: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapR16();
+                debugger->m_mapping_r16 = true;
+            } else {
+                debugger->m_mapping_r16 = false;
+            }
+            writef("252 Mapping of read16 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x153: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapR32();
+                debugger->m_mapping_r32 = true;
+            } else {
+                debugger->m_mapping_r32 = false;
+            }
+            writef("253 Mapping of read32 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x154: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapW8();
+                debugger->m_mapping_w8 = true;
+            } else {
+                debugger->m_mapping_w8 = false;
+            }
+            writef("254 Mapping of write8 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x155: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapW16();
+                debugger->m_mapping_w16 = true;
+            } else {
+                debugger->m_mapping_w16 = false;
+            }
+            writef("255 Mapping of write16 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
+        case 0x156: {
+            auto [enable, valid] = parseHexNumber(m_argument1);
+            if (m_argument1.empty() || !m_argument2.empty() || m_separator != 0 || !valid) {
+                malformed();
+                break;
+            }
+            if (enable) {
+                debugger->resetMapW32();
+                debugger->m_mapping_w32 = true;
+            } else {
+                debugger->m_mapping_w32 = false;
+            }
+            writef("256 Mapping of write32 flow %s\r\n", enable ? "started" : "stopped");
+            break;
+        }
         default: {
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
             break;
