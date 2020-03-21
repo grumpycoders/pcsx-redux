@@ -58,6 +58,7 @@ class Debug {
       public:
         BreakpointType type() const { return m_type; }
         bool enabled() const { return m_enabled; }
+        bool temporary() const { return m_temporary; }
         void enable() const { m_enabled = true; }
         void disable() const { m_enabled = false; }
         Breakpoint(BreakpointType type, bool temporary = false) : m_type(type), m_temporary(temporary) {}

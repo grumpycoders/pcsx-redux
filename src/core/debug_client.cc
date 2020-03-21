@@ -22,9 +22,9 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <fstream>
 #include <limits>
 #include <map>
-#include <fstream>
 #include <string>
 #include <utility>
 
@@ -831,6 +831,39 @@ void PCSX::DebugClient::processCommand() {
             flow.write(markStr.c_str(), markStr.size());
             write("270 flow.idc and markcode.idc dumped\r\n");
             break;
+        }
+        case 0x300: {
+            uint32_t address;
+            bool valid;
+            std::tie(address, valid) = parseHexNumber(m_argument1);
+            if (!m_argument2.empty() || m_separator != 0 || (!m_argument1.empty() && !valid)) {
+                malformed();
+                break;
+            }
+            static const char* const typeStrs[] = {"BE", "BR1", "BR2", "BR4", "BW1", "BW2", "BW4"};
+
+            bool gotOne = false;
+            if (!m_argument1.empty()) {
+                auto [begin, end] = debugger->findBreakpoints(address);
+                for (auto iter = begin; iter != end; iter++) {
+                    gotOne = true;
+                    if (iter->second.temporary()) {
+                        writef("400 %X-%s!\r\n", address, typeStrs[iter->second.type()]);
+                    } else {
+                        writef("400 %X-%s\r\n", address, typeStrs[iter->second.type()]);
+                    }
+                }
+            } else {
+                debugger->forEachBP([&gotOne, address, this](Debug::bpiterator iter) mutable {
+                    if (iter->second.temporary()) {
+                        writef("400 %X-%s!\r\n", address, typeStrs[iter->second.type()]);
+                    } else {
+                        writef("400 %X-%s\r\n", address, typeStrs[iter->second.type()]);
+                    }
+                    return true;
+                });
+            }
+            if (!gotOne) write("530 No breakpoint\r\n");
         }
         default: {
             writef("500 Unknown command '%s'\r\n", m_fullCmd.c_str());
