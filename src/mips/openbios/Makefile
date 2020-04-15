@@ -8,6 +8,8 @@ kernel/flushcache.s \
 kernel/handlers.c \
 kernel/vectors.s \
 main/main.c \
+pio/pio.c \
+tty/tty.c \
 \
 uC-sdk-glue/BoardConsole.c \
 uC-sdk-glue/BoardInit.c \

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,29 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/spu.h"
-#include "openbios/pio/pio.h"
 #include "openbios/tty/tty.h"
 
-static void boot(char * systemCnfPath, char * binaryPath);
-
-int main() {
-    // RAM size
-    *((uint32_t*) 0x60) = 0x02;
-    // ??
-    *((uint32_t*) 0x64) = 0x00;
-    // ??
-    *((uint32_t*) 0x68) = 0xff;
-
-    POST = 0x0f;
-    muteSpu();
-
-    if (checkExp1PreHookLicense()) runExp1PreHook();
-    POST = 0x0e;
-    g_installTTY = 0;
-    boot("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
-}
-
-static void boot(char * systemCnfPath, char * binaryPath) {
-    POST = 0x01;
-}
+int g_installTTY;

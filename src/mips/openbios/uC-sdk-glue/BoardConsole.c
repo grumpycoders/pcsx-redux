@@ -17,36 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <stddef.h>
-#include <stdio.h>
 #include "BoardConsole.h"
 
-static volatile char * portA = NULL;
+void BoardConsoleInit() {}
 
-void BoardConsoleInit() {
-    portA = (volatile char*) 0x1f000000;
-}
+void BoardConsolePuts(const char * str) {}
 
-void BoardConsolePuts(const char * str) {
-    char c;
-    while ((c = *str++)) *portA = c;
-}
+void BoardConsolePutc(int c) {}
 
-void BoardConsolePutc(int c) {
-    *portA = c;
-}
+void BoardConsolePrintf(const char * fmt, ...) {}
 
-static void xprintfCallback(const char * str, int strsize, void * opaque0) {
-    while (strsize--) *portA = *str++;
-}
-
-void BoardConsolePrintf(const char * fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    BoardConsoleVPrintf(fmt, ap);
-    va_end(ap);
-}
-
-void BoardConsoleVPrintf(const char * fmt, va_list ap) {
-    vxprintf(xprintfCallback, NULL, fmt, ap);
-}
+void BoardConsoleVPrintf(const char * fmt, va_list ap) {}

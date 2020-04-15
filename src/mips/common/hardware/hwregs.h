@@ -38,3 +38,5 @@
 #define SIO1_MODE HW_U16(0x1f801058)
 #define SIO1_CTRL HW_U16(0x1f80105a)
 #define SIO1_BAUD HW_U16(0x1f80105e)
+
+#define POST HW_U32(0xbf802041)
