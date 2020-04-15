@@ -31,4 +31,4 @@
 
 .set RAM_SIZE,          0x1f801060
 
-.set CACHE_CTRL,        0xfffe0130
+.set BIU_CONFIG,        0xfffe0130
