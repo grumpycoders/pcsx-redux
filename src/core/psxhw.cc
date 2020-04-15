@@ -66,6 +66,9 @@ uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
         case 0x1f801803:
             hard = PCSX::g_emulator.m_cdrom->read3();
             break;
+        case 0x1f802040:
+            hard = 2;
+            break;
         default:
             hard = psxHu8(add);
             PSXHW_LOG("*Unkwnown 8bit read at address %x\n", add);
@@ -321,6 +324,8 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
         case 0x1f801803:
             PCSX::g_emulator.m_cdrom->write3(value);
             break;
+        case 0x1f802042:
+            PCSX::g_system->biosPrintf("BIOS Trace: 0x%02x\n", value);
 
         default:
             psxHu8ref(add) = value;

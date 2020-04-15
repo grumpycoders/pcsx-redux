@@ -265,23 +265,15 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     ImGui::SameLine();
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
+    std::string longLabel = label;
     auto symbol = m_symbols.find(value);
-    if (symbol == m_symbols.end()) {
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
-        }
-        ImGui::PopStyleVar();
-    } else {
-        std::string longLabel = symbol->second + " ;" + label;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(longLabel.c_str())) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
-        }
-        ImGui::PopStyleVar();
+    if (symbol != m_symbols.end()) longLabel = symbol->second + " ;" + label;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+    if (ImGui::Button(longLabel.c_str())) {
+        m_jumpToPC = true;
+        m_jumpToPCValue = value;
     }
+    ImGui::PopStyleVar();
 }
 void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     comma();
@@ -401,10 +393,13 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     sameLine();
     char label[32];
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
+    std::string longLabel = label;
+    auto symbol = m_symbols.find(addr);
+    if (symbol != m_symbols.end()) longLabel = symbol->second + " ;" + label;
     ImGui::Text("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
     ImGui::PopStyleVar();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
