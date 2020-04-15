@@ -1,2 +1,6 @@
 @echo off
-docker run --rm -t -i -v "%~dp0\..:/project" grumpycoders/pcsx-redux-build:latest make -C openbios clean all
+set OLDCWD=%cd%
+cd ..\..\..
+set ROOT=%cd%
+cd %OLDCWD%
+docker run --rm -t -i -v "%ROOT%:/project" grumpycoders/pcsx-redux-build:latest make -C src/mips/openbios clean all
