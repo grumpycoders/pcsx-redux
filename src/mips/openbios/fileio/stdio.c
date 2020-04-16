@@ -172,7 +172,7 @@ void psxputchar(int c) {
     }
 }
 
-int psxwrite(int fd, const void * buffer, int size) {
+int psxwrite(int fd, void * buffer, int size) {
     struct File * file = getFileFromHandle(fd);
     if (!file || file->flags == 0) {
         psxerrno = PSXEBADF;
