@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,11 +19,30 @@
 
 #pragma once
 
-#include "hwregs.h"
+#include "common/psxlibc/device.h"
+#include "common/psxlibc/stdio.h"
 
-static __inline__ void muteSpu() {
-    SPU_REVERB_R = 0;
-    SPU_REVERB_L = 0;
-    SPU_MVOL_R = 0;
-    SPU_MVOL_L = 0;
-}
+int psxopen(const char * fname, int mode);
+int psxclose(int fd);
+
+int psxwrite(int fd, void * buffer, int size);
+int psxioctl(int fd, int cmd, int arg);
+
+void psxputchar(int c);
+int psxprintf(const char * msg, ...);
+void ioabort(int code);
+
+void setupFileIO(int installTTY);
+void installStdIo(int installTTY);
+
+struct Device * findDevice(const char * name);
+int removeDevice(const char * name);
+
+struct File * getFileFromHandle(int fd);
+struct File * findEmptyFile();
+
+const char * splitFilepathAndFindDevice(const char * name, struct Device ** device, int * deviceId);
+
+extern uint32_t psxerrno;
+
+void cdevscan();

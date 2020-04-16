@@ -19,4 +19,8 @@
 
 #pragma once
 
+int addDummyConsoleDevice();
+int addConsoleDevice();
+
+extern int g_cachedInstallTTY;
 extern int g_installTTY;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,11 +19,9 @@
 
 #pragma once
 
-#include "hwregs.h"
+#include <stdint.h>
 
-static __inline__ void muteSpu() {
-    SPU_REVERB_R = 0;
-    SPU_REVERB_L = 0;
-    SPU_MVOL_R = 0;
-    SPU_MVOL_L = 0;
-}
+struct JmpBuf {
+    uint32_t ra, sp, s8, s0, s1, s2, s3, s4, s5, s6, s7, gp;
+};
+

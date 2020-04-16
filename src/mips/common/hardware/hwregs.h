@@ -39,4 +39,7 @@
 #define SIO1_CTRL HW_U16(0x1f80105a)
 #define SIO1_BAUD HW_U16(0x1f80105e)
 
-#define POST HW_U32(0xbf802041)
+#define POST HW_U8(0xbf802041)
+
+#define IREG HW_U32(0x1f801070)
+#define IMASK HW_U32(0x1f801074)

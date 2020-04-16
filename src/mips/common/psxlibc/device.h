@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,11 +19,36 @@
 
 #pragma once
 
-#include "hwregs.h"
+#include <stdint.h>
 
-static __inline__ void muteSpu() {
-    SPU_REVERB_R = 0;
-    SPU_REVERB_L = 0;
-    SPU_MVOL_R = 0;
-    SPU_MVOL_L = 0;
-}
+#include "common/psxlibc/stdio.h"
+
+enum FileAction {
+    PSXREAD = 1,
+    PSXWRITE = 2,
+};
+
+typedef void (*device_init)();
+typedef int (*device_action)(struct File *, enum FileAction);
+typedef int (*device_close)(struct File *);
+typedef int (*device_ioctl)(struct File *, int cmd, int arg);
+typedef int (*device_write)(struct File *, void * buffer, int size);
+typedef void (*device_deinit)();
+
+struct Device {
+    char * name;
+    uint32_t flags;
+    uint32_t blockSize;
+    char * desc;
+    device_init init;
+    void * open;
+    device_action action;
+    device_close close;
+    device_ioctl ioctl;
+    void * read;
+    device_write write;
+    void * erase, * undelete;
+    void * firstfile, * nextfile, * format, * chdir, * rename;
+    device_deinit deinit;
+    void * check;
+};

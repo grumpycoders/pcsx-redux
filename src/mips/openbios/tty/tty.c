@@ -19,4 +19,13 @@
 
 #include "openbios/tty/tty.h"
 
+int g_cachedInstallTTY;
 int g_installTTY;
+
+int addConsoleDevice() {
+
+}
+
+int addDummyConsoleDevice() {
+    
+}

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,11 +19,15 @@
 
 #pragma once
 
-#include "hwregs.h"
+#include <stddef.h>
+#include <stdint.h>
 
-static __inline__ void muteSpu() {
-    SPU_REVERB_R = 0;
-    SPU_REVERB_L = 0;
-    SPU_MVOL_R = 0;
-    SPU_MVOL_L = 0;
+static __inline__ uint8_t * safeMemZero(uint8_t * ptr, int size) {
+    if (!ptr || size <= 0) return NULL;
+    uint8_t * orig = ptr;
+    for (; size >= 0; ptr++) {
+        size--;
+        *ptr = 0;
+    }
+    return orig;
 }

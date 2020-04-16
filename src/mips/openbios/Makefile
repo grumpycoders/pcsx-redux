@@ -4,8 +4,11 @@ SRCS = \
 ../common/hardware/cop0.s \
 ../common/hardware/sio1.c \
 boot/boot.s \
+fileio/misc.c \
+fileio/stdio.c \
 kernel/flushcache.s \
 kernel/handlers.c \
+kernel/setjmp.s \
 kernel/vectors.s \
 main/main.c \
 pio/pio.c \

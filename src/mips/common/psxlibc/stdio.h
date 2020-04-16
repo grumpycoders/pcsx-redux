@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,11 +19,62 @@
 
 #pragma once
 
-#include "hwregs.h"
+#include <stdint.h>
 
-static __inline__ void muteSpu() {
-    SPU_REVERB_R = 0;
-    SPU_REVERB_L = 0;
-    SPU_MVOL_R = 0;
-    SPU_MVOL_L = 0;
-}
+#include "common/psxlibc/device.h"
+
+enum {
+    PSXENOERR,
+    PSXEPERM,
+    PSXENOENT,
+    PSXESRCH,
+    PSXEINTR,
+    PSXEIO,
+    PSXENXIO,
+    PSXE2BIG,
+    PSXENOEXEC,
+    PSXEBADF,
+    PSXECHILD,
+    PSXEAGAIN,
+    PSXENOMEM,
+    PSXEACCESS,
+    PSXEFAULT,
+    PSXENOTBLK,
+    PSXEBUSY,
+    PSXEEXIST,
+    PSXEXDEV,
+    PSXENODEV,
+    PSXENOTDIR,
+    PSXEISDIR,
+    PSXEINVAL,
+    PSXENFILE,
+    PSXEMFILE,
+    PSXENOTTY,
+    PSXETXTBSY,
+    PSXEFBIG,
+    PSXENOSPC,
+    PSXESPIPE,
+    PSXEROFS,
+    PSXEFORMAT,
+    PSXEPIPE,
+    PSXEDOM,
+    PSXERANGE,
+    PSXEWOULDBLOCK,
+    PSXEINPROGRESS,
+    PSXEALREADY,
+};
+
+enum {
+    PSXF_READ = 1,
+    PSXF_WRITE = 2,
+    PSXF_NBLOCK = 4,
+    PSXF_SCAN = 8,
+};
+
+struct File {
+    uint32_t flags, deviceId;
+    char * buffer;
+    uint32_t count, offset, deviceFlags, errno;
+    struct Device * device;
+    uint32_t length, LBA, fd;
+};

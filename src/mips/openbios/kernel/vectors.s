@@ -131,8 +131,6 @@ generalHandler:
     jr    $k0
     .word 0x42000010 /* rfe */
 
-    .section .text, "ax", @progbits
-
     .align 2
     .global breakVector
     .global breakHandler
@@ -145,15 +143,15 @@ breakVector:
     ori   $k1, %lo(breakHandler)
 
     .align 2
-    .global interruptVector
-    .global interruptHandler
-    .type interruptVector, @function
+    .global exceptionVector
+    .global exceptionHandler
+    .type exceptionVector, @function
 
-interruptVector:
+exceptionVector:
     ori   $k0, $0, %lo(generalHandler)
-    lui   $k1, %hi(interruptHandler)
+    lui   $k1, %hi(exceptionHandler)
     jr    $k0
-    ori   $k1, %lo(interruptHandler)
+    ori   $k1, %lo(exceptionHandler)
 
     .align 2
     .global A0Vector
@@ -185,7 +183,6 @@ C0Vector:
     jr    $t0
     nop
 
-    .section .text, "ax", @progbits
     .align 2
     .global A0table
     .type A0Handler, @function
@@ -234,5 +231,15 @@ unimplemented:
     nop
     jr    $ra
     nop
+
+    .align 2
+    .section .text, "ax", @progbits
+    .global syscall_printf
+    .type syscall_printf, @function
+
+syscall_printf:
+    li    $t2, 0xa0
+    jr    $t2
+    li    $t1, 0x3f
 
     .set pop

@@ -17,11 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "common/hardware/cop0.h"
 #include "common/hardware/spu.h"
+#include "openbios/kernel/handlers.h"
+#include "common/syscalls/syscalls.h"
 #include "openbios/pio/pio.h"
 #include "openbios/tty/tty.h"
 
-static void boot(char * systemCnfPath, char * binaryPath);
+static void boot(const char * systemCnfPath, const char * binaryPath);
 
 int main() {
     // RAM size
@@ -40,6 +43,27 @@ int main() {
     boot("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
 }
 
-static void boot(char * systemCnfPath, char * binaryPath) {
+static void boot(const char * systemCnfPath, const char * binaryPath) {
     POST = 0x01;
+    writeCOP0Status(readCOP0Status() & ~0x401);
+    muteSpu();
+    POST = 0x02;
+    /* Here, the retail bios does something along the lines of
+       copyAndInitializeKernelMemory(), but our crt0 already took
+       care of it for us. */
+    POST = 0x03;
+    /* Same punishment as above: the retail bios copies the A0 table
+       at this point, but our crt0 did it too. */
+    installKernelHandlers();
+    /* The next call is supposed to be the c0/1c syscall, which patches
+       in the stdio functions from the C0 table into the A0 one.
+       We're not doing this either. */
+    syscall_installExceptionHandler();
+    syscall_setDefaultExceptionJmpBuf();
+    POST = 0x04;
+    muteSpu();
+    IMASK = 0;
+    IREG = 0;
+    syscall_setupFileIO(g_installTTY);
+    POST = 5;
 }
