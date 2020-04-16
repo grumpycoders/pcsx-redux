@@ -43,6 +43,11 @@ void setupFileIO(int installTTY) {
     *((struct Device **)0xa0000154) = s_devices + sizeof(s_devices) / sizeof(s_devices[0]);
     g_cachedInstallTTY = installTTY;
     safeMemZero((uint8_t *) s_files, sizeof(s_files));
+    // the retail bios doesn't do this, but it's easier this way
+    // to avoid sharing the static array everywhere.
+    for (int i = 0; i < sizeof(s_files) / sizeof(s_files[0]); i++) {
+        s_files[i].fd = i;
+    }
     POST = 1;
     installStdIo(installTTY);
     POST = 2;
@@ -62,7 +67,7 @@ struct Device * findDevice(const char * name) {
     }
 
     // what?
-    // s_ignoreCarruageReturns = 0;
+    // s_ignoreCarriageReturns = 0;
     syscall_printf("%s is not known device\n", name);
     syscall_printf("Known devices are:\n");
     printInstalledDevices();
@@ -94,7 +99,7 @@ struct File * getFileFromHandle(int fd) {
 static struct JmpBuf s_ioAbortJmpBuf;
 
 void ioabort(int code) {
-    longjmp(&s_ioAbortJmpBuf, code);
+    psxlongjmp(&s_ioAbortJmpBuf, code);
 }
 
 void ioAbortWithMsg(const char * msg1, const char * msg2) {
@@ -139,10 +144,19 @@ const char * splitFilepathAndFindDevice(const char * name, struct Device ** devi
 }
 
 void cdevscan() {
-    struct File * file;
-    for (file = s_files; file < s_files + sizeof(s_files) / sizeof(s_files[0]); file++) {
-        if (file->flags & 0x1000) {
-            psxioctl((file - s_files) / sizeof(s_files[0]), PSXFIOCSCAN, 0);
-        }
+    for (int i = 0; i < sizeof(s_files) / sizeof(s_files[0]); i++) {
+        if (s_files[i].flags & 0x1000) psxioctl(i, PSXFIOCSCAN, 0);
     }
+}
+
+void psxexit() {
+    for (int i = 0; i < sizeof(s_files) / sizeof(s_files[0]); i++) psxclose(i);
+    installStdIo(g_cachedInstallTTY);
+    syscall__exit();
+}
+
+int isFileConsole(int fd) {
+    struct File * file = getFileFromHandle(fd);
+    if (file) return (file->device->flags & 2) != 0;
+    return 0;
 }

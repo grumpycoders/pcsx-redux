@@ -19,10 +19,10 @@
 
     .section .text, "ax", @progbits
     .align 2
-    .global setjmp
-    .type setjmp, @function
+    .global psxsetjmp
+    .type psxsetjmp, @function
 
-setjmp:
+psxsetjmp:
     sw    $ra, 0($a0)
     sw    $sp, 4($a0)
     sw    $s8, 8($a0)
@@ -40,10 +40,10 @@ setjmp:
 
     .section .text, "ax", @progbits
     .align 2
-    .global longjmp
-    .type longjmp, @function
+    .global psxlongjmp
+    .type psxlongjmp, @function
 
-longjmp:
+psxlongjmp:
     lw    $ra, 0($a0)
     lw    $sp, 4($a0)
     lw    $s8, 8($a0)

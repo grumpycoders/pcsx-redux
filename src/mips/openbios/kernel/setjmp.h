@@ -21,5 +21,5 @@
 
 #include "common/psxlibc/setjmp.h"
 
-int setjmp(struct JmpBuf * buf);
-void __attribute__((noreturn)) longjmp(struct JmpBuf * buf, int ret);
+int psxsetjmp(struct JmpBuf * buf);
+void __attribute__((noreturn)) psxlongjmp(struct JmpBuf * buf, int ret);

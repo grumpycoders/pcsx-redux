@@ -29,6 +29,7 @@ enum FileAction {
 };
 
 typedef void (*device_init)();
+typedef int (*device_open)(struct File *, const char * filename);
 typedef int (*device_action)(struct File *, enum FileAction);
 typedef int (*device_close)(struct File *);
 typedef int (*device_ioctl)(struct File *, int cmd, int arg);
@@ -42,7 +43,7 @@ struct Device {
     uint32_t blockSize;
     char * desc;
     device_init init;
-    void * open;
+    device_open open;
     device_action action;
     device_close close;
     device_ioctl ioctl;

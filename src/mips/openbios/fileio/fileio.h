@@ -25,10 +25,13 @@
 int psxopen(const char * fname, int mode);
 int psxlseek(int fd, int offset, int whence);
 int psxread(int fd, void * buffer, int size);
-int psxclose(int fd);
-
 int psxwrite(int fd, void * buffer, int size);
+int psxclose(int fd);
 int psxioctl(int fd, int cmd, int arg);
+void psxexit();
+int isFileConsole(int fd);
+int psxgetc(int fd);
+void psxputc(int c, int fd);
 
 void psxputchar(int c);
 int psxprintf(const char * msg, ...);

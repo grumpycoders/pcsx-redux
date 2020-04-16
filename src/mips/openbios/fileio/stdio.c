@@ -57,10 +57,10 @@ void installStdIo(int installTTY) {
     POST = 6;
 }
 
-int psxopen(const char * name, int mode) {
+int psxopen(const char * path, int mode) {
     struct File * file = findEmptyFile();
 
-    char * filename;
+    const char * filename;
     int deviceId;
     struct Device * device;
 
@@ -71,6 +71,28 @@ int psxopen(const char * name, int mode) {
         psxerrno = PSXEMFILE;
         return -1;
     }
+
+    filename = splitFilepathAndFindDevice(path, &device, &deviceId);
+    if (filename == ((char*)-1)) {
+        psxerrno = PSXENODEV;
+        // technically not needed, as the file never got effectively
+        // opened, but doesn't really hurt at the end of the day.
+        file->flags = 0;
+        return -1;
+    }
+
+    file->flags = mode;
+    file->deviceId = deviceId;
+    file->device = device;
+    file->deviceFlags = device->flags;
+    if (device->open(file, filename) != 0) {
+        psxerrno = file->errno;
+        file->flags = 0;
+        return -1;
+    }
+
+    file->offset = 0;
+    return file->fd;
 }
 
 int psxlseek(int fd, int offset, int whence) {
@@ -88,6 +110,7 @@ int psxlseek(int fd, int offset, int whence) {
             file->offset += offset;
             break;
         case 2:
+            // yes, this is actually what the retail bios does.
             break;
         default:
             syscall_printf("invalid lseek arg");
@@ -99,7 +122,7 @@ int psxlseek(int fd, int offset, int whence) {
 
 int psxread(int fd, void * buffer, int size) {
     struct File * file = getFileFromHandle(fd);
-    if (!file || file->flags == 0) {
+    if (!file || !file->flags) {
         psxerrno = PSXEBADF;
         return -1;
     }
@@ -126,50 +149,9 @@ int psxread(int fd, void * buffer, int size) {
         if (ret > 0) file->offset += ret;
     }
 
-    if (ret < 0) {
-        errno = file->errno;
-    }
+    if (ret < 0) errno = file->errno;
 
-    return ret;}
-
-int psxclose(int fd) {
-    struct File * file = getFileFromHandle(fd);
-    if (!file || !file->flags) {
-        psxerrno = PSXEBADF;
-        return -1;
-    }
-    int ret = file->device->close(file);
-    file->flags = 0;
-    if (ret != 0) {
-        psxerrno = file->errno;
-        return -1;
-    }
-    return fd;
-}
-
-static void xprintfcallback(const char * str, int size, void * dummy) {
-    while (size--) syscall_putchar(*str++);
-}
-
-int psxprintf(const char * fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vxprintf(xprintfcallback, NULL, fmt, ap);
-    va_end(ap);
-}
-
-void psxputchar(int c) {
-    if (c == '\t') {
-        do {
-            psxputchar(' ');
-        } while (s_currentTabulationColumn & 7);
-    } else if (c == '\n') {
-        psxputchar('\r');
-        s_currentTabulationColumn = 0;
-    } else {
-        s_currentTabulationColumn++;
-        psxwrite(1, &c, 1);
-    }
+    return ret;
 }
 
 int psxwrite(int fd, void * buffer, int size) {
@@ -201,11 +183,24 @@ int psxwrite(int fd, void * buffer, int size) {
         if (ret > 0) file->offset += ret;
     }
 
-    if (ret < 0) {
-        errno = file->errno;
-    }
+    if (ret < 0) errno = file->errno;
 
     return ret;
+}
+
+int psxclose(int fd) {
+    struct File * file = getFileFromHandle(fd);
+    if (!file || !file->flags) {
+        psxerrno = PSXEBADF;
+        return -1;
+    }
+    int ret = file->device->close(file);
+    file->flags = 0;
+    if (ret != 0) {
+        psxerrno = file->errno;
+        return -1;
+    }
+    return fd;
 }
 
 int psxioctl(int fd, int cmd, int arg) {
@@ -225,10 +220,45 @@ int psxioctl(int fd, int cmd, int arg) {
         return 1;
     }
 
-    int ret = file->device->ioctl(file, cmd, arg);
-    if (ret < 0) {
+    if (file->device->ioctl(file, cmd, arg) < 0) {
         psxerrno = file->errno;
         return 0;
     }
     return 1;
+}
+
+int psxgetc(int fd) {
+    char c;
+    if (psxread(fd, &c, 1) < 1) return -1;
+    return c;
+}
+
+void psxputc(int c, int fd) {
+    char ch = c;
+    psxwrite(fd, &c, 1);
+}
+
+static void xprintfcallback(const char * str, int size, void * dummy) {
+    while (size--) syscall_putchar(*str++);
+}
+
+int psxprintf(const char * fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vxprintf(xprintfcallback, NULL, fmt, ap);
+    va_end(ap);
+}
+
+void psxputchar(int c) {
+    if (c == '\t') {
+        do {
+            psxputchar(' ');
+        } while (s_currentTabulationColumn & 7);
+    } else if (c == '\n') {
+        psxputchar('\r');
+        s_currentTabulationColumn = 0;
+    } else {
+        s_currentTabulationColumn++;
+        psxwrite(1, &c, 1);
+    }
 }

@@ -27,6 +27,12 @@ static __inline__ int syscall_strcmp(const char * s1, const char * s2) {
     return ((int(*)(const char * s1, const char * s2))0xa0)(s1, s2);
 }
 
+static __inline__ void syscall__exit() {
+    register volatile int n asm("t1") = 0x3a;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((void(*)())0xa0)();
+}
+
 // doing this one in raw inline assembly would prove tricky,
 // and there's already enough voodoo in this file.
 // this is syscall a0:3f
