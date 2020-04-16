@@ -6,8 +6,32 @@
         {
             "label": "make",
             "type": "shell",
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "command": "CC=clang-9 CXX=clang++-9 LD=clang++-9 make -j8",
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": ["relative", "${workspaceRoot}"],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
+        },
+        {
+            "label": "make_openbios",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios",
+            "windows": {
+                "command": "${workspaceRoot}\\src\\mips\\openbios\\build.bat"
+            },
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": ["relative", "${workspaceRoot}"],
