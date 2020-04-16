@@ -73,9 +73,68 @@ int psxopen(const char * name, int mode) {
     }
 }
 
-int psxclose(int fd) {
+int psxlseek(int fd, int offset, int whence) {
+    struct File * file = getFileFromHandle(fd);
+    if (!file || !file->flags) {
+        psxerrno = PSXEBADF;
+        return -1;
+    }
+
+    switch(whence) {
+        case 0:
+            file->offset = offset;
+            break;
+        case 1:
+            file->offset += offset;
+            break;
+        case 2:
+            break;
+        default:
+            syscall_printf("invalid lseek arg");
+            file->errno = psxerrno = PSXEINVAL;
+            return -1;
+    }
+    return file->offset;
+}
+
+int psxread(int fd, void * buffer, int size) {
     struct File * file = getFileFromHandle(fd);
     if (!file || file->flags == 0) {
+        psxerrno = PSXEBADF;
+        return -1;
+    }
+
+    cdevscan();
+
+    int ret;
+
+    if (file->deviceFlags & 0x10) {
+        ret = file->device->read(file, buffer, size);
+    } else {
+        struct Device * device = file->device;
+        file->buffer = buffer;
+        file->count = size;
+        if (device->flags & 4) {
+            int blockSize = device->blockSize;
+            if (file->offset % blockSize) {
+                syscall_printf("offset not on block boundary");
+                return -1;
+            }
+            file->count /= blockSize;
+        }
+        ret = device->action(file, PSXREAD);
+        if (ret > 0) file->offset += ret;
+    }
+
+    if (ret < 0) {
+        errno = file->errno;
+    }
+
+    return ret;}
+
+int psxclose(int fd) {
+    struct File * file = getFileFromHandle(fd);
+    if (!file || !file->flags) {
         psxerrno = PSXEBADF;
         return -1;
     }
@@ -113,7 +172,7 @@ void psxputchar(int c) {
     }
 }
 
-int psxwrite(int fd, void * buffer, int size) {
+int psxwrite(int fd, const void * buffer, int size) {
     struct File * file = getFileFromHandle(fd);
     if (!file || file->flags == 0) {
         psxerrno = PSXEBADF;
@@ -139,9 +198,7 @@ int psxwrite(int fd, void * buffer, int size) {
             file->count /= blockSize;
         }
         ret = device->action(file, PSXWRITE);
-        if (ret > 0) {
-            file->offset += ret;
-        }
+        if (ret > 0) file->offset += ret;
     }
 
     if (ret < 0) {

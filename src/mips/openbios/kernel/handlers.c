@@ -82,7 +82,7 @@ static void setDefaultExceptionJmpBuf() {
 }
 
 __attribute__((section(".a0table"))) void * A0table[0xc0] = {
-    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+    psxopen, psxlseek, psxread, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
     unimplemented, unimplemented, unimplemented, unimplemented, // 0c
