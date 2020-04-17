@@ -46,3 +46,13 @@ void initCDRom() {
     while(++delay < 50000);
     cdromReadPathTable();
 }
+
+void deinitCDRom() {
+    enterCriticalSection();
+    syscall_closeEvent(g_cdEventACK);
+    syscall_closeEvent(g_cdEventDNE);
+    syscall_closeEvent(g_cdEventRDY);
+    syscall_closeEvent(g_cdEventEND);
+    syscall_closeEvent(g_cdEventERR);
+    syscall_dequeueCDRomHandlers();
+}

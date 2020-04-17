@@ -19,38 +19,6 @@
 
 #pragma once
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
-
-int psxopen(const char * fname, int mode);
-int psxlseek(int fd, int offset, int whence);
-int psxread(int fd, void * buffer, int size);
-int psxwrite(int fd, void * buffer, int size);
-int psxclose(int fd);
-int psxioctl(int fd, int cmd, int arg);
-void psxexit();
-int isFileConsole(int fd);
-int psxgetc(int fd);
-void psxputc(int c, int fd);
-
-void psxputchar(int c);
-int psxgetchar();
-char * psxgets(char * storage);
-void psxputs(const char * str);
-int psxprintf(const char * msg, ...);
-void ioabortraw(int code);
-
-void setupFileIO(int installTTY);
-void installStdIo(int installTTY);
-
-struct Device * findDevice(const char * name);
-int removeDevice(const char * name);
-
-struct File * getFileFromHandle(int fd);
-struct File * findEmptyFile();
-
-const char * splitFilepathAndFindDevice(const char * name, struct Device ** device, int * deviceId);
-
-extern uint32_t psxerrno;
-
-void cdevscan();
+static void __inline__ flushWriteQueue() {
+    *((volatile uint8_t *) 0xbfc00000);
+}

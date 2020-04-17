@@ -22,6 +22,7 @@
 #include <stdarg.h>
 
 #include "common/compiler/stdint.h"
+#include "common/psxlibc/circularbuffer.h"
 
 static __inline__ void enterCriticalSection() {
     register volatile int n asm("a0") = 1;
@@ -93,10 +94,16 @@ static __inline__ void syscall_enqueueCDRomHandlers() {
     ((void(*)())0xa0)();
 }
 
-static __inline__ void syscall_ioabort(int code) {
+static __inline__ void syscall_dequeueCDRomHandlers() {
+    register volatile int n asm("t1") = 0xa3;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)())0xa0)();
+}
+
+static __inline__ int syscall_ioabortraw(int code) {
     register volatile int n asm("t1") = 0xb2;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void(*)(int))0xa0)(code);
+    ((int(*)(int))0xa0)(code);
 }
 
 /* B0 table */
@@ -104,6 +111,12 @@ static __inline__ uint32_t syscall_openEvent(uint32_t class, uint32_t spec, uint
     register volatile int n asm("t1") = 0x08;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((uint32_t(*)(uint32_t, uint32_t, uint32_t, void *))0xb0)(class, spec, mode, handler);
+}
+
+static __inline__ uint32_t syscall_closeEvent(uint32_t event) {
+    register volatile int n asm("t1") = 0x09;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((uint32_t(*)(uint32_t))0xb0)(event);
 }
 
 static __inline__ int syscall_testEvent(uint32_t event) {
@@ -157,6 +170,32 @@ static __inline__ void syscall_installExceptionHandler() {
 
 static __inline__ void syscall_setupFileIO(int installTTY) {
     register volatile int n asm("t1") = 0x12;
+    
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)(int))0xc0)(installTTY);
+}
+
+static __inline__ void syscall_cdevinput(struct CircularBuffer * circ, int c) {
+    register volatile int n asm("t1") = 0x15;
+    
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)(struct CircularBuffer *, int))0xc0)(circ, c);
+}
+
+static __inline__ void syscall_cdevscan() {
+    register volatile int n asm("t1") = 0x16;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)())0xc0)();
+}
+
+static __inline__ int syscall_circgetc(struct CircularBuffer * circ) {
+    register volatile int n asm("t1") = 0x17;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(struct CircularBuffer *))0xc0)(circ);
+}
+
+static __inline__ int syscall_ioabort(const char * msg) {
+    register volatile int n asm("t1") = 0x19;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(const char *))0xc0)(msg);
 }

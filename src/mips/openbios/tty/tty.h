@@ -19,8 +19,16 @@
 
 #pragma once
 
+#include "common/psxlibc/device.h"
+#include "common/psxlibc/stdio.h"
+
 int addDummyConsoleDevice();
 int addConsoleDevice();
 
 extern int g_cachedInstallTTY;
 extern int g_installTTY;
+
+void dev_tty_init();
+int dev_tty_open(struct File * file);
+int dev_tty_action(struct File * file, enum FileAction action);
+int dev_tty_ioctl(struct File *file,int req, int arg);

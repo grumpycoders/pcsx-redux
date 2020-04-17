@@ -111,9 +111,9 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
     GPU_abort, GPU_getStatus, GPU_sync, unimplemented, // 4c
     unimplemented, loadAndExec, unimplemented, unimplemented, // 50
-    initCDRom, unimplemented, unimplemented, unimplemented, // 54
-    unimplemented, unimplemented, unimplemented, unimplemented, // 58
-    unimplemented, unimplemented, unimplemented, unimplemented, // 5c
+    initCDRom, unimplemented, deinitCDRom, psxdummy, // 54
+    psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
+    dev_tty_open, dev_tty_action, dev_tty_ioctl, unimplemented, // 5c
     unimplemented, unimplemented, unimplemented, unimplemented, // 60
     unimplemented, unimplemented, unimplemented, unimplemented, // 64
     unimplemented, unimplemented, unimplemented, unimplemented, // 68
@@ -134,7 +134,7 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
     unimplemented, unimplemented, unimplemented, unimplemented, // a8
     unimplemented, unimplemented, unimplemented, unimplemented, // ac
-    unimplemented, unimplemented, ioabort, unimplemented, // b0
+    unimplemented, unimplemented, ioabortraw, unimplemented, // b0
     unimplemented, unimplemented, unimplemented, unimplemented, // b4
     unimplemented, unimplemented, unimplemented, unimplemented, // b8
     unimplemented, unimplemented, unimplemented, unimplemented, // bc

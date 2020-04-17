@@ -98,13 +98,13 @@ struct File * getFileFromHandle(int fd) {
 
 static struct JmpBuf s_ioAbortJmpBuf;
 
-void ioabort(int code) {
+void ioabortraw(int code) {
     psxlongjmp(&s_ioAbortJmpBuf, code);
 }
 
 void ioAbortWithMsg(const char * msg1, const char * msg2) {
     syscall_printf("ioabort exit: %s %s\n");
-    syscall_ioabort(1);
+    syscall_ioabortraw(1);
 }
 
 struct File * findEmptyFile() {

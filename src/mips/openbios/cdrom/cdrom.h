@@ -20,3 +20,4 @@
 #pragma once
 
 void initCDRom();
+void deinitCDRom();
