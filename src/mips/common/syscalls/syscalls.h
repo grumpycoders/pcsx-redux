@@ -21,6 +21,8 @@
 
 #include <stdarg.h>
 
+#include "common/compiler/stdint.h"
+
 static __inline__ void enterCriticalSection() {
     register volatile int n asm("a0") = 1;
     __asm__ volatile("syscall\n" : "=r"(n) : "r"(n));

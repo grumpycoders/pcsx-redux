@@ -27,6 +27,7 @@
 #include "common/compiler/stdint.h"
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
+#include "openbios/cdrom/cdrom.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
@@ -110,7 +111,7 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
     GPU_abort, GPU_getStatus, GPU_sync, unimplemented, // 4c
     unimplemented, loadAndExec, unimplemented, unimplemented, // 50
-    unimplemented, unimplemented, unimplemented, unimplemented, // 54
+    initCDRom, unimplemented, unimplemented, unimplemented, // 54
     unimplemented, unimplemented, unimplemented, unimplemented, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c
     unimplemented, unimplemented, unimplemented, unimplemented, // 60

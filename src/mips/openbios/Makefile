@@ -4,6 +4,10 @@ SRCS = \
 ../common/hardware/cop0.s \
 ../common/hardware/sio1.c \
 boot/boot.s \
+cdrom/cdrom.c \
+cdrom/events.c \
+cdrom/filesystem.c \
+cdrom/helpers.c \
 fileio/misc.c \
 fileio/stdio.c \
 kernel/flushcache.s \

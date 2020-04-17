@@ -17,8 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
-
 #include <memory.h>
 #include <string.h>
 
@@ -40,7 +38,7 @@ static int s_pathTableLocation;
 static int s_cachedDirectoryEntryID;
 static int s_pathTableCount;
 
-static struct PathTableEntry pathTable[45];
+static struct PathTableEntry s_pathTable[45];
 
 int cdromReadPathTable() {
     if (cdromBlockReading(1, 16, g_readBuffer) != 1) return 0;
@@ -53,17 +51,17 @@ int cdromReadPathTable() {
     uint32_t lba = s_pathTableLocation = buffer[140 / 4];
 
     if (cdromBlockReading(1, lba, g_readBuffer) != 1) return 0;
-    for (const uint32_t * ptr = buffer; ptr < (g_readBuffer + sizeof(g_readBuffer); ptr++) s_currentDiscHash ^= *ptr;
+    for (const uint32_t * ptr = buffer; ((uint8_t *) ptr) < (g_readBuffer + sizeof(g_readBuffer)); ptr++) s_currentDiscHash ^= *ptr;
 
     const uint8_t * ptr = g_readBuffer;
-    struct PathTableENtry * entry = pathTable;
+    struct PathTableEntry * entry = s_pathTable;
     int entryID = 1;
-    while ((pathEntryPtr < g_readBuffer + sizeof(g_readBuffer)) && (entryID <= sizeof(pathTable) / sizeof(pathTable[0]))) {
+    while ((ptr < g_readBuffer + sizeof(g_readBuffer)) && (entryID <= sizeof(s_pathTable) / sizeof(s_pathTable[0]))) {
         if (!ptr[0]) break;
         entry->LBA = readUnaligned(ptr, 2);
         entry->ID = entryID;
         // Yes. I can't even.
-        entry->parentID = ptr[6] + ptr[7]
+        entry->parentID = ptr[6] + ptr[7];
         memcpy(entry->name, ptr + 9, ptr[8]);
         unsigned entrySize = ptr[0];
         if (entrySize & 1) {
@@ -73,7 +71,7 @@ int cdromReadPathTable() {
         }
         entry++;
     }
-    s_cachedDirectoryEntryId = 0;
+    s_cachedDirectoryEntryID = 0;
     s_pathTableCount = entryID - 1;
     return 1;
 }
