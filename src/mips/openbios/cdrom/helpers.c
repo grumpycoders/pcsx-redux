@@ -26,6 +26,12 @@ int cdromBlockReading(int count, int sector, char * buffer) {
 
     sector += 150;
 
+    /* I can't in good conscience reproduce the bug seen in the retail bios
+       code. The following bloc that computes the msf of the sector to read
+       is inside the for loop in the retail bios code. Which means that the
+       'sector' variable gets mangled every time there's a retry, and
+       further retries will always fail or return the wrong sector. */
+
     int minutes = sector / 4500;
     sector %= 4500;
     uint8_t msf[3] = {
