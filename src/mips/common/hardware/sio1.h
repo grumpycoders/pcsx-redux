@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "common/compiler/stdint.h"
 
 void sio1_init();
 void sio1_putc(uint8_t byte);

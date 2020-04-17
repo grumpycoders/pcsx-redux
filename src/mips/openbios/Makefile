@@ -8,8 +8,13 @@ fileio/misc.c \
 fileio/stdio.c \
 kernel/flushcache.s \
 kernel/handlers.c \
+kernel/libcmisc.c \
+kernel/psxexe.c \
+kernel/psxexec.s \
 kernel/setjmp.s \
+kernel/util.c \
 kernel/vectors.s \
+gpu/gpu.c \
 main/main.c \
 pio/pio.c \
 tty/tty.c \

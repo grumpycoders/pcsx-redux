@@ -21,44 +21,12 @@
 
 #include "common/compiler/stdint.h"
 
-struct File;
-
-enum FileAction {
-    PSXREAD = 1,
-    PSXWRITE = 2,
-};
-
-enum {
-    PSXDTTYPE_CHAR  = 0x01,
-    PSXDTTYPE_CONS  = 0x02,
-    PSXDTTYPE_BLOCK = 0x04,
-    PSXDTTYPE_RAW   = 0x08,
-    PSXDTTYPE_FS    = 0x10,
-};
-
-typedef void (*device_init)();
-typedef int (*device_open)(struct File *, const char * filename);
-typedef int (*device_action)(struct File *, enum FileAction);
-typedef int (*device_close)(struct File *);
-typedef int (*device_ioctl)(struct File *, int cmd, int arg);
-typedef int (*device_read)(struct File *, void * buffer, int size);
-typedef int (*device_write)(struct File *, void * buffer, int size);
-typedef void (*device_deinit)();
-
-struct Device {
-    char * name;
-    uint32_t flags /* PSXDTTYPE_* */;
-    uint32_t blockSize;
-    char * desc;
-    device_init init;
-    device_open open;
-    device_action action;
-    device_close close;
-    device_ioctl ioctl;
-    device_read read;
-    device_write write;
-    void * erase, * undelete;
-    void * firstfile, * nextfile, * format, * chdir, * rename;
-    device_deinit deinit;
-    void * check;
-};
+void GPU_dw(unsigned x, unsigned y, unsigned w, unsigned h, const void * src);
+void GPU_mem2vram();
+void GPU_send(uint32_t cmd);
+int GPU_cw(uint32_t cmd);
+void GPU_cwb(uint32_t * cmds, int count);
+void GPU_sendPackets(uint32_t * start);
+void GPU_abort();
+uint32_t GPU_getStatus();
+int GPU_sync();

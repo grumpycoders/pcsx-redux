@@ -19,46 +19,24 @@
 
 #pragma once
 
+#include <stddef.h>
+
 #include "common/compiler/stdint.h"
 
-struct File;
+int psxdummy();
 
-enum FileAction {
-    PSXREAD = 1,
-    PSXWRITE = 2,
-};
-
-enum {
-    PSXDTTYPE_CHAR  = 0x01,
-    PSXDTTYPE_CONS  = 0x02,
-    PSXDTTYPE_BLOCK = 0x04,
-    PSXDTTYPE_RAW   = 0x08,
-    PSXDTTYPE_FS    = 0x10,
-};
-
-typedef void (*device_init)();
-typedef int (*device_open)(struct File *, const char * filename);
-typedef int (*device_action)(struct File *, enum FileAction);
-typedef int (*device_close)(struct File *);
-typedef int (*device_ioctl)(struct File *, int cmd, int arg);
-typedef int (*device_read)(struct File *, void * buffer, int size);
-typedef int (*device_write)(struct File *, void * buffer, int size);
-typedef void (*device_deinit)();
-
-struct Device {
-    char * name;
-    uint32_t flags /* PSXDTTYPE_* */;
-    uint32_t blockSize;
-    char * desc;
-    device_init init;
-    device_open open;
-    device_action action;
-    device_close close;
-    device_ioctl ioctl;
-    device_read read;
-    device_write write;
-    void * erase, * undelete;
-    void * firstfile, * nextfile, * format, * chdir, * rename;
-    device_deinit deinit;
-    void * check;
-};
+int psxtodigit(int c);
+void psxatof(const char * str);
+int psxabs(int j);
+char * psxatob(char * str, int * result);
+const char * psxstrpbrk(const char * s, const char * accepted);
+unsigned psxstrspn(const char * s, const char * accepted);
+unsigned psxstrcspn(const char * s, const char * rejected);
+char * psxstrtok(char * str, const char * delim);
+const char * psxbcopy(const void * src, void * dst, int n);
+const char * psxbzero(char * ptr, int n);
+int psxbcmp(const void * s1, const void * s2, int n);
+uint32_t psxrand();
+void psxsrand(uint32_t seed);
+const void * psxlsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *));
+const void * psxbsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *));

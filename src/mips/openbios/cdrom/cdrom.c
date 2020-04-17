@@ -17,48 +17,32 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include <stddef.h>
 
-#include "common/compiler/stdint.h"
+#include "common/syscalls/syscalls.h"
+#include "openbios/cdrom/cdrom.h"
+#include "openbios/cdrom/events.h"
+#include "openbios/cdrom/filesystem.h"
 
-struct File;
+static void initializeHandlersAndEvents() {
+    syscall_enqueueCDRomHandlers();
+    g_cdEventACK = syscall_openEvent(0xf0000003, 0x0010, 0x2000, NULL);
+    g_cdEventDNE = syscall_openEvent(0xf0000003, 0x0020, 0x2000, NULL);
+    g_cdEventRDY = syscall_openEvent(0xf0000003, 0x0040, 0x2000, NULL);
+    g_cdEventEND = syscall_openEvent(0xf0000003, 0x0080, 0x2000, NULL);
+    g_cdEventERR = syscall_openEvent(0xf0000003, 0x8000, 0x2000, NULL);
+    leaveCriticalSection();
+    g_cdromCWD[0] = 0;
+}
 
-enum FileAction {
-    PSXREAD = 1,
-    PSXWRITE = 2,
-};
+static void initializeSoftwareAndHardware() {
+    initializeHandlersAndEvents();
+    while (!syscall_cdromInnerInit());
+}
 
-enum {
-    PSXDTTYPE_CHAR  = 0x01,
-    PSXDTTYPE_CONS  = 0x02,
-    PSXDTTYPE_BLOCK = 0x04,
-    PSXDTTYPE_RAW   = 0x08,
-    PSXDTTYPE_FS    = 0x10,
-};
-
-typedef void (*device_init)();
-typedef int (*device_open)(struct File *, const char * filename);
-typedef int (*device_action)(struct File *, enum FileAction);
-typedef int (*device_close)(struct File *);
-typedef int (*device_ioctl)(struct File *, int cmd, int arg);
-typedef int (*device_read)(struct File *, void * buffer, int size);
-typedef int (*device_write)(struct File *, void * buffer, int size);
-typedef void (*device_deinit)();
-
-struct Device {
-    char * name;
-    uint32_t flags /* PSXDTTYPE_* */;
-    uint32_t blockSize;
-    char * desc;
-    device_init init;
-    device_open open;
-    device_action action;
-    device_close close;
-    device_ioctl ioctl;
-    device_read read;
-    device_write write;
-    void * erase, * undelete;
-    void * firstfile, * nextfile, * format, * chdir, * rename;
-    device_deinit deinit;
-    void * check;
-};
+void initCDRom() {
+    initializeSoftwareAndHardware();
+    volatile int delay = 0;
+    while(++delay < 50000);
+    cdromReadPathTable();
+}

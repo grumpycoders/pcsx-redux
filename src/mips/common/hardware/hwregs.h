@@ -43,3 +43,9 @@
 
 #define IREG HW_U32(0x1f801070)
 #define IMASK HW_U32(0x1f801074)
+
+#define DPCR HW_U32(0x1f8010f0)
+#define DICR HW_U32(0x1f8010f4)
+
+#define GPU_DATA HW_U32(0x1f801810)
+#define GPU_STATUS HW_U32(0x1f801814)

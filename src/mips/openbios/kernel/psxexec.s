@@ -17,48 +17,53 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+    .section .text, "ax", @progbits
+    .set noreorder
+    .align 2
+    .global exec
+    .type exec, @function
 
-#include "common/compiler/stdint.h"
+    /* is there a way to access a C-struct in assembly? */
+exec:
+    sw    $s0, 0x38($a0) /* header->savedS0 */
+    sw    $ra, 0x34($a0) /* header->savedRA */
+    sw    $sp, 0x28($a0) /* header->savedSP */
+    sw    $s8, 0x2c($a0) /* header->savedS8 */
+    sw    $gp, 0x30($a0) /* header->savedGP */
 
-struct File;
+    lw    $t0, 0x1c($a0) /* t0 = header->bss_size */
+    lw    $t3, 0x20($a0) /* t3 = stack_start */
 
-enum FileAction {
-    PSXREAD = 1,
-    PSXWRITE = 2,
-};
+    beqz  $t0, skipBSS   /* t0 = bss_size */
+    move  $s0, $a0       /* s0 = header */
 
-enum {
-    PSXDTTYPE_CHAR  = 0x01,
-    PSXDTTYPE_CONS  = 0x02,
-    PSXDTTYPE_BLOCK = 0x04,
-    PSXDTTYPE_RAW   = 0x08,
-    PSXDTTYPE_FS    = 0x10,
-};
+    lw    $t1, 0x18($a0) /* t1 = bss_start */
 
-typedef void (*device_init)();
-typedef int (*device_open)(struct File *, const char * filename);
-typedef int (*device_action)(struct File *, enum FileAction);
-typedef int (*device_close)(struct File *);
-typedef int (*device_ioctl)(struct File *, int cmd, int arg);
-typedef int (*device_read)(struct File *, void * buffer, int size);
-typedef int (*device_write)(struct File *, void * buffer, int size);
-typedef void (*device_deinit)();
+clearBSS:
+    addi  $t0, -4
+    sw    $0, 0($t1)
+    bgtz  $t0, clearBSS
+    addi  $t1, 4
 
-struct Device {
-    char * name;
-    uint32_t flags /* PSXDTTYPE_* */;
-    uint32_t blockSize;
-    char * desc;
-    device_init init;
-    device_open open;
-    device_action action;
-    device_close close;
-    device_ioctl ioctl;
-    device_read read;
-    device_write write;
-    void * erase, * undelete;
-    void * firstfile, * nextfile, * format, * chdir, * rename;
-    device_deinit deinit;
-    void * check;
-};
+skipBSS:
+    beqz  $t3, noStack
+    lw    $t2, 0x00($a0) /* t2 = pc */
+
+    lw    $t1, 0x24($a0) /* t1 = stack_size */
+    nop
+    add   $sp, $t3, $t1
+    move  $s8, $sp
+
+noStack:
+    lw    $gp, 0x04($a0)
+    move  $a0, $a1       /* shifting argc */
+    jalr  $t2
+    move  $a1, $a2       /* shifting argv */
+
+    lw    $ra, 0x34($s0) /* header->savedRA */
+    lw    $sp, 0x28($s0) /* header->savedSP */
+    lw    $s8, 0x2c($s0) /* header->savedS8 */
+    lw    $gp, 0x30($s0) /* header->savedGP */
+    lw    $s0, 0x38($s0) /* header->savedS0 */
+    jr    $ra
+    li    $v0, 1

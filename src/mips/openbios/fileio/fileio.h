@@ -34,6 +34,9 @@ int psxgetc(int fd);
 void psxputc(int c, int fd);
 
 void psxputchar(int c);
+int psxgetchar();
+char * psxgets(char * storage);
+void psxputs(const char * str);
 int psxprintf(const char * msg, ...);
 void ioabort(int code);
 

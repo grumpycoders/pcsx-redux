@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -103,13 +104,13 @@ int psxlseek(int fd, int offset, int whence) {
     }
 
     switch(whence) {
-        case 0:
+        case PSXSEEK_SET:
             file->offset = offset;
             break;
-        case 1:
+        case PSXSEEK_CUR:
             file->offset += offset;
             break;
-        case 2:
+        case PSXSEEK_END:
             // yes, this is actually what the retail bios does.
             break;
         default:
@@ -131,13 +132,13 @@ int psxread(int fd, void * buffer, int size) {
 
     int ret;
 
-    if (file->deviceFlags & 0x10) {
+    if (file->deviceFlags & PSXDTTYPE_FS) {
         ret = file->device->read(file, buffer, size);
     } else {
         struct Device * device = file->device;
         file->buffer = buffer;
         file->count = size;
-        if (device->flags & 4) {
+        if (device->flags & PSXDTTYPE_BLOCK) {
             int blockSize = device->blockSize;
             if (file->offset % blockSize) {
                 syscall_printf("offset not on block boundary");
@@ -165,13 +166,13 @@ int psxwrite(int fd, void * buffer, int size) {
 
     int ret;
 
-    if (file->deviceFlags & 0x10) {
+    if (file->deviceFlags & PSXDTTYPE_FS) {
         ret = file->device->write(file, buffer, size);
     } else {
         struct Device * device = file->device;
         file->buffer = buffer;
         file->count = size;
-        if (device->flags & 4) {
+        if (device->flags & PSXDTTYPE_BLOCK) {
             int blockSize = device->blockSize;
             if (file->offset % blockSize) {
                 syscall_printf("offset not on block boundary");
@@ -235,18 +236,7 @@ int psxgetc(int fd) {
 
 void psxputc(int c, int fd) {
     char ch = c;
-    psxwrite(fd, &c, 1);
-}
-
-static void xprintfcallback(const char * str, int size, void * dummy) {
-    while (size--) syscall_putchar(*str++);
-}
-
-int psxprintf(const char * fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vxprintf(xprintfcallback, NULL, fmt, ap);
-    va_end(ap);
+    psxwrite(fd, &ch, 1);
 }
 
 void psxputchar(int c) {
@@ -259,6 +249,80 @@ void psxputchar(int c) {
         s_currentTabulationColumn = 0;
     } else {
         s_currentTabulationColumn++;
-        psxwrite(1, &c, 1);
+        char ch = c;
+        psxwrite(1, &ch, 1);
     }
+}
+
+int psxgetchar() {
+    char b;
+    read(0, &b, 1);
+    return b & 0x7f;
+}
+
+/* This most likely is trying to do an 'echo' console back to whatever this
+   is reading from, as if it's reading one character at a time from a terminal.
+   It's doing a lot of terminal shenanigans. Whatever this terminal is, it
+   also has a special meanings for the values 0x13, 0x16, and 0x7f. Also,
+   it's sort of assuming a maximum buffer length. It's wild. */
+char * psxgets(char * const s) {
+    char c;
+    char * ptr = s;
+    char * const end = s + 125;
+    while (1) {
+        c = psxgetchar();
+        if (c == '\b' || c == 0x7f) {
+            if (ptr > s) {
+                ptr--;
+                // this tries to 'erase' the previously typed character
+                // from the input terminal.
+                psxputchar('\b');
+                psxputchar(' ');
+                psxputchar('\b');
+                continue;
+            }
+        }
+        if (c == '\t') c = ' '; // replace tabs by spaces, with no tabulation control...
+        if ((c == '\n') || (c == '\r')) {
+            psxputchar('\n');
+            *ptr = 0;
+            break; // sweet deliverance
+        }
+        if (c == 0x16) {
+            c = psxgetchar();
+            if (ptr < end) {
+                *ptr++ = c;
+                psxputchar(c);
+            } else {
+                psxputchar(7); // meep
+            }
+            continue;
+        }
+        if (iscntrl(c) || (ptr >= end)) {
+            psxputchar(7); // meep
+        } else {
+            *ptr++ = c;
+            psxputchar(c);
+        }
+    }
+    return s;
+}
+
+void psxputs(const char * s) {
+    if (!s) s = "<NULL>";
+    char c;
+    while ((c = *s++)) {
+        psxputchar(c);
+    }
+}
+
+static void xprintfcallback(const char * str, int size, void * dummy) {
+    while (size--) syscall_putchar(*str++);
+}
+
+int psxprintf(const char * fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vxprintf(xprintfcallback, NULL, fmt, ap);
+    va_end(ap);
 }

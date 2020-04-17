@@ -157,6 +157,6 @@ void psxexit() {
 
 int isFileConsole(int fd) {
     struct File * file = getFileFromHandle(fd);
-    if (file) return (file->device->flags & 2) != 0;
+    if (file) return (file->device->flags & PSXDTTYPE_CONS) != 0;
     return 0;
 }

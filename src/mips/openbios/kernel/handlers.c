@@ -18,8 +18,7 @@
  ***************************************************************************/
 
 #include <ctype.h>
-#include <malloc.h>
-#include <stddef.h>
+#include <memory.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -29,8 +28,12 @@
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
+#include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
+#include "openbios/kernel/libcmisc.h"
+#include "openbios/kernel/psxexe.h"
 #include "openbios/kernel/setjmp.h"
+#include "openbios/gpu/gpu.h"
 #include "openbios/tty/tty.h"
 
 void unimplemented();
@@ -48,7 +51,6 @@ static void installHandler(const void * src, void * dst) {
 }
 
 void installKernelHandlers() {
-    installHandler(breakVector, (uint32_t *) 0x40);
     installHandler(A0Vector, (uint32_t *) 0xa0);
     installHandler(B0Vector, (uint32_t *) 0xb0);
     installHandler(C0Vector, (uint32_t *) 0xc0);
@@ -86,146 +88,28 @@ static void setDefaultExceptionJmpBuf() {
 
 }
 
-static int todigit(int c) {
-    if (!isxdigit(c)) return 9999999;
-    if (isdigit(c)) return c - '0';
-    return tolower(c) - 'a' + 10;
-}
-
-static void psxatof(const char * str) {
-    syscall__exit();
-}
-
-static unsigned long strtoul(const char * nptr, char ** endptr, int base) {
-    return strtol(nptr, endptr, base);
-}
-
-static int abs(int j) {
-    if (j >= 0) return j;
-    return -j;
-}
-
-static char * atob(char * str, int * result) {
-    char * endp;
-    *result = strtol(str, &endp, 10);
-    return endp;
-}
-
-static const char * strpbrk(const char * s, const char * accepted) {
-    char c;
-    while ((c = *s)) {
-        if (strchr(accepted, c)) return s;
-        s++;
-    }
-    
-    return NULL;
-}
-
-static unsigned strspn(const char * s, const char * accepted) {
-    unsigned count = 0;
-    unsigned maximum = 0;
-    char c;
-    while ((c = *s)) {
-        if (strchr(accepted, c)) {
-            count++;
-            if (maximum < count) maximum = count;
-        } else {
-            count = 0;
-        }
-        s++;
-    }
-    
-    return maximum;
-}
-
-static unsigned strcspn(const char * s, const char * rejected) {
-    unsigned count = 0;
-    unsigned maximum = 0;
-    char c;
-    while ((c = *s)) {
-        if (!strchr(rejected, c)) {
-            count++;
-            if (maximum < count) maximum = count;
-        } else {
-            count = 0;
-        }
-        s++;
-    }
-    
-    return maximum;
-}
-
-static char * s_strtokPtr;
-static char * strtok(char * str, const char * delim) {
-    char * oldPtr = str ? str : s_strtokPtr;
-    if (str) {
-        s_strtokPtr = strpbrk(str, delim);
-    } else {
-        s_strtokPtr = strpbrk(s_strtokPtr, delim);
-    }
-    if (s_strtokPtr) *s_strtokPtr = 0;
-    return oldPtr;
-}
-
-static const char * bcopy(const void * src, void * dst, int n) {
-    if (!src) return NULL;
-    if (n < 0) return src;
-    memcpy(dst, src, n);
-    return src;
-}
-
-static const char * bzero(char * ptr, int n) {
-    if (!ptr || n <= 0) return NULL;
-    memset(ptr, 0, n);
-    return ptr;
-}
-
-static int bcmp(const void * s1, const void * s2, int n) {
-    if (!s1 || !s2) return 0;
-    return memcmp(s1, s2, n);
-}
-
-uint32_t s_currentSeed;
-
-static uint32_t psxrand() {
-    s_currentSeed = s_currentSeed * 1103515245 + 12345;
-    return (s_currentSeed >> 16) & 0x7fff;
-}
-
-static void psxsrand(uint32_t seed) {
-    s_currentSeed = seed;
-}
-
-static const void * lsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *)) {
-    while (nmemb > 0) {
-        if (compar(key, base) == 0) return base;
-        nmemb--;
-    };
-    return NULL;
-}
-
 __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     psxopen, psxlseek, psxread, psxwrite, // 00
     psxclose, psxioctl, psxexit, isFileConsole, // 04
-    psxgetc, psxputc, todigit, psxatof, // 08
-    strtoul, strtol, abs, abs, // 0c
-    atoi, atol, atob, psxsetjmp, // 10
+    psxgetc, psxputc, psxtodigit, unimplemented /*atof*/, // 08
+    strtol, strtol, psxabs, psxabs, // 0c
+    atoi, atol, psxatob, psxsetjmp, // 10
     psxlongjmp, strcat, strncat, strcmp, // 14
     strncmp, strcpy, strncpy, strlen, // 18
     strchr, strrchr, strchr, strrchr, // 1c
-    strpbrk, strspn, strcspn, strtok, // 20
-    strstr, toupper, tolower, bcopy, // 24
-    bzero, bcmp, memcpy, memset, // 28
-    memmove, bcmp, memchr, psxrand, // 2c
-    psxsrand, qsort, atof, base_malloc, // 30
-    base_free, lsearch, unimplemented, unimplemented, // 34
-    unimplemented, unimplemented, unimplemented, unimplemented, // 38
-    unimplemented, unimplemented, unimplemented, psxprintf, // 3c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 40
-    unimplemented, unimplemented, unimplemented, unimplemented, // 44
-    unimplemented, unimplemented, unimplemented, unimplemented, // 48
-    unimplemented, unimplemented, unimplemented, unimplemented, // 4c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 50
+    psxstrpbrk, psxstrspn, psxstrcspn, psxstrtok, // 20
+    strstr, toupper, tolower, psxbcopy, // 24
+    psxbzero, psxbcmp, memcpy, memset, // 28
+    memmove, psxbcmp, memchr, psxrand, // 2c
+    psxsrand, qsort, unimplemented /*atof*/, base_malloc, // 30
+    base_free, psxlsearch, psxbsearch, calloc, // 34
+    realloc, psxdummy /*heapinit*/, unimplemented /*abort*/, psxgetchar, // 38
+    psxputchar, psxgets, psxputs, psxprintf, // 3c
+    unimplemented /*unresolved exception */, loadExeHeader, loadExe, exec, // 40
+    flushCache, installKernelHandlers, GPU_dw, GPU_mem2vram, // 44
+    GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
+    GPU_abort, GPU_getStatus, GPU_sync, unimplemented, // 4c
+    unimplemented, loadAndExec, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, unimplemented, unimplemented, // 54
     unimplemented, unimplemented, unimplemented, unimplemented, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c

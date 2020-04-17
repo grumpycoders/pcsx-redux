@@ -20,7 +20,8 @@
 #pragma once
 
 #include <stddef.h>
-#include <stdint.h>
+
+#include "common/compiler/stdint.h"
 
 static __inline__ uint8_t * safeMemZero(uint8_t * ptr, int size) {
     if (!ptr || size <= 0) return NULL;
