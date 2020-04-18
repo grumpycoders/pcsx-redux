@@ -29,3 +29,7 @@ vsprojects/packages
 *.o
 *.dep
 /pcsx-redux
+/pcsx.json
+/memcard1.mcd
+/memcard2.mcd
+

@@ -19,3 +19,9 @@
 [submodule "third_party/zstr"]
 	path = third_party/zstr
 	url = https://github.com/mateidavid/zstr.git
+[submodule "third_party/uC-sdk"]
+	path = third_party/uC-sdk
+	url = https://github.com/grumpycoders/uC-sdk.git
+[submodule "third_party/googletest"]
+	path = third_party/googletest
+	url = https://github.com/google/googletest.git

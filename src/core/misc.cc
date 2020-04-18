@@ -681,7 +681,7 @@ int RecvPcsxInfo() {
         else
             PCSX::g_emulator.m_psxCpu = &g_psxRec;
 #endif
-        if (PCSX::g_emulator.m_psxCpu->Init() == -1) {
+        if (!PCSX::g_emulator.m_psxCpu->Init()) {
             PCSX::g_system->close();
             return -1;
         }

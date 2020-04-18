@@ -20,9 +20,9 @@
 #include <SDL.h>
 
 #include <filesystem>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -159,7 +159,9 @@ class SystemImpl : public PCSX::System {
         if (m_logfile) fclose(m_logfile);
     }
 
-    void useLogfile(const PCSX::u8string &filename) { m_logfile = fopen(reinterpret_cast<const char*>(filename.c_str()), "w"); }
+    void useLogfile(const PCSX::u8string &filename) {
+        m_logfile = fopen(reinterpret_cast<const char *>(filename.c_str()), "w");
+    }
 
     bool m_enableStdout = false;
 };

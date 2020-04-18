@@ -21,4 +21,24 @@ I used to contribute to the PCSX codebase. It is very likely that a sourceforge 
 When Sony released the Playstation mini recently, I came to realize two things: first, the state of the Playstation emulation isn't that great, and second, the only half-decent debugging tool still available for this console is that old telnet debugger I wrote eons ago, while other emulators out there for other consoles gained a lot of debugging superpowers. I think it was time for the Playstation emulation to get to better standards with regards to debuggability. I also felt I had a responsability to cleaning up some of the horrors I've introduced myself in the codebase long ago, and that made me cry a little looking at them. Hopefully, I got better at programming. Hopefully.
 
 ## Status?
-The codebase still requires a lot of cleanup, and the current product isn't usable yet.
+The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state.
+
+### What works?
+- x86 dynarec
+- interpreted CPU
+- software GPU
+- VRAM viewer and debugger
+- fully featured MIPS debugger
+- memory cards
+- XBox controller support
+- save states
+
+### What still requires some work?
+- GLSL GPU
+- proper SPU multithreaded code
+- save state slots
+- memory card manager
+- HLE bios
+- ...
+
+![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)
