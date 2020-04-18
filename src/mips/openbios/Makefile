@@ -8,6 +8,7 @@ cdrom/cdrom.c \
 cdrom/events.c \
 cdrom/filesystem.c \
 cdrom/helpers.c \
+cdrom/statemachine.c \
 fileio/misc.c \
 fileio/stdio.c \
 kernel/flushcache.s \

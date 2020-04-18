@@ -25,9 +25,12 @@
 #include "osdebug.h"
 
 #include "common/compiler/stdint.h"
+#include "common/psxlibc/stdio.h"
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/cdrom/cdrom.h"
+#include "openbios/cdrom/filesystem.h"
+#include "openbios/cdrom/statemachine.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
@@ -89,6 +92,8 @@ static void setDefaultExceptionJmpBuf() {
 
 }
 
+static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
+
 __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     psxopen, psxlseek, psxread, psxwrite, // 00
     psxclose, psxioctl, psxexit, isFileConsole, // 04
@@ -113,20 +118,20 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     unimplemented, loadAndExec, unimplemented, unimplemented, // 50
     initCDRom, unimplemented, deinitCDRom, psxdummy, // 54
     psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
-    dev_tty_open, dev_tty_action, dev_tty_ioctl, unimplemented, // 5c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 60
-    unimplemented, unimplemented, unimplemented, unimplemented, // 64
+    dev_tty_open, dev_tty_action, dev_tty_ioctl, dev_cd_open, // 5c
+    dev_cd_read, psxdummy, dev_cd_firstfile, dev_cd_nextfile, // 60
+    dev_cd_chdir, unimplemented, unimplemented, unimplemented, // 64
     unimplemented, unimplemented, unimplemented, unimplemented, // 68
-    unimplemented, unimplemented, unimplemented, unimplemented, // 6c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 70
-    unimplemented, unimplemented, unimplemented, unimplemented, // 74
-    unimplemented, unimplemented, unimplemented, unimplemented, // 78
-    unimplemented, unimplemented, unimplemented, unimplemented, // 7c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 80
-    unimplemented, unimplemented, unimplemented, unimplemented, // 84
-    unimplemented, unimplemented, unimplemented, unimplemented, // 88
-    unimplemented, unimplemented, unimplemented, unimplemented, // 8c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 90
+    unimplemented, unimplemented, unimplemented, clearFileError, // 6c
+    unimplemented, initCDRom, deinitCDRom, psxdummy, // 70
+    psxdummy, psxdummy, psxdummy, psxdummy, // 74
+    cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
+    cdromGetStatus, psxdummy, cdromRead, psxdummy, // 7c
+    psxdummy, cdromSetMode, psxdummy, psxdummy, // 80
+    psxdummy, psxdummy, psxdummy, psxdummy, // 84
+    psxdummy, psxdummy, psxdummy, psxdummy, // 88
+    psxdummy, psxdummy, psxdummy, psxdummy, // 8c
+    cdromIOVerifier, unimplemented, unimplemented, unimplemented, // 90
     unimplemented, unimplemented, unimplemented, unimplemented, // 94
     addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
     unimplemented, unimplemented, unimplemented, unimplemented, // 9c

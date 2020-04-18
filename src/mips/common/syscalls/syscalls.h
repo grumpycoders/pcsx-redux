@@ -113,6 +113,12 @@ static __inline__ int syscall_ioabortraw(int code) {
 }
 
 /* B0 table */
+static __inline__ void syscall_deliverEvent(uint32_t class, uint32_t mode) {
+    register volatile int n asm("t1") = 0x07;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)(uint32_t, uint32_t))0xb0)(class, mode);
+}
+
 static __inline__ uint32_t syscall_openEvent(uint32_t class, uint32_t spec, uint32_t mode, void * handler) {
     register volatile int n asm("t1") = 0x08;
     __asm__ volatile("" : "=r"(n) : "r"(n));
@@ -141,6 +147,12 @@ static __inline__ void syscall_setDefaultExceptionJmpBuf() {
     register volatile int n asm("t1") = 0x18;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)())0xb0)();
+}
+
+static __inline__ void syscall_undeliverEvent(uint32_t class, uint32_t mode) {
+    register volatile int n asm("t1") = 0x20;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)(uint32_t, uint32_t))0xb0)(class, mode);
 }
 
 static __inline__ int syscall_open(const char * filename, int mode) {

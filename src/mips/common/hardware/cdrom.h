@@ -19,15 +19,9 @@
 
 #pragma once
 
-#include "common/compiler/stdint.h"
-#include "common/psxlibc/direntry.h"
-#include "common/psxlibc/stdio.h"
+#include "common/hardware/hwregs.h"
 
-extern char g_cdromCWD[128];
-
-int cdromReadPathTable();
-int dev_cd_open(struct File * file, char * filename);
-int dev_cd_read(struct File * file,char * buffer, int size);
-struct DirEntry * dev_cd_firstfile(struct File * file, const char * filename, struct DirEntry * entry);
-struct DirEntry * dev_cd_nextfile(struct File * file, struct DirEntry * entry);
-int dev_cd_chdir(struct File * file, char * name);
+#define CDROM_REG0 HW_U8(0x1f801800)
+#define CDROM_REG1 HW_U8(0x1f801801)
+#define CDROM_REG2 HW_U8(0x1f801802)
+#define CDROM_REG3 HW_U8(0x1f801803)

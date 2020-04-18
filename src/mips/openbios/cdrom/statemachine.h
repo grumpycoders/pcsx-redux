@@ -20,14 +20,9 @@
 #pragma once
 
 #include "common/compiler/stdint.h"
-#include "common/psxlibc/direntry.h"
-#include "common/psxlibc/stdio.h"
 
-extern char g_cdromCWD[128];
-
-int cdromReadPathTable();
-int dev_cd_open(struct File * file, char * filename);
-int dev_cd_read(struct File * file,char * buffer, int size);
-struct DirEntry * dev_cd_firstfile(struct File * file, const char * filename, struct DirEntry * entry);
-struct DirEntry * dev_cd_nextfile(struct File * file, struct DirEntry * entry);
-int dev_cd_chdir(struct File * file, char * name);
+int cdromSeekL(uint8_t * msf);
+int cdromGetStatus(uint8_t *responsePtr);
+int cdromRead(int count, void * buffer, uint32_t mode);
+int cdromSetMode(uint32_t mode);
+int cdromIOVerifier();

@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/compiler/stdint.h"
+
 int psxdummy() { return 0; }
 
 int psxtodigit(int c) {
@@ -133,7 +135,6 @@ const void * psxlsearch(const char * key, const char * base, int nmemb, size_t s
     };
     return NULL;
 }
-
 
 const void * psxbsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char*)) {
     int lo = 0;
