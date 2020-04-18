@@ -58,6 +58,12 @@ static __inline__ int syscall_cdromSeekL(uint8_t * msf) {
     return ((int(*)(uint8_t *))0xa0)(msf);
 }
 
+static __inline__ int syscall_cdromGetStatus(uint8_t * ptr) {
+    register volatile int n asm("t1") = 0x7c;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(uint8_t *))0xa0)(ptr);
+}
+
 static __inline__ int syscall_cdromRead(int count, char * buffer, uint32_t mode) {
     register volatile int n asm("t1") = 0x7e;
     __asm__ volatile("" : "=r"(n) : "r"(n));

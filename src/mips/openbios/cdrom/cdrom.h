@@ -21,3 +21,4 @@
 
 void initCDRom();
 void deinitCDRom();
+int cdromBlockGetStatus();

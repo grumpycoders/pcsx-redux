@@ -56,3 +56,24 @@ void deinitCDRom() {
     syscall_closeEvent(g_cdEventERR);
     syscall_dequeueCDRomHandlers();
 }
+
+int cdromBlockGetStatus() {
+    uint8_t status;
+
+    int cyclesToWait = 9;
+    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0));
+    if (cyclesToWait < 1) {
+        syscall_cdromException(0x44, 0x1f);
+        return -1;
+    }
+
+    while (cyclesToWait > 0) {
+        if (syscall_testEvent(g_cdEventDNE)) return status;
+        if (syscall_testEvent(g_cdEventERR)) {
+            syscall_cdromException(0x44, 0x20);
+            return -1;
+        }
+    }
+
+    return status;
+}
