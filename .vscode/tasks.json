@@ -28,7 +28,7 @@
             "label": "make_openbios",
             "type": "shell",
             "group": "build",
-            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios clean all",
             "windows": {
                 "command": "${workspaceRoot}\\src\\mips\\openbios\\build.bat"
             },
