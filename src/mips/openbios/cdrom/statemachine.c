@@ -171,27 +171,23 @@ static void audioResponse(uint8_t status) {
 
 static void dataReady() {
     uint8_t status = CDROM_REG1;
-    if ((s_preemptedState == READN) || (s_preemptedState == READS)) {
-        initiateDMA();
-        return;
-    }
-    if ((s_preemptedState == 0xe6) || (s_preemptedState == 0xeb)) {
-        syscall_deliverEvent(0xf0000003, 0x40);
-        return;
+    switch (s_preemptedState) {
+        case READN: case READS:
+            initiateDMA();
+            return;
+        case 0xe6: case 0xeb:
+            syscall_deliverEvent(0xf0000003, 0x40);
+            return;
     }
 
     switch (s_currentState) {
-        case READN:
-        case READS:
+        case READN: case READS:
             initiateDMA();
             break;
-        case 0xe6:
-        case 0xeb:
+        case 0xe6: case 0xeb:
             syscall_deliverEvent(0xf0000003, 0x40);
             break;
-        case 3:
-        case 4:
-        case 5:
+        case 3: case 4:  case 5:
             audioResponse(status);
             break;
         default:
@@ -201,20 +197,241 @@ static void dataReady() {
     }
 }
 
-static void complete() {
+static uint8_t s_err1, s_err2;
+static int s_gotInt5;
 
+static void genericErrorState() {
+    CDROM_REG0 = 0;
+    CDROM_REG1 = 10;
+    s_currentState = GOT_ERROR_AND_REINIT;
+    s_preemptedState = IDLE;
+    s_err1 = 1;
+    s_err2 = 0x80;
+    s_gotInt5 = 1;
+
+}
+
+static void setSessionResponse() {
+    if (CDROM_REG0 & 0x10) {
+        // request last track end state?
+        s_currentState = 0xf14;
+        CDROM_REG0 = 0;
+        CDROM_REG2 = 0;
+        CDROM_REG1 = 20;
+    } else {
+        genericErrorState();
+    }
+}
+
+static int s_initializationComplete;
+static uint8_t * s_idResponsePtr;
+
+static void complete() {
+    switch (s_currentState) {
+        case 0x12: // setSession?
+            setSessionResponse();
+            break;
+        case INITIALIZING:
+            s_currentState = IDLE;
+            s_initializationComplete = 1;
+            break;
+        case 8: // stop?
+        case 9: // pause?
+        case SEEKL:
+        case SEEKP:
+            switch (s_preemptedState) {
+                case 0xe6: case 0xeb: case 3: case 4: case 5:
+                    s_preemptedState = IDLE;
+                    break;
+            }
+            s_currentState = IDLE;
+            syscall_deliverEvent(0xf0000003, 0x0020);
+            break;
+        case 0x1a: { // getID?
+            uint8_t * const ptr = s_idResponsePtr;
+            ptr[0] = CDROM_REG1;
+            ptr[1] = CDROM_REG1;
+            ptr[2] = CDROM_REG1;
+            ptr[3] = CDROM_REG1;
+            s_currentState = IDLE;
+            syscall_deliverEvent(0xf0000003, 0x0020);
+            break;
+        }
+        case GOT_ERROR_AND_REINIT:
+            s_gotInt5 = 0;
+            s_currentState = IDLE;
+            syscall_deliverEvent(0xf0000003, 0x8000);
+            break;
+        case IDLE:
+            syscall_deliverEvent(0xf0000003, 0x0200);
+            break;
+        default:
+            s_currentState = IDLE;
+            syscall_deliverEvent(0xf0000003, 0x0020);
+            break;
+    }
+}
+
+static uint8_t * s_getLocResponsePtr;
+
+static void getLocLAck() {
+    uint8_t * const ptr = s_getLocResponsePtr;
+    ptr[0] = CDROM_REG1;
+    ptr[1] = CDROM_REG1;
+    ptr[2] = CDROM_REG1;
+
+    /* These are volatiles, so the compiler won't cull away these reads. */
+    CDROM_REG1;
+    CDROM_REG1;
+    CDROM_REG1;
+    CDROM_REG1;
+
+    if (s_preemptedState == IDLE) {
+        s_currentState = IDLE;
+    } else {
+        s_currentState = s_preemptedState;
+        s_preemptedState = IDLE;
+    }
+    syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+static void getLocPAck() {
+    s_currentState = s_preemptedState;
+
+    /* These are volatiles, so the compiler won't cull away these reads. */
+    CDROM_REG1;
+    CDROM_REG1;
+    CDROM_REG1;
+    CDROM_REG1;
+
+    uint8_t * const ptr = s_getLocResponsePtr;
+    ptr[0] = CDROM_REG1;
+    ptr[1] = CDROM_REG1;
+    ptr[2] = CDROM_REG1;
+
+    /* what ? somebody was too happy with the copy/paste here. */
+    if (s_currentState == IDLE) {
+        s_currentState = IDLE;
+    } else {
+        s_preemptedState = IDLE;
+    }
+    syscall_deliverEvent(0xf000000e, 0x0020);
+}
+
+static uint8_t * s_testAckPtr;
+
+static void testAck(uint8_t status) {
+    uint8_t * const ptr = s_testAckPtr;
+    uint8_t count = ptr[1];
+    ptr[0] = status;
+
+    int i = 0;
+    while (--count) {
+        ptr[i++ + 2] = CDROM_REG1;
+    }
+
+    s_currentState = IDLE;
+    syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+static void setModeAck() {
+    s_currentState = IDLE;
+    syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
 static void acknowledge() {
+    switch (s_currentState) {
+        case 0x10:
+            getLocLAck();
+            return;
+        case 0x11:
+            getLocPAck();
+            return;
+    }
 
+    uint8_t status = CDROM_REG1;
+    switch (s_currentState) {
+        case 0x19: /* test ? */
+            testAck(status);
+            break;
+        case SETMODE:
+            setModeAck();
+            break;
+        case 6: case 7: case 8:
+            break;
+        case 5:
+            s_gotInt3 = 1;
+            syscall_deliverEvent(0xf0000003, 0x0020);
+            break;
+        
+    }
 }
 
 static void end() {
+    if ((s_preemptedState == READN) || (s_preemptedState == READS) || (s_currentState == READN) || (s_currentState == READS)) {
+        if (s_dmaCounter > 0) syscall_deliverEvent(0xf0000003, 0x0080);
+        if ((s_currentState == READN) || (s_currentState == READS)) {
+            s_currentState = IDLE;
+        } else {
+            s_preemptedState = IDLE;
+        }
+    }
 
+    if ((s_currentState == 0xe6) || (s_currentState == 0xeb) || (s_preemptedState == 0xe6) || (s_preemptedState == 0xeb)) {
+        if ((s_currentState == 0xe6) || (s_currentState == 0xeb)) {
+            s_currentState = IDLE;
+        } else {
+            s_preemptedState = IDLE;
+        }
+    }
+
+    switch (s_currentState) {
+        case 3: case 4: case 5:
+            syscall_deliverEvent(0xf0000003, 0x0080);
+            s_currentState = IDLE;
+            break;
+        default:
+            syscall_deliverEvent(0xf0000003, 0x0200);
+            break;
+    }
 }
 
-static void discError() {
+static uint8_t * s_getIDerrPtr;
 
+static void discError() {
+    s_err1 = CDROM_REG1;
+    s_err2 = CDROM_REG1;
+    switch (s_currentState) {
+        case 0x1a: {
+            uint8_t * const ptr = s_getIDerrPtr;
+            ptr[0] = s_err1;
+            ptr[1] = s_err2;
+            ptr[2] = CDROM_REG1;
+            ptr[3] = CDROM_REG1;
+            s_preemptedState = IDLE;
+            s_currentState = IDLE;
+            syscall_deliverEvent(0xf0000003, 0x8000);
+            break;
+        }
+        case INITIALIZING:
+            s_initializationComplete = 2;
+            break;
+        default:
+            if (!s_gotInt5) {
+                s_gotInt5 = 1;
+                s_preemptedState = IDLE;
+                CDROM_REG0 = 0;
+                CDROM_REG1 = 10;
+                s_currentState = GOT_ERROR_AND_REINIT;
+                break;
+            } else {
+                s_gotInt5 = 0;
+                s_preemptedState = IDLE;
+                s_currentState = IDLE;
+                syscall_deliverEvent(0xf0000003, 0x8000);
+            }
+            break;
+    }
 }
 
 static uint32_t s_lastIREG;
