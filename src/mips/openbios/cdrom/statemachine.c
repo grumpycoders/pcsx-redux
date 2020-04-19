@@ -238,7 +238,8 @@ static void setSessionResponse() {
     }
 }
 
-static int s_initializationComplete;
+// sigh... this is an anti-pattern, but a necessary one.
+static volatile int s_initializationComplete;
 static uint8_t * s_idResponsePtr;
 
 static void complete() {
@@ -650,4 +651,99 @@ int cdromIOVerifier() {
             break;
     }
     return 1;
+}
+
+// This variable is always written to, never read...
+// Probably a leftover from missing state machine entries.
+static int s_dmaStuff;
+
+int cdromDMAVerifier() {
+    if (!(IMASK & 8)) return 0;
+    if (!((s_lastIREG = IREG) & 8)) return 0;
+    uint32_t dicr = DICR;
+    dicr &= 0x00ffffff;
+    dicr |= 0x88000000;
+    DICR = dicr;
+    if (!(--s_dmaCounter)) {
+        syscall_deliverEvent(0xf0000003, 0x0010);
+    }
+    s_dmaStuff = 0;
+    return 1;
+}
+
+static int s_irqAutoAck[2];
+
+void cdromIOHandler() {
+    if (!s_irqAutoAck[0]) return;
+    IREG = ~4;
+    syscall_returnFromException();
+}
+
+void cdromDMAHandler() {
+    if (!s_irqAutoAck[1]) return;
+    IREG &= ~8;
+    syscall_returnFromException();
+}
+
+void getLastCDRomError(uint8_t * err1, uint8_t * err2) {
+    *err1 = s_err1;
+    *err2 = s_err2;
+}
+
+void resetAllCDRomIRQs() {
+    CDROM_REG0 = 1;
+    CDROM_REG3 = 0x1f;
+    // yeah, this one is even weirder.
+    for (int i = 0; i < 4; i++) *dummy = i;
+}
+
+void enableAllCDRomIRQs() {
+    CDROM_REG0 = 1;
+    CDROM_REG2 = 0x1f;
+}
+
+// Same as above, probably leftover state machine.
+// Only beeing written to by cdromInnerInit, and then
+// never read from or written to again.
+static int s_stuff;
+
+int cdromInnerInit() {
+    s_initializationComplete = 0;
+    s_gotInt5 = 0;
+    s_stuff = 0;
+    enterCriticalSection();
+    IMASK &= ~4;
+    IMASK &= ~8;
+    IREG &= ~4;
+    IREG &= ~8;
+    s_irqAutoAck[1] = 1;
+    s_irqAutoAck[0] = 1;
+    DPCR = 0x9099;
+    uint32_t dicr = DICR;
+    dicr &= 0x00ffffff;
+    dicr |= 0x88000000;
+    DICR = dicr;
+    s_preemptedState = IDLE;
+    s_currentState = INITIALIZING;
+    s_dmaStuff = 0;
+    s_gotInt3 = 0;
+    resetAllCDRomIRQs();
+    enableAllCDRomIRQs();
+    IREG &= ~4;
+    IMASK |= 4;
+    IMASK |= 8;
+    leaveCriticalSection();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = 10;
+    int wait = 30000;
+    while (wait-- && s_initializationComplete != 2) {
+        if (s_initializationComplete == 1) return 1;
+    }
+    return 0;
+}
+
+int setCDRomIRQAutoAck(enum AutoAckType type, int value) {
+    int old = s_irqAutoAck[type];
+    s_irqAutoAck[type] = value;
+    return old;
 }

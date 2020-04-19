@@ -19,7 +19,5 @@
 
 #pragma once
 
-void initCDRom();
-void deinitCDRom();
-int cdromBlockGetStatus();
-int addCDRomDevice();
+void setConfiguration(int eventsCount, int taskCount, void * stackBase);
+void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase);

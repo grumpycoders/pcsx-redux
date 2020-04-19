@@ -19,8 +19,9 @@
 
 #include "common/hardware/cop0.h"
 #include "common/hardware/spu.h"
-#include "openbios/kernel/handlers.h"
 #include "common/syscalls/syscalls.h"
+#include "openbios/kernel/handlers.h"
+#include "openbios/main/main.h"
 #include "openbios/pio/pio.h"
 #include "openbios/tty/tty.h"
 
@@ -42,6 +43,13 @@ int main() {
     g_installTTY = 0;
     boot("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
 }
+
+struct Configuration {
+    int taskCount, eventsCount;
+    void * stackBase;
+};
+
+static struct Configuration s_configuration;
 
 static void boot(const char * systemCnfPath, const char * binaryPath) {
     POST = 0x01;
@@ -66,4 +74,16 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     IREG = 0;
     syscall_setupFileIO(g_installTTY);
     POST = 5;
+}
+
+void setConfiguration(int eventsCount, int taskCount, void * stackBase) {
+    s_configuration.taskCount = taskCount;
+    s_configuration.eventsCount = eventsCount;
+    s_configuration.stackBase = stackBase;
+}
+
+void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase) {
+    *stackBase = s_configuration.stackBase;
+    *eventsCount = s_configuration.eventsCount;
+    *taskCount = s_configuration.taskCount;
 }

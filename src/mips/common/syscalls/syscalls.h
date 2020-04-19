@@ -23,6 +23,7 @@
 
 #include "common/compiler/stdint.h"
 #include "common/psxlibc/circularbuffer.h"
+#include "common/psxlibc/device.h"
 
 static __inline__ void enterCriticalSection() {
     register volatile int n asm("a0") = 1;
@@ -143,6 +144,12 @@ static __inline__ int syscall_enableEvent(uint32_t event) {
     return ((int(*)(uint32_t))0xb0)(event);
 }
 
+static __attribute__((noreturn)) __inline__ void syscall_returnFromException() {
+    register volatile int n asm("t1") = 0x17;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((__attribute__((noreturn)) void(*)())0xb0)();
+}
+
 static __inline__ void syscall_setDefaultExceptionJmpBuf() {
     register volatile int n asm("t1") = 0x18;
     __asm__ volatile("" : "=r"(n) : "r"(n));
@@ -177,6 +184,12 @@ static __inline__ void syscall_putchar(int c) {
     register volatile int n asm("t1") = 0x3d;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)(int))0xb0)(c);
+}
+
+static __inline__ int syscall_addDevice(const struct Device * device) {
+    register volatile int n asm("t1") = 0x47;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((int(*)(const struct Device *))0xb0)(device);
 }
 
 /* C0 table */

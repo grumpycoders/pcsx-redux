@@ -26,17 +26,64 @@
 #include "common/psxlibc/ioctl.h"
 #include "common/psxlibc/stdio.h"
 #include "common/syscalls/syscalls.h"
+#include "openbios/kernel/libcmisc.h"
 #include "openbios/tty/tty.h"
 
 int g_cachedInstallTTY;
 int g_installTTY;
 
-int addConsoleDevice() {
+static const struct Device s_ttyDevice = {
+    .name = "tty",
+    .flags = 3,
+    .blockSize = 1,
+    .desc = "CONSOLE",
+    .init = dev_tty_init,
+    .open = dev_tty_open,
+    .action = dev_tty_action,
+    .close = psxdummy,
+    .ioctl = dev_tty_ioctl,
+    .read = psxdummy,
+    .write = psxdummy,
+    .erase = psxdummy,
+    .undelete = psxdummy,
+    .firstfile = psxdummy,
+    .nextfile = psxdummy,
+    .format = psxdummy,
+    .chdir = psxdummy,
+    .rename = psxdummy,
+    .deinit = psxdummy,
+    .check = psxdummy,
+};
 
+int addConsoleDevice() {
+    return syscall_addDevice(&s_ttyDevice);
 }
 
+static const struct Device s_dummyDevice = {
+    .name = "tty",
+    .flags = 1,
+    .blockSize = 1,
+    .desc = "CONSOLE",
+    .init = psxdummy,
+    .open = psxdummy,
+    .action = psxdummy,
+    .close = psxdummy,
+    .ioctl = psxdummy,
+    .read = psxdummy,
+    .write = psxdummy,
+    .erase = psxdummy,
+    .undelete = psxdummy,
+    .firstfile = psxdummy,
+    .nextfile = psxdummy,
+    .format = psxdummy,
+    .chdir = psxdummy,
+    .rename = psxdummy,
+    .deinit = psxdummy,
+    .check = psxdummy,
+};
+
 int addDummyConsoleDevice() {
-    
+    return syscall_addDevice(&s_dummyDevice);
 }
 
 static volatile uint8_t * s_atconsStatPtr;

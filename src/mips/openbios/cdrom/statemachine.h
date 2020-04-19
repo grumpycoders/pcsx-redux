@@ -26,3 +26,14 @@ int cdromGetStatus(uint8_t *responsePtr);
 int cdromRead(int count, void * buffer, uint32_t mode);
 int cdromSetMode(uint32_t mode);
 int cdromIOVerifier();
+int cdromDMAVerifier();
+void cdromIOHandler();
+void cdromDMAHandler();
+void getLastCDRomError(uint8_t * err1, uint8_t * err2);
+int cdromInnerInit();
+enum AutoAckType {
+    AUTOACK_IO = 0,
+    AUTOACK_DMA = 1,
+};
+int setCDRomIRQAutoAck(AutoAckType type, int value);
+

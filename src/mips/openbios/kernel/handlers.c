@@ -37,6 +37,7 @@
 #include "openbios/kernel/libcmisc.h"
 #include "openbios/kernel/psxexe.h"
 #include "openbios/kernel/setjmp.h"
+#include "openbios/main/main.h"
 #include "openbios/gpu/gpu.h"
 #include "openbios/tty/tty.h"
 
@@ -131,10 +132,10 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     psxdummy, psxdummy, psxdummy, psxdummy, // 84
     psxdummy, psxdummy, psxdummy, psxdummy, // 88
     psxdummy, psxdummy, psxdummy, psxdummy, // 8c
-    cdromIOVerifier, unimplemented, unimplemented, unimplemented, // 90
-    unimplemented, unimplemented, unimplemented, unimplemented, // 94
+    cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
+    getLastCDRomError, cdromInnerInit, addCDRomDevice, unimplemented, // 94
     addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
-    unimplemented, unimplemented, unimplemented, unimplemented, // 9c
+    setConfiguration, getConfiguration, setCDRomIRQAutoAck, unimplemented, // 9c
     unimplemented, unimplemented, unimplemented, unimplemented, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
     unimplemented, unimplemented, unimplemented, unimplemented, // a8

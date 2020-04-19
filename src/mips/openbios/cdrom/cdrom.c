@@ -20,9 +20,11 @@
 #include <stddef.h>
 
 #include "common/syscalls/syscalls.h"
+#include "common/psxlibc/device.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/events.h"
 #include "openbios/cdrom/filesystem.h"
+#include "openbios/kernel/libcmisc.h"
 
 static void initializeHandlersAndEvents() {
     syscall_enqueueCDRomHandlers();
@@ -76,4 +78,31 @@ int cdromBlockGetStatus() {
     }
 
     return status;
+}
+
+static const struct Device s_cdromDevice = {
+    .name = "cdrom",
+    .flags = 0x14,
+    .blockSize = 0x800,
+    .desc = "CD-ROM",
+    .init = psxdummy,
+    .open = dev_cd_open,
+    .action = psxdummy,
+    .close = psxdummy,
+    .ioctl = psxdummy,
+    .read = dev_cd_read,
+    .write = psxdummy,
+    .erase = psxdummy,
+    .undelete = psxdummy,
+    .firstfile = dev_cd_firstfile,
+    .nextfile = dev_cd_nextfile,
+    .format = psxdummy,
+    .chdir = dev_cd_chdir,
+    .rename = psxdummy,
+    .deinit = deinitCDRom,
+    .check = psxdummy,
+};
+
+int addCDRomDevice() {
+    return syscall_addDevice(&s_cdromDevice);
 }
