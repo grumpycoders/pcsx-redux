@@ -334,9 +334,125 @@ static void testAck(uint8_t status) {
     syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
-static void setModeAck() {
+static void ack() {
     s_currentState = IDLE;
     syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+static void getStatusAck(uint8_t status) {
+    *s_getStatusResponsePtr = status;
+    s_currentState = IDLE;
+    syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+
+static void demuteAck(void) {
+    s_currentState = s_preemptedState;
+    s_preemptedState = IDLE;
+    syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+static uint8_t * s_tracksInformationPtr;
+static uint8_t s_getTDtrackNum;
+static uint8_t s_numberOfTracks;
+
+static void getTDack()  {
+    uint8_t trackNum = s_getTDtrackNum;
+    uint8_t * ptr = s_tracksInformationPtr + trackNum * 3;
+    ptr[-3] = CDROM_REG1;
+    ptr[-2] = CDROM_REG1;
+
+    if (trackNum > s_numberOfTracks) {
+        s_currentState = IDLE;
+        syscall_deliverEvent(0xf0000003, 0x0020);
+        return;
+    }
+
+    if (!(CDROM_REG0 & 0x10)) {
+        genericErrorState();
+        return;
+    }
+
+    CDROM_REG0 = 0;
+    s_getTDtrackNum++;
+    CDROM_REG2 = (trackNum / 10) * 0x10 + trackNum % 10;
+    s_currentState = 0x14;
+    CDROM_REG1 = 0x14;
+}
+
+static uint8_t * s_getParamResultsPtr;
+
+static void getParamAck() {
+    *s_getParamResultsPtr = CDROM_REG1;
+    CDROM_REG1;
+    CDROM_REG1;
+    CDROM_REG1;
+    s_currentState = IDLE;
+    syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+static uint8_t s_firstTrack;
+
+static void getTNack(void) {
+    uint8_t v;
+
+    uint8_t f = v = CDROM_REG1;
+    s_firstTrack = (v / 0x10) * 10 + (v & 0xf);
+    v = CDROM_REG1;
+    s_numberOfTracks =  (v / 0x10) * 10 + (v & 0xf);
+
+    if (!(CDROM_REG0 & 0x10)) {
+        s_getTDtrackNum = s_firstTrack;
+        genericErrorState();
+        return;
+    }
+
+    CDROM_REG0 = 0;
+    s_getTDtrackNum = s_firstTrack + 1;
+    CDROM_REG2 = f;
+    s_currentState = 0x14;
+    CDROM_REG1 = 0x14;
+}
+
+static void unlockAck() {
+    s_currentState = s_preemptedState;
+    s_preemptedState = IDLE;
+    syscall_deliverEvent(0xf0000003, 0x0020);
+}
+
+static void issueSeekAfterSetLoc(int P) {
+    s_currentState = SEEKP;
+    if (!P) s_currentState = SEEKL;
+    CDROM_REG0 = 0;
+    CDROM_REG1 = s_currentState;
+}
+
+static void readSetModeResponse() {
+    CDROM_REG0 = 0;
+    if (!(s_mode & 0x100)) {
+        if (s_currentState == READ_SETMODE) {
+            s_currentState = READN;
+        } else {
+            s_currentState = 0xe6;
+        }
+        CDROM_REG1 = 6;
+    } else {
+        if (s_currentState == READ_SETMODE) {
+            s_currentState = READS;
+        } else {
+            s_currentState = 0xeb;
+        }
+        CDROM_REG1 = 0x1b;
+    }
+}
+
+static void chainGetTNack() {
+    uint8_t * ptr = s_tracksInformationPtr;
+    ptr[0] = CDROM_REG1;
+    ptr[1] = CDROM_REG1;
+    CDROM_REG0 = 0;
+    CDROM_REG1 = 0x13;
+    s_currentState = 0x13;
 }
 
 static void acknowledge() {
@@ -351,19 +467,54 @@ static void acknowledge() {
 
     uint8_t status = CDROM_REG1;
     switch (s_currentState) {
-        case 0x19: /* test ? */
+        case 0x19:
             testAck(status);
             break;
         case SETMODE:
-            setModeAck();
+        case 0x17:
+            ack();
             break;
-        case 6: case 7: case 8:
-            break;
-        case 5:
+        case 3: case 4: case 5:
             s_gotInt3 = 1;
             syscall_deliverEvent(0xf0000003, 0x0020);
             break;
-        
+        case GETSTATUS:
+            getStatusAck(status);
+            break;
+        case 12:
+            demuteAck();
+            break;
+        case 0x14:
+            getTDack();
+            break;
+        case 15:
+            getParamAck();
+            break;
+        case 0x13:
+            getTNack();
+            break;
+        case 0x50:
+            unlockAck();
+            break;
+        case READN: case READS:
+        case 0xeb: case 0xe6:
+            s_gotInt3 = 1;
+            break;
+        case 0xe2:
+            issueSeekAfterSetLoc(1);
+            break;
+        case 0xee: case READ_SETMODE:
+            readSetModeResponse();
+            break;
+        case 0xf2:
+            issueSeekAfterSetLoc(0);
+            break;
+        case 0xf14:
+            chainGetTNack();
+            break;
+        case IDLE:
+            syscall_deliverEvent(0xf0000003, 0x0200);
+            break;
     }
 }
 
