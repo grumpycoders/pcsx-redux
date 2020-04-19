@@ -23,6 +23,21 @@
 #include "openbios/cdrom/events.h"
 #include "openbios/cdrom/statemachine.h"
 
+// Portions of the state machines are missing, because they simply don't have
+// any entry point in any of the BIOS' API. It looks very obvious that the
+// state machine has a lot more steps, and one can infer a bit what's going on
+// by looking at the response's code, but the end result here is that none of
+// this code is reachable. It's very plausible that the missing entry points
+// are in all the dummy calls in the A0 table between calls 0x70 and 0x90.
+// The code here still tries to faithfully reproduce what the reverse
+// engineering shows, but it's very likely the compiler will cull a lot of
+// this code away, due to some static variables only being read, and never
+// written to. Only the states with active entry points in the API are being
+// represented by name in this enum. All others are numerical.
+
+// There seems to be a strong correlation between the actual CDRom command
+// and the state's value. Sometimes, with some upper flags to denominate what
+// the state chain is about.
 enum CDRomState {
     GETSTATUS            = 0x0001,
     SETMODE              = 0x000e,
