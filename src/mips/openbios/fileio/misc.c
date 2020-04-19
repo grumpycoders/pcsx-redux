@@ -29,6 +29,7 @@
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/setjmp.h"
+#include "openbios/main/main.h"
 #include "openbios/tty/tty.h"
 
 static struct File s_files[16];
@@ -96,10 +97,8 @@ struct File * getFileFromHandle(int fd) {
     return NULL;
 }
 
-static struct JmpBuf s_ioAbortJmpBuf;
-
 void ioabortraw(int code) {
-    psxlongjmp(&s_ioAbortJmpBuf, code);
+    psxlongjmp(&g_ioAbortJmpBuf, code);
 }
 
 void ioAbortWithMsg(const char * msg1, const char * msg2) {

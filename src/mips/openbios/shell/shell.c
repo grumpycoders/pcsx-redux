@@ -17,11 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include <memory.h>
 
-#include "common/psxlibc/setjmp.h"
+#include "common/compiler/stdint.h"
+#include "openbios/kernel/flushcache.h"
+#include "openbios/shell/shell.h"
 
-void setConfiguration(int eventsCount, int taskCount, void * stackBase);
-void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase);
+#define NOP()  0x00000000
+#define JRRA() 0x03e00008
 
-extern struct JmpBuf g_ioAbortJmpBuf;
+static uint32_t s_shellCode[] = {
+    JRRA(),
+    NOP(),
+};
+
+int startShell(uint32_t arg) {
+    memcpy((uint32_t *) 0x80030000, s_shellCode, sizeof(s_shellCode));
+    flushCache();
+    return ((int(*)(int)) 0x80030000)(arg);
+}

@@ -17,11 +17,45 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include <stddef.h>
 
-#include "common/psxlibc/setjmp.h"
+#include "common/compiler/stdint.h"
+#include "common/syscalls/syscalls.h"
+#include "openbios/fileio/fileio.h"
+#include "openbios/kernel/threads.h"
 
-void setConfiguration(int eventsCount, int taskCount, void * stackBase);
-void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase);
+struct Registers {
+    uint32_t r0, at, v0, v1, a0, a1, a2, a3;
+    uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
+    uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
+    uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
+    uint32_t EPC;
+    uint32_t hi, lo;
+    uint32_t SR;
+    uint32_t Cause;
+};
 
-extern struct JmpBuf g_ioAbortJmpBuf;
+struct Thread {
+    uint32_t flags, flags2;
+    struct Registers registers;
+    uint32_t unknown[9];
+};
+
+int initThreads(int blocksCount, int count) {
+    psxprintf("TCB\t0x%02x\n", count);
+    int blockSize = blocksCount * sizeof(struct Thread *);
+    struct Thread ** blocks = syscall_kmalloc(blockSize);
+    if (!blocks) return 0;
+    int arraySize = count * sizeof(struct Thread);
+    struct Thread * array = syscall_kmalloc(arraySize);
+    if (!array) return 0;
+    struct Thread ** blockPtr = blocks;
+    while (blockPtr < blocks + blocksCount) *blockPtr++ = NULL;
+    struct Thread * threadPtr = array;
+    while (threadPtr < array + count) threadPtr++->flags = 0x1000;
+    array[0].flags = 0x4000;
+    *blocks = array;
+    *((struct Thread ***) 0xa0000108) = blocks;
+    *((struct Thread **) 0xa0000110) = array;
+    return blockSize + arraySize;
+}

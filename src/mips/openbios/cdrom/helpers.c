@@ -45,13 +45,13 @@ int cdromBlockReading(int count, int sector, char * buffer) {
         while (!syscall_cdromSeekL(msf) && (--cyclesToWait > 0));
 
         if (cyclesToWait < 1) {
-            syscall_cdromException(0x44, 0x0b);
+            syscall_exception(0x44, 0x0b);
             return -1;
         }
 
         while (!syscall_testEvent(g_cdEventDNE)) {
             if (syscall_testEvent(g_cdEventERR)) {
-                syscall_cdromException(0x44, 0x0c);
+                syscall_exception(0x44, 0x0c);
                 return -1;
             }
         }
@@ -59,20 +59,20 @@ int cdromBlockReading(int count, int sector, char * buffer) {
         cyclesToWait = 99999;
         while (!syscall_cdromRead(count, buffer, 0x80) && (--cyclesToWait > 0));
         if (cyclesToWait < 1) {
-            syscall_cdromException(0x44, 0x0c);
+            syscall_exception(0x44, 0x0c);
             return -1;
         }
         while (1) {
             if (syscall_testEvent(g_cdEventDNE)) return count;
             if (syscall_testEvent(g_cdEventERR)) break;
             if (syscall_testEvent(g_cdEventEND)) {
-                syscall_cdromException(0x44, 0x17);
+                syscall_exception(0x44, 0x17);
                 return -1;
             }
         }
-        syscall_cdromException(0x44, 0x16);
+        syscall_exception(0x44, 0x16);
     }
 
-    syscall_cdromException(0x44, 0x0c);
+    syscall_exception(0x44, 0x0c);
     return -1;
 }

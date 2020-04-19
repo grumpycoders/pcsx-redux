@@ -129,10 +129,7 @@ void psxsrand(uint32_t seed) {
 }
 
 const void * psxlsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *)) {
-    while (nmemb > 0) {
-        if (compar(key, base) == 0) return base;
-        nmemb--;
-    };
+    while (nmemb-- > 0) if (compar(key, base) == 0) return base;
     return NULL;
 }
 

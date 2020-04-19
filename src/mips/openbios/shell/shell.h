@@ -19,9 +19,6 @@
 
 #pragma once
 
-#include "common/psxlibc/setjmp.h"
+#include "common/compiler/stdint.h"
 
-void setConfiguration(int eventsCount, int taskCount, void * stackBase);
-void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase);
-
-extern struct JmpBuf g_ioAbortJmpBuf;
+int startShell(uint32_t arg);

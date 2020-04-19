@@ -23,3 +23,6 @@ void initCDRom();
 void deinitCDRom();
 int cdromBlockGetStatus();
 int addCDRomDevice();
+
+int cdromReadTOC();
+int cdromReset();

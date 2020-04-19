@@ -19,6 +19,7 @@
 
 #include <stddef.h>
 
+#include "common/hardware/cdrom.h"
 #include "common/syscalls/syscalls.h"
 #include "common/psxlibc/device.h"
 #include "openbios/cdrom/cdrom.h"
@@ -65,14 +66,14 @@ int cdromBlockGetStatus() {
     int cyclesToWait = 9;
     while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0));
     if (cyclesToWait < 1) {
-        syscall_cdromException(0x44, 0x1f);
+        syscall_exception(0x44, 0x1f);
         return -1;
     }
 
     while (cyclesToWait > 0) {
         if (syscall_testEvent(g_cdEventDNE)) return status;
         if (syscall_testEvent(g_cdEventERR)) {
-            syscall_cdromException(0x44, 0x20);
+            syscall_exception(0x44, 0x20);
             return -1;
         }
     }
@@ -105,4 +106,70 @@ static const struct Device s_cdromDevice = {
 
 int addCDRomDevice() {
     return syscall_addDevice(&s_cdromDevice);
+}
+
+static volatile uint32_t * const dummy = (volatile uint32_t * const) 0;
+
+static void resetAllCDRomIRQs() {
+    CDROM_REG0 = 1;
+    CDROM_REG3 = 0x1f;
+    for (int i = 0; i < 4; i++) *dummy = i;
+}
+
+static void disableCDRomIRQs() {
+    CDROM_REG0 = 1;
+    CDROM_REG2 = 0x18;
+}
+
+static int waitForCDRomIRQCompletion() {
+    int ret;
+    uint8_t t;
+    unsigned irqs = 0;
+
+    while (irqs < 5) {
+        CDROM_REG0 = 1;
+        t = CDROM_REG3;
+        if (t & 7) {
+            irqs += t & 7;
+            resetAllCDRomIRQs();
+            ret = CDROM_REG1;
+        }
+    }
+    if ((t & 7) == 5) return -1;
+    return ret;
+}
+
+static int enableAllCDRomIRQs() {
+    CDROM_REG0 = 1;
+    CDROM_REG2 = 0x1f;
+}
+
+int cdromReadTOC() {
+    resetAllCDRomIRQs();
+    disableCDRomIRQs();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = 0x1e;
+    uint8_t t = waitForCDRomIRQCompletion();
+    if ((t < 0) || (t & 0x1d)) {
+        enableAllCDRomIRQs();
+        return -1;
+    }
+    resetAllCDRomIRQs();
+    enableAllCDRomIRQs();
+    return 0;
+}
+
+int cdromReset() {
+    resetAllCDRomIRQs();
+    disableCDRomIRQs();
+    CDROM_REG0 = 0;
+    CDROM_REG1 = 0x1a;
+    uint8_t t = waitForCDRomIRQCompletion();
+    if ((t < 0) || (t & 0x1d)) {
+        enableAllCDRomIRQs();
+        return -1;
+    }
+    resetAllCDRomIRQs();
+    enableAllCDRomIRQs();
+    return 0;
 }

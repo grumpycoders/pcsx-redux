@@ -84,6 +84,11 @@ SECTIONS {
     __text_end = .;
 
     .rodata : {
+        g_defaultConfiguration = .;
+        LONG(4);
+        LONG(10);
+        LONG(__sp);
+        . = ALIGN(4);
         *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
     } > rom
 

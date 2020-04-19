@@ -89,7 +89,7 @@ static __inline__ int syscall_addDummyConsoleDevice() {
     return ((int(*)())0xa0)();
 }
 
-static __inline__ void syscall_cdromException(int code1, int code2) {
+static __inline__ void syscall_exception(int code1, int code2) {
     register volatile int n asm("t1") = 0xa1;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)(int, int))0xa0)(code1, code2);
@@ -199,22 +199,38 @@ static __inline__ int syscall_addDevice(const struct Device * device) {
 }
 
 /* C0 table */
+static __inline__ int syscall_enqueueRCntIrqs(int priority) {
+    register volatile int n asm("t1") = 0x00;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(int))0xc0)(priority);
+}
+
+static __inline__ int syscall_enqueueSyscallHandler(int priority) {
+    register volatile int n asm("t1") = 0x01;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(int))0xc0)(priority);
+}
+
 static __inline__ void syscall_installExceptionHandler() {
     register volatile int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)())0xc0)();
 }
 
+static __inline__ int syscall_enqueueIrqHandler(int priority) {
+    register volatile int n asm("t1") = 0x0c;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(int))0xc0)(priority);
+}
+
 static __inline__ void syscall_setupFileIO(int installTTY) {
     register volatile int n asm("t1") = 0x12;
-    
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)(int))0xc0)(installTTY);
 }
 
 static __inline__ void syscall_cdevinput(struct CircularBuffer * circ, int c) {
     register volatile int n asm("t1") = 0x15;
-    
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void(*)(struct CircularBuffer *, int))0xc0)(circ, c);
 }

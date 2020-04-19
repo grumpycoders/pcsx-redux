@@ -17,11 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "common/compiler/stdint.h"
+#include "common/syscalls/syscalls.h"
+#include "openbios/fileio/fileio.h"
+#include "openbios/kernel/events.h"
 
-#include "common/psxlibc/setjmp.h"
+struct EventInfo {
+    uint32_t class, flags, spec, mode, handler, unknown1, unknown2;
+};
 
-void setConfiguration(int eventsCount, int taskCount, void * stackBase);
-void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase);
-
-extern struct JmpBuf g_ioAbortJmpBuf;
+int initEvents(int count) {
+    psxprintf("\nConfiguration : EvCB\t0x%02\t\t", count);
+    int size = count * sizeof(struct EventInfo);
+    struct EventInfo * array = syscall_kmalloc(size);
+    if (!array) return 0;
+    *((uint32_t*) 0xa0000124) = size;
+    *((struct EventInfo**) 0xa0000120) = array;
+    struct EventInfo * ptr = array;
+    while (ptr < (array + count)) ptr++->flags = 0;
+    return size;
+}

@@ -11,6 +11,7 @@ cdrom/helpers.c \
 cdrom/statemachine.c \
 fileio/misc.c \
 fileio/stdio.c \
+kernel/events.c \
 kernel/flushcache.s \
 kernel/handlers.c \
 kernel/libcmisc.c \
@@ -18,11 +19,13 @@ kernel/misc.c \
 kernel/psxexe.c \
 kernel/psxexec.s \
 kernel/setjmp.s \
+kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
 gpu/gpu.c \
 main/main.c \
 pio/pio.c \
+shell/shell.c \
 tty/tty.c \
 \
 uC-sdk-glue/BoardConsole.c \
