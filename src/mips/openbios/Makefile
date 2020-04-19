@@ -14,6 +14,7 @@ fileio/stdio.c \
 kernel/flushcache.s \
 kernel/handlers.c \
 kernel/libcmisc.c \
+kernel/misc.c \
 kernel/psxexe.c \
 kernel/psxexec.s \
 kernel/setjmp.s \

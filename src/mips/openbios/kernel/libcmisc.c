@@ -100,14 +100,14 @@ char * psxstrtok(char * str, const char * delim) {
     return oldPtr;
 }
 
-const char * psxbcopy(const void * src, void * dst, int n) {
+const void * psxbcopy(const void * src, void * dst, int n) {
     if (!src) return NULL;
     if (n < 0) return src;
     memcpy(dst, src, n);
     return src;
 }
 
-const char * psxbzero(char * ptr, int n) {
+const void * psxbzero(void * ptr, int n) {
     if (!ptr || n <= 0) return NULL;
     memset(ptr, 0, n);
     return ptr;

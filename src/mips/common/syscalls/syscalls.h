@@ -114,6 +114,12 @@ static __inline__ int syscall_ioabortraw(int code) {
 }
 
 /* B0 table */
+static __inline__ void * syscall_kmalloc(unsigned size) {
+    register volatile int n asm("t1") = 0x00;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((void*(*)(unsigned))0xb0)(size);
+}
+
 static __inline__ void syscall_deliverEvent(uint32_t class, uint32_t mode) {
     register volatile int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));

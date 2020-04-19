@@ -34,7 +34,7 @@ unsigned psxstrspn(const char * s, const char * accepted);
 unsigned psxstrcspn(const char * s, const char * rejected);
 char * psxstrtok(char * str, const char * delim);
 const char * psxbcopy(const void * src, void * dst, int n);
-const char * psxbzero(char * ptr, int n);
+const char * psxbzero(void * ptr, int n);
 int psxbcmp(const void * s1, const void * s2, int n);
 uint32_t psxrand();
 void psxsrand(uint32_t seed);

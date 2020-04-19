@@ -35,6 +35,7 @@
 #include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
 #include "openbios/kernel/libcmisc.h"
+#include "openbios/kernel/misc.h"
 #include "openbios/kernel/psxexe.h"
 #include "openbios/kernel/setjmp.h"
 #include "openbios/main/main.h"
@@ -135,7 +136,7 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
     getLastCDRomError, cdromInnerInit, addCDRomDevice, unimplemented, // 94
     addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
-    setConfiguration, getConfiguration, setCDRomIRQAutoAck, unimplemented, // 9c
+    setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplemented, unimplemented, unimplemented, unimplemented, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
     unimplemented, unimplemented, unimplemented, unimplemented, // a8

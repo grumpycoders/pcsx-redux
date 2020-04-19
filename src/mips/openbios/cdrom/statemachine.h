@@ -35,5 +35,4 @@ enum AutoAckType {
     AUTOACK_IO = 0,
     AUTOACK_DMA = 1,
 };
-int setCDRomIRQAutoAck(AutoAckType type, int value);
-
+int setCDRomIRQAutoAck(enum AutoAckType type, int value);

@@ -19,8 +19,11 @@
 
 #include "common/hardware/cop0.h"
 #include "common/hardware/spu.h"
+#include "common/psxlibc/handlers.h"
 #include "common/syscalls/syscalls.h"
+#include "openbios/fileio/fileio.h"
 #include "openbios/kernel/handlers.h"
+#include "openbios/kernel/libcmisc.h"
 #include "openbios/main/main.h"
 #include "openbios/pio/pio.h"
 #include "openbios/tty/tty.h"
@@ -50,6 +53,17 @@ struct Configuration {
 };
 
 static struct Configuration s_configuration;
+extern const struct Configuration g_defaultConfiguration;
+
+static void initHandlersArray(int priorities) {
+    struct HandlerInfo ** array = (struct HandlerInfo **) 0xa0000100;
+    unsigned size = priorities * sizeof(struct HandlerInfo);
+    struct HandlerInfo * ptr = syscall_kmalloc(size);
+    if (!ptr) return;
+    psxbzero(ptr, size);
+    *array = ptr;
+    (*(unsigned *)0xa0000104) = size;
+}
 
 static void boot(const char * systemCnfPath, const char * binaryPath) {
     POST = 0x01;
@@ -57,15 +71,19 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     muteSpu();
     POST = 0x02;
     /* Here, the retail bios does something along the lines of
-       copyAndInitializeKernelMemory(), but our crt0 already took
+       copyDataAndInitializeBSS(), but our crt0 already took
        care of it for us. */
+    // copyDataAndInitializeBSS();
     POST = 0x03;
     /* Same punishment as above: the retail bios copies the A0 table
-       at this point, but our crt0 did it too. */
+       at this point, but our crt0 did it too, as it's part of our data
+       section. */
+    // copyA0table();
     installKernelHandlers();
     /* The next call is supposed to be the c0/1c syscall, which patches
        in the stdio functions from the C0 table into the A0 one.
        We're not doing this either. */
+    // syscall_patchA0table();
     syscall_installExceptionHandler();
     syscall_setDefaultExceptionJmpBuf();
     POST = 0x04;
@@ -74,6 +92,12 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     IREG = 0;
     syscall_setupFileIO(g_installTTY);
     POST = 5;
+    psxprintf("PS-X Realtime Kernel OpenBios version.\nCopyright 2019-2020 (C) PCSX-Redux authors.\n");
+    POST = 6;
+    muteSpu();
+    s_configuration = g_defaultConfiguration;
+    psxprintf("KERNEL SETUP!\n");
+    // syscall_sysInitMemory(&heapBase, heapSize);
 }
 
 void setConfiguration(int eventsCount, int taskCount, void * stackBase) {
