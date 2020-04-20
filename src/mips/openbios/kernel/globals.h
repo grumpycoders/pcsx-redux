@@ -17,25 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/hardware/hwregs.h"
-#include "openbios/fileio/fileio.h"
-#include "openbios/kernel/globals.h"
-#include "openbios/kernel/misc.h"
+#pragma once
 
-void setMemSize(int memSize) {
-    uint32_t current = RAM_SIZE;
-    switch (memSize) {
-        case 2:
-            RAM_SIZE = current & ~0x300;
-            break;
-        case 8:
-            RAM_SIZE = current | 0x300;
-            break;
-        default:
-            psxprintf("Effective memory must be 2/8 MBytes\n");
-            return;
-    }
+#include "common/compiler/stdint.h"
 
-    __globals60.ramsize = memSize;
-    psxprintf("Change effective memory : %d MBytes\n", memSize);
-}
+extern struct {
+    uint32_t ramsize, unk1, unk2;
+} __globals60;
+
+extern struct {
+
+} __globals;

@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <ctype.h>
 #include <string.h>
 
 #include "common/hardware/cop0.h"
@@ -27,6 +28,7 @@
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/events.h"
+#include "openbios/kernel/globals.h"
 #include "openbios/kernel/handlers.h"
 #include "openbios/kernel/libcmisc.h"
 #include "openbios/kernel/psxexe.h"
@@ -42,11 +44,11 @@ static void boot(const char * systemCnfPath, const char * binaryPath);
 
 int main() {
     // RAM size
-    *((uint32_t*) 0x60) = 0x02;
+    __globals60.ramsize = 0x02;
     // ??
-    *((uint32_t*) 0x64) = 0x00;
+    __globals60.unk1 = 0x00;
     // ??
-    *((uint32_t*) 0x68) = 0xff;
+    __globals60.unk2 = 0xff;
 
     POST = 0x0f;
     muteSpu();
@@ -93,7 +95,109 @@ static char s_binaryPath[128];
 
 #define SETJMPFATAL(code) { if (psxsetjmp(&g_ioAbortJmpBuf)) fatal(code); }
 
-static void loadSystemCnf(const char * systemCnf, struct Configuration * configuration, const char * binaryPath) { }
+// The SYSTEM.CNF parser in the retail BIOS is hopelessly and
+// irrevocably buggy. These bugs will not be reproduced here,
+// because doing this sort of bugs on purpose would be, in fact
+// a really difficult thing to do. So this parser is going to be
+// a SYSTEM.CNF parser, but not the exact one from the retail bios.
+// Specifically, the BOOT line parser will try to parse a command
+// line argument. There are multiple ways this can happen on a
+// retail bios, but this parser will chose to separate it using
+// the tabulation character ('\t', or character 9).
+// Last but not least, the retail bios will screw things up
+// fairly badly if the file isn't terminated using CRLFs.
+static void findWordItem(const char * systemCnf, uint32_t * item, const char * name) {
+    char c;
+    const unsigned size = strlen(name);
+    while (strncmp(systemCnf, name, size) != 0) {
+        while ((c = *systemCnf++)) {
+            if (c == '\n') break;
+            if (c == '\r') break;
+        }
+        if (!c) return;
+    }
+
+    systemCnf += size;
+    while ((c = *systemCnf++)) {
+        if (c == '=') break;
+        if (!isspace(c)) return;
+    }
+
+    uint32_t value = 0;
+    int started = 0;
+    while (1) {
+        c = *systemCnf++;
+        if (isspace(c) && !started) continue;
+        if (isxdigit(c)) {
+            value <<= 4;
+            if (isdigit(c)) {
+                value |= c - '0';
+            } else {
+                c = tolower(c);
+                value |= c - 'a' + 10;
+            }
+        } else {
+            if ((c == 0) || (c == '\n') || (c == '\r')) {
+                *item = value;
+                psxprintf("%s\t%08x\n", name, value);
+            }
+            return;
+        }
+    }
+}
+
+static void findStringItem(const char * systemCnf, char * const binaryPath, char * const cmdLine, const char * const name) {
+    char c;
+    const unsigned size = strlen(name);
+    while (strncmp(systemCnf, name, size) != 0) {
+        while ((c = *systemCnf++)) {
+            if (c == '\n') break;
+            if (c == '\r') break;
+        }
+        if (!c) return;
+    }
+
+    systemCnf += size;
+    while ((c = *systemCnf++)) {
+        if (c == '=') break;
+        if (!isspace(c)) return;
+    }
+
+    int parseArg = 0;
+    char * binPtr = binaryPath;
+    while (1) {
+        c = *systemCnf++;
+        if (c == '\t') {
+            parseArg = 1;
+            break;
+        }
+        if ((c == '\r') || (c == '\n') || (c == 0)) break;
+        *binPtr++ = c;
+    }
+    *binPtr = 0;
+
+    char * cmdPtr = cmdLine;
+    while (parseArg) {
+        if ((c == '\r') || (c == '\n') || (c == 0)) break;
+        *cmdPtr++ = c;
+    }
+    *cmdPtr = 0;
+
+    psxprintf("BOOT =\t%s\n", binaryPath);
+    psxprintf("argument =\t%s\n", cmdLine);
+}
+
+static void loadSystemCnf(const char * systemCnf, struct Configuration * configuration, char * binaryPath) {
+    memset(configuration, 0, sizeof(struct Configuration));
+    *binaryPath = 0;
+    char * cmdLine = (char *) 0x180;
+
+    *cmdLine = 0;
+    findWordItem(systemCnf, &configuration->taskCount, "TCB");
+    findWordItem(systemCnf, &configuration->eventsCount, "EVENT");
+    findWordItem(systemCnf, &configuration->stackBase, "STACK");
+    findStringItem(systemCnf, binaryPath, cmdLine, "BOOT");
+}
 
 static void kernelSetup() { }
 
