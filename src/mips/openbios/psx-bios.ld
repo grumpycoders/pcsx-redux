@@ -24,11 +24,10 @@ EXTERN(_reset)
 ENTRY(_reset)
 
 MEMORY {
-    kseg0a (rwx): ORIGIN = 0x00000000, LENGTH = 0x200
-    kseg0b (rwx): ORIGIN = 0x00000200, LENGTH = 2M - 0x200
-    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
-    rom (rx)    : ORIGIN = 0xbfc00000, LENGTH = 512K
-    dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
+    kseg0 (rwx): ORIGIN = 0x00000000, LENGTH = 2M
+    ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
+    rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 512K
+    dcache     : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
 STACK_SIZE      = 0x10000;
@@ -96,6 +95,37 @@ SECTIONS {
         *(.rodata1)
     } > rom
 
+    .data : {
+        __vector_00 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_40 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __globals60 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_80 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_a0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_b0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_c0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_d0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_e0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_f0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __globals = .;
+        . = ALIGN(0x200);
+    } > kseg0
+
     __data_start = .;
     .data : {
         __rom_data_start = .;
@@ -104,7 +134,7 @@ SECTIONS {
         *(.data1)
         *(.got.plt)
         *(.got)
-    } > kseg0b AT > rom
+    } > kseg0 AT > rom
 
     . = ALIGN(4);
     __data_end = .;
@@ -117,7 +147,7 @@ SECTIONS {
         *(.dynbss)
         *(.bss .bss.* .gnu.linkonce.b.*)
         *(COMMON)
-    } > kseg0b
+    } > kseg0
 
     . = ALIGN(4);
     __bss_end = .;
