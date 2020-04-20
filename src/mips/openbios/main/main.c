@@ -167,10 +167,7 @@ static void findStringItem(const char * systemCnf, char * const binaryPath, char
     char * binPtr = binaryPath;
     while (1) {
         c = *systemCnf++;
-        if (c == '\t') {
-            parseArg = 1;
-            break;
-        }
+        if ((parseArg = (c == '\t'))) break;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
         *binPtr++ = c;
     }
@@ -178,7 +175,9 @@ static void findStringItem(const char * systemCnf, char * const binaryPath, char
 
     char * cmdPtr = cmdLine;
     while (parseArg) {
+        c = *systemCnf++;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
+        if ((cmdPtr - cmdLine) >= 0x7f) break;
         *cmdPtr++ = c;
     }
     *cmdPtr = 0;
