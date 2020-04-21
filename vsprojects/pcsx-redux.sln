@@ -47,6 +47,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "memoryleakdetector", "tests
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libelfin", "libelfin\libelfin.vcxproj", "{65DF2840-29D7-46FC-868D-201CF2B651E0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fmt", "fmt\fmt.vcxproj", "{71772007-5110-418D-BE9C-FB102B6EAABF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -175,6 +177,14 @@ Global
 		{65DF2840-29D7-46FC-868D-201CF2B651E0}.Release|x64.Build.0 = Release|x64
 		{65DF2840-29D7-46FC-868D-201CF2B651E0}.Release|x86.ActiveCfg = Release|Win32
 		{65DF2840-29D7-46FC-868D-201CF2B651E0}.Release|x86.Build.0 = Release|Win32
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Debug|x64.ActiveCfg = Debug|x64
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Debug|x64.Build.0 = Debug|x64
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Debug|x86.ActiveCfg = Debug|Win32
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Debug|x86.Build.0 = Debug|Win32
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x64.ActiveCfg = Release|x64
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x64.Build.0 = Release|x64
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x86.ActiveCfg = Release|Win32
+		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -196,9 +206,10 @@ Global
 		{50EB9A3C-CC0B-4D74-BCF3-8E6C8B778E5A} = {9D5A1DB2-E74D-4CDD-8377-9EA08CF4AADE}
 		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650} = {9D5A1DB2-E74D-4CDD-8377-9EA08CF4AADE}
 		{65DF2840-29D7-46FC-868D-201CF2B651E0} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{71772007-5110-418D-BE9C-FB102B6EAABF} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal

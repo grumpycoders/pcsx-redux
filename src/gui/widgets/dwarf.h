@@ -19,37 +19,16 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <filesystem>
-#include <map>
-#include <string>
-
-#include "dwarf++.hh"
-#include "elf++.hh"
-
 namespace PCSX {
 
-class Elf {
+namespace Widgets {
+
+class Dwarf {
   public:
-    bool load(const char* name);
-#if defined(__cpp_lib_char8_t)
-    bool load(const std::u8string& filename) {
-        return load(reinterpret_cast<const char*>(filename.c_str());
-    }
-#endif
-    bool load(const std::string& filename) { return load(filename.c_str()); }
-
-    dwarf::line_table::entry findByAddress(uint32_t pc) const;
-
-    const std::map<uint32_t, std::string>& getSymbols() const { return m_symbols; }
-    const elf::elf getElf() const { return m_elf; }
-    const dwarf::dwarf getDwarf() const { return m_dwarf; }
-
-  private:
-    elf::elf m_elf;
-    dwarf::dwarf m_dwarf;
-    std::map<uint32_t, std::string> m_symbols;
+    bool m_show = false;
+    void draw(const char* title);
 };
+
+}  // namespace Widgets
 
 }  // namespace PCSX

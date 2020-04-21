@@ -25,15 +25,14 @@
 #include <functional>
 #include <iostream>
 
-#include "imgui.h"
-
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "gui/widgets/assembly.h"
-
+#include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+
+#include "gui/widgets/assembly.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
@@ -877,7 +876,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         for (auto fileName : filesToOpen) {
             std::ifstream file;
             // oh the irony
-            file.open(reinterpret_cast<const char *>(fileName.c_str()));
+            file.open(reinterpret_cast<const char*>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;
@@ -898,7 +897,7 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
     auto symbol = m_symbols.find(addr);
     if (symbol != m_symbols.end()) ret.emplace_back(symbol->second);
 
-    for (auto & elf : g_emulator.m_psxMem->m_elfs) {
+    for (auto& elf : g_emulator.m_psxMem->getElves()) {
         auto& symbols = elf.getSymbols();
         auto symbol = symbols.find(addr);
         if (symbol != symbols.end()) ret.emplace_back(symbol->second);

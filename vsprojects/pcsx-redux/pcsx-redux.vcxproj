@@ -162,6 +162,9 @@
     <ProjectReference Include="..\core\core.vcxproj">
       <Project>{9372d878-f76c-418b-8e2a-8e9896ff575b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\fmt\fmt.vcxproj">
+      <Project>{71772007-5110-418d-be9c-fb102b6eaabf}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
     </ProjectReference>

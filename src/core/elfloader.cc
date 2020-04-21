@@ -63,7 +63,7 @@ bool PCSX::Elf::load(const char *name) {
     return true;
 }
 
-dwarf::line_table::entry PCSX::Elf::findByAddress(uint32_t pc) {
+dwarf::line_table::entry PCSX::Elf::findByAddress(uint32_t pc) const {
     for (auto &cu : m_dwarf.compilation_units()) {
         try {
             if (dwarf::die_pc_range(cu.root()).contains(pc)) {

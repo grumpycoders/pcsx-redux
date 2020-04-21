@@ -24,6 +24,8 @@
 #include <string>
 #include <vector>
 
+#include "core/system.h"
+
 namespace PCSX {
 namespace Widgets {
 

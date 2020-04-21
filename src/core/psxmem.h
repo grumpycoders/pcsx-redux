@@ -21,9 +21,8 @@
 
 #include <vector>
 
-#include "core/psxemulator.h"
-
 #include "core/elfloader.h"
+#include "core/psxemulator.h"
 
 #if defined(__BIGENDIAN__)
 
@@ -146,6 +145,9 @@ class Memory {
     void psxMemWrite32(uint32_t mem, uint32_t value);
     void *psxMemPointer(uint32_t mem);
 
+    const std::vector<Elf> getElves() const { return m_elfs; }
+
+  private:
     std::vector<Elf> m_elfs;
 };
 
