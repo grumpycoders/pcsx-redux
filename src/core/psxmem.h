@@ -19,7 +19,11 @@
 
 #pragma once
 
+#include <vector>
+
 #include "core/psxemulator.h"
+
+#include "core/elfloader.h"
 
 #if defined(__BIGENDIAN__)
 
@@ -141,6 +145,8 @@ class Memory {
     void psxMemWrite16(uint32_t mem, uint16_t value);
     void psxMemWrite32(uint32_t mem, uint32_t value);
     void *psxMemPointer(uint32_t mem);
+
+    std::vector<Elf> m_elfs;
 };
 
 }  // namespace PCSX

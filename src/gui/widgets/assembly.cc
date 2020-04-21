@@ -266,8 +266,8 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     std::string longLabel = label;
-    auto symbol = m_symbols.find(value);
-    if (symbol != m_symbols.end()) longLabel = symbol->second + " ;" + label;
+    auto symbols = findSymbol(value);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) {
         m_jumpToPC = true;
@@ -370,8 +370,8 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     ImGui::SameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbol = m_symbols.find(value);
-    if (symbol == m_symbols.end()) {
+    auto symbols = findSymbol(value);
+    if (symbols.size() == 0) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(label)) {
             m_jumpToPC = true;
@@ -379,7 +379,7 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
         }
         ImGui::PopStyleVar();
     } else {
-        std::string longLabel = symbol->second + " ;" + label;
+        std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(longLabel.c_str())) {
             m_jumpToPC = true;
@@ -394,8 +394,8 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     char label[32];
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
     std::string longLabel = label;
-    auto symbol = m_symbols.find(addr);
-    if (symbol != m_symbols.end()) longLabel = symbol->second + " ;" + label;
+    auto symbols = findSymbol(addr);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
     ImGui::Text("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
@@ -627,10 +627,10 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
 
-                auto symbol = m_symbols.find(dispAddr);
-                if (symbol != m_symbols.end()) {
+                auto symbols = findSymbol(dispAddr);
+                if (symbols.size() != 0) {
                     ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
-                    ImGui::Text("%s:", symbol->second.c_str());
+                    ImGui::Text("%s:", symbols.begin()->c_str());
                     ImGui::PopStyleColor();
                 }
 
@@ -891,4 +891,18 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             }
         }
     }
+}
+
+std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
+    std::list<std::string> ret;
+    auto symbol = m_symbols.find(addr);
+    if (symbol != m_symbols.end()) ret.emplace_back(symbol->second);
+
+    for (auto & elf : g_emulator.m_psxMem->m_elfs) {
+        auto& symbols = elf.getSymbols();
+        auto symbol = symbols.find(addr);
+        if (symbol != symbols.end()) ret.emplace_back(symbol->second);
+    }
+
+    return std::move(ret);
 }

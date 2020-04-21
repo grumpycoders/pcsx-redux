@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include <list>
 #include <map>
 #include <string>
 
@@ -91,6 +92,8 @@ class Assembly : private Disasm {
     uint32_t m_jumpToPCValue = 0;
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
+
+    std::list<std::string> findSymbol(uint32_t addr);
 };
 
 }  // namespace Widgets
