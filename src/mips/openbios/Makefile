@@ -1,7 +1,6 @@
 TARGET = openbios
 
 SRCS = \
-../common/hardware/cop0.s \
 ../common/hardware/sio1.c \
 boot/boot.s \
 cdrom/cdrom.c \

@@ -20,34 +20,29 @@
 #include "gui/widgets/dwarf.h"
 
 #include <string>
-#include "fmt/format.h"
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "fmt/format.h"
 #include "imgui.h"
 
 namespace {
 
-void dumpTree(const dwarf::die& node, int depth = 0) {
+void dumpTree(const dwarf::die& node, const PCSX::Elf& elf, int depth = 0) {
     std::string name;
-    if (node.tag == dwarf::DW_TAG::compile_unit) {
-        std::string fname = "[unknown]";
-        for (auto& attr : node.attributes()) {
-            if (attr.first == dwarf::DW_AT::name) {
-                fname = to_string(attr.second);
-                break;
-            }
+    for (auto& attr : node.attributes()) {
+        if (attr.first == dwarf::DW_AT::name) {
+            name = to_string(attr.second);
+            break;
         }
-        name = fmt::format("<{:08x}> {}", node.get_section_offset(), fname);
-    } else {
-        name = fmt::format("<{:08x}> {}", node.get_section_offset(), to_string(node.tag));
     }
-    if (!ImGui::TreeNode(name.c_str())) return;
+    std::string label = fmt::format("<{:08x}> {} {}", node.get_section_offset(), to_string(node.tag), name);
+    if (!ImGui::TreeNode(label.c_str())) return;
     for (auto& attr : node.attributes()) {
         std::string attribute = fmt::format("{} {}", to_string(attr.first), to_string(attr.second));
         ImGui::Text(attribute.c_str());
     }
-    for (auto& child : node) dumpTree(child, depth + 1);
+    for (auto& child : node) dumpTree(child, elf, depth + 1);
     ImGui::TreePop();
 }
 
@@ -64,7 +59,7 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
         auto& dw = e.getDwarf();
         if (!dw.valid()) continue;
         for (auto cu : dw.compilation_units()) {
-            dumpTree(cu.root());
+            dumpTree(cu.root(), e);
         }
     }
 

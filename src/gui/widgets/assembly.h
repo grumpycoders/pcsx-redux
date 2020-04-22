@@ -23,6 +23,7 @@
 
 #include <list>
 #include <map>
+#include <set>
 #include <string>
 
 #include "core/disr3000a.h"
@@ -93,7 +94,18 @@ class Assembly : private Disasm {
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
 
+    struct symbolInfo {
+        uint32_t addr;
+
+    };
+
     std::list<std::string> findSymbol(uint32_t addr);
+    std::map<std::string, uint32_t> m_symbolsCache;
+
+    void rebuildSymbolsCache();
+
+    bool m_showSymbols;
+    std::string m_symbolFilter;
 };
 
 }  // namespace Widgets

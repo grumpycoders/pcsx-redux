@@ -23,41 +23,36 @@
 #include "core/psxmem.h"
 
 bool PCSX::Elf::load(const char *name) {
-    try {
-        elf::elf ef(elf::create_file_loader(name));
-        dwarf::dwarf dw(dwarf::elf::create_loader(ef));
+    m_elf = std::move(elf::elf(elf::create_file_loader(name)));
+    if (!m_elf.valid()) return false;
+    m_dwarf = std::move(dwarf::dwarf(dwarf::elf::create_loader(m_elf)));
+    if (!m_dwarf.valid()) return false;
 
-        m_elf = ef;
-        m_dwarf = dw;
+    auto segs = m_elf.segments();
+    for (auto &s : segs) {
+        if (s.valid() && (s.get_hdr().type == elf::pt::load)) {
+            auto &h = s.get_hdr();
+            uint32_t loadAddr = h.vaddr;
+            void *dst = PSXM(loadAddr);
+            const void *src = s.data();
+            size_t size = s.file_size();
+            memcpy(dst, src, size);
+        }
+    }
 
-        auto segs = ef.segments();
-        for (auto &s : segs) {
-            if (s.valid() && (s.get_hdr().type == elf::pt::load)) {
-                auto &h = s.get_hdr();
-                uint32_t loadAddr = h.vaddr;
-                void *dst = PSXM(loadAddr);
-                const void *src = s.data();
-                size_t size = s.file_size();
-                memcpy(dst, src, size);
+    auto sections = m_elf.sections();
+    for (auto &s : sections) {
+        if (s.valid() && s.get_hdr().type == elf::sht::symtab) {
+            auto symbols = s.as_symtab();
+            for (elf::symtab::iterator it = symbols.begin(); it != symbols.end(); it++) {
+                auto sym = *it;
+                auto name = sym.get_name();
+                if (name.empty()) continue;
+                auto data = sym.get_data();
+                uint32_t value = data.value;
+                if ((data.info != 4) && (value != 0)) m_symbols.insert(std::pair(value, name));
             }
         }
-
-        auto sections = ef.sections();
-        for (auto &s : sections) {
-            if (s.valid() && s.get_hdr().type == elf::sht::symtab) {
-                auto symbols = s.as_symtab();
-                for (elf::symtab::iterator it = symbols.begin(); it != symbols.end(); it++) {
-                    auto sym = *it;
-                    auto name = sym.get_name();
-                    if (name.empty()) continue;
-                    auto data = sym.get_data();
-                    uint32_t value = data.value;
-                    if ((data.info != 4) && (value != 0)) m_symbols.insert(std::pair(value, name));
-                }
-            }
-        }
-    } catch (...) {
-        return false;
     }
 
     return true;
@@ -74,4 +69,10 @@ dwarf::line_table::entry PCSX::Elf::findByAddress(uint32_t pc) const {
         } catch (std::out_of_range &e) {
         }
     }
+    return std::move(dwarf::line_table::entry());
+}
+
+void PCSX::Elf::mapDies(const dwarf::die &node) const {
+    m_dies.insert(std::pair(node.get_section_offset(), node));
+    for (auto &child : node) mapDies(child);
 }

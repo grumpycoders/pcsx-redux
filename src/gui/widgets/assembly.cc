@@ -21,6 +21,7 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -30,7 +31,9 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "imgui.h"
+#include "imgui_stdlib.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+#include "fmt/format.h"
 
 #include "gui/widgets/assembly.h"
 
@@ -845,6 +848,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         }
         ImGui::EndCombo();
     }
+    ImGui::SameLine();
+    if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if (m_followPC || m_jumpToPC) {
@@ -890,6 +895,43 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             }
         }
     }
+
+    if (m_showSymbols) {
+        if (ImGui::Begin(_("Symbols"), &m_showSymbols)) {
+            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCache();
+            ImGui::SameLine();
+            ImGui::InputText(_("Filter"), &m_symbolFilter);
+            ImGui::BeginChild("symbolsList");
+            auto up = [](const std::string& in) -> std::string {
+                std::string str = in;
+                std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+                return str;
+            };
+            std::string filter = up(m_symbolFilter);
+            bool empty = filter.empty();
+            for (auto& symbol : m_symbolsCache) {
+                int pos = up(symbol.first).find(filter);
+                bool found = pos >= 0;
+                if (empty || found) {
+                    std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
+                    std::string codeLabel = fmt::format(_("Code##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
+                    if (ImGui::Button(codeLabel.c_str())) {
+                        m_jumpToPC = true;
+                        m_jumpToPCValue = symbol.second;
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(dataLabel.c_str())) {
+                        jumpToMemory(symbol.second, 1);
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text(label.c_str());
+                }
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
+    }
 }
 
 std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
@@ -904,4 +946,18 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
     }
 
     return std::move(ret);
+}
+
+void PCSX::Widgets::Assembly::rebuildSymbolsCache() {
+    m_symbolsCache.clear();
+    for (auto& symbol : m_symbols) {
+        m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+    }
+
+    for (auto& elf : g_emulator.m_psxMem->getElves()) {
+        auto& symbols = elf.getSymbols();
+        for (auto& symbol : symbols) {
+            m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+        }
+    }
 }
