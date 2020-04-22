@@ -76,6 +76,8 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
         ImGui::EndCombo();
     }
     if (changed) m_orderBy = newValue;
+
+    ImGui::BeginChild("DIEs");
     auto& elves = g_emulator.m_psxMem->getElves();
     for (auto& e : elves) {
         switch (m_orderBy) {
@@ -93,6 +95,7 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
             }
         }
     }
+    ImGui::EndChild();
 
     ImGui::End();
 }
