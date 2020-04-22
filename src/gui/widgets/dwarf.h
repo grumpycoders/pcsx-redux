@@ -27,6 +27,9 @@ class Dwarf {
   public:
     bool m_show = false;
     void draw(const char* title);
+
+  public:
+    enum { BY_CU, BY_OFFSET } m_orderBy = BY_CU;
 };
 
 }  // namespace Widgets

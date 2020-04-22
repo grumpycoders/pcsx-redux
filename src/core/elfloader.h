@@ -45,22 +45,15 @@ class Elf {
     const std::map<uint32_t, std::string>& getSymbols() const { return m_symbols; }
     const elf::elf getElf() const { return m_elf; }
     const dwarf::dwarf getDwarf() const { return m_dwarf; }
-    const std::map<dwarf::section_offset, dwarf::die> getDies() const {
-        if (!m_diesBuilt) {
-            for (auto cu : m_dwarf.compilation_units()) mapDies(cu.root());
-            m_diesBuilt = true;
-        }
-        return m_dies;
-    }
+    const std::map<dwarf::section_offset, dwarf::die> getDies() const { return m_dies; }
 
   private:
     elf::elf m_elf;
     dwarf::dwarf m_dwarf;
     std::map<uint32_t, std::string> m_symbols;
-    mutable bool m_diesBuilt = false;
-    mutable std::map<dwarf::section_offset, dwarf::die> m_dies;
+    std::map<dwarf::section_offset, dwarf::die> m_dies;
 
-    void mapDies(const dwarf::die&) const;
-};
+    void mapDies(const dwarf::die&);
+};  // namespace PCSX
 
 }  // namespace PCSX

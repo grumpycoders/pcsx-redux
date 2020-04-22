@@ -28,7 +28,7 @@
 
 namespace {
 
-void dumpTree(const dwarf::die& node, const PCSX::Elf& elf, int depth = 0) {
+void dumpTree(const dwarf::die& node, const PCSX::Elf& elf) {
     std::string name;
     for (auto& attr : node.attributes()) {
         if (attr.first == dwarf::DW_AT::name) {
@@ -36,13 +36,18 @@ void dumpTree(const dwarf::die& node, const PCSX::Elf& elf, int depth = 0) {
             break;
         }
     }
-    std::string label = fmt::format("<{:08x}> {} {}", node.get_section_offset(), to_string(node.tag), name);
+    std::string label = fmt::format("<{:08x}> {:30} {}", node.get_section_offset(), to_string(node.tag), name);
     if (!ImGui::TreeNode(label.c_str())) return;
     for (auto& attr : node.attributes()) {
-        std::string attribute = fmt::format("{} {}", to_string(attr.first), to_string(attr.second));
-        ImGui::Text(attribute.c_str());
+        if (attr.second.get_type() == dwarf::value::type::reference) {
+            const dwarf::die& d = attr.second.as_reference();
+            dumpTree(d, elf);
+        } else {
+            std::string attribute = fmt::format("{:30} {}", to_string(attr.first), to_string(attr.second));
+            ImGui::Text(attribute.c_str());
+        }
     }
-    for (auto& child : node) dumpTree(child, elf, depth + 1);
+    for (auto& child : node) dumpTree(child, elf);
     ImGui::TreePop();
 }
 
@@ -54,12 +59,40 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
         return;
     }
 
+    static const char* order[] = {
+        "Compilation Unit",
+        "Offset",
+    };
+
+    bool changed = false;
+    auto newValue = m_orderBy;
+    if (ImGui::BeginCombo(_("Order by"), order[m_orderBy])) {
+        for (int i = 0; i < 2; i++) {
+            if (ImGui::Selectable(order[i], m_orderBy == i)) {
+                changed = true;
+                newValue = decltype(m_orderBy)(i);
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (changed) m_orderBy = newValue;
     auto& elves = g_emulator.m_psxMem->getElves();
     for (auto& e : elves) {
-        auto& dw = e.getDwarf();
-        if (!dw.valid()) continue;
-        for (auto cu : dw.compilation_units()) {
-            dumpTree(cu.root(), e);
+        switch (m_orderBy) {
+            case BY_CU: {
+                auto& dw = e.getDwarf();
+                if (!dw.valid()) continue;
+                for (auto cu : dw.compilation_units()) {
+                    dumpTree(cu.root(), e);
+                }
+                break;
+            }
+            case BY_OFFSET: {
+                for (auto& d : e.getDies()) {
+                    dumpTree(d.second, e);
+                }
+                break;
+            }
         }
     }
 

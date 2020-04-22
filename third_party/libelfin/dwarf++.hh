@@ -180,7 +180,7 @@ class loader {
  */
 class unit {
   public:
-    virtual ~unit() = 0;
+    virtual ~unit();
 
     bool operator==(const unit &o) const { return m == o.m; }
 

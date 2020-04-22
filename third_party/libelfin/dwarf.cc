@@ -107,6 +107,8 @@ std::shared_ptr<section> dwarf::get_section(section_type type) const {
 // class unit
 //
 
+
+
 /**
  * Implementation of a unit.
  */
@@ -149,7 +151,7 @@ struct unit::impl {
     void force_abbrevs();
 };
 
-unit::~unit() {}
+unit::~unit() { }
 
 const dwarf &unit::get_dwarf() const { return m->file; }
 

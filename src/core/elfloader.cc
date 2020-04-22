@@ -25,7 +25,7 @@
 bool PCSX::Elf::load(const char *name) {
     m_elf = std::move(elf::elf(elf::create_file_loader(name)));
     if (!m_elf.valid()) return false;
-    m_dwarf = std::move(dwarf::dwarf(dwarf::elf::create_loader(m_elf)));
+    m_dwarf = dwarf::dwarf(dwarf::elf::create_loader(m_elf));
     if (!m_dwarf.valid()) return false;
 
     auto segs = m_elf.segments();
@@ -54,6 +54,7 @@ bool PCSX::Elf::load(const char *name) {
             }
         }
     }
+    for (auto cu : m_dwarf.compilation_units()) mapDies(cu.root());
 
     return true;
 }
@@ -72,7 +73,7 @@ dwarf::line_table::entry PCSX::Elf::findByAddress(uint32_t pc) const {
     return std::move(dwarf::line_table::entry());
 }
 
-void PCSX::Elf::mapDies(const dwarf::die &node) const {
+void PCSX::Elf::mapDies(const dwarf::die &node) {
     m_dies.insert(std::pair(node.get_section_offset(), node));
     for (auto &child : node) mapDies(child);
 }
