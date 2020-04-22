@@ -67,7 +67,7 @@ bool PCSX::Elf::load(const char *name) {
 }
 
 dwarf::line_table::entry PCSX::Elf::findByAddress(uint32_t pc) const {
-    for (auto &cu : m_dwarf.compilation_units()) {
+    for (auto &cu : m_cus) {
         try {
             if (dwarf::die_pc_range(cu.root()).contains(pc)) {
                 auto &lt = cu.get_line_table();
