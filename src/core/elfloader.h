@@ -44,14 +44,15 @@ class Elf {
 
     const std::map<uint32_t, std::string>& getSymbols() const { return m_symbols; }
     const elf::elf getElf() const { return m_elf; }
-    const dwarf::dwarf getDwarf() const { return m_dwarf; }
-    const std::map<dwarf::section_offset, dwarf::die> getDies() const { return m_dies; }
+    const std::map<dwarf::section_offset, dwarf::die> & getDies() const { return m_dies; }
+    const std::vector<dwarf::compilation_unit>& getCUs() const { return m_cus; }
 
   private:
     elf::elf m_elf;
     dwarf::dwarf m_dwarf;
     std::map<uint32_t, std::string> m_symbols;
     std::map<dwarf::section_offset, dwarf::die> m_dies;
+    std::vector<dwarf::compilation_unit> m_cus;
 
     void mapDies(const dwarf::die&);
 };  // namespace PCSX

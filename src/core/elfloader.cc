@@ -23,7 +23,7 @@
 #include "core/psxmem.h"
 
 bool PCSX::Elf::load(const char *name) {
-    m_elf = std::move(elf::elf(elf::create_file_loader(name)));
+    m_elf = elf::elf(elf::create_file_loader(name));
     if (!m_elf.valid()) return false;
     m_dwarf = dwarf::dwarf(dwarf::elf::create_loader(m_elf));
     if (!m_dwarf.valid()) return false;
@@ -54,7 +54,14 @@ bool PCSX::Elf::load(const char *name) {
             }
         }
     }
-    for (auto cu : m_dwarf.compilation_units()) mapDies(cu.root());
+    // Compilation units roots are lazily constructions, but they have a fatal flaw:
+    // they will grab a reference from within the vector, which will be destroyed.
+    // The whole library is pretty fragile with regards to pointer lifespan. So
+    // let's keep a permanent copy here, build all the dies, and use it at all times.
+    m_cus = m_dwarf.compilation_units();
+    for (auto &cu : m_cus) {
+        mapDies(cu.root());
+    }
 
     return true;
 }

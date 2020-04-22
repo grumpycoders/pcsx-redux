@@ -80,9 +80,7 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
     for (auto& e : elves) {
         switch (m_orderBy) {
             case BY_CU: {
-                auto& dw = e.getDwarf();
-                if (!dw.valid()) continue;
-                for (auto cu : dw.compilation_units()) {
+                for (auto cu : e.getCUs()) {
                     dumpTree(cu.root(), e);
                 }
                 break;

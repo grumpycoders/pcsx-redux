@@ -68,8 +68,8 @@ dwarf::dwarf(const std::shared_ptr<loader> &l) : m(make_shared<impl>(l)) {
 
 dwarf::~dwarf() {}
 
+static std::vector<compilation_unit> empty;
 const std::vector<compilation_unit> &dwarf::compilation_units() const {
-    static std::vector<compilation_unit> empty;
     if (!m) return empty;
     return m->compilation_units;
 }
