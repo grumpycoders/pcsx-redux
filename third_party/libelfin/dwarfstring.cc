@@ -208,6 +208,10 @@ std::string to_string(DW_TAG v) {
             break;
         case DW_TAG::hi_user:
             break;
+        case DW_TAG::GNU_call_site:
+            return "DW_TAG_GNU_call_site";
+        case DW_TAG::GNU_call_site_parameter:
+            return "DW_TAG_GNU_call_site_parameter";
     }
     return "(DW_TAG)0x" + to_hex((int)v);
 }

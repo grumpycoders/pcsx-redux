@@ -92,6 +92,9 @@ enum class DW_TAG {
     template_alias = 0x43,
     lo_user = 0x4080,
     hi_user = 0xffff,
+
+    GNU_call_site = 0x4109,
+    GNU_call_site_parameter = 0x410a,
 };
 
 std::string to_string(DW_TAG v);
