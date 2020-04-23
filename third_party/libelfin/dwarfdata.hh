@@ -211,8 +211,18 @@ enum class DW_AT {
     enum_class = 0x6d,       // flag
     linkage_name = 0x6e,     // string
 
+    // DWARF 5
+    no_return = 0x87,        // flag
+
     lo_user = 0x2000,
     hi_user = 0x3fff,
+
+    // GNU
+    GNU_call_site_value = 0x2111,
+    GNU_call_site_target = 0x2113,
+    GNU_tail_call = 0x2115,
+    GNU_all_tail_call_sites = 0x2116,
+    GNU_all_call_sites = 0x2117,
 };
 
 std::string to_string(DW_AT v);

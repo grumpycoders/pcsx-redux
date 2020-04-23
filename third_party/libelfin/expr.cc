@@ -12,6 +12,128 @@ expr_context no_expr_context;
 
 expr::expr(const unit *cu, section_offset offset, section_length len) : cu(cu), offset(offset), len(len) {}
 
+std::vector<std::string> expr::to_strings() const {
+    auto cusec = cu->data();
+    shared_ptr<section> subsec(
+        make_shared<section>(cusec->type, cusec->begin + offset, len, cusec->ord, cusec->fmt, cusec->addr_size));
+    cursor cur(subsec);
+    std::vector<std::string> result;
+
+    while (!cur.end()) {
+        DW_OP op = (DW_OP)cur.fixed<ubyte>();
+        std::string value = to_string(op);
+        switch (op) {
+            case DW_OP::addr:
+                value += ": 0x" + to_hex(cur.address());
+                break;
+            case DW_OP::const1u:
+                value += ": 0x" + to_hex(cur.fixed<uint8_t>());
+                break;
+            case DW_OP::const2u:
+                value += ": 0x" + to_hex(cur.fixed<uint16_t>());
+                break;
+            case DW_OP::const4u:
+                value += ": 0x" + to_hex(cur.fixed<uint32_t>());
+                break;
+            case DW_OP::const8u:
+                value += ": 0x" + to_hex(cur.fixed<uint64_t>());
+                break;
+            case DW_OP::const1s:
+                value += ": " + std::to_string(cur.fixed<int8_t>());
+                break;
+            case DW_OP::const2s:
+                value += ": " + std::to_string(cur.fixed<int16_t>());
+                break;
+            case DW_OP::const4s:
+                value += ": " + std::to_string(cur.fixed<int32_t>());
+                break;
+            case DW_OP::const8s:
+                value += ": " + std::to_string(cur.fixed<int64_t>());
+                break;
+            case DW_OP::constu:
+                value += ": " + std::to_string(cur.uleb128());
+                break;
+            case DW_OP::consts:
+                value += ": " + std::to_string(cur.sleb128());
+                break;
+            case DW_OP::fbreg:
+                value += ": " + std::to_string(cur.sleb128());
+                break;
+
+            case DW_OP::breg0:
+            case DW_OP::breg1:
+            case DW_OP::breg2:
+            case DW_OP::breg3:
+            case DW_OP::breg4:
+            case DW_OP::breg5:
+            case DW_OP::breg6:
+            case DW_OP::breg7:
+            case DW_OP::breg8:
+            case DW_OP::breg9:
+            case DW_OP::breg10:
+            case DW_OP::breg11:
+            case DW_OP::breg12:
+            case DW_OP::breg13:
+            case DW_OP::breg14:
+            case DW_OP::breg15:
+            case DW_OP::breg16:
+            case DW_OP::breg17:
+            case DW_OP::breg18:
+            case DW_OP::breg19:
+            case DW_OP::breg20:
+            case DW_OP::breg21:
+            case DW_OP::breg22:
+            case DW_OP::breg23:
+            case DW_OP::breg24:
+            case DW_OP::breg25:
+            case DW_OP::breg26:
+            case DW_OP::breg27:
+            case DW_OP::breg28:
+            case DW_OP::breg29:
+            case DW_OP::breg30:
+            case DW_OP::breg31:
+                value += " + " + std::to_string(cur.sleb128());
+                break;
+            case DW_OP::bregx:
+                value += " -> " + std::to_string(cur.uleb128()) + " + " + std::to_string(cur.sleb128());
+                break;
+
+                // 2.5.1.3 Stack operations
+            case DW_OP::pick:
+                value += ": " + std::to_string(cur.fixed<uint8_t>());
+                break;
+            case DW_OP::deref_size:
+                value += ": " + std::to_string(cur.fixed<uint8_t>());
+                break;
+            case DW_OP::xderef_size:
+                value += ": " + std::to_string(cur.fixed<uint8_t>());
+                break;
+            case DW_OP::plus_uconst:
+                value += ": 0x" + to_hex(cur.uleb128());
+                break;
+            case DW_OP::skip:
+                value += ": " + std::to_string(cur.fixed<int16_t>());
+                break;
+            case DW_OP::bra:
+                value += ": " + std::to_string(cur.fixed<int16_t>());
+                break;
+            case DW_OP::regx:
+                value += ": 0x" + to_hex(cur.uleb128());
+                break;
+
+                // 2.6.1.1.3 Implicit location descriptions
+            case DW_OP::implicit_value: {
+                auto l = cur.uleb128();
+                cur.ensure(l);
+                value += ": 0x" + to_hex(l);
+                break;
+            }
+        }
+        result.push_back(value);
+    }
+    return result;
+}
+
 expr_result expr::evaluate(expr_context *ctx) const { return evaluate(ctx, {}); }
 
 expr_result expr::evaluate(expr_context *ctx, taddr argument) const { return evaluate(ctx, {argument}); }
@@ -26,8 +148,10 @@ expr_result expr::evaluate(expr_context *ctx, const std::initializer_list<taddr>
 
     // Create the initial stack.  arguments are in reverse order
     // (that is, element 0 is TOS), so reverse it.
-    stack.reserve(arguments.size());
-    for (const taddr *elt = arguments.end() - 1; elt >= arguments.begin(); elt--) stack.push_back(*elt);
+    if (arguments.size() != 0) {
+        stack.reserve(arguments.size());
+        for (const taddr *elt = arguments.end() - 1; elt >= arguments.begin(); elt--) stack.push_back(*elt);
+    }
 
     // Create a subsection for just this expression so we can
     // easily detect the end (including premature end).

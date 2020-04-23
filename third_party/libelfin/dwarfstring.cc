@@ -416,6 +416,18 @@ std::string to_string(DW_AT v) {
             break;
         case DW_AT::hi_user:
             break;
+        case DW_AT::no_return:
+            return "DW_AT_noreturn";
+        case DW_AT::GNU_call_site_value:
+            return "DW_AT_call_site_value";
+        case DW_AT::GNU_call_site_target:
+            return "DW_AT_call_site_target";
+        case DW_AT::GNU_tail_call:
+            return "DW_AT_GNU_tail_call";
+        case DW_AT::GNU_all_tail_call_sites:
+            return "DW_AT_GNU_all_tail_call_site";
+        case DW_AT::GNU_all_call_sites:
+            return "DW_AT_GNU_all_call_site";
     }
     return "(DW_AT)0x" + to_hex((int)v);
 }

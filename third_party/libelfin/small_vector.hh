@@ -7,6 +7,20 @@
 
 DWARFPP_BEGIN_NAMESPACE
 
+#if 1
+#include <vector>
+template <class T, unsigned Min>
+class small_vector : public ::std::vector<T> {
+    typedef T value_type;
+    typedef value_type &reference;
+    typedef const value_type &const_reference;
+    typedef size_t size_type;
+
+  public:
+    reference revat(size_type i) { return *(::std::vector<T>::end() - (i + 1)); }
+    const_reference revat(size_type i) const { return *(::std::vector<T>::end() - (i + 1)); }
+};
+#else
 /**
  * A vector-like class that only heap allocates above a specified
  * size.
@@ -133,6 +147,7 @@ class small_vector {
     char buf[sizeof(T[Min])];
     T *base, *end, *cap;
 };
+#endif
 
 DWARFPP_END_NAMESPACE
 

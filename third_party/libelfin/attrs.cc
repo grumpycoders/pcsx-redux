@@ -212,6 +212,9 @@ AT_FLAG(const_expr);
 AT_FLAG(enum_class);
 AT_STRING(linkage_name);
 
+// DWARF 5
+AT_FLAG(no_return);
+
 rangelist die_pc_range(const die &d) {
     // DWARF4 section 2.17
     if (d.has(DW_AT::ranges)) return at_ranges(d);
