@@ -567,7 +567,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), _("Assembly"));
+        m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), &m_dwarf, _("Assembly"));
     }
 
     if (m_breakpoints.m_show) {

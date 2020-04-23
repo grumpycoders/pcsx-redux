@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include <tuple>
 
 #include "dwarf++.hh"
 #include "elf++.hh"
@@ -40,7 +41,7 @@ class Elf {
 #endif
     bool load(const std::string& filename) { return load(filename.c_str()); }
 
-    dwarf::line_table::entry findByAddress(uint32_t pc) const;
+    std::tuple<dwarf::line_table::entry, std::vector<dwarf::die>> findByAddress(uint32_t pc) const;
 
     const std::map<uint32_t, std::string>& getSymbols() const { return m_symbols; }
     const elf::elf getElf() const { return m_elf; }

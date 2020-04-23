@@ -49,6 +49,8 @@ bool PCSX::Elf::load(const char *name) {
                 auto name = sym.get_name();
                 if (name.empty()) continue;
                 auto data = sym.get_data();
+                uint32_t info = data.info;
+                uint32_t size = data.size;
                 uint32_t value = data.value;
                 if ((data.info != 4) && (value != 0)) m_symbols.insert(std::pair(value, name));
             }
@@ -66,21 +68,55 @@ bool PCSX::Elf::load(const char *name) {
     return true;
 }
 
-dwarf::line_table::entry PCSX::Elf::findByAddress(uint32_t pc) const {
+static bool search(const dwarf::die &d, uint32_t pc, std::vector<dwarf::die> &stack) {
+    bool found = false;
+    for (auto &c : d) {
+        if ((found = search(c, pc, stack))) break;
+    }
+    switch (d.tag) {
+        case dwarf::DW_TAG::subprogram:
+        case dwarf::DW_TAG::inlined_subroutine:
+            try {
+                if (found || die_pc_range(d).contains(pc)) {
+                    found = true;
+                    stack.push_back(d);
+                }
+            } catch (...) {
+            }
+            break;
+    }
+    return found;
+};
+
+std::tuple<dwarf::line_table::entry, std::vector<dwarf::die>> PCSX::Elf::findByAddress(uint32_t pc) const {
+    dwarf::line_table::entry entry;
+    std::vector<dwarf::die> stack;
+
     for (auto &cu : m_cus) {
         try {
             if (dwarf::die_pc_range(cu.root()).contains(pc)) {
                 auto &lt = cu.get_line_table();
                 auto it = lt.find_address(pc);
-                if (it != lt.end()) return *it;
+                if (it != lt.end()) entry = *it;
+                search(cu.root(), pc, stack);
             }
         } catch (std::out_of_range &e) {
         }
     }
-    return std::move(dwarf::line_table::entry());
+    return std::tie(entry, stack);
 }
 
+#include <set>
+
+static std::set<dwarf::DW_AT> seen;
+
 void PCSX::Elf::mapDies(const dwarf::die &node) {
+    for (auto &a : node.attributes()) {
+        if (to_string(a.first)._Starts_with("(DW_AT)") && seen.find(a.first) == seen.end()) {
+            seen.insert(a.first);
+            __debugbreak();
+        }
+    }
     m_dies.insert(std::pair(node.get_section_offset(), node));
     for (auto &child : node) mapDies(child);
 }

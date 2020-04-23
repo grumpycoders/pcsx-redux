@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace PCSX {
 
 namespace Widgets {
@@ -27,9 +29,10 @@ class Dwarf {
   public:
     bool m_show = false;
     void draw(const char* title);
+    std::string m_pc;
 
-  public:
-    enum { BY_CU, BY_OFFSET } m_orderBy = BY_CU;
+  private:
+    enum { BY_CU, BY_OFFSET, BY_PC, BY_LINETABLE } m_orderBy = BY_CU;
 };
 
 }  // namespace Widgets

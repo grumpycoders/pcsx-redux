@@ -25,6 +25,7 @@
 #include "core/psxmem.h"
 #include "fmt/format.h"
 #include "imgui.h"
+#include "imgui_stdlib.h"
 
 namespace {
 
@@ -39,12 +40,41 @@ void dumpTree(const dwarf::die& node, const PCSX::Elf& elf) {
     std::string label = fmt::format("<{:08x}> {:30} {}", node.get_section_offset(), to_string(node.tag), name);
     if (!ImGui::TreeNode(label.c_str())) return;
     for (auto& attr : node.attributes()) {
-        if (attr.second.get_type() == dwarf::value::type::reference) {
-            const dwarf::die& d = attr.second.as_reference();
-            dumpTree(d, elf);
-        } else {
-            std::string attribute = fmt::format("{:30} {}", to_string(attr.first), to_string(attr.second));
-            ImGui::Text(attribute.c_str());
+        switch (attr.second.get_type()) {
+            case dwarf::value::type::reference: {
+                const dwarf::die& d = attr.second.as_reference();
+                dumpTree(d, elf);
+                break;
+            }
+            case dwarf::value::type::exprloc: {
+                const dwarf::expr& expr = attr.second.as_exprloc();
+                std::string result = "[**ERR**]";
+                try {
+                    auto r = expr.evaluate(&dwarf::no_expr_context);
+                    switch (r.location_type) {
+                        case dwarf::expr_result::type::address: {
+                            result = fmt::format("[Address: {:08x}]", r.value);
+                            break;
+                        }
+                    }
+                } catch (...) {
+                    //__debugbreak();
+                }
+                std::string attribute = fmt::format("{:30} value: {}", to_string(attr.first), result);
+                if (ImGui::TreeNode(attribute.c_str())) {
+                    auto strs = expr.to_strings();
+                    for (auto& s : strs) {
+                        ImGui::Text(s.c_str());
+                    }
+                    ImGui::TreePop();
+                }
+                break;
+            }
+            default: {
+                std::string attribute = fmt::format("{:30} {}", to_string(attr.first), to_string(attr.second));
+                ImGui::Text(attribute.c_str());
+                break;
+            }
         }
     }
     for (auto& child : node) dumpTree(child, elf);
@@ -59,15 +89,12 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
         return;
     }
 
-    static const char* order[] = {
-        "Compilation Unit",
-        "Offset",
-    };
+    static const char* order[] = {"Compilation Unit", "Offset", "PC", "Line Table"};
 
     bool changed = false;
     auto newValue = m_orderBy;
     if (ImGui::BeginCombo(_("Order by"), order[m_orderBy])) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < (sizeof(order) / sizeof(order[0])); i++) {
             if (ImGui::Selectable(order[i], m_orderBy == i)) {
                 changed = true;
                 newValue = decltype(m_orderBy)(i);
@@ -77,7 +104,9 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
     }
     if (changed) m_orderBy = newValue;
 
-    ImGui::BeginChild("DIEs");
+    if (m_orderBy == BY_PC) ImGui::InputText("PC", &m_pc, ImGuiInputTextFlags_CharsHexadecimal);
+
+    ImGui::BeginChild("tree");
     auto& elves = g_emulator.m_psxMem->getElves();
     for (auto& e : elves) {
         switch (m_orderBy) {
@@ -92,6 +121,45 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
                     dumpTree(d.second, e);
                 }
                 break;
+            }
+            case BY_PC: {
+                auto [entry, stack] = e.findByAddress(strtoul(m_pc.c_str(), nullptr, 16));
+                if (entry.valid()) ImGui::Text(entry.get_description().c_str());
+                for (auto& d : stack) {
+                    dumpTree(d, e);
+                }
+                break;
+            }
+            case BY_LINETABLE: {
+                for (auto cu : e.getCUs()) {
+                    std::string name = "[UNKNOWN]";
+                    auto& r = cu.root();
+                    for (auto& attr : r.attributes()) {
+                        if (attr.first == dwarf::DW_AT::name) {
+                            name = to_string(attr.second);
+                            break;
+                        }
+                    }
+                    if (ImGui::TreeNode(name.c_str())) {
+                        auto& lt = cu.get_line_table();
+                        std::multimap<uint64_t, dwarf::line_table::entry> m;
+                        for (auto& l : lt) {
+                            uint64_t index = l.line;
+                            index <<= 32;
+                            index |= l.discriminator;
+                            m.insert(std::pair(index, l));
+                        }
+                        for (auto& e : m) {
+                            auto& l = e.second;
+                            ImGui::Text(
+                                ":%5i/%3i [%08x] idx: %i, stmt: %i, basic: %i, endseq: %i, prlgend: %i, eplgend: %i, "
+                                "discr: %i",
+                                l.line, l.column, l.address, l.op_index, l.is_stmt, l.basic_block, l.end_sequence,
+                                l.prologue_end, l.epilogue_begin, l.discriminator);
+                        }
+                        ImGui::TreePop();
+                    }
+                }
             }
         }
     }

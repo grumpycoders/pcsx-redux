@@ -22,6 +22,7 @@
  */
 
 #include "core/psxmem.h"
+
 #include "core/debug.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
@@ -89,7 +90,8 @@ void PCSX::Memory::psxMemReset() {
             if ((g_psxR[0] == 0x7f) && (g_psxR[1] == 'E') && (g_psxR[2] == 'L') && (g_psxR[3] == 'F')) {
                 Elf e;
                 if (e.load(biosPath)) m_elfs.push_back(std::move(e));
-                PCSX::g_system->printf(_("BIOS entry point: %s\n"), (--m_elfs.end())->findByAddress(0xbfc00000).get_description().c_str());
+                auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
+                if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description().c_str());
             }
             PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.c_str());
             g_emulator.m_psxBios->m_realBiosLoaded = true;

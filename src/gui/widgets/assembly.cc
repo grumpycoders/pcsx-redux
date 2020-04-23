@@ -422,7 +422,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, const char* title) {
+void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title) {
     m_registers = registers;
     m_memory = memory;
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -916,6 +916,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
                     std::string codeLabel = fmt::format(_("Code##{}{:08x}"), symbol.first, symbol.second);
                     std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {
                         m_jumpToPC = true;
                         m_jumpToPCValue = symbol.second;
@@ -923,6 +924,10 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     ImGui::SameLine();
                     if (ImGui::Button(dataLabel.c_str())) {
                         jumpToMemory(symbol.second, 1);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(dwarfLabel.c_str())) {
+                        dwarf->m_pc = fmt::format("{:08x}", symbol.second);
                     }
                     ImGui::SameLine();
                     ImGui::Text(label.c_str());
