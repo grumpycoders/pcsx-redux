@@ -25,14 +25,18 @@
 #include "common/psxlibc/circularbuffer.h"
 #include "common/psxlibc/device.h"
 
-static __inline__ void enterCriticalSection() {
+static __inline__ int enterCriticalSection() {
     register volatile int n asm("a0") = 1;
-    __asm__ volatile("syscall\n" : "=r"(n) : "r"(n));
+    register volatile int r asm("v0");
+    __asm__ volatile("syscall\n" : "=r"(n), "=r"(r) : "r"(n) : "at", "v1", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "memory");
+    return r;
 }
 
-static __inline__ void leaveCriticalSection() {
+static __inline__ int leaveCriticalSection() {
     register volatile int n asm("a0") = 2;
-    __asm__ volatile("syscall\n" : "=r"(n) : "r"(n));
+    register volatile int r asm("v0");
+    __asm__ volatile("syscall\n" : "=r"(n), "=r"(r) : "r"(n) : "at", "v1", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "memory");
+    return r;
 }
 
 /* A0 table */
