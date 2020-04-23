@@ -45,8 +45,8 @@ static void initializeSoftwareAndHardware() {
 
 void initCDRom() {
     initializeSoftwareAndHardware();
-    volatile int delay = 0;
-    while(++delay < 50000);
+    int delay = 0;
+    while(++delay < 50000) __asm__ volatile("");
     cdromReadPathTable();
 }
 
