@@ -457,6 +457,9 @@ void PCSX::GUI::endFrame() {
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
                 ImGui::Separator();
+                ImGui::MenuItem(_("Show types"), nullptr, &m_types.m_show);
+                ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
+                ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show raw DWARF info"), nullptr, &m_dwarf.m_show);
@@ -580,6 +583,11 @@ void PCSX::GUI::endFrame() {
 
     if (m_dwarf.m_show) {
         m_dwarf.draw(_("Dwarf"));
+    }
+
+    m_types.draw();
+    if (m_source.m_show) {
+        m_source.draw(_("Source"), g_emulator.m_psxCpu->m_psxRegs.pc);
     }
 
     PCSX::g_emulator.m_spu->debug();
