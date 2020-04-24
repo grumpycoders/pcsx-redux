@@ -212,7 +212,7 @@ enum class DW_AT {
     linkage_name = 0x6e,     // string
 
     // DWARF 5
-    no_return = 0x87,        // flag
+    no_return = 0x87,  // flag
 
     lo_user = 0x2000,
     hi_user = 0x3fff,
@@ -624,6 +624,41 @@ enum class DW_LNE {
 };
 
 std::string to_string(DW_LNE v);
+
+enum class DW_CFA {
+    nop = 0x00,
+    set_loc = 0x01,
+    advance_loc1 = 0x02,
+    advance_loc2 = 0x03,
+    advance_loc4 = 0x04,
+    offset_extended = 0x05,
+    restore_extended = 0x06,
+    undefined = 0x07,
+    same_value = 0x08,
+    register_ = 0x09,
+    remember_state = 0x0a,
+    restore_state = 0x0b,
+    def_cfa = 0x0c,
+    def_cfa_register = 0x0d,
+    def_cfa_offset = 0x0e,
+    def_cfa_expression = 0x0f,
+    expression = 0x10,
+    offset_extended_sf = 0x11,
+    def_cfa_sf = 0x12,
+    def_cfa_offset_sf = 0x13,
+    val_offset = 0x14,
+    val_offset_sf = 0x15,
+    val_expression = 0x16,
+    lo_user = 0x1c,
+    MIPS_advance_loc8 = 0x1d,
+    GNU_window_save = 0x2d,
+    GNU_args_size = 0x2e,
+    GNU_negative_offset_extended = 0x2f,
+    METAWARE_info = 0x34,
+    high_user = 0x3f,
+};
+
+std::string to_string(DW_CFA v);
 
 DWARFPP_END_NAMESPACE
 

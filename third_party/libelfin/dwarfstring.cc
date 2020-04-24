@@ -898,4 +898,80 @@ std::string to_string(DW_LNE v) {
     return "(DW_LNE)0x" + to_hex((int)v);
 }
 
+std::string to_string(DW_CFA v) {
+    switch (v) {
+        case DW_CFA::nop:
+            return "DW_CFA_nop";
+        case DW_CFA::set_loc:
+            return "DW_CFA_set_loc";
+        case DW_CFA::advance_loc1:
+            return "DW_CFA_advance_loc1";
+        case DW_CFA::advance_loc2:
+            return "DW_CFA_advance_loc2";
+        case DW_CFA::advance_loc4:
+            return "DW_CFA_advance_loc4";
+        case DW_CFA::offset_extended:
+            return "DW_CFA_offset_extended";
+        case DW_CFA::restore_extended:
+            return "DW_CFA_restore_extended";
+        case DW_CFA::undefined:
+            return "DW_CFA_undefined";
+        case DW_CFA::same_value:
+            return "DW_CFA_same_value";
+        case DW_CFA::register_:
+            return "DW_CFA_register";
+        case DW_CFA::remember_state:
+            return "DW_CFA_remember_state";
+        case DW_CFA::restore_state:
+            return "DW_CFA_restore_state";
+        case DW_CFA::def_cfa:
+            return "DW_CFA_def_cfa";
+        case DW_CFA::def_cfa_register:
+            return "DW_CFA_def_cfa_register";
+        case DW_CFA::def_cfa_offset:
+            return "DW_CFA_def_cfa_offset";
+        case DW_CFA::def_cfa_expression:
+            return "DW_CFA_def_cfa_expression";
+        case DW_CFA::expression:
+            return "DW_CFA_expression";
+        case DW_CFA::offset_extended_sf:
+            return "DW_CFA_offset_extended_sf";
+        case DW_CFA::def_cfa_sf:
+            return "DW_CFA_def_cfa_sf";
+        case DW_CFA::def_cfa_offset_sf:
+            return "DW_CFA_def_cfa_offset_sf";
+        case DW_CFA::val_offset:
+            return "DW_CFA_val_offset";
+        case DW_CFA::val_offset_sf:
+            return "DW_CFA_val_offset_sf";
+        case DW_CFA::val_expression:
+            return "DW_CFA_val_expression";
+        case DW_CFA::lo_user:
+            return "DW_CFA_lo_user";
+        case DW_CFA::MIPS_advance_loc8:
+            return "DW_CFA_MIPS_advance_loc8";
+        case DW_CFA::GNU_window_save:
+            return "DW_CFA_GNU_window_save";
+        case DW_CFA::GNU_args_size:
+            return "DW_CFA_GNU_args_size";
+        case DW_CFA::GNU_negative_offset_extended:
+            return "DW_CFA_GNU_negative_offset_extended";
+        case DW_CFA::METAWARE_info:
+            return "DW_CFA_METAWARE_info";
+        case DW_CFA::high_user:
+            return "DW_CFA_high_user";
+    }
+
+    uint8_t lo = ((uint8_t)v) & 0x3f;
+    switch ((((uint8_t)v) & 0xc0) >> 6) {
+        case 1:
+            return "DW_CFA_advance_loc(delta " + to_hex(lo) + ")";
+        case 2:
+            return "DW_CFA_offset(r" + std::to_string(lo) + ")";
+        case 3:
+            return "DW_CFA_restore(r" + std::to_string(lo) + ")";
+    }
+    return "(DW_CFA)0x" + to_hex((int)v);
+}
+
 DWARFPP_END_NAMESPACE

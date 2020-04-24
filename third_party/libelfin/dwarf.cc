@@ -19,8 +19,11 @@ struct dwarf::impl {
 
     std::shared_ptr<section> sec_info;
     std::shared_ptr<section> sec_abbrev;
+    std::shared_ptr<section> sec_frame;
 
     std::vector<compilation_unit> compilation_units;
+    std::unordered_map<section_offset, cie> cies;
+    std::vector<fde> fdes;
 
     std::unordered_map<uint64_t, type_unit> type_units;
     bool have_type_units;
@@ -54,6 +57,10 @@ dwarf::dwarf(const std::shared_ptr<loader> &l) : m(make_shared<impl>(l)) {
     if (!data) throw format_error("required .debug_abbrev section missing");
     m->sec_abbrev = make_shared<section>(section_type::abbrev, data, size, m->sec_info->ord);
 
+    data = l->load(section_type::frame, &size);
+    if (!data) throw format_error("required .debug_frame section missing");
+    m->sec_frame = make_shared<section>(section_type::frame, data, size, m->sec_info->ord);
+
     // Get compilation units.  Everything derives from these, so
     // there's no point in doing it lazily.
     cursor infocur(m->sec_info);
@@ -64,6 +71,26 @@ dwarf::dwarf(const std::shared_ptr<loader> &l) : m(make_shared<impl>(l)) {
         m->compilation_units.emplace_back(*this, infocur.get_section_offset());
         infocur.subsection();
     }
+
+    cursor framecur(m->sec_frame);
+    while (!framecur.end()) {
+        auto offset = framecur.get_section_offset();
+
+        cursor cur(m->sec_frame, offset);
+        std::shared_ptr<section> subsec = cur.subsection();
+        cursor sub(subsec);
+        sub.skip_initial_length();
+
+        section_offset id = sub.offset();
+        if (id == subsec->marker()) {
+            m->cies.emplace(std::piecewise_construct, std::forward_as_tuple(offset),
+                            std::forward_as_tuple(*this, offset));
+        } else {
+            m->fdes.emplace_back(*this, offset);
+        }
+
+        framecur.subsection();
+    }
 }
 
 dwarf::~dwarf() {}
@@ -73,6 +100,9 @@ const std::vector<compilation_unit> &dwarf::compilation_units() const {
     if (!m) return empty;
     return m->compilation_units;
 }
+
+const std::unordered_map<section_offset, cie> &dwarf::get_cies() const { return m->cies; }
+const std::vector<fde> &dwarf::get_fdes() const { return m->fdes; }
 
 const type_unit &dwarf::get_type_unit(uint64_t type_signature) const {
     if (!m->have_type_units) {
@@ -106,8 +136,6 @@ std::shared_ptr<section> dwarf::get_section(section_type type) const {
 //////////////////////////////////////////////////////////////////
 // class unit
 //
-
-
 
 /**
  * Implementation of a unit.
@@ -151,7 +179,7 @@ struct unit::impl {
     void force_abbrevs();
 };
 
-unit::~unit() { }
+unit::~unit() {}
 
 const dwarf &unit::get_dwarf() const { return m->file; }
 
@@ -232,6 +260,237 @@ compilation_unit::compilation_unit(const dwarf &file, section_offset offset) {
     subsec->addr_size = address_size;
 
     m = make_shared<impl>(file, offset, subsec, debug_abbrev_offset, sub.get_section_offset());
+}
+
+frame::frame(const dwarf &file, section_offset offset) : file(file), offset(offset) {
+    cursor cur(file.get_section(section_type::frame), offset);
+    subsec = cur.subsection();
+}
+
+struct cie::impl {
+    const ubyte version;
+    const ubyte address_size;
+    const ubyte segment_size;
+    const uint64_t code_alignment_factor;
+    const int64_t data_alignment_factor;
+    const uint64_t return_address_register;
+
+    const cursor instructions;
+
+    impl(const ubyte version, const ubyte address_size, const ubyte segment_size, const uint64_t code_alignment_factor,
+         const int64_t data_alignment_factor, const uint64_t return_address_register, const cursor instructions)
+        : version(version),
+          address_size(address_size),
+          segment_size(segment_size),
+          code_alignment_factor(code_alignment_factor),
+          data_alignment_factor(data_alignment_factor),
+          return_address_register(return_address_register),
+          instructions(instructions) {}
+};
+
+cie::cie(const dwarf &file, section_offset offset) : frame(file, offset) {
+    cursor sub(subsec);
+    sub.skip_initial_length();
+    section_offset id = sub.offset();
+    ubyte version = sub.fixed<ubyte>();
+    const char *augmentation = sub.cstr();
+
+    if (id != subsec->marker()) throw format_error("wrong id for CIE");
+    switch (version) {
+        case 1:
+        case 3:
+        case 4:
+            break;
+        default:
+            throw format_error("unknown CIE version");
+            break;
+    }
+    if (augmentation[0]) throw format_error("unknown augmentation: " + std::string(augmentation));
+    ubyte address_size;
+    ubyte segment_size;
+
+    if (version == 4) {
+        address_size = sub.fixed<ubyte>();
+        segment_size = sub.fixed<ubyte>();
+    } else {
+        address_size = 0;
+        switch (subsec->fmt) {
+            case format::dwarf32:
+                address_size = 4;
+                break;
+            case format::dwarf64:
+                address_size = 8;
+                break;
+        }
+        segment_size = 0;
+    }
+    uint64_t code_alignment_factor = sub.uleb128();
+    int64_t data_alignment_factor = sub.sleb128();
+    uint64_t return_address_register = sub.uleb128();
+
+    m = make_shared<impl>(version, address_size, segment_size, code_alignment_factor, data_alignment_factor,
+                          return_address_register, sub);
+}
+
+struct fde::impl {
+    const std::unordered_map<section_offset, cie>::const_iterator CIE;
+    const taddr initial_location_segment;
+    const taddr initial_location;
+    const size_t address_range;
+
+    const cursor instructions;
+
+    impl(std::unordered_map<section_offset, cie>::const_iterator CIE, const taddr initial_location_segment,
+         const taddr initial_location, const size_t address_range, const cursor instructions)
+        : CIE(CIE),
+          initial_location_segment(initial_location_segment),
+          initial_location(initial_location),
+          address_range(address_range),
+          instructions(instructions) {}
+};
+
+fde::fde(const dwarf &file, section_offset offset) : frame(file, offset) {
+    cursor sub(subsec);
+    sub.skip_initial_length();
+
+    section_offset CIE_pointer = sub.offset();
+
+    std::unordered_map<section_offset, cie>::const_iterator CIE = file.get_cies().find(CIE_pointer);
+    if (CIE == file.get_cies().end()) throw format_error("missing CIE for FDE");
+    taddr initial_location_segment = 0;
+    if (CIE->second.m->segment_size != 0) initial_location_segment = sub.address(CIE->second.m->segment_size);
+    taddr initial_location = sub.address(CIE->second.m->address_size);
+    size_t address_range = sub.address(CIE->second.m->address_size);
+
+    m = make_shared<impl>(CIE, initial_location_segment, initial_location, address_range, sub);
+}
+
+bool fde::contains(taddr pc) const {
+    taddr begin = m->initial_location;
+    taddr end = begin + m->address_range;
+    return (begin <= pc) && (pc < end);
+}
+
+fde::cfa fde::evaluate_cfa(taddr pc) const {
+    if (!contains(pc)) throw out_of_range("evaluate_cfa: pc is not in range");
+
+    taddr loc = m->initial_location;
+    fde::cfa ret;
+    std::int64_t remembered_cfa;
+
+    cursor_chain cur({m->CIE->second.m->instructions, m->instructions});
+
+    while (!cur.end()) {
+        if (loc > pc) break;
+        ubyte rawop = cur->fixed<ubyte>();
+        ubyte up = rawop >> 6;
+        ubyte lo = rawop & 0x3f;
+        switch (up) {
+            case 0: {
+                DW_CFA op = (DW_CFA)rawop;
+                if ((rawop >= 0x1c) && (rawop <= 0x3f)) {
+                    throw runtime_error("Unimplemented user CFA ops");
+                }
+                switch (op) {
+                    case DW_CFA::nop:
+                        break;
+                    case DW_CFA::set_loc:
+                        loc = cur->address(m->CIE->second.m->address_size);
+                        break;
+                    case DW_CFA::advance_loc1:
+                        loc += m->CIE->second.m->code_alignment_factor * cur->fixed<ubyte>();
+                        break;
+                    case DW_CFA::advance_loc2:
+                        loc += m->CIE->second.m->code_alignment_factor * cur->fixed<uhalf>();
+                        break;
+                    case DW_CFA::advance_loc4:
+                        loc += m->CIE->second.m->code_alignment_factor * cur->fixed<uword>();
+                        break;
+                    case DW_CFA::offset_extended: {
+                        std::uint64_t reg = cur->uleb128();
+                        std::int64_t offset = cur->uleb128() * m->CIE->second.m->data_alignment_factor;
+                        if (reg == m->CIE->second.m->return_address_register) {
+                            ret.ra_offset = offset;
+                            ret.ra_offset_valid = true;
+                        }
+                        break;
+                    }
+                    case DW_CFA::restore_extended:
+                        cur->uleb128();
+                        break;
+                    case DW_CFA::undefined:
+                        cur->uleb128();
+                        break;
+                    case DW_CFA::same_value:
+                        cur->uleb128();
+                        break;
+                    case DW_CFA::register_:
+                        cur->uleb128();
+                        cur->uleb128();
+                        break;
+                    case DW_CFA::remember_state:
+                        remembered_cfa = ret.offset;
+                        break;
+                    case DW_CFA::restore_state:
+                        ret.offset = remembered_cfa;
+                        ret.offset_valid = true;
+                        break;
+                    case DW_CFA::def_cfa:
+                        ret.reg = cur->uleb128();
+                    case DW_CFA::def_cfa_offset:
+                        ret.offset = cur->uleb128();
+                        ret.offset_valid = true;
+                        break;
+                    case DW_CFA::def_cfa_register:
+                        ret.reg = cur->uleb128();
+                        break;
+                    case DW_CFA::def_cfa_expression:
+                        throw runtime_error("DW_CFA_def_cfa_expression not implemented");
+                    case DW_CFA::expression:
+                        throw runtime_error("DW_CFA_expression not implemented");
+                    case DW_CFA::offset_extended_sf: {
+                        std::uint64_t reg = cur->uleb128();
+                        std::int64_t offset = cur->sleb128() * m->CIE->second.m->data_alignment_factor;
+                        if (reg == m->CIE->second.m->return_address_register) {
+                            ret.ra_offset = offset;
+                            ret.ra_offset_valid = true;
+                        }
+                        break;
+                    }
+                    case DW_CFA::def_cfa_sf:
+                        ret.reg = cur->uleb128();
+                    case DW_CFA::def_cfa_offset_sf:
+                        ret.offset = cur->sleb128();
+                        break;
+                    case DW_CFA::val_offset:
+                        cur->uleb128();
+                        cur->uleb128();
+                        break;
+                    case DW_CFA::val_offset_sf:
+                        cur->uleb128();
+                        cur->sleb128();
+                        break;
+                    case DW_CFA::val_expression:
+                        throw runtime_error("DW_CFA_val_expression not implemented");
+                }
+                break;
+            }
+            case 1:  // DW_CFA_advance_loc
+                loc += lo * m->CIE->second.m->code_alignment_factor;
+                break;
+            case 2: {  // DW_CFA_offset
+                int64_t offset = cur->uleb128() * m->CIE->second.m->data_alignment_factor;
+                if (lo == m->CIE->second.m->return_address_register) {
+                    ret.ra_offset = offset;
+                    ret.ra_offset_valid = true;
+                }
+                break;
+            }
+            case 3:  // DW_CFA_restore
+                break;
+        }
+    }
+    return ret;
 }
 
 const line_table &compilation_unit::get_line_table() const {

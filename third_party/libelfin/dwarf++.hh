@@ -15,6 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "dwarfdata.hh"
@@ -100,6 +101,8 @@ std::string to_string(section_type v);
  * responsible for keeping this object live as long as any retrieved
  * object may be in use.
  */
+class cie;
+class fde;
 class dwarf {
   public:
     /**
@@ -136,6 +139,8 @@ class dwarf {
      * Return the list of compilation units in this DWARF file.
      */
     const std::vector<compilation_unit> &compilation_units() const;
+    const std::unordered_map<section_offset, cie> &get_cies() const;
+    const std::vector<fde> &get_fdes() const;
 
     /**
      * Return the type unit with the given signature.  If the
@@ -225,6 +230,50 @@ class unit {
     friend struct ::std::hash<unit>;
     struct impl;
     std::shared_ptr<impl> m;
+};
+
+class frame {
+  public:
+    frame() = default;
+    frame(const frame &) = default;
+    frame(frame &&) = default;
+    frame &operator=(const frame &) = default;
+    frame &operator=(frame &&) = default;
+    frame(const dwarf &file, section_offset offset);
+
+    const dwarf file;
+    const section_offset offset;
+    std::shared_ptr<section> subsec;
+};
+
+class cie : public frame {
+  public:
+    cie(const dwarf &file, section_offset offset);
+
+  private:
+    struct impl;
+    friend class fde;
+    std::shared_ptr<impl> m;
+};
+
+class fde : public frame {
+  public:
+    struct cfa {
+        std::uint64_t reg = 0xffffffffffffffff;
+        std::int64_t offset = 0;
+        std::int64_t ra_offset = 0;
+        bool offset_valid = false;
+        bool ra_offset_valid = false;
+    };
+    fde(const dwarf &file, section_offset offset);
+
+    cfa evaluate_cfa(taddr pc) const;
+
+    bool contains(taddr pc) const;
+
+    private:
+    struct impl;
+      std::shared_ptr<impl> m;
 };
 
 /**
@@ -779,6 +828,8 @@ class expr_result {
          * pointed to by the 'implicit' field.
          */
         implicit,
+        cfa,
+        fbreg,
         /**
          * The object is present in the source, but not in the
          * object code, and hence does not have a location or
@@ -801,6 +852,7 @@ class expr_result {
      * descriptions, the value of the object.
      */
     taddr value;
+    std::int64_t fbregvalue;
 
     /**
      * For implicit location descriptions, a pointer to a block

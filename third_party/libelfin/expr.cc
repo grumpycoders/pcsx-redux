@@ -267,8 +267,9 @@ expr_result expr::evaluate(expr_context *ctx, const std::initializer_list<taddr>
 
                 // 2.5.1.2 Register based addressing
             case DW_OP::fbreg:
-                // XXX
-                throw runtime_error("DW_OP_fbreg not implemented");
+                result.location_type = expr_result::type::fbreg;
+                result.fbregvalue = cur.sleb128();
+                break;
             case DW_OP::breg0:
             case DW_OP::breg1:
             case DW_OP::breg2:
@@ -372,8 +373,8 @@ expr_result expr::evaluate(expr_context *ctx, const std::initializer_list<taddr>
                 stack.back() = ctx->form_tls_address(stack.back());
                 break;
             case DW_OP::call_frame_cfa:
-                // XXX
-                throw runtime_error("DW_OP_call_frame_cfa not implemented");
+                result.location_type = expr_result::type::cfa;
+                break;
 
                 // 2.5.1.4 Arithmetic and logical operations
 #define UBINOP(binop)                       \

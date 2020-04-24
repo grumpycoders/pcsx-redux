@@ -59,6 +59,15 @@ struct section {
     }
 
     size_t size() const { return end - begin; }
+    section_offset marker() const {
+        switch (fmt) {
+            case format::dwarf32:
+                return 0xffffffff;
+            case format::dwarf64:
+                return 0xffffffffffffffff;
+        }
+        return 0;
+    }
 };
 
 /**
@@ -126,8 +135,9 @@ struct cursor {
         return 0;
     }
 
-    taddr address() {
-        switch (sec->addr_size) {
+    taddr address(unsigned int addrsize = 0) {
+        if (addrsize == 0) addrsize = sec->addr_size;
+        switch (addrsize) {
             case 1:
                 return fixed<uint8_t>();
             case 2:
@@ -137,7 +147,7 @@ struct cursor {
             case 8:
                 return fixed<uint64_t>();
             default:
-                throw std::runtime_error("address size " + std::to_string(sec->addr_size) + " not supported");
+                throw std::runtime_error("address size " + std::to_string(addrsize) + " not supported");
         }
     }
 
@@ -163,6 +173,26 @@ struct cursor {
     cursor(const std::shared_ptr<section> sec, const char *pos) : sec(sec), pos(pos) {}
 
     void underflow();
+};
+
+struct cursor_chain {
+    cursor_chain(const std::vector<cursor> &cursors) : cursors(cursors) {}
+    cursor_chain(std::vector<cursor> &&cursors) : cursors(cursors) {}
+
+    bool end() {
+        if (index >= cursors.size()) return false;
+        if (cursors[index].end()) index++;
+        return index >= cursors.size();
+    }
+
+    cursor &operator*() { return cursors[index]; }
+    const cursor &operator*() const { return cursors[index]; }
+    cursor *operator->() { return &cursors[index]; }
+    const cursor *operator->() const { return &cursors[index]; }
+
+    std::vector<cursor> cursors;
+
+    size_t index = 0;
 };
 
 /**

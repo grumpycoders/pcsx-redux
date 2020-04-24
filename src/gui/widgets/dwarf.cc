@@ -56,6 +56,30 @@ void dumpTree(const dwarf::die& node, const PCSX::Elf& elf) {
                             result = fmt::format("[Address: {:08x}]", r.value);
                             break;
                         }
+                        case dwarf::expr_result::type::reg: {
+                            result = fmt::format("[Register: {:02x}]", r.value);
+                            break;
+                        }
+                        case dwarf::expr_result::type::literal: {
+                            result = fmt::format("[Literal: {:08x}]", r.value);
+                            break;
+                        }
+                        case dwarf::expr_result::type::implicit: {
+                            result = fmt::format("[Implicit: {} bytes]", r.implicit_len);
+                            break;
+                        }
+                        case dwarf::expr_result::type::cfa: {
+                            result = "[CFA]";
+                            break;
+                        }
+                        case dwarf::expr_result::type::fbreg: {
+                            result = fmt::format("[FBREG: {}]", r.fbregvalue);
+                            break;
+                        }
+                        case dwarf::expr_result::type::empty: {
+                            result = "[Empty]";
+                            break;
+                        }
                     }
                 } catch (...) {
                     //__debugbreak();
@@ -79,7 +103,7 @@ void dumpTree(const dwarf::die& node, const PCSX::Elf& elf) {
     }
     for (auto& child : node) dumpTree(child, elf);
     ImGui::TreePop();
-}
+}  // namespace
 
 }  // namespace
 
