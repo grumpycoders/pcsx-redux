@@ -20,7 +20,6 @@
     .section .text, "ax", @progbits
     .align 2
     .global fastMemset
-    .global memset
     .type fastMemset, @function
     .set noreorder
 
