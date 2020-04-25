@@ -158,7 +158,7 @@ big_loop:
 skip_big_loop:
     beqz    $t1, out
 
-    addu    $a2, $a0
+    addu    $a2, $t1, $a0
     b       small_memset_loop
     addiu   $a2, -1
 
