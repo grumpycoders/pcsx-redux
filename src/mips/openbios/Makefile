@@ -2,6 +2,7 @@ TARGET = openbios
 
 SRCS = \
 ../common/hardware/sio1.c \
+../common/psxlibc/fastmemset.s \
 boot/boot.s \
 cdrom/cdrom.c \
 cdrom/events.c \

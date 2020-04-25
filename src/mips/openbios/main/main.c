@@ -42,6 +42,8 @@
 
 static void boot(const char * systemCnfPath, const char * binaryPath);
 
+void * fastMemset(void * ptr, int value, size_t num);
+
 int main() {
     // RAM size
     __globals60.ramsize = 0x02;
@@ -200,7 +202,12 @@ static void loadSystemCnf(const char * systemCnf, struct Configuration * configu
 
 static void kernelSetup() { }
 
-static void zeroUserMemoryUntilStack() { }
+static void zeroUserMemoryUntilStack() {
+    int marker;
+    uintptr_t end = (uintptr_t) &marker;
+    end &= 0x3fffffff;
+    fastMemset((void *) 0xa0010000, 0, end - 0x10000);
+}
 
 static struct psxExeHeader s_binaryInfo;
 
