@@ -604,10 +604,9 @@ static void discError() {
 static uint32_t s_lastIREG;
 static uint8_t s_irqFlags;
 
-// yeah, I don't know what's going on...
-// they probably use this to force dummy write
-// cycles to pause a bit, but that's a really
-// weird way to do it.
+// Most likely a poor man's flushWriteQueue,
+// but messes up the NULL pointer data,
+// so we need to keep it this way.
 static volatile uint32_t * const dummy = (volatile uint32_t * const) 0;
 
 int cdromIOVerifier() {
@@ -693,7 +692,6 @@ void getLastCDRomError(uint8_t * err1, uint8_t * err2) {
 void resetAllCDRomIRQs() {
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
-    // yeah, this one is even weirder.
     for (int i = 0; i < 4; i++) *dummy = i;
 }
 

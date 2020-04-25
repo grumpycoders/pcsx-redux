@@ -27,10 +27,10 @@
 #include <string>
 
 #include "core/disr3000a.h"
+#include "core/r3000a.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 
-struct psxRegisters;
 struct MemoryEditor;
 
 namespace PCSX {
@@ -102,8 +102,10 @@ class Assembly : private Disasm {
 
     std::list<std::string> findSymbol(uint32_t addr);
     std::map<std::string, uint32_t> m_symbolsCache;
+    std::map<uint32_t, std::string> m_elfSymbolsCache;
+    bool m_symbolsCachesValid = false;
 
-    void rebuildSymbolsCache();
+    void rebuildSymbolsCaches();
 
     bool m_showSymbols;
     std::string m_symbolFilter;

@@ -108,6 +108,9 @@ int addCDRomDevice() {
     return syscall_addDevice(&s_cdromDevice);
 }
 
+// Most likely a poor man's flushWriteQueue,
+// but messes up the NULL pointer data,
+// so we need to keep it this way.
 static volatile uint32_t * const dummy = (volatile uint32_t * const) 0;
 
 static void resetAllCDRomIRQs() {

@@ -18,6 +18,8 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#include "gui/widgets/assembly.h"
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
@@ -30,12 +32,10 @@
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "imgui.h"
-#include "imgui_stdlib.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "fmt/format.h"
-
-#include "gui/widgets/assembly.h"
+#include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
+#include "imgui_stdlib.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
@@ -898,7 +898,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
 
     if (m_showSymbols) {
         if (ImGui::Begin(_("Symbols"), &m_showSymbols)) {
-            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCache();
+            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCaches();
             ImGui::SameLine();
             ImGui::InputText(_("Filter"), &m_symbolFilter);
             ImGui::BeginChild("symbolsList");
@@ -944,16 +944,14 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
     auto symbol = m_symbols.find(addr);
     if (symbol != m_symbols.end()) ret.emplace_back(symbol->second);
 
-    for (auto& elf : g_emulator.m_psxMem->getElves()) {
-        auto& symbols = elf.getSymbols();
-        auto symbol = symbols.find(addr);
-        if (symbol != symbols.end()) ret.emplace_back(symbol->second);
-    }
+    if (!m_symbolsCachesValid) rebuildSymbolsCaches();
+    auto elfSymbol = m_elfSymbolsCache.find(addr);
+    if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
 
     return std::move(ret);
 }
 
-void PCSX::Widgets::Assembly::rebuildSymbolsCache() {
+void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
     m_symbolsCache.clear();
     for (auto& symbol : m_symbols) {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
@@ -963,6 +961,8 @@ void PCSX::Widgets::Assembly::rebuildSymbolsCache() {
         auto& symbols = elf.getSymbols();
         for (auto& symbol : symbols) {
             m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+            m_elfSymbolsCache.insert(std::pair(symbol.first, symbol.second));
         }
     }
+    m_symbolsCachesValid = true;
 }

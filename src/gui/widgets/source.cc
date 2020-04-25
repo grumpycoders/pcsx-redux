@@ -58,13 +58,13 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
                 if (!std::filesystem::exists(path)) continue;
                 std::ifstream src(path.u8string());
                 if (!src.is_open()) continue;
-                found = true;
 
                 std::string str((std::istreambuf_iterator<char>(src)), std::istreambuf_iterator<char>());
                 m_text.SetText(str);
             }
+            found = true;
             TextEditor::Coordinates c;
-            c.mLine = entry.line;
+            c.mLine = entry.line - 1; 
             c.mColumn = entry.column;
             m_text.SetCursorPosition(c);
             break;

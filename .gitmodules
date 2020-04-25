@@ -12,7 +12,7 @@
 	url = https://github.com/ocornut/imgui_club.git
 [submodule "third_party/ImGuiColorTextEdit"]
 	path = third_party/ImGuiColorTextEdit
-	url = https://github.com/BalazsJako/ImGuiColorTextEdit.git
+	url = https://github.com/grumpycoders/ImGuiColorTextEdit.git
 [submodule "third_party/libuv"]
 	path = third_party/libuv
 	url = https://github.com/libuv/libuv.git
