@@ -106,17 +106,7 @@ std::tuple<dwarf::line_table::entry, std::vector<dwarf::die>> PCSX::Elf::findByA
     return std::tie(entry, stack);
 }
 
-#include <set>
-
-static std::set<dwarf::DW_AT> seen;
-
 void PCSX::Elf::mapDies(const dwarf::die &node) {
-    for (auto &a : node.attributes()) {
-        if (to_string(a.first)._Starts_with("(DW_AT)") && seen.find(a.first) == seen.end()) {
-            seen.insert(a.first);
-            __debugbreak();
-        }
-    }
     m_dies.insert(std::pair(node.get_section_offset(), node));
     for (auto &child : node) mapDies(child);
 }
