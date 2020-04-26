@@ -867,8 +867,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                     break;
             }
         }
-        uint64_t pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
-        uint64_t scroll_to_px = pctopx * static_cast<uint64_t>(ImGui::GetTextLineHeightWithSpacing());
+        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
+        double scroll_to_px = pctopx * clipper.ItemsHeight;
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC = false;
     }

@@ -23,6 +23,7 @@
 #include "imgui.h"
 
 void PCSX::Widgets::Types::draw() {
+    if (!m_show) return;
     if (!ImGui::Begin(_("Types"), &m_show)) {
         ImGui::End();
         return;
