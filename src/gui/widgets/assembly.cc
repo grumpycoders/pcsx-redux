@@ -530,7 +530,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(0x00290000 / 4);
+    ImGuiListClipper clipper(0x00290000 / 4, ImGui::GetTextLineHeightWithSpacing());
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -868,7 +868,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             }
         }
         double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
-        double scroll_to_px = pctopx * clipper.ItemsHeight;
+        double scroll_to_px = pctopx * ImGui::GetTextLineHeightWithSpacing();
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC = false;
     }
