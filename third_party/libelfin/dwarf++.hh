@@ -232,21 +232,7 @@ class unit {
     std::shared_ptr<impl> m;
 };
 
-class frame {
-  public:
-    frame() = default;
-    frame(const frame &) = default;
-    frame(frame &&) = default;
-    frame &operator=(const frame &) = default;
-    frame &operator=(frame &&) = default;
-    frame(const dwarf &file, section_offset offset);
-
-    const dwarf file;
-    const section_offset offset;
-    std::shared_ptr<section> subsec;
-};
-
-class cie : public frame {
+class cie {
   public:
     cie(const dwarf &file, section_offset offset);
 
@@ -256,24 +242,30 @@ class cie : public frame {
     std::shared_ptr<impl> m;
 };
 
-class fde : public frame {
+class fde {
   public:
     struct cfa {
         std::uint64_t reg = 0xffffffffffffffff;
+        std::int64_t saved_reg_offset = 0;
         std::int64_t offset = 0;
         std::int64_t ra_offset = 0;
+        bool saved_reg_offset_valid = false;
         bool offset_valid = false;
         bool ra_offset_valid = false;
     };
+    fde();
     fde(const dwarf &file, section_offset offset);
 
     cfa evaluate_cfa(taddr pc) const;
 
+    bool valid() const;
     bool contains(taddr pc) const;
+    taddr initial_location() const;
+    size_t length() const;
 
-    private:
+  private:
     struct impl;
-      std::shared_ptr<impl> m;
+    std::shared_ptr<impl> m;
 };
 
 /**

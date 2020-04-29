@@ -65,6 +65,15 @@ bool PCSX::Elf::load(const char *name) {
         mapDies(cu.root());
     }
 
+    const auto &fdes = m_dwarf.get_fdes();
+    std::vector<interval_tree::Interval<uint32_t, dwarf::fde>> intervals;
+    for (const auto &fde : fdes) {
+        uint32_t begin = fde.initial_location();
+        uint32_t end = begin + fde.length() - 1;
+        intervals.emplace_back(begin, end, fde);
+    }
+    m_fdes = std::move(interval_tree::IntervalTree<uint32_t, dwarf::fde>(std::move(intervals)));
+
     return true;
 }
 
@@ -109,4 +118,10 @@ std::tuple<dwarf::line_table::entry, std::vector<dwarf::die>> PCSX::Elf::findByA
 void PCSX::Elf::mapDies(const dwarf::die &node) {
     m_dies.insert(std::pair(node.get_section_offset(), node));
     for (auto &child : node) mapDies(child);
+}
+
+const dwarf::fde PCSX::Elf::findFDE(uint32_t pc) const {
+    auto f = m_fdes.findOverlapping(pc, pc);
+    if (f.size()) return f[0].value;
+    return dwarf::fde();
 }

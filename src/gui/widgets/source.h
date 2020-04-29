@@ -25,6 +25,8 @@
 
 #include "ImGuiColorTextEdit/TextEditor.h"
 
+#include "core/stacktrace.h"
+
 namespace PCSX {
 
 namespace Widgets {
@@ -38,6 +40,7 @@ class Source {
 
   private:
     uint64_t m_oldPC = 0xffffffffffffffff;
+    std::vector<Stacktrace::Element> m_currentStacktrace;
     std::filesystem::path m_oldPath;
     TextEditor m_text;
 };

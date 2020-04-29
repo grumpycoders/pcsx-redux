@@ -19,47 +19,25 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <filesystem>
-#include <map>
-#include <string>
-#include <tuple>
+#include <vector>
 
-#include "dwarf++.hh"
-#include "elf++.hh"
-
-#include "interval_tree.h"
+#include "core/psxmem.h"
+#include "core/r3000a.h"
 
 namespace PCSX {
 
-class Elf {
-  public:
-    bool load(const char* name);
-#if defined(__cpp_lib_char8_t)
-    bool load(const std::u8string& filename) {
-        return load(reinterpret_cast<const char*>(filename.c_str());
-    }
-#endif
-    bool load(const std::string& filename) { return load(filename.c_str()); }
+namespace Stacktrace {
 
-    std::tuple<dwarf::line_table::entry, std::vector<dwarf::die>> findByAddress(uint32_t pc) const;
+struct Element {
+    std::filesystem::path path;
+    int line;
+    uint32_t pc;
+    uint32_t sp;
+};
 
-    const std::map<uint32_t, std::string>& getSymbols() const { return m_symbols; }
-    const elf::elf getElf() const { return m_elf; }
-    const std::map<dwarf::section_offset, dwarf::die>& getDies() const { return m_dies; }
-    const std::vector<dwarf::compilation_unit>& getCUs() const { return m_cus; }
-    const dwarf::fde findFDE(uint32_t pc) const;
+std::vector<Element> computeStacktrace(Memory* mem, psxRegisters* regs);
 
-  private:
-    elf::elf m_elf;
-    dwarf::dwarf m_dwarf;
-    std::map<uint32_t, std::string> m_symbols;
-    std::map<dwarf::section_offset, dwarf::die> m_dies;
-    std::vector<dwarf::compilation_unit> m_cus;
-    interval_tree::IntervalTree<uint32_t, dwarf::fde> m_fdes;
-
-    void mapDies(const dwarf::die&);
-};  // namespace PCSX
+}  // namespace Stacktrace
 
 }  // namespace PCSX

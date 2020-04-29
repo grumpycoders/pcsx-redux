@@ -25,7 +25,9 @@
 #include <string>
 #include <vector>
 
+#include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "core/r3000a.h"
 
 void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -34,6 +36,7 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
     }
 
     if (pc != m_oldPC) {
+        m_currentStacktrace = Stacktrace::computeStacktrace(g_emulator.m_psxMem.get(), &g_emulator.m_psxCpu->m_psxRegs);
         bool found = false;
         m_oldPC = pc;
         for (auto& e : g_emulator.m_psxMem->getElves()) {
@@ -64,7 +67,7 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
             }
             found = true;
             TextEditor::Coordinates c;
-            c.mLine = entry.line - 1; 
+            c.mLine = entry.line - 1;
             c.mColumn = entry.column;
             m_text.SetCursorPosition(c);
             break;
@@ -77,5 +80,12 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
 
     m_text.Render(_("Source"));
 
+    ImGui::End();
+
+    if (ImGui::Begin(_("Callstack"))) {
+        for (auto& e : m_currentStacktrace) {
+            ImGui::Text("@%08x/%08x %s:%i", e.pc, e.sp, e.path.string().c_str(), e.line);
+        }
+    }
     ImGui::End();
 }

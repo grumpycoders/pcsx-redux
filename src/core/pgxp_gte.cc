@@ -35,6 +35,13 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
+#ifndef max
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 // GTE registers
 static PGXP_value s_GTE_data_reg_mem[32];
 static PGXP_value s_GTE_ctrl_reg_mem[32];

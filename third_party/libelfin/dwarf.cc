@@ -262,12 +262,8 @@ compilation_unit::compilation_unit(const dwarf &file, section_offset offset) {
     m = make_shared<impl>(file, offset, subsec, debug_abbrev_offset, sub.get_section_offset());
 }
 
-frame::frame(const dwarf &file, section_offset offset) : file(file), offset(offset) {
-    cursor cur(file.get_section(section_type::frame), offset);
-    subsec = cur.subsection();
-}
-
 struct cie::impl {
+    std::shared_ptr<section> subsec;
     const ubyte version;
     const ubyte address_size;
     const ubyte segment_size;
@@ -277,9 +273,11 @@ struct cie::impl {
 
     const cursor instructions;
 
-    impl(const ubyte version, const ubyte address_size, const ubyte segment_size, const uint64_t code_alignment_factor,
-         const int64_t data_alignment_factor, const uint64_t return_address_register, const cursor instructions)
-        : version(version),
+    impl(std::shared_ptr<section> subsec, const ubyte version, const ubyte address_size, const ubyte segment_size,
+         const uint64_t code_alignment_factor, const int64_t data_alignment_factor,
+         const uint64_t return_address_register, const cursor instructions)
+        : subsec(subsec),
+          version(version),
           address_size(address_size),
           segment_size(segment_size),
           code_alignment_factor(code_alignment_factor),
@@ -288,7 +286,9 @@ struct cie::impl {
           instructions(instructions) {}
 };
 
-cie::cie(const dwarf &file, section_offset offset) : frame(file, offset) {
+cie::cie(const dwarf &file, section_offset offset) {
+    cursor cur(file.get_section(section_type::frame), offset);
+    std::shared_ptr<section> subsec = cur.subsection();
     cursor sub(subsec);
     sub.skip_initial_length();
     section_offset id = sub.offset();
@@ -328,11 +328,13 @@ cie::cie(const dwarf &file, section_offset offset) : frame(file, offset) {
     int64_t data_alignment_factor = sub.sleb128();
     uint64_t return_address_register = sub.uleb128();
 
-    m = make_shared<impl>(version, address_size, segment_size, code_alignment_factor, data_alignment_factor,
+    m = make_shared<impl>(subsec, version, address_size, segment_size, code_alignment_factor, data_alignment_factor,
                           return_address_register, sub);
 }
 
 struct fde::impl {
+    std::shared_ptr<section> subsec;
+
     const std::unordered_map<section_offset, cie>::const_iterator CIE;
     const taddr initial_location_segment;
     const taddr initial_location;
@@ -340,16 +342,20 @@ struct fde::impl {
 
     const cursor instructions;
 
-    impl(std::unordered_map<section_offset, cie>::const_iterator CIE, const taddr initial_location_segment,
-         const taddr initial_location, const size_t address_range, const cursor instructions)
-        : CIE(CIE),
+    impl(std::shared_ptr<section> subsec, std::unordered_map<section_offset, cie>::const_iterator CIE,
+         const taddr initial_location_segment, const taddr initial_location, const size_t address_range,
+         const cursor instructions)
+        : subsec(subsec),
+          CIE(CIE),
           initial_location_segment(initial_location_segment),
           initial_location(initial_location),
           address_range(address_range),
           instructions(instructions) {}
 };
 
-fde::fde(const dwarf &file, section_offset offset) : frame(file, offset) {
+fde::fde(const dwarf &file, section_offset offset) {
+    cursor cur(file.get_section(section_type::frame), offset);
+    std::shared_ptr<section> subsec = cur.subsection();
     cursor sub(subsec);
     sub.skip_initial_length();
 
@@ -362,14 +368,20 @@ fde::fde(const dwarf &file, section_offset offset) : frame(file, offset) {
     taddr initial_location = sub.address(CIE->second.m->address_size);
     size_t address_range = sub.address(CIE->second.m->address_size);
 
-    m = make_shared<impl>(CIE, initial_location_segment, initial_location, address_range, sub);
+    m = make_shared<impl>(subsec, CIE, initial_location_segment, initial_location, address_range, sub);
 }
+
+fde::fde() {}
 
 bool fde::contains(taddr pc) const {
     taddr begin = m->initial_location;
     taddr end = begin + m->address_range;
     return (begin <= pc) && (pc < end);
 }
+
+taddr fde::initial_location() const { return m->initial_location; }
+size_t fde::length() const { return m->address_range; }
+bool fde::valid() const { return m.get(); }
 
 fde::cfa fde::evaluate_cfa(taddr pc) const {
     if (!contains(pc)) throw out_of_range("evaluate_cfa: pc is not in range");
@@ -412,6 +424,9 @@ fde::cfa fde::evaluate_cfa(taddr pc) const {
                         if (reg == m->CIE->second.m->return_address_register) {
                             ret.ra_offset = offset;
                             ret.ra_offset_valid = true;
+                        } else if (reg == ret.reg) {
+                            ret.saved_reg_offset = offset;
+                            ret.saved_reg_offset_valid = true;
                         }
                         break;
                     }
@@ -454,6 +469,9 @@ fde::cfa fde::evaluate_cfa(taddr pc) const {
                         if (reg == m->CIE->second.m->return_address_register) {
                             ret.ra_offset = offset;
                             ret.ra_offset_valid = true;
+                        } else if (reg == ret.reg) {
+                            ret.saved_reg_offset = offset;
+                            ret.saved_reg_offset_valid = true;
                         }
                         break;
                     }
@@ -483,6 +501,9 @@ fde::cfa fde::evaluate_cfa(taddr pc) const {
                 if (lo == m->CIE->second.m->return_address_register) {
                     ret.ra_offset = offset;
                     ret.ra_offset_valid = true;
+                } else if (lo == ret.reg) {
+                    ret.saved_reg_offset = offset;
+                    ret.saved_reg_offset_valid = true;
                 }
                 break;
             }
