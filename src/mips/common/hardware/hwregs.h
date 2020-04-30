@@ -48,5 +48,5 @@
 #define ATCONS_IRQ  HW_U8(0x1f802030)
 #define ATCONS_IRQ2 HW_U8(0x1f802032)
 
-#define POST HW_U8(0xbf802041)
+#define POST HW_U8(0xbf802042)
 

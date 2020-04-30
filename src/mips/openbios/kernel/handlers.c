@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "osdebug.h"
+
 #include "common/compiler/stdint.h"
 #include "common/psxlibc/stdio.h"
 #include "common/psxlibc/setjmp.h"
@@ -90,6 +92,10 @@ static struct JmpBuf defaultExceptionJmpBuf = {
 
 static void setDefaultExceptionJmpBuf() {
 
+}
+
+static void patchA0table() {
+    
 }
 
 static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
@@ -174,13 +180,13 @@ void *B0table[0x60] = {
 
 void * C0table[0x20] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
-    unimplemented, unimplemented, unimplemented, unimplemented, // 04
+    unimplemented, unimplemented, unimplemented, installExceptionHandler, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
     unimplemented, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, unimplemented, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, unimplemented, // 14
     setupFileIO, unimplemented, unimplemented, unimplemented, // 18
-    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
+    patchA0table, unimplemented, unimplemented, unimplemented, // 1c
 };
 
 typedef struct {
@@ -200,24 +206,25 @@ typedef struct {
 } InterruptData;
 
 static void printInterruptData(InterruptData* data) {
-    psxprintf("epc = %p - status = %p - cause = %p\r\n", data->EPC, data->SR, data->Cause);
-    psxprintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", data->GPR.r[ 0], data->GPR.r[ 1], data->GPR.r[ 2], data->GPR.r[ 3]);
-    psxprintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", data->GPR.r[ 4], data->GPR.r[ 5], data->GPR.r[ 6], data->GPR.r[ 7]);
-    psxprintf("t0 = %p - t1 = %p - t2 = %p - t3 = %p\r\n", data->GPR.r[ 8], data->GPR.r[ 9], data->GPR.r[10], data->GPR.r[11]);
-    psxprintf("t4 = %p - t5 = %p - t6 = %p - t7 = %p\r\n", data->GPR.r[12], data->GPR.r[13], data->GPR.r[14], data->GPR.r[15]);
-    psxprintf("s0 = %p - s1 = %p - s2 = %p - s3 = %p\r\n", data->GPR.r[16], data->GPR.r[17], data->GPR.r[18], data->GPR.r[19]);
-    psxprintf("s4 = %p - s5 = %p - s6 = %p - s7 = %p\r\n", data->GPR.r[20], data->GPR.r[21], data->GPR.r[22], data->GPR.r[23]);
-    psxprintf("t8 = %p - t9 = %p - k0 = %p - k1 = %p\r\n", data->GPR.r[24], data->GPR.r[25], data->GPR.r[26], data->GPR.r[27]);
-    psxprintf("gp = %p - sp = %p - s8 = %p - ra = %p\r\n", data->GPR.r[28], data->GPR.r[29], data->GPR.r[30], data->GPR.r[31]);
-    psxprintf("hi = %p - lo = %p\r\n", data->GPR.r[32], data->GPR.r[33]);
+    osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", data->EPC, data->SR, data->Cause);
+    osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", data->GPR.r[ 0], data->GPR.r[ 1], data->GPR.r[ 2], data->GPR.r[ 3]);
+    osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", data->GPR.r[ 4], data->GPR.r[ 5], data->GPR.r[ 6], data->GPR.r[ 7]);
+    osDbgPrintf("t0 = %p - t1 = %p - t2 = %p - t3 = %p\r\n", data->GPR.r[ 8], data->GPR.r[ 9], data->GPR.r[10], data->GPR.r[11]);
+    osDbgPrintf("t4 = %p - t5 = %p - t6 = %p - t7 = %p\r\n", data->GPR.r[12], data->GPR.r[13], data->GPR.r[14], data->GPR.r[15]);
+    osDbgPrintf("s0 = %p - s1 = %p - s2 = %p - s3 = %p\r\n", data->GPR.r[16], data->GPR.r[17], data->GPR.r[18], data->GPR.r[19]);
+    osDbgPrintf("s4 = %p - s5 = %p - s6 = %p - s7 = %p\r\n", data->GPR.r[20], data->GPR.r[21], data->GPR.r[22], data->GPR.r[23]);
+    osDbgPrintf("t8 = %p - t9 = %p - k0 = %p - k1 = %p\r\n", data->GPR.r[24], data->GPR.r[25], data->GPR.r[26], data->GPR.r[27]);
+    osDbgPrintf("gp = %p - sp = %p - s8 = %p - ra = %p\r\n", data->GPR.r[28], data->GPR.r[29], data->GPR.r[30], data->GPR.r[31]);
+    osDbgPrintf("hi = %p - lo = %p\r\n", data->GPR.r[32], data->GPR.r[33]);
 }
 
 void breakHandler(InterruptData* data) {
 }
 
 void exceptionHandler(InterruptData* data) {
-    psxprintf("***Exception***\r\n");
+    osDbgPrintf("***Exception***\r\n");
     printInterruptData(data);
+    *((volatile char * const) 0x1f802081) = 0;
     while(1);
 }
 

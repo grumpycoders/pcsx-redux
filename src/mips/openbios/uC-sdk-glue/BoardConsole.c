@@ -19,12 +19,33 @@
 
 #include "BoardConsole.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+
+static volatile char * const s_pcsxPutc = (volatile char *) 0x1f802080;
+
 void BoardConsoleInit() {}
 
-void BoardConsolePuts(const char * str) {}
+void BoardConsolePuts(const char * str) {
+    char c;
+    while ((c = *str++)) BoardConsolePutc(c);
+}
 
-void BoardConsolePutc(int c) {}
+void BoardConsolePutc(int c) {
+    *s_pcsxPutc = c;
+}
 
-void BoardConsolePrintf(const char * fmt, ...) {}
+static void xprintfCallback(const char * str, int strsize, void * opaque0) {
+    while (strsize--)
+        BoardConsolePutc(*str++);
+}
 
-void BoardConsoleVPrintf(const char * fmt, va_list ap) {}
+void BoardConsolePrintf(const char * fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    BoardConsoleVPrintf(fmt, ap);
+    va_end(ap);}
+
+void BoardConsoleVPrintf(const char * fmt, va_list ap) {
+    vxprintf(xprintfCallback, NULL, fmt, ap);
+}

@@ -192,5 +192,9 @@ bss_init_skip:
 
     jal   _ucsdk_start
 
+    li    $t0, 0x1f802080
+    li    $t1, 10
+    sb    $t1, 0($t0)
+    sb    $t1, 1($t0)
 stop:
     b     stop

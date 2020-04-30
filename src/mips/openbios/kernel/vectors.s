@@ -160,7 +160,7 @@ exceptionVector:
     .type A0Vector, @function
 
 A0Vector:
-    la    $t0, A0Handler
+    li    $t0, %lo(A0Handler)
     jr    $t0
     nop
 
@@ -170,7 +170,7 @@ A0Vector:
     .type B0Vector, @function
 
 B0Vector:
-    la    $t0, B0Handler
+    li    $t0, %lo(B0Handler)
     jr    $t0
     nop
 
@@ -180,7 +180,7 @@ B0Vector:
     .type C0Vector, @function
 
 C0Vector:
-    la    $t0, C0Handler
+    li    $t0, %lo(C0Handler)
     jr    $t0
     nop
 
@@ -191,7 +191,7 @@ C0Vector:
 
 A0Handler:
     li    $t0, %lo(__ramA0table)
-    sll   $t2, $t1, 1
+    sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xa0
@@ -204,7 +204,7 @@ A0Handler:
 
 B0Handler:
     li    $t0, %lo(B0table)
-    sll   $t2, $t1, 1
+    sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xb0
@@ -217,7 +217,7 @@ B0Handler:
 
 C0Handler:
     li    $t0, %lo(C0table)
-    sll   $t2, $t1, 1
+    sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xc0
