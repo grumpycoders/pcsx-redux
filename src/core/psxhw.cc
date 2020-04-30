@@ -326,6 +326,13 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
             break;
         case 0x1f802042:
             PCSX::g_system->biosPrintf("BIOS Trace: 0x%02x\n", value);
+            break;
+        case 0x1f802080:
+            PCSX::g_system->biosPutc(value);
+            break;
+        case 0x1f802081:
+            PCSX::g_system->pause();
+            break;
 
         default:
             psxHu8ref(add) = value;

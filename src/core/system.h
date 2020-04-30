@@ -45,6 +45,7 @@ class System {
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
     // Printf used by bios syscalls
+    virtual void biosPutc(int c) = 0;
     virtual void biosPrintf(const char *fmt, ...) = 0;
     virtual void vbiosPrintf(const char *fmt, va_list va) = 0;
     // Printf used by the code in general, to indicate errors most of the time

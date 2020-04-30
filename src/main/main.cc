@@ -56,6 +56,16 @@ class SystemImpl : public PCSX::System {
         va_end(a);
     }
 
+    virtual void biosPutc(int c) final {
+        if (c == '\r') return;
+        if (c == '\n') {
+            biosPrintf("%s\n", m_putcharBuffer.c_str());
+            m_putcharBuffer.clear();
+            return;
+        }
+        m_putcharBuffer += std::string(1, c);
+    }
+
     virtual void biosPrintf(const char *fmt, ...) final {
         // print message to debugging console
         va_list a;
@@ -152,6 +162,7 @@ class SystemImpl : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
+    std::string m_putcharBuffer;
     FILE *m_logfile = nullptr;
 
   public:
