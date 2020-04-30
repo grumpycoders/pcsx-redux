@@ -114,7 +114,7 @@ int psxlseek(int fd, int offset, int whence) {
             // yes, this is actually what the retail bios does.
             break;
         default:
-            syscall_printf("invalid lseek arg");
+            romsyscall_printf("invalid lseek arg");
             file->errno = psxerrno = PSXEINVAL;
             return -1;
     }
@@ -141,7 +141,7 @@ int psxread(int fd, void * buffer, int size) {
         if (device->flags & PSXDTTYPE_BLOCK) {
             int blockSize = device->blockSize;
             if (file->offset % blockSize) {
-                syscall_printf("offset not on block boundary");
+                romsyscall_printf("offset not on block boundary");
                 return -1;
             }
             file->count /= blockSize;
@@ -175,7 +175,7 @@ int psxwrite(int fd, void * buffer, int size) {
         if (device->flags & PSXDTTYPE_BLOCK) {
             int blockSize = device->blockSize;
             if (file->offset % blockSize) {
-                syscall_printf("offset not on block boundary");
+                romsyscall_printf("offset not on block boundary");
                 return -1;
             }
             file->count /= blockSize;

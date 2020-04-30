@@ -132,6 +132,7 @@ generalHandler:
     .word 0x42000010 /* rfe */
 
     .align 2
+    .section .text, "ax", @progbits
     .global breakVector
     .global breakHandler
     .type breakVector, @function
@@ -184,11 +185,12 @@ C0Vector:
     nop
 
     .align 2
-    .global A0table
+    .section .data, "ax", @progbits
+    .global __ramA0table
     .type A0Handler, @function
 
 A0Handler:
-    la    $t0, A0table
+    li    $t0, %lo(__ramA0table)
     sll   $t2, $t1, 1
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -201,7 +203,7 @@ A0Handler:
     .type B0Handler, @function
 
 B0Handler:
-    la    $t0, B0table
+    li    $t0, %lo(B0table)
     sll   $t2, $t1, 1
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -214,7 +216,7 @@ B0Handler:
     .type C0Handler, @function
 
 C0Handler:
-    la    $t0, C0table
+    li    $t0, %lo(C0table)
     sll   $t2, $t1, 1
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -233,11 +235,20 @@ unimplemented:
     nop
 
     .align 2
-    .section .text, "ax", @progbits
-    .global syscall_printf
-    .type syscall_printf, @function
+    .global ramsyscall_printf
+    .type ramsyscall_printf, @function
 
-syscall_printf:
+ramsyscall_printf:
+    li    $t2, 0xa0
+    jr    $t2
+    li    $t1, 0x3f
+
+    .align 2
+    .section .text, "ax", @progbits
+    .global romsyscall_printf
+    .type romsyscall_printf, @function
+
+romsyscall_printf:
     li    $t2, 0xa0
     jr    $t2
     li    $t1, 0x3f

@@ -47,21 +47,21 @@ void A0Vector();
 void B0Vector();
 void C0Vector();
 
-static void installHandler(const void * src, void * dst) {
-    ((uint32_t *) dst)[0] = ((uint32_t *) src)[0];
-    ((uint32_t *) dst)[1] = ((uint32_t *) src)[1];
-    ((uint32_t *) dst)[2] = ((uint32_t *) src)[2];
-    ((uint32_t *) dst)[3] = ((uint32_t *) src)[3];
+static void installHandler(const uint32_t * src, uint32_t * dst) {
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    dst[3] = src[3];
 }
 
 void installKernelHandlers() {
-    installHandler(A0Vector, (uint32_t *) 0xa0);
-    installHandler(B0Vector, (uint32_t *) 0xb0);
-    installHandler(C0Vector, (uint32_t *) 0xc0);
+    installHandler((uint32_t*) A0Vector, (uint32_t *) 0xa0);
+    installHandler((uint32_t*) B0Vector, (uint32_t *) 0xb0);
+    installHandler((uint32_t*) C0Vector, (uint32_t *) 0xc0);
 }
 
 static void installExceptionHandler() {
-    installHandler(exceptionVector, (uint32_t *) 0x80);
+    installHandler((uint32_t*) exceptionVector, (uint32_t *) 0x80);
 }
 
 static void __attribute__((noreturn)) returnFromException() {
@@ -219,4 +219,34 @@ void exceptionHandler(InterruptData* data) {
     psxprintf("***Exception***\r\n");
     printInterruptData(data);
     while(1);
+}
+
+/* This is technically all done by our crt0, but since there's
+   logic that relies on this being a thing, we're repeating
+   this code here too. We should have better code for these
+   however, instead of memcpy and memset. */
+extern uint32_t __data_start;
+extern uint32_t __rom_data_start;
+extern uint32_t __data_len;
+extern uint32_t __bss_start;
+extern uint32_t __bss_len;
+void copyDataAndInitializeBSS() {
+    /* This part is technically a chicken-and-egg problem.
+       We can't rely on the code to already exist in RAM,
+       so we have to do this in ROM, which will be slower. */
+    memcpy(&__data_start, &__rom_data_start, __data_len);
+    /* The original code does this step by jumping into 0x500.
+       Likely the intend being that there's a faster memset at
+       this location, for the specific purpose of handling
+       a memset using the i-cache. We can tune this later. */
+    memset(&__bss_start, 0, __data_len);
+}
+
+/* This also could be handled by the crt0, by putting the
+   A0 table into the proper data section, but in the
+   spirit of doing exactly what the original code does,
+   we're going to do it manually instead. */
+extern uint32_t __ramA0table;
+void copyA0table() {
+    memcpy(&__ramA0table, A0table, sizeof(A0table));
 }

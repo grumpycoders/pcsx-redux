@@ -32,10 +32,14 @@ bool PCSX::Elf::load(const char *name) {
     for (auto &s : segs) {
         if (s.valid() && (s.get_hdr().type == elf::pt::load)) {
             auto &h = s.get_hdr();
-            uint32_t loadAddr = h.vaddr;
+            uint32_t loadAddr = h.paddr;
             void *dst = PSXM(loadAddr);
             const void *src = s.data();
             size_t size = s.file_size();
+            memcpy(dst, src, size);
+            if (h.paddr == h.vaddr) continue;
+            loadAddr = h.vaddr;
+            dst = PSXM(loadAddr);
             memcpy(dst, src, size);
         }
     }

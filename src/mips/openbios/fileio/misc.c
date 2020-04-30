@@ -57,7 +57,7 @@ void setupFileIO(int installTTY) {
 void printInstalledDevices() {
     struct Device * ptr;
     for (ptr = s_devices; ptr < s_devices + sizeof(s_devices) / sizeof(s_devices[0]); ptr++) {
-        if (ptr->name) syscall_printf("\t%s:\t%s\n");
+        if (ptr->name) romsyscall_printf("\t%s:\t%s\n");
     }
 }
 
@@ -69,8 +69,8 @@ struct Device * findDevice(const char * name) {
 
     // what?
     // s_ignoreCarriageReturns = 0;
-    syscall_printf("%s is not known device\n", name);
-    syscall_printf("Known devices are:\n");
+    romsyscall_printf("%s is not known device\n", name);
+    romsyscall_printf("Known devices are:\n");
     printInstalledDevices();
     return NULL;
 }
@@ -102,7 +102,7 @@ void ioabortraw(int code) {
 }
 
 void ioAbortWithMsg(const char * msg1, const char * msg2) {
-    syscall_printf("ioabort exit: %s %s\n");
+    romsyscall_printf("ioabort exit: %s %s\n");
     syscall_ioabortraw(1);
 }
 

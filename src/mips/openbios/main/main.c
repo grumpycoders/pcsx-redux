@@ -229,20 +229,11 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
     POST = 0x02;
-    /* Here, the retail bios does something along the lines of
-       copyDataAndInitializeBSS(), but our crt0 already took
-       care of it for us. */
-    // copyDataAndInitializeBSS();
+    copyDataAndInitializeBSS();
     POST = 0x03;
-    /* Same punishment as above: the retail bios copies the A0 table
-       at this point, but our crt0 did it too, as it's part of our data
-       section. */
-    // copyA0table();
+    copyA0table();
     installKernelHandlers();
-    /* The next call is supposed to be the c0/1c syscall, which patches
-       in the stdio functions from the C0 table into the A0 one.
-       We're not doing this either. */
-    // syscall_patchA0table();
+    syscall_patchA0table();
     syscall_installExceptionHandler();
     syscall_setDefaultExceptionJmpBuf();
     POST = 0x04;

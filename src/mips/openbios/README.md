@@ -36,6 +36,8 @@ The BIOS is split in two major parts: the low level code for the bios itself, an
 
 While the first part is the main one that's being targeted here, the second one isn't currently present. This may change in the future, but this isn't currently the focus of this project.
 
+The original code was most likely chunked into several sub-projects, that were all linked together like a giant patchwork. This approach is less readable, and for this reason, we're not going to do this. However this will result in the ROM/RAM split to be less obvious, and slower at times than the original. Tuning of the hot functions is eventually required.
+
 ## Direction
 
 The primary repository for this project is going to be as a subdirectory of PCSX-Redux at the moment, because building, testing and integration as a single bloc of code is much more practical than separate repositories. If the need arise however, it should be possible to move it as a separate repository elsewhere.

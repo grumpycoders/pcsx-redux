@@ -55,7 +55,8 @@ static __inline__ void syscall__exit() {
 // doing this one in raw inline assembly would prove tricky,
 // and there's already enough voodoo in this file.
 // this is syscall a0:3f
-int syscall_printf(const char * fmt, ...);
+int romsyscall_printf(const char * fmt, ...);
+int ramsyscall_printf(const char * fmt, ...);
 
 static __inline__ int syscall_cdromSeekL(uint8_t * msf) {
     register volatile int n asm("t1") = 0x78;
@@ -255,4 +256,10 @@ static __inline__ int syscall_ioabort(const char * msg) {
     register volatile int n asm("t1") = 0x19;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int(*)(const char *))0xc0)(msg);
+}
+
+static __inline__ int syscall_patchA0table() {
+    register volatile int n asm("t1") = 0x1c;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)())0xc0)();
 }

@@ -24,7 +24,8 @@ EXTERN(_reset)
 ENTRY(_reset)
 
 MEMORY {
-    kseg0 (rwx): ORIGIN = 0x00000000, LENGTH = 2M
+    kseg0i(rwx): ORIGIN = 0x00000000, LENGTH = 0x500
+    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 2M - 0x500
     ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 512K
     dcache     : ORIGIN = 0x1f800000, LENGTH = 0x400
@@ -38,16 +39,50 @@ __sp            = __ram_top - 0x100;
 __dcache        = ORIGIN(dcache);
 __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
-__rom_data_len  = (__data_end - __data_start);
-__bss_len       = (__bss_end - __bss_start);
+__data_len_val  = (__data_end - __data_start);
+__bss_len_val   = (__bss_end - __bss_start);
 
 __stack_start   = ORIGIN(ram) + LENGTH(ram) - STACK_SIZE;
 
 SECTIONS {
+    .base (NOLOAD) : {
+        __vector_00 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_40 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __globals60 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_80 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_a0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_b0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_c0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_d0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_e0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_f0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __globals = .;
+        . = ALIGN(0x200);
+        __ramA0table = .;
+        . = ALIGN(0x500);
+    } > kseg0i
+
     __text_start = .;
     .text : {
         *(.boot)
 
+        *(.a0table)
         *(.init)
         . = ALIGN(4);
         __preinit_array_start = .;
@@ -87,70 +122,40 @@ SECTIONS {
         LONG(4);
         LONG(10);
         LONG(__sp);
-        . = ALIGN(4);
-        *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
+        __data_len = .;
+        LONG(__data_len_val);
+        __bss_len = .;
+        LONG(__bss_len_val);
+        . = ALIGN(32);
+        *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.* .rodata1)
     } > rom
 
-    .rodata1 : {
-        *(.rodata1)
-    } > rom
-
-    .data : {
-        __vector_00 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_40 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __globals60 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_80 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_a0 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_b0 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_c0 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_d0 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_e0 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __vector_f0 = .;
-        LONG(0); LONG(0); LONG(0); LONG(0);
-        __globals = .;
-        . = ALIGN(0x200);
-    } > kseg0
-
-    __data_start = .;
-    .data : {
+    .rom_data_start : {
         __rom_data_start = .;
-        *(.a0table)
+    } > rom
+
+    .data : {
+        __data_start = .;
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)
         *(.got.plt)
         *(.got)
+        . = ALIGN(32);
+        __data_end = .;
     } > kseg0 AT > rom
 
-    . = ALIGN(4);
-    __data_end = .;
-
-    __bss_start = .;
-    .sbss : {
+    .sbss (NOLOAD) : {
+        . = ALIGN(32);
+        __bss_start = .;
         *(.dynsbss)
         *(.sbss .sbss.* .gnu.linkonce.sb.*)
         *(.scommon)
         *(.dynbss)
         *(.bss .bss.* .gnu.linkonce.b.*)
         *(COMMON)
+        . = ALIGN(4);
+        __bss_end = .;
     } > kseg0
-
-    . = ALIGN(4);
-    __bss_end = .;
 
     __heap_start = .;
 
