@@ -45,7 +45,7 @@ void PCSX::HW::psxHwReset() {
 uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
     unsigned char hard;
 
-    switch (add) {
+    switch (add & 0x3fffffff) {
         case 0x1f801040:
             hard = PCSX::g_emulator.m_sio->sioRead8();
             break;
@@ -82,7 +82,7 @@ uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
 uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
     unsigned short hard;
 
-    switch (add) {
+    switch (add & 0x3fffffff) {
         case 0x1f801070:
             PSXHW_LOG("IREG 16bit read %x\n", psxHu16(0x1070));
             return psxHu16(0x1070);
@@ -189,7 +189,7 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
 uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
     uint32_t hard;
 
-    switch (add) {
+    switch (add & 0x3fffffff) {
         case 0x1f801040:
             hard = PCSX::g_emulator.m_sio->sioRead8();
             hard |= PCSX::g_emulator.m_sio->sioRead8() << 8;
@@ -303,7 +303,7 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
 }
 
 void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
-    switch (add) {
+    switch (add & 0x3fffffff) {
         case 0x1f801040:
             PCSX::g_emulator.m_sio->write8(value);
             break;
@@ -337,7 +337,7 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
 }
 
 void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
-    switch (add) {
+    switch (add & 0x3fffffff) {
         case 0x1f801040:
             PCSX::g_emulator.m_sio->write8((unsigned char)value);
             PCSX::g_emulator.m_sio->write8((unsigned char)(value >> 8));
@@ -472,7 +472,7 @@ inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     }
 
 void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
-    switch (add) {
+    switch (add & 0x3fffffff) {
         case 0x1f801040:
             PCSX::g_emulator.m_sio->write8((unsigned char)value);
             PCSX::g_emulator.m_sio->write8((unsigned char)((value & 0xff) >> 8));
