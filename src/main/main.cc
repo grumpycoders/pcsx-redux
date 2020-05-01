@@ -240,7 +240,8 @@ int main(int argc, char **argv) {
     s_gui->close();
 
     delete s_gui;
+    int exitCode = PCSX::g_system->exitCode();
     delete PCSX::g_system;
 
-    return 0;
+    return exitCode;
 }

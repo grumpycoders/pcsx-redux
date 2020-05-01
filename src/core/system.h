@@ -63,13 +63,15 @@ class System {
     virtual void close() = 0;
     bool running() { return m_running; }
     bool quitting() { return m_quitting; }
+    int exitCode() { return m_exitCode; }
     void start() { m_running = true; }
     void stop() { m_running = false; }
     void pause() { m_running = false; }
     void resume() { m_running = true; }
-    void quit() {
+    void quit(int code = 0) {
         m_quitting = true;
         m_running = false;
+        m_exitCode = code;
     }
 
   private:
@@ -132,6 +134,7 @@ class System {
     std::string m_currentLocale;
     bool m_running = false;
     bool m_quitting = false;
+    int m_exitCode = 0;
     std::filesystem::path m_binDir;
 };
 
