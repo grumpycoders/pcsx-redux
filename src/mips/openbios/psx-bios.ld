@@ -82,7 +82,6 @@ SECTIONS {
     .text : {
         *(.boot)
 
-        *(.a0table)
         *(.init)
         . = ALIGN(4);
         __preinit_array_start = .;

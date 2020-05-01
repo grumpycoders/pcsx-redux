@@ -17,20 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "common/psxlibc/handlers.h"
+#include "common/syscalls/syscalls.h"
+#include "openbios/kernel/globals.h"
 
-#include <stdint.h>
+int sysEnqIntRP(int priority, struct HandlerInfo *handler) {
+    struct HandlerInfo * ptr;
+    ptr = __globals.handlersArray[priority].first;
+    __globals.handlersArray[priority].first = handler;
+    handler->next = ptr;
 
-struct HandlerInfo;
-
-struct HandlerInfo {
-    struct HandlerInfo * next;
-    void(*handler)(int);
-    int(*verifier)();
-    uint32_t padding;
-};
-
-struct HandlersStorage {
-    struct HandlerInfo * first;
-    uint32_t padding;
-};
+    return 0;
+}

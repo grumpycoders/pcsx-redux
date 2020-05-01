@@ -19,18 +19,8 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "common/psxlibc/handlers.h"
 
-struct HandlerInfo;
-
-struct HandlerInfo {
-    struct HandlerInfo * next;
-    void(*handler)(int);
-    int(*verifier)();
-    uint32_t padding;
-};
-
-struct HandlersStorage {
-    struct HandlerInfo * first;
-    uint32_t padding;
-};
+int sysEnqIntRP(int priority, struct HandlerInfo *handler);
+int enqueueSyscallHandler(int priority);
+int enqueueIrqHandler(int priority);

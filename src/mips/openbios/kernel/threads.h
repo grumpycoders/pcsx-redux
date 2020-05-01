@@ -19,4 +19,26 @@
 
 #pragma once
 
+struct Registers {
+    union {
+        struct {
+            uint32_t r0, at, v0, v1, a0, a1, a2, a3;
+            uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
+            uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
+            uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
+        } n;
+        uint32_t r[32];
+    } GPR;
+    uint32_t returnPC;
+    uint32_t hi, lo;
+    uint32_t SR;
+    uint32_t Cause;
+};
+
+struct Thread {
+    uint32_t flags, flags2;
+    struct Registers registers;
+    uint32_t unknown[9];
+};
+
 int initThreads(int blocks, int count);

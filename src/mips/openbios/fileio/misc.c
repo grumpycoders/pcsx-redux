@@ -28,20 +28,23 @@
 #include "common/psxlibc/string.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
+#include "openbios/kernel/globals.h"
 #include "openbios/kernel/setjmp.h"
 #include "openbios/main/main.h"
 #include "openbios/tty/tty.h"
 
 static struct File s_files[16];
 static struct Device s_devices[10];
+static struct File * s_firstFile;
+static int s_deviceStatus;
 
 uint32_t psxerrno = PSXENOERR;
 
 void setupFileIO(int installTTY) {
-    *((struct File **)0xa0000140) = s_files;
-    *((uint32_t *)0xa0000144) = sizeof(s_files);
-    *((struct Device **)0xa0000150) = s_devices;
-    *((struct Device **)0xa0000154) = s_devices + sizeof(s_devices) / sizeof(s_devices[0]);
+    __globals.files = s_files;
+    __globals.filesSize = sizeof(s_files);
+    __globals.devices = s_devices;
+    __globals.devicesEnd = s_devices + sizeof(s_devices) / sizeof(s_devices[0]);
     g_cachedInstallTTY = installTTY;
     safeMemZero((uint8_t *) s_files, sizeof(s_files));
     // the retail bios doesn't do this, but it's easier this way
@@ -52,6 +55,10 @@ void setupFileIO(int installTTY) {
     POST = 1;
     installStdIo(installTTY);
     POST = 2;
+    s_firstFile = NULL;
+    s_deviceStatus = 0;
+    syscall_addCDRomDevice();
+    syscall_addMemoryCardDevice();
 }
 
 void printInstalledDevices() {
@@ -158,4 +165,18 @@ int isFileConsole(int fd) {
     struct File * file = getFileFromHandle(fd);
     if (file) return (file->device->flags & PSXDTTYPE_CONS) != 0;
     return 0;
+}
+
+int addDevice(struct Device * device) {
+    struct Device * ptr = s_devices;
+
+    while (1) {
+        if (ptr >= (s_devices + sizeof(s_devices) / sizeof(s_devices[0]))) return 0;
+        if (ptr->name == NULL) break;
+        ptr++;
+    }
+
+    syscall_memcpy(ptr, device, sizeof(struct Device));
+    syscall_flushCache();
+    ptr->init();
 }

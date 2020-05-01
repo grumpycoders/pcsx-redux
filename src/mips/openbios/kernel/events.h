@@ -20,3 +20,4 @@
 #pragma once
 
 int initEvents(int count);
+void deliverEvent(uint32_t class, uint32_t spec);

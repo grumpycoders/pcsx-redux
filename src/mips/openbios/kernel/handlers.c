@@ -25,6 +25,7 @@
 #include "osdebug.h"
 
 #include "common/compiler/stdint.h"
+#include "common/hardware/pcsxhw.h"
 #include "common/psxlibc/stdio.h"
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
@@ -32,6 +33,7 @@
 #include "openbios/cdrom/filesystem.h"
 #include "openbios/cdrom/statemachine.h"
 #include "openbios/fileio/fileio.h"
+#include "openbios/handlers/handlers.h"
 #include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
 #include "openbios/kernel/libcmisc.h"
@@ -43,17 +45,15 @@
 #include "openbios/tty/tty.h"
 
 void unimplemented();
+void unimplemented_end();
 void breakVector();
 void exceptionVector();
 void A0Vector();
 void B0Vector();
 void C0Vector();
 
-static void installHandler(const uint32_t * src, uint32_t * dst) {
-    dst[0] = src[0];
-    dst[1] = src[1];
-    dst[2] = src[2];
-    dst[3] = src[3];
+static void __inline__ installHandler(const uint32_t * src, uint32_t * dst) {
+    for (int i = 0; i < 4; i++) dst[i] = src[i];
 }
 
 void installKernelHandlers() {
@@ -62,22 +62,25 @@ void installKernelHandlers() {
     installHandler((uint32_t*) C0Vector, (uint32_t *) 0xc0);
 }
 
+/* Until the retail exception handler can be used, this
+   vector will call our debugging one instead.
+   The assembly code in vector.s will have to change once
+   there is enough code to support exceptions properly. */
 static void installExceptionHandler() {
     installHandler((uint32_t*) exceptionVector, (uint32_t *) 0x80);
 }
 
-static void __attribute__((noreturn)) returnFromException() {
+void __attribute__((noreturn)) returnFromException();
 
-}
-
-#define EXCEPTION_STACK_SIZE 0x40
+#define EXCEPTION_STACK_SIZE 0x180
 
 static uint32_t s_exceptionStack[EXCEPTION_STACK_SIZE];
+void * g_exceptionStackPtr = s_exceptionStack + EXCEPTION_STACK_SIZE;
 
-static struct JmpBuf * s_exceptionJmpBuf = NULL;
+struct JmpBuf * g_exceptionJmpBufPtr = NULL;
 static struct JmpBuf defaultExceptionJmpBuf = {
     .ra = (uint32_t) returnFromException,
-    .sp = (uint32_t) s_exceptionStack + EXCEPTION_STACK_SIZE * sizeof(uint32_t),
+    .sp = (uint32_t) s_exceptionStack + EXCEPTION_STACK_SIZE,
     .s8 = 0,
     .s0 = 0,
     .s1 = 0,
@@ -91,19 +94,28 @@ static struct JmpBuf defaultExceptionJmpBuf = {
 };
 
 static void setDefaultExceptionJmpBuf() {
+    g_exceptionJmpBufPtr = &defaultExceptionJmpBuf;
+}
 
+extern void * __ramA0table[0xc0];
+void * B0table[0x60];
+void * C0table[0x20];
+
+static void __inline__ subPatchA0table(int src, int dst, int len) {
+    while (len--) __ramA0table[dst++] = B0table[src++];
 }
 
 static void patchA0table() {
-    
+    subPatchA0table(0x32, 0x00, 10);
+    subPatchA0table(0x3c, 0x3b, 4);
 }
 
 static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
 
-__attribute__((section(".a0table"))) void * A0table[0xc0] = {
-    psxopen, psxlseek, psxread, psxwrite, // 00
-    psxclose, psxioctl, psxexit, isFileConsole, // 04
-    psxgetc, psxputc, psxtodigit, unimplemented /*atof*/, // 08
+static const void * romA0table[0xc0] = {
+    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+    unimplemented, unimplemented, unimplemented, unimplemented, // 04
+    unimplemented, unimplemented, psxtodigit, unimplemented /*atof*/, // 08
     strtol, strtol, psxabs, psxabs, // 0c
     atoi, atol, psxatob, psxsetjmp, // 10
     psxlongjmp, strcat, strncat, strcmp, // 14
@@ -115,8 +127,8 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     memmove, psxbcmp, memchr, psxrand, // 2c
     psxsrand, qsort, unimplemented /*atof*/, base_malloc, // 30
     base_free, psxlsearch, psxbsearch, calloc, // 34
-    realloc, psxdummy /*heapinit*/, unimplemented /*abort*/, psxgetchar, // 38
-    psxputchar, psxgets, psxputs, psxprintf, // 3c
+    realloc, psxdummy /*heapinit*/, unimplemented /*abort*/, unimplemented, // 38
+    unimplemented, unimplemented, unimplemented, psxprintf, // 3c
     unimplemented /*unresolved exception */, loadExeHeader, loadExe, exec, // 40
     flushCache, installKernelHandlers, GPU_dw, GPU_mem2vram, // 44
     GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
@@ -138,7 +150,7 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     psxdummy, psxdummy, psxdummy, psxdummy, // 88
     psxdummy, psxdummy, psxdummy, psxdummy, // 8c
     cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
-    getLastCDRomError, cdromInnerInit, addCDRomDevice, unimplemented, // 94
+    getLastCDRomError, cdromInnerInit, addCDRomDevice, psxdummy /* addMemoryCardDevice */, // 94
     addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplemented, unimplemented, unimplemented, unimplemented, // a0
@@ -151,10 +163,10 @@ __attribute__((section(".a0table"))) void * A0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // bc
 };
 
-void *B0table[0x60] = {
-    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+void * B0table[0x60] = {
+    malloc, free, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
-    unimplemented, unimplemented, installExceptionHandler, unimplemented, // 08
+    unimplemented, unimplemented, unimplemented, unimplemented, // 08
     unimplemented, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, unimplemented, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, unimplemented, // 14
@@ -164,12 +176,12 @@ void *B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 24
     unimplemented, unimplemented, unimplemented, unimplemented, // 28
     unimplemented, unimplemented, unimplemented, unimplemented, // 2c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 30
-    unimplemented, unimplemented, unimplemented, unimplemented, // 34
-    unimplemented, unimplemented, unimplemented, unimplemented, // 38
-    unimplemented, psxputchar, unimplemented, unimplemented, // 3c
+    unimplemented, unimplemented, psxopen, psxlseek, // 30
+    psxread, psxwrite, psxclose, psxioctl, // 34
+    psxexit, isFileConsole, psxgetc, psxputc, // 38
+    psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
-    unimplemented, unimplemented, unimplemented, unimplemented, // 44
+    unimplemented, unimplemented, unimplemented, addDevice, // 44
     unimplemented, unimplemented, unimplemented, unimplemented, // 48
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
@@ -179,11 +191,11 @@ void *B0table[0x60] = {
 };
 
 void * C0table[0x20] = {
-    unimplemented, unimplemented, unimplemented, unimplemented, // 00
+    unimplemented, enqueueSyscallHandler, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, installExceptionHandler, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
-    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 10
+    enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
+    unimplemented, unimplemented, setupFileIO, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, unimplemented, // 14
     setupFileIO, unimplemented, unimplemented, unimplemented, // 18
     patchA0table, unimplemented, unimplemented, unimplemented, // 1c
@@ -223,8 +235,13 @@ void breakHandler(InterruptData* data) {
 
 void exceptionHandler(InterruptData* data) {
     osDbgPrintf("***Exception***\r\n");
+    uint32_t start = (uint32_t) unimplemented;
+    uint32_t end = (uint32_t) unimplemented_end;
+    if ((start <= data->EPC) && (data->EPC < end)) {
+        osDbgPrintf("===Unimplemented %x:%x syscall===\r\n", data->GPR.n.t0, data->GPR.n.t1);
+    }
     printInterruptData(data);
-    *((volatile char * const) 0x1f802081) = 0;
+    pcsx_debugbreak();
     while(1);
 }
 
@@ -253,7 +270,6 @@ void copyDataAndInitializeBSS() {
    A0 table into the proper data section, but in the
    spirit of doing exactly what the original code does,
    we're going to do it manually instead. */
-extern uint32_t __ramA0table;
 void copyA0table() {
-    memcpy(&__ramA0table, A0table, sizeof(A0table));
+    memcpy(&__ramA0table, romA0table, sizeof(romA0table));
 }

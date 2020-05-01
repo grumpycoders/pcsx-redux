@@ -21,9 +21,12 @@
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/events.h"
+#include "openbios/kernel/globals.h"
 
 struct EventInfo {
-    uint32_t class, flags, spec, mode, handler, unknown1, unknown2;
+    uint32_t class, flags, spec, mode;
+    void (*handler)();
+    uint32_t unknown1, unknown2;
 };
 
 int initEvents(int count) {
@@ -31,9 +34,24 @@ int initEvents(int count) {
     int size = count * sizeof(struct EventInfo);
     struct EventInfo * array = syscall_kmalloc(size);
     if (!array) return 0;
-    *((uint32_t*) 0xa0000124) = size;
-    *((struct EventInfo**) 0xa0000120) = array;
+    __globals.eventsSize = size;
+    __globals.events = array;
     struct EventInfo * ptr = array;
     while (ptr < (array + count)) ptr++->flags = 0;
     return size;
+}
+
+__attribute__((section(".data"))) void deliverEvent(uint32_t class, uint32_t spec) {
+    struct EventInfo * ptr, * end;
+
+    ptr = __globals.events;
+    end = ptr + __globals.eventsSize / sizeof(struct EventInfo);
+    while (ptr < end) {
+        if ((ptr->flags == 0x2000) && (class == ptr->class) && (spec == ptr->spec)) {
+            if (ptr->mode == 0x2000) ptr->flags = 0x4000;
+        } else if ((ptr->mode = 0x1000) && ptr->handler) {
+            ptr->handler();
+        }
+        ptr++;
+    }
 }

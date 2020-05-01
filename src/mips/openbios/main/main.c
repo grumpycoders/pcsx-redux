@@ -70,13 +70,12 @@ static struct Configuration s_configuration;
 extern const struct Configuration g_defaultConfiguration;
 
 static void initHandlersArray(int priorities) {
-    struct HandlerInfo ** array = (struct HandlerInfo **) 0xa0000100;
-    unsigned size = priorities * sizeof(struct HandlerInfo);
-    struct HandlerInfo * ptr = syscall_kmalloc(size);
+    unsigned size = priorities * sizeof(struct HandlersStorage);
+    struct HandlersStorage * ptr = syscall_kmalloc(size);
     if (!ptr) return;
     psxbzero(ptr, size);
-    *array = ptr;
-    (*(unsigned *)0xa0000104) = size;
+    __globals.handlersArray = ptr;
+    __globals.handlersArraySize = size;
 }
 
 struct JmpBuf g_ioAbortJmpBuf;
@@ -234,6 +233,10 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     copyA0table();
     installKernelHandlers();
     syscall_patchA0table();
+    // Even though we install the exception handler here, it won't be
+    // working properly until we reach the initThreads call later.
+    // If any exception or interrupt happens between these two calls,
+    // things will go haywire very quickly.
     syscall_installExceptionHandler();
     syscall_setDefaultExceptionJmpBuf();
     POST = 0x04;

@@ -19,10 +19,10 @@
 
 #include "BoardConsole.h"
 
+#include "common/hardware/pcsxhw.h"
+
 #include <stdarg.h>
 #include <stdio.h>
-
-static volatile char * const s_pcsxPutc = (volatile char *) 0x1f802080;
 
 void BoardConsoleInit() {}
 
@@ -32,7 +32,7 @@ void BoardConsolePuts(const char * str) {
 }
 
 void BoardConsolePutc(int c) {
-    *s_pcsxPutc = c;
+    pcsx_putc(c);
 }
 
 static void xprintfCallback(const char * str, int strsize, void * opaque0) {

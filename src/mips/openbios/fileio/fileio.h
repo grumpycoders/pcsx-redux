@@ -44,6 +44,7 @@ void setupFileIO(int installTTY);
 void installStdIo(int installTTY);
 
 struct Device * findDevice(const char * name);
+int addDevice(struct Device *);
 int removeDevice(const char * name);
 
 struct File * getFileFromHandle(int fd);

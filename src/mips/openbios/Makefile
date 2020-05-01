@@ -23,6 +23,9 @@ kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
 gpu/gpu.c \
+handlers/irq.c \
+handlers/setup.c \
+handlers/syscall.c \
 main/main.c \
 pio/pio.c \
 shell/shell.c \

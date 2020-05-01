@@ -17,49 +17,46 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include <memory.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
+#include "common/hardware/hwregs.h"
 #include "common/psxlibc/handlers.h"
-#include "common/psxlibc/stdio.h"
+#include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
-#include "openbios/kernel/threads.h"
 
-extern struct {
-    uint32_t ramsize, unk1, unk2;
-} __globals60;
+static int s_IRQsAutoAck[11];
 
-extern struct {
-    /* 100 */ struct HandlersStorage * handlersArray;
-    /* 104 */ uint32_t handlersArraySize;
-    /* 108 */ struct Thread ** blocks;
-    /* 10c */ struct Thread * threads;
-    /* 110 */ uint32_t xxx_04;
-    /* 114 */ uint32_t xxx_05;
-    /* 118 */ uint32_t xxx_06;
-    /* 11c */ uint32_t xxx_07;
-    /* 120 */ struct EventInfo * events;
-    /* 124 */ uint32_t eventsSize;
-    /* 128 */ uint32_t xxx_0a;
-    /* 12c */ uint32_t xxx_0b;
-    /* 130 */ uint32_t xxx_0c;
-    /* 134 */ uint32_t xxx_0d;
-    /* 138 */ uint32_t xxx_0e;
-    /* 13c */ uint32_t xxx_0f;
-    /* 140 */ struct File * files;
-    /* 144 */ uint32_t filesSize;
-    /* 148 */ uint32_t xxx_12;
-    /* 14c */ uint32_t xxx_13;
-    /* 150 */ struct Device * devices;
-    /* 154 */ struct Device * devicesEnd;
-    /* 158 */ uint32_t xxx_16;
-    /* 15c */ uint32_t xxx_17;
-    /* 160 */ uint32_t xxx_18;
-    /* 164 */ uint32_t xxx_19;
-    /* 168 */ uint32_t xxx_1a;
-    /* 16c */ uint32_t xxx_1b;
-    /* 170 */ uint32_t xxx_1c;
-    /* 174 */ uint32_t xxx_1d;
-    /* 178 */ uint32_t xxx_1e;
-    /* 17c */ uint32_t xxx_1f;
-} __globals;
+static __attribute__((section(".data"))) int IRQVerifier(void) {
+    if ((IMASK & IREG & 0x004) != 0) deliverEvent(0xf0000003,0x1000);
+    if ((IMASK & IREG & 0x200) != 0) deliverEvent(0xf0000009,0x1000);
+    if ((IMASK & IREG & 0x002) != 0) deliverEvent(0xf0000002,0x1000);
+    if ((IMASK & IREG & 0x400) != 0) deliverEvent(0xf000000a,0x1000);
+    if ((IMASK & IREG & 0x100) != 0) deliverEvent(0xf000000b,0x1000);
+    if ((IMASK & IREG & 0x001) != 0) deliverEvent(0xf0000001,0x1000);
+    if ((IMASK & IREG & 0x010) != 0) deliverEvent(0xf0000005,0x1000);
+    if ((IMASK & IREG & 0x020) != 0) deliverEvent(0xf0000006,0x1000);
+    if ((IMASK & IREG & 0x040) != 0) deliverEvent(0xf0000006,0x1000);
+    if ((IMASK & IREG & 0x080) != 0) deliverEvent(0xf0000008,0x1000);
+    if ((IMASK & IREG & 0x008) != 0) deliverEvent(0xf0000004,0x1000);
+    uint32_t ackMask = 0;
+    int * ptr = s_IRQsAutoAck;
+    for (int IRQ = 0; IRQ < 11; IRQ++, ptr++) {
+        if (*ptr) ackMask |= 1 << (IRQ & 0x1f);
+    }
+    IREG = ~ackMask;
+    return 0;
+}
+
+static struct HandlerInfo s_IRQHandlerInfo = {
+    .next = NULL,
+    .handler = NULL,
+    .verifier = IRQVerifier,
+    .padding = 0,
+};
+
+int enqueueIrqHandler(int priority) {
+    memset(s_IRQsAutoAck, 0, sizeof(s_IRQsAutoAck));
+
+    return sysEnqIntRP(priority, &s_IRQHandlerInfo);
+}
