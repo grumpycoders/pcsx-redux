@@ -71,7 +71,7 @@ void printInstalledDevices() {
 struct Device * findDevice(const char * name) {
     struct Device * ptr;
     for (ptr = s_devices; ptr < s_devices + sizeof(s_devices) / sizeof(s_devices[0]); ptr++) {
-        if (ptr->name && syscall_strcmp(ptr->name, name)) return ptr;
+        if (ptr->name && !syscall_strcmp(ptr->name, name)) return ptr;
     }
 
     // what?
@@ -128,7 +128,7 @@ const char * splitFilepathAndFindDevice(const char * name, struct Device ** devi
     while (*name == ' ') name++;
     deviceName[0] = 0;
 
-    for (dPtr = deviceName; *name == ':' || *name == 0; name++) *dPtr++ = *name++;
+    for (dPtr = deviceName; *name != ':' && *name != 0; name++) *dPtr++ = *name;
     *dPtr = 0;
 
     dPtr = deviceName;

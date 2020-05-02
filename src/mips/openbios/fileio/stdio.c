@@ -30,7 +30,7 @@ static int s_currentTabulationColumn;
 // not sure about this one
 static int s_ignoreCarriageReturns;
 
-static void flushStInOutPut() {
+void reopenStdio() {
     psxclose(0);
     psxclose(1);
     int r = psxopen("tty00:", 1);
@@ -45,16 +45,18 @@ void installStdIo(int installTTY) {
     s_ignoreCarriageReturns = 0;
     removeDevice("tty");
     POST = 4;
-    if (installTTY == 0) {
-        syscall_addDummyConsoleDevice();
-    } else if (installTTY == 1) {
-        syscall_addConsoleDevice();
-    } else {
-        return;
+    switch(installTTY) {
+        case 0:
+            syscall_addDummyConsoleDevice();
+            break;
+        case 1:
+            syscall_addConsoleDevice();
+            break;
+        default:
+            return;
     }
-
     POST = 5;
-
+    reopenStdio();
     POST = 6;
 }
 
