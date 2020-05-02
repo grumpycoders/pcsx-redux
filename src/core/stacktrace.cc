@@ -89,7 +89,8 @@ static void computeStacktraceRec(std::vector<PCSX::Stacktrace::Element>& ret, PC
 }
 
 std::vector<PCSX::Stacktrace::Element> PCSX::Stacktrace::computeStacktrace(Memory* mem, psxRegisters* regs) {
-    std::vector<PCSX::Stacktrace::Element> ret;
+    std::vector<Element> ret;
     computeStacktraceRec(ret, mem, regs->pc, regs->GPR.n.sp, regs->GPR.n.ra);
+
     return std::move(ret);
 }

@@ -28,8 +28,39 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "fmt/format.h"
 
 void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
+    auto switchSource = [this](std::filesystem::path path, int line) mutable -> bool {
+        if (!std::filesystem::exists(path)) {
+            if (path.is_absolute()) path = path.relative_path();
+            while (!std::filesystem::exists(path)) {
+                std::list<PCSX::u8string> elements;
+                for (auto& p : path) elements.emplace_back(p.filename().u8string());
+                if (elements.size() <= 1) break;
+                elements.pop_front();
+                path = elements.front();
+                elements.pop_front();
+                for (auto& p : elements) path /= p;
+            }
+        }
+
+        if (m_oldPath != path) {
+            m_oldPath = path;
+            if (!std::filesystem::exists(path)) return false;
+            std::ifstream src(path.u8string());
+            if (!src.is_open()) return false;
+
+            std::string str((std::istreambuf_iterator<char>(src)), std::istreambuf_iterator<char>());
+            m_text.SetText(str);
+        }
+        TextEditor::Coordinates c;
+        c.mLine = line - 1;
+        c.mColumn = 1;
+        m_text.SetCursorPosition(c);
+        return true;
+    };
+
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
         return;
@@ -42,40 +73,13 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
         for (auto& e : g_emulator.m_psxMem->getElves()) {
             auto [entry, stack] = e.findByAddress(pc);
             if (!entry.valid()) continue;
-            std::filesystem::path path = entry.file->path;
-            if (!std::filesystem::exists(path)) {
-                if (path.is_absolute()) path = path.relative_path();
-                while (!std::filesystem::exists(path)) {
-                    std::list<PCSX::u8string> elements;
-                    for (auto& p : path) elements.emplace_back(p.filename().u8string());
-                    if (elements.size() <= 1) break;
-                    elements.pop_front();
-                    path = elements.front();
-                    elements.pop_front();
-                    for (auto& p : elements) path /= p;
-                }
+            if (switchSource(entry.file->path, entry.line)) {
+                found = true;
+                break;
             }
-
-            if (m_oldPath != path) {
-                m_oldPath = path;
-                if (!std::filesystem::exists(path)) continue;
-                std::ifstream src(path.u8string());
-                if (!src.is_open()) continue;
-
-                std::string str((std::istreambuf_iterator<char>(src)), std::istreambuf_iterator<char>());
-                m_text.SetText(str);
-            }
-            found = true;
-            TextEditor::Coordinates c;
-            c.mLine = entry.line - 1;
-            c.mColumn = entry.column;
-            m_text.SetCursorPosition(c);
-            break;
         }
 
-        if (!found) {
-            m_text.SetText("No source found for address");
-        }
+        if (!found) m_text.SetText("No source found for address");
     }
 
     m_text.Render(_("Source"));
@@ -83,8 +87,13 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
     ImGui::End();
 
     if (ImGui::Begin(_("Callstack"))) {
+        int l = 0;
         for (auto& e : m_currentStacktrace) {
-            ImGui::Text("@%08x/%08x %s:%i", e.pc, e.sp, e.path.string().c_str(), e.line);
+            std::string label;
+            label = fmt::format("{:2}: @{:08x}/{:08x} {}:{}", l++, e.pc, e.sp, e.path.string(), e.line);
+            if (ImGui::Button(label.c_str()) && !switchSource(e.path, e.line)) {
+                m_text.SetText("Source not found");
+            }
         }
     }
     ImGui::End();
