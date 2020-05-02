@@ -179,4 +179,6 @@ int addDevice(struct Device * device) {
     syscall_memcpy(ptr, device, sizeof(struct Device));
     syscall_flushCache();
     ptr->init();
+
+    return 1;
 }

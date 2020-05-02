@@ -24,3 +24,4 @@
 int sysEnqIntRP(int priority, struct HandlerInfo *handler);
 int enqueueSyscallHandler(int priority);
 int enqueueIrqHandler(int priority);
+int enqueueRCntIrqs(int priority);

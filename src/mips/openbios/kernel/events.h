@@ -20,4 +20,7 @@
 #pragma once
 
 int initEvents(int count);
+int openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)());
 void deliverEvent(uint32_t class, uint32_t spec);
+void undeliverEvent(uint32_t class, uint32_t spec);
+int testEvent(int event);

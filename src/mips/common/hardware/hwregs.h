@@ -21,6 +21,15 @@
 
 #include "common/compiler/stdint.h"
 
+struct Counter {
+    uint16_t value;
+    uint16_t padding1;
+    uint16_t mode;
+    uint16_t padding2;
+    uint16_t target;
+    uint8_t padding[6];
+};
+
 #define HW_U8(x) (*(volatile uint8_t *)(x))
 #define HW_U16(x) (*(volatile uint16_t *)(x))
 #define HW_U32(x) (*(volatile uint32_t *)(x))
@@ -33,8 +42,8 @@
 
 #define RAM_SIZE HW_U32(0x1f801060)
 
-#define IREG HW_U32(0x1f801070)
-#define IMASK HW_U32(0x1f801074)
+#define IREG HW_U32(0xbf801070)
+#define IMASK HW_U32(0xbf801074)
 
 #define DPCR HW_U32(0x1f8010f0)
 #define DICR HW_U32(0x1f8010f4)
@@ -50,3 +59,4 @@
 
 #define POST HW_U8(0xbf802042)
 
+#define COUNTERS ((volatile struct Counter *) 0xbf801100)

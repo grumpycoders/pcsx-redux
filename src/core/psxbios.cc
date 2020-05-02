@@ -1926,7 +1926,7 @@ class BiosImpl : public PCSX::Bios {
         char logchar = (a0 == 0xa ? '>' : (char)a0);
         if (psxstrbuf_count < PSXSTRBUFMAX) psxstrbuf[psxstrbuf_count++] = logchar;
 
-        PCSX::g_system->biosPrintf("%c", (char)a0);
+        if (((char) a0) != 0) PCSX::g_system->biosPrintf("%c", (char)a0);
         if ((a0 == 0xa && psxstrbuf_count >= 2) || psxstrbuf_count >= PSXSTRBUFMAX) {
             psxstrbuf[psxstrbuf_count++] = '\0';
             PSXBIOS_LOG("psxBios_%s: string_[%d]_cr: %s\n", B0names[0x3d], psxstrbuf_count, psxstrbuf);

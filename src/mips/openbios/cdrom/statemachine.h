@@ -36,3 +36,4 @@ enum AutoAckType {
     AUTOACK_DMA = 1,
 };
 int setCDRomIRQAutoAck(enum AutoAckType type, int value);
+void enqueueCDRomHandlers();

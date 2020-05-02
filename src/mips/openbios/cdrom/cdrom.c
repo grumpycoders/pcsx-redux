@@ -111,12 +111,12 @@ int addCDRomDevice() {
 // Most likely a poor man's flushWriteQueue,
 // but messes up the NULL pointer data,
 // so we need to keep it this way.
-static volatile uint32_t * const dummy = (volatile uint32_t * const) 0;
+extern volatile uint32_t __vector_00;
 
 static void resetAllCDRomIRQs() {
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
-    for (int i = 0; i < 4; i++) *dummy = i;
+    for (int i = 0; i < 4; i++) __vector_00 = i;
 }
 
 static void disableCDRomIRQs() {

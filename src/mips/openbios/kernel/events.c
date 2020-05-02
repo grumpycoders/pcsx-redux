@@ -30,7 +30,7 @@ struct EventInfo {
 };
 
 int initEvents(int count) {
-    psxprintf("\nConfiguration : EvCB\t0x%02\t\t", count);
+    psxprintf("\nConfiguration : EvCB\t0x%02x\t\t", count);
     int size = count * sizeof(struct EventInfo);
     struct EventInfo * array = syscall_kmalloc(size);
     if (!array) return 0;
@@ -41,17 +41,66 @@ int initEvents(int count) {
     return size;
 }
 
-__attribute__((section(".data"))) void deliverEvent(uint32_t class, uint32_t spec) {
+static int getFreeEvCBSlot(void) {
+    struct EventInfo * ptr, * end;
+    int slot = 0;
+
+    ptr = __globals.events;
+    end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
+    while (ptr < end) {
+        if (ptr->flags == 0) return slot;
+        ptr++;
+        slot++;
+    }
+
+    return -1;
+}
+
+int openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)()) {
+    int slot = getFreeEvCBSlot();
+    if (slot == -1) return -1;
+
+    struct EventInfo *event = __globals.events + slot;
+    event->class = class;
+    event->spec = spec;
+    event->mode = mode;
+    event->flags = 0x1000;
+    event->handler = handler;
+    return slot | 0xf1000000;
+}
+
+__attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t spec) {
     struct EventInfo * ptr, * end;
 
     ptr = __globals.events;
-    end = ptr + __globals.eventsSize / sizeof(struct EventInfo);
+    end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
     while (ptr < end) {
         if ((ptr->flags == 0x2000) && (class == ptr->class) && (spec == ptr->spec)) {
             if (ptr->mode == 0x2000) ptr->flags = 0x4000;
-        } else if ((ptr->mode = 0x1000) && ptr->handler) {
-            ptr->handler();
+            else if ((ptr->mode = 0x1000) && ptr->handler) ptr->handler();
         }
         ptr++;
     }
+}
+
+void undeliverEvent(uint32_t class, uint32_t spec) {
+    struct EventInfo * ptr, * end;
+
+    ptr = __globals.events;
+    end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
+    while (ptr < end) {
+        if ((ptr->flags == 0x4000) && (class == ptr->class) && (spec == ptr->spec) && (ptr->mode == 0x2000)) {
+            ptr->flags = 0x2000;
+        }
+        ptr++;
+    }
+}
+
+int testEvent(int event) {
+    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    if (ptr->flags = 0x4000) {
+        ptr->flags = 0x2000;
+        return 1;
+    }
+    return 0;
 }

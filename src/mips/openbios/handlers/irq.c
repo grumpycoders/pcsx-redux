@@ -27,7 +27,7 @@
 
 static int s_IRQsAutoAck[11];
 
-static __attribute__((section(".data"))) int IRQVerifier(void) {
+static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
     if ((IMASK & IREG & 0x004) != 0) deliverEvent(0xf0000003,0x1000);
     if ((IMASK & IREG & 0x200) != 0) deliverEvent(0xf0000009,0x1000);
     if ((IMASK & IREG & 0x002) != 0) deliverEvent(0xf0000002,0x1000);
@@ -60,3 +60,92 @@ int enqueueIrqHandler(int priority) {
 
     return sysEnqIntRP(priority, &s_IRQHandlerInfo);
 }
+
+static int s_timersAutoAck[4];
+
+static __attribute__((section(".ramtext"))) int T0verifier() {
+    if (((IMASK & 0x10) == 0) || ((IREG & 0x10) == 0)) return 0;
+    deliverEvent(0xf2000000, 2);
+    return 1;
+}
+static __attribute__((section(".ramtext"))) void T0handler(int v) {
+    if (!s_timersAutoAck[0]) return;
+    IREG = ~0x10;
+    returnFromException();
+}
+static __attribute__((section(".ramtext"))) int T1verifier() {
+    if (((IMASK & 0x20) == 0) || ((IREG & 0x20) == 0)) return 0;
+    deliverEvent(0xf2000001, 2);
+    return 1;
+
+}
+static __attribute__((section(".ramtext"))) void T1handler(int v) {
+    if (!s_timersAutoAck[1]) return;
+    IREG = ~0x20;
+    returnFromException();
+}
+static __attribute__((section(".ramtext"))) int T2verifier() {
+    if (((IMASK & 0x40) == 0) || ((IREG & 0x40) == 0)) return 0;
+    deliverEvent(0xf2000002, 2);
+    return 1;
+
+}
+static __attribute__((section(".ramtext"))) void T2handler(int v) {
+    if (!s_timersAutoAck[2]) return;
+    IREG = ~0x40;
+    returnFromException();
+}
+static __attribute__((section(".ramtext"))) int T3verifier() {
+    if (((IMASK & 0x80) == 0) || ((IREG & 0x80) == 0)) return 0;
+    deliverEvent(0xf2000003, 2);
+    return 1;
+}
+static __attribute__((section(".ramtext"))) void T3handler(int v) {
+    if (!s_timersAutoAck[3]) return;
+    IREG = ~0x80;
+    returnFromException();
+}
+
+static struct HandlerInfo s_rcntHandlers[4] = {
+    {
+        .next = NULL,
+        .handler = T0handler,
+        .verifier = T0verifier,
+        .padding = 0,
+    },
+    {
+        .next = NULL,
+        .handler = T1handler,
+        .verifier = T1verifier,
+        .padding = 0,
+    },
+    {
+        .next = NULL,
+        .handler = T2handler,
+        .verifier = T2verifier,
+        .padding = 0,
+    },
+    {
+        .next = NULL,
+        .handler = T3handler,
+        .verifier = T3verifier,
+        .padding = 0,
+    },
+};
+
+int enqueueRCntIrqs(int priority) {
+    int ret, i;
+
+    IMASK &= ~0x71;
+    for (i = 0; i < 4; i++) {
+        s_timersAutoAck[i] = 1;
+        ret = sysEnqIntRP(priority, &s_rcntHandlers[i]);
+    }
+    for (i = 0; i < 4; i++) {
+        COUNTERS[i].mode = 0;
+        COUNTERS[i].target = 0;
+        COUNTERS[i].value = 0;
+    }
+    return ret;
+}
+

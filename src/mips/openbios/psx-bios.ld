@@ -135,6 +135,7 @@ SECTIONS {
 
     .data : {
         __data_start = .;
+        *(.ramtext)
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)
         *(.got.plt)

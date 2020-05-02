@@ -26,7 +26,7 @@
 #include "openbios/kernel/globals.h"
 #include "openbios/kernel/threads.h"
 
-static __attribute__((section(".data"))) int syscallVerifier() {
+static __attribute__((section(".ramtext"))) int syscallVerifier() {
     struct Thread ** blocks = __globals.blocks;
     struct Thread * currentThread = blocks[0];
     unsigned exCode = currentThread->registers.Cause & 0x3c;

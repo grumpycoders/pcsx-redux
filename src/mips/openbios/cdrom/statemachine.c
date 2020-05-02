@@ -607,7 +607,7 @@ static uint8_t s_irqFlags;
 // Most likely a poor man's flushWriteQueue,
 // but messes up the NULL pointer data,
 // so we need to keep it this way.
-static volatile uint32_t * const dummy = (volatile uint32_t * const) 0;
+extern volatile uint32_t __vector_00;
 
 int cdromIOVerifier() {
     if ((IMASK & 4) == 0) return 0;
@@ -619,18 +619,18 @@ int cdromIOVerifier() {
     if (s_irqFlags & 7) {
         CDROM_REG0 = 1;
         CDROM_REG3 = 7;
-        *dummy = 0;
-        *dummy = 0;
-        *dummy = 0;
-        *dummy = 0;
+        __vector_00 = 0;
+        __vector_00 = 0;
+        __vector_00 = 0;
+        __vector_00 = 0;
     }
     if (s_irqFlags & 0x18) {
         CDROM_REG0 = 1;
         CDROM_REG3 = s_irqFlags & 0x18;
-        *dummy = 0;
-        *dummy = 0;
-        *dummy = 0;
-        *dummy = 0;
+        __vector_00 = 0;
+        __vector_00 = 0;
+        __vector_00 = 0;
+        __vector_00 = 0;
     }
     switch (s_irqFlags & 7) {
         case 1:
@@ -672,13 +672,13 @@ int cdromDMAVerifier() {
 
 static int s_irqAutoAck[2];
 
-void cdromIOHandler() {
+void cdromIOHandler(int v) {
     if (!s_irqAutoAck[0]) return;
     IREG = ~4;
     syscall_returnFromException();
 }
 
-void cdromDMAHandler() {
+void cdromDMAHandler(int v) {
     if (!s_irqAutoAck[1]) return;
     IREG &= ~8;
     syscall_returnFromException();
@@ -692,7 +692,7 @@ void getLastCDRomError(uint8_t * err1, uint8_t * err2) {
 void resetAllCDRomIRQs() {
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
-    for (int i = 0; i < 4; i++) *dummy = i;
+    for (int i = 0; i < 4; i++) __vector_00 = i;
 }
 
 void enableAllCDRomIRQs() {
@@ -744,4 +744,18 @@ int setCDRomIRQAutoAck(enum AutoAckType type, int value) {
     int old = s_irqAutoAck[type];
     s_irqAutoAck[type] = value;
     return old;
+}
+
+static struct HandlerInfo s_cdromIOHandlerInfo;
+static struct HandlerInfo s_cdromDMAHandlerInfo;
+
+void enqueueCDRomHandlers() {
+    s_cdromIOHandlerInfo.next = NULL;
+    s_cdromIOHandlerInfo.handler = cdromIOHandler;
+    s_cdromIOHandlerInfo.verifier = cdromIOVerifier;
+    syscall_sysEnqIntRP(0, &s_cdromIOHandlerInfo);
+    s_cdromDMAHandlerInfo.next = NULL;
+    s_cdromDMAHandlerInfo.handler = cdromDMAHandler;
+    s_cdromDMAHandlerInfo.verifier = cdromDMAVerifier;
+    syscall_sysEnqIntRP(0, &s_cdromDMAHandlerInfo);
 }

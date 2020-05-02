@@ -25,6 +25,7 @@
 #include "common/compiler/stdint.h"
 #include "common/psxlibc/circularbuffer.h"
 #include "common/psxlibc/device.h"
+#include "common/psxlibc/handlers.h"
 
 static __attribute__((always_inline)) int enterCriticalSection() {
     register volatile int n asm("a0") = 1;
@@ -243,6 +244,12 @@ static __attribute__((always_inline)) int syscall_enqueueSyscallHandler(int prio
     register volatile int n asm("t1") = 0x01;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int(*)(int))0xc0)(priority);
+}
+
+static __attribute__((always_inline)) int syscall_sysEnqIntRP(int priority, struct HandlerInfo * info) {
+    register volatile int n asm("t1") = 0x02;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(int, struct HandlerInfo *))0xc0)(priority, info);
 }
 
 static __attribute__((always_inline)) void syscall_installExceptionHandler() {

@@ -19,117 +19,7 @@
 
     .set push
     .set noreorder
-    .section .data, "ax", @progbits
-    .align 2
-    .global generalHandler
-    .type generalHandler, @function
-
-generalHandler:
-    sw    $0, 0x400($0)
-    .set push
-    .set noat
-    sw    $1, 0x404($0)
-    .set pop
-    sw    $2, 0x408($0)
-    sw    $3, 0x40c($0)
-    sw    $4, 0x410($0)
-    sw    $5, 0x414($0)
-    sw    $6, 0x418($0)
-    sw    $7, 0x41c($0)
-    sw    $8, 0x420($0)
-    sw    $9, 0x424($0)
-    sw    $10, 0x428($0)
-    sw    $11, 0x42c($0)
-    sw    $12, 0x430($0)
-    sw    $13, 0x434($0)
-    sw    $14, 0x438($0)
-    sw    $15, 0x43c($0)
-    sw    $16, 0x440($0)
-    sw    $17, 0x444($0)
-    sw    $18, 0x448($0)
-    sw    $19, 0x44c($0)
-    sw    $20, 0x450($0)
-    sw    $21, 0x454($0)
-    sw    $22, 0x458($0)
-    sw    $23, 0x45c($0)
-    sw    $24, 0x460($0)
-    sw    $25, 0x464($0)
-    sw    $0, 0x468($0)
-    sw    $0, 0x46c($0)
-    sw    $28, 0x470($0)
-    sw    $29, 0x474($0)
-    sw    $30, 0x478($0)
-    sw    $31, 0x47c($0)
-
-    mflo  $t0
-    nop
-    mfhi  $t1
-    nop
-    mfc0  $t2, $12
-    nop
-    mfc0  $t3, $13
-    nop
-    mfc0  $t4, $14
-    nop
-
-    sw    $t0, 0x480($0)
-    sw    $t1, 0x484($0)
-    sw    $t2, 0x488($0)
-    sw    $t3, 0x48c($0)
-    sw    $t4, 0x490($0)
-
-    jalr  $k1
-    li    $a0, 0x400
-
-    move  $k1, $0
-
-    lw    $t0, 0x480($0)
-    lw    $t1, 0x484($0)
-    lw    $t2, 0x488($0)
-    lw    $t3, 0x48c($0)
-    lw    $k0, 0x490($0)
-    mtlo  $t0
-    nop
-    mthi  $t1
-    nop
-    mtc0  $t2, $12
-    nop
-    mtc0  $t3, $13
-    nop
-    .set push
-    .set noat
-    lw    $1, 0x404($0)
-    .set pop
-    lw    $2, 0x408($0)
-    lw    $3, 0x40c($0)
-    lw    $4, 0x410($0)
-    lw    $5, 0x414($0)
-    lw    $6, 0x418($0)
-    lw    $7, 0x41c($0)
-    lw    $8, 0x420($0)
-    lw    $9, 0x424($0)
-    lw    $10, 0x428($0)
-    lw    $11, 0x42c($0)
-    lw    $12, 0x430($0)
-    lw    $13, 0x434($0)
-    lw    $14, 0x438($0)
-    lw    $15, 0x43c($0)
-    lw    $16, 0x440($0)
-    lw    $17, 0x444($0)
-    lw    $18, 0x448($0)
-    lw    $19, 0x44c($0)
-    lw    $20, 0x450($0)
-    lw    $21, 0x454($0)
-    lw    $22, 0x458($0)
-    lw    $23, 0x45c($0)
-    lw    $24, 0x460($0)
-    lw    $25, 0x464($0)
-    lw    $28, 0x470($0)
-    lw    $29, 0x474($0)
-    lw    $30, 0x478($0)
-    lw    $31, 0x47c($0)
-    jr    $k0
-    .word 0x42000010 /* rfe */
+    .section .ramtext, "ax", @progbits
 
 /* The exception handler seems to have some patching code
    here and there, using all these nops in the code, so it
@@ -139,7 +29,6 @@ generalHandler:
 
 /* Why did they need to have this as a subfunction...? */
     .align 2
-    .global getCop0CauseAndEPC
     .type getCop0CauseAndEPC, @function
 getCop0CauseAndEPC:
     mfc0  $v0, $13
@@ -148,9 +37,8 @@ getCop0CauseAndEPC:
     nop
 
     .align 2
-    .global asmExceptionHandler
-    .type asmExceptionHandler, @function
-asmExceptionHandler:
+    .type exceptionHandler, @function
+exceptionHandler:
     nop
     nop
     nop
@@ -329,75 +217,63 @@ next_priority:
     .global returnFromException
     .type returnFromException, @function
 returnFromException:
-    li    $k0, %lo(__globals)
-    lw    $k0, 8($k0) /* ->TCBArrayPtr */
+    li    $k1, %lo(__globals)
+    lw    $k1, 8($k1) /* ->TCBArrayPtr */
     nop
-    lw    $k0, 0($k0) /* [0] */
+    lw    $k1, 0($k1) /* [0] */
     nop
-    lw    $v0, 0x90($k0) /* lo */
-    addiu $k0, 8
+    lw    $v0, 0x90($k1) /* lo */
+    addiu $k1, 8
     mtlo  $v0
-    lw    $v1, 0x84($k0) /* hi */
-    lw    $k1, 0x80($k0) /* return PC */
+    lw    $v1, 0x84($k1) /* hi */
+    lw    $k0, 0x80($k1) /* return PC */
     mthi  $v1
-    lw    $a1, 0x8c($k0) /* Status */
+    lw    $a1, 0x8c($k1) /* Status */
     /* 00 is zero */
-    lw    $at, 0x04($k0)
+    lw    $at, 0x04($k1)
     mtc0  $a1, $12
-    lw    $v0, 0x08($k0)
-    lw    $v1, 0x0c($k0)
-    lw    $a0, 0x10($k0)
-    lw    $a1, 0x14($k0)
-    lw    $a2, 0x18($k0)
-    lw    $a3, 0x1c($k0)
-    lw    $t0, 0x20($k0)
-    lw    $t1, 0x24($k0)
-    lw    $t2, 0x28($k0)
-    lw    $t3, 0x2c($k0)
-    lw    $t4, 0x30($k0)
-    lw    $t5, 0x34($k0)
-    lw    $t6, 0x38($k0)
-    lw    $t7, 0x3c($k0)
-    lw    $s0, 0x40($k0)
-    lw    $s1, 0x44($k0)
-    lw    $s2, 0x48($k0)
-    lw    $s3, 0x4c($k0)
-    lw    $s4, 0x50($k0)
-    lw    $s5, 0x54($k0)
-    lw    $s6, 0x58($k0)
-    lw    $s7, 0x5c($k0)
-    lw    $t8, 0x60($k0)
-    lw    $t9, 0x64($k0)
+    lw    $v0, 0x08($k1)
+    lw    $v1, 0x0c($k1)
+    lw    $a0, 0x10($k1)
+    lw    $a1, 0x14($k1)
+    lw    $a2, 0x18($k1)
+    lw    $a3, 0x1c($k1)
+    lw    $t0, 0x20($k1)
+    lw    $t1, 0x24($k1)
+    lw    $t2, 0x28($k1)
+    lw    $t3, 0x2c($k1)
+    lw    $t4, 0x30($k1)
+    lw    $t5, 0x34($k1)
+    lw    $t6, 0x38($k1)
+    lw    $t7, 0x3c($k1)
+    lw    $s0, 0x40($k1)
+    lw    $s1, 0x44($k1)
+    lw    $s2, 0x48($k1)
+    lw    $s3, 0x4c($k1)
+    lw    $s4, 0x50($k1)
+    lw    $s5, 0x54($k1)
+    lw    $s6, 0x58($k1)
+    lw    $s7, 0x5c($k1)
+    lw    $t8, 0x60($k1)
+    lw    $t9, 0x64($k1)
     /* 68 and 6c are k0 and k1 */
-    lw    $gp, 0x70($k0)
-    lw    $sp, 0x74($k0)
-    lw    $fp, 0x78($k0)
-    lw    $ra, 0x7c($k0)
-    jr    $k1
+    lw    $gp, 0x70($k1)
+    lw    $sp, 0x74($k1)
+    lw    $fp, 0x78($k1)
+    lw    $ra, 0x7c($k1)
+    jr    $k0
     .word 0x42000010 /* rfe */
 
-    .align 2
     .section .text, "ax", @progbits
-    .global breakVector
-    .global breakHandler
-    .type breakVector, @function
-
-breakVector:
-    ori   $k0, $0, %lo(generalHandler)
-    lui   $k1, %hi(breakHandler)
-    jr    $k0
-    ori   $k1, %lo(breakHandler)
-
     .align 2
     .global exceptionVector
-    .global exceptionHandler
     .type exceptionVector, @function
 
 exceptionVector:
-    ori   $k0, $0, %lo(generalHandler)
-    lui   $k1, %hi(exceptionHandler)
+    li    $k0, %lo(exceptionHandler)
     jr    $k0
-    ori   $k1, %lo(exceptionHandler)
+    nop
+    nop
 
     .align 2
     .global A0Vector
@@ -433,7 +309,7 @@ C0Vector:
     nop
 
     .align 2
-    .section .data, "ax", @progbits
+    .section .ramtext, "ax", @progbits
     .global __ramA0table
     .type A0Handler, @function
 
@@ -474,15 +350,21 @@ C0Handler:
 
     .align 2
     .global unimplemented
-    .global unimplemented_end
+    .global osDbgPrintf
     .type unimplemented, @function
 
 unimplemented:
-    break
+    la    $v0, osDbgPrintf
+    la    $a0, unimplementedMsg
+    move  $a1, $t0
+    move  $a2, $t1
+    jalr  $v0
+    move  $a3, $ra
+    li    $v0, 0x1f802081
+    sb    $0, 0($v0)
+unimplementedStop:
+    b     unimplementedStop
     nop
-    jr    $ra
-    nop
-unimplemented_end:
 
     .align 2
     .global ramsyscall_printf
@@ -503,4 +385,6 @@ romsyscall_printf:
     jr    $t2
     li    $t1, 0x3f
 
+unimplementedMsg:
+    .ascii "=== Unimplemented %x:%x syscall from %p ===\r\n\0"
     .set pop
