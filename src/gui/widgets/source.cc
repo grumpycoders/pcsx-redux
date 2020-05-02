@@ -57,6 +57,7 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
         TextEditor::Coordinates c;
         c.mLine = line - 1;
         c.mColumn = 1;
+        if (c.mLine < 0) c.mLine = 0;
         m_text.SetCursorPosition(c);
         return true;
     };
