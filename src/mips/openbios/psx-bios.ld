@@ -135,6 +135,10 @@ SECTIONS {
 
     .data : {
         __data_start = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
         *(.ramtext)
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)

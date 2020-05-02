@@ -28,17 +28,23 @@
 static int s_IRQsAutoAck[11];
 
 static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
-    if ((IMASK & IREG & 0x004) != 0) deliverEvent(0xf0000003,0x1000);
-    if ((IMASK & IREG & 0x200) != 0) deliverEvent(0xf0000009,0x1000);
-    if ((IMASK & IREG & 0x002) != 0) deliverEvent(0xf0000002,0x1000);
-    if ((IMASK & IREG & 0x400) != 0) deliverEvent(0xf000000a,0x1000);
-    if ((IMASK & IREG & 0x100) != 0) deliverEvent(0xf000000b,0x1000);
-    if ((IMASK & IREG & 0x001) != 0) deliverEvent(0xf0000001,0x1000);
-    if ((IMASK & IREG & 0x010) != 0) deliverEvent(0xf0000005,0x1000);
-    if ((IMASK & IREG & 0x020) != 0) deliverEvent(0xf0000006,0x1000);
-    if ((IMASK & IREG & 0x040) != 0) deliverEvent(0xf0000006,0x1000);
-    if ((IMASK & IREG & 0x080) != 0) deliverEvent(0xf0000008,0x1000);
-    if ((IMASK & IREG & 0x008) != 0) deliverEvent(0xf0000004,0x1000);
+    // The original code does read IMASK and IREG for every if,
+    // and recompute that same mask for every of them, which is
+    // a big waste of cycles. Since IMASK and IREG are volatiles,
+    // they can't be cached by the compiler, if this is what the
+    // original author was thinking.
+    uint32_t mask = IMASK & IREG;
+    if ((mask & 0x004) != 0) deliverEvent(0xf0000003, 0x1000);
+    if ((mask & 0x200) != 0) deliverEvent(0xf0000009, 0x1000);
+    if ((mask & 0x002) != 0) deliverEvent(0xf0000002, 0x1000);
+    if ((mask & 0x400) != 0) deliverEvent(0xf000000a, 0x1000);
+    if ((mask & 0x100) != 0) deliverEvent(0xf000000b, 0x1000);
+    if ((mask & 0x001) != 0) deliverEvent(0xf0000001, 0x1000);
+    if ((mask & 0x010) != 0) deliverEvent(0xf0000005, 0x1000);
+    if ((mask & 0x020) != 0) deliverEvent(0xf0000006, 0x1000); // Yes that's a copy-paste mistake from the BIOS code directly.
+    if ((mask & 0x040) != 0) deliverEvent(0xf0000006, 0x1000); // Keeping it this way to avoid breaking stuff.
+    if ((mask & 0x080) != 0) deliverEvent(0xf0000008, 0x1000);
+    if ((mask & 0x008) != 0) deliverEvent(0xf0000004, 0x1000);
     uint32_t ackMask = 0;
     int * ptr = s_IRQsAutoAck;
     for (int IRQ = 0; IRQ < 11; IRQ++, ptr++) {
