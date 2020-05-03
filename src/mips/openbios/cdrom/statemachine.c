@@ -243,6 +243,7 @@ static volatile int s_initializationComplete;
 static uint8_t * s_idResponsePtr;
 
 static void complete() {
+    CDROM_REG1; // throw away one read off the controller
     switch (s_currentState) {
         case 0x12: // setSession?
             setSessionResponse();
