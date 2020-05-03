@@ -45,6 +45,11 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
 
+    void maybeCancelDelayedLoad(uint32_t index) {
+        unsigned other = m_currentDelayedLoad ^ 1;
+        if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
+    }
+
     void psxTestSWInts();
 
     typedef void (InterpretedCPU::*intFunc_t)();
@@ -320,30 +325,37 @@ inline void InterpretedCPU::doBranch(uint32_t tar) {
  *********************************************************/
 void InterpretedCPU::psxADDI() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _u32(_rRs_) + _Imm_;
 }  // Rt = Rs + Im      (Exception on Integer Overflow)
 void InterpretedCPU::psxADDIU() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _u32(_rRs_) + _Imm_;
 }  // Rt = Rs + Im
 void InterpretedCPU::psxANDI() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _u32(_rRs_) & _ImmU_;
 }  // Rt = Rs And Im
 void InterpretedCPU::psxORI() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _u32(_rRs_) | _ImmU_;
 }  // Rt = Rs Or  Im
 void InterpretedCPU::psxXORI() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _u32(_rRs_) ^ _ImmU_;
 }  // Rt = Rs Xor Im
 void InterpretedCPU::psxSLTI() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _i32(_rRs_) < _Imm_;
 }  // Rt = Rs < Im              (Signed)
 void InterpretedCPU::psxSLTIU() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _rRt_ = _u32(_rRs_) < ((uint32_t)_Imm_);
 }  // Rt = Rs < Im              (Unsigned)
 
@@ -353,42 +365,52 @@ void InterpretedCPU::psxSLTIU() {
  *********************************************************/
 void InterpretedCPU::psxADD() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) + _u32(_rRt_);
 }  // Rd = Rs + Rt              (Exception on Integer Overflow)
 void InterpretedCPU::psxADDU() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) + _u32(_rRt_);
 }  // Rd = Rs + Rt
 void InterpretedCPU::psxSUB() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) - _u32(_rRt_);
 }  // Rd = Rs - Rt              (Exception on Integer Overflow)
 void InterpretedCPU::psxSUBU() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) - _u32(_rRt_);
 }  // Rd = Rs - Rt
 void InterpretedCPU::psxAND() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) & _u32(_rRt_);
 }  // Rd = Rs And Rt
 void InterpretedCPU::psxOR() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) | _u32(_rRt_);
 }  // Rd = Rs Or  Rt
 void InterpretedCPU::psxXOR() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) ^ _u32(_rRt_);
 }  // Rd = Rs Xor Rt
 void InterpretedCPU::psxNOR() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = ~(_u32(_rRs_) | _u32(_rRt_));
 }  // Rd = Rs Nor Rt
 void InterpretedCPU::psxSLT() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _i32(_rRs_) < _i32(_rRt_);
 }  // Rd = Rs < Rt              (Signed)
 void InterpretedCPU::psxSLTU() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _u32(_rRs_) < _u32(_rRt_);
 }  // Rd = Rs < Rt              (Unsigned)
 
@@ -449,27 +471,35 @@ void InterpretedCPU::psxMULTU() {
         doBranch(_BranchTarget_); \
     }
 
-void InterpretedCPU::psxBGEZ() { RepZBranchi32(>=) }        // Branch if Rs >= 0
-void InterpretedCPU::psxBGEZAL() { RepZBranchLinki32(>=) }  // Branch if Rs >= 0 and link
-void InterpretedCPU::psxBGTZ() { RepZBranchi32(>) }         // Branch if Rs >  0
-void InterpretedCPU::psxBLEZ() { RepZBranchi32(<=) }        // Branch if Rs <= 0
-void InterpretedCPU::psxBLTZ() { RepZBranchi32(<) }         // Branch if Rs <  0
-void InterpretedCPU::psxBLTZAL() { RepZBranchLinki32(<) }   // Branch if Rs <  0 and link
-
+void InterpretedCPU::psxBGEZ() { RepZBranchi32(>=) }  // Branch if Rs >= 0
+void InterpretedCPU::psxBGEZAL() {                    // Branch if Rs >= 0 and link
+    maybeCancelDelayedLoad(31);
+    RepZBranchLinki32(>=)
+}
+void InterpretedCPU::psxBGTZ() { RepZBranchi32(>) }   // Branch if Rs >  0
+void InterpretedCPU::psxBLEZ() { RepZBranchi32(<=) }  // Branch if Rs <= 0
+void InterpretedCPU::psxBLTZ() { RepZBranchi32(<) }   // Branch if Rs <  0
+void InterpretedCPU::psxBLTZAL() {                    // Branch if Rs <  0 and link
+    maybeCancelDelayedLoad(31);
+    RepZBranchLinki32(<)
+}
 /*********************************************************
  * Shift arithmetic with constant shift                   *
  * Format:  OP rd, rt, sa                                 *
  *********************************************************/
 void InterpretedCPU::psxSLL() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _u32(_rRd_) = _u32(_rRt_) << _Sa_;
 }  // Rd = Rt << sa
 void InterpretedCPU::psxSRA() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _i32(_rRd_) = _i32(_rRt_) >> _Sa_;
 }  // Rd = Rt >> sa (arithmetic)
 void InterpretedCPU::psxSRL() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _u32(_rRd_) = _u32(_rRt_) >> _Sa_;
 }  // Rd = Rt >> sa (logical)
 
@@ -479,14 +509,17 @@ void InterpretedCPU::psxSRL() {
  *********************************************************/
 void InterpretedCPU::psxSLLV() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _u32(_rRd_) = _u32(_rRt_) << (_u32(_rRs_) & 0x1f);
 }  // Rd = Rt << rs
 void InterpretedCPU::psxSRAV() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _i32(_rRd_) = _i32(_rRt_) >> (_u32(_rRs_) & 0x1f);
 }  // Rd = Rt >> rs (arithmetic)
 void InterpretedCPU::psxSRLV() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _u32(_rRd_) = _u32(_rRt_) >> (_u32(_rRs_) & 0x1f);
 }  // Rd = Rt >> rs (logical)
 
@@ -496,6 +529,7 @@ void InterpretedCPU::psxSRLV() {
  *********************************************************/
 void InterpretedCPU::psxLUI() {
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
     _u32(_rRt_) = _ImmLU_;
 }  // Upper halfword of Rt = Im
 
@@ -505,10 +539,12 @@ void InterpretedCPU::psxLUI() {
  *********************************************************/
 void InterpretedCPU::psxMFHI() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _rHi_;
 }  // Rd = Hi
 void InterpretedCPU::psxMFLO() {
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = _rLo_;
 }  // Rd = Lo
 
@@ -568,6 +604,7 @@ void InterpretedCPU::psxBNE() { RepBranchi32(!=) }  // Branch if Rs != Rt
 void InterpretedCPU::psxJ() { doBranch(_JumpTarget_); }
 void InterpretedCPU::psxJAL() {
     _SetLink(31);
+    maybeCancelDelayedLoad(31);
     doBranch(_JumpTarget_);
 }
 
@@ -582,6 +619,7 @@ void InterpretedCPU::psxJALR() {
     if (_Rd_) {
         _SetLink(_Rd_);
     }
+    maybeCancelDelayedLoad(_Rd_);
     doBranch(temp);
 }
 
@@ -684,8 +722,7 @@ void InterpretedCPU::psxSWL() {
     uint32_t shift = addr & 3;
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
-    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
-                                             (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
 
@@ -701,8 +738,7 @@ void InterpretedCPU::psxSWR() {
     uint32_t shift = addr & 3;
     uint32_t mem = PCSX::g_emulator.m_psxMem->psxMemRead32(addr & ~3);
 
-    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3,
-                                             (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    PCSX::g_emulator.m_psxMem->psxMemWrite32(addr & ~3, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
 
     /*
     Mem = 1234.  Reg = abcd
