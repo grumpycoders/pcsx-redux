@@ -57,6 +57,6 @@ struct Counter {
 #define ATCONS_IRQ  HW_U8(0x1f802030)
 #define ATCONS_IRQ2 HW_U8(0x1f802032)
 
-#define POST HW_U8(0xbf802042)
+#define POST HW_U8(0xbf802041)
 
 #define COUNTERS ((volatile struct Counter *) 0xbf801100)
