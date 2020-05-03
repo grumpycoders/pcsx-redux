@@ -119,7 +119,7 @@ SECTIONS {
     .rodata : {
         g_defaultConfiguration = .;
         LONG(4);
-        LONG(10);
+        LONG(16);
         LONG(__sp);
         __data_len = .;
         LONG(__data_len_val);
