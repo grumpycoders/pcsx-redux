@@ -308,7 +308,8 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     psxprintf("boot address  : %08x %08x\nExecute !\n\n", s_binaryInfo.pc, s_configuration.stackBase);
     s_binaryInfo.stack_start = s_configuration.stackBase;
     s_binaryInfo.stack_size = 0;
-    psxprintf("                S_ADDR(%08x)  S_SIZE(%08)\n", s_configuration.stackBase, 0);
+    // the original format string says S_SIZE(%08), which is obviously wrong...
+    psxprintf("                S_ADDR(%08x)  S_SIZE(%08x)\n", s_configuration.stackBase, 0);
     enterCriticalSection();
     SETJMPFATAL(0x38b);
     gameMainThunk(&s_binaryInfo, 1, NULL);
