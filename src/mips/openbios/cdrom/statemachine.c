@@ -72,7 +72,7 @@ int cdromSeekL(uint8_t * msf) {
     }
 
     if (!(CDROM_REG0 & 0x10)) return 0;
-    cdromUndeliverAllExceptAckAndDone();
+    cdromUndeliverAllExceptAckAndRdy();
     if ((s_currentState == 0xe6) || (s_currentState == 0xeb)) s_preemptedState = s_currentState;
     CDROM_REG0 = 0;
     CDROM_REG2 = msf[0];
@@ -105,13 +105,14 @@ int cdromRead(int count, void * buffer, uint32_t mode) {
             s_wordsToRead = 0x249;
         }
     } else {
-        s_wordsToRead = 0x249;
+        s_wordsToRead = 0x246;
     }
     s_sectorCounter = count;
     s_dmaCounter = count;
     s_readBuffer = (uint32_t *) buffer;
     s_mode = mode;
     if ((CDROM_REG0 & 0x10) == 0) return 0;
+    s_currentState = READ_SETMODE;
     CDROM_REG0 = 0;
     CDROM_REG2 = mode;
     CDROM_REG1 = 14;

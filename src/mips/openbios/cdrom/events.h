@@ -27,5 +27,5 @@ extern uint32_t g_cdEventRDY;
 extern uint32_t g_cdEventEND;
 extern uint32_t g_cdEventERR;
 
-void cdromUndeliverAllExceptAckAndDone();
+void cdromUndeliverAllExceptAckAndRdy();
 void cdromUndeliverAll();
