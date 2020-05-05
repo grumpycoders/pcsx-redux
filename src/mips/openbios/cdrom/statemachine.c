@@ -154,7 +154,9 @@ static void initiateDMA(void) {
     }
     s_initialReadBuffer = s_readBuffer;
     CDROM_REG0 = 0;
+    CDROM_REG0; // throw away
     CDROM_REG3 = 0;
+    CDROM_REG3; // throw away
     CDROM_REG0 = 0;
     CDROM_REG3 = 0x80;
     SBUS_DEV5_CTRL = 0x20943;

@@ -162,8 +162,8 @@ static const void * romA0table[0xc0] = {
 void * B0table[0x60] = {
     malloc, free, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, deliverEvent, // 04
-    openEvent, unimplemented, unimplemented, testEvent, // 08
-    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
+    openEvent, closeEvent, unimplemented, testEvent, // 08
+    enableEvent, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, unimplemented, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, returnFromException, // 14
     setDefaultExceptionJmpBuf, unimplemented, unimplemented, unimplemented, // 18

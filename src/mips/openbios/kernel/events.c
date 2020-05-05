@@ -56,7 +56,7 @@ static int getFreeEvCBSlot(void) {
     return -1;
 }
 
-int openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)()) {
+uint32_t openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)()) {
     int slot = getFreeEvCBSlot();
     if (slot == -1) return -1;
 
@@ -83,6 +83,18 @@ __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t 
     }
 }
 
+int enableEvent(uint32_t event) {
+    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    if (ptr->flags) ptr->flags = 0x2000;
+    return 1;
+}
+
+int closeEvent(uint32_t event) {
+    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    ptr->flags = 0;
+    return 1;
+}
+
 void undeliverEvent(uint32_t class, uint32_t spec) {
     struct EventInfo * ptr, * end;
 
@@ -96,9 +108,9 @@ void undeliverEvent(uint32_t class, uint32_t spec) {
     }
 }
 
-int testEvent(int event) {
+int testEvent(uint32_t event) {
     struct EventInfo * ptr = __globals.events + (event & 0xffff);
-    if (ptr->flags = 0x4000) {
+    if (ptr->flags == 0x4000) {
         ptr->flags = 0x2000;
         return 1;
     }

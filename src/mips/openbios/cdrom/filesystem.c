@@ -180,7 +180,7 @@ static int findDirectoryEntryForFilename(int id, const char * filename) {
 }
 
 int dev_cd_open(struct File * file, char * filename) {
-    if ((cdromBlockGetStatus() & 0x10) || !cdromReadPathTable()) {
+    if ((cdromBlockGetStatus() & 0x10) && !cdromReadPathTable()) {
         file->errno = PSXEBUSY;
         return -1;
     }

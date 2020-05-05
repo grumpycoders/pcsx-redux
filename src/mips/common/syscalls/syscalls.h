@@ -167,7 +167,7 @@ static __attribute__((always_inline)) uint32_t syscall_openEvent(uint32_t class,
     return ((uint32_t(*)(uint32_t, uint32_t, uint32_t, void *))0xb0)(class, spec, mode, handler);
 }
 
-static __attribute__((always_inline)) uint32_t syscall_closeEvent(uint32_t event) {
+static __attribute__((always_inline)) int syscall_closeEvent(uint32_t event) {
     register volatile int n asm("t1") = 0x09;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((uint32_t(*)(uint32_t))0xb0)(event);

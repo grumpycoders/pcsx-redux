@@ -26,10 +26,10 @@ extern uint8_t g_readBuffer[2048];
 static __inline__ uint32_t readUnaligned(const void * in, int pos) {
     const uint8_t * buffer = (uint8_t *) in;
     uint32_t r = 0;
-    r <<= 8; r += buffer[pos++];
-    r <<= 8; r += buffer[pos++];
-    r <<= 8; r += buffer[pos++];
-    r <<= 8; r += buffer[pos++];
+    pos += 4;
+    r <<= 8; r += buffer[--pos];
+    r <<= 8; r += buffer[--pos];
+    r <<= 8; r += buffer[--pos];
+    r <<= 8; r += buffer[--pos];
     return r;
 }
-

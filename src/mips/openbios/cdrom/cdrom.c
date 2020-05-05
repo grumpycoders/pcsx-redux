@@ -34,6 +34,11 @@ static void initializeHandlersAndEvents() {
     g_cdEventRDY = syscall_openEvent(0xf0000003, 0x0040, 0x2000, NULL);
     g_cdEventEND = syscall_openEvent(0xf0000003, 0x0080, 0x2000, NULL);
     g_cdEventERR = syscall_openEvent(0xf0000003, 0x8000, 0x2000, NULL);
+    syscall_enableEvent(g_cdEventACK);
+    syscall_enableEvent(g_cdEventDNE);
+    syscall_enableEvent(g_cdEventRDY);
+    syscall_enableEvent(g_cdEventEND);
+    syscall_enableEvent(g_cdEventERR);
     leaveCriticalSection();
     g_cdromCWD[0] = 0;
 }
