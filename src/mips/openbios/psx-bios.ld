@@ -82,6 +82,12 @@ SECTIONS {
     .text : {
         *(.boot)
 
+        __build_id_start = .;
+        *(.note.gnu.build-id)
+        __build_id_end = .;
+
+        . = ALIGN(4);
+
         *(.init)
         . = ALIGN(4);
         __preinit_array_start = .;
@@ -172,7 +178,4 @@ SECTIONS {
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
-
-    /* This build-id section is causing objcopy issues, so let's throw it away too. */
-    /DISCARD/ : { *(.note.gnu.build-id) }
 }
