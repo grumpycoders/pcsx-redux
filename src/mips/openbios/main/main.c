@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <alloca.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -223,6 +224,14 @@ void gameMainThunk(struct psxExeHeader * binaryInfo, int argc, char **argv) {
     exec(binaryInfo, argc, argv);
 }
 
+// https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-18048.html
+extern struct {
+    uint32_t namesz;
+    uint32_t descsz;
+    uint32_t type;
+    uint8_t strings[];
+} __build_id;
+
 static void boot(const char * systemCnfPath, const char * binaryPath) {
     POST = 0x01;
     writeCOP0Status(readCOP0Status() & ~0x401);
@@ -245,7 +254,22 @@ static void boot(const char * systemCnfPath, const char * binaryPath) {
     IREG = 0;
     syscall_setupFileIO(g_installTTY);
     POST = 5;
-    psxprintf("PS-X Realtime Kernel OpenBios version.\nCopyright 2019-2020 (C) PCSX-Redux authors.\n");
+    /* this is a bit specific to OpenBIOS to retrieve the buildid from the raw data */
+    {
+
+        char buildIDstring[65];
+        uint32_t count = __build_id.descsz;
+        if (count > 32) count = 32;
+        const uint8_t * buildId = __build_id.strings + __build_id.namesz;
+        static const char * const hex = "0123456789abcdef";
+        for (int i = 0; i < count; i++) {
+            uint8_t c = buildId[i];
+            buildIDstring[i * 2 + 0] = hex[c & 0xf];
+            buildIDstring[i * 2 + 1] = hex[(c >> 4) & 0xf];
+        }
+        buildIDstring[count * 2] = 0;
+        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright 2019-2020 (C) PCSX-Redux authors.\n", buildIDstring);
+    }
     POST = 6;
     muteSpu();
     s_configuration = g_defaultConfiguration;

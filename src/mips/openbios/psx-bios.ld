@@ -82,7 +82,7 @@ SECTIONS {
     .text : {
         *(.boot)
 
-        __build_id_start = .;
+        __build_id = .;
         *(.note.gnu.build-id)
         __build_id_end = .;
 
