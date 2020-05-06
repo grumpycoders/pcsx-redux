@@ -41,9 +41,20 @@
 #include "openbios/shell/shell.h"
 #include "openbios/tty/tty.h"
 
-static void boot(const char * systemCnfPath, const char * binaryPath);
+static void boot(char * systemCnfPath, char * binaryPath);
 
 void * fastMemset(void * ptr, int value, size_t num);
+
+void bootThunk() {
+    char binaryPath [80];
+    char systemCnfPath [80];
+
+    strcpy(systemCnfPath, "cdrom:");
+    strcat(systemCnfPath, "SYSTEM.CNF;1");
+    strcpy(binaryPath, "cdrom:");
+    strcat(binaryPath, "PSX.EXE;1");
+    boot(systemCnfPath, binaryPath);
+}
 
 int main() {
     // RAM size
@@ -59,7 +70,7 @@ int main() {
     if (checkExp1PreHookLicense()) runExp1PreHook();
     POST = 0x0e;
     g_installTTY = 0;
-    boot("cdrom:SYSTEM.CNF;1", "cdrom:PSX.EXE;1");
+    bootThunk();
 }
 
 struct Configuration {
@@ -130,6 +141,7 @@ static void findWordItem(const char * systemCnf, uint32_t * item, const char * n
     while (1) {
         c = *systemCnf++;
         if (isspace(c) && !started) continue;
+        started = 1;
         if (isxdigit(c)) {
             value <<= 4;
             if (isdigit(c)) {
@@ -232,7 +244,7 @@ extern struct {
     uint8_t strings[];
 } __build_id;
 
-static void boot(const char * systemCnfPath, const char * binaryPath) {
+static void boot(char * systemCnfPath, char * binaryPath) {
     POST = 0x01;
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();

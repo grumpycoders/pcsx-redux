@@ -74,10 +74,11 @@ int cdromReadPathTable() {
     while ((ptr < g_readBuffer + sizeof(g_readBuffer)) && (entryID <= sizeof(s_pathTable) / sizeof(s_pathTable[0]))) {
         if (!ptr[0]) break;
         entry->LBA = readUnaligned(ptr, 2);
+        // ...why? it's literally the array entry number.
         entry->ID = entryID;
         // Yes. I can't even.
         entry->parentID = ptr[6] + ptr[7];
-        memcpy(entry->name, ptr + 9, ptr[8]);
+        memcpy(entry->name, ptr + 8, ptr[0]);
         unsigned entrySize = ptr[0];
         if (entrySize & 1) {
             ptr += entrySize + 9;
@@ -85,6 +86,7 @@ int cdromReadPathTable() {
             ptr += entrySize + 8;
         }
         entry++;
+        entryID++;
     }
     s_cachedDirectoryEntryID = 0;
     s_pathTableCount = entryID - 1;
@@ -97,6 +99,7 @@ static int findDirectoryID(int parentID, const char * name) {
     for (int id = 0; id < s_pathTableCount; id++, entry++) {
         if ((entry->parentID == parentID) && (strcmp(entry->name, name)) == 0) return id + 1;
     }
+    return -1;
 }
 
 static int readDirectory(int entryID) {
@@ -112,6 +115,7 @@ static int readDirectory(int entryID) {
         uint8_t nameSize = ptr[32];
         memcpy(entry->name, ptr + 33, nameSize);
         entry->name[nameSize] = 0;
+        entry++;
         ptr += ptr[0];
         count++;
     }
@@ -138,6 +142,12 @@ static int patternMatches(const char * str, const char * pattern) {
 // This code is really convoluted, but that's really how the
 // generated assembly reads. There's definitely possible
 // improvements for it. Also it seems horribly buggy.
+// Very likely only works for the root directory.
+// Luckily, that's all what the bios really needs to do
+// in order to read the SYSTEM.CNF and main binary.
+// Coupled with the other bug that makes it impossible
+// to read sector-spans that start beyond sector 4500,
+// the bios cd functions are virtually unusable.
 static int findNextDirectory(int directoryID, char * name) {
     directoryID = findDirectoryID(directoryID, name);
     if (directoryID == -1) name[0] = 0;
@@ -162,17 +172,21 @@ static int findDirectoryEntryForFilename(int id, const char * filename) {
         char * dst = localName;
         char c;
         while (((c = *++src) != '\\') && (c != 0)) *dst++ = c;
+        *dst = 0;
         if ((c == 0) || (((directoryID = findNextDirectory(directoryID, localName)) == -1)) || (depth < 7)) {
             if (localName[0] == 0) break;
             if (depth >= 8) break;
+            // yeah...
             *dst = 0;
-            int count = s_directoryEntryCount;
+            // another clusterfuck: readDirectory only returns 1 or -1, so "it never fails", whee
             if (readDirectory(directoryID) == 0) break;
-            for (struct DirectoryEntry * entry = &s_cachedDirectoryEntry[id]; id < count; id++, entry++) {
+            int count = s_directoryEntryCount;
+            // this makes no sense, starting at 'id'; why is it a parameter?
+            for (struct DirectoryEntry * entry = s_cachedDirectoryEntry + id; id < count; id++, entry++) {
                 if (patternMatches(entry->name, localName)) return s_foundDirectoryEntry = id;
             }
         }
-        // ??
+        // ?? so... you can't read deeper than the root anyway?
         break;
     }
 
