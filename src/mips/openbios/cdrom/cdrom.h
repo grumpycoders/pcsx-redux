@@ -26,3 +26,5 @@ int addCDRomDevice();
 
 int cdromReadTOC();
 int cdromReset();
+
+void initializeCDRomHandlersAndEvents();

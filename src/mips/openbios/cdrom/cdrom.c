@@ -27,7 +27,7 @@
 #include "openbios/cdrom/filesystem.h"
 #include "openbios/kernel/libcmisc.h"
 
-static void initializeHandlersAndEvents() {
+void initializeCDRomHandlersAndEvents() {
     syscall_enqueueCDRomHandlers();
     g_cdEventACK = syscall_openEvent(0xf0000003, 0x0010, 0x2000, NULL);
     g_cdEventDNE = syscall_openEvent(0xf0000003, 0x0020, 0x2000, NULL);
@@ -44,7 +44,7 @@ static void initializeHandlersAndEvents() {
 }
 
 static void initializeSoftwareAndHardware() {
-    initializeHandlersAndEvents();
+    initializeCDRomHandlersAndEvents();
     while (!syscall_cdromInnerInit());
 }
 

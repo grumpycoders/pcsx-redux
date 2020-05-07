@@ -155,6 +155,12 @@ static __attribute__((always_inline)) void * syscall_kmalloc(unsigned size) {
     return ((void*(*)(unsigned))0xb0)(size);
 }
 
+static __attribute__((always_inline)) void syscall_kfree(void * ptr) {
+    register volatile int n asm("t1") = 0x01;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((void(*)(void *))0xb0)(ptr);
+}
+
 static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t class, uint32_t mode) {
     register volatile int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));

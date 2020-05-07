@@ -215,7 +215,24 @@ static void loadSystemCnf(const char * systemCnf, struct Configuration * configu
     findStringItem(systemCnf, binaryPath, cmdLine, "BOOT");
 }
 
-static void kernelSetup() { }
+static void kernelSetup() {
+    psxprintf("KERNEL SETUP!\n");
+    // the following is going to be hard to do with our current
+    // allocator implementation, so let's free stuff instead
+    // syscall_sysInitMemory(&heapBase, heapSize);
+    syscall_kfree(__globals.events);
+    syscall_kfree(__globals.blocks);
+    syscall_kfree(__globals.threads);
+    syscall_kfree(__globals.handlersArray);
+
+    initHandlersArray(4);
+    syscall_enqueueSyscallHandler(0);
+    syscall_enqueueIrqHandler(3);
+    initEvents(s_configuration.eventsCount);
+    initThreads(1, s_configuration.taskCount);
+    syscall_enqueueRCntIrqs(1);
+    initializeCDRomHandlersAndEvents();
+}
 
 static void zeroUserMemoryUntilStack() {
     uintptr_t stackPtr;
