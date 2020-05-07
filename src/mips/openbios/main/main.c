@@ -179,8 +179,11 @@ static void findStringItem(const char * systemCnf, char * const binaryPath, char
 
     int parseArg = 0;
     char * binPtr = binaryPath;
+    int started = 0;
     while (1) {
         c = *systemCnf++;
+        if (isspace(c) && !started) continue;
+        started = 1;
         if ((parseArg = (c == '\t'))) break;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
         *binPtr++ = c;
@@ -215,9 +218,10 @@ static void loadSystemCnf(const char * systemCnf, struct Configuration * configu
 static void kernelSetup() { }
 
 static void zeroUserMemoryUntilStack() {
-    int marker;
-    uintptr_t end = (uintptr_t) &marker;
-    end &= 0x3fffffff;
+    uintptr_t stackPtr;
+    __asm__ volatile("move %0, $sp" : "=r"(stackPtr));
+
+    uintptr_t end = stackPtr & 0x3fffffff;
     fastMemset((void *) 0xa0010000, 0, end - 0x10000);
 }
 

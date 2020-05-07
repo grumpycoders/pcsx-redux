@@ -135,9 +135,9 @@ const char * splitFilepathAndFindDevice(const char * name, struct Device ** devi
     int id = 0;
     if (*name) {
         name++;
-        while (!isdigit(*dPtr)) dPtr++;
-        char * firstDigit = dPtr;
         char c;
+        while ((c = *dPtr) && !isdigit(*dPtr)) dPtr++;
+        char * firstDigit = dPtr;
         while ((c = *dPtr++)) {
             if (!isdigit(c)) c = '0';
             id = id * 10 + c - '0';
