@@ -33,9 +33,9 @@ static int s_ignoreCarriageReturns;
 void reopenStdio() {
     psxclose(0);
     psxclose(1);
-    int r = psxopen("tty00:", 1);
+    int r = psxopen("tty00:", PSXF_READ);
     if (r == 0) {
-        psxopen("tty00:", 2);
+        psxopen("tty00:", PSXF_WRITE);
     }
 }
 
