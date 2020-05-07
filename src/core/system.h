@@ -45,6 +45,7 @@ class System {
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
     // Printf used by bios syscalls
+    virtual void biosPutc(int c) = 0;
     virtual void biosPrintf(const char *fmt, ...) = 0;
     virtual void vbiosPrintf(const char *fmt, va_list va) = 0;
     // Printf used by the code in general, to indicate errors most of the time
@@ -62,13 +63,15 @@ class System {
     virtual void close() = 0;
     bool running() { return m_running; }
     bool quitting() { return m_quitting; }
+    int exitCode() { return m_exitCode; }
     void start() { m_running = true; }
     void stop() { m_running = false; }
     void pause() { m_running = false; }
     void resume() { m_running = true; }
-    void quit() {
+    void quit(int code = 0) {
         m_quitting = true;
         m_running = false;
+        m_exitCode = code;
     }
 
   private:
@@ -131,6 +134,7 @@ class System {
     std::string m_currentLocale;
     bool m_running = false;
     bool m_quitting = false;
+    int m_exitCode = 0;
     std::filesystem::path m_binDir;
 };
 

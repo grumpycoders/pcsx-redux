@@ -21,7 +21,12 @@
 
 #include "hwregs.h"
 
-static inline void muteSpu() {
+#define SPU_MVOL_L HW_U16(0x1f801d80)
+#define SPU_MVOL_R HW_U16(0x1f801d82)
+#define SPU_REVERB_L HW_U16(0x1f801d84)
+#define SPU_REVERB_R HW_U16(0x1f801d86)
+
+static __inline__ void muteSpu() {
     SPU_REVERB_R = 0;
     SPU_REVERB_L = 0;
     SPU_MVOL_R = 0;

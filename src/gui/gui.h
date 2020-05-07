@@ -32,9 +32,12 @@
 #include "core/system.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/source.h"
+#include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
 #include "support/settings.h"
 
@@ -172,6 +175,11 @@ class GUI final {
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;
     Widgets::VRAMViewer m_VRAMviewers[4];
+
+    Widgets::Dwarf m_dwarf;
+
+    Widgets::Types m_types;
+    Widgets::Source m_source;
 
     uv_loop_t m_loop;
 };

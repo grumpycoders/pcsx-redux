@@ -18,22 +18,24 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#include "gui/widgets/assembly.h"
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <iostream>
-
-#include "imgui.h"
 
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "gui/widgets/assembly.h"
-
+#include "fmt/format.h"
+#include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+#include "imgui_stdlib.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
@@ -265,23 +267,15 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     ImGui::SameLine();
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbol = m_symbols.find(value);
-    if (symbol == m_symbols.end()) {
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
-        }
-        ImGui::PopStyleVar();
-    } else {
-        std::string longLabel = symbol->second + " ;" + label;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(longLabel.c_str())) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
-        }
-        ImGui::PopStyleVar();
+    std::string longLabel = label;
+    auto symbols = findSymbol(value);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+    if (ImGui::Button(longLabel.c_str())) {
+        m_jumpToPC = true;
+        m_jumpToPCValue = value;
     }
+    ImGui::PopStyleVar();
 }
 void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     comma();
@@ -378,8 +372,8 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     ImGui::SameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbol = m_symbols.find(value);
-    if (symbol == m_symbols.end()) {
+    auto symbols = findSymbol(value);
+    if (symbols.size() == 0) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(label)) {
             m_jumpToPC = true;
@@ -387,7 +381,7 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
         }
         ImGui::PopStyleVar();
     } else {
-        std::string longLabel = symbol->second + " ;" + label;
+        std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(longLabel.c_str())) {
             m_jumpToPC = true;
@@ -401,10 +395,13 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     sameLine();
     char label[32];
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
+    std::string longLabel = label;
+    auto symbols = findSymbol(addr);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
     ImGui::Text("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
     ImGui::PopStyleVar();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
@@ -425,7 +422,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, const char* title) {
+void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title) {
     m_registers = registers;
     m_memory = memory;
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -533,7 +530,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(0x00290000 / 4);
+    ImGuiListClipper clipper(0x00290000 / 4, ImGui::GetTextLineHeightWithSpacing());
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -632,10 +629,10 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
 
-                auto symbol = m_symbols.find(dispAddr);
-                if (symbol != m_symbols.end()) {
+                auto symbols = findSymbol(dispAddr);
+                if (symbols.size() != 0) {
                     ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
-                    ImGui::Text("%s:", symbol->second.c_str());
+                    ImGui::Text("%s:", symbols.begin()->c_str());
                     ImGui::PopStyleColor();
                 }
 
@@ -851,6 +848,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         }
         ImGui::EndCombo();
     }
+    ImGui::SameLine();
+    if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if (m_followPC || m_jumpToPC) {
@@ -868,8 +867,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     break;
             }
         }
-        uint64_t pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
-        uint64_t scroll_to_px = pctopx * static_cast<uint64_t>(ImGui::GetTextLineHeightWithSpacing());
+        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
+        double scroll_to_px = pctopx * ImGui::GetTextLineHeightWithSpacing();
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC = false;
     }
@@ -882,7 +881,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         for (auto fileName : filesToOpen) {
             std::ifstream file;
             // oh the irony
-            file.open(reinterpret_cast<const char *>(fileName.c_str()));
+            file.open(reinterpret_cast<const char*>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;
@@ -896,4 +895,74 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             }
         }
     }
+
+    if (m_showSymbols) {
+        if (ImGui::Begin(_("Symbols"), &m_showSymbols)) {
+            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCaches();
+            ImGui::SameLine();
+            ImGui::InputText(_("Filter"), &m_symbolFilter);
+            ImGui::BeginChild("symbolsList");
+            auto up = [](const std::string& in) -> std::string {
+                std::string str = in;
+                std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+                return str;
+            };
+            std::string filter = up(m_symbolFilter);
+            bool empty = filter.empty();
+            for (auto& symbol : m_symbolsCache) {
+                int pos = up(symbol.first).find(filter);
+                bool found = pos >= 0;
+                if (empty || found) {
+                    std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
+                    std::string codeLabel = fmt::format(_("Code##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
+                    if (ImGui::Button(codeLabel.c_str())) {
+                        m_jumpToPC = true;
+                        m_jumpToPCValue = symbol.second;
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(dataLabel.c_str())) {
+                        jumpToMemory(symbol.second, 1);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(dwarfLabel.c_str())) {
+                        dwarf->m_pc = fmt::format("{:08x}", symbol.second);
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text(label.c_str());
+                }
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
+    }
+}
+
+std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
+    std::list<std::string> ret;
+    auto symbol = m_symbols.find(addr);
+    if (symbol != m_symbols.end()) ret.emplace_back(symbol->second);
+
+    if (!m_symbolsCachesValid) rebuildSymbolsCaches();
+    auto elfSymbol = m_elfSymbolsCache.find(addr);
+    if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
+
+    return std::move(ret);
+}
+
+void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
+    m_symbolsCache.clear();
+    for (auto& symbol : m_symbols) {
+        m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+    }
+
+    for (auto& elf : g_emulator.m_psxMem->getElves()) {
+        auto& symbols = elf.getSymbols();
+        for (auto& symbol : symbols) {
+            m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+            m_elfSymbolsCache.insert(std::pair(symbol.first, symbol.second));
+        }
+    }
+    m_symbolsCachesValid = true;
 }

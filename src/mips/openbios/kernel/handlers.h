@@ -20,3 +20,7 @@
 #pragma once
 
 void installKernelHandlers();
+void copyDataAndInitializeBSS();
+void copyA0table();
+
+void returnFromException();

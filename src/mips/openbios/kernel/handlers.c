@@ -17,88 +17,167 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <ctype.h>
+#include <memory.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "osdebug.h"
 
 #include "common/compiler/stdint.h"
+#include "common/hardware/pcsxhw.h"
+#include "common/psxlibc/stdio.h"
+#include "common/psxlibc/setjmp.h"
+#include "common/syscalls/syscalls.h"
+#include "openbios/cdrom/cdrom.h"
+#include "openbios/cdrom/filesystem.h"
+#include "openbios/cdrom/statemachine.h"
+#include "openbios/fileio/fileio.h"
+#include "openbios/handlers/handlers.h"
+#include "openbios/kernel/events.h"
+#include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
+#include "openbios/kernel/libcmisc.h"
+#include "openbios/kernel/misc.h"
+#include "openbios/kernel/psxexe.h"
+#include "openbios/kernel/setjmp.h"
+#include "openbios/main/main.h"
+#include "openbios/gpu/gpu.h"
+#include "openbios/tty/tty.h"
 
 void unimplemented();
 void breakVector();
-void interruptVector();
+void exceptionVector();
 void A0Vector();
 void B0Vector();
 void C0Vector();
 
-__attribute__((section(".a0table"))) void * A0table[0xc0] = {
+static void __inline__ installHandler(const uint32_t * src, uint32_t * dst) {
+    for (int i = 0; i < 4; i++) dst[i] = src[i];
+}
+
+void installKernelHandlers() {
+    installHandler((uint32_t*) A0Vector, (uint32_t *) 0xa0);
+    installHandler((uint32_t*) B0Vector, (uint32_t *) 0xb0);
+    installHandler((uint32_t*) C0Vector, (uint32_t *) 0xc0);
+}
+
+static void installExceptionHandler() {
+    installHandler((uint32_t*) exceptionVector, (uint32_t *) 0x80);
+}
+
+void __attribute__((noreturn)) returnFromException();
+
+#define EXCEPTION_STACK_SIZE 0x180
+
+static uint32_t s_exceptionStack[EXCEPTION_STACK_SIZE];
+void * g_exceptionStackPtr = s_exceptionStack + EXCEPTION_STACK_SIZE;
+
+struct JmpBuf * g_exceptionJmpBufPtr = NULL;
+static struct JmpBuf defaultExceptionJmpBuf = {
+    .ra = (uint32_t) returnFromException,
+    .sp = (uint32_t) s_exceptionStack + EXCEPTION_STACK_SIZE,
+    .s8 = 0,
+    .s0 = 0,
+    .s1 = 0,
+    .s2 = 0,
+    .s3 = 0,
+    .s4 = 0,
+    .s5 = 0,
+    .s6 = 0,
+    .s7 = 0,
+    .gp = 0,
+};
+
+static void setDefaultExceptionJmpBuf() {
+    g_exceptionJmpBufPtr = &defaultExceptionJmpBuf;
+}
+
+extern void * __ramA0table[0xc0];
+void * B0table[0x60];
+void * C0table[0x20];
+
+static void __inline__ subPatchA0table(int src, int dst, int len) {
+    while (len--) __ramA0table[dst++] = B0table[src++];
+}
+
+static void patchA0table() {
+    subPatchA0table(0x32, 0x00, 10);
+    subPatchA0table(0x3c, 0x3b, 4);
+}
+
+static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
+
+static const void * romA0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
-    unimplemented, unimplemented, unimplemented, unimplemented, // 08
-    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 10
-    unimplemented, unimplemented, unimplemented, unimplemented, // 14
-    unimplemented, unimplemented, unimplemented, unimplemented, // 18
-    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 20
-    unimplemented, unimplemented, unimplemented, unimplemented, // 24
-    unimplemented, unimplemented, unimplemented, unimplemented, // 28
-    unimplemented, unimplemented, unimplemented, unimplemented, // 2c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 30
-    unimplemented, unimplemented, unimplemented, unimplemented, // 34
-    unimplemented, unimplemented, unimplemented, unimplemented, // 38
-    unimplemented, unimplemented, unimplemented, unimplemented, // 3c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 40
-    unimplemented, unimplemented, unimplemented, unimplemented, // 44
-    unimplemented, unimplemented, unimplemented, unimplemented, // 48
-    unimplemented, unimplemented, unimplemented, unimplemented, // 4c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 50
-    unimplemented, unimplemented, unimplemented, unimplemented, // 54
-    unimplemented, unimplemented, unimplemented, unimplemented, // 58
-    unimplemented, unimplemented, unimplemented, unimplemented, // 5c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 60
-    unimplemented, unimplemented, unimplemented, unimplemented, // 64
+    unimplemented, unimplemented, psxtodigit, unimplemented /*atof*/, // 08
+    strtol, strtol, psxabs, psxabs, // 0c
+    atoi, atol, psxatob, psxsetjmp, // 10
+    psxlongjmp, strcat, strncat, strcmp, // 14
+    strncmp, strcpy, strncpy, strlen, // 18
+    strchr, strrchr, strchr, strrchr, // 1c
+    psxstrpbrk, psxstrspn, psxstrcspn, psxstrtok, // 20
+    strstr, toupper, tolower, psxbcopy, // 24
+    psxbzero, psxbcmp, memcpy, memset, // 28
+    memmove, psxbcmp, memchr, psxrand, // 2c
+    psxsrand, qsort, unimplemented /*atof*/, base_malloc, // 30
+    base_free, psxlsearch, psxbsearch, calloc, // 34
+    realloc, psxdummy /*heapinit*/, unimplemented /*abort*/, unimplemented, // 38
+    unimplemented, unimplemented, unimplemented, psxprintf, // 3c
+    unimplemented /*unresolved exception */, loadExeHeader, loadExe, exec, // 40
+    flushCache, installKernelHandlers, GPU_dw, GPU_mem2vram, // 44
+    GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
+    GPU_abort, GPU_getStatus, GPU_sync, unimplemented, // 4c
+    unimplemented, loadAndExec, unimplemented, unimplemented, // 50
+    initCDRom, unimplemented, deinitCDRom, psxdummy, // 54
+    psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
+    dev_tty_open, dev_tty_action, dev_tty_ioctl, dev_cd_open, // 5c
+    dev_cd_read, psxdummy, dev_cd_firstfile, dev_cd_nextfile, // 60
+    dev_cd_chdir, unimplemented, unimplemented, unimplemented, // 64
     unimplemented, unimplemented, unimplemented, unimplemented, // 68
-    unimplemented, unimplemented, unimplemented, unimplemented, // 6c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 70
-    unimplemented, unimplemented, unimplemented, unimplemented, // 74
-    unimplemented, unimplemented, unimplemented, unimplemented, // 78
-    unimplemented, unimplemented, unimplemented, unimplemented, // 7c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 80
-    unimplemented, unimplemented, unimplemented, unimplemented, // 84
-    unimplemented, unimplemented, unimplemented, unimplemented, // 88
-    unimplemented, unimplemented, unimplemented, unimplemented, // 8c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 90
-    unimplemented, unimplemented, unimplemented, unimplemented, // 94
-    unimplemented, unimplemented, unimplemented, unimplemented, // 98
-    unimplemented, unimplemented, unimplemented, unimplemented, // 9c
-    unimplemented, unimplemented, unimplemented, unimplemented, // a0
+    unimplemented, unimplemented, unimplemented, clearFileError, // 6c
+    unimplemented, initCDRom, deinitCDRom, psxdummy, // 70
+    psxdummy, psxdummy, psxdummy, psxdummy, // 74
+    cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
+    cdromGetStatus, psxdummy, cdromRead, psxdummy, // 7c
+    psxdummy, cdromSetMode, psxdummy, psxdummy, // 80
+    psxdummy, psxdummy, psxdummy, psxdummy, // 84
+    psxdummy, psxdummy, psxdummy, psxdummy, // 88
+    psxdummy, psxdummy, psxdummy, psxdummy, // 8c
+    cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
+    getLastCDRomError, cdromInnerInit, addCDRomDevice, psxdummy /* addMemoryCardDevice */, // 94
+    addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
+    setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
+    unimplemented, unimplemented, enqueueCDRomHandlers, unimplemented, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
     unimplemented, unimplemented, unimplemented, unimplemented, // a8
     unimplemented, unimplemented, unimplemented, unimplemented, // ac
-    unimplemented, unimplemented, unimplemented, unimplemented, // b0
+    unimplemented, unimplemented, ioabortraw, unimplemented, // b0
     unimplemented, unimplemented, unimplemented, unimplemented, // b4
     unimplemented, unimplemented, unimplemented, unimplemented, // b8
     unimplemented, unimplemented, unimplemented, unimplemented, // bc
 };
 
-void *B0table[0x60] = {
-    unimplemented, unimplemented, unimplemented, unimplemented, // 00
-    unimplemented, unimplemented, unimplemented, unimplemented, // 04
-    unimplemented, unimplemented, unimplemented, unimplemented, // 08
-    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
+void * B0table[0x60] = {
+    malloc, free, unimplemented, unimplemented, // 00
+    unimplemented, unimplemented, unimplemented, deliverEvent, // 04
+    openEvent, closeEvent, unimplemented, testEvent, // 08
+    enableEvent, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, unimplemented, unimplemented, // 10
-    unimplemented, unimplemented, unimplemented, unimplemented, // 14
-    unimplemented, unimplemented, unimplemented, unimplemented, // 18
+    unimplemented, unimplemented, unimplemented, returnFromException, // 14
+    setDefaultExceptionJmpBuf, unimplemented, unimplemented, unimplemented, // 18
     unimplemented, unimplemented, unimplemented, unimplemented, // 1c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 20
+    undeliverEvent, unimplemented, unimplemented, unimplemented, // 20
     unimplemented, unimplemented, unimplemented, unimplemented, // 24
     unimplemented, unimplemented, unimplemented, unimplemented, // 28
     unimplemented, unimplemented, unimplemented, unimplemented, // 2c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 30
-    unimplemented, unimplemented, unimplemented, unimplemented, // 34
-    unimplemented, unimplemented, unimplemented, unimplemented, // 38
-    unimplemented, unimplemented, unimplemented, unimplemented, // 3c
+    unimplemented, unimplemented, psxopen, psxlseek, // 30
+    psxread, psxwrite, psxclose, psxioctl, // 34
+    psxexit, isFileConsole, psxgetc, psxputc, // 38
+    psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
-    unimplemented, unimplemented, unimplemented, unimplemented, // 44
+    unimplemented, unimplemented, unimplemented, addDevice, // 44
     unimplemented, unimplemented, unimplemented, unimplemented, // 48
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
@@ -108,64 +187,41 @@ void *B0table[0x60] = {
 };
 
 void * C0table[0x20] = {
-    unimplemented, unimplemented, unimplemented, unimplemented, // 00
-    unimplemented, unimplemented, unimplemented, unimplemented, // 04
+    enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, unimplemented, // 00
+    unimplemented, unimplemented, unimplemented, installExceptionHandler, // 04
     unimplemented, unimplemented, unimplemented, unimplemented, // 08
-    unimplemented, unimplemented, unimplemented, unimplemented, // 0c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 10
+    enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
+    unimplemented, unimplemented, setupFileIO, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, unimplemented, // 14
-    unimplemented, unimplemented, unimplemented, unimplemented, // 18
-    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
+    setupFileIO, unimplemented, unimplemented, unimplemented, // 18
+    patchA0table, unimplemented, unimplemented, unimplemented, // 1c
 };
 
-static void installHandler(const void * src, void * dst) {
-    ((uint32_t *) dst)[0] = ((uint32_t *) src)[0];
-    ((uint32_t *) dst)[1] = ((uint32_t *) src)[1];
-    ((uint32_t *) dst)[2] = ((uint32_t *) src)[2];
-    ((uint32_t *) dst)[3] = ((uint32_t *) src)[3];
+/* This is technically all done by our crt0, but since there's
+   logic that relies on this being a thing, we're repeating
+   this code here too. We should have better code for these
+   however, instead of memcpy and memset. */
+extern uint32_t __data_start;
+extern uint32_t __rom_data_start;
+extern uint32_t __data_len;
+extern uint32_t __bss_start;
+extern uint32_t __bss_len;
+void copyDataAndInitializeBSS() {
+    /* This part is technically a chicken-and-egg problem.
+       We can't rely on the code to already exist in RAM,
+       so we have to do this in ROM, which will be slower. */
+    memcpy(&__data_start, &__rom_data_start, __data_len);
+    /* The original code does this step by jumping into 0x500.
+       Likely the intend being that there's a faster memset at
+       this location, for the specific purpose of handling
+       a memset using the i-cache. We can tune this later. */
+    memset(&__bss_start, 0, __data_len);
 }
 
-void installKernelHandlers() {
-    installHandler(breakVector, (uint32_t *) 0x40);
-    installHandler(interruptVector, (uint32_t *) 0x80);
-    installHandler(A0Vector, (uint32_t *) 0xa0);
-    installHandler(B0Vector, (uint32_t *) 0xb0);
-    installHandler(C0Vector, (uint32_t *) 0xc0);
-}
-
-typedef struct {
-    union {
-        struct {
-            uint32_t r0, at, v0, v1, a0, a1, a2, a3;
-            uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
-            uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-            uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
-            uint32_t lo, hi;
-        } n;
-        uint32_t r[34]; /* Lo, Hi in r[32] and r[33] */
-    } GPR;
-    uint32_t SR;
-    uint32_t Cause;
-    uint32_t EPC;
-} InterruptData;
-
-static void printInterruptData(InterruptData* data) {
-    osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", data->EPC, data->SR, data->Cause);
-    osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", data->GPR.r[ 0], data->GPR.r[ 1], data->GPR.r[ 2], data->GPR.r[ 3]);
-    osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", data->GPR.r[ 4], data->GPR.r[ 5], data->GPR.r[ 6], data->GPR.r[ 7]);
-    osDbgPrintf("t0 = %p - t1 = %p - t2 = %p - t3 = %p\r\n", data->GPR.r[ 8], data->GPR.r[ 9], data->GPR.r[10], data->GPR.r[11]);
-    osDbgPrintf("t4 = %p - t5 = %p - t6 = %p - t7 = %p\r\n", data->GPR.r[12], data->GPR.r[13], data->GPR.r[14], data->GPR.r[15]);
-    osDbgPrintf("s0 = %p - s1 = %p - s2 = %p - s3 = %p\r\n", data->GPR.r[16], data->GPR.r[17], data->GPR.r[18], data->GPR.r[19]);
-    osDbgPrintf("s4 = %p - s5 = %p - s6 = %p - s7 = %p\r\n", data->GPR.r[20], data->GPR.r[21], data->GPR.r[22], data->GPR.r[23]);
-    osDbgPrintf("t8 = %p - t9 = %p - k0 = %p - k1 = %p\r\n", data->GPR.r[24], data->GPR.r[25], data->GPR.r[26], data->GPR.r[27]);
-    osDbgPrintf("gp = %p - sp = %p - s8 = %p - ra = %p\r\n", data->GPR.r[28], data->GPR.r[29], data->GPR.r[30], data->GPR.r[31]);
-    osDbgPrintf("hi = %p - lo = %p\r\n", data->GPR.r[32], data->GPR.r[33]);
-}
-
-void breakHandler(InterruptData* data) {
-}
-
-void interruptHandler(InterruptData* data) {
-    osDbgPrintf("***Exception***\r\n");
-    printInterruptData(data);
+/* This also could be handled by the crt0, by putting the
+   A0 table into the proper data section, but in the
+   spirit of doing exactly what the original code does,
+   we're going to do it manually instead. */
+void copyA0table() {
+    memcpy(&__ramA0table, romA0table, sizeof(romA0table));
 }

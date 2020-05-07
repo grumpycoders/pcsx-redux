@@ -24,11 +24,11 @@ EXTERN(_reset)
 ENTRY(_reset)
 
 MEMORY {
-    kseg0a (rwx): ORIGIN = 0x00000000, LENGTH = 0x200
-    kseg0b (rwx): ORIGIN = 0x00000200, LENGTH = 2M - 0x200
-    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
-    rom (rx)    : ORIGIN = 0xbfc00000, LENGTH = 512K
-    dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
+    kseg0i(rwx): ORIGIN = 0x00000000, LENGTH = 0x500
+    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 2M - 0x500
+    ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
+    rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 512K
+    dcache     : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
 STACK_SIZE      = 0x10000;
@@ -39,15 +39,54 @@ __sp            = __ram_top - 0x100;
 __dcache        = ORIGIN(dcache);
 __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
-__rom_data_len  = (__data_end - __data_start);
-__bss_len       = (__bss_end - __bss_start);
+__data_len_val  = (__data_end - __data_start);
+__bss_len_val   = (__bss_end - __bss_start);
 
 __stack_start   = ORIGIN(ram) + LENGTH(ram) - STACK_SIZE;
 
 SECTIONS {
+    .base (NOLOAD) : {
+        __vector_00 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_40 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __globals60 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_80 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_a0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_b0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_c0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_d0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_e0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __vector_f0 = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        __globals = .;
+        . = ALIGN(0x200);
+        __ramA0table = .;
+        . = ALIGN(0x500);
+    } > kseg0i
+
     __text_start = .;
     .text : {
         *(.boot)
+
+        __build_id = .;
+        *(.note.gnu.build-id)
+        __build_id_end = .;
+
+        . = ALIGN(4);
 
         *(.init)
         . = ALIGN(4);
@@ -84,38 +123,49 @@ SECTIONS {
     __text_end = .;
 
     .rodata : {
-        *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
+        g_defaultConfiguration = .;
+        LONG(4);
+        LONG(16);
+        LONG(__sp);
+        __data_len = .;
+        LONG(__data_len_val);
+        __bss_len = .;
+        LONG(__bss_len_val);
+        . = ALIGN(32);
+        *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.* .rodata1)
     } > rom
 
-    .rodata1 : {
-        *(.rodata1)
-    } > rom
-
-    __data_start = .;
-    .data : {
+    .rom_data_start : {
         __rom_data_start = .;
-        *(.a0table)
+    } > rom
+
+    .data : {
+        __data_start = .;
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        LONG(0); LONG(0); LONG(0); LONG(0);
+        *(.ramtext)
         *(.data .data.* .gnu.linkonce.d.*)
         *(.data1)
         *(.got.plt)
         *(.got)
-    } > kseg0b AT > rom
+        . = ALIGN(32);
+        __data_end = .;
+    } > kseg0 AT > rom
 
-    . = ALIGN(4);
-    __data_end = .;
-
-    __bss_start = .;
-    .sbss : {
+    .sbss (NOLOAD) : {
+        . = ALIGN(32);
+        __bss_start = .;
         *(.dynsbss)
         *(.sbss .sbss.* .gnu.linkonce.sb.*)
         *(.scommon)
         *(.dynbss)
         *(.bss .bss.* .gnu.linkonce.b.*)
         *(COMMON)
-    } > kseg0b
-
-    . = ALIGN(4);
-    __bss_end = .;
+        . = ALIGN(4);
+        __bss_end = .;
+    } > kseg0
 
     __heap_start = .;
 
@@ -126,11 +176,6 @@ SECTIONS {
     /* Everything is statically linked, so discard PLTs. */
     /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) }
 
-    /* We don't make use of debugging information, so drop that, too. */
-    /DISCARD/ : { *(.debug) *(.debug_srcinfo) *(.debug_sfnames) *(.debug_aranges) *(.debug_pubnames) *(.debug_info .gnu.linkonce.wi.*) *(.debug_abbrev) *(.debug_line .debug_line.* .debug_line_end ) *(.debug_frame) *(.debug_str) *(.debug_loc) *(.debug_macinfo) *(.debug_weaknames) *(.debug_funcnames) *(.debug_typenames) *(.debug_varnames) *(.debug_pubtypes) *(.debug_ranges) *(.debug_macro) *(.mdebug.abi32) *(.mdebug.abiN32) *(.mdebug.abi64) *(.mdebug.abiO64) *(.mdebug.eabi32) *(.mdebug.eabi64) }
-
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
-
-    /DISCARD/ : { *(.note.gnu.build-id) }
 }

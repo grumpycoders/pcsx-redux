@@ -21,5 +21,12 @@
 
 #include "common/compiler/stdint.h"
 
-uint32_t readCOP0Status();
-void writeCOP0Status(uint32_t);
+static __inline__ uint32_t readCOP0Status() {
+    uint32_t ret;
+    asm("mfc0 %0, $12\nnop\n" : "=r"(ret));
+    return ret;
+}
+
+static __inline__ void writeCOP0Status(uint32_t status) {
+    asm("mtc0 %0, $12\nnop\n" : : "r"(status));
+}

@@ -11,12 +11,14 @@ CXXFLAGS := -std=c++2a
 CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
+CPPFLAGS += -Ithird_party/fmt/include/
 CPPFLAGS += -Ithird_party/googletest/googletest/include
 CPPFLAGS += -Ithird_party/imgui
 CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/imgui_club
+CPPFLAGS += -Ithird_party/libelfin
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -g
 
@@ -54,6 +56,8 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 LD := $(CXX)
 
 SRC_CC := $(call rwildcard,src/,*.cc)
+SRC_CC += $(wildcard third_party/fmt/src/*.cc)
+SRC_CC += $(wildcard third_party/libelfin/*.cc)
 SRC_CPP := $(wildcard third_party/imgui/*.cpp)
 SRC_CPP += third_party/imgui/examples/imgui_impl_opengl3.cpp
 SRC_CPP += third_party/imgui/examples/imgui_impl_glfw.cpp

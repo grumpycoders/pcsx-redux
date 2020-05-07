@@ -155,7 +155,9 @@
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\settings.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
+    <ClInclude Include="..\..\third_party\interval_tree.h" />
     <ClInclude Include="..\..\third_party\json.hpp" />
+    <ClInclude Include="..\..\third_party\typestring.hh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

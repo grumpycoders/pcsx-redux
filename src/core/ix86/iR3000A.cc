@@ -96,6 +96,11 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
 
     static void recClearWrapper(X86DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
 
+    void maybeCancelDelayedLoad(uint32_t index) {
+        unsigned other = m_currentDelayedLoad ^ 1;
+        if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
+    }
+
     PCSX::ix86 gen;
 
     uintptr_t *m_psxRecLUT;
@@ -804,6 +809,7 @@ void X86DynaRecCPU::recBASIC() {
 void X86DynaRecCPU::recADDIU() {
     // Rt = Rs + Im
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -839,6 +845,7 @@ void X86DynaRecCPU::recADDIU() {
 void X86DynaRecCPU::recADDI() {
     // Rt = Rs + Im
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -874,6 +881,7 @@ void X86DynaRecCPU::recADDI() {
 void X86DynaRecCPU::recSLTI() {
     // Rt = Rs < Im (signed)
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (IsConst(_Rs_)) {
         MapConst(_Rt_, (int32_t)m_iRegs[_Rs_].k < _Imm_);
@@ -891,6 +899,7 @@ void X86DynaRecCPU::recSLTI() {
 void X86DynaRecCPU::recSLTIU() {
     // Rt = Rs < Im (unsigned)
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (IsConst(_Rs_)) {
         MapConst(_Rt_, m_iRegs[_Rs_].k < _ImmU_);
@@ -908,6 +917,7 @@ void X86DynaRecCPU::recSLTIU() {
 void X86DynaRecCPU::recANDI() {
     // Rt = Rs And Im
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -931,6 +941,7 @@ void X86DynaRecCPU::recANDI() {
 void X86DynaRecCPU::recORI() {
     // Rt = Rs Or Im
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -954,6 +965,7 @@ void X86DynaRecCPU::recORI() {
 void X86DynaRecCPU::recXORI() {
     // Rt = Rs Xor Im
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     if (_Rs_ == _Rt_) {
         if (IsConst(_Rt_)) {
@@ -983,6 +995,7 @@ void X86DynaRecCPU::recXORI() {
 void X86DynaRecCPU::recLUI() {
     // Rt = Imm << 16
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     MapConst(_Rt_, m_psxRegs.code << 16);
 }
@@ -996,6 +1009,7 @@ void X86DynaRecCPU::recLUI() {
 void X86DynaRecCPU::recADDU() {
     // Rd = Rs + Rt
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k + m_iRegs[_Rt_].k);
@@ -1068,6 +1082,7 @@ void X86DynaRecCPU::recADD() {
 void X86DynaRecCPU::recSUBU() {
     // Rd = Rs - Rt
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k - m_iRegs[_Rt_].k);
@@ -1100,6 +1115,7 @@ void X86DynaRecCPU::recSUB() {
 void X86DynaRecCPU::recAND() {
     // Rd = Rs And Rt
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k & m_iRegs[_Rt_].k);
@@ -1143,6 +1159,7 @@ void X86DynaRecCPU::recAND() {
 void X86DynaRecCPU::recOR() {
     // Rd = Rs Or Rt
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k | m_iRegs[_Rt_].k);
@@ -1170,6 +1187,7 @@ void X86DynaRecCPU::recOR() {
 void X86DynaRecCPU::recXOR() {
     // Rd = Rs Xor Rt
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k ^ m_iRegs[_Rt_].k);
@@ -1197,6 +1215,7 @@ void X86DynaRecCPU::recXOR() {
 void X86DynaRecCPU::recNOR() {
     // Rd = Rs Nor Rt
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, ~(m_iRegs[_Rs_].k | m_iRegs[_Rt_].k));
@@ -1227,6 +1246,7 @@ void X86DynaRecCPU::recNOR() {
 void X86DynaRecCPU::recSLT() {
     // Rd = Rs < Rt (signed)
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, (int32_t)m_iRegs[_Rs_].k < (int32_t)m_iRegs[_Rt_].k);
@@ -1260,6 +1280,7 @@ void X86DynaRecCPU::recSLT() {
 void X86DynaRecCPU::recSLTU() {
     // Rd = Rs < Rt (unsigned)
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rs_) && IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rs_].k < m_iRegs[_Rt_].k);
@@ -2213,6 +2234,7 @@ void X86DynaRecCPU::recSWR() {
 void X86DynaRecCPU::recSLL() {
     // Rd = Rt << Sa
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rt_].k << _Sa_);
@@ -2228,6 +2250,7 @@ void X86DynaRecCPU::recSLL() {
 void X86DynaRecCPU::recSRL() {
     // Rd = Rt >> Sa
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rt_)) {
         MapConst(_Rd_, m_iRegs[_Rt_].k >> _Sa_);
@@ -2243,6 +2266,7 @@ void X86DynaRecCPU::recSRL() {
 void X86DynaRecCPU::recSRA() {
     // Rd = Rt >> Sa
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rt_)) {
         MapConst(_Rd_, (int32_t)m_iRegs[_Rt_].k >> _Sa_);
@@ -2258,6 +2282,7 @@ void X86DynaRecCPU::recSRA() {
 void X86DynaRecCPU::recSLLV() {
     // Rd = Rt << Rs
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rt_) && IsConst(_Rs_)) {
         MapConst(_Rd_, m_iRegs[_Rt_].k << (m_iRegs[_Rs_].k & 0x1f));
@@ -2290,6 +2315,7 @@ void X86DynaRecCPU::recSLLV() {
 void X86DynaRecCPU::recSRLV() {
     // Rd = Rt >> Rs
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rt_) && IsConst(_Rs_)) {
         MapConst(_Rd_, m_iRegs[_Rt_].k >> (m_iRegs[_Rs_].k & 0x1f));
@@ -2322,6 +2348,7 @@ void X86DynaRecCPU::recSRLV() {
 void X86DynaRecCPU::recSRAV() {
     // Rd = Rt >> Rs
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     if (IsConst(_Rt_) && IsConst(_Rs_)) {
         MapConst(_Rd_, (int32_t)m_iRegs[_Rt_].k >> (m_iRegs[_Rs_].k & 0x1f));
@@ -2376,6 +2403,7 @@ void X86DynaRecCPU::recBREAK() {
 void X86DynaRecCPU::recMFHI() {
     // Rd = Hi
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     m_iRegs[_Rd_].state = ST_UNK;
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.n.hi);
@@ -2396,6 +2424,7 @@ void X86DynaRecCPU::recMTHI() {
 void X86DynaRecCPU::recMFLO() {
     // Rd = Lo
     if (!_Rd_) return;
+    maybeCancelDelayedLoad(_Rd_);
 
     m_iRegs[_Rd_].state = ST_UNK;
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.n.lo);
@@ -2466,6 +2495,7 @@ void X86DynaRecCPU::recBGTZ() {
 void X86DynaRecCPU::recBLTZAL() {
     // Branch if Rs < 0
     uint32_t target = _Imm_ * 4 + m_pc;
+    maybeCancelDelayedLoad(31);
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
@@ -2501,6 +2531,7 @@ void X86DynaRecCPU::recBLTZAL() {
 void X86DynaRecCPU::recBGEZAL() {
     // Branch if Rs >= 0
     uint32_t target = _Imm_ * 4 + m_pc;
+    maybeCancelDelayedLoad(31);
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
@@ -2544,6 +2575,7 @@ void X86DynaRecCPU::recJ() {
 
 void X86DynaRecCPU::recJAL() {
     // jal target
+    maybeCancelDelayedLoad(31);
     m_needsStackFrame = true;
     auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
@@ -2570,6 +2602,7 @@ void X86DynaRecCPU::recJR() {
 
 void X86DynaRecCPU::recJALR() {
     // jalr Rs
+    maybeCancelDelayedLoad(_Rd_);
     m_needsStackFrame = true;
     auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
@@ -2698,6 +2731,7 @@ void X86DynaRecCPU::recBGEZ() {
 void X86DynaRecCPU::recMFC0() {
     // Rt = Cop0->Rd
     if (!_Rt_) return;
+    maybeCancelDelayedLoad(_Rt_);
 
     m_iRegs[_Rt_].state = ST_UNK;
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.r[_Rd_]);

@@ -150,19 +150,25 @@ _boot:
     mtc0  $0, $13
     nop
 
-    /* now we are ready for a typical crt0 */
+    /* Now we are ready for a typical crt0.
+       The original bios does not do this, most likely
+       for speed reasons. It would be more efficient to
+       run these loops in RAM instead of the ROM. But
+       we have enough code that would rely in all this
+       to be set up already before starting, it would
+       be a mistake to not do it here. */
     la    $t0, __data_start
     la    $t1, __data_end
     la    $t2, __rom_data_start
 
-    beq   $t1, $t2, data_copy_skip
+    beq   $t0, $t1, data_copy_skip
 
 data_copy:
-    lw    $t3, 0($t0)
-    sw    $t3, 0($t2)
+    lw    $t3, 0($t2)
+    sw    $t3, 0($t0)
     addiu $t0, 4
     addiu $t2, 4
-    bne   $t1, $t2, data_copy
+    bne   $t0, $t1, data_copy
 
 data_copy_skip:
     la    $t0, __bss_start
@@ -176,68 +182,6 @@ bss_init:
     bne   $t0, $t1, bss_init
 
 bss_init_skip:
-    /* Displays the following:
-
-      **********
-      0123456789
-      **********
-
-    */
-    li    $t3, 42
-    lui   $t1, 0x1f00
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    li    $t0, 13
-    sb    $t0, 0($t1)
-    li    $t0, 10
-    sb    $t0, 0($t1)
-    li    $t0, '0'
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    addiu $t0, 1
-    sb    $t0, 0($t1)
-    li    $t0, 13
-    sb    $t0, 0($t1)
-    li    $t0, 10
-    sb    $t0, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    sb    $t3, 0($t1)
-    li    $t0, 13
-    sb    $t0, 0($t1)
-    li    $t0, 10
-    sb    $t0, 0($t1)
-
     /* technically have to set $gp, but we are not using it, so, not */
     la    $sp, __sp
     move  $fp, $sp
@@ -248,5 +192,9 @@ bss_init_skip:
 
     jal   _ucsdk_start
 
+    li    $t0, 0x1f802080
+    li    $t1, 10
+    sb    $t1, 0($t0)
+    sb    $t1, 1($t0)
 stop:
     b     stop

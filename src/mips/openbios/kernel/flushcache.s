@@ -28,13 +28,32 @@ flushCache:
     mfc0  $t3, $12
     nop
 
-    li    $t0, 0x804
-    sw    $t0, CACHE_CTRL
+    /* Around this location, the retail bios does a bal to the next instruction,
+       in order to ensure this is run from the 0xbfc bios space, since the next
+       few instructions are going to effectively unplug all other busses from
+       the main CPU. Since flushCache can only be called from that space,
+       thanks to the syscall, this should not be necessary here.
+       
+       A few other changes from the retail bios:
+         - the cop0 status register is mutated BEFORE unplugging the busses.
+         - the register k0 is left untouched.
+     */
 
     li    $t1, 0x10000
     mtc0  $t1, $12
     nop
     nop
+
+    /* The BIU_CONFIG register at 0xfffe0130 is a bit of a mystery at the moment.
+       Further investigation is required here to properly understand what this
+       code does exactly. Educated guesses are saying this is replacing the main
+       ram with a direct access to the i-caches. There seems to be a way to remap
+       the scratchpad into a d-cache also. But until the purpose of this register
+       is better understood, this code will remain an almost exact copy of the
+       retail code, as to not cause any problem. */
+
+    li    $t0, 0x804
+    sw    $t0, BIU_CONFIG
 
     move  $t0, $0
     li    $t2, 0x1000
@@ -55,7 +74,7 @@ cache_init_1:
     nop
 
     li    $t0, 0x800
-    sw    $t0, CACHE_CTRL
+    sw    $t0, BIU_CONFIG
 
     mtc0  $t1, $12
     nop
@@ -115,7 +134,7 @@ cache_init_2:
     nop
 
     li    $t0, 0x1e988
-    sw    $t0, CACHE_CTRL
+    sw    $t0, BIU_CONFIG
 
     mtc0  $t3, $12
     nop
