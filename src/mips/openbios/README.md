@@ -46,4 +46,8 @@ The primary repository for this project is going to be as a subdirectory of PCSX
 
 The code has been rewritten based off the reverse engineering of a dump of the BIOS of an american SCPH-7001 machine. MD5sum: 1e68c231d0896b7eadcad1d7d8e76129
 
-The ghidra database for is currently being hosted on a server, alongside a few other pieces of software being reversed. Contact one of the authors if you want access.
+The ghidra database for it is currently being hosted on a server, alongside a few other pieces of software being reversed. Contact one of the authors if you want access.
+
+## Commentary
+
+The retail PlayStation BIOS code is a constellation of bugs and bad design. The fact that the retail console boots at all is nothing short of a miracle. Half of the provided libc in the A0 table is buggy. The BIOS code is barely able to initialize the CD-Rom, and read the game's binary off of it to boot it; anything beyond that will be crippled with bugs. And this only is viable if you respect a very strict method to create your CD-Rom. The memory card and gamepad code is a steaming-hot heap of human excrement. The provided GPU stubs are inefficient at best. The only sane thing that any software running on the PlayStation ought to do is to immediately disable interrupts, grab the function pointer located at 0x00000310 for `FlushCache`, in order put it inside a wrapper that disables interrupts before calling it, and then trash the whole memory to install its own code. The only reason `FlushCache` is required from the retail code is because since the function will unplug the main memory bus off the CPU in order to work, it HAS to run from the 0xbfc memory map, which will still be connected. Anything else from the retail code is virtually useless, and shouldn't be relied upon.
