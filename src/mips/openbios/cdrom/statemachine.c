@@ -763,3 +763,8 @@ void enqueueCDRomHandlers() {
     s_cdromDMAHandlerInfo.verifier = cdromDMAVerifier;
     syscall_sysEnqIntRP(0, &s_cdromDMAHandlerInfo);
 }
+
+void dequeueCDRomHandlers() {
+    syscall_sysDeqIntRP(0, &s_cdromIOHandlerInfo);
+    syscall_sysDeqIntRP(0, &s_cdromDMAHandlerInfo);
+}

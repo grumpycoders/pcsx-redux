@@ -45,7 +45,7 @@
 #include "openbios/gpu/gpu.h"
 #include "openbios/tty/tty.h"
 
-void unimplemented();
+void unimplemented() __attribute__((long_call));
 void breakVector();
 void exceptionVector();
 void A0Vector();
@@ -93,6 +93,10 @@ static void setDefaultExceptionJmpBuf() {
     g_exceptionJmpBufPtr = &defaultExceptionJmpBuf;
 }
 
+static void setExceptionJmpBuf(struct JmpBuf * jmpBup) {
+    g_exceptionJmpBufPtr = jmpBup;
+}
+
 extern void * __ramA0table[0xc0];
 void * B0table[0x60];
 void * C0table[0x20];
@@ -107,6 +111,11 @@ static void patchA0table() {
 }
 
 static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
+
+static void * getB0table();
+static void * getC0table();
+static void dummyPad() { unimplemented(); }
+static void dummyMC() { }
 
 static const void * romA0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
@@ -146,10 +155,10 @@ static const void * romA0table[0xc0] = {
     psxdummy, psxdummy, psxdummy, psxdummy, // 88
     psxdummy, psxdummy, psxdummy, psxdummy, // 8c
     cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
-    getLastCDRomError, cdromInnerInit, addCDRomDevice, psxdummy /* addMemoryCardDevice */, // 94
+    getLastCDRomError, cdromInnerInit, addCDRomDevice, dummyMC /* addMemoryCardDevice */, // 94
     addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
-    unimplemented, unimplemented, enqueueCDRomHandlers, unimplemented, // a0
+    unimplemented, unimplemented, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
     unimplemented, unimplemented, unimplemented, unimplemented, // a8
     unimplemented, unimplemented, unimplemented, unimplemented, // ac
@@ -165,8 +174,8 @@ void * B0table[0x60] = {
     openEvent, closeEvent, unimplemented, testEvent, // 08
     enableEvent, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, unimplemented, unimplemented, // 10
-    unimplemented, unimplemented, unimplemented, returnFromException, // 14
-    setDefaultExceptionJmpBuf, unimplemented, unimplemented, unimplemented, // 18
+    unimplemented, dummyPad, dummyPad, returnFromException, // 14
+    setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplemented, unimplemented, // 18
     unimplemented, unimplemented, unimplemented, unimplemented, // 1c
     undeliverEvent, unimplemented, unimplemented, unimplemented, // 20
     unimplemented, unimplemented, unimplemented, unimplemented, // 24
@@ -181,21 +190,24 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 48
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
-    unimplemented, unimplemented, unimplemented, unimplemented, // 54
-    unimplemented, unimplemented, unimplemented, unimplemented, // 58
+    unimplemented, unimplemented, getC0table, getB0table, // 54
+    unimplemented, unimplemented, unimplemented, dummyMC /* something about pad */, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c
 };
 
 void * C0table[0x20] = {
-    enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, unimplemented, // 00
+    enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
     unimplemented, unimplemented, unimplemented, installExceptionHandler, // 04
-    unimplemented, unimplemented, unimplemented, unimplemented, // 08
+    unimplemented, unimplemented, setTimerAutoAck, unimplemented, // 08
     enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, setupFileIO, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, unimplemented, // 14
     setupFileIO, unimplemented, unimplemented, unimplemented, // 18
     patchA0table, unimplemented, unimplemented, unimplemented, // 1c
 };
+
+void * getB0table() { return B0table; }
+void * getC0table() { return C0table; }
 
 /* This is technically all done by our crt0, but since there's
    logic that relies on this being a thing, we're repeating

@@ -155,3 +155,8 @@ int enqueueRCntIrqs(int priority) {
     return ret;
 }
 
+int setTimerAutoAck(int timer, int value) {
+    int old = s_timersAutoAck[timer];
+    s_timersAutoAck[timer] = value;
+    return old;
+}

@@ -258,6 +258,12 @@ static __attribute__((always_inline)) int syscall_sysEnqIntRP(int priority, stru
     return ((int(*)(int, struct HandlerInfo *))0xc0)(priority, info);
 }
 
+static __attribute__((always_inline)) int syscall_sysDeqIntRP(int priority, struct HandlerInfo * info) {
+    register volatile int n asm("t1") = 0x03;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(int, struct HandlerInfo *))0xc0)(priority, info);
+}
+
 static __attribute__((always_inline)) void syscall_installExceptionHandler() {
     register volatile int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));
