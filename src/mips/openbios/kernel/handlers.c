@@ -33,6 +33,7 @@
 #include "openbios/cdrom/filesystem.h"
 #include "openbios/cdrom/statemachine.h"
 #include "openbios/fileio/fileio.h"
+#include "openbios/gpu/gpu.h"
 #include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/flushcache.h"
@@ -42,7 +43,7 @@
 #include "openbios/kernel/psxexe.h"
 #include "openbios/kernel/setjmp.h"
 #include "openbios/main/main.h"
-#include "openbios/gpu/gpu.h"
+#include "openbios/sio0/pad.h"
 #include "openbios/tty/tty.h"
 
 void unimplemented() __attribute__((long_call));
@@ -114,7 +115,6 @@ static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
 
 static void * getB0table();
 static void * getC0table();
-static void dummyPad() { unimplemented(); }
 static void dummyMC() { }
 
 static const void * romA0table[0xc0] = {
@@ -174,7 +174,7 @@ void * B0table[0x60] = {
     openEvent, closeEvent, unimplemented, testEvent, // 08
     enableEvent, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, unimplemented, unimplemented, // 10
-    unimplemented, dummyPad, dummyPad, returnFromException, // 14
+    unimplemented, initPadHighLevel, readPadHighLevel, returnFromException, // 14
     setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplemented, unimplemented, // 18
     unimplemented, unimplemented, unimplemented, unimplemented, // 1c
     undeliverEvent, unimplemented, unimplemented, unimplemented, // 20

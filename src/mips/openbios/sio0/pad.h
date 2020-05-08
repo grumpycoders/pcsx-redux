@@ -17,31 +17,19 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/syscalls/syscalls.h"
-#include "openbios/cdrom/events.h"
+#pragma once
 
-uint32_t g_cdEventACK; /* 0x0010 */
-uint32_t g_cdEventDNE; /* 0x0020 */
-uint32_t g_cdEventRDY; /* 0x0040 */
-uint32_t g_cdEventEND; /* 0x0080 */
-uint32_t g_cdEventERR; /* 0x8000 */
+#include <stdint.h>
 
-// Yes, these undeliver some events that never got created in the first place.
-void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
+/* This one is a tough one. Technically, this should return a struct, that's
+   using however the older gcc ABI. There's no way to reproduce the ABI
+   with modern gcc as far as I know, but it's also likely the rest of
+   the returned struct isn't actually used, so we might be lucky here
+   in terms of API. As far as ABI is concerned however, inlined assembly
+   code will solve the issue. */
+int initPadHighLevel(uint32_t padType, uint8_t * buffer, int c, int d);
+uint32_t readPadHighLevel();
+int initPad(uint8_t * pad1Buffer, size_t pad1BufferSize, uint8_t * pad2Buffer, size_t pad2BufferSize);
+int startPad();
 
-void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
-    syscall_undeliverEvent(0xf0000003, 0x40);
-    syscall_undeliverEvent(0xf0000003, 0x10);
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
-
+extern uint8_t * g_userPadBuffer;

@@ -30,6 +30,16 @@ struct Counter {
     uint8_t padding[6];
 };
 
+struct SIO {
+    uint8_t fifo;
+    uint8_t preview[3];
+    uint32_t stat;
+    uint16_t mode;
+    uint16_t ctrl;
+    uint16_t reserved;
+    uint16_t baudRate;
+};
+
 #define HW_U8(x) (*(volatile uint8_t *)(x))
 #define HW_U16(x) (*(volatile uint16_t *)(x))
 #define HW_U32(x) (*(volatile uint32_t *)(x))
@@ -60,3 +70,4 @@ struct Counter {
 #define POST HW_U8(0xbf802041)
 
 #define COUNTERS ((volatile struct Counter *) 0xbf801100)
+#define SIOS ((volatile struct SIO *) 0x1f801040)

@@ -17,31 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/syscalls/syscalls.h"
-#include "openbios/cdrom/events.h"
+#pragma once
 
-uint32_t g_cdEventACK; /* 0x0010 */
-uint32_t g_cdEventDNE; /* 0x0020 */
-uint32_t g_cdEventRDY; /* 0x0040 */
-uint32_t g_cdEventEND; /* 0x0080 */
-uint32_t g_cdEventERR; /* 0x8000 */
+#include "common/psxlibc/handlers.h"
 
-// Yes, these undeliver some events that never got created in the first place.
-void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
-
-void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
-    syscall_undeliverEvent(0xf0000003, 0x40);
-    syscall_undeliverEvent(0xf0000003, 0x10);
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
-
+extern struct HandlerInfo g_sio0HandlerInfo;

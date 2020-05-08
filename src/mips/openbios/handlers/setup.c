@@ -21,7 +21,7 @@
 #include "common/syscalls/syscalls.h"
 #include "openbios/kernel/globals.h"
 
-int sysEnqIntRP(int priority, struct HandlerInfo * handler) {
+int __attribute__((section(".ramtext"))) sysEnqIntRP(int priority, struct HandlerInfo * handler) {
     struct HandlerInfo * ptr;
     ptr = __globals.handlersArray[priority].first;
     __globals.handlersArray[priority].first = handler;
@@ -30,7 +30,7 @@ int sysEnqIntRP(int priority, struct HandlerInfo * handler) {
     return 0;
 }
 
-struct HandlerInfo * sysDeqIntRP(int priority, struct HandlerInfo * handler) {
+struct HandlerInfo * __attribute__((section(".ramtext"))) sysDeqIntRP(int priority, struct HandlerInfo * handler) {
     struct HandlerInfo * ptr;
 
     ptr = __globals.handlersArray[priority].first;

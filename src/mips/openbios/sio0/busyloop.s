@@ -17,31 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "common/syscalls/syscalls.h"
-#include "openbios/cdrom/events.h"
+    .set noreorder
+    .section .ramtext, "ax", @progbits
+    .align 2
+    .global busyloop
+    .type busyloop, @function
 
-uint32_t g_cdEventACK; /* 0x0010 */
-uint32_t g_cdEventDNE; /* 0x0020 */
-uint32_t g_cdEventRDY; /* 0x0040 */
-uint32_t g_cdEventEND; /* 0x0080 */
-uint32_t g_cdEventERR; /* 0x8000 */
+/* The timing of this might be so sensitive, it could be
+   requiring to be an exact replica of the existing code.
+   
+   The C version of this would be the following:
+   
+   void busyLoop(int count) {
+       volatile int cycles = count;
+       while (cycles--);
+   }
 
-// Yes, these undeliver some events that never got created in the first place.
-void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
+   */
+busyloop:
+    sw    $a0, 0($sp)
+    lw    $v0, 0($sp)
+    lw    $v1, 0($sp)
+    nop
+    addiu $v1, -1
+    beqz  $v0, earlyExit
+    sw    $v1, 0($sp)
 
-void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
-    syscall_undeliverEvent(0xf0000003, 0x40);
-    syscall_undeliverEvent(0xf0000003, 0x10);
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
+busyloopLoop:
+    lw    $v0, 0($sp)
+    lw    $v1, 0($sp)
+    nop
+    addiu $v1, -1
+    bnez  $v0, busyloopLoop
+    sw    $v1, 0($sp)
 
+earlyExit:
+    jr    $ra
+    nop

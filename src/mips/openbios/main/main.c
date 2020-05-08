@@ -43,8 +43,6 @@
 
 static void boot(char * systemCnfPath, char * binaryPath);
 
-void * fastMemset(void * ptr, int value, size_t num);
-
 void bootThunk() {
     char binaryPath [80];
     char systemCnfPath [80];
@@ -233,6 +231,8 @@ static void kernelSetup() {
     syscall_enqueueRCntIrqs(1);
     initializeCDRomHandlersAndEvents();
 }
+
+void * __attribute__((long_call)) fastMemset(void * ptr, int value, size_t num);
 
 static void zeroUserMemoryUntilStack() {
     uintptr_t stackPtr;

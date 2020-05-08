@@ -11,6 +11,10 @@ cdrom/helpers.c \
 cdrom/statemachine.c \
 fileio/misc.c \
 fileio/stdio.c \
+gpu/gpu.c \
+handlers/irq.c \
+handlers/setup.c \
+handlers/syscall.c \
 kernel/events.c \
 kernel/flushcache.s \
 kernel/handlers.c \
@@ -22,13 +26,12 @@ kernel/setjmp.s \
 kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
-gpu/gpu.c \
-handlers/irq.c \
-handlers/setup.c \
-handlers/syscall.c \
 main/main.c \
 pio/pio.c \
 shell/shell.c \
+sio0/busyloop.s \
+sio0/driver.c \
+sio0/pad.c \
 tty/tty.c \
 \
 uC-sdk-glue/BoardConsole.c \

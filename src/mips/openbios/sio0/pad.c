@@ -17,31 +17,45 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <memory.h>
+#include <stdint.h>
+
+#include "openbios/sio0/pad.h"
+
 #include "common/syscalls/syscalls.h"
-#include "openbios/cdrom/events.h"
 
-uint32_t g_cdEventACK; /* 0x0010 */
-uint32_t g_cdEventDNE; /* 0x0020 */
-uint32_t g_cdEventRDY; /* 0x0040 */
-uint32_t g_cdEventEND; /* 0x0080 */
-uint32_t g_cdEventERR; /* 0x8000 */
+static uint8_t s_padBuffer1[0x22];
+static uint8_t s_padBuffer2[0x22];
+uint8_t * g_userPadBuffer;
 
-// Yes, these undeliver some events that never got created in the first place.
-void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
+void * fastMemset(void * ptr, int value, size_t num);
+
+int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint8_t * buffer, int c, int d) {
+    __asm__ volatile("sw %0, 4($sp)\nsw %1, 8($sp)\nsw %2, 12($sp)" : : "r"(buffer), "r"(c), "r"(d));
+    switch (padType) {
+        case 0x10000001:
+            ramsyscall_printf("TYPE : Dual cross key  ->  not supported!\n");
+            break;
+        case 0x20000000:
+        case 0x20000001:
+            ramsyscall_printf("TYPE : 6 free button or flying-V form\n");
+            // this is technically an inlined memset here, but I can't deal
+            // with the far jumps in debug mode for now.
+            fastMemset(s_padBuffer1, 0xff, 0x22);
+            fastMemset(s_padBuffer2, 0xff, 0x22);
+            initPad(s_padBuffer1, 0x22, s_padBuffer2, 0x22);
+            g_userPadBuffer = buffer;
+            startPad();
+            return 2;
+            break;
+        default:
+            ramsyscall_printf("TYPE : Unknown (%d)  ->  not supported!\n", padType);
+            break;
+    }
+
+    return 0;
 }
 
-void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
-    syscall_undeliverEvent(0xf0000003, 0x40);
-    syscall_undeliverEvent(0xf0000003, 0x10);
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
-}
+uint32_t __attribute__((section(".ramtext"))) readPadHighLevel() {
 
+}

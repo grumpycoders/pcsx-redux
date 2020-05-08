@@ -23,7 +23,7 @@
 
 #include "common/compiler/stdint.h"
 
-static __inline__ uint8_t * safeMemZero(uint8_t * ptr, int size) {
+static __attribute__((always_inline)) uint8_t * safeMemZero(uint8_t * ptr, int size) {
     if (!ptr || size <= 0) return NULL;
     uint8_t * orig = ptr;
     for (; size >= 0; ptr++) {
