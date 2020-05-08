@@ -41,7 +41,154 @@ int __attribute__((section(".ramtext"))) setSIO0AutoAck(int value) {
     return ret;
 }
 
-static void __attribute__((section(".ramtext"))) readPad(int pad) {}
+void busyloop(int count);
+
+/* A lot of the code in the readPad function is horrifyingly nonsensical.
+   There's constructs that I can hypothetically reproduce in plain-C,
+   but the compiler will throw tentrums at me. This code keeps dereferring
+   pointers before verifying they are null or not. Also does
+   complex pointer arithmetics to compute simple booleans that are
+   readily available. So the end result is that this looks a bit
+   different than the original, mainly because modern compilers
+   won't allow me to do otherwise, with good reasons. */
+
+/* The following is effectively unused anyway, always set to NULL,
+   which will actively result in NULL pointer dereferences all around
+   in the retail code. Ugh. */
+static uint8_t * s_padOutputBuffers[2];
+static size_t s_padOutputSizes[2];
+static void __attribute__((section(".ramtext"))) setPadOutputData(uint8_t * pad1OutputBuffer, size_t pad1OutputSize, uint8_t * pad2OutputBuffer, size_t pad2OutputSize) {
+    s_padOutputBuffers[0] = pad1OutputBuffer;
+    s_padOutputBuffers[1] = pad2OutputBuffer;
+    s_padOutputSizes[0] = pad1OutputSize;
+    s_padOutputSizes[1] = pad2OutputSize;
+}
+
+static uint32_t s_padMask;
+
+static void __attribute__((section(".ramtext"))) padAbort(int pad) {
+    uint8_t ** padBufferPtr = &s_padBufferPtrs[pad];
+    uint8_t * padBuffer = *padBufferPtr;
+    padBuffer[0] = 0xff;
+
+    SIOS[0].ctrl = pad ? 0x2002 : 0x0002;
+    busyloop(10);
+    SIOS[0].ctrl = 0;
+}
+
+static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
+    uint8_t ** padBufferPtr = &s_padBufferPtrs[pad];
+    uint8_t * padBuffer = *padBufferPtr;
+    padBuffer[0] = 0xff;
+    uint16_t mask = pad == 0 ? 0x0000 : 0x2000;
+    SIOS[0].ctrl = mask | 2;
+    uint8_t * padOutputBuffer = s_padOutputBuffers[pad]; // always NULL
+    // this test is reversed in retail; first dereference, then test for NULL
+    int doPadOutput = padOutputBuffer && *padOutputBuffer ? -1 : 0;
+    SIOS[0].fifo; // throw away
+    busyloop(40);
+    SIOS[0].ctrl = mask | 0x1003;
+    while (!(SIOS[0].stat & 1));
+    s_padMask = mask;
+    SIOS[0].fifo = 1;
+    busyloop(20);
+    SIOS[0].ctrl |= 0x10;
+    IREG = ~0x80;
+    while (!(SIOS[0].stat & 2));
+    SIOS[0].fifo; // throw away
+    busyloop(40);
+
+    int cyclesWaited = 0;
+    while (!(IREG & 0x80)) {
+        if (cyclesWaited++ > 0x50) {
+            padAbort(pad);
+            return 0xffff; // is this return actually a int16_t maybe?
+        }
+    }
+
+    SIOS[0].fifo = 0x42;
+    busyloop(25);
+    SIOS[0].ctrl |= 0x10;
+    IREG = 0x80;
+
+    while (!(SIOS[0].stat & 2));
+    uint32_t fifoBytes = SIOS[0].fifo;
+    padBuffer[1] = fifoBytes & 0xff;
+    fifoBytes &= 0x0f;
+    if (!fifoBytes) fifoBytes = 0x10;
+
+    cyclesWaited = 0;
+    while (!(IREG & 0x80)) {
+        if (cyclesWaited++ > 0x50) {
+            padAbort(pad);
+            return 0xffff;
+        }
+    }
+
+    SIOS[0].fifo = 0;
+    busyloop(20);
+
+    SIOS[0].ctrl |= 0x10;
+    IREG = ~0x80;
+
+    while (!(SIOS[0].stat & 2));
+
+    if (SIOS[0].fifo != 0x52) {
+        padAbort(pad);
+        return 0xffff;
+    }
+
+    while (fifoBytes--) {
+        cyclesWaited = 0;
+        while (!(IREG & 0x80)) {
+            if (cyclesWaited++ > 0x50) {
+                padAbort(pad);
+                return 0xffff;
+            }
+
+            // Test is reversed in retail, resulting in reading pointer 0x0001 + 2 * n
+            SIOS[0].fifo = doPadOutput && padOutputBuffer[1];
+            padOutputBuffer += 2;
+            busyloop(10);
+            SIOS[0].ctrl |= 0x10;
+            IREG = ~0x80;
+
+            cyclesWaited = 0;
+            while (!(SIOS[0].stat & 2)) {
+                if (!(IREG & 0x80)) continue;
+                while (!(SIOS[0].stat & 2));
+                padAbort(pad);
+                return 0xffff;
+            }
+
+            padBuffer[2] = SIOS[0].fifo;
+
+            cyclesWaited = 0;
+            while (!(IREG & 0x80)) {
+                if (cyclesWaited++ > 0x50) {
+                    padAbort(pad);
+                    return 0xffff;
+                }
+            }
+
+            // Test is reversed in retail, resulting in reading pointer 0x0002 + 2 * n
+            SIOS[0].fifo = doPadOutput && padOutputBuffer[0];
+            busyloop(10);
+
+            SIOS[0].ctrl |= 0x10;
+            IREG = ~0x80;
+
+            while (!(SIOS[0].stat) & 2);
+
+            padBuffer[3] = SIOS[0].fifo;
+            padBuffer += 2;
+        }
+    }
+
+    **padBufferPtr = 0;
+
+    return 0;
+}
 
 static void __attribute__((section(".ramtext"))) readCard() {}
 
@@ -72,7 +219,7 @@ int __attribute__((section(".ramtext"))) initPad(uint8_t * pad1Buffer, size_t pa
     ramsyscall_printf("%s\n", "PS-X Control PAD Driver");
     g_userPadBuffer = NULL;
     s_padStarted = 0;
-    // 4 words to 0...?
+    setPadOutputData(NULL, 0, NULL, 0);
     s_padBufferPtrs[0] = pad1Buffer;
     s_padBufferPtrs[1] = pad2Buffer;
     s_padBufferSizes[0] = pad1BufferSize;
@@ -83,8 +230,6 @@ int __attribute__((section(".ramtext"))) initPad(uint8_t * pad1Buffer, size_t pa
     s_padStarted = 1;
     return 1;
 }
-
-void busyloop(int count);
 
 static int s_sio0State;
 

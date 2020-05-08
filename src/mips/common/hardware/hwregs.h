@@ -33,7 +33,8 @@ struct Counter {
 struct SIO {
     uint8_t fifo;
     uint8_t preview[3];
-    uint32_t stat;
+    uint16_t stat;
+    uint16_t padding;
     uint16_t mode;
     uint16_t ctrl;
     uint16_t reserved;

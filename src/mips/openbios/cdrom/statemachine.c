@@ -132,7 +132,7 @@ int __attribute__((section(".ramtext"))) cdromSetMode(uint32_t mode) {
     return 1;
 }
 
-void __attribute__((section(".ramtext"))) setDMA(uint32_t *buffer, int amountOfWords) {
+static void __attribute__((section(".ramtext"))) setDMA(uint32_t *buffer, int amountOfWords) {
     uint32_t t = DICR;
     t &= 0xffffff;
     t |= 0x880000;

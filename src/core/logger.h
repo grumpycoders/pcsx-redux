@@ -76,7 +76,12 @@ typedef Logger<MiscLogName, false> MISC_LOGGER;
 
 }  // namespace PCSX
 
-#define PAD_LOG PCSX::PAD_LOGGER::Log
+#define PAD_LOG(...)                                                                      \
+    {                                                                                     \
+        PCSX::PAD_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, \
+                              PCSX::g_emulator.m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::PAD_LOGGER::Log(__VA_ARGS__);                                               \
+    }
 #define SIO1_LOG PCSX::SIO1_LOGGER::Log
 #define GTE_LOG PCSX::GTE_LOGGER::Log
 #define CDR_LOG(...)                                                                      \
