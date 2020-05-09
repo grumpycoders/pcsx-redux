@@ -44,6 +44,7 @@
 #include "openbios/kernel/setjmp.h"
 #include "openbios/main/main.h"
 #include "openbios/sio0/pad.h"
+#include "openbios/sio0/sio0.h"
 #include "openbios/tty/tty.h"
 
 void unimplemented() __attribute__((long_call));
@@ -191,7 +192,7 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
-    unimplemented, unimplemented, unimplemented, dummyMC /* something about pad */, // 58
+    unimplemented, unimplemented, unimplemented, setSIO0AutoAck, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c
 };
 

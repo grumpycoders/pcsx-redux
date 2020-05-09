@@ -22,3 +22,4 @@
 #include "common/psxlibc/handlers.h"
 
 extern struct HandlerInfo g_sio0HandlerInfo;
+int setSIO0AutoAck(int value);

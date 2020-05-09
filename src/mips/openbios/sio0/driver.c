@@ -109,7 +109,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     SIOS[0].fifo = 0x42;
     busyloop(25);
     SIOS[0].ctrl |= 0x10;
-    IREG = 0x80;
+    IREG = ~0x80;
 
     while (!(SIOS[0].stat & 2));
     uint32_t fifoBytes = SIOS[0].fifo;
@@ -133,7 +133,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
 
     while (!(SIOS[0].stat & 2));
 
-    if (SIOS[0].fifo != 0x52) {
+    if (SIOS[0].fifo != 0x5a) {
         padAbort(pad);
         return 0xffff;
     }
@@ -145,47 +145,48 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
                 padAbort(pad);
                 return 0xffff;
             }
+        }
 
-            // Test is reversed in retail, resulting in reading pointer 0x0001 + 2 * n
-            SIOS[0].fifo = doPadOutput && padOutputBuffer[1];
-            padOutputBuffer += 2;
-            busyloop(10);
-            SIOS[0].ctrl |= 0x10;
-            IREG = ~0x80;
+        // Test is reversed in retail, resulting in reading pointer 0x0001 + 2 * n
+        SIOS[0].fifo = doPadOutput && padOutputBuffer[1];
+        padOutputBuffer += 2;
+        busyloop(10);
+        SIOS[0].ctrl |= 0x10;
+        IREG = ~0x80;
 
-            cyclesWaited = 0;
-            while (!(SIOS[0].stat & 2)) {
-                if (!(IREG & 0x80)) continue;
-                while (!(SIOS[0].stat & 2));
+        cyclesWaited = 0;
+        while (!(SIOS[0].stat & 2)) {
+            if (!(IREG & 0x80)) continue;
+            while (!(SIOS[0].stat & 2));
+            padAbort(pad);
+            return 0xffff;
+        }
+
+        padBuffer[2] = SIOS[0].fifo;
+
+        cyclesWaited = 0;
+        while (!(IREG & 0x80)) {
+            if (cyclesWaited++ > 0x50) {
                 padAbort(pad);
                 return 0xffff;
             }
-
-            padBuffer[2] = SIOS[0].fifo;
-
-            cyclesWaited = 0;
-            while (!(IREG & 0x80)) {
-                if (cyclesWaited++ > 0x50) {
-                    padAbort(pad);
-                    return 0xffff;
-                }
-            }
-
-            // Test is reversed in retail, resulting in reading pointer 0x0002 + 2 * n
-            SIOS[0].fifo = doPadOutput && padOutputBuffer[0];
-            busyloop(10);
-
-            SIOS[0].ctrl |= 0x10;
-            IREG = ~0x80;
-
-            while (!(SIOS[0].stat) & 2);
-
-            padBuffer[3] = SIOS[0].fifo;
-            padBuffer += 2;
         }
+
+        // Test is reversed in retail, resulting in reading pointer 0x0002 + 2 * n
+        SIOS[0].fifo = doPadOutput && padOutputBuffer[0];
+        busyloop(10);
+
+        SIOS[0].ctrl |= 0x10;
+        IREG = ~0x80;
+
+        while (!(SIOS[0].stat) & 2);
+
+        padBuffer[3] = SIOS[0].fifo;
+        padBuffer += 2;
     }
 
     **padBufferPtr = 0;
+    SIOS[0].ctrl = 0;
 
     return 0;
 }

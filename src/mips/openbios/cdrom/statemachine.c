@@ -683,7 +683,7 @@ void __attribute__((section(".ramtext"))) cdromIOHandler(int v) {
 
 void __attribute__((section(".ramtext"))) cdromDMAHandler(int v) {
     if (!s_irqAutoAck[1]) return;
-    IREG &= ~8;
+    IREG = ~8;
     syscall_returnFromException();
 }
 
