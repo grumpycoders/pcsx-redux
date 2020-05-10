@@ -1,0 +1,27 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+variables:
+  solution: 'vsprojects/pcsx-redux.sln'
+  buildConfiguration: 'Release'
+
+steps:
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios clean all'
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      src/mips/openbios/openbios.elf
+    TargetFolder: '$(build.artifactStagingDirectory)/openbios'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'bios'
+    publishLocation: 'Container'
