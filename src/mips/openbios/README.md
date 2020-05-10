@@ -28,7 +28,7 @@ The result of the compilation should be a file called `openbios.elf` that contai
 
 ## Status
 
-This subproject is currently under construction. OpenBIOS does almost all the same things as the retail BIOS does when booting, aside from properly setting up the memory card device. No game is likely to actually work, since a lot of the kernel functions that aren't used for the boot sequence aren't implemented.
+This subproject is currently under construction. OpenBIOS does almost all the same things as the retail BIOS does when booting, aside from properly setting up the memory card device. Currently, some games are booting and working properly with this code.
 
 ## Organization
 
