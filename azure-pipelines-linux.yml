@@ -15,7 +15,7 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios clean all'
+    arguments: '-C src/mips/openbios -j'
 
 - task: CopyFiles@2
   inputs:
