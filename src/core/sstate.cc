@@ -21,7 +21,6 @@
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
-#include "core/psxbios.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -154,8 +153,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         },
         Hardware {},
         Counters {},
-        MDEC {},
-        BiosHLEField {},
+        MDEC {}
     };
     // clang-format on
 }
@@ -191,7 +189,6 @@ std::string PCSX::SaveStates::save() {
 
     g_emulator.m_psxCounters->save(state.get<CountersField>());
     g_emulator.m_mdec->save(state.get<MDECField>());
-    g_emulator.m_psxBios->save(state.get<BiosHLEField>());
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
@@ -221,7 +218,6 @@ bool PCSX::SaveStates::load(const std::string& data) {
 
     g_emulator.m_psxCounters->load(state.get<CountersField>());
     g_emulator.m_mdec->load(state.get<MDECField>());
-    g_emulator.m_psxBios->load(state.get<BiosHLEField>());
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 

@@ -28,7 +28,6 @@
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
-#include "core/psxhle.h"
 #include "core/r3000a.h"
 
 class InterpretedCPU : public PCSX::R3000Acpu {
@@ -40,7 +39,6 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
-    virtual void ExecuteHLEBlock() override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
@@ -171,7 +169,6 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     void psxCOP0();
     void psxCOP2();
     void psxBASIC();
-    void psxHLE();
 
     /* GTE wrappers */
 #define GTE_WR(n) void gte##n();
@@ -830,15 +827,6 @@ void InterpretedCPU::psxCOP2() {
 
 void InterpretedCPU::psxBASIC() { (*this.*(s_pPsxCP2BSC[_Rs_]))(); }
 
-void InterpretedCPU::psxHLE() {
-    uint32_t hleCode = PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x03ffffff;
-    if (hleCode >= (sizeof(psxHLEt) / sizeof(psxHLEt[0]))) {
-        psxNULL();
-    } else {
-        psxHLEt[hleCode]();
-    }
-}
-
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxBSC[64] = {
     &InterpretedCPU::psxSPECIAL, &InterpretedCPU::psxREGIMM, &InterpretedCPU::psxJ,    &InterpretedCPU::psxJAL,    // 00
     &InterpretedCPU::psxBEQ,     &InterpretedCPU::psxBNE,    &InterpretedCPU::psxBLEZ, &InterpretedCPU::psxBGTZ,   // 04
@@ -854,7 +842,7 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxBSC[64] = {
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxSWR,  &InterpretedCPU::psxNULL,   // 2c
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteLWC2, &InterpretedCPU::psxNULL,   // 30
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 34
-    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteSWC2, &InterpretedCPU::psxHLE,    // 38
+    &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::gteSWC2, &InterpretedCPU::psxNULL,   // 38
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 3c
 };
 
@@ -1191,7 +1179,7 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_pgxpPsxBSC[64] = {
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 34
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 36
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 38
-    &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxHLE,        // 3a
+    &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxNULL,       // 3a
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 3c
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 3e
 };
@@ -1300,7 +1288,7 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_pgxpPsxBSCMem[64] = {
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 34
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 36
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 38
-    &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxHLE,       // 3a
+    &InterpretedCPU::pgxpPsxSWC2, &InterpretedCPU::psxNULL,      // 3a
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 3c
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 3e
 };
@@ -1319,10 +1307,6 @@ void InterpretedCPU::Reset() {
 }
 void InterpretedCPU::Execute() {
     while (hasToRun()) execI();
-}
-void InterpretedCPU::ExecuteHLEBlock() {
-    while (!execI())
-        ;
 }
 void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
 void InterpretedCPU::Shutdown() {}

@@ -247,46 +247,15 @@ typedef Protobuf::Message<TYPESTRING("MDEC"), MDECReg0, MDECReg1, MDECRl, MDECRl
     MDEC;
 typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("jmp_int"), 1> BiosJmpInt;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("pad_buf"), 2> BiosPadBuf;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("pad_buf1"), 3> BiosPadBuf1;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("pad_buf2"), 4> BiosPadBuf2;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("heap_addr"), 5> BiosHeapAddr;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pad_buf1len"), 6> BiosPadBuf1Len;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pad_buf2len"), 7> BiosPadBuf2Len;
-typedef Protobuf::RepeatedField<Protobuf::UInt32, 35, TYPESTRING("regs"), 8> BiosRegs;
-typedef Protobuf::RepeatedField<Protobuf::UInt32, 8, TYPESTRING("sys_int_rp"), 9> BiosSysIntRP;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("card_state"), 10> BiosCardState;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("status"), 1> BiosTCBStatus;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("mode"), 2> BiosTCBMode;
-typedef Protobuf::RepeatedField<Protobuf::UInt32, 32, TYPESTRING("reg"), 3> BiosTCBReg;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("func"), 4> BiosTCBFunc;
-typedef Protobuf::Message<TYPESTRING("TCB"), BiosTCBStatus, BiosTCBMode, BiosTCBReg, BiosTCBFunc> BiosTCB;
-typedef Protobuf::RepeatedField<BiosTCB, 8, TYPESTRING("threads"), 11> BiosThreads;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cur_thread"), 12> BiosCurThread;
-typedef Protobuf::Field<Protobuf::String, TYPESTRING("name"), 1> BiosFDName;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("mode"), 2> BiosFDMode;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("offset"), 3> BiosFDOffset;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("size"), 4> BiosFDSize;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("mcfile"), 5> BiosFDMCFile;
-typedef Protobuf::Message<TYPESTRING("FileDesc"), BiosFDName, BiosFDMode, BiosFDOffset, BiosFDSize, BiosFDMCFile>
-    BiosFileDesc;
-typedef Protobuf::RepeatedField<BiosFileDesc, 32, TYPESTRING("fdescs"), 13> BiosFDescs;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("card_active_chan"), 14> BiosCardActiveChan;
-typedef Protobuf::Message<TYPESTRING("BiosHLE"), BiosJmpInt, BiosPadBuf, BiosPadBuf1, BiosPadBuf2, BiosHeapAddr,
-                          BiosPadBuf1Len, BiosPadBuf2Len, BiosRegs, BiosSysIntRP, BiosCardState, BiosThreads,
-                          BiosCurThread, BiosFDescs, BiosCardActiveChan>
-    BiosHLE;
-typedef Protobuf::MessageField<BiosHLE, TYPESTRING("bios_hle"), 12> BiosHLEField;
+// skip id 12, next id = 13
 
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
-                          GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField,
-                          BiosHLEField>
+                          GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField>
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, IntCycles, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDRom, Hardware, Rcnt, Counters, MDEC, BiosTCB, BiosFileDesc, BiosHLE, SaveState>
+                            CDRom, Hardware, Rcnt, Counters, MDEC, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

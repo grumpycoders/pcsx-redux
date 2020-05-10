@@ -49,14 +49,8 @@ int PCSX::R3000Acpu::psxInit() {
 void PCSX::R3000Acpu::psxReset() {
     Reset();
 
-    for (int i = 0; i < 3; i++) {
-        memset(m_counters[i], 0, 256 * sizeof(m_counters[0][0]));
-        memset(m_savedCounters[i], 0, 256 * sizeof(m_savedCounters[0][0]));
-    }
-
     memset(&m_psxRegs, 0, sizeof(m_psxRegs));
-    m_booted = g_emulator.settings.get<Emulator::SettingHLE>().value ||
-               !g_emulator.settings.get<Emulator::SettingFastBoot>().value;
+    m_booted = !g_emulator.settings.get<Emulator::SettingFastBoot>().value;
 
     m_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
 
@@ -64,14 +58,11 @@ void PCSX::R3000Acpu::psxReset() {
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
     PCSX::g_emulator.m_hw->psxHwReset();
-    PCSX::g_emulator.m_psxBios->psxBiosInit();
 
     EMU_LOG("*BIOS END*\n");
 }
 
 void PCSX::R3000Acpu::psxShutdown() {
-    PCSX::g_emulator.m_psxBios->psxBiosShutdown();
-
     Shutdown();
 }
 

@@ -452,7 +452,6 @@ void PCSX::GUI::endFrame() {
                     m_biosEditor.MenuItem();
                     ImGui::EndMenu();
                 }
-                ImGui::MenuItem(_("Show BIOS counters"), nullptr, &m_showBiosCounters);
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
@@ -578,7 +577,6 @@ void PCSX::GUI::endFrame() {
     }
 
     about();
-    biosCounters();
     interruptsScaler();
 
     if (m_dwarf.m_show) {
@@ -718,7 +716,6 @@ bool PCSX::GUI::configure() {
             }
         }
 
-        changed |= ImGui::Checkbox(_("BIOS HLE"), &settings.get<Emulator::SettingHLE>().value);
         changed |= ImGui::Checkbox(_("Fast boot"), &settings.get<Emulator::SettingFastBoot>().value);
         auto bios = settings.get<Emulator::SettingBios>().string();
         ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(),
@@ -822,98 +819,6 @@ bool PCSX::GUI::configure() {
         }
     }
     return changed;
-}
-
-void PCSX::GUI::biosCounters() {
-    if (!m_showBiosCounters) return;
-    ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(750, 530), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin(_("BIOS Counters"), &m_showBiosCounters)) {
-        auto isUnknown = [](const char* name, char syscall) {
-            if (strlen(name) != 9) return false;
-            if (strncmp(name, "sys_", 4) != 0) return false;
-            if (name[4] != syscall) return false;
-            if (name[5] != '0') return false;
-            if (name[6] != '_') return false;
-            return true;
-        };
-        if (ImGui::Button(_("Memorize"))) {
-            g_emulator.m_psxCpu->memorizeCounters();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(_("Clear"))) {
-            g_emulator.m_psxCpu->clearCounters();
-        }
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Enable counters"), &g_emulator.m_psxCpu->m_biosCounters);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Skip unknowns"), &m_skipBiosUnknowns);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Debug kernel"), &g_emulator.m_psxCpu->m_debugKernel);
-        ImGui::Checkbox(_("Log new syscalls"), &g_emulator.m_psxCpu->m_logNewSyscalls);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Log events"), &g_emulator.m_psxCpu->m_logEvents);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Breakpoint on new syscalls"), &g_emulator.m_psxCpu->m_breakpointOnNew);
-        ImGui::Separator();
-        ImGui::BeginChild("A0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
-        for (int i = 0; i < 256; i++) {
-            char defaultName[16];
-            const char* name = g_emulator.m_psxBios->getA0name(i);
-            if (!name) {
-                name = defaultName;
-                std::snprintf(defaultName, 16, "sys_a0_%02x", i);
-            }
-            if (m_skipBiosUnknowns && isUnknown(name, 'a')) continue;
-            char checkboxName[16];
-            std::snprintf(checkboxName, 16, "##sys_a0_%02x_brk", i);
-            ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(0)[i]);
-            ImGui::SameLine();
-            ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[0][i]);
-            ImGui::SameLine();
-            ImGui::Text(name);
-        }
-        ImGui::EndChild();
-        ImGui::SameLine();
-        ImGui::BeginChild("B0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
-        for (int i = 0; i < 256; i++) {
-            char defaultName[16];
-            const char* name = g_emulator.m_psxBios->getB0name(i);
-            if (!name) {
-                name = defaultName;
-                std::snprintf(defaultName, 16, "sys_b0_%02x", i);
-            }
-            if (m_skipBiosUnknowns && isUnknown(name, 'b')) continue;
-            char checkboxName[16];
-            std::snprintf(checkboxName, 16, "##sys_b0_%02x_brk", i);
-            ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(1)[i]);
-            ImGui::SameLine();
-            ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[1][i]);
-            ImGui::SameLine();
-            ImGui::Text(name);
-        }
-        ImGui::EndChild();
-        ImGui::SameLine();
-        ImGui::BeginChild("C0", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.33f, 0));
-        for (int i = 0; i < 256; i++) {
-            char defaultName[16];
-            const char* name = g_emulator.m_psxBios->getC0name(i);
-            if (!name) {
-                name = defaultName;
-                std::snprintf(defaultName, 16, "sys_c0_%02x", i);
-            }
-            if (m_skipBiosUnknowns && isUnknown(name, 'c')) continue;
-            char checkboxName[16];
-            std::snprintf(checkboxName, 16, "##sys_c0_%02x_brk", i);
-            ImGui::Text("%9u", g_emulator.m_psxCpu->getCounters(2)[i]);
-            ImGui::SameLine();
-            ImGui::Checkbox(checkboxName, &g_emulator.m_psxCpu->m_breakpoints[2][i]);
-            ImGui::SameLine();
-            ImGui::Text(name);
-        }
-        ImGui::EndChild();
-    }
-    ImGui::End();
 }
 
 void PCSX::GUI::interruptsScaler() {

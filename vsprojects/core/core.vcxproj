@@ -163,11 +163,9 @@
     <ClCompile Include="..\..\src\core\pgxp_value.cc" />
     <ClCompile Include="..\..\src\core\plugins.cc" />
     <ClCompile Include="..\..\src\core\ppf.cc" />
-    <ClCompile Include="..\..\src\core\psxbios.cc" />
     <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
-    <ClCompile Include="..\..\src\core\psxhle.cc" />
     <ClCompile Include="..\..\src\core\psxhw.cc" />
     <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
     <ClCompile Include="..\..\src\core\psxmem.cc" />
@@ -202,11 +200,9 @@
     <ClInclude Include="..\..\src\core\plugins.h" />
     <ClInclude Include="..\..\src\core\ppf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
-    <ClInclude Include="..\..\src\core\psxbios.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />
     <ClInclude Include="..\..\src\core\psxcounters.h" />
     <ClInclude Include="..\..\src\core\psxdma.h" />
-    <ClInclude Include="..\..\src\core\psxhle.h" />
     <ClInclude Include="..\..\src\core\psxhw.h" />
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />

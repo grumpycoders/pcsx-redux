@@ -644,29 +644,6 @@ declare(disMTLO) {
 declare(disBREAK) { dOpCode("break"); }
 declare(disRFE) { dOpCode("rfe"); }
 declare(disSYSCALL) { dOpCode("syscall"); }
-declare(disHLE) {
-    uint32_t hleCode = code & 0x03ffffff;
-    switch (hleCode) {
-        case 1:
-            dOpCode("hleA0");
-            break;
-        case 2:
-            dOpCode("hleB0");
-            break;
-        case 3:
-            dOpCode("hleC0");
-            break;
-        case 4:
-            dOpCode("hleBootstrap");
-            break;
-        case 5:
-            dOpCode("hleExecRet");
-            break;
-        default:
-            disNULL(code, nextCode, pc, skipNext);
-            break;
-    }
-}
 
 declare(disRTPS) { dOpCode("rtps"); }
 declare(disOP) { dOpCode("op"); }
@@ -992,7 +969,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWR,  &Disasm::disNULL,   // 2c
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disLWC2, &Disasm::disNULL,   // 30
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 34
-    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disHLE,    // 38
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disNULL,    // 38
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 3c
 };
 

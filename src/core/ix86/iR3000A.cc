@@ -89,7 +89,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     virtual bool Init() final;
     virtual void Reset() final;
     virtual void Execute() final;
-    virtual void ExecuteHLEBlock() final;
     virtual void Clear(uint32_t Addr, uint32_t Size) final;
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
@@ -254,7 +253,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     void recCTC0();
 
     void recRFE();
-    void recHLE();
 
     void testSWInt();
 
@@ -733,8 +731,6 @@ void X86DynaRecCPU::execute() {
 void X86DynaRecCPU::Execute() {
     while (hasToRun()) execute();
 }
-
-void X86DynaRecCPU::ExecuteHLEBlock() { execute(); }
 
 void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
     uint32_t bank, offset;
@@ -2804,26 +2800,6 @@ void X86DynaRecCPU::recRFE() {
     testSWInt();
 }
 
-// HLEs
-
-void X86DynaRecCPU::recHLE() {
-    uint32_t hleCode = PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x03ffffff;
-    if (hleCode >= (sizeof(psxHLEt) / sizeof(psxHLEt[0]))) {
-        recNULL();
-    } else {
-        if (m_pcInEBP) {
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EBP);
-        } else {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc);
-        }
-        gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
-        gen.MOV32ItoM((uint32_t)&m_functionPtr, (uint32_t)psxHLEt[hleCode]);
-
-        m_pcInEBP = true;
-        m_stopRecompile = true;
-    }
-}
-
 const func_t X86DynaRecCPU::m_recBSC[64] = {
     &X86DynaRecCPU::recSPECIAL, &X86DynaRecCPU::recREGIMM, &X86DynaRecCPU::recJ,    &X86DynaRecCPU::recJAL,    // 00
     &X86DynaRecCPU::recBEQ,     &X86DynaRecCPU::recBNE,    &X86DynaRecCPU::recBLEZ, &X86DynaRecCPU::recBGTZ,   // 04
@@ -2839,7 +2815,7 @@ const func_t X86DynaRecCPU::m_recBSC[64] = {
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWR,  &X86DynaRecCPU::recNULL,   // 2c
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recLWC2, &X86DynaRecCPU::recNULL,   // 30
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 34
-    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWC2, &X86DynaRecCPU::recHLE,    // 38
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWC2, &X86DynaRecCPU::recNULL,   // 38
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 3c
 };
 
@@ -2945,7 +2921,7 @@ const func_t X86DynaRecCPU::m_pgxpRecBSC[64] = {
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 34
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 36
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 38
-    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recHLE,        // 3a
+    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recNULL,       // 3a
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3c
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,       // 3e
 };
@@ -3054,7 +3030,7 @@ const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 34
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 36
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 38
-    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recHLE,      // 3a
+    &X86DynaRecCPU::pgxpRecSWC2, &X86DynaRecCPU::recNULL,     // 3a
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 3c
     &X86DynaRecCPU::recNULL,     &X86DynaRecCPU::recNULL,     // 3e
 };
@@ -3219,7 +3195,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     virtual bool Init() final { return false; }
     virtual void Reset() final { abort(); }
     virtual void Execute() final { abort(); }
-    virtual void ExecuteHLEBlock() final { abort(); }
     virtual void Clear(uint32_t Addr, uint32_t Size) final { abort(); }
     virtual void Shutdown() final { abort(); }
     virtual void SetPGXPMode(uint32_t pgxpMode) final { abort(); }

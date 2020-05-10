@@ -75,116 +75,114 @@ void PCSX::Memory::psxMemReset() {
     memset(g_psxM, 0, 0x00200000);
     memset(g_psxP, 0, 0x00010000);
     memset(g_psxR, 0, bios_size);
-    g_emulator.m_psxBios->m_realBiosLoaded = false;
 
     // Load BIOS
     PCSX::u8string biosPath = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().string();
-    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>()) {
-        File *f = new File(biosPath);
-        if (f->failed()) {
-            PCSX::g_system->message(_("Could not open BIOS:\"%s\". Enabling HLE Bios!\n"), biosPath.c_str());
-            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingHLE>() = true;
-        } else {
-            f->read(g_psxR, bios_size);
-            f->close();
-            if ((g_psxR[0] == 0x7f) && (g_psxR[1] == 'E') && (g_psxR[2] == 'L') && (g_psxR[3] == 'F')) {
-                Elf e;
-                if (e.load(biosPath)) m_elfs.push_back(std::move(e));
-                auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
-                if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description().c_str());
-            }
-            PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.c_str());
-            g_emulator.m_psxBios->m_realBiosLoaded = true;
-        }
+    File *f = new File(biosPath);
+    if (f->failed()) {
+        PCSX::g_system->message(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.c_str());
         delete f;
+        f = new File("openbios.bin");
+        if (f->failed()) {
+            PCSX::g_system->message(_("Could not open OpenBIOS fallback. Things won't work properly\n"));
+        } else {
+            g_emulator.settings.get<Emulator::SettingBios>() = "openbios.bin";
+        }
+    } else {
+        f->read(g_psxR, bios_size);
+        f->close();
+        if ((g_psxR[0] == 0x7f) && (g_psxR[1] == 'E') && (g_psxR[2] == 'L') && (g_psxR[3] == 'F')) {
+            Elf e;
+            if (e.load(biosPath)) m_elfs.push_back(std::move(e));
+            auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
+            if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description().c_str());
+        }
+        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.c_str());
+    }
+    delete f;
 
-        if (g_emulator.m_psxBios->m_realBiosLoaded) {
-            for (auto &overlay : g_emulator.settings.get<Emulator::SettingBiosOverlay>()) {
-                if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
-                const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>();
-                auto foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
-                auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
-                auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
-                bool failed = false;
-                File *f = new File(filename);
+    for (auto &overlay : g_emulator.settings.get<Emulator::SettingBiosOverlay>()) {
+        if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
+        const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>();
+        auto foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
+        auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
+        auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
+        bool failed = false;
+        File *f = new File(filename);
 
-                if (f->failed()) {
-                    PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+        if (f->failed()) {
+            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+            failed = true;
+        }
+
+        ssize_t fsize;
+        if (!failed) {
+            f->seek(0, SEEK_END);
+            fsize = f->tell();
+
+            if (foffset < 0) {
+                // negative offset means from end of file
+                foffset = foffset + fsize;
+
+                if (foffset < 0) {
+                    // fail if the negative offset is more than the total file size
+                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"),
+                                            filename.string().c_str());
                     failed = true;
                 }
-
-                ssize_t fsize;
-                if (!failed) {
-                    f->seek(0, SEEK_END);
-                    fsize = f->tell();
-
-                    if (foffset < 0) {
-                        // negative offset means from end of file
-                        foffset = foffset + fsize;
-
-                        if (foffset < 0) {
-                            // fail if the negative offset is more than the total file size
-                            PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"),
-                                                    filename.string().c_str());
-                            failed = true;
-                        }
-                    } else if (foffset > fsize) {
-                        PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"),
-                                                filename.string().c_str());
-                        failed = true;
-                    }
-                }
-                if (!failed) {
-                    f->seek(foffset, SEEK_SET);
-
-                    fsize = fsize - foffset;
-
-                    if (lsize <= 0) {
-                        // lsize <= 0 means "from file size"
-
-                        lsize = fsize + lsize;
-
-                        if (lsize < 0) {
-                            PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"),
-                                                    filename.string().c_str());
-                            failed = true;
-                        }
-                    }
-                }
-                if (!failed) {
-                    if (lsize > fsize) {
-                        PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"),
-                                                filename.string().c_str());
-                        failed = true;
-                    }
-                }
-                if (!failed) {
-                    if (loffset < 0) {
-                        // negative offset means from end of device memory region
-
-                        loffset = loffset + bios_size;
-
-                        if (loffset < 0) {
-                            // fail if the negative offset is more than the BIOS size
-                            PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"),
-                                                    filename.string().c_str());
-                            failed = true;
-                        }
-                    } else if (loffset > bios_size) {
-                        PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"),
-                                                filename.string().c_str());
-                        failed = true;
-                    }
-                }
-                if (!failed) {
-                    f->read(g_psxR + loffset, lsize);
-                    PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string().c_str());
-                }
-
-                f->close();
-                delete f;
+            } else if (foffset > fsize) {
+                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+                failed = true;
             }
         }
+        if (!failed) {
+            f->seek(foffset, SEEK_SET);
+
+            fsize = fsize - foffset;
+
+            if (lsize <= 0) {
+                // lsize <= 0 means "from file size"
+
+                lsize = fsize + lsize;
+
+                if (lsize < 0) {
+                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"),
+                                            filename.string().c_str());
+                    failed = true;
+                }
+            }
+        }
+        if (!failed) {
+            if (lsize > fsize) {
+                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"),
+                                        filename.string().c_str());
+                failed = true;
+            }
+        }
+        if (!failed) {
+            if (loffset < 0) {
+                // negative offset means from end of device memory region
+
+                loffset = loffset + bios_size;
+
+                if (loffset < 0) {
+                    // fail if the negative offset is more than the BIOS size
+                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"),
+                                            filename.string().c_str());
+                    failed = true;
+                }
+            } else if (loffset > bios_size) {
+                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+                failed = true;
+            }
+        }
+        if (!failed) {
+            f->read(g_psxR + loffset, lsize);
+            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string().c_str());
+        }
+
+        f->close();
+        delete f;
     }
 }
 
@@ -196,7 +194,6 @@ void PCSX::Memory::psxMemShutdown() {
 
     free(g_psxMemRLUT);
     free(g_psxMemWLUT);
-    g_emulator.m_psxBios->m_realBiosLoaded = false;
 }
 
 static int m_writeok = 1;
