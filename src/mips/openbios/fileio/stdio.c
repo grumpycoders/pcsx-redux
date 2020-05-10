@@ -152,7 +152,7 @@ int psxread(int fd, void * buffer, int size) {
         if (ret > 0) file->offset += ret;
     }
 
-    if (ret < 0) errno = file->errno;
+    if (ret < 0) psxerrno = file->errno;
 
     return ret;
 }
@@ -186,7 +186,7 @@ int psxwrite(int fd, void * buffer, int size) {
         if (ret > 0) file->offset += ret;
     }
 
-    if (ret < 0) errno = file->errno;
+    if (ret < 0) psxerrno = file->errno;
 
     return ret;
 }
@@ -258,7 +258,7 @@ void psxputchar(int c) {
 
 int psxgetchar() {
     char b;
-    read(0, &b, 1);
+    psxread(0, &b, 1);
     return b & 0x7f;
 }
 
