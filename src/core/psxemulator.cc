@@ -26,7 +26,6 @@
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/ppf.h"
-#include "core/psxbios.h"
 #include "core/r3000a.h"
 
 #include "gpu/soft/interface.h"
@@ -35,7 +34,6 @@
 PCSX::Emulator::Emulator()
     : m_psxMem(new PCSX::Memory()),
       m_psxCounters(new PCSX::Counters()),
-      m_psxBios(PCSX::Bios::factory()),
       m_gte(new PCSX::GTE()),
       m_sio(new PCSX::SIO()),
       m_cdrom(PCSX::CDRom::factory()),
@@ -86,9 +84,7 @@ void PCSX::Emulator::EmuShutdown() {
 }
 
 void PCSX::Emulator::EmuUpdate() {
-    // Do not allow hotkeys inside a softcall from HLE BIOS
-    if (!settings.get<SettingHLE>() || !m_psxBios->inSoftCall()) PCSX::g_system->update();
-
+    PCSX::g_system->update();
     m_cheats->ApplyCheats();
 
     if (m_vblank_count_hideafter) {

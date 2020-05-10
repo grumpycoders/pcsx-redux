@@ -80,7 +80,6 @@ typedef intptr_t ssize_t;
 
 namespace PCSX {
 
-class Bios;
 class CDRom;
 class Cheats;
 class Counters;
@@ -130,7 +129,6 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
-    typedef Setting<bool, TYPESTRING("HLE"), true> SettingHLE;
     typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
     typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
@@ -141,7 +139,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
+             SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
              SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay>
         settings;
     class PcsxConfig {
@@ -190,7 +188,6 @@ class Emulator {
     std::unique_ptr<Memory> m_psxMem;
     std::unique_ptr<R3000Acpu> m_psxCpu;
     std::unique_ptr<Counters> m_psxCounters;
-    std::unique_ptr<Bios> m_psxBios;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<SIO> m_sio;
     std::unique_ptr<CDRom> m_cdrom;

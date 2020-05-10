@@ -44,7 +44,6 @@ typedef struct {
     uint32_t SavedS0;
 } EXE_HEADER;
 
-bool LoadCdrom();
 bool LoadCdromFile(const char *filename, EXE_HEADER *head);
 bool CheckCdrom();
 int Load(const char *ExePath);

@@ -84,7 +84,6 @@ class GUI final {
     void endFrame();
 
     bool configure();
-    void biosCounters();
     void about();
     void interruptsScaler();
 
@@ -121,13 +120,12 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
     typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
-    typedef Setting<bool, TYPESTRING("ShowBiosCounters")> ShowBiosCounters;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
              WindowSizeY>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
@@ -165,8 +163,6 @@ class GUI final {
     std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
-    bool &m_showBiosCounters = {settings.get<ShowBiosCounters>().value};
-    bool m_skipBiosUnknowns = true;
 
     const flags::args &m_args;
     bool m_scheduleSoftReset = false;
