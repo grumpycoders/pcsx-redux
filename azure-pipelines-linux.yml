@@ -9,6 +9,9 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
+- checkout: self
+  submodules: true
+
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
