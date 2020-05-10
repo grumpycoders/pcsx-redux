@@ -2815,7 +2815,7 @@ const func_t X86DynaRecCPU::m_recBSC[64] = {
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWR,  &X86DynaRecCPU::recNULL,   // 2c
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recLWC2, &X86DynaRecCPU::recNULL,   // 30
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 34
-    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWC2, &X86DynaRecCPU::recHLE,    // 38
+    &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recSWC2, &X86DynaRecCPU::recNULL,   // 38
     &X86DynaRecCPU::recNULL,    &X86DynaRecCPU::recNULL,   &X86DynaRecCPU::recNULL, &X86DynaRecCPU::recNULL,   // 3c
 };
 
