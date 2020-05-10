@@ -19,22 +19,18 @@
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
-int cdromSeekL(uint8_t * msf);
-int cdromGetStatus(uint8_t *responsePtr);
-int cdromRead(int count, void * buffer, uint32_t mode);
-int cdromSetMode(uint32_t mode);
-int cdromIOVerifier();
-int cdromDMAVerifier();
-void cdromIOHandler();
-void cdromDMAHandler();
-void getLastCDRomError(uint8_t * err1, uint8_t * err2);
-int cdromInnerInit();
-enum AutoAckType {
-    AUTOACK_IO = 0,
-    AUTOACK_DMA = 1,
-};
-int setCDRomIRQAutoAck(enum AutoAckType type, int value);
-void enqueueCDRomHandlers();
-void dequeueCDRomHandlers();
+/* This one is a tough one. Technically, this should return a struct, that's
+   using however the older gcc ABI. There's no way to reproduce the ABI
+   with modern gcc as far as I know, but it's also likely the rest of
+   the returned struct isn't actually used, so we might be lucky here
+   in terms of API. As far as ABI is concerned however, inlined assembly
+   code will solve the issue. */
+int initPadHighLevel(uint32_t padType, uint32_t * buffer, int c, int d);
+uint32_t readPadHighLevel();
+int initPad(uint8_t * pad1Buffer, size_t pad1BufferSize, uint8_t * pad2Buffer, size_t pad2BufferSize);
+int startPad();
+void stopPad();
+
+extern uint32_t * g_userPadBuffer;

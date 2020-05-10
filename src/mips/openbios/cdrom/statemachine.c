@@ -63,7 +63,7 @@ static int s_dmaCounter;
 static uint32_t * s_readBuffer;
 static uint32_t s_mode;
 
-int cdromSeekL(uint8_t * msf) {
+int __attribute__((section(".ramtext"))) cdromSeekL(uint8_t * msf) {
     // unknown states
     if ((s_currentState == 0xe6) || (s_currentState == 0xeb)) {
         if (!s_gotInt3) return 0;
@@ -83,7 +83,7 @@ int cdromSeekL(uint8_t * msf) {
     return 1;
 }
 
-int cdromGetStatus(uint8_t *responsePtr) {
+int __attribute__((section(".ramtext"))) cdromGetStatus(uint8_t *responsePtr) {
     if (s_currentState != IDLE) return 0;
     cdromUndeliverAll();
     CDROM_REG0 = 0;
@@ -93,7 +93,7 @@ int cdromGetStatus(uint8_t *responsePtr) {
     return 1;
 }
 
-int cdromRead(int count, void * buffer, uint32_t mode) {
+int __attribute__((section(".ramtext"))) cdromRead(int count, void * buffer, uint32_t mode) {
     if ((s_currentState != IDLE) || (count <= 0)) return 0;
 
     cdromUndeliverAll();
@@ -119,7 +119,7 @@ int cdromRead(int count, void * buffer, uint32_t mode) {
     return 1;
 }
 
-int cdromSetMode(uint32_t mode) {
+int __attribute__((section(".ramtext"))) cdromSetMode(uint32_t mode) {
     if (s_currentState != IDLE) return 0;
     cdromUndeliverAll();
 
@@ -132,7 +132,7 @@ int cdromSetMode(uint32_t mode) {
     return 1;
 }
 
-void setDMA(uint32_t *buffer, int amountOfWords) {
+static void __attribute__((section(".ramtext"))) setDMA(uint32_t *buffer, int amountOfWords) {
     uint32_t t = DICR;
     t &= 0xffffff;
     t |= 0x880000;
@@ -146,7 +146,7 @@ void setDMA(uint32_t *buffer, int amountOfWords) {
 
 static uint32_t * s_initialReadBuffer;
 
-static void initiateDMA(void) {
+static void __attribute__((section(".ramtext"))) initiateDMA(void) {
     if (s_sectorCounter < 1) {
         if (s_sectorCounter == 0) {
             s_sectorCounter = -1;
@@ -175,7 +175,7 @@ static void initiateDMA(void) {
 // Some of the code might in fact be culled away
 // by the compiler.
 uint8_t s_audioResp[8];
-static void audioResponse(uint8_t status) {
+static void __attribute__((section(".ramtext"))) audioResponse(uint8_t status) {
     s_audioResp[0] = status;
     s_audioResp[1] = CDROM_REG1;
     s_audioResp[2] = CDROM_REG1;
@@ -187,7 +187,7 @@ static void audioResponse(uint8_t status) {
     syscall_deliverEvent(0xf0000003, 0x40);
 }
 
-static void dataReady() {
+static void __attribute__((section(".ramtext"))) dataReady() {
     uint8_t status = CDROM_REG1;
     switch (s_preemptedState) {
         case READN: case READS:
@@ -218,7 +218,7 @@ static void dataReady() {
 static uint8_t s_err1, s_err2;
 static int s_gotInt5;
 
-static void genericErrorState() {
+static void __attribute__((section(".ramtext"))) genericErrorState() {
     CDROM_REG0 = 0;
     CDROM_REG1 = 10;
     s_currentState = GOT_ERROR_AND_REINIT;
@@ -229,7 +229,7 @@ static void genericErrorState() {
 
 }
 
-static void setSessionResponse() {
+static void __attribute__((section(".ramtext"))) setSessionResponse() {
     if (CDROM_REG0 & 0x10) {
         // request last track end state?
         s_currentState = 0xf14;
@@ -245,7 +245,7 @@ static void setSessionResponse() {
 static volatile int s_initializationComplete;
 static uint8_t * s_idResponsePtr;
 
-static void complete() {
+static void __attribute__((section(".ramtext"))) complete() {
     CDROM_REG1; // throw away one read off the controller
     switch (s_currentState) {
         case 0x12: // setSession?
@@ -294,7 +294,7 @@ static void complete() {
 
 static uint8_t * s_getLocResponsePtr;
 
-static void getLocLAck() {
+static void __attribute__((section(".ramtext"))) getLocLAck() {
     uint8_t * const ptr = s_getLocResponsePtr;
     ptr[0] = CDROM_REG1;
     ptr[1] = CDROM_REG1;
@@ -315,7 +315,7 @@ static void getLocLAck() {
     syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
-static void getLocPAck() {
+static void __attribute__((section(".ramtext"))) getLocPAck() {
     s_currentState = s_preemptedState;
 
     /* These are volatiles, so the compiler won't cull away these reads. */
@@ -340,7 +340,7 @@ static void getLocPAck() {
 
 static uint8_t * s_testAckPtr;
 
-static void testAck(uint8_t status) {
+static void __attribute__((section(".ramtext"))) testAck(uint8_t status) {
     uint8_t * const ptr = s_testAckPtr;
     uint8_t count = ptr[1];
     ptr[0] = status;
@@ -354,19 +354,18 @@ static void testAck(uint8_t status) {
     syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
-static void ack() {
+static void __attribute__((section(".ramtext"))) ack() {
     s_currentState = IDLE;
     syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
-static void getStatusAck(uint8_t status) {
+static void __attribute__((section(".ramtext"))) getStatusAck(uint8_t status) {
     *s_getStatusResponsePtr = status;
     s_currentState = IDLE;
     syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
-
-static void demuteAck(void) {
+static void __attribute__((section(".ramtext"))) demuteAck(void) {
     s_currentState = s_preemptedState;
     s_preemptedState = IDLE;
     syscall_deliverEvent(0xf0000003, 0x0020);
@@ -376,7 +375,7 @@ static uint8_t * s_tracksInformationPtr;
 static uint8_t s_getTDtrackNum;
 static uint8_t s_numberOfTracks;
 
-static void getTDack()  {
+static void __attribute__((section(".ramtext"))) getTDack()  {
     uint8_t trackNum = s_getTDtrackNum;
     uint8_t * ptr = s_tracksInformationPtr + trackNum * 3;
     ptr[-3] = CDROM_REG1;
@@ -402,7 +401,7 @@ static void getTDack()  {
 
 static uint8_t * s_getParamResultsPtr;
 
-static void getParamAck() {
+static void __attribute__((section(".ramtext"))) getParamAck() {
     *s_getParamResultsPtr = CDROM_REG1;
     CDROM_REG1;
     CDROM_REG1;
@@ -413,7 +412,7 @@ static void getParamAck() {
 
 static uint8_t s_firstTrack;
 
-static void getTNack(void) {
+static void __attribute__((section(".ramtext"))) getTNack(void) {
     uint8_t v;
 
     uint8_t f = v = CDROM_REG1;
@@ -434,20 +433,20 @@ static void getTNack(void) {
     CDROM_REG1 = 0x14;
 }
 
-static void unlockAck() {
+static void __attribute__((section(".ramtext"))) unlockAck() {
     s_currentState = s_preemptedState;
     s_preemptedState = IDLE;
     syscall_deliverEvent(0xf0000003, 0x0020);
 }
 
-static void issueSeekAfterSetLoc(int P) {
+static void __attribute__((section(".ramtext"))) issueSeekAfterSetLoc(int P) {
     s_currentState = SEEKP;
     if (!P) s_currentState = SEEKL;
     CDROM_REG0 = 0;
     CDROM_REG1 = s_currentState;
 }
 
-static void readSetModeResponse() {
+static void __attribute__((section(".ramtext"))) readSetModeResponse() {
     CDROM_REG0 = 0;
     if (!(s_mode & 0x100)) {
         if (s_currentState == READ_SETMODE) {
@@ -466,7 +465,7 @@ static void readSetModeResponse() {
     }
 }
 
-static void chainGetTNack() {
+static void __attribute__((section(".ramtext"))) chainGetTNack() {
     uint8_t * ptr = s_tracksInformationPtr;
     ptr[0] = CDROM_REG1;
     ptr[1] = CDROM_REG1;
@@ -475,7 +474,7 @@ static void chainGetTNack() {
     s_currentState = 0x13;
 }
 
-static void acknowledge() {
+static void __attribute__((section(".ramtext"))) acknowledge() {
     switch (s_currentState) {
         case 0x10:
             getLocLAck();
@@ -538,7 +537,7 @@ static void acknowledge() {
     }
 }
 
-static void end() {
+static void __attribute__((section(".ramtext"))) end() {
     if ((s_preemptedState == READN) || (s_preemptedState == READS) || (s_currentState == READN) || (s_currentState == READS)) {
         if (s_dmaCounter > 0) syscall_deliverEvent(0xf0000003, 0x0080);
         if ((s_currentState == READN) || (s_currentState == READS)) {
@@ -569,7 +568,7 @@ static void end() {
 
 static uint8_t * s_getIDerrPtr;
 
-static void discError() {
+static void __attribute__((section(".ramtext"))) discError() {
     s_err1 = CDROM_REG1;
     s_err2 = CDROM_REG1;
     switch (s_currentState) {
@@ -613,7 +612,7 @@ static uint8_t s_irqFlags;
 // so we need to keep it this way.
 extern volatile uint32_t __vector_00;
 
-int cdromIOVerifier() {
+int __attribute__((section(".ramtext"))) cdromIOVerifier() {
     if ((IMASK & 4) == 0) return 0;
     s_lastIREG = IREG;
     if ((s_lastIREG & 4) == 0) return 0;
@@ -660,7 +659,7 @@ int cdromIOVerifier() {
 // Probably a leftover from missing state machine entries.
 static int s_dmaStuff;
 
-int cdromDMAVerifier() {
+int __attribute__((section(".ramtext"))) cdromDMAVerifier() {
     if (!(IMASK & 8)) return 0;
     if (!((s_lastIREG = IREG) & 8)) return 0;
     uint32_t dicr = DICR;
@@ -676,15 +675,15 @@ int cdromDMAVerifier() {
 
 static int s_irqAutoAck[2];
 
-void cdromIOHandler(int v) {
+void __attribute__((section(".ramtext"))) cdromIOHandler(int v) {
     if (!s_irqAutoAck[0]) return;
     IREG = ~4;
     syscall_returnFromException();
 }
 
-void cdromDMAHandler(int v) {
+void __attribute__((section(".ramtext"))) cdromDMAHandler(int v) {
     if (!s_irqAutoAck[1]) return;
-    IREG &= ~8;
+    IREG = ~8;
     syscall_returnFromException();
 }
 
@@ -693,13 +692,13 @@ void getLastCDRomError(uint8_t * err1, uint8_t * err2) {
     *err2 = s_err2;
 }
 
-void resetAllCDRomIRQs() {
+void __attribute__((section(".ramtext"))) resetAllCDRomIRQs() {
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
     for (int i = 0; i < 4; i++) __vector_00 = i;
 }
 
-void enableAllCDRomIRQs() {
+void __attribute__((section(".ramtext"))) enableAllCDRomIRQs() {
     CDROM_REG0 = 1;
     CDROM_REG2 = 0x1f;
 }
@@ -709,7 +708,7 @@ void enableAllCDRomIRQs() {
 // never read from or written to again.
 static int s_stuff;
 
-int cdromInnerInit() {
+int __attribute__((section(".ramtext"))) cdromInnerInit() {
     s_initializationComplete = 0;
     s_gotInt5 = 0;
     s_stuff = 0;
@@ -762,4 +761,9 @@ void enqueueCDRomHandlers() {
     s_cdromDMAHandlerInfo.handler = cdromDMAHandler;
     s_cdromDMAHandlerInfo.verifier = cdromDMAVerifier;
     syscall_sysEnqIntRP(0, &s_cdromDMAHandlerInfo);
+}
+
+void dequeueCDRomHandlers() {
+    syscall_sysDeqIntRP(0, &s_cdromIOHandlerInfo);
+    syscall_sysDeqIntRP(0, &s_cdromDMAHandlerInfo);
 }

@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-    .section .text, "ax", @progbits
+    .section .ramtext, "ax", @progbits
     .align 2
     .global fastMemset
     .type fastMemset, @function

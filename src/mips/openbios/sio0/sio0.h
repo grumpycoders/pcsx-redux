@@ -19,22 +19,7 @@
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include "common/psxlibc/handlers.h"
 
-int cdromSeekL(uint8_t * msf);
-int cdromGetStatus(uint8_t *responsePtr);
-int cdromRead(int count, void * buffer, uint32_t mode);
-int cdromSetMode(uint32_t mode);
-int cdromIOVerifier();
-int cdromDMAVerifier();
-void cdromIOHandler();
-void cdromDMAHandler();
-void getLastCDRomError(uint8_t * err1, uint8_t * err2);
-int cdromInnerInit();
-enum AutoAckType {
-    AUTOACK_IO = 0,
-    AUTOACK_DMA = 1,
-};
-int setCDRomIRQAutoAck(enum AutoAckType type, int value);
-void enqueueCDRomHandlers();
-void dequeueCDRomHandlers();
+extern struct HandlerInfo g_sio0HandlerInfo;
+int setSIO0AutoAck(int value);

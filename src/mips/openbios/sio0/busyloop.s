@@ -17,24 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+    .set noreorder
+    .section .ramtext, "ax", @progbits
+    .align 2
+    .global busyloop
+    .type busyloop, @function
 
-#include "common/compiler/stdint.h"
+/* The timing of this might be so sensitive, it could be
+   requiring to be an exact replica of the existing code.
+   
+   The C version of this would be the following:
+   
+   void busyLoop(int count) {
+       volatile int cycles = count;
+       while (cycles--);
+   }
 
-int cdromSeekL(uint8_t * msf);
-int cdromGetStatus(uint8_t *responsePtr);
-int cdromRead(int count, void * buffer, uint32_t mode);
-int cdromSetMode(uint32_t mode);
-int cdromIOVerifier();
-int cdromDMAVerifier();
-void cdromIOHandler();
-void cdromDMAHandler();
-void getLastCDRomError(uint8_t * err1, uint8_t * err2);
-int cdromInnerInit();
-enum AutoAckType {
-    AUTOACK_IO = 0,
-    AUTOACK_DMA = 1,
-};
-int setCDRomIRQAutoAck(enum AutoAckType type, int value);
-void enqueueCDRomHandlers();
-void dequeueCDRomHandlers();
+   */
+busyloop:
+    sw    $a0, 0($sp)
+    lw    $v0, 0($sp)
+    lw    $v1, 0($sp)
+    nop
+    addiu $v1, -1
+    beqz  $v0, earlyExit
+    sw    $v1, 0($sp)
+
+busyloopLoop:
+    lw    $v0, 0($sp)
+    lw    $v1, 0($sp)
+    nop
+    addiu $v1, -1
+    bnez  $v0, busyloopLoop
+    sw    $v1, 0($sp)
+
+earlyExit:
+    jr    $ra
+    nop

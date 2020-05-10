@@ -27,7 +27,7 @@ uint32_t g_cdEventEND; /* 0x0080 */
 uint32_t g_cdEventERR; /* 0x8000 */
 
 // Yes, these undeliver some events that never got created in the first place.
-void cdromUndeliverAllExceptAckAndRdy() {
+void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
     syscall_undeliverEvent(0xf0000003, 0x20);
     syscall_undeliverEvent(0xf0000003, 0x80);
     syscall_undeliverEvent(0xf0000003, 0x8000);
@@ -35,7 +35,7 @@ void cdromUndeliverAllExceptAckAndRdy() {
     syscall_undeliverEvent(0xf0000003, 0x200); // never created
 }
 
-void cdromUndeliverAll() {
+void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
     syscall_undeliverEvent(0xf0000003, 0x40);
     syscall_undeliverEvent(0xf0000003, 0x10);
     syscall_undeliverEvent(0xf0000003, 0x20);

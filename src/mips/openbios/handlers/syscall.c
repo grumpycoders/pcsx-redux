@@ -68,6 +68,6 @@ static struct HandlerInfo s_defaultSyscallInfo = {
     .padding = 0,
 };
 
-int enqueueSyscallHandler(int priority) {
+int __attribute__((section(".ramtext"))) enqueueSyscallHandler(int priority) {
     return sysEnqIntRP(priority, &s_defaultSyscallInfo);
 }

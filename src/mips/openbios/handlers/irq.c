@@ -22,6 +22,7 @@
 
 #include "common/hardware/hwregs.h"
 #include "common/psxlibc/handlers.h"
+#include "common/psxlibc/string.h"
 #include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
 
@@ -61,8 +62,9 @@ static struct HandlerInfo s_IRQHandlerInfo = {
     .padding = 0,
 };
 
-int enqueueIrqHandler(int priority) {
-    memset(s_IRQsAutoAck, 0, sizeof(s_IRQsAutoAck));
+int __attribute__((section(".ramtext"))) enqueueIrqHandler(int priority) {
+    // this is technically memset, but I can't deal with the far jumps now.
+    safeMemZero(s_IRQsAutoAck, sizeof(s_IRQsAutoAck));
 
     return sysEnqIntRP(priority, &s_IRQHandlerInfo);
 }
@@ -139,7 +141,7 @@ static struct HandlerInfo s_rcntHandlers[4] = {
     },
 };
 
-int enqueueRCntIrqs(int priority) {
+int __attribute__((section(".ramtext"))) enqueueRCntIrqs(int priority) {
     int ret, i;
 
     IMASK &= ~0x71;
@@ -155,3 +157,8 @@ int enqueueRCntIrqs(int priority) {
     return ret;
 }
 
+int __attribute__((section(".ramtext"))) setTimerAutoAck(int timer, int value) {
+    int old = s_timersAutoAck[timer];
+    s_timersAutoAck[timer] = value;
+    return old;
+}
