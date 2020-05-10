@@ -174,8 +174,8 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, deliverEvent, // 04
     openEvent, closeEvent, unimplemented, testEvent, // 08
     enableEvent, unimplemented, unimplemented, unimplemented, // 0c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 10
-    unimplemented, initPadHighLevel, readPadHighLevel, returnFromException, // 14
+    unimplemented, unimplemented, initPad, startPad, // 10
+    stopPad, initPadHighLevel, readPadHighLevel, returnFromException, // 14
     setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplemented, unimplemented, // 18
     unimplemented, unimplemented, unimplemented, unimplemented, // 1c
     undeliverEvent, unimplemented, unimplemented, unimplemented, // 20

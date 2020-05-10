@@ -259,3 +259,10 @@ int __attribute__((section(".ramtext"))) startPad() {
     setTimerAutoAck(3, 0);
     leaveCriticalSection();
 }
+
+void __attribute__((section(".ramtext"))) stopPad() {
+    enterCriticalSection();
+    setTimerAutoAck(3, 1);
+    sysDeqIntRP(2, &g_sio0HandlerInfo);
+    leaveCriticalSection();
+}

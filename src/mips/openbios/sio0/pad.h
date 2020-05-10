@@ -27,9 +27,10 @@
    the returned struct isn't actually used, so we might be lucky here
    in terms of API. As far as ABI is concerned however, inlined assembly
    code will solve the issue. */
-int initPadHighLevel(uint32_t padType, uint8_t * buffer, int c, int d);
+int initPadHighLevel(uint32_t padType, uint32_t * buffer, int c, int d);
 uint32_t readPadHighLevel();
 int initPad(uint8_t * pad1Buffer, size_t pad1BufferSize, uint8_t * pad2Buffer, size_t pad2BufferSize);
 int startPad();
+void stopPad();
 
-extern uint8_t * g_userPadBuffer;
+extern uint32_t * g_userPadBuffer;

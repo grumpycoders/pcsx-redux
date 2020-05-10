@@ -26,11 +26,11 @@
 
 static uint8_t s_padBuffer1[0x22];
 static uint8_t s_padBuffer2[0x22];
-uint8_t * g_userPadBuffer;
+uint32_t * g_userPadBuffer;
 
 void * fastMemset(void * ptr, int value, size_t num);
 
-int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint8_t * buffer, int c, int d) {
+int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint32_t * buffer, int c, int d) {
     __asm__ volatile("sw %0, 4($sp)\nsw %1, 8($sp)\nsw %2, 12($sp)" : : "r"(buffer), "r"(c), "r"(d));
     switch (padType) {
         case 0x10000001:
@@ -56,6 +56,37 @@ int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint
     return 0;
 }
 
-uint32_t __attribute__((section(".ramtext"))) readPadHighLevel() {
+static void __attribute__((section(".ramtext"))) alterUserPadData(uint16_t * ptr, uint8_t * input) {
+    if (input[0] != 0) return;
+    uint8_t c = input[1];
+    int is6free = c == 0x41;
+    int isFlyingV = c == 0x23;
 
+    if (!is6free && !isFlyingV) return;
+
+    uint16_t o = input[2];
+    o <<= 8;
+    o |= input[3];
+    *ptr = o;
+
+    if (!isFlyingV) return;
+
+    *ptr |= 0x7c7;
+    if (input[5] > 0x10) {
+        *ptr &= ~0x40;
+    }
+    if (input[6] > 0x10) {
+        *ptr &= ~0x80;
+    }
+}
+
+uint32_t __attribute__((section(".ramtext"))) readPadHighLevel() {
+    uint32_t * ret = g_userPadBuffer;
+    uint16_t * ptr = (uint16_t *) ret;
+    *ret = 0xffffffff;
+
+    alterUserPadData(ptr++, s_padBuffer1);
+    alterUserPadData(ptr++, s_padBuffer2);
+
+    return *ret;
 }
