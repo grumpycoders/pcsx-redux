@@ -147,7 +147,7 @@ static const void * romA0table[0xc0] = {
     dev_cd_chdir, unimplemented, unimplemented, unimplemented, // 64
     unimplemented, unimplemented, unimplemented, unimplemented, // 68
     unimplemented, unimplemented, unimplemented, clearFileError, // 6c
-    unimplemented, initCDRom, deinitCDRom, psxdummy, // 70
+    dummyMC, initCDRom, deinitCDRom, psxdummy, // 70
     psxdummy, psxdummy, psxdummy, psxdummy, // 74
     cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
     cdromGetStatus, psxdummy, cdromRead, psxdummy, // 7c
@@ -172,7 +172,7 @@ static const void * romA0table[0xc0] = {
 void * B0table[0x60] = {
     malloc, free, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, deliverEvent, // 04
-    openEvent, closeEvent, unimplemented, testEvent, // 08
+    openEvent, closeEvent, waitEvent, testEvent, // 08
     enableEvent, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, initPad, startPad, // 10
     stopPad, initPadHighLevel, readPadHighLevel, returnFromException, // 14
@@ -188,7 +188,7 @@ void * B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
     unimplemented, unimplemented, unimplemented, addDevice, // 44
-    unimplemented, unimplemented, unimplemented, unimplemented, // 48
+    unimplemented, unimplemented, dummyMC, dummyMC, // 48
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54

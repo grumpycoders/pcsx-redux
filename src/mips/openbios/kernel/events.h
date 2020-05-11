@@ -26,3 +26,4 @@ void undeliverEvent(uint32_t class, uint32_t spec);
 int testEvent(uint32_t event);
 int enableEvent(uint32_t event);
 int closeEvent(uint32_t event);
+int waitEvent(uint32_t event);
