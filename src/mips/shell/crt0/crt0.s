@@ -38,6 +38,4 @@ bss_init_skip:
 
     li    $a0, 0
     li    $a1, 0
-    jal   main
-
-    jr    $ra
+    j     main
