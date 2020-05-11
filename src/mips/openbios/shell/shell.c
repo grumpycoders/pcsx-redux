@@ -23,16 +23,11 @@
 #include "openbios/kernel/flushcache.h"
 #include "openbios/shell/shell.h"
 
-#define NOP()  0x00000000
-#define JRRA() 0x03e00008
-
-static uint32_t s_shellCode[] = {
-    JRRA(),
-    NOP(),
-};
+extern uint8_t _binary_shell_bin_start[];
+extern uint8_t _binary_shell_bin_end[];
 
 int startShell(uint32_t arg) {
-    memcpy((uint32_t *) 0x80030000, s_shellCode, sizeof(s_shellCode));
+    memcpy((uint32_t *) 0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
     flushCache();
     return ((int(*)(int)) 0x80030000)(arg);
 }

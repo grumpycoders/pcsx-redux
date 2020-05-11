@@ -34,6 +34,8 @@ sio0/driver.c \
 sio0/pad.c \
 tty/tty.c \
 \
+../shell/shell_data.o \
+\
 uC-sdk-glue/BoardConsole.c \
 uC-sdk-glue/BoardInit.c \
 uC-sdk-glue/init.c \
@@ -69,3 +71,11 @@ CPPFLAGS += -I../../../third_party/uC-sdk/os/include
 CPPFLAGS += -IuC-sdk-glue
 
 include ../common.mk
+
+../shell/shell_data.o:
+	$(MAKE) -C ../shell shell_data.o
+
+deepclean: clean
+	$(MAKE) -C ../shell clean
+
+.PHONY: deepclean

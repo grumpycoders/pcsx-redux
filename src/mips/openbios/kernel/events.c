@@ -116,3 +116,19 @@ int testEvent(uint32_t event) {
     }
     return 0;
 }
+
+
+int waitEvent(uint32_t event) {
+    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    if (ptr->flags == 0x4000) {
+        ptr->flags = 0x2000;
+        return 1;
+    }
+    if (ptr->flags == 0x2000) {
+        volatile uint32_t * flags = &ptr->flags;
+        while (*flags != 0x4000);
+        *flags = 0x2000;
+        return 1;
+    }
+    return 0;
+}
