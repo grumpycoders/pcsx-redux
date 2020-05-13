@@ -20,9 +20,10 @@ List of things to still do here, in no particular order.
   - Throw away the current parallel port support.
 
 - Scripting
-  - Add a scripting engine (Lua).
+  - Add a scripting engine (LuaJIT).
   - Bind most of the emulator functions to it.
   - Bind parallel port card system to it, so to have a flexible cart management system.
+  - Bind ImGui to it.
 
 - Tooling
   - Integrate dosbox-x.
