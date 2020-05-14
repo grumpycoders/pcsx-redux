@@ -18,24 +18,16 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#include "gui/gui.h"
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <assert.h>
-
 #include <SDL.h>
+#include <assert.h>
 
 #include <fstream>
 #include <iomanip>
 #include <unordered_set>
-
-#include "flags.h"
-#include "json.hpp"
-#include "zstr.hpp"
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_stdlib.h"
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -44,8 +36,14 @@
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "core/uv_wrapper.h"
-#include "gui/gui.h"
+#include "flags.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_stdlib.h"
+#include "json.hpp"
 #include "spu/interface.h"
+#include "zstr.hpp"
 
 using json = nlohmann::json;
 
@@ -80,7 +78,7 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
 
 void PCSX::GUI::init() {
     int result;
-    PCSX::g_emulator.m_uv->init();
+    PCSX::g_emulator->m_uv->init();
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
@@ -108,7 +106,7 @@ void PCSX::GUI::init() {
     {
         io.IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
-        auto& emuSettings = PCSX::g_emulator.settings;
+        auto& emuSettings = PCSX::g_emulator->settings;
         json j;
         if (cfg.is_open()) {
             try {
@@ -127,7 +125,7 @@ void PCSX::GUI::init() {
             }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
-            PCSX::g_emulator.m_spu->setCfg(j);
+            PCSX::g_emulator->m_spu->setCfg(j);
         } else {
             saveCfg();
         }
@@ -144,7 +142,9 @@ void PCSX::GUI::init() {
 
         PCSX::u8string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
-        PCSX::g_emulator.m_sio->LoadMcds(path1, path2);
+        PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
+
+        g_system->getEventBus()->postpone<Events::SettingsLoaded>({});
     }
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -211,7 +211,7 @@ void PCSX::GUI::close() {
     glfwDestroyWindow(m_window);
     glfwTerminate();
 
-    PCSX::g_emulator.m_uv->close();
+    PCSX::g_emulator->m_uv->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -222,14 +222,15 @@ void PCSX::GUI::saveCfg() {
     glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
 
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
-    j["SPU"] = PCSX::g_emulator.m_spu->getCfg();
-    j["emulator"] = PCSX::g_emulator.settings.serialize();
+    j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
+    j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
 void PCSX::GUI::startFrame() {
-    PCSX::g_emulator.m_uv->run();
+    PCSX::g_system->getEventBus()->process();
+    PCSX::g_emulator->m_uv->run();
     if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();
@@ -333,7 +334,7 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open ISO"));
                 if (ImGui::MenuItem(_("Close ISO"))) {
-                    PCSX::g_emulator.m_cdrom->m_iso.close();
+                    PCSX::g_emulator->m_cdrom->m_iso.close();
                     CheckCdrom();
                 }
                 ImGui::Separator();
@@ -361,25 +362,25 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator.m_cdrom->setCdOpenCaseTime(-1);
-                    PCSX::g_emulator.m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
+                    PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator.m_cdrom->setCdOpenCaseTime(0);
-                    PCSX::g_emulator.m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(0);
+                    PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator.m_cdrom->setCdOpenCaseTime((int64_t)time(NULL) + 2);
-                    PCSX::g_emulator.m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->setCdOpenCaseTime((int64_t)time(NULL) + 2);
+                    PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Memory Card 1 inserted"), nullptr,
-                                    &g_emulator.settings.get<Emulator::SettingMcd1Inserted>().value)) {
-                    g_emulator.m_sio->interrupt();
+                                    &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
+                    g_emulator->m_sio->interrupt();
                 }
                 if (ImGui::MenuItem(_("Memory Card 2 inserted"), nullptr,
-                                    &g_emulator.settings.get<Emulator::SettingMcd2Inserted>().value)) {
-                    g_emulator.m_sio->interrupt();
+                                    &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
+                    g_emulator->m_sio->interrupt();
                 }
                 if (ImGui::MenuItem(_("Quit"))) {
                     PCSX::g_system->quit();
@@ -405,7 +406,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Configuration"))) {
                 if (ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg)) {
-                    auto& overlays = g_emulator.settings.get<Emulator::SettingBiosOverlay>();
+                    auto& overlays = g_emulator->settings.get<Emulator::SettingBiosOverlay>();
                     m_overlayFileOffsets.resize(overlays.size());
                     m_overlayLoadOffsets.resize(overlays.size());
                     m_overlayLoadSizes.resize(overlays.size());
@@ -421,8 +422,8 @@ void PCSX::GUI::endFrame() {
                         counter++;
                     }
                 }
-                ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator.m_gpu->m_showCfg);
-                ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator.m_spu->m_showCfg);
+                ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
+                ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -454,7 +455,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::Separator();
-                ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator.m_spu->m_showDebug);
+                ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show types"), nullptr, &m_types.m_show);
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
@@ -473,14 +474,14 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator.m_cdromId, ImGui::GetIO().Framerate,
+            ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator->m_cdromId, ImGui::GetIO().Framerate,
                         1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }
     }
 
-    auto& isoPath = g_emulator.settings.get<Emulator::SettingIsoPath>();
+    auto& isoPath = g_emulator->settings.get<Emulator::SettingIsoPath>();
 
     if (showOpenIsoFileDialog) {
         if (!isoPath.empty()) {
@@ -493,9 +494,9 @@ void PCSX::GUI::endFrame() {
         changed = true;
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
-            PCSX::g_emulator.m_cdrom->m_iso.close();
+            PCSX::g_emulator->m_cdrom->m_iso.close();
             SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
-            PCSX::g_emulator.m_cdrom->m_iso.open();
+            PCSX::g_emulator->m_cdrom->m_iso.open();
             CheckCdrom();
         }
     }
@@ -535,41 +536,42 @@ void PCSX::GUI::endFrame() {
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator.m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
+                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
         if (m_parallelPortEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(PCSX::g_emulator.m_psxMem->g_psxP, 64 * 1024, 0x1f000000);
+            m_parallelPortEditor.draw(PCSX::g_emulator->m_psxMem->g_psxP, 64 * 1024, 0x1f000000);
         }
         counter++;
         if (m_scratchPadEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH, 1024, 0x1f800000);
+            m_scratchPadEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH, 1024, 0x1f800000);
         }
         counter++;
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator.m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(PCSX::g_emulator.m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
+            m_biosEditor.draw(PCSX::g_emulator->m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
         }
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, _("Registers"));
+        m_registers.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(&PCSX::g_emulator.m_psxCpu->m_psxRegs, PCSX::g_emulator.m_psxMem.get(), &m_dwarf, _("Assembly"));
+        m_assembly.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, PCSX::g_emulator->m_psxMem.get(), &m_dwarf,
+                        _("Assembly"));
     }
 
     if (m_breakpoints.m_show) {
@@ -585,12 +587,12 @@ void PCSX::GUI::endFrame() {
 
     m_types.draw();
     if (m_source.m_show) {
-        m_source.draw(_("Source"), g_emulator.m_psxCpu->m_psxRegs.pc);
+        m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
     }
 
-    PCSX::g_emulator.m_spu->debug();
-    changed |= PCSX::g_emulator.m_spu->configure();
-    changed |= PCSX::g_emulator.m_gpu->configure();
+    PCSX::g_emulator->m_spu->debug();
+    changed |= PCSX::g_emulator->m_spu->configure();
+    changed |= PCSX::g_emulator->m_gpu->configure();
     changed |= configure();
 
     auto& io = ImGui::GetIO();
@@ -642,7 +644,7 @@ bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
     bool selectBiosOverlayDialog = false;
-    auto& settings = PCSX::g_emulator.settings;
+    auto& settings = PCSX::g_emulator->settings;
     if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
@@ -654,13 +656,13 @@ bool PCSX::GUI::configure() {
             if (ImGui::BeginCombo(_("Locale"), currentLocale.c_str())) {
                 if (ImGui::Selectable("English", currentLocale == "English")) {
                     g_system->activateLocale("English");
-                    g_emulator.settings.get<Emulator::SettingLocale>() = "English";
+                    g_emulator->settings.get<Emulator::SettingLocale>() = "English";
                     changed = true;
                 }
                 for (auto& l : g_system->localesNames()) {
                     if (ImGui::Selectable(l.c_str(), currentLocale == l)) {
                         g_system->activateLocale(l);
-                        g_emulator.settings.get<Emulator::SettingLocale>() = l;
+                        g_emulator->settings.get<Emulator::SettingLocale>() = l;
                         changed = true;
                     }
                 }
@@ -828,12 +830,12 @@ void PCSX::GUI::interruptsScaler() {
         "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek", "CDR Play"};
     if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
-            for (auto& scale : g_emulator.m_psxCpu->m_interruptScales) {
+            for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
                 scale = 1.0f;
             }
         }
         unsigned counter = 0;
-        for (auto& scale : g_emulator.m_psxCpu->m_interruptScales) {
+        for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
             ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", 5.0f);
             counter++;
         }
@@ -880,9 +882,9 @@ void PCSX::GUI::update() {
     // We basically need these to be tail calls, or at least, close from it.
     if (m_scheduleSoftReset) {
         m_scheduleSoftReset = false;
-        PCSX::g_emulator.m_psxCpu->psxReset();
+        PCSX::g_emulator->m_psxCpu->psxReset();
     } else if (m_scheduleHardReset) {
         m_scheduleHardReset = false;
-        PCSX::g_emulator.EmuReset();
+        PCSX::g_emulator->EmuReset();
     }
 }

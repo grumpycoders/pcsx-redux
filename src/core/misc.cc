@@ -104,12 +104,12 @@ void mmssdd(char *b, char *p) {
     time[2] = PCSX::CDRom::itob(time[2]);
 
 #define READTRACK()                                                     \
-    if (!PCSX::g_emulator.m_cdrom->m_iso.readTrack(time)) return false; \
-    buf = PCSX::g_emulator.m_cdrom->m_iso.getBuffer();                  \
+    if (!PCSX::g_emulator->m_cdrom->m_iso.readTrack(time)) return false; \
+    buf = PCSX::g_emulator->m_cdrom->m_iso.getBuffer();                  \
     if (buf == NULL)                                                    \
         return false;                                                   \
     else                                                                \
-        PCSX::g_emulator.m_cdrom->m_ppf.CheckPPFCache(buf, time[0], time[1], time[2]);
+        PCSX::g_emulator->m_cdrom->m_ppf.CheckPPFCache(buf, time[0], time[1], time[2]);
 
 #define READDIR(_dir)             \
     READTRACK();                  \
@@ -195,8 +195,8 @@ bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
     addr = head->t_addr;
 
     // Cache clear/invalidate dynarec/int. Fixes startup of Casper/X-Files and possibly others.
-    PCSX::g_emulator.m_psxCpu->Clear(addr, size / 4);
-    PCSX::g_emulator.m_psxCpu->m_psxRegs.ICache_valid = false;
+    PCSX::g_emulator->m_psxCpu->Clear(addr, size / 4);
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = false;
 
     while (size) {
         incTime();
@@ -221,7 +221,7 @@ bool CheckCdrom() {
     char exename[256];
     int i, len, c;
 
-    PCSX::g_emulator.m_cdrom->m_ppf.FreePPFCache();
+    PCSX::g_emulator->m_cdrom->m_ppf.FreePPFCache();
 
     time[0] = PCSX::CDRom::itob(0);
     time[1] = PCSX::CDRom::itob(2);
@@ -229,11 +229,11 @@ bool CheckCdrom() {
 
     READTRACK();
 
-    memset(PCSX::g_emulator.m_cdromLabel, 0, sizeof(PCSX::g_emulator.m_cdromLabel));
-    memset(PCSX::g_emulator.m_cdromId, 0, sizeof(PCSX::g_emulator.m_cdromId));
+    memset(PCSX::g_emulator->m_cdromLabel, 0, sizeof(PCSX::g_emulator->m_cdromLabel));
+    memset(PCSX::g_emulator->m_cdromId, 0, sizeof(PCSX::g_emulator->m_cdromId));
     memset(exename, 0, sizeof(exename));
 
-    strncpy(PCSX::g_emulator.m_cdromLabel, reinterpret_cast<char *>(buf + 52), 32);
+    strncpy(PCSX::g_emulator->m_cdromLabel, reinterpret_cast<char *>(buf + 52), 32);
 
     // skip head and sub, and go to the root directory record
     dir = (struct iso_directory_record *)&buf[12 + 156];
@@ -266,60 +266,60 @@ bool CheckCdrom() {
         }
     } else if (GetCdromFile(mdir, time, "PSX.EXE;1") != -1) {
         strcpy(exename, "PSX.EXE;1");
-        strcpy(PCSX::g_emulator.m_cdromId, "SLUS99999");
+        strcpy(PCSX::g_emulator->m_cdromId, "SLUS99999");
     } else
         return false;  // SYSTEM.CNF and PSX.EXE not found
 
-    if (PCSX::g_emulator.m_cdromId[0] == '\0') {
+    if (PCSX::g_emulator->m_cdromId[0] == '\0') {
         len = strlen(exename);
         c = 0;
         for (i = 0; i < len; ++i) {
-            if (exename[i] == ';' || c >= sizeof(PCSX::g_emulator.m_cdromId) - 1) break;
-            if (isalnum(exename[i])) PCSX::g_emulator.m_cdromId[c++] = exename[i];
+            if (exename[i] == ';' || c >= sizeof(PCSX::g_emulator->m_cdromId) - 1) break;
+            if (isalnum(exename[i])) PCSX::g_emulator->m_cdromId[c++] = exename[i];
         }
     }
 
-    if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
-        if ((PCSX::g_emulator.m_cdromId[2] == 'e') || (PCSX::g_emulator.m_cdromId[2] == 'E') ||
-            !strncmp(PCSX::g_emulator.m_cdromId, "DTLS3035", 8) ||
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
-            !strncmp(PCSX::g_emulator.m_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
-            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_PAL;  // pal
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
+        if ((PCSX::g_emulator->m_cdromId[2] == 'e') || (PCSX::g_emulator->m_cdromId[2] == 'E') ||
+            !strncmp(PCSX::g_emulator->m_cdromId, "DTLS3035", 8) ||
+            !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
+            !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
+            !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_PAL;  // pal
         else
-            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
     }
 
-    if (PCSX::g_emulator.config().OverClock == 0) {
-        PCSX::g_emulator.m_psxClockSpeed = 33868800;  // 33.8688 MHz (stock)
+    if (PCSX::g_emulator->config().OverClock == 0) {
+        PCSX::g_emulator->m_psxClockSpeed = 33868800;  // 33.8688 MHz (stock)
     } else {
-        PCSX::g_emulator.m_psxClockSpeed = 33868800 * PCSX::g_emulator.config().PsxClock;
+        PCSX::g_emulator->m_psxClockSpeed = 33868800 * PCSX::g_emulator->config().PsxClock;
     }
 
-    if (PCSX::g_emulator.m_cdromLabel[0] == ' ') {
-        strncpy(PCSX::g_emulator.m_cdromLabel, PCSX::g_emulator.m_cdromId, 9);
+    if (PCSX::g_emulator->m_cdromLabel[0] == ' ') {
+        strncpy(PCSX::g_emulator->m_cdromLabel, PCSX::g_emulator->m_cdromId, 9);
     }
-    PCSX::g_system->printf(_("CD-ROM Label: %.32s\n"), PCSX::g_emulator.m_cdromLabel);
-    PCSX::g_system->printf(_("CD-ROM ID: %.9s\n"), PCSX::g_emulator.m_cdromId);
+    PCSX::g_system->printf(_("CD-ROM Label: %.32s\n"), PCSX::g_emulator->m_cdromLabel);
+    PCSX::g_system->printf(_("CD-ROM ID: %.9s\n"), PCSX::g_emulator->m_cdromId);
     PCSX::g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
 
-    PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>() = exename;
+    PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>() = exename;
 
-    if (PCSX::g_emulator.config().PerGameMcd) {
+    if (PCSX::g_emulator->config().PerGameMcd) {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
         sprintf(mcd1path, "memcards/games/%s-%02d.mcd",
-                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 1);
+                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 1);
         sprintf(mcd2path, "memcards/games/%s-%02d.mcd",
-                PCSX::g_emulator.settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);
-        PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
-        PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
-        PCSX::g_emulator.m_sio->LoadMcds(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
-                                         PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
+                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);
+        PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
+        PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
+        PCSX::g_emulator->m_sio->LoadMcds(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
+                                         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
     }
 
-    PCSX::g_emulator.m_cdrom->m_ppf.BuildPPFCache();
-    PCSX::g_emulator.m_cdrom->m_iso.LoadSBI(NULL);
+    PCSX::g_emulator->m_cdrom->m_ppf.BuildPPFCache();
+    PCSX::g_emulator->m_cdrom->m_iso.LoadSBI(NULL);
 
     return true;
 }
@@ -354,12 +354,12 @@ static void LoadLibPS() {
 
     // Load Net Yaroze runtime library (if exists)
     sprintf(buf, "%s/libps.exe",
-            PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBios>().value.parent_path().u8string().c_str());
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBios>().value.parent_path().u8string().c_str());
     f = fopen(buf, "rb");
 
     if (f != NULL) {
         fseek(f, 0x800, SEEK_SET);
-        fread(PCSX::g_emulator.m_psxMem->g_psxM + 0x10000, 0x61000, 1, f);
+        fread(PCSX::g_emulator->m_psxMem->g_psxM + 0x10000, 0x61000, 1, f);
         fclose(f);
     }
 }
@@ -376,8 +376,8 @@ int Load(const char *ExePath) {
     uint32_t section_address, section_size;
     void *psxmaddr;
 
-    strncpy(PCSX::g_emulator.m_cdromId, "SLUS99999", 9);
-    strncpy(PCSX::g_emulator.m_cdromLabel, "SLUS_999.99", 11);
+    strncpy(PCSX::g_emulator->m_cdromId, "SLUS99999", 9);
+    strncpy(PCSX::g_emulator->m_cdromLabel, "SLUS_999.99", 11);
 
     tmpFile = fopen(ExePath, "rb");
     if (tmpFile == NULL) {
@@ -393,11 +393,11 @@ int Load(const char *ExePath) {
                 fseek(tmpFile, 0x800, SEEK_SET);
                 fread(PSXM(SWAP_LE32(tmpHead.t_addr)), SWAP_LE32(tmpHead.t_size), 1, tmpFile);
                 fclose(tmpFile);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LE32(tmpHead.pc0);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.gp = SWAP_LE32(tmpHead.gp0);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = SWAP_LE32(tmpHead.s_addr);
-                if (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp == 0)
-                    PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.pc = SWAP_LE32(tmpHead.pc0);
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.gp = SWAP_LE32(tmpHead.gp0);
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp = SWAP_LE32(tmpHead.s_addr);
+                if (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp == 0)
+                    PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
                 retval = 0;
                 break;
 
@@ -417,9 +417,9 @@ int Load(const char *ExePath) {
                             break;
                         case 3:                          /* register loading (PC only?) */
                             fseek(tmpFile, 2, SEEK_CUR); /* unknown field */
-                            fread(&PCSX::g_emulator.m_psxCpu->m_psxRegs.pc, 4, 1, tmpFile);
-                            PCSX::g_emulator.m_psxCpu->m_psxRegs.pc =
-                                SWAP_LEu32(PCSX::g_emulator.m_psxCpu->m_psxRegs.pc);
+                            fread(&PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, 4, 1, tmpFile);
+                            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc =
+                                SWAP_LEu32(PCSX::g_emulator->m_psxCpu->m_psxRegs.pc);
                             break;
                         case 0: /* End of file */
                             break;
@@ -436,8 +436,8 @@ int Load(const char *ExePath) {
                 fread(&coffHead, sizeof(coffHead), 1, tmpFile);
                 fread(&optHead, sizeof(optHead), 1, tmpFile);
 
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.pc = SWAP_LE32(optHead.entry);
-                PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.pc = SWAP_LE32(optHead.entry);
+                PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
 
                 for (i = 0; i < SWAP_LE16(coffHead.f_nscns); i++) {
                     fseek(tmpFile, sizeof(FILHDR) + SWAP_LE16(coffHead.f_opthdr) + sizeof(section) * i, SEEK_SET);
@@ -462,8 +462,8 @@ int Load(const char *ExePath) {
     }
 
     if (retval != 0) {
-        PCSX::g_emulator.m_cdromId[0] = '\0';
-        PCSX::g_emulator.m_cdromLabel[0] = '\0';
+        PCSX::g_emulator->m_cdromId[0] = '\0';
+        PCSX::g_emulator->m_cdromLabel[0] = '\0';
     }
 
     return retval;
@@ -483,8 +483,8 @@ static int LoadBin(unsigned long addr, char *filename) {
         len = ftell(f);
         fseek(f, 0, SEEK_SET);
         if (len + mem < 0x00200000) {
-            if (PCSX::g_emulator.m_psxMem->g_psxM) {
-                int readsize = fread(PCSX::g_emulator.m_psxMem->g_psxM + mem, len, 1, f);
+            if (PCSX::g_emulator->m_psxMem->g_psxM) {
+                int readsize = fread(PCSX::g_emulator->m_psxMem->g_psxM + mem, len, 1, f);
                 if (readsize == len) result = 0;
             }
         }
@@ -562,12 +562,12 @@ int SendPcsxInfo() {
     if (NET_recvData == NULL || NET_sendData == NULL) return 0;
 
 #if 0
-    NET_sendData(&PCSX::g_emulator.config().Xa, sizeof(PCSX::g_emulator.config().Xa), PSE_NET_BLOCKING);
-    NET_sendData(&PCSX::g_emulator.config().SioIrq, sizeof(PCSX::g_emulator.config().SioIrq), PSE_NET_BLOCKING);
-    NET_sendData(&PCSX::g_emulator.config().SpuIrq, sizeof(PCSX::g_emulator.config().SpuIrq), PSE_NET_BLOCKING);
-    NET_sendData(&PCSX::g_emulator.config().RCntFix, sizeof(PCSX::g_emulator.config().RCntFix), PSE_NET_BLOCKING);
-    NET_sendData(&PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
-    NET_sendData(&PCSX::g_emulator.config().Cpu, sizeof(PCSX::g_emulator.config().Cpu), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator->config().Xa, sizeof(PCSX::g_emulator->config().Xa), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator->config().SioIrq, sizeof(PCSX::g_emulator->config().SioIrq), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator->config().SpuIrq, sizeof(PCSX::g_emulator->config().SpuIrq), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator->config().RCntFix, sizeof(PCSX::g_emulator->config().RCntFix), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
+    NET_sendData(&PCSX::g_emulator->config().Cpu, sizeof(PCSX::g_emulator->config().Cpu), PSE_NET_BLOCKING);
 #endif
 
     return 0;
@@ -579,30 +579,30 @@ int RecvPcsxInfo() {
     if (NET_recvData == NULL || NET_sendData == NULL) return 0;
 
 #if 0
-    NET_recvData(&PCSX::g_emulator.config().Xa, sizeof(PCSX::g_emulator.config().Xa), PSE_NET_BLOCKING);
-    NET_recvData(&PCSX::g_emulator.config().SioIrq, sizeof(PCSX::g_emulator.config().SioIrq), PSE_NET_BLOCKING);
-    NET_recvData(&PCSX::g_emulator.config().SpuIrq, sizeof(PCSX::g_emulator.config().SpuIrq), PSE_NET_BLOCKING);
-    NET_recvData(&PCSX::g_emulator.config().RCntFix, sizeof(PCSX::g_emulator.config().RCntFix), PSE_NET_BLOCKING);
-    NET_recvData(&PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
+    NET_recvData(&PCSX::g_emulator->config().Xa, sizeof(PCSX::g_emulator->config().Xa), PSE_NET_BLOCKING);
+    NET_recvData(&PCSX::g_emulator->config().SioIrq, sizeof(PCSX::g_emulator->config().SioIrq), PSE_NET_BLOCKING);
+    NET_recvData(&PCSX::g_emulator->config().SpuIrq, sizeof(PCSX::g_emulator->config().SpuIrq), PSE_NET_BLOCKING);
+    NET_recvData(&PCSX::g_emulator->config().RCntFix, sizeof(PCSX::g_emulator->config().RCntFix), PSE_NET_BLOCKING);
+    NET_recvData(&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>(), sizeof(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()), PSE_NET_BLOCKING);
 #endif
 
     PCSX::g_system->update();
 
-    tmp = PCSX::g_emulator.config().Cpu;
-    NET_recvData(&PCSX::g_emulator.config().Cpu, sizeof(PCSX::g_emulator.config().Cpu), PSE_NET_BLOCKING);
-    if (tmp != PCSX::g_emulator.config().Cpu) {
-        PCSX::g_emulator.m_psxCpu->Shutdown();
+    tmp = PCSX::g_emulator->config().Cpu;
+    NET_recvData(&PCSX::g_emulator->config().Cpu, sizeof(PCSX::g_emulator->config().Cpu), PSE_NET_BLOCKING);
+    if (tmp != PCSX::g_emulator->config().Cpu) {
+        PCSX::g_emulator->m_psxCpu->Shutdown();
 #if 0
-        if (PCSX::g_emulator.config().Cpu == PCSX::Emulator::CPU_INTERPRETER)
-            PCSX::g_emulator.m_psxCpu = &g_psxInt;
+        if (PCSX::g_emulator->config().Cpu == PCSX::Emulator::CPU_INTERPRETER)
+            PCSX::g_emulator->m_psxCpu = &g_psxInt;
         else
-            PCSX::g_emulator.m_psxCpu = &g_psxRec;
+            PCSX::g_emulator->m_psxCpu = &g_psxRec;
 #endif
-        if (!PCSX::g_emulator.m_psxCpu->Init()) {
+        if (!PCSX::g_emulator->m_psxCpu->Init()) {
             PCSX::g_system->close();
             return -1;
         }
-        PCSX::g_emulator.m_psxCpu->psxReset();
+        PCSX::g_emulator->m_psxCpu->psxReset();
     }
 
     return 0;

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/psxemulator.h"
+
 #include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/debug.h"
@@ -29,7 +30,6 @@
 #include "core/ppf.h"
 #include "core/r3000a.h"
 #include "core/uv_wrapper.h"
-
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
 
@@ -93,15 +93,15 @@ void PCSX::Emulator::EmuUpdate() {
 
     if (m_vblank_count_hideafter) {
         if (!(--m_vblank_count_hideafter)) {
-            PCSX::g_emulator.m_gpu->showScreenPic(NULL);
+            PCSX::g_emulator->m_gpu->showScreenPic(NULL);
         }
     }
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
-        //CreateRewindState();
+        // CreateRewindState();
     }
 }
 
 void PCSX::Emulator::EmuSetPGXPMode(uint32_t pgxpMode) { m_psxCpu->psxSetPGXPMode(pgxpMode); }
 
-PCSX::Emulator& PCSX::g_emulator = PCSX::Emulator::getEmulator();
+PCSX::Emulator* PCSX::g_emulator;

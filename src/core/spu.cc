@@ -25,4 +25,4 @@
 #include "core/spu.h"
 
 void PCSX::SPUInterface::interrupt() { psxHu32ref(0x1070) |= SWAP_LEu32(0x200); }
-void PCSX::SPUInterface::scheduleInterrupt() { PCSX::g_emulator.m_psxCpu->m_psxRegs.spuInterrupt = true; }
+void PCSX::SPUInterface::scheduleInterrupt() { PCSX::g_emulator->m_psxCpu->m_psxRegs.spuInterrupt = true; }

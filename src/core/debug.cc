@@ -67,14 +67,14 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
 }
 
 void PCSX::Debug::processBefore() {
-    const uint32_t& pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
-    const bool isJAL = (PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 3;
-    const bool isJALR = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3F) == 9);
-    const bool isJRRA = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 31;
-    const bool isJRK0 = ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 26;
+    const uint32_t& pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
+    const bool isJAL = (PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 3;
+    const bool isJALR = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+                        ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3F) == 9);
+    const bool isJRRA = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+                        ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 31;
+    const bool isJRK0 = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
+                        ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 26;
 
     if (m_stepping) {
         m_oldSteppingJumps = m_steppingJumps;
@@ -90,7 +90,7 @@ void PCSX::Debug::processBefore() {
 }
 
 void PCSX::Debug::processAfter() {
-    const uint32_t& pc = PCSX::g_emulator.m_psxCpu->m_psxRegs.pc;
+    const uint32_t& pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
     checkBP(pc, BE);
 
     if (m_stepping) {
@@ -134,7 +134,7 @@ void PCSX::Debug::triggerBP(bpiterator bp, const char* reason) {
     } else {
         m_lastBP = bp;
     }
-    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s\n"), g_emulator.m_psxCpu->m_psxRegs.pc, reason);
+    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s\n"), g_emulator->m_psxCpu->m_psxRegs.pc, reason);
     PCSX::g_system->pause();
 }
 

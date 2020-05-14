@@ -445,9 +445,9 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, g_system->running())) g_system->pause();
             if (ImGui::MenuItem(_("Resume"), nullptr, nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
-            if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepIn();
-            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOver();
-            if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOut();
+            if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepIn();
+            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOver();
+            if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOut();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Options"))) {
@@ -497,7 +497,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
     DummyAsm dummy;
 
     uint32_t pc = virtToReal(m_registers->pc);
-    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>().value);
+    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
@@ -505,19 +505,19 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
     ImGui::SameLine();
     DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
     ImGui::SameLine();
-    DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
+    DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepIn(); });
     ImGui::SameLine();
-    DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
+    DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOver(); });
     ImGui::SameLine();
-    DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
+    DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
-            g_emulator.m_debug->stepOver();
+            g_emulator->m_debug->stepOver();
         } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
             if (ImGui::GetIO().KeyShift) {
-                g_emulator.m_debug->stepOut();
+                g_emulator->m_debug->stepOut();
             } else {
-                g_emulator.m_debug->stepIn();
+                g_emulator->m_debug->stepIn();
             }
         } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
             g_system->resume();
@@ -593,7 +593,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
-                PCSX::g_emulator.m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
+                PCSX::g_emulator->m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
                     uint32_t addr = dispAddr;
                     uint32_t bpAddr = it->first;
                     uint32_t base = (addr >> 20) & 0xffc;
@@ -691,17 +691,17 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
-                        PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE, true);
+                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE, true);
                         ImGui::CloseCurrentPopup();
                         PCSX::g_system->resume();
                     });
                     DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
-                        PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE);
+                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE);
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
                     DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
-                        PCSX::g_emulator.m_debug->eraseBP(currentBP);
+                        PCSX::g_emulator->m_debug->eraseBP(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
                     });
@@ -957,7 +957,7 @@ void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
     }
 
-    for (auto& elf : g_emulator.m_psxMem->getElves()) {
+    for (auto& elf : g_emulator->m_psxMem->getElves()) {
         auto& symbols = elf.getSymbols();
         for (auto& symbol : symbols) {
             m_symbolsCache.insert(std::pair(symbol.second, symbol.first));

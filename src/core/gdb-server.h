@@ -20,6 +20,7 @@
 #pragma once
 
 #include <uv.h>
+#include <dexode/EventBus.hpp>
 
 #include "support/hashtable.h"
 #include "support/list.h"
@@ -155,6 +156,7 @@ class GdbServer {
         SERVER_STARTED,
     };
     GdbServerStatus getServerStatus() { return m_serverStatus; }
+    GdbServer();
 
     void startServer(int port = 5555);
 
@@ -164,6 +166,7 @@ class GdbServer {
     GdbServerStatus m_serverStatus;
     uv_tcp_t m_server;
     GdbClient::ListType m_clients;
+    dexode::EventBus::Listener m_listener;
 };
 
 }  // namespace PCSX

@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 
+#include <dexode/EventBus.hpp>
 #include <filesystem>
 #include <map>
 #include <string>
@@ -37,6 +38,16 @@ typedef std::u8string u8string;
 typedef std::string u8string;
 #define MAKEU8(x) reinterpret_cast<const char *>(x)
 #endif
+
+namespace Events {
+struct SettingsLoaded {};
+namespace ExecutionFlow {
+struct Run {};
+struct Pause {};
+struct SoftReset {};
+struct HardReset {};
+}  // namespace ExecutionFlow
+}  // namespace Events
 
 class System {
   public:
@@ -64,15 +75,29 @@ class System {
     bool running() { return m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
-    void start() { m_running = true; }
-    void stop() { m_running = false; }
-    void pause() { m_running = false; }
-    void resume() { m_running = true; }
+    void start() {
+        m_running = true;
+        m_eventBus->postpone<Events::ExecutionFlow::Run>({});
+    }
+    void stop() {
+        m_running = false;
+        m_eventBus->postpone<Events::ExecutionFlow::Pause>({});
+    }
+    void pause() {
+        m_running = false;
+        m_eventBus->postpone<Events::ExecutionFlow::Pause>({});
+    }
+    void resume() {
+        m_running = true;
+        m_eventBus->postpone<Events::ExecutionFlow::Run>({});
+    }
     void quit(int code = 0) {
         m_quitting = true;
         m_running = false;
         m_exitCode = code;
     }
+
+    std::shared_ptr<dexode::EventBus> getEventBus() { return m_eventBus; }
 
   private:
     static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
@@ -129,6 +154,7 @@ class System {
     }
 
   private:
+    std::shared_ptr<dexode::EventBus> m_eventBus = std::make_shared<dexode::EventBus>();
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
     std::string m_currentLocale;

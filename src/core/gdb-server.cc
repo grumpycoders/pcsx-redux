@@ -17,16 +17,26 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/gdb-server.h"
+
 #include <assert.h>
 #include <uv.h>
 
-#include "core/gdb-server.h"
 #include "core/psxemulator.h"
+#include "core/system.h"
 #include "core/uv_wrapper.h"
+
+PCSX::GdbServer::GdbServer() : m_listener(g_system->getEventBus()) {
+    m_listener.listen([this](const Events::SettingsLoaded& event) {
+        if (g_emulator->settings.get<Emulator::SettingGdbServer>()) {
+            startServer(g_emulator->settings.get<Emulator::SettingGdbServerPort>());
+        }
+    });
+}
 
 void PCSX::GdbServer::startServer(int port) {
     assert(m_serverStatus == SERVER_STOPPED);
-    uv_tcp_init(&PCSX::g_emulator.m_uv->m_loop, &m_server);
+    uv_tcp_init(&PCSX::g_emulator->m_uv->m_loop, &m_server);
 
     m_server.data = this;
 

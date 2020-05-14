@@ -87,7 +87,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -101,7 +101,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -117,7 +117,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -135,7 +135,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\third_party;..\..\third_party\zlib;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>

@@ -22,8 +22,8 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
-#define gteoB (PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
-#define gteop (PCSX::g_emulator.m_psxCpu->m_psxRegs.code & 0x1ffffff)
+#define gteoB (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
+#define gteop (PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x1ffffff)
 
 namespace PCSX {
 
@@ -35,12 +35,12 @@ class GTE {
     }
     uint32_t CFC2() {
         // CPU[Rt] = GTE_C[Rd]
-        return PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
+        return PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
     }
-    void MTC2() { MTC2_internal(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
-    void CTC2() { CTC2_internal(PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
-    void LWC2() { MTC2_internal(PCSX::g_emulator.m_psxMem->psxMemRead32(gteoB), _Rt_); }
-    void SWC2() { PCSX::g_emulator.m_psxMem->psxMemWrite32(gteoB, MFC2_internal(_Rt_)); }
+    void MTC2() { MTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
+    void CTC2() { CTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
+    void LWC2() { MTC2_internal(PCSX::g_emulator->m_psxMem->psxMemRead32(gteoB), _Rt_); }
+    void SWC2() { PCSX::g_emulator->m_psxMem->psxMemWrite32(gteoB, MFC2_internal(_Rt_)); }
 
     void RTPS() { docop2(gteop); }
     void NCLIP() { docop2(gteop); }

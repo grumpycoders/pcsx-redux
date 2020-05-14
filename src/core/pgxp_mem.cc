@@ -18,7 +18,7 @@ void PGXP_Init() {
 }
 
 uint8_t* PGXP_GetMem() {
-    return (uint8_t*)(s_mem);  // PCSX::g_emulator.config().PGXP_GTE ? (char*)(s_mem) : NULL;
+    return (uint8_t*)(s_mem);  // PCSX::g_emulator->config().PGXP_GTE ? (char*)(s_mem) : NULL;
 }
 
 /*  Playstation Memory Map (from Playstation doc by Joshua Walker)
