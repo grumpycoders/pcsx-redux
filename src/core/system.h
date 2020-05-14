@@ -41,8 +41,9 @@ typedef std::string u8string;
 
 namespace Events {
 struct SettingsLoaded {};
+struct Quitting {};
 namespace ExecutionFlow {
-struct Run {};
+    struct Run {};
 struct Pause {};
 struct SoftReset {};
 struct HardReset {};
@@ -92,8 +93,9 @@ class System {
         m_eventBus->postpone<Events::ExecutionFlow::Run>({});
     }
     void quit(int code = 0) {
+        m_eventBus->postpone<Events::Quitting>({});
         m_quitting = true;
-        m_running = false;
+        pause();
         m_exitCode = code;
     }
 

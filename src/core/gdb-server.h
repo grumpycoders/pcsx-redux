@@ -20,6 +20,7 @@
 #pragma once
 
 #include <uv.h>
+
 #include <dexode/EventBus.hpp>
 
 #include "support/hashtable.h"
@@ -159,10 +160,12 @@ class GdbServer {
     GdbServer();
 
     void startServer(int port = 5555);
+    void stopServer();
 
   private:
     static void onNewConnectionTrampoline(uv_stream_t* server, int status);
     void onNewConnection(int status);
+    static void closeCB(uv_handle_t* handle) {}
     GdbServerStatus m_serverStatus;
     uv_tcp_t m_server;
     GdbClient::ListType m_clients;

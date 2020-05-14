@@ -21,6 +21,8 @@
 
 #include <uv.h>
 
+#include <functional>
+
 namespace PCSX {
 
 class UV {
@@ -28,6 +30,7 @@ class UV {
     void init();
     void close();
     void run();
+    void purge(std::function<void()> purger);
     uv_loop_t m_loop;
 };
 

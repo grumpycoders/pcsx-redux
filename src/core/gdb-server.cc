@@ -32,6 +32,15 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->getEventBus()) {
             startServer(g_emulator->settings.get<Emulator::SettingGdbServerPort>());
         }
     });
+    m_listener.listen([this](const Events::Quitting& event) {
+        if (m_serverStatus == SERVER_STARTED) stopServer();
+    });
+}
+
+void PCSX::GdbServer::stopServer() {
+    assert(m_serverStatus == SERVER_STARTED);
+    for (auto& client : m_clients) client.close();
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
 }
 
 void PCSX::GdbServer::startServer(int port) {

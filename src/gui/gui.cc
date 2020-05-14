@@ -229,9 +229,12 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    PCSX::g_system->getEventBus()->process();
-    PCSX::g_emulator->m_uv->run();
-    if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
+    g_system->getEventBus()->process();
+    g_emulator->m_uv->run();
+    if (glfwWindowShouldClose(m_window)) {
+        g_system->quit();
+        g_emulator->m_uv->purge([]() { g_system->getEventBus()->process(); });
+    }
     glfwPollEvents();
     SDL_PumpEvents();
 

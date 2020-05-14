@@ -30,6 +30,11 @@ void PCSX::UV::close() {
     assert(result == 0);
 }
 
-void PCSX::UV::run() {
-    uv_run(&m_loop, UV_RUN_NOWAIT);
+void PCSX::UV::run() { uv_run(&m_loop, UV_RUN_NOWAIT); }
+
+void PCSX::UV::purge(std::function<void()> purge) {
+    do {
+        purge();
+    } while (uv_run(&m_loop, UV_RUN_NOWAIT));
+    purge();
 }
