@@ -84,6 +84,7 @@ class CDRom;
 class Cheats;
 class Counters;
 class Debug;
+class GdbServer;
 class GPU;
 class GTE;
 class HW;
@@ -94,6 +95,7 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
+class UV;
 
 class Emulator {
   private:
@@ -194,11 +196,13 @@ class Emulator {
     std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
+    std::unique_ptr<UV> m_uv;
 
     static Emulator& getEmulator() {
         static Emulator emulator;

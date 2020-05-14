@@ -43,6 +43,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
+#include "core/uv_wrapper.h"
 #include "gui/gui.h"
 #include "spu/interface.h"
 
@@ -78,8 +79,8 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
 }
 
 void PCSX::GUI::init() {
-    int result = uv_loop_init(&m_loop);
-    assert(result == 0);
+    int result;
+    PCSX::g_emulator.m_uv->init();
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
@@ -210,8 +211,7 @@ void PCSX::GUI::close() {
     glfwDestroyWindow(m_window);
     glfwTerminate();
 
-    int result = uv_loop_close(&m_loop);
-    assert(result == 0);
+    PCSX::g_emulator.m_uv->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -229,7 +229,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    uv_run(&m_loop, UV_RUN_NOWAIT);
+    PCSX::g_emulator.m_uv->run();
     if (glfwWindowShouldClose(m_window)) PCSX::g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();

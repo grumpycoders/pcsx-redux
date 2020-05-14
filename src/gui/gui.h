@@ -20,7 +20,6 @@
 #pragma once
 
 #include <stdarg.h>
-#include <uv.h>
 
 #include <string>
 
@@ -176,8 +175,6 @@ class GUI final {
 
     Widgets::Types m_types;
     Widgets::Source m_source;
-
-    uv_loop_t m_loop;
 };
 
 }  // namespace PCSX

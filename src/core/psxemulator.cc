@@ -21,12 +21,14 @@
 #include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/debug.h"
+#include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
+#include "core/uv_wrapper.h"
 
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
@@ -40,11 +42,13 @@ PCSX::Emulator::Emulator()
       m_cheats(new PCSX::Cheats()),
       m_mdec(new PCSX::MDEC()),
       m_gpu(new PCSX::SoftGPU::impl()),
+      m_gdbServer(new PCSX::GdbServer()),
       m_debug(new PCSX::Debug()),
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
       m_pad1(new PCSX::PAD(PAD::PAD1)),
-      m_pad2(new PCSX::PAD(PAD::PAD2)) {}
+      m_pad2(new PCSX::PAD(PAD::PAD2)),
+      m_uv(new PCSX::UV()) {}
 
 PCSX::Emulator::~Emulator() {}
 
