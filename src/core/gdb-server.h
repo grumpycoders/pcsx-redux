@@ -23,6 +23,7 @@
 
 #include <dexode/EventBus.hpp>
 
+#include "core/system.h"
 #include "support/hashtable.h"
 #include "support/list.h"
 #include "support/slice.h"
@@ -50,6 +51,8 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         m_status = CLOSING;
         uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
     }
+
+  private:
     void write(const Slice& slice) {
         auto* req = new WriteRequest();
         req->m_slice = slice;
@@ -85,14 +88,65 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         req->enqueue(this);
         va_end(a);
     }
+    void writePaged(const std::string& out, const std::string& cursorStr);
+    void sendAck() {
+        auto* req = new WriteRequest();
+        req->m_slice.copy("+", 1);
+        req->enqueueRaw(this);
+    }
 
-  private:
+    void startStream() {
+        m_crc = 0;
+        auto* req = new WriteRequest();
+        req->m_slice.copy("$", 1);
+        req->enqueueRaw(this);
+    }
+
+    void stream(const std::string& data) {
+        for (int i = 0; i < data.length(); i++) {
+            m_crc += data[i];
+        }
+        auto* req = new WriteRequest();
+        req->m_slice.copy(data.data(), data.size());
+        req->enqueueRaw(this);
+
+        if (m_requests.size() >= 64) uv_run(m_tcp.loop, UV_RUN_NOWAIT);
+    }
+
+    void stopStream() {
+        auto* req = new WriteRequest();
+        char end[3] = {'#'};
+        end[1] = toHex[m_crc >> 4];
+        end[2] = toHex[m_crc & 0x0f];
+        req->m_slice.copy(end, 3);
+        req->enqueueRaw(this);
+    }
+
+    static const char toHex[];
     struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
         void enqueue(GdbClient* client) {
-            m_buf.base = static_cast<char*>(const_cast<void*>(m_slice.data()));
-            m_buf.len = m_slice.size();
+            m_bufs[0].base = &m_before;
+            m_bufs[0].len = 1;
+            m_bufs[1].base = static_cast<char*>(const_cast<void*>(m_slice.data()));
+            m_bufs[1].len = m_slice.size();
+            m_bufs[2].base = m_after;
+            m_bufs[2].len = 3;
+            uint8_t chksum = 0;
+            auto data = m_bufs[1].base;
+            auto len = m_bufs[1].len;
+            for (int i = 0; i < len; i++) {
+                chksum += *data++;
+            }
+            m_after[1] = toHex[chksum >> 4];
+            m_after[2] = toHex[chksum & 0x0f];
             client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
-            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), &m_buf, 1, writeCB);
+            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), m_bufs, 3, writeCB);
+        }
+        void enqueueRaw(GdbClient* client) {
+            m_bufs[0].base = static_cast<char*>(const_cast<void*>(m_slice.data()));
+            m_bufs[0].len = m_slice.size();
+            client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
+            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), m_bufs, 1, writeCB);
         }
         static void writeCB(uv_write_t* request, int status) {
             GdbClient* client = static_cast<GdbClient*>(request->handle->data);
@@ -101,7 +155,9 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
             if (status != 0) client->close();
         }
         uv_write_t m_req;
-        uv_buf_t m_buf;
+        char m_before = '$';
+        char m_after[3] = {'#'};
+        uv_buf_t m_bufs[3];
         Slice m_slice;
     };
     friend struct WriteRequest;
@@ -140,14 +196,30 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         delete client;
     }
     void processData(const Slice& slice);
+    void processCommand();
     Slice passthroughData(Slice slice);
+    std::pair<uint64_t, uint64_t> parseCursor(const std::string& cursorStr);
+
+    std::string dumpOneRegister(int n);
+    static std::string dumpValue(uint32_t value);
 
     uv_tcp_t m_tcp;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
 
     char m_buffer[BUFFER_SIZE];
     bool m_allocated = false;
+    enum {
+        WAIT_FOR_ACK,
+        WAIT_FOR_DOLLAR,
+        READING_COMMAND,
+        ESCAPE,
+        READING_CRC_FIRST_CHAR,
+        READING_CRC_SECOND_CHAR,
+    } m_state = WAIT_FOR_DOLLAR;
     bool m_passthrough = false;
+    bool m_ackEnabled = true;
+    std::string m_cmd;
+    uint8_t m_crc;
 };
 
 class GdbServer {
