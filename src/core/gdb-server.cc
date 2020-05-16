@@ -22,8 +22,6 @@
 #include <assert.h>
 #include <uv.h>
 
-#include <vector>
-
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -32,15 +30,16 @@
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
-PCSX::GdbServer::GdbServer() : m_listener(g_system->getEventBus()) {
-    m_listener.listen([this](const Events::SettingsLoaded& event) {
+PCSX::GdbServer::GdbServer() /* : m_listener(g_system->getEventBus())*/ {
+
+    /* m_listener.listen([this](const Events::SettingsLoaded& event) {
         if (g_emulator->settings.get<Emulator::SettingGdbServer>()) {
             startServer(g_emulator->settings.get<Emulator::SettingGdbServerPort>());
         }
     });
     m_listener.listen([this](const Events::Quitting& event) {
         if (m_serverStatus == SERVER_STARTED) stopServer();
-    });
+    }); */
 }
 
 void PCSX::GdbServer::stopServer() {

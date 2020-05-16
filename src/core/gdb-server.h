@@ -21,9 +21,6 @@
 
 #include <uv.h>
 
-#include <dexode/EventBus.hpp>
-
-#include "core/system.h"
 #include "support/hashtable.h"
 #include "support/list.h"
 #include "support/slice.h"
@@ -224,12 +221,12 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
 
 class GdbServer {
   public:
+    GdbServer();
     enum GdbServerStatus {
         SERVER_STOPPED,
         SERVER_STARTED,
     };
     GdbServerStatus getServerStatus() { return m_serverStatus; }
-    GdbServer();
 
     void startServer(int port = 5555);
     void stopServer();
@@ -241,7 +238,6 @@ class GdbServer {
     GdbServerStatus m_serverStatus;
     uv_tcp_t m_server;
     GdbClient::ListType m_clients;
-    dexode::EventBus::Listener m_listener;
 };
 
 }  // namespace PCSX

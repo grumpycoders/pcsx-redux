@@ -98,7 +98,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\..\third_party\libelfin;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\third_party\libelfin</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -113,7 +113,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\..\third_party\libelfin;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\third_party\libelfin</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -130,7 +130,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\..\third_party\libelfin;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\third_party\libelfin</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -149,7 +149,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\..\third_party\libelfin;..\..\third_party\EventBus\lib\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\third_party\libelfin</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -161,9 +161,6 @@
   <ItemGroup>
     <ProjectReference Include="..\core\core.vcxproj">
       <Project>{9372d878-f76c-418b-8e2a-8e9896ff575b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\EventBus\EventBus.vcxproj">
-      <Project>{0807ec97-e4fe-4309-93d7-e4a24e25c429}</Project>
     </ProjectReference>
     <ProjectReference Include="..\fmt\fmt.vcxproj">
       <Project>{71772007-5110-418d-be9c-fb102b6eaabf}</Project>
