@@ -30,7 +30,7 @@ class UV {
     void init();
     void close();
     void run();
-    void purge(std::function<void()> purger);
+    void purge(std::function<void()> purger = nullptr);
     uv_loop_t m_loop;
 };
 

@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+#include "support/eventbus.h"
+
 namespace PCSX {
 
 // a hack, until c++-20 is fully adopted everywhere.
@@ -42,7 +44,7 @@ namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};
 namespace ExecutionFlow {
-    struct Run {};
+struct Run {};
 struct Pause {};
 struct SoftReset {};
 struct HardReset {};
@@ -77,28 +79,28 @@ class System {
     int exitCode() { return m_exitCode; }
     void start() {
         m_running = true;
-        //m_eventBus->postpone<Events::ExecutionFlow::Run>({});
+        m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     void stop() {
         m_running = false;
-        //m_eventBus->postpone<Events::ExecutionFlow::Pause>({});
+        m_eventBus->signal(Events::ExecutionFlow::Pause{});
     }
     void pause() {
         m_running = false;
-        //m_eventBus->postpone<Events::ExecutionFlow::Pause>({});
+        m_eventBus->signal(Events::ExecutionFlow::Pause{});
     }
     void resume() {
         m_running = true;
-        //m_eventBus->postpone<Events::ExecutionFlow::Run>({});
+        m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     void quit(int code = 0) {
-        //m_eventBus->postpone<Events::Quitting>({});
+        m_eventBus->signal(Events::Quitting{});
         m_quitting = true;
         pause();
         m_exitCode = code;
     }
 
-    //std::shared_ptr<dexode::EventBus> getEventBus() { return m_eventBus; }
+    std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
   private:
     static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {

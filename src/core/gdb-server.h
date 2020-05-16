@@ -21,6 +21,7 @@
 
 #include <uv.h>
 
+#include "support/eventbus.h"
 #include "support/hashtable.h"
 #include "support/list.h"
 #include "support/slice.h"
@@ -238,6 +239,7 @@ class GdbServer {
     GdbServerStatus m_serverStatus;
     uv_tcp_t m_server;
     GdbClient::ListType m_clients;
+    EventBus::Listener m_listener;
 };
 
 }  // namespace PCSX

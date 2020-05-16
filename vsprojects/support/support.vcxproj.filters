@@ -47,5 +47,8 @@
     <ClInclude Include="..\..\third_party\interval_tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\support\eventbus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

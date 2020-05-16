@@ -144,7 +144,7 @@ void PCSX::GUI::init() {
         PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
 
-        //g_system->getEventBus()->postpone<Events::SettingsLoaded>({});
+        g_system->m_eventBus->signal(Events::SettingsLoaded{});
     }
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -229,11 +229,10 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    //g_system->getEventBus()->process();
     g_emulator->m_uv->run();
     if (glfwWindowShouldClose(m_window)) {
         g_system->quit();
-        g_emulator->m_uv->purge([]() { /*g_system->getEventBus()->process();*/ });
+        g_emulator->m_uv->purge();
     }
     glfwPollEvents();
     SDL_PumpEvents();

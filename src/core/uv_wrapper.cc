@@ -33,8 +33,12 @@ void PCSX::UV::close() {
 void PCSX::UV::run() { uv_run(&m_loop, UV_RUN_NOWAIT); }
 
 void PCSX::UV::purge(std::function<void()> purge) {
-    do {
+    if (purge) {
+        do {
+            purge();
+        } while (uv_run(&m_loop, UV_RUN_NOWAIT));
         purge();
-    } while (uv_run(&m_loop, UV_RUN_NOWAIT));
-    purge();
+    } else {
+        uv_run(&m_loop, UV_RUN_DEFAULT);
+    }
 }
