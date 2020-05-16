@@ -17,12 +17,19 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/uv_wrapper.h"
+
 #include <assert.h>
-#include <core/uv_wrapper.h>
+
+#include "core/system.h"
+
+PCSX::UV::UV() : m_listener(g_system->m_eventBus) {}
 
 void PCSX::UV::init() {
     int result = uv_loop_init(&m_loop);
     assert(result == 0);
+
+    m_listener.listen<Events::Quitting>([this](const auto& event) { purge(); });
 }
 
 void PCSX::UV::close() {

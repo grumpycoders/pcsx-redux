@@ -23,15 +23,19 @@
 
 #include <functional>
 
+#include "core/system.h"
+
 namespace PCSX {
 
 class UV {
   public:
+    UV();
     void init();
     void close();
     void run();
     void purge(std::function<void()> purger = nullptr);
     uv_loop_t m_loop;
+    EventBus::Listener m_listener;
 };
 
 }  // namespace PCSX

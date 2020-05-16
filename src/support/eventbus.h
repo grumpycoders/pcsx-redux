@@ -37,13 +37,14 @@ struct ListenerElementBase;
 typedef PCSX::Intrusive::List<ListenerElementBase> ListenerBaseListType;
 typedef PCSX::Intrusive::List<ListenerElementBase, ListenerElementBaseEventBusList> ListenerBaseEventBusList;
 struct ListenerElementBase : public ListenerBaseListType::Node, public ListenerBaseEventBusList::Node {
-    virtual void* getCB() = 0;
+    virtual std::any getCB() = 0;
 };
 template <typename M>
 struct ListenerElement : public ListenerElementBase {
-    virtual void* getCB() { return &cb; }
-    ListenerElement(std::function<void(const M&)>&& cb) : cb(std::move(cb)) {}
-    std::function<void(const M)> cb;
+    typedef std::function<void(const M&)> Functor;
+    virtual std::any getCB() { return &cb; }
+    ListenerElement(Functor&& cb) : cb(std::move(cb)) {}
+    Functor cb;
 };
 
 class EventBus;
@@ -53,7 +54,7 @@ class Listener {
     Listener(std::shared_ptr<EventBus> bus) : m_bus(bus) {}
     ~Listener() { m_listeners.destroyAll(); }
     template <typename Event>
-    void listen(std::function<void(const Event&)>&& cb);
+    void listen(typename ListenerElement<Event>::Functor&& cb);
 
   private:
     std::shared_ptr<EventBus> m_bus;
@@ -72,12 +73,12 @@ class EventBus {
     ~EventBus() { m_table.destroyAll(); }
     template <typename Event>
     void signal(const Event& event) {
-        using funcType = std::function<void(const Event&)>;
+        using Functor = typename ListenerElement<Event>::Functor;
         auto list = m_table.find(typeid(Event).hash_code());
         if (list == m_table.end()) return;
         for (auto& listener : list->list) {
-            void* cb = listener.getCB();
-            funcType* func = static_cast<funcType*>(cb);
+            std::any cb = listener.getCB();
+            Functor* func = std::any_cast<Functor*>(cb);
             (*func)(event);
         }
     }
@@ -95,7 +96,7 @@ class EventBus {
 };
 
 template <typename Event>
-void Listener::listen(std::function<void(const Event&)>&& cb) {
+void Listener::listen(typename ListenerElement<Event>::Functor&& cb) {
     ListenerElement<Event>* element = new ListenerElement(std::move(cb));
     m_listeners.push_back(element);
     m_bus->listen(typeid(Event).hash_code(), element);

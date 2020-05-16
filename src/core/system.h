@@ -94,10 +94,10 @@ class System {
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     void quit(int code = 0) {
-        m_eventBus->signal(Events::Quitting{});
         m_quitting = true;
         pause();
         m_exitCode = code;
+        m_eventBus->signal(Events::Quitting{});
     }
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
