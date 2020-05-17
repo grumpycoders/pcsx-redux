@@ -143,7 +143,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("GdbServer"), true> SettingGdbServer;
-    typedef Setting<int, TYPESTRING("GdbServerPort"), 5555> SettingGdbServerPort;
+    typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,

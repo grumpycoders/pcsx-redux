@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <uv.h>
 
+#include "core/debug.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -76,6 +77,18 @@ void PCSX::GdbServer::onNewConnection(int status) {
     } else {
         delete client;
     }
+}
+
+PCSX::GdbClient::GdbClient(uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
+    uv_tcp_init(loop, &m_tcp);
+    m_tcp.data = this;
+    m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
+        // we technically should specify here why we stopped, but we don't have
+        // the architecture for this just yet. Maybe that'll be part of the pause
+        // event later on.
+        if (m_waitingForTrap) write("T05");
+        m_waitingForTrap = false;
+    });
 }
 
 static int fromHexChar(char c) {
@@ -246,14 +259,14 @@ static const std::string targetXML = R"(<?xml version="1.0"?>
   <reg name="r30" bitsize="32"/>
   <reg name="r31" bitsize="32"/>
 
-  <reg name="lo" bitsize="32" regnum="32"/>
-  <reg name="hi" bitsize="32" regnum="33"/>
-  <reg name="pc" bitsize="32" regnum="34"/>
+  <reg name="lo" bitsize="32" regnum="33"/>
+  <reg name="hi" bitsize="32" regnum="34"/>
+  <reg name="pc" bitsize="32" regnum="37"/>
 </feature>
 <feature name="org.gnu.gdb.mips.cp0">
-  <reg name="status" bitsize="32" regnum="35"/>
-  <reg name="badvaddr" bitsize="32" regnum="36"/>
-  <reg name="cause" bitsize="32" regnum="37"/>
+  <reg name="status" bitsize="32" regnum="32"/>
+  <reg name="badvaddr" bitsize="32" regnum="35"/>
+  <reg name="cause" bitsize="32" regnum="36"/>
 </feature>
 <feature name="org.gnu.gdb.mips.fpu">
   <reg name="f0" bitsize="32" type="ieee_single" regnum="38"/>
@@ -333,18 +346,24 @@ std::string PCSX::GdbClient::dumpValue(uint32_t value) {
 }
 
 std::string PCSX::GdbClient::dumpOneRegister(int n) {
+    // All registers are transferred as thirty-two bit quantities in the order:
+    // 32 general-purpose; sr; lo; hi; bad; cause; pc;
     auto& regs = g_emulator->m_psxCpu->m_psxRegs;
     uint32_t value = 0;
-    if (n <= 33) {
+    if (n < 32) {
         value = regs.GPR.r[n];
-    } else if (n == 34) {
-        value = regs.pc;
-    } else if (n == 35) {
+    } else if (n == 32) {
         value = regs.CP0.n.Status;
-    } else if (n == 36) {
+    } else if (n == 33) {
+        value = regs.GPR.n.lo;
+    } else if (n == 34) {
+        value = regs.GPR.n.hi;
+    } else if (n == 35) {
         value = regs.CP0.n.BadVAddr;
-    } else if (n == 37) {
+    } else if (n == 36) {
         value = regs.CP0.n.Cause;
+    } else if (n == 37) {
+        value = regs.pc;
     }
 
     return dumpValue(value);
@@ -357,24 +376,38 @@ void PCSX::GdbClient::processCommand() {
     static const std::string qXferThreads = "qXfer:threads:read::";
     static const std::string qXferMemMap = "qXfer:memory-map:read::";
     if (m_cmd == "?") {
+        // query reason for stop
         if (g_system->running()) {
             write("S00");
-        } else {
+        } else {  // we may need one for 02 ? SIGINT
             write("S05");
         }
     } else if (m_cmd == "D") {
+        // detach
         write("OK");
+        close();
     } else if (m_cmd == "qC") {
+        // return current thread id - always 00
         write("QC00");
     } else if (m_cmd == "qAttached") {
+        // query if attached to existing process - always true
         write("1");
     } else if (m_cmd == "g") {
+        // read general register
+        // replies with all registers
         std::string all = "";
         startStream();
-        for (int i = 0; i < 38; i++) stream(dumpOneRegister(i));
+        // the protocol really wants 72 registers:
+        // 32 gpr + status + lo + hi + badv + cause + 32 fpr + 3 fpu registers
+        for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
+    } else if (m_cmd == "c") {
+        // continue - this doesn't technically have a reply, only when the target stops later, using T05.
+        g_system->resume();
+        m_waitingForTrap = true;
     } else if (m_cmd[0] == 'm') {
-        auto [off, len] = parseCursor(m_cmd.substr(1, std::string::npos));
+        // read memory
+        auto [off, len] = parseCursor(m_cmd.substr(1));
         startStream();
         while (len--) {
             uint8_t* d = PSXM(off);
@@ -390,8 +423,70 @@ void PCSX::GdbClient::processCommand() {
             }
         }
         stopStream();
-    } else if (m_cmd == "vCont?") {
-        write("vCont;c;s;t");
+    } else if ((m_cmd[0] == 'z') || (m_cmd[0] == 'Z')) {
+        // insert or remove breakpoint
+        enum class Action {
+            ADD,
+            REMOVE,
+        } action = m_cmd[0] == 'z' ? Action::REMOVE : Action::ADD;
+        if (m_cmd.find(';') != std::string::npos) {
+            // we're not going to support advanced conditional breakpoints
+            write("");
+            return;
+        }
+        auto breakpointData = split(m_cmd.substr(1), ",");
+        if (breakpointData.size() != 3) {
+            // wrong number of arguments
+            write("");
+            return;
+        }
+        auto [type, vtype] = parseHexNumber(breakpointData[0]);
+        auto [addr, vaddr] = parseHexNumber(breakpointData[1]);
+        auto [kind, vkind] = parseHexNumber(breakpointData[2]);
+        if (!vtype || !vaddr || !vkind) {
+            // didn't manage to parse breapoint data properly.
+            write("");
+            return;
+        }
+        switch (type) {
+            case 0:  // software breakpoint - meh, why?
+            case 1:  // exec breakpoint
+                // kind:
+                //  2 = 16-bits MIPS16
+                //  3 = 16-bits microMIPS
+                //  4 = 32-bits MIPS
+                //  5 = 32-bits microMIPS
+                if (action == Action::ADD) {
+                    g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::BE);
+                } else {
+                    auto range = g_emulator->m_debug->findBreakpoints(addr);
+                    for (auto it = range.first; it != range.second; it++) {
+                        if (it->second.type() == Debug::BreakpointType::BE) {
+                            g_emulator->m_debug->eraseBP(it);
+                            break;
+                        }
+                    }
+                }
+                write("OK");
+                break;
+                // kind = number of bytes
+            case 2:  // write breakpoint
+                write("");
+                break;
+            case 3:  // read breakpoint
+                write("");
+                break;
+            case 4:  // access breakpoint
+                write("");
+                break;
+            default:
+                write("");
+                return;
+        }
+    } else if (m_cmd == "s") {
+        if (g_system->running()) g_system->pause();
+        m_waitingForTrap = true;
+        g_emulator->m_debug->stepIn();
     } else if (startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
@@ -399,17 +494,29 @@ void PCSX::GdbClient::processCommand() {
     } else if (startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
+    } else if (startsWith(m_cmd, "qCmd,")) {
+        // this is the "monitor" command
+        size_t len = m_cmd.length() - 5;
+        std::string monitor(len / 2, ' ');
+        for (size_t i = 0; i < len; i += 2) {
+            char c = fromHexChar(m_cmd[i + 5]);
+            c << 4;
+            c |= fromHexChar(m_cmd[i + 6]);
+            monitor[i / 2] = c;
+        }
+        processMonitorCommand(monitor);
     } else if (startsWith(m_cmd, qXferMemMap)) {
-        writePaged(memoryMap, m_cmd.substr(qXferMemMap.length(), std::string::npos));
+        writePaged(memoryMap, m_cmd.substr(qXferMemMap.length()));
     } else if (startsWith(m_cmd, qXferFeatures)) {
-        writePaged(targetXML, m_cmd.substr(qXferFeatures.length(), std::string::npos));
+        writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (startsWith(m_cmd, qXferThreads)) {
-        writePaged("<?xml version=\"1.0\"?><threads></threads>",
-                   m_cmd.substr(qXferThreads.length(), std::string::npos));
+        writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->printf("Unknown GDB command: %s\n", m_cmd.c_str());
         write("");
     }
 }
+
+void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {}
 
 PCSX::Slice PCSX::GdbClient::passthroughData(Slice slice) { return slice; }

@@ -30,10 +30,7 @@ namespace PCSX {
 
 class GdbClient : public Intrusive::List<GdbClient>::Node {
   public:
-    GdbClient(uv_loop_t* loop) {
-        uv_tcp_init(loop, &m_tcp);
-        m_tcp.data = this;
-    }
+    GdbClient(uv_loop_t* loop);
     typedef Intrusive::List<GdbClient> ListType;
 
     bool accept(uv_tcp_t* server) {
@@ -195,6 +192,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     }
     void processData(const Slice& slice);
     void processCommand();
+    void processMonitorCommand(const std::string&);
     Slice passthroughData(Slice slice);
     std::pair<uint64_t, uint64_t> parseCursor(const std::string& cursorStr);
 
@@ -216,8 +214,10 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     } m_state = WAIT_FOR_DOLLAR;
     bool m_passthrough = false;
     bool m_ackEnabled = true;
+    bool m_waitingForTrap = false;
     std::string m_cmd;
     uint8_t m_crc;
+    EventBus::Listener m_listener;
 };
 
 class GdbServer {
@@ -229,7 +229,7 @@ class GdbServer {
     };
     GdbServerStatus getServerStatus() { return m_serverStatus; }
 
-    void startServer(int port = 5555);
+    void startServer(int port = 3333);
     void stopServer();
 
   private:
