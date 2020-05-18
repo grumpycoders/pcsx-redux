@@ -40,7 +40,9 @@ List of things to still do here, in no particular order.
   - Add a lookup to redump.org.
 
 - Debugger
-  - Add a gdb serial protocol server.
+  - Enhance the gdb serial protocol server.
+  - Cleanup the stepper.
+  - Better decoupling of user / kernel modes.
 
 - CPU
   - Support CPU hotswap (interpreted / dynarec)
@@ -55,5 +57,8 @@ List of things to still do here, in no particular order.
     - Ov
    - Add Cop0 debug support.
  
-- Integrate [EventBus](https://github.com/gelldur/EventBus)
+- EventBus
   - Decouple a lot of the existing classes for the low-hanging fruits such as pause, start, reset, etc.
+
+- Visualizers
+  - Add a memory read / write / exec timestamp visualizer, ala ICU64.
