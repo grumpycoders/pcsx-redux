@@ -21,6 +21,7 @@
 
 #include <any>
 #include <functional>
+#include <memory>
 #include <typeindex>
 #include <typeinfo>
 #include <utility>
