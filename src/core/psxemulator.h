@@ -84,6 +84,7 @@ class CDRom;
 class Cheats;
 class Counters;
 class Debug;
+class GdbServer;
 class GPU;
 class GTE;
 class HW;
@@ -94,6 +95,10 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
+class UV;
+
+class Emulator;
+extern Emulator* g_emulator;
 
 class Emulator {
   private:
@@ -137,10 +142,12 @@ class Emulator {
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
+    typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
+    typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay>
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbServerPort>
         settings;
     class PcsxConfig {
       public:
@@ -194,16 +201,20 @@ class Emulator {
     std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
+    std::unique_ptr<UV> m_uv;
 
-    static Emulator& getEmulator() {
+    static Emulator* getEmulator() {
         static Emulator emulator;
-        return emulator;
+        return &emulator;
     }
+
+    static void createEmulator() { g_emulator = getEmulator(); }
 
     char m_cdromId[10] = "";
     char m_cdromLabel[33] = "";
@@ -212,12 +223,4 @@ class Emulator {
     PcsxConfig m_config;
 };
 
-extern Emulator& g_emulator;
-
 }  // namespace PCSX
-
-#define gzfreeze(ptr, size)                   \
-    {                                         \
-        if (Mode == 1) gzwrite(f, ptr, size); \
-        if (Mode == 0) gzread(f, ptr, size);  \
-    }

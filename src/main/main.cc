@@ -150,12 +150,12 @@ class SystemImpl : public PCSX::System {
 
     virtual void softReset() final {
         // debugger or UI is requesting a reset
-        s_gui->scheduleSoftReset();
+        PCSX::g_emulator->m_psxCpu->psxReset();
     }
 
     virtual void hardReset() final {
         // debugger or UI is requesting a reset
-        s_gui->scheduleHardReset();
+        PCSX::g_emulator->EmuReset();
     }
 
     virtual void close() final {
@@ -189,6 +189,7 @@ int main(int argc, char **argv) {
 
     SystemImpl *system = new SystemImpl;
     PCSX::g_system = system;
+    PCSX::Emulator::createEmulator();
     std::filesystem::path self = argv[0];
     std::filesystem::path binDir = self.parent_path();
     system->setBinDir(binDir);
@@ -200,42 +201,42 @@ int main(int argc, char **argv) {
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();
-    system->m_enableStdout = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingStdout>();
-    const auto &logfile = PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLogfile>().string();
+    system->m_enableStdout = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingStdout>();
+    const auto &logfile = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();
     if (!logfile.empty()) system->useLogfile(logfile);
 
-    system->activateLocale(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingLocale>());
+    system->activateLocale(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingLocale>());
 
     LoadPlugins();
-    PCSX::g_emulator.m_gpu->open(s_gui);
-    PCSX::g_emulator.m_spu->open();
+    PCSX::g_emulator->m_gpu->open(s_gui);
+    PCSX::g_emulator->m_spu->open();
 
-    PCSX::g_emulator.EmuInit();
-    PCSX::g_emulator.EmuReset();
+    PCSX::g_emulator->EmuInit();
+    PCSX::g_emulator->EmuReset();
 
     std::string iso = args.get<std::string>("iso", "");
     if (!iso.empty()) SetIsoFile(iso.c_str());
-    PCSX::g_emulator.m_cdrom->m_iso.open();
+    PCSX::g_emulator->m_cdrom->m_iso.open();
     CheckCdrom();
 
     if (args.get<bool>("run", false)) PCSX::g_system->start();
 
     while (!PCSX::g_system->quitting()) {
         if (PCSX::g_system->running()) {
-            PCSX::g_emulator.m_psxCpu->Execute();
+            PCSX::g_emulator->m_psxCpu->Execute();
         } else {
             s_gui->update();
         }
     }
 
-    PCSX::g_emulator.m_spu->close();
-    PCSX::g_emulator.m_gpu->close();
-    PCSX::g_emulator.m_cdrom->m_iso.close();
+    PCSX::g_emulator->m_spu->close();
+    PCSX::g_emulator->m_gpu->close();
+    PCSX::g_emulator->m_cdrom->m_iso.close();
 
-    PCSX::g_emulator.m_psxCpu->psxShutdown();
-    PCSX::g_emulator.m_spu->shutdown();
-    PCSX::g_emulator.m_gpu->shutdown();
-    PCSX::g_emulator.m_cdrom->m_iso.shutdown();
+    PCSX::g_emulator->m_psxCpu->psxShutdown();
+    PCSX::g_emulator->m_spu->shutdown();
+    PCSX::g_emulator->m_gpu->shutdown();
+    PCSX::g_emulator->m_cdrom->m_iso.shutdown();
 
     s_gui->close();
 

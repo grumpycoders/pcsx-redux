@@ -47,7 +47,7 @@ class MDEC {
 
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock
-     * That mean (PCSX::g_emulator.m_psxClockSpeed / MDEC_BIAS) B/s
+     * That mean (PCSX::g_emulator->m_psxClockSpeed / MDEC_BIAS) B/s
      * MDEC_BIAS = 2.0 => ~16MB/s
      * MDEC_BIAS = 3.0 => ~11MB/s
      * and so on ...

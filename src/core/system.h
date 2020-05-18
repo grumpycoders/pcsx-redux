@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+#include "support/eventbus.h"
+
 namespace PCSX {
 
 // a hack, until c++-20 is fully adopted everywhere.
@@ -37,6 +39,17 @@ typedef std::u8string u8string;
 typedef std::string u8string;
 #define MAKEU8(x) reinterpret_cast<const char *>(x)
 #endif
+
+namespace Events {
+struct SettingsLoaded {};
+struct Quitting {};
+namespace ExecutionFlow {
+struct Run {};
+struct Pause {};
+struct SoftReset {};
+struct HardReset {};
+}  // namespace ExecutionFlow
+}  // namespace Events
 
 class System {
   public:
@@ -64,15 +77,34 @@ class System {
     bool running() { return m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
-    void start() { m_running = true; }
-    void stop() { m_running = false; }
-    void pause() { m_running = false; }
-    void resume() { m_running = true; }
+    void start() {
+        if (m_running) return;
+        m_running = true;
+        m_eventBus->signal(Events::ExecutionFlow::Run{});
+    }
+    void stop() {
+        if (!m_running) return;
+        m_running = false;
+        m_eventBus->signal(Events::ExecutionFlow::Pause{});
+    }
+    void pause() {
+        if (!m_running) return;
+        m_running = false;
+        m_eventBus->signal(Events::ExecutionFlow::Pause{});
+    }
+    void resume() {
+        if (m_running) return;
+        m_running = true;
+        m_eventBus->signal(Events::ExecutionFlow::Run{});
+    }
     void quit(int code = 0) {
         m_quitting = true;
-        m_running = false;
+        pause();
         m_exitCode = code;
+        m_eventBus->signal(Events::Quitting{});
     }
+
+    std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
   private:
     static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {

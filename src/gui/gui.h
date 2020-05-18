@@ -20,7 +20,6 @@
 #pragma once
 
 #include <stdarg.h>
-#include <uv.h>
 
 #include <string>
 
@@ -72,8 +71,6 @@ class GUI final {
         // TODO
         // SDL_TriggerBreakpoint();
     }
-    void scheduleSoftReset() { m_scheduleSoftReset = true; }
-    void scheduleHardReset() { m_scheduleHardReset = true; }
 
     static void checkGL();
 
@@ -165,8 +162,6 @@ class GUI final {
     bool m_showCfg = false;
 
     const flags::args &m_args;
-    bool m_scheduleSoftReset = false;
-    bool m_scheduleHardReset = false;
 
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;
@@ -176,8 +171,6 @@ class GUI final {
 
     Widgets::Types m_types;
     Widgets::Source m_source;
-
-    uv_loop_t m_loop;
 };
 
 }  // namespace PCSX

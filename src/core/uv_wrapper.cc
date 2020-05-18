@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 Ryan Schultz, PCSX-df Team, PCSX team              *
+ *   Copyright (C) 2020 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,43 +17,35 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PSXDMA_H__
-#define __PSXDMA_H__
+#include "core/uv_wrapper.h"
 
-#include "core/psxemulator.h"
-#include "core/psxhw.h"
-#include "core/psxmem.h"
-#include "core/r3000a.h"
+#include <assert.h>
 
-static inline void scheduleGPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_GPUDMA, eCycle);
+#include "core/system.h"
+
+PCSX::UV::UV() : m_listener(g_system->m_eventBus) {}
+
+void PCSX::UV::init() {
+    int result = uv_loop_init(&m_loop);
+    assert(result == 0);
+
+    m_listener.listen<Events::Quitting>([this](const auto& event) { purge(); });
 }
 
-static inline void scheduleSPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_SPUDMA, eCycle);
+void PCSX::UV::close() {
+    int result = uv_loop_close(&m_loop);
+    assert(result == 0);
 }
 
-static inline void scheduleMDECOUTDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_MDECOUTDMA, eCycle);
+void PCSX::UV::run() { uv_run(&m_loop, UV_RUN_NOWAIT); }
+
+void PCSX::UV::purge(std::function<void()> purge) {
+    if (purge) {
+        do {
+            purge();
+        } while (uv_run(&m_loop, UV_RUN_NOWAIT));
+        purge();
+    } else {
+        uv_run(&m_loop, UV_RUN_DEFAULT);
+    }
 }
-
-static inline void scheduleMDECINDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_MDECINDMA, eCycle);
-}
-
-static inline void scheduleGPUOTCDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_psxCpu->scheduleInterrupt(PCSX::PSXINT_GPUOTCDMA, eCycle);
-}
-
-/*
-DMA5 = N/A (PIO)
-*/
-
-// void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void spuInterrupt();
-void gpuotcInterrupt();
-// void dmaInterrupt();
-
-#endif

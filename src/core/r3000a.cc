@@ -33,31 +33,31 @@
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
 
-    if (g_emulator.config().Cpu == Emulator::CPU_DYNAREC) {
-        g_emulator.m_psxCpu = Cpus::DynaRec();
+    if (g_emulator->config().Cpu == Emulator::CPU_DYNAREC) {
+        g_emulator->m_psxCpu = Cpus::DynaRec();
     }
 
-    if (!g_emulator.m_psxCpu) {
-        g_emulator.m_psxCpu = Cpus::Interpreted();
+    if (!g_emulator->m_psxCpu) {
+        g_emulator->m_psxCpu = Cpus::Interpreted();
     }
 
     PGXP_Init();
 
-    return g_emulator.m_psxCpu->Init();
+    return g_emulator->m_psxCpu->Init();
 }
 
 void PCSX::R3000Acpu::psxReset() {
     Reset();
 
     memset(&m_psxRegs, 0, sizeof(m_psxRegs));
-    m_booted = !g_emulator.settings.get<Emulator::SettingFastBoot>().value;
+    m_booted = !g_emulator->settings.get<Emulator::SettingFastBoot>().value;
 
     m_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
 
     m_psxRegs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
-    PCSX::g_emulator.m_hw->psxHwReset();
+    PCSX::g_emulator->m_hw->psxHwReset();
 
     EMU_LOG("*BIOS END*\n");
 }
@@ -98,7 +98,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         if( init == 0 ) {
             // 10 apu cycles
             // - Final Fantasy Tactics (distorted - dropped sound effects)
-            m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle = g_emulator.m_psxClockSpeed / 44100 * 10;
+            m_psxRegs.intCycle[PSXINT_SPUASYNC].cycle = g_emulator->m_psxClockSpeed / 44100 * 10;
 
             init = 1;
         }
@@ -112,33 +112,33 @@ void PCSX::R3000Acpu::psxBranchTest() {
     }
 #endif
 
-    if ((m_psxRegs.cycle - PCSX::g_emulator.m_psxCounters->m_psxNextsCounter) >=
-        PCSX::g_emulator.m_psxCounters->m_psxNextCounter)
-        PCSX::g_emulator.m_psxCounters->psxRcntUpdate();
+    if ((m_psxRegs.cycle - PCSX::g_emulator->m_psxCounters->m_psxNextsCounter) >=
+        PCSX::g_emulator->m_psxCounters->m_psxNextCounter)
+        PCSX::g_emulator->m_psxCounters->psxRcntUpdate();
 
     if (m_psxRegs.spuInterrupt.exchange(false)) {
-        PCSX::g_emulator.m_spu->interrupt();
+        PCSX::g_emulator->m_spu->interrupt();
     }
 
     if (m_psxRegs.interrupt) {
         if ((m_psxRegs.interrupt & (1 << PSXINT_SIO)) &&
-            !PCSX::g_emulator.settings.get<PCSX::Emulator::SettingSioIrq>()) {  // sio
+            !PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) {  // sio
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SIO].sCycle) >= m_psxRegs.intCycle[PSXINT_SIO].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
-                PCSX::g_emulator.m_sio->interrupt();
+                PCSX::g_emulator->m_sio->interrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_CDR)) {  // cdr
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDR].sCycle) >= m_psxRegs.intCycle[PSXINT_CDR].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDR);
-                PCSX::g_emulator.m_cdrom->interrupt();
+                PCSX::g_emulator->m_cdrom->interrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_CDREAD)) {  // cdr read
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDREAD].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_CDREAD].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDREAD);
-                PCSX::g_emulator.m_cdrom->readInterrupt();
+                PCSX::g_emulator->m_cdrom->readInterrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_GPUDMA)) {  // gpu dma
@@ -152,7 +152,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_MDECOUTDMA);
-                PCSX::g_emulator.m_mdec->mdec1Interrupt();
+                PCSX::g_emulator->m_mdec->mdec1Interrupt();
             }
         }
         if (m_psxRegs.interrupt & (1 << PSXINT_SPUDMA)) {  // spu dma
@@ -166,7 +166,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_MDECINDMA].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_MDECINDMA].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_MDECINDMA);
-                PCSX::g_emulator.m_mdec->mdec0Interrupt();
+                PCSX::g_emulator->m_mdec->mdec0Interrupt();
             }
         }
 
@@ -182,7 +182,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRDMA].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_CDRDMA].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDRDMA);
-                PCSX::g_emulator.m_cdrom->dmaInterrupt();
+                PCSX::g_emulator->m_cdrom->dmaInterrupt();
             }
         }
 
@@ -190,7 +190,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRPLAY].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_CDRPLAY].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDRPLAY);
-                PCSX::g_emulator.m_cdrom->playInterrupt();
+                PCSX::g_emulator->m_cdrom->playInterrupt();
             }
         }
 
@@ -198,7 +198,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRDBUF].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_CDRDBUF].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDRDBUF);
-                PCSX::g_emulator.m_cdrom->decodedBufferInterrupt();
+                PCSX::g_emulator->m_cdrom->decodedBufferInterrupt();
             }
         }
 
@@ -206,7 +206,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
             if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRLID].sCycle) >=
                 m_psxRegs.intCycle[PSXINT_CDRLID].cycle) {
                 m_psxRegs.interrupt &= ~(1 << PSXINT_CDRLID);
-                PCSX::g_emulator.m_cdrom->lidSeekInterrupt();
+                PCSX::g_emulator->m_cdrom->lidSeekInterrupt();
             }
         }
     }
@@ -226,7 +226,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
 
 void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
     SetPGXPMode(pgxpMode);
-    // g_emulator.m_psxCpu->Reset();
+    // g_emulator->m_psxCpu->Reset();
 }
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {

@@ -8,6 +8,9 @@
 #include <cstdint>
 #include <string>
 
+// Winsock2.h defines it. Yes. WTF.
+#undef small
+
 DWARFPP_BEGIN_NAMESPACE
 
 // Integer representations (Section 7.26)
