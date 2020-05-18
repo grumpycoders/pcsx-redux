@@ -150,12 +150,12 @@ class SystemImpl : public PCSX::System {
 
     virtual void softReset() final {
         // debugger or UI is requesting a reset
-        s_gui->scheduleSoftReset();
+        PCSX::g_emulator->m_psxCpu->psxReset();
     }
 
     virtual void hardReset() final {
         // debugger or UI is requesting a reset
-        s_gui->scheduleHardReset();
+        PCSX::g_emulator->EmuReset();
     }
 
     virtual void close() final {

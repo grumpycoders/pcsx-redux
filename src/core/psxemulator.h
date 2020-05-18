@@ -142,7 +142,7 @@ class Emulator {
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
-    typedef Setting<bool, TYPESTRING("GdbServer"), true> SettingGdbServer;
+    typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
     typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,

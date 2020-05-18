@@ -30,6 +30,7 @@
 #include <unordered_set>
 
 #include "core/cdrom.h"
+#include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -382,23 +383,23 @@ void PCSX::GUI::endFrame() {
                     g_emulator->m_sio->interrupt();
                 }
                 if (ImGui::MenuItem(_("Quit"))) {
-                    PCSX::g_system->quit();
+                    g_system->quit();
                 }
                 ImGui::EndMenu();
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
-                if (ImGui::MenuItem(_("Start"), nullptr, nullptr, !PCSX::g_system->running())) {
-                    PCSX::g_system->start();
+                if (ImGui::MenuItem(_("Start"), nullptr, nullptr, !g_system->running())) {
+                    g_system->start();
                 }
-                if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, PCSX::g_system->running())) {
-                    PCSX::g_system->stop();
+                if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, g_system->running())) {
+                    g_system->pause();
                 }
                 if (ImGui::MenuItem(_("Soft Reset"))) {
-                    scheduleSoftReset();
+                    g_system->softReset();
                 }
                 if (ImGui::MenuItem(_("Hard Reset"))) {
-                    scheduleHardReset();
+                    g_system->hardReset();
                 }
                 ImGui::EndMenu();
             }
@@ -723,6 +724,16 @@ bool PCSX::GUI::configure() {
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
+        changed |= ImGui::Checkbox(_("Enable Debugger"), &settings.get<Emulator::SettingDebug>().value);
+        if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
+            changed = true;
+            if (settings.get<Emulator::SettingGdbServer>()) {
+                g_emulator->m_gdbServer->startServer(settings.get<Emulator::SettingGdbServerPort>());
+            } else {
+                g_emulator->m_gdbServer->stopServer();
+            }
+        }
+        changed |= ImGui::InputInt("GDB Server", &settings.get<Emulator::SettingGdbServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});
@@ -877,13 +888,4 @@ void PCSX::GUI::about() {
 void PCSX::GUI::update() {
     endFrame();
     startFrame();
-    // This scheduling is extremely delicate, because this will cause update to be reentrant.
-    // We basically need these to be tail calls, or at least, close from it.
-    if (m_scheduleSoftReset) {
-        m_scheduleSoftReset = false;
-        PCSX::g_emulator->m_psxCpu->psxReset();
-    } else if (m_scheduleHardReset) {
-        m_scheduleHardReset = false;
-        PCSX::g_emulator->EmuReset();
-    }
 }
