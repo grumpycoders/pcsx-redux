@@ -84,6 +84,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         va_end(a);
     }
     void writePaged(const std::string& out, const std::string& cursorStr);
+    void writeEscaped(const std::string& out);
     void sendAck() {
         auto* req = new WriteRequest();
         req->m_slice.copy("+", 1);
@@ -215,6 +216,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     bool m_passthrough = false;
     bool m_ackEnabled = true;
     bool m_waitingForTrap = false;
+    bool m_sentBanner = false;
     std::string m_cmd;
     uint8_t m_crc;
     EventBus::Listener m_listener;

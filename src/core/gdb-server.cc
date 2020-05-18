@@ -333,6 +333,18 @@ void PCSX::GdbClient::writePaged(const std::string& out, const std::string& curs
     }
 }
 
+void PCSX::GdbClient::writeEscaped(const std::string& out) {
+    std::string escaped;
+    escaped.reserve(out.length() * 2 + 1);
+    escaped += 'O';
+    for (auto& c : out) {
+        escaped += toHex[(c >> 4) & 0x0f];
+        escaped += toHex[c & 0x0f];
+    }
+
+    write(escaped);
+}
+
 std::string PCSX::GdbClient::dumpValue(uint32_t value) {
     std::string ret = "";
 
@@ -405,6 +417,23 @@ void PCSX::GdbClient::processCommand() {
         // continue - this doesn't technically have a reply, only when the target stops later, using T05.
         g_system->resume();
         m_waitingForTrap = true;
+    } else if (m_cmd[0] == 'M') {
+        // write memory
+        auto elements = split(m_cmd, ":");
+        auto [off, len] = parseCursor(elements[0].substr(1));
+        size_t i = 0;
+        while (len--) {
+            uint8_t* d = PSXM(off);
+            off++;
+            if (d) {
+                uint8_t c = fromHexChar(elements[1][i * 2 + 0]);
+                c <<= 4;
+                c |= fromHexChar(elements[1][i * 2 + 1]);
+                *d = c;
+            }
+            i++;
+        }
+        write("OK");
     } else if (m_cmd[0] == 'm') {
         // read memory
         auto [off, len] = parseCursor(m_cmd.substr(1));
@@ -494,15 +523,16 @@ void PCSX::GdbClient::processCommand() {
     } else if (startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
-    } else if (startsWith(m_cmd, "qCmd,")) {
+    } else if (startsWith(m_cmd, "qRcmd,")) {
         // this is the "monitor" command
-        size_t len = m_cmd.length() - 5;
-        std::string monitor(len / 2, ' ');
+        size_t len = m_cmd.length() - 6;
+        std::string monitor;
+        monitor.reserve(len / 2);
         for (size_t i = 0; i < len; i += 2) {
-            char c = fromHexChar(m_cmd[i + 5]);
-            c << 4;
-            c |= fromHexChar(m_cmd[i + 6]);
-            monitor[i / 2] = c;
+            char c = fromHexChar(m_cmd[i + 6]);
+            c <<= 4;
+            c |= fromHexChar(m_cmd[i + 7]);
+            monitor += c;
         }
         processMonitorCommand(monitor);
     } else if (startsWith(m_cmd, qXferMemMap)) {
@@ -517,6 +547,25 @@ void PCSX::GdbClient::processCommand() {
     }
 }
 
-void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {}
+void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
+    if (!m_sentBanner) {
+        writeEscaped("");
+        writeEscaped("");
+        writeEscaped("PCSX-Redux GDB server\n");
+        writeEscaped("");
+        writeEscaped("");
+        m_sentBanner = true;
+    }
+    if (startsWith(cmd, "reset")) {
+        g_emulator->m_psxCpu->psxReset();
+        writeEscaped("Emulation reset\n");
+        auto words = split(cmd, " ");
+        if ((words.size() == 2) && (words[1] == "halt")) {
+            writeEscaped("Emulation paused\n");
+            g_system->pause();
+        }
+    }
+    write("OK");
+}
 
 PCSX::Slice PCSX::GdbClient::passthroughData(Slice slice) { return slice; }
