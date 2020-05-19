@@ -1,8 +1,6 @@
-/*
-
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2019 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-*/
-
-#pragma once
-
-#include "common/psxlibc/psxexe.h"
-
-int loadExeHeader(const char * filename, struct psxExeHeader * header);
-int loadExe(const char * filename, struct psxExeHeader * header);
-int exec(struct psxExeHeader * header, int argc, char ** argv);
-void loadAndExec(const char * filename, uint32_t stackStart, uint32_t stackSize);
