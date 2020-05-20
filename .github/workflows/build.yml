@@ -10,6 +10,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install dependencies
-      run:  ./.github/scripts/install-brew-dependencies.sh
+      run: ./.github/scripts/install-brew-dependencies.sh
+    - name: submodules
+      run: git submodule update --init --recursive
     - name: Build pcsx-redux
       run: make
