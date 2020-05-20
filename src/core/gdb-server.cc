@@ -83,6 +83,19 @@ PCSX::GdbClient::GdbClient(uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
     uv_tcp_init(loop, &m_tcp);
     m_tcp.data = this;
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
+        if (m_waitingForShell) {
+            if (g_emulator->m_psxCpu->m_psxRegs.pc == 0x80030000) {
+                m_waitingForShell = false;
+                g_emulator->m_psxCpu->m_psxRegs.pc = m_startLocation;
+                write("OK");
+            } else {
+                // This is a bit of a problem. If there's any remaining
+                // breakpoint, we just blow past them. I'm not sure
+                // how or where to wipe all breakpoints. The gdb
+                // protocol doesn't seem to have a command to list them.
+                g_system->resume();
+            }
+        }
         // we technically should specify here why we stopped, but we don't have
         // the architecture for this just yet. Maybe that'll be part of the pause
         // event later on.
@@ -387,7 +400,11 @@ void PCSX::GdbClient::processCommand() {
     static const std::string qXferFeatures = "qXfer:features:read:target.xml:";
     static const std::string qXferThreads = "qXfer:threads:read::";
     static const std::string qXferMemMap = "qXfer:memory-map:read::";
-    if (m_cmd == "?") {
+    static const std::string qSymbol = "qSymbol:";
+    if (m_cmd == "!") {
+        // extended mode?
+        write("OK");
+    } else if (m_cmd == "?") {
         // query reason for stop
         if (g_system->running()) {
             write("S00");
@@ -516,6 +533,15 @@ void PCSX::GdbClient::processCommand() {
         if (g_system->running()) g_system->pause();
         m_waitingForTrap = true;
         g_emulator->m_debug->stepIn();
+    } else if (m_cmd == "Hc0") {
+        // thread stuff
+        write("OK");
+    } else if (m_cmd == "Hc-1") {
+        write("OK");
+    } else if (m_cmd == "Hg0") {
+        write("OK");
+    } else if (startsWith(m_cmd, "vKill;")) {
+        write("OK");
     } else if (startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
@@ -523,6 +549,43 @@ void PCSX::GdbClient::processCommand() {
     } else if (startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
+    } else if (startsWith(m_cmd, qSymbol)) {
+        // It looks like extended-remote doesn't even offer to give us the
+        // location of the start address...? Why? That's a terrible design.
+        // We'll have to basically rely on our wits and monitor commands
+        // tricks to get us to load an arbitrary file properly. We'll only
+        // make this work if the symbols _start or _reset are defined.
+        auto elements = split(m_cmd.substr(qSymbol.length()), ":");
+        switch (m_qsymbolState) {
+            case QSYMBOL_IDLE:
+                // gdb is offering symbols. Let's start by trying _start's location.
+                write("qSymbol:5F7374617274");
+                m_qsymbolState = QSYMBOL_WAITING_FOR_START;
+                m_startLocation = 0xbfc00000;
+                break;
+            case QSYMBOL_WAITING_FOR_START:
+                if ((elements.size() != 2) || (elements[0].empty())) {
+                    // no _start symbol? let's request _reset then.
+                    write("qSymbol:5F7265736574");
+                    m_qsymbolState = QSYMBOL_WAITING_FOR_RESET;
+                } else {
+                    // we should verify that elements[1] contains _start, but, meh
+                    m_qsymbolState = QSYMBOL_IDLE;
+                    auto [value, valid] = parseHexNumber(elements[0]);
+                    if (valid) m_startLocation = value;
+                    write("OK");
+                }
+                break;
+            case QSYMBOL_WAITING_FOR_RESET:
+                // we should verify that elements[1] contains _boot, but, meh
+                m_qsymbolState = QSYMBOL_IDLE;
+                if (!elements[0].empty()) {
+                    auto [value, valid] = parseHexNumber(elements[0]);
+                    if (valid) m_startLocation = value;
+                }
+                write("OK");
+                break;
+        }
     } else if (startsWith(m_cmd, "qRcmd,")) {
         // this is the "monitor" command
         size_t len = m_cmd.length() - 6;
@@ -560,9 +623,19 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
         g_emulator->m_psxCpu->psxReset();
         writeEscaped("Emulation reset\n");
         auto words = split(cmd, " ");
-        if ((words.size() == 2) && (words[1] == "halt")) {
-            writeEscaped("Emulation paused\n");
-            g_system->pause();
+        if (words.size() == 2) {
+            if (words[1] == "halt") {
+                writeEscaped("Emulation paused\n");
+                g_system->pause();
+            } else if (words[1] == "shellhalt") {
+                writeEscaped("Emulation running until shell\n");
+                g_emulator->m_debug->addBreakpoint(0x80030000, Debug::BE, true);
+                g_system->start();
+                m_waitingForShell = true;
+                // let's not reply to gdb just yet, until we've reached the shell
+                // and are ready to load a binary.
+                return;
+            }
         }
     }
     write("OK");
