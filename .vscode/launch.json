@@ -5,7 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch OpenBIOS",
+            "target": "./src/mips/openbios/openbios.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "target remote localhost:3333",
+                "symbol-file ./src/mips/openbios/openbios.elf",
+                "set substitute-path /project .",
+                "load ./src/mips/openbios/openbios.elf",
+                "monitor reset halt",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "name": "(gdb) Launch PCSX-Redux",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/pcsx-redux",
