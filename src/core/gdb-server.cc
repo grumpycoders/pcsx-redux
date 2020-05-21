@@ -84,23 +84,23 @@ PCSX::GdbClient::GdbClient(uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
     m_tcp.data = this;
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         if (m_waitingForShell) {
-            if (g_emulator->m_psxCpu->m_psxRegs.pc == 0x80030000) {
-                m_waitingForShell = false;
-                g_emulator->m_psxCpu->m_psxRegs.pc = m_startLocation;
-                write("OK");
-            } else {
-                // This is a bit of a problem. If there's any remaining
-                // breakpoint, we just blow past them. I'm not sure
-                // how or where to wipe all breakpoints. The gdb
-                // protocol doesn't seem to have a command to list them.
-                g_system->resume();
-            }
+            // This is a bit of a problem. If there's any remaining
+            // breakpoint, we just blow past them. I'm not sure
+            // how or where to wipe all breakpoints. The gdb
+            // protocol doesn't seem to have a command to list them.
+            g_system->resume();
         }
         // we technically should specify here why we stopped, but we don't have
         // the architecture for this just yet. Maybe that'll be part of the pause
         // event later on.
         if (m_waitingForTrap) write("T05");
         m_waitingForTrap = false;
+    });
+    m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) {
+        m_waitingForShell = false;
+        g_system->pause();
+        g_emulator->m_psxCpu->m_psxRegs.pc = m_startLocation;
+        write("OK");
     });
 }
 
@@ -629,9 +629,8 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
                 g_system->pause();
             } else if (words[1] == "shellhalt") {
                 writeEscaped("Emulation running until shell\n");
-                g_emulator->m_debug->addBreakpoint(0x80030000, Debug::BE, true);
-                g_system->start();
                 m_waitingForShell = true;
+                g_system->start();
                 // let's not reply to gdb just yet, until we've reached the shell
                 // and are ready to load a binary.
                 return;

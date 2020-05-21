@@ -38,6 +38,7 @@
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
+#include "support/eventbus.h"
 #include "support/settings.h"
 
 #if defined(__MACOSX__)
@@ -52,7 +53,7 @@ namespace PCSX {
 
 class GUI final {
   public:
-    GUI(const flags::args &args) : m_args(args) {}
+    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
     void init();
     void close();
     void update();
@@ -171,6 +172,10 @@ class GUI final {
 
     Widgets::Types m_types;
     Widgets::Source m_source;
+
+    EventBus::Listener m_listener;
+
+    void shellReached();
 };
 
 }  // namespace PCSX

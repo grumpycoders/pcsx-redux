@@ -86,6 +86,8 @@ void PCSX::GUI::init() {
         abort();
     }
 
+    m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -888,4 +890,9 @@ void PCSX::GUI::about() {
 void PCSX::GUI::update() {
     endFrame();
     startFrame();
+}
+
+void PCSX::GUI::shellReached() {
+    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
 }

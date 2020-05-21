@@ -44,6 +44,7 @@ namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};
 namespace ExecutionFlow {
+struct ShellReached {};
 struct Run {};
 struct Pause {};
 struct SoftReset {};

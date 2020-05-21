@@ -50,7 +50,7 @@ void PCSX::R3000Acpu::psxReset() {
     Reset();
 
     memset(&m_psxRegs, 0, sizeof(m_psxRegs));
-    m_booted = !g_emulator->settings.get<Emulator::SettingFastBoot>().value;
+    m_shellStarted = false;
 
     m_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
 
