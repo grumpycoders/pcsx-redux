@@ -48,7 +48,7 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
         if (m_oldPath != path) {
             m_oldPath = path;
             if (!std::filesystem::exists(path)) return false;
-            std::ifstream src(path.c_str());
+            std::ifstream src(path.string().c_str());
             if (!src.is_open()) return false;
 
             std::string str((std::istreambuf_iterator<char>(src)), std::istreambuf_iterator<char>());

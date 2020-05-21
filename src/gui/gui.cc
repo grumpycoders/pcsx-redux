@@ -919,7 +919,7 @@ void PCSX::GUI::shellReached() {
     if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
 
     if (m_exeToLoad.empty()) return;
-    std::u8string filename = std::move(m_exeToLoad);
+    PCSX::u8string filename = std::move(m_exeToLoad);
 
     g_system->biosPrintf("Hijacked shell, loading %s...\n", filename.c_str());
     bool success = BinaryLoader::load(filename);
