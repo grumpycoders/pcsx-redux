@@ -39,7 +39,7 @@
 #include "support/eventbus.h"
 #include "support/settings.h"
 
-#if defined(__MACOSX__)
+#if defined(__APPLE__)
 #define GL_SHADER_VERSION "#version 410\n"
 #else
 #define GL_SHADER_VERSION "#version 300 es\n"
