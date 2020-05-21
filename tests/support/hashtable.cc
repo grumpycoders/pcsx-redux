@@ -45,7 +45,7 @@ TEST(BasicHashTable, InsertOne) {
     EXPECT_EQ(n.getKey(), 42);
     EXPECT_EQ(n.m_tag, 42);
     hashtab.destroyAll();
-    EXPECT_TRUE(hashtab.empty());
+    EXPECT_FALSE(hashtab.empty());
 }
 
 TEST(BasicHashTable, InsertMany) {
