@@ -34,8 +34,6 @@
 #include "gui/gui.h"
 #include "gui/widgets/vram-viewer.h"
 
-#define GL_SHADER_VERSION "#version 300 es\n"
-
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 in vec2 i_position;
