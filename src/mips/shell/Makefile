@@ -1,7 +1,8 @@
 TARGET = shell
+TYPE = bin
 
 SRCS = \
-crt0/crt0.s \
+../common/crt0/crt0.s \
 main/main.c \
 
 LDSCRIPT = shell.ld

@@ -44,6 +44,27 @@
                     "message": 5
                 }
             }
+        },
+        {
+            "label": "make_cpe_helloworld",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/helloworld clean all",
+            "windows": {
+                "command": "${workspaceRoot}\\src\\mips\\helloworld\\build.bat"
+            },
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": ["relative", "${workspaceRoot}/src/mips/helloworld"],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
         }
     ]
 }
