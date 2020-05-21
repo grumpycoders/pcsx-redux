@@ -577,7 +577,7 @@ void PCSX::GdbClient::processCommand() {
                 }
                 break;
             case QSYMBOL_WAITING_FOR_RESET:
-                // we should verify that elements[1] contains _boot, but, meh
+                // we should verify that elements[1] contains _reset, but, meh
                 m_qsymbolState = QSYMBOL_IDLE;
                 if (!elements[0].empty()) {
                     auto [value, valid] = parseHexNumber(elements[0]);

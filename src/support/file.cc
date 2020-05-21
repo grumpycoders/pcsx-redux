@@ -40,7 +40,7 @@ ssize_t PCSX::File::seek(ssize_t pos, int wheel) {
             m_ptr += pos;
             break;
     }
-    m_ptr = std::min(std::max(m_ptr, m_size), (ssize_t)0);
+    m_ptr = std::max(std::min(m_ptr, m_size), (ssize_t)0);
     return m_ptr;
 }
 ssize_t PCSX::File::tell() {
@@ -117,7 +117,7 @@ std::string PCSX::File::gets() {
 ssize_t PCSX::File::read(void *dest, ssize_t size) {
     if (m_handle) return fread(dest, 1, size, m_handle);
     if (!m_data) return -1;
-    size = std::max(m_size - m_ptr, size);
+    size = std::min(m_size - m_ptr, size);
     if (size == 0) return -1;
     memcpy(dest, m_data + m_ptr, size);
     m_ptr += size;

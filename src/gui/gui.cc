@@ -29,6 +29,7 @@
 #include <iomanip>
 #include <unordered_set>
 
+#include "core/binloader.h"
 #include "core/cdrom.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
@@ -330,6 +331,7 @@ void PCSX::GUI::endFrame() {
     }
 
     bool showOpenIsoFileDialog = false;
+    bool showOpenBinaryDialog = false;
 
     if (m_showMenu || !m_fullscreenRender || !PCSX::g_system->running()) {
         if (ImGui::BeginMainMenuBar()) {
@@ -338,6 +340,9 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Close ISO"))) {
                     PCSX::g_emulator->m_cdrom->m_iso.close();
                     CheckCdrom();
+                }
+                if (ImGui::MenuItem(_("Load binary"))) {
+                    showOpenBinaryDialog = true;
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Dump save state proto schema"))) {
@@ -500,6 +505,23 @@ void PCSX::GUI::endFrame() {
             SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
             PCSX::g_emulator->m_cdrom->m_iso.open();
             CheckCdrom();
+        }
+    }
+
+    if (showOpenBinaryDialog) {
+        if (!isoPath.empty()) {
+            m_openBinaryDialog.m_currentPath = isoPath.value;
+        }
+        m_openBinaryDialog.openDialog();
+    }
+    if (m_openBinaryDialog.draw()) {
+        isoPath.value = m_openBinaryDialog.m_currentPath;
+        changed = true;
+        std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
+        if (!fileToOpen.empty()) {
+            m_exeToLoad = fileToOpen[0];
+            g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+            g_system->softReset();
         }
     }
 
@@ -895,4 +917,13 @@ void PCSX::GUI::update() {
 void PCSX::GUI::shellReached() {
     auto& regs = g_emulator->m_psxCpu->m_psxRegs;
     if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
+
+    if (m_exeToLoad.empty()) return;
+    std::string filename = std::move(m_exeToLoad);
+
+    g_system->biosPrintf("Hijacked shell, loading %s...\n", filename.c_str());
+    bool success = BinaryLoader::load(filename);
+    if (success) {
+        g_system->biosPrintf("Successful: new PC = %08x...\n", regs.pc);
+    }
 }
