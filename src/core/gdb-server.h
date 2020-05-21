@@ -22,6 +22,8 @@
 #include <cstdarg>
 #include <uv.h>
 
+#include <string>
+
 #include "support/eventbus.h"
 #include "support/hashtable.h"
 #include "support/list.h"

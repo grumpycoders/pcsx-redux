@@ -37,7 +37,6 @@ endif
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
 
 ifeq ($(UNAME_S),Darwin)
-	LDFLAGS += -L/usr/local/Cellar/llvm/HEAD-e374798_1/lib
 	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
 	LDFLAGS += -mmacosx-version-min=10.15
 else

@@ -32,13 +32,9 @@
 namespace PCSX {
 
 // a hack, until c++-20 is fully adopted everywhere.
-#if defined(__cpp_lib_char8_t)
-typedef std::u8string u8string;
-#define MAKEU8(x) x
-#else
-typedef std::string u8string;
-#define MAKEU8(x) reinterpret_cast<const char *>(x)
-#endif
+typedef decltype(std::filesystem::path().u8string()) u8string;
+#define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
+
 
 namespace Events {
 struct SettingsLoaded {};
