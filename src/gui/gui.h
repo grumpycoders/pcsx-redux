@@ -23,12 +23,8 @@
 
 #include <string>
 
-#include "flags.h"
-
-#include "imgui.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
-
 #include "core/system.h"
+#include "flags.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/dwarf.h"
@@ -38,6 +34,9 @@
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
+#include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
+#include "support/eventbus.h"
 #include "support/settings.h"
 
 #if defined(__MACOSX__)
@@ -52,7 +51,7 @@ namespace PCSX {
 
 class GUI final {
   public:
-    GUI(const flags::args &args) : m_args(args) {}
+    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
     void init();
     void close();
     void update();
@@ -122,8 +121,7 @@ class GUI final {
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
-             WindowSizeY>
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -151,6 +149,7 @@ class GUI final {
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
+    Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
     int m_selectedBiosOverlayId;
@@ -171,6 +170,12 @@ class GUI final {
 
     Widgets::Types m_types;
     Widgets::Source m_source;
+
+    EventBus::Listener m_listener;
+
+    void shellReached();
+
+    PCSX::u8string m_exeToLoad;
 };
 
 }  // namespace PCSX

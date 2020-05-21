@@ -25,13 +25,16 @@ SOFTWARE.
 */
 
 OUTPUT_FORMAT("elf32-tradlittlemips")
-OUTPUT_ARCH(mips)
+OUTPUT_FORMAT("binary")
 
 EXTERN(_start)
 ENTRY(_start)
 
+TLOAD_ADDR = DEFINED(_TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
+
 MEMORY {
-    ram (rwx)   : ORIGIN = 0x80030000, LENGTH = 2M - 0x30000
+    loader      : ORIGIN = 0x8000f800, LENGTH = 2048
+    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
@@ -42,10 +45,55 @@ __dcache        = ORIGIN(dcache);
 __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
 __bss_len       = (__bss_end - __bss_start);
+__ftext_len     = (__ftext_end - __ftext_start);
+__fdata_len     = (__fdata_end - __fdata_start);
 
 SECTIONS {
-    __text_start = .;
-    .text : {
+    .PSX_EXE_Header : {
+        /*
+            0x0000 - 0x0007 : "PS-X EXE"
+        */
+        BYTE(80); BYTE(83); BYTE(45); BYTE(88); BYTE(32); BYTE(69); BYTE(88); BYTE(69);
+
+        /* 0x0008 - 0x000F : skip text_off and data_off since they're not supported by the PS1 BIOS */
+        LONG(0); LONG(0);
+
+        /* 0x0010 - 0x0013 : entry point */
+        LONG(ABSOLUTE(_start));
+
+        /* 0x0014 - 0x0017 : initial value of $gp */
+        LONG(0);
+
+        /* 0x0018 - 0x001B : Memory address to load "text" section to. */
+        /*
+            NOTE: The "text" section is actually all of the "load"
+            sections of the file including .text, .rodata, .data.
+            etc.
+        */
+        LONG(TLOAD_ADDR);
+
+        /* 0x001C - 0x001F :  size, in bytes, of the "text" section. */
+        LONG(__ftext_len + __fdata_len);
+
+        /* 0x0020 - 0x002F :
+            Skip "data_addr", "data_size", "bss_addr" and "bss_size".
+            None of these are supported by retail PS1 BIOS.
+        */
+        LONG(0); LONG(0);
+        LONG(0); LONG(0);
+
+        /* 0x0030 - 0x0033 :  Initial stack address. */
+        LONG(DEFINED(_sp) ? ABSOLUTE(_sp) : 0x801FFF00);
+
+        /* 0x0034 - 0x0037 : Initial stack size, set it to 0. */
+        LONG(0);
+
+        /* Skip the remaining fields as they're not supported by the BIOS */
+        . = . + 1992;
+    } > loader
+
+    __ftext_start = ABSOLUTE(.);
+    .text TLOAD_ADDR : {
         *(.start)
         *(.init)
         KEEP (*(SORT_NONE(.fini)))
@@ -54,16 +102,24 @@ SECTIONS {
         *(.text.startup .text.startup.*)
         *(.text.hot .text.hot.*)
         *(.text .stub .text.* .gnu.linkonce.t.*)
-        . = ALIGN(4);
+        . = ALIGN(16);
     } > ram
 
     .fini : {
+        . = ALIGN(16);
     } > ram
-    . = ALIGN(4);
+
+    . = ALIGN(16);
     __text_end = .;
+    __ftext_end = ABSOLUTE(.);
+
+    __fdata_start = ABSOLUTE(.);
 
     .rodata : {
         *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
+        __build_id = .;
+        *(.note.gnu.build-id)
+        __build_id_end = .;
     } > ram
 
     .rodata1 : {
@@ -80,7 +136,8 @@ SECTIONS {
     } > ram
 
     . = ALIGN(4);
-
+    __data_end = .;
+    __fdata_end = .;
     __bss_start = .;
     .sbss : {
         *(.dynsbss)
@@ -96,6 +153,9 @@ SECTIONS {
 
     __end = .;
 
+    /* pad file to be a multiple of 2048 bytes.  Needed for loading from CD-ROM. */
+    . = ADDR(.text) - 0x800;
+
     /DISCARD/ : { *(.MIPS.abiflags) }
 
     /* Everything is statically linked, so discard PLTs. */
@@ -103,6 +163,4 @@ SECTIONS {
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
-
-    /DISCARD/ : { *(.note.gnu.build-id) }
 }

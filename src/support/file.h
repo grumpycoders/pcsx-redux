@@ -45,6 +45,20 @@ class File {
     File* dup() { return new File(m_filename); }
     char* gets(char* s, int size);
     std::string gets();
+    template <class T>
+    T read() {
+        T ret = 0;
+        for (int i = 0; i < sizeof(T); i++) {
+            T b = byte();
+            ret |= (b << (i * 8));
+        }
+        return ret;
+    }
+    uint8_t byte() {
+        uint8_t r;
+        read(&r, 1);
+        return r;
+    }
     ssize_t read(void* dest, ssize_t size);
     ssize_t write(const void* dest, size_t size);
     int getc();

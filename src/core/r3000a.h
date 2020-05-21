@@ -275,7 +275,7 @@ class R3000Acpu {
     R3000Acpu() {}
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
-    virtual void Execute() = 0;         /* executes up to a debug break */
+    virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -300,7 +300,7 @@ class R3000Acpu {
 
     psxRegisters m_psxRegs;
     float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-    bool m_booted = false;
+    bool m_shellStarted = false;
 
     virtual void Reset() { m_psxRegs.ICache_valid = false; }
     bool m_nextIsDelaySlot = false;
@@ -351,11 +351,11 @@ class R3000Acpu {
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!g_system->running()) return false;
-        if (!m_booted) {
+        if (!m_shellStarted) {
             uint32_t &pc = m_psxRegs.pc;
             if (pc == 0x80030000) {
-                m_booted = true;
-                if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) pc = m_psxRegs.GPR.n.ra;
+                m_shellStarted = true;
+                g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
             }
         }
         return true;

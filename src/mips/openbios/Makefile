@@ -1,4 +1,5 @@
 TARGET = openbios
+TYPE = bin
 
 SRCS = \
 ../common/hardware/sio1.c \

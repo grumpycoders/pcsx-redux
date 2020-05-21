@@ -25,13 +25,16 @@ SOFTWARE.
 */
 
 OUTPUT_FORMAT("elf32-tradlittlemips")
-OUTPUT_ARCH(mips)
+OUTPUT_FORMAT("binary")
 
 EXTERN(_start)
 ENTRY(_start)
 
+TLOAD_ADDR = DEFINED(_TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
+
 MEMORY {
-    ram (rwx)   : ORIGIN = 0x80030000, LENGTH = 2M - 0x30000
+    loader      : ORIGIN = 0x8000ffea, LENGTH = 22
+    ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
@@ -42,10 +45,22 @@ __dcache        = ORIGIN(dcache);
 __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 
 __bss_len       = (__bss_end - __bss_start);
+__ftext_len     = (__ftext_end - __ftext_start);
+__fdata_len     = (__fdata_end - __fdata_start);
 
 SECTIONS {
-    __text_start = .;
-    .text : {
+    .CPE_Header : {
+        BYTE(67); BYTE(80); BYTE(69); BYTE(1); 
+        BYTE(8); BYTE(0);
+        BYTE(3); BYTE(144); BYTE(0);
+        LONG(ABSOLUTE(_start));
+        BYTE(1);
+        LONG(TLOAD_ADDR);
+        LONG(__ftext_len + __fdata_len);
+    } > loader
+
+    __ftext_start = ABSOLUTE(.);
+    .text TLOAD_ADDR : {
         *(.start)
         *(.init)
         KEEP (*(SORT_NONE(.fini)))
@@ -54,16 +69,24 @@ SECTIONS {
         *(.text.startup .text.startup.*)
         *(.text.hot .text.hot.*)
         *(.text .stub .text.* .gnu.linkonce.t.*)
-        . = ALIGN(4);
+        . = ALIGN(16);
     } > ram
 
     .fini : {
+        . = ALIGN(16);
     } > ram
-    . = ALIGN(4);
+
+    . = ALIGN(16);
     __text_end = .;
+    __ftext_end = ABSOLUTE(.);
+
+    __fdata_start = ABSOLUTE(.);
 
     .rodata : {
         *(.rodata .rodata.* .rdata .rdata.* .gnu.linkonce.r.*)
+        __build_id = .;
+        *(.note.gnu.build-id)
+        __build_id_end = .;
     } > ram
 
     .rodata1 : {
@@ -80,9 +103,14 @@ SECTIONS {
     } > ram
 
     . = ALIGN(4);
-
+    __data_end = .;
+    __fdata_end = .;
+    .data1 : {
+        BYTE(0);
+    } > ram
+    . = ALIGN(4);
     __bss_start = .;
-    .sbss : {
+    .sbss (NOLOAD) : {
         *(.dynsbss)
         *(.sbss .sbss.* .gnu.linkonce.sb.*)
         *(.scommon)
@@ -103,6 +131,4 @@ SECTIONS {
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
-
-    /DISCARD/ : { *(.note.gnu.build-id) }
 }
