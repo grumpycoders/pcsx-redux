@@ -38,7 +38,7 @@ class Elf {
     bool load(const char* name);
 #if defined(__cpp_lib_char8_t)
     bool load(const std::u8string& filename) {
-        return load(reinterpret_cast<const char*>(filename.c_str());
+        return load(reinterpret_cast<const char*>(filename.c_str()));
     }
 #endif
     bool load(const std::string& filename) { return load(filename.c_str()); }
