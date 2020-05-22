@@ -204,18 +204,18 @@ static std::pair<uint32_t, bool> parseHexNumber(const std::string& str) { return
 
 static const std::string memoryMap = R"(<?xml version="1.0"?>
 <memory-map>
-  <memory type="ram" start="0x00000000" length="0x200000"/>
-  <memory type="ram" start="0x80000000" length="0x200000"/>
-  <memory type="ram" start="0xa0000000" length="0x200000"/>
-  <memory type="ram" start="0x1f800000" length="0x400"/>
-  <memory type="ram" start="0x9f800000" length="0x400"/>
-  <memory type="ram" start="0x1f801000" length="0x1000"/>
-  <memory type="ram" start="0x9f801000" length="0x1000"/>
-  <memory type="ram" start="0xbf801000" length="0x1000"/>
-  <memory type="rom" start="0x1fc00000" length="0x80000"/>
-  <memory type="rom" start="0x9fc00000" length="0x80000"/>
-  <memory type="rom" start="0xbfc00000" length="0x80000"/>
-  <memory type="ram" start="0xfffe0000" length="0x200"/>
+  <memory type="ram" start="0x0000000000000000" length="0x200000"/>
+  <memory type="ram" start="0xffffffff80000000" length="0x200000"/>
+  <memory type="ram" start="0xffffffffa0000000" length="0x200000"/>
+  <memory type="ram" start="0x000000001f800000" length="0x400"/>
+  <memory type="ram" start="0xffffffff9f800000" length="0x400"/>
+  <memory type="ram" start="0x000000001f801000" length="0x1000"/>
+  <memory type="ram" start="0xffffffff9f801000" length="0x1000"/>
+  <memory type="ram" start="0xffffffffbf801000" length="0x1000"/>
+  <memory type="rom" start="0x000000001fc00000" length="0x80000"/>
+  <memory type="rom" start="0xffffffff9fc00000" length="0x80000"/>
+  <memory type="rom" start="0xffffffffbfc00000" length="0x80000"/>
+  <memory type="ram" start="0xfffffffffffe0000" length="0x200"/>
 </memory-map>
 )";
 
@@ -531,7 +531,7 @@ void PCSX::GdbClient::processCommand() {
     } else if (Misc::startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
-        write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;QStartNoAckMode+");
+        write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
     } else if (Misc::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
