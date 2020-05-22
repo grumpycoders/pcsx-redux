@@ -889,7 +889,7 @@ void PCSX::GUI::about() {
             checkGL();
             ImGui::TextWrapped("%s: %s", str, value);
         };
-        ImGui::Text(_("OpenGL information"));
+        ImGui::TextUnformatted(_("OpenGL information"));
         someString(_("vendor"), GL_VENDOR);
         someString(_("renderer"), GL_RENDERER);
         someString(_("version"), GL_VERSION);
@@ -897,7 +897,7 @@ void PCSX::GUI::about() {
         GLint n, i;
         glGetIntegerv(GL_NUM_EXTENSIONS, &n);
         checkGL();
-        ImGui::Text(_("extensions:"));
+        ImGui::TextUnformatted(_("extensions:"));
         ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
         for (i = 0; i < n; i++) {
             const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);

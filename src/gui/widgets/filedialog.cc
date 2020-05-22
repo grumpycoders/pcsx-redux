@@ -179,7 +179,7 @@ bool PCSX::Widgets::FileDialog::draw() {
 
         if (ImGui::Button(_("Home"))) goHome = true;
         ImGui::SameLine();
-        ImGui::Text(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
+        ImGui::TextUnformatted(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
         {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
             if (ImGui::TreeNode(_("Roots"))) {
@@ -304,11 +304,11 @@ bool PCSX::Widgets::FileDialog::draw() {
                     }
                 }
                 ImGui::SameLine();
-                ImGui::Text(reinterpret_cast<const char*>(p.filename.c_str()));
+                ImGui::TextUnformatted(reinterpret_cast<const char*>(p.filename.c_str()));
                 ImGui::NextColumn();
-                ImGui::Text(std::to_string(p.size).c_str());
+                ImGui::TextUnformatted(std::to_string(p.size).c_str());
                 ImGui::NextColumn();
-                ImGui::Text(p.dateTime.c_str());
+                ImGui::TextUnformatted(p.dateTime.c_str());
                 ImGui::NextColumn();
 
                 if (p.selected) selected = &p;
@@ -319,7 +319,7 @@ bool PCSX::Widgets::FileDialog::draw() {
         PCSX::u8string selectedStr;
         bool gotSelected = selected;
         if (m_flags & NewFile) {
-            ImGui::Text(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
+            ImGui::TextUnformatted(reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
             ImGui::SameLine();
             std::string label = std::string("##") + m_title() + "Filename";
             InputText(label.c_str(), &m_newFile);
@@ -327,7 +327,7 @@ bool PCSX::Widgets::FileDialog::draw() {
             gotSelected = !m_newFile.empty();
         } else {
             selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : MAKEU8(u8"..."))).u8string();
-            ImGui::Text(reinterpret_cast<const char*>(selectedStr.c_str()));
+            ImGui::TextUnformatted(reinterpret_cast<const char*>(selectedStr.c_str()));
         }
         if (!gotSelected) {
             const ImVec4 lolight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];

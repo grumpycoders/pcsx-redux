@@ -138,7 +138,7 @@ void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameGPR[reg]);
+    ImGui::TextUnformatted(s_disRNameGPR[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -152,7 +152,7 @@ void PCSX::Widgets::Assembly::CP0(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameCP0[reg]);
+    ImGui::TextUnformatted(s_disRNameCP0[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -166,7 +166,7 @@ void PCSX::Widgets::Assembly::CP2C(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameCP2C[reg]);
+    ImGui::TextUnformatted(s_disRNameCP2C[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -180,7 +180,7 @@ void PCSX::Widgets::Assembly::CP2D(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameCP2D[reg]);
+    ImGui::TextUnformatted(s_disRNameCP2D[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -263,7 +263,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     comma();
     sameLine();
     char label[21];
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
@@ -341,7 +341,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
         std::snprintf(label, sizeof(label), "0x%4.4x($%s)##%08x", offset, s_disRNameGPR[reg], m_currentAddr);
     }
     uint32_t addr = m_registers->GPR.r[reg] + offset;
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(label)) jumpToMemory(addr, size);
@@ -368,7 +368,7 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     comma();
     sameLine();
     char label[21];
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
@@ -398,7 +398,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     std::string longLabel = label;
     auto symbols = findSymbol(addr);
     if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
@@ -455,7 +455,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextUnformatted(
                     _("When two instructions are detected to be a single pseudo-instruction, combine them into the "
                       "actual pseudo-instruction."));
                 ImGui::PopTextWrapPos();
@@ -465,7 +465,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextUnformatted(
                     _("When combining two instructions into a single pseudo-instruction, add a placeholder for the "
                       "second one."));
                 ImGui::PopTextWrapPos();
@@ -475,7 +475,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextUnformatted(
                     _("Add a small visible notch to indicate instructions that are on the delay slot of a branch."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
@@ -484,7 +484,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(_("Display arrows for jumps. This might crowd the display a bit too much."));
+                ImGui::TextUnformatted(_("Display arrows for jumps. This might crowd the display a bit too much."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
@@ -637,7 +637,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                 }
 
                 for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
-                    ImGui::Text("");
+                    ImGui::TextUnformatted("");
                     ImGui::SameLine();
                 }
 
@@ -930,7 +930,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                         dwarf->m_pc = fmt::format("{:08x}", symbol.second);
                     }
                     ImGui::SameLine();
-                    ImGui::Text(label.c_str());
+                    ImGui::TextUnformatted(label.c_str());
                 }
             }
             ImGui::EndChild();
