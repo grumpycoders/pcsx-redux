@@ -4,6 +4,8 @@
 |Linux build|[![CircleCI](https://circleci.com/gh/grumpycoders/pcsx-redux.svg?style=svg)](https://circleci.com/gh/grumpycoders/pcsx-redux)|
 |MacOS build|![macOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=master)|
 
+![Discord](https://img.shields.io/discord/567975889879695361)
+
 # PCSX-Redux
 
 ## What?
