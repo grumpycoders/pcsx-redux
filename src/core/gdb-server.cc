@@ -23,6 +23,7 @@
 #include <uv.h>
 
 #include "core/debug.h"
+#include "core/misc.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -184,21 +185,6 @@ void PCSX::GdbClient::processData(const Slice& slice) {
     }
 }
 
-static std::vector<std::string> split(const std::string& str, const std::string& delim) {
-    std::vector<std::string> tokens;
-    size_t prev = 0, pos = 0;
-    do {
-        pos = str.find(delim, prev);
-        if (pos == std::string::npos) pos = str.length();
-        std::string token = str.substr(prev, pos - prev);
-        if (!token.empty()) tokens.push_back(token);
-        prev = pos + delim.length();
-    } while (pos < str.length() && prev < str.length());
-    return std::move(tokens);
-}
-
-static bool startsWith(const std::string& s1, const std::string& s2) { return s1.rfind(s2, 0) == 0; }
-
 static std::pair<uint32_t, bool> parseHexNumber(const char* str) {
     uint64_t value = 0;
     char c;
@@ -322,7 +308,7 @@ static const std::string targetXML = R"(<?xml version="1.0"?>
 )";
 
 std::pair<uint64_t, uint64_t> PCSX::GdbClient::parseCursor(const std::string& cursorStr) {
-    auto cursorStrs = split(cursorStr, ",");
+    auto cursorStrs = Misc::split(cursorStr, ",");
     uint64_t off = 0;
     uint64_t len = 0;
     if (cursorStrs.size() == 2) {
@@ -436,7 +422,7 @@ void PCSX::GdbClient::processCommand() {
         m_waitingForTrap = true;
     } else if (m_cmd[0] == 'M') {
         // write memory
-        auto elements = split(m_cmd, ":");
+        auto elements = Misc::split(m_cmd, ":");
         auto [off, len] = parseCursor(elements[0].substr(1));
         size_t i = 0;
         while (len--) {
@@ -480,7 +466,7 @@ void PCSX::GdbClient::processCommand() {
             write("");
             return;
         }
-        auto breakpointData = split(m_cmd.substr(1), ",");
+        auto breakpointData = Misc::split(m_cmd.substr(1), ",");
         if (breakpointData.size() != 3) {
             // wrong number of arguments
             write("");
@@ -540,22 +526,22 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
     } else if (m_cmd == "Hg0") {
         write("OK");
-    } else if (startsWith(m_cmd, "vKill;")) {
+    } else if (Misc::startsWith(m_cmd, "vKill;")) {
         write("OK");
-    } else if (startsWith(m_cmd, qSupported)) {
+    } else if (Misc::startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
         write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;QStartNoAckMode+");
-    } else if (startsWith(m_cmd, "QStartNoAckMode")) {
+    } else if (Misc::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
-    } else if (startsWith(m_cmd, qSymbol)) {
+    } else if (Misc::startsWith(m_cmd, qSymbol)) {
         // It looks like extended-remote doesn't even offer to give us the
         // location of the start address...? Why? That's a terrible design.
         // We'll have to basically rely on our wits and monitor commands
         // tricks to get us to load an arbitrary file properly. We'll only
         // make this work if the symbols _start or _reset are defined.
-        auto elements = split(m_cmd.substr(qSymbol.length()), ":");
+        auto elements = Misc::split(m_cmd.substr(qSymbol.length()), ":");
         switch (m_qsymbolState) {
             case QSYMBOL_IDLE:
                 // gdb is offering symbols. Let's start by trying _start's location.
@@ -586,7 +572,7 @@ void PCSX::GdbClient::processCommand() {
                 write("OK");
                 break;
         }
-    } else if (startsWith(m_cmd, "qRcmd,")) {
+    } else if (Misc::startsWith(m_cmd, "qRcmd,")) {
         // this is the "monitor" command
         size_t len = m_cmd.length() - 6;
         std::string monitor;
@@ -598,11 +584,11 @@ void PCSX::GdbClient::processCommand() {
             monitor += c;
         }
         processMonitorCommand(monitor);
-    } else if (startsWith(m_cmd, qXferMemMap)) {
+    } else if (Misc::startsWith(m_cmd, qXferMemMap)) {
         writePaged(memoryMap, m_cmd.substr(qXferMemMap.length()));
-    } else if (startsWith(m_cmd, qXferFeatures)) {
+    } else if (Misc::startsWith(m_cmd, qXferFeatures)) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
-    } else if (startsWith(m_cmd, qXferThreads)) {
+    } else if (Misc::startsWith(m_cmd, qXferThreads)) {
         writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->printf("Unknown GDB command: %s\n", m_cmd.c_str());
@@ -619,10 +605,10 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
         writeEscaped("");
         m_sentBanner = true;
     }
-    if (startsWith(cmd, "reset")) {
+    if (Misc::startsWith(cmd, "reset")) {
         g_emulator->m_psxCpu->psxReset();
         writeEscaped("Emulation reset\n");
-        auto words = split(cmd, " ");
+        auto words = Misc::split(cmd, " ");
         if (words.size() == 2) {
             if (words[1] == "halt") {
                 writeEscaped("Emulation paused\n");
