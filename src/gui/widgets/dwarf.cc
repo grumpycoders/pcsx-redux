@@ -176,7 +176,7 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
                         for (auto& e : m) {
                             auto& l = e.second;
                             ImGui::Text(
-                                ":%5i/%3i [%08x] idx: %i, stmt: %i, basic: %i, endseq: %i, prlgend: %i, eplgend: %i, "
+                                ":%5i/%3i [%08lx] idx: %i, stmt: %i, basic: %i, endseq: %i, prlgend: %i, eplgend: %i, "
                                 "discr: %i",
                                 l.line, l.column, l.address, l.op_index, l.is_stmt, l.basic_block, l.end_sequence,
                                 l.prologue_end, l.epilogue_begin, l.discriminator);
