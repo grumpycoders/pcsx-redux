@@ -204,17 +204,39 @@ static std::pair<uint32_t, bool> parseHexNumber(const std::string& str) { return
 
 static const std::string memoryMap = R"(<?xml version="1.0"?>
 <memory-map>
-  <memory type="ram" start="0x0000000000000000" length="0x200000"/>
-  <memory type="ram" start="0xffffffff80000000" length="0x200000"/>
-  <memory type="ram" start="0xffffffffa0000000" length="0x200000"/>
+  <!-- Everything here is described as RAM, because we don't really
+       have any better option. -->
+
+  <!-- Main memory bloc: let's go with 8MB straight off the bat. -->
+  <memory type="ram" start="0x0000000000000000" length="0x800000"/>
+  <memory type="ram" start="0xffffffff80000000" length="0x800000"/>
+  <memory type="ram" start="0xffffffffa0000000" length="0x800000"/>
+
+  <!-- EXP1 can go up to 8MB too. -->
+  <memory type="ram" start="0x000000001f000000" length="0x800000"/>
+  <memory type="ram" start="0xffffffff9f000000" length="0x800000"/>
+  <memory type="ram" start="0xffffffffbf000000" length="0x800000"/>
+
+  <!-- Scratchpad -->
   <memory type="ram" start="0x000000001f800000" length="0x400"/>
   <memory type="ram" start="0xffffffff9f800000" length="0x400"/>
-  <memory type="ram" start="0x000000001f801000" length="0x1000"/>
-  <memory type="ram" start="0xffffffff9f801000" length="0x1000"/>
-  <memory type="ram" start="0xffffffffbf801000" length="0x1000"/>
-  <memory type="rom" start="0x000000001fc00000" length="0x80000"/>
-  <memory type="rom" start="0xffffffff9fc00000" length="0x80000"/>
-  <memory type="rom" start="0xffffffffbfc00000" length="0x80000"/>
+
+  <!-- Hardware registers -->
+  <memory type="ram" start="0x000000001f801000" length="0x2000"/>
+  <memory type="ram" start="0xffffffff9f801000" length="0x2000"/>
+  <memory type="ram" start="0xffffffffbf801000" length="0x2000"/>
+
+  <!-- DTL BIOS SRAM -->
+  <memory type="ram" start="0x000000001fa00000" length="0x200000"/>
+  <memory type="ram" start="0xffffffff9fa00000" length="0x200000"/>
+  <memory type="ram" start="0xffffffffbfa00000" length="0x200000"/>
+
+  <!-- BIOS -->
+  <memory type="ram" start="0x000000001fc00000" length="0x80000"/>
+  <memory type="ram" start="0xffffffff9fc00000" length="0x80000"/>
+  <memory type="ram" start="0xffffffffbfc00000" length="0x80000"/>
+
+  <!-- This really is only for 0xfffe0130 -->
   <memory type="ram" start="0xfffffffffffe0000" length="0x200"/>
 </memory-map>
 )";
@@ -222,8 +244,13 @@ static const std::string memoryMap = R"(<?xml version="1.0"?>
 static const std::string targetXML = R"(<?xml version="1.0"?>
 <!DOCTYPE feature SYSTEM "gdb-target.dtd">
 <target version="1.0">
+
+<!-- Helping GDB -->
 <architecture>mips:3000</architecture>
 <osabi>none</osabi>
+
+<!-- Mapping ought to be flexible, but there seems to be some
+     hardcoded parts in gdb, so let's use the same mapping. -->
 <feature name="org.gnu.gdb.mips.cpu">
   <reg name="r0" bitsize="32" regnum="0"/>
   <reg name="r1" bitsize="32"/>
@@ -267,6 +294,9 @@ static const std::string targetXML = R"(<?xml version="1.0"?>
   <reg name="badvaddr" bitsize="32" regnum="35"/>
   <reg name="cause" bitsize="32" regnum="36"/>
 </feature>
+
+<!-- We don't have an FPU, but gdb hardcodes one, and will choke
+     if this section isn't present. -->
 <feature name="org.gnu.gdb.mips.fpu">
   <reg name="f0" bitsize="32" type="ieee_single" regnum="38"/>
   <reg name="f1" bitsize="32" type="ieee_single"/>
