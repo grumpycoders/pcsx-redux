@@ -88,7 +88,7 @@ void dumpTree(const dwarf::die& node, const PCSX::Elf& elf) {
                 if (ImGui::TreeNode(attribute.c_str())) {
                     auto strs = expr.to_strings();
                     for (auto& s : strs) {
-                        ImGui::Text(s.c_str());
+                        ImGui::TextUnformatted(s.c_str());
                     }
                     ImGui::TreePop();
                 }
@@ -96,7 +96,7 @@ void dumpTree(const dwarf::die& node, const PCSX::Elf& elf) {
             }
             default: {
                 std::string attribute = fmt::format("{:30} {}", to_string(attr.first), to_string(attr.second));
-                ImGui::Text(attribute.c_str());
+                ImGui::TextUnformatted(attribute.c_str());
                 break;
             }
         }
@@ -148,7 +148,7 @@ void PCSX::Widgets::Dwarf::draw(const char* title) {
             }
             case BY_PC: {
                 auto [entry, stack] = e.findByAddress(strtoul(m_pc.c_str(), nullptr, 16));
-                if (entry.valid()) ImGui::Text(entry.get_description().c_str());
+                if (entry.valid()) ImGui::TextUnformatted(entry.get_description().c_str());
                 for (auto& d : stack) {
                     dumpTree(d, e);
                 }
