@@ -308,9 +308,9 @@ bool CheckCdrom() {
     if (PCSX::g_emulator->config().PerGameMcd) {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
-        sprintf(mcd1path, "memcards/games/%s-%02d.mcd",
+        sprintf(mcd1path, "memcards/games/%hhn-%02d.mcd",
                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 1);
-        sprintf(mcd2path, "memcards/games/%s-%02d.mcd",
+        sprintf(mcd2path, "memcards/games/%hhn-%02d.mcd",
                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);
         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
@@ -353,7 +353,7 @@ static void LoadLibPS() {
     FILE *f;
 
     // Load Net Yaroze runtime library (if exists)
-    sprintf(buf, "%s/libps.exe",
+    sprintf(buf, "%hhn/libps.exe",
             PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBios>().value.parent_path().u8string().c_str());
     f = fopen(buf, "rb");
 
