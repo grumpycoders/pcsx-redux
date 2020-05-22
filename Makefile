@@ -34,7 +34,7 @@ ifeq ($(UNAME_S),Darwin)
 	CPPFLAGS += -stdlib=libc++
 endif
 
-LDFLAGS := `pkg-config --libs $(PACKAGES)`
+LDFLAGS := `pkg-config --libs $(PACKAGES)` -lGLEW
 
 ifeq ($(UNAME_S),Darwin)
 	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
