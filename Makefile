@@ -21,6 +21,7 @@ CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -Ithird_party/libelfin
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -g
+CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 CPPFLAGS_Release += -O3
 
