@@ -21,6 +21,9 @@
 
 #include "core/coff.h"
 
+#include <string>
+#include <vector>
+
 #undef s_addr
 
 typedef struct {
@@ -54,3 +57,26 @@ int RecvPcsxInfo();
 
 void trim(char *str);
 uint16_t calcCrc(uint8_t *d, int len);
+
+namespace PCSX {
+
+namespace Misc {
+
+static inline std::vector<std::string> split(const std::string &str, const std::string &delim) {
+    std::vector<std::string> tokens;
+    size_t prev = 0, pos = 0;
+    do {
+        pos = str.find(delim, prev);
+        if (pos == std::string::npos) pos = str.length();
+        std::string token = str.substr(prev, pos - prev);
+        if (!token.empty()) tokens.push_back(token);
+        prev = pos + delim.length();
+    } while (pos < str.length() && prev < str.length());
+    return std::move(tokens);
+}
+
+static inline bool startsWith(const std::string &s1, const std::string &s2) { return s1.rfind(s2, 0) == 0; }
+
+}  // namespace Misc
+
+}  // namespace PCSX

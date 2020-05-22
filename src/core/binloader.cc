@@ -22,8 +22,13 @@
 #include <stdint.h>
 #include <zlib.h>
 
+#include <filesystem>
+#include <string>
+#include <vector>
+
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "fmt/format.h"
 #include "support/file.h"
 
 namespace PCSX {
@@ -143,7 +148,8 @@ bool loadPSEXE(File& file) {
     return true;
 }
 
-bool loadPSF(File& file) {
+bool loadPSF(File& file, bool seenRefresh = false, unsigned depth = 0) {
+    if (depth >= 10) return false;
     file.seek(0, SEEK_SET);
     uint32_t magic = file.read<uint32_t>();
     if (magic != 0x1465350) return false;
@@ -153,7 +159,53 @@ bool loadPSF(File& file) {
     file.seek(R, SEEK_CUR);
     uint8_t* buffer = (uint8_t*)malloc(N);
     file.read(buffer, N);
-    
+    char tagtag[6];
+    file.read(tagtag, 5);
+    tagtag[5] = 0;
+
+    std::map<std::string, std::string> pairs;
+
+    if (strcmp(tagtag, "[TAG]") == 0) {
+        char* tags;
+        auto current = file.tell();
+        file.seek(0, SEEK_END);
+        size_t tagsSize = file.tell() - current;
+        file.seek(current, SEEK_SET);
+        tags = (char*)malloc(tagsSize + 1);
+
+        file.read(tags, tagsSize);
+        tags[tagsSize] = 0;
+        char* cr;
+
+        while ((cr = strchr(tags, '\r'))) *cr = '\n';
+
+        auto lines = Misc::split(tags, "\n");
+
+        free(tags);
+
+        for (auto& line : lines) {
+            auto e = line.find('=', 0);
+            if (e == std::string::npos) continue;
+            pairs[line.substr(0, e)] = line.substr(e + 1);
+        }
+    }
+
+    if (!seenRefresh && pairs.find("refresh") != pairs.end()) {
+        const auto& refresh = pairs["refresh"];
+        if (refresh == "50") {
+            g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+        } else if (refresh == "60") {
+            g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+        }
+        seenRefresh = true;
+    }
+
+    if (pairs.find("_lib") != pairs.end()) {
+        std::filesystem::path subFilePath(file.filename());
+        File subFile(subFilePath.parent_path() / pairs["_lib"]);
+        if (!subFile.failed()) loadPSF(subFile, seenRefresh, depth++);
+    }
+
     {
         static constexpr unsigned TWOM = 2 * 1024 * 1024;
         uint8_t* psexe = (uint8_t*)malloc(TWOM);  // and no fucks were given today.
@@ -177,6 +229,18 @@ bool loadPSF(File& file) {
         free(psexe);
     }
     free(buffer);
+
+    unsigned libNum = 2;
+
+    while (true) {
+        std::string libName = fmt::format("_lib{}", libNum++);
+        if (pairs.find(libName) == pairs.end()) break;
+        std::filesystem::path subFilePath(file.filename());
+        File subFile(subFilePath.parent_path() / pairs[libName]);
+        if (!subFile.failed()) loadPSF(subFile, seenRefresh, depth++);
+    }
+
+    return true;
 }
 
 }  // namespace
