@@ -71,6 +71,8 @@ class GUI final {
         // SDL_TriggerBreakpoint();
     }
 
+    void magicOpen(const char *path);
+
     static void checkGL();
 
   private:
