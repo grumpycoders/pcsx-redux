@@ -29,6 +29,7 @@
 #include "core/misc.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
+#include "fmt/format.h"
 
 #include "spu/interface.h"
 
@@ -308,9 +309,13 @@ bool CheckCdrom() {
     if (PCSX::g_emulator->config().PerGameMcd) {
         char mcd1path[MAXPATHLEN] = {'\0'};
         char mcd2path[MAXPATHLEN] = {'\0'};
-        sprintf(mcd1path, "memcards/games/%hhn-%02d.mcd",
+        /*sprintf(mcd1path, "memcards/games/%hhn-%02d.mcd",
                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 1);
         sprintf(mcd2path, "memcards/games/%hhn-%02d.mcd",
+                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);*/
+        std::string label1 = fmt::format(mcd1path, "memcards/games/{:08x}-{:02d}.mcd",
+                PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 1);
+        std::string label2 = fmt::format(mcd2path, "memcards/games/{:08x}-{:02d}.mcd",
                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);
         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
