@@ -25,6 +25,7 @@
 #include <SDL.h>
 #include <assert.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <unordered_set>
@@ -78,6 +79,13 @@ void PCSX::GUI::setFullscreen(bool fullscreen) {
     }
 }
 
+static PCSX::GUI* s_this = nullptr;
+
+static void drop_callback(GLFWwindow* window, int count, const char** paths) {
+    if (count != 1) return;
+    s_this->magicOpen(paths[0]);
+}
+
 void PCSX::GUI::init() {
     int result;
     PCSX::g_emulator->m_uv->init();
@@ -99,6 +107,9 @@ void PCSX::GUI::init() {
     assert(m_window);
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
+
+    s_this = this;
+    glfwSetDropCallback(m_window, drop_callback);
 
     result = gl3wInit();
     assert(result == 0);
@@ -926,4 +937,35 @@ void PCSX::GUI::shellReached() {
     if (success) {
         g_system->biosPrintf("Successful: new PC = %08x...\n", regs.pc);
     }
+}
+
+void PCSX::GUI::magicOpen(const char* pathStr) {
+    // Try guessing what we're opening using extension only.
+    // Doing magic guesses might be an option, but that's exhausting right now. Maybe later.
+    std::filesystem::path path(pathStr);
+
+    static const std::vector<std::string> exeExtensions = {
+        "EXE", "PSX", "PSF", "MINIPSF", "PSFLIB", "CPE", "ELF",
+    };
+
+    const auto& extensionPath = path.extension().string();
+
+    char* extension = (char*)malloc(extensionPath.length());
+    for (int i = 1; i < extensionPath.length(); i++) {
+        extension[i - 1] = toupper(extensionPath[i]);
+    }
+    extension[extensionPath.length() - 1] = 0;
+
+    if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
+        m_exeToLoad = path.string();
+        g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+        g_system->softReset();
+    } else {
+        PCSX::g_emulator->m_cdrom->m_iso.close();
+        SetIsoFile(pathStr);
+        PCSX::g_emulator->m_cdrom->m_iso.open();
+        CheckCdrom();
+    }
+
+    free(extension);
 }
