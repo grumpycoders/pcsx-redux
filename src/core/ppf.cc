@@ -206,7 +206,9 @@ void PCSX::PPF::BuildPPFCache() {
     if (ppffile == NULL) return;
 
     memset(buffer, 0, 5);
-    fread(buffer, 3, 1, ppffile);
+    if (fread(buffer, 3, 1, ppffile) != 1) {
+        printf("File read error.");
+    }
 
     if (strcmp(buffer, "PPF") != 0) {
         PCSX::g_system->printf(_("Invalid PPF patch: %s.\n"), szPPF);
@@ -229,12 +231,16 @@ void PCSX::PPF::BuildPPFCache() {
             fseek(ppffile, -8, SEEK_END);
 
             memset(buffer, 0, 5);
-            fread(buffer, 4, 1, ppffile);
+            if (fread(buffer, 4, 1, ppffile) != 1) {
+                printf("File read error.");
+            }
 
             if (strcmp(".DIZ", buffer) != 0) {
                 dizyn = 0;
             } else {
-                fread(&dizlen, 4, 1, ppffile);
+                if (fread(&dizlen, 4, 1, ppffile) != 1) {
+                    printf("File read error.");
+                }
                 dizlen = SWAP_LE32(dizlen);
                 dizyn = 1;
             }
@@ -260,12 +266,16 @@ void PCSX::PPF::BuildPPFCache() {
 
             fseek(ppffile, -6, SEEK_END);
             memset(buffer, 0, 5);
-            fread(buffer, 4, 1, ppffile);
+            if (fread(buffer, 4, 1, ppffile) != 1) {
+                printf("File read error.");
+            }
             dizlen = 0;
 
             if (strcmp(".DIZ", buffer) == 0) {
                 fseek(ppffile, -2, SEEK_END);
-                fread(&dizlen, 2, 1, ppffile);
+                if (fread(&dizlen, 2, 1, ppffile) != 1) {
+                    printf("File read error.");
+                }
                 dizlen = SWAP_LE32(dizlen);
                 dizlen += 36;
             }
@@ -292,13 +302,21 @@ void PCSX::PPF::BuildPPFCache() {
     // now do the data reading
     do {
         fseek(ppffile, seekpos, SEEK_SET);
-        fread(&pos, 4, 1, ppffile);
+        if (fread(&pos, 4, 1, ppffile) != 1) {
+            printf("File read error.");
+        }
         pos = SWAP_LE32(pos);
 
-        if (method == 2) fread(buffer, 4, 1, ppffile);  // skip 4 bytes on ppf3 (no int64 support here)
+        if (method == 2) {
+            if (fread(buffer, 4, 1, ppffile) != 1) {  // skip 4 bytes on ppf3 (no int64 support here)
+                printf("File read error.");
+            }
+        }
 
         anz = fgetc(ppffile);
-        fread(ppfmem, anz, 1, ppffile);
+        if (fread(ppfmem, anz, 1, ppffile) != 1) {
+            printf("File read error.");
+        }
 
         ladr = pos / PCSX::CDRom::CD_FRAMESIZE_RAW;
         off = pos % PCSX::CDRom::CD_FRAMESIZE_RAW;
