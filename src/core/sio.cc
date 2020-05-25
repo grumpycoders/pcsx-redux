@@ -424,7 +424,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                     fseek(f, 3904, SEEK_SET);
             }
             if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-                printf("File read error.");
+                throw("File read error.");
             }
             fclose(f);
         } else
@@ -439,7 +439,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                 fseek(f, 3904, SEEK_SET);
         }
         if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
-            printf("File read error.");
+            throw("File read error.");
         }
         fclose(f);
     }
