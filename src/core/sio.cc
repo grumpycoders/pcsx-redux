@@ -423,7 +423,9 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                 else if (buf.st_size == MCD_SIZE + 3904)
                     fseek(f, 3904, SEEK_SET);
             }
-            fread(data, 1, MCD_SIZE, f);
+            if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
+                throw("File read error.");
+            }
             fclose(f);
         } else
             PCSX::g_system->message(_("Memory card %s failed to load!\n"), fname);
@@ -436,7 +438,9 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
             else if (buf.st_size == MCD_SIZE + 3904)
                 fseek(f, 3904, SEEK_SET);
         }
-        fread(data, 1, MCD_SIZE, f);
+        if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
+            throw("File read error.");
+        }
         fclose(f);
     }
 }
