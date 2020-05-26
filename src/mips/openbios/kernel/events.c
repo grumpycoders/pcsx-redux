@@ -55,7 +55,7 @@ static int getFreeEvCBSlot(void) {
     ptr = __globals.events;
     end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
     while (ptr < end) {
-        if (ptr->flags == 0) return slot;
+        if (ptr->flags == EVENT_FLAG_FREE) return slot;
         ptr++;
         slot++;
     }
@@ -71,7 +71,7 @@ uint32_t openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)
     event->class = class;
     event->spec = spec;
     event->mode = mode;
-    event->flags = 0x1000;
+    event->flags = EVENT_FLAG_DISABLED;
     event->handler = handler;
     return slot | 0xf1000000;
 }
@@ -82,9 +82,9 @@ __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t 
     ptr = __globals.events;
     end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
     while (ptr < end) {
-        if ((ptr->flags == 0x2000) && (class == ptr->class) && (spec == ptr->spec)) {
-            if (ptr->mode == 0x2000) ptr->flags = 0x4000;
-            else if ((ptr->mode = 0x1000) && ptr->handler) ptr->handler();
+        if ((ptr->flags == EVENT_FLAG_ENABLED) && (class == ptr->class) && (spec == ptr->spec)) {
+            if (ptr->mode == EVENT_MODE_NO_CALLBACK) ptr->flags = EVENT_FLAG_PENDING;
+            else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler) ptr->handler();
         }
         ptr++;
     }
@@ -92,13 +92,13 @@ __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t 
 
 int enableEvent(uint32_t event) {
     struct EventInfo * ptr = __globals.events + (event & 0xffff);
-    if (ptr->flags) ptr->flags = 0x2000;
+    if (ptr->flags) ptr->flags = EVENT_FLAG_ENABLED;
     return 1;
 }
 
 int closeEvent(uint32_t event) {
     struct EventInfo * ptr = __globals.events + (event & 0xffff);
-    ptr->flags = 0;
+    ptr->flags = EVENT_FLAG_FREE;
     return 1;
 }
 
@@ -108,8 +108,8 @@ void undeliverEvent(uint32_t class, uint32_t spec) {
     ptr = __globals.events;
     end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
     while (ptr < end) {
-        if ((ptr->flags == 0x4000) && (class == ptr->class) && (spec == ptr->spec) && (ptr->mode == 0x2000)) {
-            ptr->flags = 0x2000;
+        if ((ptr->flags == EVENT_FLAG_PENDING) && (class == ptr->class) && (spec == ptr->spec) && (ptr->mode == EVENT_MODE_NO_CALLBACK)) {
+            ptr->flags = EVENT_FLAG_ENABLED;
         }
         ptr++;
     }
@@ -117,8 +117,8 @@ void undeliverEvent(uint32_t class, uint32_t spec) {
 
 int testEvent(uint32_t event) {
     struct EventInfo * ptr = __globals.events + (event & 0xffff);
-    if (ptr->flags == 0x4000) {
-        ptr->flags = 0x2000;
+    if (ptr->flags == EVENT_FLAG_PENDING) {
+        ptr->flags = EVENT_FLAG_ENABLED;
         return 1;
     }
     return 0;
@@ -127,14 +127,14 @@ int testEvent(uint32_t event) {
 
 int waitEvent(uint32_t event) {
     struct EventInfo * ptr = __globals.events + (event & 0xffff);
-    if (ptr->flags == 0x4000) {
-        ptr->flags = 0x2000;
+    if (ptr->flags == EVENT_FLAG_PENDING) {
+        ptr->flags = EVENT_FLAG_ENABLED;
         return 1;
     }
-    if (ptr->flags == 0x2000) {
+    if (ptr->flags == EVENT_FLAG_ENABLED) {
         volatile uint32_t * flags = &ptr->flags;
-        while (*flags != 0x4000);
-        *flags = 0x2000;
+        while (*flags != EVENT_FLAG_PENDING);
+        *flags = EVENT_FLAG_ENABLED;
         return 1;
     }
     return 0;

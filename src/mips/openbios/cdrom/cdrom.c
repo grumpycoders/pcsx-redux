@@ -36,11 +36,11 @@ SOFTWARE.
 
 void initializeCDRomHandlersAndEvents() {
     syscall_enqueueCDRomHandlers();
-    g_cdEventACK = syscall_openEvent(0xf0000003, 0x0010, 0x2000, NULL);
-    g_cdEventDNE = syscall_openEvent(0xf0000003, 0x0020, 0x2000, NULL);
-    g_cdEventRDY = syscall_openEvent(0xf0000003, 0x0040, 0x2000, NULL);
-    g_cdEventEND = syscall_openEvent(0xf0000003, 0x0080, 0x2000, NULL);
-    g_cdEventERR = syscall_openEvent(0xf0000003, 0x8000, 0x2000, NULL);
+    g_cdEventACK = syscall_openEvent(EVENT_CDROM, 0x0010, EVENT_MODE_NO_CALLBACK, NULL);
+    g_cdEventDNE = syscall_openEvent(EVENT_CDROM, 0x0020, EVENT_MODE_NO_CALLBACK, NULL);
+    g_cdEventRDY = syscall_openEvent(EVENT_CDROM, 0x0040, EVENT_MODE_NO_CALLBACK, NULL);
+    g_cdEventEND = syscall_openEvent(EVENT_CDROM, 0x0080, EVENT_MODE_NO_CALLBACK, NULL);
+    g_cdEventERR = syscall_openEvent(EVENT_CDROM, 0x8000, EVENT_MODE_NO_CALLBACK, NULL);
     syscall_enableEvent(g_cdEventACK);
     syscall_enableEvent(g_cdEventDNE);
     syscall_enableEvent(g_cdEventRDY);
