@@ -5,3 +5,5 @@ cmake-build-*/
 *.bin
 *.elf
 *.map
+*.cpe
+*.ps-exe

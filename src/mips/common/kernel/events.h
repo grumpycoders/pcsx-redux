@@ -25,13 +25,29 @@ SOFTWARE.
 */
 
 #pragma once
-#include "common/kernel/events.h"
 
-int initEvents(int count);
-uint32_t openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)());
-void deliverEvent(uint32_t class, uint32_t spec);
-void undeliverEvent(uint32_t class, uint32_t spec);
-int testEvent(uint32_t event);
-int enableEvent(uint32_t event);
-int closeEvent(uint32_t event);
-int waitEvent(uint32_t event);
+enum event_class {
+    EVENT_VBLANK     = 0xf0000001, // IRQ0
+    EVENT_GPU        = 0xf0000002, // IRQ1
+    EVENT_CDROM      = 0xf0000003, // IRQ2
+    EVENT_DMA        = 0xf0000004, // IRQ3
+    EVENT_RTC0       = 0xf0000005, // IRQ4 - Timer 0
+    EVENT_RTC1       = 0xf0000006, // IRQ5 - Timer 1 or 2
+    //  0xf0000007 - unused, should be Timer 2
+    EVENT_CONTROLLER = 0xf0000008, // IRQ7
+    EVENT_SPU        = 0xf0000009, // IRQ9
+    EVENT_PIO        = 0xf000000A, // IRQ10
+    EVENT_SIO        = 0xf000000B, // IRQ8
+};
+
+enum event_mode {
+    EVENT_MODE_CALLBACK    = 0x1000,
+    EVENT_MODE_NO_CALLBACK = 0x2000,
+};
+
+enum event_flag {
+    EVENT_FLAG_FREE       = 0x0000,
+    EVENT_FLAG_DISABLED   = 0x1000,
+    EVENT_FLAG_ENABLED    = 0x2000,
+    EVENT_FLAG_PENDING    = 0x4000,
+};
