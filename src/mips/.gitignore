@@ -1,0 +1,7 @@
+# Clion
+.idea/
+cmake-build-*/
+
+*.bin
+*.elf
+*.map
