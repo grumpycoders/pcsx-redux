@@ -27,6 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include "common/compiler/stdint.h"
+#include "openbios/kernel/events.h"
 
 extern uint32_t g_cdEventACK;
 extern uint32_t g_cdEventDNE;

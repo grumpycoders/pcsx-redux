@@ -191,7 +191,7 @@ static void __attribute__((section(".ramtext"))) audioResponse(uint8_t status) {
     s_audioResp[5] = CDROM_REG1;
     s_audioResp[6] = CDROM_REG1;
     s_audioResp[7] = CDROM_REG1;
-    syscall_deliverEvent(0xf0000003, 0x40);
+    syscall_deliverEvent(EVENT_CDROM, 0x40);
 }
 
 static void __attribute__((section(".ramtext"))) dataReady() {
@@ -201,7 +201,7 @@ static void __attribute__((section(".ramtext"))) dataReady() {
             initiateDMA();
             return;
         case 0xe6: case 0xeb:
-            syscall_deliverEvent(0xf0000003, 0x40);
+            syscall_deliverEvent(EVENT_CDROM, 0x40);
             return;
     }
 
@@ -210,13 +210,13 @@ static void __attribute__((section(".ramtext"))) dataReady() {
             initiateDMA();
             break;
         case 0xe6: case 0xeb:
-            syscall_deliverEvent(0xf0000003, 0x40);
+            syscall_deliverEvent(EVENT_CDROM, 0x40);
             break;
         case 3: case 4:  case 5:
             audioResponse(status);
             break;
         default:
-            syscall_deliverEvent(0xf0000003, 0x200);
+            syscall_deliverEvent(EVENT_CDROM, 0x200);
             break;
 
     }
@@ -272,7 +272,7 @@ static void __attribute__((section(".ramtext"))) complete() {
                     break;
             }
             s_currentState = IDLE;
-            syscall_deliverEvent(0xf0000003, 0x0020);
+            syscall_deliverEvent(EVENT_CDROM, 0x0020);
             break;
         case 0x1a: { // getID?
             uint8_t * const ptr = s_idResponsePtr;
@@ -281,20 +281,20 @@ static void __attribute__((section(".ramtext"))) complete() {
             ptr[2] = CDROM_REG1;
             ptr[3] = CDROM_REG1;
             s_currentState = IDLE;
-            syscall_deliverEvent(0xf0000003, 0x0020);
+            syscall_deliverEvent(EVENT_CDROM, 0x0020);
             break;
         }
         case GOT_ERROR_AND_REINIT:
             s_gotInt5 = 0;
             s_currentState = IDLE;
-            syscall_deliverEvent(0xf0000003, 0x8000);
+            syscall_deliverEvent(EVENT_CDROM, 0x8000);
             break;
         case IDLE:
-            syscall_deliverEvent(0xf0000003, 0x0200);
+            syscall_deliverEvent(EVENT_CDROM, 0x0200);
             break;
         default:
             s_currentState = IDLE;
-            syscall_deliverEvent(0xf0000003, 0x0020);
+            syscall_deliverEvent(EVENT_CDROM, 0x0020);
             break;
     }
 }
@@ -319,7 +319,7 @@ static void __attribute__((section(".ramtext"))) getLocLAck() {
         s_currentState = s_preemptedState;
         s_preemptedState = IDLE;
     }
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static void __attribute__((section(".ramtext"))) getLocPAck() {
@@ -358,24 +358,24 @@ static void __attribute__((section(".ramtext"))) testAck(uint8_t status) {
     }
 
     s_currentState = IDLE;
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static void __attribute__((section(".ramtext"))) ack() {
     s_currentState = IDLE;
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static void __attribute__((section(".ramtext"))) getStatusAck(uint8_t status) {
     *s_getStatusResponsePtr = status;
     s_currentState = IDLE;
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static void __attribute__((section(".ramtext"))) demuteAck(void) {
     s_currentState = s_preemptedState;
     s_preemptedState = IDLE;
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static uint8_t * s_tracksInformationPtr;
@@ -390,7 +390,7 @@ static void __attribute__((section(".ramtext"))) getTDack()  {
 
     if (trackNum > s_numberOfTracks) {
         s_currentState = IDLE;
-        syscall_deliverEvent(0xf0000003, 0x0020);
+        syscall_deliverEvent(EVENT_CDROM, 0x0020);
         return;
     }
 
@@ -414,7 +414,7 @@ static void __attribute__((section(".ramtext"))) getParamAck() {
     CDROM_REG1;
     CDROM_REG1;
     s_currentState = IDLE;
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static uint8_t s_firstTrack;
@@ -443,7 +443,7 @@ static void __attribute__((section(".ramtext"))) getTNack(void) {
 static void __attribute__((section(".ramtext"))) unlockAck() {
     s_currentState = s_preemptedState;
     s_preemptedState = IDLE;
-    syscall_deliverEvent(0xf0000003, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static void __attribute__((section(".ramtext"))) issueSeekAfterSetLoc(int P) {
@@ -502,7 +502,7 @@ static void __attribute__((section(".ramtext"))) acknowledge() {
             break;
         case 3: case 4: case 5:
             s_gotInt3 = 1;
-            syscall_deliverEvent(0xf0000003, 0x0020);
+            syscall_deliverEvent(EVENT_CDROM, 0x0020);
             break;
         case GETSTATUS:
             getStatusAck(status);
@@ -539,14 +539,14 @@ static void __attribute__((section(".ramtext"))) acknowledge() {
             chainGetTNack();
             break;
         case IDLE:
-            syscall_deliverEvent(0xf0000003, 0x0200);
+            syscall_deliverEvent(EVENT_CDROM, 0x0200);
             break;
     }
 }
 
 static void __attribute__((section(".ramtext"))) end() {
     if ((s_preemptedState == READN) || (s_preemptedState == READS) || (s_currentState == READN) || (s_currentState == READS)) {
-        if (s_dmaCounter > 0) syscall_deliverEvent(0xf0000003, 0x0080);
+        if (s_dmaCounter > 0) syscall_deliverEvent(EVENT_CDROM, 0x0080);
         if ((s_currentState == READN) || (s_currentState == READS)) {
             s_currentState = IDLE;
         } else {
@@ -564,11 +564,11 @@ static void __attribute__((section(".ramtext"))) end() {
 
     switch (s_currentState) {
         case 3: case 4: case 5:
-            syscall_deliverEvent(0xf0000003, 0x0080);
+            syscall_deliverEvent(EVENT_CDROM, 0x0080);
             s_currentState = IDLE;
             break;
         default:
-            syscall_deliverEvent(0xf0000003, 0x0200);
+            syscall_deliverEvent(EVENT_CDROM, 0x0200);
             break;
     }
 }
@@ -587,7 +587,7 @@ static void __attribute__((section(".ramtext"))) discError() {
             ptr[3] = CDROM_REG1;
             s_preemptedState = IDLE;
             s_currentState = IDLE;
-            syscall_deliverEvent(0xf0000003, 0x8000);
+            syscall_deliverEvent(EVENT_CDROM, 0x8000);
             break;
         }
         case INITIALIZING:
@@ -605,7 +605,7 @@ static void __attribute__((section(".ramtext"))) discError() {
                 s_gotInt5 = 0;
                 s_preemptedState = IDLE;
                 s_currentState = IDLE;
-                syscall_deliverEvent(0xf0000003, 0x8000);
+                syscall_deliverEvent(EVENT_CDROM, 0x8000);
             }
             break;
     }
@@ -674,7 +674,7 @@ int __attribute__((section(".ramtext"))) cdromDMAVerifier() {
     dicr |= 0x88000000;
     DICR = dicr;
     if (!(--s_dmaCounter)) {
-        syscall_deliverEvent(0xf0000003, 0x0010);
+        syscall_deliverEvent(EVENT_CDROM, 0x0010);
     }
     s_dmaStuff = 0;
     return 1;

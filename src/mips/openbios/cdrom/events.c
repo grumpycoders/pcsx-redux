@@ -35,20 +35,20 @@ uint32_t g_cdEventERR; /* 0x8000 */
 
 // Yes, these undeliver some events that never got created in the first place.
 void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x20);
+    syscall_undeliverEvent(EVENT_CDROM, 0x80);
+    syscall_undeliverEvent(EVENT_CDROM, 0x8000);
+    syscall_undeliverEvent(EVENT_CDROM, 0x100); // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x200); // never created
 }
 
 void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
-    syscall_undeliverEvent(0xf0000003, 0x40);
-    syscall_undeliverEvent(0xf0000003, 0x10);
-    syscall_undeliverEvent(0xf0000003, 0x20);
-    syscall_undeliverEvent(0xf0000003, 0x80);
-    syscall_undeliverEvent(0xf0000003, 0x8000);
-    syscall_undeliverEvent(0xf0000003, 0x100); // never created
-    syscall_undeliverEvent(0xf0000003, 0x200); // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x40);
+    syscall_undeliverEvent(EVENT_CDROM, 0x10);
+    syscall_undeliverEvent(EVENT_CDROM, 0x20);
+    syscall_undeliverEvent(EVENT_CDROM, 0x80);
+    syscall_undeliverEvent(EVENT_CDROM, 0x8000);
+    syscall_undeliverEvent(EVENT_CDROM, 0x100); // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x200); // never created
 }
 
