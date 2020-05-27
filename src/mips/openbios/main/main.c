@@ -251,8 +251,13 @@ static void zeroUserMemoryUntilStack() {
 
 static struct psxExeHeader s_binaryInfo;
 
-// never written to...?
-static int s_needsCDRomReset;
+// This is another horror. The location of this variable is technically
+// 0xa000dffc, which is the upper part of the kernel memory section.
+// It is however unset by the kernel itself, and written to directly
+// by the shell. It'll be written to 1 by the shell before returning
+// to the bios code. We'll just let it be set to 0, thus making
+// the cdrom never being reset in the gameMainThunk function.
+static int s_needsCDRomReset = 0;
 
 void gameMainThunk(struct psxExeHeader * binaryInfo, int argc, char **argv) {
     leaveCriticalSection();

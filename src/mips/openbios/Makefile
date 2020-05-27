@@ -73,10 +73,12 @@ CPPFLAGS += -IuC-sdk-glue
 
 include ../common.mk
 
-../shell/shell_data.o:
+../shell/shell_data.o: shell
+
+shell:
 	$(MAKE) -C ../shell shell_data.o
 
 deepclean: clean
 	$(MAKE) -C ../shell clean
 
-.PHONY: deepclean
+.PHONY: deepclean shell

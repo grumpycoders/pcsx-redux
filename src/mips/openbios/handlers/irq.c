@@ -152,11 +152,11 @@ int __attribute__((section(".ramtext"))) enqueueRCntIrqs(int priority) {
     int ret, i;
 
     IMASK &= ~0x71;
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 3; i++) {
         s_timersAutoAck[i] = 1;
         ret = sysEnqIntRP(priority, &s_rcntHandlers[i]);
     }
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 3; i++) {
         COUNTERS[i].mode = 0;
         COUNTERS[i].target = 0;
         COUNTERS[i].value = 0;
