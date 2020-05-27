@@ -55,18 +55,18 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 
 LD := $(CXX)
 
-SRC_CC := $(call rwildcard,src/,*.cc)
-SRC_CC += $(wildcard third_party/fmt/src/*.cc)
-SRC_CC += $(wildcard third_party/libelfin/*.cc)
-SRC_CPP := $(wildcard third_party/imgui/*.cpp)
-SRC_CPP += third_party/imgui/examples/imgui_impl_opengl3.cpp
-SRC_CPP += third_party/imgui/examples/imgui_impl_glfw.cpp
-SRC_CPP += third_party/imgui/misc/cpp/imgui_stdlib.cpp
-SRC_CPP += third_party/ImGuiColorTextEdit/TextEditor.cpp
-SRC_C := third_party/imgui/examples/libs/gl3w/GL/gl3w.c
-OBJECTS := $(patsubst %.cc,%.o,$(SRC_CC))
-OBJECTS += $(patsubst %.cpp,%.o,$(SRC_CPP))
-OBJECTS += $(patsubst %.c,%.o,$(SRC_C))
+SRCS := $(call rwildcard,src/,*.cc)
+SRCS += $(wildcard third_party/fmt/src/*.cc)
+SRCS += $(wildcard third_party/libelfin/*.cc)
+SRCS += $(wildcard third_party/imgui/*.cpp)
+SRCS += third_party/imgui/examples/imgui_impl_opengl3.cpp
+SRCS += third_party/imgui/examples/imgui_impl_glfw.cpp
+SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
+SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
+SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
+OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
+OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 
 NONMAIN_OBJECTS := $(filter-out src/main/main.o,$(OBJECTS))
 
@@ -122,11 +122,11 @@ pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
-.PHONY: all clean gitclean regen-i18n runtests
+.PHONY: all dep clean gitclean regen-i18n runtests
 
-DEPS := $(patsubst %.cc,%.dep,$(SRC_CC))
-DEPS += $(patsubst %.cpp,%.dep,$(SRC_CPP))
-DEPS += $(patsubst %.c,%.dep,$(SRC_C))
+DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
+DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
+DEPS += $(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS)))
 
 dep: $(DEPS)
 
