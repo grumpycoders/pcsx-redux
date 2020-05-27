@@ -22,7 +22,7 @@ Any recent project needs automated testing. Having source code available for all
 
 ## Building
 
-The currently supported build method for this project requires docker. You can use the `dockermake.sh` script at the root of the repository as a replacement for the `make` command, and use the `Makefile` present here. The `Makefile` currently doesn't have any notion of dependency, which makes it impossible to use while actively modifying the code. Running the `clean` target is highly recommended between two builds. In all cases, this builds fairly fast. Under Windows, the `build.bat` can be used. If using [Visual Studio Code](https://code.visualstudio.com/), one can use the task "make_openbios" to compile: CTRL-P then `task make_openbios` to compile.
+The currently supported build method for this project requires docker. You can use the `dockermake.sh` script at the root of the repository as a replacement for the `make` command, and use the `Makefile` present here. Under Windows, the `build.bat` can be used. If using [Visual Studio Code](https://code.visualstudio.com/), one can use the task "make_openbios" to compile: CTRL-P then `task make_openbios` to compile.
 
 The result of the compilation should be a file called `openbios.elf` that contains all useful debugging symbols, and a file called `openbios.bin` which can be used in emulators or even burned to a chip and placed on a retail console.
 
