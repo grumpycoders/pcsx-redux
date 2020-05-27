@@ -28,7 +28,7 @@
             "label": "make_openbios",
             "type": "shell",
             "group": "build",
-            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios clean all",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios all",
             "windows": {
                 "command": "${workspaceRoot}\\src\\mips\\openbios\\build.bat"
             },
@@ -49,7 +49,7 @@
             "label": "make_cpe_helloworld",
             "type": "shell",
             "group": "build",
-            "command": "${workspaceRoot}/dockermake.sh -C src/mips/helloworld clean all",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/helloworld all",
             "windows": {
                 "command": "${workspaceRoot}\\src\\mips\\helloworld\\build.bat"
             },
