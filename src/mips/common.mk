@@ -1,4 +1,5 @@
 PREFIX = mipsel-linux-gnu
+BUILD ?= Release
 
 CC = $(PREFIX)-gcc
 
@@ -15,8 +16,16 @@ CPPFLAGS += -I..
 LDFLAGS = -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
 
-LDFLAGS += -g -Os
-CPPFLAGS += -g -Os
+CPPFLAGS_Release += -Os -flto
+LDFLAGS_Release += -Os -flto
+
+CPPFLAGS_Debug += -O0
+
+LDFLAGS += -g
+CPPFLAGS += -g
+
+CPPFLAGS += $(CPPFLAGS_$(BUILD))
+LDFLAGS += $(LDFLAGS_$(BUILD))
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
