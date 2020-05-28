@@ -5,9 +5,9 @@ jobs:
     docker:
       - image: grumpycoders/pcsx-redux-build:latest
     environment:
-      CC: clang-9
-      CXX: clang++-9
-      LD: clang++-9
+      CC: clang-10
+      CXX: clang++-10
+      LD: clang++-10
     steps:
       - checkout
       - run:
