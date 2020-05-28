@@ -82,11 +82,11 @@ class List final {
             return *this;
         }
         template <class srcDerived, class srcBase>
-        bool operator==(const IteratorBase<srcDerived, srcBase>& src) {
+        bool operator==(const IteratorBase<srcDerived, srcBase>& src) const {
             return m_node == src.m_node;
         }
         template <class srcDerived, class srcBase>
-        bool operator!=(const IteratorBase<srcDerived, srcBase>& src) {
+        bool operator!=(const IteratorBase<srcDerived, srcBase>& src) const {
             return m_node != src.m_node;
         }
         Derived& operator*() const { return *static_cast<Derived*>(m_node); }
