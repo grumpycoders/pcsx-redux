@@ -13,7 +13,7 @@ RUN apt install -y make
 RUN apt install -y g++-9
 RUN apt install -y clang-10
 RUN apt install -y git
-RUN apt-get -y install tzdata
+RUN apt install -y tzdata
 RUN apt install -y pkg-config
 RUN apt install -y libsdl2-dev
 RUN apt install -y libavcodec-dev
