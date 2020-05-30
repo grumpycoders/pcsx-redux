@@ -108,7 +108,9 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     }
     PCSX::u8string string() const { return value.u8string(); }
     bool empty() const { return value.u8string().empty(); }
-    json serialize() const { return value.u8string(); }
+    // C++20's u8strings will be the death of me.
+    // Also, https://github.com/nlohmann/json/issues/1914
+    json serialize() const { return reinterpret_cast<const char*>(value.u8string().c_str()); }
     void deserialize(const json &j) {
         std::string str = j;
         value = std::filesystem::u8path(str);

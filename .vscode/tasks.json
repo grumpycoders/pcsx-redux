@@ -10,7 +10,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "command": "CC=clang-9 CXX=clang++-9 LD=clang++-9 make -j8",
+            "command": "CC=clang-10 CXX=clang++-10 LD=clang++-10 make -j8",
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": ["relative", "${workspaceRoot}"],

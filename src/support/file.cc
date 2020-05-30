@@ -79,7 +79,7 @@ PCSX::File::File(const char *filename) : m_filename(filename) {
 #endif
 }
 #else
-PCSX::File::File(const char *filename) { m_handle = fopen(filename, "rb"); }
+PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = fopen(filename, "rb"); }
 #endif
 char *PCSX::File::gets(char *s, int size) {
     if (m_handle) return fgets(s, size, m_handle);
