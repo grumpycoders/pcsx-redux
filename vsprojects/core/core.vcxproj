@@ -85,7 +85,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>    </ClCompile>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -151,7 +152,6 @@
     <ClCompile Include="..\..\src\core\sstate.cc" />
     <ClCompile Include="..\..\src\core\stacktrace.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
-    <ClCompile Include="..\..\src\core\uv_wrapper.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\binloader.h" />
@@ -191,7 +191,6 @@
     <ClInclude Include="..\..\src\core\sstate.h" />
     <ClInclude Include="..\..\src\core\stacktrace.h" />
     <ClInclude Include="..\..\src\core\system.h" />
-    <ClInclude Include="..\..\src\core\uv_wrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

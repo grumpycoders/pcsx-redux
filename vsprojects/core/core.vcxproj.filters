@@ -120,9 +120,6 @@
     <ClCompile Include="..\..\src\core\stacktrace.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\uv_wrapper.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\gdb-server.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -234,9 +231,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\stacktrace.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\uv_wrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\gdb-server.h">
