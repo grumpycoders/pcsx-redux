@@ -5,7 +5,9 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\src;$(ProjectDir)..\..\third_party;$(ProjectDir)..\..\third_party\fmt\include;$(ProjectDir)..\..\third_party\imgui;$(ProjectDir)..\..\third_party\imgui\examples;$(ProjectDir)..\..\third_party\imgui\examples\libs\gl3w;$(ProjectDir)..\..\third_party\imgui\misc\cpp;$(ProjectDir)..\..\third_party\imgui_club;$(ProjectDir)..\..\third_party\libelfin;$(ProjectDir)..\..\third_party\libuv\include;$(ProjectDir)..\..\third_party\libuv\src;$(ProjectDir)..\..\third_party\SDL\include;$(ProjectDir)..\..\third_party\uvw\src;$(ProjectDir)..\..\third_party\zlib;$(ProjectDir)..\..\third_party\zstr\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\third_party;$(SolutionDir)..\third_party\fmt\include;$(SolutionDir)..\third_party\imgui;$(SolutionDir)..\third_party\imgui\examples;$(SolutionDir)..\third_party\imgui\examples\libs\gl3w;$(SolutionDir)..\third_party\imgui\misc\cpp;$(SolutionDir)..\third_party\imgui_club;$(SolutionDir)..\third_party\libelfin;$(SolutionDir)..\third_party\libuv\include;$(SolutionDir)..\third_party\libuv\src;$(SolutionDir)..\third_party\SDL\include;$(SolutionDir)..\third_party\uvw\src;$(SolutionDir)..\third_party\zlib;$(SolutionDir)..\third_party\zstr\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <PreprocessorDefinitions>_CONSOLE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_GNU_SOURCE;NOMINMAX;UVW_AS_LIB;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />

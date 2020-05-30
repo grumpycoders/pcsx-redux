@@ -79,8 +79,6 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -93,8 +91,6 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -109,8 +105,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -127,8 +121,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -146,6 +138,9 @@
     </ProjectReference>
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\http-parser\http-parser.vcxproj">
+      <Project>{2f6c532e-1d52-4e87-8b7d-979eaa214db6}</Project>
     </ProjectReference>
     <ProjectReference Include="..\imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
@@ -173,6 +168,9 @@
     </ProjectReference>
     <ProjectReference Include="..\support\support.vcxproj">
       <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\uvw\uvw.vcxproj">
+      <Project>{cf701e16-e81e-4883-b91f-6f9e99bc9e4f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\zlib\zlib.vcxproj">
       <Project>{3125e078-7261-48c4-803e-4b29ceeaa56b}</Project>

@@ -113,7 +113,7 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     json serialize() const { return reinterpret_cast<const char*>(value.u8string().c_str()); }
     void deserialize(const json &j) {
         std::string str = j;
-        value = std::filesystem::u8path(str);
+        value = str;
     }
     void reset() { value = defaultValue::data(); }
     type value = defaultValue::data();
