@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
 #include <utility>
 
 namespace PCSX {
@@ -33,6 +34,7 @@ class Slice {
     Slice() : m_isInlined(false), m_isOwned(false), m_size(0) { m_data.ptr = nullptr; }
     Slice(const Slice &other) { copyFrom(other); }
     Slice(Slice &&other) { moveFrom(std::move(other)); }
+    std::string toString() const { return {static_cast<const char *>(data()), size()}; }
     ~Slice() { maybeFree(); }
     Slice &operator=(const Slice &other) {
         maybeFree();

@@ -19,14 +19,17 @@
 
 #include "core/web-server.h"
 
+#include <map>
+#include <string>
+
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
 
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingGdbServer>()) {
-            startServer(g_emulator->settings.get<Emulator::SettingGdbServerPort>());
+        if (g_emulator->settings.get<Emulator::SettingWebServer>()) {
+            startServer(g_emulator->settings.get<Emulator::SettingWebServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
@@ -68,7 +71,6 @@ struct PCSX::WebClient::WebClientImpl {
         m_httpParserSettings.on_chunk_header = WebClientImpl::onChunkHeaderTrampoline;
         m_httpParserSettings.on_chunk_complete = WebClientImpl::onChunkCompleteTrampoline;
         http_parser_init(&m_httpParser, HTTP_REQUEST);
-        http_parser_url_init(&m_urlParser);
         m_httpParser.data = this;
     }
     void close() {
@@ -99,15 +101,40 @@ struct PCSX::WebClient::WebClientImpl {
     void onUpgrade() {}
     int onMessageBegin() { return 0; }
     int onUrl(const Slice& slice) {
-        int connect = m_httpParser.method = HTTP_CONNECT;
-        return http_parser_parse_url(static_cast<const char*>(slice.data()), slice.size(), connect, &m_urlParser);
+        const char* data = static_cast<const char*>(slice.data());
+        int connect = m_httpParser.method == HTTP_CONNECT;
+        struct http_parser_url urlParser;
+        http_parser_url_init(&urlParser);
+        int result = http_parser_parse_url(data, slice.size(), connect, &urlParser);
+        if (result) return result;
+        auto copyField = [this, data, &urlParser](std::string& str, int field) {
+            if (urlParser.field_set & (1 << field)) {
+                str = std::string(data + urlParser.field_data[field].off, urlParser.field_data[field].len);
+            } else {
+                str.clear();
+            }
+        };
+        copyField(m_urlSchema, UF_SCHEMA);
+        copyField(m_urlHost, UF_HOST);
+        copyField(m_urlPort, UF_PORT);
+        copyField(m_urlPath, UF_PATH);
+        copyField(m_urlQuery, UF_QUERY);
+        copyField(m_urlFragment, UF_FRAGMENT);
+        copyField(m_urlUserInfo, UF_USERINFO);
+        return validateUrl();
     }
     int onStatus(const Slice& slice) { return 0; }
-    int onHeaderField(const Slice& slice) { return 0; }
-    int onHeaderValue(const Slice& slice) { return 0; }
+    int onHeaderField(const Slice& slice) {
+        m_currentHeader = slice.toString();
+        return 0;
+    }
+    int onHeaderValue(const Slice& slice) {
+        m_headers.insert(std::pair(m_currentHeader, slice.toString()));
+        return 0;
+    }
     int onHeadersComplete() { return 0; }
     int onBody(const Slice& slice) { return 0; }
-    int onMessageComplete() { return 0; }
+    int onMessageComplete() { return executeRequest(); }
     int onChunkHeader() { return 0; }
     int onChunkComplete() { return 0; }
     static int onMessageBeginTrampoline(http_parser* parser) {
@@ -142,7 +169,7 @@ struct PCSX::WebClient::WebClientImpl {
         return static_cast<WebClientImpl*>(parser->data)->onBody(slice);
     }
     static int onMessageCompleteTrampoline(http_parser* parser) {
-        return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
+        return static_cast<WebClientImpl*>(parser->data)->onMessageComplete();
     }
     static int onChunkHeaderTrampoline(http_parser* parser) {
         return static_cast<WebClientImpl*>(parser->data)->onChunkHeader();
@@ -167,11 +194,38 @@ struct PCSX::WebClient::WebClientImpl {
         }
     }
 
+    template <size_t L>
+    void write(const char (&str)[L]) {
+        m_tcp->write(const_cast<char*>(str), L - 1);
+    }
+
+    void send404() {
+        write("HTTP/1.1 404 Not Found\r\n\r\nURL Not found\r\n");
+        close();
+    }
+
+    int validateUrl() { return 0; }
+    int executeRequest() {
+        write("HTTP/1.1 200 OK\r\n\r\nData.\r\n");
+        close();
+        return 0;
+    }
+
     std::shared_ptr<uvw::TCPHandle> m_tcp;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
     http_parser_settings m_httpParserSettings;
     http_parser m_httpParser;
-    struct http_parser_url m_urlParser;
+
+    std::string m_urlSchema;
+    std::string m_urlHost;
+    std::string m_urlPort;
+    std::string m_urlPath;
+    std::string m_urlQuery;
+    std::string m_urlFragment;
+    std::string m_urlUserInfo;
+
+    std::string m_currentHeader;
+    std::multimap<std::string, std::string> m_headers;
 };
 
 PCSX::WebClient::WebClient(std::shared_ptr<uvw::TCPHandle> srv) : m_impl(std::make_unique<WebClientImpl>(srv)) {}
