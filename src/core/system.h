@@ -35,7 +35,6 @@ namespace PCSX {
 typedef decltype(std::filesystem::path().u8string()) u8string;
 #define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
 
-
 namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};
@@ -46,6 +45,9 @@ struct Pause {};
 struct SoftReset {};
 struct HardReset {};
 }  // namespace ExecutionFlow
+struct CreatedVRAMTexture {
+    unsigned int id;
+};
 }  // namespace Events
 
 class System {

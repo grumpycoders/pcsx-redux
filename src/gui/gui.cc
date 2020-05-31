@@ -175,6 +175,7 @@ void PCSX::GUI::init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     checkGL();
+    g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);

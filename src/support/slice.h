@@ -31,14 +31,20 @@ class Slice {
   public:
     Slice() {}
     Slice(const Slice &other) { copy(other.data(), other.size()); }
-    Slice(Slice &&other) = default;
-    Slice(std::string str) { m_data = str; }
+    Slice(Slice &&other) {
+        m_data = other.m_data;
+        other.m_data = std::monostate();
+    }
     Slice(const std::string &str) { m_data = str; }
     Slice(std::string &&str) { m_data = std::move(str); }
     ~Slice() { maybeFree(); }
     std::string toString() const { return {static_cast<const char *>(data()), size()}; }
-    Slice &operator=(const Slice &other) = default;
-    Slice &operator=(Slice &&other) = default;
+    Slice &operator=(const Slice &other) { copy(other.data(), other.size()); }
+    Slice &operator=(Slice &&other) {
+        m_data = other.m_data;
+        other.m_data = std::monostate();
+        return *this;
+    }
     void copy(const std::string &str) { m_data = str; }
     void copy(const void *data, uint32_t size) {
         maybeFree();
@@ -56,7 +62,8 @@ class Slice {
     void acquire(void *data, uint32_t size) {
         maybeFree();
         m_data = Owned{size, malloc(size)};
-        memcpy(std::get<Owned>(m_data).ptr, data, size);
+        std::get<Owned>(m_data).ptr = data;
+        std::get<Owned>(m_data).size = size;
     }
     void borrow(const void *data, uint32_t size) {
         maybeFree();
@@ -91,7 +98,6 @@ class Slice {
     void maybeFree() {
         if (!std::holds_alternative<Owned>(m_data)) return;
         free(std::get<Owned>(m_data).ptr);
-        std::get<Owned>(m_data).ptr = nullptr;
         m_data = std::monostate();
     }
     static constexpr size_t INLINED_SIZE = 28;

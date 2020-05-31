@@ -19,7 +19,9 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
+#include <string>
 
 #include "support/eventbus.h"
 #include "support/list.h"
@@ -28,16 +30,87 @@
 
 namespace PCSX {
 
+struct UrlData {
+    std::string schema;
+    std::string host;
+    std::string port;
+    std::string path;
+    std::string query;
+    std::string fragment;
+    std::string userInfo;
+};
+
+struct RequestData {
+    UrlData urlData;
+    enum Method {
+        HTTP_DELETE,
+        HTTP_HTTP_GET,
+        HTTP_HEAD,
+        HTTP_POST,
+        HTTP_PUT,
+        HTTP_CONNECT,
+        HTTP_OPTIONS,
+        HTTP_TRACE,
+        HTTP_COPY,
+        HTTP_LOCK,
+        HTTP_MKCOL,
+        HTTP_MOVE,
+        HTTP_PROPFIND,
+        HTTP_PROPPATH,
+        HTTP_SEARCH,
+        HTTP_UNLOCK,
+        HTTP_BIND,
+        HTTP_REBIND,
+        HTTP_UNBIND,
+        HTTP_ACL,
+        HTTP_REPORT,
+        HTTP_MKACTIVITY,
+        HTTP_CHECKOUT,
+        HTTP_MERGE,
+        HTTP_MSEARCH,
+        HTTP_NOTIFY,
+        HTTP_SUBSCRIBE,
+        HTTP_UNSUBSCRIBE,
+        HTTP_PATCH,
+        HTTP_PURGE,
+        HTTP_MKCALENDAR,
+        HTTP_LINK,
+        HTTP_UNLINK,
+        HTTP_SOURCE,
+    } method;
+    std::multimap<std::string, std::string> headers;
+};
+
+class WebClient;
+class WebServer;
+
+class WebExecutor : public Intrusive::List<WebExecutor>::Node {
+  public:
+    virtual bool match(WebClient* client, const UrlData&) = 0;
+    virtual bool execute(WebClient* client, const RequestData&) = 0;
+};
+
 class WebClient : public Intrusive::List<WebClient>::Node {
   public:
-    WebClient(std::shared_ptr<uvw::TCPHandle> srv);
+    WebClient(WebServer* server, std::shared_ptr<uvw::TCPHandle> srv);
     typedef Intrusive::List<WebClient> ListType;
     void close();
     void accept(std::shared_ptr<uvw::TCPHandle> srv);
+    void write(Slice&& slice);
+    template <size_t L>
+    void write(const char (&str)[L]) {
+        static_assert((L - 1) <= std::numeric_limits<uint32_t>::max());
+        Slice slice;
+        slice.borrow(str, L - 1);
+        write(std::move(slice));
+    }
+    void write(std::string&& str);
+    void write(const std::string& str);
 
   private:
     struct WebClientImpl;
     std::unique_ptr<WebClientImpl> m_impl;
+    friend WebServer;
 };
 
 class WebServer {
@@ -58,6 +131,9 @@ class WebServer {
     std::shared_ptr<uvw::TCPHandle> m_server;
     WebClient::ListType m_clients;
     EventBus::Listener m_listener;
+    Intrusive::List<WebExecutor> m_executors;
+
+    friend struct WebClient::WebClientImpl;
 };
 
 }  // namespace PCSX
