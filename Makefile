@@ -23,7 +23,6 @@ CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -Ithird_party/uvw/src
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
-CPPFLAGS += -DUVW_AS_LIB
 
 CPPFLAGS_Release += -O3
 
@@ -61,7 +60,6 @@ SRCS := $(call rwildcard,src/,*.cc)
 SRCS += $(wildcard third_party/fmt/src/*.cc)
 SRCS += $(wildcard third_party/imgui/*.cpp)
 SRCS += $(wildcard third_party/libelfin/*.cc)
-SRCS += $(wildcard third_party/uvw/src/uvw/*.cpp)
 SRCS += third_party/imgui/examples/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/examples/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
