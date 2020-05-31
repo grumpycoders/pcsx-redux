@@ -20,7 +20,6 @@
 #include "core/gdb-server.h"
 
 #include <assert.h>
-#include <uv.h>
 
 #include "core/debug.h"
 #include "core/misc.h"
@@ -46,7 +45,6 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
 void PCSX::GdbServer::stopServer() {
     assert(m_serverStatus == SERVER_STARTED);
     for (auto& client : m_clients) client.close();
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
 }
 
 void PCSX::GdbServer::startServer(int port) {

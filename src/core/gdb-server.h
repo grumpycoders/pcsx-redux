@@ -165,10 +165,6 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
 
         processData(slice);
     }
-    static void closeCB(uv_handle_t* handle) {
-        GdbClient* client = static_cast<GdbClient*>(handle->data);
-        delete client;
-    }
     void processData(const Slice& slice);
     void processCommand();
     void processMonitorCommand(const std::string&);
@@ -219,7 +215,6 @@ class GdbServer {
 
   private:
     void onNewConnection();
-    static void closeCB(uv_handle_t* handle) {}
     GdbServerStatus m_serverStatus;
     std::shared_ptr<uvw::TCPHandle> m_server;
     GdbClient::ListType m_clients;
