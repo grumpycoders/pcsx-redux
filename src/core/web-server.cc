@@ -68,6 +68,7 @@ struct PCSX::WebClient::WebClientImpl {
         m_httpParserSettings.on_chunk_header = WebClientImpl::onChunkHeaderTrampoline;
         m_httpParserSettings.on_chunk_complete = WebClientImpl::onChunkCompleteTrampoline;
         http_parser_init(&m_httpParser, HTTP_REQUEST);
+        http_parser_url_init(&m_urlParser);
         m_httpParser.data = this;
     }
     void close() {
@@ -97,7 +98,10 @@ struct PCSX::WebClient::WebClientImpl {
 
     void onUpgrade() {}
     int onMessageBegin() { return 0; }
-    int onUrl(const Slice& slice) { return 0; }
+    int onUrl(const Slice& slice) {
+        int connect = m_httpParser.method = HTTP_CONNECT;
+        return http_parser_parse_url(static_cast<const char*>(slice.data()), slice.size(), connect, &m_urlParser);
+    }
     int onStatus(const Slice& slice) { return 0; }
     int onHeaderField(const Slice& slice) { return 0; }
     int onHeaderValue(const Slice& slice) { return 0; }
@@ -167,6 +171,7 @@ struct PCSX::WebClient::WebClientImpl {
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
     http_parser_settings m_httpParserSettings;
     http_parser m_httpParser;
+    struct http_parser_url m_urlParser;
 };
 
 PCSX::WebClient::WebClient(std::shared_ptr<uvw::TCPHandle> srv) : m_impl(std::make_unique<WebClientImpl>(srv)) {}
