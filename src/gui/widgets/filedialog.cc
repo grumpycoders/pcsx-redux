@@ -118,7 +118,7 @@ void PCSX::Widgets::FileDialog::fillRoots() {
     }
 }
 #else
-void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({MAKEU8(u8"/"), "(root)"}); }
+void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({MAKEU8(u8"/"), MAKEU8(u8"(root)")}); }
 #endif
 
 void PCSX::Widgets::FileDialog::openDialog() {
