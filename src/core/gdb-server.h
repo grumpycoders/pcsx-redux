@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <assert.h>
+
 #include <cstdarg>
 #include <string>
 
