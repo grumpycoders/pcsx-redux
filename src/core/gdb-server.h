@@ -46,7 +46,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
             if (top == m_requests.end()) return;
             top->gotWriteEvent();
         });
-        srv->accept(m_tcp);
+        srv->accept(*m_tcp);
         m_tcp->read();
         m_status = OPEN;
     }
