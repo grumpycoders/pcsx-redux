@@ -44,7 +44,7 @@ steps:
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/Release/*.exe
+      vsprojects/Release/pcsx-redux.exe
       vsprojects/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
@@ -58,7 +58,7 @@ steps:
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/x64/Release/*.exe
+      vsprojects/x64/Release/pcsx-redux.exe
       vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
