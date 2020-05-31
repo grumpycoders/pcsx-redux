@@ -38,6 +38,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
+#include "core/web-server.h"
 #include "flags.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -767,7 +768,16 @@ bool PCSX::GUI::configure() {
                 g_emulator->m_gdbServer->stopServer();
             }
         }
-        changed |= ImGui::InputInt("GDB Server", &settings.get<Emulator::SettingGdbServerPort>().value);
+        changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
+        if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
+            changed = true;
+            if (settings.get<Emulator::SettingWebServer>()) {
+                g_emulator->m_webServer->startServer(settings.get<Emulator::SettingWebServerPort>());
+            } else {
+                g_emulator->m_webServer->stopServer();
+            }
+        }
+        changed |= ImGui::InputInt(_("Web Server Port"), &settings.get<Emulator::SettingWebServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});

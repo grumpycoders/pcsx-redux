@@ -29,6 +29,7 @@
 #include "core/pad.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
+#include "core/web-server.h"
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
 #include "uvw.hpp"
@@ -43,6 +44,7 @@ PCSX::Emulator::Emulator()
       m_mdec(new PCSX::MDEC()),
       m_gpu(new PCSX::SoftGPU::impl()),
       m_gdbServer(new PCSX::GdbServer()),
+      m_webServer(new PCSX::WebServer()),
       m_debug(new PCSX::Debug()),
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
