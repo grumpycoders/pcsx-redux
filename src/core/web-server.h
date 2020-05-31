@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <assert.h>
+#include <memory>
 
 #include "support/eventbus.h"
 #include "support/list.h"
@@ -32,33 +32,12 @@ class WebClient : public Intrusive::List<WebClient>::Node {
   public:
     WebClient(std::shared_ptr<uvw::TCPHandle> srv);
     typedef Intrusive::List<WebClient> ListType;
-    void close() {
-        assert(m_status == OPEN);
-        m_status = CLOSING;
-        m_tcp->close();
-    }
-    void accept(std::shared_ptr<uvw::TCPHandle> srv) {
-        assert(m_status == CLOSED);
-        m_tcp->on<uvw::CloseEvent>([this](const uvw::CloseEvent&, uvw::TCPHandle&) { delete this; });
-        m_tcp->on<uvw::EndEvent>([this](const uvw::EndEvent&, uvw::TCPHandle&) { close(); });
-        m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent&, uvw::TCPHandle&) { close(); });
-        m_tcp->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle&) { read(event); });
-        m_tcp->on<uvw::WriteEvent>([this](const uvw::WriteEvent&, uvw::TCPHandle&) {});
-        srv->accept(*m_tcp);
-        m_tcp->read();
-        m_status = OPEN;
-    }
-    void read(const uvw::DataEvent& event) {
-        Slice slice;
-        slice.borrow(event.data.get(), event.length);
-
-        processData(slice);
-    }
-    void processData(const Slice& slice);
+    void close();
+    void accept(std::shared_ptr<uvw::TCPHandle> srv);
 
   private:
-    std::shared_ptr<uvw::TCPHandle> m_tcp;
-    enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
+    struct WebClientImpl;
+    std::unique_ptr<WebClientImpl> m_impl;
 };
 
 class WebServer {

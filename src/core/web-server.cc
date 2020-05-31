@@ -21,6 +21,7 @@
 
 #include "core/psxemulator.h"
 #include "core/system.h"
+#include "http-parser/http_parser.h"
 
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
@@ -54,9 +55,120 @@ void PCSX::WebServer::onNewConnection() {
     client->accept(m_server);
 }
 
-void PCSX::WebClient::processData(const Slice& slice) {
-    const char* ptr = reinterpret_cast<const char*>(slice.data());
-    auto size = slice.size();
-}
+struct PCSX::WebClient::WebClientImpl {
+    WebClientImpl(std::shared_ptr<uvw::TCPHandle> srv) : m_tcp(srv->loop().resource<uvw::TCPHandle>()) {
+        m_httpParserSettings.on_message_begin = WebClientImpl::onMessageBeginTrampoline;
+        m_httpParserSettings.on_url = WebClientImpl::onUrlTrampoline;
+        m_httpParserSettings.on_status = WebClientImpl::onStatusTrampoline;
+        m_httpParserSettings.on_header_field = WebClientImpl::onHeaderFieldTrampoline;
+        m_httpParserSettings.on_header_value = WebClientImpl::onHeaderValueTrampoline;
+        m_httpParserSettings.on_headers_complete = WebClientImpl::onHeadersCompleteTrampoline;
+        m_httpParserSettings.on_body = WebClientImpl::onBodyTrampoline;
+        m_httpParserSettings.on_message_complete = WebClientImpl::onMessageCompleteTrampoline;
+        m_httpParserSettings.on_chunk_header = WebClientImpl::onChunkHeaderTrampoline;
+        m_httpParserSettings.on_chunk_complete = WebClientImpl::onChunkCompleteTrampoline;
+        http_parser_init(&m_httpParser, HTTP_REQUEST);
+        m_httpParser.data = this;
+    }
+    void close() {
+        assert(m_status == OPEN);
+        m_status = CLOSING;
+        m_tcp->close();
+    }
+    void accept(std::shared_ptr<uvw::TCPHandle> srv) {
+        assert(m_status == CLOSED);
+        m_tcp->on<uvw::CloseEvent>([this](const uvw::CloseEvent&, uvw::TCPHandle&) { delete this; });
+        m_tcp->on<uvw::EndEvent>([this](const uvw::EndEvent&, uvw::TCPHandle&) { onEOF(); });
+        m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent&, uvw::TCPHandle&) { close(); });
+        m_tcp->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle&) { read(event); });
+        m_tcp->on<uvw::WriteEvent>([this](const uvw::WriteEvent&, uvw::TCPHandle&) {});
+        srv->accept(*m_tcp);
+        m_tcp->read();
+        m_status = OPEN;
+    }
 
-PCSX::WebClient::WebClient(std::shared_ptr<uvw::TCPHandle> srv) : m_tcp(srv->loop().resource<uvw::TCPHandle>()) {}
+    void onEOF() {
+        http_parser_execute(&m_httpParser, &m_httpParserSettings, nullptr, 0);
+        if (m_httpParser.upgrade) {
+            onUpgrade();
+        }
+        close();
+    }
+
+    void onUpgrade() {}
+    int onMessageBegin() { return 0; }
+    int onUrl(const Slice& slice) { return 0; }
+    int onStatus(const Slice& slice) { return 0; }
+    int onHeaderField(const Slice& slice) { return 0; }
+    int onHeaderValue(const Slice& slice) { return 0; }
+    int onHeadersComplete() { return 0; }
+    int onBody(const Slice& slice) { return 0; }
+    int onMessageComplete() { return 0; }
+    int onChunkHeader() { return 0; }
+    int onChunkComplete() { return 0; }
+    static int onMessageBeginTrampoline(http_parser* parser) {
+        return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
+    }
+    static int onUrlTrampoline(http_parser* parser, const char* data, size_t size) {
+        Slice slice;
+        slice.borrow(data, size);
+        return static_cast<WebClientImpl*>(parser->data)->onUrl(slice);
+    }
+    static int onStatusTrampoline(http_parser* parser, const char* data, size_t size) {
+        Slice slice;
+        slice.borrow(data, size);
+        return static_cast<WebClientImpl*>(parser->data)->onStatus(slice);
+    }
+    static int onHeaderFieldTrampoline(http_parser* parser, const char* data, size_t size) {
+        Slice slice;
+        slice.borrow(data, size);
+        return static_cast<WebClientImpl*>(parser->data)->onHeaderField(slice);
+    }
+    static int onHeaderValueTrampoline(http_parser* parser, const char* data, size_t size) {
+        Slice slice;
+        slice.borrow(data, size);
+        return static_cast<WebClientImpl*>(parser->data)->onHeaderValue(slice);
+    }
+    static int onHeadersCompleteTrampoline(http_parser* parser) {
+        return static_cast<WebClientImpl*>(parser->data)->onHeadersComplete();
+    }
+    static int onBodyTrampoline(http_parser* parser, const char* data, size_t size) {
+        Slice slice;
+        slice.borrow(data, size);
+        return static_cast<WebClientImpl*>(parser->data)->onBody(slice);
+    }
+    static int onMessageCompleteTrampoline(http_parser* parser) {
+        return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
+    }
+    static int onChunkHeaderTrampoline(http_parser* parser) {
+        return static_cast<WebClientImpl*>(parser->data)->onChunkHeader();
+    }
+    static int onChunkCompleteTrampoline(http_parser* parser) {
+        return static_cast<WebClientImpl*>(parser->data)->onChunkComplete();
+    }
+    void read(const uvw::DataEvent& event) {
+        Slice slice;
+        slice.borrow(event.data.get(), event.length);
+
+        processData(slice);
+    }
+    void processData(const Slice& slice) {
+        const char* ptr = reinterpret_cast<const char*>(slice.data());
+        auto size = slice.size();
+
+        auto parsed = http_parser_execute(&m_httpParser, &m_httpParserSettings, ptr, size);
+        if (parsed != size) close();
+        if (m_httpParser.upgrade) {
+            onUpgrade();
+        }
+    }
+
+    std::shared_ptr<uvw::TCPHandle> m_tcp;
+    enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
+    http_parser_settings m_httpParserSettings;
+    http_parser m_httpParser;
+};
+
+PCSX::WebClient::WebClient(std::shared_ptr<uvw::TCPHandle> srv) : m_impl(std::make_unique<WebClientImpl>(srv)) {}
+void PCSX::WebClient::close() { m_impl->close(); }
+void PCSX::WebClient::accept(std::shared_ptr<uvw::TCPHandle> srv) { m_impl->accept(srv); }
