@@ -20,7 +20,6 @@
 #include "core/gdb-server.h"
 
 #include <assert.h>
-#include <uv.h>
 
 #include "core/debug.h"
 #include "core/misc.h"
@@ -28,7 +27,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
-#include "core/uv_wrapper.h"
+#include "uvw.hpp"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
@@ -46,43 +45,26 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
 void PCSX::GdbServer::stopServer() {
     assert(m_serverStatus == SERVER_STARTED);
     for (auto& client : m_clients) client.close();
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
 }
 
 void PCSX::GdbServer::startServer(int port) {
     assert(m_serverStatus == SERVER_STOPPED);
-    uv_tcp_init(&PCSX::g_emulator->m_uv->m_loop, &m_server);
-
-    m_server.data = this;
-
-    struct sockaddr_in bindAddr;
-    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
-    assert(result == 0);
-    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
-    assert(result == 0);
-    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
+    m_server = g_emulator->m_loop->resource<uvw::TCPHandle>();
+    m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
+    m_server->bind("0.0.0.0", port);
+    m_server->listen();
 
     m_serverStatus = SERVER_STARTED;
 }
 
-void PCSX::GdbServer::onNewConnectionTrampoline(uv_stream_t* server, int status) {
-    GdbServer* self = static_cast<GdbServer*>(server->data);
-    self->onNewConnection(status);
+void PCSX::GdbServer::onNewConnection() {
+    GdbClient* client = new GdbClient(m_server);
+    m_clients.push_back(client);
+    client->accept(m_server);
 }
 
-void PCSX::GdbServer::onNewConnection(int status) {
-    if (status < 0) return;
-    GdbClient* client = new GdbClient(m_server.loop);
-    if (client->accept(&m_server)) {
-        m_clients.push_back(client);
-    } else {
-        delete client;
-    }
-}
-
-PCSX::GdbClient::GdbClient(uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
-    uv_tcp_init(loop, &m_tcp);
-    m_tcp.data = this;
+PCSX::GdbClient::GdbClient(std::shared_ptr<uvw::TCPHandle> srv)
+    : m_tcp(srv->loop().resource<uvw::TCPHandle>()), m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         if (m_waitingForShell) {
             // This is a bit of a problem. If there's any remaining

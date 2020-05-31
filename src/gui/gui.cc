@@ -38,7 +38,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
-#include "core/uv_wrapper.h"
+#include "core/web-server.h"
 #include "flags.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -88,7 +88,6 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 void PCSX::GUI::init() {
     int result;
-    PCSX::g_emulator->m_uv->init();
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
@@ -176,6 +175,7 @@ void PCSX::GUI::init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
     checkGL();
+    g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
@@ -226,7 +226,7 @@ void PCSX::GUI::close() {
     glfwDestroyWindow(m_window);
     glfwTerminate();
 
-    PCSX::g_emulator->m_uv->close();
+    g_emulator->m_loop->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -244,7 +244,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    g_emulator->m_uv->run();
+    g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();
@@ -553,7 +553,8 @@ void PCSX::GUI::endFrame() {
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
-            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize,
+                         ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::End();
         if (!outputShown) m_fullscreenRender = true;
@@ -768,7 +769,16 @@ bool PCSX::GUI::configure() {
                 g_emulator->m_gdbServer->stopServer();
             }
         }
-        changed |= ImGui::InputInt("GDB Server", &settings.get<Emulator::SettingGdbServerPort>().value);
+        changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
+        if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
+            changed = true;
+            if (settings.get<Emulator::SettingWebServer>()) {
+                g_emulator->m_webServer->startServer(settings.get<Emulator::SettingWebServerPort>());
+            } else {
+                g_emulator->m_webServer->stopServer();
+            }
+        }
+        changed |= ImGui::InputInt(_("Web Server Port"), &settings.get<Emulator::SettingWebServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});

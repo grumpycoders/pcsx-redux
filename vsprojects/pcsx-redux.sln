@@ -49,6 +49,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libelfin", "libelfin\libelf
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fmt", "fmt\fmt.vcxproj", "{71772007-5110-418D-BE9C-FB102B6EAABF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "http-parser", "http-parser\http-parser.vcxproj", "{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -185,6 +187,14 @@ Global
 		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x64.Build.0 = Release|x64
 		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x86.ActiveCfg = Release|Win32
 		{71772007-5110-418D-BE9C-FB102B6EAABF}.Release|x86.Build.0 = Release|Win32
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Debug|x64.ActiveCfg = Debug|x64
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Debug|x64.Build.0 = Debug|x64
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Debug|x86.ActiveCfg = Debug|Win32
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Debug|x86.Build.0 = Debug|Win32
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Release|x64.ActiveCfg = Release|x64
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Release|x64.Build.0 = Release|x64
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Release|x86.ActiveCfg = Release|Win32
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -207,6 +217,7 @@ Global
 		{DD5ACB0A-E326-4EA9-B5A8-C23D66C27650} = {9D5A1DB2-E74D-4CDD-8377-9EA08CF4AADE}
 		{65DF2840-29D7-46FC-868D-201CF2B651E0} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{71772007-5110-418D-BE9C-FB102B6EAABF} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{2F6C532E-1D52-4E87-8B7D-979EAA214DB6} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}

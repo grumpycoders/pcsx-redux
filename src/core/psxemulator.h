@@ -42,6 +42,7 @@
 #include <string>
 
 #include "support/settings.h"
+#include "uvw.hpp"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
@@ -85,6 +86,7 @@ class Cheats;
 class Counters;
 class Debug;
 class GdbServer;
+class WebServer;
 class GPU;
 class GTE;
 class HW;
@@ -95,7 +97,6 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
-class UV;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -144,10 +145,13 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
     typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
+    typedef Setting<bool, TYPESTRING("WebServer"), false> SettingWebServer;
+    typedef Setting<int, TYPESTRING("WebServerPort"), 8080> SettingWebServerPort;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbServerPort>
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbServerPort,
+             SettingWebServer, SettingWebServerPort>
         settings;
     class PcsxConfig {
       public:
@@ -202,12 +206,14 @@ class Emulator {
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<GPU> m_gpu;
     std::unique_ptr<GdbServer> m_gdbServer;
+    std::unique_ptr<WebServer> m_webServer;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
-    std::unique_ptr<UV> m_uv;
+
+    std::shared_ptr<uvw::Loop> m_loop;
 
     static Emulator* getEmulator() {
         static Emulator emulator;

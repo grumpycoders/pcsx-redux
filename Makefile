@@ -18,8 +18,10 @@ CPPFLAGS += -Ithird_party/imgui/examples/libs/gl3w
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/imgui_club
+CPPFLAGS += -Ithird_party/http-parser
 CPPFLAGS += -Ithird_party/libelfin
 CPPFLAGS += -Ithird_party/zstr/src
+CPPFLAGS += -Ithird_party/uvw/src
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
@@ -57,13 +59,14 @@ LD := $(CXX)
 
 SRCS := $(call rwildcard,src/,*.cc)
 SRCS += $(wildcard third_party/fmt/src/*.cc)
-SRCS += $(wildcard third_party/libelfin/*.cc)
 SRCS += $(wildcard third_party/imgui/*.cpp)
+SRCS += $(wildcard third_party/libelfin/*.cc)
 SRCS += third_party/imgui/examples/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/examples/imgui_impl_glfw.cpp
+SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
-SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
+SRCS += third_party/http-parser/http_parser.c
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))

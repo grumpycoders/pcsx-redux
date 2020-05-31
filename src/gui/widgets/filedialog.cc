@@ -24,10 +24,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
-
 #include <malloc.h>
 #include <stdio.h>
+#include <windows.h>
 #endif
 
 #include <algorithm>
@@ -38,32 +37,27 @@
 #include <iostream>
 #include <sstream>
 
-#include "imgui.h"
-
 #include "core/system.h"
 #include "gui/widgets/filedialog.h"
+#include "imgui.h"
 
-struct InputTextCallback_UserData
-{
-    PCSX::u8string*          Str;
-    ImGuiInputTextCallback  ChainCallback;
-    void*                   ChainCallbackUserData;
+struct InputTextCallback_UserData {
+    PCSX::u8string* Str;
+    ImGuiInputTextCallback ChainCallback;
+    void* ChainCallbackUserData;
 };
 
-static int InputTextCallback(ImGuiInputTextCallbackData* data)
-{
+static int InputTextCallback(ImGuiInputTextCallbackData* data) {
     InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
-    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-    {
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
         // Resize string callback
-        // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+        // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back
+        // to what we want.
         PCSX::u8string* str = user_data->Str;
-        IM_ASSERT(data->Buf == reinterpret_cast<const char *>(str->c_str()));
+        IM_ASSERT(data->Buf == reinterpret_cast<const char*>(str->c_str()));
         str->resize(data->BufTextLen);
         data->Buf = (char*)str->c_str();
-    }
-    else if (user_data->ChainCallback)
-    {
+    } else if (user_data->ChainCallback) {
         // Forward to user callback, if any
         data->UserData = user_data->ChainCallbackUserData;
         return user_data->ChainCallback(data);
@@ -71,8 +65,8 @@ static int InputTextCallback(ImGuiInputTextCallbackData* data)
     return 0;
 }
 
-static bool InputText(const char* label, PCSX::u8string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL)
-{
+static bool InputText(const char* label, PCSX::u8string* str, ImGuiInputTextFlags flags = 0,
+                      ImGuiInputTextCallback callback = NULL, void* user_data = NULL) {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
 
@@ -80,7 +74,8 @@ static bool InputText(const char* label, PCSX::u8string* str, ImGuiInputTextFlag
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputText(label, const_cast<char*>(reinterpret_cast<const char*>(str->c_str())), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputText(label, const_cast<char*>(reinterpret_cast<const char*>(str->c_str())), str->capacity() + 1,
+                            flags, InputTextCallback, &cb_user_data);
 }
 
 #ifdef _WIN32
@@ -99,30 +94,31 @@ void PCSX::Widgets::FileDialog::fillRoots() {
         if (!success) continue;
 #ifdef UNICODE
         int needed;
-        LPSTR str;
+        char8_t* str;
 
         needed = WideCharToMultiByte(CP_UTF8, 0, rootPath, -1, NULL, 0, NULL, NULL);
         if (needed <= 0) continue;
-        str = (LPSTR)_malloca(needed);
-        WideCharToMultiByte(CP_UTF8, 0, rootPath, -1, str, needed, NULL, NULL);
-        std::string root = str;
+        str = (char8_t*)_malloca(needed);
+        WideCharToMultiByte(CP_UTF8, 0, rootPath, -1, reinterpret_cast<LPSTR>(str), needed, NULL, NULL);
+        PCSX::u8string root = str;
         _freea(str);
 
         needed = WideCharToMultiByte(CP_UTF8, 0, volumeName, -1, NULL, 0, NULL, NULL);
         if (needed <= 0) continue;
-        str = (LPSTR)_malloca(needed);
-        WideCharToMultiByte(CP_UTF8, 0, volumeName, -1, str, needed, NULL, NULL);
-        std::string label = root + " (" + str + ")";
+        str = (char8_t*)_malloca(needed);
+        WideCharToMultiByte(CP_UTF8, 0, volumeName, -1, reinterpret_cast<LPSTR>(str), needed, NULL, NULL);
+        PCSX::u8string label = root + MAKEU8(" (") + str + MAKEU8(")");
         _freea(str);
 #else
-        std::string root = rootName;
+        PCSX::u8string root = rootName;
         std::string label = root + " (" + volumeName + ")";
 #endif
+        Root addingRoot{root, label};
         m_roots.push_back({root, label});
     }
 }
 #else
-void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({MAKEU8(u8"/"), "(root)"}); }
+void PCSX::Widgets::FileDialog::fillRoots() { m_roots.push_back({MAKEU8(u8"/"), MAKEU8(u8"(root)")}); }
 #endif
 
 void PCSX::Widgets::FileDialog::openDialog() {
@@ -184,7 +180,8 @@ bool PCSX::Widgets::FileDialog::draw() {
             ImGui::BeginChild("Directories", ImVec2(250, 350), true, ImGuiWindowFlags_HorizontalScrollbar);
             if (ImGui::TreeNode(_("Roots"))) {
                 for (auto& p : m_roots) {
-                    if (ImGui::Selectable(p.label.c_str(), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                    if (ImGui::Selectable(reinterpret_cast<const char*>(p.label.c_str()), false, 0,
+                                          ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
                         goDown = p.root;
                     }
                 }
@@ -195,7 +192,8 @@ bool PCSX::Widgets::FileDialog::draw() {
                     goUp = true;
                 }
                 for (auto& p : m_directories) {
-                    if (ImGui::Selectable(reinterpret_cast<const char*>(p.c_str()), false, 0, ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+                    if (ImGui::Selectable(reinterpret_cast<const char*>(p.c_str()), false, 0,
+                                          ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
                         goDown = p;
                     }
                 }
@@ -296,7 +294,8 @@ bool PCSX::Widgets::FileDialog::draw() {
 
             for (auto& p : m_files) {
                 PCSX::u8string label = MAKEU8(u8"##") + p.filename;
-                if (ImGui::Selectable(reinterpret_cast<const char *>(label.c_str()), p.selected, ImGuiSelectableFlags_SpanAllColumns)) {
+                if (ImGui::Selectable(reinterpret_cast<const char*>(label.c_str()), p.selected,
+                                      ImGuiSelectableFlags_SpanAllColumns)) {
                     for (auto& f : m_files) f.selected = false;
                     p.selected = true;
                     if (m_flags & NewFile) {
@@ -326,7 +325,8 @@ bool PCSX::Widgets::FileDialog::draw() {
             selectedStr = m_newFile;
             gotSelected = !m_newFile.empty();
         } else {
-            selectedStr = (m_currentPath / std::filesystem::path(selected ? selected->filename : MAKEU8(u8"..."))).u8string();
+            selectedStr =
+                (m_currentPath / std::filesystem::path(selected ? selected->filename : MAKEU8(u8"..."))).u8string();
             ImGui::TextUnformatted(reinterpret_cast<const char*>(selectedStr.c_str()));
         }
         if (!gotSelected) {

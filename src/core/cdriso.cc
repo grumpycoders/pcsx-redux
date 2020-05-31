@@ -540,7 +540,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
 // this function tries to get the .toc file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsetoc(const char *isofileStr) {
-    std::filesystem::path isofile = std::filesystem::u8path(isofileStr);
+    std::filesystem::path isofile = MAKEU8(isofileStr);
     std::filesystem::path tocname, filename;
     File *fi;
     char linebuf[256], tmp[256], name[256];
@@ -669,7 +669,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsecue(const char *isofileString) {
-    std::filesystem::path isofile = std::filesystem::u8path(isofileString);
+    std::filesystem::path isofile = MAKEU8(isofileString);
     std::filesystem::path cuename, filepath;
     File *fi;
     char *token;
@@ -834,7 +834,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 // this function tries to get the .ccd file of the given .img
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parseccd(const char *isofileString) {
-    std::filesystem::path ccdname, isofile = std::filesystem::u8path(isofileString);
+    std::filesystem::path ccdname, isofile = MAKEU8(isofileString);
     File *fi;
     char linebuf[256];
     unsigned int t;
@@ -887,7 +887,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
 // this function tries to get the .mds file of the given .mdf
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsemds(const char *isofileString) {
-    std::filesystem::path mdsname, isofile = std::filesystem::u8path(isofileString);
+    std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
     File *fi;
     unsigned int offset, extra_offset, l, i;
     unsigned short s;
