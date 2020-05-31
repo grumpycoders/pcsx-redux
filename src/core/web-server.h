@@ -30,6 +30,7 @@ namespace PCSX {
 
 class WebClient : public Intrusive::List<WebClient>::Node {
   public:
+    WebClient(std::shared_ptr<uvw::TCPHandle> srv);
     typedef Intrusive::List<WebClient> ListType;
     void close() {
         assert(m_status == OPEN);

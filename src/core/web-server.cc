@@ -58,3 +58,5 @@ void PCSX::WebClient::processData(const Slice& slice) {
     const char* ptr = reinterpret_cast<const char*>(slice.data());
     auto size = slice.size();
 }
+
+PCSX::WebClient::WebClient(std::shared_ptr<uvw::TCPHandle> srv) : m_tcp(srv->loop().resource<uvw::TCPHandle>()) {}
