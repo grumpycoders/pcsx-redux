@@ -28,5 +28,8 @@ RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev
 RUN apt install -y zlib1g-dev
 
+# CI utilities
+RUN apt install -y curl
+
 RUN mkdir /project
 WORKDIR /project
