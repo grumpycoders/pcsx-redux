@@ -29,9 +29,9 @@
 #include "core/pad.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
-#include "core/uv_wrapper.h"
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
+#include "uvw.hpp"
 
 PCSX::Emulator::Emulator()
     : m_psxMem(new PCSX::Memory()),
@@ -48,7 +48,7 @@ PCSX::Emulator::Emulator()
       m_spu(new PCSX::SPU::impl()),
       m_pad1(new PCSX::PAD(PAD::PAD1)),
       m_pad2(new PCSX::PAD(PAD::PAD2)),
-      m_uv(new PCSX::UV()) {}
+      m_loop(uvw::Loop::create()) {}
 
 PCSX::Emulator::~Emulator() {}
 

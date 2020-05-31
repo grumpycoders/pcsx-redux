@@ -20,34 +20,41 @@
 #pragma once
 
 #include <cstdarg>
-#include <uv.h>
-
 #include <string>
 
 #include "support/eventbus.h"
-#include "support/hashtable.h"
 #include "support/list.h"
 #include "support/slice.h"
+#include "uvw.hpp"
 
 namespace PCSX {
 
 class GdbClient : public Intrusive::List<GdbClient>::Node {
   public:
-    GdbClient(uv_loop_t* loop);
+    GdbClient(std::shared_ptr<uvw::TCPHandle> srv);
+    ~GdbClient() { assert(m_requests.size() == 0); }
     typedef Intrusive::List<GdbClient> ListType;
 
-    bool accept(uv_tcp_t* server) {
+    void accept(std::shared_ptr<uvw::TCPHandle> srv) {
         assert(m_status == CLOSED);
-        if (uv_accept(reinterpret_cast<uv_stream_t*>(server), reinterpret_cast<uv_stream_t*>(&m_tcp)) == 0) {
-            uv_read_start(reinterpret_cast<uv_stream_t*>(&m_tcp), allocTrampoline, readTrampoline);
-            m_status = OPEN;
-        }
-        return m_status == OPEN;
+        m_tcp->on<uvw::CloseEvent>([this](const uvw::CloseEvent&, uvw::TCPHandle&) { delete this; });
+        m_tcp->on<uvw::EndEvent>([this](const uvw::EndEvent&, uvw::TCPHandle&) { close(); });
+        m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent&, uvw::TCPHandle&) { close(); });
+        m_tcp->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle&) { read(event); });
+        m_tcp->on<uvw::WriteEvent>([this](const uvw::WriteEvent&, uvw::TCPHandle&) {
+            auto top = m_requests.begin();
+            if (top == m_requests.end()) return;
+            top->gotWriteEvent();
+        });
+        srv->accept(m_tcp);
+        m_tcp->read();
+        m_status = OPEN;
     }
     void close() {
         assert(m_status == OPEN);
         m_status = CLOSING;
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
+        m_tcp->close();
+        m_requests.destroyAll();
     }
 
   private:
@@ -108,8 +115,6 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         auto* req = new WriteRequest();
         req->m_slice.copy(data.data(), data.size());
         req->enqueueRaw(this);
-
-        if (m_requests.size() >= 64) uv_run(m_tcp.loop, UV_RUN_NOWAIT);
     }
 
     void stopStream() {
@@ -122,71 +127,41 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     }
 
     static const char toHex[];
-    struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
+    struct WriteRequest : public Intrusive::List<WriteRequest>::Node {
         void enqueue(GdbClient* client) {
-            m_bufs[0].base = &m_before;
-            m_bufs[0].len = 1;
-            m_bufs[1].base = static_cast<char*>(const_cast<void*>(m_slice.data()));
-            m_bufs[1].len = m_slice.size();
-            m_bufs[2].base = m_after;
-            m_bufs[2].len = 3;
             uint8_t chksum = 0;
-            auto data = m_bufs[1].base;
-            auto len = m_bufs[1].len;
+            auto data = static_cast<const char*>(m_slice.data());
+            auto len = m_slice.size();
             for (int i = 0; i < len; i++) {
                 chksum += *data++;
             }
             m_after[1] = toHex[chksum >> 4];
             m_after[2] = toHex[chksum & 0x0f];
-            client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
-            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), m_bufs, 3, writeCB);
+            m_outstanding = 3;
+            client->m_requests.push_back(this);
+            client->m_tcp->write(&m_before, 1);
+            client->m_tcp->write(static_cast<char*>(const_cast<void*>(m_slice.data())), m_slice.size());
+            client->m_tcp->write(m_after, 3);
         }
         void enqueueRaw(GdbClient* client) {
-            m_bufs[0].base = static_cast<char*>(const_cast<void*>(m_slice.data()));
-            m_bufs[0].len = m_slice.size();
-            client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
-            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), m_bufs, 1, writeCB);
+            m_outstanding = 1;
+            client->m_requests.push_back(this);
+            client->m_tcp->write(static_cast<char*>(const_cast<void*>(m_slice.data())), m_slice.size());
         }
-        static void writeCB(uv_write_t* request, int status) {
-            GdbClient* client = static_cast<GdbClient*>(request->handle->data);
-            auto self = client->m_requests.find(reinterpret_cast<uintptr_t>(request));
-            delete &*self;
-            if (status != 0) client->close();
+        void gotWriteEvent() {
+            if (--m_outstanding == 0) delete this;
         }
         uv_write_t m_req;
         char m_before = '$';
         char m_after[3] = {'#'};
-        uv_buf_t m_bufs[3];
         Slice m_slice;
+        unsigned m_outstanding;
     };
     friend struct WriteRequest;
-    Intrusive::HashTable<uintptr_t, WriteRequest> m_requests;
-    static constexpr size_t BUFFER_SIZE = 256;
-    static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
-        GdbClient* client = static_cast<GdbClient*>(handle->data);
-        client->alloc(suggestedSize, buf);
-    }
-    void alloc(size_t suggestedSize, uv_buf_t* buf) {
-        assert(!m_allocated);
-        m_allocated = true;
-        buf->base = m_buffer;
-        buf->len = sizeof(m_buffer);
-    }
-    static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-        GdbClient* client = static_cast<GdbClient*>(stream->data);
-        client->read(nread, buf);
-    }
-    void read(ssize_t nread, const uv_buf_t* buf) {
-        m_allocated = false;
-        if (nread < 0) {
-            close();
-            return;
-        } else if (nread == 0) {
-            return;
-        }
-
+    Intrusive::List<WriteRequest> m_requests;
+    void read(const uvw::DataEvent& event) {
         Slice slice;
-        slice.borrow(m_buffer, nread);
+        slice.borrow(event.data.get(), event.length);
 
         processData(slice);
     }
@@ -203,11 +178,9 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     std::string dumpOneRegister(int n);
     static std::string dumpValue(uint32_t value);
 
-    uv_tcp_t m_tcp;
+    std::shared_ptr<uvw::TCPHandle> m_tcp;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
 
-    char m_buffer[BUFFER_SIZE];
-    bool m_allocated = false;
     enum {
         WAIT_FOR_ACK,
         WAIT_FOR_DOLLAR,
@@ -245,11 +218,10 @@ class GdbServer {
     void stopServer();
 
   private:
-    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
-    void onNewConnection(int status);
+    void onNewConnection();
     static void closeCB(uv_handle_t* handle) {}
     GdbServerStatus m_serverStatus;
-    uv_tcp_t m_server;
+    std::shared_ptr<uvw::TCPHandle> m_server;
     GdbClient::ListType m_clients;
     EventBus::Listener m_listener;
 };

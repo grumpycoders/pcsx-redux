@@ -42,6 +42,7 @@
 #include <string>
 
 #include "support/settings.h"
+#include "uvw.hpp"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
@@ -95,7 +96,6 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
-class UV;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -207,7 +207,8 @@ class Emulator {
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
-    std::unique_ptr<UV> m_uv;
+
+    std::shared_ptr<uvw::Loop> m_loop;
 
     static Emulator* getEmulator() {
         static Emulator emulator;

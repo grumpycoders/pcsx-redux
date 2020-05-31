@@ -38,7 +38,6 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
-#include "core/uv_wrapper.h"
 #include "flags.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -88,7 +87,6 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 void PCSX::GUI::init() {
     int result;
-    PCSX::g_emulator->m_uv->init();
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
@@ -226,7 +224,7 @@ void PCSX::GUI::close() {
     glfwDestroyWindow(m_window);
     glfwTerminate();
 
-    PCSX::g_emulator->m_uv->close();
+    g_emulator->m_loop->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -244,7 +242,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    g_emulator->m_uv->run();
+    g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();
@@ -553,7 +551,8 @@ void PCSX::GUI::endFrame() {
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
-            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize, ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize,
+                         ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::End();
         if (!outputShown) m_fullscreenRender = true;
