@@ -27,22 +27,22 @@
 #include <variant>
 
 namespace PCSX {
+
 class Slice {
   public:
     Slice() {}
     Slice(const Slice &other) { copy(other.data(), other.size()); }
-    Slice(Slice &&other) {
-        m_data = other.m_data;
-        other.m_data = std::monostate();
-    }
+    Slice(Slice &&other) noexcept { moveFrom(std::move(other)); }
     Slice(const std::string &str) { m_data = str; }
     Slice(std::string &&str) { m_data = std::move(str); }
     ~Slice() { maybeFree(); }
     std::string toString() const { return {static_cast<const char *>(data()), size()}; }
-    Slice &operator=(const Slice &other) { copy(other.data(), other.size()); }
-    Slice &operator=(Slice &&other) {
-        m_data = other.m_data;
-        other.m_data = std::monostate();
+    Slice &operator=(const Slice &other) {
+        copy(other.data(), other.size());
+        return *this;
+    }
+    Slice &operator=(Slice &&other) noexcept {
+        moveFrom(std::move(other));
         return *this;
     }
     void copy(const std::string &str) { m_data = str; }
@@ -64,6 +64,11 @@ class Slice {
         m_data = Owned{size, malloc(size)};
         std::get<Owned>(m_data).ptr = data;
         std::get<Owned>(m_data).size = size;
+    }
+    template <size_t L>
+    void borrow(const char (&data)[L]) {
+        maybeFree();
+        m_data = Borrowed{L - 1, data};
     }
     void borrow(const void *data, uint32_t size) {
         maybeFree();
@@ -99,6 +104,10 @@ class Slice {
         if (!std::holds_alternative<Owned>(m_data)) return;
         free(std::get<Owned>(m_data).ptr);
         m_data = std::monostate();
+    }
+    void moveFrom(Slice &&other) {
+        m_data = std::move(other.m_data);
+        other.m_data = std::monostate();
     }
     static constexpr size_t INLINED_SIZE = 28;
     struct Inlined {
