@@ -158,6 +158,11 @@ void PCSX::GUI::init() {
         PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
 
+        std::string biosCfg = m_args.get<std::string>("bios", "");
+        if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
+
+        m_exeToLoad = reinterpret_cast<const char8_t*>(m_args.get<std::string>("loadexe", "").c_str());
+
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
     }
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
