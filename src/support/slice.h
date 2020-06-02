@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
+#include <limits>
 #include <string>
 #include <variant>
 
@@ -31,23 +33,37 @@ namespace PCSX {
 class Slice {
   public:
     Slice() {}
-    Slice(const Slice &other) { copy(other.data(), other.size()); }
+    template <size_t L>
+    Slice(const char (&data)[L]) {
+        borrow(data, L - 1);
+    }
+    Slice(const Slice &other) { copyFrom(other); }
     Slice(Slice &&other) noexcept { moveFrom(std::move(other)); }
     Slice(const std::string &str) { m_data = str; }
     Slice(std::string &&str) { m_data = std::move(str); }
-    ~Slice() { maybeFree(); }
-    std::string toString() const { return {static_cast<const char *>(data()), size()}; }
+    std::string asString() const {
+        if (std::holds_alternative<std::string>(m_data)) {
+            return std::get<std::string>(m_data);
+        }
+        return {static_cast<const char *>(data()), size()};
+    }
     Slice &operator=(const Slice &other) {
-        copy(other.data(), other.size());
+        copyFrom(other);
         return *this;
     }
     Slice &operator=(Slice &&other) noexcept {
         moveFrom(std::move(other));
         return *this;
     }
+    void copy(const Slice &other) {
+        if (std::holds_alternative<std::string>(other.m_data)) {
+            m_data = other.m_data;
+        } else {
+            copy(other.data(), other.size());
+        }
+    }
     void copy(const std::string &str) { m_data = str; }
     void copy(const void *data, uint32_t size) {
-        maybeFree();
         void *dest;
         if (size < INLINED_SIZE) {
             m_data = Inlined{size};
@@ -60,20 +76,26 @@ class Slice {
     }
     void acquire(std::string &&str) { m_data = std::move(str); }
     void acquire(void *data, uint32_t size) {
-        maybeFree();
         m_data = Owned{size, malloc(size)};
         std::get<Owned>(m_data).ptr = data;
         std::get<Owned>(m_data).size = size;
     }
+    void borrow(const Slice &other, uint32_t from = 0, uint32_t amount = std::numeric_limits<uint32_t>::max()) {
+        const uint8_t *ptr = static_cast<const uint8_t *>(other.data());
+        uint32_t size = other.size();
+        if (from >= size) {
+            m_data = std::monostate();
+            return;
+        }
+        ptr += from;
+        size -= from;
+        borrow(ptr, std::min(amount, size));
+    }
     template <size_t L>
     void borrow(const char (&data)[L]) {
-        maybeFree();
         m_data = Borrowed{L - 1, data};
     }
-    void borrow(const void *data, uint32_t size) {
-        maybeFree();
-        m_data = Borrowed{size, data};
-    }
+    void borrow(const void *data, uint32_t size) { m_data = Borrowed{size, data}; }
     const void *data() const {
         if (std::holds_alternative<std::string>(m_data)) {
             return std::get<std::string>(m_data).data();
@@ -100,10 +122,12 @@ class Slice {
     }
 
   private:
-    void maybeFree() {
-        if (!std::holds_alternative<Owned>(m_data)) return;
-        free(std::get<Owned>(m_data).ptr);
-        m_data = std::monostate();
+    void copyFrom(const Slice &other) {
+        if (std::holds_alternative<Owned>(other.m_data)) {
+            copy(other.data(), other.size());
+        } else {
+            m_data = other.m_data;
+        }
     }
     void moveFrom(Slice &&other) {
         m_data = std::move(other.m_data);
@@ -115,6 +139,7 @@ class Slice {
         uint8_t inlined[INLINED_SIZE];
     };
     struct Owned {
+        ~Owned() { free(ptr); }
         uint32_t size;
         void *ptr;
     };

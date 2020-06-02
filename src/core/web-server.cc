@@ -181,11 +181,11 @@ struct PCSX::WebClient::WebClientImpl {
     }
     int onStatus(const Slice& slice) { return 0; }
     int onHeaderField(const Slice& slice) {
-        m_currentHeader = slice.toString();
+        m_currentHeader = slice.asString();
         return 0;
     }
     int onHeaderValue(const Slice& slice) {
-        m_requestData.headers.insert(std::pair(m_currentHeader, slice.toString()));
+        m_requestData.headers.insert(std::pair(m_currentHeader, slice.asString()));
         return 0;
     }
     int onHeadersComplete() { return 0; }
