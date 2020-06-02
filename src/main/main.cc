@@ -179,7 +179,7 @@ class SystemImpl : public PCSX::System {
 
 using json = nlohmann::json;
 
-int main(int argc, char **argv) {
+int pcsxMain(int argc, char **argv) {
     const flags::args args(argc, argv);
 
     if (args.get<bool>("dumpproto")) {
