@@ -30,7 +30,28 @@
             "group": "build",
             "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios all",
             "windows": {
-                "command": "${workspaceRoot}\\src\\mips\\openbios\\build.bat"
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios all"
+            },
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": ["relative", "${workspaceRoot}/src/mips/openbios"],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
+        },
+        {
+            "label": "make_openbios_clean",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios clean",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios clean"
             },
             "problemMatcher": {
                 "owner": "cpp",
@@ -51,7 +72,7 @@
             "group": "build",
             "command": "${workspaceRoot}/dockermake.sh -C src/mips/helloworld all",
             "windows": {
-                "command": "${workspaceRoot}\\src\\mips\\helloworld\\build.bat"
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/helloworld all"
             },
             "problemMatcher": {
                 "owner": "cpp",
