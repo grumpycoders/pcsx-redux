@@ -189,7 +189,7 @@ int pcsxMain(int argc, char **argv) {
 
     SystemImpl *system = new SystemImpl;
     PCSX::g_system = system;
-    PCSX::Emulator::createEmulator();
+    PCSX::g_emulator = new PCSX::Emulator();
     std::filesystem::path self = argv[0];
     std::filesystem::path binDir = self.parent_path();
     system->setBinDir(binDir);
@@ -237,12 +237,15 @@ int pcsxMain(int argc, char **argv) {
     PCSX::g_emulator->m_spu->shutdown();
     PCSX::g_emulator->m_gpu->shutdown();
     PCSX::g_emulator->m_cdrom->m_iso.shutdown();
-
     s_gui->close();
-
     delete s_gui;
+
+    delete PCSX::g_emulator;
+    PCSX::g_emulator = nullptr;
+
     int exitCode = PCSX::g_system->exitCode();
     delete PCSX::g_system;
+    PCSX::g_system = nullptr;
 
     return exitCode;
 }

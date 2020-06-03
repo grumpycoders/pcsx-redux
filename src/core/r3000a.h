@@ -285,6 +285,7 @@ class R3000Acpu {
 
   public:
     static int psxInit();
+    virtual bool isDynarec() = 0;
     void psxReset();
     void psxShutdown();
     void psxException(uint32_t code, bool bd);

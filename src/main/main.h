@@ -17,12 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "main/main.h"
+#pragma once
 
-int main(int argc, char** argv) {
-    int r;
-    do {
-        r = pcsxMain(argc, argv);
-    } while (r == 0x12eb007);
-    return r;
-}
+int pcsxMain(int argc, char **argv);

@@ -136,6 +136,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\main\main.cc" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\main\main.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>

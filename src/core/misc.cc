@@ -600,22 +600,22 @@ int RecvPcsxInfo() {
 
     PCSX::g_system->update();
 
+#if 0
     tmp = PCSX::g_emulator->config().Cpu;
     NET_recvData(&PCSX::g_emulator->config().Cpu, sizeof(PCSX::g_emulator->config().Cpu), PSE_NET_BLOCKING);
     if (tmp != PCSX::g_emulator->config().Cpu) {
         PCSX::g_emulator->m_psxCpu->Shutdown();
-#if 0
         if (PCSX::g_emulator->config().Cpu == PCSX::Emulator::CPU_INTERPRETER)
             PCSX::g_emulator->m_psxCpu = &g_psxInt;
         else
             PCSX::g_emulator->m_psxCpu = &g_psxRec;
-#endif
         if (!PCSX::g_emulator->m_psxCpu->Init()) {
             PCSX::g_system->close();
             return -1;
         }
         PCSX::g_emulator->m_psxCpu->psxReset();
     }
+#endif
 
     return 0;
 }
