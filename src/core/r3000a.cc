@@ -22,6 +22,7 @@
  */
 
 #include "core/r3000a.h"
+
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
@@ -33,13 +34,8 @@
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
 
-    if (g_emulator->config().Cpu == Emulator::CPU_DYNAREC) {
-        g_emulator->m_psxCpu = Cpus::DynaRec();
-    }
-
-    if (!g_emulator->m_psxCpu) {
-        g_emulator->m_psxCpu = Cpus::Interpreted();
-    }
+    if (g_emulator->settings.get<Emulator::SettingDynarec>()) g_emulator->m_psxCpu = Cpus::DynaRec();
+    if (!g_emulator->m_psxCpu) g_emulator->m_psxCpu = Cpus::Interpreted();
 
     PGXP_Init();
 
@@ -62,9 +58,7 @@ void PCSX::R3000Acpu::psxReset() {
     EMU_LOG("*BIOS END*\n");
 }
 
-void PCSX::R3000Acpu::psxShutdown() {
-    Shutdown();
-}
+void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     // Set the Cause

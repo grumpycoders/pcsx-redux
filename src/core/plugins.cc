@@ -644,8 +644,6 @@ void clearDynarec(void) { PCSX::g_emulator->m_psxCpu->Reset(); }
 int LoadPlugins() {
     long ret;
 
-    ReleasePlugins();
-
     if (LoadGPUplugin() == -1) return -1;
 
 #ifdef ENABLE_SIO1API
@@ -674,16 +672,6 @@ int LoadPlugins() {
 
     PCSX::g_system->printf("%s", _("Plugins loaded.\n"));
     return 0;
-}
-
-void ReleasePlugins() {
-    PCSX::g_emulator->m_cdrom->m_iso.shutdown();
-    PCSX::g_emulator->m_gpu->shutdown();
-    PCSX::g_emulator->m_spu->shutdown();
-
-#ifdef ENABLE_SIO1API
-    SIO1_shutdown();
-#endif
 }
 
 void SetIsoFile(const char *filename) {

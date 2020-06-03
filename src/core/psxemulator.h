@@ -102,15 +102,13 @@ class Emulator;
 extern Emulator* g_emulator;
 
 class Emulator {
-  private:
+  public:
     Emulator();
     ~Emulator();
+    Emulator(Emulator&&) = delete;
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
-
-  public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
-    enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
     struct OverlaySetting {
         typedef SettingPath<TYPESTRING("Filename")> Filename;
@@ -147,11 +145,12 @@ class Emulator {
     typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
     typedef Setting<bool, TYPESTRING("WebServer"), false> SettingWebServer;
     typedef Setting<int, TYPESTRING("WebServerPort"), 8080> SettingWebServerPort;
+    typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
              SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbServerPort,
-             SettingWebServer, SettingWebServerPort>
+             SettingWebServer, SettingWebServerPort, SettingDynarec>
         settings;
     class PcsxConfig {
       public:
@@ -161,7 +160,6 @@ class Emulator {
         bool HideCursor = false;
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
-        CPUType Cpu = CPU_DYNAREC;  // CPU_DYNAREC or CPU_INTERPRETER
         uint32_t RewindCount = 0;
         uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
@@ -214,13 +212,6 @@ class Emulator {
     std::unique_ptr<PAD> m_pad2;
 
     std::shared_ptr<uvw::Loop> m_loop;
-
-    static Emulator* getEmulator() {
-        static Emulator emulator;
-        return &emulator;
-    }
-
-    static void createEmulator() { g_emulator = getEmulator(); }
 
     char m_cdromId[10] = "";
     char m_cdromLabel[33] = "";

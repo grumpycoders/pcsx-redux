@@ -42,6 +42,7 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
+    virtual bool isDynarec() override { return false; }
 
     void maybeCancelDelayedLoad(uint32_t index) {
         unsigned other = m_currentDelayedLoad ^ 1;

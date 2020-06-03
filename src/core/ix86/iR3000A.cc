@@ -92,6 +92,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     virtual void Clear(uint32_t Addr, uint32_t Size) final;
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
+    virtual bool isDynarec() final { return true; }
 
     static void recClearWrapper(X86DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
 
@@ -3198,6 +3199,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     virtual void Clear(uint32_t Addr, uint32_t Size) final { abort(); }
     virtual void Shutdown() final { abort(); }
     virtual void SetPGXPMode(uint32_t pgxpMode) final { abort(); }
+    virtual bool isDynarec() final { abort(); }
 };
 
 #endif

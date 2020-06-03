@@ -71,7 +71,7 @@ OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 
-NONMAIN_OBJECTS := $(filter-out src/main/main.o,$(OBJECTS))
+NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS := $(patsubst %.cc,%,$(TESTS_SRC))

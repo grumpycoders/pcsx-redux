@@ -158,6 +158,11 @@ void PCSX::GUI::init() {
         PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
         PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
 
+        std::string biosCfg = m_args.get<std::string>("bios", "");
+        if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
+
+        m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
+
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
     }
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -400,6 +405,9 @@ void PCSX::GUI::endFrame() {
                                     &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
                     g_emulator->m_sio->interrupt();
                 }
+                if (ImGui::MenuItem(_("Reboot"))) {
+                    g_system->quit(0x12eb007);
+                }
                 if (ImGui::MenuItem(_("Quit"))) {
                     g_system->quit();
                 }
@@ -492,8 +500,11 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             ImGui::Separator();
-            ImGui::Text(_("GAME ID: %s  %.2f FPS (%.2f ms)"), g_emulator->m_cdromId, ImGui::GetIO().Framerate,
-                        1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Text(_("CPU: %s"), g_emulator->m_psxCpu->isDynarec() ? "DynaRec" : "Interpreted");
+            ImGui::Separator();
+            ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
+            ImGui::Separator();
+            ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
         }
@@ -714,6 +725,13 @@ bool PCSX::GUI::configure() {
         changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
+        changed |= ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value);
+        ShowHelpMarker(_(R"(Activates the dynamic-recompiler CPU core.
+It is significantly faster than the interpreted CPU,
+however it doesn't play nicely with the debugger.
+Changing this setting requires a reboot to take effect.
+The dynarec core isn't available for all CPUs, so
+this setting may not have any effect for you.)"));
 
         {
             static const char* types[] = {"Auto", "NTSC", "PAL"};
@@ -755,12 +773,19 @@ bool PCSX::GUI::configure() {
         }
 
         changed |= ImGui::Checkbox(_("Fast boot"), &settings.get<Emulator::SettingFastBoot>().value);
+        ShowHelpMarker(_(R"(This will cause the BIOS to skip the shell,
+which may include additional checks.
+Also will make the boot time substantially
+faster by not displaying the logo.)"));
         auto bios = settings.get<Emulator::SettingBios>().string();
         ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(),
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
         changed |= ImGui::Checkbox(_("Enable Debugger"), &settings.get<Emulator::SettingDebug>().value);
+        ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
+throughout the execution of mips code. Enabling this
+can slow down emulation to a noticable extend.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingGdbServer>()) {
@@ -769,6 +794,9 @@ bool PCSX::GUI::configure() {
                 g_emulator->m_gdbServer->stopServer();
             }
         }
+        ShowHelpMarker(_(R"(This will activate a gdb-server that you can
+connect to with any gdb-remote compliant client.
+You also need to enable the debugger.)"));
         changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
         if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
             changed = true;
@@ -778,6 +806,9 @@ bool PCSX::GUI::configure() {
                 g_emulator->m_webServer->stopServer();
             }
         }
+        ShowHelpMarker(_(R"(This will activate a web-server, that you can
+query using a REST api. See the wiki for details.
+The debugger might be required in some cases.)"));
         changed |= ImGui::InputInt(_("Web Server Port"), &settings.get<Emulator::SettingWebServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
