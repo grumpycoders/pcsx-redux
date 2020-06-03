@@ -1,17 +1,19 @@
 PREFIX = mipsel-linux-gnu
 BUILD ?= Release
 
+ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
 CC = $(PREFIX)-gcc
 
 TYPE ?= cpe
-LDSCRIPT ?= ../$(TYPE).ld
+LDSCRIPT ?= $(ROOTDIR)/$(TYPE).ld
 
 ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32
 ARCHFLAGS += -fno-stack-protector -nostdlib -ffreestanding
 CPPFLAGS += -mno-gpopt -fomit-frame-pointer -ffunction-sections
 CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
-CPPFLAGS += -I..
+CPPFLAGS += -I$(ROOTDIR)
 
 LDFLAGS = -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
@@ -38,7 +40,7 @@ $(TARGET).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -g -o $(TARGET).elf $(OBJS)
 
 %.o: %.s
-	$(CC) $(ARCHFLAGS) -I.. -g -c -o $@ $<
+	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
 
 %.dep: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<

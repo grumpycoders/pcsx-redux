@@ -19,4 +19,53 @@
 
 #pragma once
 
-int pcsxMain(int argc, char **argv);
+#include <stdlib.h>
+#include <string.h>
+
+#include <filesystem>
+
+int pcsxMain(int argc, char** argv);
+
+class MainInvoker {
+  public:
+    template <typename... Args>
+    MainInvoker(Args... args) {
+        m_count = sizeof...(Args) + 1;
+        m_args = new char*[m_count + 1];
+        m_args[0] = strdup("pcsx-redux");
+        argGenerateOne(m_args, 1, args...);
+    }
+    ~MainInvoker() {
+        for (char** ptr = m_args; *ptr; ptr++) {
+            free(*ptr);
+        }
+        delete m_args;
+    }
+    int invoke() { return pcsxMain(m_count, m_args); }
+
+  private:
+    int m_count;
+    char** m_args;
+
+    void argGenerateOne(char** array, int index) { array[index] = nullptr; }
+
+    template <typename Head, typename... Args>
+    void argGenerateOne(char** array, int index, Head head, Args... args) {
+        std::filesystem::path cwd = std::filesystem::current_path();
+        bool found = false;
+        while (true) {
+            std::filesystem::path maybe = cwd / head;
+            if (std::filesystem::exists(maybe)) {
+                array[index] = strdup(reinterpret_cast<const char*>(maybe.u8string().c_str()));
+                argGenerateOne(array, index + 1, args...);
+                return;
+            }
+            if (!cwd.has_parent_path()) break;
+            auto newcwd = cwd.parent_path();
+            if (cwd == newcwd) break;
+            cwd = newcwd;
+        }
+        array[index] = strdup(head);
+        argGenerateOne(array, index + 1, args...);
+    }
+};
