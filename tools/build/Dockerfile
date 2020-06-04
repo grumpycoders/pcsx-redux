@@ -30,6 +30,23 @@ RUN apt install -y zlib1g-dev
 
 # CI utilities
 RUN apt install -y curl
+RUN apt install -y xvfb
+
+# 32 bits
+#RUN dpkg --add-architecture i386
+#RUN apt update
+#RUN apt install -y libc6:i386
+#RUN apt install -y libstdc++6:i386
+
+# 32 bits development packages
+#RUN apt install -y libavcodec-dev:i386
+#RUN apt install -y libavformat-dev:i386
+#RUN apt install -y libavutil-dev:i386
+#RUN apt install -y libglfw3-dev:i386
+#RUN apt install -y libsdl2-dev:i386
+#RUN apt install -y libswresample-dev:i386
+#RUN apt install -y libuv1-dev:i386
+#RUN apt install -y zlib1g-dev:i386
 
 RUN mkdir /project
 WORKDIR /project
