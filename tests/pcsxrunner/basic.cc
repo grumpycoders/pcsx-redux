@@ -20,7 +20,7 @@
 #include "gtest/gtest.h"
 #include "main/main.h"
 
-TEST(Basic, Straight) {
+TEST(Basic, Meta) {
     MainInvoker invoker("-run", "-bios", "src/mips/openbios/openbios.bin", "-loadexe",
                         "src/mips/tests/basic/basic.cpe");
     int ret = invoker.invoke();

@@ -17,6 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "gtest/gtest.h"
+#include "main/main.h"
 
-char** argsGenerator(...);
+TEST(Protobuf, DumpProto) {
+    MainInvoker invoker("-dumpproto");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}

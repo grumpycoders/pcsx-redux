@@ -53,7 +53,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "http-parser", "http-parser\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcsx-redux", "mainthunk\mainthunk.vcxproj", "{E12740B8-CCEF-454D-98A2-9123F865BFF6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mipsrunners", "tests\mipsrunners\mipsrunners.vcxproj", "{85665837-9D30-4271-BA0F-086729C40DA0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcsxrunner", "tests\pcsxrunner\pcsxrunner.vcxproj", "{85665837-9D30-4271-BA0F-086729C40DA0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

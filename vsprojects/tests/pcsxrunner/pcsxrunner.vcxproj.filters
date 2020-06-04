@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\tests\mipsrunners\basic.cc">
+    <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\tests\mipsrunners\dumpproto.cc">
+    <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
