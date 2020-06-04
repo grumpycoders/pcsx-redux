@@ -20,4 +20,4 @@ if "!REL!" EQU "!ROOT!" (set REL=) ELSE (set "REL=!REL:\=/!")
 set REL=/!REL!
 
 docker pull grumpycoders/pcsx-redux-build:latest
-echo docker run --rm --env-file "%ROOT%/env.list" -i -w"/project%REL%" -v "%ROOT%:/project" grumpycoders/pcsx-redux-build:latest make %*
+docker run --rm --env-file "%ROOT%/env.list" -i -w"/project%REL%" -v "%ROOT%:/project" grumpycoders/pcsx-redux-build:latest make %*

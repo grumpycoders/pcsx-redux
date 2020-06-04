@@ -8,6 +8,7 @@ jobs:
       CC: clang-10
       CXX: clang++-10
       LD: clang++-10
+      TEST_RESULTS: /tmp/test-results
     steps:
       - checkout
       - run:
@@ -18,12 +19,16 @@ jobs:
           name: Build
           command: |
             make -j 2 all pcsx-redux-tests
-            make -C src/mips/shell -j 2
             make -C src/mips/openbios -j 2
+            make -C src/mips/tests -j 2
       - run:
           name: Test
           command: |
-            make runtests
+            export GTEST_OUTPUT=xml:${TEST_RESULTS}/
+            mkdir -p $TEST_RESULTS
+            xvfb-run make runtests
+      - store_test_results:
+          path: /tmp/test-results
   coverage:
     docker:
       - image: grumpycoders/pcsx-redux-build:latest
@@ -43,10 +48,12 @@ jobs:
           name: Build
           command: |
             make -j 2 all pcsx-redux-tests
+            make -C src/mips/openbios -j 2
+            make -C src/mips/tests -j 2
       - run:
           name: Test
           command: |
-            make runtests
+            xvfb-run make runtests
       - run:
           name: Merge code coverage
           command: |

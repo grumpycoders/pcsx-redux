@@ -25,7 +25,7 @@ steps:
   inputs:
     archiveFilePatterns: 'GoogleTestAdapter-0.17.1.zip'
     destinationFolder: 'GoogleTestAdapter'
-    cleanDestinationFolder: true'
+    cleanDestinationFolder: true
 
 - task: CopyFiles@2
   inputs:
@@ -67,6 +67,7 @@ steps:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*.exe
+      !**\pcsxrunner.exe
       !**\pcsx-redux.exe
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'

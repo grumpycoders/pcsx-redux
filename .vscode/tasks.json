@@ -25,6 +25,12 @@
             }
         },
         {
+            "label": "make_clean",
+            "type": "shell",
+            "group": "build",
+            "command": "CC=clang-10 CXX=clang++-10 LD=clang++-10 make clean",
+        },
+        {
             "label": "make_openbios",
             "type": "shell",
             "group": "build",
@@ -53,9 +59,20 @@
             "windows": {
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios clean"
             },
+        },
+        {
+            "label": "make_mipstests",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/tests all",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/tests all"
+            },
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["relative", "${workspaceRoot}/src/mips/openbios"],
+                "fileLocation": [
+                    "relative", "${workspaceRoot}/src/mips/tests/basic"
+                ],
                 "pattern": {
                     "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -65,6 +82,15 @@
                     "message": 5
                 }
             }
+        },
+        {
+            "label": "make_mipstests_clean",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/tests clean",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/tests clean"
+            },
         },
         {
             "label": "make_cpe_helloworld",
