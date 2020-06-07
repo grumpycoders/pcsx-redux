@@ -50,7 +50,7 @@ static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t addre
     register volatile int n asm("a0") = 3;
     register volatile int tcb asm("a1") = address;
     register volatile int r asm("v0");
-    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n), "r"(tcb) : "at", "v1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "memory");
+    __asm__ volatile("syscall\n" : "=r"(r), "=r"(n), "=r"(tcb) : "r"(n), "r"(tcb) : "at", "v1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "memory");
     return r;
 }
 
