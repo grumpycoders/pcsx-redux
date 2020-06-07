@@ -170,31 +170,56 @@ static int findDirectoryEntryForFilename(int id, const char * filename) {
         strcat(fullFilename, filename);
     }
 
-    char localName[44];
-    localName[0] = 0;
-    int directoryID = 1;
     int depth = 0;
-    const char * src = fullFilename;
+    const char *src = fullFilename;
+    char localName[44];
+    int directoryID = 1;
+
+    localName[0] = 0;
+
     while (1) {
+        int isDirectory = 0;
+
         char * dst = localName;
-        char c;
-        while (((c = *++src) != '\\') && (c != 0)) *dst++ = c;
-        *dst = 0;
-        if ((c == 0) || (((directoryID = findNextDirectory(directoryID, localName)) == -1)) || (depth < 7)) {
-            if (localName[0] == 0) break;
-            if (depth >= 8) break;
-            // yeah...
-            *dst = 0;
-            // another clusterfuck: readDirectory only returns 1 or -1, so "it never fails", whee
-            if (readDirectory(directoryID) == 0) break;
-            int count = s_directoryEntryCount;
-            // this makes no sense, starting at 'id'; why is it a parameter?
-            for (struct DirectoryEntry * entry = s_cachedDirectoryEntry + id; id < count; id++, entry++) {
-                if (patternMatches(entry->name, localName)) return s_foundDirectoryEntry = id;
+        while (1) {
+            char c = *++src;
+
+            if (c == '\\') {
+                isDirectory = 1;
+                break;
+            } else if (c == 0) {
+                isDirectory = 0;
+                break;
             }
+
+            *dst++ = c;
         }
-        // ?? so... you can't read deeper than the root anyway?
-        break;
+        *dst = 0;
+
+        if (isDirectory) {
+            directoryID = findNextDirectory(directoryID, localName);
+            if (directoryID == -1) {
+                // Directory localName not found
+                break;
+            }
+            depth++;
+
+            if (depth >= 8) {
+                break;
+            }
+            continue;
+        }
+
+        if (readDirectory(directoryID) == 0) {
+            // Cannot read directory directoryID
+            break;
+        }
+
+        int count = s_directoryEntryCount;
+        // this makes no sense, starting at 'id'; why is it a parameter?
+        for (struct DirectoryEntry * entry = s_cachedDirectoryEntry + id; id < count; id++, entry++) {
+            if (patternMatches(entry->name, localName)) return s_foundDirectoryEntry = id;
+        }
     }
 
     return -1;
