@@ -169,7 +169,7 @@ static const void * romA0table[0xc0] = {
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplemented, unimplemented, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
-    unimplemented, unimplemented, unimplemented, unimplemented, // a8
+    unimplemented, unimplemented, unimplemented, dummyMC, // a8
     unimplemented, unimplemented, unimplemented, unimplemented, // ac
     unimplemented, unimplemented, ioabortraw, unimplemented, // b0
     unimplemented, unimplemented, unimplemented, unimplemented, // b4
@@ -197,8 +197,8 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
     unimplemented, unimplemented, unimplemented, addDevice, // 44
     unimplemented, unimplemented, dummyMC, dummyMC, // 48
-    unimplemented, unimplemented, unimplemented, unimplemented, // 4c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 50
+    unimplemented, unimplemented, dummyMC, unimplemented, // 4c
+    dummyMC, unimplemented, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
     unimplemented, unimplemented, unimplemented, setSIO0AutoAck, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c
@@ -207,7 +207,7 @@ void * B0table[0x60] = {
 void * C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
     unimplemented, getFreeTCBslot, unimplemented, installExceptionHandler, // 04
-    unimplemented, unimplemented, setTimerAutoAck, unimplemented, // 08
+    sysInitMemory, unimplemented, setTimerAutoAck, unimplemented, // 08
     enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, setupFileIO, unimplemented, // 10
     unimplemented, unimplemented, unimplemented, unimplemented, // 14

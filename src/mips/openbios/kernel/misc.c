@@ -46,3 +46,7 @@ void setMemSize(int memSize) {
     __globals60.ramsize = memSize;
     psxprintf("Change effective memory : %d MBytes\n", memSize);
 }
+
+void sysInitMemory(void *heapStart, size_t heapSize) {
+    // FIXME: STUB
+}

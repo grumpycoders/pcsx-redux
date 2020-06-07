@@ -25,5 +25,7 @@ SOFTWARE.
 */
 
 #pragma once
+#include <stddef.h>
 
 void setMemSize(int memSize);
+void sysInitMemory(void* heapStart, size_t heapSize);
