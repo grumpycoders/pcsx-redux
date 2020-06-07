@@ -110,8 +110,18 @@ static __attribute__((section(".ramtext"))) void T2handler(int v) {
     IREG = ~IRQ_TIMER2;
     returnFromException();
 }
+static __attribute__((section(".ramtext"))) int T3verifier() {
+    if (((IMASK & IRQ_VBLANK) == 0) || ((IREG & IRQ_VBLANK) == 0)) return 0;
+    deliverEvent(0xf2000003, 2);
+    return 1;
+}
+static __attribute__((section(".ramtext"))) void T3handler(int v) {
+    if (!s_timersAutoAck[3]) return;
+    IREG = ~IRQ_VBLANK;
+    returnFromException();
+}
 
-static struct HandlerInfo s_rcntHandlers[3] = {
+static struct HandlerInfo s_rcntHandlers[4] = {
     {
         .next = NULL,
         .handler = T0handler,
@@ -130,13 +140,19 @@ static struct HandlerInfo s_rcntHandlers[3] = {
         .verifier = T2verifier,
         .padding = 0,
     },
+    {
+        .next = NULL,
+        .handler = T3handler,
+        .verifier = T3verifier,
+        .padding = 0,
+    },
 };
 
 int __attribute__((section(".ramtext"))) enqueueRCntIrqs(int priority) {
     int ret, i;
 
     IMASK &= ~(IRQ_VBLANK | IRQ_TIMER0 | IRQ_TIMER1 | IRQ_TIMER2);
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 4; i++) {
         s_timersAutoAck[i] = 1;
         ret = sysEnqIntRP(priority, &s_rcntHandlers[i]);
     }
