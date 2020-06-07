@@ -168,10 +168,10 @@ static __attribute__((always_inline)) void syscall_kfree(void * ptr) {
     return ((void(*)(void *))0xb0)(ptr);
 }
 
-static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t class, uint32_t mode) {
+static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t class, uint32_t spec) {
     register volatile int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void(*)(uint32_t, uint32_t))0xb0)(class, mode);
+    ((void(*)(uint32_t, uint32_t))0xb0)(class, spec);
 }
 
 static __attribute__((always_inline)) uint32_t syscall_openEvent(uint32_t class, uint32_t spec, uint32_t mode, void * handler) {
