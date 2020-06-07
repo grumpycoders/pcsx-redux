@@ -37,7 +37,7 @@ SOFTWARE.
 
 static int readHeader(int fd, struct psxExeHeader * header) {
     if (syscall_read(fd, g_readBuffer, 2048) >= 2048) {
-        memcpy(header, g_readBuffer + 16, sizeof(struct psxExeHeader));
+        memcpy(header, g_readBuffer + 16, 60); // BIOS does not copy the whole struct
         return 1;
     }
 
@@ -74,7 +74,7 @@ void loadAndExec(const char * filename, uint32_t stackStart, uint32_t stackSize)
     char c;
     char * ptr = localFilename;
 
-    while ((c = *filename) != 0 && (c != ':')) {
+    while (((c = *filename) != 0) && (c != ':')) {
         *ptr++ = c;
         filename++;
     }
@@ -82,7 +82,7 @@ void loadAndExec(const char * filename, uint32_t stackStart, uint32_t stackSize)
     while ((*ptr++ = toupper(*filename++)) != 0);
 
     ptr = localFilename;
-    while (((c = *ptr) != 0) || (c != ';')) ptr++;
+    while (((c = *ptr) != 0) && (c != ';')) ptr++;
     if (c == 0) strcat(localFilename, ";1");
 
     static uint32_t savedStackStart;
