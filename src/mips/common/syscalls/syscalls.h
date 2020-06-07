@@ -46,7 +46,7 @@ static __attribute__((always_inline)) void leaveCriticalSection() {
     __asm__ volatile("syscall\n" : "=r"(n) : "r"(n) : "at", "v0", "v1", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "memory");
 }
 
-int changeThreadSubFunction(uint32_t address) {
+static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t address) {
     register volatile int n asm("a0") = 3;
     register volatile int tcb asm("a1") = address;
     register volatile int r asm("v0");
