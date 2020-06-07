@@ -92,7 +92,13 @@ __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t 
 
 int enableEvent(uint32_t event) {
     struct EventInfo * ptr = __globals.events + (event & 0xffff);
-    if (ptr->flags) ptr->flags = EVENT_FLAG_ENABLED;
+    if (ptr->flags != 0) ptr->flags = EVENT_FLAG_ENABLED;
+    return 1;
+}
+
+int disableEvent(uint32_t event) {
+    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    if (ptr->flags != 0) ptr->flags = EVENT_FLAG_DISABLED;
     return 1;
 }
 
