@@ -13,7 +13,10 @@
             "command": "CC=clang-10 CXX=clang++-10 LD=clang++-10 make -j8",
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["relative", "${workspaceRoot}"],
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ],
                 "pattern": {
                     "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -29,6 +32,7 @@
             "type": "shell",
             "group": "build",
             "command": "CC=clang-10 CXX=clang++-10 LD=clang++-10 make clean",
+            "problemMatcher": []
         },
         {
             "label": "make_openbios",
@@ -40,7 +44,10 @@
             },
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["relative", "${workspaceRoot}/src/mips/openbios"],
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}/src/mips/openbios"
+                ],
                 "pattern": {
                     "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -59,6 +66,7 @@
             "windows": {
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios clean"
             },
+            "problemMatcher": []
         },
         {
             "label": "make_mipstests",
@@ -71,7 +79,8 @@
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": [
-                    "relative", "${workspaceRoot}/src/mips/tests/basic"
+                    "relative",
+                    "${workspaceRoot}/src/mips/tests/basic"
                 ],
                 "pattern": {
                     "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
@@ -91,6 +100,7 @@
             "windows": {
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/tests clean"
             },
+            "problemMatcher": []
         },
         {
             "label": "make_cpe_helloworld",
@@ -102,7 +112,10 @@
             },
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["relative", "${workspaceRoot}/src/mips/helloworld"],
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}/src/mips/helloworld"
+                ],
                 "pattern": {
                     "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
