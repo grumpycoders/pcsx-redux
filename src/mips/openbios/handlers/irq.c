@@ -28,6 +28,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "common/hardware/hwregs.h"
+#include "common/hardware/irq.h"
 #include "common/psxlibc/handlers.h"
 #include "common/psxlibc/string.h"
 #include "openbios/handlers/handlers.h"
@@ -79,49 +80,39 @@ int __attribute__((section(".ramtext"))) enqueueIrqHandler(int priority) {
 static int s_timersAutoAck[4];
 
 static __attribute__((section(".ramtext"))) int T0verifier() {
-    if (((IMASK & 0x10) == 0) || ((IREG & 0x10) == 0)) return 0;
+    if (((IMASK & IRQ_TIMER0) == 0) || ((IREG & IRQ_TIMER0) == 0)) return 0;
     deliverEvent(0xf2000000, 2);
     return 1;
 }
 static __attribute__((section(".ramtext"))) void T0handler(int v) {
     if (!s_timersAutoAck[0]) return;
-    IREG = ~0x10;
+    IREG = ~IRQ_TIMER0;
     returnFromException();
 }
 static __attribute__((section(".ramtext"))) int T1verifier() {
-    if (((IMASK & 0x20) == 0) || ((IREG & 0x20) == 0)) return 0;
+    if (((IMASK & IRQ_TIMER1) == 0) || ((IREG & IRQ_TIMER1) == 0)) return 0;
     deliverEvent(0xf2000001, 2);
     return 1;
 
 }
 static __attribute__((section(".ramtext"))) void T1handler(int v) {
     if (!s_timersAutoAck[1]) return;
-    IREG = ~0x20;
+    IREG = ~IRQ_TIMER1;
     returnFromException();
 }
 static __attribute__((section(".ramtext"))) int T2verifier() {
-    if (((IMASK & 0x40) == 0) || ((IREG & 0x40) == 0)) return 0;
+    if (((IMASK & IRQ_TIMER2) == 0) || ((IREG & IRQ_TIMER2) == 0)) return 0;
     deliverEvent(0xf2000002, 2);
     return 1;
 
 }
 static __attribute__((section(".ramtext"))) void T2handler(int v) {
     if (!s_timersAutoAck[2]) return;
-    IREG = ~0x40;
-    returnFromException();
-}
-static __attribute__((section(".ramtext"))) int T3verifier() {
-    if (((IMASK & 0x80) == 0) || ((IREG & 0x80) == 0)) return 0;
-    deliverEvent(0xf2000003, 2);
-    return 1;
-}
-static __attribute__((section(".ramtext"))) void T3handler(int v) {
-    if (!s_timersAutoAck[3]) return;
-    IREG = ~0x80;
+    IREG = ~IRQ_TIMER2;
     returnFromException();
 }
 
-static struct HandlerInfo s_rcntHandlers[4] = {
+static struct HandlerInfo s_rcntHandlers[3] = {
     {
         .next = NULL,
         .handler = T0handler,
@@ -140,18 +131,12 @@ static struct HandlerInfo s_rcntHandlers[4] = {
         .verifier = T2verifier,
         .padding = 0,
     },
-    {
-        .next = NULL,
-        .handler = T3handler,
-        .verifier = T3verifier,
-        .padding = 0,
-    },
 };
 
 int __attribute__((section(".ramtext"))) enqueueRCntIrqs(int priority) {
     int ret, i;
 
-    IMASK &= ~0x71;
+    IMASK &= ~(IRQ_VBLANK | IRQ_TIMER0 | IRQ_TIMER1 | IRQ_TIMER2);
     for (i = 0; i < 3; i++) {
         s_timersAutoAck[i] = 1;
         ret = sysEnqIntRP(priority, &s_rcntHandlers[i]);

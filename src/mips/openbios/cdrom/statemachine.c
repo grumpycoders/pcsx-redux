@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include "common/hardware/cdrom.h"
 #include "common/hardware/dma.h"
+#include "common/hardware/irq.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/cdrom/events.h"
 #include "openbios/cdrom/statemachine.h"
@@ -620,9 +621,9 @@ static uint8_t s_irqFlags;
 extern volatile uint32_t __vector_00;
 
 int __attribute__((section(".ramtext"))) cdromIOVerifier() {
-    if ((IMASK & 4) == 0) return 0;
+    if ((IMASK & IRQ_CDROM) == 0) return 0;
     s_lastIREG = IREG;
-    if ((s_lastIREG & 4) == 0) return 0;
+    if ((s_lastIREG & IRQ_CDROM) == 0) return 0;
 
     CDROM_REG0 = 1;
     s_irqFlags = CDROM_REG3;
@@ -667,8 +668,8 @@ int __attribute__((section(".ramtext"))) cdromIOVerifier() {
 static int s_dmaStuff;
 
 int __attribute__((section(".ramtext"))) cdromDMAVerifier() {
-    if (!(IMASK & 8)) return 0;
-    if (!((s_lastIREG = IREG) & 8)) return 0;
+    if (!(IMASK & IRQ_DMA)) return 0;
+    if (!((s_lastIREG = IREG) & IRQ_DMA)) return 0;
     uint32_t dicr = DICR;
     dicr &= 0x00ffffff;
     dicr |= 0x88000000;
@@ -684,13 +685,13 @@ static int s_irqAutoAck[2];
 
 void __attribute__((section(".ramtext"))) cdromIOHandler(int v) {
     if (!s_irqAutoAck[0]) return;
-    IREG = ~4;
+    IREG = ~IRQ_CDROM;
     syscall_returnFromException();
 }
 
 void __attribute__((section(".ramtext"))) cdromDMAHandler(int v) {
     if (!s_irqAutoAck[1]) return;
-    IREG = ~8;
+    IREG = ~IRQ_DMA;
     syscall_returnFromException();
 }
 
@@ -720,10 +721,10 @@ int __attribute__((section(".ramtext"))) cdromInnerInit() {
     s_gotInt5 = 0;
     s_stuff = 0;
     enterCriticalSection();
-    IMASK &= ~4;
-    IMASK &= ~8;
-    IREG &= ~4;
-    IREG &= ~8;
+    IMASK &= ~IRQ_CDROM;
+    IMASK &= ~IRQ_DMA;
+    IREG &= ~IRQ_CDROM;
+    IREG &= ~IRQ_DMA;
     s_irqAutoAck[1] = 1;
     s_irqAutoAck[0] = 1;
     DPCR = 0x9099;
@@ -737,9 +738,9 @@ int __attribute__((section(".ramtext"))) cdromInnerInit() {
     s_gotInt3 = 0;
     resetAllCDRomIRQs();
     enableAllCDRomIRQs();
-    IREG &= ~4;
-    IMASK |= 4;
-    IMASK |= 8;
+    IREG &= ~IRQ_CDROM;
+    IMASK |= IRQ_CDROM;
+    IMASK |= IRQ_DMA;
     leaveCriticalSection();
     CDROM_REG0 = 0;
     CDROM_REG1 = 10;
