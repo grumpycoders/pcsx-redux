@@ -51,9 +51,9 @@ exceptionHandler:
     nop
     nop
     li    $k0, %lo(__globals)
-    lw    $k0, 8($k0) /* ->TCBArrayPtr */
+    lw    $k0, 8($k0) /* ->processes[0] */
     nop
-    lw    $k0, 0($k0) /* [0] */
+    lw    $k0, 0($k0) /* thread */
     nop
     addi  $k0, 8 /* &->Registers */
     /* From here on, $k0 is the pointer to the registers structure. */
@@ -192,9 +192,9 @@ next_priority:
 
     /* nobody took the call ? then longjmp into the unhandled exception buffer. */
     li    $k0, %lo(__globals) /* no idea why k0 is used again here... */
-    lw    $k0, 8($k0) /* ->TCBArrayPtr */
+    lw    $k0, 8($k0) /* ->processes[0] */
     lui   $a0, %hi(g_exceptionJmpBufPtr)
-    lw    $k0, 0($k0) /* [0] */
+    lw    $k0, 0($k0) /* thread */
     addiu $a0, %lo(g_exceptionJmpBufPtr)
     lw    $a0, 0($a0) /* such bad code... why... */
     li    $a1, 1 /* whyyyyy */
@@ -269,7 +269,7 @@ returnFromException:
     lw    $fp, 0x78($k1)
     lw    $ra, 0x7c($k1)
     jr    $k0
-    .word 0x42000010 /* rfe */
+    rfe
 
     .section .text, "ax", @progbits
     .align 2

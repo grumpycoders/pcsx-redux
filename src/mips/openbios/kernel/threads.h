@@ -31,7 +31,7 @@ struct Registers {
             uint32_t r0, at, v0, v1, a0, a1, a2, a3;
             uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
             uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-            uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
+            uint32_t t8, t9, k0, k1, gp, sp, fp, ra;
         } n;
         uint32_t r[32];
     } GPR;
@@ -47,4 +47,13 @@ struct Thread {
     uint32_t unknown[9];
 };
 
-int initThreads(int blocks, int count);
+struct Process {
+    struct Thread* thread;
+};
+
+int initThreads(int processCount, int threadCount);
+
+int getFreeTCBslot();
+int openThread(uint32_t pc, uint32_t sp, uint32_t gp);
+int closeThread(int threadId);
+int changeThread(int threadId);

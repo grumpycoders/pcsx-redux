@@ -226,7 +226,7 @@ static void kernelSetup() {
     // allocator implementation, so let's free stuff instead
     // syscall_sysInitMemory(&heapBase, heapSize);
     syscall_kfree(__globals.events);
-    syscall_kfree(__globals.blocks);
+    syscall_kfree(__globals.processes);
     syscall_kfree(__globals.threads);
     syscall_kfree(__globals.handlersArray);
 
