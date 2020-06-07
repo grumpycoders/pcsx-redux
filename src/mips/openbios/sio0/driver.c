@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include "common/psxlibc/string.h"
 #include "common/hardware/hwregs.h"
+#include "common/hardware/irq.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/handlers/handlers.h"
 #include "openbios/sio0/pad.h"
@@ -100,13 +101,13 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     SIOS[0].fifo = 1;
     busyloop(20);
     SIOS[0].ctrl |= 0x10;
-    IREG = ~0x80;
+    IREG = ~IRQ_CONTROLLER;
     while (!(SIOS[0].stat & 2));
     SIOS[0].fifo; // throw away
     busyloop(40);
 
     int cyclesWaited = 0;
-    while (!(IREG & 0x80)) {
+    while (!(IREG & IRQ_CONTROLLER)) {
         if (cyclesWaited++ > 0x50) {
             padAbort(pad);
             return 0xffff; // is this return actually a int16_t maybe?
@@ -116,7 +117,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     SIOS[0].fifo = 0x42;
     busyloop(25);
     SIOS[0].ctrl |= 0x10;
-    IREG = ~0x80;
+    IREG = ~IRQ_CONTROLLER;
 
     while (!(SIOS[0].stat & 2));
     uint32_t fifoBytes = SIOS[0].fifo;
@@ -125,7 +126,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     if (!fifoBytes) fifoBytes = 0x10;
 
     cyclesWaited = 0;
-    while (!(IREG & 0x80)) {
+    while (!(IREG & IRQ_CONTROLLER)) {
         if (cyclesWaited++ > 0x50) {
             padAbort(pad);
             return 0xffff;
@@ -136,7 +137,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     busyloop(20);
 
     SIOS[0].ctrl |= 0x10;
-    IREG = ~0x80;
+    IREG = ~IRQ_CONTROLLER;
 
     while (!(SIOS[0].stat & 2));
 
@@ -147,7 +148,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
 
     while (fifoBytes--) {
         cyclesWaited = 0;
-        while (!(IREG & 0x80)) {
+        while (!(IREG & IRQ_CONTROLLER)) {
             if (cyclesWaited++ > 0x50) {
                 padAbort(pad);
                 return 0xffff;
@@ -159,11 +160,11 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         padOutputBuffer += 2;
         busyloop(10);
         SIOS[0].ctrl |= 0x10;
-        IREG = ~0x80;
+        IREG = ~IRQ_CONTROLLER;
 
         cyclesWaited = 0;
         while (!(SIOS[0].stat & 2)) {
-            if (!(IREG & 0x80)) continue;
+            if (!(IREG & IRQ_CONTROLLER)) continue;
             while (!(SIOS[0].stat & 2));
             padAbort(pad);
             return 0xffff;
@@ -172,7 +173,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         padBuffer[2] = SIOS[0].fifo;
 
         cyclesWaited = 0;
-        while (!(IREG & 0x80)) {
+        while (!(IREG & IRQ_CONTROLLER)) {
             if (cyclesWaited++ > 0x50) {
                 padAbort(pad);
                 return 0xffff;
@@ -184,7 +185,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         busyloop(10);
 
         SIOS[0].ctrl |= 0x10;
-        IREG = ~0x80;
+        IREG = ~IRQ_CONTROLLER;
 
         while (!(SIOS[0].stat) & 2);
 
@@ -201,7 +202,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
 static void __attribute__((section(".ramtext"))) readCard() {}
 
 static int __attribute__((section(".ramtext"))) sio0Verifier() {
-    if (((IMASK & 0x01) == 0) || ((IREG & 0x01) == 0)) return 0;
+    if (((IMASK & IRQ_VBLANK) == 0) || ((IREG & IRQ_VBLANK) == 0)) return 0;
     return 1;
 }
 
@@ -211,7 +212,7 @@ static void __attribute__((section(".ramtext"))) sio0Handler(int v) {
         readPad(1);
         if (g_userPadBuffer) readPadHighLevel();
     }
-    if (s_padAutoAck) IREG = ~1;
+    if (s_padAutoAck) IREG = ~IRQ_VBLANK;
     if (s_cardStarted) readCard();
 }
 
@@ -260,8 +261,8 @@ int __attribute__((section(".ramtext"))) startPad() {
     enterCriticalSection();
     sysDeqIntRP(2, &g_sio0HandlerInfo);
     sysEnqIntRP(2, &g_sio0HandlerInfo);
-    IREG = ~1;
-    IMASK |= 1;
+    IREG = ~IRQ_VBLANK;
+    IMASK |= IRQ_VBLANK;
     setSIO0AutoAck(1);
     setTimerAutoAck(3, 0);
     leaveCriticalSection();
