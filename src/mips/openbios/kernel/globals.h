@@ -39,10 +39,10 @@ extern struct {
 extern struct {
     /* 100 */ struct HandlersStorage * handlersArray;
     /* 104 */ uint32_t handlersArraySize;
-    /* 108 */ struct Thread ** blocks;
-    /* 10c */ struct Thread * threads;
-    /* 110 */ uint32_t xxx_04;
-    /* 114 */ uint32_t xxx_05;
+    /* 108 */ struct Process * processes;
+    /* 10c */ uint32_t processBlockSize;
+    /* 110 */ struct Thread * threads;
+    /* 114 */ uint32_t threadBlockSize;
     /* 118 */ uint32_t xxx_06;
     /* 11c */ uint32_t xxx_07;
     /* 120 */ struct EventInfo * events;

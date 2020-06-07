@@ -32,25 +32,70 @@ SOFTWARE.
 #include "openbios/kernel/globals.h"
 #include "openbios/kernel/threads.h"
 
-int initThreads(int blocksCount, int count) {
-    psxprintf("TCB\t0x%02x\n", count);
-    int blockSize = blocksCount * sizeof(struct Thread *);
-    struct Thread ** blocks = syscall_kmalloc(blockSize);
-    if (!blocks) return 0;
+int initThreads(int processCount, int threadCount) {
+    psxprintf("TCB\t0x%02x\n", threadCount);
+    int processBlockSize = processCount * sizeof(struct Process);
+    __globals.processBlockSize = processBlockSize;
 
-    int arraySize = count * sizeof(struct Thread);
-    struct Thread * array = syscall_kmalloc(arraySize);
-    if (!array) return 0;
+    struct Process *process = syscall_kmalloc(processBlockSize);
+    if (!process) return 0;
 
-    struct Thread ** blockPtr = blocks;
-    while (blockPtr < blocks + blocksCount) *blockPtr++ = NULL;
-    struct Thread * threadPtr = array;
-    while (threadPtr < array + count) threadPtr++->flags = 0x1000;
-    array[0].flags = 0x4000;
-    *blocks = array;
+    int threadBlockSize = threadCount * sizeof(struct Thread);
+    __globals.threadBlockSize = threadBlockSize;
 
-    __globals.blocks = blocks;
-    __globals.threads = array;
+    struct Thread *threads = syscall_kmalloc(threadBlockSize);
+    if (!threads) return 0;
 
-    return blockSize + arraySize;
+    for (int i = 0; i < processCount; i++) {
+        process[i].thread = 0;
+    }
+
+    for (int i = 0; i < threadCount; i++) {
+        threads[i].flags = 0x1000;
+    }
+    threads[0].flags = 0x4000;
+    process[0].thread = &threads[0];
+
+    __globals.processes = process;
+    __globals.threads = threads;
+
+    return processBlockSize + threadBlockSize;
+}
+
+int getFreeTCBslot() {
+    int maxThreadCount = __globals.threadBlockSize / sizeof(struct Thread);
+    for (int i = 0; i < maxThreadCount; i++) {
+        struct Thread *tcb = &__globals.threads[i];
+        if (tcb->flags == 0x1000) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int openThread(uint32_t pc, uint32_t sp, uint32_t gp) {
+    int slot = getFreeTCBslot();
+    if (slot == -1) {
+        return -1;
+    }
+
+    struct Thread *thread = &__globals.threads[slot];
+    thread->flags = 0x4000;
+    thread->flags2 = 0x1000;
+    thread->registers.GPR.n.sp = sp;
+    thread->registers.GPR.n.fp = sp;
+    thread->registers.returnPC = pc;
+    thread->registers.GPR.n.gp = gp;
+
+    return slot | 0xff000000;
+}
+
+int closeThread(int threadId) {
+    struct Thread * thread = &__globals.threads[threadId & 0xffff];
+    thread->flags = 0x1000;
+    return 1;
+}
+
+int changeThread(int threadId) {
+    return changeThreadSubFunction((uint32_t) &__globals.threads[threadId & 0xffff]);
 }
