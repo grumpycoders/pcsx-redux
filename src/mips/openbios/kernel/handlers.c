@@ -181,7 +181,7 @@ void * B0table[0x60] = {
     malloc, free, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, deliverEvent, // 04
     openEvent, closeEvent, waitEvent, testEvent, // 08
-    enableEvent, unimplemented, openThread, closeThread, // 0c
+    enableEvent, disableEvent, openThread, closeThread, // 0c
     changeThread, unimplemented, initPad, startPad, // 10
     stopPad, initPadHighLevel, readPadHighLevel, returnFromException, // 14
     setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplemented, unimplemented, // 18
