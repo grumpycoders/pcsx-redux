@@ -39,5 +39,5 @@ enum IRQ {
     IRQ_CONTROLLER = 1 << 7,
     IRQ_SIO        = 1 << 8,
     IRQ_SPU        = 1 << 9,
-    IRQ_LIGHTGUN   = 1 << 10,
+    IRQ_PIO        = 1 << 10,
 };
