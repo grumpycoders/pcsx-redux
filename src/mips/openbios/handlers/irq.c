@@ -28,6 +28,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "common/hardware/hwregs.h"
+#include "common/hardware/irq.h"
 #include "common/psxlibc/handlers.h"
 #include "common/psxlibc/string.h"
 #include "openbios/handlers/handlers.h"
@@ -42,17 +43,17 @@ static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
     // they can't be cached by the compiler, if this is what the
     // original author was thinking.
     uint32_t mask = IMASK & IREG;
-    if ((mask & 0x004) != 0) deliverEvent(EVENT_CDROM, 0x1000);
-    if ((mask & 0x200) != 0) deliverEvent(EVENT_SPU, 0x1000);
-    if ((mask & 0x002) != 0) deliverEvent(EVENT_GPU, 0x1000);
-    if ((mask & 0x400) != 0) deliverEvent(EVENT_PIO, 0x1000);
-    if ((mask & 0x100) != 0) deliverEvent(EVENT_SIO, 0x1000);
-    if ((mask & 0x001) != 0) deliverEvent(EVENT_VBLANK, 0x1000);
-    if ((mask & 0x010) != 0) deliverEvent(EVENT_RTC0, 0x1000);
-    if ((mask & 0x020) != 0) deliverEvent(EVENT_RTC1, 0x1000); // Yes that's a copy-paste mistake from the BIOS code directly.
-    if ((mask & 0x040) != 0) deliverEvent(EVENT_RTC1, 0x1000); // Keeping it this way to avoid breaking stuff.
-    if ((mask & 0x080) != 0) deliverEvent(EVENT_CONTROLLER, 0x1000);
-    if ((mask & 0x008) != 0) deliverEvent(EVENT_DMA, 0x1000);
+    if ((mask & IRQ_CDROM) != 0)      deliverEvent(EVENT_CDROM, 0x1000);
+    if ((mask & IRQ_SPU) != 0)        deliverEvent(EVENT_SPU, 0x1000);
+    if ((mask & IRQ_GPU) != 0)        deliverEvent(EVENT_GPU, 0x1000);
+    if ((mask & IRQ_PIO) != 0)        deliverEvent(EVENT_PIO, 0x1000);
+    if ((mask & IRQ_SIO) != 0)        deliverEvent(EVENT_SIO, 0x1000);
+    if ((mask & IRQ_VBLANK) != 0)     deliverEvent(EVENT_VBLANK, 0x1000);
+    if ((mask & IRQ_TIMER0) != 0)     deliverEvent(EVENT_RTC0, 0x1000);
+    if ((mask & IRQ_TIMER1) != 0)     deliverEvent(EVENT_RTC1, 0x1000); // Yes that's a copy-paste mistake from the BIOS code directly.
+    if ((mask & IRQ_TIMER2) != 0)     deliverEvent(EVENT_RTC1, 0x1000); // Keeping it this way to avoid breaking stuff.
+    if ((mask & IRQ_CONTROLLER) != 0) deliverEvent(EVENT_CONTROLLER, 0x1000);
+    if ((mask & IRQ_DMA) != 0)        deliverEvent(EVENT_DMA, 0x1000);
     uint32_t ackMask = 0;
     int * ptr = s_IRQsAutoAck;
     for (int IRQ = 0; IRQ < 11; IRQ++, ptr++) {
@@ -79,45 +80,44 @@ int __attribute__((section(".ramtext"))) enqueueIrqHandler(int priority) {
 static int s_timersAutoAck[4];
 
 static __attribute__((section(".ramtext"))) int T0verifier() {
-    if (((IMASK & 0x10) == 0) || ((IREG & 0x10) == 0)) return 0;
+    if (((IMASK & IRQ_TIMER0) == 0) || ((IREG & IRQ_TIMER0) == 0)) return 0;
     deliverEvent(0xf2000000, 2);
     return 1;
 }
 static __attribute__((section(".ramtext"))) void T0handler(int v) {
     if (!s_timersAutoAck[0]) return;
-    IREG = ~0x10;
+    IREG = ~IRQ_TIMER0;
     returnFromException();
 }
 static __attribute__((section(".ramtext"))) int T1verifier() {
-    if (((IMASK & 0x20) == 0) || ((IREG & 0x20) == 0)) return 0;
+    if (((IMASK & IRQ_TIMER1) == 0) || ((IREG & IRQ_TIMER1) == 0)) return 0;
     deliverEvent(0xf2000001, 2);
     return 1;
 
 }
 static __attribute__((section(".ramtext"))) void T1handler(int v) {
     if (!s_timersAutoAck[1]) return;
-    IREG = ~0x20;
+    IREG = ~IRQ_TIMER1;
     returnFromException();
 }
 static __attribute__((section(".ramtext"))) int T2verifier() {
-    if (((IMASK & 0x40) == 0) || ((IREG & 0x40) == 0)) return 0;
+    if (((IMASK & IRQ_TIMER2) == 0) || ((IREG & IRQ_TIMER2) == 0)) return 0;
     deliverEvent(0xf2000002, 2);
     return 1;
-
 }
 static __attribute__((section(".ramtext"))) void T2handler(int v) {
     if (!s_timersAutoAck[2]) return;
-    IREG = ~0x40;
+    IREG = ~IRQ_TIMER2;
     returnFromException();
 }
 static __attribute__((section(".ramtext"))) int T3verifier() {
-    if (((IMASK & 0x80) == 0) || ((IREG & 0x80) == 0)) return 0;
+    if (((IMASK & IRQ_VBLANK) == 0) || ((IREG & IRQ_VBLANK) == 0)) return 0;
     deliverEvent(0xf2000003, 2);
     return 1;
 }
 static __attribute__((section(".ramtext"))) void T3handler(int v) {
     if (!s_timersAutoAck[3]) return;
-    IREG = ~0x80;
+    IREG = ~IRQ_VBLANK;
     returnFromException();
 }
 
@@ -151,8 +151,8 @@ static struct HandlerInfo s_rcntHandlers[4] = {
 int __attribute__((section(".ramtext"))) enqueueRCntIrqs(int priority) {
     int ret, i;
 
-    IMASK &= ~0x71;
-    for (i = 0; i < 3; i++) {
+    IMASK &= ~(IRQ_VBLANK | IRQ_TIMER0 | IRQ_TIMER1 | IRQ_TIMER2);
+    for (i = 0; i < 4; i++) {
         s_timersAutoAck[i] = 1;
         ret = sysEnqIntRP(priority, &s_rcntHandlers[i]);
     }
