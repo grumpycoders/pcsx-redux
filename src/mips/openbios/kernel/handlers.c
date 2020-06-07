@@ -49,6 +49,7 @@ SOFTWARE.
 #include "openbios/kernel/misc.h"
 #include "openbios/kernel/psxexe.h"
 #include "openbios/kernel/setjmp.h"
+#include "openbios/kernel/threads.h"
 #include "openbios/main/main.h"
 #include "openbios/sio0/pad.h"
 #include "openbios/sio0/sio0.h"
@@ -180,8 +181,8 @@ void * B0table[0x60] = {
     malloc, free, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, deliverEvent, // 04
     openEvent, closeEvent, waitEvent, testEvent, // 08
-    enableEvent, unimplemented, unimplemented, unimplemented, // 0c
-    unimplemented, unimplemented, initPad, startPad, // 10
+    enableEvent, disableEvent, openThread, closeThread, // 0c
+    changeThread, unimplemented, initPad, startPad, // 10
     stopPad, initPadHighLevel, readPadHighLevel, returnFromException, // 14
     setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplemented, unimplemented, // 18
     unimplemented, unimplemented, unimplemented, unimplemented, // 1c
@@ -205,7 +206,7 @@ void * B0table[0x60] = {
 
 void * C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
-    unimplemented, unimplemented, unimplemented, installExceptionHandler, // 04
+    unimplemented, getFreeTCBslot, unimplemented, installExceptionHandler, // 04
     unimplemented, unimplemented, setTimerAutoAck, unimplemented, // 08
     enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, setupFileIO, unimplemented, // 10

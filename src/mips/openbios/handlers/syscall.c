@@ -34,8 +34,7 @@ SOFTWARE.
 #include "openbios/kernel/threads.h"
 
 static __attribute__((section(".ramtext"))) int syscallVerifier() {
-    struct Thread ** blocks = __globals.blocks;
-    struct Thread * currentThread = blocks[0];
+    struct Thread * currentThread = __globals.processes[0].thread;
     unsigned exCode = currentThread->registers.Cause & 0x3c;
     switch (exCode) {
         case 0x00:
@@ -54,7 +53,7 @@ static __attribute__((section(".ramtext"))) int syscallVerifier() {
                     currentThread->registers.SR |= 0x404;
                     break;
                 case 3:
-                    blocks[0] = (struct Thread *) currentThread->registers.GPR.n.a1;
+                    __globals.processes[0].thread = (struct Thread*)currentThread->registers.GPR.n.a1;
                     currentThread->registers.GPR.n.v0 = 1;
                     break;
                 default:
