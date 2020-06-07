@@ -353,7 +353,7 @@ void PCSX::GdbClient::writeEscaped(const std::string& out) {
         escaped += toHex[c & 0x0f];
     }
 
-    write(escaped);
+    write(std::move(escaped));
 }
 
 std::string PCSX::GdbClient::dumpValue(uint32_t value) {
