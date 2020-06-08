@@ -53,7 +53,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         m_status = OPEN;
     }
     void close() {
-        assert(m_status == OPEN);
+        if (m_status != OPEN) return;
         m_status = CLOSING;
         m_tcp->close();
         m_requests.destroyAll();
@@ -68,7 +68,13 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     void write(const std::string& msg) {
         auto* req = new WriteRequest();
         assert(msg.size() <= std::numeric_limits<uint32_t>::max());
-        req->m_slice.copy(msg.data(), msg.size());
+        req->m_slice.copy(msg);
+        req->enqueue(this);
+    }
+    void write(std::string&& msg) {
+        auto* req = new WriteRequest();
+        assert(msg.size() <= std::numeric_limits<uint32_t>::max());
+        req->m_slice.acquire(std::move(msg));
         req->enqueue(this);
     }
     template <size_t L>
