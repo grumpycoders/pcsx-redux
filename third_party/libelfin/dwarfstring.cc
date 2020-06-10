@@ -428,6 +428,8 @@ std::string to_string(DW_AT v) {
             return "DW_AT_GNU_all_tail_call_site";
         case DW_AT::GNU_all_call_sites:
             return "DW_AT_GNU_all_call_site";
+        case DW_AT::GNU_locviews:
+            return "DW_AT_GNU_locviews";
     }
     return "(DW_AT)0x" + to_hex((int)v);
 }

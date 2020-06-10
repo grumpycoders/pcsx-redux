@@ -548,7 +548,8 @@ class value {
         mac,
         rangelist,
         reference,
-        string
+        string,
+        locviews
     };
 
     /**
