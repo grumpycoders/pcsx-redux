@@ -24,16 +24,23 @@ SOFTWARE.
 
 */
 
-#include "common/syscalls/syscalls.h"
+    .section .start, "ax", @progbits
+    .align 2
+    .global _ucsdk_start
+    .global _start
+    .type _start, @function
 
-#undef unix
-#define CESTER_NO_SIGNAL
-#define CESTER_NO_TIME
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-#include "exotic/cester.h"
+_start:
+    la    $t0, __bss_start
+    la    $t1, __bss_end
 
-CESTER_TEST(test1, test_instance,
-    ramsyscall_printf("Hello world\n");
-    cester_assert_equal(NULL, NULL);
-)
+    beq   $t0, $t1, bss_init_skip
+
+bss_init:
+    sw    $0, 0($t0)
+    addiu $t0, 4
+    bne   $t0, $t1, bss_init
+
+bss_init_skip:
+
+    j     _ucsdk_start

@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2019 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,21 @@ SOFTWARE.
 
 */
 
-#include "common/syscalls/syscalls.h"
+#include "common/hardware/pcsxhw.h"
 
-#undef unix
-#define CESTER_NO_SIGNAL
-#define CESTER_NO_TIME
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-#include "exotic/cester.h"
+void BoardEarlyInit() {
+}
 
-CESTER_TEST(test1, test_instance,
-    ramsyscall_printf("Hello world\n");
-    cester_assert_equal(NULL, NULL);
-)
+void BoardInit() {
+}
+
+void BoardLateInit() {
+}
+
+void BoardShutdown() {
+    pcsx_exit(0);
+}
+
+void BoardExceptionHandler(int code) {
+    pcsx_exit(code);
+}

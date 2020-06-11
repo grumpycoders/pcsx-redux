@@ -22,7 +22,7 @@
 
 TEST(Basic, Meta) {
     MainInvoker invoker("-run", "-bios", "src/mips/openbios/openbios.bin", "-loadexe",
-                        "src/mips/tests/basic/basic.cpe");
+                        "src/mips/tests/basic/basic.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
