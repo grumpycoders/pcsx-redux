@@ -33,3 +33,6 @@ vsprojects/packages
 /memcard1.mcd
 /memcard2.mcd
 
+# Temporary files from pcsx itself
+pcsx.json
+*.mcd
