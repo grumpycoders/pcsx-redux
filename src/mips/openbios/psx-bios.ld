@@ -49,7 +49,7 @@ __dcache_top    = ORIGIN(dcache) + LENGTH(dcache);
 __data_len_val  = (__data_end - __data_start);
 __bss_len_val   = (__bss_end - __bss_start);
 
-__stack_start   = ORIGIN(ram) + LENGTH(ram) - STACK_SIZE;
+__stack_start   = ORIGIN(ram) + LENGTH(ram);
 
 SECTIONS {
     .base (NOLOAD) : {
