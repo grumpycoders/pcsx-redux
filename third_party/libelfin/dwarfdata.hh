@@ -226,6 +226,7 @@ enum class DW_AT {
     GNU_tail_call = 0x2115,
     GNU_all_tail_call_sites = 0x2116,
     GNU_all_call_sites = 0x2117,
+    GNU_locviews = 0x2137,
 };
 
 std::string to_string(DW_AT v);

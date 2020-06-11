@@ -131,6 +131,9 @@ static value::type resolve_type(DW_AT name, DW_FORM form) {
                 case DW_AT::ranges:
                     return value::type::rangelist;
 
+                case DW_AT::GNU_locviews:
+                    return value::type::locviews;
+
                 default:
                     throw format_error("DW_FORM_sec_offset not expected for attribute " + to_string(name));
             }
