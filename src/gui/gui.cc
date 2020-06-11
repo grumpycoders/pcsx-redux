@@ -986,7 +986,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     std::filesystem::path path(pathStr);
 
     static const std::vector<std::string> exeExtensions = {
-        "EXE", "PSX", "PSF", "MINIPSF", "PSFLIB", "CPE", "ELF",
+        "EXE", "PSX", "PS-EXE", "PSF", "MINIPSF", "PSFLIB", "CPE", "ELF",
     };
 
     const auto& extensionPath = path.extension().string();
