@@ -42,21 +42,9 @@
             "windows": {
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios all"
             },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}/src/mips/openbios"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "make_openbios_clean",
@@ -76,21 +64,9 @@
             "windows": {
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/tests all"
             },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}/src/mips/tests/basic"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "make_mipstests_clean",
@@ -110,21 +86,9 @@
             "windows": {
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/helloworld all"
             },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}/src/mips/helloworld"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
+            "problemMatcher": [
+                "$gcc"
+            ]
         }
     ]
 }
