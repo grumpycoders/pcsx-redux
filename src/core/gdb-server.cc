@@ -45,12 +45,15 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
 void PCSX::GdbServer::stopServer() {
     assert(m_serverStatus == SERVER_STARTED);
     for (auto& client : m_clients) client.close();
+    m_server->close();
 }
 
 void PCSX::GdbServer::startServer(int port) {
     assert(m_serverStatus == SERVER_STOPPED);
     m_server = g_emulator->m_loop->resource<uvw::TCPHandle>();
     m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
+    m_server->on<uvw::CloseEvent>(
+        [this](const uvw::CloseEvent&, uvw::TCPHandle& srv) { m_serverStatus = SERVER_STOPPED; });
     m_server->bind("0.0.0.0", port);
     m_server->listen();
 
@@ -428,6 +431,32 @@ void PCSX::GdbClient::processCommand() {
         // 32 gpr + status + lo + hi + badv + cause + 32 fpr + 3 fpu registers
         for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
+    } else if (Misc::startsWith(m_cmd, "p")) {
+        if (m_cmd.size() != 3) {
+            write("E00");
+            close();
+            return;
+        }
+        uint8_t n = fromHexChar(m_cmd[1]);
+        n <<= 4;
+        n |= fromHexChar(m_cmd[2]);
+        dumpOneRegister(n);
+    } else if (Misc::startsWith(m_cmd, "P")) {
+        if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
+            write("E00");
+            close();
+            return;
+        }
+        uint8_t n = fromHexChar(m_cmd[1]);
+        n <<= 4;
+        n |= fromHexChar(m_cmd[2]);
+        auto [value, valid] = parseHexNumber(m_cmd.substr(4));
+        if (!valid) {
+            write("E00");
+            close();
+            return;
+        }
+        g_emulator->m_psxCpu->m_psxRegs.GPR.r[n] = value;
     } else if (m_cmd == "c") {
         // continue - this doesn't technically have a reply, only when the target stops later, using T05.
         g_system->resume();
@@ -436,6 +465,11 @@ void PCSX::GdbClient::processCommand() {
         // write memory
         auto elements = Misc::split(m_cmd, ":");
         auto [off, len] = parseCursor(elements[0].substr(1));
+        if (((off == 0x8000f800) && (len == 0x800)) || ((off == 0x8000ffea) && (len == 22))) {
+            // heuristic for our ps-exe.ld and cpe.ld
+            write("OK");
+            return;
+        }
         size_t i = 0;
         while (len--) {
             uint8_t* d = PSXM(off);
@@ -489,7 +523,8 @@ void PCSX::GdbClient::processCommand() {
         auto [kind, vkind] = parseHexNumber(breakpointData[2]);
         if (!vtype || !vaddr || !vkind) {
             // didn't manage to parse breapoint data properly.
-            write("");
+            write("E00");
+            close();
             return;
         }
         switch (type) {

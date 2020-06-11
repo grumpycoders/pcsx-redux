@@ -73,6 +73,7 @@ class System {
     virtual void runGui() = 0;
     // Close mem and plugins
     virtual void close() = 0;
+    virtual void purgeAllEvents() = 0;
     bool running() { return m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
@@ -101,6 +102,7 @@ class System {
         pause();
         m_exitCode = code;
         m_eventBus->signal(Events::Quitting{});
+        purgeAllEvents();
     }
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
