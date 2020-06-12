@@ -55,9 +55,7 @@ class VramExecutor : public PCSX::WebExecutor {
 
   public:
     VramExecutor() : m_listener(PCSX::g_system->m_eventBus) {
-        m_listener.listen<PCSX::Events::CreatedVRAMTexture>([this](const auto& event) {
-            m_VRAMTexture = event.id;
-        });
+        m_listener.listen<PCSX::Events::CreatedVRAMTexture>([this](const auto& event) { m_VRAMTexture = event.id; });
     }
 };
 
@@ -78,12 +76,15 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
 void PCSX::WebServer::stopServer() {
     assert(m_serverStatus == SERVER_STARTED);
     for (auto& client : m_clients) client.close();
+    m_server->close();
 }
 
 void PCSX::WebServer::startServer(int port) {
     assert(m_serverStatus == SERVER_STOPPED);
     m_server = g_emulator->m_loop->resource<uvw::TCPHandle>();
     m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
+    m_server->on<uvw::CloseEvent>(
+        [this](const uvw::CloseEvent&, uvw::TCPHandle& srv) { m_serverStatus = SERVER_STOPPED; });
     m_server->bind("0.0.0.0", port);
     m_server->listen();
 
