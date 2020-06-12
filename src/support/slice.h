@@ -131,6 +131,9 @@ class Slice {
     }
     void moveFrom(Slice &&other) {
         m_data = std::move(other.m_data);
+        if (std::holds_alternative<Owned>(other.m_data)) {
+            std::get<Owned>(other.m_data).ptr = nullptr;
+        }
         other.m_data = std::monostate();
     }
     static constexpr size_t INLINED_SIZE = 28;
