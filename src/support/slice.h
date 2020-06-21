@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <ctype.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +28,8 @@
 #include <limits>
 #include <string>
 #include <variant>
+
+#include "fmt/format.h"
 
 namespace PCSX {
 
@@ -119,6 +122,28 @@ class Slice {
             return std::get<Borrowed>(m_data).size;
         }
         return 0;
+    }
+    std::string toHexString() const {
+        const uint8_t *buf = (const uint8_t *)data();
+        std::string ret;
+        for (unsigned lineOffset = 0; lineOffset < size(); lineOffset += 16) {
+            ret += fmt::format("{:06x}: ", lineOffset);
+            for (unsigned offset = 0; offset < 16; offset++) {
+                if (lineOffset + offset < size()) {
+                    ret += fmt::format("{:02x} ", buf[lineOffset + offset]);
+                } else {
+                    ret += "   ";
+                }
+            }
+            ret += " ";
+            for (unsigned offset = 0; offset < 16; offset++) {
+                if (lineOffset + offset < size()) {
+                    ret += fmt::format("{}", isprint(buf[lineOffset + offset]) ? (char)buf[lineOffset + offset] : '.');
+                }
+            }
+            ret += "\n";
+        }
+        return ret;
     }
 
   private:

@@ -25,6 +25,7 @@
 #include <filesystem>
 
 #include "core/psxemulator.h"
+#include "support/slice.h"
 
 namespace PCSX {
 
@@ -59,8 +60,23 @@ class File {
         read(&r, 1);
         return r;
     }
+    std::string readString(size_t size) {
+        std::string r;
+        r.reserve(size);
+        for (size_t i = 0; i < size; i++) {
+            r += (char)byte();
+        }
+        return std::move(r);
+    }
     ssize_t read(void* dest, ssize_t size);
     ssize_t write(const void* dest, size_t size);
+    Slice read(ssize_t size) {
+        void* data = malloc(size);
+        read(data, size);
+        Slice slice;
+        slice.acquire(data, size);
+        return std::move(slice);
+    }
     int getc();
     bool failed();
     bool eof();
