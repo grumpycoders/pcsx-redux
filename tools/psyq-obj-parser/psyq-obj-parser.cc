@@ -17,10 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-
 #include <list>
 
 #include "elfio/elfio.hpp"
@@ -29,10 +25,10 @@
 #include "support/hashtable.h"
 #include "support/slice.h"
 
-#define dprintf(...) \
-    if (s_debug) printf(__VA_ARGS__)
+#define vprint(...) \
+    if (s_verbose) fmt::print(__VA_ARGS__)
 
-static bool s_debug = false;
+static bool s_verbose = false;
 
 enum class PsyqOpcode : uint8_t {
     END = 0,
@@ -130,41 +126,41 @@ static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int leve
     std::unique_ptr<PsyqExpression> ret = std::make_unique<PsyqExpression>();
     uint8_t exprOp = file->read<uint8_t>();
     ret->type = PsyqExprOpcode(exprOp);
-    dprintf("    ");
-    for (int i = 0; i < level; i++) dprintf("  ");
+    vprint("    ");
+    for (int i = 0; i < level; i++) vprint("  ");
     switch (exprOp) {
         case (uint8_t)PsyqExprOpcode::VALUE: {
             uint32_t value = file->read<uint32_t>();
-            dprintf("Value: %08x\n", value);
+            vprint("Value: {:08x}\n", value);
             ret->value = value;
             break;
         }
         case (uint8_t)PsyqExprOpcode::IMPORT: {
             uint16_t import = file->read<uint16_t>();
-            dprintf("Import: %i\n", import);
+            vprint("Import: {}\n", import);
             ret->import = import;
             break;
         }
         case (uint8_t)PsyqExprOpcode::SECTION_BASE: {
             uint16_t sectionIndex = file->read<uint16_t>();
-            dprintf("Base of section %i\n", sectionIndex);
+            vprint("Base of section {}\n", sectionIndex);
             ret->sectionIndex = sectionIndex;
             break;
         }
         case (uint8_t)PsyqExprOpcode::SECTION_START: {
             uint16_t sectionIndex = file->read<uint16_t>();
-            dprintf("Start of section %i\n", sectionIndex);
+            vprint("Start of section {}\n", sectionIndex);
             ret->sectionIndex = sectionIndex;
             break;
         }
         case (uint8_t)PsyqExprOpcode::SECTION_END: {
             uint16_t sectionIndex = file->read<uint16_t>();
-            dprintf("End of section %i\n", sectionIndex);
+            vprint("End of section {}\n", sectionIndex);
             ret->sectionIndex = sectionIndex;
             break;
         }
         case (uint8_t)PsyqExprOpcode::ADD: {
-            dprintf("Add:\n");
+            vprint("Add:\n");
             ret->right = readExpression(file, level + 1);
             ret->left = readExpression(file, level + 1);
             if (!ret->left || !ret->right) {
@@ -173,7 +169,7 @@ static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int leve
             break;
         }
         case (uint8_t)PsyqExprOpcode::SUB: {
-            dprintf("Sub:\n");
+            vprint("Sub:\n");
             ret->right = readExpression(file, level + 1);
             ret->left = readExpression(file, level + 1);
             if (!ret->left || !ret->right) {
@@ -182,7 +178,7 @@ static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int leve
             break;
         }
         case (uint8_t)PsyqExprOpcode::DIV: {
-            dprintf("Div:\n");
+            vprint("Div:\n");
             ret->right = readExpression(file, level + 1);
             ret->left = readExpression(file, level + 1);
             if (!ret->left || !ret->right) {
@@ -199,37 +195,37 @@ static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int leve
 }
 
 static int parsePsyq(PCSX::File* file) {
-    dprintf(":: Reading signature.\n");
+    vprint(":: Reading signature.\n");
     std::string signature = file->readString(3);
     if (signature != "LNK") {
-        dprintf(" --> Wrong signature.\n");
+        fmt::print("Wrong signature: {}\n", signature);
         return -1;
     }
-    dprintf(" --> Signature ok.\n");
+    vprint(" --> Signature ok.\n");
 
-    dprintf(":: Reading version: ");
+    vprint(":: Reading version: ");
     uint8_t version = file->byte();
-    dprintf("%02x\n", version);
+    vprint("{}\n", version);
     if (version != 2) {
-        dprintf(" --> Unknown version.\n");
+        fmt::print("Unknown version {}\n", version);
         return -1;
     }
 
-    dprintf(":: Parsing file...\n");
+    vprint(":: Parsing file...\n");
     while (!file->eof()) {
         uint8_t opcode = file->byte();
-        dprintf("  :: Read opcode %02x --> ", opcode);
+        vprint("  :: Read opcode {} --> ", opcode);
         switch (opcode) {
             case (uint8_t)PsyqOpcode::END: {
-                dprintf("EOF\n");
+                vprint("EOF\n");
                 return 0;
             }
             case (uint8_t)PsyqOpcode::BYTES: {
                 uint16_t size = file->read<uint16_t>();
-                dprintf("Bytes (%04x)\n", size);
+                vprint("Bytes ({:04x})\n", size);
                 PCSX::Slice slice = file->read(size);
                 std::string hex = slice.toHexString();
-                dprintf("%s\n", hex.c_str());
+                vprint("{}\n", hex.c_str());
                 auto section = s_currentLnkFile.getCurrentSection();
                 if (!section) {
                     fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
@@ -247,13 +243,13 @@ static int parsePsyq(PCSX::File* file) {
             }
             case (uint8_t)PsyqOpcode::SWITCH: {
                 uint16_t sectionIndex = file->read<uint16_t>();
-                dprintf("Switch to section %i\n", sectionIndex);
+                vprint("Switch to section {}\n", sectionIndex);
                 s_currentLnkFile.currentSection = sectionIndex;
                 break;
             }
             case (uint8_t)PsyqOpcode::ZEROES: {
                 uint32_t size = file->read<uint32_t>();
-                dprintf("Zeroes (%04x)\n", size);
+                vprint("Zeroes ({:04x})\n", size);
                 auto section = s_currentLnkFile.getCurrentSection();
                 if (!section) {
                     fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
@@ -264,22 +260,22 @@ static int parsePsyq(PCSX::File* file) {
             }
             case (uint8_t)PsyqOpcode::RELOCATION: {
                 uint8_t relocType = file->read<uint8_t>();
-                dprintf("Relocation %i ", relocType);
+                vprint("Relocation {} ", relocType);
                 switch (relocType) {
                     case (uint8_t)PsyqRelocType::REL32: {
-                        dprintf("(REL32), ");
+                        vprint("(REL32), ");
                         break;
                     }
                     case (uint8_t)PsyqRelocType::REL26: {
-                        dprintf("(REL26), ");
+                        vprint("(REL26), ");
                         break;
                     }
                     case (uint8_t)PsyqRelocType::HI16: {
-                        dprintf("(HI16), ");
+                        vprint("(HI16), ");
                         break;
                     }
                     case (uint8_t)PsyqRelocType::LO16: {
-                        dprintf("(LO16), ");
+                        vprint("(LO16), ");
                         break;
                     }
                     default: {
@@ -288,7 +284,7 @@ static int parsePsyq(PCSX::File* file) {
                     }
                 }
                 uint16_t offset = file->read<uint16_t>();
-                dprintf("offset %04x, expression: \n", offset);
+                vprint("offset {:04x}, expression: \n", offset);
                 std::unique_ptr<PsyqExpression> expression = readExpression(file);
                 if (!expression) return -1;
                 auto section = s_currentLnkFile.getCurrentSection();
@@ -305,8 +301,7 @@ static int parsePsyq(PCSX::File* file) {
                 uint16_t sectionIndex = file->read<uint16_t>();
                 uint32_t offset = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                dprintf("Export: id %i, section %i, offset %08x, name %s\n", symbolIndex, sectionIndex, offset,
-                        name.c_str());
+                vprint("Export: id {}, section {}, offset {:08x}, name {}\n", symbolIndex, sectionIndex, offset, name);
                 PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
                 symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::EXPORTED;
                 symbol->sectionIndex = sectionIndex;
@@ -318,7 +313,7 @@ static int parsePsyq(PCSX::File* file) {
             case (uint8_t)PsyqOpcode::IMPORTED_SYMBOL: {
                 uint16_t symbolIndex = file->read<uint16_t>();
                 std::string name = readPsyqString(file);
-                dprintf("Import: symbol %i, name %s\n", symbolIndex, name.c_str());
+                vprint("Import: id {}, name {}\n", symbolIndex, name);
                 PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
                 symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::IMPORTED;
                 symbol->name = name;
@@ -330,8 +325,7 @@ static int parsePsyq(PCSX::File* file) {
                 uint16_t group = file->read<uint16_t>();
                 uint8_t alignment = file->read<uint8_t>();
                 std::string name = readPsyqString(file);
-                dprintf("Section: section %i, group %i, alignment %i, name %s\n", sectionIndex, group, alignment,
-                        name.c_str());
+                vprint("Section: id {}, group {}, alignment {}, name {}\n", sectionIndex, group, alignment, name);
                 PsyqLnkFile::Section* section = new PsyqLnkFile::Section();
                 section->group = group;
                 section->alignment = alignment;
@@ -341,7 +335,7 @@ static int parsePsyq(PCSX::File* file) {
             }
             case (uint8_t)PsyqOpcode::PROGRAMTYPE: {
                 uint8_t type = file->read<uint8_t>();
-                dprintf("Program type %i\n", type);
+                vprint("Program type {}\n", type);
                 if (type != 7) {
                     fmt::print("Unknown program type {}\n", type);
                     return -1;
@@ -358,8 +352,8 @@ static int parsePsyq(PCSX::File* file) {
                 uint16_t sectionIndex = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                dprintf("Uninitilized: symbol %i, section %i, size %08x, name %s\n", symbolIndex, sectionIndex, size,
-                        name.c_str());
+                vprint("Uninitilized: id {}, section {}, size {:08x}, name {}\n", symbolIndex, sectionIndex, size,
+                       name);
                 PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
                 symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::UNINITIALIZED;
                 symbol->sectionIndex = sectionIndex;
@@ -385,17 +379,6 @@ static int parsePsyq(PCSX::File* file) {
     return 0;
 }
 
-static void printHelp() {
-    printf(R"(Usage: psyq-obj-parser input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
-  input.obj      mandatory: specify the input psyq LNK object file.
-  -h             displays this help information and exit.
-  -v             turn on verbose mode for the parser.
-  -d             dump the parsed input file.
-  -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
-                 can only work with a single input file.
-)");
-}
-
 int main(int argc, char** argv) {
     flags::args args(argc, argv);
     auto output = args.get<std::string>("o");
@@ -406,23 +389,33 @@ int main(int argc, char** argv) {
     const bool hasOutput = output.has_value();
     const bool oneInput = inputs.size() == 1;
     if (asksForHelp || noInput || (hasOutput && !oneInput)) {
-        printHelp();
+        fmt::print(R"(
+Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
+  input.obj      mandatory: specify the input psyq LNK object file.
+  -h             displays this help information and exit.
+  -v             turn on verbose mode for the parser.
+  -d             dump the parsed input file.
+  -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
+                 can only work with a single input file.
+)",
+                   argv[0]);
         return -1;
     }
 
-    s_debug = args.get<bool>("v").value_or(false);
+    s_verbose = args.get<bool>("v").value_or(false);
 
     int ret = 0;
 
     for (auto& input : inputs) {
         PCSX::File* file = new PCSX::File(input);
         if (file->failed()) {
-            printf("Unable to open file: %s\n", argv[1]);
+            fmt::print("Unable to open file: {}\n", input);
             ret = -1;
         } else {
             if (parsePsyq(file) != 0) ret = -1;
         }
         delete file;
+        s_currentLnkFile.reset();
     }
 
     return ret;
