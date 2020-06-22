@@ -21,8 +21,18 @@
 #include <ctype.h>
 #include <stdio.h>
 
+#include <list>
+
+#include "elfio/elfio.hpp"
+#include "flags.h"
 #include "support/file.h"
+#include "support/hashtable.h"
 #include "support/slice.h"
+
+#define dprintf(...) \
+    if (s_debug) printf(__VA_ARGS__)
+
+static bool s_debug = false;
 
 enum class PsyqOpcode : uint8_t {
     END = 0,
@@ -31,15 +41,13 @@ enum class PsyqOpcode : uint8_t {
     ZEROES = 8,
     RELOCATION = 10,
     EXPORTED_SYMBOL = 12,
-    EXTERNAL_SYMBOL = 14,
+    IMPORTED_SYMBOL = 14,
     SECTION = 16,
-    LOCAL_SYMBOL = 18,
-    FILE = 28,
     PROGRAMTYPE = 46,
-    BSS = 48,
+    UNINITIALIZED = 48,
 };
 
-enum class PsyqReloc : uint8_t {
+enum class PsyqRelocType : uint8_t {
     REL32 = 16,
     REL26 = 74,
     HI16 = 82,
@@ -57,219 +65,365 @@ enum class PsyqExprOpcode : uint8_t {
     DIV = 50,
 };
 
+struct PsyqExpression {
+    PsyqExprOpcode type;
+    std::unique_ptr<PsyqExpression> left = nullptr;
+    std::unique_ptr<PsyqExpression> right = nullptr;
+    uint32_t value;
+    uint16_t import;
+    uint16_t sectionIndex;
+};
+
+struct PsyqRelocation {
+    PsyqRelocType type;
+    uint32_t offset;
+    std::unique_ptr<PsyqExpression> expression;
+};
+
+struct PsyqLnkFile {
+    struct Section;
+    struct Symbol;
+    typedef PCSX::Intrusive::HashTable<uint16_t, Section> SectionHashTable;
+    typedef PCSX::Intrusive::HashTable<uint16_t, Symbol> SymbolHashTable;
+    struct Section : public SectionHashTable::Node {
+        uint16_t group;
+        uint8_t alignment;
+        std::string name;
+        uint32_t zeroes = 0;
+        uint32_t uninitializedOffset = 0;
+        PCSX::Slice data;
+        std::list<PsyqRelocation> relocations;
+    };
+    struct Symbol : public SymbolHashTable::Node {
+        enum class SymbolType {
+            EXPORTED,
+            IMPORTED,
+            UNINITIALIZED,
+        } symbolType;
+        uint16_t sectionIndex;
+        uint32_t offset;
+        uint32_t size;
+        std::string name;
+    };
+    void reset() {
+        currentSection = 0xffff;
+        gotProgramSeven = false;
+        sections.destroyAll();
+        symbols.destroyAll();
+    }
+    Section* getCurrentSection() {
+        auto section = sections.find(currentSection);
+        if (section == sections.end()) return nullptr;
+        return &*section;
+    }
+    uint16_t currentSection = 0xffff;
+    bool gotProgramSeven = false;
+    SectionHashTable sections;
+    SymbolHashTable symbols;
+};
+
+static PsyqLnkFile s_currentLnkFile;
+
 static std::string readPsyqString(PCSX::File* file) { return file->readString(file->byte()); }
 
-static bool readExpression(PCSX::File* file, int level = 0) {
-    bool ret = true;
+static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int level = 0) {
+    std::unique_ptr<PsyqExpression> ret = std::make_unique<PsyqExpression>();
     uint8_t exprOp = file->read<uint8_t>();
-    printf("    ");
-    for (int i = 0; i < level; i++) printf("  ");
+    ret->type = PsyqExprOpcode(exprOp);
+    dprintf("    ");
+    for (int i = 0; i < level; i++) dprintf("  ");
     switch (exprOp) {
-    case (uint8_t)PsyqExprOpcode::VALUE: {
-        uint32_t value = file->read<uint32_t>();
-        printf("Value: %08x\n", value);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::IMPORT: {
-        uint16_t import = file->read<uint16_t>();
-        printf("Import: %i\n", import);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::SECTION_BASE: {
-        uint16_t sectionIndex = file->read<uint16_t>();
-        printf("Base of section %i\n", sectionIndex);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::SECTION_START: {
-        uint16_t sectionIndex = file->read<uint16_t>();
-        printf("Start of section %i\n", sectionIndex);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::SECTION_END: {
-        uint16_t sectionIndex = file->read<uint16_t>();
-        printf("End of section %i\n", sectionIndex);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::ADD: {
-        printf("Add:\n");
-        ret = ret && readExpression(file, level + 1);
-        ret = ret && readExpression(file, level + 1);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::SUB: {
-        printf("Sub:\n");
-        ret = ret && readExpression(file, level + 1);
-        ret = ret && readExpression(file, level + 1);
-        break;
-    }
-    case (uint8_t)PsyqExprOpcode::DIV: {
-        printf("Div:\n");
-        ret = ret && readExpression(file, level + 1);
-        ret = ret && readExpression(file, level + 1);
-        break;
-    }
-    default: {
-        printf("Unknown! %i\n", exprOp);
-        return false;
-    }
+        case (uint8_t)PsyqExprOpcode::VALUE: {
+            uint32_t value = file->read<uint32_t>();
+            dprintf("Value: %08x\n", value);
+            ret->value = value;
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::IMPORT: {
+            uint16_t import = file->read<uint16_t>();
+            dprintf("Import: %i\n", import);
+            ret->import = import;
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::SECTION_BASE: {
+            uint16_t sectionIndex = file->read<uint16_t>();
+            dprintf("Base of section %i\n", sectionIndex);
+            ret->sectionIndex = sectionIndex;
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::SECTION_START: {
+            uint16_t sectionIndex = file->read<uint16_t>();
+            dprintf("Start of section %i\n", sectionIndex);
+            ret->sectionIndex = sectionIndex;
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::SECTION_END: {
+            uint16_t sectionIndex = file->read<uint16_t>();
+            dprintf("End of section %i\n", sectionIndex);
+            ret->sectionIndex = sectionIndex;
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::ADD: {
+            dprintf("Add:\n");
+            ret->right = readExpression(file, level + 1);
+            ret->left = readExpression(file, level + 1);
+            if (!ret->left || !ret->right) {
+                return nullptr;
+            }
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::SUB: {
+            dprintf("Sub:\n");
+            ret->right = readExpression(file, level + 1);
+            ret->left = readExpression(file, level + 1);
+            if (!ret->left || !ret->right) {
+                return nullptr;
+            }
+            break;
+        }
+        case (uint8_t)PsyqExprOpcode::DIV: {
+            dprintf("Div:\n");
+            ret->right = readExpression(file, level + 1);
+            ret->left = readExpression(file, level + 1);
+            if (!ret->left || !ret->right) {
+                return nullptr;
+            }
+            break;
+        }
+        default: {
+            fmt::print("Unknown expression type {}\n", exprOp);
+            return nullptr;
+        }
     }
     return ret;
 }
 
 static int parsePsyq(PCSX::File* file) {
-    printf(":: Reading signature.\n");
+    dprintf(":: Reading signature.\n");
     std::string signature = file->readString(3);
     if (signature != "LNK") {
-        printf(" --> Wrong signature.\n");
+        dprintf(" --> Wrong signature.\n");
         return -1;
     }
-    printf(" --> Signature ok.\n");
+    dprintf(" --> Signature ok.\n");
 
-    printf(":: Reading version: ");
+    dprintf(":: Reading version: ");
     uint8_t version = file->byte();
-    printf("%02x\n", version);
+    dprintf("%02x\n", version);
     if (version != 2) {
-        printf(" --> Unknown version.\n");
+        dprintf(" --> Unknown version.\n");
         return -1;
     }
 
-    printf(":: Parsing file...\n");
+    dprintf(":: Parsing file...\n");
     while (!file->eof()) {
         uint8_t opcode = file->byte();
-        printf("  :: Read opcode %02x --> ", opcode);
+        dprintf("  :: Read opcode %02x --> ", opcode);
         switch (opcode) {
-        case (uint8_t)PsyqOpcode::END: {
-            printf("EOF\n");
-            return 0;
-        }
-        case (uint8_t)PsyqOpcode::BYTES: {
-            uint16_t size = file->read<uint16_t>();
-            printf("Bytes (%04x)\n", size);
-            PCSX::Slice slice = file->read(size);
-            std::string hex = slice.toHexString();
-            printf("%s\n", hex.c_str());
-            break;
-        }
-        case (uint8_t)PsyqOpcode::SWITCH: {
-            uint16_t sectionIndex = file->read<uint16_t>();
-            printf("Switch to section %i\n", sectionIndex);
-            break;
-        }
-        case (uint8_t)PsyqOpcode::ZEROES: {
-            uint32_t size = file->read<uint32_t>();
-            printf("Zeroes (%04x)\n", size);
-            break;
-        }
-        case (uint8_t)PsyqOpcode::RELOCATION: {
-            uint8_t relocType = file->read<uint8_t>();
-            printf("Relocation %i ", relocType);
-            switch (relocType) {
-            case (uint8_t)PsyqReloc::REL32: {
-                printf("(REL32), ");
+            case (uint8_t)PsyqOpcode::END: {
+                dprintf("EOF\n");
+                return 0;
+            }
+            case (uint8_t)PsyqOpcode::BYTES: {
+                uint16_t size = file->read<uint16_t>();
+                dprintf("Bytes (%04x)\n", size);
+                PCSX::Slice slice = file->read(size);
+                std::string hex = slice.toHexString();
+                dprintf("%s\n", hex.c_str());
+                auto section = s_currentLnkFile.getCurrentSection();
+                if (!section) {
+                    fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
+                    return -1;
+                }
+                if (section->zeroes) {
+                    void* ptr = calloc(section->zeroes, 1);
+                    PCSX::Slice zeroes;
+                    zeroes.acquire(ptr, section->zeroes);
+                    section->zeroes = 0;
+                    section->data.concatenate(zeroes);
+                }
+                section->data.concatenate(slice);
                 break;
             }
-            case (uint8_t)PsyqReloc::REL26: {
-                printf("(REL26), ");
+            case (uint8_t)PsyqOpcode::SWITCH: {
+                uint16_t sectionIndex = file->read<uint16_t>();
+                dprintf("Switch to section %i\n", sectionIndex);
+                s_currentLnkFile.currentSection = sectionIndex;
                 break;
             }
-            case (uint8_t)PsyqReloc::HI16: {
-                printf("(HI16), ");
+            case (uint8_t)PsyqOpcode::ZEROES: {
+                uint32_t size = file->read<uint32_t>();
+                dprintf("Zeroes (%04x)\n", size);
+                auto section = s_currentLnkFile.getCurrentSection();
+                if (!section) {
+                    fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
+                    return -1;
+                }
+                section->zeroes += size;
                 break;
             }
-            case (uint8_t)PsyqReloc::LO16: {
-                printf("(LO16), ");
+            case (uint8_t)PsyqOpcode::RELOCATION: {
+                uint8_t relocType = file->read<uint8_t>();
+                dprintf("Relocation %i ", relocType);
+                switch (relocType) {
+                    case (uint8_t)PsyqRelocType::REL32: {
+                        dprintf("(REL32), ");
+                        break;
+                    }
+                    case (uint8_t)PsyqRelocType::REL26: {
+                        dprintf("(REL26), ");
+                        break;
+                    }
+                    case (uint8_t)PsyqRelocType::HI16: {
+                        dprintf("(HI16), ");
+                        break;
+                    }
+                    case (uint8_t)PsyqRelocType::LO16: {
+                        dprintf("(LO16), ");
+                        break;
+                    }
+                    default: {
+                        fmt::print("Unknown relocation type {}\n", relocType);
+                        return -1;
+                    }
+                }
+                uint16_t offset = file->read<uint16_t>();
+                dprintf("offset %04x, expression: \n", offset);
+                std::unique_ptr<PsyqExpression> expression = readExpression(file);
+                if (!expression) return -1;
+                auto section = s_currentLnkFile.getCurrentSection();
+                if (!section) {
+                    fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
+                    return -1;
+                }
+                section->relocations.emplace_back(
+                    PsyqRelocation{PsyqRelocType(relocType), offset, std::move(expression)});
+                break;
+            }
+            case (uint8_t)PsyqOpcode::EXPORTED_SYMBOL: {
+                uint16_t symbolIndex = file->read<uint16_t>();
+                uint16_t sectionIndex = file->read<uint16_t>();
+                uint32_t offset = file->read<uint32_t>();
+                std::string name = readPsyqString(file);
+                dprintf("Export: id %i, section %i, offset %08x, name %s\n", symbolIndex, sectionIndex, offset,
+                        name.c_str());
+                PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
+                symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::EXPORTED;
+                symbol->sectionIndex = sectionIndex;
+                symbol->offset = offset;
+                symbol->name = name;
+                s_currentLnkFile.symbols.insert(symbolIndex, symbol);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::IMPORTED_SYMBOL: {
+                uint16_t symbolIndex = file->read<uint16_t>();
+                std::string name = readPsyqString(file);
+                dprintf("Import: symbol %i, name %s\n", symbolIndex, name.c_str());
+                PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
+                symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::IMPORTED;
+                symbol->name = name;
+                s_currentLnkFile.symbols.insert(symbolIndex, symbol);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::SECTION: {
+                uint16_t sectionIndex = file->read<uint16_t>();
+                uint16_t group = file->read<uint16_t>();
+                uint8_t alignment = file->read<uint8_t>();
+                std::string name = readPsyqString(file);
+                dprintf("Section: section %i, group %i, alignment %i, name %s\n", sectionIndex, group, alignment,
+                        name.c_str());
+                PsyqLnkFile::Section* section = new PsyqLnkFile::Section();
+                section->group = group;
+                section->alignment = alignment;
+                section->name = name;
+                s_currentLnkFile.sections.insert(sectionIndex, section);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::PROGRAMTYPE: {
+                uint8_t type = file->read<uint8_t>();
+                dprintf("Program type %i\n", type);
+                if (type != 7) {
+                    fmt::print("Unknown program type {}\n", type);
+                    return -1;
+                }
+                if (s_currentLnkFile.gotProgramSeven) {
+                    fmt::print("Already got program type.\n");
+                    return -1;
+                }
+                s_currentLnkFile.gotProgramSeven = true;
+                break;
+            }
+            case (uint8_t)PsyqOpcode::UNINITIALIZED: {
+                uint16_t symbolIndex = file->read<uint16_t>();
+                uint16_t sectionIndex = file->read<uint16_t>();
+                uint32_t size = file->read<uint32_t>();
+                std::string name = readPsyqString(file);
+                dprintf("Uninitilized: symbol %i, section %i, size %08x, name %s\n", symbolIndex, sectionIndex, size,
+                        name.c_str());
+                PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
+                symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::UNINITIALIZED;
+                symbol->sectionIndex = sectionIndex;
+                symbol->size = size;
+                symbol->name = name;
+                auto section = s_currentLnkFile.sections.find(sectionIndex);
+                if (section == s_currentLnkFile.sections.end()) {
+                    fmt::print("Section {} not found.\n", sectionIndex);
+                    return -1;
+                }
+                symbol->offset = section->uninitializedOffset;
+                section->uninitializedOffset += size;
+                s_currentLnkFile.symbols.insert(symbolIndex, symbol);
                 break;
             }
             default: {
-                printf("Unknown!\n");
+                fmt::print("Unknown opcode {}.\n", opcode);
                 return -1;
             }
-            }
-            uint16_t offset = file->read<uint16_t>();
-            printf("offset %04x, expression: \n", offset);
-            bool okay = readExpression(file);
-            if (!okay) {
-                return -1;
-            }
-            break;
-        }
-        case (uint8_t)PsyqOpcode::EXPORTED_SYMBOL: {
-            uint16_t symbolIndex = file->read<uint16_t>();
-            uint16_t sectionIndex = file->read<uint16_t>();
-            uint32_t offset = file->read<uint32_t>();
-            std::string name = readPsyqString(file);
-            printf("Export: id %i, section %i, offset %08x, name %s\n", symbolIndex, sectionIndex, offset,
-                name.c_str());
-            break;
-        }
-        case (uint8_t)PsyqOpcode::EXTERNAL_SYMBOL: {
-            uint16_t symbolIndex = file->read<uint16_t>();
-            std::string name = readPsyqString(file);
-            printf("Import: symbol %i, name %s\n", symbolIndex, name.c_str());
-            break;
-        }
-        case (uint8_t)PsyqOpcode::SECTION: {
-            uint16_t symbolIndex = file->read<uint16_t>();
-            uint16_t group = file->read<uint16_t>();
-            uint8_t alignment = file->read<uint8_t>();
-            std::string name = readPsyqString(file);
-            printf("Section: symbol %i, group %i, alignment %i, name %s\n", symbolIndex, group, alignment,
-                name.c_str());
-            break;
-        }
-        case (uint8_t)PsyqOpcode::LOCAL_SYMBOL: {
-            uint16_t symbolIndex = file->read<uint16_t>();
-            uint32_t offset = file->read<uint32_t>();
-            std::string name = readPsyqString(file);
-            printf("Local: symbol %i, offset %08x, name %s\n", symbolIndex, offset, name.c_str());
-            break;
-        }
-        case (uint8_t)PsyqOpcode::FILE: {
-            uint16_t symbolIndex = file->read<uint16_t>();
-            std::string name = readPsyqString(file);
-            printf("File: symbol %i, name %s\n", symbolIndex, name.c_str());
-            break;
-        }
-        case (uint8_t)PsyqOpcode::PROGRAMTYPE: {
-            uint8_t type = file->read<uint8_t>();
-            printf("Program type %i\n", type);
-            if (type != 7) {
-                return -1;
-            }
-            break;
-        }
-        case (uint8_t)PsyqOpcode::BSS: {
-            uint16_t symbolIndex = file->read<uint16_t>();
-            uint16_t sectionIndex = file->read<uint16_t>();
-            uint32_t size = file->read<uint32_t>();
-            std::string name = readPsyqString(file);
-            printf("BSS section: symbol %i, section %i, size %08x, name %s\n", symbolIndex, sectionIndex, size,
-                name.c_str());
-            break;
-        }
-        default: {
-            printf("Unknown %i!\n", opcode);
-            return -1;
-        }
         }
     }
 
     return 0;
 }
 
+static void printHelp() {
+    printf(R"(Usage: psyq-obj-parser input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
+  input.obj      mandatory: specify the input psyq LNK object file.
+  -h             displays this help information and exit.
+  -v             turn on verbose mode for the parser.
+  -d             dump the parsed input file.
+  -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
+                 can only work with a single input file.
+)");
+}
+
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        printf("Usage: %s <psyq object file>\n", argv[0]);
-        return -1;
-    }
-    PCSX::File* file = new PCSX::File(argv[1]);
-    if (file->failed()) {
-        printf("Unable to open file: %s\n", argv[1]);
-        delete file;
+    flags::args args(argc, argv);
+    auto output = args.get<std::string>("o");
+
+    auto inputs = args.positional();
+    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const bool noInput = inputs.size() == 0;
+    const bool hasOutput = output.has_value();
+    const bool oneInput = inputs.size() == 1;
+    if (asksForHelp || noInput || (hasOutput && !oneInput)) {
+        printHelp();
         return -1;
     }
 
-    int ret = parsePsyq(file);
-    assert(ret == 0);
+    s_debug = args.get<bool>("v").value_or(false);
+
+    int ret = 0;
+
+    for (auto& input : inputs) {
+        PCSX::File* file = new PCSX::File(input);
+        if (file->failed()) {
+            printf("Unable to open file: %s\n", argv[1]);
+            ret = -1;
+        } else {
+            if (parsePsyq(file) != 0) ret = -1;
+        }
+        delete file;
+    }
+
     return ret;
 }

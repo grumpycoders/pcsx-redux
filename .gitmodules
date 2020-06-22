@@ -34,3 +34,6 @@
 [submodule "third_party/http-parser"]
 	path = third_party/http-parser
 	url = https://github.com/nodejs/http-parser.git
+[submodule "third_party/ELFIO"]
+	path = third_party/ELFIO
+	url = https://github.com/serge1/ELFIO.git

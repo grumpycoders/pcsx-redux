@@ -58,6 +58,20 @@ class Slice {
         moveFrom(std::move(other));
         return *this;
     }
+    void concatenate(const Slice &other) {
+        auto newSize = size() + other.size();
+        if (std::holds_alternative<Owned>(m_data)) {
+            auto &data = std::get<Owned>(m_data);
+            data.ptr = realloc(data.ptr, newSize);
+            memcpy(((uint8_t *)data.ptr) + size(), other.data(), other.size());
+            data.size += other.size();
+        } else {
+            uint8_t *newData = (uint8_t *)malloc(newSize);
+            memcpy(newData, data(), size());
+            memcpy(newData + size(), other.data(), other.size());
+            acquire(newData, newSize);
+        }
+    }
     void copy(const Slice &other) {
         if (std::holds_alternative<std::string>(other.m_data)) {
             m_data = other.m_data;
@@ -68,7 +82,7 @@ class Slice {
     void copy(const std::string &str) { m_data = str; }
     void copy(const void *data, uint32_t size) {
         void *dest;
-        if (size < INLINED_SIZE) {
+        if (size <= INLINED_SIZE) {
             m_data = Inlined{size};
             dest = std::get<Inlined>(m_data).inlined;
         } else {
