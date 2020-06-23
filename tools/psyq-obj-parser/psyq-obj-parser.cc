@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include <list>
+#include <map>
 
 #include "elfio/elfio.hpp"
 #include "flags.h"
@@ -52,7 +53,7 @@ enum class PsyqRelocType : uint8_t {
 
 enum class PsyqExprOpcode : uint8_t {
     VALUE = 0,
-    IMPORT = 2,
+    SYMBOL = 2,
     SECTION_BASE = 4,
     SECTION_START = 12,
     SECTION_END = 22,
@@ -61,20 +62,19 @@ enum class PsyqExprOpcode : uint8_t {
     DIV = 50,
 };
 
+struct PsyqLnkFile;
+
 struct PsyqExpression {
     PsyqExprOpcode type;
     std::unique_ptr<PsyqExpression> left = nullptr;
     std::unique_ptr<PsyqExpression> right = nullptr;
     uint32_t value;
-    uint16_t import;
+    uint16_t symbolIndex;
     uint16_t sectionIndex;
+    void display(PsyqLnkFile* lnk, bool top = false);
 };
 
-struct PsyqRelocation {
-    PsyqRelocType type;
-    uint32_t offset;
-    std::unique_ptr<PsyqExpression> expression;
-};
+struct PsyqRelocation;
 
 struct PsyqLnkFile {
     struct Section;
@@ -89,9 +89,15 @@ struct PsyqLnkFile {
         uint32_t uninitializedOffset = 0;
         PCSX::Slice data;
         std::list<PsyqRelocation> relocations;
+        void display(PsyqLnkFile* lnk) {
+            fmt::print("    {:04x}   {:04x}   {:8}   {:08x}   {:08x}   {:08x}   {:08x}   {}\n", getKey(), group,
+                       alignment, data.size() + zeroes + uninitializedOffset, data.size(), zeroes, uninitializedOffset,
+                       name);
+        }
+        void displayRelocs(PsyqLnkFile* lnk);
     };
     struct Symbol : public SymbolHashTable::Node {
-        enum class SymbolType {
+        enum class Type {
             EXPORTED,
             IMPORTED,
             UNINITIALIZED,
@@ -100,13 +106,29 @@ struct PsyqLnkFile {
         uint32_t offset;
         uint32_t size;
         std::string name;
+        void display(PsyqLnkFile* lnk) {
+            if (symbolType == Type::EXPORTED) {
+                auto section = lnk->sections.find(sectionIndex);
+                if (section == lnk->sections.end()) {
+                    fmt::print("** BROKEN SYMBOL AT INDEX {:04x} **\n", getKey());
+                } else {
+                    fmt::print("    {:04x}   {:6}   ({:04x})  {:12}   {:08x}   {:8}   {}\n", getKey(), "EXPORT",
+                               sectionIndex, section->name, offset, "", name);
+                }
+            } else if (symbolType == Type::IMPORTED) {
+                fmt::print("    {:04x}   {:6}   {:6}  {:12}   {:8}   {:8}   {}\n", getKey(), "IMPORT", "", "", "", "",
+                           name);
+            } else {
+                auto section = lnk->sections.find(sectionIndex);
+                if (section == lnk->sections.end()) {
+                    fmt::print("** BROKEN SYMBOL AT INDEX {:04x} **\n", getKey());
+                } else {
+                    fmt::print("    {:04x}   {:6}   ({:04x})  {:12}   {:8}   {:08x}   {}\n", getKey(), "UNDEFN",
+                               sectionIndex, section->name, "", size, name);
+                }
+            }
+        }
     };
-    void reset() {
-        currentSection = 0xffff;
-        gotProgramSeven = false;
-        sections.destroyAll();
-        symbols.destroyAll();
-    }
     Section* getCurrentSection() {
         auto section = sections.find(currentSection);
         if (section == sections.end()) return nullptr;
@@ -116,9 +138,115 @@ struct PsyqLnkFile {
     bool gotProgramSeven = false;
     SectionHashTable sections;
     SymbolHashTable symbols;
+    void display() {
+        fmt::print("  :: Symbols\n\n");
+        fmt::print("    {:^4}   {:^6}   {:^6}  {:^12}   {:^8}   {:^8}   {}\n", "indx", "type", "sectn", "", "offset",
+                   "size", "name");
+        fmt::print("    -----------------------------------------------------------------\n");
+        for (auto& symbol : symbols) {
+            symbol.display(this);
+        }
+        fmt::print("\n\n\n  :: Sections\n\n");
+        fmt::print("    {:4}   {:4}   {:8}   {:8}   {:8}   {:8}   {:8}   {}\n", "indx", "grp", "alignmnt", "size",
+                   "data", "zeroes", "alloc", "name");
+        fmt::print("    -------------------------------------------------------------------------\n");
+        for (auto& section : sections) {
+            section.display(this);
+        }
+        fmt::print("\n\n\n  :: Relocations\n\n");
+        fmt::print("    {:5}   {:>12}::{:8}  {}\n", "type", "section", "offset", "expression");
+        fmt::print("    ------------------------------------------\n");
+        for (auto& section : sections) {
+            section.displayRelocs(this);
+        }
+    }
 };
 
-static PsyqLnkFile s_currentLnkFile;
+struct PsyqRelocation {
+    PsyqRelocType type;
+    uint32_t offset;
+    std::unique_ptr<PsyqExpression> expression;
+    void display(PsyqLnkFile* lnk, PsyqLnkFile::Section* sec) {
+        static const std::map<PsyqRelocType, std::string> typeStr = {{PsyqRelocType::REL32, "REL32"},
+                                                                     {PsyqRelocType::REL26, "REL26"},
+                                                                     {PsyqRelocType::HI16, "HI16"},
+                                                                     {PsyqRelocType::LO16, "LO16"}};
+        fmt::print("    {:5}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
+        expression->display(lnk, true);
+    }
+};
+
+void PsyqExpression::display(PsyqLnkFile* lnk, bool top) {
+    switch (type) {
+        case PsyqExprOpcode::VALUE: {
+            fmt::print("{}", value);
+            break;
+        }
+        case PsyqExprOpcode::SYMBOL: {
+            auto symbol = lnk->symbols.find(symbolIndex);
+            fmt::print("{}", symbol == lnk->symbols.end() ? "**ERR**" : symbol->name);
+            break;
+        }
+        case PsyqExprOpcode::SECTION_BASE: {
+            auto section = lnk->sections.find(sectionIndex);
+            fmt::print("{}__base", section == lnk->sections.end() ? "**ERR**" : section->name);
+            break;
+        }
+        case PsyqExprOpcode::SECTION_START: {
+            auto section = lnk->sections.find(sectionIndex);
+            fmt::print("{}__start", section == lnk->sections.end() ? "**ERR**" : section->name);
+            break;
+        }
+        case PsyqExprOpcode::SECTION_END: {
+            auto section = lnk->sections.find(sectionIndex);
+            fmt::print("{}__end", section == lnk->sections.end() ? "**ERR**" : section->name);
+            break;
+        }
+        case PsyqExprOpcode::ADD: {
+            if (left->type == PsyqExprOpcode::VALUE) {
+                if (left->value == 0) {
+                    right->display(lnk);
+                } else {
+                    if (!top) fmt::print("(");
+                    right->display(lnk);
+                    fmt::print(" + ");
+                    left->display(lnk);
+                    if (!top) fmt::print(")");
+                }
+            } else {
+                if (!top) fmt::print("(");
+                left->display(lnk);
+                fmt::print(" + ");
+                right->display(lnk);
+                if (!top) fmt::print(")");
+            }
+            break;
+        }
+        case PsyqExprOpcode::SUB: {
+            if (!top) fmt::print("(");
+            left->display(lnk);
+            fmt::print(" - ");
+            right->display(lnk);
+            if (!top) fmt::print(")");
+            break;
+        }
+        case PsyqExprOpcode::DIV: {
+            if (!top) fmt::print("(");
+            left->display(lnk);
+            fmt::print(" / ");
+            right->display(lnk);
+            if (!top) fmt::print(")");
+            break;
+        }
+    }
+}
+
+void PsyqLnkFile::Section::displayRelocs(PsyqLnkFile* lnk) {
+    for (auto& reloc : relocations) {
+        reloc.display(lnk, this);
+        fmt::print("\n");
+    }
+}
 
 static std::string readPsyqString(PCSX::File* file) { return file->readString(file->byte()); }
 
@@ -135,10 +263,10 @@ static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int leve
             ret->value = value;
             break;
         }
-        case (uint8_t)PsyqExprOpcode::IMPORT: {
+        case (uint8_t)PsyqExprOpcode::SYMBOL: {
             uint16_t import = file->read<uint16_t>();
             vprint("Import: {}\n", import);
-            ret->import = import;
+            ret->symbolIndex = import;
             break;
         }
         case (uint8_t)PsyqExprOpcode::SECTION_BASE: {
@@ -194,12 +322,13 @@ static std::unique_ptr<PsyqExpression> readExpression(PCSX::File* file, int leve
     return ret;
 }
 
-static int parsePsyq(PCSX::File* file) {
+static std::unique_ptr<PsyqLnkFile> parsePsyq(PCSX::File* file) {
+    std::unique_ptr<PsyqLnkFile> ret = std::make_unique<PsyqLnkFile>();
     vprint(":: Reading signature.\n");
     std::string signature = file->readString(3);
     if (signature != "LNK") {
         fmt::print("Wrong signature: {}\n", signature);
-        return -1;
+        return nullptr;
     }
     vprint(" --> Signature ok.\n");
 
@@ -208,7 +337,7 @@ static int parsePsyq(PCSX::File* file) {
     vprint("{}\n", version);
     if (version != 2) {
         fmt::print("Unknown version {}\n", version);
-        return -1;
+        return nullptr;
     }
 
     vprint(":: Parsing file...\n");
@@ -218,7 +347,7 @@ static int parsePsyq(PCSX::File* file) {
         switch (opcode) {
             case (uint8_t)PsyqOpcode::END: {
                 vprint("EOF\n");
-                return 0;
+                return ret;
             }
             case (uint8_t)PsyqOpcode::BYTES: {
                 uint16_t size = file->read<uint16_t>();
@@ -226,10 +355,10 @@ static int parsePsyq(PCSX::File* file) {
                 PCSX::Slice slice = file->read(size);
                 std::string hex = slice.toHexString();
                 vprint("{}\n", hex.c_str());
-                auto section = s_currentLnkFile.getCurrentSection();
+                auto section = ret->getCurrentSection();
                 if (!section) {
-                    fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
-                    return -1;
+                    fmt::print("Section {} not found\n", ret->currentSection);
+                    return nullptr;
                 }
                 if (section->zeroes) {
                     void* ptr = calloc(section->zeroes, 1);
@@ -244,16 +373,16 @@ static int parsePsyq(PCSX::File* file) {
             case (uint8_t)PsyqOpcode::SWITCH: {
                 uint16_t sectionIndex = file->read<uint16_t>();
                 vprint("Switch to section {}\n", sectionIndex);
-                s_currentLnkFile.currentSection = sectionIndex;
+                ret->currentSection = sectionIndex;
                 break;
             }
             case (uint8_t)PsyqOpcode::ZEROES: {
                 uint32_t size = file->read<uint32_t>();
                 vprint("Zeroes ({:04x})\n", size);
-                auto section = s_currentLnkFile.getCurrentSection();
+                auto section = ret->getCurrentSection();
                 if (!section) {
-                    fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
-                    return -1;
+                    fmt::print("Section {} not found\n", ret->currentSection);
+                    return nullptr;
                 }
                 section->zeroes += size;
                 break;
@@ -280,17 +409,17 @@ static int parsePsyq(PCSX::File* file) {
                     }
                     default: {
                         fmt::print("Unknown relocation type {}\n", relocType);
-                        return -1;
+                        return nullptr;
                     }
                 }
                 uint16_t offset = file->read<uint16_t>();
                 vprint("offset {:04x}, expression: \n", offset);
                 std::unique_ptr<PsyqExpression> expression = readExpression(file);
-                if (!expression) return -1;
-                auto section = s_currentLnkFile.getCurrentSection();
+                if (!expression) return nullptr;
+                auto section = ret->getCurrentSection();
                 if (!section) {
-                    fmt::print("Section {} not found\n", s_currentLnkFile.currentSection);
-                    return -1;
+                    fmt::print("Section {} not found\n", ret->currentSection);
+                    return nullptr;
                 }
                 section->relocations.emplace_back(
                     PsyqRelocation{PsyqRelocType(relocType), offset, std::move(expression)});
@@ -303,11 +432,11 @@ static int parsePsyq(PCSX::File* file) {
                 std::string name = readPsyqString(file);
                 vprint("Export: id {}, section {}, offset {:08x}, name {}\n", symbolIndex, sectionIndex, offset, name);
                 PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
-                symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::EXPORTED;
+                symbol->symbolType = PsyqLnkFile::Symbol::Type::EXPORTED;
                 symbol->sectionIndex = sectionIndex;
                 symbol->offset = offset;
                 symbol->name = name;
-                s_currentLnkFile.symbols.insert(symbolIndex, symbol);
+                ret->symbols.insert(symbolIndex, symbol);
                 break;
             }
             case (uint8_t)PsyqOpcode::IMPORTED_SYMBOL: {
@@ -315,9 +444,9 @@ static int parsePsyq(PCSX::File* file) {
                 std::string name = readPsyqString(file);
                 vprint("Import: id {}, name {}\n", symbolIndex, name);
                 PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
-                symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::IMPORTED;
+                symbol->symbolType = PsyqLnkFile::Symbol::Type::IMPORTED;
                 symbol->name = name;
-                s_currentLnkFile.symbols.insert(symbolIndex, symbol);
+                ret->symbols.insert(symbolIndex, symbol);
                 break;
             }
             case (uint8_t)PsyqOpcode::SECTION: {
@@ -330,7 +459,7 @@ static int parsePsyq(PCSX::File* file) {
                 section->group = group;
                 section->alignment = alignment;
                 section->name = name;
-                s_currentLnkFile.sections.insert(sectionIndex, section);
+                ret->sections.insert(sectionIndex, section);
                 break;
             }
             case (uint8_t)PsyqOpcode::PROGRAMTYPE: {
@@ -338,13 +467,13 @@ static int parsePsyq(PCSX::File* file) {
                 vprint("Program type {}\n", type);
                 if (type != 7) {
                     fmt::print("Unknown program type {}\n", type);
-                    return -1;
+                    return nullptr;
                 }
-                if (s_currentLnkFile.gotProgramSeven) {
+                if (ret->gotProgramSeven) {
                     fmt::print("Already got program type.\n");
-                    return -1;
+                    return nullptr;
                 }
-                s_currentLnkFile.gotProgramSeven = true;
+                ret->gotProgramSeven = true;
                 break;
             }
             case (uint8_t)PsyqOpcode::UNINITIALIZED: {
@@ -352,31 +481,33 @@ static int parsePsyq(PCSX::File* file) {
                 uint16_t sectionIndex = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                vprint("Uninitilized: id {}, section {}, size {:08x}, name {}\n", symbolIndex, sectionIndex, size,
+                vprint("Uninitialized: id {}, section {}, size {:08x}, name {}\n", symbolIndex, sectionIndex, size,
                        name);
                 PsyqLnkFile::Symbol* symbol = new PsyqLnkFile::Symbol();
-                symbol->symbolType = PsyqLnkFile::Symbol::SymbolType::UNINITIALIZED;
+                symbol->symbolType = PsyqLnkFile::Symbol::Type::UNINITIALIZED;
                 symbol->sectionIndex = sectionIndex;
                 symbol->size = size;
                 symbol->name = name;
-                auto section = s_currentLnkFile.sections.find(sectionIndex);
-                if (section == s_currentLnkFile.sections.end()) {
+                auto section = ret->sections.find(sectionIndex);
+                if (section == ret->sections.end()) {
                     fmt::print("Section {} not found.\n", sectionIndex);
-                    return -1;
+                    return nullptr;
                 }
                 symbol->offset = section->uninitializedOffset;
                 section->uninitializedOffset += size;
-                s_currentLnkFile.symbols.insert(symbolIndex, symbol);
+                ret->symbols.insert(symbolIndex, symbol);
                 break;
             }
             default: {
                 fmt::print("Unknown opcode {}.\n", opcode);
-                return -1;
+                return nullptr;
             }
         }
     }
 
-    return 0;
+    fmt::print("Got actual end of file before EOF command.\n");
+
+    return nullptr;
 }
 
 int main(int argc, char** argv) {
@@ -393,8 +524,8 @@ int main(int argc, char** argv) {
 Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
   input.obj      mandatory: specify the input psyq LNK object file.
   -h             displays this help information and exit.
-  -v             turn on verbose mode for the parser.
-  -d             dump the parsed input file.
+  -v             turns on verbose mode for the parser.
+  -d             displays the parsed input file.
   -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
                  can only work with a single input file.
 )",
@@ -412,10 +543,18 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
             fmt::print("Unable to open file: {}\n", input);
             ret = -1;
         } else {
-            if (parsePsyq(file) != 0) ret = -1;
+            auto psyq = parsePsyq(file);
+            if (!psyq) {
+                ret = -1;
+            } else {
+                if (args.get<bool>("d").value_or(false)) {
+                    fmt::print(":: Displaying {}\n", input);
+                    psyq->display();
+                    fmt::print("\n\n\n");
+                }
+            }
         }
         delete file;
-        s_currentLnkFile.reset();
     }
 
     return ret;
