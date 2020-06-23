@@ -89,12 +89,41 @@ struct PsyqLnkFile {
         uint32_t uninitializedOffset = 0;
         PCSX::Slice data;
         std::list<PsyqRelocation> relocations;
+        uint32_t getFullSize() { return data.size() + zeroes + uninitializedOffset; }
+        ELFIO::section* section = nullptr;
         void display(PsyqLnkFile* lnk) {
             fmt::print("    {:04x}   {:04x}   {:8}   {:08x}   {:08x}   {:08x}   {:08x}   {}\n", getKey(), group,
-                       alignment, data.size() + zeroes + uninitializedOffset, data.size(), zeroes, uninitializedOffset,
-                       name);
+                       alignment, getFullSize(), data.size(), zeroes, uninitializedOffset, name);
         }
         void displayRelocs(PsyqLnkFile* lnk);
+        bool generateElfSection(ELFIO::elfio& writer) {
+            if (getFullSize() == 0) return true;
+            static const std::map<std::string, ELFIO::Elf_Xword> flagsMap = {
+                {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},
+                {".data", SHF_ALLOC | SHF_WRITE},     {".bss", SHF_ALLOC | SHF_WRITE},
+                {".sbss", SHF_ALLOC | SHF_WRITE},
+            };
+            auto flags = flagsMap.find(name);
+            if (flags == flagsMap.end()) return false;
+            const bool isBss = (name == ".bss") || (name == ".sbss");
+            section = writer.sections.add(name);
+            section->set_type(isBss ? SHT_NOBITS : SHT_PROGBITS);
+            section->set_flags(flags->second);
+            section->set_addr_align(alignment);
+            if (isBss) {
+                section->set_size(getFullSize());
+            } else {
+                section->set_data((const char*)data.data(), ELFIO::Elf_Word(data.size()));
+                ELFIO::Elf_Word z = zeroes + uninitializedOffset;
+                if (z) {
+                    void* ptr = calloc(z, 1);
+                    section->append_data((char*)ptr, z);
+                    free(ptr);
+                }
+            }
+            return true;
+        }
+        bool generateElfRelocations() { return true; }
     };
     struct Symbol : public SymbolHashTable::Node {
         enum class Type {
@@ -103,9 +132,10 @@ struct PsyqLnkFile {
             UNINITIALIZED,
         } symbolType;
         uint16_t sectionIndex;
-        uint32_t offset;
-        uint32_t size;
+        uint32_t offset = 0;
+        uint32_t size = 0;
         std::string name;
+        ELFIO::Elf_Word elfSym;
         void display(PsyqLnkFile* lnk) {
             if (symbolType == Type::EXPORTED) {
                 auto section = lnk->sections.find(sectionIndex);
@@ -127,6 +157,16 @@ struct PsyqLnkFile {
                                sectionIndex, section->name, "", size, name);
                 }
             }
+        }
+        bool generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_section_accessor& stra,
+                               ELFIO::symbol_section_accessor& syma) {
+            ELFIO::Elf_Half sectionIndex = 0;
+            if (symbolType != Type::IMPORTED) {
+                auto section = psyq->sections.find(sectionIndex);
+                if (section == psyq->sections.end()) return false;
+                sectionIndex = section->section->get_index();
+            }
+            elfSym = syma.add_symbol(stra, name.c_str(), offset, size, STB_GLOBAL, STT_NOTYPE, 0, sectionIndex);
         }
     };
     Section* getCurrentSection() {
@@ -160,6 +200,48 @@ struct PsyqLnkFile {
             section.displayRelocs(this);
         }
     }
+    bool writeElf(const std::string& out, bool abiNone) {
+        ELFIO::elfio writer;
+        writer.create(ELFCLASS32, ELFDATA2LSB);
+        writer.set_os_abi(abiNone ? ELFOSABI_NONE : ELFOSABI_LINUX);
+        writer.set_type(ET_REL);
+        writer.set_machine(EM_MIPS);
+
+        for (auto& section : sections) {
+            bool success = section.generateElfSection(writer);
+            if (!success) return false;
+        }
+
+        ELFIO::section* str_sec = writer.sections.add(".strtab");
+        str_sec->set_type(SHT_STRTAB);
+        ELFIO::string_section_accessor stra(str_sec);
+        ELFIO::section* sym_sec = writer.sections.add(".symtab");
+        sym_sec->set_type(SHT_SYMTAB);
+        sym_sec->set_info(2);
+        sym_sec->set_addr_align(0x4);
+        sym_sec->set_entry_size(writer.get_default_entry_size(SHT_SYMTAB));
+        sym_sec->set_link(str_sec->get_index());
+        ELFIO::symbol_section_accessor syma(writer, sym_sec);
+
+        for (auto& symbol : symbols) {
+            bool success = symbol.generateElfSymbol(this, stra, syma);
+            if (!success) return false;
+        }
+
+        for (auto& section : sections) {
+            bool success = section.generateElfRelocations();
+            if (!success) return false;
+        }
+
+        ELFIO::section* note = writer.sections.add(".note");
+        note->set_type(SHT_NOTE);
+
+        ELFIO::note_section_accessor noteWriter(writer, note);
+        noteWriter.add_note(0x01, "Created by psyq-obj-parser using ELFIO - https://github.com/grumpycoders/pcsx-redux",
+                            0, 0);
+        writer.save(out);
+        return true;
+    }
 };
 
 struct PsyqRelocation {
@@ -167,10 +249,12 @@ struct PsyqRelocation {
     uint32_t offset;
     std::unique_ptr<PsyqExpression> expression;
     void display(PsyqLnkFile* lnk, PsyqLnkFile::Section* sec) {
-        static const std::map<PsyqRelocType, std::string> typeStr = {{PsyqRelocType::REL32, "REL32"},
-                                                                     {PsyqRelocType::REL26, "REL26"},
-                                                                     {PsyqRelocType::HI16, "HI16"},
-                                                                     {PsyqRelocType::LO16, "LO16"}};
+        static const std::map<PsyqRelocType, std::string> typeStr = {
+            {PsyqRelocType::REL32, "REL32"},
+            {PsyqRelocType::REL26, "REL26"},
+            {PsyqRelocType::HI16, "HI16"},
+            {PsyqRelocType::LO16, "LO16"},
+        };
         fmt::print("    {:5}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
         expression->display(lnk, true);
     }
@@ -521,11 +605,12 @@ int main(int argc, char** argv) {
     const bool oneInput = inputs.size() == 1;
     if (asksForHelp || noInput || (hasOutput && !oneInput)) {
         fmt::print(R"(
-Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
+Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-o output.o]
   input.obj      mandatory: specify the input psyq LNK object file.
   -h             displays this help information and exit.
   -v             turns on verbose mode for the parser.
   -d             displays the parsed input file.
+  -n             use "none" ABI instead of Linux.
   -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
                  can only work with a single input file.
 )",
@@ -552,6 +637,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-o output.o]
                     psyq->display();
                     fmt::print("\n\n\n");
                 }
+                if (hasOutput) psyq->writeElf(output.value(), args.get<bool>("n").value_or(false));
             }
         }
         delete file;

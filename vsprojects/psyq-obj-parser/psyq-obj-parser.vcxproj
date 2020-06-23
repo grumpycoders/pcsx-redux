@@ -29,6 +29,20 @@
       <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dump.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dynamic.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_header.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_note.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_relocation.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_section.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_segment.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_strings.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_symbols.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_utils.hpp" />
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elf_types.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
