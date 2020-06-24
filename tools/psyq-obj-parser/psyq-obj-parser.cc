@@ -131,11 +131,8 @@ struct PsyqLnkFile {
             }
             return true;
         }
-        bool generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfio& writer, ELFIO::string_section_accessor& stra,
-                                    ELFIO::symbol_section_accessor& syma) {
-            if (relocations.size() == 0) return true;
-            return true;
-        }
+        bool generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfio& writer, ELFIO::Elf_Word symbolSectionIndex,
+                                    ELFIO::string_section_accessor& stra, ELFIO::symbol_section_accessor& syma);
     };
     struct Symbol : public SymbolHashTable::Node {
         enum class Type {
@@ -246,7 +243,7 @@ struct PsyqLnkFile {
         }
 
         for (auto& section : sections) {
-            bool success = section.generateElfRelocations(this, writer, stra, syma);
+            bool success = section.generateElfRelocations(this, writer, sym_sec->get_index(), stra, syma);
             if (!success) return false;
         }
 
@@ -262,10 +259,96 @@ struct PsyqLnkFile {
     }
 };
 
+enum elf_mips_reloc_type {
+    R_MIPS_NONE = 0,
+    R_MIPS_16,
+    R_MIPS_32,
+    R_MIPS_REL32,
+    R_MIPS_26,
+    R_MIPS_HI16,
+    R_MIPS_LO16,
+    R_MIPS_GPREL16,
+    R_MIPS_LITERAL,
+    R_MIPS_GOT16,
+    R_MIPS_PC16,
+    R_MIPS_CALL16,
+    R_MIPS_GPREL32,
+    elf_mips_reloc_type_size
+};
+
 struct PsyqRelocation {
     PsyqRelocType type;
     uint32_t offset;
     std::unique_ptr<PsyqExpression> expression;
+    bool generateElf(PsyqLnkFile* psyq, PsyqLnkFile::Section* section, ELFIO::elfio& writer,
+                     ELFIO::string_section_accessor& stra, ELFIO::symbol_section_accessor& syma,
+                     ELFIO::relocation_section_accessor& rela) {
+        static const std::map<PsyqRelocType, unsigned char> typeMap = {
+            {PsyqRelocType::REL32, R_MIPS_32},
+            {PsyqRelocType::REL26, R_MIPS_26},
+            {PsyqRelocType::HI16, R_MIPS_HI16},
+            {PsyqRelocType::LO16, R_MIPS_LO16},
+        };
+        auto simpleSymbolReloc = [&, this](PsyqExpression* expr) {
+            auto symbol = psyq->symbols.find(expr->symbolIndex);
+            if (symbol == psyq->symbols.end()) {
+                psyq->elfConversionError = fmt::format("Couldn't find symbol {} for relocation.", expr->symbolIndex);
+                return false;
+            }
+            auto elfType = typeMap.find(type);
+            rela.add_entry(offset, symbol->elfSym, elfType->second);
+            return true;
+        };
+        switch (expression->type) {
+            case PsyqExprOpcode::SYMBOL: {
+                return simpleSymbolReloc(expression.get());
+            }
+            case PsyqExprOpcode::ADD: {
+                auto checkZero = [&, this](PsyqExpression* expr) {
+                    switch (expr->type) {
+                        case PsyqExprOpcode::SYMBOL: {
+                            return simpleSymbolReloc(expr);
+                        }
+                        default: {
+                            psyq->elfConversionError =
+                                fmt::format("Unsupported relocation expression type: {}", expr->type);
+                            return false;
+                        }
+                    }
+                };
+                auto check = [&, this](PsyqExpression* expr, uint32_t addend) {
+                    switch (expr->type) {
+                        default: {
+                            psyq->elfConversionError =
+                                fmt::format("Unsupported relocation expression type: {}", expr->type);
+                            return false;
+                        }
+                    }
+                };
+                if (expression->right->type == PsyqExprOpcode::VALUE) {
+                    if (expression->right->value == 0) {
+                        return checkZero(expression->left.get());
+                    } else {
+                        return check(expression->left.get(), expression->right->value);
+                    }
+                } else if (expression->left->type == PsyqExprOpcode::VALUE) {
+                    if (expression->left->value == 0) {
+                        return checkZero(expression->right.get());
+                    } else {
+                        return check(expression->right.get(), expression->left->value);
+                    }
+                } else {
+                    psyq->elfConversionError = fmt::format("Unsupported ADD operation in relocation");
+                    return false;
+                }
+                break;
+            }
+            default: {
+                psyq->elfConversionError = fmt::format("Unsupported relocation expression type: {}", expression->type);
+                return false;
+            }
+        }
+    }
     void display(PsyqLnkFile* lnk, PsyqLnkFile::Section* sec) {
         static const std::map<PsyqRelocType, std::string> typeStr = {
             {PsyqRelocType::REL32, "REL32"},
@@ -348,6 +431,26 @@ void PsyqLnkFile::Section::displayRelocs(PsyqLnkFile* lnk) {
         reloc.display(lnk, this);
         fmt::print("\n");
     }
+}
+
+bool PsyqLnkFile::Section::generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfio& writer,
+                                                  ELFIO::Elf_Word symbolSectionIndex,
+                                                  ELFIO::string_section_accessor& stra,
+                                                  ELFIO::symbol_section_accessor& syma) {
+    if (relocations.size() == 0) return true;
+    ELFIO::section* rel_sec = writer.sections.add(fmt::format(".rel{}", name));
+    rel_sec->set_type(SHT_REL);
+    rel_sec->set_info(section->get_index());
+    rel_sec->set_addr_align(0x4);
+    rel_sec->set_entry_size(writer.get_default_entry_size(SHT_REL));
+    rel_sec->set_link(symbolSectionIndex);
+    ELFIO::relocation_section_accessor rela(writer, rel_sec);
+
+    for (auto& relocation : relocations) {
+        bool success = relocation.generateElf(psyq, this, writer, stra, syma, rela);
+        if (!success) return false;
+    }
+    return true;
 }
 
 static std::string readPsyqString(PCSX::File* file) { return file->readString(file->byte()); }
