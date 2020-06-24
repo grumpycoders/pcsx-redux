@@ -81,6 +81,7 @@ struct PsyqLnkFile {
     struct Symbol;
     typedef PCSX::Intrusive::HashTable<uint16_t, Section> SectionHashTable;
     typedef PCSX::Intrusive::HashTable<uint16_t, Symbol> SymbolHashTable;
+    std::string elfConversionError;
     struct Section : public SectionHashTable::Node {
         uint16_t group;
         uint8_t alignment;
@@ -96,7 +97,8 @@ struct PsyqLnkFile {
                        alignment, getFullSize(), data.size(), zeroes, uninitializedOffset, name);
         }
         void displayRelocs(PsyqLnkFile* lnk);
-        bool generateElfSection(ELFIO::elfio& writer) {
+        bool isBss() { return (name == ".bss") || (name == ".sbss"); }
+        bool generateElfSection(PsyqLnkFile* psyq, ELFIO::elfio& writer) {
             if (getFullSize() == 0) return true;
             static const std::map<std::string, ELFIO::Elf_Xword> flagsMap = {
                 {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},
@@ -104,13 +106,19 @@ struct PsyqLnkFile {
                 {".sbss", SHF_ALLOC | SHF_WRITE},
             };
             auto flags = flagsMap.find(name);
-            if (flags == flagsMap.end()) return false;
-            const bool isBss = (name == ".bss") || (name == ".sbss");
+            if (flags == flagsMap.end()) {
+                psyq->elfConversionError = fmt::format("Unknown section type '{}'", name);
+                return false;
+            }
+            if (isBss() && data.size()) {
+                psyq->elfConversionError = fmt::format("Section {} looks like bss, but has data", name);
+                return false;
+            }
             section = writer.sections.add(name);
-            section->set_type(isBss ? SHT_NOBITS : SHT_PROGBITS);
+            section->set_type(isBss() ? SHT_NOBITS : SHT_PROGBITS);
             section->set_flags(flags->second);
             section->set_addr_align(alignment);
-            if (isBss) {
+            if (isBss()) {
                 section->set_size(getFullSize());
             } else {
                 section->set_data((const char*)data.data(), ELFIO::Elf_Word(data.size()));
@@ -123,7 +131,11 @@ struct PsyqLnkFile {
             }
             return true;
         }
-        bool generateElfRelocations() { return true; }
+        bool generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfio& writer, ELFIO::string_section_accessor& stra,
+                                    ELFIO::symbol_section_accessor& syma) {
+            if (relocations.size() == 0) return true;
+            return true;
+        }
     };
     struct Symbol : public SymbolHashTable::Node {
         enum class Type {
@@ -160,13 +172,18 @@ struct PsyqLnkFile {
         }
         bool generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_section_accessor& stra,
                                ELFIO::symbol_section_accessor& syma) {
-            ELFIO::Elf_Half sectionIndex = 0;
+            ELFIO::Elf_Half elfSectionIndex = 0;
             if (symbolType != Type::IMPORTED) {
                 auto section = psyq->sections.find(sectionIndex);
-                if (section == psyq->sections.end()) return false;
-                sectionIndex = section->section->get_index();
+                if (section == psyq->sections.end()) {
+                    psyq->elfConversionError = fmt::format("Couldn't find section index {} for symbol {} ('{}')",
+                                                           sectionIndex, getKey(), name);
+                    return false;
+                }
+                elfSectionIndex = section->section->get_index();
             }
-            elfSym = syma.add_symbol(stra, name.c_str(), offset, size, STB_GLOBAL, STT_NOTYPE, 0, sectionIndex);
+            elfSym = syma.add_symbol(stra, name.c_str(), offset, size, STB_GLOBAL, STT_NOTYPE, 0, elfSectionIndex);
+            return true;
         }
     };
     Section* getCurrentSection() {
@@ -208,7 +225,7 @@ struct PsyqLnkFile {
         writer.set_machine(EM_MIPS);
 
         for (auto& section : sections) {
-            bool success = section.generateElfSection(writer);
+            bool success = section.generateElfSection(this, writer);
             if (!success) return false;
         }
 
@@ -229,7 +246,7 @@ struct PsyqLnkFile {
         }
 
         for (auto& section : sections) {
-            bool success = section.generateElfRelocations();
+            bool success = section.generateElfRelocations(this, writer, stra, syma);
             if (!success) return false;
         }
 
@@ -237,8 +254,9 @@ struct PsyqLnkFile {
         note->set_type(SHT_NOTE);
 
         ELFIO::note_section_accessor noteWriter(writer, note);
-        noteWriter.add_note(0x01, "Created by psyq-obj-parser using ELFIO - https://github.com/grumpycoders/pcsx-redux",
-                            0, 0);
+        noteWriter.add_note(0x01, "psyq-obj-parser", 0, 0);
+        noteWriter.add_note(0x01, "pcsx-redux project", 0, 0);
+        noteWriter.add_note(0x01, "https://github.com/grumpycoders/pcsx-redux", 0, 0);
         writer.save(out);
         return true;
     }
@@ -637,7 +655,15 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-o output.o]
                     psyq->display();
                     fmt::print("\n\n\n");
                 }
-                if (hasOutput) psyq->writeElf(output.value(), args.get<bool>("n").value_or(false));
+                if (hasOutput) {
+                    fmt::print("Converting {} to {}...", input, output.value());
+                    bool success = psyq->writeElf(output.value(), args.get<bool>("n").value_or(false));
+                    if (success) {
+                        fmt::print(" done.\n");
+                    } else {
+                        fmt::print(" conversion failed: {}\n", psyq->elfConversionError);
+                    }
+                }
             }
         }
         delete file;
