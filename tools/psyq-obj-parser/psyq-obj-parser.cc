@@ -90,6 +90,9 @@ struct PsyqLnkFile {
     }
     std::map<std::string, ELFIO::Elf_Word> localElfSymbols;
     std::string elfConversionError;
+    PsyqRelocation* twoPartsReloc = nullptr;
+    uint32_t twoPartsRelocAddend;
+    uint16_t twoPartsRelocSymbol;
     struct Section : public SectionHashTable::Node {
         uint16_t group;
         uint8_t alignment;
@@ -267,6 +270,7 @@ struct PsyqLnkFile {
         noteWriter.add_note(0x01, "psyq-obj-parser", 0, 0);
         noteWriter.add_note(0x01, "pcsx-redux project", 0, 0);
         noteWriter.add_note(0x01, "https://github.com/grumpycoders/pcsx-redux", 0, 0);
+
         writer.save(out);
         return true;
     }
@@ -305,6 +309,10 @@ struct PsyqRelocation {
             {PsyqRelocType::LO16, elf_mips_reloc_type::R_MIPS_LO16},
         };
         auto simpleSymbolReloc = [&, this](PsyqExpression* expr, ELFIO::Elf_Word elfSym = 0) {
+            if (psyq->twoPartsReloc) {
+                psyq->setElfConversionError("Two-part relocation missing its second part");
+                return false;
+            }
             if (expr) {
                 auto symbol = psyq->symbols.find(expr->symbolIndex);
                 if (symbol == psyq->symbols.end()) {
@@ -338,6 +346,9 @@ struct PsyqRelocation {
         };
         auto checkZero = [&, this](PsyqExpression* expr) {
             switch (expr->type) {
+                case PsyqExprOpcode::SECTION_BASE: {
+                    return localSymbolReloc(expr->sectionIndex, 0);
+                }
                 case PsyqExprOpcode::SYMBOL: {
                     return simpleSymbolReloc(expr);
                 }
@@ -352,6 +363,62 @@ struct PsyqRelocation {
                 case PsyqExprOpcode::SECTION_BASE: {
                     return localSymbolReloc(expr->sectionIndex, addend);
                 }
+                case PsyqExprOpcode::SYMBOL: {
+                    // this is the most complex case, as the psyq format can do
+                    // relocations that have addend from a symbol, but ELF can't,
+                    // which means we need to alter the code's byte stream to
+                    // compute the proper addend.
+                    switch (type) {
+                        case PsyqRelocType::HI16: {
+                            if (psyq->twoPartsReloc) {
+                                psyq->setElfConversionError("Two hi16 relocations in a row for a symbol with addend");
+                                return false;
+                            }
+                            psyq->twoPartsRelocSymbol = expr->symbolIndex;
+                            psyq->twoPartsRelocAddend = addend;
+                            psyq->twoPartsReloc = this;
+                            fmt::print("      :: Delaying relocation, waiting for LO16");
+                            return simpleSymbolReloc(expr);
+                        }
+                        case PsyqRelocType::LO16: {
+                            auto hi = psyq->twoPartsReloc;
+                            psyq->twoPartsReloc = nullptr;
+                            if (!hi) {
+                                psyq->setElfConversionError("Got lo16 for a symbol with added without a hi16 prior");
+                                return false;
+                            }
+                            if ((addend != psyq->twoPartsRelocAddend) || (expr->symbolIndex != psyq->twoPartsRelocSymbol)) {
+                                psyq->setElfConversionError("Mismatching hi/lo symbol+addend relocation");
+                                return false;
+                            }
+                            ELFIO::Elf_Xword size = section->section->get_size();
+                            uint8_t* sectionData = (uint8_t*)malloc(size);
+                            memcpy(sectionData, section->section->get_data(), size);
+                            fmt::print("      :: Altering bytestream to account for HI/LO symbol+addend relocation");
+                            uint32_t existingAddend = 0;
+                            existingAddend |= sectionData[offset + 0] << 0;
+                            existingAddend |= sectionData[offset + 1] << 8;
+                            existingAddend |= sectionData[hi->offset + 0] << 16;
+                            existingAddend |= sectionData[hi->offset + 1] << 24;
+                            existingAddend += addend;
+                            sectionData[offset + 0] = existingAddend & 0xff;
+                            existingAddend >> 8;
+                            sectionData[offset + 1] = existingAddend & 0xff;
+                            existingAddend >> 8;
+                            sectionData[hi->offset + 0] = existingAddend & 0xff;
+                            existingAddend >> 8;
+                            sectionData[hi->offset + 1] = existingAddend & 0xff;
+                            existingAddend >> 8;
+                            section->section->set_data((char*)sectionData, size);
+                            free(sectionData);
+                            return simpleSymbolReloc(expr);
+                        }
+                        default: {
+                            psyq->setElfConversionError("Unsupported relocation from a symbol with an addend");
+                            return false;
+                        }
+                    }
+                }
                 default: {
                     psyq->setElfConversionError("Unsupported relocation expression type: {}", expr->type);
                     return false;
@@ -359,9 +426,6 @@ struct PsyqRelocation {
             }
         };
         switch (expression->type) {
-            case PsyqExprOpcode::SYMBOL: {
-                return simpleSymbolReloc(expression.get());
-            }
             case PsyqExprOpcode::ADD: {
                 if (expression->right->type == PsyqExprOpcode::VALUE) {
                     if ((expression->left->type == PsyqExprOpcode::SYMBOL) && (expression->right->value == 0)) {
@@ -390,9 +454,12 @@ struct PsyqRelocation {
                 }
                 break;
             }
-            default: {
-                psyq->setElfConversionError("Unsupported relocation expression type: {}", expression->type);
+            case PsyqExprOpcode::DIV: {
+                psyq->setElfConversionError("Unsupported DIV operation in relocation");
                 return false;
+            }
+            default: {
+                return checkZero(expression.get());
             }
         }
     }
@@ -496,6 +563,10 @@ bool PsyqLnkFile::Section::generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfi
     for (auto& relocation : relocations) {
         bool success = relocation.generateElf(psyq, this, writer, stra, syma, rela);
         if (!success) return false;
+        if (psyq->twoPartsReloc) {
+            psyq->setElfConversionError("Two parts relocation with only the first part");
+            return false;
+        }
     }
     return true;
 }
