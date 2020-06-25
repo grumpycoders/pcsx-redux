@@ -81,6 +81,14 @@ struct PsyqLnkFile {
     struct Symbol;
     typedef PCSX::Intrusive::HashTable<uint16_t, Section> SectionHashTable;
     typedef PCSX::Intrusive::HashTable<uint16_t, Symbol> SymbolHashTable;
+    template <typename... Args>
+    inline void setElfConversionError(const std::string& formatStr, Args&&... args) {
+        elfConversionError = fmt::format(formatStr, args...);
+#ifdef _WIN32
+        if (IsDebuggerPresent()) __debugbreak();
+#endif
+    }
+    std::map<std::string, ELFIO::Elf_Word> localElfSymbols;
     std::string elfConversionError;
     struct Section : public SectionHashTable::Node {
         uint16_t group;
@@ -100,6 +108,7 @@ struct PsyqLnkFile {
         bool isBss() { return (name == ".bss") || (name == ".sbss"); }
         bool generateElfSection(PsyqLnkFile* psyq, ELFIO::elfio& writer) {
             if (getFullSize() == 0) return true;
+            fmt::print("    :: Generating section {}\n", name);
             static const std::map<std::string, ELFIO::Elf_Xword> flagsMap = {
                 {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},
                 {".data", SHF_ALLOC | SHF_WRITE},     {".bss", SHF_ALLOC | SHF_WRITE},
@@ -107,11 +116,11 @@ struct PsyqLnkFile {
             };
             auto flags = flagsMap.find(name);
             if (flags == flagsMap.end()) {
-                psyq->elfConversionError = fmt::format("Unknown section type '{}'", name);
+                psyq->setElfConversionError("Unknown section type '{}'", name);
                 return false;
             }
             if (isBss() && data.size()) {
-                psyq->elfConversionError = fmt::format("Section {} looks like bss, but has data", name);
+                psyq->setElfConversionError("Section {} looks like bss, but has data", name);
                 return false;
             }
             section = writer.sections.add(name);
@@ -170,11 +179,12 @@ struct PsyqLnkFile {
         bool generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_section_accessor& stra,
                                ELFIO::symbol_section_accessor& syma) {
             ELFIO::Elf_Half elfSectionIndex = 0;
+            fmt::print("    :: Generating symbol {}\n", name);
             if (symbolType != Type::IMPORTED) {
                 auto section = psyq->sections.find(sectionIndex);
                 if (section == psyq->sections.end()) {
-                    psyq->elfConversionError = fmt::format("Couldn't find section index {} for symbol {} ('{}')",
-                                                           sectionIndex, getKey(), name);
+                    psyq->setElfConversionError("Couldn't find section index {} for symbol {} ('{}')", sectionIndex,
+                                                getKey(), name);
                     return false;
                 }
                 elfSectionIndex = section->section->get_index();
@@ -221,6 +231,7 @@ struct PsyqLnkFile {
         writer.set_type(ET_REL);
         writer.set_machine(EM_MIPS);
 
+        fmt::print("  :: Generating sections\n");
         for (auto& section : sections) {
             bool success = section.generateElfSection(this, writer);
             if (!success) return false;
@@ -237,11 +248,13 @@ struct PsyqLnkFile {
         sym_sec->set_link(str_sec->get_index());
         ELFIO::symbol_section_accessor syma(writer, sym_sec);
 
+        fmt::print("  :: Generating symbols\n");
         for (auto& symbol : symbols) {
             bool success = symbol.generateElfSymbol(this, stra, syma);
             if (!success) return false;
         }
 
+        fmt::print("  :: Generating relocations\n");
         for (auto& section : sections) {
             bool success = section.generateElfRelocations(this, writer, sym_sec->get_index(), stra, syma);
             if (!success) return false;
@@ -259,7 +272,7 @@ struct PsyqLnkFile {
     }
 };
 
-enum elf_mips_reloc_type {
+enum class elf_mips_reloc_type : unsigned char {
     R_MIPS_NONE = 0,
     R_MIPS_16,
     R_MIPS_32,
@@ -273,7 +286,6 @@ enum elf_mips_reloc_type {
     R_MIPS_PC16,
     R_MIPS_CALL16,
     R_MIPS_GPREL32,
-    elf_mips_reloc_type_size
 };
 
 struct PsyqRelocation {
@@ -283,68 +295,103 @@ struct PsyqRelocation {
     bool generateElf(PsyqLnkFile* psyq, PsyqLnkFile::Section* section, ELFIO::elfio& writer,
                      ELFIO::string_section_accessor& stra, ELFIO::symbol_section_accessor& syma,
                      ELFIO::relocation_section_accessor& rela) {
-        static const std::map<PsyqRelocType, unsigned char> typeMap = {
-            {PsyqRelocType::REL32, R_MIPS_32},
-            {PsyqRelocType::REL26, R_MIPS_26},
-            {PsyqRelocType::HI16, R_MIPS_HI16},
-            {PsyqRelocType::LO16, R_MIPS_LO16},
+        fmt::print("    :: Generating relocation ");
+        display(psyq, section);
+        fmt::print("\n");
+        static const std::map<PsyqRelocType, elf_mips_reloc_type> typeMap = {
+            {PsyqRelocType::REL32, elf_mips_reloc_type::R_MIPS_32},
+            {PsyqRelocType::REL26, elf_mips_reloc_type::R_MIPS_26},
+            {PsyqRelocType::HI16, elf_mips_reloc_type::R_MIPS_HI16},
+            {PsyqRelocType::LO16, elf_mips_reloc_type::R_MIPS_LO16},
         };
-        auto simpleSymbolReloc = [&, this](PsyqExpression* expr) {
-            auto symbol = psyq->symbols.find(expr->symbolIndex);
-            if (symbol == psyq->symbols.end()) {
-                psyq->elfConversionError = fmt::format("Couldn't find symbol {} for relocation.", expr->symbolIndex);
-                return false;
+        auto simpleSymbolReloc = [&, this](PsyqExpression* expr, ELFIO::Elf_Word elfSym = 0) {
+            if (expr) {
+                auto symbol = psyq->symbols.find(expr->symbolIndex);
+                if (symbol == psyq->symbols.end()) {
+                    psyq->setElfConversionError("Couldn't find symbol {} for relocation.", expr->symbolIndex);
+                    return false;
+                }
+                elfSym = symbol->elfSym;
             }
             auto elfType = typeMap.find(type);
-            rela.add_entry(offset, symbol->elfSym, elfType->second);
+            rela.add_entry(offset, elfSym, (unsigned char)elfType->second);
             return true;
+        };
+        auto localSymbolReloc = [&, this](uint16_t sectionIndex, int32_t symbolOffset) {
+            auto section = psyq->sections.find(sectionIndex);
+            if (section == psyq->sections.end()) {
+                psyq->setElfConversionError("Section {} not found in relocation", sectionIndex);
+                return false;
+            }
+            std::string symbolName = fmt::format(".rel{}@{:08x}", section->name, symbolOffset);
+            auto existing = psyq->localElfSymbols.find(symbolName);
+            ELFIO::Elf_Word elfSym;
+            if (existing == psyq->localElfSymbols.end()) {
+                fmt::print("      :: Creating local symbol {}\n", symbolName);
+                elfSym = syma.add_symbol(stra, symbolName.c_str(), symbolOffset, 0, STB_LOCAL, STT_NOTYPE, 0,
+                                         section->section->get_index());
+                psyq->localElfSymbols.insert(std::make_pair(symbolName, elfSym));
+            } else {
+                elfSym = existing->second;
+            }
+            return simpleSymbolReloc(nullptr, elfSym);
+        };
+        auto checkZero = [&, this](PsyqExpression* expr) {
+            switch (expr->type) {
+                case PsyqExprOpcode::SYMBOL: {
+                    return simpleSymbolReloc(expr);
+                }
+                default: {
+                    psyq->setElfConversionError("Unsupported relocation expression type: {}", expr->type);
+                    return false;
+                }
+            }
+        };
+        auto check = [&, this](PsyqExpression* expr, int32_t addend) {
+            switch (expr->type) {
+                case PsyqExprOpcode::SECTION_BASE: {
+                    return localSymbolReloc(expr->sectionIndex, addend);
+                }
+                default: {
+                    psyq->setElfConversionError("Unsupported relocation expression type: {}", expr->type);
+                    return false;
+                }
+            }
         };
         switch (expression->type) {
             case PsyqExprOpcode::SYMBOL: {
                 return simpleSymbolReloc(expression.get());
             }
             case PsyqExprOpcode::ADD: {
-                auto checkZero = [&, this](PsyqExpression* expr) {
-                    switch (expr->type) {
-                        case PsyqExprOpcode::SYMBOL: {
-                            return simpleSymbolReloc(expr);
-                        }
-                        default: {
-                            psyq->elfConversionError =
-                                fmt::format("Unsupported relocation expression type: {}", expr->type);
-                            return false;
-                        }
-                    }
-                };
-                auto check = [&, this](PsyqExpression* expr, uint32_t addend) {
-                    switch (expr->type) {
-                        default: {
-                            psyq->elfConversionError =
-                                fmt::format("Unsupported relocation expression type: {}", expr->type);
-                            return false;
-                        }
-                    }
-                };
                 if (expression->right->type == PsyqExprOpcode::VALUE) {
-                    if (expression->right->value == 0) {
+                    if ((expression->left->type == PsyqExprOpcode::SYMBOL) && (expression->right->value == 0)) {
                         return checkZero(expression->left.get());
                     } else {
                         return check(expression->left.get(), expression->right->value);
                     }
                 } else if (expression->left->type == PsyqExprOpcode::VALUE) {
-                    if (expression->left->value == 0) {
+                    if ((expression->right->type == PsyqExprOpcode::SYMBOL) && (expression->left->value == 0)) {
                         return checkZero(expression->right.get());
                     } else {
                         return check(expression->right.get(), expression->left->value);
                     }
                 } else {
-                    psyq->elfConversionError = fmt::format("Unsupported ADD operation in relocation");
+                    psyq->setElfConversionError("Unsupported ADD operation in relocation");
+                    return false;
+                }
+                break;
+            }
+            case PsyqExprOpcode::SUB: {
+                if (expression->right->type == PsyqExprOpcode::VALUE) {
+                    return check(expression->left.get(), -((int32_t)expression->right->value));
+                } else {
+                    psyq->setElfConversionError("Unsupported SUB operation in relocation");
                     return false;
                 }
                 break;
             }
             default: {
-                psyq->elfConversionError = fmt::format("Unsupported relocation expression type: {}", expression->type);
+                psyq->setElfConversionError("Unsupported relocation expression type: {}", expression->type);
                 return false;
             }
         }
@@ -759,12 +806,12 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-o output.o]
                     fmt::print("\n\n\n");
                 }
                 if (hasOutput) {
-                    fmt::print("Converting {} to {}...", input, output.value());
+                    fmt::print(":: Converting {} to {}...\n", input, output.value());
                     bool success = psyq->writeElf(output.value(), args.get<bool>("n").value_or(false));
                     if (success) {
-                        fmt::print(" done.\n");
+                        fmt::print(":: Conversion completed.\n");
                     } else {
-                        fmt::print(" conversion failed: {}\n", psyq->elfConversionError);
+                        fmt::print(":: Conversion failed: {}\n", psyq->elfConversionError);
                     }
                 }
             }
