@@ -1,7 +1,7 @@
-#include <libetc.h>
-#include <libgpu.h>
-#include <libgte.h>
 #include <stdlib.h>
+#include <libetc.h>
+#include <libgte.h>
+#include <libgpu.h>
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(*(a)))
 
