@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "support/djbhash.h"
 #include "support/eventbus.h"
 
 namespace PCSX {
@@ -107,19 +108,7 @@ class System {
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
-  private:
-    static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
-        return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
-    }
-
-  public:
     void setBinDir(std::filesystem::path path) { m_binDir = path; }
-    template <size_t S>
-    static inline constexpr uint64_t ctHash(const char (&str)[S]) {
-        return djbProcess(5381, str, S - 1);
-    }
-    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
-    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
 
     const char *getStr(uint64_t hash, const char *str) {
         auto ret = m_i18n.find(hash);
@@ -175,4 +164,4 @@ extern System *g_system;
 
 }  // namespace PCSX
 
-#define _(str) PCSX::g_system->getStr(PCSX::System::ctHash(str), str)
+#define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)

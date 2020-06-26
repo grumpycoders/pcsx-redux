@@ -50,5 +50,8 @@
     <ClInclude Include="..\..\src\support\eventbus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\support\djbhash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

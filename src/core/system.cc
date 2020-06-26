@@ -166,7 +166,7 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                                 if (currentString.length()) locale[hashValue] = currentString;
                                 break;
                             case WAITING_MSGSTRTOKEN:
-                                hashValue = hash(currentString);
+                                hashValue = djbHash::hash(currentString);
                                 break;
                         }
                         currentString = "";

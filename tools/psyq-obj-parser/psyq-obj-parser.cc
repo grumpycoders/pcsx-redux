@@ -22,6 +22,7 @@
 
 #include "elfio/elfio.hpp"
 #include "flags.h"
+#include "support/djbhash.h"
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/slice.h"
@@ -233,6 +234,7 @@ struct PsyqLnkFile {
         writer.set_os_abi(abiNone ? ELFOSABI_NONE : ELFOSABI_LINUX);
         writer.set_type(ET_REL);
         writer.set_machine(EM_MIPS);
+        writer.set_flags(0x1000);  // ?!
 
         fmt::print("  :: Generating sections\n");
         for (auto& section : sections) {
@@ -250,6 +252,8 @@ struct PsyqLnkFile {
         sym_sec->set_entry_size(writer.get_default_entry_size(SHT_SYMTAB));
         sym_sec->set_link(str_sec->get_index());
         ELFIO::symbol_section_accessor syma(writer, sym_sec);
+
+        syma.add_symbol(stra, out.c_str(), 0, STB_LOCAL, STT_FILE, 0, SHN_ABS);
 
         fmt::print("  :: Generating symbols\n");
         for (auto& symbol : symbols) {
@@ -364,6 +368,15 @@ struct PsyqRelocation {
                     return localSymbolReloc(expr->sectionIndex, addend);
                 }
                 case PsyqExprOpcode::SYMBOL: {
+                    auto symbol = psyq->symbols.find(expr->symbolIndex);
+                    if (symbol == psyq->symbols.end()) {
+                        psyq->setElfConversionError("Couldn't find symbol {} for relocation.", expr->symbolIndex);
+                        return false;
+                    }
+                    if (symbol->symbolType != PsyqLnkFile::Symbol::Type::IMPORTED) {
+                        return localSymbolReloc(symbol->sectionIndex, symbol->offset + addend);
+                    }
+                    ELFIO::Elf_Word elfSym = symbol->elfSym;
                     // this is the most complex case, as the psyq format can do
                     // relocations that have addend from a symbol, but ELF can't,
                     // which means we need to alter the code's byte stream to
@@ -376,25 +389,32 @@ struct PsyqRelocation {
                             }
                             psyq->twoPartsRelocSymbol = expr->symbolIndex;
                             psyq->twoPartsRelocAddend = addend;
-                            psyq->twoPartsReloc = this;
-                            fmt::print("      :: Delaying relocation, waiting for LO16");
-                            return simpleSymbolReloc(expr);
+                            struct QueueTwoParts {
+                                QueueTwoParts(PsyqLnkFile* psyq, PsyqRelocation* object) : psyq(psyq), object(object) {}
+                                ~QueueTwoParts() { psyq->twoPartsReloc = object; }
+                                PsyqLnkFile* psyq;
+                                PsyqRelocation* object;
+                            };
+                            fmt::print("      :: Delaying relocation, waiting for LO16\n");
+                            QueueTwoParts queue(psyq, this);
+                            return simpleSymbolReloc(nullptr, elfSym);
                         }
                         case PsyqRelocType::LO16: {
                             auto hi = psyq->twoPartsReloc;
                             psyq->twoPartsReloc = nullptr;
                             if (!hi) {
-                                psyq->setElfConversionError("Got lo16 for a symbol with added without a hi16 prior");
+                                psyq->setElfConversionError("Got lo16 for a symbol with added without a prior hi16");
                                 return false;
                             }
-                            if ((addend != psyq->twoPartsRelocAddend) || (expr->symbolIndex != psyq->twoPartsRelocSymbol)) {
+                            if ((addend != psyq->twoPartsRelocAddend) ||
+                                (expr->symbolIndex != psyq->twoPartsRelocSymbol)) {
                                 psyq->setElfConversionError("Mismatching hi/lo symbol+addend relocation");
                                 return false;
                             }
                             ELFIO::Elf_Xword size = section->section->get_size();
                             uint8_t* sectionData = (uint8_t*)malloc(size);
                             memcpy(sectionData, section->section->get_data(), size);
-                            fmt::print("      :: Altering bytestream to account for HI/LO symbol+addend relocation");
+                            fmt::print("      :: Altering bytestream to account for HI/LO symbol+addend relocation\n");
                             uint32_t existingAddend = 0;
                             existingAddend |= sectionData[offset + 0] << 0;
                             existingAddend |= sectionData[offset + 1] << 8;
@@ -402,16 +422,16 @@ struct PsyqRelocation {
                             existingAddend |= sectionData[hi->offset + 1] << 24;
                             existingAddend += addend;
                             sectionData[offset + 0] = existingAddend & 0xff;
-                            existingAddend >> 8;
+                            existingAddend >>= 8;
                             sectionData[offset + 1] = existingAddend & 0xff;
-                            existingAddend >> 8;
+                            existingAddend >>= 8;
                             sectionData[hi->offset + 0] = existingAddend & 0xff;
-                            existingAddend >> 8;
+                            existingAddend >>= 8;
                             sectionData[hi->offset + 1] = existingAddend & 0xff;
-                            existingAddend >> 8;
+                            existingAddend >>= 8;
                             section->section->set_data((char*)sectionData, size);
                             free(sectionData);
-                            return simpleSymbolReloc(expr);
+                            return simpleSymbolReloc(nullptr, elfSym);
                         }
                         default: {
                             psyq->setElfConversionError("Unsupported relocation from a symbol with an addend");
@@ -563,10 +583,10 @@ bool PsyqLnkFile::Section::generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfi
     for (auto& relocation : relocations) {
         bool success = relocation.generateElf(psyq, this, writer, stra, syma, rela);
         if (!success) return false;
-        if (psyq->twoPartsReloc) {
-            psyq->setElfConversionError("Two parts relocation with only the first part");
-            return false;
-        }
+    }
+    if (psyq->twoPartsReloc) {
+        psyq->setElfConversionError("Two parts relocation with only the first part");
+        return false;
     }
     return true;
 }
