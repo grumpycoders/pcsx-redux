@@ -63,6 +63,11 @@ enum class PsyqExprOpcode : uint8_t {
     DIV = 50,
 };
 
+enum class ElfRelocationPass {
+    PASS1,
+    PASS2,
+};
+
 struct PsyqLnkFile;
 
 struct PsyqExpression {
@@ -104,6 +109,7 @@ struct PsyqLnkFile {
         std::list<PsyqRelocation> relocations;
         uint32_t getFullSize() { return data.size() + zeroes + uninitializedOffset; }
         ELFIO::section* section = nullptr;
+        ELFIO::section* rel_sec = nullptr;
         void display(PsyqLnkFile* lnk) {
             fmt::print("    {:04x}   {:04x}   {:8}   {:08x}   {:08x}   {:08x}   {:08x}   {}\n", getKey(), group,
                        alignment, getFullSize(), data.size(), zeroes, uninitializedOffset, name);
@@ -144,8 +150,9 @@ struct PsyqLnkFile {
             }
             return true;
         }
-        bool generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfio& writer, ELFIO::Elf_Word symbolSectionIndex,
-                                    ELFIO::string_section_accessor& stra, ELFIO::symbol_section_accessor& syma);
+        bool generateElfRelocations(ElfRelocationPass pass, PsyqLnkFile* psyq, ELFIO::elfio& writer,
+                                    ELFIO::Elf_Word symbolSectionIndex, ELFIO::string_section_accessor& stra,
+                                    ELFIO::symbol_section_accessor& syma);
     };
     struct Symbol : public SymbolHashTable::Node {
         enum class Type {
@@ -255,15 +262,23 @@ struct PsyqLnkFile {
 
         syma.add_symbol(stra, out.c_str(), 0, STB_LOCAL, STT_FILE, 0, SHN_ABS);
 
+        fmt::print("  :: Generating relocations - pass 1, local only\n");
+        for (auto& section : sections) {
+            bool success = section.generateElfRelocations(ElfRelocationPass::PASS1, this, writer, sym_sec->get_index(),
+                                                          stra, syma);
+            if (!success) return false;
+        }
+
         fmt::print("  :: Generating symbols\n");
         for (auto& symbol : symbols) {
             bool success = symbol.generateElfSymbol(this, stra, syma);
             if (!success) return false;
         }
 
-        fmt::print("  :: Generating relocations\n");
+        fmt::print("  :: Generating relocations - pass 2, globals only\n");
         for (auto& section : sections) {
-            bool success = section.generateElfRelocations(this, writer, sym_sec->get_index(), stra, syma);
+            bool success = section.generateElfRelocations(ElfRelocationPass::PASS2, this, writer, sym_sec->get_index(),
+                                                          stra, syma);
             if (!success) return false;
         }
 
@@ -300,12 +315,18 @@ struct PsyqRelocation {
     PsyqRelocType type;
     uint32_t offset;
     std::unique_ptr<PsyqExpression> expression;
-    bool generateElf(PsyqLnkFile* psyq, PsyqLnkFile::Section* section, ELFIO::elfio& writer,
+    bool generateElf(ElfRelocationPass pass, PsyqLnkFile* psyq, PsyqLnkFile::Section* section, ELFIO::elfio& writer,
                      ELFIO::string_section_accessor& stra, ELFIO::symbol_section_accessor& syma,
                      ELFIO::relocation_section_accessor& rela) {
         fmt::print("    :: Generating relocation ");
         display(psyq, section);
         fmt::print("\n");
+        struct SkippedDisplay {
+            ~SkippedDisplay() {
+                if (skipped) fmt::print("      :: Skipped for this pass\n");
+            }
+            bool skipped = false;
+        } skipped;
         static const std::map<PsyqRelocType, elf_mips_reloc_type> typeMap = {
             {PsyqRelocType::REL32, elf_mips_reloc_type::R_MIPS_32},
             {PsyqRelocType::REL26, elf_mips_reloc_type::R_MIPS_26},
@@ -330,6 +351,10 @@ struct PsyqRelocation {
             return true;
         };
         auto localSymbolReloc = [&, this](uint16_t sectionIndex, int32_t symbolOffset) {
+            if (pass == ElfRelocationPass::PASS2) {
+                skipped.skipped = true;
+                return true;
+            }
             auto section = psyq->sections.find(sectionIndex);
             if (section == psyq->sections.end()) {
                 psyq->setElfConversionError("Section {} not found in relocation", sectionIndex);
@@ -354,6 +379,10 @@ struct PsyqRelocation {
                     return localSymbolReloc(expr->sectionIndex, 0);
                 }
                 case PsyqExprOpcode::SYMBOL: {
+                    if (pass == ElfRelocationPass::PASS1) {
+                        skipped.skipped = true;
+                        return true;
+                    }
                     return simpleSymbolReloc(expr);
                 }
                 default: {
@@ -368,6 +397,10 @@ struct PsyqRelocation {
                     return localSymbolReloc(expr->sectionIndex, addend);
                 }
                 case PsyqExprOpcode::SYMBOL: {
+                    if (pass == ElfRelocationPass::PASS1) {
+                        skipped.skipped = true;
+                        return true;
+                    }
                     auto symbol = psyq->symbols.find(expr->symbolIndex);
                     if (symbol == psyq->symbols.end()) {
                         psyq->setElfConversionError("Couldn't find symbol {} for relocation.", expr->symbolIndex);
@@ -567,21 +600,23 @@ void PsyqLnkFile::Section::displayRelocs(PsyqLnkFile* lnk) {
     }
 }
 
-bool PsyqLnkFile::Section::generateElfRelocations(PsyqLnkFile* psyq, ELFIO::elfio& writer,
+bool PsyqLnkFile::Section::generateElfRelocations(ElfRelocationPass pass, PsyqLnkFile* psyq, ELFIO::elfio& writer,
                                                   ELFIO::Elf_Word symbolSectionIndex,
                                                   ELFIO::string_section_accessor& stra,
                                                   ELFIO::symbol_section_accessor& syma) {
     if (relocations.size() == 0) return true;
-    ELFIO::section* rel_sec = writer.sections.add(fmt::format(".rel{}", name));
-    rel_sec->set_type(SHT_REL);
-    rel_sec->set_info(section->get_index());
-    rel_sec->set_addr_align(0x4);
-    rel_sec->set_entry_size(writer.get_default_entry_size(SHT_REL));
-    rel_sec->set_link(symbolSectionIndex);
+    if (pass == ElfRelocationPass::PASS1) {
+        rel_sec = writer.sections.add(fmt::format(".rel{}", name));
+        rel_sec->set_type(SHT_REL);
+        rel_sec->set_info(section->get_index());
+        rel_sec->set_addr_align(0x4);
+        rel_sec->set_entry_size(writer.get_default_entry_size(SHT_REL));
+        rel_sec->set_link(symbolSectionIndex);
+    }
     ELFIO::relocation_section_accessor rela(writer, rel_sec);
 
     for (auto& relocation : relocations) {
-        bool success = relocation.generateElf(psyq, this, writer, stra, syma, rela);
+        bool success = relocation.generateElf(pass, psyq, this, writer, stra, syma, rela);
         if (!success) return false;
     }
     if (psyq->twoPartsReloc) {
