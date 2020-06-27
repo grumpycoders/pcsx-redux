@@ -107,7 +107,10 @@ int main(void) {
 
         ClearOTagR(cdb->ot, OTSIZE);
 
-        FntPrint("Hello from psyq2elf cube example!\n");
+        FntPrint("Cube example compiled using psyq libraries,\n");
+        FntPrint("converted by psyq-obj-parser, \n");
+        FntPrint("PCSX-Redux project,\n");
+        FntPrint("https://github.com/grumpycoders/pcsx-redux\n");
 
         add_cube(cdb->ot, cdb->s, &transform);
 
