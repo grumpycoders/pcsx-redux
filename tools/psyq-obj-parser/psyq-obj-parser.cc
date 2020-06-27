@@ -254,7 +254,6 @@ struct PsyqLnkFile {
         ELFIO::string_section_accessor stra(str_sec);
         ELFIO::section* sym_sec = writer.sections.add(".symtab");
         sym_sec->set_type(SHT_SYMTAB);
-        sym_sec->set_info(2);
         sym_sec->set_addr_align(0x4);
         sym_sec->set_entry_size(writer.get_default_entry_size(SHT_SYMTAB));
         sym_sec->set_link(str_sec->get_index());
@@ -268,6 +267,8 @@ struct PsyqLnkFile {
                                                           stra, syma);
             if (!success) return false;
         }
+
+        sym_sec->set_info(syma.get_symbols_num());
 
         fmt::print("  :: Generating symbols\n");
         for (auto& symbol : symbols) {
