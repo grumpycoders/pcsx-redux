@@ -349,6 +349,33 @@ struct PsyqRelocation {
             }
             auto elfType = typeMap.find(type);
             rela.add_entry(offset, elfSym, (unsigned char)elfType->second);
+            ELFIO::Elf_Xword size = section->section->get_size();
+            uint8_t* sectionData = (uint8_t*)malloc(size);
+            memcpy(sectionData, section->section->get_data(), size);
+            switch (type) {
+                case PsyqRelocType::REL32: {
+                    sectionData[offset + 0] = 0;
+                    sectionData[offset + 1] = 0;
+                    sectionData[offset + 2] = 0;
+                    sectionData[offset + 3] = 0;
+                    break;
+                }
+                case PsyqRelocType::REL26: {
+                    sectionData[offset + 0] = 0;
+                    sectionData[offset + 1] = 0;
+                    sectionData[offset + 2] = 0;
+                    sectionData[offset + 3] &= 0xfc;
+                    break;
+                }
+                case PsyqRelocType::HI16:
+                case PsyqRelocType::LO16: {
+                    sectionData[offset + 0] = 0;
+                    sectionData[offset + 1] = 0;
+                    break;
+                }
+            }
+            section->section->set_data((char*)sectionData, size);
+            free(sectionData);
             return true;
         };
         auto localSymbolReloc = [&, this](uint16_t sectionIndex, int32_t symbolOffset) {
@@ -445,27 +472,23 @@ struct PsyqRelocation {
                                 psyq->setElfConversionError("Mismatching hi/lo symbol+addend relocation");
                                 return false;
                             }
+                            bool success = simpleSymbolReloc(nullptr, elfSym);
+                            if (!success) return false;
                             ELFIO::Elf_Xword size = section->section->get_size();
                             uint8_t* sectionData = (uint8_t*)malloc(size);
                             memcpy(sectionData, section->section->get_data(), size);
                             fmt::print("      :: Altering bytestream to account for HI/LO symbol+addend relocation\n");
-                            uint32_t existingAddend = 0;
-                            existingAddend |= sectionData[offset + 0] << 0;
-                            existingAddend |= sectionData[offset + 1] << 8;
-                            existingAddend |= sectionData[hi->offset + 0] << 16;
-                            existingAddend |= sectionData[hi->offset + 1] << 24;
-                            existingAddend += addend;
-                            sectionData[offset + 0] = existingAddend & 0xff;
-                            existingAddend >>= 8;
-                            sectionData[offset + 1] = existingAddend & 0xff;
-                            existingAddend >>= 8;
-                            sectionData[hi->offset + 0] = existingAddend & 0xff;
-                            existingAddend >>= 8;
-                            sectionData[hi->offset + 1] = existingAddend & 0xff;
-                            existingAddend >>= 8;
+                            sectionData[offset + 0] = addend & 0xff;
+                            addend >>= 8;
+                            sectionData[offset + 1] = addend & 0xff;
+                            addend >>= 8;
+                            sectionData[hi->offset + 0] = addend & 0xff;
+                            addend >>= 8;
+                            sectionData[hi->offset + 1] = addend & 0xff;
+                            addend >>= 8;
                             section->section->set_data((char*)sectionData, size);
                             free(sectionData);
-                            return simpleSymbolReloc(nullptr, elfSym);
+                            return true;
                         }
                         default: {
                             psyq->setElfConversionError("Unsupported relocation from a symbol with an addend");
