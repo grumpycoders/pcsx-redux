@@ -38,7 +38,7 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: 'x86'
-    maximumCpuCount: true
+    maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
@@ -52,7 +52,7 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: 'x64'
-    maximumCpuCount: true
+    maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
