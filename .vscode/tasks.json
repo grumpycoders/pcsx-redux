@@ -89,6 +89,28 @@
             "problemMatcher": [
                 "$gcc"
             ]
+        },
+        {
+            "label": "make_cube",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/cube all",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/cube all"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "make_cube_clean",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/cube clean",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/cube clean"
+            },
+            "problemMatcher": []
         }
     ]
 }

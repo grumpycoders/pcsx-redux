@@ -15,11 +15,11 @@ CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
 
-LDFLAGS = -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
+LDFLAGS += -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
 
-CPPFLAGS_Release += -Os -flto
-LDFLAGS_Release += -Os -flto
+CPPFLAGS_Release += -Os
+LDFLAGS_Release += -Os
 
 CPPFLAGS_Debug += -O0
 
@@ -37,7 +37,7 @@ $(TARGET).$(TYPE): $(TARGET).elf
 	$(PREFIX)-objcopy -O binary $< $@
 
 $(TARGET).elf: $(OBJS)
-	$(CC) $(LDFLAGS) -g -o $(TARGET).elf $(OBJS)
+	$(CC) -g -o $(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.o: %.s
 	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
