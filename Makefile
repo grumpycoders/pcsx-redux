@@ -1,11 +1,15 @@
-rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 TARGET := pcsx-redux
 BUILD ?= Release
 
+UNAME_S := $(shell uname -s)
+rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+
 PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib
+ifeq ($(UNAME_S),Darwin)
+PACKAGES += luajit
+endif
 
 LOCALES := fr
-UNAME_S := $(shell uname -s)
 
 CXXFLAGS := -std=c++2a
 CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
@@ -20,11 +24,14 @@ CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -Ithird_party/http-parser
 CPPFLAGS += -Ithird_party/libelfin
-CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -Ithird_party/uvw/src
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
+
+ifneq ($(UNAME_S),Darwin)
+CPPFLAGS += -Ithird_party/luajit/src
+endif
 
 CPPFLAGS_Release += -O3
 
@@ -39,7 +46,6 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
-LDFLAGS += third_party/luajit/src/libluajit.a
 
 ifeq ($(UNAME_S),Darwin)
 	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
@@ -47,6 +53,7 @@ ifeq ($(UNAME_S),Darwin)
 else
 	LDFLAGS += -lstdc++fs
 	LDFLAGS += -lGL
+	LDFLAGS += third_party/luajit/src/libluajit.a
 endif
 
 LDFLAGS += -ldl
@@ -72,6 +79,9 @@ SRCS += third_party/http-parser/http_parser.c
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
+ifneq ($(UNAME_S),Darwin)
+OBJECTS += third_party/luajit/src/libluajit.a
+endif
 
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 
@@ -81,9 +91,9 @@ TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
 all: dep $(TARGET)
 
 third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit amalg
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static
 
-$(TARGET): $(OBJECTS) third_party/luajit/src/libluajit.a
+$(TARGET): $(OBJECTS)
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
 
 %.o: %.c
@@ -105,8 +115,8 @@ $(TARGET): $(OBJECTS) third_party/luajit/src/libluajit.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 clean:
-	$(MAKE) -C third_party/luajit clean
 	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o
+	$(MAKE) -C third_party/luajit clean
 
 gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc

@@ -19,7 +19,11 @@
 
 #pragma once
 
+#include <string>
+
 #include "lua.hpp"
+
+#include "core/psxemulator.h"
 
 namespace PCSX {
 
