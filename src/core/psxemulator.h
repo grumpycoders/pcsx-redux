@@ -41,7 +41,8 @@
 #include <memory>
 #include <string>
 
-#include "main/settings.h"
+#include "support/settings.h"
+#include "uvw.hpp"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
@@ -80,11 +81,12 @@ typedef intptr_t ssize_t;
 
 namespace PCSX {
 
-class Bios;
 class CDRom;
 class Cheats;
 class Counters;
 class Debug;
+class GdbServer;
+class WebServer;
 class GPU;
 class GTE;
 class HW;
@@ -96,16 +98,17 @@ class SIO;
 class SPUInterface;
 class System;
 
+class Emulator;
+extern Emulator* g_emulator;
+
 class Emulator {
-  private:
+  public:
     Emulator();
     ~Emulator();
+    Emulator(Emulator&&) = delete;
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
-
-  public:
     enum VideoType { PSX_TYPE_NTSC = 0, PSX_TYPE_PAL };                     // PSX Types
-    enum CPUType { CPU_DYNAREC = 0, CPU_INTERPRETER };                      // CPU Types
     enum CDDAType { CDDA_DISABLED = 0, CDDA_ENABLED_LE, CDDA_ENABLED_BE };  // CDDA Types
     struct OverlaySetting {
         typedef SettingPath<TYPESTRING("Filename")> Filename;
@@ -130,7 +133,6 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
-    typedef Setting<bool, TYPESTRING("HLE"), true> SettingHLE;
     typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
     typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
@@ -139,10 +141,16 @@ class Emulator {
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
+    typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
+    typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
+    typedef Setting<bool, TYPESTRING("WebServer"), false> SettingWebServer;
+    typedef Setting<int, TYPESTRING("WebServerPort"), 8080> SettingWebServerPort;
+    typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingHLE, SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay>
+             SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbServerPort,
+             SettingWebServer, SettingWebServerPort, SettingDynarec>
         settings;
     class PcsxConfig {
       public:
@@ -152,7 +160,6 @@ class Emulator {
         bool HideCursor = false;
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
-        CPUType Cpu = CPU_DYNAREC;  // CPU_DYNAREC or CPU_INTERPRETER
         uint32_t RewindCount = 0;
         uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
@@ -190,23 +197,21 @@ class Emulator {
     std::unique_ptr<Memory> m_psxMem;
     std::unique_ptr<R3000Acpu> m_psxCpu;
     std::unique_ptr<Counters> m_psxCounters;
-    std::unique_ptr<Bios> m_psxBios;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<SIO> m_sio;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GdbServer> m_gdbServer;
+    std::unique_ptr<WebServer> m_webServer;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
 
-    static Emulator& getEmulator() {
-        static Emulator emulator;
-        return emulator;
-    }
+    std::shared_ptr<uvw::Loop> m_loop;
 
     char m_cdromId[10] = "";
     char m_cdromLabel[33] = "";
@@ -215,12 +220,4 @@ class Emulator {
     PcsxConfig m_config;
 };
 
-extern Emulator& g_emulator;
-
 }  // namespace PCSX
-
-#define gzfreeze(ptr, size)                   \
-    {                                         \
-        if (Mode == 1) gzwrite(f, ptr, size); \
-        if (Mode == 0) gzread(f, ptr, size);  \
-    }

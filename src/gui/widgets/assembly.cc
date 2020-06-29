@@ -18,22 +18,24 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#include "gui/widgets/assembly.h"
+
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <iostream>
-
-#include "imgui.h"
 
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "gui/widgets/assembly.h"
-
+#include "fmt/format.h"
+#include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+#include "imgui_stdlib.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
@@ -136,7 +138,7 @@ void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameGPR[reg]);
+    ImGui::TextUnformatted(s_disRNameGPR[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -150,7 +152,7 @@ void PCSX::Widgets::Assembly::CP0(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameCP0[reg]);
+    ImGui::TextUnformatted(s_disRNameCP0[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -164,7 +166,7 @@ void PCSX::Widgets::Assembly::CP2C(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameCP2C[reg]);
+    ImGui::TextUnformatted(s_disRNameCP2C[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -178,7 +180,7 @@ void PCSX::Widgets::Assembly::CP2D(uint8_t reg) {
     sameLine();
     ImGui::Text(" $");
     sameLine();
-    ImGui::Text(s_disRNameCP2D[reg]);
+    ImGui::TextUnformatted(s_disRNameCP2D[reg]);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -261,27 +263,19 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     comma();
     sameLine();
     char label[21];
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbol = m_symbols.find(value);
-    if (symbol == m_symbols.end()) {
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
-        }
-        ImGui::PopStyleVar();
-    } else {
-        std::string longLabel = symbol->second + " ;" + label;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(longLabel.c_str())) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
-        }
-        ImGui::PopStyleVar();
+    std::string longLabel = label;
+    auto symbols = findSymbol(value);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+    if (ImGui::Button(longLabel.c_str())) {
+        m_jumpToPC = true;
+        m_jumpToPCValue = value;
     }
+    ImGui::PopStyleVar();
 }
 void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     comma();
@@ -347,7 +341,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
         std::snprintf(label, sizeof(label), "0x%4.4x($%s)##%08x", offset, s_disRNameGPR[reg], m_currentAddr);
     }
     uint32_t addr = m_registers->GPR.r[reg] + offset;
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(label)) jumpToMemory(addr, size);
@@ -374,12 +368,12 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     comma();
     sameLine();
     char label[21];
-    ImGui::Text("");
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbol = m_symbols.find(value);
-    if (symbol == m_symbols.end()) {
+    auto symbols = findSymbol(value);
+    if (symbols.size() == 0) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(label)) {
             m_jumpToPC = true;
@@ -387,7 +381,7 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
         }
         ImGui::PopStyleVar();
     } else {
-        std::string longLabel = symbol->second + " ;" + label;
+        std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(longLabel.c_str())) {
             m_jumpToPC = true;
@@ -401,10 +395,13 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     sameLine();
     char label[32];
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
-    ImGui::Text("");
+    std::string longLabel = label;
+    auto symbols = findSymbol(addr);
+    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    ImGui::TextUnformatted("");
     ImGui::SameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
     ImGui::PopStyleVar();
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
@@ -425,7 +422,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, const char* title) {
+void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title) {
     m_registers = registers;
     m_memory = memory;
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -448,9 +445,9 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, g_system->running())) g_system->pause();
             if (ImGui::MenuItem(_("Resume"), nullptr, nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
-            if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepIn();
-            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOver();
-            if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator.m_debug->stepOut();
+            if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepIn();
+            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOver();
+            if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOut();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Options"))) {
@@ -458,7 +455,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextUnformatted(
                     _("When two instructions are detected to be a single pseudo-instruction, combine them into the "
                       "actual pseudo-instruction."));
                 ImGui::PopTextWrapPos();
@@ -468,7 +465,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextUnformatted(
                     _("When combining two instructions into a single pseudo-instruction, add a placeholder for the "
                       "second one."));
                 ImGui::PopTextWrapPos();
@@ -478,7 +475,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(
+                ImGui::TextUnformatted(
                     _("Add a small visible notch to indicate instructions that are on the delay slot of a branch."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
@@ -487,7 +484,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
-                ImGui::TextWrapped(_("Display arrows for jumps. This might crowd the display a bit too much."));
+                ImGui::TextUnformatted(_("Display arrows for jumps. This might crowd the display a bit too much."));
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
@@ -500,7 +497,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     DummyAsm dummy;
 
     uint32_t pc = virtToReal(m_registers->pc);
-    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator.settings.get<PCSX::Emulator::SettingDebug>().value);
+    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
@@ -508,19 +505,19 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     ImGui::SameLine();
     DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
     ImGui::SameLine();
-    DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepIn(); });
+    DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepIn(); });
     ImGui::SameLine();
-    DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOver(); });
+    DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOver(); });
     ImGui::SameLine();
-    DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator.m_debug->stepOut(); });
+    DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
-            g_emulator.m_debug->stepOver();
+            g_emulator->m_debug->stepOver();
         } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
             if (ImGui::GetIO().KeyShift) {
-                g_emulator.m_debug->stepOut();
+                g_emulator->m_debug->stepOut();
             } else {
-                g_emulator.m_debug->stepIn();
+                g_emulator->m_debug->stepIn();
             }
         } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
             g_system->resume();
@@ -533,7 +530,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(0x00290000 / 4);
+    ImGuiListClipper clipper(0x00290000 / 4, ImGui::GetTextLineHeightWithSpacing());
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -596,7 +593,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
-                PCSX::g_emulator.m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
+                PCSX::g_emulator->m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
                     uint32_t addr = dispAddr;
                     uint32_t bpAddr = it->first;
                     uint32_t base = (addr >> 20) & 0xffc;
@@ -632,15 +629,15 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
 
-                auto symbol = m_symbols.find(dispAddr);
-                if (symbol != m_symbols.end()) {
+                auto symbols = findSymbol(dispAddr);
+                if (symbols.size() != 0) {
                     ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
-                    ImGui::Text("%s:", symbol->second.c_str());
+                    ImGui::Text("%s:", symbols.begin()->c_str());
                     ImGui::PopStyleColor();
                 }
 
                 for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
-                    ImGui::Text("");
+                    ImGui::TextUnformatted("");
                     ImGui::SameLine();
                 }
 
@@ -694,17 +691,17 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
-                        PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE, true);
+                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE, true);
                         ImGui::CloseCurrentPopup();
                         PCSX::g_system->resume();
                     });
                     DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
-                        PCSX::g_emulator.m_debug->addBreakpoint(dispAddr, Debug::BE);
+                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE);
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
                     DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
-                        PCSX::g_emulator.m_debug->eraseBP(currentBP);
+                        PCSX::g_emulator->m_debug->eraseBP(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
                     });
@@ -851,6 +848,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         }
         ImGui::EndCombo();
     }
+    ImGui::SameLine();
+    if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if (m_followPC || m_jumpToPC) {
@@ -868,8 +867,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
                     break;
             }
         }
-        uint64_t pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
-        uint64_t scroll_to_px = pctopx * static_cast<uint64_t>(ImGui::GetTextLineHeightWithSpacing());
+        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
+        double scroll_to_px = pctopx * ImGui::GetTextLineHeightWithSpacing();
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC = false;
     }
@@ -882,7 +881,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
         for (auto fileName : filesToOpen) {
             std::ifstream file;
             // oh the irony
-            file.open(reinterpret_cast<const char *>(fileName.c_str()));
+            file.open(reinterpret_cast<const char*>(fileName.c_str()));
             if (!file) continue;
             while (!file.eof()) {
                 std::string addressString;
@@ -896,4 +895,74 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, cons
             }
         }
     }
+
+    if (m_showSymbols) {
+        if (ImGui::Begin(_("Symbols"), &m_showSymbols)) {
+            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCaches();
+            ImGui::SameLine();
+            ImGui::InputText(_("Filter"), &m_symbolFilter);
+            ImGui::BeginChild("symbolsList");
+            auto up = [](const std::string& in) -> std::string {
+                std::string str = in;
+                std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+                return str;
+            };
+            std::string filter = up(m_symbolFilter);
+            bool empty = filter.empty();
+            for (auto& symbol : m_symbolsCache) {
+                int pos = up(symbol.first).find(filter);
+                bool found = pos >= 0;
+                if (empty || found) {
+                    std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
+                    std::string codeLabel = fmt::format(_("Code##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
+                    std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
+                    if (ImGui::Button(codeLabel.c_str())) {
+                        m_jumpToPC = true;
+                        m_jumpToPCValue = symbol.second;
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(dataLabel.c_str())) {
+                        jumpToMemory(symbol.second, 1);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(dwarfLabel.c_str())) {
+                        dwarf->m_pc = fmt::format("{:08x}", symbol.second);
+                    }
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(label.c_str());
+                }
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
+    }
+}
+
+std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
+    std::list<std::string> ret;
+    auto symbol = m_symbols.find(addr);
+    if (symbol != m_symbols.end()) ret.emplace_back(symbol->second);
+
+    if (!m_symbolsCachesValid) rebuildSymbolsCaches();
+    auto elfSymbol = m_elfSymbolsCache.find(addr);
+    if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
+
+    return std::move(ret);
+}
+
+void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
+    m_symbolsCache.clear();
+    for (auto& symbol : m_symbols) {
+        m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+    }
+
+    for (auto& elf : g_emulator->m_psxMem->getElves()) {
+        auto& symbols = elf.getSymbols();
+        for (auto& symbol : symbols) {
+            m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
+            m_elfSymbolsCache.insert(std::pair(symbol.first, symbol.second));
+        }
+    }
+    m_symbolsCachesValid = true;
 }

@@ -115,7 +115,6 @@ class Disasm {
     declare(disSWR);
     declare(disLWC2);
     declare(disSWC2);
-    declare(disHLE);
 
     declare(disSLL);
     declare(disSRL);

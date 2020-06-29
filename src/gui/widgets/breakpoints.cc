@@ -31,7 +31,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         ImGui::End();
         return;
     }
-    auto& debugger = PCSX::g_emulator.m_debug;
+    auto& debugger = PCSX::g_emulator->m_debug;
     ImGui::Checkbox(_("Map execution"), &debugger->m_mapping_e);
     ImGui::Checkbox(_("Map byte reads         "), &debugger->m_mapping_r8);
     ImGui::SameLine();
@@ -56,7 +56,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGui::SameLine();
     ImGui::Checkbox(_("Break on word write map"), &debugger->m_breakmp_w32);
     ImGui::Separator();
-    ImGui::Text(_("Breakpoints"));
+    ImGui::TextUnformatted(_("Breakpoints"));
     if (ImGui::Button(_("Show all breakpoints"))) {
         m_filterE = m_filterR1 = m_filterR2 = m_filterR4 = m_filterW1 = m_filterW2 = m_filterW4 = true;
     }

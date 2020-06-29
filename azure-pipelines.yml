@@ -1,5 +1,5 @@
 trigger:
-- master
+- main
 
 pool:
   vmImage: 'windows-2019'
@@ -15,6 +15,18 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
+- task: PowerShell@2
+  inputs:
+    targetType: 'InlineScript'
+    script: |
+      wget https://christiansoltenborn.gallerycdn.vsassets.io/extensions/christiansoltenborn/googletestadapter/0.17.1.1389/1571333606547/GoogleTestAdapter-0.17.1.vsix -OutFile GoogleTestAdapter-0.17.1.zip
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'GoogleTestAdapter-0.17.1.zip'
+    destinationFolder: 'GoogleTestAdapter'
+    cleanDestinationFolder: true
+
 - task: CopyFiles@2
   inputs:
     Contents: |
@@ -26,13 +38,13 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: 'x86'
-    maximumCpuCount: true
+    maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/Release/*.exe
+      vsprojects/Release/pcsx-redux.exe
       vsprojects/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
@@ -40,15 +52,27 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: 'x64'
-    maximumCpuCount: true
+    maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
   inputs:
     Contents: |
-      vsprojects/x64/Release/*.exe
+      vsprojects/x64/Release/pcsx-redux.exe
       vsprojects/x64/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
+
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: |
+      **\*.exe
+      !**\pcsxrunner.exe
+      !**\pcsx-redux.exe
+      !**\psyq-obj-parser.exe
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    pathtoCustomTestAdapters: 'GoogleTestAdapter'
+    codeCoverageEnabled: True
 
 - task: PublishBuildArtifacts@1
   inputs:

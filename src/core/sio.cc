@@ -24,12 +24,12 @@
 #include "core/sio.h"
 
 // clk cycle byte
-// 4us * 8bits = (PCSX::g_emulator.m_psxClockSpeed / 1000000) * 32; (linuzappz)
+// 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_baudReg * 8)
 
 // rely on this for now - someone's actual testing
-//#define SIO_CYCLES (PCSX::g_emulator.m_psxClockSpeed / 57600)
+//#define SIO_CYCLES (PCSX::g_emulator->m_psxClockSpeed / 57600)
 // PCSX 1.9.91
 //#define SIO_CYCLES 200
 // PCSX 1.9.91
@@ -65,10 +65,10 @@ void PCSX::SIO::writePad(uint8_t value) {
                 m_bufferIndex = 1;
                 switch (m_ctrlReg & 0x2002) {
                     case 0x0002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad1->poll(value);
+                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad1->poll(value);
                         break;
                     case 0x2002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad2->poll(value);
+                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad2->poll(value);
                         break;
                 }
 
@@ -120,10 +120,10 @@ void PCSX::SIO::writePad(uint8_t value) {
                                     }*/
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad1->poll(value);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad1->poll(value);
                     break;
                 case 0x2002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator.m_pad2->poll(value);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad2->poll(value);
                     break;
             }
 
@@ -235,10 +235,10 @@ void PCSX::SIO::write8(uint8_t value) {
 
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
-                    m_buffer[0] = PCSX::g_emulator.m_pad1->startPoll();
+                    m_buffer[0] = PCSX::g_emulator->m_pad1->startPoll();
                     break;
                 case 0x2002:
-                    m_buffer[0] = PCSX::g_emulator.m_pad2->startPoll();
+                    m_buffer[0] = PCSX::g_emulator->m_pad2->startPoll();
                     break;
             }
 
@@ -253,7 +253,7 @@ void PCSX::SIO::write8(uint8_t value) {
 
             memset(m_buffer, 0, 4);
             if ((m_ctrlReg & 0x2002) == 0x0002) {
-                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                     m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
                     m_buffer[2] = 0x5a;
                     m_buffer[3] = 0x5d;
@@ -262,7 +262,7 @@ void PCSX::SIO::write8(uint8_t value) {
                     m_buffer[1] = m_buffer[2] = m_buffer[3] = 0;
                 }
             } else if ((m_ctrlReg & 0x2002) == 0x2002) {
-                if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
                     m_buffer[1] = m_wasMcd2Inserted ? 0 : MCDST_CHANGED;
                     m_buffer[2] = 0x5a;
                     m_buffer[3] = 0x5d;
@@ -298,7 +298,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_mcdState = MCD_STATE_IDLE;
         m_bufferIndex = 0;
         m_statusReg = TX_RDY | TX_EMPTY;
-        PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+        PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
     }
 }
 
@@ -317,16 +317,16 @@ uint8_t PCSX::SIO::sioRead8() {
                 if (m_mcdReadWriteState == MCD_READWRITE_STATE_WRITE) {
                     switch (m_ctrlReg & 0x2002) {
                         case 0x0002:
-                            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
+                            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                                 memcpy(g_mcd1Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
-                                SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
+                                SaveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
                                         g_mcd1Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             }
                             break;
                         case 0x2002:
-                            if (PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
+                            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>()) {
                                 memcpy(g_mcd2Data + (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, &m_buffer[1], 128);
-                                SaveMcd(PCSX::g_emulator.settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
+                                SaveMcd(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str(),
                                         g_mcd2Data, (m_mcdAddrLow | (m_mcdAddrHigh << 8)) * 128, 128);
                             }
                             break;
@@ -354,7 +354,7 @@ uint16_t PCSX::SIO::readStatus16() {
 
 #if 0
     // wait for IRQ first
-    if( PCSX::g_emulator.m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
+    if( PCSX::g_emulator->m_psxCpu->m_psxRegs.interrupt & (1 << PSXINT_SIO) )
     {
         hard &= ~TX_RDY;
         hard &= ~RX_RDY;
@@ -375,14 +375,14 @@ void PCSX::SIO::netError() {
     // ClosePlugins();
     PCSX::g_system->message("%s", _("Connection closed!\n"));
 
-    PCSX::g_emulator.m_cdromId[0] = '\0';
-    PCSX::g_emulator.m_cdromLabel[0] = '\0';
+    PCSX::g_emulator->m_cdromId[0] = '\0';
+    PCSX::g_emulator->m_cdromLabel[0] = '\0';
 
     PCSX::g_system->runGui();
 }
 
 void PCSX::SIO::interrupt() {
-    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.n.Status);
+    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
     //  PCSX::g_system->printf("Sio Interrupt\n");
     m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);
@@ -423,7 +423,9 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
                 else if (buf.st_size == MCD_SIZE + 3904)
                     fseek(f, 3904, SEEK_SET);
             }
-            fread(data, 1, MCD_SIZE, f);
+            if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
+                throw("File read error.");
+            }
             fclose(f);
         } else
             PCSX::g_system->message(_("Memory card %s failed to load!\n"), fname);
@@ -436,7 +438,9 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
             else if (buf.st_size == MCD_SIZE + 3904)
                 fseek(f, 3904, SEEK_SET);
         }
-        fread(data, 1, MCD_SIZE, f);
+        if (fread(data, 1, MCD_SIZE, f) != MCD_SIZE) {
+            throw("File read error.");
+        }
         fclose(f);
     }
 }

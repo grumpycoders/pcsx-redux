@@ -295,7 +295,7 @@ inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
     int *Crblk = blk;
     int *Cbblk = blk + DSIZE2;
 
-    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBnWMdec>()) {
+    if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBnWMdec>()) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 24) {
             if (y == 8) Yblk += DSIZE2;
             for (x = 0; x < 4; x++, image += 2, Crblk++, Cbblk++, Yblk += 2) {
@@ -354,7 +354,7 @@ void yuv2rgb24(int *blk, uint8_t *image) {
     int *Crblk = blk;
     int *Cbblk = blk + PCSX::MDEC::DSIZE2;
 
-    if (!PCSX::g_emulator.settings.get<PCSX::Emulator::SettingBnWMdec>()) {
+    if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBnWMdec>()) {
         for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
             if (y == 8) Yblk += PCSX::MDEC::DSIZE2;
             for (x = 0; x < 4; x++, image += 6, Crblk++, Cbblk++, Yblk += 2) {
@@ -375,7 +375,7 @@ void PCSX::MDEC::mdecInit(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
-    mdec.rl = (uint16_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+    mdec.rl = (uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
 }
 
 // command register
@@ -599,7 +599,7 @@ void PCSX::MDEC::mdec1Interrupt() {
 }
 
 void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
@@ -618,7 +618,7 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
 }
 
 void PCSX::MDEC::load(const PCSX::SaveStates::MDEC & mdecSave) {
-    uint8_t *base = (uint8_t *)&PCSX::g_emulator.m_psxMem->g_psxM[0x100000];
+    uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;

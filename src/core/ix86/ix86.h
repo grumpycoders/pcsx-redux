@@ -27,7 +27,6 @@
 
 // include basic types
 #include "core/psxemulator.h"
-#include "core/psxhle.h"
 #include "core/r3000a.h"
 
 namespace PCSX {

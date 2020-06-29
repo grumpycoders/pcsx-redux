@@ -136,7 +136,7 @@ void PCSX::SPU::impl::debug() {
             {
                 ImGui::Text("Start pos:\nCurr pos:\nLoop pos:\n\nRight vol:\nLeft vol:\n\nAct freq:\nUsed freq:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%i\n%i\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC, ch.pCurr - spuMemC,
+                ImGui::Text("%li\n%li\n%li\n\n%6i  %04x\n%6i  %04x\n\n%i\n%i", ch.pStart - spuMemC, ch.pCurr - spuMemC,
                             ch.pLoop - spuMemC, ch.data.get<Chan::RightVolume>().value,
                             ch.data.get<Chan::RightVolRaw>().value, ch.data.get<Chan::LeftVolume>().value,
                             ch.data.get<Chan::LeftVolRaw>().value, ch.data.get<Chan::ActFreq>().value,
@@ -158,7 +158,7 @@ void PCSX::SPU::impl::debug() {
                 ImGui::Text("Spu states");
                 ImGui::Text("Irq addr:\nCtrl:\nStat:\nSpu mem:");
                 ImGui::SameLine();
-                ImGui::Text("%i\n%04x\n%04x\n%i", pSpuIrq ? -1 : (unsigned long)pSpuIrq - (unsigned long)spuMemC,
+                ImGui::Text("%li\n%04x\n%04x\n%i", pSpuIrq ? -1 : (unsigned long)pSpuIrq - (unsigned long)spuMemC,
                             spuCtrl, spuStat, spuAddr);
             }
             ImGui::EndChild();

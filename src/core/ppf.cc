@@ -184,29 +184,31 @@ void PCSX::PPF::BuildPPFCache() {
 
     FreePPFCache();
 
-    if (PCSX::g_emulator.m_cdromId[0] == '\0') return;
+    if (PCSX::g_emulator->m_cdromId[0] == '\0') return;
 
     // Generate filename in the format of SLUS_123.45
-    buffer[0] = toupper(PCSX::g_emulator.m_cdromId[0]);
-    buffer[1] = toupper(PCSX::g_emulator.m_cdromId[1]);
-    buffer[2] = toupper(PCSX::g_emulator.m_cdromId[2]);
-    buffer[3] = toupper(PCSX::g_emulator.m_cdromId[3]);
+    buffer[0] = toupper(PCSX::g_emulator->m_cdromId[0]);
+    buffer[1] = toupper(PCSX::g_emulator->m_cdromId[1]);
+    buffer[2] = toupper(PCSX::g_emulator->m_cdromId[2]);
+    buffer[3] = toupper(PCSX::g_emulator->m_cdromId[3]);
     buffer[4] = '_';
-    buffer[5] = PCSX::g_emulator.m_cdromId[4];
-    buffer[6] = PCSX::g_emulator.m_cdromId[5];
-    buffer[7] = PCSX::g_emulator.m_cdromId[6];
+    buffer[5] = PCSX::g_emulator->m_cdromId[4];
+    buffer[6] = PCSX::g_emulator->m_cdromId[5];
+    buffer[7] = PCSX::g_emulator->m_cdromId[6];
     buffer[8] = '.';
-    buffer[9] = PCSX::g_emulator.m_cdromId[7];
-    buffer[10] = PCSX::g_emulator.m_cdromId[8];
+    buffer[9] = PCSX::g_emulator->m_cdromId[7];
+    buffer[10] = PCSX::g_emulator->m_cdromId[8];
     buffer[11] = '\0';
 
-    sprintf(szPPF, "%s/%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
+    sprintf(szPPF, "%s/%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
 
     ppffile = fopen(szPPF, "rb");
     if (ppffile == NULL) return;
 
     memset(buffer, 0, 5);
-    fread(buffer, 3, 1, ppffile);
+    if (fread(buffer, 3, 1, ppffile) != 1) {
+        throw("File read error.");
+    }
 
     if (strcmp(buffer, "PPF") != 0) {
         PCSX::g_system->printf(_("Invalid PPF patch: %s.\n"), szPPF);
@@ -229,12 +231,16 @@ void PCSX::PPF::BuildPPFCache() {
             fseek(ppffile, -8, SEEK_END);
 
             memset(buffer, 0, 5);
-            fread(buffer, 4, 1, ppffile);
+            if (fread(buffer, 4, 1, ppffile) != 1) {
+                throw("File read error.");
+            }
 
             if (strcmp(".DIZ", buffer) != 0) {
                 dizyn = 0;
             } else {
-                fread(&dizlen, 4, 1, ppffile);
+                if (fread(&dizlen, 4, 1, ppffile) != 1) {
+                    throw("File read error.");
+                }
                 dizlen = SWAP_LE32(dizlen);
                 dizyn = 1;
             }
@@ -260,12 +266,16 @@ void PCSX::PPF::BuildPPFCache() {
 
             fseek(ppffile, -6, SEEK_END);
             memset(buffer, 0, 5);
-            fread(buffer, 4, 1, ppffile);
+            if (fread(buffer, 4, 1, ppffile) != 1) {
+                throw("File read error.");
+            }
             dizlen = 0;
 
             if (strcmp(".DIZ", buffer) == 0) {
                 fseek(ppffile, -2, SEEK_END);
-                fread(&dizlen, 2, 1, ppffile);
+                if (fread(&dizlen, 2, 1, ppffile) != 1) {
+                    throw("File read error.");
+                }
                 dizlen = SWAP_LE32(dizlen);
                 dizlen += 36;
             }
@@ -292,13 +302,21 @@ void PCSX::PPF::BuildPPFCache() {
     // now do the data reading
     do {
         fseek(ppffile, seekpos, SEEK_SET);
-        fread(&pos, 4, 1, ppffile);
+        if (fread(&pos, 4, 1, ppffile) != 1) {
+            throw("File read error.");
+        }
         pos = SWAP_LE32(pos);
 
-        if (method == 2) fread(buffer, 4, 1, ppffile);  // skip 4 bytes on ppf3 (no int64 support here)
+        if (method == 2) {
+            if (fread(buffer, 4, 1, ppffile) != 1) {  // skip 4 bytes on ppf3 (no int64 support here)
+                throw("File read error.");
+            }
+        }
 
         anz = fgetc(ppffile);
-        fread(ppfmem, anz, 1, ppffile);
+        if (fread(ppfmem, anz, 1, ppffile) != 1) {
+            throw("File read error.");
+        }
 
         ladr = pos / PCSX::CDRom::CD_FRAMESIZE_RAW;
         off = pos % PCSX::CDRom::CD_FRAMESIZE_RAW;

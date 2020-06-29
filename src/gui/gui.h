@@ -20,26 +20,26 @@
 #pragma once
 
 #include <stdarg.h>
-#include <uv.h>
 
 #include <string>
 
-#include "flags.h"
-
-#include "imgui.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
-
-#include "core/luawrapper.h"
 #include "core/system.h"
+#include "flags.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/source.h"
+#include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
-#include "main/settings.h"
+#include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
+#include "support/eventbus.h"
+#include "support/settings.h"
 
-#if defined(__MACOSX__)
+#if defined(__APPLE__)
 #define GL_SHADER_VERSION "#version 410\n"
 #else
 #define GL_SHADER_VERSION "#version 300 es\n"
@@ -51,7 +51,7 @@ namespace PCSX {
 
 class GUI final {
   public:
-    GUI(const flags::args &args) : m_args(args) {}
+    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
     void init();
     void close();
     void update();
@@ -70,8 +70,8 @@ class GUI final {
         // TODO
         // SDL_TriggerBreakpoint();
     }
-    void scheduleSoftReset() { m_scheduleSoftReset = true; }
-    void scheduleHardReset() { m_scheduleHardReset = true; }
+
+    void magicOpen(const char *path);
 
     static void checkGL();
 
@@ -82,7 +82,6 @@ class GUI final {
     void endFrame();
 
     bool configure();
-    void biosCounters();
     void about();
     void interruptsScaler();
 
@@ -119,14 +118,12 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
     typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
-    typedef Setting<bool, TYPESTRING("ShowBiosCounters")> ShowBiosCounters;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowBiosCounters, ShowLog, WindowPosX, WindowPosY, WindowSizeX,
-             WindowSizeY>
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -154,6 +151,7 @@ class GUI final {
     Widgets::Registers m_registers;
     Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
+    Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
     Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
     int m_selectedBiosOverlayId;
@@ -163,19 +161,23 @@ class GUI final {
     std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
-    bool &m_showBiosCounters = {settings.get<ShowBiosCounters>().value};
-    bool m_skipBiosUnknowns = true;
 
     const flags::args &m_args;
-    bool m_scheduleSoftReset = false;
-    bool m_scheduleHardReset = false;
 
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;
     Widgets::VRAMViewer m_VRAMviewers[4];
 
-    uv_loop_t m_loop;
-    Lua m_lua;
+    Widgets::Dwarf m_dwarf;
+
+    Widgets::Types m_types;
+    Widgets::Source m_source;
+
+    EventBus::Listener m_listener;
+
+    void shellReached();
+
+    PCSX::u8string m_exeToLoad;
 };
 
 }  // namespace PCSX

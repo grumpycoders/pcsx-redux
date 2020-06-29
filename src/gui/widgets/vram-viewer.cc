@@ -34,8 +34,6 @@
 #include "gui/gui.h"
 #include "gui/widgets/vram-viewer.h"
 
-#define GL_SHADER_VERSION "#version 300 es\n"
-
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
 in vec2 i_position;
@@ -64,8 +62,7 @@ uniform vec2 u_cornerBR;
 uniform int u_24shift;
 in vec2 fragUV;
 out vec4 outColor;
-layout(origin_upper_left) in vec4 gl_FragCoord;
-
+//layout(origin_upper_left) in vec4 gl_FragCoord; // causes my machine to crash on failed assert due to Invalid layout qualifier "origin_upper_left" and seems unnecessary
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
@@ -339,7 +336,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
-    ImGui::Image((ImTextureID)textureID, m_resolution, texTL, texBR);
+    ImGui::Image(reinterpret_cast<ImTextureID*>(textureID), m_resolution, texTL, texBR);
     if (m_clutDestination && m_selectingClut) {
         m_clutDestination->m_clut = m_mouseUV;
     }

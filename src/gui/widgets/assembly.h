@@ -21,13 +21,16 @@
 
 #include <stdint.h>
 
+#include <list>
 #include <map>
+#include <set>
 #include <string>
 
 #include "core/disr3000a.h"
+#include "core/r3000a.h"
+#include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 
-struct psxRegisters;
 struct MemoryEditor;
 
 namespace PCSX {
@@ -42,7 +45,7 @@ class Assembly : private Disasm {
         : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
-    void draw(psxRegisters* registers, Memory* memory, const char* title);
+    void draw(psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title);
 
     bool m_show = false;
 
@@ -91,6 +94,21 @@ class Assembly : private Disasm {
     uint32_t m_jumpToPCValue = 0;
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
+
+    struct symbolInfo {
+        uint32_t addr;
+
+    };
+
+    std::list<std::string> findSymbol(uint32_t addr);
+    std::map<std::string, uint32_t> m_symbolsCache;
+    std::map<uint32_t, std::string> m_elfSymbolsCache;
+    bool m_symbolsCachesValid = false;
+
+    void rebuildSymbolsCaches();
+
+    bool m_showSymbols;
+    std::string m_symbolFilter;
 };
 
 }  // namespace Widgets

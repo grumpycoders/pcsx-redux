@@ -22,10 +22,8 @@
 #include <atomic>
 #include <memory>
 
-#include "core/psxbios.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
-#include "core/psxhle.h"
 #include "core/psxmem.h"
 
 namespace PCSX {
@@ -208,7 +206,7 @@ typedef struct {
 #endif
 
 /**** R3000A Instruction Macros ****/
-#define _PC_ PCSX::g_emulator.m_psxCpu->m_psxRegs.pc  // The next PC to be executed
+#define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
 #define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
@@ -223,32 +221,32 @@ typedef struct {
 #define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
 #define _fImmLU_(code) (code << 16)    // LUI
 
-#define _Op_ _fOp_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Funct_ _fFunct_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Rd_ _fRd_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Rt_ _fRt_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Rs_ _fRs_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Sa_ _fSa_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Im_ _fIm_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _Target_ _fTarget_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Rd_ _fRd_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Rt_ _fRt_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Rs_ _fRs_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Sa_ _fSa_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Im_ _fIm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _Target_ _fTarget_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
 
-#define _Imm_ _fImm_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _ImmU_ _fImmU_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
-#define _ImmLU_ _fImmLU_(PCSX::g_emulator.m_psxCpu->m_psxRegs.code)
+#define _Imm_ _fImm_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _ImmU_ _fImmU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
+#define _ImmLU_ _fImmLU_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
 
-#define _rRs_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
-#define _rRt_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
-#define _rRd_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
+#define _rRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
+#define _rRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
+#define _rRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
+#define _rSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
+#define _rFs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
 
-#define _c2dRs_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
-#define _c2dRt_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
-#define _c2dRd_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
+#define _c2dRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
+#define _c2dRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
+#define _c2dRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
+#define _c2dSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
 
-#define _rHi_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
-#define _rLo_ PCSX::g_emulator.m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
+#define _rHi_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
+#define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
@@ -274,18 +272,10 @@ this wouldn't work at all.
 
 class R3000Acpu {
   public:
-    R3000Acpu() {
-        for (int s = 0; s < 3; s++) {
-            for (int c = 0; c < 256; c++) {
-                m_breakpoints[s][c] = false;
-            }
-        }
-    }
+    R3000Acpu() {}
     virtual ~R3000Acpu() {}
     virtual bool Init() { return false; }
-    virtual void Execute() = 0;         /* executes up to a debug break */
-    virtual void ExecuteHLEBlock() = 0; /* executes up to a jump, to run an HLE softcall;
-                                           debug breaks won't happen until after the softcall */
+    virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -295,6 +285,7 @@ class R3000Acpu {
 
   public:
     static int psxInit();
+    virtual bool isDynarec() = 0;
     void psxReset();
     void psxShutdown();
     void psxException(uint32_t code, bool bd);
@@ -310,7 +301,7 @@ class R3000Acpu {
 
     psxRegisters m_psxRegs;
     float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-    bool m_booted = false;
+    bool m_shellStarted = false;
 
     virtual void Reset() { m_psxRegs.ICache_valid = false; }
     bool m_nextIsDelaySlot = false;
@@ -361,11 +352,11 @@ class R3000Acpu {
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!g_system->running()) return false;
-        if (!m_booted) {
+        if (!m_shellStarted) {
             uint32_t &pc = m_psxRegs.pc;
             if (pc == 0x80030000) {
-                m_booted = true;
-                if (g_emulator.settings.get<PCSX::Emulator::SettingFastBoot>()) pc = m_psxRegs.GPR.n.ra;
+                m_shellStarted = true;
+                g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
             }
         }
         return true;
@@ -375,12 +366,6 @@ class R3000Acpu {
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
         const auto r = m_psxRegs.GPR.n;
-        bool ignore = m_biosCounters;
-        const uint32_t rabase = (r.ra >> 20) & 0xffc;
-        const uint32_t ra = r.ra & 0x1fffff;
-        if ((rabase != 0x000) && (rabase != 0x800) && (rabase != 0xa00)) ignore = true;
-        if (ra < 0x10000) ignore = true;
-        if (m_debugKernel) ignore = false;
 
         // Intercept printf, puts and putchar, even if running the binary bios.
         // The binary bios doesn't have the TTY output set up by default,
@@ -388,78 +373,12 @@ class R3000Acpu {
         // sometimes, games will fully redirect printf's output, so it
         // will stop calling putchar.
         const uint32_t call = r.t1 & 0xff;
-        if (pc == 0xa0) {
-            if (!ignore) {
-                if (m_breakpoints[0][call]) g_system->pause();
-                if (m_savedCounters[0][call] == 0) {
-                    if (m_breakpointOnNew) g_system->pause();
-                    if (m_logNewSyscalls) {
-                        const char *name = Bios::getA0name(call);
-                        g_system->printf("Bios call a0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
-                    }
-                    m_counters[0][call]++;
-                }
-            }
-            switch (call) {
-                case 0x03:  // write
-                    // stdout
-                    if (r.a0 != 1) break;
-                case 0x3e:  // puts
-                case 0x3f:  // printf
-                    PCSX::g_emulator.m_psxBios->callA0(call);
-                    PCSX::g_emulator.m_psxCpu->psxBranchTest();
-                    break;
-            }
-        }
-
         if (pc == 0xb0) {
-            if (!ignore) {
-                if (m_breakpoints[1][call]) g_system->pause();
-                if (m_savedCounters[1][call] == 0) {
-                    if (m_breakpointOnNew) g_system->pause();
-                    if (m_logNewSyscalls) {
-                        const char *name = Bios::getB0name(call);
-                        g_system->printf("Bios call b0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
-                    }
-                }
-                m_counters[1][call]++;
-            }
             switch (call) {
-                case 0x07:  // DeliverEvent
-                case 0x08:  // OpenEvent
-                case 0x09:  // CloseEvent
-                case 0x0a:  // WaitEvent
-                case 0x0b:  // TestEvent
-                case 0x0c:  // EnableEvent
-                case 0x0d:  // DisableEvent
-                    if (m_logEvents) {
-                        int ev = GetEv();
-                        int spec = GetSpec();
-                        g_system->printf("%s(0x%02x, 0x%02x)\n", Bios::getB0name(call), ev, spec);
-                    }
-                    break;
-                case 0x35:  // write
-                    // stdout
-                    if (r.a0 != 1) break;
                 case 0x3d:  // putchar
-                case 0x3f:  // puts
-                    PCSX::g_emulator.m_psxBios->callB0(call);
-                    PCSX::g_emulator.m_psxCpu->psxBranchTest();
+                    PCSX::g_system->biosPutc(r.a0);
+                    PCSX::g_emulator->m_psxCpu->psxBranchTest();
                     break;
-            }
-        }
-
-        if (pc == 0xc0) {
-            if (!ignore) {
-                if (m_breakpoints[2][call]) g_system->pause();
-                if (m_savedCounters[2][call] == 0) {
-                    if (m_breakpointOnNew) g_system->pause();
-                    if (m_logNewSyscalls) {
-                        const char *name = Bios::getC0name(call);
-                        g_system->printf("Bios call c0: %s (%x) %x,%x,%x,%x\n", name, call, r.a0, r.a1, r.a2, r.a3);
-                    }
-                }
-                m_counters[2][call]++;
             }
         }
     }
@@ -495,27 +414,8 @@ class R3000Acpu {
         }
         return spec;
     }
-    uint64_t m_counters[3][256];
-    uint64_t m_savedCounters[3][256];
 
   public:
-    inline void memorizeCounters() {
-        for (int i = 0; i < 3; i++) {
-            memcpy(m_savedCounters[i], m_counters[i], 256 * sizeof(m_savedCounters[0][0]));
-        }
-    }
-    inline void clearCounters() {
-        for (int i = 0; i < 3; i++) {
-            memset(m_counters[i], 0, 256 * sizeof(m_counters[0][0]));
-        }
-    }
-    bool m_breakpoints[3][256];
-    bool m_biosCounters = false;
-    bool m_logNewSyscalls = false;
-    bool m_breakpointOnNew = false;
-    bool m_debugKernel = false;
-    bool m_logEvents = false;
-    const uint64_t *getCounters(int syscall) { return m_counters[syscall]; }
     /*
 Formula One 2001
 - Use old CPU cache code when the RAM location is

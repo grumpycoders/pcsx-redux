@@ -35,6 +35,13 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 
+#ifndef max
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 // GTE registers
 static PGXP_value s_GTE_data_reg_mem[32];
 static PGXP_value s_GTE_ctrl_reg_mem[32];
@@ -77,17 +84,17 @@ void PGXP_pushSXYZ2f(float _x, float _y, float _z, unsigned int _v) {
 
     SXY2.x = _x;
     SXY2.y = _y;
-    SXY2.z = PCSX::g_emulator.config().PGXP_Texture ? _z : 1.f;
+    SXY2.z = PCSX::g_emulator->config().PGXP_Texture ? _z : 1.f;
     SXY2.value = _v;
     SXY2.flags = VALID_ALL;
     SXY2.count = uCount++;
 
     // cache value in GPU plugin
     temp.word = _v;
-    if (PCSX::g_emulator.config().PGXP_Cache) {
-        PCSX::g_emulator.m_gpu->pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char*>(&SXY2));
+    if (PCSX::g_emulator->config().PGXP_Cache) {
+        PCSX::g_emulator->m_gpu->pgxpCacheVertex(temp.x, temp.y, reinterpret_cast<unsigned char*>(&SXY2));
     } else {
-        PCSX::g_emulator.m_gpu->pgxpCacheVertex(0, 0, NULL);
+        PCSX::g_emulator->m_gpu->pgxpCacheVertex(0, 0, NULL);
     }
 
     GTE_LOG("PGXP_PUSH (%f, %f) %u %u|", SXY2.x, SXY2.y, SXY2.flags, SXY2.count);
@@ -98,29 +105,29 @@ void PGXP_pushSXYZ2s(int64_t _x, int64_t _y, int64_t _z, uint32_t v) {
     float fy = (float)(_y) / (float)(1 << 16);
     float fz = (float)(_z);
 
-    if (PCSX::g_emulator.config().PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
+    if (PCSX::g_emulator->config().PGXP_GTE) PGXP_pushSXYZ2f(fx, fy, fz, v);
 }
 
-#define VX(n) (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.l)
-#define VY(n) (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.h)
-#define VZ(n) (PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[(n << 1) + 1].sw.l)
+#define VX(n) (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.l)
+#define VY(n) (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[n << 1].sw.h)
+#define VZ(n) (PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[(n << 1) + 1].sw.l)
 
 void PGXP_RTPS(uint32_t _n, uint32_t _v) {
     // Transform
-    float TRX = (int64_t)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[5].sd;
-    float TRY = (int64_t)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[6].sd;
-    float TRZ = (int64_t)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[7].sd;
+    float TRX = (int64_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[5].sd;
+    float TRY = (int64_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[6].sd;
+    float TRZ = (int64_t)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[7].sd;
 
     // Rotation with 12-bit shift
-    float R11 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[0].sw.l / (float)(1 << 12);
-    float R12 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[0].sw.h / (float)(1 << 12);
-    float R13 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[1].sw.l / (float)(1 << 12);
-    float R21 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[1].sw.h / (float)(1 << 12);
-    float R22 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[2].sw.l / (float)(1 << 12);
-    float R23 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[2].sw.h / (float)(1 << 12);
-    float R31 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[3].sw.l / (float)(1 << 12);
-    float R32 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[3].sw.h / (float)(1 << 12);
-    float R33 = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[4].sw.l / (float)(1 << 12);
+    float R11 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[0].sw.l / (float)(1 << 12);
+    float R12 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[0].sw.h / (float)(1 << 12);
+    float R13 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[1].sw.l / (float)(1 << 12);
+    float R21 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[1].sw.h / (float)(1 << 12);
+    float R22 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[2].sw.l / (float)(1 << 12);
+    float R23 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[2].sw.h / (float)(1 << 12);
+    float R31 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[3].sw.l / (float)(1 << 12);
+    float R32 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[3].sw.h / (float)(1 << 12);
+    float R33 = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[4].sw.l / (float)(1 << 12);
 
     // Bring vertex into view space
     float MAC1 = TRX + (R11 * VX(_n)) + (R12 * VY(_n)) + (R13 * VZ(_n));
@@ -131,20 +138,20 @@ void PGXP_RTPS(uint32_t _n, uint32_t _v) {
     float IR2 = max(min(MAC2, 0x7fff), -0x8000);
     float IR3 = max(min(MAC3, 0x7fff), -0x8000);
 
-    float H = PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[26].sw.l;  // Near plane
+    float H = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[26].sw.l;  // Near plane
     float F = 0xFFFF;                                                // Far plane?
     float SZ3 = max(min(MAC3, 0xffff), 0x0000);  // Clamp SZ3 to near plane because we have no clipping (no proper Z)
     //  float h_over_sz3 = H / SZ3;
 
     // Offsets with 16-bit shift
-    float OFX = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[24].sd / (float)(1 << 16);
-    float OFY = (float)PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2C.p[25].sd / (float)(1 << 16);
+    float OFX = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[24].sd / (float)(1 << 16);
+    float OFY = (float)PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[25].sd / (float)(1 << 16);
 
     float h_over_w = min(H / SZ3, (float)0x1ffff / (float)0xffff);
     h_over_w = (SZ3 == 0) ? ((float)0x1ffff / (float)0xffff) : h_over_w;
 
     // PSX Screen space X,Y,W components
-    float sx = OFX + (IR1 * h_over_w) * (PCSX::g_emulator.config().Widescreen ? 0.75 : 1);
+    float sx = OFX + (IR1 * h_over_w) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1);
     float sy = OFY + (IR2 * h_over_w);
     float sw = SZ3;  // max(SZ3, 0.1);
 
@@ -173,8 +180,8 @@ int PGXP_NLCIP_valid(uint32_t sxy0, uint32_t sxy1, uint32_t sxy2) {
     Validate(&SXY0, sxy0);
     Validate(&SXY1, sxy1);
     Validate(&SXY2, sxy2);
-    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && PCSX::g_emulator.config().PGXP_GTE &&
-        (PCSX::g_emulator.config().PGXP_Mode > 0))
+    if (((SXY0.flags & SXY1.flags & SXY2.flags & VALID_012) == VALID_012) && PCSX::g_emulator->config().PGXP_GTE &&
+        (PCSX::g_emulator->config().PGXP_Mode > 0))
         return 1;
     return 0;
 }
@@ -263,7 +270,7 @@ void MFC2(int reg) {
 
         case 28:
         case 29:
-            //  PCSX::g_emulator.m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0,
+            //  PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0,
             //  0) << 5) | (LIM(IR3 >> 7,
             // 0x1f, 0, 0) << 10);
             break;

@@ -57,11 +57,4 @@ void PGXP_GTE_CTC2(uint32_t instr, uint32_t rdVal, uint32_t rtVal);  // copy GPR
 void PGXP_GTE_LWC2(uint32_t instr, uint32_t rtVal, uint32_t addr);  // copy memory to GTE reg
 void PGXP_GTE_SWC2(uint32_t instr, uint32_t rtVal, uint32_t addr);  // copy GTE reg to memory
 
-#ifndef max
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#endif
-#ifndef min
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#endif
-
 #endif /* _PGXP_GTE_H_ */

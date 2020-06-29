@@ -58,41 +58,26 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\includes.props" />
+    <Import Project="..\common.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\includes.props" />
+    <Import Project="..\common.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\includes.props" />
+    <Import Project="..\common.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\includes.props" />
+    <Import Project="..\common.props" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\third_party;..\..\third_party\imgui;..\..\third_party\imgui\examples\libs\gl3w;..\..\third_party\SDL\include;..\..\third_party\zlib;..\..\src;$(IncludePath)</IncludePath>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -101,8 +86,6 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -113,8 +96,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -129,8 +110,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -138,13 +117,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\core\binloader.cc" />
     <ClCompile Include="..\..\src\core\cdriso.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\cheat.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.cc" />
-    <ClCompile Include="..\..\src\core\file.cc" />
+    <ClCompile Include="..\..\src\core\elfloader.cc" />
+    <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc" />
@@ -160,11 +141,9 @@
     <ClCompile Include="..\..\src\core\pgxp_value.cc" />
     <ClCompile Include="..\..\src\core\plugins.cc" />
     <ClCompile Include="..\..\src\core\ppf.cc" />
-    <ClCompile Include="..\..\src\core\psxbios.cc" />
     <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
-    <ClCompile Include="..\..\src\core\psxhle.cc" />
     <ClCompile Include="..\..\src\core\psxhw.cc" />
     <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
     <ClCompile Include="..\..\src\core\psxmem.cc" />
@@ -172,9 +151,12 @@
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\spu.cc" />
     <ClCompile Include="..\..\src\core\sstate.cc" />
+    <ClCompile Include="..\..\src\core\stacktrace.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
+    <ClCompile Include="..\..\src\core\web-server.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\core\binloader.h" />
     <ClInclude Include="..\..\src\core\cdriso.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
     <ClInclude Include="..\..\src\core\cheat.h" />
@@ -182,7 +164,8 @@
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
-    <ClInclude Include="..\..\src\core\file.h" />
+    <ClInclude Include="..\..\src\core\elfloader.h" />
+    <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
@@ -198,13 +181,10 @@
     <ClInclude Include="..\..\src\core\pgxp_value.h" />
     <ClInclude Include="..\..\src\core\plugins.h" />
     <ClInclude Include="..\..\src\core\ppf.h" />
-    <ClInclude Include="..\..\src\core\protobuf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
-    <ClInclude Include="..\..\src\core\psxbios.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />
     <ClInclude Include="..\..\src\core\psxcounters.h" />
     <ClInclude Include="..\..\src\core\psxdma.h" />
-    <ClInclude Include="..\..\src\core\psxhle.h" />
     <ClInclude Include="..\..\src\core\psxhw.h" />
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />
@@ -212,7 +192,9 @@
     <ClInclude Include="..\..\src\core\sjisfont.h" />
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\sstate.h" />
+    <ClInclude Include="..\..\src\core\stacktrace.h" />
     <ClInclude Include="..\..\src\core\system.h" />
+    <ClInclude Include="..\..\src\core\web-server.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

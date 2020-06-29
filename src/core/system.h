@@ -27,16 +27,29 @@
 #include <string>
 #include <vector>
 
+#include "support/djbhash.h"
+#include "support/eventbus.h"
+
 namespace PCSX {
 
 // a hack, until c++-20 is fully adopted everywhere.
-#if defined(__cpp_lib_char8_t)
-typedef std::u8string u8string;
-#define MAKEU8(x) x
-#else
-typedef std::string u8string;
-#define MAKEU8(x) reinterpret_cast<const char *>(x)
-#endif
+typedef decltype(std::filesystem::path().u8string()) u8string;
+#define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
+
+namespace Events {
+struct SettingsLoaded {};
+struct Quitting {};
+namespace ExecutionFlow {
+struct ShellReached {};
+struct Run {};
+struct Pause {};
+struct SoftReset {};
+struct HardReset {};
+}  // namespace ExecutionFlow
+struct CreatedVRAMTexture {
+    unsigned int id;
+};
+}  // namespace Events
 
 class System {
   public:
@@ -45,6 +58,7 @@ class System {
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
     // Printf used by bios syscalls
+    virtual void biosPutc(int c) = 0;
     virtual void biosPrintf(const char *fmt, ...) = 0;
     virtual void vbiosPrintf(const char *fmt, va_list va) = 0;
     // Printf used by the code in general, to indicate errors most of the time
@@ -60,30 +74,41 @@ class System {
     virtual void runGui() = 0;
     // Close mem and plugins
     virtual void close() = 0;
+    virtual void purgeAllEvents() = 0;
     bool running() { return m_running; }
     bool quitting() { return m_quitting; }
-    void start() { m_running = true; }
-    void stop() { m_running = false; }
-    void pause() { m_running = false; }
-    void resume() { m_running = true; }
-    void quit() {
-        m_quitting = true;
+    int exitCode() { return m_exitCode; }
+    void start() {
+        if (m_running) return;
+        m_running = true;
+        m_eventBus->signal(Events::ExecutionFlow::Run{});
+    }
+    void stop() {
+        if (!m_running) return;
         m_running = false;
+        m_eventBus->signal(Events::ExecutionFlow::Pause{});
+    }
+    void pause() {
+        if (!m_running) return;
+        m_running = false;
+        m_eventBus->signal(Events::ExecutionFlow::Pause{});
+    }
+    void resume() {
+        if (m_running) return;
+        m_running = true;
+        m_eventBus->signal(Events::ExecutionFlow::Run{});
+    }
+    void quit(int code = 0) {
+        m_quitting = true;
+        pause();
+        m_exitCode = code;
+        m_eventBus->signal(Events::Quitting{});
+        purgeAllEvents();
     }
 
-  private:
-    static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
-        return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
-    }
+    std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
-  public:
     void setBinDir(std::filesystem::path path) { m_binDir = path; }
-    template <size_t S>
-    static inline constexpr uint64_t ctHash(const char (&str)[S]) {
-        return djbProcess(5381, str, S - 1);
-    }
-    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
-    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
 
     const char *getStr(uint64_t hash, const char *str) {
         auto ret = m_i18n.find(hash);
@@ -131,6 +156,7 @@ class System {
     std::string m_currentLocale;
     bool m_running = false;
     bool m_quitting = false;
+    int m_exitCode = 0;
     std::filesystem::path m_binDir;
 };
 
@@ -138,4 +164,4 @@ extern System *g_system;
 
 }  // namespace PCSX
 
-#define _(str) PCSX::g_system->getStr(PCSX::System::ctHash(str), str)
+#define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)

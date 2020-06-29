@@ -24,6 +24,8 @@
 #include <string>
 #include <vector>
 
+#include "core/system.h"
+
 namespace PCSX {
 namespace Widgets {
 
@@ -53,7 +55,7 @@ class FileDialog {
     const std::function<const char*()> m_title;
     struct Root {
         PCSX::u8string root;
-        std::string label;
+        PCSX::u8string label;
     };
     std::vector<Root> m_roots;
     std::vector<PCSX::u8string> m_directories;

@@ -143,7 +143,7 @@ PADquery PAD1_query;
 PADreadPort1 PAD1_readPort1;
 PADkeypressed PAD1_keypressed;
 PADstartPoll PAD1_startPoll;
-PADpoll PCSX::g_emulator.m_pad1->poll;
+PADpoll PCSX::g_emulator->m_pad1->poll;
 PADsetSensitive PAD1_setSensitive;
 PADregisterVibration PAD1_registerVibration;
 PADregisterCursor PAD1_registerCursor;
@@ -159,7 +159,7 @@ PADquery PAD2_query;
 PADreadPort2 PAD2_readPort2;
 PADkeypressed PAD2_keypressed;
 PADstartPoll PAD2_startPoll;
-PADpoll PCSX::g_emulator.m_pad2->poll;
+PADpoll PCSX::g_emulator->m_pad2->poll;
 PADsetSensitive PAD2_setSensitive;
 PADregisterVibration PAD2_registerVibration;
 PADregisterCursor PAD2_registerCursor;
@@ -482,7 +482,7 @@ static int LoadPAD1plugin() {
     PAD1_about = PAD1__about;
     PAD1_keypressed = PAD1__keypressed;
     PAD1_startPoll = PAD1__startPoll;
-    PCSX::g_emulator.m_pad1->poll = PAD1__poll;
+    PCSX::g_emulator->m_pad1->poll = PAD1__poll;
     PAD1_registerVibration = PAD1__registerVibration;
     PAD1_registerCursor = PAD1__registerCursor;
 
@@ -545,7 +545,7 @@ static int LoadPAD2plugin() {
     PAD2_about = PAD2__about;
     PAD2_keypressed = PAD2__keypressed;
     PAD2_startPoll = PAD2__startPoll;
-    PCSX::g_emulator.m_pad2->poll = PAD2__poll;
+    PCSX::g_emulator->m_pad2->poll = PAD2__poll;
     PAD2_registerVibration = PAD2__registerVibration;
     PAD2_registerCursor = PAD2__registerCursor;
 
@@ -639,12 +639,10 @@ static int LoadSIO1plugin(const char *SIO1dll) {
 
 #endif
 
-void clearDynarec(void) { PCSX::g_emulator.m_psxCpu->Reset(); }
+void clearDynarec(void) { PCSX::g_emulator->m_psxCpu->Reset(); }
 
 int LoadPlugins() {
     long ret;
-
-    ReleasePlugins();
 
     if (LoadGPUplugin() == -1) return -1;
 
@@ -652,13 +650,13 @@ int LoadPlugins() {
     if (LoadSIO1plugin() == -1) return -1;
 #endif
 
-    PCSX::g_emulator.m_cdrom->m_iso.init();
-    ret = PCSX::g_emulator.m_gpu->init();
+    PCSX::g_emulator->m_cdrom->m_iso.init();
+    ret = PCSX::g_emulator->m_gpu->init();
     if (ret < 0) {
         PCSX::g_system->message(_("Error initializing GPU plugin: %d"), ret);
         return -1;
     }
-    ret = PCSX::g_emulator.m_spu->init();
+    ret = PCSX::g_emulator->m_spu->init();
     if (ret < 0) {
         PCSX::g_system->message(_("Error initializing SPU plugin: %d"), ret);
         return -1;
@@ -674,16 +672,6 @@ int LoadPlugins() {
 
     PCSX::g_system->printf("%s", _("Plugins loaded.\n"));
     return 0;
-}
-
-void ReleasePlugins() {
-    PCSX::g_emulator.m_cdrom->m_iso.shutdown();
-    PCSX::g_emulator.m_gpu->shutdown();
-    PCSX::g_emulator.m_spu->shutdown();
-
-#ifdef ENABLE_SIO1API
-    SIO1_shutdown();
-#endif
 }
 
 void SetIsoFile(const char *filename) {

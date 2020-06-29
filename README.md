@@ -1,7 +1,10 @@
 |Platform|Build status|
 |--------|------------|
-|Windows build|[![Build Status](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=master)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=master)|
+|Windows build|[![Build Status](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=main)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=main)|
 |Linux build|[![CircleCI](https://circleci.com/gh/grumpycoders/pcsx-redux.svg?style=svg)](https://circleci.com/gh/grumpycoders/pcsx-redux)|
+|MacOS build|![macOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)|
+
+![Discord](https://img.shields.io/discord/567975889879695361)
 
 # PCSX-Redux
 
@@ -14,6 +17,24 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
  - Improve the debugging experience.
  - Improve the rendering experience.
 
+## Where?
+There are currently nightly builds of pcsx-redux for Windows, available here: https://github.com/pcsx-redux/nightlies/releases
+ 
+## How ?
+The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows.
+
+### Getting sources
+The only location for the source is [on github](https://github.com/grumpycoders/pcsx-redux/). Clone recursively, as the project uses submodules: `git clone https://github.com/grumpycoders/pcsx-redux.git --recursive`.
+
+### Windows
+Install [Visual Studio 2019 Community Edition](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16). Open the file `vsprojects\pcsx-redux.sln`, select `pcsx-redux -> main`, right click, `Set as Startup Projet`, and hit `F7` to build. The project follows the open-and-build paradigm with no extra step, so no specific dependency ought to be needed, as [NuGet](https://www.nuget.org/) will take care of downloading them automatically for you on the first build.
+
+### Linux
+Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/Dockerfile#L15) for a list of library packages to install.
+
+### MacOS
+You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
+
 ## Who?
 I used to contribute to the PCSX codebase. It is very likely that a sourceforge account of mine still has write access to the old cvs repository for PCSX. A long time ago, I contributed the telnet debugger, and the parallel port support. This means I am fairly familiar with this codebase, and I am also ashamed of the contributions I have done 15+ years ago, as one should.
 
@@ -21,4 +42,25 @@ I used to contribute to the PCSX codebase. It is very likely that a sourceforge 
 When Sony released the Playstation mini recently, I came to realize two things: first, the state of the Playstation emulation isn't that great, and second, the only half-decent debugging tool still available for this console is that old telnet debugger I wrote eons ago, while other emulators out there for other consoles gained a lot of debugging superpowers. I think it was time for the Playstation emulation to get to better standards with regards to debuggability. I also felt I had a responsability to cleaning up some of the horrors I've introduced myself in the codebase long ago, and that made me cry a little looking at them. Hopefully, I got better at programming. Hopefully.
 
 ## Status?
-The codebase still requires a lot of cleanup, and the current product isn't usable yet.
+The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state.
+
+### What works?
+- x86 dynarec
+- interpreted CPU
+- software GPU
+- VRAM viewer and debugger
+- fully featured MIPS debugger
+- memory cards
+- XBox controller support
+- save states
+
+### What still requires some work?
+- GLSL GPU
+- proper SPU multithreaded code
+- save state slots
+- memory card manager
+- better customization
+- more generic dynarec
+- ...
+
+[![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)

@@ -312,7 +312,7 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 #ifdef _WIN32
         sprintf(filename, "SNAP\\PEOPSSOFT%03d.bmp", snapshotnr);
 #else
-        sprintf(filename, "%s/peopssoft%03ld.bmp", getenv("HOME"), snapshotnr);
+        sprintf(filename, "%s/peopssoft%03d.bmp", getenv("HOME"), snapshotnr);
 #endif
 
         bmpfile = fopen(filename, "rb");

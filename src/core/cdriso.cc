@@ -22,7 +22,6 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include <windows.h>
 
 #include <process.h>
@@ -541,7 +540,7 @@ int PCSX::CDRiso::do_decode_cdda(struct trackinfo *tri, uint32_t tracknumber) {
 // this function tries to get the .toc file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsetoc(const char *isofileStr) {
-    std::filesystem::path isofile = std::filesystem::u8path(isofileStr);
+    std::filesystem::path isofile = MAKEU8(isofileStr);
     std::filesystem::path tocname, filename;
     File *fi;
     char linebuf[256], tmp[256], name[256];
@@ -670,7 +669,7 @@ int PCSX::CDRiso::parsetoc(const char *isofileStr) {
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsecue(const char *isofileString) {
-    std::filesystem::path isofile = std::filesystem::u8path(isofileString);
+    std::filesystem::path isofile = MAKEU8(isofileString);
     std::filesystem::path cuename, filepath;
     File *fi;
     char *token;
@@ -835,7 +834,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 // this function tries to get the .ccd file of the given .img
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parseccd(const char *isofileString) {
-    std::filesystem::path ccdname, isofile = std::filesystem::u8path(isofileString);
+    std::filesystem::path ccdname, isofile = MAKEU8(isofileString);
     File *fi;
     char linebuf[256];
     unsigned int t;
@@ -888,7 +887,7 @@ int PCSX::CDRiso::parseccd(const char *isofileString) {
 // this function tries to get the .mds file of the given .mdf
 // the necessary data is put into the ti (trackinformation)-array
 int PCSX::CDRiso::parsemds(const char *isofileString) {
-    std::filesystem::path mdsname, isofile = std::filesystem::u8path(isofileString);
+    std::filesystem::path mdsname, isofile = MAKEU8(isofileString);
     File *fi;
     unsigned int offset, extra_offset, l, i;
     unsigned short s;
@@ -1273,27 +1272,27 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
     char buffer[16], sbifile[MAXPATHLEN];
 
     if (filename == NULL) {
-        if (PCSX::g_emulator.m_cdromId[0] == '\0') return -1;
+        if (PCSX::g_emulator->m_cdromId[0] == '\0') return -1;
 
         // Generate filename in the format of SLUS_123.45.sbi
-        buffer[0] = toupper(PCSX::g_emulator.m_cdromId[0]);
-        buffer[1] = toupper(PCSX::g_emulator.m_cdromId[1]);
-        buffer[2] = toupper(PCSX::g_emulator.m_cdromId[2]);
-        buffer[3] = toupper(PCSX::g_emulator.m_cdromId[3]);
+        buffer[0] = toupper(PCSX::g_emulator->m_cdromId[0]);
+        buffer[1] = toupper(PCSX::g_emulator->m_cdromId[1]);
+        buffer[2] = toupper(PCSX::g_emulator->m_cdromId[2]);
+        buffer[3] = toupper(PCSX::g_emulator->m_cdromId[3]);
         buffer[4] = '_';
-        buffer[5] = PCSX::g_emulator.m_cdromId[4];
-        buffer[6] = PCSX::g_emulator.m_cdromId[5];
-        buffer[7] = PCSX::g_emulator.m_cdromId[6];
+        buffer[5] = PCSX::g_emulator->m_cdromId[4];
+        buffer[6] = PCSX::g_emulator->m_cdromId[5];
+        buffer[7] = PCSX::g_emulator->m_cdromId[6];
         buffer[8] = '.';
-        buffer[9] = PCSX::g_emulator.m_cdromId[7];
-        buffer[10] = PCSX::g_emulator.m_cdromId[8];
+        buffer[9] = PCSX::g_emulator->m_cdromId[7];
+        buffer[10] = PCSX::g_emulator->m_cdromId[8];
         buffer[11] = '.';
         buffer[12] = 's';
         buffer[13] = 'b';
         buffer[14] = 'i';
         buffer[15] = '\0';
 
-        sprintf(sbifile, "%s%s", PCSX::g_emulator.settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
+        sprintf(sbifile, "%s%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
         filename = sbifile;
     }
 
@@ -2203,7 +2202,7 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
 
     // data tracks play silent (or CDDA set to silent)
     if (m_ti[track].type != trackinfo::CDDA ||
-        PCSX::g_emulator.settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_DISABLED) {
+        PCSX::g_emulator->settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_DISABLED) {
         memset(buffer, 0, PCSX::CDRom::CD_FRAMESIZE_RAW);
         return true;
     }
@@ -2226,7 +2225,7 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
         return false;
     }
 
-    if (PCSX::g_emulator.settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
+    if (PCSX::g_emulator->settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
         int i;
         unsigned char tmp;
 
