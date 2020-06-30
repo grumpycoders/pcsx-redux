@@ -15,7 +15,7 @@ RUN apt install -y pkg-config
 
 # Compilers & base libraries
 RUN apt install -y clang-10
-RUN apt install -y g++-9
+RUN apt install -y g++-10
 RUN apt install -y g++-mipsel-linux-gnu
 
 # Development packages

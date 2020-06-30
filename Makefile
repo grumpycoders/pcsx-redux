@@ -3,10 +3,11 @@ BUILD ?= Release
 
 UNAME_S := $(shell uname -s)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
 PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib
 ifeq ($(UNAME_S),Darwin)
-PACKAGES += luajit
+    PACKAGES += luajit
 endif
 
 LOCALES := fr
@@ -30,7 +31,7 @@ CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 ifneq ($(UNAME_S),Darwin)
-CPPFLAGS += -Ithird_party/luajit/src
+    CPPFLAGS += -Ithird_party/luajit/src
 endif
 
 CPPFLAGS_Release += -O3
@@ -40,20 +41,26 @@ CPPFLAGS_Debug += -O0
 CPPFLAGS_Coverage += -O0
 CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
 
+ifeq ($(CC_IS_CLANG),true)
+    CXXFLAGS += -fcoroutines-ts
+else
+    CXXFLAGS += -fcoroutines
+endif
+
 ifeq ($(UNAME_S),Darwin)
-	CPPFLAGS += -mmacosx-version-min=10.15
-	CPPFLAGS += -stdlib=libc++
+    CPPFLAGS += -mmacosx-version-min=10.15
+    CPPFLAGS += -stdlib=libc++
 endif
 
 LDFLAGS := `pkg-config --libs $(PACKAGES)`
 
 ifeq ($(UNAME_S),Darwin)
-	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
-	LDFLAGS += -mmacosx-version-min=10.15
+    LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
+    LDFLAGS += -mmacosx-version-min=10.15
 else
-	LDFLAGS += -lstdc++fs
-	LDFLAGS += -lGL
-	LDFLAGS += third_party/luajit/src/libluajit.a
+    LDFLAGS += -lstdc++fs
+    LDFLAGS += -lGL
+    LDFLAGS += third_party/luajit/src/libluajit.a
 endif
 
 LDFLAGS += -ldl
@@ -80,7 +87,7 @@ OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 ifneq ($(UNAME_S),Darwin)
-OBJECTS += third_party/luajit/src/libluajit.a
+    OBJECTS += third_party/luajit/src/libluajit.a
 endif
 
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
