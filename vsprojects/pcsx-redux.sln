@@ -59,6 +59,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{C6DD47BC
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "psyq-obj-parser", "psyq-obj-parser\psyq-obj-parser.vcxproj", "{FC149187-4642-4A28-9EED-A4EB57197A7B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui_lua_bindings", "imgui_lua_bindings\imgui_lua_bindings.vcxproj", "{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -227,6 +229,14 @@ Global
 		{FC149187-4642-4A28-9EED-A4EB57197A7B}.Release|x64.Build.0 = Release|x64
 		{FC149187-4642-4A28-9EED-A4EB57197A7B}.Release|x86.ActiveCfg = Release|Win32
 		{FC149187-4642-4A28-9EED-A4EB57197A7B}.Release|x86.Build.0 = Release|Win32
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Debug|x64.ActiveCfg = Debug|x64
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Debug|x64.Build.0 = Debug|x64
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Debug|x86.ActiveCfg = Debug|Win32
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Debug|x86.Build.0 = Debug|Win32
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Release|x64.ActiveCfg = Release|x64
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Release|x64.Build.0 = Release|x64
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Release|x86.ActiveCfg = Release|Win32
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -253,9 +263,10 @@ Global
 		{E12740B8-CCEF-454D-98A2-9123F865BFF6} = {008A2872-432F-480B-828D-FF9AAA4846BC}
 		{85665837-9D30-4271-BA0F-086729C40DA0} = {9D5A1DB2-E74D-4CDD-8377-9EA08CF4AADE}
 		{FC149187-4642-4A28-9EED-A4EB57197A7B} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
+		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal

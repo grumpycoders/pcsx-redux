@@ -29,8 +29,6 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
         r = func(raw);
     } catch (std::exception& e) {
         L.error(std::string("LuaException: ") + e.what());
-    } catch (...) {
-        L.error("Unknown exception");
     }
     return r;
 }
@@ -38,9 +36,6 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
 PCSX::Lua::Lua() : L(lua_open()) {
     assert(("Couldn't create Lua VM", L));
     setCallWrap(callwrap);
-    push("BLUA_THREADS");
-    newtable();
-    settable(LUA_REGISTRYINDEX);
 }
 
 PCSX::Lua& PCSX::Lua::operator=(Lua&& oL) noexcept {

@@ -169,6 +169,9 @@
     <ProjectReference Include="..\ImGuiColorTextEdit\ImGuiColorTextEdit.vcxproj">
       <Project>{cbf9b825-f140-4a02-8a3f-059103d6ca90}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\imgui_lua_bindings\imgui_lua_bindings.vcxproj">
+      <Project>{a2833ccc-1df0-4679-8b6d-4ab8cbb66e3a}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libelfin\libelfin.vcxproj">
       <Project>{65df2840-29d7-46fc-868d-201cf2b651e0}</Project>
     </ProjectReference>
@@ -203,15 +206,15 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\glfw.3.3.0.1\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" />
-    <Import Project="..\packages\luajit.native.2.0.5\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.0.5\build\native\luajit.native.targets')" />
     <Import Project="..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" />
+    <Import Project="..\packages\luajit.native.2.0.5\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.0.5\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.0.1\build\native\glfw.targets'))" />
-    <Error Condition="!Exists('..\packages\luajit.native.2.0.5\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.0.5\build\native\luajit.native.targets'))" />
     <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets'))" />
+    <Error Condition="!Exists('..\packages\luajit.native.2.0.5\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.0.5\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

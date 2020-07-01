@@ -34,6 +34,7 @@
 #include "core/cdrom.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/luawrapper.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -86,8 +87,11 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     s_this->magicOpen(paths[0]);
 }
 
+void LoadImguiBindings(lua_State* lState);
+
 void PCSX::GUI::init() {
     int result;
+    LoadImguiBindings(g_emulator->m_lua->getState());
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
@@ -455,6 +459,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
+                ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
                 if (ImGui::BeginMenu(_("VRAM viewers"))) {
                     ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
                     ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
@@ -575,6 +580,12 @@ void PCSX::GUI::endFrame() {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
         m_log.draw(_("Logs"));
+    }
+
+    if (m_luaConsole.m_show) {
+        ImGui::SetNextWindowPos(ImVec2(15, 545), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
+        m_luaConsole.draw(_("Lua Console"));
     }
 
     {

@@ -25,6 +25,7 @@
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
+#include "core/luawrapper.h"
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/ppf.h"
@@ -50,9 +51,19 @@ PCSX::Emulator::Emulator()
       m_spu(new PCSX::SPU::impl()),
       m_pad1(new PCSX::PAD(PAD::PAD1)),
       m_pad2(new PCSX::PAD(PAD::PAD2)),
-      m_loop(uvw::Loop::create()) {}
+      m_loop(uvw::Loop::create()),
+      m_lua(new PCSX::Lua()) {
+    m_lua->open_base();
+    m_lua->open_bit();
+    m_lua->open_debug();
+    m_lua->open_ffi();
+    m_lua->open_jit();
+    m_lua->open_math();
+    m_lua->open_string();
+    m_lua->open_table();
+}
 
-PCSX::Emulator::~Emulator() {}
+PCSX::Emulator::~Emulator() { m_lua->close(); }
 
 int PCSX::Emulator::EmuInit() {
     assert(g_system);

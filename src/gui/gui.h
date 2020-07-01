@@ -119,11 +119,13 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
+    typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY>
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, ShowLuaConsole, WindowPosX, WindowPosY, WindowSizeX,
+             WindowSizeY>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -178,6 +180,7 @@ class GUI final {
     void shellReached();
 
     PCSX::u8string m_exeToLoad;
+    Widgets::Log m_luaConsole = {settings.get<ShowLuaConsole>().value};
 };
 
 }  // namespace PCSX
