@@ -92,6 +92,38 @@ void LoadImguiBindings(lua_State* lState);
 void PCSX::GUI::init() {
     int result;
     LoadImguiBindings(g_emulator->m_lua->getState());
+    g_emulator->m_lua->declareFunc("print", [this](Lua L) {
+        int n = L.gettop();
+        std::string s;
+        int i;
+        for (i = 1; i <= n; i++) {
+            if (L.isstring(i)) {
+                s += L.tostring(i);
+            } else {
+                L.getglobal("tostring");
+                L.copy(i);
+                L.pcall(1);
+                s += L.tostring(-1);
+                L.pop();
+            }
+            if (i > 1) s += " ";
+        }
+        m_luaConsole.addLog("%s\n", s.c_str());
+        return 0;
+    });
+
+    g_emulator->m_lua->load(R"(
+print("PCSX-Redux Lua Console")
+print(jit.version)
+print((function(status, ...)
+  local ret = "JIT: " .. (status and "ON" or "OFF")
+  for i, v in ipairs({...}) do
+    ret = ret .. " " .. v
+  end
+  return ret
+end)(jit.status()))
+)",
+                            "gui startup");
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {

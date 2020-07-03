@@ -181,6 +181,7 @@ class GUI final {
 
     PCSX::u8string m_exeToLoad;
     Widgets::Log m_luaConsole = {settings.get<ShowLuaConsole>().value};
+    int luaPrinter(Lua *L);
 };
 
 }  // namespace PCSX

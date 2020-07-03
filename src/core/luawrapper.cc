@@ -118,11 +118,46 @@ void PCSX::Lua::declareFunc(const char* name, lua_CFunction f, int i) {
     lua_settable(L, i);
 }
 
+static std::function<int(PCSX::Lua)>* getLambda(PCSX::Lua L) {
+    return reinterpret_cast<std::function<int(PCSX::Lua)>*>(L.touserdata(lua_upvalueindex(1)));
+}
+
+static int lambdaWrapper(lua_State* L_) {
+    PCSX::Lua L(L_);
+    auto* lambda = getLambda(L);
+    return lambda->operator()(L);
+}
+
+static int lambdaGC(lua_State* L_) {
+    PCSX::Lua L(L_);
+    auto* lambda = getLambda(L);
+    delete lambda;
+    return 0;
+}
+
+void PCSX::Lua::declareFunc(const char* name, std::function<int(Lua)> f, int i) {
+    checkstack(5);
+    lua_pushstring(L, name);
+    new (lua_newuserdata(L, sizeof(f))) std::function<int(Lua)>(f);
+    newtable();
+    push("__gc");
+    push(lambdaGC);
+    settable();
+    setmetatable();
+    lua_pushcclosure(L, lambdaWrapper, 1);
+    if ((i < 0) && (i > LUA_REGISTRYINDEX)) i += 2;
+    lua_settable(L, i);
+}
+
 void PCSX::Lua::call(const char* f, int i, int nargs) {
     checkstack(1);
     lua_pushstring(L, f);
     lua_gettable(L, i);
     lua_insert(L, -1 - nargs);
+    call(nargs);
+}
+
+void PCSX::Lua::call(int nargs) {
     int r = lua_resume(L, nargs);
 
     if ((r == LUA_YIELD) || (r == 0)) return;
@@ -274,4 +309,15 @@ std::string PCSX::Lua::escapeString(const std::string& s) {
         }
     }
     return r;
+}
+
+void PCSX::Lua::load(const std::string& str, const std::string& name, bool docall) {
+    int status = luaL_loadbuffer(L, str.c_str(), str.size(), name.c_str());
+
+    if (status) {
+        pushLuaContext();
+        throw std::runtime_error("Error loading lua string");
+    }
+
+    if (docall) call();
 }

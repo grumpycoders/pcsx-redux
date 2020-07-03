@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 
 #include "core/psxemulator.h"
@@ -64,8 +65,10 @@ class Lua {
 
     void setCallWrap(lua_CallWrapper wrapper);
     void declareFunc(const char* funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX);
+    void declareFunc(const char* funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX);
 
     void call(const char* funcName, int tableIdx = LUA_GLOBALSINDEX, int nArgs = 0);
+    void call(int nArgs = 0);
     void pcall(int nArgs = 0);
 
     void push() {
@@ -156,6 +159,7 @@ class Lua {
     void* touserdata(int i = -1) { return lua_touserdata(L, i); }
 
     std::string escapeString(const std::string&);
+    void load(const std::string& str, const std::string& name, bool docall = true);
     int yield(int nresults = 0) { return lua_yield(L, nresults); }
     bool yielded() { return lua_status(L) == LUA_YIELD; }
     int getmetatable(int i = -1) {
