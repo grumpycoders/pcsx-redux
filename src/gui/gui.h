@@ -27,6 +27,7 @@
 #include "flags.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
@@ -180,8 +181,7 @@ class GUI final {
     void shellReached();
 
     PCSX::u8string m_exeToLoad;
-    Widgets::Log m_luaConsole = {settings.get<ShowLuaConsole>().value};
-    int luaPrinter(Lua *L);
+    Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
 };
 
 }  // namespace PCSX

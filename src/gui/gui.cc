@@ -92,7 +92,15 @@ void LoadImguiBindings(lua_State* lState);
 void PCSX::GUI::init() {
     int result;
     LoadImguiBindings(g_emulator->m_lua->getState());
-    g_emulator->m_lua->declareFunc("print", [this](Lua L) {
+    m_luaConsole.setCmdExec([this](const std::string& cmd) {
+        try {
+            g_emulator->m_lua->load(cmd, "console", false);
+            g_emulator->m_lua->pcall();
+        } catch (std::runtime_error& e) {
+            m_luaConsole.addError(e.what());
+        }
+    });
+    auto printer = [this](Lua L, bool error) -> int {
         int n = L.gettop();
         std::string s;
         int i;
@@ -108,10 +116,15 @@ void PCSX::GUI::init() {
             }
             if (i > 1) s += " ";
         }
-        m_luaConsole.addLog("%s\n", s.c_str());
+        if (error) {
+            m_luaConsole.addError(s);
+        } else {
+            m_luaConsole.addLog(s);
+        }
         return 0;
-    });
-
+    };
+    g_emulator->m_lua->declareFunc("print", [printer](Lua L) { return printer(L, false); });
+    g_emulator->m_lua->declareFunc("printError", [printer](Lua L) { return printer(L, true); });
     g_emulator->m_lua->load(R"(
 print("PCSX-Redux Lua Console")
 print(jit.version)

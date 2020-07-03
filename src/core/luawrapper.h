@@ -66,6 +66,12 @@ class Lua {
     void setCallWrap(lua_CallWrapper wrapper);
     void declareFunc(const char* funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX);
     void declareFunc(const char* funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX);
+    void declareFunc(const std::string& funcName, lua_CFunction f, int tableIdx = LUA_GLOBALSINDEX) {
+        declareFunc(funcName.c_str(), f, tableIdx);
+    }
+    void declareFunc(const std::string& funcName, std::function<int(Lua)> f, int tableIdx = LUA_GLOBALSINDEX) {
+        declareFunc(funcName.c_str(), f, tableIdx);
+    }
 
     void call(const char* funcName, int tableIdx = LUA_GLOBALSINDEX, int nArgs = 0);
     void call(int nArgs = 0);
@@ -157,6 +163,10 @@ class Lua {
     std::string tostring(int i = -1);
     lua_CFunction tocfunction(int i = -1) { return lua_tocfunction(L, i); }
     void* touserdata(int i = -1) { return lua_touserdata(L, i); }
+
+    void concat(int n = 2) { lua_concat(L, n); }
+
+    void displayStack(bool error = false);
 
     std::string escapeString(const std::string&);
     void load(const std::string& str, const std::string& name, bool docall = true);

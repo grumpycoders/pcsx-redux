@@ -163,6 +163,7 @@ void PCSX::Lua::call(int nargs) {
     if ((r == LUA_YIELD) || (r == 0)) return;
 
     pushLuaContext();
+    displayStack(true);
 
     switch (r) {
         case LUA_ERRRUN:
@@ -185,6 +186,7 @@ void PCSX::Lua::pcall(int nargs) {
     if (r == 0) return;
 
     pushLuaContext();
+    displayStack(true);
 
     switch (r) {
         case LUA_ERRRUN:
@@ -248,6 +250,7 @@ void PCSX::Lua::error(const char* msg) {
 
     if (yielded()) {
         pushLuaContext();
+        displayStack(true);
 
         throw std::runtime_error("Runtime error while running yielded C code.");
     } else {
@@ -316,8 +319,74 @@ void PCSX::Lua::load(const std::string& str, const std::string& name, bool docal
 
     if (status) {
         pushLuaContext();
+        displayStack(true);
         throw std::runtime_error("Error loading lua string");
     }
 
     if (docall) call();
+}
+
+void PCSX::Lua::displayStack(bool error) {
+    int n = lua_gettop(L);
+    int i;
+
+    if (n == 0) {
+        checkstack(2);
+        lua_pushstring(L, error ? "printError" : "print");
+        lua_gettable(L, LUA_GLOBALSINDEX);
+        push("Stack empty");
+        pcall(1);
+        return;
+    }
+
+    checkstack(5);
+
+    for (i = 1; i <= n; i++) {
+        int c = 3;
+        lua_pushstring(L, error ? "printError" : "print");
+        lua_gettable(L, LUA_GLOBALSINDEX);
+        push((lua_Number)i);
+        push(": ");
+        switch (lua_type(L, i)) {
+            case LUA_TNONE:
+                push("Invalid");
+                break;
+            case LUA_TNIL:
+                push("(Nil)");
+                break;
+            case LUA_TNUMBER:
+                push("(Number) ");
+                copy(i);
+                c++;
+                break;
+            case LUA_TBOOLEAN:
+                push("(Bool)   " + std::string(lua_toboolean(L, i) ? "true" : "false"));
+                break;
+            case LUA_TSTRING:
+                push("(String) ");
+                copy(i);
+                c++;
+                break;
+            case LUA_TTABLE:
+                push("(Table)");
+                break;
+            case LUA_TFUNCTION:
+                push("(Function)");
+                break;
+            case LUA_TUSERDATA:
+                push("(Userdata)");
+                break;
+            case LUA_TLIGHTUSERDATA:
+                push("(Lightuserdata)");
+                break;
+            case LUA_TTHREAD:
+                push("(Thread)");
+                break;
+            default:
+                push("Unknown");
+                break;
+        }
+        concat(c);
+        pcall(1);
+    }
 }
