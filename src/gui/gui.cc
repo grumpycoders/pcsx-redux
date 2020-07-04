@@ -105,6 +105,7 @@ void PCSX::GUI::init() {
         std::string s;
         int i;
         for (i = 1; i <= n; i++) {
+            if (i > 1) s += " ";
             if (L.isstring(i)) {
                 s += L.tostring(i);
             } else {
@@ -114,7 +115,6 @@ void PCSX::GUI::init() {
                 s += L.tostring(-1);
                 L.pop();
             }
-            if (i > 1) s += " ";
         }
         if (error) {
             m_luaConsole.addError(s);
@@ -505,6 +505,7 @@ void PCSX::GUI::endFrame() {
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
                 ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
+                ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
                 if (ImGui::BeginMenu(_("VRAM viewers"))) {
                     ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
                     ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
@@ -631,6 +632,12 @@ void PCSX::GUI::endFrame() {
         ImGui::SetNextWindowPos(ImVec2(15, 545), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
         m_luaConsole.draw(_("Lua Console"));
+    }
+
+    if (m_luaInspector.m_show) {
+        ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
+        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get());
     }
 
     {

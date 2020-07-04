@@ -31,6 +31,7 @@
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
+#include "gui/widgets/luainspector.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
@@ -121,12 +122,13 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
     typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
+    typedef Setting<bool, TYPESTRING("ShowLuaInspector")> ShowLuaInspector;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, ShowLuaConsole, WindowPosX, WindowPosY, WindowSizeX,
-             WindowSizeY>
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, ShowLuaConsole, ShowLuaInspector, WindowPosX, WindowPosY,
+             WindowSizeX, WindowSizeY>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -182,6 +184,7 @@ class GUI final {
 
     PCSX::u8string m_exeToLoad;
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
+    Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 };
 
 }  // namespace PCSX
