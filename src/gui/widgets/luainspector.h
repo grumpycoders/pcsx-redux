@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace PCSX {
 class Lua;
 namespace Widgets {
@@ -26,9 +28,17 @@ namespace Widgets {
 class LuaInspector {
   public:
     LuaInspector(bool& show) : m_show(show) {}
-    void draw(const char* title, Lua*);
+    void draw(const char* title, Lua* L);
 
     bool& m_show;
+
+  private:
+    void dumpTree(const std::string& label, Lua* L, int i);
+    enum class Display {
+        GLOBALS,
+        STACK,
+        REGISTRY,
+    } m_display = Display::GLOBALS;
 };
 
 }  // namespace Widgets

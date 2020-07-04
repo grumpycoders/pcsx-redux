@@ -164,6 +164,7 @@ void PCSX::Lua::call(int nargs) {
 
     pushLuaContext();
     displayStack(true);
+    while (gettop()) pop();
 
     switch (r) {
         case LUA_ERRRUN:
@@ -187,6 +188,7 @@ void PCSX::Lua::pcall(int nargs) {
 
     pushLuaContext();
     displayStack(true);
+    while (gettop()) pop();
 
     switch (r) {
         case LUA_ERRRUN:
@@ -251,6 +253,7 @@ void PCSX::Lua::error(const char* msg) {
     if (yielded()) {
         pushLuaContext();
         displayStack(true);
+        while (gettop()) pop();
 
         throw std::runtime_error("Runtime error while running yielded C code.");
     } else {
@@ -320,6 +323,7 @@ void PCSX::Lua::load(const std::string& str, const std::string& name, bool docal
     if (status) {
         pushLuaContext();
         displayStack(true);
+        while (gettop()) pop();
         throw std::runtime_error("Error loading lua string");
     }
 
