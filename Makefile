@@ -81,6 +81,7 @@ SRCS += third_party/imgui/examples/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/examples/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
+SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRCS += third_party/http-parser/http_parser.c
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
