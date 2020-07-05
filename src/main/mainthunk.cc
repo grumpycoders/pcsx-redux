@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <SDL_main.h>
+
 #include "main/main.h"
 
 int main(int argc, char** argv) {
