@@ -91,7 +91,7 @@ SECTIONS {
         LONG(0);
 
         /* Skip the remaining fields as they're not supported by the BIOS */
-		/* e.g. 2048 header bytes minus whatever we've actually used */
+        /* e.g. 2048 header bytes minus whatever we've actually used */
         . = . + 1992;
     } > loader
 
