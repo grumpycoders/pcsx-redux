@@ -30,10 +30,10 @@ OUTPUT_FORMAT("binary")
 EXTERN(_start)
 ENTRY(_start)
 
-TLOAD_ADDR = DEFINED(_TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
+TLOAD_ADDR = DEFINED(TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
 
 MEMORY {
-    loader      : ORIGIN = 0x8000f800, LENGTH = 2048
+    loader      : ORIGIN = (TLOAD_ADDR - 0x800), LENGTH = 2048
     ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
@@ -91,6 +91,7 @@ SECTIONS {
         LONG(0);
 
         /* Skip the remaining fields as they're not supported by the BIOS */
+        /* e.g. 2048 header bytes minus whatever we've actually used */
         . = . + 1992;
     } > loader
 
