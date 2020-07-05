@@ -98,6 +98,9 @@ void PCSX::GUI::init() {
             g_emulator->m_lua->pcall();
         } catch (std::runtime_error& e) {
             m_luaConsole.addError(e.what());
+            if (m_args.get<bool>("lua_stdout", false)) {
+                fprintf(stderr, "%s\n", e.what());
+            }
         }
     });
     auto printer = [this](Lua L, bool error) -> int {
@@ -120,6 +123,13 @@ void PCSX::GUI::init() {
             m_luaConsole.addError(s);
         } else {
             m_luaConsole.addLog(s);
+        }
+        if (m_args.get<bool>("lua_stdout", false)) {
+            if (error) {
+                fprintf(stderr, "%s\n", s.c_str());
+            } else {
+                fprintf(stdout, "%s\n", s.c_str());
+            }
         }
         return 0;
     };
