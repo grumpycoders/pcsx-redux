@@ -101,6 +101,9 @@ void PCSX::Lua::open_jit() {
 void PCSX::Lua::open_ffi() {
     int n = gettop();
     luaopen_ffi(L);
+    push("ffi");
+    copy(-2);
+    settable(LUA_GLOBALSINDEX);
     while (n < gettop()) pop();
 }
 
