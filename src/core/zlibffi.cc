@@ -23,8 +23,9 @@
 
 #include "core/luawrapper.h"
 
-static void keepSymbol(PCSX::Lua* L, void* ptr) {
-    L->push(ptr);
+template <typename T>
+static void keepSymbol(PCSX::Lua* L, T ptr) {
+    L->push((void*)ptr);
     L->pop();
 }
 
