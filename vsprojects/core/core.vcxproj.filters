@@ -260,5 +260,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\..\src\core\zlibffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -199,6 +199,7 @@
     <ClInclude Include="..\..\src\core\zlibffi.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\core\zlibffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
