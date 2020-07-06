@@ -154,6 +154,7 @@
     <ClCompile Include="..\..\src\core\stacktrace.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
+    <ClCompile Include="..\..\src\core\zlibffi.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\binloader.h" />
@@ -195,6 +196,7 @@
     <ClInclude Include="..\..\src\core\stacktrace.h" />
     <ClInclude Include="..\..\src\core\system.h" />
     <ClInclude Include="..\..\src\core\web-server.h" />
+    <ClInclude Include="..\..\src\core\zlibffi.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

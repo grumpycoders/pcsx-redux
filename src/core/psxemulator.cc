@@ -31,6 +31,7 @@
 #include "core/ppf.h"
 #include "core/r3000a.h"
 #include "core/web-server.h"
+#include "core/zlibffi.h"
 #include "gpu/soft/interface.h"
 #include "spu/interface.h"
 #include "uvw.hpp"
@@ -61,6 +62,7 @@ PCSX::Emulator::Emulator()
     m_lua->open_math();
     m_lua->open_string();
     m_lua->open_table();
+    LuaFFI::open_zlib(m_lua.get());
 }
 
 PCSX::Emulator::~Emulator() { m_lua->close(); }
