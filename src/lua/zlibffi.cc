@@ -17,11 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/zlibffi.h"
+#include "lua/zlibffi.h"
 
 #include <zlib.h>
 
-#include "core/luawrapper.h"
+#include "lua/luawrapper.h"
 
 template <typename T>
 static void keepSymbol(PCSX::Lua* L, T ptr) {
@@ -121,8 +121,8 @@ static void keepAllSymbols(PCSX::Lua* L) {
 void PCSX::LuaFFI::open_zlib(Lua* L) {
     static int lualoader = 1;
     static const char* zlibFFI = (
-#include "core/zlibffi.lua"
+#include "lua/zlibffi.lua"
     );
-    L->load(zlibFFI, "internal:FFI/zlib.lua");
+    L->load(zlibFFI, "internal:lua/zlibffi.lua");
     keepAllSymbols(L);
 }

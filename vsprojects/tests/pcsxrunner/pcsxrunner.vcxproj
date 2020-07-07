@@ -174,6 +174,12 @@
     <ProjectReference Include="..\..\libuv\libuv.vcxproj">
       <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\Lua\Lua.vcxproj">
+      <Project>{f0dabab6-069e-4b31-9bfc-296ce2fe23a6}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\luv\luv.vcxproj">
+      <Project>{c17379b6-11b1-43ab-a2ef-234ca1d91297}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\main\main.vcxproj">
       <Project>{36d6f879-f4cb-477e-bb87-33d867eddb0a}</Project>
     </ProjectReference>

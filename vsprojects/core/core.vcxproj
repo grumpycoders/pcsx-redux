@@ -130,7 +130,6 @@
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc" />
     <ClCompile Include="..\..\src\core\ix86\ix86.cc" />
-    <ClCompile Include="..\..\src\core\luawrapper.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\misc.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
@@ -154,7 +153,6 @@
     <ClCompile Include="..\..\src\core\stacktrace.cc" />
     <ClCompile Include="..\..\src\core\system.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
-    <ClCompile Include="..\..\src\core\zlibffi.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\binloader.h" />
@@ -171,7 +169,6 @@
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
-    <ClInclude Include="..\..\src\core\luawrapper.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
     <ClInclude Include="..\..\src\core\pad.h" />
@@ -196,10 +193,8 @@
     <ClInclude Include="..\..\src\core\stacktrace.h" />
     <ClInclude Include="..\..\src\core\system.h" />
     <ClInclude Include="..\..\src\core\web-server.h" />
-    <ClInclude Include="..\..\src\core\zlibffi.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\core\zlibffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -25,14 +25,17 @@
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
-#include "core/luawrapper.h"
 #include "core/mdec.h"
 #include "core/pad.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
 #include "core/web-server.h"
-#include "core/zlibffi.h"
 #include "gpu/soft/interface.h"
+#include "lua/luawrapper.h"
+#include "lua/zlibffi.h"
+extern "C" {
+#include "luv/src/luv.h"
+}
 #include "spu/interface.h"
 #include "uvw.hpp"
 
@@ -63,6 +66,10 @@ PCSX::Emulator::Emulator()
     m_lua->open_string();
     m_lua->open_table();
     LuaFFI::open_zlib(m_lua.get());
+    luv_set_loop(m_lua->getState(), m_loop->raw());
+    m_lua->push("luv");
+    luaopen_luv(m_lua->getState());
+    m_lua->settable(LUA_GLOBALSINDEX);
 }
 
 PCSX::Emulator::~Emulator() { m_lua->close(); }

@@ -34,7 +34,6 @@
 #include "core/cdrom.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
-#include "core/luawrapper.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -46,6 +45,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "zstr.hpp"
 

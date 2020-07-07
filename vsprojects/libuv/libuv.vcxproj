@@ -158,6 +158,7 @@
     <ClCompile Include="..\..\third_party\libuv\src\fs-poll.c" />
     <ClCompile Include="..\..\third_party\libuv\src\idna.c" />
     <ClCompile Include="..\..\third_party\libuv\src\inet.c" />
+    <ClCompile Include="..\..\third_party\libuv\src\random.c" />
     <ClCompile Include="..\..\third_party\libuv\src\strscpy.c" />
     <ClCompile Include="..\..\third_party\libuv\src\threadpool.c" />
     <ClCompile Include="..\..\third_party\libuv\src\timer.c" />

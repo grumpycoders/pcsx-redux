@@ -41,3 +41,6 @@
 	path = third_party/luajit
 	url = https://github.com/LuaJIT/LuaJIT.git
 
+[submodule "third_party/luv"]
+	path = third_party/luv
+	url = https://github.com/luvit/luv.git

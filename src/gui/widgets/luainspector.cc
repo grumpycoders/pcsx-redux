@@ -19,17 +19,57 @@
 
 #include "gui/widgets/luainspector.h"
 
-#include "core/luawrapper.h"
+#include <set>
+
 #include "fmt/format.h"
 #include "imgui.h"
+#include "lua/luawrapper.h"
 
 void PCSX::Widgets::LuaInspector::dumpTree(const std::string& label, Lua* L, int i) {
     if (L->istable(i)) {
         if (!ImGui::TreeNode(label.c_str())) return;
+        std::set<lua_Number> numerals;
+        std::set<std::string> strings;
         L->push();
         L->checkstack();
         while (L->next(i) != 0) {
-            dumpTree(L->tostring(-2), L, L->gettop());
+            switch (L->type(-2)) {
+                case LUA_TSTRING:
+                    strings.insert(L->tostring(-2));
+                    break;
+                case LUA_TNUMBER:
+                    numerals.insert(L->tonumber(-2));
+                    break;
+            }
+            L->pop();
+        }
+
+        for (auto n : numerals) {
+            L->push(n);
+            std::string label = L->tostring();
+            L->gettable(i, true);
+            dumpTree(label, L, L->gettop());
+            L->pop();
+        }
+
+        for (auto s : strings) {
+            L->push(s);
+            L->gettable(i, true);
+            dumpTree(s, L, L->gettop());
+            L->pop();
+        }
+
+        L->push();
+        while (L->next(i) != 0) {
+            switch (L->type(-2)) {
+                case LUA_TSTRING:
+                    break;
+                case LUA_TNUMBER:
+                    break;
+                default:
+                    dumpTree(L->tostring(-2), L, L->gettop());
+                    break;
+            }
             L->pop();
         }
         ImGui::TreePop();

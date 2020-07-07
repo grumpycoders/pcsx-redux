@@ -1,4 +1,4 @@
---lualoader, R"lua(--
+--lualoader, R"EOF(--
 --zlib binding, taken and modified from https://github.com/luapower/zlib
 --Written by Cosmin Apreutesei. Public Domain.
 
@@ -440,4 +440,5 @@ zlib = {
     adler32 = adler32,
     crc32 = crc32,
 }
--- )lua"
+
+-- )EOF"

@@ -26,12 +26,12 @@
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
-#include "core/luawrapper.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "flags.h"
 #include "gui/gui.h"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
 
 static PCSX::GUI *s_gui;
