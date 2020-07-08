@@ -159,7 +159,7 @@ enum {
     PSXINT_CDRPLAY
 };
 
-typedef struct {
+struct psxRegisters {
     psxGPRRegs GPR;  /* General Purpose Registers */
     psxCP0Regs CP0;  /* Coprocessor0 Registers */
     psxCP2Data CP2D; /* Cop2 data registers */
@@ -175,7 +175,7 @@ typedef struct {
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
     bool ICache_valid;
-} psxRegisters;
+};
 
 // U64 and S64 are used to wrap long integer constants.
 #define U64(val) val##ULL
