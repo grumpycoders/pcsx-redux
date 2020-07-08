@@ -17,12 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "imgui.h"
+#include "gui/widgets/registers.h"
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
 #include "core/system.h"
-#include "gui/widgets/registers.h"
+#include "fmt/format.h"
+#include "imgui.h"
+#include "imgui_stdlib.h"
 
 void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
@@ -31,6 +33,8 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
         ImGui::End();
         return;
     }
+
+    std::string editorToOpen;
 
     if (ImGui::BeginTabBar(_("Registers"))) {
         if (ImGui::BeginTabItem("GPR")) {
@@ -53,7 +57,13 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
                     name = PCSX::Disasm::s_disRNameGPR[counter];
                 }
                 counter++;
+                std::string label = fmt::format(_("Edit##{}"), name);
                 ImGui::Text("%s: %08x", name, reg);
+                ImGui::SameLine();
+                if (ImGui::SmallButton(label.c_str())) {
+                    editorToOpen = fmt::format(_("Edit value of {}"), name);
+                    snprintf(m_registerEditor, 19, "%08x", reg);
+                }
             }
             ImGui::EndTabItem();
         }
@@ -149,4 +159,41 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
     }
 
     ImGui::End();
+
+    if (!editorToOpen.empty()) ImGui::OpenPopup(editorToOpen.c_str());
+    unsigned counter = 0;
+    for (auto& reg : registers->GPR.r) {
+        const char* name;
+        if (counter >= 32) {
+            switch (counter) {
+                case 32:
+                    name = "hi";
+                    break;
+                case 33:
+                    name = "lo";
+                    break;
+                default:
+                    name = "??";
+                    break;
+            }
+        } else {
+            name = PCSX::Disasm::s_disRNameGPR[counter];
+        }
+        counter++;
+        std::string editor = fmt::format(_("Edit value of {}"), name);
+        if (ImGui::BeginPopupModal(editor.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text(_("Change the value of register %s:"), name);
+            if (ImGui::InputText(_("Register"), m_registerEditor, 20,
+                                 ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+                char* endPtr;
+                uint32_t newReg = strtoul(m_registerEditor, &endPtr, 16);
+                if (!*endPtr) {
+                    reg = newReg;
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            if (ImGui::Button(_("Cancel"))) ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+        }
+    }
 }
