@@ -133,6 +133,15 @@ struct PsyqLnkFile {
         uint32_t size = 0;
         std::string name;
         ELFIO::Elf_Word elfSym;
+        uint32_t getOffset(PsyqLnkFile* psyq) const {
+            if (symbolType == Type::UNINITIALIZED) {
+                auto section = psyq->sections.find(sectionIndex);
+                assert(section != psyq->sections.end());
+                return section->data.size() + section->zeroes + offset;
+            } else {
+                return offset;
+            }
+        }
         void display(PsyqLnkFile* lnk);
         bool generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_section_accessor& stra,
                                ELFIO::symbol_section_accessor& syma);
@@ -478,7 +487,7 @@ void PsyqLnkFile::Symbol::display(PsyqLnkFile* lnk) {
             fmt::print("** BROKEN SYMBOL AT INDEX {:04x} **\n", getKey());
         } else {
             fmt::print("    {:04x}   {:6}   ({:04x})  {:12}   {:08x}   {:8}   {}\n", getKey(), "EXPORT", sectionIndex,
-                       section->name, offset, "", name);
+                       section->name, getOffset(lnk), "", name);
         }
     } else if (symbolType == Type::IMPORTED) {
         fmt::print("    {:04x}   {:6}   {:6}  {:12}   {:8}   {:8}   {}\n", getKey(), "IMPORT", "", "", "", "", name);
@@ -487,8 +496,8 @@ void PsyqLnkFile::Symbol::display(PsyqLnkFile* lnk) {
         if (section == lnk->sections.end()) {
             fmt::print("** BROKEN SYMBOL AT INDEX {:04x} **\n", getKey());
         } else {
-            fmt::print("    {:04x}   {:6}   ({:04x})  {:12}   {:8}   {:08x}   {}\n", getKey(), "UNDEFN", sectionIndex,
-                       section->name, "", size, name);
+            fmt::print("    {:04x}   {:6}   ({:04x})  {:12}  ({:08x})  {:08x}   {}\n", getKey(), "UNDEFN", sectionIndex,
+                       section->name, getOffset(lnk), size, name);
         }
     }
 }
@@ -655,7 +664,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         }
         elfSectionIndex = section->section->get_index();
     }
-    elfSym = syma.add_symbol(stra, name.c_str(), offset, size, STB_GLOBAL, STT_NOTYPE, 0, elfSectionIndex);
+    elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), size, STB_GLOBAL, STT_NOTYPE, 0, elfSectionIndex);
     return true;
 }
 
@@ -840,7 +849,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                     return false;
                 }
                 if (symbol->symbolType != PsyqLnkFile::Symbol::Type::IMPORTED) {
-                    return localSymbolReloc(symbol->sectionIndex, symbol->offset + addend);
+                    return localSymbolReloc(symbol->sectionIndex, symbol->getOffset(psyq) + addend);
                 }
                 ELFIO::Elf_Word elfSym = symbol->elfSym;
                 // this is the most complex case, as the psyq format can do

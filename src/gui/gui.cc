@@ -715,6 +715,8 @@ void PCSX::GUI::endFrame() {
     changed |= PCSX::g_emulator->m_gpu->configure();
     changed |= configure();
 
+    m_notifier.draw();
+
     auto& io = ImGui::GetIO();
 
     ImGui::Render();

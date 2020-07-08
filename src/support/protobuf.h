@@ -336,7 +336,13 @@ struct FixedBytes {
         allocate();
         memcpy(value, src, amount);
     }
-    constexpr void copyTo(uint8_t *dst) const { memcpy(dst, value, amount); }
+    constexpr void copyTo(uint8_t *dst) const {
+        if (!value) {
+            memset(dst, 0, amount);
+        } else {
+            memcpy(dst, value, amount);
+        }
+    }
     typedef uint8_t *type;
     constexpr void reset() {
         allocate();

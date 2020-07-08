@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include <stdarg.h>
-
-struct psxRegisters;
+#include <string>
 
 namespace PCSX {
+struct psxRegisters;
+
 namespace Widgets {
 
 class Registers {
@@ -34,6 +34,7 @@ class Registers {
 
   private:
     unsigned m_selected = 0;
+    char m_registerEditor[20];
 };
 
 }  // namespace Widgets

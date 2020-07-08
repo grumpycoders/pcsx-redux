@@ -25,6 +25,7 @@
 
 #include "core/system.h"
 #include "flags.h"
+#include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/console.h"
@@ -68,9 +69,35 @@ class GUI final {
         va_end(args);
     }
     void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
+    class Notifier {
+      public:
+        Notifier(std::function<const char *()> title) : m_title(title) {}
+        void notify(const std::string &message) {
+            m_message = message;
+            ImGui::OpenPopup(m_title());
+        }
+        bool draw() {
+            bool done = false;
+            if (ImGui::BeginPopupModal(m_title(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::TextUnformatted(m_message.c_str());
+                if (ImGui::Button(_("Ok"), ImVec2(120, 0))) {
+                    ImGui::CloseCurrentPopup();
+                    done = true;
+                }
+                ImGui::EndPopup();
+            }
+            return done;
+        }
+
+      private:
+        const std::function<const char *()> m_title;
+        std::string m_message;
+    };
     void addNotification(const char *fmt, va_list args) {
-        // TODO
-        // SDL_TriggerBreakpoint();
+        char notification[1024];
+        vsnprintf(notification, 1023, fmt, args);
+        notification[1023] = 0;
+        m_notifier.notify(notification);
     }
 
     void magicOpen(const char *path);
@@ -183,6 +210,7 @@ class GUI final {
     void shellReached();
 
     PCSX::u8string m_exeToLoad;
+    Notifier m_notifier = {[]() { return _("Notification"); }};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 };
