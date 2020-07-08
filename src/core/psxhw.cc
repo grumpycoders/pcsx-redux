@@ -417,7 +417,8 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
         case 0x1f801070:
             PSXHW_LOG("IREG 16bit write %x\n", value);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) psxHu16ref(0x1070) |= SWAP_LEu16(0x80);
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) psxHu16ref(0x1070) |= SWAP_LEu16(0x200);
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>())
+                psxHu16ref(0x1070) |= SWAP_LEu16(0x200);
             psxHu16ref(0x1070) &= SWAP_LEu16(value);
             return;
 
@@ -699,6 +700,9 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         case 0x1f801128:
             PSXHW_LOG("COUNTER 2 TARGET 32bit write %x\n", value);
             PCSX::g_emulator->m_psxCounters->psxRcntWtarget(2, value & 0xffff);
+            return;
+        case 0x1f802084:
+            g_system->message("%s", PSXM(value));
             return;
         default:
             // Dukes of Hazard 2 - car engine noise
