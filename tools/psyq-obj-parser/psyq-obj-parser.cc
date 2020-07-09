@@ -334,13 +334,17 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                 section->alignment = alignment;
                 section->name = name;
                 ret->sections.insert(sectionIndex, section);
+                if ((alignment - 1) & alignment) {
+                    fmt::print("Section alignment {} isn't a power of two.\n", alignment);
+                    return nullptr;
+                }
                 break;
             }
             case (uint8_t)PsyqOpcode::PROGRAMTYPE: {
                 uint8_t type = file->read<uint8_t>();
                 vprint("Program type {}\n", type);
                 if (type != 7) {
-                    fmt::print("Unknown program type {}\n", type);
+                    fmt::print("Unknown program type {}.\n", type);
                     return nullptr;
                 }
                 if (ret->gotProgramSeven) {
@@ -367,6 +371,9 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                     fmt::print("Section {} not found.\n", sectionIndex);
                     return nullptr;
                 }
+                auto align = section->alignment - 1;
+                section->uninitializedOffset += align;
+                section->uninitializedOffset &= ~align;
                 symbol->offset = section->uninitializedOffset;
                 section->uninitializedOffset += size;
                 ret->symbols.insert(symbolIndex, symbol);
