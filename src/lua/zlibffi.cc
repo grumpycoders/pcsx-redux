@@ -115,7 +115,7 @@ static void keepAllSymbols(PCSX::Lua* L) {
     keepSymbol(L, inflateCodesUsed);
     keepSymbol(L, inflateResetKeep);
     keepSymbol(L, deflateResetKeep);
-    keepSymbol(L, gzopen_w);
+//    keepSymbol(L, gzopen_w);
 }
 
 void PCSX::LuaFFI::open_zlib(Lua* L) {
