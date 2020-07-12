@@ -37,3 +37,6 @@
 [submodule "third_party/ELFIO"]
 	path = third_party/ELFIO
 	url = https://github.com/serge1/ELFIO.git
+[submodule "third_party/libcester"]
+	path = third_party/libcester
+	url = https://github.com/exoticlibraries/libcester.git
