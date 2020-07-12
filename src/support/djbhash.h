@@ -17,14 +17,27 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL_main.h>
+#pragma once
 
-#include "main/main.h"
+#include <stdint.h>
 
-int main(int argc, char** argv) {
-    int r;
-    do {
-        r = pcsxMain(argc, argv);
-    } while (r == 0x12eb007);
-    return r;
-}
+#include <string>
+
+namespace PCSX {
+
+struct djbHash {
+  private:
+    static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
+        return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
+    }
+
+  public:
+    template <size_t S>
+    static inline constexpr uint64_t ctHash(const char (&str)[S]) {
+        return djbProcess(5381, str, S - 1);
+    }
+    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
+    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
+};
+
+}  // namespace PCSX

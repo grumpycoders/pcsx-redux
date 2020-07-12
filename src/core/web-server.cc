@@ -102,6 +102,10 @@ struct PCSX::WebClient::WebClientImpl {
         WriteRequest() {}
         WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
         void enqueue(WebClientImpl* client) {
+            if (client->m_closeScheduled) {
+                delete this;
+                return;
+            }
             client->m_requests.push_back(this);
             client->m_tcp->write(static_cast<char*>(const_cast<void*>(m_slice.data())), m_slice.size());
         }
@@ -127,7 +131,7 @@ struct PCSX::WebClient::WebClientImpl {
         m_httpParser.data = this;
     }
     void close() {
-        assert(m_status == OPEN);
+        if (m_status != OPEN) return;
         m_status = CLOSING;
         m_tcp->close();
     }
@@ -135,12 +139,18 @@ struct PCSX::WebClient::WebClientImpl {
         assert(m_status == CLOSED);
         m_tcp->on<uvw::CloseEvent>([this](const uvw::CloseEvent&, uvw::TCPHandle&) { delete m_parent; });
         m_tcp->on<uvw::EndEvent>([this](const uvw::EndEvent&, uvw::TCPHandle&) { onEOF(); });
-        m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent&, uvw::TCPHandle&) { close(); });
+        m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& e, uvw::TCPHandle&) {
+            const char* name = e.name();
+            const char* what = e.what();
+            g_system->printf("WebServer libuv error: %s - %s\n", name, what);
+            close();
+        });
         m_tcp->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle&) { read(event); });
         m_tcp->on<uvw::WriteEvent>([this](const uvw::WriteEvent&, uvw::TCPHandle&) {
             auto top = m_requests.begin();
             if (top == m_requests.end()) return;
             top->gotWriteEvent();
+            if (m_closeScheduled && (m_requests.size() == 0)) close();
         });
         srv->accept(*m_tcp);
         m_tcp->read();
@@ -152,7 +162,7 @@ struct PCSX::WebClient::WebClientImpl {
         if (m_httpParser.upgrade) {
             onUpgrade();
         }
-        close();
+        scheduleClose();
     }
 
     void onUpgrade() {}
@@ -247,7 +257,7 @@ struct PCSX::WebClient::WebClientImpl {
 
         auto parsed = http_parser_execute(&m_httpParser, &m_httpParserSettings, ptr, size);
         if (m_status != OPEN) return;
-        if (parsed != size) close();
+        if (parsed != size) send400();
         if (m_httpParser.upgrade) {
             onUpgrade();
         }
@@ -276,9 +286,14 @@ struct PCSX::WebClient::WebClientImpl {
         write(std::move(slice));
     }
 
+    void send400() {
+        write("HTTP/1.1 400 Bad Request\r\n\r\nThis request failed to parse properly.\r\n");
+        scheduleClose();
+    }
+
     void send404() {
-        write("HTTP/1.1 404 Not Found\r\n\r\nURL Not found\r\n");
-        close();
+        write("HTTP/1.1 404 Not Found\r\n\r\nURL Not found.\r\n");
+        scheduleClose();
     }
 
     bool findExecutor() {
@@ -292,8 +307,15 @@ struct PCSX::WebClient::WebClientImpl {
     int executeRequest() {
         m_requestData.method = static_cast<RequestData::Method>(m_httpParser.method);
         m_currentExecutor->execute(m_parent, m_requestData);
-        close();
+        scheduleClose();
         return 0;
+    }
+    void scheduleClose() {
+        if (m_requests.size() == 0) {
+            close();
+        } else {
+            m_closeScheduled = true;
+        }
     }
 
     WebServer* m_server;
@@ -306,6 +328,8 @@ struct PCSX::WebClient::WebClientImpl {
 
     std::string m_currentHeader;
     RequestData m_requestData;
+
+    bool m_closeScheduled = false;
 };
 
 PCSX::WebClient::WebClient(WebServer* server, std::shared_ptr<uvw::TCPHandle> srv)

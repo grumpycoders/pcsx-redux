@@ -1,5 +1,5 @@
 trigger:
-- master
+- main
 
 pool:
   vmImage: 'windows-2019'
@@ -38,7 +38,7 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: 'x86'
-    maximumCpuCount: true
+    maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
@@ -52,7 +52,7 @@ steps:
   inputs:
     solution: '$(solution)'
     platform: 'x64'
-    maximumCpuCount: true
+    maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
 - task: CopyFiles@2
@@ -69,6 +69,7 @@ steps:
       **\*.exe
       !**\pcsxrunner.exe
       !**\pcsx-redux.exe
+      !**\psyq-obj-parser.exe
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'
     codeCoverageEnabled: True

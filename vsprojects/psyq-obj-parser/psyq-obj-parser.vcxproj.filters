@@ -3,11 +3,11 @@
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
@@ -15,42 +15,45 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\support\file.cc">
+    <ClCompile Include="..\..\tools\psyq-obj-parser\psyq-obj-parser.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\support\file.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elf_types.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\protobuf.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\slice.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dump.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\list.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_dynamic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\hashtable.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_header.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\json.hpp">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_note.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\settings.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_relocation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\typestring.hh">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_section.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\interval_tree.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_segment.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\eventbus.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_strings.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\support\djbhash.h">
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_symbols.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\ELFIO\elfio\elfio_utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

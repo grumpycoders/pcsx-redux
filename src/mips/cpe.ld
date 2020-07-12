@@ -30,10 +30,10 @@ OUTPUT_FORMAT("binary")
 EXTERN(_start)
 ENTRY(_start)
 
-TLOAD_ADDR = DEFINED(_TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
+TLOAD_ADDR = DEFINED(TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
 
 MEMORY {
-    loader      : ORIGIN = 0x8000ffea, LENGTH = 22
+    loader      : ORIGIN = (TLOAD_ADDR - 22), LENGTH = 22
     ram (rwx)   : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
