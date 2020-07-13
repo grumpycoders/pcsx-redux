@@ -71,6 +71,28 @@
         },
 
         {
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch libc Test",
+            "target": "./src/mips/tests/libc/libc.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "target remote localhost:3333",
+                "symbol-file ./src/mips/tests/libc/libc.elf",
+                "set substitute-path /project .",
+                "load ./src/mips/tests/libc/libc.elf",
+                "monitor reset halt",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
             "name": "(gdb) Launch PCSX-Redux",
             "type": "cppdbg",
             "request": "launch",

@@ -49,6 +49,7 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/libc/src/rand.c \
 ../../../third_party/uC-sdk/libc/src/reent.c \
 ../../../third_party/uC-sdk/libc/src/stdio.c \
+../../../third_party/uC-sdk/libc/src/string.c \
 ../../../third_party/uC-sdk/libc/src/strto.c \
 ../../../third_party/uC-sdk/libc/src/unistd.c \
 ../../../third_party/uC-sdk/libc/src/xprintf.c \
