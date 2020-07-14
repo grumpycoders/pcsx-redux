@@ -28,12 +28,14 @@ SOFTWARE.
 
 CESTER_BODY(
     static int icmp(const void * a, const void * b) {
-        return *(const int*)a - *(const int*)b;
+        return *(const int *) a - *(const int *) b;
     }
 )
 
-CESTER_TEST(numbers, qsort,
+CESTER_TEST(qsortWithNumbers, test_instance,
     static const int sorted[] = {
+        127,
+        257,
         509,
         1021,
         2053,
@@ -48,37 +50,23 @@ CESTER_TEST(numbers, qsort,
         1048573,
         2097143,
         4194301,
-        8388617,
-        16777213,
-        33554467,
-        67108859,
-        134217757,
-        268435459,
-        536870909,
-        1073741827,
     };
     int input[] = {
         2097143,
         8191,
         509,
         1021,
-        67108859,
+        257,
         65537,
         4099,
-        134217757,
-        1073741827,
         1048573,
         524287,
+        127,
         131071,
-        16777213,
         4194301,
-        536870909,
-        8388617,
         16381,
         32771,
         2053,
-        268435459,
-        33554467,
         262147,
     };
 
@@ -87,6 +75,73 @@ CESTER_TEST(numbers, qsort,
     syscall_qsort(input, size, sizeof(input[0]), icmp);
 
     for (int i = 0; i < size; i++) {
-        cester_assert_int_eq(input[i], sorted[i]);
+        cester_assert_int_eq(sorted[i], input[i]);
+    }
+)
+
+CESTER_BODY(
+    static int scmp(const void * a, const void * b) {
+        return syscall_strcmp(*(const char **) a, *(const char **) b);
+    }
+)
+
+CESTER_TEST(qsortWithStrings, test_instance,
+    static const char * const sorted[] = {
+        "arch",
+        "authority",
+        "calculating",
+        "duck",
+        "dysfunctional",
+        "embarrassed",
+        "fish",
+        "flow",
+        "hanging",
+        "help",
+        "helpful",
+        "linen",
+        "materialistic",
+        "outstanding",
+        "parched",
+        "purple",
+        "remain",
+        "robin",
+        "skilly",
+        "spiteful",
+        "stove",
+        "undesirable",
+        "wry",
+    };
+    const char * input[] = {
+        "stove",
+        "calculating",
+        "duck",
+        "undesirable",
+        "skilly",
+        "robin",
+        "linen",
+        "help",
+        "materialistic",
+        "parched",
+        "hanging",
+        "outstanding",
+        "spiteful",
+        "remain",
+        "authority",
+        "helpful",
+        "wry",
+        "purple",
+        "fish",
+        "embarrassed",
+        "arch",
+        "flow",
+        "dysfunctional",
+    };
+
+    static const int size = sizeof(input) / sizeof(input[0]);
+
+    syscall_qsort(input, size, sizeof(input[0]), scmp);
+
+    for (int i = 0; i < size; i++) {
+        cester_assert_str_equal(sorted[i], input[i]);
     }
 )

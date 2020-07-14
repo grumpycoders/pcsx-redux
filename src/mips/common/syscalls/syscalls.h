@@ -34,6 +34,8 @@ SOFTWARE.
 #include "common/psxlibc/device.h"
 #include "common/psxlibc/handlers.h"
 
+struct JmpBuf;
+
 static __attribute__((always_inline)) int enterCriticalSection() {
     register int n asm("a0") = 1;
     register int r asm("v0");
@@ -55,16 +57,94 @@ static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t addre
 }
 
 /* A0 table */
+static __attribute__((always_inline)) int syscall_setjmp(struct JmpBuf * buf) {
+    register int n asm("t1") = 0x13;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(struct JmpBuf * buf))0xa0)(buf);
+}
+
+static __attribute__((always_inline))  __attribute__((noreturn)) void syscall_longjmp(struct JmpBuf * buf, int ret) {
+    register int n asm("t1") = 0x14;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void(*)(struct JmpBuf *, int))0xa0)(buf, ret);
+}
+
+static __attribute__((always_inline)) char * syscall_strcat(char * dst, const char * src) {
+    register int n asm("t1") = 0x15;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(char *, const char *))0xa0)(dst, src);
+}
+
+static __attribute__((always_inline)) char * syscall_strncat(char * dst, const char * src, size_t size) {
+    register int n asm("t1") = 0x16;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(char *, const char *, size_t))0xa0)(dst, src, size);
+}
+
 static __attribute__((always_inline)) int syscall_strcmp(const char * s1, const char * s2) {
     register int n asm("t1") = 0x17;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((int(*)(const char * s1, const char * s2))0xa0)(s1, s2);
+    return ((int(*)(const char *, const char *))0xa0)(s1, s2);
+}
+
+static __attribute__((always_inline)) int syscall_strncmp(const char * s1, const char * s2, size_t size) {
+    register int n asm("t1") = 0x18;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int(*)(const char *, const char *, size_t))0xa0)(s1, s2, size);
+}
+
+static __attribute__((always_inline)) char * syscall_strcpy(char * dst, const char * src) {
+    register int n asm("t1") = 0x19;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(char *, const char *))0xa0)(dst, src);
+}
+
+static __attribute__((always_inline)) char * syscall_strncpy(char * dst, const char * src, size_t size) {
+    register int n asm("t1") = 0x1a;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(char *, const char *, size_t))0xa0)(dst, src, size);
+}
+
+static __attribute__((always_inline)) size_t syscall_strlen(const char * s) {
+    register int n asm("t1") = 0x1b;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((size_t(*)(const char *))0xa0)(s);
+}
+
+static __attribute__((always_inline)) char * syscall_index(const char * s, int c) {
+    register int n asm("t1") = 0x1c;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(const char *, int c))0xa0)(s, c);
+}
+
+static __attribute__((always_inline)) char * syscall_rindex(const char * s, int c) {
+    register int n asm("t1") = 0x1d;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(const char *, int c))0xa0)(s, c);
+}
+
+static __attribute__((always_inline)) char * syscall_strchr(const char * s, int c) {
+    register int n asm("t1") = 0x1e;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(const char *, int c))0xa0)(s, c);
+}
+
+static __attribute__((always_inline)) char * syscall_strrchr(const char * s, int c) {
+    register int n asm("t1") = 0x1f;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((char *(*)(const char *, int c))0xa0)(s, c);
 }
 
 static __attribute__((always_inline)) void * syscall_memcpy(void * dst, const void * src, size_t count) {
     register int n asm("t1") = 0x2a;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((void *(*)(void *, const void *, size_t))0xa0)(dst, src, count);
+}
+
+static __attribute__((always_inline)) void * syscall_memset(void * dst, int c, size_t count) {
+    register int n asm("t1") = 0x2b;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((void *(*)(void *, int, size_t))0xa0)(dst, c, count);
 }
 
 static __attribute__((always_inline)) void syscall_qsort(void *base, size_t nel, size_t width, int (*compar)(const void *, const void *)) {

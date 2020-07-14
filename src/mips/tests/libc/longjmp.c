@@ -24,13 +24,20 @@ SOFTWARE.
 
 */
 
-#undef unix
-#define CESTER_NO_SIGNAL
-#define CESTER_NO_TIME
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-#include "exotic/cester.h"
+#include "common/psxlibc/setjmp.h"
+#include "common/syscalls/syscalls.h"
 
-#include "longjmp.c"
-#include "qsort.c"
-#include "string.c"
+CESTER_BODY(
+    static struct JmpBuf jmpbuf;
+    static int count = 0;
+)
+
+CESTER_TEST(basicSetJmpLongJmp, test_instance,
+    int r = syscall_setjmp(&jmpbuf);
+    count++;
+
+    if (r == 0) syscall_longjmp(&jmpbuf, 1);
+
+    cester_assert_int_eq(1, r);
+    cester_assert_int_eq(2, count);
+)
