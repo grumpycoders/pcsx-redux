@@ -62,10 +62,9 @@ CESTER_TEST(strncpyBigger, test_instance,
 )
 
 CESTER_TEST(strncpySmaller, test_instance,
-    char b[8];
+    char b[8] = { 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'};
     char * s;
 
-    syscall_memset(b, 'x', sizeof(b));
     s = syscall_strncpy(b, "abc", sizeof(b));
     cester_assert_ptr_equal(b, s);
     cester_assert_str_equal("abc", b);
@@ -77,4 +76,26 @@ CESTER_TEST(strncpySmaller, test_instance,
     cester_assert_int_eq(0, b[5]);
     cester_assert_int_eq(0, b[6]);
     cester_assert_int_eq(0, b[7]);
+)
+
+CESTER_TEST(strncatBigger, test_instance,
+    char b[8] = { 'a', 'b', 'c', 0, 'x', 'x', 'x', 'x' };
+    char * s;
+
+    s = syscall_strncat(b, "123456", 3);
+    cester_assert_ptr_equal(b, s);
+    cester_assert_str_equal("abc123", b);
+    cester_assert_int_eq(0, b[6]);
+    cester_assert_int_eq('x', b[7]);
+)
+
+CESTER_TEST(strncatSmaller, test_instance,
+    char b[8] = { 'a', 'b', 'c', 0, 'x', 'x', 'x', 'x' };
+    char * s;
+
+    s = syscall_strncat(b, "123", 6);
+    cester_assert_ptr_equal(b, s);
+    cester_assert_str_equal("abc123", b);
+    cester_assert_int_eq(0, b[6]);
+    cester_assert_int_eq('x', b[7]);
 )
