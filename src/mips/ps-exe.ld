@@ -163,12 +163,12 @@ SECTIONS {
         *(.data1)
         *(.got.plt)
         *(.got)
+        /* pad file to be a multiple of 2048 bytes.  Needed for loading from CD-ROM. */
+        . = ALIGN(2048);
     } > ram
 
-    . = ALIGN(4);
     __data_end = .;
     __fdata_end = .;
-    . = ALIGN(4);
     __bss_start = .;
     .sbss (NOLOAD) : {
         *(.dynsbss)
@@ -185,9 +185,6 @@ SECTIONS {
     __heap_start = .;
 
     __end = .;
-
-    /* pad file to be a multiple of 2048 bytes.  Needed for loading from CD-ROM. */
-    . = ADDR(.text) - 0x800;
 
     /DISCARD/ : { *(.MIPS.abiflags) }
 
