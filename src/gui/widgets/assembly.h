@@ -107,7 +107,7 @@ class Assembly : private Disasm {
 
     void rebuildSymbolsCaches();
 
-    bool m_showSymbols;
+    bool m_showSymbols = false;
     std::string m_symbolFilter;
 };
 

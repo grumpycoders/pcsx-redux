@@ -45,7 +45,7 @@ class List final {
 
             src.m_parent = nullptr;
         }
-        ~Node() { unlink(); }
+        virtual ~Node() { unlink(); }
         bool isLinked() const { return m_parent; }
         void unlink() {
             if (!isLinked()) return;

@@ -223,7 +223,7 @@ class GdbServer {
 
   private:
     void onNewConnection();
-    GdbServerStatus m_serverStatus;
+    GdbServerStatus m_serverStatus = SERVER_STOPPED;
     std::shared_ptr<uvw::TCPHandle> m_server;
     GdbClient::ListType m_clients;
     EventBus::Listener m_listener;

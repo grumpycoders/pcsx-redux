@@ -26,11 +26,10 @@ CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 
 CPPFLAGS_Release += -O3
-
 CPPFLAGS_Debug += -O0
-
 CPPFLAGS_Coverage += -O0
 CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
 
 ifeq ($(UNAME_S),Darwin)
 	CPPFLAGS += -mmacosx-version-min=10.15
@@ -51,6 +50,7 @@ LDFLAGS += -ldl
 LDFLAGS += -g
 
 LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
+LDFLAGS_asan += -fsanitize=address
 
 CPPFLAGS += $(CPPFLAGS_$(BUILD))
 LDFLAGS += $(LDFLAGS_$(BUILD))
