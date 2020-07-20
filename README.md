@@ -30,7 +30,7 @@ The only location for the source is [on github](https://github.com/grumpycoders/
 Install [Visual Studio 2019 Community Edition](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16). Open the file `vsprojects\pcsx-redux.sln`, select `pcsx-redux -> main`, right click, `Set as Startup Projet`, and hit `F7` to build. The project follows the open-and-build paradigm with no extra step, so no specific dependency ought to be needed, as [NuGet](https://www.nuget.org/) will take care of downloading them automatically for you on the first build.
 
 ### Linux
-Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/Dockerfile#L15) for a list of library packages to install.
+Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install.
 
 ### MacOS
 You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
