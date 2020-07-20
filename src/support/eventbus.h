@@ -59,7 +59,7 @@ class Listener {
 
   private:
     std::shared_ptr<EventBus> m_bus;
-    ListenerBaseEventBusList m_listeners;
+    ListenerBaseListType m_listeners;
 };
 
 struct ListenerElementsHashTableList;
