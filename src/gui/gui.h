@@ -150,10 +150,13 @@ class GUI final {
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
-    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY>
+    typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
+    Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
+             IdleSwapInterval>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
+    int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
     bool m_showDemo = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
