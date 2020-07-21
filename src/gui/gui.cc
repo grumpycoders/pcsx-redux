@@ -154,14 +154,29 @@ end)(jit.status()))
     }
 
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
+    m_listener.listen<Events::ExecutionFlow::Pause>(
+        [this](const auto& event) { glfwSwapInterval(m_idleSwapInterval); });
+    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { glfwSwapInterval(0); });
+
+    auto monitor = glfwGetPrimaryMonitor();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    auto monitor = glfwGetPrimaryMonitor();
+    m_hasCoreProfile = true;
 
     m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+
+    if (!m_window) {
+        glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        m_hasCoreProfile = false;
+
+        m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+    }
     assert(m_window);
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
@@ -224,6 +239,8 @@ end)(jit.status()))
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
     }
+    if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
+
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -565,7 +582,11 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
             ImGui::Separator();
-            ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            if (g_system->running()) {
+                ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            } else {
+                ImGui::Text(_("Idle"));
+            }
 
             ImGui::EndMainMenuBar();
         }
@@ -795,6 +816,10 @@ bool PCSX::GUI::configure() {
                 g_system->activateLocale(currentLocale);
             }
         }
+        if (ImGui::SliderInt(_("Idle Swap Interval"), &m_idleSwapInterval, 0, 10)) {
+            changed = true;
+            if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
+        }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
@@ -1017,6 +1042,7 @@ void PCSX::GUI::about() {
             ImGui::TextWrapped("%s: %s", str, value);
         };
         ImGui::TextUnformatted(_("OpenGL information"));
+        ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
         someString(_("vendor"), GL_VENDOR);
         someString(_("renderer"), GL_RENDERER);
         someString(_("version"), GL_VERSION);

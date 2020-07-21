@@ -206,6 +206,7 @@ int pcsxMain(int argc, char **argv) {
     s_gui = new PCSX::GUI(args);
     s_gui->init();
     system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
+    if (args.get<bool>("stdout")) system->m_enableStdout = true;
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     const PCSX::u8string &logfileSet = emulator->settings.get<PCSX::Emulator::SettingLogfile>().string();

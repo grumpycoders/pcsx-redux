@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2019 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,26 +24,5 @@ SOFTWARE.
 
 */
 
-#include "common/syscalls/syscalls.h"
+#pragma once
 
-#undef unix
-#define CESTER_NO_SIGNAL
-#define CESTER_NO_TIME
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-#include "exotic/cester.h"
-
-CESTER_TEST(KernelPrintf, BasicTests,
-    ramsyscall_printf("Hello world\n");
-    cester_assert_equal(NULL, NULL);
-)
-
-CESTER_TEST(KernelStrCmp, BasicTests,
-    int r;
-    r = syscall_strcmp("A", "B");
-    cester_assert_cmp(r, <, 0);
-    r = syscall_strcmp("ABC", "ABCD");
-    cester_assert_cmp(r, <, 0);
-    r = syscall_strcmp("ABCD", "ABCD");
-    cester_assert_equal(r, 0);
-)

@@ -8,9 +8,14 @@ CC = $(PREFIX)-gcc
 TYPE ?= cpe
 LDSCRIPT ?= $(ROOTDIR)/$(TYPE).ld
 
+USE_FUNCTION_SECTIONS ?= true
+
 ARCHFLAGS = -march=mips1 -mabi=32 -EL -fno-pic -mno-shared -mno-abicalls -mfp32
 ARCHFLAGS += -fno-stack-protector -nostdlib -ffreestanding
-CPPFLAGS += -mno-gpopt -fomit-frame-pointer -ffunction-sections
+ifeq ($(USE_FUNCTION_SECTIONS),true)
+CPPFLAGS += -ffunction-sections
+endif
+CPPFLAGS += -mno-gpopt -fomit-frame-pointer
 CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)

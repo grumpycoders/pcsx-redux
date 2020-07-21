@@ -50,9 +50,9 @@
             "label": "make_openbios_clean",
             "type": "shell",
             "group": "build",
-            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios clean",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/openbios clean all",
             "windows": {
-                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios clean"
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/openbios clean all"
             },
             "problemMatcher": []
         },
@@ -72,9 +72,9 @@
             "label": "make_mipstests_clean",
             "type": "shell",
             "group": "build",
-            "command": "${workspaceRoot}/dockermake.sh -C src/mips/tests clean",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/tests clean all",
             "windows": {
-                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/tests clean"
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/tests clean all"
             },
             "problemMatcher": []
         },
@@ -106,9 +106,9 @@
             "label": "make_cube_clean",
             "type": "shell",
             "group": "build",
-            "command": "${workspaceRoot}/dockermake.sh -C src/mips/cube clean",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/cube clean all",
             "windows": {
-                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/cube clean"
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/cube clean all"
             },
             "problemMatcher": []
         }
