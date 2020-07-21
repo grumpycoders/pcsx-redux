@@ -99,13 +99,25 @@ void PCSX::GUI::init() {
         [this](const auto& event) { glfwSwapInterval(m_idleSwapInterval); });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { glfwSwapInterval(0); });
 
+    auto monitor = glfwGetPrimaryMonitor();
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    auto monitor = glfwGetPrimaryMonitor();
+    m_hasCoreProfile = true;
 
     m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+
+    if (!m_window) {
+        glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        m_hasCoreProfile = false;
+
+        m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+    }
     assert(m_window);
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
@@ -957,6 +969,7 @@ void PCSX::GUI::about() {
             ImGui::TextWrapped("%s: %s", str, value);
         };
         ImGui::TextUnformatted(_("OpenGL information"));
+        ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
         someString(_("vendor"), GL_VENDOR);
         someString(_("renderer"), GL_RENDERER);
         someString(_("version"), GL_VERSION);
