@@ -23,99 +23,115 @@
 
 #include "lua/luawrapper.h"
 
-template <typename T>
-static void keepSymbol(PCSX::Lua* L, T ptr) {
+template <typename T, size_t S>
+static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
+    L->push<S>(name);
     L->push((void*)ptr);
-    L->pop();
+    L->settable();
 }
 
-static void keepAllSymbols(PCSX::Lua* L) {
-    keepSymbol(L, zlibVersion);
-    keepSymbol(L, deflate);
-    keepSymbol(L, deflateEnd);
-    keepSymbol(L, inflate);
-    keepSymbol(L, inflateEnd);
-    keepSymbol(L, deflateSetDictionary);
-    keepSymbol(L, deflateGetDictionary);
-    keepSymbol(L, deflateCopy);
-    keepSymbol(L, deflateReset);
-    keepSymbol(L, deflateParams);
-    keepSymbol(L, deflateTune);
-    keepSymbol(L, deflateBound);
-    keepSymbol(L, deflatePending);
-    keepSymbol(L, deflatePrime);
-    keepSymbol(L, deflateSetHeader);
-    keepSymbol(L, inflateSetDictionary);
-    keepSymbol(L, inflateGetDictionary);
-    keepSymbol(L, inflateSync);
-    keepSymbol(L, inflateCopy);
-    keepSymbol(L, inflateReset);
-    keepSymbol(L, inflateReset2);
-    keepSymbol(L, inflatePrime);
-    keepSymbol(L, inflateMark);
-    keepSymbol(L, inflateGetHeader);
-    keepSymbol(L, inflateBack);
-    keepSymbol(L, inflateBackEnd);
-    keepSymbol(L, zlibCompileFlags);
-    keepSymbol(L, compress);
-    keepSymbol(L, compress2);
-    keepSymbol(L, compressBound);
-    keepSymbol(L, uncompress);
-    keepSymbol(L, uncompress2);
-    keepSymbol(L, gzopen);
-    keepSymbol(L, gzdopen);
-    keepSymbol(L, gzbuffer);
-    keepSymbol(L, gzsetparams);
-    keepSymbol(L, gzread);
-    keepSymbol(L, gzfread);
-    keepSymbol(L, gzwrite);
-    keepSymbol(L, gzfwrite);
-    keepSymbol(L, gzprintf);
-    keepSymbol(L, gzvprintf);
-    keepSymbol(L, gzputs);
-    keepSymbol(L, gzgets);
-    keepSymbol(L, gzputc);
-    keepSymbol(L, gzgetc);
-    keepSymbol(L, gzungetc);
-    keepSymbol(L, gzflush);
-    keepSymbol(L, gzseek);
-    keepSymbol(L, gzrewind);
-    keepSymbol(L, gztell);
-    keepSymbol(L, gzoffset);
-    keepSymbol(L, gzeof);
-    keepSymbol(L, gzdirect);
-    keepSymbol(L, gzclose);
-    keepSymbol(L, gzclose_r);
-    keepSymbol(L, gzclose_w);
-    keepSymbol(L, gzerror);
-    keepSymbol(L, gzclearerr);
-    //    keepSymbol(L, gzopen64);
-    //    keepSymbol(L, gzseek64);
-    //    keepSymbol(L, gztell64);
-    //    keepSymbol(L, gzoffset64);
-    //    keepSymbol(L, adler32_combine64);
-    //    keepSymbol(L, crc32_combine64);
-    keepSymbol(L, adler32);
-    keepSymbol(L, adler32_z);
-    keepSymbol(L, crc32);
-    keepSymbol(L, crc32_z);
-    keepSymbol(L, adler32_combine);
-    keepSymbol(L, crc32_combine);
-    keepSymbol(L, deflateInit_);
-    keepSymbol(L, deflateInit2_);
-    keepSymbol(L, inflateInit_);
-    keepSymbol(L, inflateInit2_);
-    keepSymbol(L, inflateBackInit_);
-    keepSymbol(L, gzgetc_);
-    keepSymbol(L, zError);
-    keepSymbol(L, inflateSyncPoint);
-    keepSymbol(L, get_crc_table);
-    keepSymbol(L, inflateUndermine);
-    keepSymbol(L, inflateValidate);
-    keepSymbol(L, inflateCodesUsed);
-    keepSymbol(L, inflateResetKeep);
-    keepSymbol(L, deflateResetKeep);
-//    keepSymbol(L, gzopen_w);
+#define REGISTER(L, s) registerSymbol(L, #s, s)
+
+static void registerAllSymbols(PCSX::Lua* L) {
+    L->push("_CLIBS");
+    L->gettable(LUA_REGISTRYINDEX);
+    if (L->isnil()) {
+        L->pop();
+        L->newtable();
+        L->push("_CLIBS");
+        L->copy(-2);
+        L->settable(LUA_REGISTRYINDEX);
+    }
+    L->push("z");
+    L->newtable();
+    REGISTER(L, zlibVersion);
+    REGISTER(L, deflate);
+    REGISTER(L, deflateEnd);
+    REGISTER(L, inflate);
+    REGISTER(L, inflateEnd);
+    REGISTER(L, deflateSetDictionary);
+    REGISTER(L, deflateGetDictionary);
+    REGISTER(L, deflateCopy);
+    REGISTER(L, deflateReset);
+    REGISTER(L, deflateParams);
+    REGISTER(L, deflateTune);
+    REGISTER(L, deflateBound);
+    REGISTER(L, deflatePending);
+    REGISTER(L, deflatePrime);
+    REGISTER(L, deflateSetHeader);
+    REGISTER(L, inflateSetDictionary);
+    REGISTER(L, inflateGetDictionary);
+    REGISTER(L, inflateSync);
+    REGISTER(L, inflateCopy);
+    REGISTER(L, inflateReset);
+    REGISTER(L, inflateReset2);
+    REGISTER(L, inflatePrime);
+    REGISTER(L, inflateMark);
+    REGISTER(L, inflateGetHeader);
+    REGISTER(L, inflateBack);
+    REGISTER(L, inflateBackEnd);
+    REGISTER(L, zlibCompileFlags);
+    REGISTER(L, compress);
+    REGISTER(L, compress2);
+    REGISTER(L, compressBound);
+    REGISTER(L, uncompress);
+    REGISTER(L, uncompress2);
+    REGISTER(L, gzopen);
+    REGISTER(L, gzdopen);
+    REGISTER(L, gzbuffer);
+    REGISTER(L, gzsetparams);
+    REGISTER(L, gzread);
+    REGISTER(L, gzfread);
+    REGISTER(L, gzwrite);
+    REGISTER(L, gzfwrite);
+    REGISTER(L, gzprintf);
+    REGISTER(L, gzvprintf);
+    REGISTER(L, gzputs);
+    REGISTER(L, gzgets);
+    REGISTER(L, gzputc);
+    REGISTER(L, gzgetc);
+    REGISTER(L, gzungetc);
+    REGISTER(L, gzflush);
+    REGISTER(L, gzseek);
+    REGISTER(L, gzrewind);
+    REGISTER(L, gztell);
+    REGISTER(L, gzoffset);
+    REGISTER(L, gzeof);
+    REGISTER(L, gzdirect);
+    REGISTER(L, gzclose);
+    REGISTER(L, gzclose_r);
+    REGISTER(L, gzclose_w);
+    REGISTER(L, gzerror);
+    REGISTER(L, gzclearerr);
+    //    REGISTER(L, gzopen64);
+    //    REGISTER(L, gzseek64);
+    //    REGISTER(L, gztell64);
+    //    REGISTER(L, gzoffset64);
+    //    REGISTER(L, adler32_combine64);
+    //    REGISTER(L, crc32_combine64);
+    REGISTER(L, adler32);
+    REGISTER(L, adler32_z);
+    REGISTER(L, crc32);
+    REGISTER(L, crc32_z);
+    REGISTER(L, adler32_combine);
+    REGISTER(L, crc32_combine);
+    REGISTER(L, deflateInit_);
+    REGISTER(L, deflateInit2_);
+    REGISTER(L, inflateInit_);
+    REGISTER(L, inflateInit2_);
+    REGISTER(L, inflateBackInit_);
+    REGISTER(L, gzgetc_);
+    REGISTER(L, zError);
+    REGISTER(L, inflateSyncPoint);
+    REGISTER(L, get_crc_table);
+    REGISTER(L, inflateUndermine);
+    REGISTER(L, inflateValidate);
+    REGISTER(L, inflateCodesUsed);
+    REGISTER(L, inflateResetKeep);
+    REGISTER(L, deflateResetKeep);
+//    REGISTER(L, gzopen_w);
+    L->settable();
+    L->pop();
 }
 
 void PCSX::LuaFFI::open_zlib(Lua* L) {
@@ -123,6 +139,18 @@ void PCSX::LuaFFI::open_zlib(Lua* L) {
     static const char* zlibFFI = (
 #include "lua/zlibffi.lua"
     );
+    registerAllSymbols(L);
+    int exists = 0;
+    {
+        int top = lua_gettop(L->getState());
+        lua_checkstack(L->getState(), 2);
+        lua_pushlstring(L->getState(), "_CLIBS", 6);
+        lua_gettable(L->getState(), LUA_REGISTRYINDEX);
+        if (!lua_isnil(L->getState(), -1)) {
+            lua_getfield(L->getState(), -1, "z");
+            exists = !lua_isnil(L->getState(), -1);
+        }
+        lua_settop(L->getState(), top);
+    }
     L->load(zlibFFI, "internal:lua/zlibffi.lua");
-    keepAllSymbols(L);
 }

@@ -60,7 +60,7 @@ class Lua {
         while (n < gettop()) pop();
         return r;
     }
-    void openlib(const std::string& libname, const struct luaL_reg* l, int nup) {
+    void openlib(const std::string& libname, const struct luaL_Reg* l, int nup) {
         luaL_openlib(L, libname.c_str(), l, nup);
     }
 

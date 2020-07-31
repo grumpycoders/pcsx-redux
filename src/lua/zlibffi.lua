@@ -164,7 +164,7 @@ unsigned long crc32_combine(unsigned long, unsigned long, long);
 const unsigned long* get_crc_table(void);
 ]]
 
-local C = ffi.C
+local C = ffi.load'z'
 
 local function version()
     return ffi.string(C.zlibVersion())

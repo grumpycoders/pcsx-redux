@@ -346,12 +346,13 @@ void PCSX::Lua::displayStack(bool error) {
         return;
     }
 
-    checkstack(5);
+    checkstack(6);
 
+    lua_pushstring(L, error ? "printError" : "print");
+    lua_gettable(L, LUA_GLOBALSINDEX);
     for (i = 1; i <= n; i++) {
         int c = 3;
-        lua_pushstring(L, error ? "printError" : "print");
-        lua_gettable(L, LUA_GLOBALSINDEX);
+        lua_pushvalue(L, -1);
         push((lua_Number)i);
         push(": ");
         switch (lua_type(L, i)) {
@@ -396,4 +397,5 @@ void PCSX::Lua::displayStack(bool error) {
         concat(c);
         pcall(1);
     }
+    pop();
 }

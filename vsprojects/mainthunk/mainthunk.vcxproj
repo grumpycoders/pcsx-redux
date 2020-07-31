@@ -222,7 +222,7 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\glfw.3.3.0.1\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" />
     <Import Project="..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets" Condition="Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" />
-    <Import Project="..\packages\luajit.native.2.0.5\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.0.5\build\native\luajit.native.targets')" />
+    <Import Project="..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -230,6 +230,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.0.1\build\native\glfw.targets'))" />
     <Error Condition="!Exists('..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\FFmpeg.Nightly.20181218.0.0\build\native\FFmpeg.Nightly.targets'))" />
-    <Error Condition="!Exists('..\packages\luajit.native.2.0.5\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.0.5\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets'))" />
   </Target>
 </Project>
