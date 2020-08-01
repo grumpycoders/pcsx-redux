@@ -736,6 +736,18 @@ void PCSX::GUI::endFrame() {
     changed |= PCSX::g_emulator->m_gpu->configure();
     changed |= configure();
 
+    auto& L = g_emulator->m_lua;
+    L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+    if (!L->isnil()) {
+        try {
+            L->pcall();
+        } catch (...) {
+            L->push();
+            L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+        }
+    } else {
+        L->pop();
+    }
     m_notifier.draw();
 
     auto& io = ImGui::GetIO();

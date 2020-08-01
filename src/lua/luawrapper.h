@@ -135,7 +135,35 @@ class Lua {
         checkstack();
         return lua_newuserdata(L, s);
     }
+    template <size_t S>
+    void setfield(const char (&field)[S], int tableIdx = -2, bool raw = false) {
+        int n = gettop();
+        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+        push<S>(field);
+        insert(n);
+        settable(tableIdx, raw);
+    }
+    void setfield(const std::string& field, int tableIdx = -2, bool raw = false) {
+        int n = gettop();
+        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+        push(field);
+        insert(n);
+        settable(tableIdx, raw);
+    }
     void settable(int tableIdx = -3, bool raw = false);
+    template <size_t S>
+    void getfield(const char (&field)[S], int tableIdx = -1, bool raw = false) {
+        int n = gettop();
+        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+        push<S>(field);
+        gettable(tableIdx, raw);
+    }
+    void getfield(const std::string& field, int tableIdx = -1, bool raw = false) {
+        int n = gettop();
+        if ((tableIdx) < 0 && (-tableIdx <= n)) tableIdx += n - 1;
+        push(field);
+        gettable(tableIdx, raw);
+    }
     void gettable(int tableIdx = -2, bool raw = false);
     void rawseti(int idx, int tableIdx = -2) { lua_rawseti(L, tableIdx, idx); }
     void rawgeti(int idx, int tableIdx = -1) { lua_rawgeti(L, tableIdx, idx); }
