@@ -51,6 +51,9 @@
 
 using json = nlohmann::json;
 
+static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
+extern "C" void pcsxStaticImguiUserError(const char* msg) { s_imguiUserErrorFunctor(msg); }
+
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
@@ -92,6 +95,10 @@ void LoadImguiBindings(lua_State* lState);
 void PCSX::GUI::init() {
     int result;
     LoadImguiBindings(g_emulator->m_lua->getState());
+    s_imguiUserErrorFunctor = [this](const char* msg) {
+        m_gotImguiUserError = true;
+        m_imguiUserError = msg;
+    };
     m_luaConsole.setCmdExec([this](const std::string& cmd) {
         try {
             g_emulator->m_lua->load(cmd, "console", false);
@@ -781,6 +788,12 @@ void PCSX::GUI::endFrame() {
     checkGL();
 
     if (changed) saveCfg();
+    if (m_gotImguiUserError) {
+        m_log.addLog("Got ImGui User Error: %s\n", m_imguiUserError.c_str());
+        m_gotImguiUserError = false;
+        L->push();
+        L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+    }
 }
 
 static void ShowHelpMarker(const char* desc) {

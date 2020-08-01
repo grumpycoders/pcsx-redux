@@ -216,6 +216,9 @@ class GUI final {
     Notifier m_notifier = {[]() { return _("Notification"); }};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
+
+    bool m_gotImguiUserError = false;
+    std::string m_imguiUserError;
 };
 
 }  // namespace PCSX
