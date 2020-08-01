@@ -62,21 +62,9 @@ void PCSX::Lua::open_base() {
     while (n < gettop()) pop();
 }
 
-void PCSX::Lua::open_table() {
+void PCSX::Lua::open_bit() {
     int n = gettop();
-    luaopen_table(L);
-    while (n < gettop()) pop();
-}
-
-void PCSX::Lua::open_string() {
-    int n = gettop();
-    luaopen_string(L);
-    while (n < gettop()) pop();
-}
-
-void PCSX::Lua::open_math() {
-    int n = gettop();
-    luaopen_math(L);
+    luaopen_bit(L);
     while (n < gettop()) pop();
 }
 
@@ -86,9 +74,18 @@ void PCSX::Lua::open_debug() {
     while (n < gettop()) pop();
 }
 
-void PCSX::Lua::open_bit() {
+void PCSX::Lua::open_ffi() {
     int n = gettop();
-    luaopen_bit(L);
+    luaopen_ffi(L);
+    push("ffi");
+    copy(-2);
+    settable(LUA_GLOBALSINDEX);
+    while (n < gettop()) pop();
+}
+
+void PCSX::Lua::open_math() {
+    int n = gettop();
+    luaopen_math(L);
     while (n < gettop()) pop();
 }
 
@@ -98,12 +95,21 @@ void PCSX::Lua::open_jit() {
     while (n < gettop()) pop();
 }
 
-void PCSX::Lua::open_ffi() {
+void PCSX::Lua::open_table() {
     int n = gettop();
-    luaopen_ffi(L);
-    push("ffi");
-    copy(-2);
-    settable(LUA_GLOBALSINDEX);
+    luaopen_table(L);
+    while (n < gettop()) pop();
+}
+
+void PCSX::Lua::open_package() {
+    int n = gettop();
+    luaopen_package(L);
+    while (n < gettop()) pop();
+}
+
+void PCSX::Lua::open_string() {
+    int n = gettop();
+    luaopen_string(L);
     while (n < gettop()) pop();
 }
 

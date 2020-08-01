@@ -46,13 +46,14 @@ class Lua {
 
     void close();
     void open_base();
-    void open_table();
-    void open_string();
-    void open_math();
-    void open_debug();
     void open_bit();
-    void open_jit();
+    void open_debug();
     void open_ffi();
+    void open_jit();
+    void open_math();
+    void open_package();
+    void open_string();
+    void open_table();
 
     int wrap_open(openlualib_t open) {
         int n = gettop();
