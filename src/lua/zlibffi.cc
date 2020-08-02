@@ -140,17 +140,5 @@ void PCSX::LuaFFI::open_zlib(Lua* L) {
 #include "lua/zlibffi.lua"
     );
     registerAllSymbols(L);
-    int exists = 0;
-    {
-        int top = lua_gettop(L->getState());
-        lua_checkstack(L->getState(), 2);
-        lua_pushlstring(L->getState(), "_CLIBS", 6);
-        lua_gettable(L->getState(), LUA_REGISTRYINDEX);
-        if (!lua_isnil(L->getState(), -1)) {
-            lua_getfield(L->getState(), -1, "z");
-            exists = !lua_isnil(L->getState(), -1);
-        }
-        lua_settop(L->getState(), top);
-    }
     L->load(zlibFFI, "internal:lua/zlibffi.lua");
 }
