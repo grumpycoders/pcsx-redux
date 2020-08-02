@@ -344,6 +344,13 @@ void PCSX::Lua::displayStack(bool error) {
     int i;
 
     if (n == 0) {
+        if ((normalPrinter && !error) || (errorPrinter && error)) {
+            if (error) {
+                errorPrinter("Stack empty");
+            } else {
+                normalPrinter("Stack empty");
+            }
+        }
         checkstack(2);
         lua_pushstring(L, error ? "printError" : "print");
         lua_gettable(L, LUA_GLOBALSINDEX);
@@ -353,12 +360,18 @@ void PCSX::Lua::displayStack(bool error) {
     }
 
     checkstack(6);
+    bool useLuaPrinter = false;
 
-    lua_pushstring(L, error ? "printError" : "print");
-    lua_gettable(L, LUA_GLOBALSINDEX);
+    if ((!normalPrinter && error) || (!errorPrinter && !error)) {
+        useLuaPrinter = true;
+        lua_pushstring(L, error ? "printError" : "print");
+        lua_gettable(L, LUA_GLOBALSINDEX);
+    }
     for (i = 1; i <= n; i++) {
         int c = 3;
-        lua_pushvalue(L, -1);
+        if (useLuaPrinter) {
+            lua_pushvalue(L, -1);
+        }
         push((lua_Number)i);
         push(": ");
         switch (lua_type(L, i)) {
@@ -401,7 +414,17 @@ void PCSX::Lua::displayStack(bool error) {
                 break;
         }
         concat(c);
-        pcall(1);
+        if (useLuaPrinter) {
+            pcall(1);
+        } else {
+            std::string msg = tostring();
+            pop();
+            if (error) {
+                errorPrinter(msg);
+            } else {
+                normalPrinter(msg);
+            }
+        }
     }
     pop();
 }

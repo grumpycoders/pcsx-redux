@@ -540,6 +540,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
                 ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
                 ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
+                ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
                 if (ImGui::BeginMenu(_("VRAM viewers"))) {
                     ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
                     ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
@@ -676,6 +677,9 @@ void PCSX::GUI::endFrame() {
         ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
         m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get());
+    }
+    if (m_luaEditor.m_show) {
+        m_luaEditor.draw(_("Lua Editor"));
     }
 
     {

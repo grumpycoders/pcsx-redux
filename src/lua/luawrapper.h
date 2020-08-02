@@ -32,6 +32,9 @@ class Lua {
   public:
     typedef int (*openlualib_t)(lua_State* L);
 
+    std::function<void(const std::string&)> normalPrinter = nullptr;
+    std::function<void(const std::string&)> errorPrinter = nullptr;
+
     Lua();
     Lua(lua_State* L) : L(L) {}
     Lua(Lua&& oL) noexcept : L(oL.L) { oL.L = nullptr; }
