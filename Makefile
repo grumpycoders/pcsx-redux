@@ -29,6 +29,7 @@ CPPFLAGS += -Ithird_party/uvw/src
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
+CPPFLAGS += -include src/forced-includes/imgui.h
 
 CPPFLAGS_Release += -O3
 CPPFLAGS_Debug += -O0
