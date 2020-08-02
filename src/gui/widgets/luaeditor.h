@@ -32,7 +32,7 @@ namespace Widgets {
 
 class LuaEditor {
   public:
-    LuaEditor(bool& show) : m_show(show) { m_text.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua()); }
+    LuaEditor(bool& show);
     bool& m_show;
 
     void draw(const char* title);
@@ -41,6 +41,8 @@ class LuaEditor {
     TextEditor m_text;
     std::vector<std::string> m_lastErrors;
     bool m_displayError = false;
+    bool m_autoreload = true;
+    bool m_autosave = true;
 };
 
 }  // namespace Widgets

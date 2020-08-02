@@ -21,13 +21,29 @@
 
 #include <filesystem>
 #include <fstream>
+#include <istream>
 #include <list>
+#include <ostream>
+#include <sstream>
+#include <streambuf>
 #include <string>
 #include <vector>
 
 #include "core/psxemulator.h"
 #include "fmt/format.h"
 #include "lua/luawrapper.h"
+#include "support/file.h"
+
+PCSX::Widgets::LuaEditor::LuaEditor(bool& show) : m_show(show) {
+    m_text.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua());
+    std::ifstream in("pcsx.lua", std::ifstream::in);
+    if (in) {
+        std::ostringstream code;
+        code << in.rdbuf();
+        in.close();
+        m_text.SetText(code.str());
+    }
+}
 
 void PCSX::Widgets::LuaEditor::draw(const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -37,22 +53,33 @@ void PCSX::Widgets::LuaEditor::draw(const char* title) {
 
     auto& L = g_emulator->m_lua;
 
+    ImGui::Checkbox(_("Auto reload"), &m_autoreload);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Auto save"), &m_autosave);
+
     m_text.Render(_("Lua Source"), ImVec2(0, -ImGui::GetTextLineHeightWithSpacing() * 5));
     if (m_text.IsTextChanged()) {
-        m_lastErrors.clear();
-        auto oldNormalPrinter = L->normalPrinter;
-        auto oldErrorPrinter = L->errorPrinter;
-        L->normalPrinter = [](const std::string&) {};
-        L->errorPrinter = [this](const std::string& msg) { m_lastErrors.push_back(msg); };
-        try {
-            L->load(m_text.GetText(), "pcsx.lua", false);
-            L->pcall();
-            m_displayError = false;
-        } catch (...) {
-            m_displayError = true;
+        if (m_autoreload) {
+            m_lastErrors.clear();
+            auto oldNormalPrinter = L->normalPrinter;
+            auto oldErrorPrinter = L->errorPrinter;
+            L->normalPrinter = [](const std::string&) {};
+            L->errorPrinter = [this](const std::string& msg) { m_lastErrors.push_back(msg); };
+            try {
+                L->load(m_text.GetText(), "pcsx.lua", false);
+                L->pcall();
+                m_displayError = false;
+            } catch (...) {
+                m_displayError = true;
+            }
+            L->normalPrinter = oldNormalPrinter;
+            L->errorPrinter = oldErrorPrinter;
         }
-        L->normalPrinter = oldNormalPrinter;
-        L->errorPrinter = oldErrorPrinter;
+
+        if (m_autosave) {
+            std::ofstream out("pcsx.lua", std::ofstream::out);
+            out << m_text.GetText();
+        }
     }
 
     if (m_displayError) {
