@@ -604,7 +604,7 @@ void PCSX::GUI::endFrame() {
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
+                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
@@ -759,6 +759,10 @@ however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
 The dynarec core isn't available for all CPUs, so
 this setting may not have any effect for you.)"));
+        changed |= ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
+        ShowHelpMarker(_(R"(Emulates an installed 8MB system,
+instead of the normal 2MB. Useful for working
+with development binaries and games.)"));
 
         {
             static const char* types[] = {"Auto", "NTSC", "PAL"};
