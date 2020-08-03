@@ -526,6 +526,7 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
             psxHu32ref(add) = SWAP_LEu32(value);
+            g_emulator->m_psxMem->setLuts();
             return;  // Ram size
         case 0x1f801070:
             PSXHW_LOG("IREG 32bit write %x\n", value);

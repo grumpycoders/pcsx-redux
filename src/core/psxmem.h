@@ -45,7 +45,7 @@ namespace PCSX {
 
 class Memory {
   public:
-    uint8_t *g_psxM = NULL;  // Kernel & User Memory (2 Meg)
+    uint8_t *g_psxM = NULL;  // Kernel & User Memory (8 Meg)
     uint8_t *g_psxP = NULL;  // Parallel Port (64K)
     uint8_t *g_psxR = NULL;  // BIOS ROM (512K)
     uint8_t *g_psxH = NULL;  // Scratch Pad (1K) & Hardware Registers (8K)
@@ -73,18 +73,18 @@ class Memory {
     */
 
   public:
-#define psxMs8(mem) PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff]
-#define psxMs16(mem) (SWAP_LE16(*(int16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff]))
-#define psxMs32(mem) (SWAP_LE32(*(int32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff]))
-#define psxMu8(mem) (*(uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff])
-#define psxMu16(mem) (SWAP_LE16(*(uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff]))
-#define psxMu32(mem) (SWAP_LE32(*(uint32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff]))
-#define psxMs8ref(mem) PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff]
-#define psxMs16ref(mem) (*(int16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff])
-#define psxMs32ref(mem) (*(int32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff])
-#define psxMu8ref(mem) (*(uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff])
-#define psxMu16ref(mem) (*(uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff])
-#define psxMu32ref(mem) (*(uint32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x1fffff])
+#define psxMs8(mem) PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff]
+#define psxMs16(mem) (SWAP_LE16(*(int16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff]))
+#define psxMs32(mem) (SWAP_LE32(*(int32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff]))
+#define psxMu8(mem) (*(uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff])
+#define psxMu16(mem) (SWAP_LE16(*(uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff]))
+#define psxMu32(mem) (SWAP_LE32(*(uint32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff]))
+#define psxMs8ref(mem) PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff]
+#define psxMs16ref(mem) (*(int16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff])
+#define psxMs32ref(mem) (*(int32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff])
+#define psxMu8ref(mem) (*(uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff])
+#define psxMu16ref(mem) (*(uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff])
+#define psxMu32ref(mem) (*(uint32_t *)&PCSX::g_emulator->m_psxMem->g_psxM[(mem)&0x7fffff])
 #define psxPs8(mem) PCSX::g_emulator->m_psxMem->g_psxP[(mem)&0xffff]
 #define psxPs16(mem) (SWAP_LE16(*(int16_t *)&PCSX::g_emulator->m_psxMem->g_psxP[(mem)&0xffff]))
 #define psxPs32(mem) (SWAP_LE32(*(int32_t *)&PCSX::g_emulator->m_psxMem->g_psxP[(mem)&0xffff]))
@@ -145,10 +145,13 @@ class Memory {
     void psxMemWrite32(uint32_t mem, uint32_t value);
     void *psxMemPointer(uint32_t mem);
 
+    void setLuts();
+
     const std::vector<Elf> getElves() const { return m_elfs; }
 
   private:
     std::vector<Elf> m_elfs;
+    int m_writeok = 1;
 };
 
 }  // namespace PCSX

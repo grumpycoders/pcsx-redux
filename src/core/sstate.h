@@ -40,7 +40,7 @@ typedef Protobuf::Field<Protobuf::Bytes, TYPESTRING("blue"), 5> Blue;
 typedef Protobuf::Message<TYPESTRING("Thumbnail"), Width, Height, Red, Green, Blue> Thumbnail;
 typedef Protobuf::MessageField<Thumbnail, TYPESTRING("thumbnail"), 2> ThumbnailField;
 
-typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00200000>, TYPESTRING("ram"), 1> RAM;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00800000>, TYPESTRING("ram"), 1> RAM;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00080000>, TYPESTRING("rom"), 2> ROM;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00010000>, TYPESTRING("parallel"), 3> Parallel;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardware"), 4> HardwareMemory;
