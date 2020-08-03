@@ -623,7 +623,7 @@ void PCSX::GUI::endFrame() {
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
