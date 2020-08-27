@@ -846,10 +846,6 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 return localSymbolReloc(expr->sectionIndex, addend);
             }
             case PsyqExprOpcode::SYMBOL: {
-                if (pass == ElfRelocationPass::PASS1) {
-                    skipped.skipped = true;
-                    return true;
-                }
                 auto symbol = psyq->symbols.find(expr->symbolIndex);
                 if (symbol == psyq->symbols.end()) {
                     psyq->setElfConversionError("Couldn't find symbol {} for relocation.", expr->symbolIndex);
@@ -857,6 +853,10 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 }
                 if (symbol->symbolType != PsyqLnkFile::Symbol::Type::IMPORTED) {
                     return localSymbolReloc(symbol->sectionIndex, symbol->getOffset(psyq) + addend);
+                }
+                if (pass == ElfRelocationPass::PASS1) {
+                    skipped.skipped = true;
+                    return true;
                 }
                 ELFIO::Elf_Word elfSym = symbol->elfSym;
                 // this is the most complex case, as the psyq format can do
