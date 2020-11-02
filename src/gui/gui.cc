@@ -34,6 +34,7 @@
 #include "core/cdrom.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -270,6 +271,19 @@ void PCSX::GUI::startFrame() {
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
     SDL_PumpEvents();
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_JOYDEVICEADDED:
+            case SDL_JOYDEVICEREMOVED:
+                PCSX::g_emulator->m_pad1->shutdown();
+                PCSX::g_emulator->m_pad2->shutdown();
+                PCSX::g_emulator->m_pad1->init();
+                PCSX::g_emulator->m_pad2->init();
+                break;
+        }
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
