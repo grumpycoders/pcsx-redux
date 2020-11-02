@@ -270,7 +270,6 @@ void PCSX::GUI::startFrame() {
     g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
-    SDL_PumpEvents();
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
