@@ -500,6 +500,13 @@ void PCSX::GUI::endFrame() {
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
+                if (ImGui::MenuItem(_("Start GPU dump"))) {
+                    PCSX::g_emulator->m_gpu->startDump();
+                }
+                if (ImGui::MenuItem(_("Stop GPU dump"))) {
+                    PCSX::g_emulator->m_gpu->stopDump();
+                }
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show types"), nullptr, &m_types.m_show);
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();

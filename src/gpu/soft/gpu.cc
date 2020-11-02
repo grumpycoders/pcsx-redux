@@ -673,6 +673,10 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 
 void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 {
+    if (m_dumpFile) {
+        uint32_t data = 0x02000000;
+        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    }
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
     if (!(dwActFixes & 32))  // std fps limitation?
@@ -740,6 +744,12 @@ uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 
 void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
+    if (m_dumpFile) {
+        uint32_t data = 0x01000001;
+        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+        fwrite(&gdata, sizeof(gdata), 1, (FILE *)m_dumpFile);
+    }
+
     uint32_t lCommand = (gdata >> 24) & 0xff;
 
     ulStatusControl[lCommand] = gdata;  // store command for freezing
@@ -1143,10 +1153,44 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
+void PCSX::SoftGPU::impl::startDump() {
+    if (m_dumpFile) return;
+    m_dumpFile = fopen("gpu.dump", "wb");
+    fwrite(psxVuw, 1024, 1024, (FILE *)m_dumpFile);
+    uint32_t data = 0;
+    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    data = 0xffffffff;
+    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    data = 0x01000009;
+    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[0], sizeof(ulStatusControl[0]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[1], sizeof(ulStatusControl[1]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[2], sizeof(ulStatusControl[2]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[3], sizeof(ulStatusControl[3]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[8], sizeof(ulStatusControl[8]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[6], sizeof(ulStatusControl[6]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[7], sizeof(ulStatusControl[7]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[5], sizeof(ulStatusControl[5]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[4], sizeof(ulStatusControl[4]), 1, (FILE *)m_dumpFile);
+}
+
+void PCSX::SoftGPU::impl::stopDump() {
+    if (!m_dumpFile) return;
+    fclose((FILE *)m_dumpFile);
+    m_dumpFile = nullptr;
+}
+
 void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
+
+    if (m_dumpFile) {
+        uint32_t data;
+        data = iSize;
+        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+        fwrite(pMem, 4, iSize, (FILE *)m_dumpFile);
+    }
 
     GPUIsBusy;
     GPUIsNotReadyForCommands;
