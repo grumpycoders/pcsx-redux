@@ -135,7 +135,7 @@ static int ttyGetChar() {
 
 static void ttyPutChar(int c) {
     while (s_circ.flags & PSXCIRC_STOPPED) syscall_cdevscan();
-    while ((*s_atconsStatPtr & 3) == 0) syscall_cdevscan();
+    while ((*s_atconsStatPtr & 8) == 0) syscall_cdevscan();
     s_atconsStatPtr[2] = c;
     s_atconsIRQPtr[2] |= 0x10;
     flushWriteQueue();
