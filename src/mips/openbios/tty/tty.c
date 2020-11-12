@@ -36,8 +36,14 @@ SOFTWARE.
 #include "openbios/kernel/libcmisc.h"
 #include "openbios/tty/tty.h"
 
+#ifdef OPENBIOS_INSTALL_TTY_CONSOLE
+#define DEFAULT_TTY_INSTALL 1
+#else
+#define DEFAULT_TTY_INSTALL 0
+#endif
+
 int g_cachedInstallTTY;
-int g_installTTY;
+int g_installTTY = DEFAULT_TTY_INSTALL;
 
 static const struct Device s_ttyDevice = {
     .name = "tty",
