@@ -63,6 +63,8 @@ uint32_t virtToReal(uint32_t virt) {
         }
     } else if (base == 0xbfc) {
         // bios last
+        real &= 0x1fffff;
+        pc = real;
         if (real >= 0x00080000) {
             pc = 0;
         } else {
@@ -530,7 +532,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(0x00290000 / 4, ImGui::GetTextLineHeightWithSpacing());
+    ImGuiListClipper clipper(0x00890000 / 4, ImGui::GetTextLineHeightWithSpacing());
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
