@@ -196,7 +196,7 @@ void * B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
     unimplemented, unimplemented, unimplemented, addDevice, // 44
-    unimplemented, unimplemented, dummyMC, dummyMC, // 48
+    removeDevice, unimplemented, dummyMC, dummyMC, // 48
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
