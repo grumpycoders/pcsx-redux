@@ -118,8 +118,15 @@ void dev_tty_init() {
 }
 
 int dev_tty_open(struct File * file) {
-    file->flags |= PSXF_SCAN2;
-    s_circ.start = s_circ.end = s_circ.buffer;
+    POST = 0x0c;
+    if (file->deviceId < 2) {
+        file->flags |= PSXF_SCAN2;
+        s_circ.start = s_circ.end = s_circ.buffer;
+        return 0;
+    } else {
+        file->errno = PSXENXIO;
+        return -1;
+    }
 }
 
 static int ttyGetChar() {
