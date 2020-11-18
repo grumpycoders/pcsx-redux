@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "gdb",
             "request": "launch",
@@ -85,6 +86,28 @@
                 "symbol-file ./src/mips/tests/libc/libc.elf",
                 "set substitute-path /project .",
                 "load ./src/mips/tests/libc/libc.elf",
+                "monitor reset halt",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch cpu Test",
+            "target": "./src/mips/tests/cpu/cpu.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "target remote localhost:3333",
+                "symbol-file ./src/mips/tests/cpu/cpu.elf",
+                "set substitute-path /project .",
+                "load ./src/mips/tests/cpu/cpu.elf",
                 "monitor reset halt",
                 "tbreak main",
                 "continue",
