@@ -1,7 +1,9 @@
 all:
 	$(MAKE) -C basic all
 	$(MAKE) -C libc all
+	$(MAKE) -C cpu all
 
 clean:
 	$(MAKE) -C basic clean
 	$(MAKE) -C libc clean
+	$(MAKE) -C cpu clean
