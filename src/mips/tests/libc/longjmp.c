@@ -24,41 +24,20 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include "common/psxlibc/setjmp.h"
+#include "common/syscalls/syscalls.h"
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
+CESTER_BODY(
+    static struct JmpBuf jmpbuf;
+    static int count = 0;
+)
 
-int psxopen(const char * fname, int mode);
-int psxlseek(int fd, int offset, int whence);
-int psxread(int fd, void * buffer, int size);
-int psxwrite(int fd, void * buffer, int size);
-int psxclose(int fd);
-int psxioctl(int fd, int cmd, int arg);
-void psxexit(int code);
-int isFileConsole(int fd);
-int psxgetc(int fd);
-void psxputc(int c, int fd);
+CESTER_TEST(basicSetJmpLongJmp, test_instance,
+    int r = syscall_setjmp(&jmpbuf);
+    count++;
 
-void psxputchar(int c);
-int psxgetchar();
-char * psxgets(char * storage);
-void psxputs(const char * str);
-int psxprintf(const char * msg, ...);
-void ioabortraw(int code);
+    if (r == 0) syscall_longjmp(&jmpbuf, 1);
 
-void setupFileIO(int installTTY);
-void installStdIo(int installTTY);
-
-struct Device * findDevice(const char * name);
-int addDevice(struct Device *);
-int removeDevice(const char * name);
-
-struct File * getFileFromHandle(int fd);
-struct File * findEmptyFile();
-
-const char * splitFilepathAndFindDevice(const char * name, struct Device ** device, int * deviceId);
-
-extern uint32_t psxerrno;
-
-void cdevscan();
+    cester_assert_int_eq(1, r);
+    cester_assert_int_eq(2, count);
+)

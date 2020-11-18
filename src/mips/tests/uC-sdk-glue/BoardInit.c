@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include "common/hardware/pcsxhw.h"
+#include "common/syscalls/syscalls.h"
 
 void BoardEarlyInit() {
 }
@@ -37,8 +38,10 @@ void BoardLateInit() {
 
 void BoardShutdown() {
     pcsx_exit(0);
+    syscall__exit(0);
 }
 
 void BoardExceptionHandler(int code) {
     pcsx_exit(code);
+    syscall__exit(code);
 }

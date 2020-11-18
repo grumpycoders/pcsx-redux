@@ -1,4 +1,4 @@
-TARGET = basic
+TARGET = cpu
 USE_FUNCTION_SECTIONS = false
 TYPE = ps-exe
 
@@ -41,6 +41,8 @@ CPPFLAGS += -I../../openbios/uC-sdk-glue
 SRCS += \
 ../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
-basic.c \
+lwlr.s \
+branchbranch.s \
+cpu.c \
 
 include ../../common.mk

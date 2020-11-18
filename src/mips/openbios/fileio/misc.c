@@ -162,10 +162,10 @@ void cdevscan() {
     }
 }
 
-void psxexit() {
+void psxexit(int code) {
     for (int i = 0; i < sizeof(s_files) / sizeof(s_files[0]); i++) psxclose(i);
     installStdIo(g_cachedInstallTTY);
-    syscall__exit();
+    syscall__exit(code);
 }
 
 int isFileConsole(int fd) {

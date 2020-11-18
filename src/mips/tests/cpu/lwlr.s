@@ -24,41 +24,35 @@ SOFTWARE.
 
 */
 
-#pragma once
+    .set push
+    .set noreorder
+    .section .ramtext, "ax", @progbits
+    .align 2
+    .global cpu_LWR_LWL_half
+    .type cpu_LWR_LWL_half, @function
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
+cpu_LWR_LWL_half:
+    lwl   $a1, 4($a0)
+    jr    $ra
+    move  $v0, $a1
 
-int psxopen(const char * fname, int mode);
-int psxlseek(int fd, int offset, int whence);
-int psxread(int fd, void * buffer, int size);
-int psxwrite(int fd, void * buffer, int size);
-int psxclose(int fd);
-int psxioctl(int fd, int cmd, int arg);
-void psxexit(int code);
-int isFileConsole(int fd);
-int psxgetc(int fd);
-void psxputc(int c, int fd);
+    .align 2
+    .global cpu_LWR_LWL_nodelay
+    .type cpu_LWR_LWL_nodelay, @function
 
-void psxputchar(int c);
-int psxgetchar();
-char * psxgets(char * storage);
-void psxputs(const char * str);
-int psxprintf(const char * msg, ...);
-void ioabortraw(int code);
+cpu_LWR_LWL_nodelay:
+    lwl   $a1, 4($a0)
+    lwr   $a1, 1($a0)
+    move  $v0, $a1
+    jr    $ra
+    nop
 
-void setupFileIO(int installTTY);
-void installStdIo(int installTTY);
+    .align 2
+    .global cpu_LWR_LWL_delayed
+    .type cpu_LWR_LWL_delayed, @function
 
-struct Device * findDevice(const char * name);
-int addDevice(struct Device *);
-int removeDevice(const char * name);
-
-struct File * getFileFromHandle(int fd);
-struct File * findEmptyFile();
-
-const char * splitFilepathAndFindDevice(const char * name, struct Device ** device, int * deviceId);
-
-extern uint32_t psxerrno;
-
-void cdevscan();
+cpu_LWR_LWL_delayed:
+    lwl   $a1, 4($a0)
+    lwr   $a1, 1($a0)
+    j     $ra
+    move  $v0, $a1

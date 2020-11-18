@@ -24,41 +24,13 @@ SOFTWARE.
 
 */
 
-#pragma once
+#undef unix
+#define CESTER_NO_SIGNAL
+#define CESTER_NO_TIME
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
+#include "exotic/cester.h"
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
-
-int psxopen(const char * fname, int mode);
-int psxlseek(int fd, int offset, int whence);
-int psxread(int fd, void * buffer, int size);
-int psxwrite(int fd, void * buffer, int size);
-int psxclose(int fd);
-int psxioctl(int fd, int cmd, int arg);
-void psxexit(int code);
-int isFileConsole(int fd);
-int psxgetc(int fd);
-void psxputc(int c, int fd);
-
-void psxputchar(int c);
-int psxgetchar();
-char * psxgets(char * storage);
-void psxputs(const char * str);
-int psxprintf(const char * msg, ...);
-void ioabortraw(int code);
-
-void setupFileIO(int installTTY);
-void installStdIo(int installTTY);
-
-struct Device * findDevice(const char * name);
-int addDevice(struct Device *);
-int removeDevice(const char * name);
-
-struct File * getFileFromHandle(int fd);
-struct File * findEmptyFile();
-
-const char * splitFilepathAndFindDevice(const char * name, struct Device ** device, int * deviceId);
-
-extern uint32_t psxerrno;
-
-void cdevscan();
+#include "longjmp.c"
+#include "qsort.c"
+#include "string.c"
