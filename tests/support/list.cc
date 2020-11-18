@@ -311,3 +311,49 @@ TEST(AlgorithmList, FindIf) {
     list.destroyAll();
     EXPECT_TRUE(list.empty());
 }
+
+struct MultiListElement;
+struct List1 {};
+struct List2 {};
+typedef PCSX::Intrusive::List<MultiListElement> MultiListType;
+typedef PCSX::Intrusive::List<MultiListElement, List1> MultiListType1;
+typedef PCSX::Intrusive::List<MultiListElement, List2> MultiListType2;
+struct MultiListElement : public MultiListType::Node, public MultiListType1::Node, public MultiListType2::Node {
+    MultiListElement(int tag = 0) : m_tag(tag) {}
+    int m_tag = 0;
+};
+
+TEST(MultiList, BasicMulti) {
+    MultiListType list;
+    MultiListType1 list1;
+    MultiListType2 list2;
+
+    {
+        MultiListElement e;
+        list.push_back(&e);
+        list1.push_back(&e);
+        list2.push_back(&e);
+
+        EXPECT_EQ(list.size(), 1);
+        EXPECT_EQ(list1.size(), 1);
+        EXPECT_EQ(list2.size(), 1);
+
+        EXPECT_TRUE(list.contains(&e));
+        EXPECT_TRUE(list1.contains(&e));
+        EXPECT_TRUE(list2.contains(&e));
+
+        list.clear();
+
+        EXPECT_EQ(list.size(), 0);
+        EXPECT_EQ(list1.size(), 1);
+        EXPECT_EQ(list2.size(), 1);
+
+        EXPECT_FALSE(list.contains(&e));
+        EXPECT_TRUE(list1.contains(&e));
+        EXPECT_TRUE(list2.contains(&e));
+    }
+
+    EXPECT_EQ(list.size(), 0);
+    EXPECT_EQ(list1.size(), 0);
+    EXPECT_EQ(list2.size(), 0);
+}
