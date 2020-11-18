@@ -196,7 +196,7 @@ void * B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
     unimplemented, unimplemented, unimplemented, addDevice, // 44
-    unimplemented, unimplemented, dummyMC, dummyMC, // 48
+    removeDevice, unimplemented, dummyMC, dummyMC, // 48
     unimplemented, unimplemented, unimplemented, unimplemented, // 4c
     unimplemented, unimplemented, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
@@ -210,7 +210,7 @@ void * C0table[0x20] = {
     unimplemented, unimplemented, setTimerAutoAck, unimplemented, // 08
     enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, setupFileIO, unimplemented, // 10
-    unimplemented, unimplemented, unimplemented, unimplemented, // 14
+    unimplemented, unimplemented, cdevscan, unimplemented, // 14
     setupFileIO, unimplemented, unimplemented, unimplemented, // 18
     patchA0table, unimplemented, unimplemented, unimplemented, // 1c
 };

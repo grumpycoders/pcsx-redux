@@ -364,15 +364,15 @@ static void boot(char * systemCnfPath, char * binaryPath) {
             g_readBuffer[sysCnfSize] = 0;
             syscall_close(fd);
             SETJMPFATAL(0x390);
-            loadSystemCnf(g_readBuffer, &s_configuration, binaryPath);
+            loadSystemCnf(g_readBuffer, &s_configuration, s_binaryPath);
         }
     }
     SETJMPFATAL(0x388);
     kernelSetup();
-    psxprintf("boot file     : %s\n", binaryPath);
+    psxprintf("boot file     : %s\n", s_binaryPath);
     SETJMPFATAL(0x389);
     zeroUserMemoryUntilStack();
-    if (!loadExe(binaryPath, &s_binaryInfo)) fatal(0x38a);
+    if (!loadExe(s_binaryPath, &s_binaryInfo)) fatal(0x38a);
     psxprintf("EXEC:PC0(%08x)  T_ADDR(%08x)  T_SIZE(%08x)\n", s_binaryInfo.pc, s_binaryInfo.text_addr, s_binaryInfo.text_size);
     psxprintf("boot address  : %08x %08x\nExecute !\n\n", s_binaryInfo.pc, s_configuration.stackBase);
     s_binaryInfo.stack_start = s_configuration.stackBase;

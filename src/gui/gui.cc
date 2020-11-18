@@ -34,6 +34,7 @@
 #include "core/cdrom.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -95,14 +96,29 @@ void PCSX::GUI::init() {
     }
 
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) { shellReached(); });
+    m_listener.listen<Events::ExecutionFlow::Pause>(
+        [this](const auto& event) { glfwSwapInterval(m_idleSwapInterval); });
+    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { glfwSwapInterval(0); });
+
+    auto monitor = glfwGetPrimaryMonitor();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    auto monitor = glfwGetPrimaryMonitor();
+    m_hasCoreProfile = true;
 
     m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+
+    if (!m_window) {
+        glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        m_hasCoreProfile = false;
+
+        m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+    }
     assert(m_window);
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
@@ -165,6 +181,8 @@ void PCSX::GUI::init() {
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
     }
+    if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
+
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -252,7 +270,19 @@ void PCSX::GUI::startFrame() {
     g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
-    SDL_PumpEvents();
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_JOYDEVICEADDED:
+            case SDL_JOYDEVICEREMOVED:
+                PCSX::g_emulator->m_pad1->shutdown();
+                PCSX::g_emulator->m_pad2->shutdown();
+                PCSX::g_emulator->m_pad1->init();
+                PCSX::g_emulator->m_pad2->init();
+                break;
+        }
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -483,6 +513,13 @@ void PCSX::GUI::endFrame() {
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
+                if (ImGui::MenuItem(_("Start GPU dump"))) {
+                    PCSX::g_emulator->m_gpu->startDump();
+                }
+                if (ImGui::MenuItem(_("Stop GPU dump"))) {
+                    PCSX::g_emulator->m_gpu->stopDump();
+                }
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show types"), nullptr, &m_types.m_show);
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();
@@ -504,7 +541,11 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             ImGui::Text(_("GAME ID: %s"), g_emulator->m_cdromId);
             ImGui::Separator();
-            ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            if (g_system->running()) {
+                ImGui::Text(_("%.2f FPS (%.2f ms)"), ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            } else {
+                ImGui::Text(_("Idle"));
+            }
 
             ImGui::EndMainMenuBar();
         }
@@ -583,7 +624,7 @@ void PCSX::GUI::endFrame() {
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
+                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
@@ -602,7 +643,7 @@ void PCSX::GUI::endFrame() {
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
@@ -722,6 +763,10 @@ bool PCSX::GUI::configure() {
                 g_system->activateLocale(currentLocale);
             }
         }
+        if (ImGui::SliderInt(_("Idle Swap Interval"), &m_idleSwapInterval, 0, 10)) {
+            changed = true;
+            if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
+        }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
@@ -734,6 +779,10 @@ however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
 The dynarec core isn't available for all CPUs, so
 this setting may not have any effect for you.)"));
+        changed |= ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
+        ShowHelpMarker(_(R"(Emulates an installed 8MB system,
+instead of the normal 2MB. Useful for working
+with development binaries and games.)"));
 
         {
             static const char* types[] = {"Auto", "NTSC", "PAL"};
@@ -944,6 +993,7 @@ void PCSX::GUI::about() {
             ImGui::TextWrapped("%s: %s", str, value);
         };
         ImGui::TextUnformatted(_("OpenGL information"));
+        ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
         someString(_("vendor"), GL_VENDOR);
         someString(_("renderer"), GL_RENDERER);
         someString(_("version"), GL_VERSION);

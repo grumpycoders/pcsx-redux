@@ -36,8 +36,14 @@ SOFTWARE.
 #include "openbios/kernel/libcmisc.h"
 #include "openbios/tty/tty.h"
 
+#ifdef OPENBIOS_INSTALL_TTY_CONSOLE
+#define DEFAULT_TTY_INSTALL 1
+#else
+#define DEFAULT_TTY_INSTALL 0
+#endif
+
 int g_cachedInstallTTY;
-int g_installTTY;
+int g_installTTY = DEFAULT_TTY_INSTALL;
 
 static const struct Device s_ttyDevice = {
     .name = "tty",
@@ -112,8 +118,15 @@ void dev_tty_init() {
 }
 
 int dev_tty_open(struct File * file) {
-    file->flags |= PSXF_SCAN2;
-    s_circ.start = s_circ.end = s_circ.buffer;
+    POST = 0x0c;
+    if (file->deviceId < 2) {
+        file->flags |= PSXF_SCAN2;
+        s_circ.start = s_circ.end = s_circ.buffer;
+        return 0;
+    } else {
+        file->errno = PSXENXIO;
+        return -1;
+    }
 }
 
 static int ttyGetChar() {
@@ -129,7 +142,7 @@ static int ttyGetChar() {
 
 static void ttyPutChar(int c) {
     while (s_circ.flags & PSXCIRC_STOPPED) syscall_cdevscan();
-    while ((*s_atconsStatPtr & 3) == 0) syscall_cdevscan();
+    while ((*s_atconsStatPtr & 8) == 0) syscall_cdevscan();
     s_atconsStatPtr[2] = c;
     s_atconsIRQPtr[2] |= 0x10;
     flushWriteQueue();
