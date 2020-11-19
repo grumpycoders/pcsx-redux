@@ -18,7 +18,7 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
  - Improve the rendering experience.
 
 ## Where?
-There are currently nightly builds of pcsx-redux for Windows, available here: https://github.com/pcsx-redux/nightlies/releases
+There are currently regular builds of pcsx-redux for Windows, available here: https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux/distribution_groups/public
  
 ## How ?
 The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows.
