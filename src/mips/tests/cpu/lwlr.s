@@ -31,6 +31,7 @@ SOFTWARE.
     .global cpu_LWR_LWL_half
     .type cpu_LWR_LWL_half, @function
 
+/* While this usage is rare, it is technically valid and allowed. */
 cpu_LWR_LWL_half:
     lwl   $a1, 4($a0)
     jr    $ra
@@ -40,10 +41,12 @@ cpu_LWR_LWL_half:
     .global cpu_LWR_LWL_nodelay
     .type cpu_LWR_LWL_nodelay, @function
 
+/* This is technically invalid, and undefined behaviour. The result will be
+   deterministic however on the r3000a PSX CPU. */
 cpu_LWR_LWL_nodelay:
     lwl   $a1, 4($a0)
     lwr   $a1, 1($a0)
-    move  $v0, $a1
+    move  $v0, $a1 /* This is run without waiting the proper delay. */
     jr    $ra
     nop
 
@@ -51,6 +54,7 @@ cpu_LWR_LWL_nodelay:
     .global cpu_LWR_LWL_delayed
     .type cpu_LWR_LWL_delayed, @function
 
+/* This is the proper usage of lwl / lwr. */
 cpu_LWR_LWL_delayed:
     lwl   $a1, 4($a0)
     lwr   $a1, 1($a0)
