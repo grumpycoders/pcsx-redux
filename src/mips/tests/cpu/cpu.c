@@ -65,12 +65,80 @@ CESTER_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
     uint32_t out = branchbranch1();
     cester_assert_uint_eq(0x189, out);
     out = branchbranch2();
-    cester_assert_uint_eq(2, out);
+    cester_assert_uint_eq(9, out);
 )
 
 CESTER_TEST(cpu_JUMP_JUMP_slot, test_instance,
     uint32_t out = jumpjump1();
     cester_assert_uint_eq(0x69, out);
     out = jumpjump2();
-    cester_assert_uint_eq(3, out);
+    cester_assert_uint_eq(21, out);
+)
+
+CESTER_TEST(cpu_DIV_by_zero, test_instance,
+    int32_t hi, lo;
+    __asm__ __volatile__(
+        "li    $v0, 0x55555555\n"
+        "mthi  $v0\n"
+        "mtlo  $v0\n"
+        "nop\n"
+        "div   $0, $0\n"
+        "mfhi  %0\n"
+        "mflo  %1\n"
+        "nop\n"
+        : "=r"(hi), "=r"(lo) : : "v0"
+    );
+
+    cester_assert_int_eq(0, hi);
+    cester_assert_int_eq(-1, lo);
+
+    __asm__ __volatile__(
+        "li    $v0, 0x55555555\n"
+        "mthi  $v0\n"
+        "mtlo  $v0\n"
+        "li    $v0, 42\n"
+        ".word 0x0040001a\n" // any attempt at doing a div here will result
+                             // in the compiler being too smart for its own good
+        "mfhi  %0\n"
+        "mflo  %1\n"
+        "nop\n"
+        : "=r"(hi), "=r"(lo) : : "v0"
+    );
+
+    cester_assert_int_eq(42, hi);
+    cester_assert_int_eq(-1, lo);
+)
+
+CESTER_TEST(cpu_DIVU_by_zero, test_instance,
+    int32_t hi, lo;
+    __asm__ __volatile__(
+        "li    $v0, 0x55555555\n"
+        "mthi  $v0\n"
+        "mtlo  $v0\n"
+        "nop\n"
+        "divu  $0, $0\n"
+        "mfhi  %0\n"
+        "mflo  %1\n"
+        "nop\n"
+        : "=r"(hi), "=r"(lo) : : "v0"
+    );
+
+    cester_assert_int_eq(0, hi);
+    cester_assert_int_eq(-1, lo);
+
+    __asm__ __volatile__(
+        "li    $v0, 0x55555555\n"
+        "mthi  $v0\n"
+        "mtlo  $v0\n"
+        "li    $v0, 42\n"
+        ".word 0x0040001b\n" // any attempt at doing a divu here will result
+                             // in the compiler being too smart for its own good
+        "mfhi  %0\n"
+        "mflo  %1\n"
+        "nop\n"
+        : "=r"(hi), "=r"(lo) : : "v0"
+    );
+
+    cester_assert_int_eq(42, hi);
+    cester_assert_int_eq(-1, lo);
 )

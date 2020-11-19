@@ -32,23 +32,23 @@ SOFTWARE.
     .type branchbranch1, @function
 
 branchbranch1:
-    li    $v0, 1
+    li    $v0, 1     /* yes */
     b     t1branch1
     b     t1branch2
-    ori   $v0, 2
+    ori   $v0, 2     /* no */
     jr    $ra
-    ori   $v0, 4
+    ori   $v0, 4     /* no */
 t1branch1:
-    ori   $v0, 8
+    ori   $v0, 8     /* yes */
     jr    $ra
-    ori   $v0, 16
+    ori   $v0, 16    /* no */
 t1branch2:
-    ori   $v0, 32
+    ori   $v0, 32    /* no */
     jr    $ra
-    ori   $v0, 64
-    ori   $v0, 128
+    ori   $v0, 64    /* no */
+    ori   $v0, 128   /* yes */
     jr    $ra
-    ori   $v0, 256
+    ori   $v0, 256   /* yes */
 
     .align 2
     .global branchbranch2
@@ -58,43 +58,44 @@ branchbranch2:
     li    $v0, 1
     b     t2branch1
     b     t2branch2
-    nop
+    addiu $v0, 3
     jr    $ra
-    nop
+    move  $v0, $0
 t2branch1:
-    li    $v0, 2
+    addiu $v0, 1
     jr    $ra
-    nop
+    move  $v0, $0
 t2branch2:
-    li    $v0, 3
+    sll   $v0, 3
     jr    $ra
-    nop
-    nop
+    addiu $v0, 5
+    sll   $v0, 2
     jr    $ra
-    nop
+    addiu $v0, 1
 
     .align 2
     .global jumpjump1
     .type jumpjump1, @function
 
+/* 1 8 32 64 */
 jumpjump1:
-    li    $v0, 1
+    li    $v0, 1     /* yes */
     j     t1jump1
     j     t1jump2
-    ori   $v0, 2
+    ori   $v0, 2     /* no */
     jr    $ra
-    ori   $v0, 4
+    ori   $v0, 4     /* no */
 t1jump1:
-    ori   $v0, 8
+    ori   $v0, 8     /* yes */
     jr    $ra
-    ori   $v0, 16
+    ori   $v0, 16    /* no */
 t1jump2:
-    ori   $v0, 32
+    ori   $v0, 32    /* yes */
     jr    $ra
-    ori   $v0, 64
-    ori   $v0, 128
+    ori   $v0, 64    /* yes */
+    ori   $v0, 128   /* no */
     jr    $ra
-    ori   $v0, 256
+    ori   $v0, 256   /* no */
 
     .align 2
     .global jumpjump2
@@ -104,17 +105,17 @@ jumpjump2:
     li    $v0, 1
     j     t2jump1
     j     t2jump2
-    nop
+    addiu $v0, 3
     jr    $ra
-    nop
+    move  $v0, $0
 t2jump1:
-    li    $v0, 2
+    addiu $v0, 1
     jr    $ra
-    nop
+    move  $v0, $0
 t2jump2:
-    li    $v0, 3
+    sll   $v0, 3
     jr    $ra
-    nop
-    nop
+    addiu $v0, 5
+    sll   $v0, 2
     jr    $ra
-    nop
+    addiu $v0, 1
