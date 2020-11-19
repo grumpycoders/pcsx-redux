@@ -98,6 +98,7 @@ class System {
         m_running = true;
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
+    virtual void testQuit(int code) = 0;
     void quit(int code = 0) {
         m_quitting = true;
         pause();
