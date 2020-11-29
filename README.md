@@ -32,6 +32,26 @@ Install [Visual Studio 2019 Community Edition](https://visualstudio.microsoft.co
 ### Linux
 Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install.
 
+#### GNU/Linux Dependencies
+
+ - Debian derivatives :
+
+```bash
+sudo apt-get install -y git make pkg-config clang-10 g++-9 g++-mipsel-linux-gnu libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
+```
+
+ - Arch derivatives :
+
+```bash
+sudo pacman -S clang git make pkg-config ffmpeg libuv zlib sdl2 glfw-x11 curl xorg-server-xvfb 
+```
+The mipsel environnement can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your (AURhelper)[https://wiki.archlinux.org/index.php/AUR_helpers] of choice:
+
+```bash
+trizen -S cross-mipsel-linux-gnu-binutils mipsel-linux-gnu-gcc 
+```
+You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
+
 ### MacOS
 You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
 
