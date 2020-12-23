@@ -143,6 +143,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
     typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
+    typedef Setting<bool, TYPESTRING("GdbServerTrace"), false> SettingGdbServerTrace;
     typedef Setting<bool, TYPESTRING("WebServer"), false> SettingWebServer;
     typedef Setting<int, TYPESTRING("WebServerPort"), 8080> SettingWebServerPort;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
@@ -151,7 +152,7 @@ class Emulator {
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
              SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbServerPort,
-             SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
+             SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:

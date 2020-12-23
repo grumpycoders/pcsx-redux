@@ -397,6 +397,9 @@ std::string PCSX::GdbClient::dumpOneRegister(int n) {
 
 void PCSX::GdbClient::processCommand() {
     if (m_ackEnabled) sendAck();
+    if (g_emulator->settings.get<Emulator::SettingGdbServerTrace>()) {
+        g_system->printf("GDB --> PCSX %s\n", m_cmd.c_str());
+    }
     static const std::string qSupported = "qSupported:";
     static const std::string qXferFeatures = "qXfer:features:read:target.xml:";
     static const std::string qXferThreads = "qXfer:threads:read::";
