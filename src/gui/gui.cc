@@ -849,6 +849,10 @@ can slow down emulation to a noticable extend.)"));
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
         changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
+        changed |= ImGui::Checkbox(_("GDB Server Trace"), &settings.get<Emulator::SettingGdbServerTrace>().value);
+        ShowHelpMarker(_(R"(The GDB server will start tracing its
+protocol into the logs, which can be helpful to debug
+the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingWebServer>()) {
