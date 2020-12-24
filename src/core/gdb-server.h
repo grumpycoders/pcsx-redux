@@ -157,6 +157,10 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
             client->m_tcp->write(m_after, 3);
         }
         void enqueueRaw(GdbClient* client) {
+            if (g_emulator->settings.get<Emulator::SettingGdbServerTrace>()) {
+                std::string msg((const char*)m_slice.data(), m_slice.size());
+                g_system->printf("GDB <-- PCSX %s\n", msg.c_str());
+            }
             m_outstanding = 1;
             client->m_requests.push_back(this);
             client->m_tcp->write(static_cast<char*>(const_cast<void*>(m_slice.data())), m_slice.size());
@@ -185,6 +189,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     std::pair<uint64_t, uint64_t> parseCursor(const std::string& cursorStr);
 
     std::string dumpOneRegister(int n);
+    void setOneRegister(int n, uint32_t value);
     static std::string dumpValue(uint32_t value);
 
     std::shared_ptr<uvw::TCPHandle> m_tcp;
@@ -207,7 +212,6 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         QSYMBOL_WAITING_FOR_START,
         QSYMBOL_WAITING_FOR_RESET,
     } m_qsymbolState = QSYMBOL_IDLE;
-    uint32_t m_startLocation = 0;
     bool m_waitingForShell = false;
     std::string m_cmd;
     uint8_t m_crc;
