@@ -78,8 +78,8 @@ static const struct patch b0[] = {
     },
     {
         .hash = generate_hash_send_pad,
-        .name = "_patch_pad#1",
-        .execute = "patch_pad_execute",
+        .name = "_send_pad",
+        .execute = "send_pad_execute",
     },
 };
 
