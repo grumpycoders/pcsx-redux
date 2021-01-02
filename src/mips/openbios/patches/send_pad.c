@@ -99,6 +99,8 @@ SOFTWARE.
 
  */
 
+#ifndef GENERATE_HASHES
+
 int send_pad_execute(uint32_t* ra) {
     patch_send_pad();
     uint32_t ptr;
@@ -113,7 +115,8 @@ int send_pad_execute(uint32_t* ra) {
     return 1;
 }
 
-#ifdef GENERATE_HASHES
+#else
+
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {

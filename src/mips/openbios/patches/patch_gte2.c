@@ -94,9 +94,12 @@ SOFTWARE.
 
  */
 
+#ifndef GENERATE_HASHES
+
 int patch_gte2_execute(uint32_t* ra) { return 1; }
 
-#ifdef GENERATE_HASHES
+#else
+
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {

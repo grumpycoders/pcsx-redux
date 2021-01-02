@@ -41,36 +41,26 @@ struct patch {
     const char* name;
 };
 
+// The following has been automatically generated, do not edit.
+// See generate.c if you need to make changes.
+
+int patch_pad_execute(uint32_t* ra);
+int patch_pad2_execute(uint32_t* ra);
 int remove_ChgclrPAD_execute(uint32_t* ra);
 int remove_ChgclrPAD2_execute(uint32_t* ra);
 int patch_pad_execute(uint32_t* ra);
-int patch_pad2_execute(uint32_t* ra);
-int send_pad_execute(uint32_t* ra);
 int patch_gte_execute(uint32_t* ra);
 int patch_gte2_execute(uint32_t* ra);
 
-// We will need to reduce these to the least common denominator,
-// as we make progress on implementing new patches. Note that this
-// alters the hashes.
 static const uint32_t generic_hash_mask_b0 = 0x5fc9d155;
 static const uint32_t generic_hash_mask_c0 = 0x52205545;
 static const unsigned generic_hash_len = 16;
 
-static struct patch B0patches[] = {
-    {
-        .hash = 0xa9cd0f89,
-        .execute = remove_ChgclrPAD_execute,
-        .name = "_remove_ChgclrPAD",
-    },
-    {
-        .hash = 0x4efc7574,
-        .execute = remove_ChgclrPAD2_execute,
-        .name = "_remove_ChgclrPAD#2",
-    },
+static const struct patch B0patches[] = {
     {
         .hash = 0xaf09762c,
         .execute = patch_pad_execute,
-        .name = "_patch_pad",
+        .name = "_patch_pad#1",
     },
     {
         .hash = 0x399c50eb,
@@ -78,20 +68,30 @@ static struct patch B0patches[] = {
         .name = "_patch_pad#2",
     },
     {
+        .hash = 0xa9cd0f89,
+        .execute = remove_ChgclrPAD_execute,
+        .name = "_remove_ChgclrPAD#1",
+    },
+    {
+        .hash = 0x4efc7574,
+        .execute = remove_ChgclrPAD2_execute,
+        .name = "_remove_ChgclrPAD#2",
+    },
+    {
         .hash = 0x6a33b4c1,
-        .execute = send_pad_execute,
-        .name = "_send_pad",
+        .execute = patch_pad_execute,
+        .name = "_patch_pad#1",
     },
 };
 
-static struct patch C0patches[] = {
+static const struct patch C0patches[] = {
     {
-        .hash = 0xefb670eb,
+        .hash = 0x607d250f,
         .execute = patch_gte_execute,
-        .name = "_patch_gte",
+        .name = "_patch_gte#1",
     },
     {
-        .hash = 0xf8fad00f,
+        .hash = 0xf2164d5c,
         .execute = patch_gte2_execute,
         .name = "_patch_gte#2",
     },
