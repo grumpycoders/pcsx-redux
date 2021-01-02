@@ -134,6 +134,7 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
             if (!patches->execute(ra)) continue;
             ra[0] = 0;
             ra[1] = 0;
+            syscall_flushCache();
             return;
         }
         patches++;
