@@ -100,6 +100,9 @@ int patch_pad2_execute(uint32_t* ra) {
     ptr += addend;
     *((uint32_t *)ptr) = patch_stopPad;
 
+    ra[2] = 10 | 0x10000000;
+    ra[3] = 0;
+
     return 1;
 }
 

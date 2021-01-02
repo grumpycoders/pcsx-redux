@@ -124,7 +124,11 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int patch_gte_execute(uint32_t* ra) { return 1; }
+int patch_gte_execute(uint32_t* ra) {
+    ra[2] = 24 | 0x10000000;
+    ra[3] = 0;
+    return 1;
+}
 
 #else
 

@@ -29,9 +29,8 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
+#include "openbios/patches/hash.h"
 #include "openbios/patches/patches.h"
-
-#define JRRA 0x03e00008
 
 int g_patch_permissive = 0;
 
@@ -48,7 +47,7 @@ int patch_pad_execute(uint32_t* ra);
 int patch_pad2_execute(uint32_t* ra);
 int remove_ChgclrPAD_execute(uint32_t* ra);
 int remove_ChgclrPAD2_execute(uint32_t* ra);
-int patch_pad_execute(uint32_t* ra);
+int send_pad_execute(uint32_t* ra);
 int patch_gte_execute(uint32_t* ra);
 int patch_gte2_execute(uint32_t* ra);
 
@@ -79,8 +78,8 @@ static const struct patch B0patches[] = {
     },
     {
         .hash = 0x6a33b4c1,
-        .execute = patch_pad_execute,
-        .name = "_patch_pad#1",
+        .execute = send_pad_execute,
+        .name = "_send_pad",
     },
 };
 
@@ -99,7 +98,7 @@ static const struct patch C0patches[] = {
 
 void patch_hook(uint32_t* ra, enum patch_table table) {
     // already patched, bail out
-    if ((ra[0] == JRRA) && (ra[1] == 0)) return;
+    if ((ra[0] == 0) && (ra[1] == 0) && (ra[3] == 0)) return;
 
     uint32_t* hash_mask = NULL;
 
@@ -127,7 +126,7 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
         if (patches->hash == h) {
             romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name, ra);
             if (!patches->execute(ra)) continue;
-            ra[0] = JRRA;
+            ra[0] = 0;
             ra[1] = 0;
             return;
         }

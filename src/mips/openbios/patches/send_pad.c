@@ -112,6 +112,9 @@ int send_pad_execute(uint32_t* ra) {
     ptr += addend;
     *((uint32_t *)ptr) = patch_setPadOutputData;
 
+    ra[2] = 15 | 0x10000000;
+    ra[3] = 0;
+
     return 1;
 }
 

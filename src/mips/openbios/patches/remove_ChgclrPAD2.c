@@ -79,6 +79,10 @@ SOFTWARE.
 
 int remove_ChgclrPAD2_execute(uint32_t* ra) {
     patch_remove_ChgclrPAD();
+
+    ra[2] = 5 | 0x10000000;
+    ra[3] = 0;
+
     return 1;
 }
 
