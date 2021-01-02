@@ -28,6 +28,9 @@ kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
 main/main.c \
+patches/patch_pad.c \
+patches/patches.c \
+patches/remove_ChgclrPAD.c \
 pio/pio.c \
 shell/shell.c \
 sio0/busyloop.s \

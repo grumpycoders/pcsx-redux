@@ -74,13 +74,19 @@ static void __attribute__((section(".ramtext"))) setPadOutputData(uint8_t * pad1
 
 static uint32_t s_padMask;
 
+static int s_remove_ChgclrPAD = 0;
+
+void patch_remove_ChgclrPAD() { s_remove_ChgclrPAD = 1; }
+
 static void __attribute__((section(".ramtext"))) padAbort(int pad) {
     uint8_t ** padBufferPtr = &s_padBufferPtrs[pad];
     uint8_t * padBuffer = *padBufferPtr;
     padBuffer[0] = 0xff;
 
-    SIOS[0].ctrl = pad ? 0x2002 : 0x0002;
-    busyloop(10);
+    if (s_remove_ChgclrPAD) {
+        SIOS[0].ctrl = pad ? 0x2002 : 0x0002;
+        busyloop(10);
+    }
     SIOS[0].ctrl = 0;
 }
 
