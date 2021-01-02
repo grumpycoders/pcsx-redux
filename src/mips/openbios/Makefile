@@ -28,15 +28,20 @@ kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
 main/main.c \
-patches/patch_pad.c \
-patches/patches.c \
-patches/remove_ChgclrPAD.c \
 pio/pio.c \
 shell/shell.c \
 sio0/busyloop.s \
 sio0/driver.c \
 sio0/pad.c \
 tty/tty.c \
+\
+patches/hash.c \
+patches/patches.c \
+\
+patches/patch_gte.c \
+patches/patch_pad.c \
+patches/remove_ChgclrPAD.c \
+patches/send_pad.c \
 \
 ../shell/shell_data.o \
 \
