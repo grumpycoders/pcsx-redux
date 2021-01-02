@@ -39,8 +39,11 @@ patches/hash.c \
 patches/patches.c \
 \
 patches/patch_gte.c \
+patches/patch_gte2.c \
 patches/patch_pad.c \
+patches/patch_pad2.c \
 patches/remove_ChgclrPAD.c \
+patches/remove_ChgclrPAD2.c \
 patches/send_pad.c \
 \
 ../shell/shell_data.o \

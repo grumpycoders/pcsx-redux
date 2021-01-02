@@ -42,30 +42,43 @@ struct patch {
 };
 
 int remove_ChgclrPAD_execute(uint32_t* ra);
+int remove_ChgclrPAD2_execute(uint32_t* ra);
 int patch_pad_execute(uint32_t* ra);
+int patch_pad2_execute(uint32_t* ra);
 int send_pad_execute(uint32_t* ra);
 int patch_gte_execute(uint32_t* ra);
+int patch_gte2_execute(uint32_t* ra);
 
 // We will need to reduce these to the least common denominator,
 // as we make progress on implementing new patches. Note that this
 // alters the hashes.
-static const uint32_t generic_hash_mask_b0 = 0x5c895155;
-static const uint32_t generic_hash_mask_c0 = 0x00005500;
+static const uint32_t generic_hash_mask_b0 = 0x5fc9d155;
+static const uint32_t generic_hash_mask_c0 = 0x52205545;
 static const unsigned generic_hash_len = 16;
 
 static struct patch B0patches[] = {
     {
-        .hash = 0xe40e821c,
+        .hash = 0xa9cd0f89,
         .execute = remove_ChgclrPAD_execute,
         .name = "_remove_ChgclrPAD",
     },
     {
-        .hash = 0xed8f8257,
+        .hash = 0x4efc7574,
+        .execute = remove_ChgclrPAD2_execute,
+        .name = "_remove_ChgclrPAD#2",
+    },
+    {
+        .hash = 0xaf09762c,
         .execute = patch_pad_execute,
         .name = "_patch_pad",
     },
     {
-        .hash = 0xbc8a079c,
+        .hash = 0x399c50eb,
+        .execute = patch_pad2_execute,
+        .name = "_patch_pad#2",
+    },
+    {
+        .hash = 0x6a33b4c1,
         .execute = send_pad_execute,
         .name = "_send_pad",
     },
@@ -73,9 +86,14 @@ static struct patch B0patches[] = {
 
 static struct patch C0patches[] = {
     {
-        .hash = 0x97159ddc,
+        .hash = 0xefb670eb,
         .execute = patch_gte_execute,
         .name = "_patch_gte",
+    },
+    {
+        .hash = 0xf8fad00f,
+        .execute = patch_gte2_execute,
+        .name = "_patch_gte#2",
     },
 };
 

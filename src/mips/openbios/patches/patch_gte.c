@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "common/compiler/stdint.h"
-#include "openbios/sio0/pad.h"
 
 /* Found in Suikoden 2 NTSC (SLUS-00958):
 
