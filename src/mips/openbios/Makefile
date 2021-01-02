@@ -45,6 +45,7 @@ patches/patch_pad2.c \
 patches/remove_ChgclrPAD.c \
 patches/remove_ChgclrPAD2.c \
 patches/send_pad.c \
+patches/send_pad2.c \
 \
 ../shell/shell_data.o \
 \

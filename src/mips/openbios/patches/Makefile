@@ -6,6 +6,7 @@ patch_pad2.c \
 remove_ChgclrPAD.c \
 remove_ChgclrPAD2.c \
 send_pad.c \
+send_pad2.c \
 
 
 CC ?= cc

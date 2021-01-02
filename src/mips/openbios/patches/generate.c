@@ -40,6 +40,8 @@ uint32_t generate_hash_remove_ChgclrPAD2(uint32_t mask, unsigned len);
 uint32_t generate_mask_remove_ChgclrPAD2();
 uint32_t generate_hash_send_pad(uint32_t mask, unsigned len);
 uint32_t generate_mask_send_pad();
+uint32_t generate_hash_send_pad2(uint32_t mask, unsigned len);
+uint32_t generate_mask_send_pad2();
 
 /* C0 */
 uint32_t generate_hash_patch_gte(uint32_t mask, unsigned len);
@@ -78,8 +80,13 @@ static const struct patch b0[] = {
     },
     {
         .hash = generate_hash_send_pad,
-        .name = "_send_pad",
+        .name = "_send_pad#1",
         .execute = "send_pad_execute",
+    },
+    {
+        .hash = generate_hash_send_pad2,
+        .name = "_send_pad#2",
+        .execute = "send_pad2_execute",
     },
 };
 
@@ -103,6 +110,7 @@ int main() {
     min_mask_b0 |= generate_mask_remove_ChgclrPAD();
     min_mask_b0 |= generate_mask_remove_ChgclrPAD2();
     min_mask_b0 |= generate_mask_send_pad();
+    min_mask_b0 |= generate_mask_send_pad2();
 
     uint32_t min_mask_c0 = 0;
     min_mask_c0 |= generate_mask_patch_gte();

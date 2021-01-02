@@ -48,10 +48,11 @@ int patch_pad2_execute(uint32_t* ra);
 int remove_ChgclrPAD_execute(uint32_t* ra);
 int remove_ChgclrPAD2_execute(uint32_t* ra);
 int send_pad_execute(uint32_t* ra);
+int send_pad2_execute(uint32_t* ra);
 int patch_gte_execute(uint32_t* ra);
 int patch_gte2_execute(uint32_t* ra);
 
-static const uint32_t generic_hash_mask_b0 = 0x5fc9d155;
+static const uint32_t generic_hash_mask_b0 = 0x7fc9d155;
 static const uint32_t generic_hash_mask_c0 = 0x52205545;
 static const unsigned generic_hash_len = 16;
 
@@ -62,24 +63,29 @@ static const struct patch B0patches[] = {
         .name = "_patch_pad#1",
     },
     {
-        .hash = 0x399c50eb,
+        .hash = 0x51eb6137,
         .execute = patch_pad2_execute,
         .name = "_patch_pad#2",
     },
     {
-        .hash = 0xa9cd0f89,
+        .hash = 0x6b104143,
         .execute = remove_ChgclrPAD_execute,
         .name = "_remove_ChgclrPAD#1",
     },
     {
-        .hash = 0x4efc7574,
+        .hash = 0xd5a89e48,
         .execute = remove_ChgclrPAD2_execute,
         .name = "_remove_ChgclrPAD#2",
     },
     {
-        .hash = 0x6a33b4c1,
+        .hash = 0x57b51520,
         .execute = send_pad_execute,
-        .name = "_send_pad",
+        .name = "_send_pad#1",
+    },
+    {
+        .hash = 0xf6192150,
+        .execute = send_pad2_execute,
+        .name = "_send_pad#2",
     },
 };
 
