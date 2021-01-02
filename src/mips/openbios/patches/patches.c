@@ -85,12 +85,12 @@ static const struct patch B0patches[] = {
 
 static const struct patch C0patches[] = {
     {
-        .hash = 0x607d250f,
+        .hash = 0xefb670eb,
         .execute = patch_gte_execute,
         .name = "_patch_gte#1",
     },
     {
-        .hash = 0xf2164d5c,
+        .hash = 0xf8fad00f,
         .execute = patch_gte2_execute,
         .name = "_patch_gte#2",
     },

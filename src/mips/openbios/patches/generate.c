@@ -135,7 +135,7 @@ int main() {
     printf("static const struct patch C0patches[] = {\n");
     for (unsigned i = 0; i < c0_len; i++) {
         printf("    {\n");
-        printf("        .hash = 0x%08x,\n", c0[i].hash(min_mask_b0, max_len));
+        printf("        .hash = 0x%08x,\n", c0[i].hash(min_mask_c0, max_len));
         printf("        .execute = %s,\n", c0[i].execute);
         printf("        .name = \"%s\",\n", c0[i].name);
         printf("    },\n");
