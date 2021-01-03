@@ -48,6 +48,8 @@ uint32_t generate_hash_patch_gte(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_gte();
 uint32_t generate_hash_patch_gte2(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_gte2();
+uint32_t generate_hash_patch_gte3(uint32_t mask, unsigned len);
+uint32_t generate_mask_patch_gte3();
 
 static const unsigned max_len = 16;
 
@@ -100,6 +102,11 @@ static const struct patch c0[] = {
         .hash = generate_hash_patch_gte2,
         .name = "_patch_gte#2",
         .execute = "patch_gte2_execute",
+    },
+    {
+        .hash = generate_hash_patch_gte3,
+        .name = "_patch_gte#3",
+        .execute = "patch_gte3_execute",
     },
 };
 

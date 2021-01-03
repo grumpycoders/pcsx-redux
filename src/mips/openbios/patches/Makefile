@@ -1,6 +1,7 @@
 PATCHES = \
 patch_gte.c \
 patch_gte2.c \
+patch_gte3.c \
 patch_pad.c \
 patch_pad2.c \
 remove_ChgclrPAD.c \

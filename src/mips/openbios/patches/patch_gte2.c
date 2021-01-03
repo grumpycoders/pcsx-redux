@@ -97,7 +97,7 @@ SOFTWARE.
 #ifndef GENERATE_HASHES
 
 int patch_gte2_execute(uint32_t* ra) {
-    ra[2] = 9 | 0x10000000;
+    ra[2] = 8 | 0x10000000;
     ra[3] = 0;
     return 1;
 }
