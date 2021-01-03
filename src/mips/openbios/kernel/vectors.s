@@ -393,5 +393,5 @@ romsyscall_printf:
     li    $t1, 0x3f
 
 unimplementedMsg:
-    .ascii "=== Unimplemented %x:%x syscall from %p ===\r\n\0"
+    .asciz "=== Unimplemented %x:%x syscall from %p ===\r\n"
     .set pop

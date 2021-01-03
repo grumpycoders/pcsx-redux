@@ -31,7 +31,18 @@ SOFTWARE.
 #include "openbios/handlers/handlers.h"
 #include "openbios/sio0/pad.h"
 
+static int s_remove_ChgclrPAD = 0;
+static int s_disable_slotChangeOnAbort = 0;
+static int s_send_pad = 0;
+void patch_remove_ChgclrPAD() { s_remove_ChgclrPAD = 1; }
+void patch_disable_slotChangeOnAbort() { s_disable_slotChangeOnAbort = 1; }
+void patch_send_pad() { s_send_pad = 1; }
+
 static int s_padStarted;
+
+void patch_startPad() { s_padStarted = 1; }
+void patch_stopPad() { s_padStarted = 0; }
+
 // this is the first time in this code I see a variable that
 // requires static initialization.
 static int s_cardStarted = 0;
@@ -65,7 +76,7 @@ void busyloop(int count);
    in the retail code. Ugh. */
 static uint8_t * s_padOutputBuffers[2];
 static size_t s_padOutputSizes[2];
-static void __attribute__((section(".ramtext"))) setPadOutputData(uint8_t * pad1OutputBuffer, size_t pad1OutputSize, uint8_t * pad2OutputBuffer, size_t pad2OutputSize) {
+void __attribute__((section(".ramtext"))) patch_setPadOutputData(uint8_t * pad1OutputBuffer, size_t pad1OutputSize, uint8_t * pad2OutputBuffer, size_t pad2OutputSize) {
     s_padOutputBuffers[0] = pad1OutputBuffer;
     s_padOutputBuffers[1] = pad2OutputBuffer;
     s_padOutputSizes[0] = pad1OutputSize;
@@ -79,8 +90,10 @@ static void __attribute__((section(".ramtext"))) padAbort(int pad) {
     uint8_t * padBuffer = *padBufferPtr;
     padBuffer[0] = 0xff;
 
-    SIOS[0].ctrl = pad ? 0x2002 : 0x0002;
-    busyloop(10);
+    if (s_disable_slotChangeOnAbort) {
+        SIOS[0].ctrl = pad ? 0x2002 : 0x0002;
+        busyloop(10);
+    }
     SIOS[0].ctrl = 0;
 }
 
@@ -156,7 +169,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         }
 
         // Test is reversed in retail, resulting in reading pointer 0x0001 + 2 * n
-        SIOS[0].fifo = doPadOutput && padOutputBuffer[1];
+        SIOS[0].fifo = s_send_pad ? doPadOutput & padOutputBuffer[1] : doPadOutput && padOutputBuffer[1];
         padOutputBuffer += 2;
         busyloop(10);
         SIOS[0].ctrl |= 0x10;
@@ -181,7 +194,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         }
 
         // Test is reversed in retail, resulting in reading pointer 0x0002 + 2 * n
-        SIOS[0].fifo = doPadOutput && padOutputBuffer[0];
+        SIOS[0].fifo = s_send_pad ? doPadOutput & padOutputBuffer[0] : doPadOutput && padOutputBuffer[0];
         busyloop(10);
 
         SIOS[0].ctrl |= 0x10;
@@ -212,7 +225,7 @@ static void __attribute__((section(".ramtext"))) sio0Handler(int v) {
         readPad(1);
         if (g_userPadBuffer) readPadHighLevel();
     }
-    if (s_padAutoAck) IREG = ~IRQ_VBLANK;
+    if (!s_remove_ChgclrPAD && s_padAutoAck) IREG = ~IRQ_VBLANK;
     if (s_cardStarted) readCard();
 }
 
@@ -228,7 +241,7 @@ int __attribute__((section(".ramtext"))) initPad(uint8_t * pad1Buffer, size_t pa
     ramsyscall_printf("%s\n", "PS-X Control PAD Driver");
     g_userPadBuffer = NULL;
     s_padStarted = 0;
-    setPadOutputData(NULL, 0, NULL, 0);
+    patch_setPadOutputData(NULL, 0, NULL, 0);
     s_padBufferPtrs[0] = pad1Buffer;
     s_padBufferPtrs[1] = pad2Buffer;
     s_padBufferSizes[0] = pad1BufferSize;

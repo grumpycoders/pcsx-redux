@@ -969,7 +969,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWR,  &Disasm::disNULL,   // 2c
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disLWC2, &Disasm::disNULL,   // 30
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 34
-    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disNULL,    // 38
+    &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disSWC2, &Disasm::disNULL,   // 38
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 3c
 };
 

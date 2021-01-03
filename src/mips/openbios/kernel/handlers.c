@@ -51,6 +51,7 @@ SOFTWARE.
 #include "openbios/kernel/setjmp.h"
 #include "openbios/kernel/threads.h"
 #include "openbios/main/main.h"
+#include "openbios/patches/patches.h"
 #include "openbios/sio0/pad.h"
 #include "openbios/sio0/sio0.h"
 #include "openbios/tty/tty.h"
@@ -215,8 +216,19 @@ void * C0table[0x20] = {
     patchA0table, unimplemented, unimplemented, unimplemented, // 1c
 };
 
-void * getB0table() { return B0table; }
-void * getC0table() { return C0table; }
+void * getB0table() {
+    uint32_t ra;
+    __asm__ volatile("move %0, $ra" : "=r" (ra));
+    patch_hook((uint32_t*) ra, PATCH_TABLE_B0);
+    return B0table;
+}
+
+void *getC0table() {
+    uint32_t ra;
+    __asm__ volatile("move %0, $ra" : "=r" (ra));
+    patch_hook((uint32_t*) ra, PATCH_TABLE_C0);
+    return C0table;
+}
 
 /* This is technically all done by our crt0, but since there's
    logic that relies on this being a thing, we're repeating

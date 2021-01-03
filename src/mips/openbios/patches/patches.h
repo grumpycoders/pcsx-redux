@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +26,25 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdlib.h>
-
 #include "common/compiler/stdint.h"
 
-/* This one is a tough one. Technically, this should return a struct, that's
-   using however the older gcc ABI. There's no way to reproduce the ABI
-   with modern gcc as far as I know, but it's also likely the rest of
-   the returned struct isn't actually used, so we might be lucky here
-   in terms of API. As far as ABI is concerned however, inlined assembly
-   code will solve the issue. */
-int initPadHighLevel(uint32_t padType, uint32_t * buffer, int c, int d);
-uint32_t readPadHighLevel();
-int initPad(uint8_t * pad1Buffer, size_t pad1BufferSize, uint8_t * pad2Buffer, size_t pad2BufferSize);
-int startPad();
-void stopPad();
+/*
+  Most PSX games will have kernel patches within them. Most (but not all)
+  of these patches will call B0:56 and B0:57 to get the pointer of the
+  B0 and C0 tables. It will be close to impossible for us to create code
+  in a way that will make these patches work properly transparently, so
+  instead we will rely on the fact they are calling these two functions,
+  and then we patch them out after we detect them. This assumes that these
+  two functions aren't called for anything else but the patches. The
+  boolean below controls if we want to be permissive or not with unrecognized
+  patches. It is currently set to 1, and probably should remain so for a
+  long time, until we are sure we got all the patches properly.
 
-void patch_remove_ChgclrPAD();
-void patch_disable_slotChangeOnAbort();
-void patch_startPad();
-void patch_stopPad();
-void patch_send_pad();
-void patch_setPadOutputData(uint8_t* pad1OutputBuffer, size_t pad1OutputSize, uint8_t* pad2OutputBuffer,
-                            size_t pad2OutputSize);
+  Then, depending on the patch itself, we may change our kernel's behavior,
+  in order to emulate what the original patch was trying to do.
+*/
 
-extern uint32_t * g_userPadBuffer;
+extern int g_patch_permissive;
+
+enum patch_table { PATCH_TABLE_B0, PATCH_TABLE_C0 };
+void patch_hook(uint32_t* ra, enum patch_table table);
