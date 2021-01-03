@@ -71,7 +71,7 @@ void setupFileIO(int installTTY) {
 void printInstalledDevices() {
     struct Device * ptr;
     for (ptr = s_devices; ptr < s_devices + sizeof(s_devices) / sizeof(s_devices[0]); ptr++) {
-        if (ptr->name) romsyscall_printf("\t%s:\t%s\n");
+        if (ptr->name) romsyscall_printf("\t%s:\t%s\n", ptr->name, ptr->desc);
     }
 }
 
