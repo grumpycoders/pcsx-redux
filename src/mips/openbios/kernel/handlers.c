@@ -130,7 +130,7 @@ static void dummyMC() { }
 static const void * romA0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
-    unimplemented, unimplemented, psxtodigit, unimplemented /*atof*/, // 08
+    unimplemented, unimplemented, psxtodigit, (void *) 'O' /*atof*/, // 08
     strtol, strtol, psxabs, psxabs, // 0c
     atoi, atol, psxatob, psxsetjmp, // 10
     psxlongjmp, strcat, strncat, strcmp, // 14
