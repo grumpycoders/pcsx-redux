@@ -51,6 +51,7 @@ int send_pad_execute(uint32_t* ra);
 int send_pad2_execute(uint32_t* ra);
 int patch_gte_execute(uint32_t* ra);
 int patch_gte2_execute(uint32_t* ra);
+int patch_gte3_execute(uint32_t* ra);
 
 static const uint32_t generic_hash_mask_b0 = 0x7fc9d155;
 static const uint32_t generic_hash_mask_c0 = 0x52205545;
@@ -99,6 +100,11 @@ static const struct patch C0patches[] = {
         .hash = 0xf8fad00f,
         .execute = patch_gte2_execute,
         .name = "_patch_gte#2",
+    },
+    {
+        .hash = 0xf65f080b,
+        .execute = patch_gte3_execute,
+        .name = "_patch_gte#3",
     },
 };
 

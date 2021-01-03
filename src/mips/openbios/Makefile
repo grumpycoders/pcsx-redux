@@ -40,6 +40,7 @@ patches/patches.c \
 \
 patches/patch_gte.c \
 patches/patch_gte2.c \
+patches/patch_gte3.c \
 patches/patch_pad.c \
 patches/patch_pad2.c \
 patches/remove_ChgclrPAD.c \
