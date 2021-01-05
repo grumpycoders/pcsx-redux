@@ -887,8 +887,8 @@ void X86DynaRecCPU::recSLTI() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32ItoR(PCSX::ix86::EAX, _Imm_);
-        gen.SETL8R(PCSX::ix86::EAX);
-        gen.AND32ItoR(PCSX::ix86::EAX, 0xff);
+        gen.SETL8R(PCSX::ix86::EAX); // Set AL depending on whether Rs < imm
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Sign extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
     }
 }
@@ -905,8 +905,8 @@ void X86DynaRecCPU::recSLTIU() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32ItoR(PCSX::ix86::EAX, _Imm_);
-        gen.SETB8R(PCSX::ix86::EAX);
-        gen.AND32ItoR(PCSX::ix86::EAX, 0xff);
+        gen.SETB8R(PCSX::ix86::EAX); // Set AL depending on whether Rs < Imm (unsigned)
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Sign extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
     }
 }
@@ -1252,24 +1252,24 @@ void X86DynaRecCPU::recSLT() {
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
         gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.SETL8R(PCSX::ix86::EAX);
-        gen.AND32ItoR(PCSX::ix86::EAX, 0xff);
+        gen.SETL8R(PCSX::ix86::EAX); // set AL to 0 or 1 depending on if Rs < Rt
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Sign extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else if (IsConst(_Rt_)) {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
-        gen.SETL8R(PCSX::ix86::EAX);
-        gen.AND32ItoR(PCSX::ix86::EAX, 0xff);
+        gen.SETL8R(PCSX::ix86::EAX); // set AL to 0 or 1 depending on if Rs < Rt
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Sign extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.SETL8R(PCSX::ix86::EAX);
-        gen.AND32ItoR(PCSX::ix86::EAX, 0xff);
+        gen.SETL8R(PCSX::ix86::EAX); // set AL to 0 or 1 depending on if Rs < Rt
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Sign extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
 }
@@ -2342,7 +2342,7 @@ void X86DynaRecCPU::recSRLV() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::ECX, 0x1f);
+        // gen.AND32ItoR(PCSX::ix86::ECX, 0x1f); Commented out cause useless, see the rest of the comments about masking shift amounts
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
