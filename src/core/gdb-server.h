@@ -236,6 +236,7 @@ class GdbServer {
     std::shared_ptr<uvw::TCPHandle> m_server;
     GdbClient::ListType m_clients;
     EventBus::Listener m_listener;
+    std::string m_gotError;
 };
 
 }  // namespace PCSX
