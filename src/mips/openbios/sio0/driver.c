@@ -200,7 +200,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         SIOS[0].ctrl |= 0x10;
         IREG = ~IRQ_CONTROLLER;
 
-        while (!(SIOS[0].stat) & 2);
+        while (!(SIOS[0].stat & 2));
 
         padBuffer[3] = SIOS[0].fifo;
         padBuffer += 2;
