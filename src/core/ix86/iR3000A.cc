@@ -2295,7 +2295,9 @@ void X86DynaRecCPU::recSLLV() {
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k & 0x1f);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::ECX, 0x1f);
+        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+                                                 // happens implicitly on all x86 processors except for 8086.
+                                                 // So no need to do it manually
         gen.SHL32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
@@ -2303,7 +2305,9 @@ void X86DynaRecCPU::recSLLV() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::ECX, 0x1f);
+        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+                                                 // happens implicitly on all x86 processors except for 8086.
+                                                 // So no need to do it manually
         gen.SHL32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
@@ -2320,15 +2324,17 @@ void X86DynaRecCPU::recSRLV() {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k & 0x1f);
+        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k);
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else if (IsConst(_Rt_)) {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
-        gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::ECX, 0x1f);
+        gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]); // place shift amount in ECX
+      //gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this happens implicitly
+                                              // on all x86 processors except for 8086.
+                                              // So no need to do it manually
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
@@ -2353,7 +2359,7 @@ void X86DynaRecCPU::recSRAV() {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k & 0x1f);
+        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k);
         gen.SAR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else if (IsConst(_Rt_)) {
@@ -2361,7 +2367,9 @@ void X86DynaRecCPU::recSRAV() {
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::ECX, 0x1f);
+        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+                                                 // happens implicitly on all x86 processors except for 8086.
+                                                 // So no need to do it manually
         gen.SAR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
@@ -2369,7 +2377,9 @@ void X86DynaRecCPU::recSRAV() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::ECX, 0x1f);
+        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+                                                 // happens implicitly on all x86 processors except for 8086.
+                                                 // So no need to do it manually
         gen.SAR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
