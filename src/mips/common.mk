@@ -3,10 +3,16 @@ BUILD ?= Release
 
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-CC = $(PREFIX)-gcc
+CC  = $(PREFIX)-gcc
+CXX = $(PREFIX)-gcc
 
 TYPE ?= cpe
 LDSCRIPT ?= $(ROOTDIR)/$(TYPE).ld
+ifneq ($(strip $(OVERLAYSCRIPT)),)
+LDSCRIPT := $(addprefix $(OVERLAYSCRIPT) , -T$(LDSCRIPT))
+else
+LDSCRIPT := $(addprefix $(ROOTDIR)/default.ld , -T$(LDSCRIPT))
+endif
 
 USE_FUNCTION_SECTIONS ?= true
 
@@ -20,7 +26,7 @@ CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
 
-LDFLAGS += -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
+LDFLAGS += -Wl,-Map=bin/$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
 
 CPPFLAGS_Release += -Os
@@ -36,13 +42,13 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
-all: dep $(TARGET).$(TYPE)
+all: dep bin/$(TARGET).$(TYPE)
+bin/$(TARGET).$(TYPE): bin/$(TARGET).elf
+	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
+	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< bin/Overlay$(ovl);)
 
-$(TARGET).$(TYPE): $(TARGET).elf
-	$(PREFIX)-objcopy -O binary $< $@
-
-$(TARGET).elf: $(OBJS)
-	$(CC) -g -o $(TARGET).elf $(OBJS) $(LDFLAGS)
+bin/$(TARGET).elf: $(OBJS)
+	$(CC) -g -o bin/$(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.o: %.s
 	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
@@ -50,21 +56,21 @@ $(TARGET).elf: $(OBJS)
 %.dep: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
-%.dep: %.cc
+%.dep: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 # A bit broken, but that'll do in most cases.
 %.dep: %.s
 	touch $@
 
-DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
-DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
-DEPS += $(patsubst %.s,%.dep,$(filter %.s,$(SRCS)))
+DEPS := $(patsubst %.cpp, %.dep,$(filter %.cpp,$(SRCS)))
+DEPS +=	$(patsubst %.c,  %.dep,$(filter %.c,$(SRCS)))
+DEPS += $(patsubst %.s,  %.dep,$(filter %.s,$(SRCS)))
 
 dep: $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(TARGET).elf $(TARGET).map $(TARGET).$(TYPE) $(DEPS)
+	rm -f $(OBJS) bin/* $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), deepclean)

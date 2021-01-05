@@ -151,7 +151,7 @@ SECTIONS {
     . = ALIGN(4);
     __bss_end = .;
 
-    __heap_start = .;
+    __heap_start = __heap_bas;
 
     __end = .;
 
