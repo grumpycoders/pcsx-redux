@@ -137,6 +137,7 @@ void PCSX::GdbClient::processData(const Slice& slice) {
                 }
             case WAIT_FOR_DOLLAR:
                 if (c == '+') sendAck();
+                if (c == 3) g_system->pause();
                 if (c != '$') break;
                 m_state = READING_COMMAND;
                 break;

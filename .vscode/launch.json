@@ -16,6 +16,7 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset halt",
@@ -37,6 +38,7 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
@@ -58,6 +60,7 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
@@ -79,6 +82,7 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
@@ -100,6 +104,7 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
