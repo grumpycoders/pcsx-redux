@@ -54,8 +54,22 @@ void PCSX::GdbServer::startServer(int port) {
     m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
     m_server->on<uvw::CloseEvent>(
         [this](const uvw::CloseEvent&, uvw::TCPHandle& srv) { m_serverStatus = SERVER_STOPPED; });
+    m_server->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& event, uvw::TCPHandle& srv) {
+        m_gotError = event.what();
+    });
+    m_gotError = "";
     m_server->bind("0.0.0.0", port);
+    if (!m_gotError.empty()) {
+        g_system->printf("Error while trying to bind to port %i: %s\n", port, m_gotError.c_str());
+        m_server->close();
+        return;
+    }
     m_server->listen();
+    if (!m_gotError.empty()) {
+        g_system->printf("Error while trying to listen to port %i: %s\n", port, m_gotError.c_str());
+        m_server->close();
+        return;
+    }
 
     m_serverStatus = SERVER_STARTED;
 }
@@ -418,7 +432,6 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
         regs.pc = value;
     }
 }
-
 
 void PCSX::GdbClient::processCommand() {
     if (m_ackEnabled) sendAck();
