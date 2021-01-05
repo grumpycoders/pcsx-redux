@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <algorithm> // for std::max
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
