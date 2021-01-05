@@ -70,7 +70,7 @@ DEPS += $(patsubst %.s,  %.dep,$(filter %.s,$(SRCS)))
 dep: $(DEPS)	
 
 makeDir:
-ifneq ($(strip $(OVERLAYSCRIPT)),)
+ifneq ($(strip $(BINDIR)),)
 	mkdir -p $(BINDIR)
 endif
 
