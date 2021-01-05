@@ -2760,8 +2760,7 @@ void X86DynaRecCPU::testSWInt() {
     gen.MOV32MtoR(PCSX::ix86::EDX, (uint32_t)&m_psxRegs.CP0.n.Cause);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32RtoR(PCSX::ix86::EAX, PCSX::ix86::EDX);
-    gen.AND32ItoR(PCSX::ix86::EAX, 0x300);
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
+    gen.AND32ItoR(PCSX::ix86::EAX, 0x300); // This AND will set the zero flag if eax = 0 afterwards
     unsigned slot1 = gen.JE8(0);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32ItoR(PCSX::ix86::EAX, 1);
