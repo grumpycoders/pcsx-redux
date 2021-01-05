@@ -26,7 +26,7 @@ CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
 
-LDFLAGS += -Wl,-Map=bin/$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
+LDFLAGS += -Wl,-Map=$(BINDIR)$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
 LDFLAGS += $(ARCHFLAGS)
 
 CPPFLAGS_Release += -Os
@@ -42,13 +42,13 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
-all: dep bin/$(TARGET).$(TYPE)
-bin/$(TARGET).$(TYPE): bin/$(TARGET).elf
+all: makeDir dep $(BINDIR)$(TARGET).$(TYPE)
+$(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
-	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< bin/Overlay$(ovl);)
+	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< $(BINDIR)Overlay$(ovl);)
 
-bin/$(TARGET).elf: $(OBJS)
-	$(CC) -g -o bin/$(TARGET).elf $(OBJS) $(LDFLAGS)
+$(BINDIR)$(TARGET).elf: $(OBJS)
+	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.o: %.s
 	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
@@ -67,10 +67,15 @@ DEPS := $(patsubst %.cpp, %.dep,$(filter %.cpp,$(SRCS)))
 DEPS +=	$(patsubst %.c,  %.dep,$(filter %.c,$(SRCS)))
 DEPS += $(patsubst %.s,  %.dep,$(filter %.s,$(SRCS)))
 
-dep: $(DEPS)
+dep: $(DEPS)	
 
-clean:
-	rm -f $(OBJS) bin/* $(DEPS)
+makeDir:
+ifneq ($(strip $(OVERLAYSCRIPT)),)
+	mkdir -p $(BINDIR)
+endif
+
+clean:	
+	rm -f $(OBJS) $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), deepclean)
