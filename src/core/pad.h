@@ -21,8 +21,11 @@
 
 #include <stdint.h>
 #include <SDL.h>
+#include <GLFW/glfw3.h>
+
 #include "imgui.h" // for joypad config menu
 #include "core/system.h" // for configure() function
+#include "core/psxemulator.h"
 
 struct PadDataS;
 
@@ -58,6 +61,24 @@ class PAD {
     unsigned char m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     int m_bufcount, m_bufc;
+
+    // settings block
+    typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
+    typedef Setting<int, TYPESTRING("Pad1Right"), GLFW_KEY_RIGHT> Pad1Right;
+    typedef Setting<int, TYPESTRING("Pad1Down"), GLFW_KEY_DOWN> Pad1Down;
+    typedef Setting<int, TYPESTRING("Pad1Left"), GLFW_KEY_LEFT> Pad1Left;
+    typedef Setting<int, TYPESTRING("Pad1Cross"), GLFW_KEY_X> Pad1Cross;
+    typedef Setting<int, TYPESTRING("Pad1Triangle"), GLFW_KEY_S> Pad1Triangle;
+    typedef Setting<int, TYPESTRING("Pad1Square"), GLFW_KEY_Z> Pad1Square;
+    typedef Setting<int, TYPESTRING("Pad1Circle"), GLFW_KEY_D> Pad1Circle;
+    typedef Setting<int, TYPESTRING("Pad1Select"), GLFW_KEY_BACKSPACE> Pad1Select;
+    typedef Setting<int, TYPESTRING("Pad1Sstart"), GLFW_KEY_ENTER> Pad1Start;
+    typedef Setting<int, TYPESTRING("Pad1L1"), GLFW_KEY_Q> Pad1L1;
+    typedef Setting<int, TYPESTRING("Pad1L2"), GLFW_KEY_A> Pad1L2;
+    typedef Setting<int, TYPESTRING("Pad1R1"), GLFW_KEY_R> Pad1R1;
+    typedef Setting<int, TYPESTRING("Pad1R2"), GLFW_KEY_F> Pad1R2;
+
+    Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2> settings;
 };
 
 }  // namespace PCSX

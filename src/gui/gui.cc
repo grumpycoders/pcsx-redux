@@ -135,6 +135,7 @@ void PCSX::GUI::init() {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
+        // io.Fonts->AddFontFromFileTTF("Helvetica.ttf", 13.0f);
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
         json j;
