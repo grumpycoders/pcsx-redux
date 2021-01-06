@@ -214,8 +214,8 @@ bool PCSX::PAD::configure() {
     bool changed = false;
 
     static const char* inputDevices[] = {"Keyboard", "Controller (Coming soon tm)"}; // list of options for the drop down table
-    static const char* buttonNames[] = {"Cross", "Square", "Trongle", "Circle",  "Select", "Start"}; // PS1 controller buttons
-    static const char* dpadDirections[] = {"Up", "Right", "Down", "Left"}; // PS1 controller dpad directions
+    static const char* buttonNames[] = {"Cross   ", "Square  ", "Triangle", "Circle  ",  "Select  ", "Start   "}; // PS1 controller buttons (padded to 8 characters for GUI prettiness)
+    static const char* dpadDirections[] = {"Up      ", "Right   ", "Down    ", "Left    "}; // PS1 controller dpad directions (padded to 8 characters for GUI prettiness)
 
     auto autodetect = 0;
     auto type = 0;
@@ -235,16 +235,34 @@ bool PCSX::PAD::configure() {
     }
 
     ImGui::Text("Configure buttons");
-    for (auto i : buttonNames) {
-        if (ImGui::Button(i)) {
+    for (auto i = 0; i < 6;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
+        ImGui::Text(buttonNames[i++]);
+        ImGui::SameLine();
+        if (ImGui::Button("(Button here)")) {
+            printf("S t o p\n");
+        }
+        ImGui::SameLine();
+
+        ImGui::Text(buttonNames[i++]);
+        ImGui::SameLine();
+        if (ImGui::Button("(Button here)")) {
             printf("S t o p\n");
         }
     }
 
     ImGui::Text("Configure dpad");
-    for (auto i : dpadDirections) {
-        if (ImGui::Button(i)) {
-            printf("no\n");
+    for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
+        ImGui::Text(dpadDirections[i++]);
+        ImGui::SameLine();
+        if (ImGui::Button("(Button here)")) {
+            printf("S t o p\n");
+        }
+        ImGui::SameLine();
+
+        ImGui::Text(dpadDirections[i++]);
+        ImGui::SameLine();
+        if (ImGui::Button("(Button here)")) {
+            printf("S t o p\n");
         }
     }
 
