@@ -212,11 +212,42 @@ bool PCSX::PAD::configure() {
     }
 
     bool changed = false;
-    bool stub = false;
-    changed |= ImGui::Checkbox(_("Muted"), &stub);
-    changed |= ImGui::Checkbox(_("Enable streaming"), &stub);
+
+    static const char* inputDevices[] = {"Keyboard", "Controller (Coming soon tm)"}; // list of options for the drop down table
+    static const char* buttonNames[] = {"Cross", "Square", "Trongle", "Circle",  "Select", "Start"}; // PS1 controller buttons
+    static const char* dpadDirections[] = {"Up", "Right", "Down", "Left"}; // PS1 controller dpad directions
+
+    auto autodetect = 0;
+    auto type = 0;
+
+    if (ImGui::BeginCombo(_("Whatcha configurin"), inputDevices[type])) {
+        if (ImGui::Selectable(inputDevices[0], autodetect)) {
+            changed = true;
+            printf("Selected keyboard\n");
+        }
+                
+        if (ImGui::Selectable(inputDevices[1], !autodetect)) {
+            changed = true;
+            printf("Selected controller\n");
+        }
+    
+        ImGui::EndCombo();
+    }
+
+    ImGui::Text("Configure buttons");
+    for (auto i : buttonNames) {
+        if (ImGui::Button(i)) {
+            printf("S t o p\n");
+        }
+    }
+
+    ImGui::Text("Configure dpad");
+    for (auto i : dpadDirections) {
+        if (ImGui::Button(i)) {
+            printf("no\n");
+        }
+    }
 
     ImGui::End();
     return changed;
-
 }
