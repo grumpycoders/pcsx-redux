@@ -848,6 +848,11 @@ can slow down emulation to a noticable extend.)"));
         ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
+        changed |= ImGui::Checkbox(_("GDB send manifest"), &settings.get<Emulator::SettingGdbManifest>().value);
+        ShowHelpMarker(_(R"(Enables sending the processor's manifest
+from the gdb server. Keep this enabled, unless
+you want to connect IDA to this server, as it
+has a bug in its manifest parser.)"));
         changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
         changed |= ImGui::Checkbox(_("GDB Server Trace"), &settings.get<Emulator::SettingGdbServerTrace>().value);
         ShowHelpMarker(_(R"(The GDB server will start tracing its

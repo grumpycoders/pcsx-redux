@@ -621,7 +621,11 @@ void PCSX::GdbClient::processCommand() {
     } else if (Misc::startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
-        write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
+        if (g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
+            write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
+        } else {
+            write("PacketSize=4000;qXfer:threads:read+;QStartNoAckMode+");
+        }
     } else if (Misc::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
@@ -637,9 +641,9 @@ void PCSX::GdbClient::processCommand() {
             monitor += c;
         }
         processMonitorCommand(monitor);
-    } else if (Misc::startsWith(m_cmd, qXferMemMap)) {
+    } else if (Misc::startsWith(m_cmd, qXferMemMap) && g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
         writePaged(memoryMap, m_cmd.substr(qXferMemMap.length()));
-    } else if (Misc::startsWith(m_cmd, qXferFeatures)) {
+    } else if (Misc::startsWith(m_cmd, qXferFeatures) && g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (Misc::startsWith(m_cmd, qXferThreads)) {
         writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
