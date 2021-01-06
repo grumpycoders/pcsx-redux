@@ -20,8 +20,9 @@
 #pragma once
 
 #include <stdint.h>
-
 #include <SDL.h>
+#include "imgui.h" // for joypad config menu
+#include "core/system.h" // for configure() function
 
 struct PadDataS;
 
@@ -35,6 +36,8 @@ class PAD {
     void shutdown();
     unsigned char startPoll();
     unsigned char poll(unsigned char);
+    bool configure();
+    bool m_showCfg = false;
 
   private:
     void readPort(PadDataS *pad);

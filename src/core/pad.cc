@@ -199,3 +199,24 @@ unsigned char PCSX::PAD::startPoll(PadDataS* pad) {
 
     return m_buf[m_bufc++];
 }
+
+// GUI stuff (move out of here and into an impl class
+bool PCSX::PAD::configure() {
+    if (!m_showCfg) return false; // early exit if the pad config window is off
+    
+    ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(550, 220), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin(_("Pad configuration"), &m_showCfg)) {
+        ImGui::End();
+        return false;
+    }
+
+    bool changed = false;
+    bool stub = false;
+    changed |= ImGui::Checkbox(_("Muted"), &stub);
+    changed |= ImGui::Checkbox(_("Enable streaming"), &stub);
+
+    ImGui::End();
+    return changed;
+
+}

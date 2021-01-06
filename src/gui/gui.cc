@@ -480,7 +480,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
+                ImGui::MenuItem(_("Controls"), nullptr, &PCSX::g_emulator->m_pad1->m_showCfg); // TODO: Add pad 2
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -682,6 +682,7 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
+    changed |= PCSX::g_emulator->m_pad1->configure(); // TODO: Add pad 2
     changed |= configure();
 
     m_notifier.draw();
