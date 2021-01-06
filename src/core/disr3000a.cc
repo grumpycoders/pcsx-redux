@@ -107,7 +107,8 @@ struct StringDisasm : public PCSX::Disasm {
         m_len += len;
     }
     void comma() {
-        if (m_gotArg) append(", ");
+        if (m_gotArg) 
+            append(", ");
         m_gotArg = true;
     }
     virtual void Invalid() final { strcpy(m_buf, "*** Bad OP ***"); }

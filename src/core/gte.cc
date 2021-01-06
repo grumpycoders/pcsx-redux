@@ -267,7 +267,8 @@
 static uint32_t gte_leadingzerocount(uint32_t lzcs) {
     uint32_t lzcr = 0;
 
-    if ((lzcs & 0x80000000) == 0) lzcs = ~lzcs;
+    if ((lzcs & 0x80000000) == 0) 
+        lzcs = ~lzcs;
 
     while ((lzcs & 0x80000000) != 0) {
         lzcr++;
