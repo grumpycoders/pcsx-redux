@@ -250,6 +250,7 @@ bool PCSX::PAD::configure() {
         }
     }
 
+    ImGui::NewLine();
     ImGui::Text("Configure dpad");
     for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
         ImGui::Text(dpadDirections[i++]);
