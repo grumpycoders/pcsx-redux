@@ -16,8 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-#include <array> // for std::array
+    
 #include <memory.h>
 
 #include "imgui.h"
@@ -47,9 +46,14 @@ static const SDL_GameControllerButton s_padMapping[16] = {
     SDL_CONTROLLER_BUTTON_A,              // Cross
     SDL_CONTROLLER_BUTTON_X,              // Square
 };
+ 
+bool PCSX::PAD::configuringButton = false;
+int PCSX::PAD::configuredButtonIndex = 0;
+decltype(PCSX::PAD::settings) PCSX::PAD::settings;
 
 PCSX::PAD::PAD(pad_t pad) : m_padIdx(pad), m_connected(pad == PAD1), m_isKeyboard(pad == PAD1), m_pad(nullptr) {
     mapScancodes();
+    configuringButton = false;
 }
 
 void PCSX::PAD::init() {
@@ -205,9 +209,12 @@ unsigned char PCSX::PAD::startPoll(PadDataS* pad) {
     return m_buf[m_bufc++];
 }
 
-// GUI stuff (move out of here and into an impl class
+// GUI stuff (move out of here and into an impl class)
 bool PCSX::PAD::configure() {
-    if (!m_showCfg) return false; // early exit if the pad config window is off
+    if (!m_showCfg) {
+        configuringButton = false; // since the GUI is off, turn off configuring buttons    
+        return false; // early exit if the pad config window is off
+    }
     
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 220), ImGuiCond_FirstUseEver);
@@ -218,7 +225,7 @@ bool PCSX::PAD::configure() {
 
     bool changed = false;
 
-    static const char* inputDevices[] = {"Keyboard", "Controller (Coming soon tm)"}; // list of options for the drop down table
+    static const char* inputDevices[] = {"Keyboard", "Controller (Not ready yet)"}; // list of options for the drop down table
     static const char* buttonNames[] = {
         "Cross   ", "Square  ", "Triangle", "Circle  ", "Select  ", "Start   ",
         "L1      ", "R1      ", "L2      ", "R2      "
@@ -236,7 +243,7 @@ bool PCSX::PAD::configure() {
                 
         if (ImGui::Selectable(inputDevices[1], !autodetect)) {
             changed = true;
-            printf("Selected controller\n");
+            printf("Selected controller! Configuring a controller is sadly not supported yet :(\nSwitching to keyboard config\n");
         }
     
         ImGui::EndCombo();
@@ -244,37 +251,88 @@ bool PCSX::PAD::configure() {
 
     ImGui::Text("Configure buttons");
     for (auto i = 0; i < 10;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
-        ImGui::Text(buttonNames[i++]);
+        ImGui::Text(buttonNames[i]);
         ImGui::SameLine();
-        if (ImGui::Button("(Button here)")) {
-            printf("S t o p\n");
-        }
+        if (ImGui::Button(glfwGetKeyName(*getButtonFromGUIIndex(i), 0))) // if the button gets pressed, set this as the button to be configured
+            configButton(i); // mark button to be configured
+        i++;
+
         ImGui::SameLine();
 
-        ImGui::Text(buttonNames[i++]);
-        ImGui::SameLine();
-        if (ImGui::Button("(Button here)")) {
-            printf("S t o p\n");
-        }
+        ImGui::Text(buttonNames[i]);
+        ImGui::SameLine();  
+        if (ImGui::Button(glfwGetKeyName(*getButtonFromGUIIndex(i), 0)))
+            configButton(i); // mark button to be configured
+        i++;
     }
 
     ImGui::NewLine();
     ImGui::Text("Configure dpad");
     for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
-        ImGui::Text(dpadDirections[i++]);
+        ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();
-        if (ImGui::Button("(Button here)")) {
-            printf("S t o p\n");
-        }
+        if (ImGui::Button(glfwGetKeyName(*getButtonFromGUIIndex(i+10), 0)))
+            configButton(i + 10); // mark button to be configured (+10 because it's preceded by the 10 other buttons of the controller)
+
+        i++;
         ImGui::SameLine();
 
-        ImGui::Text(dpadDirections[i++]);
+        ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();
-        if (ImGui::Button("(Button here)")) {
-            printf("S t o p\n");
-        }
+        if (ImGui::Button(glfwGetKeyName(*getButtonFromGUIIndex(i+10), 0)))
+            configButton(i + 10); // mark button to be configured (+10 because it's preceded by the 10 other buttons of the controller)
+        i++;
     }
 
     ImGui::End();
     return changed;
+}
+
+/// Mark a button as the button to config
+void PCSX::PAD::configButton(int index) {
+    printf("Ollare ollare\n");
+    configuringButton = true;
+    configuredButtonIndex = index;
+}
+
+/// Actually update the binding for the button set to be configured
+void PCSX::PAD::updateBinding(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (!configuringButton) // if we're not configuring a button, exit early
+        return;
+    
+    *getButtonFromGUIIndex(configuredButtonIndex) = key; // set the scancode of the button that's being configured
+    configuringButton = false;
+}
+
+int* PCSX::PAD::getButtonFromGUIIndex(int index) {
+    switch (configuredButtonIndex) { // Order is the same as they're on the GUI
+        case 0:  return &settings.get<Pad1Cross>().value;
+        case 1:  return &settings.get<Pad1Square>().value;
+        case 2:  return &settings.get<Pad1Triangle>().value;
+        case 3:  return &settings.get<Pad1Circle>().value;
+        case 4:  return &settings.get<Pad1Select>().value;
+        case 5:  return &settings.get<Pad1Start>().value;
+        case 6:  return &settings.get<Pad1L1>().value;
+        case 7:  return &settings.get<Pad1R1>().value;
+        case 8:  return &settings.get<Pad1L2>().value;
+        case 9:  return &settings.get<Pad1R2>().value;
+        case 10:  return &settings.get<Pad1Up>().value;
+        case 11:  return &settings.get<Pad1Right>().value;
+        case 12:  return &settings.get<Pad1Down>().value;
+        case 13:  return &settings.get<Pad1Left>().value;
+    }
+}
+
+json PCSX::PAD::getCfg() { 
+    return settings.serialize(); 
+}
+
+void PCSX::PAD::setCfg(const json& j) {
+    if (j.count("pad") && j["pad"].is_object()) {
+        settings.deserialize(j["pad"]);
+    } 
+    
+    else {
+        settings.reset();
+    }
 }

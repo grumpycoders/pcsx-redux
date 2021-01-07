@@ -26,19 +26,26 @@
 #include "imgui.h" // for joypad config menu
 #include "core/system.h" // for configure() function
 #include "core/psxemulator.h"
+#include "json.hpp" // for getCfg
 
 struct PadDataS;
-
+    using json = nlohmann::json;
 namespace PCSX {
 class PAD {
   public:
+    using json = nlohmann::json;
+
     enum pad_t { PAD1, PAD2 };
     PAD(pad_t pad);
     ~PAD();
     void init();
     void shutdown();
+    static void updateBinding(GLFWwindow* window, int key, int scancode, int action, int mods); // Actually update the binding for the button set to be configured
     unsigned char startPoll();
     unsigned char poll(unsigned char);
+    
+    json getCfg();
+    void setCfg(const json &j);
     bool configure();
     bool m_showCfg = false;
 
@@ -46,6 +53,9 @@ class PAD {
     void readPort(PadDataS *pad);
     unsigned char startPoll(PadDataS *pad);
     uint16_t getButtons();
+    void mapScancodes(); // load keyboard bindings
+    void configButton(int index); // pick the button to config
+    static int* getButtonFromGUIIndex(int index);
 
     pad_t m_padIdx = PAD1;
 
@@ -60,8 +70,10 @@ class PAD {
     unsigned char m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
     unsigned char m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-    int m_bufcount, m_bufc;
-    void mapScancodes(); // load keyboard bindings
+    int m_bufcount, m_bufc; 
+public:
+    static bool configuringButton; // are we configuring a button in the GUI?
+    static int configuredButtonIndex; // Which button are we configuring in the GUI?
 
     // settings block
     typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
@@ -79,7 +91,7 @@ class PAD {
     typedef Setting<int, TYPESTRING("Pad1R1"), GLFW_KEY_R> Pad1R1;
     typedef Setting<int, TYPESTRING("Pad1R2"), GLFW_KEY_F> Pad1R2;
 
-    Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2> settings;
+    static Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2> settings;
 };
 
 }  // namespace PCSX

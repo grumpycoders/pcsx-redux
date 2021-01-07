@@ -125,6 +125,7 @@ void PCSX::GUI::init() {
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
+    glfwSetKeyCallback(m_window, PCSX::PAD::updateBinding);
 
     result = gl3wInit();
     assert(result == 0);
@@ -157,6 +158,7 @@ void PCSX::GUI::init() {
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
+            PCSX::g_emulator->m_pad1->setCfg(j);
         } else {
             saveCfg();
         }
@@ -264,6 +266,7 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
+    j["pad"] = PCSX::g_emulator->m_pad1->getCfg();
     cfg << std::setw(2) << j << std::endl;
 }
 
