@@ -592,8 +592,6 @@ void PCSX::GUI::endFrame() {
 
     if (m_showDemo) ImGui::ShowDemoWindow();
 
-
-
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
     m_mainVRAMviewer.render(m_VRAMTexture);
