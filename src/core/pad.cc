@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <array> // for std::array
 #include <memory.h>
 
 #include "imgui.h"
@@ -27,25 +28,6 @@
 
 #include "core/pad.h"
 #include "core/psemu_plugin_defs.h"
-
-static const int s_defaultScancodes[16] = {
-    GLFW_KEY_BACKSPACE,  // Select
-    511,                 // n/a
-    511,                 // n/a
-    GLFW_KEY_ENTER,      // Start
-    GLFW_KEY_UP,         // Up
-    GLFW_KEY_RIGHT,      // Right
-    GLFW_KEY_DOWN,       // Down
-    GLFW_KEY_LEFT,       // Left
-    GLFW_KEY_A,          // L2
-    GLFW_KEY_F,          // R2
-    GLFW_KEY_Q,          // L1
-    GLFW_KEY_R,          // R1
-    GLFW_KEY_S,          // Triangle
-    GLFW_KEY_D,          // Circle
-    GLFW_KEY_X,          // Cross
-    GLFW_KEY_Z,          // Square
-};
 
 static const SDL_GameControllerButton s_padMapping[16] = {
     SDL_CONTROLLER_BUTTON_BACK,           // Select
@@ -67,11 +49,13 @@ static const SDL_GameControllerButton s_padMapping[16] = {
 };
 
 PCSX::PAD::PAD(pad_t pad) : m_padIdx(pad), m_connected(pad == PAD1), m_isKeyboard(pad == PAD1), m_pad(nullptr) {
-    memcpy(m_scancodes, s_defaultScancodes, sizeof(s_defaultScancodes));
+    mapScancodes();
 }
 
 void PCSX::PAD::init() {
     bool foundOne = false;
+    mapScancodes();
+
     for (int i = 0; i < SDL_NumJoysticks(); ++i) {
         if (SDL_IsGameController(i)) {
             if (!foundOne && m_padIdx == PAD2) {
@@ -83,6 +67,27 @@ void PCSX::PAD::init() {
             if (m_pad) break;
         }
     }
+}
+
+/// Map keyboard bindings
+void PCSX::PAD::mapScancodes() { 
+    m_scancodes[0] = settings.get<PCSX::PAD::Pad1Select>();  // SELECT
+    m_scancodes[1] = 255; // n/a
+    m_scancodes[2] = 255; // n/a
+    m_scancodes[3] = settings.get<PCSX::PAD::Pad1Start>(); // START
+    m_scancodes[4] = settings.get<PCSX::PAD::Pad1Up>();    // UP
+    m_scancodes[5] = settings.get<PCSX::PAD::Pad1Right>(); // RIGHT
+    m_scancodes[6] = settings.get<PCSX::PAD::Pad1Down>();  // DOWN
+    m_scancodes[7] = settings.get<PCSX::PAD::Pad1Left>();  // LEFT
+
+    m_scancodes[8] = settings.get<PCSX::PAD::Pad1L2>();    // L2
+    m_scancodes[9] = settings.get<PCSX::PAD::Pad1R2>();    // R2
+    m_scancodes[10] = settings.get<PCSX::PAD::Pad1L1>();   // L1
+    m_scancodes[11] = settings.get<PCSX::PAD::Pad1R1>();   // R1
+    m_scancodes[12] = settings.get<PCSX::PAD::Pad1Triangle>(); // TRIANGLE
+    m_scancodes[13] = settings.get<PCSX::PAD::Pad1Circle>();   // CIRCLE
+    m_scancodes[14] = settings.get<PCSX::PAD::Pad1Cross>();    // CROSS
+    m_scancodes[15] = settings.get<PCSX::PAD::Pad1Square>();   // SQUARE
 }
 
 void PCSX::PAD::shutdown() {

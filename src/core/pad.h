@@ -61,6 +61,7 @@ class PAD {
     unsigned char m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
     int m_bufcount, m_bufc;
+    void mapScancodes(); // load keyboard bindings
 
     // settings block
     typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
