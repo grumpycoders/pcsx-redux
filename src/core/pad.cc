@@ -214,7 +214,10 @@ bool PCSX::PAD::configure() {
     bool changed = false;
 
     static const char* inputDevices[] = {"Keyboard", "Controller (Coming soon tm)"}; // list of options for the drop down table
-    static const char* buttonNames[] = {"Cross   ", "Square  ", "Triangle", "Circle  ",  "Select  ", "Start   "}; // PS1 controller buttons (padded to 8 characters for GUI prettiness)
+    static const char* buttonNames[] = {
+        "Cross   ", "Square  ", "Triangle", "Circle  ", "Select  ", "Start   ",
+        "L1      ", "R1      ", "L2      ", "R2      "
+    }; // PS1 controller buttons (padded to 8 characters for GUI prettiness)
     static const char* dpadDirections[] = {"Up      ", "Right   ", "Down    ", "Left    "}; // PS1 controller dpad directions (padded to 8 characters for GUI prettiness)
 
     auto autodetect = 0;
@@ -235,7 +238,7 @@ bool PCSX::PAD::configure() {
     }
 
     ImGui::Text("Configure buttons");
-    for (auto i = 0; i < 6;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
+    for (auto i = 0; i < 10;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
         ImGui::Text(buttonNames[i++]);
         ImGui::SameLine();
         if (ImGui::Button("(Button here)")) {
