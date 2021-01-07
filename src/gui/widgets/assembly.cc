@@ -301,22 +301,22 @@ void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, int size) {
     auto changeDataType = [](MemoryEditor* editor, int size) {
         bool isSigned = false;
         switch (editor->PreviewDataType) {
-            case MemoryEditor::DataType_S8:
-            case MemoryEditor::DataType_S16:
-            case MemoryEditor::DataType_S32:
-            case MemoryEditor::DataType_S64:
+            case ImGuiDataType_S8:
+            case ImGuiDataType_S16:
+            case ImGuiDataType_S32:
+            case ImGuiDataType_S64:
                 isSigned = true;
                 break;
         }
         switch (size) {
             case 1:
-                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S8 : MemoryEditor::DataType_U8;
+                editor->PreviewDataType = isSigned ? ImGuiDataType_S8 : ImGuiDataType_U8;
                 break;
             case 2:
-                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S16 : MemoryEditor::DataType_U16;
+                editor->PreviewDataType = isSigned ? ImGuiDataType_S16 : ImGuiDataType_U16;
                 break;
             case 4:
-                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S32 : MemoryEditor::DataType_U32;
+                editor->PreviewDataType = isSigned ? ImGuiDataType_S32 : ImGuiDataType_U32;
                 break;
         }
     };
