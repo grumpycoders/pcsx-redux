@@ -4,7 +4,7 @@ BUILD ?= Release
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 CC  = $(PREFIX)-gcc
-CXX = $(PREFIX)-gcc
+CXX = $(PREFIX)-g++
 
 TYPE ?= cpe
 LDSCRIPT ?= $(ROOTDIR)/$(TYPE).ld
@@ -42,7 +42,11 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
-all: makeDir dep $(BINDIR)$(TARGET).$(TYPE)
+all: dep $(BINDIR)$(TARGET).$(TYPE)
+ifneq ($(strip $(BINDIR)),)
+	mkdir -p $(BINDIR)
+endif
+
 $(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
 	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< $(BINDIR)Overlay$(ovl);)
@@ -59,20 +63,19 @@ $(BINDIR)$(TARGET).elf: $(OBJS)
 %.dep: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
+%.dep: %.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+
 # A bit broken, but that'll do in most cases.
 %.dep: %.s
 	touch $@
 
 DEPS := $(patsubst %.cpp, %.dep,$(filter %.cpp,$(SRCS)))
-DEPS +=	$(patsubst %.c,  %.dep,$(filter %.c,$(SRCS)))
-DEPS += $(patsubst %.s,  %.dep,$(filter %.s,$(SRCS)))
+DEPS := $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
+DEPS +=	$(patsubst %.c,   %.dep,$(filter %.c,$(SRCS)))
+DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 
 dep: $(DEPS)	
-
-makeDir:
-ifneq ($(strip $(BINDIR)),)
-	mkdir -p $(BINDIR)
-endif
 
 clean:	
 	rm -f $(OBJS) $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
