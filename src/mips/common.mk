@@ -43,11 +43,11 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
 all: dep $(BINDIR)$(TARGET).$(TYPE)
+
+$(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 ifneq ($(strip $(BINDIR)),)
 	mkdir -p $(BINDIR)
 endif
-
-$(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
 	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< $(BINDIR)Overlay$(ovl);)
 
