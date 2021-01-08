@@ -154,6 +154,7 @@ void PCSX::GUI::init() {
             }
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
+                apply_theme(settings.get<PCSX::GUI::GUITheme>().value); // set the GUI theme
             }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
@@ -673,7 +674,7 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
-    showThemes();
+    showThemes(changed);
     about();
     interruptsScaler();
 
@@ -998,7 +999,7 @@ void PCSX::GUI::interruptsScaler() {
     ImGui::End();
 }
 
-void PCSX::GUI::showThemes() {
+void PCSX::GUI::showThemes(bool& changed) {
     if (!m_showThemes) return;
     static const char* imgui_themes[6] = {"Default", "Classic", "Light",
                                           "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
@@ -1009,6 +1010,9 @@ void PCSX::GUI::showThemes() {
             if (ImGui::Selectable(imgui_themes[n], selected)) {
                 curr_item = imgui_themes[n];
                 apply_theme(n);
+
+                changed = true; // tell the GUI to save the current theme
+                *&settings.get<PCSX::GUI::GUITheme>().value = n;
             }
             if (selected) {
                 ImGui::SetItemDefaultFocus();
