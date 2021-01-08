@@ -109,7 +109,7 @@ class GUI final {
     void endFrame();
 
     bool configure();
-    void showThemes(); // Theme window : Allows for custom imgui themes
+    void showThemes();  // Theme window : Allows for custom imgui themes
     void about();
     void interruptsScaler();
 
