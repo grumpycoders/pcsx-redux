@@ -15,3 +15,5 @@ jobs:
       run: git submodule update --init --recursive
     - name: Build pcsx-redux
       run: make -j2
+    - name: build mips toolchain
+      run: brew install tools/macos-mips/mipsel-none-elf-binutils.rb
