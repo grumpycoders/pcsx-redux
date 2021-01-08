@@ -1,4 +1,4 @@
-PREFIX = mipsel-linux-gnu
+PREFIX ?= mipsel-linux-gnu
 BUILD ?= Release
 
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
