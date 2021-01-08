@@ -56,6 +56,7 @@ class PAD {
     void mapScancodes(); // load keyboard bindings
     void configButton(int index); // pick the button to config
     static int* getButtonFromGUIIndex(int index);
+    static std::string glfwKeyToString(int glfwKey);
 
     pad_t m_padIdx = PAD1;
 
@@ -74,6 +75,7 @@ class PAD {
 public:
     static bool configuringButton; // are we configuring a button in the GUI?
     static int configuredButtonIndex; // Which button are we configuring in the GUI?
+    static bool save; // do we need to save?
 
     // settings block
     typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
