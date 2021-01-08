@@ -45,13 +45,13 @@ OBJS += $(addsuffix .o, $(basename $(SRCS)))
 all: dep $(BINDIR)$(TARGET).$(TYPE)
 
 $(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
-ifneq ($(strip $(BINDIR)),)
-	mkdir -p $(BINDIR)
-endif
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
 	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< $(BINDIR)Overlay$(ovl);)
 
 $(BINDIR)$(TARGET).elf: $(OBJS)
+ifneq ($(strip $(BINDIR)),)
+	mkdir -p $(BINDIR)
+endif
 	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.o: %.s
