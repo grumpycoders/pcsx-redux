@@ -210,9 +210,8 @@ class GUI final {
 
     void shellReached();
 
-    // ImGui themes: Defined in themes/imgui_themes.cc
-    const char *imgui_themes[6] = {"Default", "Classic", "Light", "Cherry", "Mono","Dracula"};  // Used for theme combo box
-    const char *curr_item = imgui_themes[0];
+    // ImGui themes: Defined in themes/imgui_themes.c
+    const char *curr_item = "Default";
     void apply_theme(int n);
     void cherry_theme();
     void mono_theme();

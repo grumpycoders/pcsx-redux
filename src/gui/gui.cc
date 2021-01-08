@@ -994,8 +994,9 @@ void PCSX::GUI::interruptsScaler() {
 
 void PCSX::GUI::showThemes() {
     if (!m_showThemes) return;
-    ImGui::Begin("Theme selector", &m_showThemes);
-    if (ImGui::BeginCombo("Themes", curr_item, ImGuiComboFlags_HeightLarge)) {
+    const char* imgui_themes[6] = {"Default", "Classic", "Light", "Cherry", "Mono", "Dracula"};  // Used for theme combo box
+    ImGui::Begin(_("Theme selector"), &m_showThemes);
+    if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
         for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
             bool selected = (curr_item == imgui_themes[n]);
             if (ImGui::Selectable(imgui_themes[n], selected)) {
