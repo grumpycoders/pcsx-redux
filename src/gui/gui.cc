@@ -530,6 +530,8 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Help"))) {
+                ImGui::MenuItem(_("ImGui Themes"), nullptr, &m_showThemes);
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
@@ -666,6 +668,7 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
+    showThemes();
     about();
     interruptsScaler();
 
@@ -982,9 +985,29 @@ void PCSX::GUI::interruptsScaler() {
         }
         unsigned counter = 0;
         for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
-            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", 5.0f);
+            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
+    }
+    ImGui::End();
+}
+
+void PCSX::GUI::showThemes() {
+    if (!m_showThemes) return;
+    static const char* imgui_themes[6] = {"Default", "Classic", "Light", "Cherry", "Mono", "Dracula"};  // Used for theme combo box
+    ImGui::Begin(_("Theme selector"), &m_showThemes);
+    if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
+        for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
+            bool selected = (curr_item == imgui_themes[n]);
+            if (ImGui::Selectable(imgui_themes[n], selected)) {
+                curr_item = imgui_themes[n];
+                apply_theme(n);
+            }
+            if (selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
     }
     ImGui::End();
 }
