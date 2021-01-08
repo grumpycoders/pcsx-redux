@@ -84,6 +84,9 @@
     <ClInclude Include="..\..\third_party\SDL\include\SDL_loadso.h">
       <Filter>API Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\third_party\SDL\include\SDL_locale.h">
+      <Filter>API Headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\third_party\SDL\include\SDL_log.h">
       <Filter>API Headers</Filter>
     </ClInclude>
@@ -228,6 +231,7 @@
     <ClInclude Include="..\..\third_party\SDL\include\SDL_vulkan.h">
       <Filter>API Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\third_party\SDL\include\SDL_misc.h" />
     <ClInclude Include="..\..\third_party\SDL\src\audio\directsound\SDL_directsound.h" />
     <ClInclude Include="..\..\third_party\SDL\src\audio\disk\SDL_diskaudio.h" />
     <ClInclude Include="..\..\third_party\SDL\src\audio\dummy\SDL_dummyaudio.h" />
@@ -259,15 +263,20 @@
     <ClInclude Include="..\..\third_party\SDL\src\haptic\windows\SDL_dinputhaptic_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\haptic\windows\SDL_windowshaptic_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\haptic\windows\SDL_xinputhaptic_c.h" />
-    <ClInclude Include="..\..\third_party\SDL\src\joystick\hidapi\controller_type.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\hidapi\hidapi\hidapi.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\joystick\controller_type.h" />
     <ClInclude Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapijoystick_c.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\joystick\SDL_gamecontrollerdb.h" />
     <ClInclude Include="..\..\third_party\SDL\src\joystick\SDL_joystick_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\joystick\SDL_sysjoystick.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\joystick\virtual\SDL_virtualjoystick_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\joystick\windows\SDL_dinputjoystick_c.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\joystick\windows\SDL_rawinputjoystick_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\joystick\windows\SDL_windowsjoystick_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\joystick\windows\SDL_xinputjoystick_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\libm\math_libm.h" />
     <ClInclude Include="..\..\third_party\SDL\src\libm\math_private.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\locale\SDL_syslocale.h" />
     <ClInclude Include="..\..\third_party\SDL\src\render\direct3d\SDL_shaders_d3d.h" />
     <ClInclude Include="..\..\third_party\SDL\src\render\direct3d11\SDL_shaders_d3d11.h" />
     <ClInclude Include="..\..\third_party\SDL\src\render\opengl\SDL_glfuncs.h" />
@@ -289,6 +298,7 @@
     <ClInclude Include="..\..\third_party\SDL\src\sensor\dummy\SDL_dummysensor.h" />
     <ClInclude Include="..\..\third_party\SDL\src\sensor\SDL_sensor_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\sensor\SDL_syssensor.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\sensor\windows\SDL_windowssensor.h" />
     <ClInclude Include="..\..\third_party\SDL\src\thread\SDL_systhread.h" />
     <ClInclude Include="..\..\third_party\SDL\src\thread\SDL_thread_c.h" />
     <ClInclude Include="..\..\third_party\SDL\src\thread\windows\SDL_systhread_c.h" />
@@ -322,6 +332,7 @@
     <ClInclude Include="..\..\third_party\SDL\src\video\windows\SDL_windowswindow.h" />
     <ClInclude Include="..\..\third_party\SDL\src\video\windows\wmmsg.h" />
     <ClInclude Include="..\..\third_party\SDL\src\video\yuv2rgb\yuv_rgb.h" />
+    <ClInclude Include="..\..\third_party\SDL\src\core\windows\SDL_hid.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\third_party\SDL\src\atomic\SDL_atomic.c" />
@@ -339,6 +350,7 @@
     <ClCompile Include="..\..\third_party\SDL\src\audio\wasapi\SDL_wasapi.c" />
     <ClCompile Include="..\..\third_party\SDL\src\audio\wasapi\SDL_wasapi_win32.c" />
     <ClCompile Include="..\..\third_party\SDL\src\audio\winmm\SDL_winmm.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_hid.c" />
     <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_windows.c" />
     <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_xinput.c" />
     <ClCompile Include="..\..\third_party\SDL\src\cpuinfo\SDL_cpuinfo.c" />
@@ -355,20 +367,29 @@
     <ClCompile Include="..\..\third_party\SDL\src\events\SDL_windowevents.c" />
     <ClCompile Include="..\..\third_party\SDL\src\file\SDL_rwops.c" />
     <ClCompile Include="..\..\third_party\SDL\src\filesystem\windows\SDL_sysfilesystem.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\haptic\dummy\SDL_syshaptic.c" />
     <ClCompile Include="..\..\third_party\SDL\src\haptic\SDL_haptic.c" />
     <ClCompile Include="..\..\third_party\SDL\src\haptic\windows\SDL_dinputhaptic.c" />
     <ClCompile Include="..\..\third_party\SDL\src\haptic\windows\SDL_windowshaptic.c" />
     <ClCompile Include="..\..\third_party\SDL\src\haptic\windows\SDL_xinputhaptic.c" />
-    <ClCompile Include="..\..\third_party\SDL\src\hidapi\windows\hid.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\hidapi\SDL_hidapi.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\dummy\SDL_sysjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_gamecube.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_ps4.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_ps5.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_rumble.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_switch.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_xbox360.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_xbox360w.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_xboxone.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapijoystick.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\SDL_gamecontroller.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\SDL_joystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\virtual\SDL_virtualjoystick.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_dinputjoystick.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_mmjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_rawinputjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_windows_gaming_input.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_windowsjoystick.c" />
     <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_xinputjoystick.c" />
     <ClCompile Include="..\..\third_party\SDL\src\libm\e_atan2.c" />
@@ -392,6 +413,10 @@
     <ClCompile Include="..\..\third_party\SDL\src\libm\s_sin.c" />
     <ClCompile Include="..\..\third_party\SDL\src\libm\s_tan.c" />
     <ClCompile Include="..\..\third_party\SDL\src\loadso\windows\SDL_sysloadso.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\locale\SDL_locale.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\locale\windows\SDL_syslocale.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\misc\SDL_url.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\misc\windows\SDL_sysurl.c" />
     <ClCompile Include="..\..\third_party\SDL\src\power\SDL_power.c" />
     <ClCompile Include="..\..\third_party\SDL\src\power\windows\SDL_syspower.c" />
     <ClCompile Include="..\..\third_party\SDL\src\render\direct3d\SDL_render_d3d.c" />
@@ -420,12 +445,15 @@
     <ClCompile Include="..\..\third_party\SDL\src\SDL_log.c" />
     <ClCompile Include="..\..\third_party\SDL\src\sensor\dummy\SDL_dummysensor.c" />
     <ClCompile Include="..\..\third_party\SDL\src\sensor\SDL_sensor.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\sensor\windows\SDL_windowssensor.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_crc32.c" />
     <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_getenv.c" />
     <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_iconv.c" />
     <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_malloc.c" />
     <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_qsort.c" />
     <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_stdlib.c" />
     <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_string.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_strtokr.c" />
     <ClCompile Include="..\..\third_party\SDL\src\thread\generic\SDL_syscond.c" />
     <ClCompile Include="..\..\third_party\SDL\src\thread\SDL_thread.c" />
     <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_sysmutex.c" />

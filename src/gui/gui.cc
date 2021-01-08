@@ -535,6 +535,8 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Help"))) {
+                ImGui::MenuItem(_("ImGui Themes"), nullptr, &m_showThemes);
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
@@ -671,6 +673,7 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
+    showThemes();
     about();
     interruptsScaler();
 
@@ -854,6 +857,11 @@ can slow down emulation to a noticable extend.)"));
         ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
+        changed |= ImGui::Checkbox(_("GDB send manifest"), &settings.get<Emulator::SettingGdbManifest>().value);
+        ShowHelpMarker(_(R"(Enables sending the processor's manifest
+from the gdb server. Keep this enabled, unless
+you want to connect IDA to this server, as it
+has a bug in its manifest parser.)"));
         changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
         changed |= ImGui::Checkbox(_("GDB Server Trace"), &settings.get<Emulator::SettingGdbServerTrace>().value);
         ShowHelpMarker(_(R"(The GDB server will start tracing its
@@ -983,9 +991,30 @@ void PCSX::GUI::interruptsScaler() {
         }
         unsigned counter = 0;
         for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
-            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", 5.0f);
+            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
+    }
+    ImGui::End();
+}
+
+void PCSX::GUI::showThemes() {
+    if (!m_showThemes) return;
+    static const char* imgui_themes[6] = {"Default", "Classic", "Light",
+                                          "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
+    ImGui::Begin(_("Theme selector"), &m_showThemes);
+    if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
+        for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
+            bool selected = (curr_item == imgui_themes[n]);
+            if (ImGui::Selectable(imgui_themes[n], selected)) {
+                curr_item = imgui_themes[n];
+                apply_theme(n);
+            }
+            if (selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
     }
     ImGui::End();
 }
