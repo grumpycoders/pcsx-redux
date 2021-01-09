@@ -25,10 +25,11 @@ SOFTWARE.
 */
 
 #include <memory.h>
-#include <stdint.h>
+
 
 #include "openbios/sio0/pad.h"
 
+#include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 
 static uint8_t s_padBuffer1[0x22];

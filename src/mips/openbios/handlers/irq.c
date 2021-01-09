@@ -25,8 +25,8 @@ SOFTWARE.
 */
 
 #include <memory.h>
-#include <stdint.h>
 
+#include "common/compiler/stdint.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
 #include "common/psxlibc/handlers.h"
