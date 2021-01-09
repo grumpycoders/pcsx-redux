@@ -1,4 +1,4 @@
-name: macOS CI
+name: macOS toolchain CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  macos-build-and-test:
+  macos-build-and-test-toolchain:
 
     runs-on: macOS-latest
 
@@ -20,5 +20,9 @@ jobs:
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
       run: git submodule update --init --recursive
-    - name: Build pcsx-redux
-      run: make -j2
+    - name: build mips binutils
+      run: brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
+    - name: build mips gcc
+      run: brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+    - name: build openbios
+      run: make -C ./src/mips/openbios PREFIX=mipsel-none-elf FORMAT=elf32-littlemips

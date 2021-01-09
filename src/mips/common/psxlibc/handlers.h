@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
+#include "common/compiler/stdint.h"
 
 struct HandlerInfo;
 

@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-OUTPUT_FORMAT("elf32-tradlittlemips")
 OUTPUT_FORMAT("binary")
 
 EXTERN(_start)
