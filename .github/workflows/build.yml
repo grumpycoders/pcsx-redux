@@ -18,6 +18,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
+    - name: blah
+      run: brew install https://github.com/grumpycoders/pcsx-redux/blob/main/tools/macos-mips/mipsel-none-elf-gcc.rb
     - name: Fetch submodules
       run: git submodule update --init --recursive
     - name: Build pcsx-redux
