@@ -21,7 +21,7 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
 There are currently regular builds of pcsx-redux for Windows, available here: https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux/distribution_groups/public
  
 ## How ?
-The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows.
+The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
 
 ### Getting sources
 The only location for the source is [on github](https://github.com/grumpycoders/pcsx-redux/). Clone recursively, as the project uses submodules: `git clone https://github.com/grumpycoders/pcsx-redux.git --recursive`.
@@ -52,8 +52,18 @@ trizen -S cross-mipsel-linux-gnu-binutils mipsel-linux-gnu-gcc
 ```
 You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
 
+Building OpenBIOS on Linux can be done with `./dockermake.sh -C src/mips/openbios`, or using the `g++-mipsel-linux-gnu` package with `make -C src/mips/openbios`. If you have a different mips compiler, you'll need to override some variables, as shown in the MacOS section.
+
 ### MacOS
 You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
+
+Compiling OpenBIOS will require a mips compiler, that you can generate using the following commands:
+```bash
+brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
+brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+```
+
+Then, you can compile OpenBIOS using `make -C ./src/mips/openbios PREFIX=mipsel-none-elf FORMAT=elf32-littlemips`.
 
 ## Who?
 I used to contribute to the PCSX codebase. It is very likely that a sourceforge account of mine still has write access to the old cvs repository for PCSX. A long time ago, I contributed the telnet debugger, and the parallel port support. This means I am fairly familiar with this codebase, and I am also ashamed of the contributions I have done 15+ years ago, as one should.
