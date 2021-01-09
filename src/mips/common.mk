@@ -1,5 +1,6 @@
 PREFIX ?= mipsel-linux-gnu
 BUILD ?= Release
+FORMAT ?= elf32-tradlittlemips
 
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -27,7 +28,7 @@ CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
 
 LDFLAGS += -Wl,-Map=$(BINDIR)$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
-LDFLAGS += $(ARCHFLAGS)
+LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 
 CPPFLAGS_Release += -Os
 LDFLAGS_Release += -Os

@@ -96,7 +96,7 @@ include ../common.mk
 
 ./psexe_data.o: $(EMBED_PSEXE)
 	cp $(EMBED_PSEXE) psexe.bin
-	$(PREFIX)-objcopy -I binary --rename-section .data=.rodata,alloc,load,readonly,data,contents -O elf32-tradlittlemips -B mips psexe.bin psexe_data.o
+	$(PREFIX)-objcopy -I binary --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips psexe.bin psexe_data.o
 
 shell:
 	$(MAKE) -C ../shell shell_data.o

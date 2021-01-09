@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-OUTPUT_FORMAT("elf32-tradlittlemips")
 OUTPUT_FORMAT("binary")
 
 EXTERN(_start)
@@ -151,7 +150,7 @@ SECTIONS {
     . = ALIGN(4);
     __bss_end = .;
 
-    __heap_start = __heap_bas;
+    __heap_start = __heap_base;
 
     __end = .;
 
