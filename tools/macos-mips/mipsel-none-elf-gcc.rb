@@ -8,9 +8,10 @@ class MipselNoneElfGcc < Formula
   depends_on "mipsel-none-elf-binutils"
   depends_on "libmpc"
   depends_on "mpfr"
-  depends_on "gnu-sed" => "default-names"
+  depends_on "gnu-sed"
 
   def install
+    ENV.prepend_path "PATH", Formula["gnu-sed"].opt_libexec/"gnubin"
     mkdir "mipsel-none-elf-gcc-build" do
       system "../configure", "--target=mipsel-none-elf",
                              "--prefix=#{prefix}",
