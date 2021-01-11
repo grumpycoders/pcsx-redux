@@ -355,7 +355,7 @@ std::string PCSX::PAD::glfwKeyToString(int glfwKey, int index) {
         default: {
             auto keyName = glfwGetKeyName(glfwKey, 0);
             if (keyName == nullptr) 
-                return fmt::format("Keyboard Unknown##{}", index);;
+                return fmt::format("Keyboard Unknown##{}", index);
 
             auto str = std::string(keyName); // capitalize first character of the key's name
             str[0] = toupper(str[0]);
