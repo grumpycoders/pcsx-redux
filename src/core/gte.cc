@@ -5,17 +5,12 @@
  *
  */
 
+#include <algorithm>
+
 #include "core/gte.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
 #include "core/psxmem.h"
-
-#ifndef max
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#endif
-#ifndef min
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#endif
 
 #undef GTE_SF
 #undef GTE_MX
@@ -274,7 +269,8 @@
 static uint32_t gte_leadingzerocount(uint32_t lzcs) {
     uint32_t lzcr = 0;
 
-    if ((lzcs & 0x80000000) == 0) lzcs = ~lzcs;
+    if ((lzcs & 0x80000000) == 0) 
+        lzcs = ~lzcs;
 
     while ((lzcs & 0x80000000) != 0) {
         lzcr++;
@@ -576,7 +572,7 @@ int PCSX::GTE::docop2(int op) {
 
             PGXP_pushSXYZ2s(Lm_G1_ia((int64_t)OFX +
                                      (int64_t)(IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)),
-                            Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), max(SZ3, H / 2), SXY2);
+                            Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), std::max((int) SZ3, H / 2), SXY2);
 
             // PGXP_RTPS(0, SXY2);
 
@@ -927,7 +923,7 @@ int PCSX::GTE::docop2(int op) {
                 //
                 PGXP_pushSXYZ2s(Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) *
                                                             (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)),
-                                Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), max(SZ3, H / 2), SXY2);
+                                Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), std::max((int) SZ3, H / 2), SXY2);
 
                 // PGXP_RTPS(v, SXY2);
             }
