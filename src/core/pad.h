@@ -29,11 +29,11 @@
 #include "json.hpp" // for getCfg
 
 struct PadDataS;
-    using json = nlohmann::json;
+using json = nlohmann::json;
+
 namespace PCSX {
 class PAD {
   public:
-    using json = nlohmann::json;
 
     enum pad_t { PAD1, PAD2 };
     PAD(pad_t pad);
@@ -56,7 +56,7 @@ class PAD {
     void mapScancodes(); // load keyboard bindings
     void configButton(int index); // pick the button to config
     static int* getButtonFromGUIIndex(int index);
-    static std::string glfwKeyToString(int glfwKey);
+    static std::string glfwKeyToString(int glfwKey, int index);
 
     pad_t m_padIdx = PAD1;
 

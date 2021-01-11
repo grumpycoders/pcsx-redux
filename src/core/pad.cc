@@ -234,10 +234,10 @@ bool PCSX::PAD::configure() {
     }; // PS1 controller buttons (padded to 8 characters for GUI prettiness)
     static const char* dpadDirections[] = {"Up      ", "Right   ", "Down    ", "Left    "}; // PS1 controller dpad directions (padded to 8 characters for GUI prettiness)
 
-    auto autodetect = 0;
+    auto autodetect = 0; // stub till we implement configuring joypad
     auto type = 0;
 
-    if (ImGui::BeginCombo(_("Whatcha configurin"), inputDevices[type])) {
+    if (ImGui::BeginCombo(_("Device"), inputDevices[type])) {
         if (ImGui::Selectable(inputDevices[0], autodetect)) {
             changed = true;
             printf("Selected keyboard\n");
@@ -251,13 +251,13 @@ bool PCSX::PAD::configure() {
         ImGui::EndCombo();
     }
 
-    const auto buttonSize = ImVec2(200, 30);
+    const auto buttonSize = ImVec2(200, 30); // Nice button size for every button so that it's aligned
 
     ImGui::Text("Configure buttons");
     for (auto i = 0; i < 10;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i)).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i); // mark button to be configured
             changed = true;
         }
@@ -267,7 +267,7 @@ bool PCSX::PAD::configure() {
 
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();  
-        if (ImGui::Button(glfwKeyToString(*getButtonFromGUIIndex(i)).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString(*getButtonFromGUIIndex(i), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i); // mark button to be configured
             changed = true;
         }
@@ -279,8 +279,8 @@ bool PCSX::PAD::configure() {
     for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10)).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
-            configButton(i + 10); // mark button to be configured (+10 because it's preceded by the dpad is preceded by other 10 buttons)
+        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+            configButton(i + 10); // mark button to be configured (+10 because the dpad is preceded by 10 other buttons)
             changed = true;
         }
 
@@ -289,7 +289,7 @@ bool PCSX::PAD::configure() {
 
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10)).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i + 10); // mark button to be configured
             changed = true;
         }
@@ -342,22 +342,24 @@ int* PCSX::PAD::getButtonFromGUIIndex(int index) {
 }
 
 /// GLFW doesn't support converting some of the most common keys to strings
-std::string PCSX::PAD::glfwKeyToString(int glfwKey) {
+/// GLFW Key: A GLFW Key
+/// Index: The button's id (used for when there's multiple buttons with the same label)
+std::string PCSX::PAD::glfwKeyToString(int glfwKey, int index) {
     switch (glfwKey) { 
-        case GLFW_KEY_UP: return "Keyboard Up";
-        case GLFW_KEY_RIGHT: return "Keyboard Right"; 
-        case GLFW_KEY_DOWN: return "Keyboard Down";
-        case GLFW_KEY_LEFT: return "Keyboard Left";
-        case GLFW_KEY_BACKSPACE: return "Keyboard Backspace";
-        case GLFW_KEY_ENTER: return "Keyboard Enter";
+        case GLFW_KEY_UP: return fmt::format("Keyboard Up##{}", index);
+        case GLFW_KEY_RIGHT:return fmt::format("Keyboard Right##{}", index);
+        case GLFW_KEY_DOWN: return fmt::format("Keyboard Down##{}", index);
+        case GLFW_KEY_LEFT: return fmt::format("Keyboard Left##{}", index);
+        case GLFW_KEY_BACKSPACE: return fmt::format("Keyboard Backspace##{}", index);
+        case GLFW_KEY_ENTER: return fmt::format("Keyboard Enter##{}", index);
         default: {
             auto keyName = glfwGetKeyName(glfwKey, 0);
             if (keyName == nullptr) 
-                return "Keyboard Unknown";
+                return fmt::format("Keyboard Unknown##{}", index);;
 
             auto str = std::string(keyName); // capitalize first character of the key's name
             str[0] = toupper(str[0]);
-            return fmt::format("Keyboard {}", str);
+            return fmt::format("Keyboard {}##{}", str, index);
         }
     }
 }
