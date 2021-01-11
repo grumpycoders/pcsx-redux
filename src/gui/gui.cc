@@ -125,6 +125,7 @@ void PCSX::GUI::init() {
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
+    glfwSetKeyCallback(m_window, PCSX::PAD::updateBinding);
 
     result = gl3wInit();
     assert(result == 0);
@@ -135,6 +136,7 @@ void PCSX::GUI::init() {
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
+        // io.Fonts->AddFontFromFileTTF("DejaVuSansMono.ttf", 17.0f);
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
         json j;
@@ -152,10 +154,12 @@ void PCSX::GUI::init() {
             }
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
+                apply_theme(settings.get<PCSX::GUI::GUITheme>().value); // set the GUI theme
             }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
+            PCSX::g_emulator->m_pad1->setCfg(j);
         } else {
             saveCfg();
         }
@@ -263,6 +267,7 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
+    j["pad"] = PCSX::g_emulator->m_pad1->getCfg();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -480,6 +485,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
+                ImGui::MenuItem(_("Controls"), nullptr, &PCSX::g_emulator->m_pad1->m_showCfg); // TODO: Add pad 2
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -668,7 +674,7 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
-    showThemes();
+    showThemes(changed);
     about();
     interruptsScaler();
 
@@ -684,6 +690,7 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
+    changed |= PCSX::g_emulator->m_pad1->configure(); // TODO: Add pad 2
     changed |= configure();
 
     m_notifier.draw();
@@ -992,7 +999,7 @@ void PCSX::GUI::interruptsScaler() {
     ImGui::End();
 }
 
-void PCSX::GUI::showThemes() {
+void PCSX::GUI::showThemes(bool& changed) {
     if (!m_showThemes) return;
     static const char* imgui_themes[6] = {"Default", "Classic", "Light",
                                           "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
@@ -1003,6 +1010,9 @@ void PCSX::GUI::showThemes() {
             if (ImGui::Selectable(imgui_themes[n], selected)) {
                 curr_item = imgui_themes[n];
                 apply_theme(n);
+
+                changed = true; // tell the GUI to save the current theme
+                *&settings.get<PCSX::GUI::GUITheme>().value = n;
             }
             if (selected) {
                 ImGui::SetItemDefaultFocus();
