@@ -5,6 +5,8 @@
  *
  */
 
+#include <algorithm>
+
 #include "core/gte.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"

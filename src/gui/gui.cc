@@ -480,7 +480,6 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();

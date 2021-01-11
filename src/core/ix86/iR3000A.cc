@@ -2324,7 +2324,7 @@ void X86DynaRecCPU::recSRLV() {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k & 0x1f);
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else if (IsConst(_Rt_)) {
@@ -2359,7 +2359,7 @@ void X86DynaRecCPU::recSRAV() {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k);
+        gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rs_].k & 0x1f);
         gen.SAR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else if (IsConst(_Rt_)) {
