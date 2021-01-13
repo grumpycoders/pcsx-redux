@@ -28,9 +28,9 @@ class MipselNoneElfGcc < Formula
                              "--with-ld=#{Formula["mipsel-none-elf-binutils"].bin}/mipsel-none-elf-ld",
                              "--enable-languages=c,c++"
       system "make", "all-gcc"
-      system "make", "install-gcc"
+      system "make", "install-strip-gcc"
       system "make", "all-target-libgcc"
-      system "make", "install-target-libgcc"
+      system "make", "install-strip-target-libgcc"
     end
   end
 
