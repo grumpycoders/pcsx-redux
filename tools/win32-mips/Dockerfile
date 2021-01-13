@@ -72,6 +72,11 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'mkdir /c/gcc-10.2.0/build && cd /c/gcc-10.
 RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-10.2.0/build all-gcc -j12'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-10.2.0/build all-target-libgcc -j12'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'make -C /c/gcc-10.2.0/build install-strip-gcc install-strip-target-libgcc'
+COPY ./touch.c C:\
+RUN C:\msys64\usr\bin\bash.exe -l -c 'gcc -O2 /c/touch.c -o /DIST/bin/touch.exe'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'strip /DIST/bin/touch.exe'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cp /mingw64/bin/mingw32-make.exe /DIST/bin/make.exe'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && find . -name *.exe | while read bin ; do ldd $bin | cut -f2 -d\> | cut -f2 -d\  | grep mingw64 | while read f ; do cp $f $(dirname $bin) ; done ; done'
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && zip /c/g++-mipsel-none-elf-10.2.0.zip . -r'
 
