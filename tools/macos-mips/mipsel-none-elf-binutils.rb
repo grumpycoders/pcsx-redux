@@ -11,7 +11,7 @@ class MipselNoneElfBinutils < Formula
                           "--disable-werror",
                           "--prefix=#{prefix}"
     system "make"
-    system "make", "install"
+    system "make", "install-strip"
   end
   test do
     assert_match "f()", shell_output("#{bin}/mipsel-none-elf-c++filt _Z1fv")
