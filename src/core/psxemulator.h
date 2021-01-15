@@ -85,6 +85,7 @@ class CDRom;
 class Cheats;
 class Counters;
 class Debug;
+class GadpServer;
 class GdbServer;
 class WebServer;
 class GPU;
@@ -141,6 +142,8 @@ class Emulator {
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
+    typedef Setting<bool, TYPESTRING("GadpServer"), false> SettingGadpServer;
+    typedef Setting<int, TYPESTRING("GadpServerPort"), 15432> SettingGadpServerPort;
     typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
     typedef Setting<bool, TYPESTRING("GdbManifest"), true> SettingGdbManifest;
     typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
@@ -152,9 +155,9 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
-             SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
-             Setting8MB>
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGadpServer, SettingGadpServerPort,
+             SettingGdbServer, SettingGdbManifest, SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer,
+             SettingWebServerPort, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:
@@ -207,6 +210,7 @@ class Emulator {
     std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GadpServer> m_gadpServer;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<WebServer> m_webServer;
     std::unique_ptr<Debug> m_debug;

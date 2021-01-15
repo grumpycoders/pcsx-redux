@@ -32,6 +32,7 @@
 
 #include "core/binloader.h"
 #include "core/cdrom.h"
+#include "core/gadp-server.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/pad.h"
@@ -840,6 +841,19 @@ faster by not displaying the logo.)"));
         ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticable extend.)"));
+        if (ImGui::Checkbox(_("Enable GADP Server"), &settings.get<Emulator::SettingGadpServer>().value)) {
+            changed = true;
+            if (settings.get<Emulator::SettingGadpServer>()) {
+                g_emulator->m_gadpServer->startServer(settings.get<Emulator::SettingGadpServerPort>());
+            } else {
+                g_emulator->m_gadpServer->stopServer();
+            }
+        }
+        ShowHelpMarker(_(R"(This will activate a gadp-server that you can
+connect to with any gadp-remote compliant client, which
+should be ghidra 9.3+ at the moment.
+You also need to enable the debugger.)"));
+        changed |= ImGui::InputInt(_("GADP Server Port"), &settings.get<Emulator::SettingGadpServerPort>().value);
         if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingGdbServer>()) {
