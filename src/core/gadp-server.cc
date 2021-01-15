@@ -124,6 +124,54 @@ enum class TargetEventType {
     TET_SIGNAL = 11,
 };
 
+namespace PCSX {
+
+namespace {
+
+typedef Protobuf::Message<TYPESTRING("ErrorRequest")> ErrorRequest;
+
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("code"), 1> ErrorReplyCode;
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("message"), 2> ErrorReplyMessage;
+typedef Protobuf::Message<TYPESTRING("ErrorReply"), ErrorReplyCode, ErrorReplyMessage> ErrorReply;
+
+typedef Protobuf::RepeatedFieldVariable<Protobuf::String, TYPESTRING("version"), 1> ConnectRequestVersion;
+typedef Protobuf::Message<TYPESTRING("ConnectRequest"), ConnectRequestVersion> ConnectRequest;
+
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("version"), 1> ConnectReplyVersion;
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("schema_context"), 2> ConnectReplySchemaContext;
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("root_schema"), 3> ConnectReplyRootSchema;
+typedef Protobuf::Message<TYPESTRING("ConnectReply"), ConnectReplyVersion, ConnectReplySchemaContext,
+                          ConnectReplyRootSchema>
+    ConnectReply;
+
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("content"), 1> PingContent;
+typedef Protobuf::Message<TYPESTRING("PingRequest"), PingContent> PingRequest;
+typedef Protobuf::Message<TYPESTRING("PingReply"), PingContent> PingReply;
+
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("space"), 1> AddressSpace;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("offset"), 2> AddressOffset;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("extend"), 3> AddressExtend;
+typedef Protobuf::Message<TYPESTRING("Address"), AddressSpace, AddressOffset> Address;
+typedef Protobuf::Message<TYPESTRING("AddressRange"), AddressSpace, AddressOffset, AddressExtend> AddressRange;
+
+typedef Protobuf::RepeatedFieldVariable<Protobuf::String, TYPESTRING("e"), 1> PathElement;
+typedef Protobuf::Message<TYPESTRING("Path"), PathElement> Path;
+typedef Protobuf::RepeatedFieldVariable<Path, TYPESTRING("path"), 1> PathListPath;
+typedef Protobuf::Message<TYPESTRING("path"), PathListPath> PathList;
+
+typedef Protobuf::RepeatedFieldVariable<Protobuf::Int32, TYPESTRING("k"), 1> KindSet;
+typedef Protobuf::Message<TYPESTRING("BreakKindSet"), KindSet> BreakKindSet;
+typedef Protobuf::Message<TYPESTRING("StepKindsSet"), KindSet> StepKindsSet;
+
+typedef Protobuf::RepeatedFieldVariable<Protobuf::String, TYPESTRING("s"), 1> StringListField;
+typedef Protobuf::Message<TYPESTRING("StringList"), StringListField> StringList;
+
+typedef Protobuf::Message<TYPESTRING("AttachKindSet"), KindSet> AttachKindSet;
+
+}  // namespace
+
+}  // namespace PCSX
+
 PCSX::GadpServer::GadpServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         if (g_emulator->settings.get<Emulator::SettingGadpServer>()) {
