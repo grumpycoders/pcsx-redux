@@ -23,4 +23,4 @@ jobs:
     - name: build mips gcc
       run: brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb --debug
     - name: build openbios
-      run: make -C ./src/mips/openbios PREFIX=mipsel-none-elf FORMAT=elf32-littlemips
+      run: make -C ./src/mips/openbios

@@ -1,6 +1,14 @@
-PREFIX ?= mipsel-linux-gnu
 BUILD ?= Release
+
+HAS_LINUX_MIPS_GCC = $(shell which mipsel-linux-gnu-gcc > /dev/null 2> /dev/null && echo true || echo false)
+
+ifeq ($(HAS_LINUX_MIPS_GCC),true)
+PREFIX ?= mipsel-linux-gnu
 FORMAT ?= elf32-tradlittlemips
+else
+PREFIX ?= mipsel-none-elf
+FORMAT ?= elf32-littlemips
+endif
 
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -76,9 +84,9 @@ DEPS := $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
 DEPS +=	$(patsubst %.c,   %.dep,$(filter %.c,$(SRCS)))
 DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 
-dep: $(DEPS)	
+dep: $(DEPS)
 
-clean:	
+clean:
 	rm -f $(OBJS) $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)
