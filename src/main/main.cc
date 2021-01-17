@@ -118,7 +118,10 @@ class SystemImpl : public PCSX::System {
             vprintf(fmt, c);
             va_end(c);
         }
-        s_gui->addLog(fmt, a);
+        va_list c;
+        va_copy(c, a);
+        s_gui->addLog(fmt, c);
+        va_end(c);
         s_gui->addNotification(fmt, a);
         va_end(a);
     }
