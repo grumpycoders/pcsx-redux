@@ -1,3 +1,5 @@
+BOOT ?= rom
+
 TARGET = openbios
 TYPE = bin
 
@@ -77,8 +79,11 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/os/src/romfs.c \
 ../../../third_party/uC-sdk/os/src/sbrk.c \
 
-
+ifeq ($(BOOT),rom)
 LDSCRIPT = psx-bios.ld
+else
+LDSCRIPT = psx-bios-as-cart.ld
+endif
 
 CPPFLAGS = -DNOFLOATINGPOINT
 CPPFLAGS += -I../../../third_party/uC-sdk/libc/include
