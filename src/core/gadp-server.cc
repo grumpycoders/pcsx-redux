@@ -45,6 +45,13 @@ enum class ErrorCode {
     EC_MODEL_ACCESS = 11,
 };
 
+enum class BreakKind {
+    BK_READ = 0,
+    BK_WRITE = 1,
+    BK_EXECUTE = 2,
+    BK_SOFTWARE = 3,
+};
+
 enum class StepKind {
     SK_INTO = 0,
     SK_ADVANCE = 1,
@@ -110,18 +117,18 @@ enum class ValueType {
 };
 
 enum class TargetEventType {
-    TET_STOPPED = 0,
-    TET_RUNNING = 1,
-    TET_PROCESS_CREATED = 2,
-    TET_PROCESS_EXITED = 3,
-    TET_THREAD_CREATED = 4,
-    TET_THREAD_EXITED = 5,
-    TET_MODULE_LOADED = 6,
-    TET_MODULE_UNLOADED = 7,
-    TET_BREAKPOINT_HIT = 8,
-    TET_STEP_COMPLETED = 9,
-    TET_EXCEPTION = 10,
-    TET_SIGNAL = 11,
+    EV_STOPPED = 0,
+    EV_RUNNING = 1,
+    EV_PROCESS_CREATED = 2,
+    EV_PROCESS_EXITED = 3,
+    EV_THREAD_CREATED = 4,
+    EV_THREAD_EXITED = 5,
+    EV_MODULE_LOADED = 6,
+    EV_MODULE_UNLOADED = 7,
+    EV_BREAKPOINT_HIT = 8,
+    EV_STEP_COMPLETED = 9,
+    EV_EXCEPTION = 10,
+    EV_SIGNAL = 11,
 };
 
 namespace PCSX {
@@ -160,13 +167,34 @@ typedef Protobuf::RepeatedFieldVariable<Path, TYPESTRING("path"), 1> PathListPat
 typedef Protobuf::Message<TYPESTRING("path"), PathListPath> PathList;
 
 typedef Protobuf::RepeatedFieldVariable<Protobuf::Int32, TYPESTRING("k"), 1> KindSet;
-typedef Protobuf::Message<TYPESTRING("BreakKindSet"), KindSet> BreakKindSet;
+typedef Protobuf::Message<TYPESTRING("BreakKindsSet"), KindSet> BreakKindsSet;
 typedef Protobuf::Message<TYPESTRING("StepKindsSet"), KindSet> StepKindsSet;
 
 typedef Protobuf::RepeatedFieldVariable<Protobuf::String, TYPESTRING("s"), 1> StringListField;
 typedef Protobuf::Message<TYPESTRING("StringList"), StringListField> StringList;
 
 typedef Protobuf::Message<TYPESTRING("AttachKindSet"), KindSet> AttachKindSet;
+
+typedef Protobuf::Message<TYPESTRING("DataType")> DataType;
+
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("bool_value"), 1> BoolValue;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("int_value"), 2> IntValue;
+typedef Protobuf::Field<Protobuf::Int64, TYPESTRING("long_value"), 3> LongValue;
+typedef Protobuf::Field<Protobuf::Float, TYPESTRING("float_value"), 4> FloatValue;
+typedef Protobuf::Field<Protobuf::Double, TYPESTRING("double_value"), 5> DoubleValue;
+typedef Protobuf::Field<Protobuf::Bytes, TYPESTRING("bytes_value"), 6> BytesValue;
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("string_value"), 7> StringValue;
+typedef Protobuf::MessageField<StringList, TYPESTRING("string_list_value"), 8> StringListValue;
+typedef Protobuf::MessageField<Address, TYPESTRING("address_value"), 9> AddressValue;
+typedef Protobuf::MessageField<AddressRange, TYPESTRING("range_value"), 10> RangeValue;
+typedef Protobuf::MessageField<BreakKindsSet, TYPESTRING("break_kinds_value"), 11> BreakKindsValue;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("exec_state_value"), 12> ExecStateValue;
+typedef Protobuf::MessageField<StepKindsSet, TYPESTRING("step_kinds_value"), 13> StepKindsValue;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("primitive_kind_value"), 14> PrimitiveKindValue;
+typedef Protobuf::MessageField<DataType, TYPESTRING("data_type_value"), 15> DataTypeValue;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("update_mode_value"), 16> UpdateModeValue;
+typedef Protobuf::MessageField<Path, TYPESTRING("path_value"), 17> PathValue;
+typedef Protobuf::MessageField<PathList, TYPESTRING("path_list_value"), 18> PathListValue;
 
 }  // namespace
 
