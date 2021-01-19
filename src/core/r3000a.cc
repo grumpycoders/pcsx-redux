@@ -33,6 +33,7 @@
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
+    g_system->printf(_("Copyright (C) 2019-2021 PCSX-Redux authors"));
 
     if (g_emulator->settings.get<Emulator::SettingDynarec>()) g_emulator->m_psxCpu = Cpus::DynaRec();
     if (!g_emulator->m_psxCpu) g_emulator->m_psxCpu = Cpus::Interpreted();
