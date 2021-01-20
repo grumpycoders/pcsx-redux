@@ -84,7 +84,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int patch_pad_execute(uint32_t* ra) {
+int patch_pad_1_execute(uint32_t* ra) {
     patch_disable_slotChangeOnAbort();
     uint32_t ptr;
     int16_t addend;
@@ -125,11 +125,11 @@ static const uint8_t bytes[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, // 30
 };
 
-uint32_t generate_hash_patch_pad(uint32_t mask, unsigned len) {
+uint32_t generate_hash_patch_pad_1(uint32_t mask, unsigned len) {
     return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
 }
 
-uint32_t generate_mask_patch_pad() {
+uint32_t generate_mask_patch_pad_1() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

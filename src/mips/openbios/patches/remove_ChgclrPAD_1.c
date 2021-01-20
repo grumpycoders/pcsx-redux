@@ -79,7 +79,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int remove_ChgclrPAD_execute(uint32_t* ra) {
+int remove_ChgclrPAD_1_execute(uint32_t* ra) {
     patch_remove_ChgclrPAD();
 
     ra[2] = 7 | 0x10000000;
@@ -106,11 +106,11 @@ static const uint8_t bytes[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, 0x00, 0x00, 0x00, 0x00, // 30
 };
 
-uint32_t generate_hash_remove_ChgclrPAD(uint32_t mask, unsigned len) {
+uint32_t generate_hash_remove_ChgclrPAD_1(uint32_t mask, unsigned len) {
     return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
 }
 
-uint32_t generate_mask_remove_ChgclrPAD() {
+uint32_t generate_mask_remove_ChgclrPAD_1() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

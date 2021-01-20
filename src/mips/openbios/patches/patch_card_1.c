@@ -81,7 +81,7 @@ SOFTWARE.
 #ifndef GENERATE_HASHES
 
 // not doing anything about it for now
-int patch_card_execute(uint32_t* ra) {
+int patch_card_1_execute(uint32_t* ra) {
     ra[2] = 16 | 0x10000000;
     ra[3] = 0;
     return 1;
@@ -105,11 +105,11 @@ static const uint8_t bytes[] = {
     0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x04, 0x00, 0x4a, 0x25, // 30
 };
 
-uint32_t generate_hash_patch_card(uint32_t mask, unsigned len) {
+uint32_t generate_hash_patch_card_1(uint32_t mask, unsigned len) {
     return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
 }
 
-uint32_t generate_mask_patch_card() {
+uint32_t generate_mask_patch_card_1() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

@@ -96,7 +96,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int patch_gte2_execute(uint32_t* ra) {
+int patch_gte_2_execute(uint32_t* ra) {
     ra[2] = 8 | 0x10000000;
     ra[3] = 0;
     return 1;
@@ -120,11 +120,11 @@ static const uint8_t bytes[] = {
     0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, // 30
 };
 
-uint32_t generate_hash_patch_gte2(uint32_t mask, unsigned len) {
+uint32_t generate_hash_patch_gte_2(uint32_t mask, unsigned len) {
     return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
 }
 
-uint32_t generate_mask_patch_gte2() {
+uint32_t generate_mask_patch_gte_2() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

@@ -40,17 +40,17 @@ tty/tty.c \
 patches/hash.c \
 patches/patches.c \
 \
-patches/patch_card.c \
-patches/patch_card2.c \
-patches/patch_gte.c \
-patches/patch_gte2.c \
-patches/patch_gte3.c \
-patches/patch_pad.c \
-patches/patch_pad2.c \
-patches/remove_ChgclrPAD.c \
-patches/remove_ChgclrPAD2.c \
-patches/send_pad.c \
-patches/send_pad2.c \
+patches/patch_card_1.c \
+patches/patch_card2_1.c \
+patches/patch_gte_1.c \
+patches/patch_gte_2.c \
+patches/patch_gte_3.c \
+patches/patch_pad_1.c \
+patches/patch_pad_2.c \
+patches/remove_ChgclrPAD_1.c \
+patches/remove_ChgclrPAD_2.c \
+patches/send_pad_1.c \
+patches/send_pad_2.c \
 \
 ../shell/shell_data.o \
 \
