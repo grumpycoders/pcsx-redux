@@ -101,7 +101,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int send_pad_execute(uint32_t* ra) {
+int send_pad_1_execute(uint32_t* ra) {
     patch_send_pad();
     uint32_t ptr;
     int16_t addend;
@@ -136,11 +136,11 @@ static const uint8_t bytes[] = {
     0xe0, 0x04, 0x43, 0xac, 0x04, 0x00, 0x42, 0x24, 0x04, 0x00, 0x4a, 0x25, 0xf9, 0xff, 0x49, 0x15, // 30
 };
 
-uint32_t generate_hash_send_pad(uint32_t mask, unsigned len) {
+uint32_t generate_hash_send_pad_1(uint32_t mask, unsigned len) {
     return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
 }
 
-uint32_t generate_mask_send_pad() {
+uint32_t generate_mask_send_pad_1() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {
