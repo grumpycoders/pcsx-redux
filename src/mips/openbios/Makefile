@@ -40,6 +40,8 @@ tty/tty.c \
 patches/hash.c \
 patches/patches.c \
 \
+patches/patch_card.c \
+patches/patch_card2.c \
 patches/patch_gte.c \
 patches/patch_gte2.c \
 patches/patch_gte3.c \

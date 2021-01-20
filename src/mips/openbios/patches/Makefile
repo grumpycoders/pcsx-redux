@@ -1,4 +1,6 @@
 PATCHES = \
+patch_card.c \
+patch_card2.c \
 patch_gte.c \
 patch_gte2.c \
 patch_gte3.c \
