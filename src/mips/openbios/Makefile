@@ -97,6 +97,10 @@ CPPFLAGS += -DOPENBIOS_USE_EMBEDDED_PSEXE
 SRCS += ./psexe_data.o
 endif
 
+ifneq ($(INSTALL_TTY_CONSOLE),)
+CPPFLAGS += -DOPENBIOS_INSTALL_TTY_CONSOLE
+endif
+
 include ../common.mk
 
 ../shell/shell_data.o: shell
