@@ -336,8 +336,23 @@ inline void InterpretedCPU::doBranch(uint32_t tar) {
  *********************************************************/
 void InterpretedCPU::psxADDI() {
     if (!_Rt_) return;
+
+    auto rs = _rRs_;
+    auto imm = _Imm_;
+    uint32_t res = rs + imm;
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        bool overflow = ((rs ^ res) & (imm ^ res)) >> 31; // fast signed overflow calculation algorithm
+        if (overflow) { // if an overflow occurs, throw an exception
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
+            PCSX::g_system->printf("Signed overflow in ADDI instruction!\n");
+            return;
+        }
+    }
+
     maybeCancelDelayedLoad(_Rt_);
-    _rRt_ = _u32(_rRs_) + _Imm_;
+    _rRt_ = res;
 }  // Rt = Rs + Im      (Exception on Integer Overflow)
 void InterpretedCPU::psxADDIU() {
     if (!_Rt_) return;
@@ -460,11 +475,11 @@ void InterpretedCPU::psxSLTU() {
  *********************************************************/
 void InterpretedCPU::psxDIV() {
     if (!_i32(_rRt_)) {
+        _i32(_rHi_) = _i32(_rRs_);
         if (_i32(_rRs_) & 0x80000000) {
             _i32(_rLo_) = 1;
         } else {
             _i32(_rLo_) = 0xFFFFFFFF;
-            _i32(_rHi_) = _i32(_rRs_);
         }
     } else if (_i32(_rRs_) == 0x80000000 && _i32(_rRt_) == 0xFFFFFFFF) {
         _i32(_rLo_) = 0x80000000;
