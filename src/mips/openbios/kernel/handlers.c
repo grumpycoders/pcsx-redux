@@ -125,7 +125,7 @@ static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
 
 static void * getB0table();
 static void * getC0table();
-static void dummyMC() { }
+static int dummyMC() { return 0; }
 
 static const void * romA0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
@@ -170,8 +170,8 @@ static const void * romA0table[0xc0] = {
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplemented, unimplemented, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
-    unimplemented, unimplemented, unimplemented, unimplemented, // a8
-    unimplemented, unimplemented, unimplemented, unimplemented, // ac
+    unimplemented, unimplemented, unimplemented, dummyMC /* card_info */, // a8
+    unimplemented, dummyMC, unimplemented, unimplemented, // ac
     unimplemented, unimplemented, ioabortraw, unimplemented, // b0
     unimplemented, unimplemented, unimplemented, unimplemented, // b4
     unimplemented, unimplemented, unimplemented, unimplemented, // b8

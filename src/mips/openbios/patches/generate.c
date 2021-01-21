@@ -30,12 +30,18 @@ SOFTWARE.
 #include "openbios/patches/hash.h"
 
 /* B0 */
+uint32_t generate_hash_patch_card_info_1(uint32_t mask, unsigned len);
+uint32_t generate_mask_patch_card_info_1();
 uint32_t generate_hash_patch_card2_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_card2_1();
+uint32_t generate_hash_patch_card2_2(uint32_t mask, unsigned len);
+uint32_t generate_mask_patch_card2_2();
 uint32_t generate_hash_patch_pad_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_pad_1();
 uint32_t generate_hash_patch_pad_2(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_pad_2();
+uint32_t generate_hash_patch_pad_3(uint32_t mask, unsigned len);
+uint32_t generate_mask_patch_pad_3();
 uint32_t generate_hash_remove_ChgclrPAD_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_remove_ChgclrPAD_1();
 uint32_t generate_hash_remove_ChgclrPAD_2(uint32_t mask, unsigned len);
@@ -48,6 +54,8 @@ uint32_t generate_mask_send_pad_2();
 /* C0 */
 uint32_t generate_hash_patch_card_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_card_1();
+uint32_t generate_hash_patch_card_2(uint32_t mask, unsigned len);
+uint32_t generate_mask_patch_card_2();
 uint32_t generate_hash_patch_gte_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_gte_1();
 uint32_t generate_hash_patch_gte_2(uint32_t mask, unsigned len);
@@ -66,10 +74,22 @@ struct patch {
 
 static const struct patch b0[] = {
     {
+        .hash = generate_hash_patch_card_info_1,
+        .mask = generate_mask_patch_card_info_1,
+        .name = "_patch_card_info#1",
+        .execute = "patch_card_info_1_execute",
+    },
+    {
         .hash = generate_hash_patch_card2_1,
         .mask = generate_mask_patch_card2_1,
         .name = "_patch_card2#1",
         .execute = "patch_card2_1_execute",
+    },
+    {
+        .hash = generate_hash_patch_card2_2,
+        .mask = generate_mask_patch_card2_2,
+        .name = "_patch_card2#2",
+        .execute = "patch_card2_2_execute",
     },
     {
         .hash = generate_hash_patch_pad_1,
@@ -82,6 +102,12 @@ static const struct patch b0[] = {
         .mask = generate_mask_patch_pad_2,
         .name = "_patch_pad#2",
         .execute = "patch_pad_2_execute",
+    },
+    {
+        .hash = generate_hash_patch_pad_3,
+        .mask = generate_mask_patch_pad_3,
+        .name = "_patch_pad#3",
+        .execute = "patch_pad_3_execute",
     },
     {
         .hash = generate_hash_remove_ChgclrPAD_1,
@@ -117,6 +143,12 @@ static const struct patch c0[] = {
         .execute = "patch_card_1_execute",
     },
     {
+        .hash = generate_hash_patch_card_2,
+        .mask = generate_mask_patch_card_2,
+        .name = "_patch_card#2",
+        .execute = "patch_card_2_execute",
+    },
+    {
         .hash = generate_hash_patch_gte_1,
         .mask = generate_mask_patch_gte_1,
         .name = "_patch_gte#1",
@@ -136,6 +168,26 @@ static const struct patch c0[] = {
     },
 };
 
+static uint32_t mergemasks(uint32_t m1, uint32_t m2) {
+    uint32_t r = 0;
+    unsigned s = 0;
+    for (unsigned i = 0; i < 16; i++) {
+        uint32_t sm1 = m1 & 3;
+        uint32_t sm2 = m2 & 3;
+        m1 >>= 2;
+        m2 >>= 2;
+        sm1 <<= s;
+        sm2 <<= s;
+        if (sm1 >= sm2) {
+            r |= sm1;
+        } else {
+            r |= sm2;
+        }
+        s += 2;
+    }
+    return r;
+}
+
 int main() {
     const unsigned b0_len = sizeof(b0) / sizeof(b0[0]);
     const unsigned c0_len = sizeof(c0) / sizeof(c0[0]);
@@ -144,10 +196,10 @@ int main() {
     uint32_t min_mask_c0 = 0;
 
     for (unsigned i = 0; i < b0_len; i++) {
-        min_mask_b0 |= b0[i].mask();
+        min_mask_b0 = mergemasks(b0[i].mask(), min_mask_b0);
     }
     for (unsigned i = 0; i < c0_len; i++) {
-        min_mask_c0 |= c0[i].mask();
+        min_mask_c0 = mergemasks(c0[i].mask(), min_mask_c0);
     }
 
     printf("// The following has been automatically generated, do not edit.\n");

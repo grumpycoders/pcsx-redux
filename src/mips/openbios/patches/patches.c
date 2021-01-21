@@ -43,55 +43,74 @@ struct patch {
 // The following has been automatically generated, do not edit.
 // See generate.c if you need to make changes.
 
+int patch_card_info_1_execute(uint32_t* ra);
 int patch_card2_1_execute(uint32_t* ra);
+int patch_card2_2_execute(uint32_t* ra);
 int patch_pad_1_execute(uint32_t* ra);
 int patch_pad_2_execute(uint32_t* ra);
+int patch_pad_3_execute(uint32_t* ra);
 int remove_ChgclrPAD_1_execute(uint32_t* ra);
 int remove_ChgclrPAD_2_execute(uint32_t* ra);
 int send_pad_1_execute(uint32_t* ra);
 int send_pad_2_execute(uint32_t* ra);
 int patch_card_1_execute(uint32_t* ra);
+int patch_card_2_execute(uint32_t* ra);
 int patch_gte_1_execute(uint32_t* ra);
 int patch_gte_2_execute(uint32_t* ra);
 int patch_gte_3_execute(uint32_t* ra);
 
-static const uint32_t generic_hash_mask_b0 = 0x7fc9d555;
-static const uint32_t generic_hash_mask_c0 = 0x57345545;
+static const uint32_t generic_hash_mask_b0 = 0xffc9a655;
+static const uint32_t generic_hash_mask_c0 = 0x56645545;
 static const unsigned generic_hash_len = 16;
 
 static const struct patch B0patches[] = {
     {
-        .hash = 0xb8ca5a6c,
+        .hash = 0x5123f82a,
+        .execute = patch_card_info_1_execute,
+        .name = "_patch_card_info#1",
+    },
+    {
+        .hash = 0x0bc81000,
         .execute = patch_card2_1_execute,
         .name = "_patch_card2#1",
     },
     {
-        .hash = 0x8bfc2071,
+        .hash = 0xc29df18f,
+        .execute = patch_card2_2_execute,
+        .name = "_patch_card2#2",
+    },
+    {
+        .hash = 0xf803a6a6,
         .execute = patch_pad_1_execute,
         .name = "_patch_pad#1",
     },
     {
-        .hash = 0x2ede0b7c,
+        .hash = 0x6dee1051,
         .execute = patch_pad_2_execute,
         .name = "_patch_pad#2",
     },
     {
-        .hash = 0x4befb5f8,
+        .hash = 0x012afc0a,
+        .execute = patch_pad_3_execute,
+        .name = "_patch_pad#3",
+    },
+    {
+        .hash = 0xcef165ba,
         .execute = remove_ChgclrPAD_1_execute,
         .name = "_remove_ChgclrPAD#1",
     },
     {
-        .hash = 0xb7f8f659,
+        .hash = 0x5df8cc5d,
         .execute = remove_ChgclrPAD_2_execute,
         .name = "_remove_ChgclrPAD#2",
     },
     {
-        .hash = 0x57b51520,
+        .hash = 0xa1c49b0e,
         .execute = send_pad_1_execute,
         .name = "_send_pad#1",
     },
     {
-        .hash = 0xdfbfa583,
+        .hash = 0x561b6ad1,
         .execute = send_pad_2_execute,
         .name = "_send_pad#2",
     },
@@ -99,12 +118,17 @@ static const struct patch B0patches[] = {
 
 static const struct patch C0patches[] = {
     {
-        .hash = 0x17062b2c,
+        .hash = 0xfe284b50,
         .execute = patch_card_1_execute,
         .name = "_patch_card#1",
     },
     {
-        .hash = 0xcff40aeb,
+        .hash = 0x17374c76,
+        .execute = patch_card_2_execute,
+        .name = "_patch_card#2",
+    },
+    {
+        .hash = 0x099be910,
         .execute = patch_gte_1_execute,
         .name = "_patch_gte#1",
     },
@@ -119,6 +143,8 @@ static const struct patch C0patches[] = {
         .name = "_patch_gte#3",
     },
 };
+
+// end of auto generated code
 
 void patch_hook(uint32_t* ra, enum patch_table table) {
     // already patched, bail out
