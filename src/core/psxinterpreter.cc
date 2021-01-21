@@ -726,6 +726,15 @@ void InterpretedCPU::psxLBU() {
 
 void InterpretedCPU::psxLH() {
     // load delay = 1 latency
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        if (_oB_ & 1) {
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            PCSX::g_system->printf("Unaligned address in LH\n");
+            return;
+        }
+    }
+
     if (_Rt_) {
         _i32(delayedLoadRef(_Rt_)) = (short)PCSX::g_emulator->m_psxMem->psxMemRead16(_oB_);
     } else {
@@ -735,6 +744,15 @@ void InterpretedCPU::psxLH() {
 
 void InterpretedCPU::psxLHU() {
     // load delay = 1 latency
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        if (_oB_ & 1) {
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            PCSX::g_system->printf("Unaligned address in LHU\n");
+            return;
+        }
+    }
+
     if (_Rt_) {
         _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator->m_psxMem->psxMemRead16(_oB_);
     } else {
@@ -744,6 +762,15 @@ void InterpretedCPU::psxLHU() {
 
 void InterpretedCPU::psxLW() {
     // load delay = 1 latency
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        if (_oB_ & 3) {
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            PCSX::g_system->printf("Unaligned address in LW\n");
+            return;
+        }
+    }
+
     if (_Rt_) {
         _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator->m_psxMem->psxMemRead32(_oB_);
     } else {
@@ -788,8 +815,29 @@ void InterpretedCPU::psxLWR() {
 }
 
 void InterpretedCPU::psxSB() { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _u8(_rRt_)); }
-void InterpretedCPU::psxSH() { PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _u16(_rRt_)); }
-void InterpretedCPU::psxSW() { PCSX::g_emulator->m_psxMem->psxMemWrite32(_oB_, _u32(_rRt_)); }
+void InterpretedCPU::psxSH() { 
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        if (_oB_ & 1) {
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
+            PCSX::g_system->printf("Unaligned address in SH\n");
+            return;
+        }
+    }
+    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _u16(_rRt_)); 
+}
+
+void InterpretedCPU::psxSW() { 
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        if (_oB_ & 3) {
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
+            PCSX::g_system->printf("Unaligned address in SW\n");
+            return;
+        }
+    }
+    PCSX::g_emulator->m_psxMem->psxMemWrite32(_oB_, _u32(_rRt_)); 
+}
 
 void InterpretedCPU::psxSWL() {
     uint32_t addr = _oB_;
