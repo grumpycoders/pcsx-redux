@@ -376,7 +376,6 @@ void InterpretedCPU::psxSLTIU() {
  *********************************************************/
 void InterpretedCPU::psxADD() {
     if (!_Rd_) return;
-    maybeCancelDelayedLoad(_Rd_);
 
     auto rs = _rRs_;
     auto rt = _rRt_;
@@ -392,6 +391,7 @@ void InterpretedCPU::psxADD() {
         }
     }
 
+    maybeCancelDelayedLoad(_Rd_);
     _rRd_ = res;
 }  // Rd = Rs + Rt              (Exception on Integer Overflow)
 void InterpretedCPU::psxADDU() {
@@ -401,8 +401,22 @@ void InterpretedCPU::psxADDU() {
 }  // Rd = Rs + Rt
 void InterpretedCPU::psxSUB() {
     if (!_Rd_) return;
+    
+    auto rs = _rRs_;
+    auto rt = _rRt_;
+    uint32_t res = rs - rt;
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31; // fast signed overflow calculation algorithm
+        if (overflow) { // if an overflow occurs, throw an exception
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
+            PCSX::g_system->printf("Signed overflow in SUB instruction!\n");
+            return;
+        }
+    }
     maybeCancelDelayedLoad(_Rd_);
-    _rRd_ = _u32(_rRs_) - _u32(_rRt_);
+    _rRd_ = res;
 }  // Rd = Rs - Rt              (Exception on Integer Overflow)
 void InterpretedCPU::psxSUBU() {
     if (!_Rd_) return;
@@ -648,15 +662,11 @@ void InterpretedCPU::psxJR() {
         }
     }
 
-    doBranch(_u32(_rRs_) & ~3); // the "& ~3" word-aligns the jump address
+    doBranch(_rRs_ & ~3); // the "& ~3" word-aligns the jump address
 }
 
 void InterpretedCPU::psxJALR() {
     uint32_t temp = _u32(_rRs_);
-    if (_Rd_) {
-        _SetLink(_Rd_);
-    }
-    maybeCancelDelayedLoad(_Rd_);
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
         if (temp & 3) { // if the address is unaligned, throw an exception and return
@@ -667,6 +677,10 @@ void InterpretedCPU::psxJALR() {
         }
     }
     
+    if (_Rd_) {
+        maybeCancelDelayedLoad(_Rd_);
+        _SetLink(_Rd_);
+    }
     doBranch(temp & ~3); // the "& ~3" force aligns the address
 }
 
