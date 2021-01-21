@@ -42,7 +42,6 @@ void runExp1PreHook() {
 }
 
 int checkExp1PostHookLicense() {
-    int running_from_rom = _reset == (const char *) 0xbfc00000;
     return is_running_from_rom() && strcmp((char *)0x1f000004, licenseText) == 0;
 }
 
