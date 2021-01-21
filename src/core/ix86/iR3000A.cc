@@ -1436,7 +1436,7 @@ void X86DynaRecCPU::recDIVU() {
         gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.CMP32ItoR(PCSX::ix86::ECX, 0);
+        gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);
         slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
