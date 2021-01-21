@@ -1806,7 +1806,7 @@ void X86DynaRecCPU::recLWL() {
         gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)LWL_MASK_INDEX);
         gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
         gen.SHL32ItoR(PCSX::ix86::ECX, 16);
-        gen.AND32ItoR(PCSX::ix86::EBX, 0xffff);
+        gen.MOVZX32R16toR(PCSX::ix86::EBX, PCSX::ix86::EBX);
         gen.OR32RtoR(PCSX::ix86::EBX, PCSX::ix86::ECX);
     } else {
         gen.ADD32ItoR(PCSX::ix86::ESP, 8);
