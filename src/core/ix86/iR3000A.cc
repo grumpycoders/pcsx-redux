@@ -1387,7 +1387,7 @@ void X86DynaRecCPU::recDIV() {
         gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.CMP32ItoR(PCSX::ix86::ECX, 0);
+        gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX); // check if ECX == 0
         slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
@@ -1436,7 +1436,7 @@ void X86DynaRecCPU::recDIVU() {
         gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.CMP32ItoR(PCSX::ix86::ECX, 0);
+        gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);
         slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
@@ -1806,7 +1806,7 @@ void X86DynaRecCPU::recLWL() {
         gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)LWL_MASK_INDEX);
         gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
         gen.SHL32ItoR(PCSX::ix86::ECX, 16);
-        gen.AND32ItoR(PCSX::ix86::EBX, 0xffff);
+        gen.MOVZX32R16toR(PCSX::ix86::EBX, PCSX::ix86::EBX);
         gen.OR32RtoR(PCSX::ix86::EBX, PCSX::ix86::ECX);
     } else {
         gen.ADD32ItoR(PCSX::ix86::ESP, 8);
@@ -1868,7 +1868,7 @@ void X86DynaRecCPU::recLWR() {
         gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)LWR_MASK_INDEX);
         gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
         gen.SHL32ItoR(PCSX::ix86::ECX, 16);
-        gen.AND32ItoR(PCSX::ix86::EBX, 0xffff);
+        gen.MOVZX32R16toR(PCSX::ix86::EBX, PCSX::ix86::EBX);
         gen.OR32RtoR(PCSX::ix86::EBX, PCSX::ix86::ECX);
     } else {
         gen.ADD32ItoR(PCSX::ix86::ESP, 8);
