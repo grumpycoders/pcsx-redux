@@ -30,6 +30,19 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
+enum Exceptions { 
+    Interrupt = 0,
+    LoadAddressError = 0x10,
+    StoreAddressError = 0x14,
+    InstructionBusError = 0x18,
+    DataBusError = 0x1C,
+    Syscall = 0x20,
+    Break = 0x24,
+    ReservedInstruction = 0x28,
+    CoprocessorUnusable = 0x2C,
+    ArithmeticOverflow = 0x30
+};
+
 class InterpretedCPU : public PCSX::R3000Acpu {
   public:
     InterpretedCPU() : R3000Acpu("Interpreted") {}
@@ -364,7 +377,22 @@ void InterpretedCPU::psxSLTIU() {
 void InterpretedCPU::psxADD() {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    _rRd_ = _u32(_rRs_) + _u32(_rRt_);
+
+    auto rs = _rRs_;
+    auto rt = _rRt_;
+    uint32_t res = rs + rt;
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+        bool overflow = ((rs ^ res) & (rt ^ res)) >> 31; // fast signed overflow calculation algorithm
+        if (overflow) { // if an overflow occurs, throw an exception
+            PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
+            PCSX::g_system->printf("Signed overflow in ADD instruction!\n");
+            return;
+        }
+    }
+
+    _rRd_ = res;
 }  // Rd = Rs + Rt              (Exception on Integer Overflow)
 void InterpretedCPU::psxADDU() {
     if (!_Rd_) return;
@@ -559,7 +587,7 @@ void InterpretedCPU::psxMTLO() { _rLo_ = _rRs_; }  // Lo = Rs
  *********************************************************/
 void InterpretedCPU::psxBREAK() {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
-    PCSX::g_emulator->m_psxCpu->psxException(0x30, m_inDelaySlot);
+    PCSX::g_emulator->m_psxCpu->psxException(Exceptions::Break, m_inDelaySlot);
     if (m_inDelaySlot) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (!delayedLoad.pcActive) abort();
@@ -569,7 +597,7 @@ void InterpretedCPU::psxBREAK() {
 
 void InterpretedCPU::psxSYSCALL() {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
-    PCSX::g_emulator->m_psxCpu->psxException(0x20, m_inDelaySlot);
+    PCSX::g_emulator->m_psxCpu->psxException(Exceptions::Syscall, m_inDelaySlot);
     if (m_inDelaySlot) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (!delayedLoad.pcActive) abort();
@@ -615,8 +643,7 @@ void InterpretedCPU::psxJR() {
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
         if (_rRs_ & 3) {
-            PCSX::g_system->printf("Attempted unaligned JR!");
-            PCSX::g_system->printf("Exception fired!");
+            PCSX::g_system->printf("Attempted unaligned JR!\nException fired!\n");
         }
     }
 }
@@ -631,8 +658,7 @@ void InterpretedCPU::psxJALR() {
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
         if (temp & 3) {
-            PCSX::g_system->printf("Attempted unaligned JR!");
-            PCSX::g_system->printf("Exception fired!");
+            PCSX::g_system->printf("Attempted unaligned JR!\nException fired!\n");
         }
     }
 }
