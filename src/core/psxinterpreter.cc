@@ -610,7 +610,16 @@ void InterpretedCPU::psxJAL() {
  * Register jump                                          *
  * Format:  OP rs, rd                                     *
  *********************************************************/
-void InterpretedCPU::psxJR() { doBranch(_u32(_rRs_)); }
+void InterpretedCPU::psxJR() { 
+    doBranch(_u32(_rRs_) & ~3); // the "& ~3" word-aligns the jump address
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
+        if (_rRs_ & 3) {
+            PCSX::g_system->printf("Attempted unaligned JR!");
+            PCSX::g_system->printf("Exception fired!");
+        }
+    }
+}
 
 void InterpretedCPU::psxJALR() {
     uint32_t temp = _u32(_rRs_);
@@ -618,7 +627,14 @@ void InterpretedCPU::psxJALR() {
         _SetLink(_Rd_);
     }
     maybeCancelDelayedLoad(_Rd_);
-    doBranch(temp);
+    doBranch(temp & ~3); // the "& ~3" force aligns the address
+
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
+        if (temp & 3) {
+            PCSX::g_system->printf("Attempted unaligned JR!");
+            PCSX::g_system->printf("Exception fired!");
+        }
+    }
 }
 
 /*********************************************************
@@ -684,7 +700,6 @@ void InterpretedCPU::psxLWL() {
 
     /*
     Mem = 1234.  Reg = abcd
-
     0   4bcd   (mem << 24) | (reg & 0x00ffffff)
     1   34cd   (mem << 16) | (reg & 0x0000ffff)
     2   234d   (mem <<  8) | (reg & 0x000000ff)
@@ -703,7 +718,6 @@ void InterpretedCPU::psxLWR() {
 
     /*
     Mem = 1234.  Reg = abcd
-
     0   1234   (mem      ) | (reg & 0x00000000)
     1   a123   (mem >>  8) | (reg & 0xff000000)
     2   ab12   (mem >> 16) | (reg & 0xffff0000)
@@ -723,7 +737,6 @@ void InterpretedCPU::psxSWL() {
     PCSX::g_emulator->m_psxMem->psxMemWrite32(addr & ~3, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
-
     0   123a   (reg >> 24) | (mem & 0xffffff00)
     1   12ab   (reg >> 16) | (mem & 0xffff0000)
     2   1abc   (reg >>  8) | (mem & 0xff000000)
@@ -740,7 +753,6 @@ void InterpretedCPU::psxSWR() {
 
     /*
     Mem = 1234.  Reg = abcd
-
     0   abcd   (reg      ) | (mem & 0x00000000)
     1   bcd4   (reg <<  8) | (mem & 0x000000ff)
     2   cd34   (reg << 16) | (mem & 0x0000ffff)
@@ -809,8 +821,7 @@ void InterpretedCPU::psxCFC2() {
 }
 
 /*********************************************************
- * Unknow instruction (would generate an exception)       *
- * Format:  ?                                             *
+ * Unknown instruction (would generate an exception)     *
  *********************************************************/
 void InterpretedCPU::psxNULL() { PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.code); }
 
