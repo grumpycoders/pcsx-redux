@@ -127,6 +127,20 @@ static void * getB0table();
 static void * getC0table();
 static int dummyMC() { return 0; }
 
+static int card_info_stub(int param) {
+    // Retail BIOS calls B(4D), waits for the card read to return
+    // (takes several frames), A(A9), which eventually calls
+    // DeliverEvent(0xF4000001, 0x100) when no card is inserted.
+    //
+    // In other words, this event would never be delievered on the
+    // same call to card_info(). But it seems to work well enough
+    // to get many memory-card-probing games ingame, sometimes
+    // with minor glitches (e.g. flickering menu text in FF7).
+    psxprintf("card_info_stub(0x%X)", param);
+    syscall_deliverEvent(0xF4000001, 0x100);
+    return 1;
+}
+
 static const void * romA0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
@@ -170,7 +184,7 @@ static const void * romA0table[0xc0] = {
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplemented, unimplemented, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplemented, unimplemented, unimplemented, unimplemented, // a4
-    unimplemented, unimplemented, unimplemented, dummyMC /* card_info */, // a8
+    unimplemented, unimplemented, unimplemented, card_info_stub, // a8
     unimplemented, dummyMC, unimplemented, unimplemented, // ac
     unimplemented, unimplemented, ioabortraw, unimplemented, // b0
     unimplemented, unimplemented, unimplemented, unimplemented, // b4
