@@ -100,6 +100,10 @@ SECTIONS {
         BYTE(0x61); BYTE(0x69); BYTE(0x6E); BYTE(0x6D);
         BYTE(0x65); BYTE(0x6E); BYTE(0x74); BYTE(0x20);
         BYTE(0x49); BYTE(0x6E); BYTE(0x63); BYTE(0x2E);
+        BYTE(0x00);
+
+        . = ALIGN(4);
+
         *(.boot)
 
         __build_id = .;

@@ -28,10 +28,13 @@ SOFTWARE.
 
 #include "openbios/pio/pio.h"
 
+extern const char *_reset;
+static int is_running_from_rom() { return _reset == (const char *)0xbfc00000; }
+
 static const char * const licenseText = "Licensed by Sony Computer Entertainment Inc.";
 
 int checkExp1PreHookLicense() {
-    return strcmp((char *)0x1f000084, licenseText) == 0;
+    return is_running_from_rom() && strcmp((char *)0x1f000084, licenseText) == 0;
 }
 
 void runExp1PreHook() {
@@ -39,7 +42,8 @@ void runExp1PreHook() {
 }
 
 int checkExp1PostHookLicense() {
-    return strcmp((char *)0x1f000004, licenseText) == 0;
+    int running_from_rom = _reset == (const char *) 0xbfc00000;
+    return is_running_from_rom() && strcmp((char *)0x1f000004, licenseText) == 0;
 }
 
 void runExp1PostHook() {
