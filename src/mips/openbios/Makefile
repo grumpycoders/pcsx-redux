@@ -40,13 +40,17 @@ tty/tty.c \
 patches/hash.c \
 patches/patches.c \
 \
+patches/patch_card_info_1.c \
 patches/patch_card_1.c \
+patches/patch_card_2.c \
 patches/patch_card2_1.c \
+patches/patch_card2_2.c \
 patches/patch_gte_1.c \
 patches/patch_gte_2.c \
 patches/patch_gte_3.c \
 patches/patch_pad_1.c \
 patches/patch_pad_2.c \
+patches/patch_pad_3.c \
 patches/remove_ChgclrPAD_1.c \
 patches/remove_ChgclrPAD_2.c \
 patches/send_pad_1.c \
