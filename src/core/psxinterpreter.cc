@@ -682,6 +682,10 @@ void InterpretedCPU::psxJR() {
 
 void InterpretedCPU::psxJALR() {
     uint32_t temp = _u32(_rRs_);
+    if (_Rd_) {
+        maybeCancelDelayedLoad(_Rd_);
+        _SetLink(_Rd_);
+    }
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
         if (temp & 3) { // if the address is unaligned, throw an exception and return
@@ -692,10 +696,6 @@ void InterpretedCPU::psxJALR() {
         }
     }
     
-    if (_Rd_) {
-        maybeCancelDelayedLoad(_Rd_);
-        _SetLink(_Rd_);
-    }
     doBranch(temp & ~3); // the "& ~3" force aligns the address
 }
 
