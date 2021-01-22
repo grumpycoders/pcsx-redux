@@ -933,7 +933,12 @@ void InterpretedCPU::psxCFC2() {
 /*********************************************************
  * Unknown instruction (would generate an exception)     *
  *********************************************************/
-void InterpretedCPU::psxNULL() { PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.code); }
+void InterpretedCPU::psxNULL() { 
+    PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.code); 
+    PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+    psxException(Exceptions::ReservedInstruction, m_inDelaySlot);
+    PCSX::g_system->printf("Encountered reserved opcode, firing an exception\n");
+}
 
 void InterpretedCPU::psxSPECIAL() { (*this.*(s_pPsxSPC[_Funct_]))(); }
 
