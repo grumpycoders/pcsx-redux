@@ -181,7 +181,9 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     void psxSPECIAL();
     void psxREGIMM();
     void psxCOP0();
+    void psxCOP1();
     void psxCOP2();
+    void psxCOP3();
     void psxBASIC();
 
     /* GTE wrappers */
@@ -946,10 +948,19 @@ void InterpretedCPU::psxREGIMM() { (*this.*(s_pPsxREG[_Rt_]))(); }
 
 void InterpretedCPU::psxCOP0() { (*this.*(s_pPsxCP0[_Rs_]))(); }
 
+void InterpretedCPU::psxCOP1() { // Accesses to the (nonexistent) FPU
+    PCSX::g_system->printf("Attempted to use an invalid floating point instruction. Ignored.\n"); // TODO: Verify that COP1 doesn't throw a coprocessor unusable exception
+                                                                                                  // Supposedly the COP1/COP3 ops don't fire RI, and they're NOPs
+}
+
 void InterpretedCPU::psxCOP2() {
     if ((PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status & 0x40000000) == 0) return;
 
     (*this.*(s_pPsxCP2[_Funct_]))();
+}
+
+void InterpretedCPU::psxCOP3() { 
+    PCSX::g_system->printf("Attempted to access COP3. Ignored\n"); 
 }
 
 void InterpretedCPU::psxBASIC() { (*this.*(s_pPsxCP2BSC[_Rs_]))(); }
@@ -959,7 +970,7 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxBSC[64] = {
     &InterpretedCPU::psxBEQ,     &InterpretedCPU::psxBNE,    &InterpretedCPU::psxBLEZ, &InterpretedCPU::psxBGTZ,   // 04
     &InterpretedCPU::psxADDI,    &InterpretedCPU::psxADDIU,  &InterpretedCPU::psxSLTI, &InterpretedCPU::psxSLTIU,  // 08
     &InterpretedCPU::psxANDI,    &InterpretedCPU::psxORI,    &InterpretedCPU::psxXORI, &InterpretedCPU::psxLUI,    // 0c
-    &InterpretedCPU::psxCOP0,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxCOP2, &InterpretedCPU::psxNULL,   // 10
+    &InterpretedCPU::psxCOP0,    &InterpretedCPU::psxCOP1,   &InterpretedCPU::psxCOP2, &InterpretedCPU::psxCOP3,   // 10
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 14
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 18
     &InterpretedCPU::psxNULL,    &InterpretedCPU::psxNULL,   &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,   // 1c
