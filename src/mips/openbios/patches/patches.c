@@ -53,6 +53,7 @@ int remove_ChgclrPAD_1_execute(uint32_t* ra);
 int remove_ChgclrPAD_2_execute(uint32_t* ra);
 int send_pad_1_execute(uint32_t* ra);
 int send_pad_2_execute(uint32_t* ra);
+int clear_card_1_execute(uint32_t* ra);
 int patch_card_1_execute(uint32_t* ra);
 int patch_card_2_execute(uint32_t* ra);
 int patch_gte_1_execute(uint32_t* ra);
@@ -60,7 +61,7 @@ int patch_gte_2_execute(uint32_t* ra);
 int patch_gte_3_execute(uint32_t* ra);
 
 static const uint32_t generic_hash_mask_b0 = 0xffc9a655;
-static const uint32_t generic_hash_mask_c0 = 0x56645545;
+static const uint32_t generic_hash_mask_c0 = 0x5aa45555;
 static const unsigned generic_hash_len = 16;
 
 static const struct patch B0patches[] = {
@@ -118,27 +119,32 @@ static const struct patch B0patches[] = {
 
 static const struct patch C0patches[] = {
     {
-        .hash = 0xfe284b50,
+        .hash = 0x95c14c17,
+        .execute = clear_card_1_execute,
+        .name = "_clear_card#1",
+    },
+    {
+        .hash = 0x847eabf2,
         .execute = patch_card_1_execute,
         .name = "_patch_card#1",
     },
     {
-        .hash = 0x17374c76,
+        .hash = 0x2a81bbef,
         .execute = patch_card_2_execute,
         .name = "_patch_card#2",
     },
     {
-        .hash = 0x099be910,
+        .hash = 0x61c914a1,
         .execute = patch_gte_1_execute,
         .name = "_patch_gte#1",
     },
     {
-        .hash = 0x0793d0e1,
+        .hash = 0xc223044d,
         .execute = patch_gte_2_execute,
         .name = "_patch_gte#2",
     },
     {
-        .hash = 0x04f808dd,
+        .hash = 0xbf873c49,
         .execute = patch_gte_3_execute,
         .name = "_patch_gte#3",
     },
@@ -175,7 +181,9 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
     while (size--) {
         if (patches->hash == h) {
             romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name, ra);
-            if (!patches->execute(ra)) continue;
+            int v = patches->execute(ra);
+            if (!v) continue;
+            if (v == 2) return;
             ra[0] = 0;
             ra[1] = 0;
             syscall_flushCache();
