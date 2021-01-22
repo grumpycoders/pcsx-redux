@@ -39,6 +39,7 @@ SOFTWARE.
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/filesystem.h"
 #include "openbios/cdrom/statemachine.h"
+#include "openbios/charset/sjis.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/gpu/gpu.h"
 #include "openbios/handlers/handlers.h"
@@ -132,11 +133,11 @@ static int card_info_stub(int param) {
     // (takes several frames), A(A9), which eventually calls
     // DeliverEvent(0xF4000001, 0x100) when no card is inserted.
     //
-    // In other words, this event would never be delievered on the
+    // In other words, this event would never be delivered on the
     // same call to card_info(). But it seems to work well enough
     // to get many memory-card-probing games ingame, sometimes
     // with minor glitches (e.g. flickering menu text in FF7).
-    psxprintf("card_info_stub(0x%X)", param);
+    psxprintf("card_info_stub(0x%X)\n", param);
     syscall_deliverEvent(0xF4000001, 0x100);
     return 1;
 }
@@ -212,8 +213,8 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
     unimplemented, unimplemented, unimplemented, addDevice, // 44
     removeDevice, unimplemented, dummyMC, dummyMC, // 48
-    unimplemented, unimplemented, unimplemented, unimplemented, // 4c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 50
+    dummyMC, unimplemented, unimplemented, unimplemented, // 4c
+    dummyMC, Krom2RawAdd, unimplemented, unimplemented, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
     unimplemented, unimplemented, unimplemented, setSIO0AutoAck, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c

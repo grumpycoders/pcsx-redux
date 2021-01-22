@@ -12,6 +12,7 @@ cdrom/events.c \
 cdrom/filesystem.c \
 cdrom/helpers.c \
 cdrom/statemachine.c \
+charset/sjis.c \
 fileio/misc.c \
 fileio/stdio.c \
 gpu/gpu.c \
@@ -40,6 +41,7 @@ tty/tty.c \
 patches/hash.c \
 patches/patches.c \
 \
+patches/clear_card_1.c \
 patches/patch_card_info_1.c \
 patches/patch_card_1.c \
 patches/patch_card_2.c \

@@ -1,4 +1,5 @@
 PATCHES = \
+clear_card_1.c \
 patch_card_info_1.c \
 patch_card_1.c \
 patch_card_2.c \
