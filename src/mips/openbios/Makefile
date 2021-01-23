@@ -59,6 +59,8 @@ patches/send_pad_1.c \
 patches/send_pad_2.c \
 \
 ../shell/shell_data.o \
+font1.o \
+font2.o \
 \
 uC-sdk-glue/BoardConsole.c \
 uC-sdk-glue/BoardInit.c \
@@ -114,6 +116,12 @@ include ../common.mk
 ./psexe_data.o: $(EMBED_PSEXE)
 	cp $(EMBED_PSEXE) psexe.bin
 	$(PREFIX)-objcopy -I binary --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips psexe.bin psexe_data.o
+
+./font1.o: charset/font1.raw
+	$(PREFIX)-objcopy -I binary --rename-section .data=.font1,alloc,load,readonly,data,contents -O $(FORMAT) -B mips charset/font1.raw font1.o
+
+./font2.o: charset/font2.raw
+	$(PREFIX)-objcopy -I binary --rename-section .data=.font2,alloc,load,readonly,data,contents -O $(FORMAT) -B mips charset/font2.raw font2.o
 
 shell:
 	$(MAKE) -C ../shell shell_data.o
