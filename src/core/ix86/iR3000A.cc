@@ -3112,10 +3112,9 @@ void X86DynaRecCPU::recRecompile() {
     };
 
     while (shouldContinue()) {
-        if (m_nextIsDelaySlot) {
-            m_inDelaySlot = true;
-            m_nextIsDelaySlot = false;
-        }
+        m_inDelaySlot = m_nextIsDelaySlot;
+        m_nextIsDelaySlot = false;
+
         p = (char *)PSXM(m_pc);
         if (p == NULL) {
             recError();
