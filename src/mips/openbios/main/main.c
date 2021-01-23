@@ -278,12 +278,12 @@ extern struct {
 } __build_id;
 
 static void boot(char * systemCnfPath, char * binaryPath) {
-    POST = 0x01;
+    POST = 1;
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
-    POST = 0x02;
+    POST = 2;
     copyDataAndInitializeBSS();
-    POST = 0x03;
+    POST = 3;
     copyA0table();
     installKernelHandlers();
     syscall_patchA0table();
@@ -293,7 +293,7 @@ static void boot(char * systemCnfPath, char * binaryPath) {
     // things will go haywire very quickly.
     syscall_installExceptionHandler();
     syscall_setDefaultExceptionJmpBuf();
-    POST = 0x04;
+    POST = 4;
     muteSpu();
     IMASK = 0;
     IREG = 0;
