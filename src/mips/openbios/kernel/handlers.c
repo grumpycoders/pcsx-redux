@@ -214,7 +214,7 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, addDevice, // 44
     removeDevice, unimplemented, dummyMC, dummyMC, // 48
     dummyMC, unimplemented, unimplemented, unimplemented, // 4c
-    dummyMC, Krom2RawAdd, unimplemented, unimplemented, // 50
+    dummyMC, Krom2RawAdd, unimplemented, Krom2Offset, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
     unimplemented, unimplemented, unimplemented, setSIO0AutoAck, // 58
     unimplemented, unimplemented, unimplemented, unimplemented, // 5c
