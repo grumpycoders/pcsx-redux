@@ -1292,7 +1292,7 @@ int PCSX::CDRiso::LoadSBI(const char *filename) {
         buffer[14] = 'i';
         buffer[15] = '\0';
 
-        sprintf(sbifile, "%s%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
+        sprintf(sbifile, "%hhn%s", PCSX::g_emulator->settings.get<Emulator::SettingPpfDir>().string().c_str(), buffer);
         filename = sbifile;
     }
 
