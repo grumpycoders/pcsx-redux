@@ -128,7 +128,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     } iRegisters;
 
     iRegisters m_iRegs[32];
-    iRegisters m_iRegsSaved[32];
 
     cfunc_t *m_pRecBSC = NULL;
     cfunc_t *m_pRecSPC = NULL;
