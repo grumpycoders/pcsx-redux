@@ -1,0 +1,28 @@
+name: chores
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  chores:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch submodules
+      run: git submodule update --init --recursive
+    - name: Install gettext
+      run: sudo apt-get install -y gettext
+    - name: Regenerate i18n files
+      run: make regen-i18n
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Chores
+        push_options: --force
+        token: ${{ secrets.PAT }}
