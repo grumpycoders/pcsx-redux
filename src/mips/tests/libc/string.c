@@ -27,6 +27,8 @@ SOFTWARE.
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
 
+// clang-format off
+
 CESTER_TEST(strcpy, test_instance,
     char b[32];
     char * s;

@@ -27,7 +27,7 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "openbios/sio0/pad.h"
 
-// clang-format on
+// clang-format off
 
 /* Found in Pandemonium 2 PAL (SLES-00965):
 

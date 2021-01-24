@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/syscalls/syscalls.h"
 
+// clang-format off
+
 CESTER_BODY(
     static int icmp(const void * a, const void * b) {
         return *(const int *) a - *(const int *) b;

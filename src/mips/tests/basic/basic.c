@@ -33,6 +33,8 @@ SOFTWARE.
 #define EXIT_FAILURE 1
 #include "exotic/cester.h"
 
+// clang-format off
+
 CESTER_TEST(basicMetaTestKernelPrintf, test_instance,
     ramsyscall_printf("Hello world\n");
     cester_assert_equal(NULL, NULL);

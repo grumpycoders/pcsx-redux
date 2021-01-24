@@ -142,6 +142,8 @@ static int card_info_stub(int param) {
     return 1;
 }
 
+// clang-format off
+
 static const void * romA0table[0xc0] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, unimplemented, // 04
@@ -230,6 +232,8 @@ void * C0table[0x20] = {
     setupFileIO, unimplemented, unimplemented, unimplemented, // 18
     patchA0table, unimplemented, unimplemented, unimplemented, // 1c
 };
+
+// clang-format on
 
 void * getB0table() {
     uint32_t ra;
