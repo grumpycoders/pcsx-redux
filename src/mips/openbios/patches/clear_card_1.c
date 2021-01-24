@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Cool Boarders 3 (SCUS-94251): (loaded from overlay)
 
                     //
@@ -83,6 +85,8 @@ SOFTWARE.
     we don't need to do anything special here.
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 

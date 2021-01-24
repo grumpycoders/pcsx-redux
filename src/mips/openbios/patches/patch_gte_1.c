@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Suikoden 2 NTSC (SLUS-00958):
 
                     *************************************************************
@@ -121,6 +123,8 @@ SOFTWARE.
     correct, so no patch nor behavior change is necessary.
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 

@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Xenogears NTSC (SLUS-00664):
 
                     *************************************************************
@@ -93,6 +95,8 @@ SOFTWARE.
     correct, so no patch nor behavior change is necessary.
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 

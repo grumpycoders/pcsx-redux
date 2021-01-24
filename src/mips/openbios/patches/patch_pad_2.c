@@ -27,6 +27,8 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "openbios/sio0/pad.h"
 
+// clang-format off
+
 /* Found in Xenogears NTSC (SLUS-00664):
 
                     *************************************************************
@@ -80,6 +82,8 @@ SOFTWARE.
     See sio0/driver.c for more details.
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 

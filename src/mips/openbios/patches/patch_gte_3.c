@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Alien Trilogy NTSC (SLUS-00007):
 
                          *******************************************************
@@ -94,6 +96,8 @@ SOFTWARE.
     correct, so no patch nor behavior change is necessary.
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 
