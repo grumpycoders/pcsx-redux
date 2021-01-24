@@ -31,11 +31,11 @@ SOFTWARE.
 /* Found in Cool Boarders 3 (SCUS-94251): (loaded from overlay)
 
                     //
-                    // OVR1 
+                    // OVR1
                     // OVR1::800b2910-OVR1::800b2fd8
                     //
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  FUN_OVR1__800b2910 ()
              undefined         v0:1           <RETURN>                                XREF[2]:     OVR1::800b2928 (W
@@ -57,7 +57,7 @@ SOFTWARE.
      1::800b2938 80 29 4a 25          addiu           src,src,0x2980
      1::800b293c 0b 80 09 3c          lui             t1,0x800b
      1::800b2940 8c 29 29 25          addiu           t1,t1,0x298c
-                             LAB_OVR1__800b2944                              XREF[1]:     OVR1::800b2954 (j)  
+                             LAB_OVR1__800b2944                              XREF[1]:     OVR1::800b2954 (j)
      1::800b2944 00 00 43 8d          lw              v1,0x0(src)=>LAB_OVR1__800b2980
      1::800b2948 00 00 00 00          nop
      1::800b294c 70 00 43 ac          sw              v1,0x70(dst)
@@ -73,9 +73,9 @@ SOFTWARE.
      1::800b2974 00 00 00 00          nop
      1::800b2978 08 00 e0 03          jr              ra
      1::800b297c 00 00 00 00          _nop
-                             LAB_OVR1__800b2980                              XREF[1]:     FUN_OVR1__800b2910:800b2944 (R)  
+                             LAB_OVR1__800b2980                              XREF[1]:     FUN_OVR1__800b2910:800b2944 (R)
      1::800b2980 00 00 00 00          nop
-                             LAB_OVR1__800b2984                              XREF[1]:     FUN_OVR1__800b2910:800b2944 (R)  
+                             LAB_OVR1__800b2984                              XREF[1]:     FUN_OVR1__800b2910:800b2944 (R)
      1::800b2984 00 00 00 00          nop
      1::800b2988 00 00 00 00          nop
      1::800b298c 00 00 00 00          nop
@@ -90,30 +90,28 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int clear_card_1_execute(uint32_t* ra) {
-    return 2;
-}
+int clear_card_1_execute(uint32_t* ra) { return 2; }
 
 #else
 
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 1, 1, 1, // 00
-    1, 0, 0, 0, // 10
-    0, 0, 0, 2, // 20
-    0, 2, 0, 1, // 30
+    0, 1, 1, 1,  // 00
+    1, 0, 0, 0,  // 10
+    0, 0, 0, 2,  // 20
+    0, 2, 0, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x18, 0x00, 0x42, 0x8c, 0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x09, 0x3c, // 00
-    0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0x43, 0xac, // 10
-    0x04, 0x00, 0x4a, 0x25, 0xfb, 0xff, 0x49, 0x15, 0x04, 0x00, 0x42, 0x24, 0x00, 0x00, 0x00, 0x0c, // 20
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, // 30
+    0x18, 0x00, 0x42, 0x8c, 0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x09, 0x3c,  // 00
+    0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0x43, 0xac,  // 10
+    0x04, 0x00, 0x4a, 0x25, 0xfb, 0xff, 0x49, 0x15, 0x04, 0x00, 0x42, 0x24, 0x00, 0x00, 0x00, 0x0c,  // 20
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c,  // 30
 };
 
 uint32_t generate_hash_clear_card_1(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_clear_card_1() {

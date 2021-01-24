@@ -97,11 +97,12 @@
 //
 //*************************************************************************//
 
+#include "gpu/soft/draw.h"
+
 #include <SDL.h>
 #include <stdint.h>
 
 #include "GL/gl3w.h"
-#include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/menu.h"

@@ -42,8 +42,8 @@ class MDEC {
     static const unsigned DSIZE = 8;
     static const unsigned DSIZE2 = DSIZE * DSIZE;
 
-    void save(SaveStates::MDEC & mdecSave);
-    void load(const SaveStates::MDEC & mdecSave);
+    void save(SaveStates::MDEC &mdecSave);
+    void load(const SaveStates::MDEC &mdecSave);
 
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock

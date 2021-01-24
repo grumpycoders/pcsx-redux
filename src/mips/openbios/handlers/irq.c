@@ -24,11 +24,12 @@ SOFTWARE.
 
 */
 
+#include "common/hardware/irq.h"
+
 #include <memory.h>
 
 #include "common/compiler/stdint.h"
 #include "common/hardware/hwregs.h"
-#include "common/hardware/irq.h"
 #include "common/psxlibc/handlers.h"
 #include "common/psxlibc/string.h"
 #include "openbios/handlers/handlers.h"
@@ -43,19 +44,20 @@ static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
     // they can't be cached by the compiler, if this is what the
     // original author was thinking.
     uint32_t mask = IMASK & IREG;
-    if ((mask & IRQ_CDROM) != 0)      deliverEvent(EVENT_CDROM, 0x1000);
-    if ((mask & IRQ_SPU) != 0)        deliverEvent(EVENT_SPU, 0x1000);
-    if ((mask & IRQ_GPU) != 0)        deliverEvent(EVENT_GPU, 0x1000);
-    if ((mask & IRQ_PIO) != 0)        deliverEvent(EVENT_PIO, 0x1000);
-    if ((mask & IRQ_SIO) != 0)        deliverEvent(EVENT_SIO, 0x1000);
-    if ((mask & IRQ_VBLANK) != 0)     deliverEvent(EVENT_VBLANK, 0x1000);
-    if ((mask & IRQ_TIMER0) != 0)     deliverEvent(EVENT_RTC0, 0x1000);
-    if ((mask & IRQ_TIMER1) != 0)     deliverEvent(EVENT_RTC1, 0x1000); // Yes that's a copy-paste mistake from the BIOS code directly.
-    if ((mask & IRQ_TIMER2) != 0)     deliverEvent(EVENT_RTC1, 0x1000); // Keeping it this way to avoid breaking stuff.
+    if ((mask & IRQ_CDROM) != 0) deliverEvent(EVENT_CDROM, 0x1000);
+    if ((mask & IRQ_SPU) != 0) deliverEvent(EVENT_SPU, 0x1000);
+    if ((mask & IRQ_GPU) != 0) deliverEvent(EVENT_GPU, 0x1000);
+    if ((mask & IRQ_PIO) != 0) deliverEvent(EVENT_PIO, 0x1000);
+    if ((mask & IRQ_SIO) != 0) deliverEvent(EVENT_SIO, 0x1000);
+    if ((mask & IRQ_VBLANK) != 0) deliverEvent(EVENT_VBLANK, 0x1000);
+    if ((mask & IRQ_TIMER0) != 0) deliverEvent(EVENT_RTC0, 0x1000);
+    if ((mask & IRQ_TIMER1) != 0)
+        deliverEvent(EVENT_RTC1, 0x1000);  // Yes that's a copy-paste mistake from the BIOS code directly.
+    if ((mask & IRQ_TIMER2) != 0) deliverEvent(EVENT_RTC1, 0x1000);  // Keeping it this way to avoid breaking stuff.
     if ((mask & IRQ_CONTROLLER) != 0) deliverEvent(EVENT_CONTROLLER, 0x1000);
-    if ((mask & IRQ_DMA) != 0)        deliverEvent(EVENT_DMA, 0x1000);
+    if ((mask & IRQ_DMA) != 0) deliverEvent(EVENT_DMA, 0x1000);
     uint32_t ackMask = 0;
-    int * ptr = s_IRQsAutoAck;
+    int* ptr = s_IRQsAutoAck;
     for (int IRQ = 0; IRQ < 11; IRQ++, ptr++) {
         if (*ptr) ackMask |= 1 << (IRQ & 0x1f);
     }
@@ -93,7 +95,6 @@ static __attribute__((section(".ramtext"))) int T1verifier() {
     if (((IMASK & IRQ_TIMER1) == 0) || ((IREG & IRQ_TIMER1) == 0)) return 0;
     deliverEvent(0xf2000001, 2);
     return 1;
-
 }
 static __attribute__((section(".ramtext"))) void T1handler(int v) {
     if (!s_timersAutoAck[1]) return;

@@ -31,13 +31,13 @@ SOFTWARE.
 /* Found in Tales of Destiny Disc 2 (SLUS-01367):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_card_info ()
                                assume gp = 0x800c5454
-             undefined         v0:1           <RETURN>                                XREF[1]:     80078448 (W)  
-             dword * *         v0:4           B0table                                 XREF[1]:     80078448 (W)  
-                             _patch_card_info                                XREF[1]:     InitCARD:80077f38 (c)  
+             undefined         v0:1           <RETURN>                                XREF[1]:     80078448 (W)
+             dword * *         v0:4           B0table                                 XREF[1]:     80078448 (W)
+                             _patch_card_info                                XREF[1]:     InitCARD:80077f38 (c)
         80078438 10 80 01 3c          lui             at,0x8010
              assume gp = <UNKNOWN>
         8007843c 90 37 3f ac          sw              ra,offset  DAT_80103790 (at)                      = ??
@@ -76,21 +76,21 @@ int patch_card_info_1_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 0, 0, 0, // 00
-    2, 0, 1, 1, // 10
-    0, 0, 0, 3, // 20
-    3, 3, 3, 3, // 30
+    0, 0, 0, 0,  // 00
+    2, 0, 1, 1,  // 10
+    0, 0, 0, 3,  // 20
+    3, 3, 3, 3,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x09, 0x00, 0x0a, 0x24, 0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x88, 0x19, 0x43, 0x20, // 00
-    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x60, 0xac, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, // 10
-    0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 20
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 30
+    0x09, 0x00, 0x0a, 0x24, 0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x88, 0x19, 0x43, 0x20,  // 00
+    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x60, 0xac, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f,  // 10
+    0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // 20
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // 30
 };
 
 uint32_t generate_hash_patch_card_info_1(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_patch_card_info_1() {

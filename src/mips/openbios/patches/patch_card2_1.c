@@ -31,19 +31,19 @@ SOFTWARE.
 /* Found in Tomba! NTSC (SCUS-94236):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_card2 ()
                                assume gp = 0x80097fa8
-             undefined         v0:1           <RETURN>                                XREF[2]:     8005ceec (W), 
-                                                                                                   8005cf0c (W)  
-             dword * *         v0:4           B0table                                 XREF[1]:     8005ceec (W)  
-             undefined4        v0:4           dst                                     XREF[1]:     8005cf0c (W)  
+             undefined         v0:1           <RETURN>                                XREF[2]:     8005ceec (W),
+                                                                                                   8005cf0c (W)
+             dword * *         v0:4           B0table                                 XREF[1]:     8005ceec (W)
+             undefined4        v0:4           dst                                     XREF[1]:     8005cf0c (W)
              undefined4        t2:4           src
-             undefined4        t0:4           tmp                                     XREF[1]:     8005cf10 (W)  
-             undefined4        t2:4           nextSrc                                 XREF[1]:     8005cf14 (W)  
-                             _patch_card2                                    XREF[2]:     FUN_8005cccc:8005ccfc (c), 
-                                                                                          FUN_8005cd58:8005cd68 (c)  
+             undefined4        t0:4           tmp                                     XREF[1]:     8005cf10 (W)
+             undefined4        t2:4           nextSrc                                 XREF[1]:     8005cf14 (W)
+                             _patch_card2                                    XREF[2]:     FUN_8005cccc:8005ccfc (c),
+                                                                                          FUN_8005cd58:8005cd68 (c)
         8005ced8 0a 80 01 3c          lui             at,0x800a
              assume gp = <UNKNOWN>
         8005cedc b0 af 3f ac          sw              ra,-0x5050 (at)=>DAT_8009afb0                    = ??
@@ -58,7 +58,7 @@ SOFTWARE.
         8005cf00 c8 09 43 8c          lw              v1,0x9c8 (B0table )
         8005cf04 a8 ce 4a 25          addiu           t2,t2,-0x3158
         8005cf08 bc ce 29 25          addiu           t1,t1,-0x3144
-                             PATCH_OBJ_144                                   XREF[1]:     8005cf20 (j)  
+                             PATCH_OBJ_144                                   XREF[1]:     8005cf20 (j)
         8005cf0c c8 09 43 8c          lw              v1,0x9c8 (dst)
         8005cf10 00 00 48 8d          lw              tmp,0x0(src)=>PATCH_OBJ_E0
         8005cf14 04 00 4a 25          addiu           nextSrc ,nextSrc ,0x4
@@ -92,21 +92,21 @@ int patch_card2_1_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 1, 1, 0, // 00
-    1, 1, 0, 0, // 10
-    0, 0, 0, 0, // 20
-    0, 2, 0, 1, // 30
+    0, 1, 1, 0,  // 00
+    1, 1, 0, 0,  // 10
+    0, 0, 0, 0,  // 20
+    0, 2, 0, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x09, 0x3c, 0xc8, 0x09, 0x43, 0x8c, // 00
-    0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x29, 0x25, 0xc8, 0x09, 0x43, 0x8c, 0x00, 0x00, 0x48, 0x8d, // 10
-    0x04, 0x00, 0x4a, 0x25, 0xfc, 0xff, 0x43, 0xad, 0x04, 0x00, 0x42, 0x24, 0xfa, 0xff, 0x49, 0x15, // 20
-    0xc4, 0x09, 0x48, 0xac, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, // 30
+    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x09, 0x3c, 0xc8, 0x09, 0x43, 0x8c,  // 00
+    0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x29, 0x25, 0xc8, 0x09, 0x43, 0x8c, 0x00, 0x00, 0x48, 0x8d,  // 10
+    0x04, 0x00, 0x4a, 0x25, 0xfc, 0xff, 0x43, 0xad, 0x04, 0x00, 0x42, 0x24, 0xfa, 0xff, 0x49, 0x15,  // 20
+    0xc4, 0x09, 0x48, 0xac, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c,  // 30
 };
 
 uint32_t generate_hash_patch_card2_1(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_patch_card2_1() {

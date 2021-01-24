@@ -17,12 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/system.h"
+
 #include <stddef.h>
 
 #include <iomanip>
 #include <sstream>
 
-#include "core/system.h"
 #include "support/file.h"
 
 PCSX::System* PCSX::g_system = NULL;

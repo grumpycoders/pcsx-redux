@@ -22,11 +22,10 @@
 #include <SDL.h>
 #include <stdint.h>
 
-#include "json.hpp"
-
 #include "core/decode_xa.h"
-#include "core/sstate.h"
 #include "core/spu.h"
+#include "core/sstate.h"
+#include "json.hpp"
 #include "spu/adsr.h"
 #include "spu/sdlsound.h"
 #include "spu/types.h"

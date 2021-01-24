@@ -26,8 +26,8 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/hardware/hwregs.h"
 #include "common/compiler/stdint.h"
+#include "common/hardware/hwregs.h"
 
 #define SIO1_DATA HW_U8(0x1f801050)
 #define SIO1_STAT HW_U16(0x1f801054)

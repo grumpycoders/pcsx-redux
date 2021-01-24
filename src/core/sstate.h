@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "support/settings.h"
 #include "spu/types.h"
 #include "support/protobuf.h"
+#include "support/settings.h"
 
 namespace PCSX {
 

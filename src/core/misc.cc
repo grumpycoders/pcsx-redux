@@ -21,15 +21,15 @@
  * Miscellaneous functions, including savestates and CD-ROM loading.
  */
 
+#include "core/misc.h"
+
 #include <stddef.h>
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
-#include "core/misc.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
-
 #include "spu/interface.h"
 
 // FIXME: should be put in a more global header.
@@ -103,12 +103,12 @@ void mmssdd(char *b, char *p) {
     time[1] = PCSX::CDRom::itob(time[1]); \
     time[2] = PCSX::CDRom::itob(time[2]);
 
-#define READTRACK()                                                     \
+#define READTRACK()                                                      \
     if (!PCSX::g_emulator->m_cdrom->m_iso.readTrack(time)) return false; \
     buf = PCSX::g_emulator->m_cdrom->m_iso.getBuffer();                  \
-    if (buf == NULL)                                                    \
-        return false;                                                   \
-    else                                                                \
+    if (buf == NULL)                                                     \
+        return false;                                                    \
+    else                                                                 \
         PCSX::g_emulator->m_cdrom->m_ppf.CheckPPFCache(buf, time[0], time[1], time[2]);
 
 #define READDIR(_dir)             \
@@ -314,8 +314,9 @@ bool CheckCdrom() {
                 PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPsxExe>().string().c_str(), 2);
         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>() = mcd1path;
         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>() = mcd2path;
-        PCSX::g_emulator->m_sio->LoadMcds(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
-                                         PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
+        PCSX::g_emulator->m_sio->LoadMcds(
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string().c_str(),
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string().c_str());
     }
 
     PCSX::g_emulator->m_cdrom->m_ppf.BuildPPFCache();
@@ -359,8 +360,7 @@ static void LoadLibPS() {
 
     if (f != NULL) {
         fseek(f, 0x800, SEEK_SET);
-        if (fread(PCSX::g_emulator->m_psxMem->g_psxM + 0x10000, 0x61000, 1, f) != 1)
-            throw("File read error.");
+        if (fread(PCSX::g_emulator->m_psxMem->g_psxM + 0x10000, 0x61000, 1, f) != 1) throw("File read error.");
         fclose(f);
     }
 }
@@ -390,8 +390,7 @@ int Load(const char *ExePath) {
         type = PSXGetFileType(tmpFile);
         switch (type) {
             case PSX_EXE:
-                if (fread(&tmpHead, sizeof(EXE_HEADER), 1, tmpFile) != 1)
-                    throw("File read error.");
+                if (fread(&tmpHead, sizeof(EXE_HEADER), 1, tmpFile) != 1) throw("File read error.");
                 fseek(tmpFile, 0x800, SEEK_SET);
                 if (fread(PSXM(SWAP_LE32(tmpHead.t_addr)), SWAP_LE32(tmpHead.t_size), 1, tmpFile) != 1)
                     throw("File read error.");
@@ -407,20 +406,16 @@ int Load(const char *ExePath) {
             case CPE_EXE:
                 fseek(tmpFile, 6, SEEK_SET); /* Something tells me we should go to 4 and read the "08 00" here... */
                 do {
-                    if (fread(&opcode, 1, 1, tmpFile) != 1)
-                        throw("File read error.");
+                    if (fread(&opcode, 1, 1, tmpFile) != 1) throw("File read error.");
                     switch (opcode) {
                         case 1: /* Section loading */
-                            if (fread(&section_address, 4, 1, tmpFile) != 1)
-                                throw("File read error.");
-                            if (fread(&section_size, 4, 1, tmpFile) != 1)
-                                throw("File read error.");
+                            if (fread(&section_address, 4, 1, tmpFile) != 1) throw("File read error.");
+                            if (fread(&section_size, 4, 1, tmpFile) != 1) throw("File read error.");
                             section_address = SWAP_LEu32(section_address);
                             section_size = SWAP_LEu32(section_size);
                             EMU_LOG("Loading %08X bytes from %08X to %08X\n", section_size, ftell(tmpFile),
                                     section_address);
-                            if (fread(PSXM(section_address), section_size, 1, tmpFile) != 1)
-                                throw("File read error.");
+                            if (fread(PSXM(section_address), section_size, 1, tmpFile) != 1) throw("File read error.");
                             break;
                         case 3:                          /* register loading (PC only?) */
                             fseek(tmpFile, 2, SEEK_CUR); /* unknown field */
@@ -441,18 +436,15 @@ int Load(const char *ExePath) {
                 break;
 
             case COFF_EXE:
-                if (fread(&coffHead, sizeof(coffHead), 1, tmpFile) != 1)
-                    throw("File read error.");
-                if (fread(&optHead, sizeof(optHead), 1, tmpFile) != 1)
-                    throw("File read error.");
+                if (fread(&coffHead, sizeof(coffHead), 1, tmpFile) != 1) throw("File read error.");
+                if (fread(&optHead, sizeof(optHead), 1, tmpFile) != 1) throw("File read error.");
 
                 PCSX::g_emulator->m_psxCpu->m_psxRegs.pc = SWAP_LE32(optHead.entry);
                 PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp = 0x801fff00;
 
                 for (i = 0; i < SWAP_LE16(coffHead.f_nscns); i++) {
                     fseek(tmpFile, sizeof(FILHDR) + SWAP_LE16(coffHead.f_opthdr) + sizeof(section) * i, SEEK_SET);
-                    if (fread(&section, sizeof(section), 1, tmpFile) != 1)
-                        throw("File read error.");
+                    if (fread(&section, sizeof(section), 1, tmpFile) != 1) throw("File read error.");
 
                     if (section.s_scnptr != 0) {
                         fseek(tmpFile, SWAP_LE32(section.s_scnptr), SEEK_SET);

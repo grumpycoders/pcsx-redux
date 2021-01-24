@@ -17,16 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "spu/sdlsound.h"
+
 #include <SDL.h>
 #include <assert.h>
 #include <memory.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include "spu/sdlsound.h"
-
 void PCSX::SPU::SDLsound::dequeueLocked(uint8_t* stream, size_t len, unsigned streamId) {
-    auto & str = m_streams[streamId];
+    auto& str = m_streams[streamId];
     if ((BUFFER_SIZE - str.ptrBegin) < len) {
         size_t subLen = BUFFER_SIZE - str.ptrBegin;
         dequeueLocked(stream, subLen, streamId);
@@ -135,7 +135,7 @@ unsigned long PCSX::SPU::SDLsound::getBytesBuffered(unsigned streamId) {
 }
 
 void PCSX::SPU::SDLsound::enqueueLocked(const uint8_t* data, size_t len, unsigned streamId) {
-    auto & str = m_streams[streamId];
+    auto& str = m_streams[streamId];
 
     while (true) {
         size_t available;

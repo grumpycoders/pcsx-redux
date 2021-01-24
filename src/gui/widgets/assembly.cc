@@ -448,7 +448,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::MenuItem(_("Resume"), nullptr, nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
             if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepIn();
-            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOver();
+            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running()))
+                g_emulator->m_debug->stepOver();
             if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOut();
             ImGui::EndMenu();
         }

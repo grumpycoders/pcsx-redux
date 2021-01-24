@@ -22,9 +22,8 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
 #include <process.h>
+#include <windows.h>
 #define strcasecmp _stricmp
 #else
 #include <limits.h>
@@ -796,7 +795,8 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
                 m_ti[m_numtracks + 1].handle = new File(filepath / tmpb);
             }
 
-            strcpy(m_ti[m_numtracks + 1].filepath, reinterpret_cast<const char *>(m_ti[m_numtracks + 1].handle->filename().u8string().c_str()));
+            strcpy(m_ti[m_numtracks + 1].filepath,
+                   reinterpret_cast<const char *>(m_ti[m_numtracks + 1].handle->filename().u8string().c_str()));
 
             // update global offset if this is not first file in this .cue
             if (m_numtracks + 1 > 1) {
@@ -806,7 +806,8 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             file_len = 0;
             if (m_ti[m_numtracks + 1].handle->failed()) {
-                PCSX::g_system->message(_("\ncould not open: %s\n"), m_ti[m_numtracks + 1].handle->filename().u8string().c_str());
+                PCSX::g_system->message(_("\ncould not open: %s\n"),
+                                        m_ti[m_numtracks + 1].handle->filename().u8string().c_str());
                 delete m_ti[m_numtracks + 1].handle;
                 m_ti[m_numtracks + 1].handle = nullptr;
                 continue;

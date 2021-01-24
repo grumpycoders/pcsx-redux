@@ -39,13 +39,14 @@
 //
 //*************************************************************************//
 
+#include "gpu/soft/fps.h"
+
 #include <SDL.h>
 
 #include <algorithm>
 
 #include "core/system.h"
 #include "gpu/soft/externals.h"
-#include "gpu/soft/fps.h"
 #include "gpu/soft/gpu.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -98,8 +99,9 @@ void CheckFrameRate(void) {
         calcfps();  // -> calc fps display in skipping mode
     } else          // non-skipping mode:
     {
-        if (UseFrameLimit) FrameCap();  // -> do it
-                                        //        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
+        if (UseFrameLimit)
+            FrameCap();  // -> do it
+                         //        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
     }
 }
 

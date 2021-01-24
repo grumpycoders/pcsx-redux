@@ -31,16 +31,16 @@ SOFTWARE.
 /* Found in Xenogears NTSC (SLUS-00664):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_gte ()
                                assume gp = 0x0
-             undefined         v0:1           <RETURN>                                XREF[1]:     8004b4c0 (W)  
-             dword * *         v0:4           C0table                                 XREF[1]:     8004b4c0 (W)  
-             undefined4        t2:4           src                                     XREF[1]:     8004b4d4 (W)  
+             undefined         v0:1           <RETURN>                                XREF[1]:     8004b4c0 (W)
+             dword * *         v0:4           C0table                                 XREF[1]:     8004b4c0 (W)
+             undefined4        t2:4           src                                     XREF[1]:     8004b4d4 (W)
              undefined4        v0:4           dst
-             undefined4        v1:4           value                                   XREF[1]:     8004b4dc (W)  
-                             _patch_gte                                      XREF[1]:     InitGeom:80048bcc (c)  
+             undefined4        v1:4           value                                   XREF[1]:     8004b4dc (W)
+                             _patch_gte                                      XREF[1]:     InitGeom:80048bcc (c)
         8004b4ac 06 80 01 3c          lui             at,0x8006
              assume gp = <UNKNOWN>
         8004b4b0 d4 93 3f ac          sw              ra,-0x6c2c (at)=>DAT_800593d4
@@ -55,7 +55,7 @@ SOFTWARE.
         8004b4d4 14 b5 4a 25          addiu           src,src,-0x4aec
         8004b4d8 4c b5 29 25          addiu           t1,t1,-0x4ab4
 
-                             LAB_8004b4dc                                    XREF[1]:     8004b4e8 (j)  
+                             LAB_8004b4dc                                    XREF[1]:     8004b4e8 (j)
         8004b4dc 00 00 43 8d          lw              value ,0x0(src)=>new_eh_start
         8004b4e0 04 00 4a 25          addiu           src,src,0x4
         8004b4e4 04 00 42 24          addiu           dst,dst,0x4
@@ -71,10 +71,10 @@ SOFTWARE.
         8004b50c 08 00 e0 03          jr              ra
         8004b510 00 00 00 00          _nop
 
-                             new_eh_start                                    XREF[1]:     _patch_gte:8004b4dc (R)  
+                             new_eh_start                                    XREF[1]:     _patch_gte:8004b4dc (R)
         8004b514 00 00 00 00          nop
 
-                             LAB_8004b518                                    XREF[1]:     _patch_gte:8004b4dc (R)  
+                             LAB_8004b518                                    XREF[1]:     _patch_gte:8004b4dc (R)
         8004b518 00 00 00 00          nop
         8004b51c 00 01 1a 24          li              k0,0x100
         8004b520 08 00 5a 8f          lw              k0,offset  DAT_00000108 (k0)
@@ -111,21 +111,21 @@ int patch_gte_2_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    1, 1, 0, 1, // 00
-    1, 0, 0, 0, // 10
-    0, 0, 2, 0, // 20
-    2, 0, 1, 1, // 30
+    1, 1, 0, 1,  // 00
+    1, 0, 0, 0,  // 10
+    0, 0, 2, 0,  // 20
+    2, 0, 1, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x09, 0x3c, 0x18, 0x00, 0x42, 0x8c, 0x00, 0x00, 0x4a, 0x25, // 00
-    0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x04, 0x00, 0x4a, 0x25, 0x04, 0x00, 0x42, 0x24, // 10
-    0xfc, 0xff, 0x49, 0x15, 0xfc, 0xff, 0x43, 0xac, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, // 20
-    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, // 30
+    0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x09, 0x3c, 0x18, 0x00, 0x42, 0x8c, 0x00, 0x00, 0x4a, 0x25,  // 00
+    0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x04, 0x00, 0x4a, 0x25, 0x04, 0x00, 0x42, 0x24,  // 10
+    0xfc, 0xff, 0x49, 0x15, 0xfc, 0xff, 0x43, 0xac, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00,  // 20
+    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f,  // 30
 };
 
 uint32_t generate_hash_patch_gte_2(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_patch_gte_2() {
