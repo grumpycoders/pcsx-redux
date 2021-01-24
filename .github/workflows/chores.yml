@@ -12,6 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+        token: ${{ secrets.PAT }}
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -25,4 +26,3 @@ jobs:
       with:
         commit_message: Chores
         push_options: --force
-        token: ${{ secrets.PAT }}
