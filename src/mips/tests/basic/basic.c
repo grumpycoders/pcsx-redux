@@ -33,17 +33,9 @@ SOFTWARE.
 #define EXIT_FAILURE 1
 #include "exotic/cester.h"
 
-CESTER_TEST(basicMetaTestKernelPrintf, test_instance,
-    ramsyscall_printf("Hello world\n");
-    cester_assert_equal(NULL, NULL);
-)
+CESTER_TEST(basicMetaTestKernelPrintf, test_instance, ramsyscall_printf("Hello world\n");
+            cester_assert_equal(NULL, NULL);)
 
-CESTER_TEST(basicMetaTestKernelStrCmp, test_instance,
-    int r;
-    r = syscall_strcmp("A", "B");
-    cester_assert_cmp(r, <, 0);
-    r = syscall_strcmp("ABC", "ABCD");
-    cester_assert_cmp(r, <, 0);
-    r = syscall_strcmp("ABCD", "ABCD");
-    cester_assert_equal(r, 0);
-)
+CESTER_TEST(basicMetaTestKernelStrCmp, test_instance, int r; r = syscall_strcmp("A", "B"); cester_assert_cmp(r, <, 0);
+            r = syscall_strcmp("ABC", "ABCD"); cester_assert_cmp(r, <, 0); r = syscall_strcmp("ABCD", "ABCD");
+            cester_assert_equal(r, 0);)

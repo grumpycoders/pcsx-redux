@@ -17,9 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "imgui.h"
-
 #include "core/system.h"
+#include "imgui.h"
 #include "spu/interface.h"
 
 static void ShowHelpMarker(const char *desc) {

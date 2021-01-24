@@ -24,18 +24,15 @@ SOFTWARE.
 
 */
 
-void BoardEarlyInit() {
-}
+void BoardEarlyInit() {}
 
-void BoardInit() {
-}
+void BoardInit() {}
 
-void BoardLateInit() {
-}
+void BoardLateInit() {}
 
-void BoardShutdown() {
-}
+void BoardShutdown() {}
 
 void BoardExceptionHandler(int code) {
-    while(1);
+    while (1)
+        ;
 }

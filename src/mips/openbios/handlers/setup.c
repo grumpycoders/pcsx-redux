@@ -28,8 +28,8 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "openbios/kernel/globals.h"
 
-int __attribute__((section(".ramtext"))) sysEnqIntRP(int priority, struct HandlerInfo * handler) {
-    struct HandlerInfo * ptr;
+int __attribute__((section(".ramtext"))) sysEnqIntRP(int priority, struct HandlerInfo* handler) {
+    struct HandlerInfo* ptr;
     ptr = __globals.handlersArray[priority].first;
     __globals.handlersArray[priority].first = handler;
     handler->next = ptr;
@@ -37,8 +37,8 @@ int __attribute__((section(".ramtext"))) sysEnqIntRP(int priority, struct Handle
     return 0;
 }
 
-struct HandlerInfo * __attribute__((section(".ramtext"))) sysDeqIntRP(int priority, struct HandlerInfo * handler) {
-    struct HandlerInfo * ptr;
+struct HandlerInfo* __attribute__((section(".ramtext"))) sysDeqIntRP(int priority, struct HandlerInfo* handler) {
+    struct HandlerInfo* ptr;
 
     ptr = __globals.handlersArray[priority].first;
     if (!ptr) {
@@ -47,7 +47,7 @@ struct HandlerInfo * __attribute__((section(".ramtext"))) sysDeqIntRP(int priori
         __globals.handlersArray[priority].first = ptr->next;
         return ptr;
     } else {
-        struct HandlerInfo * prev = ptr;
+        struct HandlerInfo* prev = ptr;
         if (ptr->next) {
             for (ptr = ptr->next; ptr && ptr != handler; ptr = ptr->next) {
                 prev = ptr;

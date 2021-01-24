@@ -18,8 +18,8 @@
  ***************************************************************************/
 
 #include <SDL.h>
-#include "imgui.h"
 
+#include "imgui.h"
 #include "spu/interface.h"
 
 void PCSX::SPU::impl::debug() {

@@ -33,17 +33,19 @@ SOFTWARE.
 int psxdummy();
 
 int psxtodigit(int c);
-void psxatof(const char * str);
+void psxatof(const char *str);
 int psxabs(int j);
-char * psxatob(char * str, int * result);
-const char * psxstrpbrk(const char * s, const char * accepted);
-unsigned psxstrspn(const char * s, const char * accepted);
-unsigned psxstrcspn(const char * s, const char * rejected);
-char * psxstrtok(char * str, const char * delim);
-const char * psxbcopy(const void * src, void * dst, int n);
-const char * psxbzero(void * ptr, int n);
-int psxbcmp(const void * s1, const void * s2, int n);
+char *psxatob(char *str, int *result);
+const char *psxstrpbrk(const char *s, const char *accepted);
+unsigned psxstrspn(const char *s, const char *accepted);
+unsigned psxstrcspn(const char *s, const char *rejected);
+char *psxstrtok(char *str, const char *delim);
+const char *psxbcopy(const void *src, void *dst, int n);
+const char *psxbzero(void *ptr, int n);
+int psxbcmp(const void *s1, const void *s2, int n);
 uint32_t psxrand();
 void psxsrand(uint32_t seed);
-const void * psxlsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *));
-const void * psxbsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *));
+const void *psxlsearch(const char *key, const char *base, int nmemb, size_t size,
+                       int (*compar)(const char *, const char *));
+const void *psxbsearch(const char *key, const char *base, int nmemb, size_t size,
+                       int (*compar)(const char *, const char *));

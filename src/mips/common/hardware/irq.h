@@ -29,15 +29,15 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 
 enum IRQ {
-    IRQ_VBLANK     = 1 << 0,
-    IRQ_GPU        = 1 << 1,
-    IRQ_CDROM      = 1 << 2,
-    IRQ_DMA        = 1 << 3,
-    IRQ_TIMER0     = 1 << 4,
-    IRQ_TIMER1     = 1 << 5,
-    IRQ_TIMER2     = 1 << 6,
+    IRQ_VBLANK = 1 << 0,
+    IRQ_GPU = 1 << 1,
+    IRQ_CDROM = 1 << 2,
+    IRQ_DMA = 1 << 3,
+    IRQ_TIMER0 = 1 << 4,
+    IRQ_TIMER1 = 1 << 5,
+    IRQ_TIMER2 = 1 << 6,
     IRQ_CONTROLLER = 1 << 7,
-    IRQ_SIO        = 1 << 8,
-    IRQ_SPU        = 1 << 9,
-    IRQ_PIO        = 1 << 10,
+    IRQ_SIO = 1 << 8,
+    IRQ_SPU = 1 << 9,
+    IRQ_PIO = 1 << 10,
 };

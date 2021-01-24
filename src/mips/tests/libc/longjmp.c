@@ -27,17 +27,10 @@ SOFTWARE.
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
 
-CESTER_BODY(
-    static struct JmpBuf jmpbuf;
-    static int count = 0;
-)
+CESTER_BODY(static struct JmpBuf jmpbuf; static int count = 0;)
 
-CESTER_TEST(basicSetJmpLongJmp, test_instance,
-    int r = syscall_setjmp(&jmpbuf);
-    count++;
+CESTER_TEST(basicSetJmpLongJmp, test_instance, int r = syscall_setjmp(&jmpbuf); count++;
 
-    if (r == 0) syscall_longjmp(&jmpbuf, 1);
+            if (r == 0) syscall_longjmp(&jmpbuf, 1);
 
-    cester_assert_int_eq(1, r);
-    cester_assert_int_eq(2, count);
-)
+            cester_assert_int_eq(1, r); cester_assert_int_eq(2, count);)

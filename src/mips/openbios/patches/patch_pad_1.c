@@ -30,23 +30,22 @@ SOFTWARE.
 /* Found in Suikoden 2 NTSC (SLUS-00958):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_pad ()
                                assume gp = 0x80109798
-             undefined         v0:1           <RETURN>                                XREF[2]:     800e31dc (W), 
-                                                                                                   800e31e4 (W)  
-             dword * *         v0:4           B0table                                 XREF[1]:     800e31dc (W)  
-             undefined4        v0:4           ptr                                     XREF[1]:     800e31e4 (W)  
-             undefined4        t1:4           count                                   XREF[1]:     800e31e8 (W)  
-                             _patch_pad                                      XREF[2]:     PAD_init:800e2e7c (c), 
-                                                                                          InitPAD:800e2f14 (c)  
+             undefined         v0:1           <RETURN>                                XREF[2]:     800e31dc (W),
+                                                                                                   800e31e4 (W)
+             dword * *         v0:4           B0table                                 XREF[1]:     800e31dc (W)
+             undefined4        v0:4           ptr                                     XREF[1]:     800e31e4 (W)
+             undefined4        t1:4           count                                   XREF[1]:     800e31e8 (W)
+                             _patch_pad                                      XREF[2]:     PAD_init:800e2e7c (c),
+                                                                                          InitPAD:800e2f14 (c)
         800e31c4 11 80 01 3c          lui             at,0x8011
              assume gp = <UNKNOWN>
         800e31c8 80 9b 3f ac          sw              ra,-0x6480 (at)=>DAT_80109b80                    = ??
-        800e31cc 6f 52 03 0c          jal             EnterCriticalSection                             int EnterCriticalSection(void)
-        800e31d0 00 00 00 00          _nop
-        800e31d4 57 00 09 24          li              t1,0x57
+        800e31cc 6f 52 03 0c          jal             EnterCriticalSection                             int
+   EnterCriticalSection(void) 800e31d0 00 00 00 00          _nop 800e31d4 57 00 09 24          li              t1,0x57
         800e31d8 b0 00 0a 24          li              t2,0xb0
         800e31dc 09 f8 40 01          jalr            t2=>SUB_000000b0
         800e31e0 00 00 00 00          _nop
@@ -59,17 +58,15 @@ SOFTWARE.
         800e31fc 11 80 01 3c          lui             at,0x8011
         800e3200 8c 9b 23 ac          sw              v1,-0x6474 (at)=>captured_stopPad                = ??
 
-                             LAB_800e3204                                    XREF[1]:     800e3210 (j)  
+                             LAB_800e3204                                    XREF[1]:     800e3210 (j)
         800e3204 94 05 40 ac          sw              zero,0x594 (ptr)
         800e3208 04 00 42 24          addiu           ptr,ptr,0x4
         800e320c ff ff 29 25          addiu           count ,count ,-0x1
         800e3210 fc ff 20 15          bne             count ,zero,LAB_800e3204
         800e3214 00 00 00 00          _nop
-        800e3218 53 7d 03 0c          jal             FlushCache                                       void FlushCache(void)
-        800e321c 00 00 00 00          _nop
-        800e3220 11 80 1f 3c          lui             ra,0x8011
-        800e3224 80 9b ff 8f          lw              ra,-0x6480 (ra)=>DAT_80109b80                    = ??
-        800e3228 00 00 00 00          nop
+        800e3218 53 7d 03 0c          jal             FlushCache                                       void
+   FlushCache(void) 800e321c 00 00 00 00          _nop 800e3220 11 80 1f 3c          lui             ra,0x8011 800e3224
+   80 9b ff 8f          lw              ra,-0x6480 (ra)=>DAT_80109b80                    = ?? 800e3228 00 00 00 00 nop
         800e322c 08 00 e0 03          jr              ra
         800e3230 00 00 00 00          _nop
 
@@ -84,7 +81,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int patch_pad_1_execute(uint32_t* ra) {
+int patch_pad_1_execute(uint32_t *ra) {
     patch_disable_slotChangeOnAbort();
     uint32_t ptr;
     int16_t addend;
@@ -112,21 +109,21 @@ int patch_pad_1_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 0, 0, 1, // 00
-    1, 0, 1, 1, // 10
-    0, 0, 0, 0, // 20
-    0, 2, 0, 1, // 30
+    0, 0, 0, 1,  // 00
+    1, 0, 1, 1,  // 10
+    0, 0, 0, 0,  // 20
+    0, 2, 0, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x6c, 0x01, 0x42, 0x8c, 0x0b, 0x00, 0x09, 0x24, 0x84, 0x08, 0x43, 0x20, 0x00, 0x00, 0x01, 0x3c, // 00
-    0x00, 0x00, 0x23, 0xac, 0x94, 0x08, 0x43, 0x20, 0x00, 0x00, 0x01, 0x3c, 0x00, 0x00, 0x23, 0xac, // 10
-    0x94, 0x05, 0x40, 0xac, 0x04, 0x00, 0x42, 0x24, 0xff, 0xff, 0x29, 0x25, 0xfc, 0xff, 0x20, 0x15, // 20
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, // 30
+    0x6c, 0x01, 0x42, 0x8c, 0x0b, 0x00, 0x09, 0x24, 0x84, 0x08, 0x43, 0x20, 0x00, 0x00, 0x01, 0x3c,  // 00
+    0x00, 0x00, 0x23, 0xac, 0x94, 0x08, 0x43, 0x20, 0x00, 0x00, 0x01, 0x3c, 0x00, 0x00, 0x23, 0xac,  // 10
+    0x94, 0x05, 0x40, 0xac, 0x04, 0x00, 0x42, 0x24, 0xff, 0xff, 0x29, 0x25, 0xfc, 0xff, 0x20, 0x15,  // 20
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c,  // 30
 };
 
 uint32_t generate_hash_patch_pad_1(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_patch_pad_1() {
