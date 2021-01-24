@@ -26,7 +26,7 @@ jobs:
       uses: peter-evans/create-pull-request@v3
       with:
          token: ${{ secrets.PAT }}
-         commit-message: [Chores] Regen i18n
+         commit-message: '[Chores] Regen i18n'
          committer: GitHub <noreply@github.com>
          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
          signoff: false
@@ -53,7 +53,7 @@ jobs:
       uses: peter-evans/create-pull-request@v3
       with:
          token: ${{ secrets.PAT }}
-         commit-message: [Chores] Format code
+         commit-message: '[Chores] Format code'
          committer: GitHub <noreply@github.com>
          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
          signoff: false
