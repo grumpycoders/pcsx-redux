@@ -27,6 +27,8 @@ SOFTWARE.
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
 
+// clang-format off
+
 CESTER_BODY(
     static struct JmpBuf jmpbuf;
     static int count = 0;
