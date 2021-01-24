@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include "openbios/cdrom/filesystem.h"
+
 #include <ctype.h>
 #include <memory.h>
 #include <string.h>
@@ -32,7 +34,6 @@ SOFTWARE.
 #include "common/psxlibc/direntry.h"
 #include "common/psxlibc/stdio.h"
 #include "openbios/cdrom/cdrom.h"
-#include "openbios/cdrom/filesystem.h"
 #include "openbios/cdrom/helpers.h"
 #include "openbios/kernel/util.h"
 
@@ -66,17 +67,18 @@ int cdromReadPathTable() {
     if (cdromBlockReading(1, 16, g_readBuffer) != 1) return 0;
     if (strncmp(g_readBuffer + 1, "CD001", 5) != 0) return 0;
 
-    const uint32_t * const buffer = (uint32_t *)g_readBuffer;
+    const uint32_t *const buffer = (uint32_t *)g_readBuffer;
     s_pathTableSize = buffer[132 / 4];
     s_rootDirectorySector = readUnaligned(buffer, 158);
     s_currentDiscHash = buffer[80 / 4];
     uint32_t lba = s_pathTableLocation = buffer[140 / 4];
 
     if (cdromBlockReading(1, lba, g_readBuffer) != 1) return 0;
-    for (const uint32_t * ptr = buffer; ((uint8_t *) ptr) < (g_readBuffer + sizeof(g_readBuffer)); ptr++) s_currentDiscHash ^= *ptr;
+    for (const uint32_t *ptr = buffer; ((uint8_t *)ptr) < (g_readBuffer + sizeof(g_readBuffer)); ptr++)
+        s_currentDiscHash ^= *ptr;
 
-    const uint8_t * ptr = g_readBuffer;
-    struct PathTableEntry * entry = s_pathTable;
+    const uint8_t *ptr = g_readBuffer;
+    struct PathTableEntry *entry = s_pathTable;
     int entryID = 1;
     while ((ptr < g_readBuffer + sizeof(g_readBuffer)) && (entryID <= sizeof(s_pathTable) / sizeof(s_pathTable[0]))) {
         if (!ptr[0]) break;
@@ -100,8 +102,8 @@ int cdromReadPathTable() {
     return 1;
 }
 
-static int findDirectoryID(int parentID, const char * name) {
-    struct PathTableEntry * entry = s_pathTable;
+static int findDirectoryID(int parentID, const char *name) {
+    struct PathTableEntry *entry = s_pathTable;
 
     for (int id = 0; id < s_pathTableCount; id++, entry++) {
         if ((entry->parentID == parentID) && (strcmp(entry->name, name)) == 0) return id + 1;
@@ -113,10 +115,12 @@ static int readDirectory(int entryID) {
     if (s_cachedDirectoryEntryID == entryID) return 1;
     if (cdromBlockReading(1, s_pathTable[entryID - 1].LBA, g_readBuffer) != 1) return -1;
 
-    struct DirectoryEntry * entry = s_cachedDirectoryEntry;
+    struct DirectoryEntry *entry = s_cachedDirectoryEntry;
     int count = 0;
-    uint8_t * ptr = g_readBuffer;
-    while ((ptr < (g_readBuffer + sizeof(g_readBuffer))) && (entry < s_cachedDirectoryEntry + sizeof(s_cachedDirectoryEntry) / sizeof(s_cachedDirectoryEntry[0])) && ptr[0]) {
+    uint8_t *ptr = g_readBuffer;
+    while ((ptr < (g_readBuffer + sizeof(g_readBuffer))) &&
+           (entry < s_cachedDirectoryEntry + sizeof(s_cachedDirectoryEntry) / sizeof(s_cachedDirectoryEntry[0])) &&
+           ptr[0]) {
         entry->LBA = readUnaligned(ptr, 2);
         entry->size = readUnaligned(ptr, 10);
         uint8_t nameSize = ptr[32];
@@ -133,7 +137,7 @@ static int readDirectory(int entryID) {
     return 1;
 }
 
-static int patternMatches(const char * str, const char * pattern) {
+static int patternMatches(const char *str, const char *pattern) {
     char c, p;
 
     while ((c = *str++)) {
@@ -155,12 +159,12 @@ static int patternMatches(const char * str, const char * pattern) {
 // Coupled with the other bug that makes it impossible
 // to read sector-spans that start beyond sector 4500,
 // the bios cd functions are virtually unusable.
-static int findNextDirectory(int directoryID, char * name) {
+static int findNextDirectory(int directoryID, char *name) {
     directoryID = findDirectoryID(directoryID, name);
     if (directoryID == -1) name[0] = 0;
     return directoryID;
 }
-static int findDirectoryEntryForFilename(int id, const char * filename) {
+static int findDirectoryEntryForFilename(int id, const char *filename) {
     static char fullFilename[128];
     if (filename[0] == '\\') {
         strcpy(fullFilename, filename);
@@ -180,7 +184,7 @@ static int findDirectoryEntryForFilename(int id, const char * filename) {
     while (1) {
         int isDirectory = 0;
 
-        char * dst = localName;
+        char *dst = localName;
         while (1) {
             char c = *++src;
 
@@ -217,7 +221,7 @@ static int findDirectoryEntryForFilename(int id, const char * filename) {
 
         int count = s_directoryEntryCount;
         // this makes no sense, starting at 'id'; why is it a parameter?
-        for (struct DirectoryEntry * entry = s_cachedDirectoryEntry + id; id < count; id++, entry++) {
+        for (struct DirectoryEntry *entry = s_cachedDirectoryEntry + id; id < count; id++, entry++) {
             if (patternMatches(entry->name, localName)) return s_foundDirectoryEntry = id;
         }
     }
@@ -225,19 +229,21 @@ static int findDirectoryEntryForFilename(int id, const char * filename) {
     return -1;
 }
 
-int dev_cd_open(struct File * file, char * filename) {
+int dev_cd_open(struct File *file, char *filename) {
     if ((cdromBlockGetStatus() & 0x10) && !cdromReadPathTable()) {
         file->errno = PSXEBUSY;
         return -1;
     }
 
     char canonicalFilename[32];
-    char * ptr = canonicalFilename;
-    while ((*ptr++ = toupper(*filename++)));
+    char *ptr = canonicalFilename;
+    while ((*ptr++ = toupper(*filename++)))
+        ;
 
     ptr = canonicalFilename;
     char c;
-    while (((c = *ptr++) != 0) && (c != ';'));
+    while (((c = *ptr++) != 0) && (c != ';'))
+        ;
     if (c == 0) strcat(canonicalFilename, ";1");
 
     int id;
@@ -255,16 +261,14 @@ int dev_cd_open(struct File * file, char * filename) {
     return 0;
 }
 
-int dev_cd_read(struct File * file,char * buffer, int size) {
+int dev_cd_read(struct File *file, char *buffer, int size) {
     if ((size & 0x7ff) || (file->offset & 0x7ff) || (size < 0) || (file->offset >= file->length)) {
         file->errno = PSXEINVAL;
         return -1;
     }
 
     size >>= 11;
-    if ((cdromBlockGetStatus() & 0x10) ||
-        !cdromReadPathTable() ||
-        (s_currentDiscHash != file->deviceId) ||
+    if ((cdromBlockGetStatus() & 0x10) || !cdromReadPathTable() || (s_currentDiscHash != file->deviceId) ||
         (cdromBlockReading(size, file->LBA + (file->offset >> 11), buffer) != size)) {
         file->errno = PSXEBUSY;
         return -1;
@@ -283,12 +287,12 @@ static int s_cdFirstFileSkipDirectoryCheck;
 static int s_cdFirstFileDirectoryEntryID;
 static char s_cdFirstFilePattern[21];
 
-struct DirEntry * dev_cd_firstfile(struct File * file, const char * filename, struct DirEntry * entry) {
+struct DirEntry *dev_cd_firstfile(struct File *file, const char *filename, struct DirEntry *entry) {
     if (!cdromReadPathTable()) {
         s_cdFirstFileErrno = PSXEBUSY;
         return NULL;
     }
-    char * ptr = s_cdFirstFilePattern;
+    char *ptr = s_cdFirstFilePattern;
     if (strlen(filename) == 0) {
         while (ptr < (s_cdFirstFilePattern + sizeof(s_cdFirstFilePattern) - 1)) *ptr++ = '?';
         *ptr = 0;
@@ -310,7 +314,7 @@ struct DirEntry * dev_cd_firstfile(struct File * file, const char * filename, st
     return entry;
 }
 
-struct DirEntry * dev_cd_nextfile(struct File * file, struct DirEntry * entry) {
+struct DirEntry *dev_cd_nextfile(struct File *file, struct DirEntry *entry) {
     int status = cdromBlockGetStatus();
     if (status & 0x10) {
         uint32_t oldHash = s_currentDiscHash;
@@ -338,11 +342,10 @@ struct DirEntry * dev_cd_nextfile(struct File * file, struct DirEntry * entry) {
     strcpy(entry->name, s_cachedDirectoryEntry[id].name);
 }
 
-int dev_cd_chdir(struct File * file, char * name) {
-    char * ptr = g_cdromCWD;
+int dev_cd_chdir(struct File *file, char *name) {
+    char *ptr = g_cdromCWD;
     char c;
     while ((c = *name++)) *ptr++ = toupper(c);
     *ptr = 0;
     return cdromReadPathTable();
 }
-

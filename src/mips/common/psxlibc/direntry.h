@@ -34,7 +34,7 @@ struct DirEntry {
     char name[20];
     uint32_t attributes;
     uint32_t size;
-    struct DirEntry * next;
+    struct DirEntry* next;
     uint32_t LBA;
     char fourcc[4];
 };

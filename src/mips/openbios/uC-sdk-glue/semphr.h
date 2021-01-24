@@ -30,7 +30,7 @@ SOFTWARE.
 
 #define portMAX_DELAY 0
 
-typedef void * xSemaphoreHandle;
-static __inline void * xSemaphoreCreateMutex() { return NULL; }
-static __inline void xSemaphoreTake(void * semaphore, unsigned timeout) {}
-static __inline void xSemaphoreGive(void * semaphore) {}
+typedef void* xSemaphoreHandle;
+static __inline void* xSemaphoreCreateMutex() { return NULL; }
+static __inline void xSemaphoreTake(void* semaphore, unsigned timeout) {}
+static __inline void xSemaphoreGive(void* semaphore) {}

@@ -28,10 +28,9 @@
 #include <tuple>
 #include <type_traits>
 
+#include "core/system.h"
 #include "json.hpp"
 #include "typestring.hh"
-
-#include "core/system.h"
 
 namespace PCSX {
 
@@ -110,7 +109,7 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     bool empty() const { return value.u8string().empty(); }
     // C++20's u8strings will be the death of me.
     // Also, https://github.com/nlohmann/json/issues/1914
-    json serialize() const { return reinterpret_cast<const char*>(value.u8string().c_str()); }
+    json serialize() const { return reinterpret_cast<const char *>(value.u8string().c_str()); }
     void deserialize(const json &j) {
         std::string str = j;
         value = str;

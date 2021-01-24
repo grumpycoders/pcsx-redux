@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/sstate.h"
+
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"

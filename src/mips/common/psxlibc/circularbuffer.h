@@ -36,6 +36,6 @@ enum {
 
 struct CircularBuffer {
     uint32_t flags;
-    uint8_t * start, * end;
+    uint8_t *start, *end;
     uint8_t buffer[256];
 };

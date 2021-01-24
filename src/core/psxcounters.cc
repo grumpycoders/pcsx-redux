@@ -22,6 +22,7 @@
  */
 
 #include "core/psxcounters.h"
+
 #include "core/debug.h"
 #include "core/gpu.h"
 #include "spu/interface.h"
@@ -406,7 +407,7 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
         m_rcnts[i].rate = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntRate>().value;
         m_rcnts[i].irq = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQ>().value;
         m_rcnts[i].counterState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCounterState>().value;
-        m_rcnts[i].irqState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value; 
+        m_rcnts[i].irqState = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntIRQState>().value;
         m_rcnts[i].cycle = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycle>().value;
         m_rcnts[i].cycleStart = counters.get<SaveStates::Rcnts>().value[i].get<SaveStates::RcntCycleStart>().value;
     }
@@ -418,10 +419,10 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
     psxHsyncCalculate();
     // iCB: recalculate target count in case overclock is changed
     m_rcnts[3].target = (PCSX::g_emulator->m_psxClockSpeed /
-                            (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
-                            m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+                         (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
+                          m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
     if (m_rcnts[1].rate != 1)
         m_rcnts[1].rate = (PCSX::g_emulator->m_psxClockSpeed /
-                            (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
+                           (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
                             m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
 }

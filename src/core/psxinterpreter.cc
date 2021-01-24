@@ -30,7 +30,7 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
-enum Exceptions { 
+enum Exceptions {
     Interrupt = 0,
     LoadAddressError = 0x10,
     StoreAddressError = 0x14,
@@ -344,8 +344,8 @@ void InterpretedCPU::psxADDI() {
     uint32_t res = rs + imm;
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
-        bool overflow = ((rs ^ res) & (imm ^ res)) >> 31; // fast signed overflow calculation algorithm
-        if (overflow) { // if an overflow occurs, throw an exception
+        bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
+        if (overflow) {                                    // if an overflow occurs, throw an exception
             PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
             psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             PCSX::g_system->printf("Signed overflow in ADDI instruction!\n");
@@ -399,8 +399,8 @@ void InterpretedCPU::psxADD() {
     uint32_t res = rs + rt;
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
-        bool overflow = ((rs ^ res) & (rt ^ res)) >> 31; // fast signed overflow calculation algorithm
-        if (overflow) { // if an overflow occurs, throw an exception
+        bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+        if (overflow) {                                   // if an overflow occurs, throw an exception
             PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
             psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             PCSX::g_system->printf("Signed overflow in ADD instruction!\n");
@@ -418,14 +418,14 @@ void InterpretedCPU::psxADDU() {
 }  // Rd = Rs + Rt
 void InterpretedCPU::psxSUB() {
     if (!_Rd_) return;
-    
+
     auto rs = _rRs_;
     auto rt = _rRt_;
     uint32_t res = rs - rt;
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
-        bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31; // fast signed overflow calculation algorithm
-        if (overflow) { // if an overflow occurs, throw an exception
+        bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+        if (overflow) {                                    // if an overflow occurs, throw an exception
             PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
             psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             PCSX::g_system->printf("Signed overflow in SUB instruction!\n");
@@ -522,11 +522,8 @@ void InterpretedCPU::psxMULTU() {
  *********************************************************/
 #define RepZBranchi32(op) \
     if (_i32(_rRs_) op 0) doBranch(_BranchTarget_);
-#define RepZBranchLinki32(op)     \
-    _SetLink(31)                  \
-    if (_i32(_rRs_) op 0) {       \
-        doBranch(_BranchTarget_); \
-    }
+#define RepZBranchLinki32(op) \
+    _SetLink(31) if (_i32(_rRs_) op 0) { doBranch(_BranchTarget_); }
 
 void InterpretedCPU::psxBGEZ() { RepZBranchi32(>=) }  // Branch if Rs >= 0
 void InterpretedCPU::psxBGEZAL() {                    // Branch if Rs >= 0 and link
@@ -669,9 +666,9 @@ void InterpretedCPU::psxJAL() {
  * Register jump                                          *
  * Format:  OP rs, rd                                     *
  *********************************************************/
-void InterpretedCPU::psxJR() { 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
-        if (_rRs_ & 3) { // if the jump is unaligned, throw an exception and ret
+void InterpretedCPU::psxJR() {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
+        if (_rRs_ & 3) {  // if the jump is unaligned, throw an exception and ret
             m_psxRegs.pc -= 4;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf("Attempted unaligned JR!\nException fired!\n");
@@ -679,7 +676,7 @@ void InterpretedCPU::psxJR() {
         }
     }
 
-    doBranch(_rRs_ & ~3); // the "& ~3" word-aligns the jump address
+    doBranch(_rRs_ & ~3);  // the "& ~3" word-aligns the jump address
 }
 
 void InterpretedCPU::psxJALR() {
@@ -689,16 +686,16 @@ void InterpretedCPU::psxJALR() {
         _SetLink(_Rd_);
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) { // if in debug mode, check for unaligned jump
-        if (temp & 3) { // if the address is unaligned, throw an exception and return
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
+        if (temp & 3) {  // if the address is unaligned, throw an exception and return
             m_psxRegs.pc -= 4;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf("Attempted unaligned JALR!\nException fired!\n");
             return;
         }
     }
-    
-    doBranch(temp & ~3); // the "& ~3" force aligns the address
+
+    doBranch(temp & ~3);  // the "& ~3" force aligns the address
 }
 
 /*********************************************************
@@ -817,7 +814,7 @@ void InterpretedCPU::psxLWR() {
 }
 
 void InterpretedCPU::psxSB() { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _u8(_rRt_)); }
-void InterpretedCPU::psxSH() { 
+void InterpretedCPU::psxSH() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
@@ -826,10 +823,10 @@ void InterpretedCPU::psxSH() {
             return;
         }
     }
-    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _u16(_rRt_)); 
+    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _u16(_rRt_));
 }
 
-void InterpretedCPU::psxSW() { 
+void InterpretedCPU::psxSW() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 3) {
             PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
@@ -838,7 +835,7 @@ void InterpretedCPU::psxSW() {
             return;
         }
     }
-    PCSX::g_emulator->m_psxMem->psxMemWrite32(_oB_, _u32(_rRt_)); 
+    PCSX::g_emulator->m_psxMem->psxMemWrite32(_oB_, _u32(_rRt_));
 }
 
 void InterpretedCPU::psxSWL() {
@@ -935,8 +932,8 @@ void InterpretedCPU::psxCFC2() {
 /*********************************************************
  * Unknown instruction (would generate an exception)     *
  *********************************************************/
-void InterpretedCPU::psxNULL() { 
-    PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.code); 
+void InterpretedCPU::psxNULL() {
+    PSXCPU_LOG("psx: Unimplemented op %x\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.code);
     PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
     psxException(Exceptions::ReservedInstruction, m_inDelaySlot);
     PCSX::g_system->printf("Encountered reserved opcode, firing an exception\n");
@@ -948,9 +945,12 @@ void InterpretedCPU::psxREGIMM() { (*this.*(s_pPsxREG[_Rt_]))(); }
 
 void InterpretedCPU::psxCOP0() { (*this.*(s_pPsxCP0[_Rs_]))(); }
 
-void InterpretedCPU::psxCOP1() { // Accesses to the (nonexistent) FPU
-    PCSX::g_system->printf("Attempted to use an invalid floating point instruction. Ignored.\n"); // TODO: Verify that COP1 doesn't throw a coprocessor unusable exception
-                                                                                                  // Supposedly the COP1/COP3 ops don't fire RI, and they're NOPs
+void InterpretedCPU::psxCOP1() {  // Accesses to the (nonexistent) FPU
+    PCSX::g_system->printf(
+        "Attempted to use an invalid floating point instruction. Ignored.\n");  // TODO: Verify that COP1 doesn't throw
+                                                                                // a coprocessor unusable exception
+                                                                                // Supposedly the COP1/COP3 ops don't
+                                                                                // fire RI, and they're NOPs
 }
 
 void InterpretedCPU::psxCOP2() {
@@ -959,9 +959,7 @@ void InterpretedCPU::psxCOP2() {
     (*this.*(s_pPsxCP2[_Funct_]))();
 }
 
-void InterpretedCPU::psxCOP3() { 
-    PCSX::g_system->printf("Attempted to access COP3. Ignored\n"); 
-}
+void InterpretedCPU::psxCOP3() { PCSX::g_system->printf("Attempted to access COP3. Ignored\n"); }
 
 void InterpretedCPU::psxBASIC() { (*this.*(s_pPsxCP2BSC[_Rs_]))(); }
 
@@ -1075,10 +1073,10 @@ void InterpretedCPU::pgxpPsxNULL() {}
 #define PGXP_DBG_OP_E(op)
 #endif
 
-#define PGXP_INT_FUNC(pu, op)                                                                    \
-    void InterpretedCPU::pgxpPsx##op() {                                                         \
+#define PGXP_INT_FUNC(pu, op)                                                                     \
+    void InterpretedCPU::pgxpPsx##op() {                                                          \
         PGXP_PSX_FUNC_OP(pu, op, )(PGXP_DBG_OP_E(op) PCSX::g_emulator->m_psxCpu->m_psxRegs.code); \
-        psx##op();                                                                               \
+        psx##op();                                                                                \
     }
 
 #define PGXP_INT_FUNC_0_1(pu, op, test, nReg, reg1)                        \
@@ -1087,7 +1085,7 @@ void InterpretedCPU::pgxpPsxNULL() {}
             psx##op();                                                     \
             return;                                                        \
         }                                                                  \
-        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;    \
+        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;   \
         psx##op();                                                         \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1); \
     }
@@ -1108,7 +1106,7 @@ void InterpretedCPU::pgxpPsxNULL() {}
             psx##op();                                                            \
             return;                                                               \
         }                                                                         \
-        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;           \
+        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;          \
         uint32_t temp2 = reg2;                                                    \
         psx##op();                                                                \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2); \
@@ -1120,7 +1118,7 @@ void InterpretedCPU::pgxpPsxNULL() {}
             psx##op();                                                           \
             return;                                                              \
         }                                                                        \
-        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;          \
+        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;         \
         psx##op();                                                               \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, reg2); \
     }
@@ -1131,7 +1129,7 @@ void InterpretedCPU::pgxpPsxNULL() {}
             psx##op();                                                             \
             return;                                                                \
         }                                                                          \
-        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;            \
+        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;           \
         uint32_t temp1 = reg1;                                                     \
         uint32_t temp2 = reg2;                                                     \
         psx##op();                                                                 \
@@ -1144,7 +1142,7 @@ void InterpretedCPU::pgxpPsxNULL() {}
             psx##op();                                                                   \
             return;                                                                      \
         }                                                                                \
-        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;                  \
+        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;                 \
         uint32_t temp2 = reg2;                                                           \
         uint32_t temp3 = reg3;                                                           \
         psx##op();                                                                       \
@@ -1157,7 +1155,7 @@ void InterpretedCPU::pgxpPsxNULL() {}
             psx##op();                                                                         \
             return;                                                                            \
         }                                                                                      \
-        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;                        \
+        uint32_t tempInstr = PCSX::g_emulator->m_psxCpu->m_psxRegs.code;                       \
         uint32_t temp3 = reg3;                                                                 \
         uint32_t temp4 = reg4;                                                                 \
         psx##op();                                                                             \

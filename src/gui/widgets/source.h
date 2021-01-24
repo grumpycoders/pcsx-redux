@@ -24,7 +24,6 @@
 #include <filesystem>
 
 #include "ImGuiColorTextEdit/TextEditor.h"
-
 #include "core/stacktrace.h"
 
 namespace PCSX {

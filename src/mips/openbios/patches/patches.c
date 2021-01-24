@@ -24,13 +24,14 @@ SOFTWARE.
 
 */
 
+#include "openbios/patches/patches.h"
+
 #include <stdlib.h>
 
 #include "common/compiler/stdint.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/patches/hash.h"
-#include "openbios/patches/patches.h"
 
 int g_patch_permissive = 0;
 
@@ -180,7 +181,8 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
 
     while (size--) {
         if (patches->hash == h) {
-            romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name, ra);
+            romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name,
+                              ra);
             int v = patches->execute(ra);
             if (!v) continue;
             if (v == 2) return;

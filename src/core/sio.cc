@@ -17,11 +17,12 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/sio.h"
+
 #include <sys/stat.h>
 
 #include "core/misc.h"
 #include "core/pad.h"
-#include "core/sio.h"
 
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
@@ -398,7 +399,7 @@ void PCSX::SIO::interrupt() {
 void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
     FILE *f;
     char *data = NULL;
-    const char * fname = reinterpret_cast<const char *>(str.c_str());
+    const char *fname = reinterpret_cast<const char *>(str.c_str());
 
     if (mcd == 1) {
         data = g_mcd1Data;
@@ -452,7 +453,7 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
 
 void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
     FILE *f;
-    const char * fname = reinterpret_cast<const char*>(mcd.c_str());
+    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
 
     f = fopen(fname, "r+b");
     if (f != NULL) {
@@ -488,7 +489,7 @@ void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr
 
 void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
     FILE *f;
-    const char * fname = reinterpret_cast<const char *>(mcd.c_str());
+    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     struct stat buf;
     int s = MCD_SIZE;
     int i = 0, j;
@@ -640,7 +641,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
 
 void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
     FILE *f;
-    const char * fname = reinterpret_cast<const char*>(mcd.c_str());
+    const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     int i = 0;
     int s = MCD_SIZE;
 

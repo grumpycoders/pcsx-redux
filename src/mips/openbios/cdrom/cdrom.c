@@ -24,11 +24,12 @@ SOFTWARE.
 
 */
 
+#include "common/hardware/cdrom.h"
+
 #include <stddef.h>
 
-#include "common/hardware/cdrom.h"
-#include "common/syscalls/syscalls.h"
 #include "common/psxlibc/device.h"
+#include "common/syscalls/syscalls.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/events.h"
 #include "openbios/cdrom/filesystem.h"
@@ -52,13 +53,14 @@ void initializeCDRomHandlersAndEvents() {
 
 static void initializeSoftwareAndHardware() {
     initializeCDRomHandlersAndEvents();
-    while (!syscall_cdromInnerInit());
+    while (!syscall_cdromInnerInit())
+        ;
 }
 
 void initCDRom() {
     initializeSoftwareAndHardware();
     int delay = 0;
-    while(++delay < 50000) __asm__ volatile("");
+    while (++delay < 50000) __asm__ volatile("");
     cdromReadPathTable();
 }
 
@@ -76,7 +78,8 @@ int cdromBlockGetStatus() {
     uint8_t status;
 
     int cyclesToWait = 9;
-    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0));
+    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0))
+        ;
     if (cyclesToWait < 1) {
         syscall_exception(0x44, 0x1f);
         return -1;
@@ -116,9 +119,7 @@ static const struct Device s_cdromDevice = {
     .check = psxdummy,
 };
 
-int addCDRomDevice() {
-    return syscall_addDevice(&s_cdromDevice);
-}
+int addCDRomDevice() { return syscall_addDevice(&s_cdromDevice); }
 
 // Most likely a poor man's flushWriteQueue,
 // but messes up the NULL pointer data,
