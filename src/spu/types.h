@@ -20,6 +20,7 @@
 #pragma once
 
 #include "support/protobuf.h"
+#include "support/settings.h"
 
 namespace PCSX {
 
