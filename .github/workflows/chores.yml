@@ -21,6 +21,8 @@ jobs:
       run: sudo apt-get install -y gettext
     - name: Regenerate i18n files
       run: make regen-i18n
+    - name: Cleanup
+      run: rm i18n/*~
     - name: Create Pull Request
       id: cpr
       uses: peter-evans/create-pull-request@v3
@@ -57,7 +59,7 @@ jobs:
          committer: GitHub <noreply@github.com>
          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
          signoff: false
-         branch: chores
+         branch: chores-code-format
          delete-branch: true
          title: '[Chores] Format code'
          draft: false

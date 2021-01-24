@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Tomba! NTSC (SCUS-94236):
 
                     *************************************************************
@@ -77,6 +79,8 @@ SOFTWARE.
         8005cea4 00 00 00 00          _nop
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 

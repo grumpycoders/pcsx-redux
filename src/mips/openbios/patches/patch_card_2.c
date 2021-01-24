@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Tales of Destiny Disc 2 (SLUS-01367):
 
                     *************************************************************
@@ -78,6 +80,8 @@ SOFTWARE.
         800785a4 00 00 00 00          _nop
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 

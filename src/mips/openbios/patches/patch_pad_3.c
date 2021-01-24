@@ -27,6 +27,8 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "openbios/sio0/pad.h"
 
+// clang-format on
+
 /* Found in Pandemonium 2 PAL (SLES-00965):
 
                     *************************************************************
@@ -72,6 +74,8 @@ SOFTWARE.
     See sio0/driver.c for more details.
 
  */
+
+// clang-format on
 
 #ifndef GENERATE_HASHES
 
