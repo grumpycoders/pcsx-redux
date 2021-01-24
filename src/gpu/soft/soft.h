@@ -29,6 +29,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 namespace PCSX {
 
 namespace SoftGPU {
