@@ -31,6 +31,8 @@
 
 #include <stdint.h>
 
+#include "gpu/soft/externals.h"
+
 namespace PCSX {
 
 namespace SoftGPU {
