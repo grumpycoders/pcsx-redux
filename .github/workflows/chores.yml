@@ -12,8 +12,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        token: ${{ secrets.PAT }}
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -23,7 +21,17 @@ jobs:
       run: sudo apt-get install -y gettext
     - name: Regenerate i18n files
       run: make regen-i18n
-    - uses: stefanzweifel/git-auto-commit-action@v4
+    - name: Create Pull Request
+      id: cpr
+      uses: peter-evans/create-pull-request@v3
       with:
-        commit_message: Chores
-        push_options: --force
+         token: ${{ secrets.PAT }}
+         commit-message: Chores
+         committer: GitHub <noreply@github.com>
+         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+         signoff: false
+         branch: chores
+         delete-branch: true
+         title: 'Chores'
+         draft: false
+
