@@ -22,7 +22,7 @@ jobs:
     - name: Regenerate i18n files
       run: make regen-i18n
     - name: Cleanup
-      run: rm i18n/*~
+      run: rm -f i18n/*~
     - name: Create Pull Request
       id: cpr
       uses: peter-evans/create-pull-request@v3
