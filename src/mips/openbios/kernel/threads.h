@@ -25,6 +25,8 @@ SOFTWARE.
 */
 #pragma once
 
+#include <stdint.h>
+
 struct Registers {
     union {
         struct {
