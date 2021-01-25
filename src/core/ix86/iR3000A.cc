@@ -128,7 +128,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     } iRegisters;
 
     iRegisters m_iRegs[32];
-    iRegisters m_iRegsSaved[32];
 
     cfunc_t *m_pRecBSC = NULL;
     cfunc_t *m_pRecSPC = NULL;
@@ -3100,7 +3099,7 @@ void X86DynaRecCPU::recRecompile() {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
             gen.MOV32RtoR(PCSX::ix86::EDX, PCSX::ix86::EBX);
-            gen.AND32ItoR(PCSX::ix86::EDX, 0xffff);
+            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EDX); // edx &= 0xFFFF
             gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)MASKS);
             gen.MOV32RmStoR(PCSX::ix86::EAX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
             if (IsConst(index)) {
@@ -3116,10 +3115,9 @@ void X86DynaRecCPU::recRecompile() {
     };
 
     while (shouldContinue()) {
-        if (m_nextIsDelaySlot) {
-            m_inDelaySlot = true;
-            m_nextIsDelaySlot = false;
-        }
+        m_inDelaySlot = m_nextIsDelaySlot;
+        m_nextIsDelaySlot = false;
+
         p = (char *)PSXM(m_pc);
         if (p == NULL) {
             recError();
