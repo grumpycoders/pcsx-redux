@@ -121,9 +121,9 @@ class Memory {
 #define psxHu8ref(mem) (*(uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxH[(mem)&0xffff])
 #define psxHu16ref(mem) (*(uint16_t *)&PCSX::g_emulator->m_psxMem->g_psxH[(mem)&0xffff])
 #define psxHu32ref(mem) (*(uint32_t *)&PCSX::g_emulator->m_psxMem->g_psxH[(mem)&0xffff])
-#define PSXM(mem)                                              \
+#define PSXM(mem)                                               \
     (PCSX::g_emulator->m_psxMem->g_psxMemRLUT[(mem) >> 16] == 0 \
-         ? NULL                                                \
+         ? NULL                                                 \
          : (uint8_t *)(PCSX::g_emulator->m_psxMem->g_psxMemRLUT[(mem) >> 16] + ((mem)&0xffff)))
 #define PSXMs8(mem) (*(int8_t *)PSXM(mem))
 #define PSXMs16(mem) (SWAP_LE16(*(int16_t *)PSXM(mem)))

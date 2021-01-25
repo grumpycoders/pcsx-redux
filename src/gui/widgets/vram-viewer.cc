@@ -27,12 +27,11 @@
 #include "GL/gl3w.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui.h"
-#include "imgui_internal.h"
-
 #include "core/system.h"
 #include "gui/gui.h"
 #include "gui/widgets/vram-viewer.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
@@ -336,7 +335,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
-    ImGui::Image(reinterpret_cast<ImTextureID*>(textureID), m_resolution, texTL, texBR);
+    ImGui::Image(reinterpret_cast<ImTextureID *>(textureID), m_resolution, texTL, texBR);
     if (m_clutDestination && m_selectingClut) {
         m_clutDestination->m_clut = m_mouseUV;
     }

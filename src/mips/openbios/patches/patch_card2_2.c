@@ -31,16 +31,16 @@ SOFTWARE.
 /* Found in Tales of Destiny Disc 2 (SLUS-01367):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_card2 ()
                                assume gp = 0x800c5454
-             undefined         v0:1           <RETURN>                                XREF[2]:     800785c0 (W), 
-                                                                                                   800785c8 (W)  
-             dword * *         v0:4           B0table                                 XREF[1]:     800785c0 (W)  
-             undefined4        v0:4           dst                                     XREF[1]:     800785c8 (W)  
-             undefined4        t2:4           src                                     XREF[1]:     800785d8 (W)  
-                             _patch_card2                                    XREF[1]:     InitCARD:80077f30 (c)  
+             undefined         v0:1           <RETURN>                                XREF[2]:     800785c0 (W),
+                                                                                                   800785c8 (W)
+             dword * *         v0:4           B0table                                 XREF[1]:     800785c0 (W)
+             undefined4        v0:4           dst                                     XREF[1]:     800785c8 (W)
+             undefined4        t2:4           src                                     XREF[1]:     800785d8 (W)
+                             _patch_card2                                    XREF[1]:     InitCARD:80077f30 (c)
         800785a8 10 80 01 3c          lui             at,0x8010
              assume gp = <UNKNOWN>
         800785ac 90 37 3f ac          sw              ra,offset  DAT_80103790 (at)                      = ??
@@ -57,7 +57,7 @@ SOFTWARE.
         800785d8 00 85 4a 25          addiu           src,src,-0x7b00
         800785dc 08 80 09 3c          lui             t1,0x8008
         800785e0 14 85 29 25          addiu           t1,t1,-0x7aec
-                             PATCH_OBJ_1AC                                   XREF[1]:     800785f4 (j)  
+                             PATCH_OBJ_1AC                                   XREF[1]:     800785f4 (j)
         800785e4 00 00 48 8d          lw              t0,0x0(src)=>PATCH_OBJ_C8                        = 2508DF80h
                                                                                                        = 3C08A001h
         800785e8 00 00 00 00          nop
@@ -91,21 +91,21 @@ int patch_card2_2_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 0, 0, 1, // 00
-    1, 1, 1, 0, // 10
-    0, 0, 0, 0, // 20
-    0, 2, 0, 1, // 30
+    0, 0, 0, 1,  // 00
+    1, 1, 1, 0,  // 10
+    0, 0, 0, 0,  // 20
+    0, 2, 0, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0xc8, 0x09, 0x43, 0x8c, 0x00, 0x00, 0x0a, 0x3c, // 00
-    0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x09, 0x3c, 0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x48, 0x8d, // 10
-    0x00, 0x00, 0x00, 0x00, 0xc8, 0x09, 0x48, 0xac, 0x04, 0x00, 0x4a, 0x25, 0xfb, 0xff, 0x49, 0x15, // 20
-    0x04, 0x00, 0x42, 0x24, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, // 30
+    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0xc8, 0x09, 0x43, 0x8c, 0x00, 0x00, 0x0a, 0x3c,  // 00
+    0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x09, 0x3c, 0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x48, 0x8d,  // 10
+    0x00, 0x00, 0x00, 0x00, 0xc8, 0x09, 0x48, 0xac, 0x04, 0x00, 0x4a, 0x25, 0xfb, 0xff, 0x49, 0x15,  // 20
+    0x04, 0x00, 0x42, 0x24, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c,  // 30
 };
 
 uint32_t generate_hash_patch_card2_2(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_patch_card2_2() {

@@ -32,20 +32,18 @@ SOFTWARE.
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/threads.h"
 
-extern struct {
-    uint32_t ramsize, unk1, unk2;
-} __globals60;
+extern struct { uint32_t ramsize, unk1, unk2; } __globals60;
 
 extern struct {
-    /* 100 */ struct HandlersStorage * handlersArray;
+    /* 100 */ struct HandlersStorage* handlersArray;
     /* 104 */ uint32_t handlersArraySize;
-    /* 108 */ struct Process * processes;
+    /* 108 */ struct Process* processes;
     /* 10c */ uint32_t processBlockSize;
-    /* 110 */ struct Thread * threads;
+    /* 110 */ struct Thread* threads;
     /* 114 */ uint32_t threadBlockSize;
     /* 118 */ uint32_t xxx_06;
     /* 11c */ uint32_t xxx_07;
-    /* 120 */ struct EventInfo * events;
+    /* 120 */ struct EventInfo* events;
     /* 124 */ uint32_t eventsSize;
     /* 128 */ uint32_t xxx_0a;
     /* 12c */ uint32_t xxx_0b;
@@ -53,12 +51,12 @@ extern struct {
     /* 134 */ uint32_t xxx_0d;
     /* 138 */ uint32_t xxx_0e;
     /* 13c */ uint32_t xxx_0f;
-    /* 140 */ struct File * files;
+    /* 140 */ struct File* files;
     /* 144 */ uint32_t filesSize;
     /* 148 */ uint32_t xxx_12;
     /* 14c */ uint32_t xxx_13;
-    /* 150 */ struct Device * devices;
-    /* 154 */ struct Device * devicesEnd;
+    /* 150 */ struct Device* devices;
+    /* 154 */ struct Device* devicesEnd;
     /* 158 */ uint32_t xxx_16;
     /* 15c */ uint32_t xxx_17;
     /* 160 */ uint32_t xxx_18;

@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "core/pgxp_gte.h"
+
 #include "core/gpu.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
@@ -139,7 +140,7 @@ void PGXP_RTPS(uint32_t _n, uint32_t _v) {
     float IR3 = max(min(MAC3, 0x7fff), -0x8000);
 
     float H = PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[26].sw.l;  // Near plane
-    float F = 0xFFFF;                                                // Far plane?
+    float F = 0xFFFF;                                                 // Far plane?
     float SZ3 = max(min(MAC3, 0xffff), 0x0000);  // Clamp SZ3 to near plane because we have no clipping (no proper Z)
     //  float h_over_sz3 = H / SZ3;
 
@@ -270,8 +271,8 @@ void MFC2(int reg) {
 
         case 28:
         case 29:
-            //  PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f, 0,
-            //  0) << 5) | (LIM(IR3 >> 7,
+            //  PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.p[reg].d = LIM(IR1 >> 7, 0x1f, 0, 0) | (LIM(IR2 >> 7, 0x1f,
+            //  0, 0) << 5) | (LIM(IR3 >> 7,
             // 0x1f, 0, 0) << 10);
             break;
     }

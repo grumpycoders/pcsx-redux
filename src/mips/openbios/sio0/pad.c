@@ -24,21 +24,20 @@ SOFTWARE.
 
 */
 
-#include <memory.h>
-
-
 #include "openbios/sio0/pad.h"
+
+#include <memory.h>
 
 #include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 
 static uint8_t s_padBuffer1[0x22];
 static uint8_t s_padBuffer2[0x22];
-uint32_t * g_userPadBuffer;
+uint32_t *g_userPadBuffer;
 
-void * fastMemset(void * ptr, int value, size_t num);
+void *fastMemset(void *ptr, int value, size_t num);
 
-int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint32_t * buffer, int c, int d) {
+int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint32_t *buffer, int c, int d) {
     __asm__ volatile("sw %0, 4($sp)\nsw %1, 8($sp)\nsw %2, 12($sp)" : : "r"(buffer), "r"(c), "r"(d));
     switch (padType) {
         case 0x10000001:
@@ -64,7 +63,7 @@ int __attribute__((section(".ramtext"))) initPadHighLevel(uint32_t padType, uint
     return 0;
 }
 
-static void __attribute__((section(".ramtext"))) alterUserPadData(uint16_t * ptr, uint8_t * input) {
+static void __attribute__((section(".ramtext"))) alterUserPadData(uint16_t *ptr, uint8_t *input) {
     if (input[0] != 0) return;
     uint8_t c = input[1];
     int is6free = c == 0x41;
@@ -89,8 +88,8 @@ static void __attribute__((section(".ramtext"))) alterUserPadData(uint16_t * ptr
 }
 
 uint32_t __attribute__((section(".ramtext"))) readPadHighLevel() {
-    uint32_t * ret = g_userPadBuffer;
-    uint16_t * ptr = (uint16_t *) ret;
+    uint32_t *ret = g_userPadBuffer;
+    uint16_t *ptr = (uint16_t *)ret;
     *ret = 0xffffffff;
 
     alterUserPadData(ptr++, s_padBuffer1);

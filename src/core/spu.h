@@ -19,14 +19,13 @@
 
 #pragma once
 
-#include "json.hpp"
-
 #include "core/decode_xa.h"
 #include "core/plugins.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
+#include "json.hpp"
 
 /*
 #define H_SPUirqAddr 0x0da4
@@ -67,7 +66,6 @@ class SPUInterface {
 
     bool m_showDebug = false;
     bool m_showCfg = false;
-
 
   protected:
     void scheduleInterrupt();

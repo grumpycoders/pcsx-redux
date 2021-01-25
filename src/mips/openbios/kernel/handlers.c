@@ -24,17 +24,17 @@ SOFTWARE.
 
 */
 
+#include "openbios/handlers/handlers.h"
+
 #include <ctype.h>
 #include <memory.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "osdebug.h"
-
 #include "common/compiler/stdint.h"
 #include "common/hardware/pcsxhw.h"
-#include "common/psxlibc/stdio.h"
 #include "common/psxlibc/setjmp.h"
+#include "common/psxlibc/stdio.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/filesystem.h"
@@ -42,7 +42,6 @@ SOFTWARE.
 #include "openbios/charset/sjis.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/gpu/gpu.h"
-#include "openbios/handlers/handlers.h"
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
@@ -56,6 +55,7 @@ SOFTWARE.
 #include "openbios/sio0/pad.h"
 #include "openbios/sio0/sio0.h"
 #include "openbios/tty/tty.h"
+#include "osdebug.h"
 
 void unimplemented() __attribute__((long_call));
 void breakVector();
@@ -64,31 +64,29 @@ void A0Vector();
 void B0Vector();
 void C0Vector();
 
-static void __inline__ installHandler(const uint32_t * src, uint32_t * dst) {
+static void __inline__ installHandler(const uint32_t *src, uint32_t *dst) {
     for (int i = 0; i < 4; i++) dst[i] = src[i];
 }
 
 void installKernelHandlers() {
-    installHandler((uint32_t*) A0Vector, (uint32_t *) 0xa0);
-    installHandler((uint32_t*) B0Vector, (uint32_t *) 0xb0);
-    installHandler((uint32_t*) C0Vector, (uint32_t *) 0xc0);
+    installHandler((uint32_t *)A0Vector, (uint32_t *)0xa0);
+    installHandler((uint32_t *)B0Vector, (uint32_t *)0xb0);
+    installHandler((uint32_t *)C0Vector, (uint32_t *)0xc0);
 }
 
-static void installExceptionHandler() {
-    installHandler((uint32_t*) exceptionVector, (uint32_t *) 0x80);
-}
+static void installExceptionHandler() { installHandler((uint32_t *)exceptionVector, (uint32_t *)0x80); }
 
 void __attribute__((noreturn)) returnFromException();
 
 #define EXCEPTION_STACK_SIZE 0x180
 
 static uint32_t s_exceptionStack[EXCEPTION_STACK_SIZE];
-void * g_exceptionStackPtr = s_exceptionStack + EXCEPTION_STACK_SIZE;
+void *g_exceptionStackPtr = s_exceptionStack + EXCEPTION_STACK_SIZE;
 
-struct JmpBuf * g_exceptionJmpBufPtr = NULL;
+struct JmpBuf *g_exceptionJmpBufPtr = NULL;
 static struct JmpBuf defaultExceptionJmpBuf = {
-    .ra = (uint32_t) returnFromException,
-    .sp = (uint32_t) s_exceptionStack + EXCEPTION_STACK_SIZE,
+    .ra = (uint32_t)returnFromException,
+    .sp = (uint32_t)s_exceptionStack + EXCEPTION_STACK_SIZE,
     .s8 = 0,
     .s0 = 0,
     .s1 = 0,
@@ -101,17 +99,13 @@ static struct JmpBuf defaultExceptionJmpBuf = {
     .gp = 0,
 };
 
-static void setDefaultExceptionJmpBuf() {
-    g_exceptionJmpBufPtr = &defaultExceptionJmpBuf;
-}
+static void setDefaultExceptionJmpBuf() { g_exceptionJmpBufPtr = &defaultExceptionJmpBuf; }
 
-static void setExceptionJmpBuf(struct JmpBuf * jmpBup) {
-    g_exceptionJmpBufPtr = jmpBup;
-}
+static void setExceptionJmpBuf(struct JmpBuf *jmpBup) { g_exceptionJmpBufPtr = jmpBup; }
 
-extern void * __ramA0table[0xc0];
-void * B0table[0x60];
-void * C0table[0x20];
+extern void *__ramA0table[0xc0];
+void *B0table[0x60];
+void *C0table[0x20];
 
 static void __inline__ subPatchA0table(int src, int dst, int len) {
     while (len--) __ramA0table[dst++] = B0table[src++];
@@ -122,10 +116,10 @@ static void patchA0table() {
     subPatchA0table(0x3c, 0x3b, 4);
 }
 
-static void clearFileError(struct File * file) { file->errno = PSXENOERR; }
+static void clearFileError(struct File *file) { file->errno = PSXENOERR; }
 
-static void * getB0table();
-static void * getC0table();
+static void *getB0table();
+static void *getC0table();
 static int dummyMC() { return 0; }
 
 static int card_info_stub(int param) {
@@ -235,17 +229,17 @@ void * C0table[0x20] = {
 
 // clang-format on
 
-void * getB0table() {
+void *getB0table() {
     uint32_t ra;
-    __asm__ volatile("move %0, $ra" : "=r" (ra));
-    patch_hook((uint32_t*) ra, PATCH_TABLE_B0);
+    __asm__ volatile("move %0, $ra" : "=r"(ra));
+    patch_hook((uint32_t *)ra, PATCH_TABLE_B0);
     return B0table;
 }
 
 void *getC0table() {
     uint32_t ra;
-    __asm__ volatile("move %0, $ra" : "=r" (ra));
-    patch_hook((uint32_t*) ra, PATCH_TABLE_C0);
+    __asm__ volatile("move %0, $ra" : "=r"(ra));
+    patch_hook((uint32_t *)ra, PATCH_TABLE_C0);
     return C0table;
 }
 
@@ -274,6 +268,4 @@ void copyDataAndInitializeBSS() {
    A0 table into the proper data section, but in the
    spirit of doing exactly what the original code does,
    we're going to do it manually instead. */
-void copyA0table() {
-    memcpy(&__ramA0table, romA0table, sizeof(romA0table));
-}
+void copyA0table() { memcpy(&__ramA0table, romA0table, sizeof(romA0table)); }

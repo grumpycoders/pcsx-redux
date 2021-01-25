@@ -17,10 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/debug.h"
+
 #include <iomanip>
 #include <sstream>
 
-#include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
@@ -95,7 +96,7 @@ void PCSX::Debug::processAfter() {
 
     if (m_stepping) {
         const bool gotException = pc == 0x80000080 || pc == 0xbfc00180;
-        if (gotException) m_steppingJumps += 2; // there ought to be two jr $k0
+        if (gotException) m_steppingJumps += 2;  // there ought to be two jr $k0
 
         auto none = m_breakpoints.end();
         switch (m_stepType) {

@@ -24,8 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/syscalls/syscalls.h"
 #include "openbios/cdrom/events.h"
+
+#include "common/syscalls/syscalls.h"
 
 uint32_t g_cdEventACK; /* 0x0010 */
 uint32_t g_cdEventDNE; /* 0x0020 */
@@ -38,17 +39,16 @@ void __attribute__((section(".ramtext"))) cdromUndeliverAllExceptAckAndRdy() {
     syscall_undeliverEvent(EVENT_CDROM, 0x20);
     syscall_undeliverEvent(EVENT_CDROM, 0x80);
     syscall_undeliverEvent(EVENT_CDROM, 0x8000);
-    syscall_undeliverEvent(EVENT_CDROM, 0x100); // never created
-    syscall_undeliverEvent(EVENT_CDROM, 0x200); // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x100);  // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x200);  // never created
 }
 
-void __attribute__((section(".ramtext")))  cdromUndeliverAll() {
+void __attribute__((section(".ramtext"))) cdromUndeliverAll() {
     syscall_undeliverEvent(EVENT_CDROM, 0x40);
     syscall_undeliverEvent(EVENT_CDROM, 0x10);
     syscall_undeliverEvent(EVENT_CDROM, 0x20);
     syscall_undeliverEvent(EVENT_CDROM, 0x80);
     syscall_undeliverEvent(EVENT_CDROM, 0x8000);
-    syscall_undeliverEvent(EVENT_CDROM, 0x100); // never created
-    syscall_undeliverEvent(EVENT_CDROM, 0x200); // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x100);  // never created
+    syscall_undeliverEvent(EVENT_CDROM, 0x200);  // never created
 }
-

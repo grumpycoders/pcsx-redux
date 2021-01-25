@@ -31,16 +31,16 @@ SOFTWARE.
 /* Found in Tomba! NTSC (SCUS-94236):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_card ()
                                assume gp = 0x80097fa8
-             undefined         v0:1           <RETURN>                                XREF[1]:     8005ce34 (W)  
-             dword * *         v0:4           C0Table                                 XREF[1]:     8005ce34 (W)  
-             dword *           t2:4           src                                     XREF[1]:     8005ce6c (W)  
+             undefined         v0:1           <RETURN>                                XREF[1]:     8005ce34 (W)
+             dword * *         v0:4           C0Table                                 XREF[1]:     8005ce34 (W)
+             dword *           t2:4           src                                     XREF[1]:     8005ce6c (W)
              dword *           v0:4           dst
-             undefined4        v1:4           tmp                                     XREF[1]:     8005ce74 (W)  
-                             _patch_card                                     XREF[1]:     FUN_8005cccc:8005ccf4 (c)  
+             undefined4        v1:4           tmp                                     XREF[1]:     8005ce74 (W)
+                             _patch_card                                     XREF[1]:     FUN_8005cccc:8005ccf4 (c)
         8005ce20 0a 80 01 3c          lui             at,0x800a
              assume gp = <UNKNOWN>
         8005ce24 b0 af 3f ac          sw              ra,-0x5050 (at)=>DAT_8009afb0                    = ??
@@ -63,7 +63,7 @@ SOFTWARE.
         8005ce68 28 00 62 24          addiu           C0Table ,v1,0x28
         8005ce6c c8 cd 4a 25          addiu           src,src,-0x3238
         8005ce70 dc cd 29 25          addiu           t1,t1,-0x3224
-                             PATCH_OBJ_AC                                    XREF[1]:     8005ce80 (j)  
+                             PATCH_OBJ_AC                                    XREF[1]:     8005ce80 (j)
         8005ce74 00 00 43 8d          lw              tmp,0x0(src)=>PATCH_OBJ_0
         8005ce78 04 00 4a 25          addiu           src,src,0x4
         8005ce7c 04 00 42 24          addiu           dst,dst,0x4
@@ -96,21 +96,21 @@ int patch_card_1_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 0, 0, 0, // 00
-    0, 0, 0, 0, // 10
-    0, 1, 1, 0, // 20
-    1, 1, 0, 0, // 30
+    0, 0, 0, 0,  // 00
+    0, 0, 0, 0,  // 10
+    0, 1, 1, 0,  // 20
+    1, 1, 0, 0,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x18, 0x00, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0x43, 0x8c, 0x00, 0x00, 0x00, 0x00, // 00
-    0xff, 0xff, 0x69, 0x30, 0x74, 0x00, 0x43, 0x8c, 0x00, 0x4c, 0x09, 0x00, 0xff, 0xff, 0x6a, 0x30, // 10
-    0x21, 0x18, 0x2a, 0x01, 0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x09, 0x3c, 0x28, 0x00, 0x62, 0x24, // 20
-    0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x04, 0x00, 0x4a, 0x25, // 30
+    0x18, 0x00, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x70, 0x00, 0x43, 0x8c, 0x00, 0x00, 0x00, 0x00,  // 00
+    0xff, 0xff, 0x69, 0x30, 0x74, 0x00, 0x43, 0x8c, 0x00, 0x4c, 0x09, 0x00, 0xff, 0xff, 0x6a, 0x30,  // 10
+    0x21, 0x18, 0x2a, 0x01, 0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x09, 0x3c, 0x28, 0x00, 0x62, 0x24,  // 20
+    0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x29, 0x25, 0x00, 0x00, 0x43, 0x8d, 0x04, 0x00, 0x4a, 0x25,  // 30
 };
 
 uint32_t generate_hash_patch_card_1(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
 uint32_t generate_mask_patch_card_1() {

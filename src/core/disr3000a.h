@@ -24,6 +24,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <string>
 
 namespace PCSX {
@@ -49,7 +50,8 @@ class Disasm {
         (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
     }
 
-    static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool withValues = false);
+    static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr,
+                                bool withValues = false);
     virtual void reset() {}
 
   protected:

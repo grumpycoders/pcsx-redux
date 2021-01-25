@@ -17,9 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <algorithm>
-
 #include "support/file.h"
+
+#include <algorithm>
 
 const uint8_t PCSX::File::m_internalBuffer = 0;
 void PCSX::File::close() {

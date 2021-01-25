@@ -100,6 +100,7 @@ class VRAMViewer {
     bool m_greyscale = false;
     bool m_selectingClut = false;
     int m_24shift = 0;
+
   public:
     bool m_show = false;
 

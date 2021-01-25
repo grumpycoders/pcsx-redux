@@ -24,10 +24,10 @@ SOFTWARE.
 
 */
 
+#include "openbios/pio/pio.h"
+
 #include <stdint.h>
 #include <string.h>
-
-#include "openbios/pio/pio.h"
 
 struct pioInfo {
     void (*vector)();
@@ -40,16 +40,12 @@ static const struct pioInfo *postHookInfo = (const struct pioInfo *)0x1f000000;
 extern const char *_reset;
 static int is_running_from_rom() { return _reset == (const char *)0xbfc00000; }
 
-static const char * const licenseText = "Licensed by Sony Computer Entertainment Inc.";
+static const char *const licenseText = "Licensed by Sony Computer Entertainment Inc.";
 
-int checkExp1PreHookLicense() {
-    return is_running_from_rom() && strcmp(preHookInfo->signature, licenseText) == 0;
-}
+int checkExp1PreHookLicense() { return is_running_from_rom() && strcmp(preHookInfo->signature, licenseText) == 0; }
 
 void runExp1PreHook() { preHookInfo->vector(); }
 
-int checkExp1PostHookLicense() {
-    return is_running_from_rom() && strcmp(postHookInfo->signature, licenseText) == 0;
-}
+int checkExp1PostHookLicense() { return is_running_from_rom() && strcmp(postHookInfo->signature, licenseText) == 0; }
 
 void runExp1PostHook() { postHookInfo->vector(); }

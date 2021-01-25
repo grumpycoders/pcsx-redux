@@ -108,7 +108,7 @@ class Counters {
     uint32_t psxRcntRtarget(uint32_t index);
 
     void save(PCSX::SaveStates::Counters &counters);
-    void load(const PCSX::SaveStates::Counters & counters);
+    void load(const PCSX::SaveStates::Counters &counters);
 };
 
 }  // namespace PCSX

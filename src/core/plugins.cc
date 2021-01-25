@@ -22,6 +22,7 @@
  */
 
 #include "core/plugins.h"
+
 #include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"

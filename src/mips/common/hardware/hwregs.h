@@ -69,13 +69,12 @@ struct SIO {
 #define GPU_DATA HW_U32(0x1f801810)
 #define GPU_STATUS HW_U32(0x1f801814)
 
-
 #define ATCONS_STAT HW_U8(0x1f802000)
 #define ATCONS_FIFO HW_U8(0x1f802002)
-#define ATCONS_IRQ  HW_U8(0x1f802030)
+#define ATCONS_IRQ HW_U8(0x1f802030)
 #define ATCONS_IRQ2 HW_U8(0x1f802032)
 
 #define POST HW_U8(0xbf802041)
 
-#define COUNTERS ((volatile struct Counter *) 0xbf801100)
-#define SIOS ((volatile struct SIO *) 0x1f801040)
+#define COUNTERS ((volatile struct Counter *)0xbf801100)
+#define SIOS ((volatile struct SIO *)0x1f801040)

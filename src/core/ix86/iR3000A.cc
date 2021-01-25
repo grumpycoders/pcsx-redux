@@ -281,7 +281,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     }
 
 #define CP2_FUNC(f)                                                         \
-    static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(); }          \
+    static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(); }         \
     void rec##f() {                                                         \
         iFlushRegs();                                                       \
         gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
@@ -887,8 +887,8 @@ void X86DynaRecCPU::recSLTI() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32ItoR(PCSX::ix86::EAX, _Imm_);
-        gen.SETL8R(PCSX::ix86::EAX); // Set AL depending on whether Rs < imm
-        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Zero extend AL into EAX
+        gen.SETL8R(PCSX::ix86::EAX);                         // Set AL depending on whether Rs < imm
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);  // Zero extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
     }
 }
@@ -905,8 +905,8 @@ void X86DynaRecCPU::recSLTIU() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32ItoR(PCSX::ix86::EAX, _Imm_);
-        gen.SETB8R(PCSX::ix86::EAX); // Set AL depending on whether Rs < Imm (unsigned)
-        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Zero extend AL into EAX
+        gen.SETB8R(PCSX::ix86::EAX);                         // Set AL depending on whether Rs < Imm (unsigned)
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);  // Zero extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rt_], PCSX::ix86::EAX);
     }
 }
@@ -1252,24 +1252,24 @@ void X86DynaRecCPU::recSLT() {
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
         gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.SETL8R(PCSX::ix86::EAX); // set AL to 0 or 1 depending on if Rs < Rt
-        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Zero extend AL into EAX
+        gen.SETL8R(PCSX::ix86::EAX);                         // set AL to 0 or 1 depending on if Rs < Rt
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);  // Zero extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else if (IsConst(_Rt_)) {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
-        gen.SETL8R(PCSX::ix86::EAX); // set AL to 0 or 1 depending on if Rs < Rt
-        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Zero extend AL into EAX
+        gen.SETL8R(PCSX::ix86::EAX);                         // set AL to 0 or 1 depending on if Rs < Rt
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);  // Zero extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         gen.CMP32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.SETL8R(PCSX::ix86::EAX); // set AL to 0 or 1 depending on if Rs < Rt
-        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX); // Zero extend AL into EAX
+        gen.SETL8R(PCSX::ix86::EAX);                         // set AL to 0 or 1 depending on if Rs < Rt
+        gen.MOVZX32R8toR(PCSX::ix86::EAX, PCSX::ix86::EAX);  // Zero extend AL into EAX
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
 }
@@ -1387,7 +1387,7 @@ void X86DynaRecCPU::recDIV() {
         gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
-        gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX); // check if ECX == 0
+        gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);  // check if ECX == 0
         slot1 = gen.JE8(0);
     }
     if (IsConst(_Rs_)) {
@@ -1929,7 +1929,8 @@ void X86DynaRecCPU::recSH() {
 
         if ((t & 0x1fe0) == 0 && (t & 0x1fff) != 0) {
             if (IsConst(_Rt_)) {
-                gen.MOV16ItoM((uint32_t)&PCSX::g_emulator->m_psxMem->g_psxM[addr & 0x1fffff], (uint16_t)m_iRegs[_Rt_].k);
+                gen.MOV16ItoM((uint32_t)&PCSX::g_emulator->m_psxMem->g_psxM[addr & 0x1fffff],
+                              (uint16_t)m_iRegs[_Rt_].k);
             } else {
                 gen.MOV16MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                 gen.MOV16RtoM((uint32_t)&PCSX::g_emulator->m_psxMem->g_psxM[addr & 0x1fffff], PCSX::ix86::EAX);
@@ -2296,8 +2297,8 @@ void X86DynaRecCPU::recSLLV() {
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k & 0x1f);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
-                                                 // happens implicitly on all x86 processors except for 8086.
-                                                 // So no need to do it manually
+        // happens implicitly on all x86 processors except for 8086.
+        // So no need to do it manually
         gen.SHL32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
@@ -2306,8 +2307,8 @@ void X86DynaRecCPU::recSLLV() {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
-                                                 // happens implicitly on all x86 processors except for 8086.
-                                                 // So no need to do it manually
+        // happens implicitly on all x86 processors except for 8086.
+        // So no need to do it manually
         gen.SHL32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
@@ -2331,10 +2332,11 @@ void X86DynaRecCPU::recSRLV() {
         m_iRegs[_Rd_].state = ST_UNK;
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
-        gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]); // place shift amount in ECX
-      //gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this happens implicitly
-                                              // on all x86 processors except for 8086.
-                                              // So no need to do it manually
+        gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);  // place shift amount in ECX
+        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+        // happens implicitly
+        // on all x86 processors except for 8086.
+        // So no need to do it manually
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
@@ -2342,7 +2344,8 @@ void X86DynaRecCPU::recSRLV() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        // gen.AND32ItoR(PCSX::ix86::ECX, 0x1f); Commented out cause useless, see the rest of the comments about masking shift amounts
+        // gen.AND32ItoR(PCSX::ix86::ECX, 0x1f); Commented out cause useless, see the rest of the comments about masking
+        // shift amounts
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
@@ -2368,8 +2371,8 @@ void X86DynaRecCPU::recSRAV() {
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
-                                                 // happens implicitly on all x86 processors except for 8086.
-                                                 // So no need to do it manually
+        // happens implicitly on all x86 processors except for 8086.
+        // So no need to do it manually
         gen.SAR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     } else {
@@ -2378,8 +2381,8 @@ void X86DynaRecCPU::recSRAV() {
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
         // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
-                                                 // happens implicitly on all x86 processors except for 8086.
-                                                 // So no need to do it manually
+        // happens implicitly on all x86 processors except for 8086.
+        // So no need to do it manually
         gen.SAR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
     }
@@ -2601,10 +2604,10 @@ void X86DynaRecCPU::recJR() {
     m_stopRecompile = true;
     m_pcInEBP = true;
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoR(PCSX::ix86::EBP, m_iRegs[_Rs_].k & ~3); // force align jump address
+        gen.MOV32ItoR(PCSX::ix86::EBP, m_iRegs[_Rs_].k & ~3);  // force align jump address
     } else {
         gen.MOV32MtoR(PCSX::ix86::EBP, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::EBP, ~3); // force align jump address
+        gen.AND32ItoR(PCSX::ix86::EBP, ~3);  // force align jump address
     }
 }
 
@@ -2620,10 +2623,10 @@ void X86DynaRecCPU::recJALR() {
     m_stopRecompile = true;
     m_pcInEBP = true;
     if (IsConst(_Rs_)) {
-        gen.MOV32ItoR(PCSX::ix86::EBP, m_iRegs[_Rs_].k & ~3); // force align jump address
+        gen.MOV32ItoR(PCSX::ix86::EBP, m_iRegs[_Rs_].k & ~3);  // force align jump address
     } else {
         gen.MOV32MtoR(PCSX::ix86::EBP, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        gen.AND32ItoR(PCSX::ix86::EBP, ~3); // force align jump address
+        gen.AND32ItoR(PCSX::ix86::EBP, ~3);  // force align jump address
     }
 }
 
@@ -2762,7 +2765,7 @@ void X86DynaRecCPU::testSWInt() {
     gen.MOV32MtoR(PCSX::ix86::EDX, (uint32_t)&m_psxRegs.CP0.n.Cause);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32RtoR(PCSX::ix86::EAX, PCSX::ix86::EDX);
-    gen.AND32ItoR(PCSX::ix86::EAX, 0x300); // This AND will set the zero flag if eax = 0 afterwards
+    gen.AND32ItoR(PCSX::ix86::EAX, 0x300);  // This AND will set the zero flag if eax = 0 afterwards
     unsigned slot1 = gen.JE8(0);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32ItoR(PCSX::ix86::EAX, 1);

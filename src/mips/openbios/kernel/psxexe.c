@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include "openbios/kernel/psxexe.h"
+
 #include <ctype.h>
 #include <memory.h>
 #include <string.h>
@@ -32,19 +34,18 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/flushcache.h"
-#include "openbios/kernel/psxexe.h"
 #include "openbios/kernel/util.h"
 
-static int readHeader(int fd, struct psxExeHeader * header) {
+static int readHeader(int fd, struct psxExeHeader *header) {
     if (syscall_read(fd, g_readBuffer, 2048) >= 2048) {
-        memcpy(header, g_readBuffer + 16, 60); // BIOS does not copy the whole struct
+        memcpy(header, g_readBuffer + 16, 60);  // BIOS does not copy the whole struct
         return 1;
     }
 
     return 0;
 }
 
-int loadExeHeader(const char * filename, struct psxExeHeader * header) {
+int loadExeHeader(const char *filename, struct psxExeHeader *header) {
     int fd = syscall_open(filename, PSXF_READ);
     if (fd < 0) return 0;
     int ret = readHeader(fd, header);
@@ -52,7 +53,7 @@ int loadExeHeader(const char * filename, struct psxExeHeader * header) {
     return ret;
 }
 
-int loadExe(const char * filename, struct psxExeHeader * header) {
+int loadExe(const char *filename, struct psxExeHeader *header) {
     int fd = syscall_open(filename, PSXF_READ);
     if (fd < 0) return 0;
     int ret = readHeader(fd, header);
@@ -60,7 +61,7 @@ int loadExe(const char * filename, struct psxExeHeader * header) {
         syscall_close(fd);
         return 0;
     }
-    syscall_read(fd, (char *) header->text_addr, header->text_size);
+    syscall_read(fd, (char *)header->text_addr, header->text_size);
     syscall_close(fd);
     flushCache();
     return 1;
@@ -68,18 +69,19 @@ int loadExe(const char * filename, struct psxExeHeader * header) {
 
 /* what in the world is going on here... */
 static struct psxExeHeader binaryHeader;
-static char * binaryPath;
-void loadAndExec(const char * filename, uint32_t stackStart, uint32_t stackSize) {
+static char *binaryPath;
+void loadAndExec(const char *filename, uint32_t stackStart, uint32_t stackSize) {
     char localFilename[28];
     char c;
-    char * ptr = localFilename;
+    char *ptr = localFilename;
 
     while (((c = *filename) != 0) && (c != ':')) {
         *ptr++ = c;
         filename++;
     }
 
-    while ((*ptr++ = toupper(*filename++)) != 0);
+    while ((*ptr++ = toupper(*filename++)) != 0)
+        ;
 
     ptr = localFilename;
     while (((c = *ptr) != 0) && (c != ';')) ptr++;
@@ -105,5 +107,6 @@ void loadAndExec(const char * filename, uint32_t stackStart, uint32_t stackSize)
         exec(&binaryHeader, 1, NULL);
     }
     psxprintf("No boot file !\n");
-    while(1);
+    while (1)
+        ;
 }

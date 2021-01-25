@@ -33,8 +33,8 @@ SOFTWARE.
 extern char g_cdromCWD[128];
 
 int cdromReadPathTable();
-int dev_cd_open(struct File * file, char * filename);
-int dev_cd_read(struct File * file,char * buffer, int size);
-struct DirEntry * dev_cd_firstfile(struct File * file, const char * filename, struct DirEntry * entry);
-struct DirEntry * dev_cd_nextfile(struct File * file, struct DirEntry * entry);
-int dev_cd_chdir(struct File * file, char * name);
+int dev_cd_open(struct File* file, char* filename);
+int dev_cd_read(struct File* file, char* buffer, int size);
+struct DirEntry* dev_cd_firstfile(struct File* file, const char* filename, struct DirEntry* entry);
+struct DirEntry* dev_cd_nextfile(struct File* file, struct DirEntry* entry);
+int dev_cd_chdir(struct File* file, char* name);

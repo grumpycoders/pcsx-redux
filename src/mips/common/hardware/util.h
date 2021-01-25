@@ -26,6 +26,4 @@ SOFTWARE.
 
 #pragma once
 
-static void __inline__ flushWriteQueue() {
-    *((volatile uint8_t *) 0xbfc00000);
-}
+static void __inline__ flushWriteQueue() { *((volatile uint8_t *)0xbfc00000); }
