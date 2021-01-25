@@ -31,17 +31,17 @@ SOFTWARE.
 /* Found in Gex (rev1.1) NTSC (SLUS-00042), file MAIN.EXE:
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _InitGun ()
                                assume gp = 0x80048090
-             undefined         v0:1           <RETURN>                                XREF[2]:     80034708 (W), 
-                                                                                                   80034724 (W)  
-             dword * *         v0:4           C0table                                 XREF[1]:     80034708 (W)  
-             undefined4        t2:4           src                                     XREF[1]:     8003471c (W)  
-             undefined4        v0:4           dst                                     XREF[1]:     80034724 (W)  
+             undefined         v0:1           <RETURN>                                XREF[2]:     80034708 (W),
+                                                                                                   80034724 (W)
+             dword * *         v0:4           C0table                                 XREF[1]:     80034708 (W)
+             undefined4        t2:4           src                                     XREF[1]:     8003471c (W)
+             undefined4        v0:4           dst                                     XREF[1]:     80034724 (W)
              undefined4        v1:4           tmp
-                             _InitGun                                        XREF[1]:     GUN_OBJ_7A4:800342bc (c)  
+                             _InitGun                                        XREF[1]:     GUN_OBJ_7A4:800342bc (c)
         800346e8 05 80 01 3c          lui             at,0x8005
              assume gp = <UNKNOWN>
         800346ec 10 85 3f ac          sw              ra,-0x7af0 (at)=>DAT_80048510
@@ -58,7 +58,7 @@ SOFTWARE.
         80034718 18 00 42 8c          lw              C0table ,0x18(C0table )
         8003471c d8 47 4a 25          addiu           src,src,0x47d8
         80034720 e8 47 29 25          addiu           t1,t1,0x47e8
-                             NEWGUN_OBJ_3C                                   XREF[1]:     80034730 (j)  
+                             NEWGUN_OBJ_3C                                   XREF[1]:     80034730 (j)
         80034724 00 00 43 8d          lw              tmp,0x0(src)=>NEWGUN_OBJ_F0
         80034728 04 00 4a 25          addiu           src,src,0x4
         8003472c 04 00 42 24          addiu           dst,dst,0x4
