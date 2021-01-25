@@ -136,6 +136,8 @@ static int card_info_stub(int param) {
     return 1;
 }
 
+static int card_status_stub() { return 0x11; }
+
 // clang-format off
 
 static const void * romA0table[0xc0] = {
@@ -209,11 +211,11 @@ void * B0table[0x60] = {
     unimplemented, unimplemented, unimplemented, unimplemented, // 40
     unimplemented, unimplemented, unimplemented, addDevice, // 44
     removeDevice, unimplemented, dummyMC, dummyMC, // 48
-    dummyMC, unimplemented, unimplemented, unimplemented, // 4c
+    dummyMC, unimplemented, dummyMC, dummyMC, // 4c
     dummyMC, Krom2RawAdd, unimplemented, Krom2Offset, // 50
     unimplemented, unimplemented, getC0table, getB0table, // 54
     unimplemented, unimplemented, unimplemented, setSIO0AutoAck, // 58
-    unimplemented, unimplemented, unimplemented, unimplemented, // 5c
+    card_status_stub, card_status_stub, unimplemented, unimplemented, // 5c
 };
 
 void * C0table[0x20] = {
