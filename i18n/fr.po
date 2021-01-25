@@ -131,6 +131,31 @@ msgstr "Toujours activer l'IRQ du SPU"
 msgid "Assembly"
 msgstr "Assembleur"
 
+#: src/core/psxinterpreter.cc:962
+#, c-format
+msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
+msgstr ""
+
+#. Accesses to the (nonexistent) FPU
+#. TODO: Verify that COP1 doesn't throw a coprocessor unusable exception
+#. Supposedly the COP1/COP3 ops don't fire RI, and they're NOPs
+#: src/core/psxinterpreter.cc:951
+#, c-format
+msgid ""
+"Attempted to use an invalid floating point instruction from 0x%08x. "
+"Ignored.\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:693
+#, c-format
+msgid "Attempted unaligned JALR from 0x%08x, firing exception!\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:674
+#, c-format
+msgid "Attempted unaligned JR from 0x%08x, firing exception!\n"
+msgstr ""
+
 #: src/spu/cfg.cc:53
 msgid ""
 "Attempts to make the CPU-to-SPU audio stream\n"
@@ -516,6 +541,11 @@ msgid ""
 "from the gdb server. Keep this enabled, unless\n"
 "you want to connect IDA to this server, as it\n"
 "has a bug in its manifest parser."
+msgstr ""
+
+#: src/core/psxinterpreter.cc:939
+#, c-format
+msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr ""
 
 #: src/core/psxmem.cc:43
@@ -1178,6 +1208,16 @@ msgstr "Show word read BPs"
 msgid "Show word write BPs    "
 msgstr "Show word write BPs"
 
+#: src/core/psxinterpreter.cc:406
+#, c-format
+msgid "Signed overflow in ADD instruction from 0x%08x!\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:431
+#, c-format
+msgid "Signed overflow in SUB instruction from 0x%08x!\n"
+msgstr ""
+
 #: src/spu/cfg.cc:59
 msgid "Simple - only handles the most common effects"
 msgstr "Simple - ne gère que les effets les plus courants"
@@ -1313,6 +1353,31 @@ msgstr "Piste %.2d (%s) - Commence à %.2d:%.2d:%.2d, Durée %.2d:%.2d:%.2d\n"
 
 #: src/gui/widgets/types.cc:27
 msgid "Types"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:732
+#, c-format
+msgid "Unaligned address in LH from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:750
+#, c-format
+msgid "Unaligned address in LHU from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:768
+#, c-format
+msgid "Unaligned address in LW from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:822
+#, c-format
+msgid "Unaligned address in SH from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:834
+#, c-format
+msgid "Unaligned address in SW from 0x%08x\n"
 msgstr ""
 
 #: src/spu/cfg.cc:47
