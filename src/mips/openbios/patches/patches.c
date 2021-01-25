@@ -55,6 +55,7 @@ int remove_ChgclrPAD_2_execute(uint32_t* ra);
 int send_pad_1_execute(uint32_t* ra);
 int send_pad_2_execute(uint32_t* ra);
 int clear_card_1_execute(uint32_t* ra);
+int initgun_1_execute(uint32_t* ra);
 int patch_card_1_execute(uint32_t* ra);
 int patch_card_2_execute(uint32_t* ra);
 int patch_gte_1_execute(uint32_t* ra);
@@ -123,6 +124,11 @@ static const struct patch C0patches[] = {
         .hash = 0x95c14c17,
         .execute = clear_card_1_execute,
         .name = "_clear_card#1",
+    },
+    {
+        .hash = 0x5753f599,
+        .execute = initgun_1_execute,
+        .name = "_initgun#1",
     },
     {
         .hash = 0x847eabf2,
