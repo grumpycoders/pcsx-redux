@@ -8,7 +8,7 @@ msgid ""
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 
-#: src/core/cdriso.cc:1685
+#: src/core/cdriso.cc:1686
 #, c-format
 msgid ""
 "\n"
@@ -39,11 +39,11 @@ msgstr ""
 msgid "%.2f FPS (%.2f ms)"
 msgstr ""
 
-#: src/core/cheat.cc:288 src/core/cheat.cc:403
+#: src/core/cheat.cc:289 src/core/cheat.cc:404
 msgid "(Untitled)"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:472
+#: src/gui/widgets/vram-viewer.cc:471
 msgid "24 bits shift"
 msgstr ""
 
@@ -55,7 +55,7 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-#: src/spu/cfg.cc:61
+#: src/spu/cfg.cc:60
 msgid "Accurate - best quality, but slower"
 msgstr ""
 
@@ -69,16 +69,16 @@ msgid ""
 "this setting may not have any effect for you."
 msgstr ""
 
-#: src/core/cdriso.cc:529
+#: src/core/cdriso.cc:528
 #, c-format
 msgid "Actual %i vs. %i estimated\n"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:171
+#: src/gui/widgets/breakpoints.cc:172
 msgid "Add Breakpoint"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:481
+#: src/gui/widgets/assembly.cc:482
 msgid ""
 "Add a small visible notch to indicate instructions that are on the delay "
 "slot of a branch."
@@ -88,7 +88,7 @@ msgstr ""
 msgid "Add one entry"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:830
+#: src/gui/widgets/assembly.cc:831
 msgid "Address"
 msgstr ""
 
@@ -108,7 +108,7 @@ msgstr ""
 msgid "Assembly"
 msgstr ""
 
-#: src/spu/cfg.cc:54
+#: src/spu/cfg.cc:53
 msgid ""
 "Attempts to make the CPU-to-SPU audio stream\n"
 "in sync, by changing its pitch. Consumes more CPU."
@@ -159,11 +159,11 @@ msgstr ""
 msgid "Break on word write map"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:161
+#: src/gui/widgets/breakpoints.cc:162
 msgid "Breakpoint Type"
 msgstr ""
 
-#: src/core/debug.cc:137
+#: src/core/debug.cc:138
 #, c-format
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s\n"
 msgstr ""
@@ -172,7 +172,7 @@ msgstr ""
 msgid "Breakpoints"
 msgstr ""
 
-#: src/core/cdriso.cc:528
+#: src/core/cdriso.cc:527
 #, c-format
 msgid "Buffer overflow..."
 msgstr ""
@@ -205,7 +205,7 @@ msgstr ""
 msgid "CPU: %s"
 msgstr ""
 
-#: src/gui/widgets/source.cc:90
+#: src/gui/widgets/source.cc:91
 msgid "Callstack"
 msgstr ""
 
@@ -213,7 +213,7 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: src/spu/cfg.cc:53
+#: src/spu/cfg.cc:52
 msgid "Change streaming pitch"
 msgstr ""
 
@@ -222,17 +222,17 @@ msgstr ""
 msgid "Change the value of register %s:"
 msgstr ""
 
-#: src/core/cheat.cc:126
+#: src/core/cheat.cc:127
 #, c-format
 msgid "Cheats loaded from: %s\n"
 msgstr ""
 
-#: src/core/cheat.cc:157
+#: src/core/cheat.cc:158
 #, c-format
 msgid "Cheats saved to: %s\n"
 msgstr ""
 
-#: src/gui/widgets/log.cc:43
+#: src/gui/widgets/log.cc:44
 msgid "Clear"
 msgstr ""
 
@@ -244,15 +244,15 @@ msgstr ""
 msgid "Close LID"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:919
+#: src/gui/widgets/assembly.cc:920
 msgid "Code##{}{:08x}"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:493
+#: src/gui/widgets/assembly.cc:494
 msgid "Columns"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:456
+#: src/gui/widgets/assembly.cc:457
 msgid "Combined pseudo-instructions"
 msgstr ""
 
@@ -261,11 +261,11 @@ msgid "Configuration"
 msgstr ""
 
 #. ClosePlugins();
-#: src/core/sio.cc:376
+#: src/core/sio.cc:377
 msgid "Connection closed!\n"
 msgstr ""
 
-#: src/gui/widgets/log.cc:45
+#: src/gui/widgets/log.cc:46
 msgid "Copy"
 msgstr ""
 
@@ -279,47 +279,47 @@ msgstr ""
 msgid "Core profile: %s"
 msgstr ""
 
-#: src/core/cdriso.cc:436
+#: src/core/cdriso.cc:435
 #, c-format
 msgid "Could not allocate audio codec for the input, aborting\n"
 msgstr ""
 
-#: src/core/cdriso.cc:462
+#: src/core/cdriso.cc:461
 #, c-format
 msgid "Could not allocate frame\n"
 msgstr ""
 
-#: src/core/cdriso.cc:510
+#: src/core/cdriso.cc:509
 #, c-format
 msgid "Could not allocate memory to decode CDDA TRACK: %s\n"
 msgstr ""
 
-#: src/core/cdriso.cc:444
+#: src/core/cdriso.cc:443
 #, c-format
 msgid "Could not allocate resample context"
 msgstr ""
 
-#: src/core/cdriso.cc:362
+#: src/core/cdriso.cc:361
 #, c-format
 msgid "Could not find %s stream in input file\n"
 msgstr ""
 
-#: src/core/cdriso.cc:428
+#: src/core/cdriso.cc:427
 #, c-format
 msgid "Could not find audio codec for the input, aborting\n"
 msgstr ""
 
-#: src/core/cdriso.cc:420
+#: src/core/cdriso.cc:419
 #, c-format
 msgid "Could not find audio stream in the input, aborting\n"
 msgstr ""
 
-#: src/core/cdriso.cc:410
+#: src/core/cdriso.cc:409
 #, c-format
 msgid "Could not find stream information\n"
 msgstr ""
 
-#: src/core/cheat.cc:54
+#: src/core/cheat.cc:55
 #, c-format
 msgid "Could not load cheats from: %s\n"
 msgstr ""
@@ -341,25 +341,25 @@ msgid ""
 "Add a valid BIOS in the configuration and hard reset.\n"
 msgstr ""
 
-#: src/core/cdriso.cc:455
+#: src/core/cdriso.cc:454
 #, c-format
 msgid "Could not open resample context"
 msgstr ""
 
-#: src/core/cdriso.cc:405
+#: src/core/cdriso.cc:404
 #, c-format
 msgid "Could not open source file %s\n"
 msgstr ""
 
-#: src/spu/cfg.cc:65
+#: src/spu/cfg.cc:64
 msgid "Cubic interpolation - better treble"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:921
+#: src/gui/widgets/assembly.cc:922
 msgid "DWARF##{}{:08x}"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:920
+#: src/gui/widgets/assembly.cc:921
 msgid "Data##{}{:08x}"
 msgstr ""
 
@@ -371,16 +371,16 @@ msgstr ""
 msgid "Decode MDEC videos in B&W"
 msgstr ""
 
-#: src/spu/cfg.cc:70
+#: src/spu/cfg.cc:69
 msgid "Decoded buffers IRQ"
 msgstr ""
 
-#: src/core/cdriso.cc:522
+#: src/core/cdriso.cc:521
 #, c-format
 msgid "Decoding audio tr#%u (%s)..."
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:476
+#: src/gui/widgets/assembly.cc:477
 msgid "Delay slot notch"
 msgstr ""
 
@@ -388,7 +388,7 @@ msgstr ""
 msgid "Directories"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:125
+#: src/gui/widgets/breakpoints.cc:126
 msgid "Disable##"
 msgstr ""
 
@@ -396,15 +396,15 @@ msgstr ""
 msgid "Disabled"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:489
+#: src/gui/widgets/assembly.cc:490
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
 msgstr ""
 
-#: src/spu/cfg.cc:69
+#: src/spu/cfg.cc:68
 msgid "Downmixes stereo to mono."
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:485
+#: src/gui/widgets/assembly.cc:486
 msgid "Draw arrows for jumps"
 msgstr ""
 
@@ -443,11 +443,11 @@ msgstr ""
 msgid "Emulation Configuration"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:492
+#: src/gui/widgets/vram-viewer.cc:491
 msgid "Enable Alpha channel view"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:502 src/gui/gui.cc:839
+#: src/gui/widgets/assembly.cc:503 src/gui/gui.cc:839
 msgid "Enable Debugger"
 msgstr ""
 
@@ -463,15 +463,15 @@ msgstr ""
 msgid "Enable XA decoder"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:493
+#: src/gui/widgets/vram-viewer.cc:492
 msgid "Enable greyscale"
 msgstr ""
 
-#: src/spu/cfg.cc:47
+#: src/spu/cfg.cc:46
 msgid "Enable streaming"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:130
+#: src/gui/widgets/breakpoints.cc:131
 msgid "Enable##"
 msgstr ""
 
@@ -491,32 +491,32 @@ msgstr ""
 msgid "Error allocating memory!"
 msgstr ""
 
-#: src/core/cdriso.cc:332
+#: src/core/cdriso.cc:331
 #, c-format
 msgid "Error decoding audio frame\n"
 msgstr ""
 
-#: src/core/plugins.cc:656
+#: src/core/plugins.cc:657
 #, c-format
 msgid "Error initializing GPU plugin: %d"
 msgstr ""
 
-#: src/core/plugins.cc:668
+#: src/core/plugins.cc:669
 #, c-format
 msgid "Error initializing SIO1 plugin: %d"
 msgstr ""
 
-#: src/core/plugins.cc:661
+#: src/core/plugins.cc:662
 #, c-format
 msgid "Error initializing SPU plugin: %d"
 msgstr ""
 
-#: src/core/plugins.cc:230
+#: src/core/plugins.cc:231
 #, c-format
 msgid "Error loading %s: %s"
 msgstr ""
 
-#: src/core/misc.cc:385 src/core/misc.cc:520
+#: src/core/misc.cc:385 src/core/misc.cc:512
 #, c-format
 msgid "Error opening file: %s.\n"
 msgstr ""
@@ -525,16 +525,16 @@ msgstr ""
 msgid "Exec"
 msgstr ""
 
-#: src/core/debug.cc:158
+#: src/core/debug.cc:159
 msgid "Execution map"
 msgstr ""
 
-#: src/core/cdriso.cc:370 src/core/cdriso.cc:376
+#: src/core/cdriso.cc:369 src/core/cdriso.cc:375
 #, c-format
 msgid "Failed to find %s codec\n"
 msgstr ""
 
-#: src/core/cdriso.cc:383
+#: src/core/cdriso.cc:382
 #, c-format
 msgid "Failed to open %s codec\n"
 msgstr ""
@@ -543,7 +543,7 @@ msgstr ""
 msgid "Fast boot"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:442 src/gui/widgets/vram-viewer.cc:465
+#: src/gui/widgets/assembly.cc:442 src/gui/widgets/vram-viewer.cc:464
 #: src/gui/gui.cc:384
 msgid "File"
 msgstr ""
@@ -560,15 +560,15 @@ msgstr ""
 msgid "Files"
 msgstr ""
 
-#: src/gui/widgets/log.cc:47 src/gui/widgets/assembly.cc:905
+#: src/gui/widgets/log.cc:48 src/gui/widgets/assembly.cc:906
 msgid "Filter"
 msgstr ""
 
-#: src/gui/widgets/log.cc:41
+#: src/gui/widgets/log.cc:42
 msgid "Follow"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:504
+#: src/gui/widgets/assembly.cc:505
 msgid "Follow PC"
 msgstr ""
 
@@ -597,11 +597,11 @@ msgstr ""
 msgid "GPU"
 msgstr ""
 
-#: src/spu/cfg.cc:64
+#: src/spu/cfg.cc:63
 msgid "Gaussian interpolation - good quality"
 msgstr ""
 
-#: src/spu/cfg.cc:71
+#: src/spu/cfg.cc:70
 msgid "Generates IRQs when buffers are decoded."
 msgstr ""
 
@@ -633,7 +633,7 @@ msgstr ""
 msgid "ImGui Themes"
 msgstr ""
 
-#: src/spu/cfg.cc:66
+#: src/spu/cfg.cc:65
 msgid "Interpolation"
 msgstr ""
 
@@ -641,7 +641,7 @@ msgstr ""
 msgid "Interrupt Scaler"
 msgstr ""
 
-#: src/core/ppf.cc:214
+#: src/core/ppf.cc:215
 #, c-format
 msgid "Invalid PPF patch: %s.\n"
 msgstr ""
@@ -663,7 +663,7 @@ msgstr ""
 msgid "Invalid load size specified BIOS Overlay:\"%s\"!\n"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:255
+#: src/gui/widgets/vram-viewer.cc:254
 msgid "Link error:\n"
 msgstr ""
 
@@ -705,23 +705,23 @@ msgstr ""
 msgid "Loaded BIOS: %s\n"
 msgstr ""
 
-#: src/core/cdriso.cc:1894
+#: src/core/cdriso.cc:1895
 #, c-format
 msgid "Loaded CD Image: %s"
 msgstr ""
 
 #. build address array
-#: src/core/ppf.cc:345
+#: src/core/ppf.cc:346
 #, c-format
 msgid "Loaded PPF %d.0 patch: %s.\n"
 msgstr ""
 
-#: src/core/cdriso.cc:1318
+#: src/core/cdriso.cc:1319
 #, c-format
 msgid "Loaded SBI file: %s.\n"
 msgstr ""
 
-#: src/core/sio.cc:434
+#: src/core/sio.cc:435
 #, c-format
 msgid "Loading memory card %s\n"
 msgstr ""
@@ -734,15 +734,15 @@ msgstr ""
 msgid "Logs"
 msgstr ""
 
-#: src/spu/cfg.cc:51
+#: src/spu/cfg.cc:50
 msgid "Loud"
 msgstr ""
 
-#: src/spu/cfg.cc:51
+#: src/spu/cfg.cc:50
 msgid "Loudest"
 msgstr ""
 
-#: src/spu/cfg.cc:51
+#: src/spu/cfg.cc:50
 msgid "Low"
 msgstr ""
 
@@ -778,7 +778,7 @@ msgstr ""
 msgid "Map word writes        "
 msgstr ""
 
-#: src/spu/cfg.cc:51
+#: src/spu/cfg.cc:50
 msgid "Medium"
 msgstr ""
 
@@ -798,7 +798,7 @@ msgstr ""
 msgid "Memory Editors"
 msgstr ""
 
-#: src/core/sio.cc:431
+#: src/core/sio.cc:432
 #, c-format
 msgid "Memory card %s failed to load!\n"
 msgstr ""
@@ -807,7 +807,7 @@ msgstr ""
 msgid "Misc"
 msgstr ""
 
-#: src/spu/cfg.cc:68
+#: src/spu/cfg.cc:67
 msgid "Mono"
 msgstr ""
 
@@ -819,11 +819,11 @@ msgstr ""
 msgid "Move up"
 msgstr ""
 
-#: src/spu/cfg.cc:46
+#: src/spu/cfg.cc:45
 msgid "Muted"
 msgstr ""
 
-#: src/spu/cfg.cc:60 src/spu/cfg.cc:63
+#: src/spu/cfg.cc:59 src/spu/cfg.cc:62
 msgid "None - fastest"
 msgstr ""
 
@@ -836,7 +836,7 @@ msgid "OK"
 msgstr ""
 
 #. change handle to decoded one
-#: src/core/cdriso.cc:534
+#: src/core/cdriso.cc:533
 #, c-format
 msgid "OK\n"
 msgstr ""
@@ -869,7 +869,7 @@ msgstr ""
 msgid "OpenGL information"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:455
+#: src/gui/widgets/assembly.cc:456
 msgid "Options"
 msgstr ""
 
@@ -890,28 +890,28 @@ msgstr ""
 msgid "Parallel Port"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:447 src/gui/widgets/assembly.cc:506
+#: src/gui/widgets/assembly.cc:447 src/gui/widgets/assembly.cc:507
 #: src/gui/gui.cc:451
 msgid "Pause"
 msgstr ""
 
-#: src/spu/cfg.cc:56
+#: src/spu/cfg.cc:55
 msgid "Pause SPU waiting for CPU IRQ"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:391
+#: src/gui/widgets/vram-viewer.cc:390
 msgid "Pixel Shader"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:232
+#: src/gui/widgets/vram-viewer.cc:231
 msgid "Pixel Shader compilation error:\n"
 msgstr ""
 
-#: src/core/plugins.cc:673
+#: src/core/plugins.cc:674
 msgid "Plugins loaded.\n"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:466
+#: src/gui/widgets/assembly.cc:467
 msgid "Pseudo-instrucitons filling"
 msgstr ""
 
@@ -919,19 +919,19 @@ msgstr ""
 msgid "Quit"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:845
+#: src/gui/widgets/assembly.cc:846
 msgid "RAM base"
 msgstr ""
 
-#: src/core/debug.cc:162
+#: src/core/debug.cc:163
 msgid "Read 16 map"
 msgstr ""
 
-#: src/core/debug.cc:164
+#: src/core/debug.cc:165
 msgid "Read 32 map"
 msgstr ""
 
-#: src/core/debug.cc:160
+#: src/core/debug.cc:161
 msgid "Read 8 map"
 msgstr ""
 
@@ -951,7 +951,7 @@ msgstr ""
 msgid "Reboot"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:903
+#: src/gui/widgets/assembly.cc:904
 msgid "Refresh"
 msgstr ""
 
@@ -971,11 +971,11 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:705
+#: src/gui/widgets/assembly.cc:706
 msgid "Remove breakpoint from here"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:119
+#: src/gui/widgets/breakpoints.cc:120
 msgid "Remove##"
 msgstr ""
 
@@ -983,15 +983,15 @@ msgstr ""
 msgid "Reset all"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:469
+#: src/gui/widgets/vram-viewer.cc:468
 msgid "Reset view"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:448 src/gui/widgets/assembly.cc:508
+#: src/gui/widgets/assembly.cc:448 src/gui/widgets/assembly.cc:509
 msgid "Resume"
 msgstr ""
 
-#: src/spu/cfg.cc:62
+#: src/spu/cfg.cc:61
 msgid "Reverb"
 msgstr ""
 
@@ -999,7 +999,7 @@ msgstr ""
 msgid "Roots"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:695
+#: src/gui/widgets/assembly.cc:696
 msgid "Run to cursor"
 msgstr ""
 
@@ -1007,7 +1007,7 @@ msgstr ""
 msgid "SPU"
 msgstr ""
 
-#: src/spu/cfg.cc:41
+#: src/spu/cfg.cc:40
 msgid "SPU configuration"
 msgstr ""
 
@@ -1015,7 +1015,7 @@ msgstr ""
 msgid "Save state"
 msgstr ""
 
-#: src/core/sio.cc:473
+#: src/core/sio.cc:474
 #, c-format
 msgid "Saving memory card %s\n"
 msgstr ""
@@ -1032,11 +1032,11 @@ msgstr ""
 msgid "Select BIOS Overlay"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:490
+#: src/gui/widgets/vram-viewer.cc:489
 msgid "Select a CLUT"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:700
+#: src/gui/widgets/assembly.cc:701
 msgid "Set Breakpoint here"
 msgstr ""
 
@@ -1072,7 +1072,7 @@ msgstr ""
 msgid "Show SPU debug"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:495
+#: src/gui/widgets/vram-viewer.cc:494
 msgid "Show Shader Editor"
 msgstr ""
 
@@ -1132,11 +1132,11 @@ msgstr ""
 msgid "Show word write BPs    "
 msgstr ""
 
-#: src/spu/cfg.cc:60
+#: src/spu/cfg.cc:59
 msgid "Simple - only handles the most common effects"
 msgstr ""
 
-#: src/spu/cfg.cc:63
+#: src/spu/cfg.cc:62
 msgid "Simple interpolation"
 msgstr ""
 
@@ -1144,7 +1144,7 @@ msgstr ""
 msgid "Soft Reset"
 msgstr ""
 
-#: src/gui/widgets/source.cc:86 src/gui/gui.cc:681
+#: src/gui/widgets/source.cc:87 src/gui/gui.cc:681
 msgid "Source"
 msgstr ""
 
@@ -1156,27 +1156,27 @@ msgstr ""
 msgid "Start GPU dump"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:510
+#: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:511
 msgid "Step In"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:452 src/gui/widgets/assembly.cc:514
+#: src/gui/widgets/assembly.cc:453 src/gui/widgets/assembly.cc:515
 msgid "Step Out"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:512
+#: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:513
 msgid "Step Over"
 msgstr ""
 
-#: src/core/debug.cc:103
+#: src/core/debug.cc:104
 msgid "Step in"
 msgstr ""
 
-#: src/core/debug.cc:115
+#: src/core/debug.cc:116
 msgid "Step out"
 msgstr ""
 
-#: src/core/debug.cc:108 src/core/debug.cc:110
+#: src/core/debug.cc:109 src/core/debug.cc:111
 msgid "Step over"
 msgstr ""
 
@@ -1184,14 +1184,14 @@ msgstr ""
 msgid "Stop GPU dump"
 msgstr ""
 
-#: src/spu/cfg.cc:57
+#: src/spu/cfg.cc:56
 msgid ""
 "Suspends the SPU processing during an IRQ, waiting\n"
 "for the main CPU to acknowledge it. Fixes issues\n"
 "with some games, but slows SPU processing."
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:854 src/gui/widgets/assembly.cc:902
+#: src/gui/widgets/assembly.cc:855 src/gui/widgets/assembly.cc:903
 msgid "Symbols"
 msgstr ""
 
@@ -1206,7 +1206,7 @@ msgid ""
 "the gdb server system itself."
 msgstr ""
 
-#: src/core/sio.cc:414
+#: src/core/sio.cc:415
 #, c-format
 msgid "The memory card %s doesn't exist - creating it\n"
 msgstr ""
@@ -1220,7 +1220,7 @@ msgstr ""
 msgid "Themes"
 msgstr ""
 
-#: src/core/misc.cc:470
+#: src/core/misc.cc:462
 msgid "This file does not appear to be a valid PSX file.\n"
 msgstr ""
 
@@ -1253,7 +1253,7 @@ msgid ""
 "can slow down emulation to a noticable extend."
 msgstr ""
 
-#: src/core/cdriso.cc:1873
+#: src/core/cdriso.cc:1874
 #, c-format
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
 msgstr ""
@@ -1262,24 +1262,24 @@ msgstr ""
 msgid "Types"
 msgstr ""
 
-#: src/spu/cfg.cc:48
+#: src/spu/cfg.cc:47
 msgid ""
 "Uncheck this to mute the streaming channel\n"
 "from the main CPU to the SPU. This includes\n"
 "XA audio and audio tracks."
 msgstr ""
 
-#: src/core/misc.cc:435
+#: src/core/misc.cc:430
 #, c-format
 msgid "Unknown CPE opcode %02x at position %08x.\n"
 msgstr ""
 
-#: src/core/ppf.cc:298
+#: src/core/ppf.cc:299
 #, c-format
 msgid "Unsupported PPF version (%d).\n"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:506
+#: src/gui/widgets/vram-viewer.cc:505
 msgid "VRAM Shader Editor"
 msgstr ""
 
@@ -1287,35 +1287,35 @@ msgstr ""
 msgid "VRAM viewers"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:389
+#: src/gui/widgets/vram-viewer.cc:388
 msgid "Vertex Shader"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:212
+#: src/gui/widgets/vram-viewer.cc:211
 msgid "Vertex Shader compilation error:\n"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:468
+#: src/gui/widgets/vram-viewer.cc:467
 msgid "View"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:477
+#: src/gui/widgets/vram-viewer.cc:476
 msgid "View VRAM in 16 bits"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:473
+#: src/gui/widgets/vram-viewer.cc:472
 msgid "View VRAM in 24 bits"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:485
+#: src/gui/widgets/vram-viewer.cc:484
 msgid "View VRAM in 4 bits"
 msgstr ""
 
-#: src/gui/widgets/vram-viewer.cc:481
+#: src/gui/widgets/vram-viewer.cc:480
 msgid "View VRAM in 8 bits"
 msgstr ""
 
-#: src/spu/cfg.cc:52
+#: src/spu/cfg.cc:51
 msgid "Volume"
 msgstr ""
 
@@ -1327,27 +1327,27 @@ msgstr ""
 msgid "Web Server Port"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:471
+#: src/gui/widgets/assembly.cc:472
 msgid ""
 "When combining two instructions into a single pseudo-instruction, add a "
 "placeholder for the second one."
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:461
+#: src/gui/widgets/assembly.cc:462
 msgid ""
 "When two instructions are detected to be a single pseudo-instruction, "
 "combine them into the actual pseudo-instruction."
 msgstr ""
 
-#: src/core/debug.cc:168
+#: src/core/debug.cc:169
 msgid "Write 16 map"
 msgstr ""
 
-#: src/core/debug.cc:170
+#: src/core/debug.cc:171
 msgid "Write 32 map"
 msgstr ""
 
-#: src/core/debug.cc:166
+#: src/core/debug.cc:167
 msgid "Write 8 map"
 msgstr ""
 
@@ -1379,12 +1379,12 @@ msgstr ""
 msgid "extensions:"
 msgstr ""
 
-#: src/core/misc.cc:507
+#: src/core/misc.cc:499
 #, c-format
 msgid "ng Load Bin file: [0x%08x] : %s\n"
 msgstr ""
 
-#: src/core/misc.cc:509
+#: src/core/misc.cc:501
 #, c-format
 msgid "ok Load Bin file: [0x%08x] : %s\n"
 msgstr ""
