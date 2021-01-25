@@ -54,6 +54,8 @@ uint32_t generate_mask_send_pad_2();
 /* C0 */
 uint32_t generate_hash_clear_card_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_clear_card_1();
+uint32_t generate_hash_initgun_1(uint32_t mask, unsigned len);
+uint32_t generate_mask_initgun_1();
 uint32_t generate_hash_patch_card_1(uint32_t mask, unsigned len);
 uint32_t generate_mask_patch_card_1();
 uint32_t generate_hash_patch_card_2(uint32_t mask, unsigned len);
@@ -143,6 +145,12 @@ static const struct patch c0[] = {
         .mask = generate_mask_clear_card_1,
         .name = "_clear_card#1",
         .execute = "clear_card_1_execute",
+    },
+    {
+        .hash = generate_hash_initgun_1,
+        .mask = generate_mask_initgun_1,
+        .name = "_initgun#1",
+        .execute = "initgun_1_execute",
     },
     {
         .hash = generate_hash_patch_card_1,
