@@ -34,3 +34,4 @@ int enqueueSyscallHandler(int priority);
 int enqueueIrqHandler(int priority);
 int enqueueRCntIrqs(int priority);
 int setTimerAutoAck(int timer, int value);
+int getTimer(int timer);

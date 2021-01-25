@@ -170,3 +170,8 @@ int __attribute__((section(".ramtext"))) setTimerAutoAck(int timer, int value) {
     s_timersAutoAck[timer] = value;
     return old;
 }
+
+int __attribute__((section(".ramtext"))) getTimer(int timer) {
+    if (timer > 2) return 0;
+    return COUNTERS[timer].value;
+}
