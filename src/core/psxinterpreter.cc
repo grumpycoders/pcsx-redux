@@ -347,8 +347,8 @@ void InterpretedCPU::psxADDI() {
         bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
             PCSX::g_emulator->m_psxCpu->m_psxRegs.pc -= 4;
+            PCSX::g_system->printf(_("Signed overflow in ADDI instruction from 0x%08x!\n"), m_psxRegs.pc);
             psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
-            PCSX::g_system->printf("Signed overflow in ADDI instruction!\n");
             return;
         }
     }
@@ -402,8 +402,8 @@ void InterpretedCPU::psxADD() {
         bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                   // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             PCSX::g_system->printf(_("Signed overflow in ADD instruction from 0x%08x!\n"), m_psxRegs.pc);
+            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
     }
@@ -427,8 +427,8 @@ void InterpretedCPU::psxSUB() {
         bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             PCSX::g_system->printf(_("Signed overflow in SUB instruction from 0x%08x!\n"), m_psxRegs.pc);
+            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
     }
@@ -670,8 +670,8 @@ void InterpretedCPU::psxJR() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
         if (_rRs_ & 3) {  // if the jump is unaligned, throw an exception and ret
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Attempted unaligned JR from 0x%08x, firing exception!\n"), m_psxRegs.pc);
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -689,8 +689,8 @@ void InterpretedCPU::psxJALR() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
         if (temp & 3) {  // if the address is unaligned, throw an exception and return
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Attempted unaligned JALR from 0x%08x, firing exception!\n"), m_psxRegs.pc);
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -728,8 +728,8 @@ void InterpretedCPU::psxLH() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Unaligned address in LH from 0x%08x\n"), m_psxRegs.pc);
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -746,8 +746,8 @@ void InterpretedCPU::psxLHU() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Unaligned address in LHU from 0x%08x\n"), m_psxRegs.pc);
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -764,8 +764,8 @@ void InterpretedCPU::psxLW() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 3) {
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Unaligned address in LW from 0x%08x\n"), m_psxRegs.pc);
+            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -818,8 +818,8 @@ void InterpretedCPU::psxSH() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Unaligned address in SH from 0x%08x\n"), m_psxRegs.pc);
+            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -830,8 +830,8 @@ void InterpretedCPU::psxSW() {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 3) {
             m_psxRegs.pc -= 4;
-            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
             PCSX::g_system->printf(_("Unaligned address in SW from 0x%08x\n"), m_psxRegs.pc);
+            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -935,8 +935,8 @@ void InterpretedCPU::psxCFC2() {
 void InterpretedCPU::psxNULL() {
     PSXCPU_LOG("psx: Unimplemented op %x\n", m_psxRegs.code);
     m_psxRegs.pc -= 4;
-    psxException(Exceptions::ReservedInstruction, m_inDelaySlot);
     PCSX::g_system->printf(_("Encountered reserved opcode from 0x%08x, firing an exception\n"), m_psxRegs.pc);
+    psxException(Exceptions::ReservedInstruction, m_inDelaySlot);
 }
 
 void InterpretedCPU::psxSPECIAL() { (*this.*(s_pPsxSPC[_Funct_]))(); }
