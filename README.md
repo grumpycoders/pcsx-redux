@@ -1,4 +1,4 @@
-![Debugger screenshot](https://raw.githubusercontent.com/grumpycoders/pcsx-redux/ghpages/images/debugger1.png)
+![Debugger screenshot](https://pcsx-redux.consoledev.net/images/debugger1.png)
 
 
 |Platform|Build status|
