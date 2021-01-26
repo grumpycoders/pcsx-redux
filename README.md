@@ -1,10 +1,13 @@
+![Debugger screenshot](https://raw.githubusercontent.com/grumpycoders/pcsx-redux/ghpages/images/debugger1.png)
+
+
 |Platform|Build status|
 |--------|------------|
 |Windows build|[![Build Status](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=main)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=main)|
 |Linux build|[![CircleCI](https://circleci.com/gh/grumpycoders/pcsx-redux.svg?style=svg)](https://circleci.com/gh/grumpycoders/pcsx-redux)|
-|MacOS build|![macOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)|
+|MacOS build|[![macOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|
 
-![Discord](https://img.shields.io/discord/567975889879695361)
+[![Discord](https://img.shields.io/discord/567975889879695361)](https://discord.gg/KG5uCqw)
 
 # PCSX-Redux
 
