@@ -123,12 +123,12 @@ msgid ""
 "Ignored.\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:693
+#: src/core/psxinterpreter.cc:692
 #, c-format
 msgid "Attempted unaligned JALR from 0x%08x, firing exception!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:674
+#: src/core/psxinterpreter.cc:673
 #, c-format
 msgid "Attempted unaligned JR from 0x%08x, firing exception!\n"
 msgstr ""
@@ -512,7 +512,7 @@ msgid ""
 "has a bug in its manifest parser."
 msgstr ""
 
-#: src/core/psxinterpreter.cc:939
+#: src/core/psxinterpreter.cc:938
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr ""
@@ -1162,12 +1162,17 @@ msgstr ""
 msgid "Show word write BPs    "
 msgstr ""
 
-#: src/core/psxinterpreter.cc:406
+#: src/core/psxinterpreter.cc:405
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:431
+#: src/core/psxinterpreter.cc:350
+#, c-format
+msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:430
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr ""
@@ -1302,27 +1307,27 @@ msgstr ""
 msgid "Types"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:732
+#: src/core/psxinterpreter.cc:731
 #, c-format
 msgid "Unaligned address in LH from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:750
+#: src/core/psxinterpreter.cc:749
 #, c-format
 msgid "Unaligned address in LHU from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:768
+#: src/core/psxinterpreter.cc:767
 #, c-format
 msgid "Unaligned address in LW from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:822
+#: src/core/psxinterpreter.cc:821
 #, c-format
 msgid "Unaligned address in SH from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:834
+#: src/core/psxinterpreter.cc:833
 #, c-format
 msgid "Unaligned address in SW from 0x%08x\n"
 msgstr ""
