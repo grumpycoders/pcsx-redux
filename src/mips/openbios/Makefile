@@ -68,7 +68,6 @@ uC-sdk-glue/BoardConsole.c \
 uC-sdk-glue/BoardInit.c \
 uC-sdk-glue/init.c \
 \
-../../../third_party/uC-sdk/libc/src/cxx-glue.c \
 ../../../third_party/uC-sdk/libc/src/errno.c \
 ../../../third_party/uC-sdk/libc/src/initfini.c \
 ../../../third_party/uC-sdk/libc/src/qsort.c \
@@ -79,7 +78,6 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/libc/src/xprintf.c \
 ../../../third_party/uC-sdk/libc/src/xscanf.c \
 ../../../third_party/uC-sdk/libc/src/yscanf.c \
-../../../third_party/uC-sdk/os/src/hash-djb2.c \
 ../../../third_party/uC-sdk/os/src/init.c \
 ../../../third_party/uC-sdk/os/src/osdebug.c \
 
