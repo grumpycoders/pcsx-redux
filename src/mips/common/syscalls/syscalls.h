@@ -384,6 +384,12 @@ static __attribute__((always_inline)) void syscall_installExceptionHandler() {
     ((void (*)())0xc0)();
 }
 
+static __attribute__((always_inline)) void syscall_kernInitheap(void* base, size_t size) {
+    register int n asm("t1") = 0x08;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(void*, size_t))0xc0)(base, size);
+}
+
 static __attribute__((always_inline)) int syscall_enqueueIrqHandler(int priority) {
     register int n asm("t1") = 0x0c;
     __asm__ volatile("" : "=r"(n) : "r"(n));

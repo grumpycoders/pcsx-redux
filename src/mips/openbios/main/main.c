@@ -224,15 +224,12 @@ static void loadSystemCnf(const char *systemCnf, struct Configuration *configura
     findStringItem(systemCnf, binaryPath, cmdLine, "BOOT");
 }
 
+#define HEAP_SIZE 0x2000
+static uint8_t s_heap[HEAP_SIZE];
+
 static void kernelSetup() {
     psxprintf("KERNEL SETUP!\n");
-    // the following is going to be hard to do with our current
-    // allocator implementation, so let's free stuff instead
-    // syscall_sysInitMemory(&heapBase, heapSize);
-    syscall_kfree(__globals.events);
-    syscall_kfree(__globals.processes);
-    syscall_kfree(__globals.threads);
-    syscall_kfree(__globals.handlersArray);
+    syscall_kernInitheap(s_heap, HEAP_SIZE);
 
     initHandlersArray(4);
     syscall_enqueueSyscallHandler(0);
@@ -323,7 +320,7 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     muteSpu();
     s_configuration = g_defaultConfiguration;
     psxprintf("KERNEL SETUP!\n");
-    // syscall_sysInitMemory(&heapBase, heapSize);
+    syscall_kernInitheap(s_heap, HEAP_SIZE);
     initHandlersArray(4);
     syscall_enqueueSyscallHandler(0);
     syscall_enqueueIrqHandler(3);

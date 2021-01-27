@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,16 @@ SOFTWARE.
 
 */
 
-void cpu_early_init() {}
+#pragma once
 
-void cpu_init() {}
+#include <stddef.h>
 
-void cpu_late_init() {}
+void* user_malloc(size_t size);
+void user_free(void* ptr);
+void* user_realloc(void* ptr, size_t size);
+void user_initheap(void* base, size_t size);
 
-void __sinit(void* reent) {}
+void* kern_malloc(size_t size);
+void kern_free(void* ptr);
+void* kern_realloc(void* ptr, size_t size);
+void kern_initheap(void* base, size_t size);

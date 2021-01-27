@@ -198,7 +198,7 @@ SECTIONS {
     /DISCARD/ : { *(.MIPS.abiflags) }
 
     /* Everything is statically linked, so discard PLTs. */
-    /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) }
+    /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) *(.rel.dyn) }
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }

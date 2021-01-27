@@ -28,10 +28,10 @@ SOFTWARE.
 
 #include <ctype.h>
 #include <memory.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/compiler/stdint.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/psxlibc/setjmp.h"
 #include "common/psxlibc/stdio.h"
@@ -42,6 +42,7 @@ SOFTWARE.
 #include "openbios/charset/sjis.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/gpu/gpu.h"
+#include "openbios/kernel/alloc.h"
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/flushcache.h"
 #include "openbios/kernel/handlers.h"
@@ -138,47 +139,9 @@ static int card_info_stub(int param) {
 
 static int card_status_stub() { return 0x11; }
 
-static void wrapper_initheap(void *start, size_t size) {
-    psxprintf("**openbios** initheap(0x%08x, 0x%08x) ignored\n", start, size);
-}
-
-static void *wrapper_malloc(size_t size) {
-    psxprintf("**openbios** malloc(0x%08x)\n", size);
-    void *ret = base_malloc(size);
-    psxprintf("**openbios** malloc returned 0x%08x\n", ret);
-    uintptr_t retv = (uintptr_t)ret + size;
-    if (ret && retv < 0x10000) return ret;
-    psxprintf("**openbios** not enough memory! Stopping.\n");
-    pcsx_debugbreak();
-    while(1) {}
-}
-
-static void wrapper_free(void *ptr) {
-    psxprintf("**openbios** free(0x%08x)\n", ptr);
-    base_free(ptr);
-}
-
-static void *wrapper_calloc(size_t nitems, size_t size) {
-    psxprintf("**openbios** calloc(0x%08x, 0x%08x)\n", nitems, size);
-    void *ret = calloc(nitems, size);
-    psxprintf("**openbios** calloc returned 0x%08x\n", ret);
-    uintptr_t retv = (uintptr_t)ret + size;
-    if (ret && retv < 0x10000) return ret;
-    psxprintf("**openbios** not enough memory! Stopping.\n");
-    pcsx_debugbreak();
-    while(1) {}
-}
-
-static void *wrapper_realloc(void *ptr, size_t size) {
-    psxprintf("**openbios** realloc(0x%08x, 0x%08x)\n", ptr, size);
-    void *ret = realloc(ptr, size);
-    psxprintf("**openbios** realloc returned 0x%08x\n", ret);
-    uintptr_t retv = (uintptr_t)ret + size;
-    if (ret && retv < 0x10000) return ret;
-    if (!ret && size == 0) return ret;
-    psxprintf("**openbios** not enough memory! Stopping.\n");
-    pcsx_debugbreak();
-    while(1) {}
+static __attribute__((section(".ramtext"))) void *wrapper_calloc(size_t nitems, size_t size) {
+    uint8_t *ptr = user_malloc(nitems * size);
+    syscall_memset(ptr, 0, nitems * size);
 }
 
 // clang-format off
@@ -196,9 +159,9 @@ static const void *romA0table[0xc0] = {
     strstr, toupper, tolower, psxbcopy, // 24
     psxbzero, psxbcmp, memcpy, memset, // 28
     memmove, psxbcmp, memchr, psxrand, // 2c
-    psxsrand, qsort, unimplemented /*atof*/, wrapper_malloc, // 30
-    wrapper_free, psxlsearch, psxbsearch, wrapper_calloc, // 34
-    wrapper_realloc, wrapper_initheap, unimplemented /*abort*/, unimplemented, // 38
+    psxsrand, qsort, unimplemented /*atof*/, user_malloc, // 30
+    user_free, psxlsearch, psxbsearch, wrapper_calloc, // 34
+    user_realloc, user_initheap, unimplemented /*abort*/, unimplemented, // 38
     unimplemented, unimplemented, unimplemented, psxprintf, // 3c
     unimplemented /*unresolved exception */, loadExeHeader, loadExe, exec, // 40
     flushCache, installKernelHandlers, GPU_dw, GPU_mem2vram, // 44
@@ -235,7 +198,7 @@ static const void *romA0table[0xc0] = {
 };
 
 void *B0table[0x60] = {
-    malloc, free, unimplemented, unimplemented, // 00
+    kern_malloc, kern_free, unimplemented, unimplemented, // 00
     unimplemented, unimplemented, unimplemented, deliverEvent, // 04
     openEvent, closeEvent, waitEvent, testEvent, // 08
     enableEvent, disableEvent, openThread, closeThread, // 0c
@@ -264,7 +227,7 @@ void *B0table[0x60] = {
 void *C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
     unimplemented, getFreeTCBslot, unimplemented, installExceptionHandler, // 04
-    unimplemented, unimplemented, setTimerAutoAck, unimplemented, // 08
+    kern_initheap, unimplemented, setTimerAutoAck, unimplemented, // 08
     enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
     unimplemented, unimplemented, setupFileIO, unimplemented, // 10
     unimplemented, unimplemented, cdevscan, unimplemented, // 14
