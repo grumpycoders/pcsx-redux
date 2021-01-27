@@ -19,6 +19,7 @@ gpu/gpu.c \
 handlers/irq.c \
 handlers/setup.c \
 handlers/syscall.c \
+kernel/alloc.c \
 kernel/events.c \
 kernel/flushcache.s \
 kernel/handlers.c \
@@ -76,11 +77,11 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/libc/src/string.c \
 ../../../third_party/uC-sdk/libc/src/strto.c \
 ../../../third_party/uC-sdk/libc/src/xprintf.c \
+../../../third_party/uC-sdk/libc/src/xscanf.c \
+../../../third_party/uC-sdk/libc/src/yscanf.c \
 ../../../third_party/uC-sdk/os/src/hash-djb2.c \
 ../../../third_party/uC-sdk/os/src/init.c \
 ../../../third_party/uC-sdk/os/src/osdebug.c \
-../../../third_party/uC-sdk/os/src/romfs.c \
-../../../third_party/uC-sdk/os/src/sbrk.c \
 
 ifeq ($(BOOT),rom)
 LDSCRIPT = psx-bios.ld
