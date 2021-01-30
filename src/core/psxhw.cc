@@ -466,7 +466,7 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
             PCSX::g_emulator->m_psxCounters->psxRcntWtarget(2, value);
             return;
         case 0x1f802082:
-            PCSX::g_system->quit((int16_t)value);
+            PCSX::g_system->testQuit((int16_t)value);
             return;
 
         default:
