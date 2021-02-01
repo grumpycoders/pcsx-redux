@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,36 @@ SOFTWARE.
 
 */
 
-#include "common/hardware/cop0.h"
+#pragma once
 
-int main() { return 0; }
+#include <stdint.h>
+
+#include "common/hardware/gpu.h"
+#include "common/hardware/hwregs.h"
+#include "shell/math.h"
+
+#define WIDTH 512
+#define HEIGHT 480
+
+union GPUPoint {
+    uint32_t packed;
+    struct {
+        int16_t x, y;
+    };
+};
+
+void initGPU();
+void flip();
+void waitVSync();
+
+static inline void sendGPUVertex(struct Vertex2D *v) {
+    union GPUPoint p;
+    int32_t y = v->y >> 22;
+    y = y * 5 / 4;
+    p.x = v->x >> 22;
+    p.y = y + HEIGHT / 2;
+    GPU_DATA = p.packed;
+}
+
+static const union Color s_bg = {.r = 0, .g = 64, .b = 91};
+static const union Color s_saturated = {.r = 156, .g = 220, .b = 218};

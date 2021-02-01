@@ -52,6 +52,50 @@
         {
             "type": "gdb",
             "request": "launch",
+            "name": "(gdb) Launch Hello World",
+            "target": "./src/mips/helloworld/helloworld.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
+                "target remote localhost:3333",
+                "set substitute-path /project .",
+                "monitor reset shellhalt",
+                "load ./src/mips/helloworld/helloworld.elf",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch shell",
+            "target": "./src/mips/shell/shell.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
+                "target remote localhost:3333",
+                "set substitute-path /project .",
+                "monitor reset shellhalt",
+                "load ./src/mips/shell/shell.elf",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
             "name": "(gdb) Launch Basic Test",
             "target": "./src/mips/tests/basic/basic.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",

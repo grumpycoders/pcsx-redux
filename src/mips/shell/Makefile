@@ -3,7 +3,10 @@ TYPE = bin
 
 SRCS = \
 ../common/crt0/crt0.s \
-main/main.c \
+dcos.c \
+gpu.c \
+hull.c \
+main.c \
 
 LDSCRIPT = shell.ld
 
