@@ -37,7 +37,7 @@ void flip() {
     s_frame ^= 1;
     setDisplayArea(s_frame ? WIDTH : 0, 0);
     setDrawingArea(s_frame ? 0 : WIDTH, 0, s_frame ? WIDTH : WIDTH * 2, HEIGHT);
-    setDrawingOffset(s_frame ? WIDTH / 2 : 3 * WIDTH / 2, 0);
+    setDrawingOffset(s_frame ? 0 : WIDTH, 0);
     struct FastFill ff = {
         .c = s_bg,
         .x = s_frame ? 0 : WIDTH,

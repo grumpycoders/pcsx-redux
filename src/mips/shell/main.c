@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,11 @@ SOFTWARE.
 
 static void generateTables() { generateCosTable(); }
 
+// first 8 = cube
+// last 8 = hull
 static struct Vertex2D v[16];
+
+#define ONE 16777216
 
 static int s_hull = 0;
 static int s_hullFrame = 0;
@@ -46,10 +50,10 @@ static void render() {
     if (counter >= 60) counter = 60;
     struct Matrix2D m;
     uint32_t t = DC_2PI - lerpU(0, DC_PI2 + DC_PI4, counter * 256 / 60);
-    int32_t s = lerpD(25165824, 12582912, counter * 16777216 / 60);
+    int32_t s = lerpD(1.5 * ONE, 0.75 * ONE, counter * ONE / 60);
     rotationMatrix2D(&m, t);
     scaleMatrix2D(&m, s);
-    static const int32_t e = 536870912;
+    static const int32_t e = ONE;
     struct Vertex2D v1 = {.x = e, .y = e};
     struct Vertex2D v2 = {.x = -e, .y = e};
     struct Vertex2D v3 = {.x = e, .y = -e};
@@ -73,11 +77,11 @@ static void render() {
             .color = c,
         };
         startLineCommand(&cmd);
-        int32_t s = lerpD(16777216, 29360128, counter * 16777216 / 40);
-        m.vs[0].x = 16777216;
+        int32_t s = lerpD(ONE, 1.75 * ONE, counter * ONE / 40);
+        m.vs[0].x = ONE;
         m.vs[0].y = 0;
         m.vs[1].x = 0;
-        m.vs[1].y = 16777216;
+        m.vs[1].y = ONE;
         scaleMatrix2D(&m, s);
         struct Vertex2D ve[8];
         for (int i = 0; i < hull; i++) {

@@ -46,11 +46,15 @@ void initGPU();
 void flip();
 void waitVSync();
 
+// we shift by 17 instead of 24 to do a scaling of 128
+// therefore a typical square of (-1,-1)-(1,1) would
+// end up as a 256x256 pixels one
 static inline void sendGPUVertex(struct Vertex2D *v) {
     union GPUPoint p;
-    int32_t y = v->y >> 22;
+    int32_t x = v->x >> 17;
+    int32_t y = v->y >> 17;
     y = y * 5 / 4;
-    p.x = v->x >> 22;
+    p.x = x + WIDTH / 2;
     p.y = y + HEIGHT / 2;
     GPU_DATA = p.packed;
 }
