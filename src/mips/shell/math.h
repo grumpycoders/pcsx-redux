@@ -30,6 +30,15 @@ SOFTWARE.
 
 #include "shell/dcos.h"
 
+#define ONE 16777216
+
+static inline int32_t dMul(int32_t a, int32_t b) {
+    long long r = a;
+    r *= b;
+    return r >> 24;
+}
+int32_t dDiv(int32_t a, int32_t b);
+
 struct Vertex2D {
     int32_t x, y;
 };
@@ -37,6 +46,23 @@ struct Vertex2D {
 struct Matrix2D {
     struct Vertex2D vs[2];
 };
+
+struct Vertex3D {
+    int32_t x, y, z;
+};
+
+struct Matrix3D {
+    struct Vertex3D vs[3];
+};
+
+enum Axis { AXIS_X, AXIS_Y, AXIS_Z };
+
+void generateRotationMatrix3D(struct Matrix3D *m, int t, enum Axis a);
+void multiplyMatrix3D(const struct Matrix3D *m1, const struct Matrix3D *m2, struct Matrix3D *out);
+void scaleMatrix3D(struct Matrix3D *m, int32_t s);
+void matrixVertexMul3D(const struct Matrix3D *m, const struct Vertex3D *v, struct Vertex3D *out);
+void matrixVertexMul3Dxy(const struct Matrix3D *m, const struct Vertex3D *v, struct Vertex2D *out);
+int32_t matrixVertexMul3Dz(const struct Matrix3D *m, const struct Vertex3D *v);
 
 static inline void rotationMatrix2D(struct Matrix2D *m, int t) {
     int32_t c = dCos(t);

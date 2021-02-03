@@ -7,6 +7,7 @@ dcos.c \
 gpu.c \
 hull.c \
 main.c \
+math.c \
 
 LDSCRIPT = shell.ld
 

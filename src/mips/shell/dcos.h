@@ -60,10 +60,4 @@ static inline int32_t dSin(unsigned int t) {
     return dCos(t - DC_PI2);
 }
 
-static inline int32_t dMul(int32_t a, int32_t b) {
-    long long r = a;
-    r *= b;
-    return r >> 24;
-}
-
 void generateCosTable();
