@@ -129,8 +129,8 @@ static inline void fastFill(struct FastFill* ff) {
     GPU_DATA = ff->w | ff->h << 16;
 }
 
-static inline uint32_t generateDrawingAreaStart(int16_t x, int16_t y) { return 0xe3000000 | x | y << 11; }
-static inline uint32_t generateDrawingAreaEnd(int16_t x, int16_t y) { return 0xe4000000 | (x - 1) | (y - 1) << 11; }
+static inline uint32_t generateDrawingAreaStart(int16_t x, int16_t y) { return 0xe3000000 | x | y << 10; }
+static inline uint32_t generateDrawingAreaEnd(int16_t x, int16_t y) { return 0xe4000000 | (x - 1) | (y - 1) << 10; }
 static inline void setDrawingArea(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     sendGPUData(generateDrawingAreaStart(x1, y1));
     sendGPUData(generateDrawingAreaEnd(x2, y2));

@@ -77,7 +77,7 @@ static void calculateFrame() {
     unsigned counter = s_frameCounter++;
     if (counter == 60) s_phase = 1;
     int phase = s_phase;
-    if ((counter + 4 * 60) % (5 * 60) == 0) {
+    if ((counter + 4 * 60) % (5 * 60) == 1) {
         s_hullFrame = 0;
         s_hull = convexHull(v, 8);
     }
