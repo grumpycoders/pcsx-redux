@@ -32,7 +32,7 @@ SOFTWARE.
 #include "common/hardware/hwregs.h"
 #include "shell/math.h"
 
-#define WIDTH 512
+#define WIDTH 640
 #define HEIGHT 480
 
 union GPUPoint {
@@ -43,7 +43,7 @@ union GPUPoint {
 };
 
 void initGPU();
-void flip();
+void flip(int doubleBuffer);
 void waitVSync();
 
 // we shift by 17 instead of 24 to do a scaling of 128

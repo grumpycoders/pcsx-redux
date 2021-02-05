@@ -33,19 +33,30 @@ SOFTWARE.
 
 static int s_frame = 0;
 
-void flip() {
-    s_frame ^= 1;
-    setDisplayArea(s_frame ? WIDTH : 0, 0);
-    setDrawingArea(s_frame ? 0 : WIDTH, 0, s_frame ? WIDTH : WIDTH * 2, HEIGHT);
-    setDrawingOffset(s_frame ? 0 : WIDTH, 0);
-    struct FastFill ff = {
-        .c = s_bg,
-        .x = s_frame ? 0 : WIDTH,
-        .y = 0,
-        .w = WIDTH,
-        .h = HEIGHT,
-    };
-    fastFill(&ff);
+void flip(int doubleBuffer) {
+    if (doubleBuffer) {
+        s_frame ^= 1;
+        setDisplayArea(s_frame ? WIDTH : 0, 0);
+        setDrawingArea(s_frame ? 0 : WIDTH, 0, s_frame ? WIDTH : WIDTH * 2, HEIGHT);
+        setDrawingOffset(s_frame ? 0 : WIDTH, 0);
+        struct FastFill ff = {
+            .c = s_bg,
+            .x = s_frame ? 0 : WIDTH,
+            .y = 0,
+            .w = WIDTH,
+            .h = HEIGHT,
+        };
+        fastFill(&ff);
+    } else {
+        struct FastFill ff = {
+            .c = s_bg,
+            .x = 0,
+            .y = 0,
+            .w = WIDTH,
+            .h = HEIGHT,
+        };
+        fastFill(&ff);
+    }
 }
 
 void waitVSync() {
@@ -64,7 +75,7 @@ void waitVSync() {
 void initGPU() {
     GPU_STATUS = 0x00000000;  // reset GPU
     struct DisplayModeConfig config = {
-        .hResolution = HR_512,
+        .hResolution = HR_640,
         .vResolution = VR_480,
         .videoMode = VM_NTSC,
         .colorDepth = CD_15BITS,
@@ -74,4 +85,7 @@ void initGPU() {
     setDisplayMode(&config);
     setHorizontalRange(7, 0xa00);
     setVerticalRange(10, 250);
+    setDisplayArea(0, 0);
+    setDrawingArea(0, 0, WIDTH, HEIGHT);
+    setDrawingOffset(0, 0);
 }

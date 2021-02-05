@@ -56,7 +56,7 @@ static const unsigned modelQuads[6][4] = {
     {0, 1, 2, 3}, {0, 4, 5, 1}, {0, 3, 7, 4}, {4, 7, 6, 5}, {2, 6, 7, 3}, {1, 5, 6, 2},
 };
 
-#define NL 22369621
+#define NL ONE
 static const struct Vertex3D modelNormals[6] = {
     {0, 0, NL}, {0, NL, 0}, {NL, 0, 0}, {0, 0, -NL}, {0, -NL, 0}, {-NL, 0, 0},
 };
@@ -85,7 +85,7 @@ static void calculateFrame() {
     struct Matrix3D transform;
     if (phase == 0) {
         uint32_t t = DC_2PI - lerpU(0, DC_PI2 + DC_PI4, counter * 256 / 60);
-        int32_t s = lerpD(1.28 * ONE, 0.75 * ONE, counter * ONE / 60);
+        int32_t s = lerpD(1.58 * ONE, ONE, counter * ONE / 60);
         generateRotationMatrix3D(&transform, t, AXIS_Z);
         scaleMatrix3D(&transform, s);
     } else {
@@ -96,7 +96,7 @@ static void calculateFrame() {
         multiplyMatrix3D(&transform, &rot, &transform);
         generateRotationMatrix3D(&rot, t * 4 / 3, AXIS_Y);
         multiplyMatrix3D(&transform, &rot, &transform);
-        scaleMatrix3D(&transform, 0.75 * ONE);
+        scaleMatrix3D(&transform, ONE);
     }
 
     for (unsigned i = 0; i < 8; i++) {
@@ -210,7 +210,7 @@ int main() {
         calculateFrame();
         idle();
         waitVSync();
-        flip();
+        flip(0);
         render();
     }
 }
