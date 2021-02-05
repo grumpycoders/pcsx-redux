@@ -53,12 +53,13 @@ static const struct Vertex3D modelVertices[8] = {
     {ONE, ONE, -ONE}, {-ONE, ONE, -ONE}, {-ONE, -ONE, -ONE}, {ONE, -ONE, -ONE},
 };
 static const unsigned modelQuads[6][4] = {
-    {0, 1, 2, 3}, {0, 4, 5, 1}, {4, 7, 6, 5}, {2, 6, 7, 3}, {0, 3, 7, 4}, {1, 5, 6, 2},
+    {0, 1, 2, 3}, {0, 4, 5, 1}, {0, 3, 7, 4}, {4, 7, 6, 5}, {2, 6, 7, 3}, {1, 5, 6, 2},
 };
 
 #define NL 22369621
-static const struct Vertex3D modelNormals[6] = {{0, 0, NL},  {0, NL, 0}, {0, 0, -NL},
-                                                {0, -NL, 0}, {NL, 0, 0}, {-NL, 0, 0}};
+static const struct Vertex3D modelNormals[6] = {
+    {0, 0, NL}, {0, NL, 0}, {NL, 0, 0}, {0, 0, -NL}, {0, -NL, 0}, {-NL, 0, 0},
+};
 
 // first 8 = cube
 // last 8 = hull
