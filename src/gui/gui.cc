@@ -180,6 +180,14 @@ void PCSX::GUI::init() {
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
+
+        PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
+        PCSX::g_emulator->m_cdrom->m_iso.close();
+        if (!isoToOpen.empty()) {
+            SetIsoFile(reinterpret_cast<const char*>(isoToOpen.c_str()));
+            PCSX::g_emulator->m_cdrom->m_iso.open();
+            CheckCdrom();
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
