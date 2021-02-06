@@ -2017,13 +2017,7 @@ void PCSX::CDRiso::close() {
     m_useCompressed = false;
 }
 
-void PCSX::CDRiso::init() {
-    assert(m_cdHandle == NULL);
-    assert(m_subHandle == NULL);
-    assert(m_ecm_file_detected == false);
-    assert(m_decoded_ecm_buffer == NULL);
-    assert(m_decoded_ecm == NULL);
-}
+void PCSX::CDRiso::init() {}
 
 void PCSX::CDRiso::shutdown() {
     close();
