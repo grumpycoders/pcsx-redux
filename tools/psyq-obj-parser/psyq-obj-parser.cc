@@ -112,6 +112,7 @@ struct PsyqLnkFile {
         PCSX::Slice data;
         std::list<Relocation> relocations;
         uint32_t getFullSize() { return data.size() + zeroes + uninitializedOffset; }
+        uint32_t pointer = 0;
 
         ELFIO::section* section = nullptr;
         ELFIO::section* rel_sec = nullptr;
@@ -240,6 +241,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                     fmt::print("Section {} not found\n", ret->currentSection);
                     return nullptr;
                 }
+                section->pointer = section->getFullSize();
                 if (section->zeroes) {
                     void* ptr = calloc(section->zeroes, 1);
                     PCSX::Slice zeroes;
@@ -297,15 +299,15 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                     }
                 }
                 uint16_t offset = file->read<uint16_t>();
-                vprint("offset {:04x}, expression: \n", offset);
-                std::unique_ptr<Expression> expression = Expression::parse(file, verbose);
-                if (!expression) return nullptr;
                 auto section = ret->getCurrentSection();
                 if (!section) {
                     fmt::print("Section {} not found\n", ret->currentSection);
                     return nullptr;
                 }
-                section->relocations.emplace_back(Relocation{PsyqRelocType(relocType), offset, std::move(expression)});
+                vprint("offset {:04x}+{:08x}, expression: \n", offset, section->pointer);
+                std::unique_ptr<Expression> expression = Expression::parse(file, verbose);
+                if (!expression) return nullptr;
+                section->relocations.emplace_back(Relocation{PsyqRelocType(relocType), offset + section->pointer, std::move(expression)});
                 break;
             }
             case (uint8_t)PsyqOpcode::EXPORTED_SYMBOL: {
