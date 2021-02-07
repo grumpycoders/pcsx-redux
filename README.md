@@ -48,12 +48,12 @@ sudo apt-get install -y git make pkg-config clang-10 g++-9 g++-mipsel-linux-gnu 
  - Arch derivatives :
 
 ```bash
-sudo pacman -S clang git make pkg-config ffmpeg libuv zlib sdl2 glfw-x11 curl xorg-server-xvfb 
+sudo pacman -S clang git make pkg-config ffmpeg libuv zlib sdl2 glfw-x11 curl xorg-server-xvfb
 ```
-The mipsel environnement can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-trizen -S cross-mipsel-linux-gnu-binutils mipsel-linux-gnu-gcc 
+trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
 ```
 You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
 
