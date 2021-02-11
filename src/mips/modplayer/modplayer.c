@@ -297,6 +297,7 @@ static void MOD_UpdateEffect() {
 
         switch (effectNibble1) {
             case 0:  // arpeggio
+                if (effectNibble23 == 0) break;
                 arpeggioTick = MOD_Tick;
                 arpeggioTick %= 3;
                 switch (arpeggioTick) {
