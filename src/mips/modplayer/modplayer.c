@@ -39,7 +39,10 @@ SOFTWARE.
 
 struct MODSampleData {
     char name[22];
-    uint16_t length;
+    union {
+        uint16_t length;
+        uint8_t lenarr[2];
+    };
     uint8_t finetune;
     uint8_t volume;
     uint16_t repeatLocation;
@@ -201,7 +204,7 @@ unsigned MOD_Load(const struct MODFileFormat* module) {
         s_spuInstrumentData[i].baseAddress = currentSpuAddress >> 4;
         s_spuInstrumentData[i].finetune = module->samples[i].finetune;
         s_spuInstrumentData[i].volume = module->samples[i].volume;
-        currentSpuAddress += module->samples[i].length;
+        currentSpuAddress += module->samples[i].lenarr[0] * 0x100 + module->samples[i].lenarr[1];
     }
 
     MOD_SongLength = module->songLength;
