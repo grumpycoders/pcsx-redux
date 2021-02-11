@@ -496,9 +496,10 @@ static void MOD_UpdateRow() {
 
         uint8_t effectNibble1 = MOD_RowPointer[2];
         uint8_t effectNibble23 = MOD_RowPointer[3];
-        unsigned sampleID = (MOD_RowPointer[0] & 0xf0) | (effectNibble1 >> 4);
+        uint16_t nibble0 = MOD_RowPointer[0];
+        unsigned sampleID = (nibble0 & 0xf0) | (effectNibble1 >> 4);
         effectNibble1 &= 0x0f;
-        unsigned period = ((MOD_RowPointer[0] & 0x0f) << 8) | MOD_RowPointer[1];
+        unsigned period = ((nibble0 & 0x0f) << 8) | MOD_RowPointer[1];
         if (effectNibble1 != 9) s_channelData[channel].samplePos = 0;
         if (sampleID != 0) {
             s_channelData[channel].sampleID = --sampleID;
