@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,28 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/psxlibc/handlers.h"
+#include <stdint.h>
 
-int sysEnqIntRP(int priority, struct HandlerInfo* handler);
-struct HandlerInfos* sysDeqIntRP(int priority, struct HandlerInfo* handler);
-int enqueueSyscallHandler(int priority);
-int enqueueIrqHandler(int priority);
-int enqueueRCntIrqs(int priority);
-int initTimer(uint32_t timer, uint16_t target, uint16_t flags);
-int setTimerAutoAck(uint32_t timer, int value);
-int getTimer(uint32_t timer);
-int enableTimerIRQ(uint32_t timer);
-int disableTimerIRQ(uint32_t timer);
-int restartTimer(uint32_t timer);
+extern unsigned MOD_Channels;
+extern unsigned MOD_SongLength;
+extern const uint8_t* MOD_ModuleData;
+extern unsigned MOD_CurrentOrder;
+extern unsigned MOD_CurrentPattern;
+extern unsigned MOD_CurrentRow;
+extern unsigned MOD_Speed;
+extern unsigned MOD_Tick;
+extern unsigned MOD_BPM;
+extern const uint8_t* MOD_RowPointer;
+extern int MOD_ChangeRowNextTick;
+extern unsigned MOD_NextRow;
+extern int MOD_ChangeOrderNextTick;
+extern unsigned MOD_NextOrder;
+extern uint8_t MOD_PatternDelay;
+extern unsigned MOD_LoopStart;
+extern unsigned MOD_LoopCount;
+
+struct MODFileFormat;
+
+unsigned MOD_Check(const struct MODFileFormat* module);
+unsigned MOD_Load(const struct MODFileFormat* module);
+void MOD_Poll();

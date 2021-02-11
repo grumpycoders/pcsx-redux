@@ -26,11 +26,13 @@ SOFTWARE.
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
+
+#include "modplayer/modplayer.h"
 
 #include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/spu.h"
+#include "common/syscalls/syscalls.h"
 
 /* This code is a reverse engineering of the file MODPLAY.BIN, located in the zip file
    "Asm-Mod" from http://hitmen.c02.at/html/psx_tools.html, that has the CRC32 bb91769f. */
@@ -107,7 +109,7 @@ static void SPUResetVoice(int voiceID) {
     SPU_VOICES[voiceID].sr = 0x0000;
 }
 
-static void SPUUploadInstruments(uint32_t SpuAddr, uint32_t* data, uint32_t size) {
+static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t size) {
     uint32_t bcr = size >> 6;
     if (size & 0x3f) bcr++;
     bcr <<= 16;
@@ -149,15 +151,15 @@ static void SPUKeyOn(uint32_t voiceBits) {
 static void SPUSetVoiceSampleRate(int voiceID, uint16_t sampleRate) { SPU_VOICES[voiceID].sampleRate = sampleRate; }
 
 unsigned MOD_Check(const struct MODFileFormat* module) {
-    if (strncmp(module->signature, "HIT", 3) == 0) {
+    if (syscall_strncmp(module->signature, "HIT", 3) == 0) {
         return module->signature[3] - '0';
-    } else if (strncmp(module->signature, "HM", 2) == 0) {
+    } else if (syscall_strncmp(module->signature, "HM", 2) == 0) {
         return ((module->signature[2] - '0') * 10) + module->signature[3] - '0';
     }
     return 0;
 }
 
-int TimerSetTarget(int timerID, uint16_t target, uint32_t flags) {
+static int InitTimer(int timerID, uint16_t target, uint32_t flags) {
     if (timerID >= 3) return 0;
     uint32_t mode = timerID == 2 ? 0x248 : 0x148;
     COUNTERS[timerID].mode = 0;
@@ -192,6 +194,8 @@ unsigned MOD_Load(const struct MODFileFormat* module) {
 
     if (MOD_Channels == 0) return 0;
 
+    MOD_ModuleData = (const uint8_t*)module;
+
     uint32_t currentSpuAddress = 0x1010;
     for (unsigned i = 0; i < 31; i++) {
         s_spuInstrumentData[i].baseAddress = currentSpuAddress >> 4;
@@ -225,7 +229,7 @@ unsigned MOD_Load(const struct MODFileFormat* module) {
     MOD_LoopCount = 0;
     // these two are erroneously missing from the original code, at least for being able to play more than one music
     MOD_PatternDelay = 0;
-    memset(s_channelData, 0, sizeof(s_channelData));
+    syscall_memset(s_channelData, 0, sizeof(s_channelData));
     //
     SPUUnMute();
 
@@ -273,7 +277,7 @@ static const uint16_t MOD_PeriodTable[36 * 16] = {
 };
 
 static void MOD_UpdateEffect() {
-    uint8_t* rowPointer = MOD_RowPointer - MOD_Channels * 4;
+    const uint8_t* rowPointer = MOD_RowPointer - MOD_Channels * 4;
     for (unsigned channel = 0; channel < MOD_Channels; channel++) {
         uint8_t effectNibble23 = rowPointer[3];
         uint8_t effectNibble1 = rowPointer[2] & 0x0f;
@@ -287,7 +291,6 @@ static void MOD_UpdateEffect() {
         uint8_t fx;
         uint32_t mutation;
         int8_t newValue;
-        int16_t volume;
 
         switch (effectNibble1) {
             case 0:  // arpeggio
@@ -663,7 +666,7 @@ static void MOD_UpdateRow() {
             case 15:  // set speed
                 MOD_Speed = effectNibble23;
                 // this very likely needs to change
-                TimerSetTarget(1, 39000 / effectNibble23, 0x1000);
+                InitTimer(1, 39000 / effectNibble23, 0x1000);
                 break;
         }
 

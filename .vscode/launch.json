@@ -52,6 +52,28 @@
         {
             "type": "gdb",
             "request": "launch",
+            "name": "(gdb) Launch modplayer demo",
+            "target": "./src/mips/modplayer/modplay-demo.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
+                "target remote localhost:3333",
+                "set substitute-path /project .",
+                "monitor reset shellhalt",
+                "load ./src/mips/modplayer/modplay-demo.elf",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
             "name": "(gdb) Launch Basic Test",
             "target": "./src/mips/tests/basic/basic.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
