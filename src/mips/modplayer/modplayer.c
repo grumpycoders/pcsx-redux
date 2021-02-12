@@ -175,11 +175,23 @@ static int InitTimer(int timerID, uint16_t target, uint32_t flags) {
 }
 
 static void MOD_SetBPM(unsigned bpm) {
-    // the original code only cares for PAL, but the hclock signal
-    // is fairly similar between PAL and NTSC, so maybe it doesn't matter,
-    // but here's the PAL check if we want to do the NTSC computation
-    // int isPAL = *((const char*)0xbfc7ff52) == 'E';
-    InitTimer(1, 39000 / bpm, 0x1000);
+    // the original code only cares for PAL, but NTSC has a different hclock,
+    // so we need to adjust our counters here accordingly
+
+    // also, the original code is using 39000 for PAL, using 312*125 as the
+    // baseline, but this is a bad approximation: the proper values are
+    // 312.5 for interlaced PAL, 314 for non-interlaced PAL, 262.5 for
+    // interlaced NTSC, and 263 for non-interlaced NTSC
+    uint32_t status = GPU_STATUS;
+    int isPal = (status & 0x00100000) != 0;
+    int isInterlaced = (status & 0x00400000) != 0;
+    uint32_t base;
+    if (isPal) {
+        base = isInterlaced ? 39062 : 39250;
+    } else {
+        base = isInterlaced ? 32812 : 32875;
+    }
+    InitTimer(1, base / bpm, 0x1000);
 }
 
 unsigned MOD_Channels = 0;
@@ -743,7 +755,7 @@ static void MOD_UpdateRow() {
                     MOD_Speed = effectNibble23;
                 } else {
                     MOD_BPM = effectNibble23;
-                    SetBPM(effectNibble23);
+                    MOD_SetBPM(effectNibble23);
                 }
                 break;
         }

@@ -73,7 +73,9 @@ unsigned MOD_Check(const struct MODFileFormat* module);
 // playback. Returns the number of bytes needed if
 // relocation is desired. The pointer has to be
 // aligned to a 4-bytes boundary. Will also setup
-// the SPU, and timer1.
+// the SPU, and timer1. If using timer1 for polling,
+// make sure the GPU is set before calling this,
+// and do not change video mode during playback.
 uint32_t MOD_Load(const struct MODFileFormat* module);
 
 // Call this function periodically to play sound. The
