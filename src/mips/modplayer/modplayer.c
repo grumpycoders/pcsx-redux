@@ -769,7 +769,8 @@ void MOD_Poll() {
         if (newPatternDelay-- == 0) {
             MOD_UpdateRow();
             newPatternDelay = MOD_PatternDelay;
-            if (++MOD_CurrentRow >= 64) {
+            // I don't think the original code was handling this properly...
+            if (++MOD_CurrentRow >= 64 || MOD_ChangeRowNextTick) {
                 MOD_CurrentRow = 0;
                 if (++MOD_CurrentOrder >= MOD_SongLength) {
                     MOD_CurrentOrder = 0;
