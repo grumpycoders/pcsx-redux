@@ -765,15 +765,16 @@ static void MOD_UpdateRow() {
 }
 
 void MOD_Poll() {
-    uint8_t newPatternDelay;
+    // the original code is getting the delay pattern wrong here, and
+    // isn't processing them as actual line delays, rather as a sort
+    // of ticks delay, and was basically going too fast
+    uint8_t newPatternDelay = MOD_PatternDelay;
     if (++MOD_Tick < MOD_Speed) {
         MOD_UpdateEffect();
-        newPatternDelay = MOD_PatternDelay;
     } else {
-        newPatternDelay = MOD_PatternDelay - 1;
-        if (MOD_PatternDelay == 0) {
+        MOD_Tick = 0;
+        if (newPatternDelay-- == 0) {
             MOD_UpdateRow();
-            MOD_Tick = 0;
             newPatternDelay = MOD_PatternDelay;
             if (++MOD_CurrentRow >= 64) {
                 MOD_CurrentRow = 0;
@@ -782,6 +783,8 @@ void MOD_Poll() {
                 }
                 MOD_CurrentPattern = MOD_ModuleData[MOD_CurrentOrder];
             }
+        } else {
+            MOD_UpdateEffect();
         }
     }
     MOD_PatternDelay = newPatternDelay;
