@@ -30,7 +30,6 @@ SOFTWARE.
 #include <stdlib.h>
 
 #include "common/hardware/dma.h"
-#include "common/hardware/hwregs.h"
 #include "common/hardware/spu.h"
 #include "common/syscalls/syscalls.h"
 
@@ -163,37 +162,6 @@ unsigned MOD_Check(const struct MODFileFormat* module) {
     return 0;
 }
 
-// this is strangely similar, yet different from the kernel's B0:02 call
-static int InitTimer(int timerID, uint16_t target, uint32_t flags) {
-    if (timerID >= 3) return 0;
-    uint32_t mode = timerID == 2 ? 0x248 : 0x148;
-    COUNTERS[timerID].mode = 0;
-    COUNTERS[timerID].target = target;
-    if (flags & 0x1000) mode |= 0x0010;
-    COUNTERS[timerID].mode = mode;
-    return 1;
-}
-
-static void MOD_SetBPM(unsigned bpm) {
-    // the original code only cares for PAL, but NTSC has a different hclock,
-    // so we need to adjust our counters here accordingly
-
-    // also, the original code is using 39000 for PAL, using 312*125 as the
-    // baseline, but this is a bad approximation: the proper values are
-    // 312.5 for interlaced PAL, 314 for non-interlaced PAL, 262.5 for
-    // interlaced NTSC, and 263 for non-interlaced NTSC
-    uint32_t status = GPU_STATUS;
-    int isPal = (status & 0x00100000) != 0;
-    int isInterlaced = (status & 0x00400000) != 0;
-    uint32_t base;
-    if (isPal) {
-        base = isInterlaced ? 39062 : 39250;
-    } else {
-        base = isInterlaced ? 32812 : 32875;
-    }
-    InitTimer(1, base / bpm, 0x1000);
-}
-
 unsigned MOD_Channels = 0;
 unsigned MOD_SongLength = 0;
 // original code keeps this one to the very beginning of the file,
@@ -218,6 +186,33 @@ uint8_t MOD_PatternDelay = 0;
 unsigned MOD_LoopStart = 0;
 unsigned MOD_LoopCount = 0;
 int MOD_Stereo = 0;
+uint32_t MOD_hblanks;
+
+// This function is now more of a helper to calculate the number of hsync
+// values to wait until the next call to MOD_Poll. If the user wants to use
+// another method, they will have to inspect MOD_BPM manually and make their
+// own math based on their own timer.
+static void MOD_SetBPM(unsigned bpm) {
+    MOD_BPM = bpm;
+    // The original code only uses 39000 here but the reality is a bit more
+    // complex than that, as not all clocks are exactly the same, depending
+    // on the machine's region, and the video mode selected.
+
+    uint32_t status = GPU_STATUS;
+    int isPalConsole = *((const char*)0xbfc7ff52) == 'E';
+    int isPal = (status & 0x00100000) != 0;
+    uint32_t base;
+    if (isPal && isPalConsole) {          // PAL video on PAL console
+        base = 39062;                     // 312.5 * 125 * 50.000 / 50 or 314 * 125 * 49.761 / 50
+    } else if (isPal && !isPalConsole) {  // PAL video on NTSC console
+        base = 39422;                     // 312.5 * 125 * 50.460 / 50 or 314 * 125 * 50.219 / 50
+    } else if (!isPal && isPalConsole) {  // NTSC video on PAL console
+        base = 38977;                     // 262.5 * 125 * 59.393 / 50 or 263 * 125 * 59.280 / 50
+    } else {                              // NTSC video on NTSC console
+        base = 39336;                     // 262.5 * 125 * 59.940 / 50 or 263 * 125 * 59.826 / 50
+    }
+    MOD_hblanks = base / bpm;
+}
 
 static struct SPUChannelData s_channelData[24];
 
@@ -252,7 +247,6 @@ uint32_t MOD_Load(const struct MODFileFormat* module) {
     MOD_CurrentRow = 0;
     MOD_Speed = 6;
     MOD_Tick = 6;
-    MOD_BPM = 125;
     MOD_RowPointer = MOD_ModuleData + 4 + 128 + MOD_CurrentPattern * MOD_Channels * 0x100;
     // original code goes only up to MOD_Channels; let's reset all 24
     for (unsigned i = 0; i < 24; i++) SPUResetVoice(i);
@@ -268,9 +262,8 @@ uint32_t MOD_Load(const struct MODFileFormat* module) {
 
     SPUUnMute();
 
-    // this one is also missing, and is necessary, if the MOD_Poll call
-    // is done from the timer1 handler as it should, and if more than
-    // one song is meant to be played sequentially, with different BPMs
+    // this one is also missing, and is necessary, for being able to call MOD_Load
+    // after another song that changed the tempo previously
     MOD_SetBPM(125);
 
     // the original code would do:
@@ -748,12 +741,13 @@ static void MOD_UpdateRow() {
                 }
                 break;
             case 15:  // set speed
-                // the original code here is very wrong
+                // the original code here is very wrong with regards to
+                // how to interpret the command; also it was very opinionated
+                // about using timer1 for its clock source
                 if (effectNibble23 == 0) break;
                 if (effectNibble23 < 32) {
                     MOD_Speed = effectNibble23;
                 } else {
-                    MOD_BPM = effectNibble23;
                     MOD_SetBPM(effectNibble23);
                 }
                 break;

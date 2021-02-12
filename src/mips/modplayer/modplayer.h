@@ -73,9 +73,7 @@ unsigned MOD_Check(const struct MODFileFormat* module);
 // playback. Returns the number of bytes needed if
 // relocation is desired. The pointer has to be
 // aligned to a 4-bytes boundary. Will also setup
-// the SPU, and timer1. If using timer1 for polling,
-// make sure the GPU is set before calling this,
-// and do not change video mode during playback.
+// the SPU.
 uint32_t MOD_Load(const struct MODFileFormat* module);
 
 // Call this function periodically to play sound. The
@@ -84,8 +82,8 @@ uint32_t MOD_Load(const struct MODFileFormat* module);
 // not change the default tempo, which requires calling
 // MOD_Poll 50 times per second, or exactly the vertical
 // refresh rate in PAL. Preferably call this from timer1's
-// IRQ however, as MOD_Load and MOD_Poll will tweak it
-// depending on tempo changes.
+// IRQ however, and look up MOD_hblanks to decide of the
+// next target value to use.
 // To pause or stop playback, simply stop calling this
 // function. The internal player doesn't need any
 // sort of cleanup, and switching to another song simply
@@ -98,6 +96,12 @@ void MOD_Poll();
 // want the volume settings to be monaural or the same
 // as the original Amiga's Paula chip.
 extern int MOD_Stereo;
+
+// Indicates the number of hblank ticks to wait before
+// calling MOD_Poll. This value may or may not change
+// after a call to MOD_Poll, if the track requested a
+// tempo change.
+extern uint32_t MOD_hblanks;
 
 // It is possible to reclaim memory from the initial call
 // to MOD_Load, in case the module was loaded from an

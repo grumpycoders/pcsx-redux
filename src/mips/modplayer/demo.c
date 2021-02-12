@@ -33,43 +33,53 @@ extern const uint8_t _binary_timewarped_hit_start[];
 
 #define printf ramsyscall_printf
 
-void waitVSync() {
+static uint16_t s_nextCounter = 0;
+
+// Function to call periodically if we can't use interrupts for some reason.
+// If the code is running slower than the normal vsync speed, then you should
+// call this during your frame computation code, in order to make sure you're
+// not missing any tick.
+static void checkMusic() {
+    if (((int16_t)(s_nextCounter - COUNTERS[1].value)) <= 0) {
+        MOD_Poll();
+        s_nextCounter += MOD_hblanks;
+    }
+}
+
+static void waitVSync() {
     int wasLocked = enterCriticalSection();
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_VBLANK;
 
-    while ((IREG & IRQ_VBLANK) == 0)
-        ;
+    while ((IREG & IRQ_VBLANK) == 0) {
+        // Since our vsync is a kludge, we can't use the root counter IRQ
+        // mechanism to call MOD_Poll, and so we have to poll here, during
+        // vsync, for when our timer has passed the target value manually.
+
+        // We *could* set up the timer properly using the target value system,
+        // but this might make a few emulators sad. Beside, this is a perfectly
+        // valid and common solution.
+        checkMusic();
+    }
     IREG &= ~IRQ_VBLANK;
     IMASK = imask;
     if (!wasLocked) leaveCriticalSection();
 }
 
-// Don't do this: it's not going to be able to pickup tempo
-// changes properly, and it will be too fast on PAL.
-//#define POLL_ON_VSYNC
-
 void main() {
     printf("Loading MOD:\'%s\'\n", _binary_timewarped_hit_start);
-    // The right way is to use timer1 to call MOD_Poll periodically,
-    // at the right frequency, independently of the current video
-    // mode, and will also properly tolerate the tempo changes.
-#ifndef POLL_ON_VSYNC
-    int wasInCS = enterCriticalSection();
-    syscall_setDefaultExceptionJmpBuf();
-#endif
+    // We are going to use timer1 and its hblank counter to tell us when
+    // we need to call MOD_Poll again. For this, we need timer1 to be
+    // counting hblanks instead of the system clock.
+    COUNTERS[1].mode = 0x0100;
     MOD_Load((struct MODFileFormat*)_binary_timewarped_hit_start);
-#ifndef POLL_ON_VSYNC
-    syscall_enableTimerIRQ(1);
-    uint32_t event = syscall_openEvent(0xf2000001, 2, 0x1000, MOD_Poll);
-    syscall_enableEvent(event);
-    if (!wasInCS) leaveCriticalSection();
-#endif
     printf("%02d Channels, %02d Orders\n", MOD_Channels, MOD_SongLength);
     unsigned row = 0xffffffff;
     unsigned order = 0xffffffff;
     unsigned pattern = 0xffffffff;
+    // Giving our initial counter a proper value.
+    s_nextCounter = COUNTERS[1].value + MOD_hblanks;
     while (1) {
         if (row != MOD_CurrentRow || order != MOD_CurrentOrder || pattern != MOD_CurrentPattern) {
             row = MOD_CurrentRow;
@@ -78,12 +88,5 @@ void main() {
             printf("Row: %02d, Order: %02d, Pattern: %02d\n", row, order, pattern);
         }
         waitVSync();
-        // If we really want to synchronize the music to vblank, we can
-        // just do that instead of using the event callback stuff, but it
-        // will play at different speed depending on video mode, and it
-        // won't handle any tempo change from the track.
-#ifdef POLL_ON_VSYNC
-        MOD_Poll();
-#endif
     }
 }
