@@ -24,10 +24,10 @@ SOFTWARE.
 
 */
 
+#include "modplayer/modplayer.h"
+
 #include <stdint.h>
 #include <stdlib.h>
-
-#include "modplayer/modplayer.h"
 
 #include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
@@ -122,7 +122,8 @@ static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t
     SPU_CTRL = (SPU_CTRL & ~0x0030) | 0x0020;
     while ((SPU_CTRL & 0x0030) != 0x0020)
         ;
-    SBUS_DEV4_CTRL = SBUS_DEV4_CTRL;  // ah?
+    // original code erroneously was doing SBUS_DEV4_CTRL = SBUS_DEV4_CTRL;
+    SBUS_DEV4_CTRL &= ~0x0f000000;
     DMA_CTRL[DMA_SPU].MADR = (uint32_t)data;
     DMA_CTRL[DMA_SPU].BCR = bcr;
     DMA_CTRL[DMA_SPU].CHCR = 0x01000201;
@@ -162,6 +163,7 @@ unsigned MOD_Check(const struct MODFileFormat* module) {
     return 0;
 }
 
+// this is strangely similar, yet different from the kernel's B0:02 call
 static int InitTimer(int timerID, uint16_t target, uint32_t flags) {
     if (timerID >= 3) return 0;
     uint32_t mode = timerID == 2 ? 0x248 : 0x148;
@@ -172,15 +174,29 @@ static int InitTimer(int timerID, uint16_t target, uint32_t flags) {
     return 1;
 }
 
+static void MOD_SetBPM(unsigned bpm) {
+    // the original code only cares for PAL, but the hclock signal
+    // is fairly similar between PAL and NTSC, so maybe it doesn't matter,
+    // but here's the PAL check if we want to do the NTSC computation
+    // int isPAL = *((const char*)0xbfc7ff52) == 'E';
+    InitTimer(1, 39000 / bpm, 0x1000);
+}
+
 unsigned MOD_Channels = 0;
 unsigned MOD_SongLength = 0;
-const uint8_t* MOD_ModuleData = NULL;
+// original code keeps this one to the very beginning of the file,
+// while this code keeps the pointer to the beginning of the order table
+static const uint8_t* MOD_ModuleData = NULL;
 unsigned MOD_CurrentOrder = 0;
 unsigned MOD_CurrentPattern = 0;
 unsigned MOD_CurrentRow = 0;
 unsigned MOD_Speed = 0;
 unsigned MOD_Tick = 0;
+// this never seems to be updated in the original code, which is a
+// mistake; the F command handler was all wrong
 unsigned MOD_BPM = 0;
+// original code keeps this one to the NEXT row,
+// while this code keeps the pointer to the CURRENT row
 const uint8_t* MOD_RowPointer = NULL;
 int MOD_ChangeRowNextTick = 0;
 unsigned MOD_NextRow = 0;
@@ -189,15 +205,15 @@ unsigned MOD_NextOrder = 0;
 uint8_t MOD_PatternDelay = 0;
 unsigned MOD_LoopStart = 0;
 unsigned MOD_LoopCount = 0;
+int MOD_Stereo = 0;
+
 static struct SPUChannelData s_channelData[24];
 
-unsigned MOD_Load(const struct MODFileFormat* module) {
+uint32_t MOD_Load(const struct MODFileFormat* module) {
     SPUInit();
     MOD_Channels = MOD_Check(module);
 
     if (MOD_Channels == 0) return 0;
-
-    MOD_ModuleData = (const uint8_t*)module;
 
     uint32_t currentSpuAddress = 0x1010;
     for (unsigned i = 0; i < 31; i++) {
@@ -214,8 +230,9 @@ unsigned MOD_Load(const struct MODFileFormat* module) {
         if (maxPatternID < module->patternTable[i]) maxPatternID = module->patternTable[i];
     }
 
-    SPUUploadInstruments(0x1010,
-                         MOD_ModuleData + sizeof(struct MODFileFormat) + MOD_Channels * 0x100 * (maxPatternID + 1),
+    MOD_ModuleData = (const uint8_t*)&module->patternTable[0];
+
+    SPUUploadInstruments(0x1010, MOD_ModuleData + 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1),
                          currentSpuAddress - 0x1010);
 
     MOD_CurrentOrder = 0;
@@ -224,19 +241,53 @@ unsigned MOD_Load(const struct MODFileFormat* module) {
     MOD_Speed = 6;
     MOD_Tick = 6;
     MOD_BPM = 125;
-    MOD_RowPointer = MOD_ModuleData + sizeof(struct MODFileFormat) + MOD_CurrentPattern * MOD_Channels * 0x100;
-    for (unsigned i = 0; i < MOD_Channels; i++) SPUResetVoice(i);
+    MOD_RowPointer = MOD_ModuleData + 4 + 128 + MOD_CurrentPattern * MOD_Channels * 0x100;
+    // original code goes only up to MOD_Channels; let's reset all 24
+    for (unsigned i = 0; i < 24; i++) SPUResetVoice(i);
     MOD_ChangeRowNextTick = 0;
     MOD_ChangeOrderNextTick = 0;
     MOD_LoopStart = 0;
     MOD_LoopCount = 0;
-    // these two are erroneously missing from the original code, at least for being able to play more than one music
+
+    // these two are erroneously missing from the original code, at
+    // least for being able to play more than one music
     MOD_PatternDelay = 0;
     syscall_memset(s_channelData, 0, sizeof(s_channelData));
-    //
+
     SPUUnMute();
 
-    return MOD_Channels;
+    // this one is also missing, and is necessary, if the MOD_Poll call
+    // is done from the timer1 handler as it should, and if more than
+    // one song is meant to be played sequentially, with different BPMs
+    MOD_SetBPM(125);
+
+    // the original code would do:
+    // return MOD_Channels;
+    // but we are returning the size for the MOD_Relocate call
+    return 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1);
+}
+
+void MOD_Relocate(uint8_t* s1) {
+    if (MOD_ModuleData == s1) return;
+    unsigned maxPatternID = 0;
+    for (unsigned i = 0; i < 128; i++) {
+        if (maxPatternID < MOD_ModuleData[i]) maxPatternID = MOD_ModuleData[i];
+    }
+
+    size_t n = 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1);
+
+    const uint8_t* s2 = MOD_ModuleData;
+    size_t i;
+
+    if (s1 < s2) {
+        for (i = 0; i < n; i++) *s1++ = *s2++;
+    } else if (s1 > s2) {
+        s1 += n;
+        s2 += n;
+        for (i = 0; i < n; i++) *--s1 = *--s2;
+    }
+
+    MOD_ModuleData = s1;
 }
 
 static const uint8_t MOD_SineTable[32] = {
@@ -245,7 +296,7 @@ static const uint8_t MOD_SineTable[32] = {
 };
 
 //   C    C#   D    D#   E    F    F#   G    G#   A    A#   B
-static const uint16_t MOD_PeriodTable[36 * 16] = {
+const uint16_t MOD_PeriodTable[36 * 16] = {
     856, 808, 762, 720, 678, 640, 604, 570, 538, 508, 480, 453,  // octave 1 tune 0
     428, 404, 381, 360, 339, 320, 302, 285, 269, 254, 240, 226,  // octave 2 tune 0
     214, 202, 190, 180, 170, 160, 151, 143, 135, 127, 120, 113,  // octave 3 tune 0
@@ -296,9 +347,23 @@ static const uint16_t MOD_PeriodTable[36 * 16] = {
     216, 203, 192, 181, 171, 161, 152, 144, 136, 128, 121, 114,  // octave 3 tune -1
 };
 
+#define SETVOICESAMPLERATE(channel, newPeriod) \
+    SPUSetVoiceSampleRate(channel, ((7093789 / (newPeriod * 2)) << 12) / 44100)
+#define SETVOICEVOLUME(channel, volume)             \
+    volume <<= 8;                                   \
+    if (MOD_Stereo) {                               \
+        int pan = (channel & 1) ^ (channel >> 1);   \
+        int16_t left = pan == 0 ? volume : 0;       \
+        int16_t right = pan == 0 ? 0 : volume;      \
+        SPUSetVoiceVolume(channel, left, right);    \
+    } else {                                        \
+        SPUSetVoiceVolume(channel, volume, volume); \
+    }
+
 static void MOD_UpdateEffect() {
-    const uint8_t* rowPointer = MOD_RowPointer - MOD_Channels * 4;
-    for (unsigned channel = 0; channel < MOD_Channels; channel++) {
+    const uint8_t* rowPointer = MOD_RowPointer;
+    const unsigned channels = MOD_Channels;
+    for (unsigned channel = 0; channel < channels; channel++) {
         uint8_t effectNibble23 = rowPointer[3];
         uint8_t effectNibble1 = rowPointer[2] & 0x0f;
         uint8_t effectNibble2 = effectNibble23 & 0x0f;
@@ -312,6 +377,8 @@ static void MOD_UpdateEffect() {
         uint32_t mutation;
         int8_t newValue;
 
+        struct SPUChannelData* const channelData = &s_channelData[channel];
+
         switch (effectNibble1) {
             case 0:  // arpeggio
                 if (effectNibble23 == 0) break;
@@ -319,36 +386,33 @@ static void MOD_UpdateEffect() {
                 arpeggioTick %= 3;
                 switch (arpeggioTick) {
                     case 0:
-                        newPeriod = s_channelData[channel].period;
+                        newPeriod = channelData->period;
                         break;
                     case 1:
-                        newPeriod = MOD_PeriodTable[s_channelData[channel].note + effectNibble3];
+                        newPeriod = MOD_PeriodTable[channelData->note + effectNibble3];
                         break;
                     case 2:
-                        newPeriod = MOD_PeriodTable[s_channelData[channel].note + effectNibble2];
+                        newPeriod = MOD_PeriodTable[channelData->note + effectNibble2];
                         break;
                 }
-                newPeriod *= 2;
-                SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                SETVOICESAMPLERATE(channel, newPeriod);
                 break;
             case 1:
-                newPeriod = s_channelData[channel].period;
+                newPeriod = channelData->period;
                 newPeriod -= effectNibble23;
                 if (newPeriod < 108) newPeriod = 108;
-                s_channelData[channel].period = newPeriod;
-                newPeriod *= 2;
-                SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                channelData->period = newPeriod;
+                SETVOICESAMPLERATE(channel, newPeriod);
                 break;
             case 2:
-                newPeriod = s_channelData[channel].period;
+                newPeriod = channelData->period;
                 newPeriod += effectNibble23;
                 if (newPeriod > 907) newPeriod = 907;
-                s_channelData[channel].period = newPeriod;
-                newPeriod *= 2;
-                SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                channelData->period = newPeriod;
+                SETVOICESAMPLERATE(channel, newPeriod);
                 break;
             case 5:
-                volume = s_channelData[channel].volume;
+                volume = channelData->volume;
                 if (effectNibble23 <= 0x10) {
                     volume -= effectNibble23;
                     if (volume < 0) volume = 0;
@@ -356,26 +420,24 @@ static void MOD_UpdateEffect() {
                     volume += effectNibble3;
                     if (volume > 63) volume = 63;
                 }
-                s_channelData[channel].volume = volume;
-                volume <<= 8;
-                SPUSetVoiceVolume(channel, volume, volume);
+                channelData->volume = volume;
+                SETVOICEVOLUME(channel, volume);
                 /* fall through */
             case 3:
-                newPeriod = s_channelData[channel].period;
-                slideTo = s_channelData[channel].slideTo;
+                newPeriod = channelData->period;
+                slideTo = channelData->slideTo;
                 if (newPeriod < slideTo) {
-                    newPeriod += s_channelData[channel].slideSpeed;
+                    newPeriod += channelData->slideSpeed;
                     if (newPeriod > slideTo) newPeriod = slideTo;
                 } else if (newPeriod > slideTo) {
-                    newPeriod -= s_channelData[channel].slideSpeed;
+                    newPeriod -= channelData->slideSpeed;
                     if (newPeriod < slideTo) newPeriod = slideTo;
                 }
-                s_channelData[channel].period = newPeriod;
-                newPeriod *= 2;
-                SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                channelData->period = newPeriod;
+                SETVOICESAMPLERATE(channel, newPeriod);
                 break;
             case 6:
-                volume = s_channelData[channel].volume;
+                volume = channelData->volume;
                 if (effectNibble23 <= 0x10) {
                     volume -= effectNibble23;
                     if (volume < 0) volume = 0;
@@ -383,20 +445,19 @@ static void MOD_UpdateEffect() {
                     volume += effectNibble3;
                     if (volume > 63) volume = 63;
                 }
-                s_channelData[channel].volume = volume;
-                volume <<= 8;
-                SPUSetVoiceVolume(channel, volume, volume);
+                channelData->volume = volume;
+                SETVOICEVOLUME(channel, volume);
                 /* fall through */
             case 4:
-                mutation = s_channelData[channel].vibrato & 0x1f;
-                switch (s_channelData[channel].fx[3] & 3) {
+                mutation = channelData->vibrato & 0x1f;
+                switch (channelData->fx[3] & 3) {
                     // this looks buggy
                     case 0:
                     case 3:
                         mutation = MOD_SineTable[mutation];
                         break;
                     case 1:
-                        if (s_channelData[channel].vibrato < 0) {
+                        if (channelData->vibrato < 0) {
                             mutation *= -8;
                             mutation += 0xff;
                         } else {
@@ -407,20 +468,19 @@ static void MOD_UpdateEffect() {
                         mutation = 0xff;
                         break;
                 }
-                mutation *= s_channelData[channel].fx[1] >> 4;
+                mutation *= channelData->fx[1] >> 4;
                 mutation >>= 7;
-                newPeriod = s_channelData[channel].period;
-                if (s_channelData[channel].vibrato < 0) {
+                newPeriod = channelData->period;
+                if (channelData->vibrato < 0) {
                     newPeriod -= mutation;
                 } else {
                     newPeriod += mutation;
                 }
-                newValue = s_channelData[channel].vibrato;
-                newValue += s_channelData[channel].fx[1] & 0x0f;
+                newValue = channelData->vibrato;
+                newValue += channelData->fx[1] & 0x0f;
                 if (newValue >= 32) newValue -= 64;
-                s_channelData[channel].vibrato = newValue;
-                newPeriod *= 2;
-                SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                channelData->vibrato = newValue;
+                SETVOICESAMPLERATE(channel, newPeriod);
                 break;
             case 7:
                 mutation = s_channelData[0].fx[0] & 0x1f;
@@ -431,7 +491,7 @@ static void MOD_UpdateEffect() {
                         mutation = MOD_SineTable[mutation];
                         break;
                     case 1:
-                        if (s_channelData[channel].fx[0] & 0x80) {
+                        if (channelData->fx[0] & 0x80) {
                             mutation *= -8;
                             mutation += 0xff;
                         } else {
@@ -442,23 +502,22 @@ static void MOD_UpdateEffect() {
                         mutation = 0xff;
                         break;
                 }
-                mutation *= s_channelData[channel].fx[3] >> 4;
+                mutation *= channelData->fx[3] >> 4;
                 mutation >>= 6;
-                volume = s_channelData[channel].volume;
-                if (s_channelData[channel].fx[0] & 0x80) {
+                volume = channelData->volume;
+                if (channelData->fx[0] & 0x80) {
                     volume -= mutation;
                 } else {
                     volume += mutation;
                 }
-                newValue = s_channelData[channel].fx[0] + (s_channelData[channel].fx[2] & 0x0f);
+                newValue = channelData->fx[0] + (channelData->fx[2] & 0x0f);
                 if (newValue >= 32) newValue -= 64;
-                s_channelData[channel].fx[0] = newValue;
+                channelData->fx[0] = newValue;
                 if (volume > 63) volume = 63;
-                volume <<= 8;
-                SPUSetVoiceVolume(channel, volume, volume);
+                SETVOICEVOLUME(channel, volume);
                 break;
             case 10:
-                volume = s_channelData[channel].volume;
+                volume = channelData->volume;
                 if (effectNibble23 <= 0x10) {
                     volume -= effectNibble23;
                     if (volume < 0) volume = 0;
@@ -466,9 +525,8 @@ static void MOD_UpdateEffect() {
                     volume += effectNibble3;
                     if (volume > 63) volume = 63;
                 }
-                s_channelData[channel].volume = volume;
-                volume <<= 8;
-                SPUSetVoiceVolume(channel, volume, volume);
+                channelData->volume = volume;
+                SETVOICEVOLUME(channel, volume);
                 break;
             case 14:
                 switch (effectNibble3) {
@@ -477,7 +535,7 @@ static void MOD_UpdateEffect() {
                         break;
                     case 12:
                         if (MOD_Tick != effectNibble2) break;
-                        s_channelData[channel].volume = 0;
+                        channelData->volume = 0;
                         SPUSetVoiceVolume(channel, volume, volume);
                 }
                 break;
@@ -488,12 +546,13 @@ static void MOD_UpdateEffect() {
 }
 
 static void MOD_UpdateRow() {
+    const unsigned channels = MOD_Channels;
     if (MOD_ChangeOrderNextTick) {
         unsigned newOrder = MOD_NextOrder;
         if (newOrder >= MOD_SongLength) newOrder = 0;
         MOD_CurrentRow = 0;
         MOD_CurrentOrder = newOrder;
-        MOD_CurrentPattern = ((struct MODFileFormat*)MOD_ModuleData)->patternTable[newOrder];
+        MOD_CurrentPattern = MOD_ModuleData[newOrder];
     }
     if (MOD_ChangeRowNextTick) {
         unsigned newRow = (MOD_NextRow >> 4) * 10 + (MOD_NextRow & 0x0f);
@@ -501,39 +560,41 @@ static void MOD_UpdateRow() {
         MOD_CurrentRow = newRow;
         if (MOD_ChangeOrderNextTick) {
             if (++MOD_CurrentOrder >= MOD_SongLength) MOD_CurrentOrder = 0;
-            MOD_CurrentPattern = ((struct MODFileFormat*)MOD_ModuleData)->patternTable[MOD_CurrentOrder];
+            MOD_CurrentPattern = MOD_ModuleData[MOD_CurrentOrder];
         }
     }
     MOD_ChangeRowNextTick = 0;
     MOD_ChangeOrderNextTick = 0;
-    MOD_RowPointer = MOD_ModuleData + sizeof(struct MODFileFormat) + MOD_CurrentPattern * MOD_Channels * 0x100 +
-                     MOD_CurrentRow * MOD_Channels * 4;
+    MOD_RowPointer =
+        MOD_ModuleData + 128 + 4 + MOD_CurrentPattern * MOD_Channels * 0x100 + MOD_CurrentRow * channels * 4;
+    const uint8_t* rowPointer = MOD_RowPointer;
 
-    for (unsigned channel = 0; channel < MOD_Channels; channel++) {
+    for (unsigned channel = 0; channel < channels; channel++) {
         int16_t volume;
+        struct SPUChannelData* const channelData = &s_channelData[channel];
 
-        uint8_t effectNibble1 = MOD_RowPointer[2];
-        uint8_t effectNibble23 = MOD_RowPointer[3];
-        uint16_t nibble0 = MOD_RowPointer[0];
+        uint8_t effectNibble1 = rowPointer[2];
+        uint8_t effectNibble23 = rowPointer[3];
+        uint16_t nibble0 = rowPointer[0];
         unsigned sampleID = (nibble0 & 0xf0) | (effectNibble1 >> 4);
-        effectNibble1 &= 0x0f;
-        unsigned period = ((nibble0 & 0x0f) << 8) | MOD_RowPointer[1];
-        if (effectNibble1 != 9) s_channelData[channel].samplePos = 0;
-        if (sampleID != 0) {
-            s_channelData[channel].sampleID = --sampleID;
-            volume = s_spuInstrumentData[sampleID].volume;
-            if (volume > 63) volume = 63;
-            s_channelData[channel].volume = volume;
-            if (effectNibble1 != 7) {
-                volume <<= 8;
-                SPUSetVoiceVolume(channel, volume, volume);
-            }
-            SPUSetStartAddress(channel,
-                               s_spuInstrumentData[sampleID].baseAddress << 4 + s_channelData[channel].samplePos);
-        }
-
+        uint8_t effectNibble2 = effectNibble23 & 0x0f;
+        uint8_t effectNibble3 = effectNibble23 >> 4;
+        unsigned period = ((nibble0 & 0x0f) << 8) | rowPointer[1];
         int32_t newPeriod;
         uint8_t fx;
+        effectNibble1 &= 0x0f;
+
+        if (effectNibble1 != 9) channelData->samplePos = 0;
+        if (sampleID != 0) {
+            channelData->sampleID = --sampleID;
+            volume = s_spuInstrumentData[sampleID].volume;
+            if (volume > 63) volume = 63;
+            channelData->volume = volume;
+            if (effectNibble1 != 7) {
+                SETVOICEVOLUME(channel, volume);
+            }
+            SPUSetStartAddress(channel, s_spuInstrumentData[sampleID].baseAddress << 4 + channelData->samplePos);
+        }
 
         if (period != 0) {
             int periodIndex;
@@ -541,69 +602,64 @@ static void MOD_UpdateRow() {
             for (periodIndex = 35; periodIndex--; periodIndex > 0) {
                 if (MOD_PeriodTable[periodIndex] == period) break;
             }
-            s_channelData[channel].note =
-                periodIndex + s_spuInstrumentData[s_channelData[channel].sampleID].finetune * 36;
-            fx = s_channelData[channel].fx[3];
+            channelData->note = periodIndex + s_spuInstrumentData[channelData->sampleID].finetune * 36;
+            fx = channelData->fx[3];
             if ((fx & 0x0f) < 4) {
-                s_channelData[channel].vibrato = 0;
+                channelData->vibrato = 0;
             }
             if ((fx >> 4) < 4) {
-                s_channelData[channel].fx[0] = 0;
+                channelData->fx[0] = 0;
             }
             if ((effectNibble1 != 3) && (effectNibble1 != 5)) {
                 SPUWaitIdle();
                 SPUKeyOn(1 << channel);
-                s_channelData[channel].period = MOD_PeriodTable[s_channelData[channel].note];
+                channelData->period = MOD_PeriodTable[channelData->note];
             }
-            newPeriod = s_channelData[channel].period;
-            newPeriod *= 2;
-            SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+            newPeriod = channelData->period;
+            SETVOICESAMPLERATE(channel, newPeriod);
         }
-
-        uint8_t effectNibble2 = effectNibble23 & 0x0f;
-        uint8_t effectNibble3 = effectNibble23 >> 4;
 
         switch (effectNibble1) {
             case 3:  // glissando
                 if (effectNibble23 != 0) {
-                    s_channelData[channel].slideSpeed = effectNibble23;
+                    channelData->slideSpeed = effectNibble23;
                 }
                 if (period != 0) {
-                    s_channelData[channel].slideTo = MOD_PeriodTable[s_channelData[channel].note];
+                    channelData->slideTo = MOD_PeriodTable[channelData->note];
                 }
                 break;
             case 4:  // vibrato
                 if (effectNibble3 != 0) {
-                    fx = s_channelData[channel].fx[1];
+                    fx = channelData->fx[1];
                     fx &= ~0x0f;
                     fx |= effectNibble3;
-                    s_channelData[channel].fx[1] = fx;
+                    channelData->fx[1] = fx;
                 }
                 if (effectNibble2 != 0) {
-                    fx = s_channelData[channel].fx[1];
+                    fx = channelData->fx[1];
                     fx &= ~0xf0;
                     fx |= effectNibble3 << 4;
-                    s_channelData[channel].fx[1] = fx;
+                    channelData->fx[1] = fx;
                 }
                 break;
             case 7:
                 if (effectNibble3 != 0) {
-                    fx = s_channelData[channel].fx[2];
+                    fx = channelData->fx[2];
                     fx &= ~0x0f;
                     fx |= effectNibble3;
-                    s_channelData[channel].fx[2] = fx;
+                    channelData->fx[2] = fx;
                 }
                 if (effectNibble2 != 0) {
-                    fx = s_channelData[channel].fx[2];
+                    fx = channelData->fx[2];
                     fx &= ~0xf0;
                     fx |= effectNibble2 << 4;
-                    s_channelData[channel].fx[2] = fx;
+                    channelData->fx[2] = fx;
                 }
                 break;
             case 9:  // sample jump
                 if (effectNibble23 != 0) {
                     uint16_t newSamplePos = effectNibble23;
-                    s_channelData[channel].samplePos = newSamplePos << 7;
+                    channelData->samplePos = newSamplePos << 7;
                 }
                 break;
             case 11:  // order jump
@@ -615,9 +671,8 @@ static void MOD_UpdateRow() {
             case 12:  // set volume
                 volume = effectNibble23;
                 if (volume > 64) volume = 63;
-                s_channelData[channel].volume = volume;
-                volume <<= 8;
-                SPUSetVoiceVolume(channel, volume, volume);
+                channelData->volume = volume;
+                SETVOICEVOLUME(channel, volume);
                 break;
             case 13:  // pattern break
                 if (!MOD_ChangeRowNextTick) {
@@ -628,24 +683,22 @@ static void MOD_UpdateRow() {
             case 14:  // extended
                 switch (effectNibble3) {
                     case 1:
-                        newPeriod = s_channelData[channel].period;
+                        newPeriod = channelData->period;
                         newPeriod -= effectNibble2;
-                        s_channelData[channel].period = newPeriod;
-                        newPeriod *= 2;
-                        SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                        channelData->period = newPeriod;
+                        SETVOICESAMPLERATE(channel, newPeriod);
                         break;
                     case 2:
-                        newPeriod = s_channelData[channel].period;
+                        newPeriod = channelData->period;
                         newPeriod += effectNibble2;
-                        s_channelData[channel].period = newPeriod;
-                        newPeriod *= 2;
-                        SPUSetVoiceSampleRate(channel, ((7093789 / newPeriod) << 12) / 44100);
+                        channelData->period = newPeriod;
+                        SETVOICESAMPLERATE(channel, newPeriod);
                         break;
                     case 4:
-                        fx = s_channelData[channel].fx[3];
+                        fx = channelData->fx[3];
                         fx &= ~0x0f;
                         fx |= effectNibble2;
-                        s_channelData[channel].fx[3] = fx;
+                        channelData->fx[3] = fx;
                         break;
                     case 5:
                         s_spuInstrumentData[sampleID].finetune = effectNibble2;
@@ -659,26 +712,24 @@ static void MOD_UpdateRow() {
                         }
                         break;
                     case 7:
-                        fx = s_channelData[channel].fx[3];
+                        fx = channelData->fx[3];
                         fx &= ~0xf0;
                         fx |= effectNibble2 << 4;
-                        s_channelData[channel].fx[3] = fx;
+                        channelData->fx[3] = fx;
                         break;
                     case 10:
-                        volume = s_channelData[channel].volume;
+                        volume = channelData->volume;
                         volume += effectNibble2;
                         if (volume > 63) volume = 63;
-                        s_channelData[channel].volume = volume;
-                        volume <<= 8;
-                        SPUSetVoiceVolume(channel, volume, volume);
+                        channelData->volume = volume;
+                        SETVOICEVOLUME(channel, volume);
                         break;
                     case 11:
-                        volume = s_channelData[channel].volume;
+                        volume = channelData->volume;
                         volume -= effectNibble2;
                         if (volume < 0) volume = 0;
-                        s_channelData[channel].volume = volume;
-                        volume <<= 8;
-                        SPUSetVoiceVolume(channel, volume, volume);
+                        channelData->volume = volume;
+                        SETVOICEVOLUME(channel, volume);
                         break;
                     case 14:
                         MOD_PatternDelay = effectNibble2;
@@ -686,13 +737,18 @@ static void MOD_UpdateRow() {
                 }
                 break;
             case 15:  // set speed
-                MOD_Speed = effectNibble23;
-                // this very likely needs to change
-                InitTimer(1, 39000 / effectNibble23, 0x1000);
+                // the original code here is very wrong
+                if (effectNibble23 == 0) break;
+                if (effectNibble23 < 32) {
+                    MOD_Speed = effectNibble23;
+                } else {
+                    MOD_BPM = effectNibble23;
+                    SetBPM(effectNibble23);
+                }
                 break;
         }
 
-        MOD_RowPointer += 4;
+        rowPointer += 4;
     }
 }
 
@@ -712,9 +768,23 @@ void MOD_Poll() {
                 if (++MOD_CurrentOrder >= MOD_SongLength) {
                     MOD_CurrentOrder = 0;
                 }
-                MOD_CurrentPattern = ((struct MODFileFormat*)MOD_ModuleData)->patternTable[MOD_CurrentOrder];
+                MOD_CurrentPattern = MOD_ModuleData[MOD_CurrentOrder];
             }
         }
     }
     MOD_PatternDelay = newPatternDelay;
+}
+
+void MOD_PlayNote(unsigned channel, unsigned sampleID, unsigned note, int16_t volume) {
+    if (volume < 0) volume = 0;
+    if (volume > 63) volume = 63;
+    struct SPUChannelData* const channelData = &s_channelData[channel];
+    channelData->samplePos = 0;
+    SPUSetVoiceVolume(channel, volume << 8, volume << 8);
+    SPUSetStartAddress(channel, s_spuInstrumentData[sampleID].baseAddress << 4 + channelData->samplePos);
+    SPUWaitIdle();
+    SPUKeyOn(1 << channel);
+    channelData->note = note = note + s_spuInstrumentData[sampleID].finetune * 36;
+    int32_t newPeriod = channelData->period = MOD_PeriodTable[note];
+    SETVOICESAMPLERATE(channel, newPeriod);
 }
