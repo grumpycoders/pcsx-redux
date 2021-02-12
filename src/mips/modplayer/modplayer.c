@@ -409,14 +409,14 @@ static void MOD_UpdateEffect() {
                 }
                 SETVOICESAMPLERATE(channel, newPeriod);
                 break;
-            case 1:
+            case 1:  // portamento up
                 newPeriod = channelData->period;
                 newPeriod -= effectNibble23;
                 if (newPeriod < 108) newPeriod = 108;
                 channelData->period = newPeriod;
                 SETVOICESAMPLERATE(channel, newPeriod);
                 break;
-            case 2:
+            case 2:  // portamento down
                 newPeriod = channelData->period;
                 newPeriod += effectNibble23;
                 if (newPeriod > 907) newPeriod = 907;
@@ -435,7 +435,7 @@ static void MOD_UpdateEffect() {
                 channelData->volume = volume;
                 SETVOICEVOLUME(channel, volume);
                 /* fall through */
-            case 3:
+            case 3:  // glissando
                 newPeriod = channelData->period;
                 slideTo = channelData->slideTo;
                 if (newPeriod < slideTo) {
@@ -460,12 +460,11 @@ static void MOD_UpdateEffect() {
                 channelData->volume = volume;
                 SETVOICEVOLUME(channel, volume);
                 /* fall through */
-            case 4:
+            case 4:  // vibrato
                 mutation = channelData->vibrato & 0x1f;
                 switch (channelData->fx[3] & 3) {
-                    // this looks buggy
                     case 0:
-                    case 3:
+                    case 3:  // 3 is technically random
                         mutation = MOD_SineTable[mutation];
                         break;
                     case 1:
@@ -494,12 +493,11 @@ static void MOD_UpdateEffect() {
                 channelData->vibrato = newValue;
                 SETVOICESAMPLERATE(channel, newPeriod);
                 break;
-            case 7:
+            case 7:  // tremolo
                 mutation = s_channelData[0].fx[0] & 0x1f;
                 switch (s_channelData[0].fx[3] & 3) {
-                    // this looks buggy
                     case 0:
-                    case 3:
+                    case 3:  // 3 is technically random
                         mutation = MOD_SineTable[mutation];
                         break;
                     case 1:
@@ -528,7 +526,7 @@ static void MOD_UpdateEffect() {
                 if (volume > 63) volume = 63;
                 SETVOICEVOLUME(channel, volume);
                 break;
-            case 10:
+            case 10:  // volume slide
                 volume = channelData->volume;
                 if (effectNibble23 <= 0x10) {
                     volume -= effectNibble23;
@@ -540,15 +538,16 @@ static void MOD_UpdateEffect() {
                 channelData->volume = volume;
                 SETVOICEVOLUME(channel, volume);
                 break;
-            case 14:
+            case 14:  // extended
                 switch (effectNibble3) {
-                    case 9:
+                    case 9:  // retrigger sample
+                        // this doesn't look right, we probably want to reset the sample location
                         if ((MOD_Tick % effectNibble2) == 0) SPUKeyOn(1 << channel);
                         break;
-                    case 12:
+                    case 12:  // cut sample
                         if (MOD_Tick != effectNibble2) break;
                         channelData->volume = 0;
-                        SPUSetVoiceVolume(channel, volume, volume);
+                        SPUSetVoiceVolume(channel, 0, 0);
                 }
                 break;
         }
@@ -654,7 +653,7 @@ static void MOD_UpdateRow() {
                     channelData->fx[1] = fx;
                 }
                 break;
-            case 7:
+            case 7:  // tremolo
                 if (effectNibble3 != 0) {
                     fx = channelData->fx[2];
                     fx &= ~0x0f;
@@ -694,28 +693,28 @@ static void MOD_UpdateRow() {
                 break;
             case 14:  // extended
                 switch (effectNibble3) {
-                    case 1:
+                    case 1:  // fineslide up
                         newPeriod = channelData->period;
                         newPeriod -= effectNibble2;
                         channelData->period = newPeriod;
                         SETVOICESAMPLERATE(channel, newPeriod);
                         break;
-                    case 2:
+                    case 2:  // fineslide down
                         newPeriod = channelData->period;
                         newPeriod += effectNibble2;
                         channelData->period = newPeriod;
                         SETVOICESAMPLERATE(channel, newPeriod);
                         break;
-                    case 4:
+                    case 4:  // set vibrato waveform
                         fx = channelData->fx[3];
                         fx &= ~0x0f;
                         fx |= effectNibble2;
                         channelData->fx[3] = fx;
                         break;
-                    case 5:
+                    case 5:  // set finetune value
                         s_spuInstrumentData[sampleID].finetune = effectNibble2;
                         break;
-                    case 6:
+                    case 6:  // loop pattern
                         if (MOD_LoopCount-- == 0) {
                             MOD_LoopCount = effectNibble2;
                         }
@@ -723,27 +722,27 @@ static void MOD_UpdateRow() {
                             MOD_CurrentRow = MOD_LoopStart;
                         }
                         break;
-                    case 7:
+                    case 7:  // set tremolo waveform
                         fx = channelData->fx[3];
                         fx &= ~0xf0;
                         fx |= effectNibble2 << 4;
                         channelData->fx[3] = fx;
                         break;
-                    case 10:
+                    case 10:  // fine volume up
                         volume = channelData->volume;
                         volume += effectNibble2;
                         if (volume > 63) volume = 63;
                         channelData->volume = volume;
                         SETVOICEVOLUME(channel, volume);
                         break;
-                    case 11:
+                    case 11:  // fine volume down
                         volume = channelData->volume;
                         volume -= effectNibble2;
                         if (volume < 0) volume = 0;
                         channelData->volume = volume;
                         SETVOICEVOLUME(channel, volume);
                         break;
-                    case 14:
+                    case 14:  // delay pattern
                         MOD_PatternDelay = effectNibble2;
                         break;
                 }
