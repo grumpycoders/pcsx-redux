@@ -190,7 +190,7 @@ int __attribute__((section(".ramtext"))) initTimer(uint32_t timer, uint16_t targ
 }
 
 // this is a verbatim copy of the original code...
-static const uint32_t s_timerMasks[4] = { IRQ_TIMER0, IRQ_TIMER1, IRQ_TIMER2, IRQ_VBLANK };
+static const uint32_t s_timerMasks[4] = {IRQ_TIMER0, IRQ_TIMER1, IRQ_TIMER2, IRQ_VBLANK};
 int __attribute__((section(".ramtext"))) enableTimerIRQ(uint32_t timer) {
     timer &= 0xffff;
     IMASK |= s_timerMasks[timer];
