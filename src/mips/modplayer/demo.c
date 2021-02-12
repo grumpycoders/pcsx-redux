@@ -27,7 +27,6 @@ SOFTWARE.
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
 #include "common/syscalls/syscalls.h"
-
 #include "modplayer/modplayer.h"
 
 extern const uint8_t _binary_timewarped_hit_start[];
@@ -47,6 +46,10 @@ void waitVSync() {
     if (!wasLocked) leaveCriticalSection();
 }
 
+// Don't do this: it's not going to be able to pickup tempo
+// changes properly, and it will be too fast on PAL.
+#define POLL_ON_VSYNC
+
 void main() {
     printf("Loading MOD:\'%s\'\n", _binary_timewarped_hit_start);
     MOD_Load((struct MODFileFormat*)_binary_timewarped_hit_start);
@@ -62,6 +65,8 @@ void main() {
             printf("Row: %02d, Order: %02d, Pattern: %02d\n", row, order, pattern);
         }
         waitVSync();
+#ifdef POLL_ON_VSYNC
         MOD_Poll();
+#endif
     }
 }
