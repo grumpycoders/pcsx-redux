@@ -201,7 +201,7 @@ void PCSX::Counters::psxRcntUpdate() {
             setIrq(0x01);
 
             PCSX::g_emulator->m_gpu->updateLace();
-            PCSX::g_emulator->EmuUpdate();
+            PCSX::g_emulator->vsync();
         }
     }
 }

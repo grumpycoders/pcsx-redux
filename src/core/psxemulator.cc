@@ -89,8 +89,8 @@ void PCSX::Emulator::EmuShutdown() {
     m_pad2->shutdown();
 }
 
-void PCSX::Emulator::EmuUpdate() {
-    PCSX::g_system->update();
+void PCSX::Emulator::vsync() {
+    g_system->update(true);
     m_cheats->ApplyCheats();
 
     if (m_vblank_count_hideafter) {

@@ -142,9 +142,9 @@ class SystemImpl : public PCSX::System {
         s_gui->addLog(fmt, a);
     }
 
-    virtual void update() final {
+    virtual void update(bool vsync = false) final {
         // called on vblank to update states
-        s_gui->update();
+        s_gui->update(vsync);
     }
 
     virtual void runGui() final {
