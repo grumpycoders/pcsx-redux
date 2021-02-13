@@ -123,6 +123,18 @@
                 "command": "${workspaceRoot}\\dockermake.bat -C src/mips/cube clean all"
             },
             "problemMatcher": []
-        }
+        },
+        {
+            "label": "make_modplay_demo",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/modplayer all",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/modplayer all"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
     ]
 }

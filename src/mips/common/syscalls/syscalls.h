@@ -274,6 +274,18 @@ static __attribute__((always_inline)) void syscall_kfree(void *ptr) {
     return ((void (*)(void *))0xb0)(ptr);
 }
 
+static __attribute__((always_inline)) int syscall_initTimer(uint32_t timer, uint16_t target, uint16_t flags) {
+    register int n asm("t1") = 0x02;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(uint32_t, uint16_t, uint16_t))0xb0)(timer, target, flags);
+}
+
+static __attribute__((always_inline)) int syscall_enableTimerIRQ(uint32_t timer) {
+    register int n asm("t1") = 0x04;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(uint32_t))0xb0)(timer);
+}
+
 static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t class, uint32_t spec) {
     register int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));

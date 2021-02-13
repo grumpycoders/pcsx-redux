@@ -55,8 +55,11 @@ struct SIO {
 #define HW_S16(x) (*(volatile int16_t *)(x))
 #define HW_S32(x) (*(volatile int32_t *)(x))
 
+#define SBUS_DEV4_CTRL HW_U32(0x1f801014)
 #define SBUS_DEV5_CTRL HW_U32(0x1f801018)
 #define SBUS_COM_CTRL HW_U32(0x1f801020)
+
+#define SIOS ((volatile struct SIO *)0x1f801040)
 
 #define RAM_SIZE HW_U32(0x1f801060)
 
@@ -65,6 +68,8 @@ struct SIO {
 
 #define DPCR HW_U32(0x1f8010f0)
 #define DICR HW_U32(0x1f8010f4)
+
+#define COUNTERS ((volatile struct Counter *)0xbf801100)
 
 #define GPU_DATA HW_U32(0x1f801810)
 #define GPU_STATUS HW_U32(0x1f801814)
@@ -75,6 +80,3 @@ struct SIO {
 #define ATCONS_IRQ2 HW_U8(0x1f802032)
 
 #define POST HW_U8(0xbf802041)
-
-#define COUNTERS ((volatile struct Counter *)0xbf801100)
-#define SIOS ((volatile struct SIO *)0x1f801040)

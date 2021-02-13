@@ -165,13 +165,46 @@ int __attribute__((section(".ramtext"))) enqueueRCntIrqs(int priority) {
     return ret;
 }
 
-int __attribute__((section(".ramtext"))) setTimerAutoAck(int timer, int value) {
+int __attribute__((section(".ramtext"))) setTimerAutoAck(uint32_t timer, int value) {
     int old = s_timersAutoAck[timer];
     s_timersAutoAck[timer] = value;
     return old;
 }
 
-int __attribute__((section(".ramtext"))) getTimer(int timer) {
+int __attribute__((section(".ramtext"))) getTimer(uint32_t timer) {
     if (timer > 2) return 0;
     return COUNTERS[timer].value;
+}
+
+int __attribute__((section(".ramtext"))) initTimer(uint32_t timer, uint16_t target, uint16_t flags) {
+    timer &= 0xffff;
+    if (timer >= 3) return 0;
+    COUNTERS[timer].mode = 0;
+    COUNTERS[timer].target = target;
+    uint16_t mode = 0x0048;
+    if (flags & 0x0010) mode |= 0x0001;
+    if (flags & 0x0001) mode |= 0x0100;
+    if (flags & 0x1000) mode |= 0x0010;
+    COUNTERS[timer].mode = mode;
+    return 1;
+}
+
+// this is a verbatim copy of the original code...
+static const uint32_t s_timerMasks[4] = {IRQ_TIMER0, IRQ_TIMER1, IRQ_TIMER2, IRQ_VBLANK};
+int __attribute__((section(".ramtext"))) enableTimerIRQ(uint32_t timer) {
+    timer &= 0xffff;
+    IMASK |= s_timerMasks[timer];
+    return timer <= 2;
+}
+int __attribute__((section(".ramtext"))) disableTimerIRQ(uint32_t timer) {
+    timer &= 0xffff;
+    IMASK &= ~s_timerMasks[timer];
+    return 1;
+}
+
+int __attribute__((section(".ramtext"))) restartTimer(uint32_t timer) {
+    timer &= 0xffff;
+    if (timer > 2) return 0;
+    COUNTERS[timer].value = 0;
+    return 1;
 }

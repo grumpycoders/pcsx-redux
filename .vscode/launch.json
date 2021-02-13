@@ -52,8 +52,8 @@
         {
             "type": "gdb",
             "request": "launch",
-            "name": "(gdb) Launch Hello World",
-            "target": "./src/mips/helloworld/helloworld.elf",
+            "name": "(gdb) Launch modplayer demo",
+            "target": "./src/mips/modplayer/modplay-demo.elf",
             "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
                 "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
@@ -64,7 +64,7 @@
                 "target remote localhost:3333",
                 "set substitute-path /project .",
                 "monitor reset shellhalt",
-                "load ./src/mips/helloworld/helloworld.elf",
+                "load ./src/mips/modplayer/modplay-demo.elf",
                 "tbreak main",
                 "continue",
             ],
