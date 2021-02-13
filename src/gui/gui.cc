@@ -507,6 +507,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
+                ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
                 if (ImGui::BeginMenu(_("Memory Editors"))) {
                     for (auto& editor : m_mainMemEditors) {
                         editor.MenuItem();
@@ -1054,9 +1055,10 @@ void PCSX::GUI::about() {
     ImGui::End();
 }
 
-void PCSX::GUI::update() {
+void PCSX::GUI::update(bool vsync) {
     endFrame();
     startFrame();
+    if (vsync && m_breakOnVSync) g_system->pause();
 }
 
 void PCSX::GUI::shellReached() {
