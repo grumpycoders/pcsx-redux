@@ -363,8 +363,9 @@ C0Handler:
 unimplementedThunk:
     la    $v0, unimplemented
     move  $a0, $t0
-    jr    $v0
     move  $a1, $t1
+    jr    $v0
+    move  $a2, $ra
 
     .align 2
     .global ramsyscall_printf
