@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include "common/hardware/hwregs.h"
+#include "common/syscalls/syscalls.h"
 #include "shell/dcos.h"
 #include "shell/gpu.h"
 #include "shell/hull.h"
@@ -76,6 +77,18 @@ static int s_phase = 0;
 
 static unsigned s_FPS = 0;
 
+static int32_t s_xRotSpeed = 3 * ONE / (2 * DC_2PI);
+static int32_t s_yRotSpeed = 4 * ONE / (3 * DC_2PI);
+static int32_t s_zRotSpeed = ONE / DC_2PI;
+
+static int32_t s_xRotAccel = 0;
+static int32_t s_yRotAccel = 0;
+static int32_t s_zRotAccel = 0;
+
+static int32_t s_xRot = 0;
+static int32_t s_yRot = 0;
+static int32_t s_zRot = ONE / 8;
+
 static void calculateFrame() {
     unsigned counter = s_frameCounter++;
     if (counter == s_FPS) s_phase = 1;
@@ -92,13 +105,25 @@ static void calculateFrame() {
         scaleMatrix3D(&transform, s);
     } else {
         unsigned t = counter - s_FPS;
-        generateRotationMatrix3D(&transform, t + DC_PI4, AXIS_Z);
+        generateRotationMatrix3D(&transform, s_zRot >> 13, AXIS_Z);
         struct Matrix3D rot;
-        generateRotationMatrix3D(&rot, t * 3 / 2, AXIS_X);
+        generateRotationMatrix3D(&rot, s_xRot >> 13, AXIS_X);
         multiplyMatrix3D(&transform, &rot, &transform);
-        generateRotationMatrix3D(&rot, t * 4 / 3, AXIS_Y);
+        generateRotationMatrix3D(&rot, s_yRot >> 13, AXIS_Y);
         multiplyMatrix3D(&transform, &rot, &transform);
         scaleMatrix3D(&transform, ONE);
+        s_xRot += s_xRotSpeed;
+        s_yRot += s_yRotSpeed;
+        s_zRot += s_zRotSpeed;
+        s_xRotSpeed += s_xRotAccel;
+        s_yRotSpeed += s_yRotAccel;
+        s_zRotSpeed += s_zRotAccel;
+        while (s_xRot >= ONE) s_xRot -= ONE;
+        while (s_yRot >= ONE) s_yRot -= ONE;
+        while (s_zRot >= ONE) s_zRot -= ONE;
+        while (s_xRot < 0) s_xRot += ONE;
+        while (s_yRot < 0) s_yRot += ONE;
+        while (s_zRot < 0) s_zRot += ONE;
     }
 
     for (unsigned i = 0; i < 8; i++) {

@@ -29,7 +29,6 @@ SOFTWARE.
 #include "common/hardware/gpu.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
-#include "common/syscalls/syscalls.h"
 
 static int s_frame = 0;
 
