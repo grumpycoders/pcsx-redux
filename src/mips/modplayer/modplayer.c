@@ -26,8 +26,8 @@ SOFTWARE.
 
 #include "modplayer/modplayer.h"
 
+#include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 #include "common/hardware/dma.h"
 #include "common/hardware/spu.h"
