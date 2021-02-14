@@ -45,6 +45,7 @@ SOFTWARE.
 #include "openbios/kernel/alloc.h"
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/flushcache.h"
+#include "openbios/kernel/globals.h"
 #include "openbios/kernel/handlers.h"
 #include "openbios/kernel/libcmisc.h"
 #include "openbios/kernel/misc.h"
@@ -58,7 +59,7 @@ SOFTWARE.
 #include "openbios/tty/tty.h"
 #include "osdebug.h"
 
-void unimplemented() __attribute__((long_call));
+void unimplementedThunk() __attribute__((long_call));
 void breakVector();
 void exceptionVector();
 void A0Vector();
@@ -73,6 +74,33 @@ void installKernelHandlers() {
     installHandler((uint32_t *)A0Vector, (uint32_t *)0xa0);
     installHandler((uint32_t *)B0Vector, (uint32_t *)0xb0);
     installHandler((uint32_t *)C0Vector, (uint32_t *)0xc0);
+}
+
+void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
+    struct Registers *regs = &__globals.threads[0].registers;
+    osDbgPrintf("=== Unimplemented %x:%x syscall from %p ===\r\n", table, call, ra);
+    osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", regs->returnPC, regs->SR, regs->Cause);
+    osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", regs->GPR.r[0], regs->GPR.r[1], regs->GPR.r[2],
+                regs->GPR.r[3]);
+    osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", regs->GPR.r[4], regs->GPR.r[5], regs->GPR.r[6],
+                regs->GPR.r[7]);
+    osDbgPrintf("t0 = %p - t1 = %p - t2 = %p - t3 = %p\r\n", regs->GPR.r[8], regs->GPR.r[9], regs->GPR.r[10],
+                regs->GPR.r[11]);
+    osDbgPrintf("t4 = %p - t5 = %p - t6 = %p - t7 = %p\r\n", regs->GPR.r[12], regs->GPR.r[13], regs->GPR.r[14],
+                regs->GPR.r[15]);
+    osDbgPrintf("s0 = %p - s1 = %p - s2 = %p - s3 = %p\r\n", regs->GPR.r[16], regs->GPR.r[17], regs->GPR.r[18],
+                regs->GPR.r[19]);
+    osDbgPrintf("s4 = %p - s5 = %p - s6 = %p - s7 = %p\r\n", regs->GPR.r[20], regs->GPR.r[21], regs->GPR.r[22],
+                regs->GPR.r[23]);
+    osDbgPrintf("t8 = %p - t9 = %p - k0 = %p - k1 = %p\r\n", regs->GPR.r[24], regs->GPR.r[25], regs->GPR.r[26],
+                regs->GPR.r[27]);
+    osDbgPrintf("gp = %p - sp = %p - s8 = %p - ra = %p\r\n", regs->GPR.r[28], regs->GPR.r[29], regs->GPR.r[30],
+                regs->GPR.r[31]);
+    osDbgPrintf("hi = %p - lo = %p\r\n", regs->GPR.r[32], regs->GPR.r[33]);
+    osDbgPrintf("=== halting ===\r\n");
+    pcsx_debugbreak();
+    while (1)
+        ;
 }
 
 static void installExceptionHandler() { installHandler((uint32_t *)exceptionVector, (uint32_t *)0x80); }
@@ -147,9 +175,9 @@ static __attribute__((section(".ramtext"))) void *wrapper_calloc(size_t nitems, 
 // clang-format off
 
 static const void *romA0table[0xc0] = {
-    unimplemented, unimplemented, unimplemented, unimplemented, // 00
-    unimplemented, unimplemented, unimplemented, unimplemented, // 04
-    unimplemented, unimplemented, psxtodigit, (void *) 'O' /*atof*/, // 08
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 00
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 04
+    unimplementedThunk, unimplementedThunk, psxtodigit, (void *) 'O' /*atof*/, // 08
     strtol, strtol, psxabs, psxabs, // 0c
     atoi, atol, psxatob, psxsetjmp, // 10
     psxlongjmp, strcat, strncat, strcmp, // 14
@@ -159,22 +187,22 @@ static const void *romA0table[0xc0] = {
     strstr, toupper, tolower, psxbcopy, // 24
     psxbzero, psxbcmp, memcpy, memset, // 28
     memmove, psxbcmp, memchr, psxrand, // 2c
-    psxsrand, qsort, unimplemented /*atof*/, user_malloc, // 30
+    psxsrand, qsort, unimplementedThunk /*atof*/, user_malloc, // 30
     user_free, psxlsearch, psxbsearch, wrapper_calloc, // 34
-    user_realloc, user_initheap, unimplemented /*abort*/, unimplemented, // 38
-    unimplemented, unimplemented, unimplemented, psxprintf, // 3c
-    unimplemented /*unresolved exception */, loadExeHeader, loadExe, exec, // 40
+    user_realloc, user_initheap, unimplementedThunk /*abort*/, unimplementedThunk, // 38
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, psxprintf, // 3c
+    unimplementedThunk /*unresolved exception */, loadExeHeader, loadExe, exec, // 40
     flushCache, installKernelHandlers, GPU_dw, GPU_mem2vram, // 44
     GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
-    GPU_abort, GPU_getStatus, GPU_sync, unimplemented, // 4c
-    unimplemented, loadAndExec, unimplemented, unimplemented, // 50
-    initCDRom, unimplemented, deinitCDRom, psxdummy, // 54
+    GPU_abort, GPU_getStatus, GPU_sync, unimplementedThunk, // 4c
+    unimplementedThunk, loadAndExec, unimplementedThunk, unimplementedThunk, // 50
+    initCDRom, unimplementedThunk, deinitCDRom, psxdummy, // 54
     psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
     dev_tty_open, dev_tty_action, dev_tty_ioctl, dev_cd_open, // 5c
     dev_cd_read, psxdummy, dev_cd_firstfile, dev_cd_nextfile, // 60
-    dev_cd_chdir, unimplemented, unimplemented, unimplemented, // 64
-    unimplemented, unimplemented, unimplemented, unimplemented, // 68
-    unimplemented, unimplemented, unimplemented, clearFileError, // 6c
+    dev_cd_chdir, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 64
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 68
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, clearFileError, // 6c
     dummyMC, initCDRom, deinitCDRom, psxdummy, // 70
     psxdummy, psxdummy, psxdummy, psxdummy, // 74
     cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
@@ -185,54 +213,54 @@ static const void *romA0table[0xc0] = {
     psxdummy, psxdummy, psxdummy, psxdummy, // 8c
     cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
     getLastCDRomError, cdromInnerInit, addCDRomDevice, dummyMC /* addMemoryCardDevice */, // 94
-    addConsoleDevice, addDummyConsoleDevice, unimplemented, unimplemented, // 98
+    addConsoleDevice, addDummyConsoleDevice, unimplementedThunk, unimplementedThunk, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
-    unimplemented, unimplemented, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
-    unimplemented, unimplemented, unimplemented, unimplemented, // a4
-    unimplemented, unimplemented, unimplemented, card_info_stub, // a8
-    unimplemented, dummyMC, unimplemented, unimplemented, // ac
-    unimplemented, unimplemented, ioabortraw, unimplemented, // b0
-    unimplemented, unimplemented, unimplemented, unimplemented, // b4
-    unimplemented, unimplemented, unimplemented, unimplemented, // b8
-    unimplemented, unimplemented, unimplemented, unimplemented, // bc
+    unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // a4
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, card_info_stub, // a8
+    unimplementedThunk, dummyMC, unimplementedThunk, unimplementedThunk, // ac
+    unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b8
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // bc
 };
 
 void *B0table[0x60] = {
-    kern_malloc, kern_free, initTimer, getTimer, // 00
-    enableTimerIRQ, disableTimerIRQ, restartTimer, deliverEvent, // 04
+    kern_malloc, kern_free, unimplementedThunk, unimplementedThunk, // 00
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, deliverEvent, // 04
     openEvent, closeEvent, waitEvent, testEvent, // 08
     enableEvent, disableEvent, openThread, closeThread, // 0c
-    changeThread, unimplemented, initPad, startPad, // 10
+    changeThread, unimplementedThunk, initPad, startPad, // 10
     stopPad, initPadHighLevel, readPadHighLevel, returnFromException, // 14
-    setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplemented, unimplemented, // 18
-    unimplemented, unimplemented, unimplemented, unimplemented, // 1c
-    undeliverEvent, unimplemented, unimplemented, unimplemented, // 20
-    unimplemented, unimplemented, unimplemented, unimplemented, // 24
-    unimplemented, unimplemented, unimplemented, unimplemented, // 28
-    unimplemented, unimplemented, unimplemented, unimplemented, // 2c
-    unimplemented, unimplemented, psxopen, psxlseek, // 30
+    setDefaultExceptionJmpBuf, setExceptionJmpBuf, unimplementedThunk, unimplementedThunk, // 18
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 1c
+    undeliverEvent, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 20
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 24
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 28
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 2c
+    unimplementedThunk, unimplementedThunk, psxopen, psxlseek, // 30
     psxread, psxwrite, psxclose, psxioctl, // 34
     psxexit, isFileConsole, psxgetc, psxputc, // 38
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
-    unimplemented, unimplemented, unimplemented, unimplemented, // 40
-    unimplemented, unimplemented, unimplemented, addDevice, // 44
-    removeDevice, unimplemented, dummyMC, dummyMC, // 48
-    dummyMC, unimplemented, dummyMC, dummyMC, // 4c
-    dummyMC, Krom2RawAdd, unimplemented, Krom2Offset, // 50
-    unimplemented, unimplemented, getC0table, getB0table, // 54
-    unimplemented, unimplemented, unimplemented, setSIO0AutoAck, // 58
-    card_status_stub, card_status_stub, unimplemented, unimplemented, // 5c
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
+    removeDevice, unimplementedThunk, dummyMC, dummyMC, // 48
+    dummyMC, unimplementedThunk, dummyMC, dummyMC, // 4c
+    dummyMC, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
+    unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, setSIO0AutoAck, // 58
+    card_status_stub, card_status_stub, unimplementedThunk, unimplementedThunk, // 5c
 };
 
 void *C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
-    unimplemented, getFreeTCBslot, unimplemented, installExceptionHandler, // 04
-    kern_initheap, unimplemented, setTimerAutoAck, unimplemented, // 08
-    enqueueIrqHandler, unimplemented, unimplemented, unimplemented, // 0c
-    unimplemented, unimplemented, setupFileIO, unimplemented, // 10
-    unimplemented, unimplemented, cdevscan, unimplemented, // 14
-    setupFileIO, unimplemented, unimplemented, unimplemented, // 18
-    patchA0table, unimplemented, unimplemented, unimplemented, // 1c
+    unimplementedThunk, getFreeTCBslot, unimplementedThunk, installExceptionHandler, // 04
+    kern_initheap, unimplementedThunk, setTimerAutoAck, unimplementedThunk, // 08
+    enqueueIrqHandler, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 0c
+    unimplementedThunk, unimplementedThunk, setupFileIO, unimplementedThunk, // 10
+    unimplementedThunk, unimplementedThunk, cdevscan, unimplementedThunk, // 14
+    setupFileIO, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 18
+    patchA0table, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 1c
 };
 
 // clang-format on
