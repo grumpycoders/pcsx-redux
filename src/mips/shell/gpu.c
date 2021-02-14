@@ -59,17 +59,14 @@ void flip(int doubleBuffer) {
     }
 }
 
-void waitVSync() {
-    int wasLocked = enterCriticalSection();
+void waitVSync(void (*idle)()) {
     uint32_t imask = IMASK;
 
     IMASK = imask | IRQ_VBLANK;
 
-    while ((IREG & IRQ_VBLANK) == 0)
-        ;
+    while ((IREG & IRQ_VBLANK) == 0) idle();
     IREG &= ~IRQ_VBLANK;
     IMASK = imask;
-    if (!wasLocked) leaveCriticalSection();
 }
 
 void initGPU(int isPAL) {

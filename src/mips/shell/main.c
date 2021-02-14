@@ -205,6 +205,7 @@ static void render() {
 void idle() {}
 
 int main() {
+    int wasLocked = enterCriticalSection();
     int isPAL = (*((char*)0xbfc7ff52) == 'E');
     s_FPS = isPAL ? 50 : 60;
     generateTables();
@@ -212,9 +213,9 @@ int main() {
     enableDisplay();
     while (1) {
         calculateFrame();
-        idle();
-        waitVSync();
+        waitVSync(idle);
         flip(0);
         render();
     }
+    if (!wasLocked) leaveCriticalSection();
 }
