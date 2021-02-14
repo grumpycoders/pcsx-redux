@@ -356,22 +356,15 @@ C0Handler:
     nop
 
     .align 2
+    .global unimplementedThunk
     .global unimplemented
-    .global osDbgPrintf
-    .type unimplemented, @function
+    .type unimplementedThunk, @function
 
-unimplemented:
-    la    $v0, osDbgPrintf
-    la    $a0, unimplementedMsg
-    move  $a1, $t0
-    move  $a2, $t1
-    jalr  $v0
-    move  $a3, $ra
-    li    $v0, 0x1f802081
-    sb    $0, 0($v0)
-unimplementedStop:
-    b     unimplementedStop
-    nop
+unimplementedThunk:
+    la    $v0, unimplemented
+    move  $a0, $t0
+    jr    $v0
+    move  $a1, $t1
 
     .align 2
     .global ramsyscall_printf
@@ -392,6 +385,4 @@ romsyscall_printf:
     jr    $t2
     li    $t1, 0x3f
 
-unimplementedMsg:
-    .asciz "=== Unimplemented %x:%x syscall from %p ===\r\n"
     .set pop
