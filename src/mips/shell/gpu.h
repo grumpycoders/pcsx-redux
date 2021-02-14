@@ -42,7 +42,7 @@ union GPUPoint {
     };
 };
 
-void initGPU();
+void initGPU(int isPAL);
 void flip(int doubleBuffer);
 void waitVSync();
 

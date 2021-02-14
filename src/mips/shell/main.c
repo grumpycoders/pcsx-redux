@@ -74,22 +74,24 @@ static const int32_t F = ONE * 12;
 static unsigned s_frameCounter = 0;
 static int s_phase = 0;
 
+static unsigned s_FPS = 0;
+
 static void calculateFrame() {
     unsigned counter = s_frameCounter++;
-    if (counter == 60) s_phase = 1;
+    if (counter == s_FPS) s_phase = 1;
     int phase = s_phase;
-    if ((counter + 4 * 60) % (5 * 60) == 1) {
+    if ((counter + 4 * s_FPS) % (5 * s_FPS) == 1) {
         s_hullFrame = 0;
         s_hull = convexHull(v, 8);
     }
     struct Matrix3D transform;
     if (phase == 0) {
-        uint32_t t = DC_2PI - lerpU(0, DC_PI2 + DC_PI4, counter * 256 / 60);
-        int32_t s = lerpD(1.58 * ONE, ONE, counter * ONE / 60);
+        uint32_t t = DC_2PI - lerpU(0, DC_PI2 + DC_PI4, counter * 256 / s_FPS);
+        int32_t s = lerpD(1.58 * ONE, ONE, counter * ONE / s_FPS);
         generateRotationMatrix3D(&transform, t, AXIS_Z);
         scaleMatrix3D(&transform, s);
     } else {
-        unsigned t = counter - 60;
+        unsigned t = counter - s_FPS;
         generateRotationMatrix3D(&transform, t + DC_PI4, AXIS_Z);
         struct Matrix3D rot;
         generateRotationMatrix3D(&rot, t * 3 / 2, AXIS_X);
@@ -141,7 +143,7 @@ static void render() {
     if (hull) {
         unsigned counter = s_hullFrame++;
         union Color c;
-        unsigned p = counter * 256 / 40;
+        unsigned p = counter * 256 * 3 / (2 * s_FPS);
         c.r = lerpU(s_saturated.r, s_bg.r, p);
         c.g = lerpU(s_saturated.g, s_bg.g, p);
         c.b = lerpU(s_saturated.b, s_bg.b, p);
@@ -152,7 +154,7 @@ static void render() {
             .color = c,
         };
         startLineCommand(&cmd);
-        int32_t s = lerpD(ONE, 1.75 * ONE, counter * ONE / 40);
+        int32_t s = lerpD(ONE, 1.75 * ONE, counter * ONE * 3 / (2 * s_FPS));
         struct Matrix2D m;
         m.vs[0].x = s;
         m.vs[0].y = 0;
@@ -203,8 +205,10 @@ static void render() {
 void idle() {}
 
 int main() {
+    int isPAL = (*((char*)0xbfc7ff52) == 'E');
+    s_FPS = isPAL ? 50 : 60;
     generateTables();
-    initGPU();
+    initGPU(isPAL);
     enableDisplay();
     while (1) {
         calculateFrame();

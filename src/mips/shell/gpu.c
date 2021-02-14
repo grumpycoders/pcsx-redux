@@ -72,12 +72,12 @@ void waitVSync() {
     if (!wasLocked) leaveCriticalSection();
 }
 
-void initGPU() {
+void initGPU(int isPAL) {
     GPU_STATUS = 0x00000000;  // reset GPU
     struct DisplayModeConfig config = {
         .hResolution = HR_640,
         .vResolution = VR_480,
-        .videoMode = VM_NTSC,
+        .videoMode = isPAL ? VM_PAL : VM_NTSC,
         .colorDepth = CD_15BITS,
         .videoInterlace = VI_ON,
         .hResolutionExtended = HRE_NORMAL,
