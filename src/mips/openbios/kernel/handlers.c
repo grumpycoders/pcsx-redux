@@ -76,9 +76,9 @@ void installKernelHandlers() {
     installHandler((uint32_t *)C0Vector, (uint32_t *)0xc0);
 }
 
-void unimplemented(uint32_t table, uint32_t call) {
+void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
     struct Registers * regs = &__globals.threads[0].registers;
-    osDbgPrintf("=== Unimplemented %x:%x syscall ===\r\n", table, call);
+    osDbgPrintf("=== Unimplemented %x:%x syscall from %p ===\r\n", table, call, ra);
     osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", regs->returnPC, regs->SR, regs->Cause);
     osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", regs->GPR.r[ 0], regs->GPR.r[ 1], regs->GPR.r[ 2], regs->GPR.r[ 3]);
     osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", regs->GPR.r[ 4], regs->GPR.r[ 5], regs->GPR.r[ 6], regs->GPR.r[ 7]);
