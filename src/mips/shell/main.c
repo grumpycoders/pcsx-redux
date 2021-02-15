@@ -78,6 +78,7 @@ static unsigned s_frameCounter = 0;
 static int s_phase = 0;
 
 static unsigned s_FPS = 0;
+static int32_t s_quarterSecLerpSpeed = 0;
 
 static const int32_t c_xRotSpeedIdle = 3 * ONE / (2 * DC_2PI);
 static const int32_t c_yRotSpeedIdle = 4 * ONE / (3 * DC_2PI);
@@ -106,6 +107,121 @@ static int32_t s_zRotAccel = 0;
 static int32_t s_xRot = 0;
 static int32_t s_yRot = 0;
 static int32_t s_zRot = ONE / 8;
+
+struct LerpU {
+    const uint32_t *const s;
+    const uint32_t *const d;
+    uint32_t *const r;
+};
+struct LerpS {
+    const int32_t *const s;
+    const int32_t *const d;
+    int32_t *const r;
+};
+struct LerpD {
+    const int32_t *const s;
+    const int32_t *const d;
+    int32_t *const r;
+};
+struct LerpC {
+    const union Color *const s;
+    const union Color *const d;
+    union Color *const r;
+};
+struct Lerp {
+    union {
+        struct LerpU u;
+        struct LerpS s;
+        struct LerpD d;
+        struct LerpC c;
+    };
+    int32_t p;
+    int32_t speed;
+    enum {
+        LERPU,
+        LERPS,
+        LERPD,
+        LERPC,
+    } type;
+};
+
+enum {
+    LERP_BLACK_TO_BGIDLE,
+    LERP_BLACK_TO_FGIDLE,
+    LERP_BGIDLE_TO_BGSUCCESS,
+    LERP_FGIDLE_TO_FGSUCCESS,
+    LERP_BGSUCCESS_TO_WHITE,
+    LERP_FGSUCCESS_TO_WHITE,
+    LERP_BGIDLE_TO_BGERROR,
+    LERP_FGIDLE_TO_FGERROR,
+    LERP_BGERROR_TO_BGIDLE,
+    LERP_FGERROR_TO_FGIDLE,
+    LERP_BGSUCCESS_TO_BGIDLE,
+    LERP_FGSUCCESS_TO_FGIDLE,
+    LERP_BGSUCCESS_TO_BGERROR,
+    LERP_FGSUCCESS_TO_FGERROR,
+};
+
+enum LerpID {
+    LERP_BLACK_TO_IDLE,
+    LERP_IDLE_TO_SUCCESS,
+    LERP_SUCCESS_TO_WHITE,
+    LERP_IDLE_TO_ERROR,
+    LERP_ERROR_TO_IDLE,
+    LERP_SUCCESS_TO_IDLE,
+    LERP_SUCCESS_TO_ERROR,
+};
+
+static struct Lerp s_lerps[] = {
+    {(const uint32_t *)&c_black, (const uint32_t *)&c_bgIdle, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_black, (const uint32_t *)&c_fgIdle, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {(const uint32_t *)&c_bgIdle, (const uint32_t *)&c_bgSuccess, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_fgIdle, (const uint32_t *)&c_fgSuccess, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {(const uint32_t *)&c_bgSuccess, (const uint32_t *)&c_white, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_fgSuccess, (const uint32_t *)&c_white, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {(const uint32_t *)&c_bgIdle, (const uint32_t *)&c_bgError, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_fgIdle, (const uint32_t *)&c_fgError, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {(const uint32_t *)&c_bgError, (const uint32_t *)&c_bgIdle, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_fgError, (const uint32_t *)&c_fgIdle, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {(const uint32_t *)&c_bgSuccess, (const uint32_t *)&c_bgIdle, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_fgSuccess, (const uint32_t *)&c_fgIdle, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {(const uint32_t *)&c_bgSuccess, (const uint32_t *)&c_bgError, (uint32_t *)&s_bg, 0, 0, LERPC},
+    {(const uint32_t *)&c_fgSuccess, (const uint32_t *)&c_fgError, (uint32_t *)&s_fg, 0, 0, LERPC},
+};
+
+static void applyLerps() {
+    const unsigned n = sizeof(s_lerps) / sizeof(s_lerps[0]);
+
+    for (unsigned i = 0; i < n; i++) {
+        if (s_lerps[i].speed == 0) break;
+        int32_t p = s_lerps[i].p;
+        if (p >= ONE) s_lerps[i].speed = 0;
+        switch (s_lerps[i].type) {
+            case LERPU:
+                *s_lerps[i].u.r = lerpU(*s_lerps[i].u.s, *s_lerps[i].u.d, p >> 16);
+                break;
+            case LERPS:
+                *s_lerps[i].s.r = lerpS(*s_lerps[i].s.s, *s_lerps[i].s.d, p >> 16);
+                break;
+            case LERPD:
+                *s_lerps[i].d.r = lerpD(*s_lerps[i].d.s, *s_lerps[i].d.d, p);
+                break;
+            case LERPC:
+                *s_lerps[i].c.r = lerpC(*s_lerps[i].c.s, *s_lerps[i].c.d, p >> 16);
+                break;
+        }
+        p += s_lerps[i].speed;
+        if (p > ONE) p = ONE;
+        s_lerps[i].p = p;
+    }
+}
+
+static void startLerp(enum LerpID lerpID, int32_t speed) {
+    s_lerps[lerpID * 2 + 0].p = 0;
+    s_lerps[lerpID * 2 + 0].speed = speed;
+    s_lerps[lerpID * 2 + 1].p = 0;
+    s_lerps[lerpID * 2 + 1].speed = speed;
+}
 
 static void calculateFrame() {
     unsigned counter = s_frameCounter++;
@@ -168,7 +284,7 @@ static void calculateFrame() {
     }
 }
 
-static void facesSort(unsigned* faces, int count) {
+static void facesSort(unsigned *faces, int count) {
     int i, j;
     for (i = 0; i < count - 1; i++) {
         for (j = 0; j < count - i - 1; j++) {
@@ -241,15 +357,16 @@ static void render() {
 
 int main() {
     int wasLocked = enterCriticalSection();
-    int isPAL = (*((char*)0xbfc7ff52) == 'E');
+    int isPAL = (*((char *)0xbfc7ff52) == 'E');
     s_FPS = isPAL ? 50 : 60;
     generateTables();
-    s_bg = c_bgIdle;
-    s_fg = c_fgIdle;
+    s_quarterSecLerpSpeed = 4 * ONE / s_FPS;
+    startLerp(LERP_BLACK_TO_IDLE, s_quarterSecLerpSpeed);
     initGPU(isPAL);
     initSPU();
     enableDisplay();
     while (1) {
+        applyLerps();
         calculateFrame();
         checkCD();
         waitVSync(checkSPU);
