@@ -26,4 +26,8 @@ SOFTWARE.
 
 #pragma once
 
-void checkCD();
+void initCD();
+void checkCD(unsigned fps);
+int isCDError();
+int isCDSuccess();
+int isCDAudio();
