@@ -24,38 +24,4 @@ SOFTWARE.
 
 */
 
-#pragma once
-
-#include <stdint.h>
-
-#include "common/hardware/gpu.h"
-#include "common/hardware/hwregs.h"
-#include "shell/math.h"
-
-#define WIDTH 640
-#define HEIGHT 480
-
-union GPUPoint {
-    uint32_t packed;
-    struct {
-        int16_t x, y;
-    };
-};
-
-void initGPU(int isPAL);
-void flip(int doubleBuffer, const union Color bg);
-void waitVSync(void (*idle)());
-
-// we shift by 17 instead of 24 to do a scaling of 128
-// therefore a typical square of (-1,-1)-(1,1) would
-// end up as a 256x256 pixels one
-static inline void sendGPUVertex(struct Vertex2D *v) {
-    union GPUPoint p;
-    int32_t x = v->x >> 17;
-    int32_t y = v->y >> 17;
-    // adjust ratio for proper 4:3 output view
-    y = y * HEIGHT * 4 / (WIDTH * 3);
-    p.x = x + WIDTH / 2;
-    p.y = y + HEIGHT / 2;
-    GPU_DATA = p.packed;
-}
+void checkCD() {}

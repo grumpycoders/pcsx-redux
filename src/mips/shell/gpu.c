@@ -32,14 +32,14 @@ SOFTWARE.
 
 static int s_frame = 0;
 
-void flip(int doubleBuffer) {
+void flip(int doubleBuffer, const union Color bg) {
     if (doubleBuffer) {
         s_frame ^= 1;
         setDisplayArea(s_frame ? WIDTH : 0, 0);
         setDrawingArea(s_frame ? 0 : WIDTH, 0, s_frame ? WIDTH : WIDTH * 2, HEIGHT);
         setDrawingOffset(s_frame ? 0 : WIDTH, 0);
         struct FastFill ff = {
-            .c = s_bg,
+            .c = bg,
             .x = s_frame ? 0 : WIDTH,
             .y = 0,
             .w = WIDTH,
@@ -48,7 +48,7 @@ void flip(int doubleBuffer) {
         fastFill(&ff);
     } else {
         struct FastFill ff = {
-            .c = s_bg,
+            .c = bg,
             .x = 0,
             .y = 0,
             .w = WIDTH,

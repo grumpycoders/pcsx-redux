@@ -26,10 +26,12 @@ SOFTWARE.
 
 #include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
+#include "shell/cdrom.h"
 #include "shell/dcos.h"
 #include "shell/gpu.h"
 #include "shell/hull.h"
 #include "shell/math.h"
+#include "shell/spu.h"
 
 static void generateTables() { generateCosTable(); }
 
@@ -49,16 +51,16 @@ clang-format off
 clang-format on
 */
 
-static const struct Vertex3D modelVertices[8] = {
+static const struct Vertex3D c_modelVertices[8] = {
     {ONE, ONE, ONE},  {-ONE, ONE, ONE},  {-ONE, -ONE, ONE},  {ONE, -ONE, ONE},
     {ONE, ONE, -ONE}, {-ONE, ONE, -ONE}, {-ONE, -ONE, -ONE}, {ONE, -ONE, -ONE},
 };
-static const unsigned modelQuads[6][4] = {
+static const unsigned c_modelQuads[6][4] = {
     {0, 1, 2, 3}, {0, 4, 5, 1}, {0, 3, 7, 4}, {4, 7, 6, 5}, {2, 6, 7, 3}, {1, 5, 6, 2},
 };
 
 #define NL ONE
-static const struct Vertex3D modelNormals[6] = {
+static const struct Vertex3D c_modelNormals[6] = {
     {0, 0, NL}, {0, NL, 0}, {NL, 0, 0}, {0, 0, -NL}, {0, -NL, 0}, {-NL, 0, 0},
 };
 
@@ -77,9 +79,25 @@ static int s_phase = 0;
 
 static unsigned s_FPS = 0;
 
-static int32_t s_xRotSpeed = 3 * ONE / (2 * DC_2PI);
-static int32_t s_yRotSpeed = 4 * ONE / (3 * DC_2PI);
-static int32_t s_zRotSpeed = ONE / DC_2PI;
+static const int32_t c_xRotSpeedIdle = 3 * ONE / (2 * DC_2PI);
+static const int32_t c_yRotSpeedIdle = 4 * ONE / (3 * DC_2PI);
+static const int32_t c_zRotSpeedIdle = ONE / DC_2PI;
+
+static const union Color c_black = {.r = 0, .g = 0, .b = 0};
+static const union Color c_white = {.r = 255, .g = 255, .b = 255};
+static const union Color c_bgIdle = {.r = 0, .g = 64, .b = 91};
+static const union Color c_fgIdle = {.r = 156, .g = 220, .b = 218};
+static const union Color c_bgError = {.r = 60, .g = 18, .b = 0};
+static const union Color c_fgError = {.r = 220, .g = 156, .b = 156};
+static const union Color c_bgSuccess = {.r = 36, .g = 91, .b = 0};
+static const union Color c_fgSuccess = {.r = 152, .g = 224, .b = 155};
+
+static union Color s_bg;
+static union Color s_fg;
+
+static int32_t s_xRotSpeed = c_xRotSpeedIdle;
+static int32_t s_yRotSpeed = c_yRotSpeedIdle;
+static int32_t s_zRotSpeed = c_zRotSpeedIdle;
 
 static int32_t s_xRotAccel = 0;
 static int32_t s_yRotAccel = 0;
@@ -99,10 +117,10 @@ static void calculateFrame() {
     }
     struct Matrix3D transform;
     if (phase == 0) {
-        uint32_t t = DC_2PI - lerpU(0, DC_PI2 + DC_PI4, counter * 256 / s_FPS);
-        int32_t s = lerpD(1.58 * ONE, ONE, counter * ONE / s_FPS);
-        generateRotationMatrix3D(&transform, t, AXIS_Z);
-        scaleMatrix3D(&transform, s);
+        uint32_t angle = DC_2PI - lerpU(0, DC_PI2 + DC_PI4, counter * 256 / s_FPS);
+        int32_t scale = lerpD(1.58 * ONE, ONE, counter * ONE / s_FPS);
+        generateRotationMatrix3D(&transform, angle, AXIS_Z);
+        scaleMatrix3D(&transform, scale);
     } else {
         unsigned t = counter - s_FPS;
         generateRotationMatrix3D(&transform, s_zRot >> 13, AXIS_Z);
@@ -128,7 +146,7 @@ static void calculateFrame() {
 
     for (unsigned i = 0; i < 8; i++) {
         struct Vertex3D out;
-        matrixVertexMul3D(&transform, &modelVertices[i], &out);
+        matrixVertexMul3D(&transform, &c_modelVertices[i], &out);
         if (phase == 0) {
             v[i].x = out.x;
             v[i].y = out.y;
@@ -145,7 +163,7 @@ static void calculateFrame() {
         }
     } else {
         for (unsigned i = 0; i < 6; i++) {
-            n[i] = matrixVertexMul3Dz(&transform, &modelNormals[i]);
+            n[i] = matrixVertexMul3Dz(&transform, &c_modelNormals[i]);
         }
     }
 }
@@ -167,11 +185,8 @@ static void render() {
     int hull = s_hull;
     if (hull) {
         unsigned counter = s_hullFrame++;
-        union Color c;
         unsigned p = counter * 256 * 3 / (2 * s_FPS);
-        c.r = lerpU(s_saturated.r, s_bg.r, p);
-        c.g = lerpU(s_saturated.g, s_bg.g, p);
-        c.b = lerpU(s_saturated.b, s_bg.b, p);
+        union Color c = lerpC(s_fg, s_bg, p);
         struct GPULineCommand cmd = {
             .shading = S_FLAT,
             .lineStyle = POLY_ON,
@@ -205,12 +220,9 @@ static void render() {
     }
     facesSort(faces, count);
     for (unsigned i = 0; i < count; i++) {
-        union Color c;
         unsigned f = faces[i];
         unsigned p = n[f] >> 16;
-        c.r = lerpU(0, s_saturated.r, p);
-        c.g = lerpU(0, s_saturated.g, p);
-        c.b = lerpU(0, s_saturated.b, p);
+        union Color c = lerpC(c_black, s_fg, p);
         struct GPUPolygonCommand cmd = {
             .shading = S_FLAT,
             .verticesCount = VC_4,
@@ -220,26 +232,28 @@ static void render() {
             .color = c,
         };
         startPolygonCommand(&cmd);
-        sendGPUVertex(&v[modelQuads[f][0]]);
-        sendGPUVertex(&v[modelQuads[f][1]]);
-        sendGPUVertex(&v[modelQuads[f][2]]);
-        sendGPUVertex(&v[modelQuads[f][3]]);
+        sendGPUVertex(&v[c_modelQuads[f][0]]);
+        sendGPUVertex(&v[c_modelQuads[f][1]]);
+        sendGPUVertex(&v[c_modelQuads[f][2]]);
+        sendGPUVertex(&v[c_modelQuads[f][3]]);
     }
 }
-
-void idle() {}
 
 int main() {
     int wasLocked = enterCriticalSection();
     int isPAL = (*((char*)0xbfc7ff52) == 'E');
     s_FPS = isPAL ? 50 : 60;
     generateTables();
+    s_bg = c_bgIdle;
+    s_fg = c_fgIdle;
     initGPU(isPAL);
+    initSPU();
     enableDisplay();
     while (1) {
         calculateFrame();
-        waitVSync(idle);
-        flip(0);
+        checkCD();
+        waitVSync(checkSPU);
+        flip(0, s_bg);
         render();
     }
     if (!wasLocked) leaveCriticalSection();

@@ -3,11 +3,13 @@ TYPE = bin
 
 SRCS = \
 ../common/crt0/crt0.s \
+cdrom.c \
 dcos.c \
 gpu.c \
 hull.c \
 main.c \
 math.c \
+spu.c \
 ../modplayer/modplayer.c \
 
 LDSCRIPT = shell.ld

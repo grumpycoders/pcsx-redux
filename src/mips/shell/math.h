@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include "common/hardware/gpu.h"
 #include "shell/dcos.h"
 
 #define ONE 16777216
@@ -106,3 +107,10 @@ static inline void matrixVertexMul2D(struct Matrix2D *m, struct Vertex2D *v) {
 static inline uint32_t lerpU(uint32_t s, uint32_t d, unsigned p) { return (s * (256 - p) + d * p) >> 8; }
 static inline int32_t lerpS(int32_t s, int32_t d, unsigned p) { return (s * (256 - p) + d * p) >> 8; }
 static inline int32_t lerpD(int32_t s, int32_t d, int32_t p) { return dMul(s, 16777216 - p) + dMul(d, p); }
+static inline union Color lerpC(const union Color s, const union Color d, unsigned p) {
+    union Color r;
+    r.r = lerpU(s.r, d.r, p);
+    r.b = lerpU(s.b, d.b, p);
+    r.g = lerpU(s.g, d.g, p);
+    return r;
+}
