@@ -113,6 +113,8 @@ static int32_t s_xRot = 0;
 static int32_t s_yRot = 0;
 static int32_t s_zRot = ONE / 8;
 
+static int32_t s_scale = ONE;
+
 struct LerpU {
     uint32_t s;
     uint32_t d;
@@ -155,6 +157,7 @@ enum LerpID {
     LERP_TO_SUCCESS,
     LERP_TO_ERROR,
     LERP_TO_OUTRO,
+    LERP_TO_BLACK,
 };
 
 static struct Lerp s_lerps[] = {
@@ -164,13 +167,14 @@ static struct Lerp s_lerps[] = {
     {0, 0, (uint32_t *)&s_xRotSpeed, 0, 0, LERPD},
     {0, 0, (uint32_t *)&s_yRotSpeed, 0, 0, LERPD},
     {0, 0, (uint32_t *)&s_zRotSpeed, 0, 0, LERPD},
+    {ONE, ONE >> 3, (uint32_t *)&s_scale, 0, 0, LERPD},
 };
 
 static void applyLerps() {
     const unsigned n = sizeof(s_lerps) / sizeof(s_lerps[0]);
 
     for (unsigned i = 0; i < n; i++) {
-        if (s_lerps[i].speed == 0) break;
+        if (s_lerps[i].speed == 0) continue;
         int32_t p = s_lerps[i].p;
         if (p >= ONE) s_lerps[i].speed = 0;
         switch (s_lerps[i].type) {
@@ -195,7 +199,6 @@ static void applyLerps() {
 
 static void startLerp(enum LerpID lerpID) {
     s_lerps[0].p = s_lerps[1].p = s_lerps[2].p = s_lerps[3].p = s_lerps[4].p = s_lerps[5].p = 0;
-    s_lerps[2].speed = 0;
     s_lerps[0].speed = s_lerps[1].speed = s_lerps[3].speed = s_lerps[4].speed = s_quarterSecLerpSpeed;
     s_lerps[0].c.s = *s_lerps[0].c.r;
     s_lerps[1].c.s = *s_lerps[1].c.r;
@@ -229,8 +232,14 @@ static void startLerp(enum LerpID lerpID) {
             s_lerps[0].c.d = c_white;
             s_lerps[1].c.d = c_white;
             s_lerps[2].c.d = c_white;
-            s_lerps[0].speed = s_lerps[1].speed = s_lerps[2].speed = s_quarterSecLerpSpeed << 2;
+            s_lerps[0].speed = s_lerps[1].speed = s_lerps[2].speed = s_lerps[6].speed = s_quarterSecLerpSpeed >> 2;
             s_lerps[3].speed = s_lerps[4].speed = s_lerps[5].speed = 0;
+            break;
+        case LERP_TO_BLACK:
+            s_lerps[0].c.d = c_black;
+            s_lerps[1].c.d = c_black;
+            s_lerps[2].c.d = c_black;
+            s_lerps[0].speed = s_lerps[1].speed = s_lerps[2].speed = s_quarterSecLerpSpeed >> 2;
             break;
     }
 }
@@ -257,7 +266,7 @@ static void calculateFrame() {
         multiplyMatrix3D(&transform, &rot, &transform);
         generateRotationMatrix3D(&rot, s_yRot >> 13, AXIS_Y);
         multiplyMatrix3D(&transform, &rot, &transform);
-        scaleMatrix3D(&transform, ONE);
+        scaleMatrix3D(&transform, s_scale);
         s_xRot += s_xRotSpeed;
         s_yRot += s_yRotSpeed;
         s_zRot += s_zRotSpeed;
@@ -388,6 +397,8 @@ int main() {
             if (bootFrames == s_FPS) {
                 startLerp(LERP_TO_OUTRO);
             } else if (bootFrames == (s_FPS * 2)) {
+                startLerp(LERP_TO_BLACK);
+            } else if (bootFrames == (s_FPS * 3)) {
                 break;
             }
         }
