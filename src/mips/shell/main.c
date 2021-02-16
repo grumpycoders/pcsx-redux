@@ -99,6 +99,7 @@ static const union Color c_fgSuccess = {.r = 152, .g = 224, .b = 155};
 
 static union Color s_bg;
 static union Color s_fg;
+static union Color s_black;
 
 static int32_t s_xRotSpeed = c_xRotSpeedIdle;
 static int32_t s_yRotSpeed = c_yRotSpeedIdle;
@@ -159,6 +160,7 @@ enum LerpID {
 static struct Lerp s_lerps[] = {
     {0, 0, (uint32_t *)&s_bg, 0, 0, LERPC},
     {0, 0, (uint32_t *)&s_fg, 0, 0, LERPC},
+    {0, 0, (uint32_t *)&s_black, 0, 0, LERPC},
     {0, 0, (uint32_t *)&s_xRotSpeed, 0, 0, LERPD},
     {0, 0, (uint32_t *)&s_yRotSpeed, 0, 0, LERPD},
     {0, 0, (uint32_t *)&s_zRotSpeed, 0, 0, LERPD},
@@ -192,39 +194,43 @@ static void applyLerps() {
 }
 
 static void startLerp(enum LerpID lerpID) {
-    s_lerps[0].p = s_lerps[1].p = s_lerps[2].p = s_lerps[3].p = s_lerps[4].p = 0;
-    s_lerps[0].speed = s_lerps[1].speed = s_lerps[2].speed = s_lerps[3].speed = s_lerps[4].speed = s_quarterSecLerpSpeed;
+    s_lerps[0].p = s_lerps[1].p = s_lerps[2].p = s_lerps[3].p = s_lerps[4].p = s_lerps[5].p = 0;
+    s_lerps[2].speed = 0;
+    s_lerps[0].speed = s_lerps[1].speed = s_lerps[3].speed = s_lerps[4].speed = s_quarterSecLerpSpeed;
     s_lerps[0].c.s = *s_lerps[0].c.r;
     s_lerps[1].c.s = *s_lerps[1].c.r;
-    s_lerps[2].d.s = *s_lerps[2].d.r;
+    s_lerps[2].c.s = *s_lerps[2].c.r;
     s_lerps[3].d.s = *s_lerps[3].d.r;
     s_lerps[4].d.s = *s_lerps[4].d.r;
+    s_lerps[5].d.s = *s_lerps[5].d.r;
     switch (lerpID) {
         case LERP_TO_IDLE:
             s_lerps[0].c.d = c_bgIdle;
             s_lerps[1].c.d = c_fgIdle;
-            s_lerps[2].d.d = c_xRotSpeedIdle;
-            s_lerps[3].d.d = c_yRotSpeedIdle;
-            s_lerps[4].d.d = c_zRotSpeedIdle;
+            s_lerps[3].d.d = c_xRotSpeedIdle;
+            s_lerps[4].d.d = c_yRotSpeedIdle;
+            s_lerps[5].d.d = c_zRotSpeedIdle;
             break;
         case LERP_TO_SUCCESS:
             s_lerps[0].c.d = c_bgSuccess;
             s_lerps[1].c.d = c_fgSuccess;
-            s_lerps[2].d.d = c_xRotSpeedIdle;
-            s_lerps[3].d.d = c_yRotSpeedIdle;
-            s_lerps[4].d.d = c_zRotSpeedIdle;
+            s_lerps[4].d.d = c_xRotSpeedIdle;
+            s_lerps[5].d.d = c_yRotSpeedIdle;
+            s_lerps[6].d.d = c_zRotSpeedIdle;
             break;
         case LERP_TO_ERROR:
             s_lerps[0].c.d = c_bgError;
             s_lerps[1].c.d = c_fgError;
-            s_lerps[2].d.d = c_xRotSpeedError;
-            s_lerps[3].d.d = c_yRotSpeedError;
-            s_lerps[4].d.d = c_zRotSpeedError;
+            s_lerps[4].d.d = c_xRotSpeedError;
+            s_lerps[5].d.d = c_yRotSpeedError;
+            s_lerps[6].d.d = c_zRotSpeedError;
             break;
         case LERP_TO_OUTRO:
             s_lerps[0].c.d = c_white;
             s_lerps[1].c.d = c_white;
-            s_lerps[2].speed = s_lerps[3].speed = s_lerps[4].speed = 0;
+            s_lerps[2].c.d = c_white;
+            s_lerps[0].speed = s_lerps[1].speed = s_lerps[2].speed = s_quarterSecLerpSpeed << 2;
+            s_lerps[3].speed = s_lerps[4].speed = s_lerps[5].speed = 0;
             break;
     }
 }
@@ -344,7 +350,7 @@ static void render() {
     for (unsigned i = 0; i < count; i++) {
         unsigned f = faces[i];
         unsigned p = n[f] >> 16;
-        union Color c = lerpC(c_black, s_fg, p);
+        union Color c = lerpC(s_black, s_fg, p);
         struct GPUPolygonCommand cmd = {
             .shading = S_FLAT,
             .verticesCount = VC_4,
@@ -361,18 +367,30 @@ static void render() {
     }
 }
 
+static int s_scheduleBoot = 0;
+static int s_bootFrames = 0;
+
 int main() {
     int wasLocked = enterCriticalSection();
     int isPAL = (*((char *)0xbfc7ff52) == 'E');
     s_FPS = isPAL ? 50 : 60;
     generateTables();
     s_quarterSecLerpSpeed = 4 * ONE / s_FPS;
+    s_bg = s_fg = s_black = c_black;
     startLerp(LERP_TO_IDLE);
     initGPU(isPAL);
     initSPU();
     initCD();
     enableDisplay();
     while (1) {
+        if (s_scheduleBoot) {
+            int bootFrames = s_bootFrames++;
+            if (bootFrames == s_FPS) {
+                startLerp(LERP_TO_OUTRO);
+            } else if (bootFrames == (s_FPS * 2)) {
+                break;
+            }
+        }
         applyLerps();
         calculateFrame();
         int wasError = isCDError();
@@ -384,6 +402,13 @@ int main() {
             startLerp(LERP_TO_ERROR);
         } else if (isSuccess && !wasSuccess) {
             startLerp(LERP_TO_SUCCESS);
+            if (!isCDAudio()) {
+                ramsyscall_printf("*** Data is acceptable, booting now. ***");
+                s_xRotAccel = s_yRotAccel = s_zRotAccel = 12000;
+                s_scheduleBoot = 1;
+            } else {
+                // todo: play audio cd
+            }
         } else if (!isError && wasError) {
             startLerp(LERP_TO_IDLE);
         }

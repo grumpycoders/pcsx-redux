@@ -334,6 +334,7 @@ void PCSX::GUI::flip() {
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
+    // this check seems to sometime fails when the window is minimized...?
     checkGL();
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);

@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,19 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
 
-extern uint8_t g_readBuffer[2048];
+static __inline__ uint32_t readUnaligned(const void *in, int pos) {
+    const uint8_t *buffer = (uint8_t *)in;
+    uint32_t r = 0;
+    pos += 4;
+    r <<= 8;
+    r += buffer[--pos];
+    r <<= 8;
+    r += buffer[--pos];
+    r <<= 8;
+    r += buffer[--pos];
+    r <<= 8;
+    r += buffer[--pos];
+    return r;
+}
