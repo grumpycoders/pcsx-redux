@@ -33,6 +33,7 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "common/psxlibc/direntry.h"
 #include "common/psxlibc/stdio.h"
+#include "common/util/util.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/helpers.h"
 #include "openbios/kernel/util.h"
