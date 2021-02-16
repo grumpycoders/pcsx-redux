@@ -378,10 +378,14 @@ int main() {
         int wasError = isCDError();
         int wasSuccess = isCDSuccess();
         checkCD(s_FPS);
-        if (isCDError() && !wasError) {
+        int isError = isCDError();
+        int isSuccess = isCDSuccess();
+        if (isError && !wasError) {
             startLerp(LERP_TO_ERROR);
-        } else if (isCDSuccess() && !wasSuccess) {
+        } else if (isSuccess && !wasSuccess) {
             startLerp(LERP_TO_SUCCESS);
+        } else if (!isError && wasError) {
+            startLerp(LERP_TO_IDLE);
         }
         waitVSync(checkSPU);
         flip(0, s_bg);

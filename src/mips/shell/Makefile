@@ -3,6 +3,7 @@ TYPE = bin
 
 SRCS = \
 ../common/crt0/crt0.s \
+../common/syscalls/printf.s \
 cdrom.c \
 dcos.c \
 gpu.c \
