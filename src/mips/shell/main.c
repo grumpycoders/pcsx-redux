@@ -396,7 +396,7 @@ int main() {
             int bootFrames = s_bootFrames++;
             if (bootFrames == 0) {
                 startLerp(LERP_TO_SUCCESS);
-                s_xRotAccel = s_yRotAccel = s_zRotAccel = 6000;
+                s_xRotAccel = s_yRotAccel = s_zRotAccel = 2503;
             } else if (bootFrames == s_FPS) {
                 startLerp(LERP_TO_OUTRO);
             } else if (bootFrames == (s_FPS * 2)) {
