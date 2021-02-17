@@ -134,18 +134,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_glfw.cpp" />
-    <ClCompile Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.c" />
     <ClCompile Include="..\..\third_party\imgui\imgui.cpp" />
     <ClCompile Include="..\..\third_party\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\third_party\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\third_party\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\third_party\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\third_party\imgui\misc\cpp\imgui_stdlib.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_glfw.h" />
-    <ClInclude Include="..\..\third_party\imgui\examples\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\..\third_party\imgui\backends\imgui_impl_glfw.h" />
+    <ClInclude Include="..\..\third_party\imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.h" />
     <ClInclude Include="..\..\third_party\imgui\examples\libs\gl3w\GL\glcorearb.h" />
     <ClInclude Include="..\..\third_party\imgui\imconfig.h" />

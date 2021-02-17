@@ -17,6 +17,7 @@
  */
 
 #include "core/gpu.h"
+
 #include "core/pgxp_mem.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"

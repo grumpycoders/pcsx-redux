@@ -26,33 +26,29 @@ SOFTWARE.
 
 #include "BoardConsole.h"
 
-#include "common/syscalls/syscalls.h"
-
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "common/syscalls/syscalls.h"
+
 void BoardConsoleInit() {}
 
-void BoardConsolePuts(const char * str) {
+void BoardConsolePuts(const char* str) {
     char c;
     while ((c = *str++)) BoardConsolePutc(c);
 }
 
-void BoardConsolePutc(int c) {
-    syscall_putchar(c);
+void BoardConsolePutc(int c) { syscall_putchar(c); }
+
+static void xprintfCallback(const char* str, int strsize, void* opaque0) {
+    while (strsize--) BoardConsolePutc(*str++);
 }
 
-static void xprintfCallback(const char * str, int strsize, void * opaque0) {
-    while (strsize--)
-        BoardConsolePutc(*str++);
-}
-
-void BoardConsolePrintf(const char * fmt, ...) {
+void BoardConsolePrintf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     BoardConsoleVPrintf(fmt, ap);
-    va_end(ap);}
-
-void BoardConsoleVPrintf(const char * fmt, va_list ap) {
-    vxprintf(xprintfCallback, NULL, fmt, ap);
+    va_end(ap);
 }
+
+void BoardConsoleVPrintf(const char* fmt, va_list ap) { vxprintf(xprintfCallback, NULL, fmt, ap); }

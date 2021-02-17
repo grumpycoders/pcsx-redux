@@ -24,18 +24,13 @@ SOFTWARE.
 
 */
 
-
 #pragma once
 
-#include <stdint.h>
+#include "common/compiler/stdint.h"
 
-static __inline__ void pcsx_putc(int c) { *((volatile char * const) 0x1f802080) = c; }
-static __inline__ void pcsx_debugbreak() { *((volatile char * const) 0x1f802081) = 0; }
-static __inline__ void pcsx_exit(int code) { *((volatile int16_t * const) 0x1f802082) = code; }
-static __inline__ void pcsx_message(const char * msg) {
-    *((volatile char * const) 0x1f802084) = msg;
-}
+static __inline__ void pcsx_putc(int c) { *((volatile char* const)0x1f802080) = c; }
+static __inline__ void pcsx_debugbreak() { *((volatile char* const)0x1f802081) = 0; }
+static __inline__ void pcsx_exit(int code) { *((volatile int16_t* const)0x1f802082) = code; }
+static __inline__ void pcsx_message(const char* msg) { *((volatile char* const)0x1f802084) = msg; }
 
-static __inline__ int pcsx_present() {
-    return *((volatile uint32_t * const) 0x1f802080) == 0x58534350;
-}
+static __inline__ int pcsx_present() { return *((volatile uint32_t* const)0x1f802080) == 0x58534350; }

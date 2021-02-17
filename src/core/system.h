@@ -68,8 +68,8 @@ class System {
     virtual void log(const char *facility, const char *fmt, va_list a) = 0;
     // Message used to print msg to users
     virtual void message(const char *fmt, ...) = 0;
-    // Called on VBlank (to update i.e. pads)
-    virtual void update() = 0;
+    // Called periodically; if vsync = true, this while the emulated hardware vsyncs
+    virtual void update(bool vsync = false) = 0;
     // Returns to the Gui
     virtual void runGui() = 0;
     // Close mem and plugins
@@ -98,6 +98,7 @@ class System {
         m_running = true;
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
+    virtual void testQuit(int code) = 0;
     void quit(int code = 0) {
         m_quitting = true;
         pause();

@@ -49,24 +49,26 @@ namespace {
 
 uint32_t virtToReal(uint32_t virt) {
     uint32_t base = (virt >> 20) & 0xffc;
-    uint32_t real = virt & 0x1fffff;
+    uint32_t real = virt & 0x7fffff;
     uint32_t pc = real;
     if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
         // main memory first
-        if (real >= 0x00200000) pc = 0;
+        if (real >= 0x00800000) pc = 0;
     } else if (base == 0x1f0) {
         // parallel port second
         if (real >= 0x00010000) {
             pc = 0;
         } else {
-            pc += 0x00200000;
+            pc += 0x00800000;
         }
     } else if (base == 0xbfc) {
         // bios last
+        real &= 0x1fffff;
+        pc = real;
         if (real >= 0x00080000) {
             pc = 0;
         } else {
-            pc += 0x00210000;
+            pc += 0x00810000;
         }
     }
     return pc;
@@ -295,31 +297,31 @@ uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
 }
 void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, int size) {
     uint32_t base = (addr >> 20) & 0xffc;
-    uint32_t real = addr & 0x1fffff;
+    uint32_t real = addr & 0x7fffff;
     auto changeDataType = [](MemoryEditor* editor, int size) {
         bool isSigned = false;
         switch (editor->PreviewDataType) {
-            case MemoryEditor::DataType_S8:
-            case MemoryEditor::DataType_S16:
-            case MemoryEditor::DataType_S32:
-            case MemoryEditor::DataType_S64:
+            case ImGuiDataType_S8:
+            case ImGuiDataType_S16:
+            case ImGuiDataType_S32:
+            case ImGuiDataType_S64:
                 isSigned = true;
                 break;
         }
         switch (size) {
             case 1:
-                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S8 : MemoryEditor::DataType_U8;
+                editor->PreviewDataType = isSigned ? ImGuiDataType_S8 : ImGuiDataType_U8;
                 break;
             case 2:
-                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S16 : MemoryEditor::DataType_U16;
+                editor->PreviewDataType = isSigned ? ImGuiDataType_S16 : ImGuiDataType_U16;
                 break;
             case 4:
-                editor->PreviewDataType = isSigned ? MemoryEditor::DataType_S32 : MemoryEditor::DataType_U32;
+                editor->PreviewDataType = isSigned ? ImGuiDataType_S32 : ImGuiDataType_U32;
                 break;
         }
     };
     if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        if (real < 0x00200000) {
+        if (real < 0x00800000) {
             m_mainMemoryEditor->GotoAddrAndHighlight(real, real + size);
             changeDataType(m_mainMemoryEditor, size);
         }
@@ -446,7 +448,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             if (ImGui::MenuItem(_("Resume"), nullptr, nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
             if (ImGui::MenuItem(_("Step In"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepIn();
-            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOver();
+            if (ImGui::MenuItem(_("Step Over"), nullptr, nullptr, !g_system->running()))
+                g_emulator->m_debug->stepOver();
             if (ImGui::MenuItem(_("Step Out"), nullptr, nullptr, !g_system->running())) g_emulator->m_debug->stepOut();
             ImGui::EndMenu();
         }
@@ -530,7 +533,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(0x00290000 / 4, ImGui::GetTextLineHeightWithSpacing());
+    ImGuiListClipper clipper(0x00890000 / 4, ImGui::GetTextLineHeightWithSpacing());
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -554,24 +557,24 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             uint32_t nextCode = 0;
             uint32_t base = 0;
             const char* section = "UNK";
-            if (addr < 0x00200000) {
+            if (addr < 0x00800000) {
                 section = "RAM";
                 code = *reinterpret_cast<uint32_t*>(m_memory->g_psxM + addr);
-                if (addr <= 0x001ffff8) {
+                if (addr <= 0x007ffff8) {
                     nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxM + addr + 4);
                 }
                 base = m_ramBase;
-            } else if (addr < 0x00210000) {
+            } else if (addr < 0x00810000) {
                 section = "PAR";
-                addr -= 0x00200000;
+                addr -= 0x00800000;
                 code = *reinterpret_cast<uint32_t*>(m_memory->g_psxP + addr);
                 if (addr <= 0x0000fff8) {
                     nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxP + addr + 4);
                 }
                 base = 0x1f000000;
-            } else if (addr < 0x00290000) {
+            } else if (addr < 0x00890000) {
                 section = "ROM";
-                addr -= 0x00210000;
+                addr -= 0x00810000;
                 code = *reinterpret_cast<uint32_t*>(m_memory->g_psxR + addr);
                 if (addr <= 0x0007fff8) {
                     nextCode = *reinterpret_cast<uint32_t*>(m_memory->g_psxR + addr + 4);

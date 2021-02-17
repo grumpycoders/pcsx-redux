@@ -40,6 +40,8 @@ enum class PsyqOpcode : uint8_t {
     EXPORTED_SYMBOL = 12,
     IMPORTED_SYMBOL = 14,
     SECTION = 16,
+    LOCAL_SYMBOL = 18,
+    FILENAME = 28,
     PROGRAMTYPE = 46,
     UNINITIALIZED = 48,
 };
@@ -49,6 +51,7 @@ enum class PsyqRelocType : uint8_t {
     REL26 = 74,
     HI16 = 82,
     LO16 = 84,
+    GPREL16 = 100,
 };
 
 enum class PsyqExprOpcode : uint8_t {
@@ -109,6 +112,7 @@ struct PsyqLnkFile {
         PCSX::Slice data;
         std::list<Relocation> relocations;
         uint32_t getFullSize() { return data.size() + zeroes + uninitializedOffset; }
+        uint32_t pointer = 0;
 
         ELFIO::section* section = nullptr;
         ELFIO::section* rel_sec = nullptr;
@@ -124,6 +128,7 @@ struct PsyqLnkFile {
     };
     struct Symbol : public SymbolHashTable::Node {
         enum class Type {
+            LOCAL,
             EXPORTED,
             IMPORTED,
             UNINITIALIZED,
@@ -168,6 +173,7 @@ struct PsyqLnkFile {
 
     SectionHashTable sections;
     SymbolHashTable symbols;
+    int localIndex = 0;
 
     /* There's some state we need to maintain during parsing */
     Section* getCurrentSection() {
@@ -235,6 +241,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                     fmt::print("Section {} not found\n", ret->currentSection);
                     return nullptr;
                 }
+                section->pointer = section->getFullSize();
                 if (section->zeroes) {
                     void* ptr = calloc(section->zeroes, 1);
                     PCSX::Slice zeroes;
@@ -282,21 +289,25 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                         vprint("(LO16), ");
                         break;
                     }
+                    case (uint8_t)PsyqRelocType::GPREL16: {
+                        vprint("(GPREL16), ");
+                        break;
+                    }
                     default: {
                         fmt::print("Unknown relocation type {}\n", relocType);
                         return nullptr;
                     }
                 }
                 uint16_t offset = file->read<uint16_t>();
-                vprint("offset {:04x}, expression: \n", offset);
-                std::unique_ptr<Expression> expression = Expression::parse(file, verbose);
-                if (!expression) return nullptr;
                 auto section = ret->getCurrentSection();
                 if (!section) {
                     fmt::print("Section {} not found\n", ret->currentSection);
                     return nullptr;
                 }
-                section->relocations.emplace_back(Relocation{PsyqRelocType(relocType), offset, std::move(expression)});
+                vprint("offset {:04x}+{:08x}, expression: \n", offset, section->pointer);
+                std::unique_ptr<Expression> expression = Expression::parse(file, verbose);
+                if (!expression) return nullptr;
+                section->relocations.emplace_back(Relocation{PsyqRelocType(relocType), offset + section->pointer, std::move(expression)});
                 break;
             }
             case (uint8_t)PsyqOpcode::EXPORTED_SYMBOL: {
@@ -338,6 +349,25 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::File* file, bool verbose) 
                     fmt::print("Section alignment {} isn't a power of two.\n", alignment);
                     return nullptr;
                 }
+                break;
+            }
+            case (uint8_t)PsyqOpcode::LOCAL_SYMBOL: {
+                uint16_t sectionIndex = file->read<uint16_t>();
+                uint32_t offset = file->read<uint32_t>();
+                std::string name = readPsyqString(file);
+                vprint("Local: section {}, offset {}, name {}\n", sectionIndex, offset, name);
+                Symbol* symbol = new Symbol();
+                symbol->symbolType = Symbol::Type::LOCAL;
+                symbol->sectionIndex = sectionIndex;
+                symbol->offset = offset;
+                symbol->name = name;
+                ret->symbols.insert(--ret->localIndex, symbol);
+                break;
+            }
+            case (uint8_t)PsyqOpcode::FILENAME: {
+                uint16_t index = file->read<uint16_t>();
+                std::string name = readPsyqString(file);
+                vprint("File {}: {}\n", index, name);
                 break;
             }
             case (uint8_t)PsyqOpcode::PROGRAMTYPE: {
@@ -430,8 +460,27 @@ std::unique_ptr<PsyqLnkFile::Expression> PsyqLnkFile::Expression::parse(PCSX::Fi
         }
         case (uint8_t)PsyqExprOpcode::ADD: {
             vprint("Add:\n");
-            ret->right = parse(file, verbose, +1);
+            ret->right = parse(file, verbose, level + 1);
             ret->left = parse(file, verbose, level + 1);
+            if ((ret->right->type == PsyqExprOpcode::ADD) && (ret->left->type == PsyqExprOpcode::VALUE)) {
+                auto addend = ret->left->value;
+                if (ret->right->right->type == PsyqExprOpcode::VALUE) {
+                    ret->right->right->value += addend;
+                    return std::move(ret->right);
+                } else if (ret->right->left->type == PsyqExprOpcode::VALUE) {
+                    ret->right->left->value += addend;
+                    return std::move(ret->right);
+                }
+            } else if ((ret->left->type == PsyqExprOpcode::ADD) && (ret->right->type == PsyqExprOpcode::VALUE)) {
+                auto addend = ret->right->value;
+                if (ret->left->right->type == PsyqExprOpcode::VALUE) {
+                    ret->left->right->value += addend;
+                    return std::move(ret->left);
+                } else if (ret->left->left->type == PsyqExprOpcode::VALUE) {
+                    ret->left->left->value += addend;
+                    return std::move(ret->left);
+                }
+            }
             if (!ret->left || !ret->right) {
                 return nullptr;
             }
@@ -480,7 +529,7 @@ void PsyqLnkFile::display() {
         section.display(this);
     }
     fmt::print("\n\n\n  :: Relocations\n\n");
-    fmt::print("    {:5}   {:>12}::{:8}  {}\n", "type", "section", "offset", "expression");
+    fmt::print("    {:8}   {:>12}::{:8}  {}\n", "type", "section", "offset", "expression");
     fmt::print("    ------------------------------------------\n");
     for (auto& section : sections) {
         section.displayRelocs(this);
@@ -523,12 +572,10 @@ void PsyqLnkFile::Section::displayRelocs(PsyqLnkFile* lnk) {
 
 void PsyqLnkFile::Relocation::display(PsyqLnkFile* lnk, PsyqLnkFile::Section* sec) {
     static const std::map<PsyqRelocType, std::string> typeStr = {
-        {PsyqRelocType::REL32, "REL32"},
-        {PsyqRelocType::REL26, "REL26"},
-        {PsyqRelocType::HI16, "HI16"},
-        {PsyqRelocType::LO16, "LO16"},
+        {PsyqRelocType::REL32, "REL32"}, {PsyqRelocType::REL26, "REL26"},     {PsyqRelocType::HI16, "HI16"},
+        {PsyqRelocType::LO16, "LO16"},   {PsyqRelocType::GPREL16, "GPREL16"},
     };
-    fmt::print("    {:5}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
+    fmt::print("    {:8}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
     expression->display(lnk, true);
 }
 
@@ -671,7 +718,8 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         }
         elfSectionIndex = section->section->get_index();
     }
-    elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), size, STB_GLOBAL, STT_NOTYPE, 0, elfSectionIndex);
+    elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), size,
+                             symbolType == Type::LOCAL ? STB_LOCAL : STB_GLOBAL, STT_NOTYPE, 0, elfSectionIndex);
     return true;
 }
 
@@ -679,9 +727,8 @@ bool PsyqLnkFile::Section::generateElfSection(PsyqLnkFile* psyq, ELFIO::elfio& w
     if (getFullSize() == 0) return true;
     fmt::print("    :: Generating section {}\n", name);
     static const std::map<std::string, ELFIO::Elf_Xword> flagsMap = {
-        {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},
-        {".data", SHF_ALLOC | SHF_WRITE},     {".bss", SHF_ALLOC | SHF_WRITE},
-        {".sbss", SHF_ALLOC | SHF_WRITE},
+        {".text", SHF_ALLOC | SHF_EXECINSTR}, {".rdata", SHF_ALLOC},           {".data", SHF_ALLOC | SHF_WRITE},
+        {".sdata", SHF_ALLOC | SHF_WRITE},    {".bss", SHF_ALLOC | SHF_WRITE}, {".sbss", SHF_ALLOC | SHF_WRITE},
     };
     auto flags = flagsMap.find(name);
     if (flags == flagsMap.end()) {
@@ -754,6 +801,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
         {PsyqRelocType::REL26, elf_mips_reloc_type::R_MIPS_26},
         {PsyqRelocType::HI16, elf_mips_reloc_type::R_MIPS_HI16},
         {PsyqRelocType::LO16, elf_mips_reloc_type::R_MIPS_LO16},
+        {PsyqRelocType::GPREL16, elf_mips_reloc_type::R_MIPS_GPREL16},
     };
     auto simpleSymbolReloc = [&, this](Expression* expr, ELFIO::Elf_Word elfSym = 0) {
         if (psyq->twoPartsReloc) {
@@ -789,11 +837,15 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 break;
             }
             case PsyqRelocType::HI16:
-            case PsyqRelocType::LO16: {
+            case PsyqRelocType::LO16:
+            case PsyqRelocType::GPREL16: {
                 sectionData[offset + 0] = 0;
                 sectionData[offset + 1] = 0;
                 break;
             }
+            default:
+                psyq->setElfConversionError("Unsupported relocation type {}.", type);
+                return false;
         }
         section->section->set_data((char*)sectionData, size);
         free(sectionData);
@@ -846,10 +898,6 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 return localSymbolReloc(expr->sectionIndex, addend);
             }
             case PsyqExprOpcode::SYMBOL: {
-                if (pass == ElfRelocationPass::PASS1) {
-                    skipped.skipped = true;
-                    return true;
-                }
                 auto symbol = psyq->symbols.find(expr->symbolIndex);
                 if (symbol == psyq->symbols.end()) {
                     psyq->setElfConversionError("Couldn't find symbol {} for relocation.", expr->symbolIndex);
@@ -857,6 +905,10 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 }
                 if (symbol->symbolType != PsyqLnkFile::Symbol::Type::IMPORTED) {
                     return localSymbolReloc(symbol->sectionIndex, symbol->getOffset(psyq) + addend);
+                }
+                if (pass == ElfRelocationPass::PASS1) {
+                    skipped.skipped = true;
+                    return true;
                 }
                 ELFIO::Elf_Word elfSym = symbol->elfSym;
                 // this is the most complex case, as the psyq format can do

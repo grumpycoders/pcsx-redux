@@ -1,19 +1,24 @@
 name: macOS CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   macos-build-and-test:
 
     runs-on: macOS-latest
-    
+
     steps:
     - uses: actions/checkout@v1
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
       run: git submodule update --init --recursive
-    - name: Apply zstr patch
-      run: patch -d third_party/zstr/ -p1 < .github/zstr_strict_fstream_darwin_fix.patch
     - name: Build pcsx-redux
       run: make -j2

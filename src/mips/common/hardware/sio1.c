@@ -24,8 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/hardware/hwregs.h"
 #include "common/hardware/sio1.h"
+
+#include "common/hardware/hwregs.h"
 
 void sio1_init() {
     // enable TX and RX, and nothing else
@@ -42,6 +43,7 @@ void sio1_init() {
 }
 
 void sio1_putc(uint8_t byte) {
-    while ((SIO1_STAT & 1) == 0);
+    while ((SIO1_STAT & 1) == 0)
+        ;
     SIO1_DATA = byte;
 }

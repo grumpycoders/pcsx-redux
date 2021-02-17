@@ -34,6 +34,7 @@
 #include "core/cdrom.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -245,6 +246,14 @@ end)(jit.status()))
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
+
+        PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
+        PCSX::g_emulator->m_cdrom->m_iso.close();
+        if (!isoToOpen.empty()) {
+            SetIsoFile(reinterpret_cast<const char*>(isoToOpen.c_str()));
+            PCSX::g_emulator->m_cdrom->m_iso.open();
+            CheckCdrom();
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -335,7 +344,19 @@ void PCSX::GUI::startFrame() {
     g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
-    SDL_PumpEvents();
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_JOYDEVICEADDED:
+            case SDL_JOYDEVICEREMOVED:
+                PCSX::g_emulator->m_pad1->shutdown();
+                PCSX::g_emulator->m_pad2->shutdown();
+                PCSX::g_emulator->m_pad1->init();
+                PCSX::g_emulator->m_pad2->init();
+                break;
+        }
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -555,6 +576,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
+                ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
                 if (ImGui::BeginMenu(_("Memory Editors"))) {
                     for (auto& editor : m_mainMemEditors) {
                         editor.MenuItem();
@@ -569,6 +591,13 @@ void PCSX::GUI::endFrame() {
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
+                if (ImGui::MenuItem(_("Start GPU dump"))) {
+                    PCSX::g_emulator->m_gpu->startDump();
+                }
+                if (ImGui::MenuItem(_("Stop GPU dump"))) {
+                    PCSX::g_emulator->m_gpu->stopDump();
+                }
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show types"), nullptr, &m_types.m_show);
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();
@@ -579,6 +608,8 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Help"))) {
+                ImGui::MenuItem(_("ImGui Themes"), nullptr, &m_showThemes);
+                ImGui::Separator();
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
@@ -688,7 +719,7 @@ void PCSX::GUI::endFrame() {
             if (editor.show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 2 * 1024 * 1024, 0x80000000);
+                editor.draw(PCSX::g_emulator->m_psxMem->g_psxM, 8 * 1024 * 1024, 0x80000000);
             }
             counter++;
         }
@@ -707,7 +738,7 @@ void PCSX::GUI::endFrame() {
         if (m_hwrEditor.show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 8 * 1024, 8 * 1024, 0x1f801000);
+            m_hwrEditor.draw(PCSX::g_emulator->m_psxMem->g_psxH + 4 * 1024, 8 * 1024, 0x1f801000);
         }
         counter++;
         if (m_biosEditor.show) {
@@ -730,6 +761,7 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
+    showThemes();
     about();
     interruptsScaler();
 
@@ -861,6 +893,10 @@ however it doesn't play nicely with the debugger.
 Changing this setting requires a reboot to take effect.
 The dynarec core isn't available for all CPUs, so
 this setting may not have any effect for you.)"));
+        changed |= ImGui::Checkbox(_("8MB"), &settings.get<Emulator::Setting8MB>().value);
+        ShowHelpMarker(_(R"(Emulates an installed 8MB system,
+instead of the normal 2MB. Useful for working
+with development binaries and games.)"));
 
         {
             static const char* types[] = {"Auto", "NTSC", "PAL"};
@@ -926,7 +962,16 @@ can slow down emulation to a noticable extend.)"));
         ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
+        changed |= ImGui::Checkbox(_("GDB send manifest"), &settings.get<Emulator::SettingGdbManifest>().value);
+        ShowHelpMarker(_(R"(Enables sending the processor's manifest
+from the gdb server. Keep this enabled, unless
+you want to connect IDA to this server, as it
+has a bug in its manifest parser.)"));
         changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
+        changed |= ImGui::Checkbox(_("GDB Server Trace"), &settings.get<Emulator::SettingGdbServerTrace>().value);
+        ShowHelpMarker(_(R"(The GDB server will start tracing its
+protocol into the logs, which can be helpful to debug
+the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingWebServer>()) {
@@ -1051,9 +1096,30 @@ void PCSX::GUI::interruptsScaler() {
         }
         unsigned counter = 0;
         for (auto& scale : g_emulator->m_psxCpu->m_interruptScales) {
-            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", 5.0f);
+            ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
+    }
+    ImGui::End();
+}
+
+void PCSX::GUI::showThemes() {
+    if (!m_showThemes) return;
+    static const char* imgui_themes[6] = {"Default", "Classic", "Light",
+                                          "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
+    ImGui::Begin(_("Theme selector"), &m_showThemes);
+    if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
+        for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
+            bool selected = (curr_item == imgui_themes[n]);
+            if (ImGui::Selectable(imgui_themes[n], selected)) {
+                curr_item = imgui_themes[n];
+                apply_theme(n);
+            }
+            if (selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
     }
     ImGui::End();
 }
@@ -1091,9 +1157,10 @@ void PCSX::GUI::about() {
     ImGui::End();
 }
 
-void PCSX::GUI::update() {
+void PCSX::GUI::update(bool vsync) {
     endFrame();
     startFrame();
+    if (vsync && m_breakOnVSync) g_system->pause();
 }
 
 void PCSX::GUI::shellReached() {

@@ -42,7 +42,7 @@ SOFTWARE.
 
 static struct File s_files[16];
 static struct Device s_devices[10];
-static struct File * s_firstFile;
+static struct File *s_firstFile;
 static int s_deviceStatus;
 
 uint32_t psxerrno = PSXENOERR;
@@ -53,7 +53,7 @@ void setupFileIO(int installTTY) {
     __globals.devices = s_devices;
     __globals.devicesEnd = s_devices + sizeof(s_devices) / sizeof(s_devices[0]);
     g_cachedInstallTTY = installTTY;
-    safeMemZero((uint8_t *) s_files, sizeof(s_files));
+    safeMemZero((uint8_t *)s_files, sizeof(s_files));
     // the retail bios doesn't do this, but it's easier this way
     // to avoid sharing the static array everywhere.
     for (int i = 0; i < sizeof(s_files) / sizeof(s_files[0]); i++) {
@@ -69,14 +69,14 @@ void setupFileIO(int installTTY) {
 }
 
 void printInstalledDevices() {
-    struct Device * ptr;
+    struct Device *ptr;
     for (ptr = s_devices; ptr < s_devices + sizeof(s_devices) / sizeof(s_devices[0]); ptr++) {
-        if (ptr->name) romsyscall_printf("\t%s:\t%s\n");
+        if (ptr->name) romsyscall_printf("\t%s:\t%s\n", ptr->name, ptr->desc);
     }
 }
 
-struct Device * findDevice(const char * name) {
-    struct Device * ptr;
+struct Device *findDevice(const char *name) {
+    struct Device *ptr;
     for (ptr = s_devices; ptr < s_devices + sizeof(s_devices) / sizeof(s_devices[0]); ptr++) {
         if (ptr->name && !syscall_strcmp(ptr->name, name)) return ptr;
     }
@@ -89,9 +89,9 @@ struct Device * findDevice(const char * name) {
     return NULL;
 }
 
-int removeDevice(const char * name) {
-    struct Device * ptr;
-    const struct Device * const end = s_devices + sizeof(s_devices) / sizeof(s_devices[0]);
+int removeDevice(const char *name) {
+    struct Device *ptr;
+    const struct Device *const end = s_devices + sizeof(s_devices) / sizeof(s_devices[0]);
 
     for (ptr = s_devices; ptr < end; ptr++) {
         if (ptr->name && (syscall_strcmp(name, ptr->name) == 0)) {
@@ -103,7 +103,7 @@ int removeDevice(const char * name) {
     return 0;
 }
 
-struct File * getFileFromHandle(int fd) {
+struct File *getFileFromHandle(int fd) {
     if ((fd >= 0) && (fd < (sizeof(s_files) / sizeof(s_files[0])))) {
         return s_files + fd;
     }
@@ -111,17 +111,15 @@ struct File * getFileFromHandle(int fd) {
     return NULL;
 }
 
-void ioabortraw(int code) {
-    psxlongjmp(&g_ioAbortJmpBuf, code);
-}
+void ioabortraw(int code) { psxlongjmp(&g_ioAbortJmpBuf, code); }
 
-void ioAbortWithMsg(const char * msg1, const char * msg2) {
+void ioAbortWithMsg(const char *msg1, const char *msg2) {
     romsyscall_printf("ioabort exit: %s %s\n");
     syscall_ioabortraw(1);
 }
 
-struct File * findEmptyFile() {
-    struct File * ptr;
+struct File *findEmptyFile() {
+    struct File *ptr;
     for (ptr = s_files; ptr < s_files + (sizeof(s_files) / sizeof(s_files[0])); ptr++) {
         if (ptr->flags == 0) return ptr;
     }
@@ -129,9 +127,9 @@ struct File * findEmptyFile() {
     return NULL;
 }
 
-const char * splitFilepathAndFindDevice(const char * name, struct Device ** device, int * deviceId) {
+const char *splitFilepathAndFindDevice(const char *name, struct Device **device, int *deviceId) {
     char deviceName[32];
-    char * dPtr;
+    char *dPtr;
     while (*name == ' ') name++;
     deviceName[0] = 0;
 
@@ -144,7 +142,7 @@ const char * splitFilepathAndFindDevice(const char * name, struct Device ** devi
         name++;
         char c;
         while ((c = *dPtr) && !isdigit(*dPtr)) dPtr++;
-        char * firstDigit = dPtr;
+        char *firstDigit = dPtr;
         while ((c = *dPtr++)) {
             if (!isdigit(c)) c = '0';
             id = id * 10 + c - '0';
@@ -162,20 +160,20 @@ void cdevscan() {
     }
 }
 
-void psxexit() {
+void psxexit(int code) {
     for (int i = 0; i < sizeof(s_files) / sizeof(s_files[0]); i++) psxclose(i);
     installStdIo(g_cachedInstallTTY);
-    syscall__exit();
+    syscall__exit(code);
 }
 
 int isFileConsole(int fd) {
-    struct File * file = getFileFromHandle(fd);
+    struct File *file = getFileFromHandle(fd);
     if (file) return (file->device->flags & PSXDTTYPE_CONS) != 0;
     return 0;
 }
 
-int addDevice(struct Device * device) {
-    struct Device * ptr = s_devices;
+int addDevice(struct Device *device) {
+    struct Device *ptr = s_devices;
 
     while (1) {
         if (ptr >= (s_devices + sizeof(s_devices) / sizeof(s_devices[0]))) return 0;

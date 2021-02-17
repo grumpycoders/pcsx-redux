@@ -598,14 +598,14 @@ void PCSX::MDEC::mdec1Interrupt() {
     return;
 }
 
-void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
+void PCSX::MDEC::save(PCSX::SaveStates::MDEC &mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     mdecSave.get<SaveStates::MDECReg0>().value = mdec.reg0;
     mdecSave.get<SaveStates::MDECReg1>().value = mdec.reg1;
     mdecSave.get<SaveStates::MDECRl>().value = reinterpret_cast<uint8_t *>(mdec.rl) - base;
-    mdecSave.get<SaveStates::MDECRlEnd>().value = reinterpret_cast<uint8_t* >(mdec.rl_end) - base;
+    mdecSave.get<SaveStates::MDECRlEnd>().value = reinterpret_cast<uint8_t *>(mdec.rl_end) - base;
     mdecSave.get<SaveStates::MDECBlockBufferPos>().value = mdec.block_buffer_pos ? mdec.block_buffer_pos - base : 0;
     mdecSave.get<SaveStates::MDECBlockBuffer>().copyFrom(mdec.block_buffer);
     mdecSave.get<SaveStates::MDECDMAADR>().value = mdec.pending_dma1.adr;
@@ -617,15 +617,15 @@ void PCSX::MDEC::save(PCSX::SaveStates::MDEC & mdecSave) {
     }
 }
 
-void PCSX::MDEC::load(const PCSX::SaveStates::MDEC & mdecSave) {
+void PCSX::MDEC::load(const PCSX::SaveStates::MDEC &mdecSave) {
     uint8_t *base = (uint8_t *)&PCSX::g_emulator->m_psxMem->g_psxM[0x100000];
     uint32_t v;
 
     mdec.reg0 = mdecSave.get<SaveStates::MDECReg0>().value;
     mdec.reg1 = mdecSave.get<SaveStates::MDECReg1>().value;
-    mdec.rl = reinterpret_cast<uint16_t*>(mdecSave.get<SaveStates::MDECRl>().value + base);
-    mdec.rl_end = reinterpret_cast<uint16_t*>(mdecSave.get<SaveStates::MDECRlEnd>().value + base);
-    const auto & pos = mdecSave.get<SaveStates::MDECBlockBufferPos>().value;
+    mdec.rl = reinterpret_cast<uint16_t *>(mdecSave.get<SaveStates::MDECRl>().value + base);
+    mdec.rl_end = reinterpret_cast<uint16_t *>(mdecSave.get<SaveStates::MDECRlEnd>().value + base);
+    const auto &pos = mdecSave.get<SaveStates::MDECBlockBufferPos>().value;
     mdec.block_buffer_pos = pos ? pos + base : nullptr;
     mdecSave.get<SaveStates::MDECBlockBuffer>().copyTo(mdec.block_buffer);
     mdec.pending_dma1.adr = mdecSave.get<SaveStates::MDECDMAADR>().value;

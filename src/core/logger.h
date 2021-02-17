@@ -76,51 +76,56 @@ typedef Logger<MiscLogName, false> MISC_LOGGER;
 
 }  // namespace PCSX
 
-#define PAD_LOG(...)                                                                      \
-    {                                                                                     \
+#define PAD_LOG(...)                                                                       \
+    {                                                                                      \
         PCSX::PAD_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                               PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PAD_LOGGER::Log(__VA_ARGS__);                                               \
+        PCSX::PAD_LOGGER::Log(__VA_ARGS__);                                                \
     }
 #define SIO1_LOG PCSX::SIO1_LOGGER::Log
 #define GTE_LOG PCSX::GTE_LOGGER::Log
-#define CDR_LOG(...)                                                                      \
-    {                                                                                     \
+#define CDR_LOG(...)                                                                       \
+    {                                                                                      \
         PCSX::CDR_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                               PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::CDR_LOGGER::Log(__VA_ARGS__);                                               \
+        PCSX::CDR_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define CDR_LOG_IO(...)                                                                     \
-    {                                                                                       \
+#define CDR_LOG_IO(...)                                                                      \
+    {                                                                                        \
         PCSX::CDRIO_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::CDRIO_LOGGER::Log(__VA_ARGS__);                                               \
+        PCSX::CDRIO_LOGGER::Log(__VA_ARGS__);                                                \
     }
 #define EMU_LOG PCSX::EMU_LOGGER::Log
-#define PSXHW_LOG(...)                                                                      \
-    {                                                                                       \
+#define PSXHW_LOG(...)                                                                       \
+    {                                                                                        \
         PCSX::PSXHW_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXHW_LOGGER::Log(__VA_ARGS__);                                               \
+        PCSX::PSXHW_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define PSXHW_LOGV(fmt, va)                                                                 \
-    {                                                                                       \
+#define PSXHW_LOGV(fmt, va)                                                                  \
+    {                                                                                        \
         PCSX::PSXHW_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXHW_LOGGER::LogVA(fmt, va);                                                 \
+        PCSX::PSXHW_LOGGER::LogVA(fmt, va);                                                  \
     }
-#define PSXBIOS_LOG(...)                                                                      \
-    {                                                                                         \
+#define PSXBIOS_LOG(...)                                                                       \
+    {                                                                                          \
         PCSX::PSXBIOS_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                   PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXBIOS_LOGGER::Log(__VA_ARGS__);                                               \
+        PCSX::PSXBIOS_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define PSXDMA_LOG PCSX::PSXDMA_LOGGER::Log
-#define PSXMEM_LOG(...)                                                                      \
-    {                                                                                        \
+#define PSXDMA_LOG(...)                                                                       \
+    {                                                                                         \
+        PCSX::PSXDMA_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::PSXDMA_LOGGER::Log(__VA_ARGS__);                                                \
+    }
+#define PSXMEM_LOG(...)                                                                       \
+    {                                                                                         \
         PCSX::PSXMEM_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                  PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXMEM_LOGGER::Log(__VA_ARGS__);                                               \
+        PCSX::PSXMEM_LOGGER::Log(__VA_ARGS__);                                                \
     }
 #define PSXCPU_LOG PCSX::PSXCPU_LOGGER::Log
 #define MISC_LOG PCSX::MISC_LOGGER::Log

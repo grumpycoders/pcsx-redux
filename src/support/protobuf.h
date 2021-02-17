@@ -324,7 +324,7 @@ struct FixedBytes {
     constexpr void deserialize(InSlice *slice, unsigned) {
         uint64_t size = slice->getVarInt();
         if (size > amount) throw OutOfBoundError();
-        allocate();
+        reset();
         slice->getBytes(value, size);
     }
     static constexpr char const typeName[] = "bytes";

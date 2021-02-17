@@ -58,7 +58,7 @@ class GUI final {
     GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
     void init();
     void close();
-    void update();
+    void update(bool vsync = false);
     void flip();
     void bindVRAMTexture();
     void setViewport();
@@ -112,6 +112,7 @@ class GUI final {
     void endFrame();
 
     bool configure();
+    void showThemes();  // Theme window : Allows for custom imgui themes
     void about();
     void interruptsScaler();
 
@@ -164,6 +165,7 @@ class GUI final {
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
+    bool m_showThemes = false;
     bool m_showDemo = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
@@ -193,6 +195,7 @@ class GUI final {
     Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
     int m_selectedBiosOverlayId;
     Widgets::Breakpoints m_breakpoints;
+    bool m_breakOnVSync = false;
     std::vector<std::string> m_overlayFileOffsets;
     std::vector<std::string> m_overlayLoadOffsets;
     std::vector<std::string> m_overlayLoadSizes;
@@ -214,6 +217,13 @@ class GUI final {
     EventBus::Listener m_listener;
 
     void shellReached();
+
+    // ImGui themes: Defined in themes/imgui_themes.c
+    const char *curr_item = "Default";
+    void apply_theme(int n);
+    void cherry_theme();
+    void mono_theme();
+    void dracula_theme();
 
     PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};

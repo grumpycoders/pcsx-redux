@@ -24,10 +24,11 @@ SOFTWARE.
 
 */
 
+#include "openbios/kernel/misc.h"
+
 #include "common/hardware/hwregs.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/globals.h"
-#include "openbios/kernel/misc.h"
 
 void setMemSize(int memSize) {
     uint32_t current = RAM_SIZE;

@@ -24,6 +24,90 @@ steps:
       src/mips/openbios/openbios.elf
     TargetFolder: '$(build.artifactStagingDirectory)/openbios'
 
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j clean'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j BOOT=cart'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      mv src/mips/openbios/openbios.bin src/mips/openbios/openbios-cart.bin
+      mv src/mips/openbios/openbios.elf src/mips/openbios/openbios-cart.elf
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      src/mips/openbios/openbios-cart.bin
+      src/mips/openbios/openbios-cart.elf
+    TargetFolder: '$(build.artifactStagingDirectory)/openbios'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j clean'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.D/UNIROM_RELEASE_8.0.D.zip
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'UNIROM_RELEASE_8.0.D.zip'
+    destinationFolder: 'unirom'
+    cleanDestinationFolder: true
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j EMBED_PSEXE=../../../unirom/UNIROM_B.exe'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      mv src/mips/openbios/openbios.bin src/mips/openbios/openbios-unirom.bin
+      mv src/mips/openbios/openbios.elf src/mips/openbios/openbios-unirom.elf
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      src/mips/openbios/openbios-unirom.bin
+      src/mips/openbios/openbios-unirom.elf
+    TargetFolder: '$(build.artifactStagingDirectory)/openbios'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j clean'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j EMBED_PSEXE=../../../unirom/UNIROM_B.exe BOOT=cart'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      mv src/mips/openbios/openbios.bin src/mips/openbios/openbios-unirom-cart.bin
+      mv src/mips/openbios/openbios.elf src/mips/openbios/openbios-unirom-cart.elf
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      src/mips/openbios/openbios-unirom-cart.bin
+      src/mips/openbios/openbios-unirom-cart.elf
+    TargetFolder: '$(build.artifactStagingDirectory)/openbios'
+
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'

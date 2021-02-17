@@ -100,11 +100,10 @@
 
 #include <stdio.h>
 //#include <vfw.h>
-#include "stdafx.h"
-
 #include "gpu/soft/cfg.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
+#include "stdafx.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CONFIG FILE helpers.... used in (non-fpse) Linux and ZN Windows

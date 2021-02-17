@@ -24,20 +24,27 @@ SOFTWARE.
 
 */
 
+#include "openbios/tty/tty.h"
+
 #include <stddef.h>
 
 #include "common/compiler/stdint.h"
-#include "common/hardware/util.h"
 #include "common/hardware/hwregs.h"
+#include "common/hardware/util.h"
 #include "common/psxlibc/circularbuffer.h"
 #include "common/psxlibc/ioctl.h"
 #include "common/psxlibc/stdio.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/kernel/libcmisc.h"
-#include "openbios/tty/tty.h"
+
+#ifdef OPENBIOS_INSTALL_TTY_CONSOLE
+#define DEFAULT_TTY_INSTALL 1
+#else
+#define DEFAULT_TTY_INSTALL 0
+#endif
 
 int g_cachedInstallTTY;
-int g_installTTY;
+int g_installTTY = DEFAULT_TTY_INSTALL;
 
 static const struct Device s_ttyDevice = {
     .name = "tty",
@@ -62,9 +69,7 @@ static const struct Device s_ttyDevice = {
     .check = psxdummy,
 };
 
-int addConsoleDevice() {
-    return syscall_addDevice(&s_ttyDevice);
-}
+int addConsoleDevice() { return syscall_addDevice(&s_ttyDevice); }
 
 static const struct Device s_dummyDevice = {
     .name = "tty",
@@ -89,12 +94,10 @@ static const struct Device s_dummyDevice = {
     .check = psxdummy,
 };
 
-int addDummyConsoleDevice() {
-    return syscall_addDevice(&s_dummyDevice);
-}
+int addDummyConsoleDevice() { return syscall_addDevice(&s_dummyDevice); }
 
-static volatile uint8_t * s_atconsStatPtr;
-static volatile uint8_t * s_atconsIRQPtr;
+static volatile uint8_t *s_atconsStatPtr;
+static volatile uint8_t *s_atconsIRQPtr;
 static struct CircularBuffer s_circ;
 
 /* The following code is from the DTL-H2000 bios,
@@ -111,9 +114,16 @@ void dev_tty_init() {
     s_circ.start = s_circ.end = NULL;
 }
 
-int dev_tty_open(struct File * file) {
-    file->flags |= PSXF_SCAN2;
-    s_circ.start = s_circ.end = s_circ.buffer;
+int dev_tty_open(struct File *file) {
+    POST = 0x0c;
+    if (file->deviceId < 2) {
+        file->flags |= PSXF_SCAN2;
+        s_circ.start = s_circ.end = s_circ.buffer;
+        return 0;
+    } else {
+        file->errno = PSXENXIO;
+        return -1;
+    }
 }
 
 static int ttyGetChar() {
@@ -129,13 +139,13 @@ static int ttyGetChar() {
 
 static void ttyPutChar(int c) {
     while (s_circ.flags & PSXCIRC_STOPPED) syscall_cdevscan();
-    while ((*s_atconsStatPtr & 3) == 0) syscall_cdevscan();
+    while ((*s_atconsStatPtr & 8) == 0) syscall_cdevscan();
     s_atconsStatPtr[2] = c;
     s_atconsIRQPtr[2] |= 0x10;
     flushWriteQueue();
 }
 
-int dev_tty_action(struct File * file, enum FileAction action) {
+int dev_tty_action(struct File *file, enum FileAction action) {
     int count = file->count;
     switch (action) {
         case PSXREAD:
@@ -162,12 +172,12 @@ int dev_tty_action(struct File * file, enum FileAction action) {
             }
         default:
             count = syscall_ioabort("tty(atcons) bad function");
-            break; 
+            break;
     }
     return count;
 }
 
-int dev_tty_ioctl(struct File *file,int req, int arg) {
+int dev_tty_ioctl(struct File *file, int req, int arg) {
     char c;
     switch (req) {
         case PSXFIOCSCAN:

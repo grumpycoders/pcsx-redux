@@ -22,9 +22,9 @@
  */
 
 #include "core/cdrom.h"
+
 #include "core/ppf.h"
 #include "core/psxdma.h"
-
 #include "spu/interface.h"
 
 namespace {
@@ -1256,6 +1256,9 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlSetmode:
                 CDR_LOG("write1() Log: Setmode %x\n", m_param[0]);
+                if ((m_mode != MODE_STRSND) && (m_param[0] == MODE_STRSND)) {
+                    xa_decode_reset(&m_xa);
+                }
                 m_mode = m_param[0];
 
                 // Squaresoft on PlayStation 1998 Collector's CD Vol. 1

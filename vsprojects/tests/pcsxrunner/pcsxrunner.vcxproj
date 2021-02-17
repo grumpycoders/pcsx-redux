@@ -208,6 +208,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

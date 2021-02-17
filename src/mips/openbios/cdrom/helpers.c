@@ -24,11 +24,12 @@ SOFTWARE.
 
 */
 
-#include "common/syscalls/syscalls.h"
-#include "openbios/cdrom/events.h"
 #include "openbios/cdrom/helpers.h"
 
-int cdromBlockReading(int count, int sector, char * buffer) {
+#include "common/syscalls/syscalls.h"
+#include "openbios/cdrom/events.h"
+
+int cdromBlockReading(int count, int sector, char* buffer) {
     int retries;
 
     sector += 150;
@@ -41,15 +42,13 @@ int cdromBlockReading(int count, int sector, char * buffer) {
 
     int minutes = sector / 4500;
     sector %= 4500;
-    uint8_t msf[3] = {
-        (minutes % 10) + (minutes / 10) * 0x10,
-        ((sector / 75) % 10) + ((sector / 75) / 10) * 0x10,
-        ((sector % 75) % 10) + ((sector % 75) / 10) * 0x10
-    };
+    uint8_t msf[3] = {(minutes % 10) + (minutes / 10) * 0x10, ((sector / 75) % 10) + ((sector / 75) / 10) * 0x10,
+                      ((sector % 75) % 10) + ((sector % 75) / 10) * 0x10};
 
     for (retries = 0; retries < 10; retries++) {
         int cyclesToWait = 99999;
-        while (!syscall_cdromSeekL(msf) && (--cyclesToWait > 0));
+        while (!syscall_cdromSeekL(msf) && (--cyclesToWait > 0))
+            ;
 
         if (cyclesToWait < 1) {
             syscall_exception(0x44, 0x0b);
@@ -64,7 +63,8 @@ int cdromBlockReading(int count, int sector, char * buffer) {
         }
 
         cyclesToWait = 99999;
-        while (!syscall_cdromRead(count, buffer, 0x80) && (--cyclesToWait > 0));
+        while (!syscall_cdromRead(count, buffer, 0x80) && (--cyclesToWait > 0))
+            ;
         if (cyclesToWait < 1) {
             syscall_exception(0x44, 0x0c);
             return -1;

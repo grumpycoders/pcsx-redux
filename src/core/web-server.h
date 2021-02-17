@@ -133,6 +133,8 @@ class WebServer {
     EventBus::Listener m_listener;
     Intrusive::List<WebExecutor> m_executors;
 
+    std::string m_gotError;
+
     friend struct WebClient::WebClientImpl;
 };
 

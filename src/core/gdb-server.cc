@@ -54,8 +54,21 @@ void PCSX::GdbServer::startServer(int port) {
     m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
     m_server->on<uvw::CloseEvent>(
         [this](const uvw::CloseEvent&, uvw::TCPHandle& srv) { m_serverStatus = SERVER_STOPPED; });
+    m_server->on<uvw::ErrorEvent>(
+        [this](const uvw::ErrorEvent& event, uvw::TCPHandle& srv) { m_gotError = event.what(); });
+    m_gotError = "";
     m_server->bind("0.0.0.0", port);
+    if (!m_gotError.empty()) {
+        g_system->printf("Error while trying to bind to port %i: %s\n", port, m_gotError.c_str());
+        m_server->close();
+        return;
+    }
     m_server->listen();
+    if (!m_gotError.empty()) {
+        g_system->printf("Error while trying to listen to port %i: %s\n", port, m_gotError.c_str());
+        m_server->close();
+        return;
+    }
 
     m_serverStatus = SERVER_STARTED;
 }
@@ -83,9 +96,10 @@ PCSX::GdbClient::GdbClient(std::shared_ptr<uvw::TCPHandle> srv)
         m_waitingForTrap = false;
     });
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) {
+        if (!m_waitingForShell) return;
+        g_system->printf("Shell reached in gdb-server, pausing execution now.\n");
         m_waitingForShell = false;
         g_system->pause();
-        g_emulator->m_psxCpu->m_psxRegs.pc = m_startLocation;
         write("OK");
     });
 }
@@ -122,6 +136,7 @@ void PCSX::GdbClient::processData(const Slice& slice) {
                 }
             case WAIT_FOR_DOLLAR:
                 if (c == '+') sendAck();
+                if (c == 3) g_system->pause();
                 if (c != '$') break;
                 m_state = READING_COMMAND;
                 break;
@@ -395,8 +410,34 @@ std::string PCSX::GdbClient::dumpOneRegister(int n) {
     return dumpValue(value);
 }
 
+void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
+    // All registers are transferred as thirty-two bit quantities in the order:
+    // 32 general-purpose; sr; lo; hi; bad; cause; pc;
+    value = ((value & 0xff000000) >> 24) | ((value & 0x00ff0000) >> 8) | ((value & 0x0000ff00) << 8) |
+            ((value & 0x000000ff) << 24);
+    auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    if (n < 32) {
+        regs.GPR.r[n] = value;
+    } else if (n == 32) {
+        regs.CP0.n.Status = value;
+    } else if (n == 33) {
+        regs.GPR.n.lo = value;
+    } else if (n == 34) {
+        regs.GPR.n.hi = value;
+    } else if (n == 35) {
+        regs.CP0.n.BadVAddr = value;
+    } else if (n == 36) {
+        regs.CP0.n.Cause = value;
+    } else if (n == 37) {
+        regs.pc = value;
+    }
+}
+
 void PCSX::GdbClient::processCommand() {
     if (m_ackEnabled) sendAck();
+    if (g_emulator->settings.get<Emulator::SettingGdbServerTrace>()) {
+        g_system->printf("GDB --> PCSX %s\n", m_cmd.c_str());
+    }
     static const std::string qSupported = "qSupported:";
     static const std::string qXferFeatures = "qXfer:features:read:target.xml:";
     static const std::string qXferThreads = "qXfer:threads:read::";
@@ -456,7 +497,8 @@ void PCSX::GdbClient::processCommand() {
             close();
             return;
         }
-        g_emulator->m_psxCpu->m_psxRegs.GPR.r[n] = value;
+        setOneRegister(n, value);
+        write("OK");
     } else if (m_cmd == "c") {
         // continue - this doesn't technically have a reply, only when the target stops later, using T05.
         g_system->resume();
@@ -578,47 +620,14 @@ void PCSX::GdbClient::processCommand() {
     } else if (Misc::startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
-        write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
+        if (g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
+            write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
+        } else {
+            write("PacketSize=4000;qXfer:threads:read+;QStartNoAckMode+");
+        }
     } else if (Misc::startsWith(m_cmd, "QStartNoAckMode")) {
         m_ackEnabled = false;
         write("OK");
-    } else if (Misc::startsWith(m_cmd, qSymbol)) {
-        // It looks like extended-remote doesn't even offer to give us the
-        // location of the start address...? Why? That's a terrible design.
-        // We'll have to basically rely on our wits and monitor commands
-        // tricks to get us to load an arbitrary file properly. We'll only
-        // make this work if the symbols _start or _reset are defined.
-        auto elements = Misc::split(m_cmd.substr(qSymbol.length()), ":");
-        switch (m_qsymbolState) {
-            case QSYMBOL_IDLE:
-                // gdb is offering symbols. Let's start by trying _start's location.
-                write("qSymbol:5F7374617274");
-                m_qsymbolState = QSYMBOL_WAITING_FOR_START;
-                m_startLocation = 0xbfc00000;
-                break;
-            case QSYMBOL_WAITING_FOR_START:
-                if ((elements.size() != 2) || (elements[0].empty())) {
-                    // no _start symbol? let's request _reset then.
-                    write("qSymbol:5F7265736574");
-                    m_qsymbolState = QSYMBOL_WAITING_FOR_RESET;
-                } else {
-                    // we should verify that elements[1] contains _start, but, meh
-                    m_qsymbolState = QSYMBOL_IDLE;
-                    auto [value, valid] = parseHexNumber(elements[0]);
-                    if (valid) m_startLocation = value;
-                    write("OK");
-                }
-                break;
-            case QSYMBOL_WAITING_FOR_RESET:
-                // we should verify that elements[1] contains _reset, but, meh
-                m_qsymbolState = QSYMBOL_IDLE;
-                if (!elements[0].empty()) {
-                    auto [value, valid] = parseHexNumber(elements[0]);
-                    if (valid) m_startLocation = value;
-                }
-                write("OK");
-                break;
-        }
     } else if (Misc::startsWith(m_cmd, "qRcmd,")) {
         // this is the "monitor" command
         size_t len = m_cmd.length() - 6;
@@ -631,9 +640,9 @@ void PCSX::GdbClient::processCommand() {
             monitor += c;
         }
         processMonitorCommand(monitor);
-    } else if (Misc::startsWith(m_cmd, qXferMemMap)) {
+    } else if (Misc::startsWith(m_cmd, qXferMemMap) && g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
         writePaged(memoryMap, m_cmd.substr(qXferMemMap.length()));
-    } else if (Misc::startsWith(m_cmd, qXferFeatures)) {
+    } else if (Misc::startsWith(m_cmd, qXferFeatures) && g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (Misc::startsWith(m_cmd, qXferThreads)) {
         writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));

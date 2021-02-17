@@ -119,7 +119,10 @@ class SystemImpl : public PCSX::System {
             vprintf(fmt, c);
             va_end(c);
         }
-        s_gui->addLog(fmt, a);
+        va_list c;
+        va_copy(c, a);
+        s_gui->addLog(fmt, c);
+        va_end(c);
         s_gui->addNotification(fmt, a);
         va_end(a);
     }
@@ -140,9 +143,9 @@ class SystemImpl : public PCSX::System {
         s_gui->addLog(fmt, a);
     }
 
-    virtual void update() final {
+    virtual void update(bool vsync = false) final {
         // called on vblank to update states
-        s_gui->update();
+        s_gui->update(vsync);
     }
 
     virtual void runGui() final {
@@ -165,10 +168,20 @@ class SystemImpl : public PCSX::System {
 
     virtual void purgeAllEvents() final { PCSX::g_emulator->m_loop->run(); }
 
+    virtual void testQuit(int code) final {
+        if (m_args.get<bool>("testmode")) {
+            quit(code);
+        } else {
+            printf("PSX software requested an exit with code %i\n", code);
+            pause();
+        }
+    }
+
     std::string m_putcharBuffer;
     FILE *m_logfile = nullptr;
 
   public:
+    SystemImpl(const flags::args &args) : m_args(args) {}
     ~SystemImpl() {
         if (m_logfile) fclose(m_logfile);
     }
@@ -178,6 +191,7 @@ class SystemImpl : public PCSX::System {
     }
 
     bool m_enableStdout = false;
+    const flags::args &m_args;
 };
 
 using json = nlohmann::json;
@@ -190,7 +204,7 @@ int pcsxMain(int argc, char **argv) {
         return 0;
     }
 
-    SystemImpl *system = new SystemImpl;
+    SystemImpl *system = new SystemImpl(args);
     PCSX::g_system = system;
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;

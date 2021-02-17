@@ -49,6 +49,8 @@ class GPU {
     virtual int32_t open(GUI *) = 0;
     virtual int32_t close() = 0;
     virtual uint32_t readData() = 0;
+    virtual void startDump() = 0;
+    virtual void stopDump() = 0;
     virtual void readDataMem(uint32_t *pMem, int iSize) = 0;
     virtual uint32_t readStatus() = 0;
     virtual void writeData(uint32_t gdata) = 0;

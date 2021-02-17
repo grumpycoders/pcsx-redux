@@ -1,12 +1,27 @@
-PREFIX = mipsel-linux-gnu
 BUILD ?= Release
+
+HAS_LINUX_MIPS_GCC = $(shell which mipsel-linux-gnu-gcc > /dev/null 2> /dev/null && echo true || echo false)
+
+ifeq ($(HAS_LINUX_MIPS_GCC),true)
+PREFIX ?= mipsel-linux-gnu
+FORMAT ?= elf32-tradlittlemips
+else
+PREFIX ?= mipsel-none-elf
+FORMAT ?= elf32-littlemips
+endif
 
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-CC = $(PREFIX)-gcc
+CC  = $(PREFIX)-gcc
+CXX = $(PREFIX)-g++
 
 TYPE ?= cpe
 LDSCRIPT ?= $(ROOTDIR)/$(TYPE).ld
+ifneq ($(strip $(OVERLAYSCRIPT)),)
+LDSCRIPT := $(addprefix $(OVERLAYSCRIPT) , -T$(LDSCRIPT))
+else
+LDSCRIPT := $(addprefix $(ROOTDIR)/default.ld , -T$(LDSCRIPT))
+endif
 
 USE_FUNCTION_SECTIONS ?= true
 
@@ -20,8 +35,8 @@ CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
 
-LDFLAGS += -Wl,-Map=$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
-LDFLAGS += $(ARCHFLAGS)
+LDFLAGS += -Wl,-Map=$(BINDIR)$(TARGET).map -nostdlib -T$(LDSCRIPT) -static -Wl,--gc-sections
+LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 
 CPPFLAGS_Release += -Os
 LDFLAGS_Release += -Os
@@ -36,19 +51,26 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
-all: dep $(TARGET).$(TYPE)
+all: dep $(BINDIR)$(TARGET).$(TYPE)
 
-$(TARGET).$(TYPE): $(TARGET).elf
-	$(PREFIX)-objcopy -O binary $< $@
+$(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
+	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
+	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< $(BINDIR)Overlay$(ovl);)
 
-$(TARGET).elf: $(OBJS)
-	$(CC) -g -o $(TARGET).elf $(OBJS) $(LDFLAGS)
+$(BINDIR)$(TARGET).elf: $(OBJS)
+ifneq ($(strip $(BINDIR)),)
+	mkdir -p $(BINDIR)
+endif
+	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.o: %.s
 	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
 
 %.dep: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+
+%.dep: %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 %.dep: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
@@ -57,14 +79,15 @@ $(TARGET).elf: $(OBJS)
 %.dep: %.s
 	touch $@
 
-DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
-DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
-DEPS += $(patsubst %.s,%.dep,$(filter %.s,$(SRCS)))
+DEPS := $(patsubst %.cpp, %.dep,$(filter %.cpp,$(SRCS)))
+DEPS := $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
+DEPS +=	$(patsubst %.c,   %.dep,$(filter %.c,$(SRCS)))
+DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 
 dep: $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(TARGET).elf $(TARGET).map $(TARGET).$(TYPE) $(DEPS)
+	rm -f $(OBJS) $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), deepclean)

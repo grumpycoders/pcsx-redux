@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "gdb",
             "request": "launch",
@@ -15,11 +16,11 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
-                "symbol-file ./src/mips/openbios/openbios.elf",
                 "set substitute-path /project .",
-                "load ./src/mips/openbios/openbios.elf",
                 "monitor reset halt",
+                "load ./src/mips/openbios/openbios.elf",
                 "tbreak main",
                 "continue",
             ],
@@ -37,11 +38,33 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
-                "symbol-file ./src/mips/cube/cube.elf",
                 "set substitute-path /project .",
+                "monitor reset shellhalt",
                 "load ./src/mips/cube/cube.elf",
-                "monitor reset halt",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch modplayer demo",
+            "target": "./src/mips/modplayer/modplay-demo.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
+                "target remote localhost:3333",
+                "set substitute-path /project .",
+                "monitor reset shellhalt",
+                "load ./src/mips/modplayer/modplay-demo.elf",
                 "tbreak main",
                 "continue",
             ],
@@ -59,11 +82,55 @@
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
                 "target remote localhost:3333",
-                "symbol-file ./src/mips/tests/basic/basic.elf",
                 "set substitute-path /project .",
+                "monitor reset shellhalt",
                 "load ./src/mips/tests/basic/basic.elf",
-                "monitor reset halt",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch libc Test",
+            "target": "./src/mips/tests/libc/libc.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
+                "target remote localhost:3333",
+                "set substitute-path /project .",
+                "monitor reset shellhalt",
+                "load ./src/mips/tests/libc/libc.elf",
+                "tbreak main",
+                "continue",
+            ],
+            "valuesFormatting": "parseText"
+        },
+
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "(gdb) Launch cpu Test",
+            "target": "./src/mips/tests/cpu/cpu.elf",
+            "gdbpath": "/usr/bin/gdb-multiarch",
+            "windows": {
+                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+            },
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set remote interrupt-sequence Ctrl-C",
+                "target remote localhost:3333",
+                "set substitute-path /project .",
+                "monitor reset shellhalt",
+                "load ./src/mips/tests/cpu/cpu.elf",
                 "tbreak main",
                 "continue",
             ],

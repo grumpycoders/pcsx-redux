@@ -39,6 +39,8 @@ class impl : public GPU {
         readDataMem(&l, 1);
         return lGPUdataRet;
     }
+    virtual void startDump() final;
+    virtual void stopDump() final;
     virtual void readDataMem(uint32_t *pMem, int iSize) final;
     virtual uint32_t readStatus() final;
     virtual void writeData(uint32_t gdata) final { writeDataMem(&gdata, 1); }
@@ -58,6 +60,7 @@ class impl : public GPU {
     virtual void load(const SaveStates::GPU &gpu) final;
 
     SoftPrim m_softPrim;
+    void *m_dumpFile = nullptr;
 
     ////////////////////////////////////////////////////////////////////////
     // memory image of the PSX vram

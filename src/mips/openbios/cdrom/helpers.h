@@ -28,4 +28,4 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
-int cdromBlockReading(int count, int sector, char * buffer);
+int cdromBlockReading(int count, int sector, char* buffer);

@@ -26,18 +26,18 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
+#include "common/compiler/stdint.h"
 
 struct HandlerInfo;
 
 struct HandlerInfo {
-    struct HandlerInfo * next;
-    void(*handler)(int);
-    int(*verifier)();
+    struct HandlerInfo* next;
+    void (*handler)(int);
+    int (*verifier)();
     uint32_t padding;
 };
 
 struct HandlersStorage {
-    struct HandlerInfo * first;
+    struct HandlerInfo* first;
     uint32_t padding;
 };

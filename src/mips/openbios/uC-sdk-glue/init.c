@@ -24,11 +24,10 @@ SOFTWARE.
 
 */
 
-void cpu_early_init() {
-}
+void cpu_early_init() {}
 
-void cpu_init() {
-}
+void cpu_init() {}
 
-void cpu_late_init() {
-}
+void cpu_late_init() {}
+
+void __sinit(void* reent) {}

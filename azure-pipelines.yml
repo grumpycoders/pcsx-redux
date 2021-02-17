@@ -9,7 +9,9 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- task: NuGetToolInstaller@0
+- checkout: self
+  submodules: recursive
+- task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
   inputs:
@@ -33,20 +35,6 @@ steps:
       LICENSE
       i18n/*.po
     TargetFolder: '$(build.artifactStagingDirectory)/assets'
-
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    platform: 'x86'
-    maximumCpuCount: false
-    configuration: '$(buildConfiguration)'
-
-- task: CopyFiles@2
-  inputs:
-    Contents: |
-      vsprojects/Release/pcsx-redux.exe
-      vsprojects/Release/*.dll
-    TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
 - task: VSBuild@1
   inputs:

@@ -24,13 +24,14 @@ SOFTWARE.
 
 */
 
+#include "openbios/kernel/threads.h"
+
 #include <stddef.h>
 
 #include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
 #include "openbios/kernel/globals.h"
-#include "openbios/kernel/threads.h"
 
 int initThreads(int processCount, int threadCount) {
     psxprintf("TCB\t0x%02x\n", threadCount);
@@ -91,11 +92,9 @@ int openThread(uint32_t pc, uint32_t sp, uint32_t gp) {
 }
 
 int closeThread(int threadId) {
-    struct Thread * thread = &__globals.threads[threadId & 0xffff];
+    struct Thread *thread = &__globals.threads[threadId & 0xffff];
     thread->flags = 0x1000;
     return 1;
 }
 
-int changeThread(int threadId) {
-    return changeThreadSubFunction((uint32_t) &__globals.threads[threadId & 0xffff]);
-}
+int changeThread(int threadId) { return changeThreadSubFunction((uint32_t)&__globals.threads[threadId & 0xffff]); }

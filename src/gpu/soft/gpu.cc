@@ -123,6 +123,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "resource.h"
 
 #endif
@@ -467,8 +468,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
     if (dwActFixes & 32)  // pc fps calculation fix
     {
-        if (UseFrameLimit) PCFrameCap();  // -> brake
-                                          //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+        if (UseFrameLimit)
+            PCFrameCap();  // -> brake
+                           //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
     //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
@@ -528,7 +530,7 @@ void ChangeDispOffsetsX(void)  // X CENTER
     l &= 0xfffffff8;
 
     if (l == PreviousPSXDisplay.Range.y1) return;  // abusing range.y1 for
-    PreviousPSXDisplay.Range.y1 = (int16_t)l;        // storing last x range and test
+    PreviousPSXDisplay.Range.y1 = (int16_t)l;      // storing last x range and test
 
     if (lx >= PreviousPSXDisplay.DisplayMode.x) {
         PreviousPSXDisplay.Range.x1 = (int16_t)PreviousPSXDisplay.DisplayMode.x;
@@ -616,9 +618,9 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
     PSXDisplay.DisplayMode.y = PSXDisplay.DisplayModeNew.y;
     PSXDisplay.DisplayMode.x = PSXDisplay.DisplayModeNew.x;
-    PreviousPSXDisplay.DisplayMode.x =             // previous will hold
+    PreviousPSXDisplay.DisplayMode.x =            // previous will hold
         std::min(640, PSXDisplay.DisplayMode.x);  // max 640x512... that's
-    PreviousPSXDisplay.DisplayMode.y =             // the size of my
+    PreviousPSXDisplay.DisplayMode.y =            // the size of my
         std::min(512, PSXDisplay.DisplayMode.y);  // back buffer surface
     PSXDisplay.Interlaced = PSXDisplay.InterlacedNew;
 
@@ -673,6 +675,10 @@ extern "C" void softGPUcursor(int iPlayer, int x, int y) {
 
 void PCSX::SoftGPU::impl::updateLace()  // VSYNC
 {
+    if (m_dumpFile) {
+        uint32_t data = 0x02000000;
+        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    }
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
     if (!(dwActFixes & 32))  // std fps limitation?
@@ -740,6 +746,12 @@ uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 
 void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
+    if (m_dumpFile) {
+        uint32_t data = 0x01000001;
+        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+        fwrite(&gdata, sizeof(gdata), 1, (FILE *)m_dumpFile);
+    }
+
     uint32_t lCommand = (gdata >> 24) & 0xff;
 
     ulStatusControl[lCommand] = gdata;  // store command for freezing
@@ -1143,10 +1155,44 @@ const unsigned char primTableCX[256] = {
     // f8
     0, 0, 0, 0, 0, 0, 0, 0};
 
+void PCSX::SoftGPU::impl::startDump() {
+    if (m_dumpFile) return;
+    m_dumpFile = fopen("gpu.dump", "wb");
+    fwrite(psxVuw, 1024, 1024, (FILE *)m_dumpFile);
+    uint32_t data = 0;
+    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    data = 0xffffffff;
+    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    data = 0x01000009;
+    fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[0], sizeof(ulStatusControl[0]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[1], sizeof(ulStatusControl[1]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[2], sizeof(ulStatusControl[2]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[3], sizeof(ulStatusControl[3]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[8], sizeof(ulStatusControl[8]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[6], sizeof(ulStatusControl[6]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[7], sizeof(ulStatusControl[7]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[5], sizeof(ulStatusControl[5]), 1, (FILE *)m_dumpFile);
+    fwrite(&ulStatusControl[4], sizeof(ulStatusControl[4]), 1, (FILE *)m_dumpFile);
+}
+
+void PCSX::SoftGPU::impl::stopDump() {
+    if (!m_dumpFile) return;
+    fclose((FILE *)m_dumpFile);
+    m_dumpFile = nullptr;
+}
+
 void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
+
+    if (m_dumpFile) {
+        uint32_t data;
+        data = iSize;
+        fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
+        fwrite(pMem, 4, iSize, (FILE *)m_dumpFile);
+    }
 
     GPUIsBusy;
     GPUIsNotReadyForCommands;
@@ -1348,9 +1394,9 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct GPUFREEZETAG {
-    uint32_t ulFreezeVersion;           // should be always 1 for now (set by main emu)
-    uint32_t ulStatus;                  // current gpu status
-    uint32_t ulControl[256];            // latest control register values
+    uint32_t ulFreezeVersion;                // should be always 1 for now (set by main emu)
+    uint32_t ulStatus;                       // current gpu status
+    uint32_t ulControl[256];                 // latest control register values
     unsigned char psxVRam[1024 * 1024 * 2];  // current VRam image (full 2 MB for ZN)
 } GPUFreeze_t;
 
@@ -1358,13 +1404,13 @@ typedef struct GPUFREEZETAG {
 
 void PCSX::SoftGPU::impl::save(SaveStates::GPU &gpu) {
     gpu.get<SaveStates::GPUStatus>().value = lGPUstatusRet;
-    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUControl>().copyFrom(reinterpret_cast<uint8_t *>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyFrom(psxVub);
 }
 
 void PCSX::SoftGPU::impl::load(const SaveStates::GPU &gpu) {
     lGPUstatusRet = gpu.get<SaveStates::GPUStatus>().value;
-    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t*>(ulStatusControl));
+    gpu.get<SaveStates::GPUControl>().copyTo(reinterpret_cast<uint8_t *>(ulStatusControl));
     gpu.get<SaveStates::GPUVRam>().copyTo(psxVub);
 
     // RESET TEXTURE STORE HERE, IF YOU USE SOMETHING LIKE THAT

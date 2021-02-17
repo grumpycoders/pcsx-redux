@@ -288,47 +288,55 @@ typedef struct {
 static int parse_xa_audio_sector(xa_decode_t *xdp, xa_subheader_t *subheadp, unsigned char *sectorp,
                                  int is_first_sector) {
     if (is_first_sector) {
+        int freq;
+        int nbits;
+        int stereo;
         switch (AUDIO_CODING_GET_FREQ(subheadp->coding)) {
             case 0:
-                xdp->freq = 37800;
+                freq = 37800;
                 break;
             case 1:
-                xdp->freq = 18900;
+                freq = 18900;
                 break;
             default:
-                xdp->freq = 0;
+                freq = 0;
                 break;
         }
         switch (AUDIO_CODING_GET_BPS(subheadp->coding)) {
             case 0:
-                xdp->nbits = 4;
+                nbits = 4;
                 break;
             case 1:
-                xdp->nbits = 8;
+                nbits = 8;
                 break;
             default:
-                xdp->nbits = 0;
+                nbits = 0;
                 break;
         }
         switch (AUDIO_CODING_GET_STEREO(subheadp->coding)) {
             case 0:
-                xdp->stereo = 0;
+                stereo = 0;
                 break;
             case 1:
-                xdp->stereo = 1;
+                stereo = 1;
                 break;
             default:
-                xdp->stereo = 0;
+                stereo = 0;
                 break;
         }
 
-        if (xdp->freq == 0) return -1;
+        if (freq == 0) return -1;
 
-        ADPCM_InitDecode(&xdp->left);
-        ADPCM_InitDecode(&xdp->right);
+        if ((xdp->freq != freq) || (xdp->nbits != nbits) || (xdp->stereo != stereo)) {
+            xdp->freq = freq;
+            xdp->nbits = nbits;
+            xdp->stereo = stereo;
+            ADPCM_InitDecode(&xdp->left);
+            ADPCM_InitDecode(&xdp->right);
 
-        xdp->nsamples = 18 * 28 * 8;
-        if (xdp->stereo == 1) xdp->nsamples /= 2;
+            xdp->nsamples = 18 * 28 * 8;
+            if (xdp->stereo == 1) xdp->nsamples /= 2;
+        }
     }
     xa_decode_data(xdp, sectorp);
 
@@ -349,6 +357,11 @@ int32_t xa_decode_sector(xa_decode_t *xdp, unsigned char *sectorp, int is_first_
         return -1;
 
     return 0;
+}
+
+void xa_decode_reset(xa_decode_t *xdp) {
+    ADPCM_InitDecode(&xdp->left);
+    ADPCM_InitDecode(&xdp->right);
 }
 
 /* EXAMPLE:

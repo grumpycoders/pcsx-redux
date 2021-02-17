@@ -36,3 +36,14 @@ vsprojects/packages
 # Temporary files from pcsx itself
 pcsx.json
 *.mcd
+
+# FastBuild and msfastbuild stuff
+*.bff
+*.fdb
+fb.bat
+
+# macos files
+.DS_store
+
+
+

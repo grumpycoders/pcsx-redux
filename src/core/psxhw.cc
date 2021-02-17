@@ -466,7 +466,7 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
             PCSX::g_emulator->m_psxCounters->psxRcntWtarget(2, value);
             return;
         case 0x1f802082:
-            PCSX::g_system->quit((int16_t)value);
+            PCSX::g_system->testQuit((int16_t)value);
             return;
 
         default:
@@ -484,10 +484,12 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
 }
 
 inline void PCSX::HW::psxDma0(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PSXDMA_LOG("*** DMA0 MDEC *** %x addr = %x size = %x\n", chcr, madr, bcr);
     PCSX::g_emulator->m_mdec->psxDma0(madr, bcr, chcr);
 }
 
 inline void PCSX::HW::psxDma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PSXDMA_LOG("*** DMA1 MDEC *** %x addr = %x size = %x\n", chcr, madr, bcr);
     PCSX::g_emulator->m_mdec->psxDma1(madr, bcr, chcr);
 }
 
@@ -496,6 +498,7 @@ inline void PCSX::HW::psxDma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
 }
 
 inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    PSXDMA_LOG("*** DMA3 CDROM *** %x addr = %x size = %x\n", chcr, madr, bcr);
     PCSX::g_emulator->m_cdrom->dma(madr, bcr, chcr);
 }
 
@@ -526,6 +529,7 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
             psxHu32ref(add) = SWAP_LEu32(value);
+            g_emulator->m_psxMem->setLuts();
             return;  // Ram size
         case 0x1f801070:
             PSXHW_LOG("IREG 32bit write %x\n", value);

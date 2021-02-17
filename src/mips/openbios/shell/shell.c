@@ -24,17 +24,29 @@ SOFTWARE.
 
 */
 
+#include "openbios/shell/shell.h"
+
 #include <memory.h>
+#include <string.h>
 
 #include "common/compiler/stdint.h"
 #include "openbios/kernel/flushcache.h"
-#include "openbios/shell/shell.h"
 
-extern uint8_t _binary_shell_bin_start[];
-extern uint8_t _binary_shell_bin_end[];
+extern const uint8_t _binary_shell_bin_start[];
+extern const uint8_t _binary_shell_bin_end[];
+extern const uint32_t _binary_psexe_bin_start[];
+extern const uint32_t _binary_psexe_bin_end[];
 
 int startShell(uint32_t arg) {
-    memcpy((uint32_t *) 0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
+#ifdef OPENBIOS_USE_EMBEDDED_PSEXE
+    if (strncmp("PS-X EXE", (const char *)_binary_psexe_bin_start, 8) == 0) {
+        const uint32_t *header = _binary_psexe_bin_start;
+        memcpy((uint8_t *)header[6], &_binary_psexe_bin_start[512], header[7]);
+        flushCache();
+        ((void (*)(int, char **))header[4])(0, NULL);
+    }
+#endif
+    memcpy((uint32_t *)0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
     flushCache();
-    return ((int(*)(int)) 0x80030000)(arg);
+    return ((int (*)(int))0x80030000)(arg);
 }

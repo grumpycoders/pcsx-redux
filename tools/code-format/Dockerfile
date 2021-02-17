@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS build
+FROM ubuntu:20.04 AS build
 
 RUN apt-get -y update
 RUN apt-get -y install apt-utils
@@ -7,7 +7,7 @@ RUN apt-get -y install build-essential
 COPY tabremover.c .
 RUN gcc -o /bin/tabremover -O3 tabremover.c
 
-FROM ubuntu:18.04 AS run
+FROM ubuntu:20.04 AS run
 
 RUN apt-get -y update
 RUN apt-get -y install apt-utils

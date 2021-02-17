@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "common/psxlibc/psxexe.h"
 
-int loadExeHeader(const char * filename, struct psxExeHeader * header);
-int loadExe(const char * filename, struct psxExeHeader * header);
-int exec(struct psxExeHeader * header, int argc, char ** argv);
-void loadAndExec(const char * filename, uint32_t stackStart, uint32_t stackSize);
+int loadExeHeader(const char* filename, struct psxExeHeader* header);
+int loadExe(const char* filename, struct psxExeHeader* header);
+int exec(struct psxExeHeader* header, int argc, char** argv);
+void loadAndExec(const char* filename, uint32_t stackStart, uint32_t stackSize);

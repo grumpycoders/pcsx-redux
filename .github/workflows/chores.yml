@@ -1,0 +1,65 @@
+name: chores
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  regen-i18n:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch submodules
+      run: git submodule update --init --recursive
+    - name: Install gettext
+      run: sudo apt-get install -y gettext
+    - name: Regenerate i18n files
+      run: make regen-i18n
+    - name: Cleanup
+      run: rm -f i18n/*~
+    - name: Create Pull Request
+      id: cpr
+      uses: peter-evans/create-pull-request@v3
+      with:
+         token: ${{ secrets.PAT }}
+         commit-message: '[Chores] Regen i18n'
+         committer: GitHub <noreply@github.com>
+         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+         signoff: false
+         branch: chores-i18n
+         delete-branch: true
+         title: '[Chores] Regen i18n'
+         draft: false
+
+  code-format:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch submodules
+      run: git submodule update --init --recursive
+    - name: Format code
+      run: ./tools/code-format/format.sh
+    - name: Create Pull Request
+      id: cpr
+      uses: peter-evans/create-pull-request@v3
+      with:
+         token: ${{ secrets.PAT }}
+         commit-message: '[Chores] Format code'
+         committer: GitHub <noreply@github.com>
+         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+         signoff: false
+         branch: chores-code-format
+         delete-branch: true
+         title: '[Chores] Format code'
+         draft: false

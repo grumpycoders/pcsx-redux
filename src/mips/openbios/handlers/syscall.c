@@ -34,22 +34,22 @@ SOFTWARE.
 #include "openbios/kernel/threads.h"
 
 static __attribute__((section(".ramtext"))) int syscallVerifier() {
-    struct Thread * currentThread = __globals.processes[0].thread;
+    struct Thread* currentThread = __globals.processes[0].thread;
     unsigned exCode = currentThread->registers.Cause & 0x3c;
     switch (exCode) {
         case 0x00:
             return 0;
             break;
-        case 0x20: // syscall
+        case 0x20:  // syscall
             currentThread->registers.returnPC = currentThread->registers.returnPC + 4;
             switch (currentThread->registers.GPR.n.a0) {
                 case 0:
                     break;
-                case 1: // enterCriticalSection
+                case 1:  // enterCriticalSection
                     currentThread->registers.GPR.n.v0 = (currentThread->registers.SR & 0x404) == 0x404;
                     currentThread->registers.SR &= ~0x404;
                     break;
-                case 2: // leaveCriticalSection
+                case 2:  // leaveCriticalSection
                     currentThread->registers.SR |= 0x404;
                     break;
                 case 3:
@@ -57,7 +57,7 @@ static __attribute__((section(".ramtext"))) int syscallVerifier() {
                     currentThread->registers.GPR.n.v0 = 1;
                     break;
                 default:
-                    deliverEvent(0xf0000010,0x4000);
+                    deliverEvent(0xf0000010, 0x4000);
                     break;
             }
             returnFromException();

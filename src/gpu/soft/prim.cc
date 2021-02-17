@@ -82,6 +82,7 @@
 //*************************************************************************//
 
 #include "gpu/soft/prim.h"
+
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
@@ -1314,7 +1315,7 @@ void PCSX::SoftGPU::SoftPrim::primLineGEx(unsigned char *baseAddr) {
         if (!(dwActFixes & 8)) {
             slx1 = (int16_t)(((int)slx1 << SIGNSHIFT) >> SIGNSHIFT);
             sly1 = (int16_t)(((int)sly1 << SIGNSHIFT) >> SIGNSHIFT);
-            bDraw = CheckCoordL(slx0, sly0, slx1, sly1);
+            bDraw = !CheckCoordL(slx0, sly0, slx1, sly1);
         }
 
         if ((lx0 != lx1) || (ly0 != ly1)) {
@@ -1413,7 +1414,7 @@ void PCSX::SoftGPU::SoftPrim::primLineFEx(unsigned char *baseAddr) {
             slx1 = (int16_t)(((int)slx1 << SIGNSHIFT) >> SIGNSHIFT);
             sly1 = (int16_t)(((int)sly1 << SIGNSHIFT) >> SIGNSHIFT);
 
-            bDraw = CheckCoordL(slx0, sly0, slx1, sly1);
+            bDraw = !CheckCoordL(slx0, sly0, slx1, sly1);
         }
 
         ly0 = sly0;
