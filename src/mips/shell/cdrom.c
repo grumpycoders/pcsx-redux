@@ -78,7 +78,7 @@ static enum {
     CD_SUCCESS_AUDIO,
 } s_state;
 
-static const char* c_stateMsg[] = {
+static const char* const c_stateMsg[] = {
     "CD_ERROR",          "CD_RESET",          "CD_INIT",           "CD_GETTN",         "CD_GETID",
     "CD_SETMODE",        "CD_SETLOC_TO_PVD",  "CD_SETLOC_TO_ROOT", "CD_READ_PVD",      "CD_READ_PVD_DMA",
     "CD_READ_PVD_PAUSE", "CD_SETLOC_TO_ROOT", "CD_READ_ROOT",      "CD_READ_ROOT_DMA", "CD_READ_ROOT_PAUSE",
@@ -92,13 +92,34 @@ void initCD() {
     CDROM_REG0 = 1;
     CDROM_REG2 = 0x1f;
     CDROM_REG0 = 0;
-    CDROM_REG1 = 10;
+    CDROM_REG1 = CDL_INIT;
     s_state = CD_RESET;
 }
 
 int isCDError() { return s_state == CD_ERROR || s_retries >= 5; }
 int isCDSuccess() { return s_state == CD_SUCCESS_DATA || s_state == CD_SUCCESS_AUDIO; };
 int isCDAudio() { return s_state == CD_SUCCESS_AUDIO; };
+
+static void startDmaOneSector() {
+    SBUS_DEV5_CTRL = 0x20943;
+    SBUS_COM_CTRL = 0x132c;
+    CDROM_REG0 = 0;
+    CDROM_REG0;
+    CDROM_REG3 = 0;
+    CDROM_REG3;
+    CDROM_REG0 = 0;
+    CDROM_REG3 = 0x80;
+    uint32_t t = DICR;
+    t &= 0xffffff;
+    t |= 0x880000;
+    DICR = t;
+    DPCR |= 0x8000;
+    DMA_CTRL[DMA_CDROM].MADR = (uintptr_t)s_sector;
+    DMA_CTRL[DMA_CDROM].BCR = (2048 >> 2) | 0x10000;
+    DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
+    CDROM_REG0 = 0;
+    CDROM_REG1 = CDL_PAUSE;
+}
 
 static void dataReady() {
     ramsyscall_printf("(TS) cds::dataReady() - state: %s\n", c_stateMsg[s_state]);
@@ -107,47 +128,13 @@ static void dataReady() {
     switch (s_state) {
         case CD_READ_PVD: {
             ramsyscall_printf("(TS) cds::read PVD successfully\n");
-            SBUS_DEV5_CTRL = 0x20943;
-            SBUS_COM_CTRL = 0x132c;
-            CDROM_REG0 = 0;
-            CDROM_REG0;
-            CDROM_REG3 = 0;
-            CDROM_REG3;
-            CDROM_REG0 = 0;
-            CDROM_REG3 = 0x80;
-            uint32_t t = DICR;
-            t &= 0xffffff;
-            t |= 0x880000;
-            DICR = t;
-            DPCR |= 0x8000;
-            DMA_CTRL[DMA_CDROM].MADR = (uintptr_t)s_sector;
-            DMA_CTRL[DMA_CDROM].BCR = (2048 >> 2) | 0x10000;
-            DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
-            CDROM_REG0 = 0;
-            CDROM_REG1 = 9;
+            startDmaOneSector();
             s_state = CD_READ_PVD_DMA;
             break;
         }
         case CD_READ_ROOT: {
             ramsyscall_printf("(TS) cds::read root successfully\n");
-            SBUS_DEV5_CTRL = 0x20943;
-            SBUS_COM_CTRL = 0x132c;
-            CDROM_REG0 = 0;
-            CDROM_REG0;
-            CDROM_REG3 = 0;
-            CDROM_REG3;
-            CDROM_REG0 = 0;
-            CDROM_REG3 = 0x80;
-            uint32_t t = DICR;
-            t &= 0xffffff;
-            t |= 0x880000;
-            DICR = t;
-            DPCR |= 0x8000;
-            DMA_CTRL[DMA_CDROM].MADR = (uintptr_t)s_sector;
-            DMA_CTRL[DMA_CDROM].BCR = (2048 >> 2) | 0x10000;
-            DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
-            CDROM_REG0 = 0;
-            CDROM_REG1 = 9;
+            startDmaOneSector();
             s_state = CD_READ_ROOT_DMA;
             break;
         }
@@ -163,13 +150,13 @@ static void complete() {
             s_state = CD_INIT;
             s_retries = 0;
             CDROM_REG0 = 0;
-            CDROM_REG1 = 10;
+            CDROM_REG1 = CDL_INIT;
             break;
         case CD_INIT:
             s_state = CD_GETTN;
             s_retries = 0;
             CDROM_REG0 = 0;
-            CDROM_REG1 = 19;
+            CDROM_REG1 = CDL_GETTN;
             break;
         case CD_GETID: {
             CDROM_REG0 = 0;
@@ -188,7 +175,7 @@ static void complete() {
             s_retries = 0;
             CDROM_REG0 = 0;
             CDROM_REG2 = 0x80;
-            CDROM_REG1 = 14;
+            CDROM_REG1 = CDL_SETMODE;
             s_state = CD_SETMODE;
             break;
         }
@@ -210,7 +197,7 @@ static void complete() {
             CDROM_REG2 = msf[0];
             CDROM_REG2 = msf[1];
             CDROM_REG2 = msf[2];
-            CDROM_REG1 = 2;
+            CDROM_REG1 = CDL_SETLOC;
             s_state = CD_SETLOC_TO_ROOT;
             break;
         }
@@ -238,7 +225,7 @@ static void complete() {
 }
 
 static void acknowledge() {
-    uint8_t stat;
+    uint8_t stat = 0xff;
     switch (s_state) {
         case CD_GETTN:
             CDROM_REG0 = 0;
@@ -248,7 +235,7 @@ static void acknowledge() {
             s_state = CD_GETID;
             s_retries = 0;
             CDROM_REG0 = 0;
-            CDROM_REG1 = 26;
+            CDROM_REG1 = CDL_GETID;
             break;
         case CD_SETMODE:
             CDROM_REG0 = 0;
@@ -257,7 +244,7 @@ static void acknowledge() {
             CDROM_REG2 = 0x00;
             CDROM_REG2 = 0x02;
             CDROM_REG2 = 0x16;
-            CDROM_REG1 = 2;
+            CDROM_REG1 = CDL_SETLOC;
             s_state = CD_SETLOC_TO_PVD;
             break;
         case CD_SETLOC_TO_PVD:
@@ -265,14 +252,14 @@ static void acknowledge() {
             stat = CDROM_REG1_UC;
             s_state = CD_READ_PVD;
             CDROM_REG0 = 0;
-            CDROM_REG1 = 6;
+            CDROM_REG1 = CDL_READN;
             break;
         case CD_SETLOC_TO_ROOT:
             CDROM_REG0 = 0;
             stat = CDROM_REG1_UC;
             s_state = CD_READ_ROOT;
             CDROM_REG0 = 0;
-            CDROM_REG1 = 6;
+            CDROM_REG1 = CDL_READN;
             break;
     }
     ramsyscall_printf("(TS) cds::acknowledge() - state: %s, status: %02x\n", c_stateMsg[s_state], stat);
@@ -339,7 +326,7 @@ void checkCD(unsigned fps) {
                     break;
                 case CD_GETID:
                     CDROM_REG0 = 0;
-                    CDROM_REG1 = 26;
+                    CDROM_REG1 = CDL_GETID;
                     break;
             }
         }

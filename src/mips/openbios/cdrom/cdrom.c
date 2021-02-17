@@ -164,7 +164,7 @@ int cdromReadTOC() {
     resetAllCDRomIRQs();
     disableCDRomIRQs();
     CDROM_REG0 = 0;
-    CDROM_REG1 = 0x1e;
+    CDROM_REG1 = CDL_READTOC;
     uint8_t t = waitForCDRomIRQCompletion();
     if ((t < 0) || (t & 0x1d)) {
         enableAllCDRomIRQs();
@@ -179,7 +179,7 @@ int cdromReset() {
     resetAllCDRomIRQs();
     disableCDRomIRQs();
     CDROM_REG0 = 0;
-    CDROM_REG1 = 0x1a;
+    CDROM_REG1 = CDL_GETID;
     uint8_t t = waitForCDRomIRQCompletion();
     if ((t < 0) || (t & 0x1d)) {
         enableAllCDRomIRQs();
