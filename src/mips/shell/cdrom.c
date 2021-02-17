@@ -96,7 +96,7 @@ void initCD() {
     s_state = CD_RESET;
 }
 
-int isCDError() { return s_state == CD_ERROR || s_retries >= 5; }
+int isCDError() { return s_state == CD_ERROR || s_retries >= 10; }
 int isCDSuccess() { return s_state == CD_SUCCESS_DATA || s_state == CD_SUCCESS_AUDIO; };
 int isCDAudio() { return s_state == CD_SUCCESS_AUDIO; };
 
