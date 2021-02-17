@@ -199,7 +199,7 @@ static void applyLerps() {
 
 static void startLerp(enum LerpID lerpID) {
     s_lerps[0].p = s_lerps[1].p = s_lerps[2].p = s_lerps[3].p = s_lerps[4].p = s_lerps[5].p = 0;
-    s_lerps[0].speed = s_lerps[1].speed = s_lerps[3].speed = s_lerps[4].speed = s_quarterSecLerpSpeed;
+    s_lerps[0].speed = s_lerps[1].speed = s_lerps[3].speed = s_lerps[4].speed = s_lerps[5].speed = s_quarterSecLerpSpeed;
     s_lerps[0].c.s = *s_lerps[0].c.r;
     s_lerps[1].c.s = *s_lerps[1].c.r;
     s_lerps[2].c.s = *s_lerps[2].c.r;
@@ -217,16 +217,16 @@ static void startLerp(enum LerpID lerpID) {
         case LERP_TO_SUCCESS:
             s_lerps[0].c.d = c_bgSuccess;
             s_lerps[1].c.d = c_fgSuccess;
-            s_lerps[4].d.d = c_xRotSpeedIdle;
-            s_lerps[5].d.d = c_yRotSpeedIdle;
-            s_lerps[6].d.d = c_zRotSpeedIdle;
+            s_lerps[3].d.d = c_xRotSpeedIdle;
+            s_lerps[4].d.d = c_yRotSpeedIdle;
+            s_lerps[5].d.d = c_zRotSpeedIdle;
             break;
         case LERP_TO_ERROR:
             s_lerps[0].c.d = c_bgError;
             s_lerps[1].c.d = c_fgError;
-            s_lerps[4].d.d = c_xRotSpeedError;
-            s_lerps[5].d.d = c_yRotSpeedError;
-            s_lerps[6].d.d = c_zRotSpeedError;
+            s_lerps[3].d.d = c_xRotSpeedError;
+            s_lerps[4].d.d = c_yRotSpeedError;
+            s_lerps[5].d.d = c_zRotSpeedError;
             break;
         case LERP_TO_OUTRO:
             s_lerps[0].c.d = c_white;
@@ -392,9 +392,12 @@ int main() {
     initCD();
     enableDisplay();
     while (1) {
-        if (s_scheduleBoot) {
+        if (s_scheduleBoot && s_phase != 0) {
             int bootFrames = s_bootFrames++;
-            if (bootFrames == s_FPS) {
+            if (bootFrames == 0) {
+                startLerp(LERP_TO_SUCCESS);
+                s_xRotAccel = s_yRotAccel = s_zRotAccel = 6000;
+            } else if (bootFrames == s_FPS) {
                 startLerp(LERP_TO_OUTRO);
             } else if (bootFrames == (s_FPS * 2)) {
                 startLerp(LERP_TO_BLACK);
@@ -412,10 +415,8 @@ int main() {
         if (isError && !wasError) {
             startLerp(LERP_TO_ERROR);
         } else if (isSuccess && !wasSuccess) {
-            startLerp(LERP_TO_SUCCESS);
             if (!isCDAudio()) {
                 ramsyscall_printf("*** Data is acceptable, booting now. ***");
-                s_xRotAccel = s_yRotAccel = s_zRotAccel = 12000;
                 s_scheduleBoot = 1;
             } else {
                 // todo: play audio cd
