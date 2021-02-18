@@ -343,6 +343,10 @@ void PCSX::Lua::displayStack(bool error) {
     int n = lua_gettop(L);
     int i;
 
+    getfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
+    bool isInDisplayStackAlready = toboolean();
+    pop();
+
     if (n == 0) {
         if ((normalPrinter && !error) || (errorPrinter && error)) {
             if (error) {
@@ -351,11 +355,21 @@ void PCSX::Lua::displayStack(bool error) {
                 normalPrinter("Stack empty");
             }
         }
+
+        if (isInDisplayStackAlready) {
+            printf("Stack empty");
+            return;
+        }
+
         checkstack(2);
+        push(true);
+        setfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
         lua_pushstring(L, error ? "printError" : "print");
         lua_gettable(L, LUA_GLOBALSINDEX);
         push("Stack empty");
         pcall(1);
+        push(false);
+        setfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
         return;
     }
 
@@ -415,7 +429,17 @@ void PCSX::Lua::displayStack(bool error) {
         }
         concat(c);
         if (useLuaPrinter) {
-            pcall(1);
+            if (isInDisplayStackAlready) {
+                std::string msg = tostring();
+                pop();
+                printf("%s\n", msg.c_str());
+            } else {
+                push(true);
+                setfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
+                pcall(1);
+                push(false);
+                setfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
+            }
         } else {
             std::string msg = tostring();
             pop();

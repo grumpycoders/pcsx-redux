@@ -21,6 +21,9 @@
     <ClCompile Include="..\..\src\lua\zlibffi.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\lua\glffi.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\lua\luawrapper.h">
@@ -29,9 +32,36 @@
     <ClInclude Include="..\..\src\lua\zlibffi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\lua\glffi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\lua\zlibffi.lua" />
     <None Include="packages.config" />
+    <None Include="..\..\src\lua\glffi-enum2.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-enum3.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-typedefs.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-enum1.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-def1.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-def2.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-def3.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\glffi-def4.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

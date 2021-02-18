@@ -19,14 +19,24 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\lua\glffi.cc" />
     <ClCompile Include="..\..\src\lua\luawrapper.cc" />
     <ClCompile Include="..\..\src\lua\zlibffi.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\lua\glffi.h" />
     <ClInclude Include="..\..\src\lua\luawrapper.h" />
     <ClInclude Include="..\..\src\lua\zlibffi.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\lua\glffi-def1.lua" />
+    <None Include="..\..\src\lua\glffi-def2.lua" />
+    <None Include="..\..\src\lua\glffi-def3.lua" />
+    <None Include="..\..\src\lua\glffi-def4.lua" />
+    <None Include="..\..\src\lua\glffi-enum1.lua" />
+    <None Include="..\..\src\lua\glffi-enum2.lua" />
+    <None Include="..\..\src\lua\glffi-enum3.lua" />
+    <None Include="..\..\src\lua\glffi-typedefs.lua" />
     <None Include="..\..\src\lua\zlibffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>

@@ -46,6 +46,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
+#include "lua/glffi.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "zstr.hpp"
@@ -194,6 +195,8 @@ end)(jit.status()))
 
     result = gl3wInit();
     assert(result == 0);
+
+    LuaFFI::open_gl(g_emulator->m_lua.get());
 
     // Setup ImGui binding
     IMGUI_CHECKVERSION();
