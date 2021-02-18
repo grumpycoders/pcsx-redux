@@ -177,7 +177,8 @@ class Settings : private std::tuple<settings...> {
     }
     constexpr void deserialize(const json &j) { deserialize<0, settings...>(j); }
     void foreach (std::function<void(int, const char *)> iter) {
-        foreach<0, settings...>(iter);
+        foreach
+            <0, settings...>(iter);
     }
 
   private:
@@ -186,7 +187,8 @@ class Settings : private std::tuple<settings...> {
     template <size_t index, typename settingType, typename... nestedSettings>
     void foreach (std::function<void(int, const char *)> iter) {
         iter(index, settingType::name);
-        foreach<index + 1, nestedSettings...>(iter);
+        foreach
+            <index + 1, nestedSettings...>(iter);
     }
     template <size_t index>
     constexpr void reset() {}

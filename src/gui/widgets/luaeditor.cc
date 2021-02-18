@@ -17,10 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <GL/gl3w.h>
-
-#include "gui/gui.h"
 #include "gui/widgets/luaeditor.h"
+
+#include <GL/gl3w.h>
 
 #include <filesystem>
 #include <fstream>
@@ -34,6 +33,7 @@
 
 #include "core/psxemulator.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "support/file.h"
 

@@ -29,4 +29,5 @@ void pcsxStaticImguiUserError(const char* msg);
 }
 #endif
 
-#define IM_ASSERT_USER_ERROR(_EXP, _MSG) if (!(_EXP)) pcsxStaticImguiUserError((_MSG))
+#define IM_ASSERT_USER_ERROR(_EXP, _MSG) \
+    if (!(_EXP)) pcsxStaticImguiUserError((_MSG))

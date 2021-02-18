@@ -17,12 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <GL/gl3w.h>
-
 #include "lua/glffi.h"
 
-#include "lua/luawrapper.h"
+#include <GL/gl3w.h>
 
+#include "lua/luawrapper.h"
 
 template <typename T, size_t S>
 static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
@@ -652,7 +651,6 @@ static void registerAllSymbols(PCSX::Lua* L) {
     L->settable();
     L->pop();
 }
-
 
 void PCSX::LuaFFI::open_gl(Lua* L) {
     registerAllSymbols(L);

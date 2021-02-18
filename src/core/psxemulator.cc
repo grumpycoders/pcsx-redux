@@ -63,7 +63,7 @@ PCSX::Emulator::Emulator()
     m_lua->open_ffi();
     m_lua->open_jit();
     m_lua->open_math();
-    //m_lua->open_package();
+    // m_lua->open_package();
     m_lua->open_string();
     m_lua->open_table();
     LuaFFI::open_zlib(m_lua.get());
