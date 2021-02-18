@@ -129,7 +129,7 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, inflateCodesUsed);
     REGISTER(L, inflateResetKeep);
     REGISTER(L, deflateResetKeep);
-//    REGISTER(L, gzopen_w);
+    //    REGISTER(L, gzopen_w);
     L->settable();
     L->pop();
 }
