@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <GL/gl3w.h>
 #include <stdarg.h>
 
 #include <string>
@@ -104,6 +105,22 @@ class GUI final {
     void magicOpen(const char *path);
 
     static void checkGL();
+
+    static const char *glErrorToString(GLenum error) {
+        static const std::map<GLenum, const char *> glErrorMap = {
+            {GL_NO_ERROR, "GL_NO_ERROR"},
+            {GL_INVALID_ENUM, "GL_INVALID_ENUM"},
+            {GL_INVALID_VALUE, "GL_INVALID_VALUE"},
+            {GL_INVALID_OPERATION, "GL_INVALID_OPERATION"},
+            {GL_INVALID_FRAMEBUFFER_OPERATION, "GL_INVALID_FRAMEBUFFER_OPERATION"},
+            {GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
+            {GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
+            {GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"},
+        };
+        auto f = glErrorMap.find(error);
+        if (f == glErrorMap.end()) return "Unknown error";
+        return f->second;
+    }
 
   private:
     void saveCfg();

@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <GL/gl3w.h>
+
+#include "gui/gui.h"
 #include "gui/widgets/luaeditor.h"
 
 #include <filesystem>
@@ -68,7 +71,15 @@ void PCSX::Widgets::LuaEditor::draw(const char* title) {
             try {
                 L->load(m_text.GetText(), "pcsx.lua", false);
                 L->pcall();
-                m_displayError = false;
+                bool gotGLerror = false;
+                GLenum glError = GL_NO_ERROR;
+                while ((glError = glGetError()) != GL_NO_ERROR) {
+                    std::string msg = "glError: ";
+                    msg += PCSX::GUI::glErrorToString(glError);
+                    m_lastErrors.push_back(msg);
+                    gotGLerror = true;
+                }
+                if (!gotGLerror) m_displayError = false;
             } catch (...) {
                 m_displayError = true;
             }

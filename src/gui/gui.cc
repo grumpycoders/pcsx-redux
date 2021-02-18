@@ -105,6 +105,17 @@ void PCSX::GUI::init() {
         try {
             g_emulator->m_lua->load(cmd, "console", false);
             g_emulator->m_lua->pcall();
+            bool gotGLerror = false;
+            GLenum glError = GL_NO_ERROR;
+            while ((glError = glGetError()) != GL_NO_ERROR) {
+                std::string msg = "glError: ";
+                msg += glErrorToString(glError);
+                m_luaConsole.addError(msg);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", msg.c_str());
+                }
+                gotGLerror = true;
+            }
         } catch (std::runtime_error& e) {
             m_luaConsole.addError(e.what());
             if (m_args.get<bool>("lua_stdout", false)) {
@@ -787,6 +798,18 @@ void PCSX::GUI::endFrame() {
     if (!L->isnil()) {
         try {
             L->pcall();
+            bool gotGLerror = false;
+            GLenum glError = GL_NO_ERROR;
+            while ((glError = glGetError()) != GL_NO_ERROR) {
+                std::string msg = "glError: ";
+                msg += glErrorToString(glError);
+                m_luaConsole.addError(msg);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", msg.c_str());
+                }
+                gotGLerror = true;
+            }
+            if (gotGLerror) throw("OpenGL error while running Lua code");
         } catch (...) {
             L->push();
             L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
