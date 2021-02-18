@@ -31,6 +31,7 @@
 #include "core/sstate.h"
 #include "flags.h"
 #include "gui/gui.h"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
 
 static PCSX::GUI *s_gui;
@@ -241,6 +242,18 @@ int pcsxMain(int argc, char **argv) {
     CheckCdrom();
 
     if (args.get<bool>("run", false)) system->start();
+
+    auto luaexecs = args.values("exec");
+    for (auto &luaexec : luaexecs) {
+        try {
+            emulator->m_lua->load(luaexec.data(), "cmdline", false);
+            emulator->m_lua->pcall();
+        } catch (std::runtime_error &e) {
+            if (args.get<bool>("lua_stdout", false)) {
+                fprintf(stderr, "%s\n", e.what());
+            }
+        }
+    }
 
     while (!system->quitting()) {
         if (system->running()) {

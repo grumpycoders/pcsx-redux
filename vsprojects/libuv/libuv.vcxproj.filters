@@ -209,5 +209,8 @@
     <ClCompile Include="..\..\third_party\libuv\src\fs-poll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\libuv\src\random.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

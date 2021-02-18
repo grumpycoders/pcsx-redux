@@ -24,6 +24,7 @@
 
 #include <codecvt>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -175,8 +176,18 @@ class Settings : private std::tuple<settings...> {
         return ret;
     }
     constexpr void deserialize(const json &j) { deserialize<0, settings...>(j); }
+    void foreach (std::function<void(int, const char *)> iter) {
+        foreach<0, settings...>(iter);
+    }
 
   private:
+    template <size_t index>
+    void foreach (std::function<void(int, const char *)> iter) {}
+    template <size_t index, typename settingType, typename... nestedSettings>
+    void foreach (std::function<void(int, const char *)> iter) {
+        iter(index, settingType::name);
+        foreach<index + 1, nestedSettings...>(iter);
+    }
     template <size_t index>
     constexpr void reset() {}
     template <size_t index, typename settingType, typename... nestedSettings>
