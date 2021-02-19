@@ -52,6 +52,7 @@ bool PCSX::PAD::configuringButton = false;
 bool PCSX::PAD::save = false;
 
 int PCSX::PAD::configuredButtonIndex = 0;
+int PCSX::PAD::configuredJoypad = 0;
 decltype(PCSX::PAD::settings) PCSX::PAD::settings;
 
 PCSX::PAD::PAD(pad_t pad) : m_padIdx(pad), m_connected(pad == PAD1), m_isKeyboard(pad == PAD1), m_pad(nullptr) {
@@ -77,23 +78,45 @@ void PCSX::PAD::init() {
 
 /// Map keyboard bindings
 void PCSX::PAD::mapScancodes() { 
-    m_scancodes[0] = settings.get<PCSX::PAD::Pad1Select>();  // SELECT
-    m_scancodes[1] = 255; // n/a
-    m_scancodes[2] = 255; // n/a
-    m_scancodes[3] = settings.get<PCSX::PAD::Pad1Start>(); // START
-    m_scancodes[4] = settings.get<PCSX::PAD::Pad1Up>();    // UP
-    m_scancodes[5] = settings.get<PCSX::PAD::Pad1Right>(); // RIGHT
-    m_scancodes[6] = settings.get<PCSX::PAD::Pad1Down>();  // DOWN
-    m_scancodes[7] = settings.get<PCSX::PAD::Pad1Left>();  // LEFT
+    if (m_padIdx == PAD1) {
+        m_scancodes[0] = settings.get<PCSX::PAD::Pad1Select>();  // SELECT
+        m_scancodes[1] = 255;                                    // n/a
+        m_scancodes[2] = 255;                                    // n/a
+        m_scancodes[3] = settings.get<PCSX::PAD::Pad1Start>();   // START
+        m_scancodes[4] = settings.get<PCSX::PAD::Pad1Up>();      // UP
+        m_scancodes[5] = settings.get<PCSX::PAD::Pad1Right>();   // RIGHT
+        m_scancodes[6] = settings.get<PCSX::PAD::Pad1Down>();    // DOWN
+        m_scancodes[7] = settings.get<PCSX::PAD::Pad1Left>();    // LEFT
 
-    m_scancodes[8] = settings.get<PCSX::PAD::Pad1L2>();    // L2
-    m_scancodes[9] = settings.get<PCSX::PAD::Pad1R2>();    // R2
-    m_scancodes[10] = settings.get<PCSX::PAD::Pad1L1>();   // L1
-    m_scancodes[11] = settings.get<PCSX::PAD::Pad1R1>();   // R1
-    m_scancodes[12] = settings.get<PCSX::PAD::Pad1Triangle>(); // TRIANGLE
-    m_scancodes[13] = settings.get<PCSX::PAD::Pad1Circle>();   // CIRCLE
-    m_scancodes[14] = settings.get<PCSX::PAD::Pad1Cross>();    // CROSS
-    m_scancodes[15] = settings.get<PCSX::PAD::Pad1Square>();   // SQUARE
+        m_scancodes[8] = settings.get<PCSX::PAD::Pad1L2>();         // L2
+        m_scancodes[9] = settings.get<PCSX::PAD::Pad1R2>();         // R2
+        m_scancodes[10] = settings.get<PCSX::PAD::Pad1L1>();        // L1
+        m_scancodes[11] = settings.get<PCSX::PAD::Pad1R1>();        // R1
+        m_scancodes[12] = settings.get<PCSX::PAD::Pad1Triangle>();  // TRIANGLE
+        m_scancodes[13] = settings.get<PCSX::PAD::Pad1Circle>();    // CIRCLE
+        m_scancodes[14] = settings.get<PCSX::PAD::Pad1Cross>();     // CROSS
+        m_scancodes[15] = settings.get<PCSX::PAD::Pad1Square>();    // SQUARE
+    }
+
+    else if (m_padIdx == PAD2) {
+        m_scancodes[0] = settings.get<PCSX::PAD::Pad2Select>();  // SELECT
+        m_scancodes[1] = 255;                                    // n/a
+        m_scancodes[2] = 255;                                    // n/a
+        m_scancodes[3] = settings.get<PCSX::PAD::Pad2Start>();   // START
+        m_scancodes[4] = settings.get<PCSX::PAD::Pad2Up>();      // UP
+        m_scancodes[5] = settings.get<PCSX::PAD::Pad2Right>();   // RIGHT
+        m_scancodes[6] = settings.get<PCSX::PAD::Pad2Down>();    // DOWN
+        m_scancodes[7] = settings.get<PCSX::PAD::Pad2Left>();    // LEFT
+
+        m_scancodes[8] = settings.get<PCSX::PAD::Pad2L2>();         // L2
+        m_scancodes[9] = settings.get<PCSX::PAD::Pad2R2>();         // R2
+        m_scancodes[10] = settings.get<PCSX::PAD::Pad2L1>();        // L1
+        m_scancodes[11] = settings.get<PCSX::PAD::Pad2R1>();        // R1
+        m_scancodes[12] = settings.get<PCSX::PAD::Pad2Triangle>();  // TRIANGLE
+        m_scancodes[13] = settings.get<PCSX::PAD::Pad2Circle>();    // CIRCLE
+        m_scancodes[14] = settings.get<PCSX::PAD::Pad2Cross>();     // CROSS
+        m_scancodes[15] = settings.get<PCSX::PAD::Pad2Square>();    // SQUARE 
+    }
 }
 
 void PCSX::PAD::shutdown() {
@@ -227,7 +250,8 @@ bool PCSX::PAD::configure() {
 
     bool changed = false;
 
-    static const char* inputDevices[] = {"Keyboard", "Controller (Not ready yet)"}; // list of options for the drop down table
+    static const char* inputDevices[] = {"Pad 1 [Keyboard]", "Pad 1 [Controller] (Not supported yet)",
+                                         "Pad 2 [Keyboard]", "Pad 2 [Controller] (Not supported yet)" }; // list of options for the drop down table
     static const char* buttonNames[] = {
         "Cross   ", "Square  ", "Triangle", "Circle  ", "Select  ", "Start   ",
         "L1      ", "R1      ", "L2      ", "R2      "
@@ -321,24 +345,48 @@ void PCSX::PAD::updateBinding(GLFWwindow* window, int key, int scancode, int act
     save = true; // tell the GUI we need to save the new config
 }
 
-int* PCSX::PAD::getButtonFromGUIIndex(int index) {
-    switch (index) { // Order is the same as they're on the GUI
-        case 0:  return &settings.get<Pad1Cross>().value;
-        case 1:  return &settings.get<Pad1Square>().value;
-        case 2:  return &settings.get<Pad1Triangle>().value;
-        case 3:  return &settings.get<Pad1Circle>().value;
-        case 4:  return &settings.get<Pad1Select>().value;
-        case 5:  return &settings.get<Pad1Start>().value;
-        case 6:  return &settings.get<Pad1L1>().value;
-        case 7:  return &settings.get<Pad1R1>().value;
-        case 8:  return &settings.get<Pad1L2>().value;
-        case 9:  return &settings.get<Pad1R2>().value;
-        case 10:  return &settings.get<Pad1Up>().value;
-        case 11:  return &settings.get<Pad1Right>().value;
-        case 12:  return &settings.get<Pad1Down>().value;
-        case 13:  return &settings.get<Pad1Left>().value;
-        default: printf ("[PAD] Somehow read from invalid button config\n");
+int* PCSX::PAD::getButtonFromGUIIndex(int buttonIndex, pad_t joypadIndex) {
+    if (joypadIndex == PAD1) {
+        switch (buttonIndex) { // Order is the same as they're on the GUI
+            case 0:  return &settings.get<Pad1Cross>().value;
+            case 1:  return &settings.get<Pad1Square>().value;
+            case 2:  return &settings.get<Pad1Triangle>().value;
+            case 3:  return &settings.get<Pad1Circle>().value;
+            case 4:  return &settings.get<Pad1Select>().value;
+            case 5:  return &settings.get<Pad1Start>().value;
+            case 6:  return &settings.get<Pad1L1>().value;
+            case 7:  return &settings.get<Pad1R1>().value;
+            case 8:  return &settings.get<Pad1L2>().value;
+            case 9:  return &settings.get<Pad1R2>().value;
+            case 10:  return &settings.get<Pad1Up>().value;
+            case 11:  return &settings.get<Pad1Right>().value;
+            case 12:  return &settings.get<Pad1Down>().value;
+            case 13:  return &settings.get<Pad1Left>().value;
+            default: printf ("[PAD] Somehow read from invalid button config\n");
+        }
     }
+
+    else if (joypadIndex == PAD2) {
+        switch (buttonIndex) { // Order is the same as they're on the GUI
+            case 0:  return &settings.get<Pad2Cross>().value;
+            case 1:  return &settings.get<Pad2Square>().value;
+            case 2:  return &settings.get<Pad2Triangle>().value;
+            case 3:  return &settings.get<Pad2Circle>().value;
+            case 4:  return &settings.get<Pad2Select>().value;
+            case 5:  return &settings.get<Pad2Start>().value;
+            case 6:  return &settings.get<Pad2L1>().value;
+            case 7:  return &settings.get<Pad2R1>().value;
+            case 8:  return &settings.get<Pad2L2>().value;
+            case 9:  return &settings.get<Pad2R2>().value;
+            case 10:  return &settings.get<Pad2Up>().value;
+            case 11:  return &settings.get<Pad2Right>().value;
+            case 12:  return &settings.get<Pad2Down>().value;
+            case 13:  return &settings.get<Pad2Left>().value;
+            default: printf ("[PAD] Somehow read from invalid button config\n");
+        }
+    }
+
+    else printf ("Invalid joypad number. This is neither joypad 1 nor 2");
 }
 
 /// GLFW doesn't support converting some of the most common keys to strings

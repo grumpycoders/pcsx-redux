@@ -76,6 +76,7 @@ public:
     static bool configuringButton; // are we configuring a button in the GUI?
     static int configuredButtonIndex; // Which button are we configuring in the GUI?
     static bool save; // do we need to save?
+    static int configuredJoypad; // index of the joypad being configured
 
     // settings block
     typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
@@ -93,7 +94,23 @@ public:
     typedef Setting<int, TYPESTRING("Pad1R1"), GLFW_KEY_R> Pad1R1;
     typedef Setting<int, TYPESTRING("Pad1R2"), GLFW_KEY_F> Pad1R2;
 
-    static Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2> settings;
+    typedef Setting<int, TYPESTRING("Pad2Up"), GLFW_KEY_UP> Pad2Up;
+    typedef Setting<int, TYPESTRING("Pad2Right"), GLFW_KEY_RIGHT> Pad2Right;
+    typedef Setting<int, TYPESTRING("Pad2Down"), GLFW_KEY_DOWN> Pad2Down;
+    typedef Setting<int, TYPESTRING("Pad2Left"), GLFW_KEY_LEFT> Pad2Left;
+    typedef Setting<int, TYPESTRING("Pad2Cross"), GLFW_KEY_X> Pad2Cross;
+    typedef Setting<int, TYPESTRING("Pad2Triangle"), GLFW_KEY_S> Pad2Triangle;
+    typedef Setting<int, TYPESTRING("Pad2Square"), GLFW_KEY_Z> Pad2Square;
+    typedef Setting<int, TYPESTRING("Pad2Circle"), GLFW_KEY_D> Pad2Circle;
+    typedef Setting<int, TYPESTRING("Pad2Select"), GLFW_KEY_BACKSPACE> Pad2Select;
+    typedef Setting<int, TYPESTRING("Pad2Sstart"), GLFW_KEY_ENTER> Pad2Start;
+    typedef Setting<int, TYPESTRING("Pad2L1"), GLFW_KEY_Q> Pad2L1;
+    typedef Setting<int, TYPESTRING("Pad2L2"), GLFW_KEY_A> Pad2L2;
+    typedef Setting<int, TYPESTRING("Pad2R1"), GLFW_KEY_R> Pad2R1;
+    typedef Setting<int, TYPESTRING("Pad2R2"), GLFW_KEY_F> Pad2R2;
+
+    static Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2,
+                    Pad2Up, Pad2Right, Pad2Down, Pad2Left, Pad2Cross, Pad2Triangle, Pad2Square, Pad2Circle, Pad2Select, Pad2Start, Pad2L1, Pad2L2, Pad2R1, Pad2R2> settings;
 };
 
 }  // namespace PCSX
