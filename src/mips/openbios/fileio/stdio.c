@@ -52,7 +52,7 @@ void installStdIo(int installTTY) {
     s_ignoreCarriageReturns = 0;
     removeDevice("tty");
     POST = 4;
-    switch(installTTY) {
+    switch (installTTY) {
         case 0:
             syscall_addDummyConsoleDevice();
             break;
@@ -67,12 +67,12 @@ void installStdIo(int installTTY) {
     POST = 6;
 }
 
-int psxopen(const char * path, int mode) {
-    struct File * file = findEmptyFile();
+int psxopen(const char* path, int mode) {
+    struct File* file = findEmptyFile();
 
-    const char * filename;
+    const char* filename;
     int deviceId;
-    struct Device * device;
+    struct Device* device;
 
     if (!file) {
         // technically, this isn't reachable, as ioabort isn't supposed
@@ -106,13 +106,13 @@ int psxopen(const char * path, int mode) {
 }
 
 int psxlseek(int fd, int offset, int whence) {
-    struct File * file = getFileFromHandle(fd);
+    struct File* file = getFileFromHandle(fd);
     if (!file || !file->flags) {
         psxerrno = PSXEBADF;
         return -1;
     }
 
-    switch(whence) {
+    switch (whence) {
         case PSXSEEK_SET:
             file->offset = offset;
             break;
@@ -130,8 +130,8 @@ int psxlseek(int fd, int offset, int whence) {
     return file->offset;
 }
 
-int psxread(int fd, void * buffer, int size) {
-    struct File * file = getFileFromHandle(fd);
+int psxread(int fd, void* buffer, int size) {
+    struct File* file = getFileFromHandle(fd);
     if (!file || !file->flags) {
         psxerrno = PSXEBADF;
         return -1;
@@ -144,7 +144,7 @@ int psxread(int fd, void * buffer, int size) {
     if (file->deviceFlags & PSXDTTYPE_FS) {
         ret = file->device->read(file, buffer, size);
     } else {
-        struct Device * device = file->device;
+        struct Device* device = file->device;
         file->buffer = buffer;
         file->count = size;
         if (device->flags & PSXDTTYPE_BLOCK) {
@@ -164,8 +164,8 @@ int psxread(int fd, void * buffer, int size) {
     return ret;
 }
 
-int psxwrite(int fd, void * buffer, int size) {
-    struct File * file = getFileFromHandle(fd);
+int psxwrite(int fd, void* buffer, int size) {
+    struct File* file = getFileFromHandle(fd);
     if (!file || file->flags == 0) {
         psxerrno = PSXEBADF;
         return -1;
@@ -178,7 +178,7 @@ int psxwrite(int fd, void * buffer, int size) {
     if (file->deviceFlags & PSXDTTYPE_FS) {
         ret = file->device->write(file, buffer, size);
     } else {
-        struct Device * device = file->device;
+        struct Device* device = file->device;
         file->buffer = buffer;
         file->count = size;
         if (device->flags & PSXDTTYPE_BLOCK) {
@@ -199,7 +199,7 @@ int psxwrite(int fd, void * buffer, int size) {
 }
 
 int psxclose(int fd) {
-    struct File * file = getFileFromHandle(fd);
+    struct File* file = getFileFromHandle(fd);
     if (!file || !file->flags) {
         psxerrno = PSXEBADF;
         return -1;
@@ -214,7 +214,7 @@ int psxclose(int fd) {
 }
 
 int psxioctl(int fd, int cmd, int arg) {
-    struct File * file = getFileFromHandle(fd);
+    struct File* file = getFileFromHandle(fd);
     uint32_t flags;
     if (!file || !(flags = file->flags)) {
         psxerrno = PSXEBADF;
@@ -274,10 +274,10 @@ int psxgetchar() {
    It's doing a lot of terminal shenanigans. Whatever this terminal is, it
    also has a special meanings for the values 0x13, 0x16, and 0x7f. Also,
    it's sort of assuming a maximum buffer length. It's wild. */
-char * psxgets(char * const s) {
+char* psxgets(char* const s) {
     char c;
-    char * ptr = s;
-    char * const end = s + 125;
+    char* ptr = s;
+    char* const end = s + 125;
     while (1) {
         c = psxgetchar();
         if (c == '\b' || c == 0x7f) {
@@ -291,11 +291,11 @@ char * psxgets(char * const s) {
                 continue;
             }
         }
-        if (c == '\t') c = ' '; // replace tabs by spaces, with no tabulation control...
+        if (c == '\t') c = ' ';  // replace tabs by spaces, with no tabulation control...
         if ((c == '\n') || (c == '\r')) {
             psxputchar('\n');
             *ptr = 0;
-            break; // sweet deliverance
+            break;  // sweet deliverance
         }
         if (c == 0x16) {
             c = psxgetchar();
@@ -303,12 +303,12 @@ char * psxgets(char * const s) {
                 *ptr++ = c;
                 psxputchar(c);
             } else {
-                psxputchar(7); // meep
+                psxputchar(7);  // meep
             }
             continue;
         }
         if (iscntrl(c) || (ptr >= end)) {
-            psxputchar(7); // meep
+            psxputchar(7);  // meep
         } else {
             *ptr++ = c;
             psxputchar(c);
@@ -317,7 +317,7 @@ char * psxgets(char * const s) {
     return s;
 }
 
-void psxputs(const char * s) {
+void psxputs(const char* s) {
     if (!s) s = "<NULL>";
     char c;
     while ((c = *s++)) {
@@ -325,11 +325,11 @@ void psxputs(const char * s) {
     }
 }
 
-static void xprintfcallback(const char * str, int size, void * dummy) {
+static void xprintfcallback(const char* str, int size, void* dummy) {
     while (size--) syscall_putchar(*str++);
 }
 
-int psxprintf(const char * fmt, ...) {
+int psxprintf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vxprintf(xprintfcallback, NULL, fmt, ap);

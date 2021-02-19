@@ -41,3 +41,9 @@ pcsx.json
 *.bff
 *.fdb
 fb.bat
+
+# macos files
+.DS_store
+
+
+

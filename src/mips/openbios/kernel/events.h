@@ -25,6 +25,9 @@ SOFTWARE.
 */
 
 #pragma once
+
+#include <stdint.h>
+
 #include "common/kernel/events.h"
 
 int initEvents(int count);

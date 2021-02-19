@@ -24,13 +24,14 @@ SOFTWARE.
 
 */
 
+#include "openbios/patches/patches.h"
+
 #include <stdlib.h>
 
 #include "common/compiler/stdint.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/patches/hash.h"
-#include "openbios/patches/patches.h"
 
 int g_patch_permissive = 0;
 
@@ -43,70 +44,120 @@ struct patch {
 // The following has been automatically generated, do not edit.
 // See generate.c if you need to make changes.
 
-int patch_pad_execute(uint32_t* ra);
-int patch_pad2_execute(uint32_t* ra);
-int remove_ChgclrPAD_execute(uint32_t* ra);
-int remove_ChgclrPAD2_execute(uint32_t* ra);
-int send_pad_execute(uint32_t* ra);
-int send_pad2_execute(uint32_t* ra);
-int patch_gte_execute(uint32_t* ra);
-int patch_gte2_execute(uint32_t* ra);
-int patch_gte3_execute(uint32_t* ra);
+int patch_card_info_1_execute(uint32_t* ra);
+int patch_card2_1_execute(uint32_t* ra);
+int patch_card2_2_execute(uint32_t* ra);
+int patch_pad_1_execute(uint32_t* ra);
+int patch_pad_2_execute(uint32_t* ra);
+int patch_pad_3_execute(uint32_t* ra);
+int remove_ChgclrPAD_1_execute(uint32_t* ra);
+int remove_ChgclrPAD_2_execute(uint32_t* ra);
+int send_pad_1_execute(uint32_t* ra);
+int send_pad_2_execute(uint32_t* ra);
+int clear_card_1_execute(uint32_t* ra);
+int initgun_1_execute(uint32_t* ra);
+int patch_card_1_execute(uint32_t* ra);
+int patch_card_2_execute(uint32_t* ra);
+int patch_gte_1_execute(uint32_t* ra);
+int patch_gte_2_execute(uint32_t* ra);
+int patch_gte_3_execute(uint32_t* ra);
 
-static const uint32_t generic_hash_mask_b0 = 0x7fc9d155;
-static const uint32_t generic_hash_mask_c0 = 0x52205545;
+static const uint32_t generic_hash_mask_b0 = 0xffc9a655;
+static const uint32_t generic_hash_mask_c0 = 0x5aa45555;
 static const unsigned generic_hash_len = 16;
 
 static const struct patch B0patches[] = {
     {
-        .hash = 0xaf09762c,
-        .execute = patch_pad_execute,
+        .hash = 0x5123f82a,
+        .execute = patch_card_info_1_execute,
+        .name = "_patch_card_info#1",
+    },
+    {
+        .hash = 0x0bc81000,
+        .execute = patch_card2_1_execute,
+        .name = "_patch_card2#1",
+    },
+    {
+        .hash = 0xc29df18f,
+        .execute = patch_card2_2_execute,
+        .name = "_patch_card2#2",
+    },
+    {
+        .hash = 0xf803a6a6,
+        .execute = patch_pad_1_execute,
         .name = "_patch_pad#1",
     },
     {
-        .hash = 0x51eb6137,
-        .execute = patch_pad2_execute,
+        .hash = 0x6dee1051,
+        .execute = patch_pad_2_execute,
         .name = "_patch_pad#2",
     },
     {
-        .hash = 0x6b104143,
-        .execute = remove_ChgclrPAD_execute,
+        .hash = 0x012afc0a,
+        .execute = patch_pad_3_execute,
+        .name = "_patch_pad#3",
+    },
+    {
+        .hash = 0xcef165ba,
+        .execute = remove_ChgclrPAD_1_execute,
         .name = "_remove_ChgclrPAD#1",
     },
     {
-        .hash = 0xd5a89e48,
-        .execute = remove_ChgclrPAD2_execute,
+        .hash = 0x5df8cc5d,
+        .execute = remove_ChgclrPAD_2_execute,
         .name = "_remove_ChgclrPAD#2",
     },
     {
-        .hash = 0x57b51520,
-        .execute = send_pad_execute,
+        .hash = 0xa1c49b0e,
+        .execute = send_pad_1_execute,
         .name = "_send_pad#1",
     },
     {
-        .hash = 0xf6192150,
-        .execute = send_pad2_execute,
+        .hash = 0x561b6ad1,
+        .execute = send_pad_2_execute,
         .name = "_send_pad#2",
     },
 };
 
 static const struct patch C0patches[] = {
     {
-        .hash = 0xefb670eb,
-        .execute = patch_gte_execute,
+        .hash = 0x95c14c17,
+        .execute = clear_card_1_execute,
+        .name = "_clear_card#1",
+    },
+    {
+        .hash = 0x5753f599,
+        .execute = initgun_1_execute,
+        .name = "_initgun#1",
+    },
+    {
+        .hash = 0x847eabf2,
+        .execute = patch_card_1_execute,
+        .name = "_patch_card#1",
+    },
+    {
+        .hash = 0x2a81bbef,
+        .execute = patch_card_2_execute,
+        .name = "_patch_card#2",
+    },
+    {
+        .hash = 0x61c914a1,
+        .execute = patch_gte_1_execute,
         .name = "_patch_gte#1",
     },
     {
-        .hash = 0xf8fad00f,
-        .execute = patch_gte2_execute,
+        .hash = 0xc223044d,
+        .execute = patch_gte_2_execute,
         .name = "_patch_gte#2",
     },
     {
-        .hash = 0xf65f080b,
-        .execute = patch_gte3_execute,
+        .hash = 0xbf873c49,
+        .execute = patch_gte_3_execute,
         .name = "_patch_gte#3",
     },
 };
+
+// end of auto generated code
 
 void patch_hook(uint32_t* ra, enum patch_table table) {
     // already patched, bail out
@@ -136,8 +187,11 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
 
     while (size--) {
         if (patches->hash == h) {
-            romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name, ra);
-            if (!patches->execute(ra)) continue;
+            romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name,
+                              ra);
+            int v = patches->execute(ra);
+            if (!v) continue;
+            if (v == 2) return;
             ra[0] = 0;
             ra[1] = 0;
             syscall_flushCache();

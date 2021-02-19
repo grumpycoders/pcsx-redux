@@ -33,7 +33,8 @@ MEMORY {
     kseg0i(rwx): ORIGIN = 0x00000000, LENGTH = 0x500
     kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 2M - 0x500
     ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
-    rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 512K
+    rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 400K
+    consts (rx): ORIGIN = 0xbfc66000, LENGTH = 104K
     dcache     : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
@@ -177,10 +178,18 @@ SECTIONS {
 
     __end = .;
 
+    .consts : {
+        *(.font1)
+        . = ALIGN(8);
+        *(.font2)
+        . = ALIGN(0x1000);
+    } > consts
+
+
     /DISCARD/ : { *(.MIPS.abiflags) }
 
     /* Everything is statically linked, so discard PLTs. */
-    /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) }
+    /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) *(.rel.dyn) }
 
     /* Discard things that the standard link script drops, too. */
     /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }

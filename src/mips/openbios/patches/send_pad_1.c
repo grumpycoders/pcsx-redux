@@ -27,20 +27,22 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "openbios/sio0/pad.h"
 
+// clang-format off
+
 /* Found in Suikoden 2 NTSC (SLUS-00958):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              void  _send_pad (void)
                                assume gp = 0x80109798
              void              <VOID>         <RETURN>
-             dword * *         v0:4           B0table                                 XREF[1]:     800e3280 (W)  
-             undefined4        t2:4           src                                     XREF[1]:     800e328c (W)  
-             undefined4        v0:4           ptr                                     XREF[1]:     800e3298 (W)  
-             undefined4        v1:4           data                                    XREF[1]:     800e32ac (W)  
-                             _send_pad                                       XREF[2]:     PAD_init:800e2eb0 (c), 
-                                                                                          InitPAD:800e2f48 (c)  
+             dword * *         v0:4           B0table                                 XREF[1]:     800e3280 (W)
+             undefined4        t2:4           src                                     XREF[1]:     800e328c (W)
+             undefined4        v0:4           ptr                                     XREF[1]:     800e3298 (W)
+             undefined4        v1:4           data                                    XREF[1]:     800e32ac (W)
+                             _send_pad                                       XREF[2]:     PAD_init:800e2eb0 (c),
+                                                                                          InitPAD:800e2f48 (c)
         800e3268 11 80 01 3c          lui             at,0x8011
              assume gp = <UNKNOWN>
         800e326c 90 9b 3f ac          sw              ra,-0x6470 (at)=>DAT_80109b90                    = ??
@@ -60,7 +62,7 @@ SOFTWARE.
         800e32a4 11 80 01 3c          lui             at,0x8011
         800e32a8 94 9b 23 ac          sw              v1,-0x646c (at)=>captured_setPadOutputData       = ??
 
-                             LAB_800e32ac                                    XREF[1]:     800e32c4 (j)  
+                             LAB_800e32ac                                    XREF[1]:     800e32c4 (j)
         800e32ac 00 00 43 8d          lw              data,0x0(src)=>_send_pad_patch_start
         800e32b0 00 00 00 00          nop
         800e32b4 d8 03 43 ac          sw              data,0x3d8 (ptr)
@@ -79,10 +81,10 @@ SOFTWARE.
         800e32e8 94 9b 42 8c          lw              ptr,-0x646c (ptr)=>captured_setPadOutputData     = ??
         800e32ec 08 00 e0 03          jr              ra
         800e32f0 00 00 00 00          _nop
-                             _send_pad_patch_start                           XREF[1]:     _send_pad:800e32ac (R)  
+                             _send_pad_patch_start                           XREF[1]:     _send_pad:800e32ac (R)
         800e32f4 24 10 55 00          and             v0,v0,s5
 
-                             LAB_800e32f8                                    XREF[1]:     _send_pad:800e32ac (R)  
+                             LAB_800e32f8                                    XREF[1]:     _send_pad:800e32ac (R)
         800e32f8 00 00 00 00          nop
         800e32fc 00 00 00 00          nop
         800e3300 00 00 00 00          nop
@@ -99,9 +101,11 @@ SOFTWARE.
 
  */
 
+// clang-format on
+
 #ifndef GENERATE_HASHES
 
-int send_pad_execute(uint32_t* ra) {
+int send_pad_1_execute(uint32_t* ra) {
     patch_send_pad();
     uint32_t ptr;
     int16_t addend;
@@ -110,7 +114,7 @@ int send_pad_execute(uint32_t* ra) {
     ptr <<= 16;
     addend = ra[8] & 0xffff;
     ptr += addend;
-    *((uint32_t *)ptr) = patch_setPadOutputData;
+    *((uint32_t*)ptr) = patch_setPadOutputData;
 
     ra[2] = 15 | 0x10000000;
     ra[3] = 0;
@@ -123,24 +127,24 @@ int send_pad_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    1, 1, 1, 1, // 00
-    0, 0, 0, 1, // 10
-    1, 0, 0, 0, // 20
-    0, 0, 0, 0, // 30
+    1, 1, 1, 1,  // 00
+    0, 0, 0, 1,  // 10
+    1, 0, 0, 0,  // 20
+    0, 0, 0, 0,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x09, 0x3c, 0x00, 0x00, 0x29, 0x25, // 00
-    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x07, 0x43, 0x20, 0x00, 0x00, 0x01, 0x3c, // 10
-    0x00, 0x00, 0x23, 0xac, 0x00, 0x00, 0x43, 0x8d, 0x00, 0x00, 0x00, 0x00, 0xd8, 0x03, 0x43, 0xac, // 20
-    0xe0, 0x04, 0x43, 0xac, 0x04, 0x00, 0x42, 0x24, 0x04, 0x00, 0x4a, 0x25, 0xf9, 0xff, 0x49, 0x15, // 30
+    0x00, 0x00, 0x0a, 0x3c, 0x00, 0x00, 0x4a, 0x25, 0x00, 0x00, 0x09, 0x3c, 0x00, 0x00, 0x29, 0x25,  // 00
+    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0xa0, 0x07, 0x43, 0x20, 0x00, 0x00, 0x01, 0x3c,  // 10
+    0x00, 0x00, 0x23, 0xac, 0x00, 0x00, 0x43, 0x8d, 0x00, 0x00, 0x00, 0x00, 0xd8, 0x03, 0x43, 0xac,  // 20
+    0xe0, 0x04, 0x43, 0xac, 0x04, 0x00, 0x42, 0x24, 0x04, 0x00, 0x4a, 0x25, 0xf9, 0xff, 0x49, 0x15,  // 30
 };
 
-uint32_t generate_hash_send_pad(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+uint32_t generate_hash_send_pad_1(uint32_t mask, unsigned len) {
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
-uint32_t generate_mask_send_pad() {
+uint32_t generate_mask_send_pad_1() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

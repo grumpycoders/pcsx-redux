@@ -46,10 +46,15 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
+#include "lua/glffi.h"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
+
+static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
+extern "C" void pcsxStaticImguiUserError(const char* msg) { s_imguiUserErrorFunctor(msg); }
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -87,8 +92,81 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
     s_this->magicOpen(paths[0]);
 }
 
+void LoadImguiBindings(lua_State* lState);
+
 void PCSX::GUI::init() {
     int result;
+    LoadImguiBindings(g_emulator->m_lua->getState());
+    s_imguiUserErrorFunctor = [this](const char* msg) {
+        m_gotImguiUserError = true;
+        m_imguiUserError = msg;
+    };
+    m_luaConsole.setCmdExec([this](const std::string& cmd) {
+        try {
+            g_emulator->m_lua->load(cmd, "console", false);
+            g_emulator->m_lua->pcall();
+            bool gotGLerror = false;
+            GLenum glError = GL_NO_ERROR;
+            while ((glError = glGetError()) != GL_NO_ERROR) {
+                std::string msg = "glError: ";
+                msg += glErrorToString(glError);
+                m_luaConsole.addError(msg);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", msg.c_str());
+                }
+                gotGLerror = true;
+            }
+        } catch (std::runtime_error& e) {
+            m_luaConsole.addError(e.what());
+            if (m_args.get<bool>("lua_stdout", false)) {
+                fprintf(stderr, "%s\n", e.what());
+            }
+        }
+    });
+    auto printer = [this](Lua L, bool error) -> int {
+        int n = L.gettop();
+        std::string s;
+        int i;
+        for (i = 1; i <= n; i++) {
+            if (i > 1) s += " ";
+            if (L.isstring(i)) {
+                s += L.tostring(i);
+            } else {
+                L.getglobal("tostring");
+                L.copy(i);
+                L.pcall(1);
+                s += L.tostring(-1);
+                L.pop();
+            }
+        }
+        if (error) {
+            m_luaConsole.addError(s);
+        } else {
+            m_luaConsole.addLog(s);
+        }
+        if (m_args.get<bool>("lua_stdout", false)) {
+            if (error) {
+                fprintf(stderr, "%s\n", s.c_str());
+            } else {
+                fprintf(stdout, "%s\n", s.c_str());
+            }
+        }
+        return 0;
+    };
+    g_emulator->m_lua->declareFunc("print", [printer](Lua L) { return printer(L, false); });
+    g_emulator->m_lua->declareFunc("printError", [printer](Lua L) { return printer(L, true); });
+    g_emulator->m_lua->load(R"(
+print("PCSX-Redux Lua Console")
+print(jit.version)
+print((function(status, ...)
+  local ret = "JIT: " .. (status and "ON" or "OFF")
+  for i, v in ipairs({...}) do
+    ret = ret .. " " .. v
+  end
+  return ret
+end)(jit.status()))
+)",
+                            "gui startup");
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit()) {
@@ -129,6 +207,8 @@ void PCSX::GUI::init() {
 
     result = gl3wInit();
     assert(result == 0);
+
+    LuaFFI::open_gl(g_emulator->m_lua.get());
 
     // Setup ImGui binding
     IMGUI_CHECKVERSION();
@@ -183,6 +263,14 @@ void PCSX::GUI::init() {
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
+
+        PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
+        PCSX::g_emulator->m_cdrom->m_iso.close();
+        if (!isoToOpen.empty()) {
+            SetIsoFile(reinterpret_cast<const char*>(isoToOpen.c_str()));
+            PCSX::g_emulator->m_cdrom->m_iso.open();
+            CheckCdrom();
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -490,6 +578,9 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
+                ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
+                ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
+                ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
                 if (ImGui::BeginMenu(_("VRAM viewers"))) {
                     ImGui::MenuItem(_("Show main VRAM viewer"), nullptr, &m_mainVRAMviewer.m_show);
                     ImGui::MenuItem(_("Show CLUT VRAM viewer"), nullptr, &m_clutVRAMviewer.m_show);
@@ -504,6 +595,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
+                ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
                 if (ImGui::BeginMenu(_("Memory Editors"))) {
                     for (auto& editor : m_mainMemEditors) {
                         editor.MenuItem();
@@ -625,6 +717,21 @@ void PCSX::GUI::endFrame() {
         m_log.draw(_("Logs"));
     }
 
+    if (m_luaConsole.m_show) {
+        ImGui::SetNextWindowPos(ImVec2(15, 545), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
+        m_luaConsole.draw(_("Lua Console"));
+    }
+
+    if (m_luaInspector.m_show) {
+        ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
+        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get());
+    }
+    if (m_luaEditor.m_show) {
+        m_luaEditor.draw(_("Lua Editor"));
+    }
+
     {
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
@@ -692,6 +799,30 @@ void PCSX::GUI::endFrame() {
     changed |= PCSX::g_emulator->m_pad1->configure(); // TODO: Add pad 2
     changed |= configure();
 
+    auto& L = g_emulator->m_lua;
+    L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+    if (!L->isnil()) {
+        try {
+            L->pcall();
+            bool gotGLerror = false;
+            GLenum glError = GL_NO_ERROR;
+            while ((glError = glGetError()) != GL_NO_ERROR) {
+                std::string msg = "glError: ";
+                msg += glErrorToString(glError);
+                m_luaConsole.addError(msg);
+                if (m_args.get<bool>("lua_stdout", false)) {
+                    fprintf(stderr, "%s\n", msg.c_str());
+                }
+                gotGLerror = true;
+            }
+            if (gotGLerror) throw("OpenGL error while running Lua code");
+        } catch (...) {
+            L->push();
+            L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+        }
+    } else {
+        L->pop();
+    }
     m_notifier.draw();
 
     auto& io = ImGui::GetIO();
@@ -725,6 +856,12 @@ void PCSX::GUI::endFrame() {
     checkGL();
 
     if (changed) saveCfg();
+    if (m_gotImguiUserError) {
+        m_log.addLog("Got ImGui User Error: %s\n", m_imguiUserError.c_str());
+        m_gotImguiUserError = false;
+        L->push();
+        L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
+    }
 }
 
 static void ShowHelpMarker(const char* desc) {
@@ -1055,9 +1192,10 @@ void PCSX::GUI::about() {
     ImGui::End();
 }
 
-void PCSX::GUI::update() {
+void PCSX::GUI::update(bool vsync) {
     endFrame();
     startFrame();
+    if (vsync && m_breakOnVSync) g_system->pause();
 }
 
 void PCSX::GUI::shellReached() {

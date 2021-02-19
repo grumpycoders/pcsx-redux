@@ -22,9 +22,9 @@
  */
 
 #include "core/cdrom.h"
+
 #include "core/ppf.h"
 #include "core/psxdma.h"
-
 #include "spu/interface.h"
 
 namespace {

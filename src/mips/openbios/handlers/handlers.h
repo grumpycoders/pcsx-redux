@@ -28,9 +28,14 @@ SOFTWARE.
 
 #include "common/psxlibc/handlers.h"
 
-int sysEnqIntRP(int priority, struct HandlerInfo * handler);
-struct HandlerInfos * sysDeqIntRP(int priority, struct HandlerInfo * handler);
+int sysEnqIntRP(int priority, struct HandlerInfo* handler);
+struct HandlerInfos* sysDeqIntRP(int priority, struct HandlerInfo* handler);
 int enqueueSyscallHandler(int priority);
 int enqueueIrqHandler(int priority);
 int enqueueRCntIrqs(int priority);
-int setTimerAutoAck(int timer, int value);
+int initTimer(uint32_t timer, uint16_t target, uint16_t flags);
+int setTimerAutoAck(uint32_t timer, int value);
+int getTimer(uint32_t timer);
+int enableTimerIRQ(uint32_t timer);
+int disableTimerIRQ(uint32_t timer);
+int restartTimer(uint32_t timer);

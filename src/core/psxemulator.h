@@ -97,6 +97,7 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
+class Lua;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -193,7 +194,7 @@ class Emulator {
     int EmuInit();
     void EmuReset();
     void EmuShutdown();
-    void EmuUpdate();
+    void vsync();
     void EmuSetPGXPMode(uint32_t pgxpMode);
 
     PcsxConfig& config() { return m_config; }
@@ -214,6 +215,7 @@ class Emulator {
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
+    std::unique_ptr<Lua> m_lua;
 
     std::shared_ptr<uvw::Loop> m_loop;
 

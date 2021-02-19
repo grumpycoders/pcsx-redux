@@ -45,13 +45,13 @@ int psxabs(int j) {
     return -j;
 }
 
-char * psxatob(char * str, int * result) {
-    char * endp;
+char *psxatob(char *str, int *result) {
+    char *endp;
     *result = strtol(str, &endp, 10);
     return endp;
 }
 
-const char * psxstrpbrk(const char * s, const char * accepted) {
+const char *psxstrpbrk(const char *s, const char *accepted) {
     char c;
     while ((c = *s)) {
         if (strchr(accepted, c)) return s;
@@ -61,7 +61,7 @@ const char * psxstrpbrk(const char * s, const char * accepted) {
     return NULL;
 }
 
-unsigned psxstrspn(const char * s, const char * accepted) {
+unsigned psxstrspn(const char *s, const char *accepted) {
     unsigned count = 0;
     unsigned maximum = 0;
     char c;
@@ -78,7 +78,7 @@ unsigned psxstrspn(const char * s, const char * accepted) {
     return maximum;
 }
 
-unsigned psxstrcspn(const char * s, const char * rejected) {
+unsigned psxstrcspn(const char *s, const char *rejected) {
     unsigned count = 0;
     unsigned maximum = 0;
     char c;
@@ -95,9 +95,9 @@ unsigned psxstrcspn(const char * s, const char * rejected) {
     return maximum;
 }
 
-static char * s_strtokPtr;
-char * psxstrtok(char * str, const char * delim) {
-    char * oldPtr = str ? str : s_strtokPtr;
+static char *s_strtokPtr;
+char *psxstrtok(char *str, const char *delim) {
+    char *oldPtr = str ? str : s_strtokPtr;
     if (str) {
         s_strtokPtr = psxstrpbrk(str, delim);
     } else {
@@ -107,20 +107,20 @@ char * psxstrtok(char * str, const char * delim) {
     return oldPtr;
 }
 
-const void * psxbcopy(const void * src, void * dst, int n) {
+const void *psxbcopy(const void *src, void *dst, int n) {
     if (!src) return NULL;
     if (n < 0) return src;
     memcpy(dst, src, n);
     return src;
 }
 
-const void * psxbzero(void * ptr, int n) {
+const void *psxbzero(void *ptr, int n) {
     if (!ptr || n <= 0) return NULL;
     memset(ptr, 0, n);
     return ptr;
 }
 
-int psxbcmp(const void * s1, const void * s2, int n) {
+int psxbcmp(const void *s1, const void *s2, int n) {
     if (!s1 || !s2) return 0;
     return memcmp(s1, s2, n);
 }
@@ -131,22 +131,23 @@ uint32_t psxrand() {
     return (s_currentSeed >> 16) & 0x7fff;
 }
 
-void psxsrand(uint32_t seed) {
-    s_currentSeed = seed;
-}
+void psxsrand(uint32_t seed) { s_currentSeed = seed; }
 
-const void * psxlsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char *)) {
-    while (nmemb-- > 0) if (compar(key, base) == 0) return base;
+const void *psxlsearch(const char *key, const char *base, int nmemb, size_t size,
+                       int (*compar)(const char *, const char *)) {
+    while (nmemb-- > 0)
+        if (compar(key, base) == 0) return base;
     return NULL;
 }
 
-const void * psxbsearch(const char * key, const char * base, int nmemb, size_t size, int (*compar)(const char *, const char*)) {
+const void *psxbsearch(const char *key, const char *base, int nmemb, size_t size,
+                       int (*compar)(const char *, const char *)) {
     int lo = 0;
     int hi = nmemb;
     int needle;
     while (lo < hi) {
         int needle = (hi - lo) >> 1;
-        const char * ptr = base + needle * size;
+        const char *ptr = base + needle * size;
         int direction = compar(ptr, key);
         if (direction == 0) return ptr;
         if (direction < 0) {

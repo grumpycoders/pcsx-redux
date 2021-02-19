@@ -24,10 +24,11 @@ SOFTWARE.
 
 */
 
+#include "openbios/kernel/events.h"
+
 #include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
-#include "openbios/kernel/events.h"
 #include "openbios/kernel/globals.h"
 
 struct EventInfo {
@@ -39,21 +40,21 @@ struct EventInfo {
 int initEvents(int count) {
     psxprintf("\nConfiguration : EvCB\t0x%02x\t\t", count);
     int size = count * sizeof(struct EventInfo);
-    struct EventInfo * array = syscall_kmalloc(size);
+    struct EventInfo *array = syscall_kmalloc(size);
     if (!array) return 0;
     __globals.eventsSize = size;
     __globals.events = array;
-    struct EventInfo * ptr = array;
+    struct EventInfo *ptr = array;
     while (ptr < (array + count)) ptr++->flags = 0;
     return size;
 }
 
 static int getFreeEvCBSlot(void) {
-    struct EventInfo * ptr, * end;
+    struct EventInfo *ptr, *end;
     int slot = 0;
 
     ptr = __globals.events;
-    end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
+    end = (struct EventInfo *)(((char *)ptr) + __globals.eventsSize);
     while (ptr < end) {
         if (ptr->flags == EVENT_FLAG_FREE) return slot;
         ptr++;
@@ -77,44 +78,47 @@ uint32_t openEvent(uint32_t class, uint32_t spec, uint32_t mode, void (*handler)
 }
 
 __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t spec) {
-    struct EventInfo * ptr, * end;
+    struct EventInfo *ptr, *end;
 
     ptr = __globals.events;
-    end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
+    end = (struct EventInfo *)(((char *)ptr) + __globals.eventsSize);
     while (ptr < end) {
         if ((ptr->flags == EVENT_FLAG_ENABLED) && (class == ptr->class) && (spec == ptr->spec)) {
-            if (ptr->mode == EVENT_MODE_NO_CALLBACK) ptr->flags = EVENT_FLAG_PENDING;
-            else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler) ptr->handler();
+            if (ptr->mode == EVENT_MODE_NO_CALLBACK)
+                ptr->flags = EVENT_FLAG_PENDING;
+            else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler)
+                ptr->handler();
         }
         ptr++;
     }
 }
 
 int enableEvent(uint32_t event) {
-    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    struct EventInfo *ptr = __globals.events + (event & 0xffff);
     if (ptr->flags != 0) ptr->flags = EVENT_FLAG_ENABLED;
     return 1;
 }
 
 int disableEvent(uint32_t event) {
-    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    struct EventInfo *ptr = __globals.events + (event & 0xffff);
     if (ptr->flags != 0) ptr->flags = EVENT_FLAG_DISABLED;
     return 1;
 }
 
 int closeEvent(uint32_t event) {
-    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    struct EventInfo *ptr = __globals.events + (event & 0xffff);
     ptr->flags = EVENT_FLAG_FREE;
     return 1;
 }
 
 void undeliverEvent(uint32_t class, uint32_t spec) {
-    struct EventInfo * ptr, * end;
+    struct EventInfo *ptr, *end;
 
     ptr = __globals.events;
-    end = (struct EventInfo*)(((char *) ptr) + __globals.eventsSize);
+    end = (struct EventInfo *)(((char *)ptr) + __globals.eventsSize);
     while (ptr < end) {
-        if ((ptr->flags == EVENT_FLAG_PENDING) && (class == ptr->class) && (spec == ptr->spec) && (ptr->mode == EVENT_MODE_NO_CALLBACK)) {
+        if ((ptr->flags == EVENT_FLAG_PENDING) && (class == ptr->class) && (spec == ptr->spec) &&
+            (ptr->mode == EVENT_MODE_NO_CALLBACK)) {
             ptr->flags = EVENT_FLAG_ENABLED;
         }
         ptr++;
@@ -122,7 +126,7 @@ void undeliverEvent(uint32_t class, uint32_t spec) {
 }
 
 int testEvent(uint32_t event) {
-    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    struct EventInfo *ptr = __globals.events + (event & 0xffff);
     if (ptr->flags == EVENT_FLAG_PENDING) {
         ptr->flags = EVENT_FLAG_ENABLED;
         return 1;
@@ -130,16 +134,16 @@ int testEvent(uint32_t event) {
     return 0;
 }
 
-
 int waitEvent(uint32_t event) {
-    struct EventInfo * ptr = __globals.events + (event & 0xffff);
+    struct EventInfo *ptr = __globals.events + (event & 0xffff);
     if (ptr->flags == EVENT_FLAG_PENDING) {
         ptr->flags = EVENT_FLAG_ENABLED;
         return 1;
     }
     if (ptr->flags == EVENT_FLAG_ENABLED) {
-        volatile uint32_t * flags = &ptr->flags;
-        while (*flags != EVENT_FLAG_PENDING);
+        volatile uint32_t *flags = &ptr->flags;
+        while (*flags != EVENT_FLAG_PENDING)
+            ;
         *flags = EVENT_FLAG_ENABLED;
         return 1;
     }

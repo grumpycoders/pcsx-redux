@@ -71,19 +71,19 @@ enum {
 };
 
 enum {
-    PSXF_READ   = 0x0001,
-    PSXF_WRITE  = 0x0002,
+    PSXF_READ = 0x0001,
+    PSXF_WRITE = 0x0002,
     PSXF_NBLOCK = 0x0004,
-    PSXF_SCAN   = 0x0008,
-    PSXF_RLOCK  = 0x0010,
-    PSXF_WLOCK  = 0x0020,
+    PSXF_SCAN = 0x0008,
+    PSXF_RLOCK = 0x0010,
+    PSXF_WLOCK = 0x0020,
     PSXF_APPEND = 0x0100,
-    PSXF_CREAT  = 0x0200,
-    PSXF_TRUNC  = 0x0400,
-    PSXF_SCAN2  = 0x1000,
-    PSXF_RCOM   = 0x2000,
-    PSXF_NBUF   = 0x4000,
-    PSXF_ASYNC  = 0x8000,
+    PSXF_CREAT = 0x0200,
+    PSXF_TRUNC = 0x0400,
+    PSXF_SCAN2 = 0x1000,
+    PSXF_RCOM = 0x2000,
+    PSXF_NBUF = 0x4000,
+    PSXF_ASYNC = 0x8000,
 };
 
 enum {
@@ -94,8 +94,8 @@ enum {
 
 struct File {
     uint32_t flags /* PSXF_* */, deviceId;
-    char * buffer;
+    char* buffer;
     uint32_t count, offset, deviceFlags, errno;
-    struct Device * device;
+    struct Device* device;
     uint32_t length, LBA, fd;
 };

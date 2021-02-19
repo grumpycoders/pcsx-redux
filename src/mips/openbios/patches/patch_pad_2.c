@@ -27,20 +27,22 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "openbios/sio0/pad.h"
 
+// clang-format off
+
 /* Found in Xenogears NTSC (SLUS-00664):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              undefined  _patch_pad ()
                                assume gp = 0x0
-             undefined         v0:1           <RETURN>                                XREF[2]:     80040b28 (W), 
-                                                                                                   80040b30 (W)  
-             dword * *         v0:4           B0table                                 XREF[1]:     80040b28 (W)  
-             undefined4        v0:4           ptr                                     XREF[1]:     80040b30 (W)  
-             undefined4        t1:4           count                                   XREF[1]:     80040b48 (W)  
-                             _patch_pad                                      XREF[2]:     FUN_8004078c:800407c0 (c), 
-                                                                                          FUN_80040828:8004085c (c)  
+             undefined         v0:1           <RETURN>                                XREF[2]:     80040b28 (W),
+                                                                                                   80040b30 (W)
+             dword * *         v0:4           B0table                                 XREF[1]:     80040b28 (W)
+             undefined4        v0:4           ptr                                     XREF[1]:     80040b30 (W)
+             undefined4        t1:4           count                                   XREF[1]:     80040b48 (W)
+                             _patch_pad                                      XREF[2]:     FUN_8004078c:800407c0 (c),
+                                                                                          FUN_80040828:8004085c (c)
         80040b14 06 80 01 3c          lui             at,0x8006
              assume gp = <UNKNOWN>
         80040b18 a4 93 3f ac          sw              ra,-0x6c5c (at)=>DAT_800593a4
@@ -58,7 +60,7 @@ SOFTWARE.
         80040b48 0b 00 09 24          li              count ,0xb
         80040b4c b0 93 23 ac          sw              v1,-0x6c50 (at)=>capture_stopPad
 
-                             LAB_80040b50                                    XREF[1]:     80040b58 (j)  
+                             LAB_80040b50                                    XREF[1]:     80040b58 (j)
         80040b50 ff ff 29 25          addiu           count ,count ,-0x1
         80040b54 94 05 40 ac          sw              zero,0x594 (ptr)
         80040b58 fd ff 20 15          bne             count ,zero,LAB_80040b50
@@ -81,9 +83,11 @@ SOFTWARE.
 
  */
 
+// clang-format on
+
 #ifndef GENERATE_HASHES
 
-int patch_pad2_execute(uint32_t* ra) {
+int patch_pad_2_execute(uint32_t *ra) {
     patch_disable_slotChangeOnAbort();
     uint32_t ptr;
     int16_t addend;
@@ -111,24 +115,24 @@ int patch_pad2_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 1, 0, 1, // 00
-    1, 0, 0, 1, // 10
-    0, 0, 0, 0, // 20
-    2, 0, 1, 1, // 30
+    0, 1, 0, 1,  // 00
+    1, 0, 0, 1,  // 10
+    0, 0, 0, 0,  // 20
+    2, 0, 1, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x01, 0x3c, 0x84, 0x08, 0x43, 0x20, 0x00, 0x00, 0x23, 0xac, // 00
-    0x00, 0x00, 0x01, 0x3c, 0x94, 0x08, 0x43, 0x20, 0x0b, 0x00, 0x09, 0x24, 0x00, 0x00, 0x23, 0xac, // 10
-    0xff, 0xff, 0x29, 0x25, 0x94, 0x05, 0x40, 0xac, 0xfd, 0xff, 0x20, 0x15, 0x04, 0x00, 0x42, 0x24, // 20
-    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, // 30
+    0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x01, 0x3c, 0x84, 0x08, 0x43, 0x20, 0x00, 0x00, 0x23, 0xac,  // 00
+    0x00, 0x00, 0x01, 0x3c, 0x94, 0x08, 0x43, 0x20, 0x0b, 0x00, 0x09, 0x24, 0x00, 0x00, 0x23, 0xac,  // 10
+    0xff, 0xff, 0x29, 0x25, 0x94, 0x05, 0x40, 0xac, 0xfd, 0xff, 0x20, 0x15, 0x04, 0x00, 0x42, 0x24,  // 20
+    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f,  // 30
 };
 
-uint32_t generate_hash_patch_pad2(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+uint32_t generate_hash_patch_pad_2(uint32_t mask, unsigned len) {
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
-uint32_t generate_mask_patch_pad2() {
+uint32_t generate_mask_patch_pad_2() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

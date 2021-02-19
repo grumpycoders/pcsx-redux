@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <GL/gl3w.h>
 #include <stdarg.h>
 
 #include <string>
@@ -28,9 +29,12 @@
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
+#include "gui/widgets/luaeditor.h"
+#include "gui/widgets/luainspector.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
@@ -55,7 +59,7 @@ class GUI final {
     GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
     void init();
     void close();
-    void update();
+    void update(bool vsync = false);
     void flip();
     void bindVRAMTexture();
     void setViewport();
@@ -101,6 +105,22 @@ class GUI final {
     void magicOpen(const char *path);
 
     static void checkGL();
+
+    static const char *glErrorToString(GLenum error) {
+        static const std::map<GLenum, const char *> glErrorMap = {
+            {GL_NO_ERROR, "GL_NO_ERROR"},
+            {GL_INVALID_ENUM, "GL_INVALID_ENUM"},
+            {GL_INVALID_VALUE, "GL_INVALID_VALUE"},
+            {GL_INVALID_OPERATION, "GL_INVALID_OPERATION"},
+            {GL_INVALID_FRAMEBUFFER_OPERATION, "GL_INVALID_FRAMEBUFFER_OPERATION"},
+            {GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
+            {GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
+            {GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"},
+        };
+        auto f = glErrorMap.find(error);
+        if (f == glErrorMap.end()) return "Unknown error";
+        return f->second;
+    }
 
   private:
     void saveCfg();
@@ -148,6 +168,9 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
+    typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
+    typedef Setting<bool, TYPESTRING("ShowLuaInspector")> ShowLuaInspector;
+    typedef Setting<bool, TYPESTRING("ShowLuaEditor")> ShowLuaEditor;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -155,7 +178,7 @@ class GUI final {
     typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, GUITheme>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, GUITheme>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -190,6 +213,7 @@ class GUI final {
     Widgets::FileDialog m_selectBiosOverlayDialog = {[]() { return _("Select BIOS Overlay"); }};
     int m_selectedBiosOverlayId;
     Widgets::Breakpoints m_breakpoints;
+    bool m_breakOnVSync = false;
     std::vector<std::string> m_overlayFileOffsets;
     std::vector<std::string> m_overlayLoadOffsets;
     std::vector<std::string> m_overlayLoadSizes;
@@ -206,6 +230,7 @@ class GUI final {
 
     Widgets::Types m_types;
     Widgets::Source m_source;
+    Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     EventBus::Listener m_listener;
 
@@ -220,6 +245,11 @@ class GUI final {
 
     PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};
+    Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
+    Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
+
+    bool m_gotImguiUserError = false;
+    std::string m_imguiUserError;
 };
 
 }  // namespace PCSX

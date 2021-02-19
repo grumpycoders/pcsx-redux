@@ -37,7 +37,7 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'exit 0'; `
     Get-Process @('bash', 'dirmngr', 'gpg-agent', 'pacman') -ErrorAction SilentlyContinue | Stop-Process -Force -PassThru | Wait-Process; `
     Write-Host 'Eating error.';
 
-RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain'	
+RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm automake autoconf make intltool libtool zip unzip'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm bison diffutils texinfo'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-expat mingw-w64-x86_64-ncurses'

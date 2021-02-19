@@ -31,6 +31,7 @@
 #include "core/sstate.h"
 #include "flags.h"
 #include "gui/gui.h"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
 
 static PCSX::GUI *s_gui;
@@ -118,7 +119,10 @@ class SystemImpl : public PCSX::System {
             vprintf(fmt, c);
             va_end(c);
         }
-        s_gui->addLog(fmt, a);
+        va_list c;
+        va_copy(c, a);
+        s_gui->addLog(fmt, c);
+        va_end(c);
         s_gui->addNotification(fmt, a);
         va_end(a);
     }
@@ -139,9 +143,9 @@ class SystemImpl : public PCSX::System {
         s_gui->addLog(fmt, a);
     }
 
-    virtual void update() final {
+    virtual void update(bool vsync = false) final {
         // called on vblank to update states
-        s_gui->update();
+        s_gui->update(vsync);
     }
 
     virtual void runGui() final {
@@ -238,6 +242,18 @@ int pcsxMain(int argc, char **argv) {
     CheckCdrom();
 
     if (args.get<bool>("run", false)) system->start();
+
+    auto luaexecs = args.values("exec");
+    for (auto &luaexec : luaexecs) {
+        try {
+            emulator->m_lua->load(luaexec.data(), "cmdline", false);
+            emulator->m_lua->pcall();
+        } catch (std::runtime_error &e) {
+            if (args.get<bool>("lua_stdout", false)) {
+                fprintf(stderr, "%s\n", e.what());
+            }
+        }
+    }
 
     while (!system->quitting()) {
         if (system->running()) {

@@ -24,14 +24,14 @@
 
 #include <codecvt>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <tuple>
 #include <type_traits>
 
+#include "core/system.h"
 #include "json.hpp"
 #include "typestring.hh"
-
-#include "core/system.h"
 
 namespace PCSX {
 
@@ -110,7 +110,7 @@ class SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     bool empty() const { return value.u8string().empty(); }
     // C++20's u8strings will be the death of me.
     // Also, https://github.com/nlohmann/json/issues/1914
-    json serialize() const { return reinterpret_cast<const char*>(value.u8string().c_str()); }
+    json serialize() const { return reinterpret_cast<const char *>(value.u8string().c_str()); }
     void deserialize(const json &j) {
         std::string str = j;
         value = str;
@@ -176,8 +176,20 @@ class Settings : private std::tuple<settings...> {
         return ret;
     }
     constexpr void deserialize(const json &j) { deserialize<0, settings...>(j); }
+    void foreach (std::function<void(int, const char *)> iter) {
+        foreach
+            <0, settings...>(iter);
+    }
 
   private:
+    template <size_t index>
+    void foreach (std::function<void(int, const char *)> iter) {}
+    template <size_t index, typename settingType, typename... nestedSettings>
+    void foreach (std::function<void(int, const char *)> iter) {
+        iter(index, settingType::name);
+        foreach
+            <index + 1, nestedSettings...>(iter);
+    }
     template <size_t index>
     constexpr void reset() {}
     template <size_t index, typename settingType, typename... nestedSettings>

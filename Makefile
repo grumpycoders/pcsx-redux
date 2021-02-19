@@ -1,14 +1,16 @@
-rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 TARGET := pcsx-redux
 BUILD ?= Release
+
+UNAME_S := $(shell uname -s)
+rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
 PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib
 
 LOCALES := fr
-UNAME_S := $(shell uname -s)
 
-CXXFLAGS := -std=c++2a
-CPPFLAGS := `pkg-config --cflags $(PACKAGES)`
+CXXFLAGS += -std=c++2a
+CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/fmt/include/
@@ -21,10 +23,14 @@ CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/imgui_club
 CPPFLAGS += -Ithird_party/http-parser
 CPPFLAGS += -Ithird_party/libelfin
-CPPFLAGS += -Ithird_party/zstr/src
+CPPFLAGS += -Ithird_party/luajit/src
+CPPFLAGS += -Ithird_party/luv/src
+CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/uvw/src
+CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
+CPPFLAGS += -include src/forced-includes/imgui.h
 
 CPPFLAGS_Release += -O3
 CPPFLAGS_Debug += -O0
@@ -32,21 +38,29 @@ CPPFLAGS_Coverage += -O0
 CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
 
-ifeq ($(UNAME_S),Darwin)
-	CPPFLAGS += -mmacosx-version-min=10.15
-	CPPFLAGS += -stdlib=libc++
-endif
-
-LDFLAGS := `pkg-config --libs $(PACKAGES)`
-
-ifeq ($(UNAME_S),Darwin)
-	LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
-	LDFLAGS += -mmacosx-version-min=10.15
+ifeq ($(CC_IS_CLANG),true)
+    CXXFLAGS += -fcoroutines-ts
+    LUAJIT_CFLAGS = -fno-stack-check
 else
-	LDFLAGS += -lstdc++fs
-	LDFLAGS += -lGL
+    CXXFLAGS += -fcoroutines
 endif
 
+ifeq ($(UNAME_S),Darwin)
+    CPPFLAGS += -mmacosx-version-min=10.15
+    CPPFLAGS += -stdlib=libc++
+endif
+
+LDFLAGS += `pkg-config --libs $(PACKAGES)`
+
+ifeq ($(UNAME_S),Darwin)
+    LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
+    LDFLAGS += -mmacosx-version-min=10.15
+else
+    LDFLAGS += -lstdc++fs
+    LDFLAGS += -lGL
+endif
+
+LDFLAGS += third_party/luajit/src/libluajit.a
 LDFLAGS += -ldl
 LDFLAGS += -g
 
@@ -66,11 +80,14 @@ SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
+SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRCS += third_party/http-parser/http_parser.c
+SRCS += third_party/luv/src/luv.c
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
+OBJECTS += third_party/luajit/src/libluajit.a
 
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 
@@ -78,6 +95,9 @@ TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
 
 all: dep $(TARGET)
+
+third_party/luajit/src/libluajit.a:
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
@@ -102,6 +122,7 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o
+	$(MAKE) -C third_party/luajit clean
 
 gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc

@@ -33,6 +33,8 @@ SOFTWARE.
 #define EXIT_FAILURE 1
 #include "exotic/cester.h"
 
+// clang-format off
+
 CESTER_BODY(
     uint32_t branchbranch1();
     uint32_t branchbranch2();

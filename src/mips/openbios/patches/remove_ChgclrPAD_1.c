@@ -27,19 +27,21 @@ SOFTWARE.
 #include "common/compiler/stdint.h"
 #include "openbios/sio0/pad.h"
 
+// clang-format off
+
 /* Found in Suikoden 2 NTSC (SLUS-00958):
 
                     *************************************************************
-                    *                           FUNCTION                          
+                    *                           FUNCTION
                     *************************************************************
                              void  _remove_ChgclrPAD (void)
                                assume gp = 0x80109798
              void              <VOID>         <RETURN>
-             dword * *         v0:4           B0table                                 XREF[1]:     800e3324 (W)  
-             undefined4        t2:4           count                                   XREF[1]:     800e332c (W)  
-             undefined4        v1:4           ptr                                     XREF[1]:     800e333c (W)  
-                             _remove_ChgclrPAD                               XREF[2]:     PAD_init:800e2e6c (c), 
-                                                                                          InitPAD:800e2f04 (c)  
+             dword * *         v0:4           B0table                                 XREF[1]:     800e3324 (W)
+             undefined4        t2:4           count                                   XREF[1]:     800e332c (W)
+             undefined4        v1:4           ptr                                     XREF[1]:     800e333c (W)
+                             _remove_ChgclrPAD                               XREF[2]:     PAD_init:800e2e6c (c),
+                                                                                          InitPAD:800e2f04 (c)
         800e330c 11 80 01 3c          lui             at,0x8011
              assume gp = <UNKNOWN>
         800e3310 a0 9b 3f ac          sw              ra,-0x6460 (at)=>DAT_80109ba0                    = ??
@@ -54,7 +56,7 @@ SOFTWARE.
         800e3334 00 00 00 00          nop
         800e3338 2c 06 43 20          addi            v1,B0table ,0x62c
 
-                             LAB_800e333c                                    XREF[1]:     800e3348 (j)  
+                             LAB_800e333c                                    XREF[1]:     800e3348 (j)
         800e333c 00 00 60 ac          sw              zero,0x0(ptr)
         800e3340 04 00 63 24          addiu           ptr,ptr,0x4
         800e3344 ff ff 4a 25          addiu           count ,count ,-0x1
@@ -77,9 +79,11 @@ SOFTWARE.
 
  */
 
+// clang-format on
+
 #ifndef GENERATE_HASHES
 
-int remove_ChgclrPAD_execute(uint32_t* ra) {
+int remove_ChgclrPAD_1_execute(uint32_t* ra) {
     patch_remove_ChgclrPAD();
 
     ra[2] = 7 | 0x10000000;
@@ -93,24 +97,24 @@ int remove_ChgclrPAD_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    0, 0, 0, 0, // 00
-    0, 0, 0, 0, // 10
-    0, 2, 0, 2, // 20
-    0, 1, 1, 0, // 30
+    0, 0, 0, 0,  // 00
+    0, 0, 0, 0,  // 10
+    0, 2, 0, 2,  // 20
+    0, 1, 1, 0,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x09, 0x00, 0x0a, 0x24, 0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x06, 0x43, 0x20, // 00
-    0x00, 0x00, 0x60, 0xac, 0x04, 0x00, 0x63, 0x24, 0xff, 0xff, 0x4a, 0x25, 0xfc, 0xff, 0x40, 0x15, // 10
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, // 20
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, 0x00, 0x00, 0x00, 0x00, // 30
+    0x09, 0x00, 0x0a, 0x24, 0x6c, 0x01, 0x42, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x06, 0x43, 0x20,  // 00
+    0x00, 0x00, 0x60, 0xac, 0x04, 0x00, 0x63, 0x24, 0xff, 0xff, 0x4a, 0x25, 0xfc, 0xff, 0x40, 0x15,  // 10
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c,  // 20
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, 0x00, 0x00, 0x00, 0x00,  // 30
 };
 
-uint32_t generate_hash_remove_ChgclrPAD(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+uint32_t generate_hash_remove_ChgclrPAD_1(uint32_t mask, unsigned len) {
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
-uint32_t generate_mask_remove_ChgclrPAD() {
+uint32_t generate_mask_remove_ChgclrPAD_1() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

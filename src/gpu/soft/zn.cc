@@ -78,9 +78,9 @@ int iTileCheat = 0;
 
 typedef struct GPUOTAG {
     uint32_t Version;         // Version of structure - currently 1
-    int32_t hWnd;                     // Window handle
+    int32_t hWnd;             // Window handle
     uint32_t ScreenRotation;  // 0 = 0CW, 1 = 90CW, 2 = 180CW, 3 = 270CW = 90CCW
     uint32_t GPUVersion;      // 0 = a, 1 = b, 2 = c
-    const char* GameName;          // NULL terminated string
-    const char* CfgFile;           // NULL terminated string
+    const char* GameName;     // NULL terminated string
+    const char* CfgFile;      // NULL terminated string
 } GPUConfiguration_t;

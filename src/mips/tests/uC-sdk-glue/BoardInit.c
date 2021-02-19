@@ -27,14 +27,11 @@ SOFTWARE.
 #include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
 
-void BoardEarlyInit() {
-}
+void BoardEarlyInit() {}
 
-void BoardInit() {
-}
+void BoardInit() {}
 
-void BoardLateInit() {
-}
+void BoardLateInit() {}
 
 void BoardShutdown() {
     pcsx_exit(0);

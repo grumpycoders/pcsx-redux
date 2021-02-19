@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include "openbios/main/main.h"
+
 #include <alloca.h>
 #include <ctype.h>
 #include <string.h>
@@ -43,16 +45,15 @@ SOFTWARE.
 #include "openbios/kernel/setjmp.h"
 #include "openbios/kernel/threads.h"
 #include "openbios/kernel/util.h"
-#include "openbios/main/main.h"
 #include "openbios/pio/pio.h"
 #include "openbios/shell/shell.h"
 #include "openbios/tty/tty.h"
 
-static void boot(char * systemCnfPath, char * binaryPath);
+static void boot(char *systemCnfPath, char *binaryPath);
 
 void bootThunk() {
-    char binaryPath [80];
-    char systemCnfPath [80];
+    char binaryPath[80];
+    char systemCnfPath[80];
 
     strcpy(systemCnfPath, "cdrom:");
     strcat(systemCnfPath, "SYSTEM.CNF;1");
@@ -80,7 +81,7 @@ int main() {
 
 struct Configuration {
     int taskCount, eventsCount;
-    void * stackBase;
+    void *stackBase;
 };
 
 static struct Configuration s_configuration;
@@ -88,7 +89,7 @@ extern const struct Configuration g_defaultConfiguration;
 
 static void initHandlersArray(int priorities) {
     unsigned size = priorities * sizeof(struct HandlersStorage);
-    struct HandlersStorage * ptr = syscall_kmalloc(size);
+    struct HandlersStorage *ptr = syscall_kmalloc(size);
     if (!ptr) return;
     psxbzero(ptr, size);
     __globals.handlersArray = ptr;
@@ -111,7 +112,10 @@ static __attribute__((noreturn)) void fatal(int code) {
 
 static char s_binaryPath[128];
 
-#define SETJMPFATAL(code) { if (psxsetjmp(&g_ioAbortJmpBuf)) fatal(code); }
+#define SETJMPFATAL(code)                             \
+    {                                                 \
+        if (psxsetjmp(&g_ioAbortJmpBuf)) fatal(code); \
+    }
 
 // The SYSTEM.CNF parser in the retail BIOS is hopelessly and
 // irrevocably buggy. These bugs will not be reproduced here,
@@ -124,7 +128,7 @@ static char s_binaryPath[128];
 // the tabulation character ('\t', or character 9).
 // Last but not least, the retail bios will screw things up
 // fairly badly if the file isn't terminated using CRLFs.
-static void findWordItem(const char * systemCnf, uint32_t * item, const char * name) {
+static void findWordItem(const char *systemCnf, uint32_t *item, const char *name) {
     char c;
     const unsigned size = strlen(name);
     while (strncmp(systemCnf, name, size) != 0) {
@@ -165,7 +169,7 @@ static void findWordItem(const char * systemCnf, uint32_t * item, const char * n
     }
 }
 
-static void findStringItem(const char * systemCnf, char * const binaryPath, char * const cmdLine, const char * const name) {
+static void findStringItem(const char *systemCnf, char *const binaryPath, char *const cmdLine, const char *const name) {
     char c;
     const unsigned size = strlen(name);
     while (strncmp(systemCnf, name, size) != 0) {
@@ -183,7 +187,7 @@ static void findStringItem(const char * systemCnf, char * const binaryPath, char
     }
 
     int parseArg = 0;
-    char * binPtr = binaryPath;
+    char *binPtr = binaryPath;
     int started = 0;
     while (1) {
         c = *systemCnf++;
@@ -195,7 +199,7 @@ static void findStringItem(const char * systemCnf, char * const binaryPath, char
     }
     *binPtr = 0;
 
-    char * cmdPtr = cmdLine;
+    char *cmdPtr = cmdLine;
     while (parseArg) {
         c = *systemCnf++;
         if ((c == '\r') || (c == '\n') || (c == 0)) break;
@@ -208,10 +212,10 @@ static void findStringItem(const char * systemCnf, char * const binaryPath, char
     psxprintf("argument =\t%s\n", cmdLine);
 }
 
-static void loadSystemCnf(const char * systemCnf, struct Configuration * configuration, char * binaryPath) {
+static void loadSystemCnf(const char *systemCnf, struct Configuration *configuration, char *binaryPath) {
     memset(configuration, 0, sizeof(struct Configuration));
     *binaryPath = 0;
-    char * cmdLine = (char *) 0x180;
+    char *cmdLine = (char *)0x180;
 
     *cmdLine = 0;
     findWordItem(systemCnf, &configuration->taskCount, "TCB");
@@ -220,15 +224,12 @@ static void loadSystemCnf(const char * systemCnf, struct Configuration * configu
     findStringItem(systemCnf, binaryPath, cmdLine, "BOOT");
 }
 
+#define HEAP_SIZE 0x2000
+static uint8_t s_heap[HEAP_SIZE];
+
 static void kernelSetup() {
     psxprintf("KERNEL SETUP!\n");
-    // the following is going to be hard to do with our current
-    // allocator implementation, so let's free stuff instead
-    // syscall_sysInitMemory(&heapBase, heapSize);
-    syscall_kfree(__globals.events);
-    syscall_kfree(__globals.processes);
-    syscall_kfree(__globals.threads);
-    syscall_kfree(__globals.handlersArray);
+    syscall_kernInitheap(s_heap, HEAP_SIZE);
 
     initHandlersArray(4);
     syscall_enqueueSyscallHandler(0);
@@ -239,14 +240,14 @@ static void kernelSetup() {
     initializeCDRomHandlersAndEvents();
 }
 
-void * __attribute__((long_call)) fastMemset(void * ptr, int value, size_t num);
+void *__attribute__((long_call)) fastMemset(void *ptr, int value, size_t num);
 
 static void zeroUserMemoryUntilStack() {
     uintptr_t stackPtr;
     __asm__ volatile("move %0, $sp" : "=r"(stackPtr));
 
     uintptr_t end = stackPtr & 0x3fffffff;
-    fastMemset((void *) 0xa0010000, 0, end - 0x10000);
+    fastMemset((void *)0xa0010000, 0, end - 0x10000);
 }
 
 static struct psxExeHeader s_binaryInfo;
@@ -259,7 +260,7 @@ static struct psxExeHeader s_binaryInfo;
 // the cdrom never being reset in the gameMainThunk function.
 static int s_needsCDRomReset = 0;
 
-void gameMainThunk(struct psxExeHeader * binaryInfo, int argc, char **argv) {
+void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
     leaveCriticalSection();
     if (s_needsCDRomReset) {
         if (cdromReadTOC() < 0) syscall_exception(0x44, 0x38b);
@@ -277,13 +278,13 @@ extern struct {
     uint8_t strings[];
 } __build_id;
 
-static void boot(char * systemCnfPath, char * binaryPath) {
-    POST = 0x01;
+static void boot(char *systemCnfPath, char *binaryPath) {
+    POST = 1;
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
-    POST = 0x02;
+    POST = 2;
     copyDataAndInitializeBSS();
-    POST = 0x03;
+    POST = 3;
     copyA0table();
     installKernelHandlers();
     syscall_patchA0table();
@@ -293,7 +294,7 @@ static void boot(char * systemCnfPath, char * binaryPath) {
     // things will go haywire very quickly.
     syscall_installExceptionHandler();
     syscall_setDefaultExceptionJmpBuf();
-    POST = 0x04;
+    POST = 4;
     muteSpu();
     IMASK = 0;
     IREG = 0;
@@ -301,25 +302,25 @@ static void boot(char * systemCnfPath, char * binaryPath) {
     POST = 5;
     /* this is a bit specific to OpenBIOS to retrieve the buildid from the raw data */
     {
-
         char buildIDstring[65];
         uint32_t count = __build_id.descsz;
         if (count > 32) count = 32;
-        const uint8_t * buildId = __build_id.strings + __build_id.namesz;
-        static const char * const hex = "0123456789abcdef";
+        const uint8_t *buildId = __build_id.strings + __build_id.namesz;
+        static const char *const hex = "0123456789abcdef";
         for (int i = 0; i < count; i++) {
             uint8_t c = buildId[i];
             buildIDstring[i * 2 + 0] = hex[c & 0xf];
             buildIDstring[i * 2 + 1] = hex[(c >> 4) & 0xf];
         }
         buildIDstring[count * 2] = 0;
-        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright 2019-2020 (C) PCSX-Redux authors.\n", buildIDstring);
+        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2021 PCSX-Redux authors.\n",
+                  buildIDstring);
     }
     POST = 6;
     muteSpu();
     s_configuration = g_defaultConfiguration;
     psxprintf("KERNEL SETUP!\n");
-    // syscall_sysInitMemory(&heapBase, heapSize);
+    syscall_kernInitheap(s_heap, HEAP_SIZE);
     initHandlersArray(4);
     syscall_enqueueSyscallHandler(0);
     syscall_enqueueIrqHandler(3);
@@ -350,7 +351,7 @@ static void boot(char * systemCnfPath, char * binaryPath) {
     int fd = syscall_open(systemCnfPath, PSXF_READ);
     if (fd < 0) {
         SETJMPFATAL(0x391);
-        *((uint32_t*) 0x00000180) = 0;
+        *((uint32_t *)0x00000180) = 0;
         s_configuration = g_defaultConfiguration;
         strcpy(s_binaryPath, binaryPath);
     } else {
@@ -373,7 +374,8 @@ static void boot(char * systemCnfPath, char * binaryPath) {
     SETJMPFATAL(0x389);
     zeroUserMemoryUntilStack();
     if (!loadExe(s_binaryPath, &s_binaryInfo)) fatal(0x38a);
-    psxprintf("EXEC:PC0(%08x)  T_ADDR(%08x)  T_SIZE(%08x)\n", s_binaryInfo.pc, s_binaryInfo.text_addr, s_binaryInfo.text_size);
+    psxprintf("EXEC:PC0(%08x)  T_ADDR(%08x)  T_SIZE(%08x)\n", s_binaryInfo.pc, s_binaryInfo.text_addr,
+              s_binaryInfo.text_size);
     psxprintf("boot address  : %08x %08x\nExecute !\n\n", s_binaryInfo.pc, s_configuration.stackBase);
     s_binaryInfo.stack_start = s_configuration.stackBase;
     s_binaryInfo.stack_size = 0;
@@ -386,13 +388,13 @@ static void boot(char * systemCnfPath, char * binaryPath) {
     fatal(0x38c);
 }
 
-void setConfiguration(int eventsCount, int taskCount, void * stackBase) {
+void setConfiguration(int eventsCount, int taskCount, void *stackBase) {
     s_configuration.taskCount = taskCount;
     s_configuration.eventsCount = eventsCount;
     s_configuration.stackBase = stackBase;
 }
 
-void getConfiguration(int * eventsCount, int * taskCount, void ** stackBase) {
+void getConfiguration(int *eventsCount, int *taskCount, void **stackBase) {
     *stackBase = s_configuration.stackBase;
     *eventsCount = s_configuration.eventsCount;
     *taskCount = s_configuration.taskCount;

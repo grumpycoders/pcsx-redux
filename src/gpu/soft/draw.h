@@ -24,8 +24,9 @@
 //
 //*************************************************************************//
 
-#ifndef _GPU_DRAW_H_
-#define _GPU_DRAW_H_
+#pragma once
+
+#include <stdint.h>
 
 void DoBufferSwap(void);
 void DoClearScreenBuffer(void);
@@ -41,7 +42,3 @@ void ShowTextGpuPic(void);
 #ifdef _WIN32
 // void MoveScanLineArea(HWND hwnd);
 #endif
-
-///////////////////////////////////////////////////////////////////////
-
-#endif  // _GPU_DRAW_H_

@@ -49,8 +49,10 @@ uint32_t patch_hash(const uint32_t* ptr, uint8_t* maskPtr, unsigned len) {
                 n &= 0xffff0000;
                 break;
             case 2:
-            case 3:
                 n &= 0xfc000000;
+                break;
+            case 3:
+                n = 0;
                 break;
         }
         mask >>= 2;

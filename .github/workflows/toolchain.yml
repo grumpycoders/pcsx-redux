@@ -16,13 +16,11 @@ jobs:
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Install dependencies
-      run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
       run: git submodule update --init --recursive
     - name: build mips binutils
-      run: brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
+      run: brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb --debug
     - name: build mips gcc
-      run: brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+      run: brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb --debug
     - name: build openbios
-      run: make -C ./src/mips/openbios PREFIX=mipsel-none-elf FORMAT=elf32-littlemips
+      run: make -C ./src/mips/openbios

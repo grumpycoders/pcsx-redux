@@ -40,3 +40,9 @@
 [submodule "third_party/libcester"]
 	path = third_party/libcester
 	url = https://github.com/exoticlibraries/libcester.git
+[submodule "third_party/luajit"]
+	path = third_party/luajit
+	url = https://github.com/grumpycoders/LuaJIT.git
+[submodule "third_party/luv"]
+	path = third_party/luv
+	url = https://github.com/luvit/luv.git

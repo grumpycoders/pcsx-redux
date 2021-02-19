@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "common/compiler/stdint.h"
 
+// clang-format off
+
 /* Found in Alien Trilogy NTSC (SLUS-00007):
 
                          *******************************************************
@@ -33,12 +35,12 @@ SOFTWARE.
                          *******************************************************
                          undefined _patch_gte()
                             assume gp = 0x0
-           undefined       v0:1         <RETURN>                           XREF[1]:   80068044(W)  
-           dword * *       v0:4         C0table                            XREF[1]:   80068044(W)  
-           undefined4      k0:4         src                                XREF[1]:   80068058(W)  
+           undefined       v0:1         <RETURN>                           XREF[1]:   80068044(W)
+           dword * *       v0:4         C0table                            XREF[1]:   80068044(W)
+           undefined4      k0:4         src                                XREF[1]:   80068058(W)
            undefined4      v0:4         dst
-           undefined4      v1:4         val                                XREF[1]:   80068060(W)  
-                         _patch_gte                                XREF[1]:   FUN_80067fb0:80067fb8(c)  
+           undefined4      v1:4         val                                XREF[1]:   80068060(W)
+                         _patch_gte                                XREF[1]:   FUN_80067fb0:80067fb8(c)
       80068030 09 80 01 3c          lui                 at,0x8009
            assume gp = <UNKNOWN>
       80068034 04 d3 3f ac          sw                  ra,-0x2cfc(at)=>DAT_8008d304
@@ -53,7 +55,7 @@ SOFTWARE.
       80068058 98 80 5a 27          addiu               src,src,-0x7f68
       8006805c d0 80 7b 27          addiu               k1,k1,-0x7f30
 
-                         LAB_80068060                              XREF[1]:   8006806c(j)  
+                         LAB_80068060                              XREF[1]:   8006806c(j)
       80068060 00 00 43 8f          lw                  val,0x0(src)=>new_eh_start
       80068064 04 00 5a 27          addiu               src,src,0x4
       80068068 04 00 42 24          addiu               dst,dst,0x4
@@ -69,10 +71,10 @@ SOFTWARE.
       80068090 08 00 e0 03          jr                  ra
       80068094 00 00 00 00          _nop
 
-                         new_eh_start                              XREF[1]:   _patch_gte:80068060(R)  
+                         new_eh_start                              XREF[1]:   _patch_gte:80068060(R)
       80068098 00 00 00 00          nop
 
-                         LAB_8006809c                              XREF[1]:   _patch_gte:80068060(R)  
+                         LAB_8006809c                              XREF[1]:   _patch_gte:80068060(R)
       8006809c 00 00 00 00          nop
       800680a0 00 01 1a 24          li                  k0,0x100
       800680a4 08 00 5a 8f          lw                  k0,offset DAT_00000108(k0)
@@ -95,9 +97,11 @@ SOFTWARE.
 
  */
 
+// clang-format on
+
 #ifndef GENERATE_HASHES
 
-int patch_gte3_execute(uint32_t* ra) {
+int patch_gte_3_execute(uint32_t* ra) {
     ra[2] = 8 | 0x10000000;
     ra[3] = 0;
     return 1;
@@ -108,24 +112,24 @@ int patch_gte3_execute(uint32_t* ra) {
 #include "openbios/patches/hash.h"
 
 static const uint8_t masks[] = {
-    1, 1, 0, 1, // 00
-    1, 0, 0, 0, // 10
-    0, 0, 2, 0, // 20
-    2, 0, 1, 1, // 30
+    1, 1, 0, 1,  // 00
+    1, 0, 0, 0,  // 10
+    0, 0, 2, 0,  // 20
+    2, 0, 1, 1,  // 30
 };
 
 static const uint8_t bytes[] = {
-    0x00, 0x00, 0x1a, 0x3c, 0x00, 0x80, 0x1b, 0x3c, 0x18, 0x00, 0x42, 0x8c, 0x00, 0x80, 0x5a, 0x27, // 00
-    0xd0, 0x00, 0x7b, 0x27, 0x00, 0x00, 0x43, 0x8f, 0x04, 0x00, 0x5a, 0x27, 0x04, 0x00, 0x42, 0x24, // 10
-    0xfc, 0xff, 0x5b, 0x17, 0xfc, 0xff, 0x43, 0xac, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, // 20
-    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f, // 30
+    0x00, 0x00, 0x1a, 0x3c, 0x00, 0x80, 0x1b, 0x3c, 0x18, 0x00, 0x42, 0x8c, 0x00, 0x80, 0x5a, 0x27,  // 00
+    0xd0, 0x00, 0x7b, 0x27, 0x00, 0x00, 0x43, 0x8f, 0x04, 0x00, 0x5a, 0x27, 0x04, 0x00, 0x42, 0x24,  // 10
+    0xfc, 0xff, 0x5b, 0x17, 0xfc, 0xff, 0x43, 0xac, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00,  // 20
+    0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x3c, 0x00, 0x00, 0xff, 0x8f,  // 30
 };
 
-uint32_t generate_hash_patch_gte3(uint32_t mask, unsigned len) {
-    return patch_hash((const uint32_t*) bytes, (uint8_t *) &mask, len);
+uint32_t generate_hash_patch_gte_3(uint32_t mask, unsigned len) {
+    return patch_hash((const uint32_t *)bytes, (uint8_t *)&mask, len);
 }
 
-uint32_t generate_mask_patch_gte3() {
+uint32_t generate_mask_patch_gte_3() {
     uint32_t mask = 0;
 
     for (unsigned i = 0; i < 16; i++) {

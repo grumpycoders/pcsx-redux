@@ -19,10 +19,10 @@
 
 #pragma once
 
-#include "core/coff.h"
-
 #include <string>
 #include <vector>
+
+#include "core/coff.h"
 
 #undef s_addr
 

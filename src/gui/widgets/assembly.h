@@ -97,7 +97,6 @@ class Assembly : private Disasm {
 
     struct symbolInfo {
         uint32_t addr;
-
     };
 
     std::list<std::string> findSymbol(uint32_t addr);

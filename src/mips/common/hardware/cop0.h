@@ -34,6 +34,4 @@ static __inline__ uint32_t readCOP0Status() {
     return ret;
 }
 
-static __inline__ void writeCOP0Status(uint32_t status) {
-    asm("mtc0 %0, $12\nnop\n" : : "r"(status));
-}
+static __inline__ void writeCOP0Status(uint32_t status) { asm("mtc0 %0, $12\nnop\n" : : "r"(status)); }
