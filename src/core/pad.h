@@ -55,7 +55,7 @@ class PAD {
     uint16_t getButtons();
     void mapScancodes(); // load keyboard bindings
     void configButton(int index); // pick the button to config
-    static int* getButtonFromGUIIndex(int index);
+    static int* getButtonFromGUIIndex(int buttonIndex, pad_t joypadIndex);
     static std::string glfwKeyToString(int glfwKey, int index);
 
     pad_t m_padIdx = PAD1;
@@ -76,7 +76,7 @@ public:
     static bool configuringButton; // are we configuring a button in the GUI?
     static int configuredButtonIndex; // Which button are we configuring in the GUI?
     static bool save; // do we need to save?
-    static int configuredJoypad; // index of the joypad being configured
+    static pad_t configuredJoypad; // index of the joypad being configured
 
     // settings block
     typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
@@ -108,9 +108,12 @@ public:
     typedef Setting<int, TYPESTRING("Pad2L2"), GLFW_KEY_A> Pad2L2;
     typedef Setting<int, TYPESTRING("Pad2R1"), GLFW_KEY_R> Pad2R1;
     typedef Setting<int, TYPESTRING("Pad2R2"), GLFW_KEY_F> Pad2R2;
+    
+    typedef Setting<int, TYPESTRING("SelectedPad"), 0> SettingSelectedPad;
 
     static Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2,
-                    Pad2Up, Pad2Right, Pad2Down, Pad2Left, Pad2Cross, Pad2Triangle, Pad2Square, Pad2Circle, Pad2Select, Pad2Start, Pad2L1, Pad2L2, Pad2R1, Pad2R2> settings;
+                    Pad2Up, Pad2Right, Pad2Down, Pad2Left, Pad2Cross, Pad2Triangle, Pad2Square, Pad2Circle, Pad2Select, Pad2Start, Pad2L1, Pad2L2, Pad2R1, Pad2R2,
+                    SettingSelectedPad> settings;
 };
 
 }  // namespace PCSX

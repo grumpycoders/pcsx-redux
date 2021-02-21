@@ -52,7 +52,7 @@ bool PCSX::PAD::configuringButton = false;
 bool PCSX::PAD::save = false;
 
 int PCSX::PAD::configuredButtonIndex = 0;
-int PCSX::PAD::configuredJoypad = 0;
+PCSX::PAD::pad_t PCSX::PAD::configuredJoypad = PCSX::PAD::pad_t::PAD1;
 decltype(PCSX::PAD::settings) PCSX::PAD::settings;
 
 PCSX::PAD::PAD(pad_t pad) : m_padIdx(pad), m_connected(pad == PAD1), m_isKeyboard(pad == PAD1), m_pad(nullptr) {
@@ -257,21 +257,17 @@ bool PCSX::PAD::configure() {
         "L1      ", "R1      ", "L2      ", "R2      "
     }; // PS1 controller buttons (padded to 8 characters for GUI prettiness)
     static const char* dpadDirections[] = {"Up      ", "Right   ", "Down    ", "Left    "}; // PS1 controller dpad directions (padded to 8 characters for GUI prettiness)
-
-    auto autodetect = 0; // stub till we implement configuring joypad
-    auto type = 0;
+    auto& type = settings.get<SettingSelectedPad>().value;
 
     if (ImGui::BeginCombo(_("Device"), inputDevices[type])) {
-        if (ImGui::Selectable(inputDevices[0], autodetect)) {
-            changed = true;
-            printf("Selected keyboard\n");
+        for (auto i = 0; i < 4; i++) {
+            if (ImGui::Selectable(inputDevices[i])) { // present the options (Configure joypad 1, joypad 2, etc)
+                changed = true;
+                type = i;
+                printf("%s\n", inputDevices[i]);
+            }
         }
-                
-        if (ImGui::Selectable(inputDevices[1], !autodetect)) {
-            changed = true;
-            printf("Selected controller! Configuring a controller is sadly not supported yet :(\nSwitching to keyboard config\n");
-        }
-    
+
         ImGui::EndCombo();
     }
 
@@ -281,7 +277,7 @@ bool PCSX::PAD::configure() {
     for (auto i = 0; i < 10;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i, m_padIdx), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i); // mark button to be configured
             changed = true;
         }
@@ -291,7 +287,7 @@ bool PCSX::PAD::configure() {
 
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();  
-        if (ImGui::Button(glfwKeyToString(*getButtonFromGUIIndex(i), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString(*getButtonFromGUIIndex(i, m_padIdx), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i); // mark button to be configured
             changed = true;
         }
@@ -303,7 +299,7 @@ bool PCSX::PAD::configure() {
     for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10, m_padIdx), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i + 10); // mark button to be configured (+10 because the dpad is preceded by 10 other buttons)
             changed = true;
         }
@@ -313,7 +309,7 @@ bool PCSX::PAD::configure() {
 
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10, m_padIdx), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i + 10); // mark button to be configured
             changed = true;
         }
@@ -333,6 +329,7 @@ bool PCSX::PAD::configure() {
 void PCSX::PAD::configButton(int index) {
     configuringButton = true;
     configuredButtonIndex = index;
+    configuredJoypad = m_padIdx;
 }
 
 /// Actually update the binding for the button set to be configured
@@ -340,7 +337,7 @@ void PCSX::PAD::updateBinding(GLFWwindow* window, int key, int scancode, int act
     if (!configuringButton) // if we're not configuring a button, exit early
         return;
     
-    *getButtonFromGUIIndex(configuredButtonIndex) = key; // set the scancode of the button that's being configured
+    *getButtonFromGUIIndex(configuredButtonIndex, configuredJoypad) = key; // set the scancode of the button that's being configured
     configuringButton = false;
     save = true; // tell the GUI we need to save the new config
 }
