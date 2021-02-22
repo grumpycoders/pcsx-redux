@@ -39,9 +39,9 @@ class PAD {
 
     enum pad_config_option_t {
         Pad1_Keyboard,
-        Pad1_Joypad,
+        Pad1_Controller,
         Pad2_Keyboard,
-        Pad2_Joypad
+        Pad2_Controller
     };
 
     PAD(pad_t pad);
@@ -72,6 +72,8 @@ class PAD {
     bool m_isKeyboard = false;
     int m_joystick = -1;
     int m_scancodes[16];
+    int m_padMapping[16];
+
     SDL_GameController *m_pad = NULL;
 
     unsigned char m_buf[256];
@@ -86,39 +88,75 @@ public:
     static bool save; // do we need to save?
 
     // settings block
-    typedef Setting<int, TYPESTRING("Pad1Up"), GLFW_KEY_UP> Pad1Up;
-    typedef Setting<int, TYPESTRING("Pad1Right"), GLFW_KEY_RIGHT> Pad1Right;
-    typedef Setting<int, TYPESTRING("Pad1Down"), GLFW_KEY_DOWN> Pad1Down;
-    typedef Setting<int, TYPESTRING("Pad1Left"), GLFW_KEY_LEFT> Pad1Left;
-    typedef Setting<int, TYPESTRING("Pad1Cross"), GLFW_KEY_X> Pad1Cross;
-    typedef Setting<int, TYPESTRING("Pad1Triangle"), GLFW_KEY_S> Pad1Triangle;
-    typedef Setting<int, TYPESTRING("Pad1Square"), GLFW_KEY_Z> Pad1Square;
-    typedef Setting<int, TYPESTRING("Pad1Circle"), GLFW_KEY_D> Pad1Circle;
-    typedef Setting<int, TYPESTRING("Pad1Select"), GLFW_KEY_BACKSPACE> Pad1Select;
-    typedef Setting<int, TYPESTRING("Pad1Sstart"), GLFW_KEY_ENTER> Pad1Start;
-    typedef Setting<int, TYPESTRING("Pad1L1"), GLFW_KEY_Q> Pad1L1;
-    typedef Setting<int, TYPESTRING("Pad1L2"), GLFW_KEY_A> Pad1L2;
-    typedef Setting<int, TYPESTRING("Pad1R1"), GLFW_KEY_R> Pad1R1;
-    typedef Setting<int, TYPESTRING("Pad1R2"), GLFW_KEY_F> Pad1R2;
+    // Pad 1 keyboard bindings
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Up"), GLFW_KEY_UP> Keyboard_Pad1Up;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Right"), GLFW_KEY_RIGHT> Keyboard_Pad1Right;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Down"), GLFW_KEY_DOWN> Keyboard_Pad1Down;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Left"), GLFW_KEY_LEFT> Keyboard_Pad1Left;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Cross"), GLFW_KEY_X> Keyboard_Pad1Cross;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Triangle"), GLFW_KEY_S> Keyboard_Pad1Triangle;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Square"), GLFW_KEY_Z> Keyboard_Pad1Square;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Circle"), GLFW_KEY_D> Keyboard_Pad1Circle;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Select"), GLFW_KEY_BACKSPACE> Keyboard_Pad1Select;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1Sstart"), GLFW_KEY_ENTER> Keyboard_Pad1Start;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1L1"), GLFW_KEY_Q> Keyboard_Pad1L1;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1L2"), GLFW_KEY_A> Keyboard_Pad1L2;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1R1"), GLFW_KEY_R> Keyboard_Pad1R1;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad1R2"), GLFW_KEY_F> Keyboard_Pad1R2;
 
-    typedef Setting<int, TYPESTRING("Pad2Up"), GLFW_KEY_UP> Pad2Up;
-    typedef Setting<int, TYPESTRING("Pad2Right"), GLFW_KEY_RIGHT> Pad2Right;
-    typedef Setting<int, TYPESTRING("Pad2Down"), GLFW_KEY_DOWN> Pad2Down;
-    typedef Setting<int, TYPESTRING("Pad2Left"), GLFW_KEY_LEFT> Pad2Left;
-    typedef Setting<int, TYPESTRING("Pad2Cross"), GLFW_KEY_X> Pad2Cross;
-    typedef Setting<int, TYPESTRING("Pad2Triangle"), GLFW_KEY_S> Pad2Triangle;
-    typedef Setting<int, TYPESTRING("Pad2Square"), GLFW_KEY_Z> Pad2Square;
-    typedef Setting<int, TYPESTRING("Pad2Circle"), GLFW_KEY_D> Pad2Circle;
-    typedef Setting<int, TYPESTRING("Pad2Select"), GLFW_KEY_BACKSPACE> Pad2Select;
-    typedef Setting<int, TYPESTRING("Pad2Sstart"), GLFW_KEY_ENTER> Pad2Start;
-    typedef Setting<int, TYPESTRING("Pad2L1"), GLFW_KEY_Q> Pad2L1;
-    typedef Setting<int, TYPESTRING("Pad2L2"), GLFW_KEY_A> Pad2L2;
-    typedef Setting<int, TYPESTRING("Pad2R1"), GLFW_KEY_R> Pad2R1;
-    typedef Setting<int, TYPESTRING("Pad2R2"), GLFW_KEY_F> Pad2R2;
+    // Pad2 keyboard bindings
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Up"), GLFW_KEY_UP> Keyboard_Pad2Up;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Right"), GLFW_KEY_RIGHT> Keyboard_Pad2Right;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Down"), GLFW_KEY_DOWN> Keyboard_Pad2Down;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Left"), GLFW_KEY_LEFT> Keyboard_Pad2Left;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Cross"), GLFW_KEY_X> Keyboard_Pad2Cross;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Triangle"), GLFW_KEY_S> Keyboard_Pad2Triangle;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Square"), GLFW_KEY_Z> Keyboard_Pad2Square;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Circle"), GLFW_KEY_D> Keyboard_Pad2Circle;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Select"), GLFW_KEY_BACKSPACE> Keyboard_Pad2Select;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2Sstart"), GLFW_KEY_ENTER> Keyboard_Pad2Start;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2L1"), GLFW_KEY_Q> Keyboard_Pad2L1;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2L2"), GLFW_KEY_A> Keyboard_Pad2L2;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2R1"), GLFW_KEY_R> Keyboard_Pad2R1;
+    typedef Setting<int, TYPESTRING("Keyboard_Pad2R2"), GLFW_KEY_F> Keyboard_Pad2R2;
+
+    // Pad 1 controller bindings
+    typedef Setting<int, TYPESTRING("Controller_Pad1Up"), SDL_CONTROLLER_BUTTON_DPAD_UP> Controller_Pad1Up;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Right"), SDL_CONTROLLER_BUTTON_DPAD_RIGHT> Controller_Pad1Right;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Down"), SDL_CONTROLLER_BUTTON_DPAD_DOWN> Controller_Pad1Down;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Left"), SDL_CONTROLLER_BUTTON_DPAD_LEFT> Controller_Pad1Left;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Cross"), SDL_CONTROLLER_BUTTON_A> Controller_Pad1Cross;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Triangle"), SDL_CONTROLLER_BUTTON_Y> Controller_Pad1Triangle;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Square"), SDL_CONTROLLER_BUTTON_X> Controller_Pad1Square;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Circle"), SDL_CONTROLLER_BUTTON_B> Controller_Pad1Circle;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Select"), SDL_CONTROLLER_BUTTON_BACK> Controller_Pad1Select;
+    typedef Setting<int, TYPESTRING("Controller_Pad1Sstart"), SDL_CONTROLLER_BUTTON_START> Controller_Pad1Start;
+    typedef Setting<int, TYPESTRING("Controller_Pad1L1"), SDL_CONTROLLER_BUTTON_LEFTSHOULDER> Controller_Pad1L1;
+    typedef Setting<int, TYPESTRING("Controller_Pad1L2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad1L2;
+    typedef Setting<int, TYPESTRING("Controller_Pad1R1"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER> Controller_Pad1R1;
+    typedef Setting<int, TYPESTRING("Controller_Pad1R2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad1R2;
+
+    // Pad 2 controller bindings
+    typedef Setting<int, TYPESTRING("Controller_Pad2Up"), SDL_CONTROLLER_BUTTON_DPAD_UP> Controller_Pad2Up;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Right"), SDL_CONTROLLER_BUTTON_DPAD_RIGHT> Controller_Pad2Right;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Down"), SDL_CONTROLLER_BUTTON_DPAD_DOWN> Controller_Pad2Down;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Left"), SDL_CONTROLLER_BUTTON_DPAD_LEFT> Controller_Pad2Left;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Cross"), SDL_CONTROLLER_BUTTON_A> Controller_Pad2Cross;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Triangle"), SDL_CONTROLLER_BUTTON_Y> Controller_Pad2Triangle;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Square"), SDL_CONTROLLER_BUTTON_X> Controller_Pad2Square;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Circle"), SDL_CONTROLLER_BUTTON_B> Controller_Pad2Circle;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Select"), SDL_CONTROLLER_BUTTON_BACK> Controller_Pad2Select;
+    typedef Setting<int, TYPESTRING("Controller_Pad2Sstart"), SDL_CONTROLLER_BUTTON_START> Controller_Pad2Start;
+    typedef Setting<int, TYPESTRING("Controller_Pad2L1"), SDL_CONTROLLER_BUTTON_LEFTSHOULDER> Controller_Pad2L1;
+    typedef Setting<int, TYPESTRING("Controller_Pad2L2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad2L2;
+    typedef Setting<int, TYPESTRING("Controller_Pad2R1"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER> Controller_Pad2R1;
+    typedef Setting<int, TYPESTRING("Controller_Pad2R2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad2R2;
     typedef Setting<pad_config_option_t, TYPESTRING("SelectedPad"), Pad1_Keyboard> SettingSelectedPad;
 
-    static Settings<Pad1Up, Pad1Right, Pad1Down, Pad1Left, Pad1Cross, Pad1Triangle, Pad1Square, Pad1Circle, Pad1Select, Pad1Start, Pad1L1, Pad1L2, Pad1R1, Pad1R2,
-                    Pad2Up, Pad2Right, Pad2Down, Pad2Left, Pad2Cross, Pad2Triangle, Pad2Square, Pad2Circle, Pad2Select, Pad2Start, Pad2L1, Pad2L2, Pad2R1, Pad2R2,
+    static Settings<Keyboard_Pad1Up, Keyboard_Pad1Right, Keyboard_Pad1Down, Keyboard_Pad1Left, Keyboard_Pad1Cross, Keyboard_Pad1Triangle, Keyboard_Pad1Square, Keyboard_Pad1Circle, Keyboard_Pad1Select, Keyboard_Pad1Start, Keyboard_Pad1L1, Keyboard_Pad1L2, Keyboard_Pad1R1, Keyboard_Pad1R2,
+                    Keyboard_Pad2Up, Keyboard_Pad2Right, Keyboard_Pad2Down, Keyboard_Pad2Left, Keyboard_Pad2Cross, Keyboard_Pad2Triangle, Keyboard_Pad2Square, Keyboard_Pad2Circle, Keyboard_Pad2Select, Keyboard_Pad2Start, Keyboard_Pad2L1, Keyboard_Pad2L2, Keyboard_Pad2R1, Keyboard_Pad2R2,
+                    Controller_Pad1Up, Controller_Pad1Right, Controller_Pad1Down, Controller_Pad1Left, Controller_Pad1Cross, Controller_Pad1Triangle, Controller_Pad1Square, Controller_Pad1Circle, Controller_Pad1Select, Controller_Pad1Start, Controller_Pad1L1, Controller_Pad1L2, Controller_Pad1R1, Controller_Pad1R2,
+                    Controller_Pad2Up, Controller_Pad2Right, Controller_Pad2Down, Controller_Pad2Left, Controller_Pad2Cross, Controller_Pad2Triangle, Controller_Pad2Square, Controller_Pad2Circle, Controller_Pad2Select, Controller_Pad2Start, Controller_Pad2L1, Controller_Pad2L2, Controller_Pad2R1, Controller_Pad2R2,
                     SettingSelectedPad> settings;
 };
 

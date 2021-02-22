@@ -23,30 +23,10 @@
 #define GLFW_INCLUDE_NONE
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <SDL.h>
 #include <fmt/core.h>
 
 #include "core/pad.h"
 #include "core/psemu_plugin_defs.h"
-
-static const SDL_GameControllerButton s_padMapping[16] = {
-    SDL_CONTROLLER_BUTTON_BACK,           // Select
-    SDL_CONTROLLER_BUTTON_INVALID,        // n/a
-    SDL_CONTROLLER_BUTTON_INVALID,        // n/a
-    SDL_CONTROLLER_BUTTON_START,          // Start
-    SDL_CONTROLLER_BUTTON_DPAD_UP,        // Up
-    SDL_CONTROLLER_BUTTON_DPAD_RIGHT,     // Right
-    SDL_CONTROLLER_BUTTON_DPAD_DOWN,      // Down
-    SDL_CONTROLLER_BUTTON_DPAD_LEFT,      // Left
-    SDL_CONTROLLER_BUTTON_INVALID,        // L2
-    SDL_CONTROLLER_BUTTON_INVALID,        // R2
-    SDL_CONTROLLER_BUTTON_LEFTSHOULDER,   // L1
-    SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,  // R1
-    SDL_CONTROLLER_BUTTON_Y,              // Triangle
-    SDL_CONTROLLER_BUTTON_B,              // Circle
-    SDL_CONTROLLER_BUTTON_A,              // Cross
-    SDL_CONTROLLER_BUTTON_X,              // Square
-};
  
 bool PCSX::PAD::configuringButton = false;
 bool PCSX::PAD::save = false;
@@ -76,45 +56,75 @@ void PCSX::PAD::init() {
 }
 
 /// Map keyboard bindings
-void PCSX::PAD::mapScancodes() { 
-    if (m_padIdx == PAD1) {
-        m_scancodes[0] = settings.get<PCSX::PAD::Pad1Select>();  // SELECT
-        m_scancodes[1] = 255;                                    // n/a
-        m_scancodes[2] = 255;                                    // n/a
-        m_scancodes[3] = settings.get<PCSX::PAD::Pad1Start>();   // START
-        m_scancodes[4] = settings.get<PCSX::PAD::Pad1Up>();      // UP
-        m_scancodes[5] = settings.get<PCSX::PAD::Pad1Right>();   // RIGHT
-        m_scancodes[6] = settings.get<PCSX::PAD::Pad1Down>();    // DOWN
-        m_scancodes[7] = settings.get<PCSX::PAD::Pad1Left>();    // LEFT
+void PCSX::PAD::mapScancodes() {
+    // invalid buttons 
+    m_scancodes[1] = 255;
+    m_scancodes[2] = 255;
+    m_padMapping[1] = SDL_CONTROLLER_BUTTON_INVALID;
+    m_padMapping[2] = SDL_CONTROLLER_BUTTON_INVALID;
 
-        m_scancodes[8] = settings.get<PCSX::PAD::Pad1L2>();         // L2
-        m_scancodes[9] = settings.get<PCSX::PAD::Pad1R2>();         // R2
-        m_scancodes[10] = settings.get<PCSX::PAD::Pad1L1>();        // L1
-        m_scancodes[11] = settings.get<PCSX::PAD::Pad1R1>();        // R1
-        m_scancodes[12] = settings.get<PCSX::PAD::Pad1Triangle>();  // TRIANGLE
-        m_scancodes[13] = settings.get<PCSX::PAD::Pad1Circle>();    // CIRCLE
-        m_scancodes[14] = settings.get<PCSX::PAD::Pad1Cross>();     // CROSS
-        m_scancodes[15] = settings.get<PCSX::PAD::Pad1Square>();    // SQUARE
+    if (m_padIdx == PAD1) {
+        m_scancodes[0] = settings.get<PCSX::PAD::Keyboard_Pad1Select>();  // SELECT
+        m_scancodes[3] = settings.get<PCSX::PAD::Keyboard_Pad1Start>();   // START
+        m_scancodes[4] = settings.get<PCSX::PAD::Keyboard_Pad1Up>();      // UP
+        m_scancodes[5] = settings.get<PCSX::PAD::Keyboard_Pad1Right>();   // RIGHT
+        m_scancodes[6] = settings.get<PCSX::PAD::Keyboard_Pad1Down>();    // DOWN
+        m_scancodes[7] = settings.get<PCSX::PAD::Keyboard_Pad1Left>();    // LEFT
+        m_scancodes[8] = settings.get<PCSX::PAD::Keyboard_Pad1L2>();         // L2
+        m_scancodes[9] = settings.get<PCSX::PAD::Keyboard_Pad1R2>();         // R2
+        m_scancodes[10] = settings.get<PCSX::PAD::Keyboard_Pad1L1>();        // L1
+        m_scancodes[11] = settings.get<PCSX::PAD::Keyboard_Pad1R1>();        // R1
+        m_scancodes[12] = settings.get<PCSX::PAD::Keyboard_Pad1Triangle>();  // TRIANGLE
+        m_scancodes[13] = settings.get<PCSX::PAD::Keyboard_Pad1Circle>();    // CIRCLE
+        m_scancodes[14] = settings.get<PCSX::PAD::Keyboard_Pad1Cross>();     // CROSS
+        m_scancodes[15] = settings.get<PCSX::PAD::Keyboard_Pad1Square>();    // SQUARE
+
+        m_padMapping[0] = settings.get<PCSX::PAD::Controller_Pad1Select>(); // SELECT
+        m_padMapping[3] = settings.get<PCSX::PAD::Controller_Pad1Start>();  // START
+        m_padMapping[4] = settings.get<PCSX::PAD::Controller_Pad1Up>();     // UP
+        m_padMapping[5] = settings.get<PCSX::PAD::Controller_Pad1Right>();  // RIGHT
+        m_padMapping[6] = settings.get<PCSX::PAD::Controller_Pad1Down>();   // DOWN
+        m_padMapping[7] = settings.get<PCSX::PAD::Controller_Pad1Left>();   // LEFT
+        m_padMapping[8] = settings.get<PCSX::PAD::Controller_Pad1L2>();    // L2
+        m_padMapping[9] = settings.get<PCSX::PAD::Controller_Pad1R2>();     // R2
+        m_padMapping[10] = settings.get<PCSX::PAD::Controller_Pad1L1>();    // L1
+        m_padMapping[11] = settings.get<PCSX::PAD::Controller_Pad1R1>();    // R1
+        m_padMapping[12] = settings.get<PCSX::PAD::Controller_Pad1Triangle>(); // TRIANGLE
+        m_padMapping[13] = settings.get<PCSX::PAD::Controller_Pad1Circle>(); // CIRCLE
+        m_padMapping[14] = settings.get<PCSX::PAD::Controller_Pad1Cross>();  // CROSS
+        m_padMapping[15] = settings.get<PCSX::PAD::Controller_Pad1Square>(); // SQUARE
     }
 
     else if (m_padIdx == PAD2) {
-        m_scancodes[0] = settings.get<PCSX::PAD::Pad2Select>();  // SELECT
-        m_scancodes[1] = 255;                                    // n/a
-        m_scancodes[2] = 255;                                    // n/a
-        m_scancodes[3] = settings.get<PCSX::PAD::Pad2Start>();   // START
-        m_scancodes[4] = settings.get<PCSX::PAD::Pad2Up>();      // UP
-        m_scancodes[5] = settings.get<PCSX::PAD::Pad2Right>();   // RIGHT
-        m_scancodes[6] = settings.get<PCSX::PAD::Pad2Down>();    // DOWN
-        m_scancodes[7] = settings.get<PCSX::PAD::Pad2Left>();    // LEFT
+        m_scancodes[0] = settings.get<PCSX::PAD::Keyboard_Pad2Select>();  // SELECT
+        m_scancodes[3] = settings.get<PCSX::PAD::Keyboard_Pad2Start>();   // START
+        m_scancodes[4] = settings.get<PCSX::PAD::Keyboard_Pad2Up>();      // UP
+        m_scancodes[5] = settings.get<PCSX::PAD::Keyboard_Pad2Right>();   // RIGHT
+        m_scancodes[6] = settings.get<PCSX::PAD::Keyboard_Pad2Down>();    // DOWN
+        m_scancodes[7] = settings.get<PCSX::PAD::Keyboard_Pad2Left>();    // LEFT
+        m_scancodes[8] = settings.get<PCSX::PAD::Keyboard_Pad2L2>();         // L2
+        m_scancodes[9] = settings.get<PCSX::PAD::Keyboard_Pad2R2>();         // R2
+        m_scancodes[10] = settings.get<PCSX::PAD::Keyboard_Pad2L1>();        // L1
+        m_scancodes[11] = settings.get<PCSX::PAD::Keyboard_Pad2R1>();        // R1
+        m_scancodes[12] = settings.get<PCSX::PAD::Keyboard_Pad2Triangle>();  // TRIANGLE
+        m_scancodes[13] = settings.get<PCSX::PAD::Keyboard_Pad2Circle>();    // CIRCLE
+        m_scancodes[14] = settings.get<PCSX::PAD::Keyboard_Pad2Cross>();     // CROSS
+        m_scancodes[15] = settings.get<PCSX::PAD::Keyboard_Pad2Square>();    // SQUARE 
 
-        m_scancodes[8] = settings.get<PCSX::PAD::Pad2L2>();         // L2
-        m_scancodes[9] = settings.get<PCSX::PAD::Pad2R2>();         // R2
-        m_scancodes[10] = settings.get<PCSX::PAD::Pad2L1>();        // L1
-        m_scancodes[11] = settings.get<PCSX::PAD::Pad2R1>();        // R1
-        m_scancodes[12] = settings.get<PCSX::PAD::Pad2Triangle>();  // TRIANGLE
-        m_scancodes[13] = settings.get<PCSX::PAD::Pad2Circle>();    // CIRCLE
-        m_scancodes[14] = settings.get<PCSX::PAD::Pad2Cross>();     // CROSS
-        m_scancodes[15] = settings.get<PCSX::PAD::Pad2Square>();    // SQUARE 
+        m_padMapping[0] = settings.get<PCSX::PAD::Controller_Pad2Select>(); // SELECT
+        m_padMapping[3] = settings.get<PCSX::PAD::Controller_Pad2Start>();  // START
+        m_padMapping[4] = settings.get<PCSX::PAD::Controller_Pad2Up>();     // UP
+        m_padMapping[5] = settings.get<PCSX::PAD::Controller_Pad2Right>();  // RIGHT
+        m_padMapping[6] = settings.get<PCSX::PAD::Controller_Pad2Down>();   // DOWN
+        m_padMapping[7] = settings.get<PCSX::PAD::Controller_Pad2Left>();   // LEFT
+        m_padMapping[8] = settings.get<PCSX::PAD::Controller_Pad2L2>();    // L2
+        m_padMapping[9] = settings.get<PCSX::PAD::Controller_Pad2R2>();     // R2
+        m_padMapping[10] = settings.get<PCSX::PAD::Controller_Pad2L1>();    // L1
+        m_padMapping[11] = settings.get<PCSX::PAD::Controller_Pad2R1>();    // R1
+        m_padMapping[12] = settings.get<PCSX::PAD::Controller_Pad2Triangle>(); // TRIANGLE
+        m_padMapping[13] = settings.get<PCSX::PAD::Controller_Pad2Circle>(); // CIRCLE
+        m_padMapping[14] = settings.get<PCSX::PAD::Controller_Pad2Cross>();  // CROSS
+        m_padMapping[15] = settings.get<PCSX::PAD::Controller_Pad2Square>(); // SQUARE
     }
 }
 
@@ -136,7 +146,7 @@ uint16_t PCSX::PAD::getButtons() {
         for (unsigned i = 0; i < 16; i++) result |= !(keys[m_scancodes[i]]) << i;
     } else if (m_pad) {
         bool buttons[16];
-        for (unsigned i = 0; i < 16; i++) buttons[i] = (SDL_GameControllerGetButton(m_pad, s_padMapping[i]));
+        for (unsigned i = 0; i < 16; i++) buttons[i] = (SDL_GameControllerGetButton(m_pad, (SDL_GameControllerButton) m_padMapping[i]));
         Sint16 axisX, axisY, trL, trR;
         axisX = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_LEFTX);
         axisY = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_LEFTY);
@@ -266,7 +276,7 @@ bool PCSX::PAD::configure() {
             }
         }
 
-        if (type == Pad1_Joypad || type == Pad2_Joypad) {
+        if (type == Pad1_Controller || type == Pad2_Controller) {
             printf("Configuring joypad is not currently available\n");
             type = Pad1_Keyboard;
         }
@@ -347,40 +357,80 @@ void PCSX::PAD::updateBinding(GLFWwindow* window, int key, int scancode, int act
 int* PCSX::PAD::getButtonFromGUIIndex(int buttonIndex, pad_config_option_t configOption) {
     if (configOption == Pad1_Keyboard) {
         switch (buttonIndex) { // Order is the same as they're on the GUI
-            case 0:  return &settings.get<Pad1Cross>().value;
-            case 1:  return &settings.get<Pad1Square>().value;
-            case 2:  return &settings.get<Pad1Triangle>().value;
-            case 3:  return &settings.get<Pad1Circle>().value;
-            case 4:  return &settings.get<Pad1Select>().value;
-            case 5:  return &settings.get<Pad1Start>().value;
-            case 6:  return &settings.get<Pad1L1>().value;
-            case 7:  return &settings.get<Pad1R1>().value;
-            case 8:  return &settings.get<Pad1L2>().value;
-            case 9:  return &settings.get<Pad1R2>().value;
-            case 10:  return &settings.get<Pad1Up>().value;
-            case 11:  return &settings.get<Pad1Right>().value;
-            case 12:  return &settings.get<Pad1Down>().value;
-            case 13:  return &settings.get<Pad1Left>().value;
+            case 0:  return &settings.get<Keyboard_Pad1Cross>().value;
+            case 1:  return &settings.get<Keyboard_Pad1Square>().value;
+            case 2:  return &settings.get<Keyboard_Pad1Triangle>().value;
+            case 3:  return &settings.get<Keyboard_Pad1Circle>().value;
+            case 4:  return &settings.get<Keyboard_Pad1Select>().value;
+            case 5:  return &settings.get<Keyboard_Pad1Start>().value;
+            case 6:  return &settings.get<Keyboard_Pad1L1>().value;
+            case 7:  return &settings.get<Keyboard_Pad1R1>().value;
+            case 8:  return &settings.get<Keyboard_Pad1L2>().value;
+            case 9:  return &settings.get<Keyboard_Pad1R2>().value;
+            case 10:  return &settings.get<Keyboard_Pad1Up>().value;
+            case 11:  return &settings.get<Keyboard_Pad1Right>().value;
+            case 12:  return &settings.get<Keyboard_Pad1Down>().value;
+            case 13:  return &settings.get<Keyboard_Pad1Left>().value;
             default: printf ("[PAD] Somehow read from invalid button config\n");
         }
     }
 
     else if (configOption == Pad2_Keyboard) {
         switch (buttonIndex) { // Order is the same as they're on the GUI
-            case 0:  return &settings.get<Pad2Cross>().value;
-            case 1:  return &settings.get<Pad2Square>().value;
-            case 2:  return &settings.get<Pad2Triangle>().value;
-            case 3:  return &settings.get<Pad2Circle>().value;
-            case 4:  return &settings.get<Pad2Select>().value;
-            case 5:  return &settings.get<Pad2Start>().value;
-            case 6:  return &settings.get<Pad2L1>().value;
-            case 7:  return &settings.get<Pad2R1>().value;
-            case 8:  return &settings.get<Pad2L2>().value;
-            case 9:  return &settings.get<Pad2R2>().value;
-            case 10:  return &settings.get<Pad2Up>().value;
-            case 11:  return &settings.get<Pad2Right>().value;
-            case 12:  return &settings.get<Pad2Down>().value;
-            case 13:  return &settings.get<Pad2Left>().value;
+            case 0:  return &settings.get<Keyboard_Pad2Cross>().value;
+            case 1:  return &settings.get<Keyboard_Pad2Square>().value;
+            case 2:  return &settings.get<Keyboard_Pad2Triangle>().value;
+            case 3:  return &settings.get<Keyboard_Pad2Circle>().value;
+            case 4:  return &settings.get<Keyboard_Pad2Select>().value;
+            case 5:  return &settings.get<Keyboard_Pad2Start>().value;
+            case 6:  return &settings.get<Keyboard_Pad2L1>().value;
+            case 7:  return &settings.get<Keyboard_Pad2R1>().value;
+            case 8:  return &settings.get<Keyboard_Pad2L2>().value;
+            case 9:  return &settings.get<Keyboard_Pad2R2>().value;
+            case 10:  return &settings.get<Keyboard_Pad2Up>().value;
+            case 11:  return &settings.get<Keyboard_Pad2Right>().value;
+            case 12:  return &settings.get<Keyboard_Pad2Down>().value;
+            case 13:  return &settings.get<Keyboard_Pad2Left>().value;
+            default: printf ("[PAD] Somehow read from invalid button config\n");
+        }
+    }
+
+    else if (configOption == Pad1_Controller) {
+        switch (buttonIndex) {
+            case 0:  return &settings.get<Controller_Pad1Cross>().value;
+            case 1:  return &settings.get<Controller_Pad1Square>().value;
+            case 2:  return &settings.get<Controller_Pad1Triangle>().value;
+            case 3:  return &settings.get<Controller_Pad1Circle>().value;
+            case 4:  return &settings.get<Controller_Pad1Select>().value;
+            case 5:  return &settings.get<Controller_Pad1Start>().value;
+            case 6:  return &settings.get<Controller_Pad1L1>().value;
+            case 7:  return &settings.get<Controller_Pad1R1>().value;
+            case 8:  return &settings.get<Controller_Pad1L2>().value;
+            case 9:  return &settings.get<Controller_Pad1R2>().value;
+            case 10:  return &settings.get<Controller_Pad1Up>().value;
+            case 11:  return &settings.get<Controller_Pad1Right>().value;
+            case 12:  return &settings.get<Controller_Pad1Down>().value;
+            case 13:  return &settings.get<Controller_Pad1Left>().value;
+            default: printf ("[PAD] Somehow read from invalid button config\n");
+        }    
+    }
+
+    else if (configOption == Pad2_Controller) {
+        switch (buttonIndex) {
+            case 0:  return &settings.get<Controller_Pad2Cross>().value;
+            case 1:  return &settings.get<Controller_Pad2Square>().value;
+            case 2:  return &settings.get<Controller_Pad2Triangle>().value;
+            case 3:  return &settings.get<Controller_Pad2Circle>().value;
+            case 4:  return &settings.get<Controller_Pad2Select>().value;
+            case 5:  return &settings.get<Controller_Pad2Start>().value;
+            case 6:  return &settings.get<Controller_Pad2L1>().value;
+            case 7:  return &settings.get<Controller_Pad2R1>().value;
+            case 8:  return &settings.get<Controller_Pad2L2>().value;
+            case 9:  return &settings.get<Controller_Pad2R2>().value;
+            case 10:  return &settings.get<Controller_Pad2Up>().value;
+            case 11:  return &settings.get<Controller_Pad2Right>().value;
+            case 12:  return &settings.get<Controller_Pad2Down>().value;
+            case 13:  return &settings.get<Controller_Pad2Left>().value;
             default: printf ("[PAD] Somehow read from invalid button config\n");
         }
     }
