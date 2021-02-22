@@ -23,6 +23,19 @@
 
 #include "gtest/gtest.h"
 
+static constexpr uint32_t SEED = 2891583007UL;
+
+static uint32_t someRand(uint32_t& a) {
+    a ^= 61;
+    a ^= a >> 16;
+    a += a << 3;
+    a ^= a >> 4;
+    a *= 668265263UL;
+    a ^= a >> 15;
+    a *= 3148259783UL;
+    return a;
+}
+
 struct TreeElement;
 typedef PCSX::Intrusive::Tree<uint32_t, TreeElement> TreeType;
 struct TreeElement : public TreeType::Node {
@@ -108,6 +121,46 @@ TEST(BasicTree, Shuffle) {
         v += P;
         v += P;
     }
+
+    tree.destroyAll();
+    EXPECT_TRUE(tree.empty());
+}
+
+TEST(BasicTree, RandomElements) {
+    static constexpr unsigned COUNT = 25000;
+
+    TreeType tree;
+
+    uint32_t seed;
+    seed = SEED;
+    for (unsigned i = 0; i < COUNT; i++) {
+        uint32_t v = someRand(seed);
+        tree.insert(v, new TreeElement(v));
+    }
+
+    const uint32_t fullSeed = seed;
+
+    EXPECT_FALSE(tree.empty());
+    EXPECT_EQ(tree.size(), COUNT);
+
+    seed = SEED;
+    for (unsigned i = 0; i < COUNT / 2; i++) {
+        uint32_t v = someRand(seed);
+        auto it = tree.find(v);
+        EXPECT_FALSE(it == tree.end());
+        EXPECT_EQ(it->m_tag, v);
+        delete &*it;
+    }
+
+    const uint32_t midSeed = seed;
+
+    seed = fullSeed;
+    for (unsigned i = 0; i < COUNT; i++) {
+        uint32_t v = someRand(seed);
+        tree.insert(v, new TreeElement(v));
+    }
+
+    EXPECT_EQ(tree.size(), COUNT + COUNT / 2);
 
     tree.destroyAll();
     EXPECT_TRUE(tree.empty());
