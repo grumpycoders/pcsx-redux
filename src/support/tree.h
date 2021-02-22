@@ -37,7 +37,7 @@ class BaseTree {
         virtual int cmp(const BaseNode* o) const = 0;
         virtual void bumpMax(const BaseNode* o) = 0;
         virtual void setMax(const BaseNode* o) = 0;
-        virtual void recomputeMaxAfterRotate() = 0;
+        virtual void rebaseMaxToHigh() = 0;
         friend class BaseTree;
         BaseNode *m_left = nullptr, *m_right = nullptr, *m_parent = nullptr;
         enum class Color { BLACK, RED } m_color = Color::BLACK;
@@ -106,11 +106,7 @@ class Tree final : public BaseTree {
             const Node* o = dynamic_cast<const Node*>(o_);
             m_max = o->m_max;
         }
-        virtual void recomputeMaxAfterRotate() final override {
-            Node* left = dynamic_cast<Node*>(m_left);
-            Node* right = dynamic_cast<Node*>(m_right);
-            m_max = std::max(m_high, std::max(left->m_max, right->m_max));
-        }
+        virtual void rebaseMaxToHigh() final override { m_max = m_high; }
         friend class Tree;
         Key m_low, m_high, m_max;
     };

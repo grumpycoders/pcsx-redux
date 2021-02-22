@@ -99,7 +99,9 @@ void PCSX::Intrusive::BaseTree::leftRotate(PCSX::Intrusive::BaseTree::BaseNode* 
     y->m_left = x;
     x->m_parent = y;
     y->setMax(x);
-    x->recomputeMaxAfterRotate();
+    x->rebaseMaxToHigh();
+    if (x->m_left != m_nil) x->bumpMax(x->m_left);
+    if (x->m_right != m_nil) x->bumpMax(x->m_right);
 }
 
 void PCSX::Intrusive::BaseTree::rightRotate(PCSX::Intrusive::BaseTree::BaseNode* const x) {
@@ -117,7 +119,9 @@ void PCSX::Intrusive::BaseTree::rightRotate(PCSX::Intrusive::BaseTree::BaseNode*
     y->m_right = x;
     x->m_parent = y;
     y->setMax(x);
-    x->recomputeMaxAfterRotate();
+    x->rebaseMaxToHigh();
+    if (x->m_left != m_nil) x->bumpMax(x->m_left);
+    if (x->m_right != m_nil) x->bumpMax(x->m_right);
 }
 
 void PCSX::Intrusive::BaseTree::insertInternal(PCSX::Intrusive::BaseTree::BaseNode* const z) {
