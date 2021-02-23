@@ -118,7 +118,7 @@ class System {
     }
 
     void loadAllLocales() {
-        static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}, {"Deutsch", "de.po"}};
+        static const std::map<std::string, std::string> locales = {{"Français", "fr.po"}, {"Deutsch", "de.po"}, {"Italiano", "it.po"},};
 
         for (auto &l : locales) {
             if (loadLocale(l.first, m_binDir / "i18n" / l.second)) {
