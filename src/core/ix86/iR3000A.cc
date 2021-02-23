@@ -648,11 +648,16 @@ bool X86DynaRecCPU::Init() {
         return false;
     }
 
-    for (auto i = 0; i < 0x80; i++) m_psxRecLUT[i] = (uintptr_t)&m_recRAM[(i & 0x1f) << 16]; // map KUSEG/KSEG0/KSEG1 WRAM respectively to the recompiler block LUT
+    for (auto i = 0; i < 0x80; i++)
+        m_psxRecLUT[i] =
+            (uintptr_t)&m_recRAM[(i & 0x1f)
+                                 << 16];  // map KUSEG/KSEG0/KSEG1 WRAM respectively to the recompiler block LUT
     memcpy(m_psxRecLUT + 0x8000, m_psxRecLUT, 0x80 * sizeof(uintptr_t));
     memcpy(m_psxRecLUT + 0xa000, m_psxRecLUT, 0x80 * sizeof(uintptr_t));
 
-    for (auto i = 0; i < 8; i++) m_psxRecLUT[i + 0x1fc0] = (uintptr_t)&m_recROM[i << 16]; // map KUSEG/KSEG0/KSEG1 BIOS respectively to the recompiler block LUT
+    for (auto i = 0; i < 8; i++)
+        m_psxRecLUT[i + 0x1fc0] =
+            (uintptr_t)&m_recROM[i << 16];  // map KUSEG/KSEG0/KSEG1 BIOS respectively to the recompiler block LUT
     memcpy(m_psxRecLUT + 0x9fc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
     memcpy(m_psxRecLUT + 0xbfc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
 
