@@ -259,8 +259,8 @@ bool PCSX::PAD::configure() {
 
     bool changed = false;
 
-    static const char* inputDevices[] = {"Pad 1 [Keyboard]", "Pad 1 [Controller] (Not supported yet)",
-                                         "Pad 2 [Keyboard]", "Pad 2 [Controller] (Not supported yet)" }; // list of options for the drop down table
+    static const char* inputDevices[] = {"Pad 1 [Keyboard]", "Pad 1 [Controller]",
+                                         "Pad 2 [Keyboard]", "Pad 2 [Controller]" }; // list of options for the drop down table
     static const char* buttonNames[] = {
         "Cross   ", "Square  ", "Triangle", "Circle  ", "Select  ", "Start   ",
         "L1      ", "R1      ", "L2      ", "R2      "
@@ -276,11 +276,6 @@ bool PCSX::PAD::configure() {
             }
         }
 
-        if (type == Pad1_Controller || type == Pad2_Controller) {
-            printf("Configuring joypad is not currently available\n");
-            type = Pad1_Keyboard;
-        }
-        
         ImGui::EndCombo();
     }
 
@@ -290,7 +285,7 @@ bool PCSX::PAD::configure() {
     for (auto i = 0; i < 10;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i, type), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(keyToString (*getButtonFromGUIIndex(i, type), i, type).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i); // mark button to be configured
             changed = true;
         }
@@ -300,7 +295,7 @@ bool PCSX::PAD::configure() {
 
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();  
-        if (ImGui::Button(glfwKeyToString(*getButtonFromGUIIndex(i, type), i).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(keyToString(*getButtonFromGUIIndex(i, type), i, type).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i); // mark button to be configured
             changed = true;
         }
@@ -312,7 +307,7 @@ bool PCSX::PAD::configure() {
     for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10, type), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(keyToString (*getButtonFromGUIIndex(i+10, type), i+10, type).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i + 10); // mark button to be configured (+10 because the dpad is preceded by 10 other buttons)
             changed = true;
         }
@@ -322,7 +317,7 @@ bool PCSX::PAD::configure() {
 
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
-        if (ImGui::Button(glfwKeyToString (*getButtonFromGUIIndex(i+10, type), i+10).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
+        if (ImGui::Button(keyToString (*getButtonFromGUIIndex(i+10, type), i+10, type).c_str(), buttonSize)) {// if the button gets pressed, set this as the button to be configured
             configButton(i + 10); // mark button to be configured
             changed = true;
         }
@@ -330,6 +325,21 @@ bool PCSX::PAD::configure() {
     }
 
     ImGui::End();
+    
+    if (configuringButton && (type == Pad1_Controller || type == Pad2_Controller)) { // handle joypad rebinding
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_JOYBUTTONDOWN) {
+                printf("Setting PS1 button %s to joypad button %d", buttonNames[configuredButtonIndex], event.cbutton.button); // REMOVE AFTER DEBUGGING
+                auto* button = getButtonFromGUIIndex(configuredButtonIndex, type); // get reference to the button that we want to change
+                *button = event.cbutton.button; // change the button's mapping
+                save = true; // tell the program to save
+                configuringButton = false; // Now that we changed the binding, we're not configuring a button anymore
+                break;
+            }
+        }
+    }
+
     if (save) { // check if a button was rebinded
         save = false;
         return true;
@@ -348,9 +358,13 @@ void PCSX::PAD::configButton(int index) {
 void PCSX::PAD::updateBinding(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (!configuringButton) // if we're not configuring a button, exit early
         return;
+
+    const auto type = settings.get<SettingSelectedPad>();
+    if (type == Pad1_Controller || type == Pad2_Controller) // if we're configuring a controller and not the keyboard, exit early
+        return;
     
-    *getButtonFromGUIIndex(configuredButtonIndex, settings.get<SettingSelectedPad>().value) = key; // set the scancode of the button that's being configured
-    configuringButton = false;
+    *getButtonFromGUIIndex(configuredButtonIndex, type) = key; // set the scancode of the button that's being configured
+    configuringButton = false; // since we changed the mapping, we're not configuring a button anymore
     save = true; // tell the GUI we need to save the new config
 }
 
@@ -438,19 +452,39 @@ int* PCSX::PAD::getButtonFromGUIIndex(int buttonIndex, pad_config_option_t confi
     else printf ("Invalid joypad number. This is neither joypad 1 nor 2");
 }
 
-/// GLFW doesn't support converting some of the most common keys to strings
-/// GLFW Key: A GLFW Key
+/// GLFW doesn't support converting some of the most common keys to strings, and neither does the SDL controller API
+/// Key: The scancode of a GLFW key or an SDL controller button
 /// Index: The button's id (used for when there's multiple buttons with the same label)
-std::string PCSX::PAD::glfwKeyToString(int glfwKey, int index) {
-    switch (glfwKey) { 
+/// ConfigOption: Are we configuring a controller or the keyboard
+std::string PCSX::PAD::keyToString(int key, int index, pad_config_option_t configOption) {
+    if (configOption == Pad1_Controller || configOption == Pad2_Controller) { // if it's a controller button
+        switch (key) {
+            case SDL_CONTROLLER_BUTTON_INVALID: return fmt::format("Unmapped##{}", index);
+            case SDL_CONTROLLER_BUTTON_START: return fmt::format("Start##{}", index);
+            case SDL_CONTROLLER_BUTTON_BACK: return fmt::format("Select##{}", index);
+            case SDL_CONTROLLER_BUTTON_DPAD_UP: return fmt::format("D-Pad Up##{}", index);
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: return fmt::format("D-Pad Right##{}", index);
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN: return fmt::format("D-Pad Down##{}", index);
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return fmt::format("D-Pad Left##{}", index);
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return fmt::format("Left Shoulder##{}", index);
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return fmt::format("Right Shoulder##{}", index);
+            
+            default: return fmt::format("Controller button {}##{}", key, index);
+        }
+    }
+
+    // else if it is a keyboard key
+    switch (key) {  // define strings for some common keys that are not supported by glfwGetKeyName
         case GLFW_KEY_UP: return fmt::format("Keyboard Up##{}", index);
         case GLFW_KEY_RIGHT:return fmt::format("Keyboard Right##{}", index);
         case GLFW_KEY_DOWN: return fmt::format("Keyboard Down##{}", index);
         case GLFW_KEY_LEFT: return fmt::format("Keyboard Left##{}", index);
         case GLFW_KEY_BACKSPACE: return fmt::format("Keyboard Backspace##{}", index);
         case GLFW_KEY_ENTER: return fmt::format("Keyboard Enter##{}", index);
-        default: {
-            auto keyName = glfwGetKeyName(glfwKey, 0);
+        case GLFW_KEY_SPACE: return fmt::format("Keyboard Space##{}", index);
+
+        default: { // handle the rest of the buttons
+            auto keyName = glfwGetKeyName(key, 0);
             if (keyName == nullptr) 
                 return fmt::format("Keyboard Unknown##{}", index);
 

@@ -64,7 +64,7 @@ class PAD {
     void mapScancodes(); // load keyboard bindings
     void configButton(int index); // pick the button to config
     static int* getButtonFromGUIIndex(int buttonIndex, pad_config_option_t configOption);
-    static std::string glfwKeyToString(int glfwKey, int index);
+    static std::string keyToString(int key, int index, pad_config_option_t configOption);
 
     pad_t m_padIdx = PAD1;
 
@@ -135,7 +135,7 @@ public:
     typedef Setting<int, TYPESTRING("Controller_Pad1L2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad1L2;
     typedef Setting<int, TYPESTRING("Controller_Pad1R1"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER> Controller_Pad1R1;
     typedef Setting<int, TYPESTRING("Controller_Pad1R2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad1R2;
-
+    
     // Pad 2 controller bindings
     typedef Setting<int, TYPESTRING("Controller_Pad2Up"), SDL_CONTROLLER_BUTTON_DPAD_UP> Controller_Pad2Up;
     typedef Setting<int, TYPESTRING("Controller_Pad2Right"), SDL_CONTROLLER_BUTTON_DPAD_RIGHT> Controller_Pad2Right;
