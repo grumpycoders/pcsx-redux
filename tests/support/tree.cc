@@ -122,6 +122,8 @@ TEST(BasicTree, Shuffle) {
         v += P;
     }
 
+    EXPECT_EQ(tree.size(), COUNT / 2);
+
     tree.destroyAll();
     EXPECT_TRUE(tree.empty());
 }

@@ -21,6 +21,8 @@
 
 // This code is basically a mindless implementation of
 // "Introduction to Algorithms, 3rd Edition", chapters 12 and 14.
+// The interval trees from chapter 14 had to be heavily adapted,
+// in order to properly maintain the max attribute.
 
 const PCSX::Intrusive::BaseTree::BaseNode* PCSX::Intrusive::BaseTree::next(
     const PCSX::Intrusive::BaseTree::BaseNode* x) const {
@@ -98,10 +100,8 @@ void PCSX::Intrusive::BaseTree::leftRotate(PCSX::Intrusive::BaseTree::BaseNode* 
     }
     y->m_left = x;
     x->m_parent = y;
-    y->setMax(x);
-    x->rebaseMaxToHigh();
-    if (x->m_left != m_nil) x->bumpMax(x->m_left);
-    if (x->m_right != m_nil) x->bumpMax(x->m_right);
+    y->setMinMax(x);
+    regenerateMinMax(x);
 }
 
 void PCSX::Intrusive::BaseTree::rightRotate(PCSX::Intrusive::BaseTree::BaseNode* const x) {
@@ -118,10 +118,8 @@ void PCSX::Intrusive::BaseTree::rightRotate(PCSX::Intrusive::BaseTree::BaseNode*
     }
     y->m_right = x;
     x->m_parent = y;
-    y->setMax(x);
-    x->rebaseMaxToHigh();
-    if (x->m_left != m_nil) x->bumpMax(x->m_left);
-    if (x->m_right != m_nil) x->bumpMax(x->m_right);
+    y->setMinMax(x);
+    regenerateMinMax(x);
 }
 
 void PCSX::Intrusive::BaseTree::insertInternal(PCSX::Intrusive::BaseTree::BaseNode* const z) {
@@ -129,7 +127,7 @@ void PCSX::Intrusive::BaseTree::insertInternal(PCSX::Intrusive::BaseTree::BaseNo
     BaseNode* x = m_root;
     while (x != m_nil) {
         y = x;
-        y->bumpMax(z);
+        y->bumpMinMax(z);
         if (z->cmp(x) < 0) {
             x = x->m_left;
         } else {
@@ -209,9 +207,11 @@ void PCSX::Intrusive::BaseTree::deleteInternal(PCSX::Intrusive::BaseTree::BaseNo
     if (z->m_left == m_nil) {
         x = z->m_right;
         transplant(z, z->m_right);
+        regenerateMinMax(z->m_parent);
     } else if (z->m_right == m_nil) {
         x = z->m_left;
         transplant(z, z->m_left);
+        regenerateMinMax(z->m_parent);
     } else {
         y = z->m_right;
         while (y->m_left != m_nil) y = y->m_left;
@@ -228,7 +228,9 @@ void PCSX::Intrusive::BaseTree::deleteInternal(PCSX::Intrusive::BaseTree::BaseNo
         y->m_left = z->m_left;
         y->m_left->m_parent = y;
         y->m_color = z->m_color;
+        regenerateMinMax(y);
     }
+    regenerateMinMax(x);
     if (o == BaseNode::Color::BLACK) deleteFixup(x);
 }
 
@@ -285,4 +287,13 @@ void PCSX::Intrusive::BaseTree::deleteFixup(PCSX::Intrusive::BaseTree::BaseNode*
         }
     }
     x->m_color = BaseNode::Color::BLACK;
+}
+
+void PCSX::Intrusive::BaseTree::regenerateMinMax(PCSX::Intrusive::BaseTree::BaseNode* x) {
+    while (x != m_nil) {
+        x->rebaseMaxToHigh();
+        if (x->m_left != m_nil) x->bumpMinMax(x->m_left);
+        if (x->m_right != m_nil) x->bumpMinMax(x->m_right);
+        x = x->m_parent;
+    }
 }
