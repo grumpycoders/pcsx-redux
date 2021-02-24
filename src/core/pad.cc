@@ -136,6 +136,17 @@ PCSX::PAD::~PAD() {}
 
 static const int16_t threshold = 28000;
 
+/// Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
+/// Given that we need to handle both axis and buttons in a common way but SDL doesn't offer that capability
+/// We do it ourselves
+bool PCSX::PAD::isControllerButtonPressed(int scancode) { 
+    switch (scancode) {
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER2: return SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) >= TRIGGER_DEADZONE;
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2: return SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) >= TRIGGER_DEADZONE;        
+        default: return SDL_GameControllerGetButton(m_pad, (SDL_GameControllerButton)m_padMapping[scancode]); // normal buttons
+    }
+}
+
 uint16_t PCSX::PAD::getButtons() {
     uint16_t result = 0xffff;
     if (!m_connected) return result;
@@ -146,7 +157,7 @@ uint16_t PCSX::PAD::getButtons() {
         for (unsigned i = 0; i < 16; i++) result |= !(keys[m_scancodes[i]]) << i;
     } else if (m_pad) {
         bool buttons[16];
-        for (unsigned i = 0; i < 16; i++) buttons[i] = (SDL_GameControllerGetButton(m_pad, (SDL_GameControllerButton) m_padMapping[i]));
+        for (unsigned i = 0; i < 16; i++) buttons[i] = isControllerButtonPressed(i);
         Sint16 axisX, axisY, trL, trR;
         axisX = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_LEFTX);
         axisY = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_LEFTY);
@@ -281,7 +292,7 @@ bool PCSX::PAD::configure() {
 
     const auto buttonSize = ImVec2(200, 30); // Nice button size for every button so that it's aligned
 
-    ImGui::Text("Configure buttons");
+    ImGui::Text(_("Configure buttons"));
     for (auto i = 0; i < 10;) { // render the GUI for 2 buttons at a time. 2 buttons per line.
         ImGui::Text(buttonNames[i]);
         ImGui::SameLine();
@@ -303,7 +314,7 @@ bool PCSX::PAD::configure() {
     }
 
     ImGui::NewLine();
-    ImGui::Text("Configure dpad");
+    ImGui::Text(_("Configure dpad"));
     for (auto i = 0; i < 4;) { // render the GUI for 2 dpad directions at a time. 2 buttons per line.
         ImGui::Text(dpadDirections[i]);
         ImGui::SameLine();        
@@ -330,12 +341,25 @@ bool PCSX::PAD::configure() {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_JOYBUTTONDOWN) {
-                printf("Setting PS1 button %s to joypad button %d", buttonNames[configuredButtonIndex], event.cbutton.button); // REMOVE AFTER DEBUGGING
                 auto* button = getButtonFromGUIIndex(configuredButtonIndex, type); // get reference to the button that we want to change
                 *button = event.cbutton.button; // change the button's mapping
                 save = true; // tell the program to save
                 configuringButton = false; // Now that we changed the binding, we're not configuring a button anymore
                 break;
+            }
+
+            else if (event.type == SDL_JOYAXISMOTION) { // L2 and R2 are not actually buttons on most controllers, but axis. Pain.
+                if (event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT && event.jaxis.value >= TRIGGER_DEADZONE) {
+                    *getButtonFromGUIIndex(configuredButtonIndex, type) = SDL_CONTROLLER_BUTTON_LEFTSHOULDER2; // change the button's mapping to our custom L2 scancode
+                    save = true; 
+                    configuringButton = false;
+                }
+
+                else if (event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT && event.jaxis.value >= TRIGGER_DEADZONE) {
+                    *getButtonFromGUIIndex(configuredButtonIndex, type) = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2; // change the button's mapping to our custom L2 scancode
+                    save = true; 
+                    configuringButton = false;
+                }
             }
         }
     }
@@ -468,6 +492,8 @@ std::string PCSX::PAD::keyToString(int key, int index, pad_config_option_t confi
             case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return fmt::format("D-Pad Left##{}", index);
             case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return fmt::format("Left Shoulder##{}", index);
             case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return fmt::format("Right Shoulder##{}", index);
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER2: return fmt::format("Left Shoulder 2##{}", index);
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2: return fmt::format("Right Shoulder 2##{}", index);
             
             default: return fmt::format("Controller button {}##{}", key, index);
         }

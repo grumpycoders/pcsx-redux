@@ -80,6 +80,13 @@ class PAD {
     unsigned char m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     unsigned char m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
     unsigned char m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    const int16_t TRIGGER_DEADZONE = INT16_MAX; // The L2/R2 buttons on typical gamepads are actually axis. This variable sets a threshold that decides
+                                                // How pressed a trigger button needs to be in order to actually be considered pressed. INT16_MAX means that it should be fully pulled down.
+    
+    /// In order to use the axis as regular buttons, we're going to define our own scancodes using some of SDL's reserved ones that will never be used by the library
+    static const int SDL_CONTROLLER_BUTTON_LEFTSHOULDER2 = -2; 
+    static const int SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2 = -3;
+    bool isControllerButtonPressed(int scancode);
 
     int m_bufcount, m_bufc; 
 public:
@@ -132,9 +139,9 @@ public:
     typedef Setting<int, TYPESTRING("Controller_Pad1Select"), SDL_CONTROLLER_BUTTON_BACK> Controller_Pad1Select;
     typedef Setting<int, TYPESTRING("Controller_Pad1Sstart"), SDL_CONTROLLER_BUTTON_START> Controller_Pad1Start;
     typedef Setting<int, TYPESTRING("Controller_Pad1L1"), SDL_CONTROLLER_BUTTON_LEFTSHOULDER> Controller_Pad1L1;
-    typedef Setting<int, TYPESTRING("Controller_Pad1L2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad1L2;
+    typedef Setting<int, TYPESTRING("Controller_Pad1L2"), SDL_CONTROLLER_BUTTON_LEFTSHOULDER2> Controller_Pad1L2;
     typedef Setting<int, TYPESTRING("Controller_Pad1R1"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER> Controller_Pad1R1;
-    typedef Setting<int, TYPESTRING("Controller_Pad1R2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad1R2;
+    typedef Setting<int, TYPESTRING("Controller_Pad1R2"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2> Controller_Pad1R2;
     
     // Pad 2 controller bindings
     typedef Setting<int, TYPESTRING("Controller_Pad2Up"), SDL_CONTROLLER_BUTTON_DPAD_UP> Controller_Pad2Up;
@@ -148,9 +155,9 @@ public:
     typedef Setting<int, TYPESTRING("Controller_Pad2Select"), SDL_CONTROLLER_BUTTON_BACK> Controller_Pad2Select;
     typedef Setting<int, TYPESTRING("Controller_Pad2Sstart"), SDL_CONTROLLER_BUTTON_START> Controller_Pad2Start;
     typedef Setting<int, TYPESTRING("Controller_Pad2L1"), SDL_CONTROLLER_BUTTON_LEFTSHOULDER> Controller_Pad2L1;
-    typedef Setting<int, TYPESTRING("Controller_Pad2L2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad2L2;
+    typedef Setting<int, TYPESTRING("Controller_Pad2L2"), SDL_CONTROLLER_BUTTON_LEFTSHOULDER2> Controller_Pad2L2;
     typedef Setting<int, TYPESTRING("Controller_Pad2R1"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER> Controller_Pad2R1;
-    typedef Setting<int, TYPESTRING("Controller_Pad2R2"), SDL_CONTROLLER_BUTTON_INVALID> Controller_Pad2R2;
+    typedef Setting<int, TYPESTRING("Controller_Pad2R2"), SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2> Controller_Pad2R2;
     typedef Setting<pad_config_option_t, TYPESTRING("SelectedPad"), Pad1_Keyboard> SettingSelectedPad;
 
     static Settings<Keyboard_Pad1Up, Keyboard_Pad1Right, Keyboard_Pad1Down, Keyboard_Pad1Left, Keyboard_Pad1Cross, Keyboard_Pad1Triangle, Keyboard_Pad1Square, Keyboard_Pad1Circle, Keyboard_Pad1Select, Keyboard_Pad1Start, Keyboard_Pad1L1, Keyboard_Pad1L2, Keyboard_Pad1R1, Keyboard_Pad1R2,
