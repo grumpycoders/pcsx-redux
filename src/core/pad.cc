@@ -349,16 +349,12 @@ bool PCSX::PAD::configure() {
             }
 
             else if (event.type == SDL_JOYAXISMOTION) { // L2 and R2 are not actually buttons on most controllers, but axis. Pain.
-                if (event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT && event.jaxis.value >= TRIGGER_DEADZONE) {
-                    *getButtonFromGUIIndex(configuredButtonIndex, type) = SDL_CONTROLLER_BUTTON_LEFTSHOULDER2; // change the button's mapping to our custom L2 scancode
+                if ((event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) && event.jaxis.value >= TRIGGER_DEADZONE) {
+                    const auto key = (event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) ? SDL_CONTROLLER_BUTTON_LEFTSHOULDER2 : SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2;
+                    *getButtonFromGUIIndex(configuredButtonIndex, type) = key; // change the button's mapping to our custom L2 scancode
                     save = true; 
                     configuringButton = false;
-                }
-
-                else if (event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT && event.jaxis.value >= TRIGGER_DEADZONE) {
-                    *getButtonFromGUIIndex(configuredButtonIndex, type) = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2; // change the button's mapping to our custom L2 scancode
-                    save = true; 
-                    configuringButton = false;
+                    break;
                 }
             }
         }
