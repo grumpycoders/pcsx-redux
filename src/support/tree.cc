@@ -25,65 +25,41 @@
 // in order to properly maintain the max attribute.
 
 const PCSX::Intrusive::BaseTree::BaseNode* PCSX::Intrusive::BaseTree::next(
-    const PCSX::Intrusive::BaseTree::BaseNode* x) const {
+    const PCSX::Intrusive::BaseTree::BaseNode* x, const PCSX::Intrusive::BaseTree::BaseNode* interval) const {
     const BaseNode* y;
-    y = x->m_right;
-    if (y != m_nil) {
-        while (y->m_left != m_nil) y = y->m_left;
-    } else {
-        y = x->m_parent;
-        while ((y != m_nil) && (x == y->m_right)) {
-            x = y;
-            y = y->m_parent;
+    do {
+        y = x->m_right;
+        if (y != m_nil && y->overlapsMax(interval)) {
+            while (y->m_left != m_nil) y = y->m_left;
+        } else {
+            y = x->m_parent;
+            while ((y != m_nil) && (x == y->m_right)) {
+                x = y;
+                y = y->m_parent;
+            }
         }
-    }
-    return y;
+        x = y;
+    } while ((x != m_nil) && !x->overlaps(interval));
+    return x;
 }
 
-const PCSX::Intrusive::BaseTree::BaseNode* PCSX::Intrusive::BaseTree::prev(
-    const PCSX::Intrusive::BaseTree::BaseNode* x) const {
-    const BaseNode* y;
-    y = x->m_left;
-    if (y != m_nil) {
-        while (y->m_right != m_nil) y = y->m_right;
-    } else {
-        y = x->m_parent;
-        while ((y != m_nil) && (x == y->m_left)) {
-            x = y;
-            y = y->m_parent;
-        }
-    }
-    return y;
-}
-
-PCSX::Intrusive::BaseTree::BaseNode* PCSX::Intrusive::BaseTree::next(PCSX::Intrusive::BaseTree::BaseNode* x) const {
+PCSX::Intrusive::BaseTree::BaseNode* PCSX::Intrusive::BaseTree::next(
+    PCSX::Intrusive::BaseTree::BaseNode* x, const PCSX::Intrusive::BaseTree::BaseNode* interval) const {
     BaseNode* y;
-    y = x->m_right;
-    if (y != m_nil) {
-        while (y->m_left != m_nil) y = y->m_left;
-    } else {
-        y = x->m_parent;
-        while ((y != m_nil) && (x == y->m_right)) {
-            x = y;
-            y = y->m_parent;
+    do {
+        y = x->m_right;
+        if (y != m_nil && y->overlapsMax(interval)) {
+            while (y->m_left != m_nil) y = y->m_left;
+        } else {
+            y = x->m_parent;
+            while ((y != m_nil) && (x == y->m_right)) {
+                x = y;
+                y = y->m_parent;
+            }
         }
-    }
-    return y;
-}
-
-PCSX::Intrusive::BaseTree::BaseNode* PCSX::Intrusive::BaseTree::prev(PCSX::Intrusive::BaseTree::BaseNode* x) const {
-    BaseNode* y;
-    y = x->m_left;
-    if (y != m_nil) {
-        while (y->m_right != m_nil) y = y->m_right;
-    } else {
-        y = x->m_parent;
-        while ((y != m_nil) && (x == y->m_left)) {
-            x = y;
-            y = y->m_parent;
-        }
-    }
-    return y;
+        x = y;
+    } while ((x != m_nil) && !x->overlaps(interval));
+    return x;
 }
 
 void PCSX::Intrusive::BaseTree::leftRotate(PCSX::Intrusive::BaseTree::BaseNode* const x) {

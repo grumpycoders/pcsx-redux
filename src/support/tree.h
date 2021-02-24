@@ -35,9 +35,8 @@ class BaseTree {
       public:
         virtual ~BaseNode() {}
         virtual int cmp(const BaseNode* o) const = 0;
-        virtual int cmpHigh(const BaseNode* o) const = 0;
-        virtual int cmpMax(const BaseNode* o) const = 0;
         virtual bool overlaps(const BaseNode* o) const = 0;
+        virtual bool overlapsMax(const BaseNode* o) const = 0;
         virtual void bumpMinMax(const BaseNode* o) = 0;
         virtual void setMinMax(const BaseNode* o) = 0;
         virtual void rebaseMaxToHigh() = 0;
@@ -45,19 +44,17 @@ class BaseTree {
         BaseNode *m_left = nullptr, *m_right = nullptr, *m_parent = nullptr;
         enum class Color { BLACK, RED } m_color = Color::BLACK;
         BaseTree* m_tree = nullptr;
-        const BaseNode* next() const { return m_tree->next(this); }
-        const BaseNode* prev() const { return m_tree->prev(this); }
-        BaseNode* next() { return m_tree->next(this); }
-        BaseNode* prev() { return m_tree->prev(this); }
+        const BaseNode* next(const BaseNode* interval) const { return m_tree->next(this, interval); }
+        BaseNode* next(const BaseNode* interval) { return m_tree->next(this, interval); }
     };
 
     BaseTree(BaseNode* nil) : m_nil(nil), m_root(nil) {}
     virtual ~BaseTree() {}
 
-    const BaseNode* next(const BaseNode*) const;
-    const BaseNode* prev(const BaseNode*) const;
-    BaseNode* next(BaseNode*) const;
-    BaseNode* prev(BaseNode*) const;
+    const BaseNode* next(const BaseNode*, const BaseNode* interval) const;
+    const BaseNode* prev(const BaseNode*, const BaseNode* interval) const;
+    BaseNode* next(BaseNode*, const BaseNode* interval) const;
+    BaseNode* prev(BaseNode*, const BaseNode* interval) const;
 
     void leftRotate(BaseNode* const x);
     void rightRotate(BaseNode* const x);
@@ -73,7 +70,7 @@ class BaseTree {
     BaseNode* const m_nil = nullptr;
 };
 
-template <typename Key, class T>
+template <typename Key, class T, class limits = std::numeric_limits<Key>>
 class Tree final : public BaseTree {
   public:
     class Node : public BaseTree::BaseNode {
@@ -86,14 +83,19 @@ class Tree final : public BaseTree {
         bool isLinked() const { return m_tree; }
         void unlink() {
             if (!isLinked()) return;
-            Tree<Key, T>* tree = dynamic_cast<Tree<Key, T>*>(m_tree);
+            Tree<Key, T, limits>* tree = dynamic_cast<Tree<Key, T, limits>*>(m_tree);
             tree->unlink(this);
         }
         const Key& getLow() { return m_low; }
         const Key& getHigh() { return m_high; }
 
       private:
-        int cmp(const Key& o) const {
+        int cmpMin(const Key& o) const {
+            if (m_min < o) return -1;
+            if (m_min == o) return 0;
+            return 1;
+        }
+        int cmpLow(const Key& o) const {
             if (m_low < o) return -1;
             if (m_low == o) return 0;
             return 1;
@@ -110,19 +112,15 @@ class Tree final : public BaseTree {
         }
         virtual int cmp(const BaseNode* o_) const final override {
             const Node* o = dynamic_cast<const Node*>(o_);
-            return cmp(o->m_low);
-        }
-        virtual int cmpHigh(const BaseNode* o_) const final override {
-            const Node* o = dynamic_cast<const Node*>(o_);
-            return cmpHigh(o->m_low);
-        }
-        virtual int cmpMax(const BaseNode* o_) const final override {
-            const Node* o = dynamic_cast<const Node*>(o_);
-            return cmpMax(o->m_low);
+            return cmpLow(o->m_low);
         }
         virtual bool overlaps(const BaseNode* o_) const final override {
             const Node* o = dynamic_cast<const Node*>(o_);
-            return cmp(o->m_high) <= 0 && cmpHigh(o->m_low) >= 0;
+            return cmpLow(o->m_high) <= 0 && cmpHigh(o->m_low) >= 0;
+        }
+        virtual bool overlapsMax(const BaseNode* o_) const final override {
+            const Node* o = dynamic_cast<const Node*>(o_);
+            return cmpMin(o->m_high) <= 0 && cmpMax(o->m_low) >= 0;
         }
         virtual void bumpMinMax(const BaseNode* o_) final override {
             const Node* o = dynamic_cast<const Node*>(o_);
@@ -146,18 +144,34 @@ class Tree final : public BaseTree {
     template <class Derived, class Base>
     class IteratorBase final {
       public:
-        typedef std::bidirectional_iterator_tag iterator_category;
+        typedef std::forward_iterator_tag iterator_category;
         typedef Derived value_type;
         typedef ptrdiff_t difference_type;
         typedef Derived* pointer;
         typedef Derived& reference;
 
-        IteratorBase(Base* node = nullptr) : m_node(node) { static_assert(std::is_base_of<Base, Derived>::value); }
+        IteratorBase(const IteratorBase& src) : m_node(src.m_node) {
+            m_interval.m_min = src.m_interval.m_min;
+            m_interval.m_low = src.m_interval.m_low;
+            m_interval.m_high = src.m_interval.m_high;
+            m_interval.m_max = src.m_interval.m_max;
+        }
+        IteratorBase(Base* node, Base& interval) : m_node(node) {
+            static_assert(std::is_base_of<Base, Derived>::value);
+            m_interval.m_min = interval.m_min;
+            m_interval.m_low = interval.m_low;
+            m_interval.m_high = interval.m_high;
+            m_interval.m_max = interval.m_max;
+        }
         template <class srcDerived, class srcBase>
-        IteratorBase(const IteratorBase<srcDerived, srcBase>& src) : m_node(src.m_node) {}
+        IteratorBase(const IteratorBase<srcDerived, srcBase>& src) : m_node(src.m_node), m_interval(src.m_interval) {}
         template <class srcDerived, class srcBase>
         IteratorBase& operator=(const IteratorBase<srcDerived, srcBase>& src) {
             m_node = src.m_node;
+            m_interval.m_min = src.m_interval.m_min;
+            m_interval.m_low = src.m_interval.m_low;
+            m_interval.m_high = src.m_interval.m_high;
+            m_interval.m_max = src.m_interval.m_max;
             return *this;
         }
         template <class srcDerived, class srcBase>
@@ -171,27 +185,19 @@ class Tree final : public BaseTree {
         Derived& operator*() const { return *static_cast<Derived*>(m_node); }
         Derived* operator->() const { return static_cast<Derived*>(m_node); }
         IteratorBase& operator++() {
-            m_node = dynamic_cast<Base*>(m_node->next());
+            m_node = dynamic_cast<Base*>(m_node->next(&m_interval));
             return *this;
         }
         IteratorBase operator++(int) {
-            IteratorBase copy(*this);
-            m_node = dynamic_cast<Base*>(m_node->next());
-            return copy;
-        }
-        IteratorBase& operator--() {
-            m_node = dynamic_cast<Base*>(m_node->prev());
-            return *this;
-        }
-        IteratorBase operator--(int) {
-            IteratorBase copy(*this);
-            m_node = dynamic_cast<Base*>(m_node->prev());
+            IteratorBase copy(m_node, m_interval);
+            m_node = dynamic_cast<Base*>(m_node->next(&m_interval));
             return copy;
         }
 
         friend class Tree;
 
         Base* m_node = nullptr;
+        Node m_interval;
     };
 
     Node m_nil;
@@ -206,28 +212,29 @@ class Tree final : public BaseTree {
         nil->m_right = nil;
         nil->m_parent = nil;
         nil->m_tree = nullptr;
-        nil->m_min = nil->m_low = nil->m_high = nil->m_max = std::numeric_limits<Key>::min();
+        nil->m_min = nil->m_low = limits::min();
+        nil->m_high = nil->m_max = limits::max();
     }
 
     unsigned size() { return m_count; }
     iterator begin() {
         BaseNode* min = m_root;
         while (min->m_left != &m_nil) min = min->m_left;
-        return iterator(dynamic_cast<Node*>(min));
+        return iterator(dynamic_cast<Node*>(min), m_nil);
     }
     const_iterator begin() const {
         const BaseNode* min = m_root;
         while (min->m_left != &m_nil) min = min->m_left;
-        return const_iterator(dynamic_cast<const Node*>(min));
+        return const_iterator(dynamic_cast<const Node*>(min), m_nil);
     }
     const_iterator cbegin() const {
         const BaseNode* min = m_root;
         while (min->m_left != &m_nil) min = min->m_left;
-        return const_iterator(dynamic_cast<const Node*>(min));
+        return const_iterator(dynamic_cast<const Node*>(min), m_nil);
     }
-    iterator end() { return iterator(&m_nil); }
-    const_iterator end() const { return const_iterator(&m_nil); }
-    const_iterator cend() const { return const_iterator(&m_nil); }
+    iterator end() { return iterator(&m_nil, m_nil); }
+    const_iterator end() const { return const_iterator(&m_nil, m_nil); }
+    const_iterator cend() const { return const_iterator(&m_nil, m_nil); }
     bool empty() const { return m_count == 0; }
     void clear() {
         while (m_count) unlink(m_root);
@@ -243,7 +250,7 @@ class Tree final : public BaseTree {
         insertInternal(z);
 
         m_count++;
-        return iterator(z);
+        return iterator(z, m_nil);
     }
     iterator insert(const Key& low, const Key& high, Node* const z) {
         z->unlink();
@@ -256,7 +263,7 @@ class Tree final : public BaseTree {
         insertInternal(z);
 
         m_count++;
-        return iterator(z);
+        return iterator(z, m_nil);
     }
     iterator find(const Key& key) {
         Node cmp;
@@ -266,21 +273,37 @@ class Tree final : public BaseTree {
         while ((p != &m_nil) && ((c = p->cmp(&cmp)) != 0)) {
             p = c < 0 ? p->m_right : p->m_left;
         }
-        return dynamic_cast<Node*>(p);
+        return iterator(dynamic_cast<Node*>(p), m_nil);
+    }
+    const_iterator find(const Key& key) const {
+        Node cmp;
+        cmp.m_low = key;
+        const BaseNode* p = m_root;
+        int c;
+        while ((p != &m_nil) && ((c = p->cmp(&cmp)) != 0)) {
+            p = c < 0 ? p->m_right : p->m_left;
+        }
+        return const_iterator(dynamic_cast<Node*>(p), m_nil);
     }
     iterator find(const Key& low, const Key& high) {
-        Node cmp;
-        cmp.m_low = low;
-        cmp.m_high = high;
-        BaseNode* p = m_root;
-        while ((p != &m_nil) && !p->overlaps(&cmp)) {
-            if ((p->m_left != &m_nil) && (p->m_left->cmpMax(&cmp) >= 0)) {
-                p = p->m_left;
-            } else {
-                p = p->m_right;
-            }
-        }
-        return dynamic_cast<Node*>(p);
+        Node interval;
+        interval.m_low = interval.m_min = low;
+        interval.m_high = interval.m_max = high;
+        BaseNode* first = m_root;
+        while (first != &m_nil && first->overlapsMax(&interval)) first = first->m_left;
+        iterator ret(dynamic_cast<Node*>(first), interval);
+        if (!ret->overlaps(&interval)) ret++;
+        return ret;
+    }
+    const_iterator find(const Key& low, const Key& high) const {
+        Node interval;
+        interval.m_low = interval.m_min = low;
+        interval.m_high = interval.m_max = high;
+        const BaseNode* first = m_root;
+        while (first != &m_nil && first->overlapsMax(&interval)) first = first->m_left;
+        const_iterator ret(dynamic_cast<Node*>(first), interval);
+        if (!ret->overlaps(&interval)) ret++;
+        return ret;
     }
     iterator erase(iterator i) {
         Node* node = i.m_node;
