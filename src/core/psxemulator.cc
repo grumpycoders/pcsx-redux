@@ -22,6 +22,7 @@
 #include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/debug.h"
+#include "core/gadp-server.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gte.h"
