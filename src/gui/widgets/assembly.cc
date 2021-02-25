@@ -127,7 +127,7 @@ void PCSX::Widgets::Assembly::Invalid() {
 void PCSX::Widgets::Assembly::OpCode(const char* str) {
     m_gotArg = false;
     sameLine();
-    if (m_notch) {
+    if (m_notch || m_notchAfterSkip[0]) {
         ImGui::TextDisabled("~");
         ImGui::SameLine();
         ImGui::Text("%-6s", str);
@@ -464,7 +464,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
-            ImGui::MenuItem(_("Pseudo-instrucitons filling"), nullptr, &m_pseudoFilling, m_pseudo);
+            ImGui::MenuItem(_("Pseudo-instructions filling"), nullptr, &m_pseudoFilling, m_pseudo);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(glyphWidth * 35.0f);
@@ -583,7 +583,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             }
             prepend(code, section, addr | base);
             disasm->process(code, nextCode, addr | base, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
-            m_notch = delaySlotNext & m_delaySlotNotch;
+            m_notch = delaySlotNext && m_delaySlotNotch;
+            m_notchAfterSkip[1] = delaySlotNext && m_delaySlotNotch && m_pseudo && skipNext;
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
@@ -715,6 +716,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                     ImGui::TextDisabled("(pseudo)");
                 }
             };
+            m_notchAfterSkip[0] = m_notchAfterSkip[1];
             process(addr, l, this);
         }
     }
