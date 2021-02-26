@@ -88,6 +88,7 @@ class Assembly : private Disasm {
     virtual void Offset(uint32_t addr, int size) final;
     bool m_gotArg = false;
     bool m_notch = false;
+    bool m_notchAfterSkip[2] = {false, false};
     psxRegisters* m_registers;
     uint32_t m_currentAddr = 0;
     bool m_jumpToPC = false;

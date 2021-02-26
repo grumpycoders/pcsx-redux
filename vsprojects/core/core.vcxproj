@@ -193,6 +193,7 @@
     <ClInclude Include="..\..\src\core\stacktrace.h" />
     <ClInclude Include="..\..\src\core\system.h" />
     <ClInclude Include="..\..\src\core\web-server.h" />
+    <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
