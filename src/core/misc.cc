@@ -123,12 +123,11 @@ int GetCdromFile(uint8_t *mdir, uint8_t *time, const char *filename) {
     struct iso_directory_record *dir;
     uint8_t ddir[4096];
     uint8_t *buf;
-    int i;
 
     // only try to scan if a filename is given
     if (!strlen(filename)) return -1;
 
-    i = 0;
+    int i = 0;
     while (i < 4096) {
         dir = (struct iso_directory_record *)&mdir[i];
         if (dir->length[0] == 0) {
@@ -638,8 +637,8 @@ static void split(char *str, char key, char *pout) {
     char *psrc = str;
     char *pdst = pout;
     int len = strlen(str);
-    int i;
-    for (i = 0; i < len; i++) {
+    
+    for (int i = 0; i < len; i++) {
         if (psrc[i] == '\0' || psrc[i] == key) {
             *pdst = '\0';
             break;
@@ -687,9 +686,8 @@ static unsigned short crctab[256] = {
 
 uint16_t calcCrc(uint8_t *d, int len) {
     uint16_t crc = 0;
-    int i;
 
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         crc = crctab[(crc >> 8) ^ d[i]] ^ (crc << 8);
     }
 

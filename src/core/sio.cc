@@ -192,8 +192,7 @@ void PCSX::SIO::writeMcd(uint8_t value) {
                     }
                     {
                         char xorsum = 0;
-                        int i;
-                        for (i = 2; i < 128 + 4; i++) xorsum ^= m_buffer[i];
+                        for (int i = 2; i < 128 + 4; i++) xorsum ^= m_buffer[i];
                         m_buffer[132] = xorsum;
                     }
                     m_buffer[133] = 0x47;

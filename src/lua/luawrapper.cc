@@ -302,8 +302,8 @@ std::string PCSX::Lua::tostring(int i) {
 
 std::string PCSX::Lua::escapeString(const std::string& s) {
     std::string r = "";
-    int i;
-    for (i = 0; i < s.size(); i++) {
+    
+    for (int i = 0; i < s.size(); i++) {
         switch (s[i]) {
             case '"':
             case '\\':
@@ -341,7 +341,6 @@ void PCSX::Lua::load(const std::string& str, const std::string& name, bool docal
 
 void PCSX::Lua::displayStack(bool error) {
     int n = lua_gettop(L);
-    int i;
 
     getfield("IN_DISPLAY_STACK", LUA_REGISTRYINDEX);
     bool isInDisplayStackAlready = toboolean();
@@ -381,7 +380,7 @@ void PCSX::Lua::displayStack(bool error) {
         lua_pushstring(L, error ? "printError" : "print");
         lua_gettable(L, LUA_GLOBALSINDEX);
     }
-    for (i = 1; i <= n; i++) {
+    for (int i = 1; i <= n; i++) {
         int c = 3;
         if (useLuaPrinter) {
             lua_pushvalue(L, -1);
