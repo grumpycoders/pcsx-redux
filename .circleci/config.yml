@@ -8,9 +8,9 @@ jobs:
     docker:
       - image: grumpycoders/pcsx-redux-build:latest
     environment:
-      CC: clang-10
-      CXX: clang++-10
-      LD: clang++-10
+      CC: clang-11
+      CXX: clang++-11
+      LD: clang++-11
       TEST_RESULTS: /tmp/test-results
     steps:
       - checkout
@@ -38,9 +38,9 @@ jobs:
     docker:
       - image: grumpycoders/pcsx-redux-build:latest
     environment:
-      CC: clang-10
-      CXX: clang++-10
-      LD: clang++-10
+      CC: clang-11
+      CXX: clang++-11
+      LD: clang++-11
       LLVM_PROFILE_FILE: /tmp/llvm_profile/profile-%p.profraw
       BUILD: Coverage
     steps:
@@ -64,11 +64,11 @@ jobs:
       - run:
           name: Merge code coverage
           command: |
-            llvm-profdata-10 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
+            llvm-profdata-11 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
       - run:
           name: Convert code coverage
           command: |
-            llvm-cov-10 show ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.txt
+            llvm-cov-11 show ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.txt
       - run:
           name: Upload Code Coverage
           command: |
