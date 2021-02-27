@@ -75,8 +75,8 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         // next 32-bit pointer
         addr = psxMu32(addr & ~0x3) & 0xffffff;
         size += 1;
-    } while (addr != 0xffffff);
-
+    } while (!(addr & 0x800000)); // contrary to some documentation, the end-of-linked-list marker is not actually 0xFF'FFFF
+                                  // any pointer with bit 23 set will do.
     return size;
 }
 
