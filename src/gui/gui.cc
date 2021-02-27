@@ -402,12 +402,16 @@ void PCSX::GUI::startFrame() {
     if (m_reloadFonts) {
         m_reloadFonts = false;
 
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+
         io.Fonts->Clear();
         io.Fonts->AddFontDefault();
         m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io, nullptr);
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;
+
+        ImGui_ImplOpenGL3_CreateFontsTexture();
     }
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -606,7 +610,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
-                // ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
