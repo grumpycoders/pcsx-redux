@@ -2773,7 +2773,6 @@ void X86DynaRecCPU::testSWInt() {
     unsigned slot1 = gen.JE8(0);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32ItoR(PCSX::ix86::EAX, 1);
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
     unsigned slot2 = gen.JE8(0);
     gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
     gen.MOV32RtoM((uint32_t)&m_arg1, PCSX::ix86::EDX);
