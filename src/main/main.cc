@@ -181,6 +181,8 @@ class SystemImpl : public PCSX::System {
     FILE *m_logfile = nullptr;
 
   public:
+    void setBinDir(std::filesystem::path path) { m_binDir = path; }
+
     SystemImpl(const flags::args &args) : m_args(args) {}
     ~SystemImpl() {
         if (m_logfile) fclose(m_logfile);

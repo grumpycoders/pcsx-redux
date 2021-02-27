@@ -36,6 +36,13 @@ steps:
       i18n/*.po
     TargetFolder: '$(build.artifactStagingDirectory)/assets'
 
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      third_party/noto/*
+    TargetFolder: '$(build.artifactStagingDirectory)/assets/fonts'
+    FlattenFolders: true
+
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'

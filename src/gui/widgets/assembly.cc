@@ -33,6 +33,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #include "imgui_stdlib.h"
@@ -128,8 +129,8 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
     m_gotArg = false;
     sameLine();
     if (m_notch || m_notchAfterSkip[0]) {
-        ImGui::TextDisabled("~");
-        ImGui::SameLine();
+        ImGui::TextDisabled("~ ");
+        sameLine();
         ImGui::Text("%-6s", str);
     } else {
         ImGui::Text("%-8s", str);
@@ -343,8 +344,8 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
         std::snprintf(label, sizeof(label), "0x%4.4x($%s)##%08x", offset, s_disRNameGPR[reg], m_currentAddr);
     }
     uint32_t addr = m_registers->GPR.r[reg] + offset;
-    ImGui::TextUnformatted("");
-    ImGui::SameLine();
+    ImGui::TextUnformatted(" ");
+    ImGui::SameLine(0.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(label)) jumpToMemory(addr, size);
     ImGui::PopStyleVar();
@@ -370,8 +371,8 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     comma();
     sameLine();
     char label[21];
-    ImGui::TextUnformatted("");
-    ImGui::SameLine();
+    ImGui::TextUnformatted(" ");
+    sameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     auto symbols = findSymbol(value);
@@ -400,8 +401,8 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     std::string longLabel = label;
     auto symbols = findSymbol(addr);
     if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
-    ImGui::TextUnformatted("");
-    ImGui::SameLine();
+    ImGui::TextUnformatted(" ");
+    sameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
     ImGui::PopStyleVar();
@@ -424,7 +425,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title) {
+void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title) {
     m_registers = registers;
     m_memory = memory;
     ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -527,13 +528,16 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
         }
     }
 
+    gui->useMonoFont();
+
     ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = 0;
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiListClipper clipper(0x00890000 / 4, ImGui::GetTextLineHeightWithSpacing());
+    ImGuiListClipper clipper;
+    clipper.Begin(0x00890000 / 4);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -641,8 +645,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                 }
 
                 for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
-                    ImGui::TextUnformatted("");
-                    ImGui::SameLine();
+                    ImGui::TextUnformatted(" ");
+                    ImGui::SameLine(0.0f, 0.0f);
                 }
 
                 ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -712,8 +716,8 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
                     ImGui::EndPopup();
                 }
                 if (skipNext && m_pseudoFilling) {
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("(pseudo)");
+                    ImGui::SameLine(0.0f, 0.0f);
+                    ImGui::TextDisabled(" (pseudo)");
                 }
             };
             m_notchAfterSkip[0] = m_notchAfterSkip[1];
@@ -826,6 +830,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
     }
     drawList->ChannelsMerge();
     ImGui::EndChild();
+    ImGui::PopFont();
     if (m_jumpToPC) {
         std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPCValue);
     }
@@ -873,7 +878,7 @@ void PCSX::Widgets::Assembly::draw(psxRegisters* registers, Memory* memory, Dwar
             }
         }
         double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
-        double scroll_to_px = pctopx * ImGui::GetTextLineHeightWithSpacing();
+        double scroll_to_px = pctopx * clipper.ItemsHeight;
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC = false;
     }
