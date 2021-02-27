@@ -5,7 +5,7 @@ UNAME_S := $(shell uname -s)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib
+PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib freetype2
 
 LOCALES := fr
 
@@ -29,7 +29,7 @@ CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/uvw/src
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -g
-CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W
+CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W -DIMGUI_ENABLE_FREETYPE
 CPPFLAGS += -include src/forced-includes/imgui.h
 
 CPPFLAGS_Release += -O3
@@ -80,6 +80,7 @@ SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
 SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
+SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRCS += third_party/http-parser/http_parser.c

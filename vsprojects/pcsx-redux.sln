@@ -65,6 +65,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lua", "Lua\Lua.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luv", "luv\luv.vcxproj", "{C17379B6-11B1-43AB-A2EF-234CA1D91297}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "freetype", "freetype\freetype.vcxproj", "{9176A2AF-8586-4D37-B4AA-21E2460709BF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -257,6 +259,14 @@ Global
 		{C17379B6-11B1-43AB-A2EF-234CA1D91297}.Release|x64.Build.0 = Release|x64
 		{C17379B6-11B1-43AB-A2EF-234CA1D91297}.Release|x86.ActiveCfg = Release|Win32
 		{C17379B6-11B1-43AB-A2EF-234CA1D91297}.Release|x86.Build.0 = Release|Win32
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Debug|x64.ActiveCfg = Debug|x64
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Debug|x64.Build.0 = Debug|x64
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Debug|x86.ActiveCfg = Debug|Win32
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Debug|x86.Build.0 = Debug|Win32
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Release|x64.ActiveCfg = Release|x64
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Release|x64.Build.0 = Release|x64
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Release|x86.ActiveCfg = Release|Win32
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -286,9 +296,10 @@ Global
 		{A2833CCC-1DF0-4679-8B6D-4AB8CBB66E3A} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{F0DABAB6-069E-4B31-9BFC-296CE2FE23A6} = {008A2872-432F-480B-828D-FF9AAA4846BC}
 		{C17379B6-11B1-43AB-A2EF-234CA1D91297} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{9176A2AF-8586-4D37-B4AA-21E2460709BF} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 	EndGlobalSection
 EndGlobal
