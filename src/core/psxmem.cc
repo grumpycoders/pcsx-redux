@@ -19,6 +19,11 @@
 
 /*
  * PSX memory functions.
+ * This file implements a technique known as "software fastmem" that's used to speed up memory accesses
+ * In essence, the address space is split into 64KiB "pages", using 2 page tables (one for reads and one for writes)
+ * Some pages are marked as fast (these correspond to memory areas with no special behavior, such as main RAM)
+ * While others are marked as slow (for example IO). On every memory access, the handler checks if tthe address is in a fast page
+ * And if so, it reads/writes directly using a pointer (from the page table), without wasting time on decoding the address
  */
 
 #include "core/psxmem.h"
@@ -423,7 +428,7 @@ void *PCSX::Memory::psxMemPointer(uint32_t mem) {
 
     else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((mem & 0xffff) < 0x400)
-            return (void *)&g_psxH[mem];
+            return (void *)&g_psxH[mem & 0x3FF];
         else
             return nullptr;
     } 
