@@ -406,7 +406,7 @@ void PCSX::GUI::startFrame() {
 
         io.Fonts->Clear();
         io.Fonts->AddFontDefault();
-        m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io, nullptr);
+        m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io, g_system->getLocaleRanges());
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;
@@ -937,12 +937,14 @@ bool PCSX::GUI::configure() {
             if (currentLocale.length() == 0) currentLocale = "English";
             if (ImGui::BeginCombo(_("Locale"), currentLocale.c_str())) {
                 if (ImGui::Selectable("English", currentLocale == "English")) {
+                    m_reloadFonts = true;
                     g_system->activateLocale("English");
                     g_emulator->settings.get<Emulator::SettingLocale>() = "English";
                     changed = true;
                 }
                 for (auto& l : g_system->localesNames()) {
                     if (ImGui::Selectable(l.c_str(), currentLocale == l)) {
+                        m_reloadFonts = true;
                         g_system->activateLocale(l);
                         g_emulator->settings.get<Emulator::SettingLocale>() = l;
                         changed = true;
