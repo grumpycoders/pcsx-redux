@@ -112,7 +112,11 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }
     if (!ret) {
-        auto tryMe = std::filesystem::current_path() / "../../third_party/noto" / path;
+        auto tryMe = g_system->getBinDir() / "fonts" / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
+        auto tryMe = std::filesystem::current_path() / ".." / ".." / "third_party" / "noto" / path;
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }
     std::swap(backup, s_imguiUserErrorFunctor);
@@ -406,7 +410,8 @@ void PCSX::GUI::startFrame() {
 
         io.Fonts->Clear();
         io.Fonts->AddFontDefault();
-        m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io, g_system->getLocaleRanges());
+        m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io,
+                              g_system->getLocaleRanges());
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;
