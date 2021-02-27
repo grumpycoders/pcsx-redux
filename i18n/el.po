@@ -1,0 +1,1553 @@
+# 
+# Translators:
+# Γιωργος Πονηρης <gponiris2004@gmail.com>, 2021
+# 
+msgid ""
+msgstr ""
+"Last-Translator: Γιωργος Πονηρης <gponiris2004@gmail.com>, 2021\n"
+"Language-Team: Greek (https://www.transifex.com/grumpycoders/teams/99251/el/)\n"
+"Language: el\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/core/psxmem.cc:123
+msgid ""
+"\n"
+"                   No BIOS loaded, emulation halted.\n"
+"\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
+msgstr ""
+"\n"
+"                Κανένα αρχείο BIOS δεν έχει φορτωθεί, η εξομοίωση σταμάτησε\n"
+"\n"
+"Επιλέξτε ένα αρχείο BIOS στις ρυθμίσεις και επανεκκινήστε τον εξομοιωτή\n"
+"Το διαμοιρασμένο αρχείο OpenBIOS.bin μπορεί να χρησιμοποιηθεί ως μία κατάλληλη αντικατάσταησ του BIOS.\n"
+
+#: src/core/cdriso.cc:1686
+#, c-format
+msgid ""
+"\n"
+"Detected ECM file with proper header and filename suffix.\n"
+msgstr ""
+"\n"
+"Ανιχνεύτηκε αρχείο ECM με κατάλληλη επικεφαλίδα και επέκταση αρχείου\n"
+
+#: src/core/cdriso.cc:809
+#, c-format
+msgid ""
+"\n"
+"could not open: %s\n"
+msgstr ""
+"\n"
+"Αδυναμία ανοίγματος: %s\n"
+
+#: src/gui/widgets/filedialog.cc:267
+msgid "  Date & Time"
+msgstr "Ημερομηνία και ώρα"
+
+#: src/gui/widgets/filedialog.cc:211
+msgid "  File"
+msgstr "Αρχείο"
+
+#: src/gui/widgets/filedialog.cc:239
+msgid "  Size"
+msgstr "Μέγεθος"
+
+#: src/gui/gui.cc:639
+#, c-format
+msgid "%.2f FPS (%.2f ms)"
+msgstr "%.2f FPS (%.2f ms)"
+
+#: src/core/cheat.cc:289 src/core/cheat.cc:404
+msgid "(Untitled)"
+msgstr "(Χωρίς τίτλο)`"
+
+#: src/gui/widgets/vram-viewer.cc:471
+msgid "24 bits shift"
+msgstr ""
+
+#: src/gui/gui.cc:922
+msgid "8MB"
+msgstr "8MB"
+
+#: src/gui/gui.cc:629 src/gui/gui.cc:1157
+msgid "About"
+msgstr "Σχετικά"
+
+#: src/spu/cfg.cc:60
+msgid "Accurate - best quality, but slower"
+msgstr "Ακριβές - καλύτερη ποιότητα αλλά πιο αργό"
+
+#: src/gui/gui.cc:916
+msgid ""
+"Activates the dynamic-recompiler CPU core.\n"
+"It is significantly faster than the interpreted CPU,\n"
+"however it doesn't play nicely with the debugger.\n"
+"Changing this setting requires a reboot to take effect.\n"
+"The dynarec core isn't available for all CPUs, so\n"
+"this setting may not have any effect for you."
+msgstr ""
+
+#: src/core/cdriso.cc:528
+#, c-format
+msgid "Actual %i vs. %i estimated\n"
+msgstr "Πραγματικο %i. Αναμενόμενο: %i \n"
+
+#: src/gui/widgets/breakpoints.cc:172
+msgid "Add Breakpoint"
+msgstr "Προσθήκη Breakpoint"
+
+#: src/gui/widgets/assembly.cc:482
+msgid ""
+"Add a small visible notch to indicate instructions that are on the delay "
+"slot of a branch."
+msgstr ""
+
+#: src/gui/gui.cc:1015
+msgid "Add one entry"
+msgstr "Προσθήκη καταχώρησης"
+
+#: src/gui/widgets/assembly.cc:831
+msgid "Address"
+msgstr "Διεύθυνση"
+
+#: src/gui/gui.cc:1013
+msgid "Advanced BIOS patching"
+msgstr "Προχωρημένη τροποποίηση BIOS"
+
+#: src/gui/gui.cc:912
+msgid "Always enable SIO IRQ"
+msgstr "Πάντα να είναι ενεργοποιημένες οι SIO IRQ"
+
+#: src/gui/gui.cc:913
+msgid "Always enable SPU IRQ"
+msgstr "Πάντα να είναι ενεργοποιημένες οι SPU IRQ"
+
+#: src/gui/gui.cc:771
+msgid "Assembly"
+msgstr "Assembly"
+
+#: src/core/psxinterpreter.cc:962
+#, c-format
+msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
+msgstr "Απόπειρα πρόσβασεις του COP3 στην διεύθυνση 0x%08x. Αγνοήθηκε\n"
+
+#. Accesses to the (nonexistent) FPU
+#. TODO: Verify that COP1 doesn't throw a coprocessor unusable exception
+#. Supposedly the COP1/COP3 ops don't fire RI, and they're NOPs
+#: src/core/psxinterpreter.cc:951
+#, c-format
+msgid ""
+"Attempted to use an invalid floating point instruction from 0x%08x. "
+"Ignored.\n"
+msgstr ""
+"Απόπειρα χρήσης μιάς μη-έγκυρης εντολής floating point στην διεύθυνση "
+"0x%08x. Αγνοήθηκε\n"
+
+#: src/core/psxinterpreter.cc:692
+#, c-format
+msgid "Attempted unaligned JALR from 0x%08x, firing exception!\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:673
+#, c-format
+msgid "Attempted unaligned JR from 0x%08x, firing exception!\n"
+msgstr ""
+
+#: src/spu/cfg.cc:53
+msgid ""
+"Attempts to make the CPU-to-SPU audio stream\n"
+"in sync, by changing its pitch. Consumes more CPU."
+msgstr ""
+
+#: src/gui/widgets/luaeditor.cc:59
+msgid "Auto reload"
+msgstr "Αυτόματη επαναφόρτωση"
+
+#: src/gui/widgets/luaeditor.cc:61
+msgid "Auto save"
+msgstr "Αυτόματη αποθήκευση"
+
+#: src/gui/gui.cc:325
+msgid "BIOS"
+msgstr "BIOS"
+
+#: src/core/psxmem.cc:151
+#, c-format
+msgid "BIOS entry point: %s\n"
+msgstr "Σημέιο έναρξης BIOS%s\n"
+
+#: src/gui/gui.cc:972
+msgid "BIOS file"
+msgstr "Αρχείο BIOS"
+
+#: src/gui/gui.cc:951
+msgid "Big Endian"
+msgstr "Big Endian"
+
+#: src/gui/widgets/breakpoints.cc:48
+msgid "Break on byte read map "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:53
+msgid "Break on byte write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:47
+msgid "Break on execution map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:50
+msgid "Break on half read map "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:55
+msgid "Break on half write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:52
+msgid "Break on word read map "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:57
+msgid "Break on word write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:162
+msgid "Breakpoint Type"
+msgstr "Είδος Breakpoint"
+
+#: src/gui/gui.cc:593
+msgid "Breakpoint on vsync"
+msgstr "Breakpoint κατά την περίοδο vsync"
+
+#: src/core/debug.cc:138
+#, c-format
+msgid "Breakpoint triggered: PC=0x%08x - Cause: %s\n"
+msgstr "Πυροδότηση Breakpoint. PC=0x%08x - Cause: %s\n"
+
+#: src/gui/widgets/breakpoints.cc:59 src/gui/gui.cc:775
+msgid "Breakpoints"
+msgstr "Breakpoints"
+
+#: src/core/cdriso.cc:527
+#, c-format
+msgid "Buffer overflow..."
+msgstr "Υπερχείληση προσωρινής μνήμης..."
+
+#: src/core/misc.cc:304
+#, c-format
+msgid "CD-ROM EXE Name: %.255s\n"
+msgstr "Ονομα εκτελέσιμου αρχείου: %.255s\n"
+
+#: src/core/misc.cc:303
+#, c-format
+msgid "CD-ROM ID: %.9s\n"
+msgstr "Ταυτότητα CD-ROM: %.9s\n"
+
+#: src/core/misc.cc:302
+#, c-format
+msgid "CD-ROM Label: %.32s\n"
+msgstr "Ετικέτα CD-ROM 1%.32s\n"
+
+#: src/gui/gui.cc:953
+msgid "CDDA"
+msgstr "CDDA"
+
+#: src/gui/gui.cc:300
+msgid "CLUT VRAM selector"
+msgstr ""
+
+#: src/gui/gui.cc:634
+#, c-format
+msgid "CPU: %s"
+msgstr "Επεξεργαστής: %s"
+
+#: src/gui/widgets/source.cc:91
+msgid "Callstack"
+msgstr ""
+
+#: src/gui/widgets/registers.cc:195 src/gui/widgets/filedialog.cc:347
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+#: src/spu/cfg.cc:52
+msgid "Change streaming pitch"
+msgstr ""
+
+#: src/gui/widgets/registers.cc:185
+#, c-format
+msgid "Change the value of register %s:"
+msgstr "Αλλαγή της τιμής του καταχωρητή %s:"
+
+#: src/core/cheat.cc:127
+#, c-format
+msgid "Cheats loaded from: %s\n"
+msgstr "Φορτώθηκαν cheats από: 1%s\n"
+
+#: src/core/cheat.cc:158
+#, c-format
+msgid "Cheats saved to: %s\n"
+msgstr "Αποθήκευση cheats σε: %s\n"
+
+#: src/gui/widgets/log.cc:44
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+#: src/gui/gui.cc:474
+msgid "Close ISO"
+msgstr "Κλείσιμο ISO"
+
+#: src/gui/gui.cc:509
+msgid "Close LID"
+msgstr "Κλείσιμο LID:"
+
+#: src/gui/widgets/assembly.cc:920
+msgid "Code##{}{:08x}"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:494
+msgid "Columns"
+msgstr "Στήλες"
+
+#: src/gui/widgets/assembly.cc:457
+msgid "Combined pseudo-instructions"
+msgstr "Συνδυασμός ψευδο-εντολών"
+
+#: src/gui/gui.cc:551
+msgid "Configuration"
+msgstr "Ρυθμίσεις"
+
+#. ClosePlugins();
+#: src/core/sio.cc:377
+msgid "Connection closed!\n"
+msgstr "Η σύνδεση έκλεισε!\n"
+
+#: src/gui/widgets/log.cc:46
+msgid "Copy"
+msgstr "Αντιγραφή"
+
+#: src/core/r3000a.cc:36
+#, c-format
+msgid "Copyright (C) 2019-2021 PCSX-Redux authors\n"
+msgstr "Πνευματικά δικαιώματα (C) 2019-2021 συγγραφείς του PCSX-Redux\n"
+
+#: src/gui/gui.cc:1166
+#, c-format
+msgid "Core profile: %s"
+msgstr ""
+
+#: src/core/cdriso.cc:435
+#, c-format
+msgid "Could not allocate audio codec for the input, aborting\n"
+msgstr ""
+
+#: src/core/cdriso.cc:461
+#, c-format
+msgid "Could not allocate frame\n"
+msgstr "Αδυναμία εκχώρησης καρέ\n"
+
+#: src/core/cdriso.cc:509
+#, c-format
+msgid "Could not allocate memory to decode CDDA TRACK: %s\n"
+msgstr "Αδυναμία εκχώρησης μνήμης για την αποκωδικοποίηση κομματιού CDDA: %s\n"
+
+#: src/core/cdriso.cc:443
+#, c-format
+msgid "Could not allocate resample context"
+msgstr ""
+
+#: src/core/cdriso.cc:361
+#, c-format
+msgid "Could not find %s stream in input file\n"
+msgstr ""
+
+#: src/core/cdriso.cc:427
+#, c-format
+msgid "Could not find audio codec for the input, aborting\n"
+msgstr "Αδυναμία εύρεσης κωδικοποιητή ήχου για είσοδο, διακοπή\n"
+
+#: src/core/cdriso.cc:419
+#, c-format
+msgid "Could not find audio stream in the input, aborting\n"
+msgstr ""
+
+#: src/core/cdriso.cc:409
+#, c-format
+msgid "Could not find stream information\n"
+msgstr "Αδυναμία εύρεσης πληροφοριών stream\n"
+
+#: src/core/cheat.cc:55
+#, c-format
+msgid "Could not load cheats from: %s\n"
+msgstr "Αδυναμία φόρτωσης cheats από: %s\n"
+
+#: src/core/psxmem.cc:167
+#, c-format
+msgid "Could not open BIOS Overlay:\"%s\"!\n"
+msgstr ""
+
+#: src/core/psxmem.cc:134
+#, c-format
+msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
+msgstr ""
+
+#: src/core/psxmem.cc:139
+#, c-format
+msgid ""
+"Could not open OpenBIOS fallback. Things won't work properly.\n"
+"Add a valid BIOS in the configuration and hard reset.\n"
+msgstr ""
+
+#: src/core/cdriso.cc:454
+#, c-format
+msgid "Could not open resample context"
+msgstr ""
+
+#: src/core/cdriso.cc:404
+#, c-format
+msgid "Could not open source file %s\n"
+msgstr "Αδυναμία ανοίγματος αρχείου πηγαίου κώδικα %s\n"
+
+#: src/spu/cfg.cc:64
+msgid "Cubic interpolation - better treble"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:922
+msgid "DWARF##{}{:08x}"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:921
+msgid "Data##{}{:08x}"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:446 src/gui/gui.cc:574
+msgid "Debug"
+msgstr ""
+
+#: src/gui/gui.cc:914
+msgid "Decode MDEC videos in B&W"
+msgstr ""
+
+#: src/spu/cfg.cc:69
+msgid "Decoded buffers IRQ"
+msgstr ""
+
+#: src/core/cdriso.cc:521
+#, c-format
+msgid "Decoding audio tr#%u (%s)..."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:477
+msgid "Delay slot notch"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:190
+msgid "Directories"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:126
+msgid "Disable##"
+msgstr "Απενεργοποίηση##"
+
+#: src/gui/gui.cc:951
+msgid "Disabled"
+msgstr "Απενεργοποιημένο"
+
+#: src/gui/widgets/luainspector.cc:92
+msgid "Display"
+msgstr "Προβολή"
+
+#: src/gui/widgets/assembly.cc:490
+msgid "Display arrows for jumps. This might crowd the display a bit too much."
+msgstr ""
+
+#: src/spu/cfg.cc:68
+msgid "Downmixes stereo to mono."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:486
+msgid "Draw arrows for jumps"
+msgstr ""
+
+#: src/gui/gui.cc:482
+msgid "Dump save state proto schema"
+msgstr ""
+
+#: src/gui/gui.cc:783
+msgid "Dwarf"
+msgstr ""
+
+#: src/gui/gui.cc:915
+msgid "Dynarec CPU"
+msgstr ""
+
+#: src/gui/widgets/registers.cc:64 src/gui/widgets/registers.cc:183
+msgid "Edit value of {}"
+msgstr ""
+
+#: src/gui/widgets/registers.cc:60
+msgid "Edit##{}"
+msgstr ""
+
+#: src/gui/gui.cc:923
+msgid ""
+"Emulates an installed 8MB system,\n"
+"instead of the normal 2MB. Useful for working\n"
+"with development binaries and games."
+msgstr ""
+
+#: src/gui/gui.cc:535 src/gui/gui.cc:552
+msgid "Emulation"
+msgstr "Εξομοίωση"
+
+#: src/gui/gui.cc:882
+msgid "Emulation Configuration"
+msgstr "Ρυθμίσεις εξομοίωσης"
+
+#: src/gui/widgets/vram-viewer.cc:491
+msgid "Enable Alpha channel view"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:503 src/gui/gui.cc:976
+msgid "Enable Debugger"
+msgstr ""
+
+#: src/gui/gui.cc:980
+msgid "Enable GDB Server"
+msgstr ""
+
+#: src/gui/gui.cc:1001
+msgid "Enable Web Server"
+msgstr ""
+
+#: src/gui/gui.cc:911
+msgid "Enable XA decoder"
+msgstr "Ενεργοποίηση αποκωδικοποιητή XA"
+
+#: src/gui/widgets/vram-viewer.cc:492
+msgid "Enable greyscale"
+msgstr ""
+
+#: src/spu/cfg.cc:46
+msgid "Enable streaming"
+msgstr "Ενεργοποίηση streaming"
+
+#: src/gui/widgets/breakpoints.cc:131
+msgid "Enable##"
+msgstr ""
+
+#: src/gui/gui.cc:1058
+msgid "Enabled"
+msgstr "Ενεργοποιημένο"
+
+#: src/gui/gui.cc:992
+msgid ""
+"Enables sending the processor's manifest\n"
+"from the gdb server. Keep this enabled, unless\n"
+"you want to connect IDA to this server, as it\n"
+"has a bug in its manifest parser."
+msgstr ""
+
+#: src/core/psxinterpreter.cc:938
+#, c-format
+msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
+msgstr ""
+
+#: src/core/psxmem.cc:43
+msgid "Error allocating memory!"
+msgstr "Πρόβλημα στην εκχώρηση μνήμης!"
+
+#: src/core/cdriso.cc:331
+#, c-format
+msgid "Error decoding audio frame\n"
+msgstr " Πρόβλημα στην αποκωδικοποίηση καρέ ήχου\n"
+
+#: src/core/plugins.cc:657
+#, c-format
+msgid "Error initializing GPU plugin: %d"
+msgstr "Αδυναμία αρχικοποίησης του πρόσθετου GPU: %d"
+
+#: src/core/plugins.cc:669
+#, c-format
+msgid "Error initializing SIO1 plugin: %d"
+msgstr "Πρόβλημα στην αρχικοποίηση του πρόσθετου SIO1: 1%d"
+
+#: src/core/plugins.cc:662
+#, c-format
+msgid "Error initializing SPU plugin: %d"
+msgstr "Αδυναμία αρχικοποίησης πρόσθετου SPU: %d"
+
+#: src/core/plugins.cc:231
+#, c-format
+msgid "Error loading %s: %s"
+msgstr "Αδυναμία φόρτωσης %s: %s"
+
+#: src/core/misc.cc:385 src/core/misc.cc:512
+#, c-format
+msgid "Error opening file: %s.\n"
+msgstr "Πρόβλημα στο άνοιγμα αρχείου: %s.\n"
+
+#: src/core/debug.h:35
+msgid "Exec"
+msgstr ""
+
+#: src/core/debug.cc:159
+msgid "Execution map"
+msgstr ""
+
+#: src/core/cdriso.cc:369 src/core/cdriso.cc:375
+#, c-format
+msgid "Failed to find %s codec\n"
+msgstr "Αδυναμία εύρεσης του κωδικοποιητή %s\n"
+
+#: src/core/cdriso.cc:382
+#, c-format
+msgid "Failed to open %s codec\n"
+msgstr "Αδυναμία ανοίγματος του κωδικοποιητή 1%s\n"
+
+#: src/gui/gui.cc:966
+msgid "Fast boot"
+msgstr "Γρήγορη εκκίνηση"
+
+#: src/gui/widgets/assembly.cc:442 src/gui/widgets/vram-viewer.cc:464
+#: src/gui/gui.cc:472
+msgid "File"
+msgstr "Αρχείο"
+
+#: src/gui/gui.cc:1034
+msgid "File Offset"
+msgstr ""
+
+#: src/gui/gui.cc:1026
+msgid "Filename"
+msgstr "Όνομα αρχείου"
+
+#: src/gui/widgets/filedialog.cc:207
+msgid "Files"
+msgstr "Αρχεία"
+
+#: src/gui/widgets/log.cc:48 src/gui/widgets/assembly.cc:906
+msgid "Filter"
+msgstr ""
+
+#: src/gui/widgets/log.cc:42
+msgid "Follow"
+msgstr "Ακολούθηση"
+
+#: src/gui/widgets/assembly.cc:505
+msgid "Follow PC"
+msgstr "Ακολούθηση PC"
+
+#: src/gui/gui.cc:618
+msgid "Fullscreen render"
+msgstr "Απόδοση πλήρους οθόνης"
+
+#: src/gui/gui.cc:636
+#, c-format
+msgid "GAME ID: %s"
+msgstr "Ταυτότητα παιχνιδιού: %s"
+
+#: src/gui/gui.cc:996
+msgid "GDB Server Port"
+msgstr "Θύρα εξυπηρετητή GDB"
+
+#: src/gui/gui.cc:997
+msgid "GDB Server Trace"
+msgstr "Trace εξυπηρετητή GDB"
+
+#: src/gui/gui.cc:991
+msgid "GDB send manifest"
+msgstr "GDB αποστολή manifest"
+
+#: src/gui/gui.cc:569
+msgid "GPU"
+msgstr "GPU"
+
+#: src/spu/cfg.cc:63
+msgid "Gaussian interpolation - good quality"
+msgstr ""
+
+#: src/spu/cfg.cc:70
+msgid "Generates IRQs when buffers are decoded."
+msgstr ""
+
+#: src/gui/gui.cc:545
+msgid "Hard Reset"
+msgstr "Επανεκκίνηση"
+
+#: src/gui/gui.cc:323
+msgid "Hardware Registers"
+msgstr "Καταχωρητές υλισμικού"
+
+#: src/gui/gui.cc:624
+msgid "Help"
+msgstr "Βοήθεια"
+
+#: src/gui/widgets/filedialog.cc:176
+msgid "Home"
+msgstr "Αρχική"
+
+#: src/gui/gui.cc:641
+msgid "Idle"
+msgstr "Αδρανές"
+
+#: src/gui/gui.cc:906
+msgid "Idle Swap Interval"
+msgstr ""
+
+#: src/gui/gui.cc:625
+msgid "ImGui Themes"
+msgstr "Στυλ ImGui"
+
+#: src/spu/cfg.cc:65
+msgid "Interpolation"
+msgstr ""
+
+#: src/gui/gui.cc:1117
+msgid "Interrupt Scaler"
+msgstr ""
+
+#: src/core/ppf.cc:215
+#, c-format
+msgid "Invalid PPF patch: %s.\n"
+msgstr ""
+
+#. fail if the negative offset is more than the total file size
+#: src/core/psxmem.cc:182 src/core/psxmem.cc:187
+#, c-format
+msgid "Invalid file offset for BIOS Overlay:\"%s\"!\n"
+msgstr ""
+
+#. fail if the negative offset is more than the BIOS size
+#: src/core/psxmem.cc:223 src/core/psxmem.cc:228
+#, c-format
+msgid "Invalid load offset for BIOS Overlay:\"%s\"!\n"
+msgstr ""
+
+#: src/core/psxmem.cc:202 src/core/psxmem.cc:210
+#, c-format
+msgid "Invalid load size specified BIOS Overlay:\"%s\"!\n"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:254
+msgid "Link error:\n"
+msgstr ""
+
+#: src/gui/gui.cc:951
+msgid "Little Endian"
+msgstr "Little Endian"
+
+#: src/gui/gui.cc:1042
+msgid "Load Offset"
+msgstr ""
+
+#: src/gui/gui.cc:1050
+msgid "Load Size"
+msgstr "Φόρτωση μεγέθους"
+
+#: src/gui/widgets/assembly.h:61
+msgid "Load Symbols"
+msgstr "Φόρτωση συμβόλων"
+
+#: src/gui/gui.cc:478
+msgid "Load binary"
+msgstr "Φόρτωση δυαδικού αρχείου"
+
+#: src/gui/gui.cc:490
+msgid "Load state"
+msgstr "Φόρτωση κατάστασης"
+
+#: src/gui/widgets/assembly.cc:443
+msgid "Load symbols map"
+msgstr "Φόρτωση χάρτη συμβόλων"
+
+#: src/core/psxmem.cc:234
+#, c-format
+msgid "Loaded BIOS overlay: %s\n"
+msgstr ""
+
+#: src/core/psxmem.cc:153
+#, c-format
+msgid "Loaded BIOS: %s\n"
+msgstr "Φόρτωση BIOS: %s\n"
+
+#: src/core/cdriso.cc:1895
+#, c-format
+msgid "Loaded CD Image: %s"
+msgstr "Φορτώθηκε η εικόνα CD: 1%s"
+
+#. build address array
+#: src/core/ppf.cc:346
+#, c-format
+msgid "Loaded PPF %d.0 patch: %s.\n"
+msgstr "Φορτώθηκε το αρχείο PPF %d. 0 patch: %s.\n"
+
+#: src/core/cdriso.cc:1319
+#, c-format
+msgid "Loaded SBI file: %s.\n"
+msgstr "Άνοιγμα αρχείου SBI: 1%s.\n"
+
+#: src/core/sio.cc:435
+#, c-format
+msgid "Loading memory card %s\n"
+msgstr "Φόρτωση κάρτας μνήμης %s\n"
+
+#: src/gui/gui.cc:886
+msgid "Locale"
+msgstr "Γλώσσα"
+
+#: src/gui/gui.cc:712
+msgid "Logs"
+msgstr "Καταγραφές"
+
+#: src/spu/cfg.cc:50
+msgid "Loud"
+msgstr "Δυνατό"
+
+#: src/spu/cfg.cc:50
+msgid "Loudest"
+msgstr "Πιο δυνατό"
+
+#: src/spu/cfg.cc:50
+msgid "Low"
+msgstr "Χαμηλό"
+
+#: src/gui/gui.cc:718
+msgid "Lua Console"
+msgstr "Κονσόλα Lua"
+
+#: src/gui/gui.cc:727
+msgid "Lua Editor"
+msgstr "Επεξεργαστής Lua"
+
+#: src/gui/gui.cc:724
+msgid "Lua Inspector"
+msgstr "Προβολή Lua"
+
+#: src/gui/widgets/luaeditor.cc:63
+msgid "Lua Source"
+msgstr "Πηγή Lua"
+
+#: src/gui/gui.cc:298
+msgid "Main VRAM Viewer"
+msgstr "Κύρια προβολή VRAM"
+
+#: src/gui/widgets/breakpoints.cc:36
+msgid "Map byte reads         "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:41
+msgid "Map byte writes        "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:35
+msgid "Map execution"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:38
+msgid "Map half reads         "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:43
+msgid "Map half writes        "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:40
+msgid "Map word reads         "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:45
+msgid "Map word writes        "
+msgstr ""
+
+#: src/spu/cfg.cc:50
+msgid "Medium"
+msgstr "Μεσάιο"
+
+#: src/gui/gui.cc:518
+msgid "Memory Card 1 inserted"
+msgstr "Σύνδεση της κάρτας μνήμης 1"
+
+#: src/gui/gui.cc:522
+msgid "Memory Card 2 inserted"
+msgstr "Σύνδεση της κάρτας μνήμης 2"
+
+#: src/gui/gui.cc:313
+msgid "Memory Editor #"
+msgstr "Επεξεργαστής μνήμης #"
+
+#: src/gui/gui.cc:594
+msgid "Memory Editors"
+msgstr "Επεξεργαστές μνήμης"
+
+#: src/core/sio.cc:432
+#, c-format
+msgid "Memory card %s failed to load!\n"
+msgstr "Αδυναμία φόρτωσης της κάρτας μνήμης %s\n"
+
+#: src/gui/widgets/registers.cc:152
+msgid "Misc"
+msgstr "Υπόλοιπα"
+
+#: src/spu/cfg.cc:67
+msgid "Mono"
+msgstr "Mono"
+
+#: src/gui/gui.cc:1069
+msgid "Move down"
+msgstr "Κίνηση κάτω"
+
+#: src/gui/gui.cc:1065
+msgid "Move up"
+msgstr "Κίνηση πάνω"
+
+#: src/spu/cfg.cc:45
+msgid "Muted"
+msgstr "Απενεργοποίηση ήχου"
+
+#: src/spu/cfg.cc:59 src/spu/cfg.cc:62
+msgid "None - fastest"
+msgstr "Κανένα - Γρηγορότερο"
+
+#: src/gui/gui.h:246
+msgid "Notification"
+msgstr "Ειδοποίηση"
+
+#: src/gui/widgets/filedialog.cc:338
+msgid "OK"
+msgstr "OK"
+
+#. change handle to decoded one
+#: src/core/cdriso.cc:533
+#, c-format
+msgid "OK\n"
+msgstr "ΟΚ\n"
+
+#: src/gui/gui.h:85
+msgid "Ok"
+msgstr "ΟΚ"
+
+#: src/gui/gui.h:210
+msgid "Open Binary"
+msgstr "Άνοιγμα δυαδικού αρχείου"
+
+#: src/gui/gui.cc:473
+msgid "Open ISO"
+msgstr "Άνοιγμα ISO"
+
+#: src/gui/gui.h:209
+msgid "Open Image"
+msgstr "Άνοιγμα αρχείου εικόνα"
+
+#: src/gui/gui.cc:505
+msgid "Open LID"
+msgstr "Άνοιγμα LID"
+
+#: src/gui/gui.cc:513
+msgid "Open and close LID"
+msgstr "Άνοιγμα και κλείσιμο LID"
+
+#: src/gui/gui.cc:1165
+msgid "OpenGL information"
+msgstr "Πληροφορίες OpenGL"
+
+#: src/gui/widgets/assembly.cc:456
+msgid "Options"
+msgstr "Επιλογές"
+
+#: src/gui/widgets/dwarf.cc:120
+msgid "Order by"
+msgstr "Ταξινόμηση ανά"
+
+#: src/gui/gui.cc:698
+msgid "Output"
+msgstr "Έξοδος"
+
+#: src/core/r3000a.cc:35
+#, c-format
+msgid "PCSX-Redux booting\n"
+msgstr "Εκκίνηση του PCSX-Redux\n"
+
+#: src/gui/gui.cc:319
+msgid "Parallel Port"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:447 src/gui/widgets/assembly.cc:507
+#: src/gui/gui.cc:539
+msgid "Pause"
+msgstr "Παύση"
+
+#: src/spu/cfg.cc:55
+msgid "Pause SPU waiting for CPU IRQ"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:390
+msgid "Pixel Shader"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:231
+msgid "Pixel Shader compilation error:\n"
+msgstr ""
+
+#: src/core/plugins.cc:674
+msgid "Plugins loaded.\n"
+msgstr "Τα πρόσθετα φορτώθηκαν\n"
+
+#: src/gui/widgets/assembly.cc:467
+msgid "Pseudo-instrucitons filling"
+msgstr "Γέμισμα ψευδο-εντολών"
+
+#: src/gui/gui.cc:529
+msgid "Quit"
+msgstr "Έξοδος"
+
+#: src/gui/widgets/assembly.cc:846
+msgid "RAM base"
+msgstr "Αρχή RAM:"
+
+#: src/core/debug.cc:163
+msgid "Read 16 map"
+msgstr ""
+
+#: src/core/debug.cc:165
+msgid "Read 32 map"
+msgstr ""
+
+#: src/core/debug.cc:161
+msgid "Read 8 map"
+msgstr ""
+
+#: src/core/debug.h:35
+msgid "Read Byte"
+msgstr ""
+
+#: src/core/debug.h:35
+msgid "Read Half"
+msgstr ""
+
+#: src/core/debug.h:36
+msgid "Read Word"
+msgstr ""
+
+#: src/gui/gui.cc:526
+msgid "Reboot"
+msgstr "Επανεκκίνηση"
+
+#: src/gui/widgets/assembly.cc:904
+msgid "Refresh"
+msgstr "Ανανέωση"
+
+#: src/gui/widgets/registers.cc:186
+msgid "Register"
+msgstr "Καταχωρητής"
+
+#: src/gui/widgets/registers.cc:39 src/gui/gui.cc:766
+msgid "Registers"
+msgstr "Καταχωρητές"
+
+#: src/gui/gui.cc:901
+msgid "Reload locales"
+msgstr "Επαναφόρτωση γλωσσών"
+
+#: src/gui/gui.cc:1061
+msgid "Remove"
+msgstr "Αφαίρεση"
+
+#: src/gui/widgets/assembly.cc:706
+msgid "Remove breakpoint from here"
+msgstr "Αφαίρεση breakpoint από εδώ"
+
+#: src/gui/widgets/breakpoints.cc:120
+msgid "Remove##"
+msgstr "Αφαίρεση##"
+
+#: src/gui/gui.cc:1118
+msgid "Reset all"
+msgstr "Επαναφορά όλων"
+
+#: src/gui/widgets/vram-viewer.cc:468
+msgid "Reset view"
+msgstr "Επαναφορά προβολή"
+
+#: src/gui/widgets/assembly.cc:448 src/gui/widgets/assembly.cc:509
+msgid "Resume"
+msgstr "Συνέχεια"
+
+#: src/spu/cfg.cc:61
+msgid "Reverb"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:181
+msgid "Roots"
+msgstr "Ρίζες"
+
+#: src/gui/widgets/assembly.cc:696
+msgid "Run to cursor"
+msgstr "Ανατρέξτε στον κέρσορα"
+
+#: src/gui/gui.cc:570
+msgid "SPU"
+msgstr "SPU"
+
+#: src/spu/cfg.cc:40
+msgid "SPU configuration"
+msgstr "Ρυθμίσεις SPU"
+
+#: src/gui/gui.cc:486
+msgid "Save state"
+msgstr "Αποθήκευση κατάστασης"
+
+#: src/core/sio.cc:474
+#, c-format
+msgid "Saving memory card %s\n"
+msgstr "Αποθήκευση κάρτας μνήμης %s\n"
+
+#: src/gui/gui.cc:321
+msgid "Scratch Pad"
+msgstr "Scratch pad"
+
+#: src/gui/gui.h:211
+msgid "Select BIOS"
+msgstr "Επιλογή BIOS"
+
+#: src/gui/gui.h:212
+msgid "Select BIOS Overlay"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:489
+msgid "Select a CLUT"
+msgstr "Επιλογή CLUT"
+
+#: src/gui/widgets/assembly.cc:701
+msgid "Set Breakpoint here"
+msgstr "Προσθήκη Breakpoint εδώ"
+
+#: src/gui/gui.cc:591
+msgid "Show Assembly"
+msgstr "Ένδειξη Assembly"
+
+#: src/gui/gui.cc:592
+msgid "Show Breakpoints"
+msgstr "Προβολή Breakpoints"
+
+#: src/gui/gui.cc:581
+msgid "Show CLUT VRAM viewer"
+msgstr "Προβολή CLUT VRAM"
+
+#: src/gui/gui.cc:627
+msgid "Show ImGui Demo"
+msgstr "Προβολή επίδειξης ImGui"
+
+#: src/gui/gui.cc:604
+msgid "Show Interrupts Scaler"
+msgstr ""
+
+#: src/gui/gui.cc:575
+msgid "Show Logs"
+msgstr "Ένδειξη καταγραφών"
+
+#: src/gui/gui.cc:576
+msgid "Show Lua Console"
+msgstr "Προβολή κονσόλας Lua"
+
+#: src/gui/gui.cc:577
+msgid "Show Lua Inspector"
+msgstr ""
+
+#: src/gui/gui.cc:578
+msgid "Show Lua editor"
+msgstr "Προβολή επεξεργαστή Lua"
+
+#: src/gui/gui.cc:590
+msgid "Show Registers"
+msgstr "Ένδειξη καταχωρητών"
+
+#: src/gui/gui.cc:606
+msgid "Show SPU debug"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:494
+msgid "Show Shader Editor"
+msgstr ""
+
+#: src/gui/gui.cc:584
+msgid "Show VRAM viewer #"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:60
+msgid "Show all breakpoints"
+msgstr "Προβολή όλων των Breakpoints"
+
+#: src/gui/widgets/breakpoints.cc:68
+msgid "Show byte read BPs     "
+msgstr "Ένδειξη BPs για την ανάγνωση byte"
+
+#: src/gui/widgets/breakpoints.cc:73
+msgid "Show byte write BPs    "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:67
+msgid "Show exec BPs"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:70
+msgid "Show half read BPs     "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:75
+msgid "Show half write BPs    "
+msgstr ""
+
+#: src/gui/gui.cc:580
+msgid "Show main VRAM viewer"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:64
+msgid "Show no breakpoints"
+msgstr "Απενεργοποίση προβολής breakpoints"
+
+#: src/gui/gui.cc:620
+msgid "Show raw DWARF info"
+msgstr ""
+
+#: src/gui/gui.cc:616
+msgid "Show source"
+msgstr "Προβολή πηγής"
+
+#: src/gui/gui.cc:615
+msgid "Show types"
+msgstr "Προβολή types"
+
+#: src/gui/widgets/breakpoints.cc:72
+msgid "Show word read BPs     "
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:77
+msgid "Show word write BPs    "
+msgstr ""
+
+#: src/core/psxinterpreter.cc:405
+#, c-format
+msgid "Signed overflow in ADD instruction from 0x%08x!\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:350
+#, c-format
+msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:430
+#, c-format
+msgid "Signed overflow in SUB instruction from 0x%08x!\n"
+msgstr ""
+
+#: src/spu/cfg.cc:59
+msgid "Simple - only handles the most common effects"
+msgstr "Απλό - χειρίζεται μονο τα πιο συχνά εφέ"
+
+#: src/spu/cfg.cc:62
+msgid "Simple interpolation"
+msgstr ""
+
+#: src/gui/gui.cc:542
+msgid "Soft Reset"
+msgstr "Επαναφορά μέσω λογισμικού"
+
+#: src/gui/widgets/source.cc:87 src/gui/gui.cc:788
+msgid "Source"
+msgstr "Πηγή"
+
+#: src/gui/gui.cc:536
+msgid "Start"
+msgstr "Έναρξη"
+
+#: src/gui/gui.cc:608
+msgid "Start GPU dump"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:511
+msgid "Step In"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:453 src/gui/widgets/assembly.cc:515
+msgid "Step Out"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:451 src/gui/widgets/assembly.cc:513
+msgid "Step Over"
+msgstr ""
+
+#: src/core/debug.cc:104
+msgid "Step in"
+msgstr ""
+
+#: src/core/debug.cc:116
+msgid "Step out"
+msgstr ""
+
+#: src/core/debug.cc:109 src/core/debug.cc:111
+msgid "Step over"
+msgstr ""
+
+#: src/gui/gui.cc:611
+msgid "Stop GPU dump"
+msgstr ""
+
+#: src/spu/cfg.cc:56
+msgid ""
+"Suspends the SPU processing during an IRQ, waiting\n"
+"for the main CPU to acknowledge it. Fixes issues\n"
+"with some games, but slows SPU processing."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:855 src/gui/widgets/assembly.cc:903
+msgid "Symbols"
+msgstr "Σύμβολα"
+
+#: src/gui/gui.cc:931
+msgid "System Type"
+msgstr "Είδος Συστήματος"
+
+#: src/gui/gui.cc:998
+msgid ""
+"The GDB server will start tracing its\n"
+"protocol into the logs, which can be helpful to debug\n"
+"the gdb server system itself."
+msgstr ""
+
+#: src/core/sio.cc:415
+#, c-format
+msgid "The memory card %s doesn't exist - creating it\n"
+msgstr "Η καρτα μνήμης 1%s δεν υπάρχει - γίνεται δημιουργία της\n"
+
+#. Used for theme combo box
+#: src/gui/gui.cc:1136
+msgid "Theme selector"
+msgstr "Επιλογή στυλ"
+
+#: src/gui/gui.cc:1137
+msgid "Themes"
+msgstr "Στυλ"
+
+#: src/core/misc.cc:462
+msgid "This file does not appear to be a valid PSX file.\n"
+msgstr "Αυτό το αρχείο δεν φαίνεται να είναι έγκυρο αρχείο PSX\n"
+
+#: src/gui/gui.cc:988
+msgid ""
+"This will activate a gdb-server that you can\n"
+"connect to with any gdb-remote compliant client.\n"
+"You also need to enable the debugger."
+msgstr ""
+
+#: src/gui/gui.cc:1009
+msgid ""
+"This will activate a web-server, that you can\n"
+"query using a REST api. See the wiki for details.\n"
+"The debugger might be required in some cases."
+msgstr ""
+
+#: src/gui/gui.cc:967
+msgid ""
+"This will cause the BIOS to skip the shell,\n"
+"which may include additional checks.\n"
+"Also will make the boot time substantially\n"
+"faster by not displaying the logo."
+msgstr ""
+
+#: src/gui/gui.cc:977
+msgid ""
+"This will enable the usage of various breakpoints\n"
+"throughout the execution of mips code. Enabling this\n"
+"can slow down emulation to a noticable extend."
+msgstr ""
+
+#: src/core/cdriso.cc:1874
+#, c-format
+msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
+msgstr "Κομμάτι %.2d (%s) - Αρχή :%.2d:%.2d:%.2d, Μήκος:%.2d%.2d%.2d\n"
+
+#: src/gui/widgets/types.cc:27
+msgid "Types"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:731
+#, c-format
+msgid "Unaligned address in LH from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:749
+#, c-format
+msgid "Unaligned address in LHU from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:767
+#, c-format
+msgid "Unaligned address in LW from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:821
+#, c-format
+msgid "Unaligned address in SH from 0x%08x\n"
+msgstr ""
+
+#: src/core/psxinterpreter.cc:833
+#, c-format
+msgid "Unaligned address in SW from 0x%08x\n"
+msgstr ""
+
+#: src/spu/cfg.cc:47
+msgid ""
+"Uncheck this to mute the streaming channel\n"
+"from the main CPU to the SPU. This includes\n"
+"XA audio and audio tracks."
+msgstr ""
+
+#: src/core/misc.cc:430
+#, c-format
+msgid "Unknown CPE opcode %02x at position %08x.\n"
+msgstr ""
+
+#: src/core/ppf.cc:299
+#, c-format
+msgid "Unsupported PPF version (%d).\n"
+msgstr "Μη-υποστηριγμένη έκδοση PPF (%d).\n"
+
+#: src/gui/widgets/vram-viewer.cc:505
+msgid "VRAM Shader Editor"
+msgstr ""
+
+#: src/gui/gui.cc:579
+msgid "VRAM viewers"
+msgstr "Προβολείς VRAM"
+
+#: src/gui/widgets/vram-viewer.cc:388
+msgid "Vertex Shader"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:211
+msgid "Vertex Shader compilation error:\n"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:467
+msgid "View"
+msgstr "Προβολή"
+
+#: src/gui/widgets/vram-viewer.cc:476
+msgid "View VRAM in 16 bits"
+msgstr "Προβολή VRAM σε 16 bits"
+
+#: src/gui/widgets/vram-viewer.cc:472
+msgid "View VRAM in 24 bits"
+msgstr "Προβολή VRAM σε 24 bits"
+
+#: src/gui/widgets/vram-viewer.cc:484
+msgid "View VRAM in 4 bits"
+msgstr "Προβολή VRAM σε 4 bits"
+
+#: src/gui/widgets/vram-viewer.cc:480
+msgid "View VRAM in 8 bits"
+msgstr "Προβολή VRAM σε 8 bits"
+
+#: src/spu/cfg.cc:51
+msgid "Volume"
+msgstr "Ένταση"
+
+#: src/gui/gui.cc:304
+msgid "Vram Viewer #"
+msgstr "Προβολή VRAM #"
+
+#: src/gui/gui.cc:1012
+msgid "Web Server Port"
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:472
+msgid ""
+"When combining two instructions into a single pseudo-instruction, add a "
+"placeholder for the second one."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:462
+msgid ""
+"When two instructions are detected to be a single pseudo-instruction, "
+"combine them into the actual pseudo-instruction."
+msgstr ""
+
+#: src/core/debug.cc:169
+msgid "Write 16 map"
+msgstr ""
+
+#: src/core/debug.cc:171
+msgid "Write 32 map"
+msgstr ""
+
+#: src/core/debug.cc:167
+msgid "Write 8 map"
+msgstr ""
+
+#: src/core/debug.h:36
+msgid "Write Byte"
+msgstr ""
+
+#: src/core/debug.h:36
+msgid "Write Half"
+msgstr ""
+
+#: src/core/debug.h:37
+msgid "Write Word"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:273
+msgid "^ Date & Time"
+msgstr "^ Ημερομηνία και ώρα"
+
+#: src/gui/widgets/filedialog.cc:217
+msgid "^ File"
+msgstr "^ Αρχείο"
+
+#: src/gui/widgets/filedialog.cc:245
+msgid "^ Size"
+msgstr "^ Μέγεθος"
+
+#: src/gui/gui.cc:1174
+msgid "extensions:"
+msgstr "επεκτάσεις:"
+
+#: src/core/misc.cc:499
+#, c-format
+msgid "ng Load Bin file: [0x%08x] : %s\n"
+msgstr "Φόρτωμα αρχείου Bin:[0x%08x]: %s\n"
+
+#: src/core/misc.cc:501
+#, c-format
+msgid "ok Load Bin file: [0x%08x] : %s\n"
+msgstr "Επιτυχία φόρτωσης αρχείου Bin:[0x%08x]: %s\n"
+
+#: src/gui/gui.cc:1168
+msgid "renderer"
+msgstr ""
+
+#: src/gui/gui.cc:1170
+msgid "shading language version"
+msgstr ""
+
+#: src/gui/widgets/filedialog.cc:270
+msgid "v Date & Time"
+msgstr "v Ημερομηνία και ώρα"
+
+#: src/gui/widgets/filedialog.cc:214
+msgid "v File"
+msgstr "v Αρχείο"
+
+#: src/gui/widgets/filedialog.cc:242
+msgid "v Size"
+msgstr "v Μέγεθος"
+
+#: src/gui/gui.cc:1167
+msgid "vendor"
+msgstr "πωλητής"
+
+#: src/gui/gui.cc:1169
+msgid "version"
+msgstr "Έκδοση"
