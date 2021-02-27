@@ -37,14 +37,11 @@ void PCSX::ix86::x86SetJ8(unsigned slot) {
     static const unsigned arraySize = sizeof(m_j8Ptr) / sizeof(m_j8Ptr[0]);
     assert(slot < arraySize);
     uint8_t* j8 = m_j8Ptr[slot];
-    m_j8Ptr[slot] = NULL;
+    m_j8Ptr[slot] = nullptr;
     assert(*j8 == 0);
     uint32_t jump = (m_x86Ptr - (int8_t*)j8) - 1;
 
-    if (jump > 0x7f) {
-        printf("j8 greater than 0x7f!!\n");
-        abort();
-    }
+    assert (jump <= 0x7f); // assert that the jump is within range of the displacement
     *j8 = (uint8_t)jump;
 }
 
@@ -52,13 +49,13 @@ void PCSX::ix86::x86SetJ32(unsigned slot) {
     static const unsigned arraySize = sizeof(m_j32Ptr) / sizeof(m_j32Ptr[0]);
     assert(slot < arraySize);
     uint32_t* j32 = m_j32Ptr[slot];
-    m_j32Ptr[slot] = NULL;
+    m_j32Ptr[slot] = nullptr;
     assert(*j32 == 0);
     *j32 = (m_x86Ptr - (int8_t*)j32) - 4;
 }
 
 void PCSX::ix86::x86Align(uintptr_t bytes) {
-    // fordward align
+    // forward align
     bytes--;
     int8_t* newPtr = (int8_t*)(((uintptr_t)m_x86Ptr + bytes) & ~bytes);
     // filling with NOPs
@@ -69,55 +66,52 @@ void PCSX::ix86::x86Align(uintptr_t bytes) {
 void PCSX::ix86::NOP(unsigned bytes, int8_t* at) {
     if (at) std::swap(at, m_x86Ptr);
     while (bytes) {
-        unsigned consumed = 0;
         switch (bytes) {
             case 1:  // nop
                 write8(0x90);
-                consumed = 1;
+                bytes -= 1;
                 break;
             case 2:  // nop (16 bits operands)
                 write16(0x9066);
-                consumed = 2;
+                bytes -= 2;
                 break;
             case 3:  // nop dword ptr[eax]
                 write16(0x1f0f);
                 write8(0x00);
-                consumed = 3;
+                bytes -= 3;
                 break;
             case 4:  // nop dword ptr[eax + 0x00]
                 write32(0x00401f0f);
-                consumed = 4;
+                bytes -= 4;
                 break;
             case 5:  // nop dword ptr[eax + eax + 0x00]
                 write32(0x00441f0f);
                 write8(0x00);
-                consumed = 5;
+                bytes -= 5;
                 break;
             case 6:  // nop dword ptr[eax + eax + 0] (16 bits operands)
                 write32(0x441f0f66);
                 write16(0x0000);
-                consumed = 6;
+                bytes -= 6;
                 break;
             case 7:  // nop dword ptr[eax + 0x00000000]
                 write32(0x00801f0f);
                 write16(0x0000);
                 write8(0x00);
-                consumed = 7;
+                bytes -= 7;
                 break;
             case 8:  // nop dword ptr[eax + eax + 0x00000000]
                 write32(0x00841f0f);
                 write32(0x00000000);
-                consumed = 8;
+                bytes -= 8;
                 break;
-            case 9:
             default:  // nop dword ptr[eax + eax + 0x00000000] (16 bits operands)
                 write32(0x841f0f66);
                 write32(0x00000000);
                 write8(0x00);
-                consumed = 9;
+                bytes -= 9;
                 break;
         }
-        bytes -= consumed;
     }
     if (at) std::swap(at, m_x86Ptr);
 }
@@ -717,7 +711,7 @@ unsigned PCSX::ix86::JMP8(uint8_t to) {
     if (to != 0) return arraySize;
     uint8_t* ptr = reinterpret_cast<uint8_t*>(m_x86Ptr - 1);
     for (unsigned i = 0; i < arraySize; i++) {
-        if (m_j8Ptr[i] == NULL) {
+        if (m_j8Ptr[i] == nullptr) {
             m_j8Ptr[i] = ptr;
             return i;
         }
@@ -735,7 +729,7 @@ unsigned PCSX::ix86::JMP32(uint32_t to) {
     uint32_t* ptr = reinterpret_cast<uint32_t*>(m_x86Ptr - 4);
     if (to != 0) return arraySize;
     for (unsigned i = 0; i < arraySize; i++) {
-        if (m_j32Ptr[i] == NULL) {
+        if (m_j32Ptr[i] == nullptr) {
             m_j32Ptr[i] = ptr;
             return i;
         }

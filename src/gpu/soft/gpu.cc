@@ -256,7 +256,7 @@ void DoTextSnapShot(int iNum) {
     sprintf(szTxt, "%s/peopssoft%03d.txt", getenv("HOME"), iNum);
 #endif
 
-    if ((txtfile = fopen(szTxt, "wb")) == NULL) return;
+    if ((txtfile = fopen(szTxt, "wb")) == nullptr) return;
     //----------------------------------------------------//
     pB = pGetConfigInfos(0);
     if (pB) {
@@ -317,12 +317,12 @@ extern "C" void softGPUmakeSnapshot(void)  // snapshot of whole vram
 #endif
 
         bmpfile = fopen(filename, "rb");
-        if (bmpfile == NULL) break;
+        if (bmpfile == nullptr) break;
         fclose(bmpfile);
     } while (true);
 
     // try opening new snapshot file
-    if ((bmpfile = fopen(filename, "wb")) == NULL) return;
+    if ((bmpfile = fopen(filename, "wb")) == nullptr) return;
 
     fwrite(header, 0x36, 1, bmpfile);
     for (i = height - 1; i >= 0; i--) {
@@ -1563,7 +1563,7 @@ extern "C" void softGPUgetScreenPic(unsigned char *pMem) {}
 // func will be called with 128x96x3 BGR data.
 // the plugin has to store the data and display
 // it in the upper right corner.
-// If the func is called with a NULL ptr, you can
+// If the func is called with a nullptr ptr, you can
 // release your picture data and stop displaying
 // the screen pic
 
