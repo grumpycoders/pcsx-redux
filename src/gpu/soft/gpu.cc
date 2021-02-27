@@ -1022,8 +1022,6 @@ __inline void FinishedVRAMRead(void) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
-    int i;
-
     if (DataReadMode != DR_VRAMTRANSFER) return;
 
     GPUIsBusy;
@@ -1032,7 +1030,7 @@ void PCSX::SoftGPU::impl::readDataMem(uint32_t *pMem, int iSize) {
     while (VRAMRead.ImagePtr >= psxVuw_eom) VRAMRead.ImagePtr -= iGPUHeight * 1024;
     while (VRAMRead.ImagePtr < psxVuw) VRAMRead.ImagePtr += iGPUHeight * 1024;
 
-    for (i = 0; i < iSize; i++) {
+    for (int i = 0; i < iSize; i++) {
         // do 2 seperate 16bit reads for compatibility (wrap issues)
         if ((VRAMRead.ColsRemaining > 0) && (VRAMRead.RowsRemaining > 0)) {
             // lower 16 bit

@@ -45,8 +45,6 @@
 PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
 {
     uint32_t r, rs, rd;
-    int i;
-
     memset(m_table, 0,
            sizeof(uint32_t) * 160);  // build the rate table according to Neill's rules (see at bottom of file)
 
@@ -54,7 +52,7 @@ PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
     rs = 1;
     rd = 0;
 
-    for (i = 32; i < 160; i++)  // we start at pos 32 with the real values... everything before is 0
+    for (int i = 32; i < 160; i++)  // we start at pos 32 with the real values... everything before is 0
     {
         if (r < 0x3FFFFFFF) {
             r += rs;

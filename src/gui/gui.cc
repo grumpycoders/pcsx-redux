@@ -155,8 +155,8 @@ void PCSX::GUI::init() {
     auto printer = [this](Lua L, bool error) -> int {
         int n = L.gettop();
         std::string s;
-        int i;
-        for (i = 1; i <= n; i++) {
+        
+        for (int i = 1; i <= n; i++) {
             if (i > 1) s += " ";
             if (L.isstring(i)) {
                 s += L.tostring(i);

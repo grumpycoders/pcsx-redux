@@ -32,9 +32,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::readDMAMem(uint16_t* pusPSXMem, int iSize) {
-    int i;
-
-    for (i = 0; i < iSize; i++) {
+    for (int i = 0; i < iSize; i++) {
         *pusPSXMem++ = spuMem[spuAddr >> 1];  // spu addr got by writeregister
         spuAddr += 2;                         // inc spu addr
         if (spuAddr > 0x7ffff) spuAddr = 0;   // wrap
@@ -56,9 +54,7 @@ void PCSX::SPU::impl::readDMAMem(uint16_t* pusPSXMem, int iSize) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::writeDMAMem(uint16_t* pusPSXMem, int iSize) {
-    int i;
-
-    for (i = 0; i < iSize; i++) {
+    for (int i = 0; i < iSize; i++) {
         spuMem[spuAddr >> 1] = *pusPSXMem++;  // spu addr got by writeregister
         spuAddr += 2;                         // inc spu addr
         if (spuAddr > 0x7ffff) spuAddr = 0;   // wrap
