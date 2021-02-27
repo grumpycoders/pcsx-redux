@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
 
@@ -109,8 +110,6 @@ class System {
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
-    void setBinDir(std::filesystem::path path) { m_binDir = path; }
-
     const char *getStr(uint64_t hash, const char *str) {
         auto ret = m_i18n.find(hash);
         if (ret == m_i18n.end()) return str;
@@ -118,18 +117,14 @@ class System {
     }
 
     void loadAllLocales() {
-        static const std::map<std::string, std::string> locales = {
-            {"Français", "fr.po"},
-            {"Deutsch", "de.po"},
-            {"Italiano", "it.po"},
-        };
-
-        for (auto &l : locales) {
-            if (loadLocale(l.first, m_binDir / "i18n" / l.second)) {
-            } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second)) {
-            } else if (loadLocale(l.first, m_binDir / l.second)) {
+        for (auto &l : LOCALES) {
+            if (loadLocale(l.first, m_binDir / "i18n" / l.second.filename)) {
+            } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second.filename)) {
+            } else if (loadLocale(l.first, m_binDir / l.second.filename)) {
+            } else if (loadLocale(l.first,
+                                  std::filesystem::current_path() / ".." / ".." / "i18n" / l.second.filename)) {
             } else {
-                loadLocale(l.first, std::filesystem::current_path() / l.second);
+                loadLocale(l.first, std::filesystem::current_path() / l.second.filename);
             }
         }
     }
@@ -147,6 +142,11 @@ class System {
         m_currentLocale = name;
     }
     std::string localeName() { return m_currentLocale; }
+    const ImWchar *getLocaleRanges() {
+        auto localeInfo = LOCALES.find(m_currentLocale);
+        if (localeInfo == LOCALES.end()) return nullptr;
+        return localeInfo->second.ranges;
+    }
     std::vector<std::string> localesNames() {
         std::vector<std::string> locales;
         for (auto &l : m_locales) {
@@ -155,6 +155,8 @@ class System {
         return locales;
     }
 
+    std::filesystem::path getBinDir() { return m_binDir; }
+
   private:
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
@@ -162,6 +164,14 @@ class System {
     bool m_running = false;
     bool m_quitting = false;
     int m_exitCode = 0;
+    struct LocaleInfo {
+        const std::string filename;
+        // todo: add extra font well-known filenames
+        const ImWchar *ranges = nullptr;
+    };
+    static const std::map<std::string, LocaleInfo> LOCALES;
+
+  protected:
     std::filesystem::path m_binDir;
 };
 
