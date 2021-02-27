@@ -838,11 +838,34 @@ void PCSX::GUI::endFrame() {
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
-            bool fontChanged = false;
-            fontChanged |= ImGui::SliderInt(_("Main Font Size"), &settings.get<MainFontSize>().value, 8, 48);
-            fontChanged |= ImGui::SliderInt(_("Mono Font Size"), &settings.get<MonoFontSize>().value, 8, 48);
-            changed |= fontChanged;
-            if (fontChanged) m_reloadFonts = true;
+            bool needFontReload = false;
+            {
+                std::string currentLocale = g_system->localeName();
+                if (currentLocale.length() == 0) currentLocale = "English";
+                if (ImGui::BeginCombo(_("Locale"), currentLocale.c_str())) {
+                    if (ImGui::Selectable("English", currentLocale == "English")) {
+                        g_system->activateLocale("English");
+                        g_emulator->settings.get<Emulator::SettingLocale>() = "English";
+                        needFontReload = true;
+                    }
+                    for (auto& l : g_system->localesNames()) {
+                        if (ImGui::Selectable(l.c_str(), currentLocale == l)) {
+                            g_system->activateLocale(l);
+                            g_emulator->settings.get<Emulator::SettingLocale>() = l;
+                            needFontReload = true;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                if (ImGui::Button(_("Reload locales"))) {
+                    g_system->loadAllLocales();
+                    g_system->activateLocale(currentLocale);
+                }
+            }
+            needFontReload |= ImGui::SliderInt(_("Main Font Size"), &settings.get<MainFontSize>().value, 8, 48);
+            needFontReload |= ImGui::SliderInt(_("Mono Font Size"), &settings.get<MonoFontSize>().value, 8, 48);
+            changed |= needFontReload;
+            if (needFontReload) m_reloadFonts = true;
         }
         ImGui::End();
     }
@@ -932,31 +955,6 @@ bool PCSX::GUI::configure() {
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(_("Emulation Configuration"), &m_showCfg)) {
-        {
-            std::string currentLocale = g_system->localeName();
-            if (currentLocale.length() == 0) currentLocale = "English";
-            if (ImGui::BeginCombo(_("Locale"), currentLocale.c_str())) {
-                if (ImGui::Selectable("English", currentLocale == "English")) {
-                    m_reloadFonts = true;
-                    g_system->activateLocale("English");
-                    g_emulator->settings.get<Emulator::SettingLocale>() = "English";
-                    changed = true;
-                }
-                for (auto& l : g_system->localesNames()) {
-                    if (ImGui::Selectable(l.c_str(), currentLocale == l)) {
-                        m_reloadFonts = true;
-                        g_system->activateLocale(l);
-                        g_emulator->settings.get<Emulator::SettingLocale>() = l;
-                        changed = true;
-                    }
-                }
-                ImGui::EndCombo();
-            }
-            if (ImGui::Button(_("Reload locales"))) {
-                g_system->loadAllLocales();
-                g_system->activateLocale(currentLocale);
-            }
-        }
         if (ImGui::SliderInt(_("Idle Swap Interval"), &m_idleSwapInterval, 0, 10)) {
             changed = true;
             if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
