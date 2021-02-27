@@ -157,6 +157,9 @@
     <ProjectReference Include="..\fmt\fmt.vcxproj">
       <Project>{71772007-5110-418d-be9c-fb102b6eaabf}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\freetype\freetype.vcxproj">
+      <Project>{9176a2af-8586-4d37-b4aa-21e2460709bf}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
     </ProjectReference>

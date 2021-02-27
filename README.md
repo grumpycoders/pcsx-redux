@@ -42,7 +42,7 @@ Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(s
  - Debian derivatives :
 
 ```bash
-sudo apt-get install -y git make pkg-config clang-10 g++-9 g++-mipsel-linux-gnu libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y git make pkg-config clang-11 g++-10 g++-mipsel-linux-gnu libavcodec-dev libavformat-dev libavutil-dev libfreetype-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
