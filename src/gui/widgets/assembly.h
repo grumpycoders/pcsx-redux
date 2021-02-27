@@ -36,6 +36,7 @@ struct MemoryEditor;
 namespace PCSX {
 
 class Memory;
+class GUI;
 
 namespace Widgets {
 
@@ -45,7 +46,7 @@ class Assembly : private Disasm {
         : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
-    void draw(psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title);
+    void draw(GUI* gui, psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title);
 
     bool m_show = false;
 
@@ -88,6 +89,7 @@ class Assembly : private Disasm {
     virtual void Offset(uint32_t addr, int size) final;
     bool m_gotArg = false;
     bool m_notch = false;
+    bool m_notchAfterSkip[2] = {false, false};
     psxRegisters* m_registers;
     uint32_t m_currentAddr = 0;
     bool m_jumpToPC = false;

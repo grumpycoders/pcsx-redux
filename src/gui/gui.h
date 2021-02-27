@@ -176,9 +176,11 @@ class GUI final {
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
     typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
+    typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
+    typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, GUITheme>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -219,6 +221,7 @@ class GUI final {
     std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
+    bool m_showUiCfg = false;
 
     const flags::args &m_args;
 
@@ -250,6 +253,17 @@ class GUI final {
 
     bool m_gotImguiUserError = false;
     std::string m_imguiUserError;
+
+    ImFont *m_mainFont;
+    ImFont *m_monoFont;
+
+    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges);
+
+    bool m_reloadFonts = true;
+
+  public:
+    void useMainFont() { ImGui::PushFont(m_mainFont); }
+    void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };
 
 }  // namespace PCSX

@@ -26,6 +26,7 @@
 #include "core/debug.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
+#include "mips/common/util/encoder.hh"
 #include "support/file.h"
 
 int PCSX::Memory::psxMemInit() {
@@ -69,31 +70,6 @@ int PCSX::Memory::psxMemInit() {
 
     return 0;
 }
-namespace Encoder {
-
-// clang-format off
-enum class Reg {
-    R0, AT, V0, V1, A0, A1, A2, A3,  // 00 to 07
-    T0, T1, T2, T3, T4, T5, T6, T7,  // 08 to 0f
-    S0, S1, S2, S3, S4, S5, S6, S7,  // 10 to 17
-    T8, T9, K0, K1, GP, SP, S8, RA,  // 18 to 1f
-};
-// clang-format on
-
-constexpr uint32_t lui(Reg reg, uint16_t value) { return (0x3c << 24) | (uint32_t(reg) << 16) | value; }
-constexpr uint32_t addiu(Reg dst, Reg src, uint32_t value) {
-    return (0x24 << 24) | (uint32_t(src) << 21) | (uint32_t(dst) << 16) | value;
-}
-constexpr uint32_t nop() { return 0; }
-constexpr uint32_t sb(Reg val, Reg offreg, uint16_t off) {
-    return (0xa0 << 24) | (uint32_t(offreg) << 21) | (uint32_t(val) << 16) | off;
-}
-constexpr uint32_t sw(Reg val, Reg offreg, uint16_t off) {
-    return (0xac << 24) | (uint32_t(offreg) << 21) | (uint32_t(val) << 16) | off;
-}
-constexpr uint32_t j(uint32_t addr) { return (0x08 << 24) | ((addr >> 2) & 0x03ffffff); }
-
-}  // namespace Encoder
 
 void PCSX::Memory::psxMemReset() {
     const uint32_t bios_size = 0x00080000;
@@ -101,12 +77,12 @@ void PCSX::Memory::psxMemReset() {
     memset(g_psxP, 0, 0x00010000);
     memset(g_psxR, 0, bios_size);
     static const uint32_t nobios[6] = {
-        Encoder::lui(Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
-        Encoder::lui(Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000
-        Encoder::addiu(Encoder::Reg::T0, Encoder::Reg::V0, sizeof(nobios)),
-        Encoder::sw(Encoder::Reg::T0, Encoder::Reg::V1, 0x2084),  // display notification
-        Encoder::j(0xbfc00000),
-        Encoder::sb(Encoder::Reg::R0, Encoder::Reg::V1, 0x2081),  // pause
+        Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
+        Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000
+        Mips::Encoder::addiu(Mips::Encoder::Reg::T0, Mips::Encoder::Reg::V0, sizeof(nobios)),
+        Mips::Encoder::sw(Mips::Encoder::Reg::T0, 0x2084, Mips::Encoder::Reg::V1),  // display notification
+        Mips::Encoder::j(0xbfc00000),
+        Mips::Encoder::sb(Mips::Encoder::Reg::R0, 0x2081, Mips::Encoder::Reg::V1),  // pause
     };
 
     int index = 0;

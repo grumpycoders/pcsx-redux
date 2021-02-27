@@ -2,6 +2,6 @@
 
 set -e
 
-PACKAGES="pkg-config sdl2 ffmpeg sdl2 libuv zlib glfw"
+PACKAGES="ffmpeg freetype glfw libuv pkg-config sdl2 zlib"
 
 brew install ${PACKAGES}

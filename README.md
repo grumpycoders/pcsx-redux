@@ -42,18 +42,18 @@ Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(s
  - Debian derivatives :
 
 ```bash
-sudo apt-get install -y git make pkg-config clang-10 g++-9 g++-mipsel-linux-gnu libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y git make pkg-config clang-11 g++-10 g++-mipsel-linux-gnu libavcodec-dev libavformat-dev libavutil-dev libfreetype-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
 
 ```bash
-sudo pacman -S clang git make pkg-config ffmpeg libuv zlib sdl2 glfw-x11 curl xorg-server-xvfb 
+sudo pacman -S clang git make pkg-config ffmpeg libuv zlib sdl2 glfw-x11 curl xorg-server-xvfb
 ```
-The mipsel environnement can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-trizen -S cross-mipsel-linux-gnu-binutils mipsel-linux-gnu-gcc 
+trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
 ```
 You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
 
