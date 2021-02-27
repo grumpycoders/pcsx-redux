@@ -109,8 +109,6 @@ class System {
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 
-    void setBinDir(std::filesystem::path path) { m_binDir = path; }
-
     const char *getStr(uint64_t hash, const char *str) {
         auto ret = m_i18n.find(hash);
         if (ret == m_i18n.end()) return str;
@@ -155,6 +153,8 @@ class System {
         return locales;
     }
 
+    std::filesystem::path getBinDir() { return m_binDir; }
+
   private:
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
@@ -162,6 +162,8 @@ class System {
     bool m_running = false;
     bool m_quitting = false;
     int m_exitCode = 0;
+
+  protected:
     std::filesystem::path m_binDir;
 };
 

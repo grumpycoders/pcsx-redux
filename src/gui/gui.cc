@@ -54,7 +54,9 @@
 using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
-extern "C" void pcsxStaticImguiUserError(const char* msg) { s_imguiUserErrorFunctor(msg); }
+extern "C" void pcsxStaticImguiUserError(const char* msg) {
+    if (s_imguiUserErrorFunctor) s_imguiUserErrorFunctor(msg);
+}
 
 static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -93,6 +95,29 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 }
 
 void LoadImguiBindings(lua_State* lState);
+
+ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges) {
+    decltype(s_imguiUserErrorFunctor) backup = nullptr;
+    std::swap(backup, s_imguiUserErrorFunctor);
+    ImFontConfig cfg;
+    ImFont* ret = nullptr;
+    std::filesystem::path path = name;
+    ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(path.u8string().c_str()), size, &cfg, ranges);
+    if (!ret) {
+        auto tryMe = g_system->getBinDir() / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
+        auto tryMe = std::filesystem::current_path() / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
+        auto tryMe = std::filesystem::current_path() / "../../third_party/noto" / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    std::swap(backup, s_imguiUserErrorFunctor);
+    return ret;
+}
 
 void PCSX::GUI::init() {
     int result;
@@ -372,10 +397,22 @@ void PCSX::GUI::startFrame() {
         }
     }
 
+    auto& io = ImGui::GetIO();
+
+    if (m_reloadFonts) {
+        m_reloadFonts = false;
+
+        io.Fonts->Clear();
+        io.Fonts->AddFontDefault();
+        m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io, nullptr);
+        m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
+        io.Fonts->Build();
+        io.FontDefault = m_mainFont;
+    }
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    auto& io = ImGui::GetIO();
     if (io.WantSaveIniSettings) {
         io.WantSaveIniSettings = false;
         saveCfg();
@@ -436,6 +473,7 @@ void PCSX::GUI::flip() {
 }
 
 void PCSX::GUI::endFrame() {
+    auto& io = ImGui::GetIO();
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGL();
@@ -568,6 +606,7 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
+                // ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -767,7 +806,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, PCSX::g_emulator->m_psxMem.get(), &m_dwarf,
+        m_assembly.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, PCSX::g_emulator->m_psxMem.get(), &m_dwarf,
                         _("Assembly"));
     }
 
@@ -792,6 +831,17 @@ void PCSX::GUI::endFrame() {
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
     changed |= configure();
+
+    if (m_showUiCfg) {
+        if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
+            bool fontChanged = false;
+            fontChanged |= ImGui::SliderInt(_("Main Font Size"), &settings.get<MainFontSize>().value, 8, 48);
+            fontChanged |= ImGui::SliderInt(_("Mono Font Size"), &settings.get<MonoFontSize>().value, 8, 48);
+            changed |= fontChanged;
+            if (fontChanged) m_reloadFonts = true;
+        }
+        ImGui::End();
+    }
 
     auto& L = g_emulator->m_lua;
     L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
@@ -818,8 +868,6 @@ void PCSX::GUI::endFrame() {
         L->pop();
     }
     m_notifier.draw();
-
-    auto& io = ImGui::GetIO();
 
     ImGui::Render();
     glViewport(0, 0, w, h);
