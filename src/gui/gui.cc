@@ -18,6 +18,13 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#define STBI_ASSERT(x)
+#define STBI_NO_HDR
+#define STBI_NO_LINEAR
+#define STBI_NO_STDIO
+#define STBI_ONLY_PNG
 #include "gui/gui.h"
 
 #include <GL/gl3w.h>
@@ -41,6 +48,7 @@
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
+#include "gui/resources.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -49,6 +57,7 @@
 #include "lua/glffi.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "stb/stb_image.h"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
@@ -116,6 +125,10 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }
     if (!ret) {
+        auto tryMe = std::filesystem::current_path() / "third_party" / "noto" / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
         auto tryMe = std::filesystem::current_path() / ".." / ".." / "third_party" / "noto" / path;
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }
@@ -155,7 +168,7 @@ void PCSX::GUI::init() {
     auto printer = [this](Lua L, bool error) -> int {
         int n = L.gettop();
         std::string s;
-        
+
         for (int i = 1; i <= n; i++) {
             if (i > 1) s += " ";
             if (L.isstring(i)) {
@@ -232,6 +245,23 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
+
+    Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
+        int x, y, comp;
+        stbi_uc* img;
+        img = stbi_load_from_memory(data, size, &x, &y, &comp, 4);
+        if (!img) return;
+        if (comp != 4) {
+            stbi_image_free(img);
+            return;
+        }
+        GLFWimage image;
+        image.width = x;
+        image.height = y;
+        image.pixels = img;
+        glfwSetWindowIcon(m_window, 1, &image);
+        stbi_image_free(img);
+    });
 
     result = gl3wInit();
     assert(result == 0);
