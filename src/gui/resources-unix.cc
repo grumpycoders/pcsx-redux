@@ -19,6 +19,8 @@
 
 #ifndef _WIN32
 
+#include "gui/resources.h"
+
 void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> process) {
     // TODO: load from disc
 }
