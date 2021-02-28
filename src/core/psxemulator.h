@@ -140,6 +140,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
+    typedef SettingString<TYPESTRING("LastFile")> SettingLastFile;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
@@ -153,7 +154,7 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
              SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
+             SettingLastFile, SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
              SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
              Setting8MB>
         settings;
