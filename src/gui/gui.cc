@@ -530,12 +530,19 @@ void PCSX::GUI::endFrame() {
                     std::ofstream schema("sstate.proto");
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
+
                 if (ImGui::MenuItem(_("Save state"))) {
-                    zstr::ofstream save("sstate", std::ios::binary);
+                    const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                    const auto stateName = fmt::format ("{}.sstate", gameID);
+                    zstr::ofstream save(stateName, std::ios::binary);
                     save << SaveStates::save();
                 }
+
                 if (ImGui::MenuItem(_("Load state"))) {
-                    zstr::ifstream save("sstate", std::ios::binary);
+                    const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                    const auto stateName = fmt::format ("{}.sstate", gameID);
+
+                    zstr::ifstream save(stateName, std::ios::binary);
                     std::ostringstream os;
                     constexpr unsigned buff_size = 1 << 16;
                     char* buff = new char[buff_size];
