@@ -49,3 +49,6 @@
 [submodule "third_party/freetype"]
 	path = third_party/freetype
 	url = https://gitlab.freedesktop.org/freetype/freetype.git
+[submodule "third_party/stb"]
+	path = third_party/stb
+	url = https://github.com/nothings/stb.git
