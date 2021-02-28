@@ -285,6 +285,7 @@ end)(jit.status()))
 
         std::string biosCfg = m_args.get<std::string>("bios", "");
         if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
+        g_emulator->settings.get<Emulator::SettingLastFile>() = "BIOS"; // on boot, redirect savestates to BIOS until a file is loaded
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
@@ -535,7 +536,7 @@ void PCSX::GUI::endFrame() {
                     const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
                     std::string stateName;
 
-                    if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
+                    if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
                         stateName = fmt::format ("{}.sstate", gameID); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
                     else {
                         const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
