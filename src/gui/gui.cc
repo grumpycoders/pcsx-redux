@@ -538,7 +538,8 @@ void PCSX::GUI::endFrame() {
                     if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
                         stateName = fmt::format ("{}.sstate", gameID); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
                     else {
-                        stateName = fmt::format ("{}.sstate", "bad_game"); // For ROMs without IDs, identify them via filename
+                        const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
+                        stateName = fmt::format ("{}.sstate", lastFile); // For ROMs without IDs, identify them via filename
                     }
 
                     zstr::ofstream save(stateName, std::ios::binary);
@@ -551,8 +552,10 @@ void PCSX::GUI::endFrame() {
 
                     if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
                         stateName = fmt::format ("{}.sstate", gameID); // For a ROM with an ID of SLUS00213 for example, this will try reading a state named SLUS00213.sstate
-                    else 
-                        stateName = fmt::format ("{}.sstate", "bad_game"); // For ROMs without IDs, identify them via filename
+                    else {
+                        const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
+                        stateName = fmt::format ("{}.sstate", lastFile); // For ROMs without IDs, identify them via filename
+                    }
 
                     zstr::ifstream save(stateName, std::ios::binary);
                     std::ostringstream os;
