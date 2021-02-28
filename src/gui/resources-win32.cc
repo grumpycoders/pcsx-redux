@@ -25,7 +25,7 @@
 #include "../../resources/resource.h"
 #include "gui/resources.h"
 
-static BOOL EnumResNameProc(HMODULE instance, LPCTSTR type, LPTSTR name, LONG_PTR param) {
+static BOOL CALLBACK EnumResNameProc(HMODULE instance, LPCTSTR type, LPTSTR name, LONG_PTR param) {
     HRSRC res = FindResource(instance, name, type);
     if (!res) return TRUE;
     HGLOBAL handle = LoadResource(instance, res);
