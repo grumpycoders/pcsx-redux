@@ -383,7 +383,7 @@ std::string PCSX::GdbClient::dumpValue(uint32_t value) {
         value >>= 8;
     }
 
-    return std::move(ret);
+    return ret;
 }
 
 std::string PCSX::GdbClient::dumpOneRegister(int n) {

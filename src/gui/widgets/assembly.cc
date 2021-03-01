@@ -958,7 +958,7 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
     auto elfSymbol = m_elfSymbolsCache.find(addr);
     if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
 
-    return std::move(ret);
+    return ret;
 }
 
 void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
