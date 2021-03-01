@@ -2476,7 +2476,7 @@ void X86DynaRecCPU::recBLTZ() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target); // eax = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0); // check if rs < 0 (signed)
     gen.CMOVL32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if so, move the jump addr into ebp
 }
@@ -2501,7 +2501,7 @@ void X86DynaRecCPU::recBGTZ() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target); // eax = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0); // check if rs > 0 (signed)
     gen.CMOVG32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if so, move the jump addr into ebp
 }
@@ -2535,7 +2535,7 @@ void X86DynaRecCPU::recBLTZAL() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target); // eax = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0); // check if rs < 0 (signed)
     gen.CMOVL32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if so, move the jump addr into ebp
 }
@@ -2570,7 +2570,7 @@ void X86DynaRecCPU::recBGEZAL() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target); // eax = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0); // check if rs >= 0 (signed)
     gen.CMOVGE32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if so, move the jump addr into ebp
 }
@@ -2657,7 +2657,7 @@ void X86DynaRecCPU::recBEQ() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::ECX, target); // ecx = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMOVE32RtoR (PCSX::ix86::EBP, PCSX::ix86::ECX); // if the values are equal, move the jump addr into ebp
 }
 
@@ -2687,7 +2687,7 @@ void X86DynaRecCPU::recBNE() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::ECX, target); // ecx = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMOVNE32RtoR (PCSX::ix86::EBP, PCSX::ix86::ECX); // if so, move the jump addr into ebp
 }
 
@@ -2711,7 +2711,7 @@ void X86DynaRecCPU::recBLEZ() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target); // eax = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0); // check if rs < 0 (signed)
     gen.CMOVLE32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if so, move the jump addr into ebp
 }
@@ -2736,7 +2736,7 @@ void X86DynaRecCPU::recBGEZ() {
     m_stopRecompile = true;
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target); // eax = addr if jump taken
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebx = addr if jump not taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);  // ebp = addr if jump not taken
     gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0); // check if rs < 0 (signed)
     gen.CMOVGE32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if so, move the jump addr into ebp
 }
