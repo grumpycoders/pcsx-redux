@@ -571,6 +571,27 @@ void PCSX::GUI::endFrame() {
                     delete[] buff;
                     SaveStates::load(os.str());
                 }
+
+                if (ImGui::MenuItem(_("Save global state"))) {
+                    zstr::ofstream save("Global.sstate", std::ios::binary);
+                    save << SaveStates::save();
+                }
+
+                if (ImGui::MenuItem(_("Load global state"))) {
+                    zstr::ifstream save("Global.sstate", std::ios::binary);
+                    std::ostringstream os;
+                    constexpr unsigned buff_size = 1 << 16;
+                    char* buff = new char[buff_size];
+                    while (true) {
+                        save.read(buff, buff_size);
+                        std::streamsize cnt = save.gcount();
+                        if (cnt == 0) break;
+                        os.write(buff, cnt);
+                    }
+                    delete[] buff;
+                    SaveStates::load(os.str());
+                }
+
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
                     PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
