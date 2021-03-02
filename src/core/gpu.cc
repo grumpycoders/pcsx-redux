@@ -101,7 +101,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
         case 0x01000200:  // vram2mem
             PSXDMA_LOG("*** DMA2 GPU - vram2mem *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
             ptr = (uint32_t *)PSXM(madr);
-            if (ptr == NULL) {
+            if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - vram2mem *** NULL Pointer!!!\n");
                 break;
             }
@@ -124,7 +124,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU mem2vram *** %lx addr = %lxh, BCR %lxh => size %d = BA(%d) * BS(%xh)\n", chcr,
                        madr, bcr, size, size / bs, size / (bcr >> 16));
             ptr = (uint32_t *)PSXM(madr);
-            if (ptr == NULL) {
+            if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
                 break;
             }

@@ -74,7 +74,7 @@ uint32_t dwCoreFlags = 0;
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
-HFONT hGFont = NULL;
+HFONT hGFont = nullptr;
 bool bTransparent = false;
 #endif
 
@@ -96,7 +96,7 @@ void InitMenu(void) {
 void CloseMenu(void) {
 #ifdef _WIN32
     if (hGFont) DeleteObject(hGFont);
-    hGFont = NULL;
+    hGFont = nullptr;
 #else
     DestroyPic();
 #endif
@@ -124,7 +124,7 @@ void DisplayText(void)  // DISPLAY TEXT
       SetBkMode(hdc,TRANSPARENT);
  else SetBkColor(hdc,RGB(0,0,0));
 
- if(szDebugText[0] && ((time(NULL) - tStart) < 2))     // special debug text? show it
+ if(szDebugText[0] && ((time(nullptr) - tStart) < 2))     // special debug text? show it
   {
    RECT r={0,0,1024,1024};
    DrawText(hdc,szDebugText,lstrlen(szDebugText),&r,DT_LEFT|DT_NOCLIP);
@@ -133,7 +133,7 @@ void DisplayText(void)  // DISPLAY TEXT
   {
    szDebugText[0]=0;
    lstrcat(szDispBuf,szMenuBuf);
-   ExtTextOut(hdc,0,0,0,NULL,szDispBuf,lstrlen(szDispBuf),NULL);
+   ExtTextOut(hdc,0,0,0,nullptr,szDispBuf,lstrlen(szDispBuf),nullptr);
   }
 
  SelectObject(hdc,hFO);
