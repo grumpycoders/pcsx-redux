@@ -166,7 +166,10 @@ class SystemImpl : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
-    virtual void purgeAllEvents() final { PCSX::g_emulator->m_loop->run(); }
+    virtual void purgeAllEvents() final {
+        uv_stop(&PCSX::g_emulator->m_loop);
+        uv_run(&PCSX::g_emulator->m_loop, UV_RUN_DEFAULT);
+    }
 
     virtual void testQuit(int code) final {
         if (m_args.get<bool>("testmode")) {

@@ -28,9 +28,6 @@
 [submodule "third_party/fmt"]
 	path = third_party/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "third_party/uvw"]
-	path = third_party/uvw
-	url = https://github.com/skypjack/uvw.git
 [submodule "third_party/http-parser"]
 	path = third_party/http-parser
 	url = https://github.com/nodejs/http-parser.git
