@@ -562,44 +562,63 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
 
-                if (ImGui::MenuItem(_("Save state"))) {
-                    const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
-                    std::string stateName;
+                if (ImGui::BeginMenu(_("Save state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        auto str = _("Slot ") + std::to_string (i);
+                        if (ImGui::MenuItem(str.c_str())) {
+                            const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                            std::string stateName;
 
-                    if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
-                        stateName = fmt::format ("{}.sstate", gameID); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
-                    else {
-                        const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
-                        stateName = fmt::format ("{}.sstate", lastFile); // For ROMs without IDs, identify them via filename
+                            if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
+                                stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
+                            else {
+                                const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
+                                stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
+                            }
+
+                            zstr::ofstream save(stateName, std::ios::binary);
+                            save << SaveStates::save();   
+                        }
                     }
 
-                    zstr::ofstream save(stateName, std::ios::binary);
-                    save << SaveStates::save();
+                    ImGui::EndMenu();
                 }
 
-                if (ImGui::MenuItem(_("Load state"))) {
-                    const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
-                    std::string stateName;
+                if (ImGui::BeginMenu(_("Load state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        auto str = _("Slot ") + std::to_string (i);
+                        if (ImGui::MenuItem(str.c_str())) {
+                            const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                            std::string stateName;
 
-                    if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
-                        stateName = fmt::format ("{}.sstate", gameID); // For a ROM with an ID of SLUS00213 for example, this will try reading a state named SLUS00213.sstate
-                    else {
-                        const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
-                        stateName = fmt::format ("{}.sstate", lastFile); // For ROMs without IDs, identify them via filename
+                            if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
+                                stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will try reading a state named SLUS00213.sstate
+                            else {
+                                const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
+                                stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
+                            }
+
+                            if (!std::filesystem::exists(std::filesystem::path(stateName))) {
+                                printf ("Questo stato non esiste\n");
+                                break;
+                            }
+
+                            zstr::ifstream save(stateName, std::ios::binary);
+                            std::ostringstream os;
+                            constexpr unsigned buff_size = 1 << 16;
+                            char* buff = new char[buff_size];
+                            while (true) {
+                                save.read(buff, buff_size);
+                                std::streamsize cnt = save.gcount();
+                                if (cnt == 0) break;
+                                os.write(buff, cnt);
+                            }
+                            delete[] buff;
+                            SaveStates::load(os.str());  
+                        }
                     }
 
-                    zstr::ifstream save(stateName, std::ios::binary);
-                    std::ostringstream os;
-                    constexpr unsigned buff_size = 1 << 16;
-                    char* buff = new char[buff_size];
-                    while (true) {
-                        save.read(buff, buff_size);
-                        std::streamsize cnt = save.gcount();
-                        if (cnt == 0) break;
-                        os.write(buff, cnt);
-                    }
-                    delete[] buff;
-                    SaveStates::load(os.str());
+                    ImGui::EndMenu();
                 }
 
                 if (ImGui::MenuItem(_("Save global state"))) {
