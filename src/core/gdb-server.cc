@@ -27,14 +27,13 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
-#include "uvw.hpp"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
 PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         if (g_emulator->settings.get<Emulator::SettingGdbServer>()) {
-            startServer(g_emulator->settings.get<Emulator::SettingGdbServerPort>());
+            startServer(&g_emulator->m_loop, g_emulator->settings.get<Emulator::SettingGdbServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
@@ -44,43 +43,60 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
 
 void PCSX::GdbServer::stopServer() {
     assert(m_serverStatus == SERVER_STARTED);
+    m_serverStatus = SERVER_STOPPING;
     for (auto& client : m_clients) client.close();
-    m_server->close();
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
 }
 
-void PCSX::GdbServer::startServer(int port) {
+void PCSX::GdbServer::startServer(uv_loop_t* loop, int port) {
     assert(m_serverStatus == SERVER_STOPPED);
-    m_server = g_emulator->m_loop->resource<uvw::TCPHandle>();
-    m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
-    m_server->on<uvw::CloseEvent>(
-        [this](const uvw::CloseEvent&, uvw::TCPHandle& srv) { m_serverStatus = SERVER_STOPPED; });
-    m_server->on<uvw::ErrorEvent>(
-        [this](const uvw::ErrorEvent& event, uvw::TCPHandle& srv) { m_gotError = event.what(); });
-    m_gotError = "";
-    m_server->bind("0.0.0.0", port);
-    if (!m_gotError.empty()) {
-        g_system->printf("Error while trying to bind to port %i: %s\n", port, m_gotError.c_str());
-        m_server->close();
-        return;
-    }
-    m_server->listen();
-    if (!m_gotError.empty()) {
-        g_system->printf("Error while trying to listen to port %i: %s\n", port, m_gotError.c_str());
-        m_server->close();
-        return;
-    }
 
+    uv_tcp_init(loop, &m_server);
+    m_server.data = this;
+
+    struct sockaddr_in bindAddr;
+    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
+    if (result != 0) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+        return;
+    }
+    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
+    if (result != 0) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+        return;
+    }
+    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
+    if (result != 0) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+        return;
+    }
     m_serverStatus = SERVER_STARTED;
 }
 
-void PCSX::GdbServer::onNewConnection() {
-    GdbClient* client = new GdbClient(m_server);
-    m_clients.push_back(client);
-    client->accept(m_server);
+void PCSX::GdbServer::closeCB(uv_handle_t* handle) {
+    GdbServer* self = static_cast<GdbServer*>(handle->data);
+    self->m_serverStatus = SERVER_STOPPED;
 }
 
-PCSX::GdbClient::GdbClient(std::shared_ptr<uvw::TCPHandle> srv)
-    : m_tcp(srv->loop().resource<uvw::TCPHandle>()), m_listener(g_system->m_eventBus) {
+void PCSX::GdbServer::onNewConnectionTrampoline(uv_stream_t* handle, int status) {
+    GdbServer* self = static_cast<GdbServer*>(handle->data);
+    self->onNewConnection(status);
+}
+
+void PCSX::GdbServer::onNewConnection(int status) {
+    if (status < 0) return;
+    GdbClient* client = new GdbClient(&m_server);
+    if (client->accept(&m_server)) {
+        m_clients.push_back(client);
+    } else {
+        delete client;
+    }
+}
+
+PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
+    m_loop = srv->loop;
+    uv_tcp_init(m_loop, &m_tcp);
+    m_tcp.data = this;
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         if (m_waitingForShell) {
             // This is a bit of a problem. If there's any remaining

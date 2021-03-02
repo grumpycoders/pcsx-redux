@@ -395,8 +395,6 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
-
-    g_emulator->m_loop->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -414,7 +412,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
-    g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
+    uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 
@@ -1067,7 +1065,8 @@ can slow down emulation to a noticable extend.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingGdbServer>()) {
-                g_emulator->m_gdbServer->startServer(settings.get<Emulator::SettingGdbServerPort>());
+                g_emulator->m_gdbServer->startServer(&g_emulator->m_loop,
+                                                     settings.get<Emulator::SettingGdbServerPort>());
             } else {
                 g_emulator->m_gdbServer->stopServer();
             }
@@ -1088,7 +1087,8 @@ the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingWebServer>()) {
-                g_emulator->m_webServer->startServer(settings.get<Emulator::SettingWebServerPort>());
+                g_emulator->m_webServer->startServer(&g_emulator->m_loop,
+                                                     settings.get<Emulator::SettingWebServerPort>());
             } else {
                 g_emulator->m_webServer->stopServer();
             }
