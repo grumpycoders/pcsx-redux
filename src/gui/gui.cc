@@ -125,6 +125,10 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }
     if (!ret) {
+        auto tryMe = g_system->getBinDir() / ".." / "share" / "pcsx-redux" / "fonts" / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
         auto tryMe = std::filesystem::current_path() / "third_party" / "noto" / path;
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }

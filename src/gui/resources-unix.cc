@@ -47,7 +47,10 @@ void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> pro
         delete ico;
         ico = new File(std::filesystem::current_path() / dir / fname);
     }
-    // probably try some 'shared' directory here too
+    if (ico->failed()) {
+        delete ico;
+        ico = new File(g_system->getBinDir() / ".." / "share" / "pcsx-redux" / fname);
+    }
     do {
         if (ico->failed()) break;
         if (ico->read<uint16_t>() != 0) break;
