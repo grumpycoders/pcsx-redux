@@ -564,7 +564,7 @@ void PCSX::GUI::endFrame() {
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     for (auto i = 1; i < 10; i++) {
-                        auto str = _("Slot ") + std::to_string (i);
+                        const auto str = _("Slot ") + std::to_string (i);
                         if (ImGui::MenuItem(str.c_str())) {
                             const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
                             std::string stateName;
@@ -586,7 +586,7 @@ void PCSX::GUI::endFrame() {
 
                 if (ImGui::BeginMenu(_("Load state slots"))) {
                     for (auto i = 1; i < 10; i++) {
-                        auto str = _("Slot ") + std::to_string (i);
+                        const auto str = _("Slot ") + std::to_string (i);
                         if (ImGui::MenuItem(str.c_str())) {
                             const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
                             std::string stateName;
@@ -598,10 +598,8 @@ void PCSX::GUI::endFrame() {
                                 stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
                             }
 
-                            if (!std::filesystem::exists(std::filesystem::path(stateName))) {
-                                printf ("Questo stato non esiste\n");
+                            if (!std::filesystem::exists(std::filesystem::path(stateName))) // abort if this state does not exist
                                 break;
-                            }
 
                             zstr::ifstream save(stateName, std::ios::binary);
                             std::ostringstream os;
@@ -1318,14 +1316,14 @@ void PCSX::GUI::about() {
         };
         ImGui::TextUnformatted(_("OpenGL information"));
         ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
-        someString(_("vendor"), GL_VENDOR);
-        someString(_("renderer"), GL_RENDERER);
-        someString(_("version"), GL_VERSION);
-        someString(_("shading language version"), GL_SHADING_LANGUAGE_VERSION);
+        someString(_("Vendor"), GL_VENDOR);
+        someString(_("Renderer"), GL_RENDERER);
+        someString(_("Version"), GL_VERSION);
+        someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
         GLint n, i;
         glGetIntegerv(GL_NUM_EXTENSIONS, &n);
         checkGL();
-        ImGui::TextUnformatted(_("extensions:"));
+        ImGui::TextUnformatted(_("Extensions:"));
         ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
         for (i = 0; i < n; i++) {
             const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
