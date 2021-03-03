@@ -64,7 +64,7 @@ msgstr "(Χωρίς τίτλο)`"
 
 #: src/gui/widgets/vram-viewer.cc:471
 msgid "24 bits shift"
-msgstr ""
+msgstr "Shift κατα 24 bits"
 
 #: src/gui/gui.cc:922
 msgid "8MB"
@@ -187,31 +187,31 @@ msgstr "Big Endian"
 
 #: src/gui/widgets/breakpoints.cc:48
 msgid "Break on byte read map "
-msgstr ""
+msgstr "Παύση κατα την ανάγνωση χαρτογραφημένων byte"
 
 #: src/gui/widgets/breakpoints.cc:53
 msgid "Break on byte write map"
-msgstr ""
+msgstr "Παύση κατα το γράψιμο χαρτογραφημένων byte"
 
 #: src/gui/widgets/breakpoints.cc:47
 msgid "Break on execution map"
-msgstr ""
+msgstr "Παύση κατα την εκτέλεση απο χαρτογραφημένες διευθύνσεις"
 
 #: src/gui/widgets/breakpoints.cc:50
 msgid "Break on half read map "
-msgstr ""
+msgstr "Παύση κατα την ανάγνωση χαρτογραφημένων halfword"
 
 #: src/gui/widgets/breakpoints.cc:55
 msgid "Break on half write map"
-msgstr ""
+msgstr "Παύση κατα το γραψιμο χαρτογραφημένων halfword"
 
 #: src/gui/widgets/breakpoints.cc:52
 msgid "Break on word read map "
-msgstr ""
+msgstr "Παύση κατα την ανάγνωση χαρτογραφημένων word"
 
 #: src/gui/widgets/breakpoints.cc:57
 msgid "Break on word write map"
-msgstr ""
+msgstr "Παύση κατα το γράψιμο χαρτογραφημένων word"
 
 #: src/gui/widgets/breakpoints.cc:162
 msgid "Breakpoint Type"
@@ -265,7 +265,7 @@ msgstr "Επεξεργαστής: %s"
 
 #: src/gui/widgets/source.cc:91
 msgid "Callstack"
-msgstr ""
+msgstr "Στοίβα κλήσεων"
 
 #: src/gui/widgets/registers.cc:195 src/gui/widgets/filedialog.cc:347
 msgid "Cancel"
@@ -273,7 +273,7 @@ msgstr "Ακύρωση"
 
 #: src/spu/cfg.cc:52
 msgid "Change streaming pitch"
-msgstr ""
+msgstr "Αλλαγή χροιάς streaming"
 
 #: src/gui/widgets/registers.cc:185
 #, c-format
@@ -304,7 +304,7 @@ msgstr "Κλείσιμο LID:"
 
 #: src/gui/widgets/assembly.cc:920
 msgid "Code##{}{:08x}"
-msgstr ""
+msgstr "Κώδικας##{}{:08x}"
 
 #: src/gui/widgets/assembly.cc:494
 msgid "Columns"
@@ -335,7 +335,7 @@ msgstr "Πνευματικά δικαιώματα (C) 2019-2021 συγγραφε
 #: src/gui/gui.cc:1166
 #, c-format
 msgid "Core profile: %s"
-msgstr ""
+msgstr "Προφίλ πυρήνα: %s"
 
 #: src/core/cdriso.cc:435
 #, c-format
@@ -360,7 +360,7 @@ msgstr ""
 #: src/core/cdriso.cc:361
 #, c-format
 msgid "Could not find %s stream in input file\n"
-msgstr ""
+msgstr "Αδυναμία εύρεσης της ροής %sστο αρχείο εισόδου\n"
 
 #: src/core/cdriso.cc:427
 #, c-format
@@ -370,7 +370,7 @@ msgstr "Αδυναμία εύρεσης κωδικοποιητή ήχου για
 #: src/core/cdriso.cc:419
 #, c-format
 msgid "Could not find audio stream in the input, aborting\n"
-msgstr ""
+msgstr "Αδυναμία ανοίγματος ροής ήχου, διακοπή\n"
 
 #: src/core/cdriso.cc:409
 #, c-format
@@ -391,6 +391,8 @@ msgstr ""
 #, c-format
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr ""
+"Αδυναμία ανοίγματος του αρχείου BIOS: \"%s\". Επαναπροσπάθεια με το "
+"OpenBIOS\n"
 
 #: src/core/psxmem.cc:139
 #, c-format
@@ -411,15 +413,15 @@ msgstr "Αδυναμία ανοίγματος αρχείου πηγαίου κώ
 
 #: src/spu/cfg.cc:64
 msgid "Cubic interpolation - better treble"
-msgstr ""
+msgstr "Κυβική παρεμβολή - καλύτερο πρίμα "
 
 #: src/gui/widgets/assembly.cc:922
 msgid "DWARF##{}{:08x}"
-msgstr ""
+msgstr "DWARF##{}{:08x}"
 
 #: src/gui/widgets/assembly.cc:921
 msgid "Data##{}{:08x}"
-msgstr ""
+msgstr "Δεδομένα##{}{:08x}"
 
 #: src/gui/widgets/assembly.cc:446 src/gui/gui.cc:574
 msgid "Debug"
@@ -427,7 +429,7 @@ msgstr ""
 
 #: src/gui/gui.cc:914
 msgid "Decode MDEC videos in B&W"
-msgstr ""
+msgstr "Αποκωδικοποίηση βίντεο MDEC σε ασπρόμαυρο"
 
 #: src/spu/cfg.cc:69
 msgid "Decoded buffers IRQ"
@@ -468,7 +470,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:486
 msgid "Draw arrows for jumps"
-msgstr ""
+msgstr "Χρήση βελών για τα jumps"
 
 #: src/gui/gui.cc:482
 msgid "Dump save state proto schema"
@@ -476,19 +478,19 @@ msgstr ""
 
 #: src/gui/gui.cc:783
 msgid "Dwarf"
-msgstr ""
+msgstr "Dwarf"
 
 #: src/gui/gui.cc:915
 msgid "Dynarec CPU"
-msgstr ""
+msgstr "Επεξεργαστής Dynarec"
 
 #: src/gui/widgets/registers.cc:64 src/gui/widgets/registers.cc:183
 msgid "Edit value of {}"
-msgstr ""
+msgstr "Επεξεργασία τιμής του {}"
 
 #: src/gui/widgets/registers.cc:60
 msgid "Edit##{}"
-msgstr ""
+msgstr "Επεξεργασία##{}"
 
 #: src/gui/gui.cc:923
 msgid ""
@@ -496,6 +498,9 @@ msgid ""
 "instead of the normal 2MB. Useful for working\n"
 "with development binaries and games."
 msgstr ""
+"Εξομοίωση ενός συστήματος με 8MB RAM\n"
+"Σε αντίθεση με τα συνηθισμένα 2MB. Χρήσιμο για\n"
+"την εργασία με δυαδικά αρχεία development και παιχνίδια"
 
 #: src/gui/gui.cc:535 src/gui/gui.cc:552
 msgid "Emulation"
@@ -507,19 +512,19 @@ msgstr "Ρυθμίσεις εξομοίωσης"
 
 #: src/gui/widgets/vram-viewer.cc:491
 msgid "Enable Alpha channel view"
-msgstr ""
+msgstr "Ενεργοποίηση προβολής του καναλιού Alpha"
 
 #: src/gui/widgets/assembly.cc:503 src/gui/gui.cc:976
 msgid "Enable Debugger"
-msgstr ""
+msgstr "Ενεργοποίηση Αποσφαλματωτή"
 
 #: src/gui/gui.cc:980
 msgid "Enable GDB Server"
-msgstr ""
+msgstr "Ενεργοποίηση εξυπηρετητή GDB"
 
 #: src/gui/gui.cc:1001
 msgid "Enable Web Server"
-msgstr ""
+msgstr "Ενεργοποίηση εξυπηρετητή Web"
 
 #: src/gui/gui.cc:911
 msgid "Enable XA decoder"
@@ -527,7 +532,7 @@ msgstr "Ενεργοποίηση αποκωδικοποιητή XA"
 
 #: src/gui/widgets/vram-viewer.cc:492
 msgid "Enable greyscale"
-msgstr ""
+msgstr "Ενεργοποίηση αποχρώσεων του γκρι"
 
 #: src/spu/cfg.cc:46
 msgid "Enable streaming"
@@ -535,7 +540,7 @@ msgstr "Ενεργοποίηση streaming"
 
 #: src/gui/widgets/breakpoints.cc:131
 msgid "Enable##"
-msgstr ""
+msgstr "Ενεργοποίηση##"
 
 #: src/gui/gui.cc:1058
 msgid "Enabled"
@@ -553,6 +558,8 @@ msgstr ""
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr ""
+"Συναντήθηκε δεσμευμένη εντολή στην διεύθυνση 0x%08x, ενεργοποίηση "
+"exception\n"
 
 #: src/core/psxmem.cc:43
 msgid "Error allocating memory!"
@@ -594,7 +601,7 @@ msgstr ""
 
 #: src/core/debug.cc:159
 msgid "Execution map"
-msgstr ""
+msgstr "Χάρτης εκτέλεσης"
 
 #: src/core/cdriso.cc:369 src/core/cdriso.cc:375
 #, c-format
@@ -617,7 +624,7 @@ msgstr "Αρχείο"
 
 #: src/gui/gui.cc:1034
 msgid "File Offset"
-msgstr ""
+msgstr "Μετατόπιση αρχείου"
 
 #: src/gui/gui.cc:1026
 msgid "Filename"
@@ -629,7 +636,7 @@ msgstr "Αρχεία"
 
 #: src/gui/widgets/log.cc:48 src/gui/widgets/assembly.cc:906
 msgid "Filter"
-msgstr ""
+msgstr "Φίλτρο"
 
 #: src/gui/widgets/log.cc:42
 msgid "Follow"
@@ -666,11 +673,11 @@ msgstr "GPU"
 
 #: src/spu/cfg.cc:63
 msgid "Gaussian interpolation - good quality"
-msgstr ""
+msgstr "Παρεμβολή γκάους - καλή ποιότητα "
 
 #: src/spu/cfg.cc:70
 msgid "Generates IRQs when buffers are decoded."
-msgstr ""
+msgstr "Παραγωγή IRQs οταν αποκοδικοποιούνται τα buffers"
 
 #: src/gui/gui.cc:545
 msgid "Hard Reset"
@@ -702,7 +709,7 @@ msgstr "Στυλ ImGui"
 
 #: src/spu/cfg.cc:65
 msgid "Interpolation"
-msgstr ""
+msgstr "Παρεμβολή"
 
 #: src/gui/gui.cc:1117
 msgid "Interrupt Scaler"
@@ -711,7 +718,7 @@ msgstr ""
 #: src/core/ppf.cc:215
 #, c-format
 msgid "Invalid PPF patch: %s.\n"
-msgstr ""
+msgstr "Μη έγκυρο patch PPF: %s.\n"
 
 #. fail if the negative offset is more than the total file size
 #: src/core/psxmem.cc:182 src/core/psxmem.cc:187
@@ -732,7 +739,7 @@ msgstr ""
 
 #: src/gui/widgets/vram-viewer.cc:254
 msgid "Link error:\n"
-msgstr ""
+msgstr "Σφάλμα link:\n"
 
 #: src/gui/gui.cc:951
 msgid "Little Endian"
@@ -835,31 +842,31 @@ msgstr "Κύρια προβολή VRAM"
 
 #: src/gui/widgets/breakpoints.cc:36
 msgid "Map byte reads         "
-msgstr ""
+msgstr "Χαρτογράφηση ανάγνωσης byte"
 
 #: src/gui/widgets/breakpoints.cc:41
 msgid "Map byte writes        "
-msgstr ""
+msgstr "Χαρτογράφηση γραφών byte"
 
 #: src/gui/widgets/breakpoints.cc:35
 msgid "Map execution"
-msgstr ""
+msgstr "Χαρτογράφηση εκτέλεσης"
 
 #: src/gui/widgets/breakpoints.cc:38
 msgid "Map half reads         "
-msgstr ""
+msgstr "Χαρτογράφηση ανάγνωσης halfword"
 
 #: src/gui/widgets/breakpoints.cc:43
 msgid "Map half writes        "
-msgstr ""
+msgstr "Χαρτογράφηση γραφών halfword"
 
 #: src/gui/widgets/breakpoints.cc:40
 msgid "Map word reads         "
-msgstr ""
+msgstr "Χαρτογράφηση ανάγνωσης word"
 
 #: src/gui/widgets/breakpoints.cc:45
 msgid "Map word writes        "
-msgstr ""
+msgstr "Χαρτογράφηση γραφών word"
 
 #: src/spu/cfg.cc:50
 msgid "Medium"
@@ -971,7 +978,7 @@ msgstr "Εκκίνηση του PCSX-Redux\n"
 
 #: src/gui/gui.cc:319
 msgid "Parallel Port"
-msgstr ""
+msgstr "Παράλληλη θύρα"
 
 #: src/gui/widgets/assembly.cc:447 src/gui/widgets/assembly.cc:507
 #: src/gui/gui.cc:539
@@ -980,7 +987,7 @@ msgstr "Παύση"
 
 #: src/spu/cfg.cc:55
 msgid "Pause SPU waiting for CPU IRQ"
-msgstr ""
+msgstr "Παύση SPU ενώ αναμένεται CPU IRQ"
 
 #: src/gui/widgets/vram-viewer.cc:390
 msgid "Pixel Shader"
@@ -1008,27 +1015,27 @@ msgstr "Αρχή RAM:"
 
 #: src/core/debug.cc:163
 msgid "Read 16 map"
-msgstr ""
+msgstr "Χάρτης ανάγνωσης 16"
 
 #: src/core/debug.cc:165
 msgid "Read 32 map"
-msgstr ""
+msgstr "Χάρτης ανάγνωσης 32"
 
 #: src/core/debug.cc:161
 msgid "Read 8 map"
-msgstr ""
+msgstr "Χάρτης ανάγνωσης 8"
 
 #: src/core/debug.h:35
 msgid "Read Byte"
-msgstr ""
+msgstr "Ανάγνωση Byte"
 
 #: src/core/debug.h:35
 msgid "Read Half"
-msgstr ""
+msgstr "Ανάγνωση Halfword"
 
 #: src/core/debug.h:36
 msgid "Read Word"
-msgstr ""
+msgstr "Ανάγνωση Word"
 
 #: src/gui/gui.cc:526
 msgid "Reboot"
@@ -1076,7 +1083,7 @@ msgstr "Συνέχεια"
 
 #: src/spu/cfg.cc:61
 msgid "Reverb"
-msgstr ""
+msgstr "Αντήχηση"
 
 #: src/gui/widgets/filedialog.cc:181
 msgid "Roots"
@@ -1173,7 +1180,7 @@ msgstr ""
 
 #: src/gui/gui.cc:584
 msgid "Show VRAM viewer #"
-msgstr ""
+msgstr "Ενεργοποίηση προβολής VRAM #"
 
 #: src/gui/widgets/breakpoints.cc:60
 msgid "Show all breakpoints"
@@ -1185,23 +1192,23 @@ msgstr "Ένδειξη BPs για την ανάγνωση byte"
 
 #: src/gui/widgets/breakpoints.cc:73
 msgid "Show byte write BPs    "
-msgstr ""
+msgstr "Προβολή BPs γραφής byte"
 
 #: src/gui/widgets/breakpoints.cc:67
 msgid "Show exec BPs"
-msgstr ""
+msgstr "Προβολή BPs εκτέλεσης"
 
 #: src/gui/widgets/breakpoints.cc:70
 msgid "Show half read BPs     "
-msgstr ""
+msgstr "Προβολή BPs ανάγνωσης halfword"
 
 #: src/gui/widgets/breakpoints.cc:75
 msgid "Show half write BPs    "
-msgstr ""
+msgstr "Προβολή BPs γραφής halfword"
 
 #: src/gui/gui.cc:580
 msgid "Show main VRAM viewer"
-msgstr ""
+msgstr "Ενεργοποίηση κύριας προβολής VRAM"
 
 #: src/gui/widgets/breakpoints.cc:64
 msgid "Show no breakpoints"
@@ -1209,7 +1216,7 @@ msgstr "Απενεργοποίση προβολής breakpoints"
 
 #: src/gui/gui.cc:620
 msgid "Show raw DWARF info"
-msgstr ""
+msgstr "Προβολή πληροφοριών DWARF"
 
 #: src/gui/gui.cc:616
 msgid "Show source"
@@ -1221,11 +1228,11 @@ msgstr "Προβολή types"
 
 #: src/gui/widgets/breakpoints.cc:72
 msgid "Show word read BPs     "
-msgstr ""
+msgstr "Προβολή BPs ανάγνωσης word"
 
 #: src/gui/widgets/breakpoints.cc:77
 msgid "Show word write BPs    "
-msgstr ""
+msgstr "Προβολή BPs γραφής word"
 
 #: src/core/psxinterpreter.cc:405
 #, c-format
@@ -1248,7 +1255,7 @@ msgstr "Απλό - χειρίζεται μονο τα πιο συχνά εφέ"
 
 #: src/spu/cfg.cc:62
 msgid "Simple interpolation"
-msgstr ""
+msgstr "Απλή παρεμβολή"
 
 #: src/gui/gui.cc:542
 msgid "Soft Reset"
@@ -1264,7 +1271,7 @@ msgstr "Έναρξη"
 
 #: src/gui/gui.cc:608
 msgid "Start GPU dump"
-msgstr ""
+msgstr "Έναρξη GPU dump"
 
 #: src/gui/widgets/assembly.cc:450 src/gui/widgets/assembly.cc:511
 msgid "Step In"
@@ -1292,7 +1299,7 @@ msgstr ""
 
 #: src/gui/gui.cc:611
 msgid "Stop GPU dump"
-msgstr ""
+msgstr "Παύση GPU dump"
 
 #: src/spu/cfg.cc:56
 msgid ""
@@ -1460,7 +1467,7 @@ msgstr "Προβολή VRAM #"
 
 #: src/gui/gui.cc:1012
 msgid "Web Server Port"
-msgstr ""
+msgstr "Θύρα Εξυπηρετητή Web"
 
 #: src/gui/widgets/assembly.cc:472
 msgid ""
@@ -1476,27 +1483,27 @@ msgstr ""
 
 #: src/core/debug.cc:169
 msgid "Write 16 map"
-msgstr ""
+msgstr "Χάρτης γραφής 16"
 
 #: src/core/debug.cc:171
 msgid "Write 32 map"
-msgstr ""
+msgstr "Χάρτης γραφής 32"
 
 #: src/core/debug.cc:167
 msgid "Write 8 map"
-msgstr ""
+msgstr "Χάρτης γραφής 8"
 
 #: src/core/debug.h:36
 msgid "Write Byte"
-msgstr ""
+msgstr "Γραφή Byte"
 
 #: src/core/debug.h:36
 msgid "Write Half"
-msgstr ""
+msgstr "Γραφή Halfword"
 
 #: src/core/debug.h:37
 msgid "Write Word"
-msgstr ""
+msgstr "Γραφή Word"
 
 #: src/gui/widgets/filedialog.cc:273
 msgid "^ Date & Time"
