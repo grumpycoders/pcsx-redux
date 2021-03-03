@@ -1001,7 +1001,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;FT2_BUILD_LIBRARY;FT_CONFIG_OPTION_SYSTEM_ZLIB;%(PreprocessorDefinitions)
-	  </PreprocessorDefinitions>
+          </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -1016,7 +1016,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;FT2_BUILD_LIBRARY;FT_CONFIG_OPTION_SYSTEM_ZLIB;%(PreprocessorDefinitions)
-	  </PreprocessorDefinitions>
+          </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -1031,7 +1031,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;FT2_BUILD_LIBRARY;FT_CONFIG_OPTION_SYSTEM_ZLIB;%(PreprocessorDefinitions)
-	  </PreprocessorDefinitions>
+          </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -1046,7 +1046,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;FT2_BUILD_LIBRARY;FT_CONFIG_OPTION_SYSTEM_ZLIB;%(PreprocessorDefinitions)
-	  </PreprocessorDefinitions>
+          </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>

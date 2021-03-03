@@ -147,7 +147,7 @@ class System {
         if (localeInfo == LOCALES.end()) return nullptr;
         return localeInfo->second.ranges;
     }
-    std::vector<std::pair<PCSX::u8string, const ImWchar*>> getLocaleExtra() {
+    std::vector<std::pair<PCSX::u8string, const ImWchar *>> getLocaleExtra() {
         auto localeInfo = LOCALES.find(m_currentLocale);
         if (localeInfo == LOCALES.end()) return {};
         return localeInfo->second.extraFonts;

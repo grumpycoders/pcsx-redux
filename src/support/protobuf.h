@@ -667,8 +667,8 @@ class Message<irqus::typestring<C...>, fields...> : private SimpleTuple<fields..
     static constexpr bool matches(unsigned wireType) { return wireType == 2; }
     using type = myself;
     Message() { verifyIntegrity<0, fields...>(); }
-    Message(const fields &...values) : base({values...}) { verifyIntegrity<0, fields...>(); }
-    Message(fields &&...values) : base({values...}) { verifyIntegrity<0, fields...>(); }
+    Message(const fields &... values) : base({values...}) { verifyIntegrity<0, fields...>(); }
+    Message(fields &&... values) : base({values...}) { verifyIntegrity<0, fields...>(); }
     using name = irqus::typestring<C...>;
     static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
     static constexpr void dumpSchema(std::ostream &stream) {

@@ -637,7 +637,7 @@ static void split(char *str, char key, char *pout) {
     char *psrc = str;
     char *pdst = pout;
     int len = strlen(str);
-    
+
     for (int i = 0; i < len; i++) {
         if (psrc[i] == '\0' || psrc[i] == key) {
             *pdst = '\0';
