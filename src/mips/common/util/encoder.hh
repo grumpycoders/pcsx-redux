@@ -58,15 +58,13 @@ constexpr uint32_t addiu(Reg tgt, Reg src, int16_t value) {
     v &= 0xffff;
     return iclass(0b001001) | srcVal(src) | tgtVal(tgt) | v;
 }
-constexpr uint32_t andd (Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100100; }
+constexpr uint32_t andd(Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100100; }
 constexpr uint32_t andi(Reg tgt, Reg src, uint16_t value) {
     return iclass(0b001100) | srcVal(src) | tgtVal(tgt) | value;
 }
-constexpr uint32_t lui(Reg tgt, uint16_t value) {
-    return iclass(0b001111) | tgtVal(tgt) | value;
-}
+constexpr uint32_t lui(Reg tgt, uint16_t value) { return iclass(0b001111) | tgtVal(tgt) | value; }
 constexpr uint32_t nor(Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100111; }
-constexpr uint32_t orr (Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100101; }
+constexpr uint32_t orr(Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100101; }
 constexpr uint32_t ori(Reg tgt, Reg src, uint16_t value) {
     return iclass(0b001101) | srcVal(src) | tgtVal(tgt) | value;
 }
@@ -82,9 +80,8 @@ constexpr uint32_t sltiu(Reg tgt, Reg src, uint16_t value) {
 }
 constexpr uint32_t sub(Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100010; }
 constexpr uint32_t subu(Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100011; }
-constexpr uint32_t xorr (Reg dst, Reg src, Reg tgt) {
-    return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100110;
-} constexpr uint32_t xori(Reg tgt, Reg src, uint16_t value) {
+constexpr uint32_t xorr(Reg dst, Reg src, Reg tgt) { return dstVal(dst) | tgtVal(tgt) | srcVal(src) | 0b100110; }
+constexpr uint32_t xori(Reg tgt, Reg src, uint16_t value) {
     return iclass(0b001110) | srcVal(src) | tgtVal(tgt) | value;
 }
 
