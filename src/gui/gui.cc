@@ -105,10 +105,11 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 void LoadImguiBindings(lua_State* lState);
 
-ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges) {
+ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
     decltype(s_imguiUserErrorFunctor) backup = nullptr;
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
+    cfg.MergeMode = combine;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
     ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(path.u8string().c_str()), size, &cfg, ranges);
@@ -444,6 +445,9 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io,
                               g_system->getLocaleRanges());
+        for (auto e : g_system->getLocaleExtra()) {
+            loadFont(e.first, settings.get<MainFontSize>().value, io, e.second, true);
+        }
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;

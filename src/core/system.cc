@@ -29,15 +29,35 @@
 PCSX::System* PCSX::g_system = NULL;
 
 static const ImWchar c_greekRange[] = {0x0020, 0x00ff, 0x0370, 0x03ff, 0};
+static const ImWchar c_hindiRange[] = {0x0900, 0x097f, 0};
 
 // locale names have to be written in basic latin or extended latin, in order
 // to be properly displayed in the UI with the default range
 const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
-    {"Deutsch",  {"de.po", nullptr}},
-    {"Ellinika", {"el.po", c_greekRange}},
-    {"Français", {"fr.po", nullptr}},
-    {"Italiano", {"it.po", nullptr}},
-    {"Malti",    {"mt.po", nullptr}},
+    {
+        "Deutsch",
+        {"de.po", {}, nullptr},
+    },
+    {
+        "Ellinika",
+        {"el.po", {}, c_greekRange},
+    },
+    {
+        "Français",
+        {"fr.po", {}, nullptr},
+    },
+    {
+        "Hindi",
+        {"hi.po", {{MAKEU8("NotoSansDevanagari-Regular.ttf"), c_hindiRange}}, nullptr},
+    },
+    {
+        "Italiano",
+        {"it.po", {}, nullptr},
+    },
+    {
+        "Malti",
+        {"mt.po", {}, nullptr},
+    },
 };
 
 bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::path& path) {

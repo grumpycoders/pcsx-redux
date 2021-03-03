@@ -147,6 +147,11 @@ class System {
         if (localeInfo == LOCALES.end()) return nullptr;
         return localeInfo->second.ranges;
     }
+    std::vector<std::pair<PCSX::u8string, const ImWchar*>> getLocaleExtra() {
+        auto localeInfo = LOCALES.find(m_currentLocale);
+        if (localeInfo == LOCALES.end()) return {};
+        return localeInfo->second.extraFonts;
+    }
     std::vector<std::string> localesNames() {
         std::vector<std::string> locales;
         for (auto &l : m_locales) {
@@ -166,7 +171,7 @@ class System {
     int m_exitCode = 0;
     struct LocaleInfo {
         const std::string filename;
-        // todo: add extra font well-known filenames
+        const std::vector<std::pair<PCSX::u8string, const ImWchar *>> extraFonts;
         const ImWchar *ranges = nullptr;
     };
     static const std::map<std::string, LocaleInfo> LOCALES;
