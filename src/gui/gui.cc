@@ -315,7 +315,6 @@ end)(jit.status()))
 
         std::string biosCfg = m_args.get<std::string>("bios", "");
         if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
-        g_emulator->settings.get<Emulator::SettingLastFile>() = "BIOS"; // on boot, redirect savestates to BIOS until a file is loaded
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
@@ -572,7 +571,7 @@ void PCSX::GUI::endFrame() {
                             if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
                                 stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
                             else {
-                                const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
+                                const auto lastFile = isoFilename.empty() ? "BIOS" : isoFilename;
                                 stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
                             }
 
@@ -594,7 +593,7 @@ void PCSX::GUI::endFrame() {
                             if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
                                 stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will try reading a state named SLUS00213.sstate
                             else {
-                                const auto lastFile = g_emulator->settings.get<Emulator::SettingLastFile>().value;
+                                const auto lastFile = isoFilename.empty() ? "BIOS" : isoFilename;
                                 stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
                             }
 
@@ -800,7 +799,7 @@ void PCSX::GUI::endFrame() {
             PCSX::g_emulator->m_cdrom->m_iso.close();
             SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
 
-            g_emulator->settings.get<Emulator::SettingLastFile>() = std::filesystem::path (fileToOpen[0]).filename().string(); // cache iso name
+            isoFilename = std::filesystem::path (fileToOpen[0]).filename().string(); // cache iso name
             PCSX::g_emulator->m_cdrom->m_iso.open();
             CheckCdrom();
         }
@@ -818,7 +817,7 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            g_emulator->settings.get<Emulator::SettingLastFile>() = std::filesystem::path (m_exeToLoad).filename().string(); // cache bin name
+            isoFilename = std::filesystem::path (m_exeToLoad).filename().string(); // cache bin name
             
             g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
             g_system->softReset();

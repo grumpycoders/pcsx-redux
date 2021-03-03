@@ -162,6 +162,7 @@ class GUI final {
 
     float m_renderRatio = 3.0f / 4.0f;
     bool &m_fullscreen = {settings.get<Fullscreen>().value};
+    std::string isoFilename;
 
     // GUI
     typedef Setting<bool, TYPESTRING("Fullscreen"), false> Fullscreen;
