@@ -32,7 +32,7 @@ const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
 PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingGdbServer>()) {
+        if (g_emulator->settings.get<Emulator::SettingGdbServer>() && (m_serverStatus != SERVER_STARTED)) {
             startServer(&g_emulator->m_loop, g_emulator->settings.get<Emulator::SettingGdbServerPort>());
         }
     });
