@@ -41,6 +41,8 @@ void PCSX::Widgets::Log::draw(const char* title) {
     }
     ImGui::Checkbox(_("Follow"), &m_follow);
     ImGui::SameLine();
+    ImGui::Checkbox(_("Log CD-ROM"), &m_logCDROM);
+    ImGui::SameLine();
     if (ImGui::Button(_("Clear"))) clear();
     ImGui::SameLine();
     bool copy = ImGui::Button(_("Copy"));

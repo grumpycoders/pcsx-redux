@@ -46,7 +46,9 @@ class Log {
     ImGuiTextFilter m_filter;
     ImVector<int> m_lineOffsets;  // Index to lines offset
     bool m_scrollToBottom = false;
+
     bool m_follow = true;
+    bool m_logCDROM = false;
 };
 
 }  // namespace Widgets
