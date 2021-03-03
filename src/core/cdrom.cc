@@ -33,7 +33,7 @@ class CDRomImpl : public PCSX::CDRom {
     /* CD-ROM magic numbers */
     enum {
         CdlSync = 0,
-        CdlNop = 1,
+        CdlGetStat = 1,
         CdlSetloc = 2,
         CdlPlay = 3,
         CdlForward = 4,
@@ -66,7 +66,7 @@ class CDRomImpl : public PCSX::CDRom {
     };
 
     static const inline char *CmdName[] = {
-        "CdlSync",     "CdlNop",     "CdlSetloc", "CdlPlay",  "CdlForward", "CdlBackward",  "CdlReadN",   "CdlStandby",
+        "CdlSync",     "CdlGetStat",     "CdlSetloc", "CdlPlay",  "CdlForward", "CdlBackward",  "CdlReadN",   "CdlStandby",
         "CdlStop",     "CdlPause",   "CdlInit",   "CdlMute",  "CdlDemute",  "CdlSetfilter", "CdlSetmode", "CdlGetmode",
         "CdlGetlocL",  "CdlGetlocP", "CdlReadT",  "CdlGetTN", "CdlGetTD",   "CdlSeekL",     "CdlSeekP",   "CdlSetclock",
         "CdlGetclock", "CdlTest",    "CdlID",     "CdlReadS", "CdlReset",   "NULL",         "CDlReadToc", "NULL"};
@@ -305,7 +305,7 @@ class CDRomImpl : public PCSX::CDRom {
                     CheckCdrom();
 
                     // m_statP STATUS_SHELLOPEN is "sticky"
-                    // and is only cleared by CdlNop
+                    // and is only cleared by CdlGetStat
 
                     m_driveState = DRIVESTATE_RESCAN_CD;
                     scheduleCDLidIRQ(cdReadTime * 105);
@@ -589,7 +589,7 @@ class CDRomImpl : public PCSX::CDRom {
                 // TOOD: sometimes/always return error?
                 break;
 
-            case CdlNop:
+            case CdlGetStat:
                 if (m_driveState != DRIVESTATE_LID_OPEN) m_statP &= ~STATUS_SHELLOPEN;
                 no_busy_error = 1;
                 break;
