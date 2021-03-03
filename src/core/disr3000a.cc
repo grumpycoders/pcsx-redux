@@ -689,12 +689,12 @@ declare(disMTLO) {
  *********************************************************/
 declare(disBREAK) {
     dOpCode("break");
-    Imm32((code >> 6) && 0xfffff);
+    Imm32((code >> 6) & 0xfffff);
 }
 declare(disRFE) { dOpCode("rfe"); }
 declare(disSYSCALL) {
     dOpCode("syscall");
-    Imm32((code >> 6) && 0xfffff);
+    Imm32((code >> 6) & 0xfffff);
 }
 
 declare(disRTPS) { dOpCode("gte::rtps"); }
