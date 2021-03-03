@@ -136,6 +136,7 @@ class Emulator {
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
     typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
+    typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> SettingLoggingCDROM;
     typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
@@ -152,7 +153,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
+             SettingFastBoot, SettingDebug, SettingLoggingCDROM, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
              SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
              SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
              Setting8MB>

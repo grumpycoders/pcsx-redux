@@ -581,6 +581,9 @@ class CDRomImpl : public PCSX::CDRom {
 
         m_irq = 0;
         CDR_LOG("CDRINT %x %x %x %x\n", m_seeked, m_stat, irq, m_irqRepeated);
+        if (PCSX::g_emulator->settings.get <PCSX::Emulator::SettingLoggingCDROM>().value) 
+            logCDROM(irq);
+
         switch (irq) {
             case CdlSync:
                 // TOOD: sometimes/always return error?
@@ -1566,6 +1569,17 @@ class CDRomImpl : public PCSX::CDRom {
         getCdInfo();
         StopCdda();
         lidSeekInterrupt();
+    }
+
+    void logCDROM (int command) {
+        if (command >= 0x100) return; // a hack to fight the hacks in this file... yikes
+        switch (command) {
+            case CdlTest: 
+                PCSX::g_system -> printf ("[CDROM] Command: CdlTest %02Xh\n", m_param[0]); 
+                break;
+            default:
+                PCSX::g_system -> printf ("[CDROM] Command: %s\n", CmdName[command]);
+        }
     }
 };
 

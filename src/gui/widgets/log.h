@@ -48,7 +48,6 @@ class Log {
     bool m_scrollToBottom = false;
 
     bool m_follow = true;
-    bool m_logCDROM = false;
 };
 
 }  // namespace Widgets

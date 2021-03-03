@@ -20,6 +20,7 @@
 #include "gui/widgets/log.h"
 
 #include "core/system.h"
+#include "core/psxemulator.h"
 
 void PCSX::Widgets::Log::clear() {
     m_buffer.clear();
@@ -41,7 +42,7 @@ void PCSX::Widgets::Log::draw(const char* title) {
     }
     ImGui::Checkbox(_("Follow"), &m_follow);
     ImGui::SameLine();
-    ImGui::Checkbox(_("Log CD-ROM"), &m_logCDROM);
+    ImGui::Checkbox(_("Log CD-ROM"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingLoggingCDROM>().value);
     ImGui::SameLine();
     if (ImGui::Button(_("Clear"))) clear();
     ImGui::SameLine();
