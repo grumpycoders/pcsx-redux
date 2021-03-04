@@ -106,6 +106,15 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 void LoadImguiBindings(lua_State* lState);
 
 ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
+    const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
+    if (knownRange == System::Range::KOREAN) ranges = io.Fonts->GetGlyphRangesKorean();
+    if (knownRange == System::Range::JAPANESE) ranges = io.Fonts->GetGlyphRangesJapanese();
+    if (knownRange == System::Range::CHINESE_FULL) ranges = io.Fonts->GetGlyphRangesChineseFull();
+    if (knownRange == System::Range::CHINESE_SIMPLIFIED) ranges = io.Fonts->GetGlyphRangesChineseSimplifiedCommon();
+    if (knownRange == System::Range::CYRILLIC) ranges = io.Fonts->GetGlyphRangesCyrillic();
+    if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
+    if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
+
     decltype(s_imguiUserErrorFunctor) backup = nullptr;
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
