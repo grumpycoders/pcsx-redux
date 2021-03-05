@@ -650,6 +650,15 @@ void PCSX::ix86::XOR32MtoR(mainRegister to, uint32_t from) {
     write32(from);
 }
 
+// and imm8 to r32
+// preferable to using a 32-bit immediate wherever appropriate due to saving on code size
+// TODO: potentially template
+void PCSX::ix86::AND8ItoR32(mainRegister to, uint8_t from) {
+    write8 (0x83); // opcode for all op r32, imm8 instructions
+    ModRM (3, 0x4, to); // 3 -> Decides the addressing mode. 4 -> The sub-opcode
+    write8 (from); // immediate
+}
+
 /* and imm32 to r32 */
 void PCSX::ix86::AND32ItoR(mainRegister to, uint32_t from) {
     if (to == EAX) {

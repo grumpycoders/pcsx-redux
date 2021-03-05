@@ -323,6 +323,8 @@ class ix86 {
     /* xor m32 to r32 */
     void XOR32MtoR(mainRegister to, uint32_t from);
 
+    /* and imm8 to r32 */
+    void AND8ItoR32(mainRegister to, uint8_t from);
     /* and imm32 to r32 */
     void AND32ItoR(mainRegister to, uint32_t from);
     /* and imm32 to m32 */
