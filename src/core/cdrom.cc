@@ -1572,15 +1572,16 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     void logCDROM (int command) {
-        if (command >= 0x100) return; // a hack to fight the hacks in this file... yikes
-        switch (command) {
+        const auto delayedString = (command & 0x100) ? "[Delayed]" : ""; // log if this is a delayed CD-ROM IRQ
+
+        switch (command & 0xFF) {
             case CdlTest: 
-                PCSX::g_system -> printf ("[CDROM] Command: CdlTest %02Xh\n", m_param[0]); 
+                PCSX::g_system -> printf ("[CDROM]%s Command: CdlTest %02Xh\n", delayedString, m_param[0]); 
                 break;
             default:
-                PCSX::g_system -> printf ("[CDROM] Command: %s\n", CmdName[command]);
+                PCSX::g_system -> printf ("[CDROM]%s Command: %s\n", delayedString, CmdName[command & 0xFF]);
         }
-    }
+    } 
 };
 
 }  // namespace
