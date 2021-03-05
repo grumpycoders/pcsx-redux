@@ -602,7 +602,7 @@ void PCSX::GUI::endFrame() {
 
                 if (ImGui::BeginMenu(_("Load state slots"))) {
                     for (auto i = 1; i < 10; i++) {
-                        const auto str = _("Slot ") + std::to_string (i);
+                        const auto str = fmt::format(_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) {
                             const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
                             std::string stateName;
