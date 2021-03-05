@@ -259,6 +259,7 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
+    glfwSetKeyCallback(m_window, PCSX::PAD::updateBinding);
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
         int x, y, comp;
@@ -314,6 +315,8 @@ end)(jit.status()))
         }
 
         setFullscreen(m_fullscreen);
+        const auto currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value; // On boot: reload GUI theme
+        apply_theme (currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
             emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
@@ -663,6 +666,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pad1->m_showCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -883,11 +887,12 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
+    changed |= PCSX::g_emulator->m_pad1->configure(); // TODO: make static
     changed |= configure();
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
-            showThemes();
+            changed |= showThemes();
             bool needFontReload = false;
             {
                 std::string currentLocale = g_system->localeName();
@@ -1233,14 +1238,18 @@ void PCSX::GUI::interruptsScaler() {
     ImGui::End();
 }
 
-void PCSX::GUI::showThemes() {
+bool PCSX::GUI::showThemes() {
     static const char* imgui_themes[6] = {"Default", "Classic", "Light",
                                           "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
-    if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
+    auto changed = false;
+    auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
+
+    if (ImGui::BeginCombo(_("Themes"), imgui_themes[currentTheme], ImGuiComboFlags_HeightLarge)) {
         for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
-            bool selected = (curr_item == imgui_themes[n]);
+            bool selected = (currentTheme == n);
             if (ImGui::Selectable(imgui_themes[n], selected)) {
-                curr_item = imgui_themes[n];
+                currentTheme = n;
+                changed = true;
                 apply_theme(n);
             }
             if (selected) {
@@ -1249,6 +1258,8 @@ void PCSX::GUI::showThemes() {
         }
         ImGui::EndCombo();
     }
+
+    return changed;
 }
 
 void PCSX::GUI::about() {

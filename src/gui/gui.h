@@ -129,7 +129,7 @@ class GUI final {
     void endFrame();
 
     bool configure();
-    void showThemes(bool& changed);  // Theme window : Allows for custom imgui themes
+    bool showThemes();  // Theme window : Allows for custom imgui themes
     void about();
     void interruptsScaler();
 
@@ -239,8 +239,6 @@ class GUI final {
 
     void shellReached();
 
-    // ImGui themes: Defined in themes/imgui_themes.c
-    const char *curr_item = "Default";
     void apply_theme(int n);
     void cherry_theme();
     void mono_theme();
