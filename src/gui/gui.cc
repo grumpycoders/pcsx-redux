@@ -18,6 +18,13 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#define STBI_ASSERT(x)
+#define STBI_NO_HDR
+#define STBI_NO_LINEAR
+#define STBI_NO_STDIO
+#define STBI_ONLY_PNG
 #include "gui/gui.h"
 
 #include <GL/gl3w.h>
@@ -41,6 +48,7 @@
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
+#include "gui/resources.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -49,6 +57,7 @@
 #include "lua/glffi.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "stb/stb_image.h"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
@@ -96,10 +105,20 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 void LoadImguiBindings(lua_State* lState);
 
-ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges) {
+ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
+    const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
+    if (knownRange == System::Range::KOREAN) ranges = io.Fonts->GetGlyphRangesKorean();
+    if (knownRange == System::Range::JAPANESE) ranges = io.Fonts->GetGlyphRangesJapanese();
+    if (knownRange == System::Range::CHINESE_FULL) ranges = io.Fonts->GetGlyphRangesChineseFull();
+    if (knownRange == System::Range::CHINESE_SIMPLIFIED) ranges = io.Fonts->GetGlyphRangesChineseSimplifiedCommon();
+    if (knownRange == System::Range::CYRILLIC) ranges = io.Fonts->GetGlyphRangesCyrillic();
+    if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
+    if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
+
     decltype(s_imguiUserErrorFunctor) backup = nullptr;
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
+    cfg.MergeMode = combine;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
     ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(path.u8string().c_str()), size, &cfg, ranges);
@@ -113,6 +132,14 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     }
     if (!ret) {
         auto tryMe = g_system->getBinDir() / "fonts" / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
+        auto tryMe = g_system->getBinDir() / ".." / "share" / "pcsx-redux" / "fonts" / path;
+        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
+    }
+    if (!ret) {
+        auto tryMe = std::filesystem::current_path() / "third_party" / "noto" / path;
         ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
     }
     if (!ret) {
@@ -155,8 +182,8 @@ void PCSX::GUI::init() {
     auto printer = [this](Lua L, bool error) -> int {
         int n = L.gettop();
         std::string s;
-        int i;
-        for (i = 1; i <= n; i++) {
+
+        for (int i = 1; i <= n; i++) {
             if (i > 1) s += " ";
             if (L.isstring(i)) {
                 s += L.tostring(i);
@@ -232,7 +259,23 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
-    glfwSetKeyCallback(m_window, PCSX::PAD::updateBinding);
+
+    Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
+        int x, y, comp;
+        stbi_uc* img;
+        img = stbi_load_from_memory(data, size, &x, &y, &comp, 4);
+        if (!img) return;
+        if (comp != 4) {
+            stbi_image_free(img);
+            return;
+        }
+        GLFWimage image;
+        image.width = x;
+        image.height = y;
+        image.pixels = img;
+        glfwSetWindowIcon(m_window, 1, &image);
+        stbi_image_free(img);
+    });
 
     result = gl3wInit();
     assert(result == 0);
@@ -262,12 +305,10 @@ end)(jit.status()))
             }
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
-                apply_theme(settings.get<PCSX::GUI::GUITheme>().value); // set the GUI theme
             }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
-            PCSX::g_emulator->m_pad1->setCfg(j);
         } else {
             saveCfg();
         }
@@ -290,6 +331,8 @@ end)(jit.status()))
         if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
+
+        g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
@@ -368,8 +411,6 @@ void PCSX::GUI::close() {
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
-
-    g_emulator->m_loop->close();
 }
 
 void PCSX::GUI::saveCfg() {
@@ -383,12 +424,11 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
-    j["pad"] = PCSX::g_emulator->m_pad1->getCfg();
     cfg << std::setw(2) << j << std::endl;
 }
 
 void PCSX::GUI::startFrame() {
-    g_emulator->m_loop->run<uvw::Loop::Mode::NOWAIT>();
+    uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
 
@@ -416,6 +456,9 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         m_mainFont = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value, io,
                               g_system->getLocaleRanges());
+        for (auto e : g_system->getLocaleExtra()) {
+            loadFont(e.first, settings.get<MainFontSize>().value, io, e.second, true);
+        }
         m_monoFont = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value, io, nullptr);
         io.Fonts->Build();
         io.FontDefault = m_mainFont;
@@ -620,7 +663,6 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &PCSX::g_emulator->m_pad1->m_showCfg); // TODO: Add pad 2
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -675,8 +717,6 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Help"))) {
-                ImGui::MenuItem(_("ImGui Themes"), nullptr, &m_showThemes);
-                ImGui::Separator();
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::Separator();
                 ImGui::MenuItem(_("About"), nullptr, &m_showAbout);
@@ -828,7 +868,6 @@ void PCSX::GUI::endFrame() {
         m_breakpoints.draw(_("Breakpoints"));
     }
 
-    showThemes(changed);
     about();
     interruptsScaler();
 
@@ -844,11 +883,11 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
-    changed |= PCSX::g_emulator->m_pad1->configure(); // TODO: Add pad 2
     changed |= configure();
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
+            showThemes();
             bool needFontReload = false;
             {
                 std::string currentLocale = g_system->localeName();
@@ -1043,7 +1082,8 @@ can slow down emulation to a noticable extend.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingGdbServer>()) {
-                g_emulator->m_gdbServer->startServer(settings.get<Emulator::SettingGdbServerPort>());
+                g_emulator->m_gdbServer->startServer(&g_emulator->m_loop,
+                                                     settings.get<Emulator::SettingGdbServerPort>());
             } else {
                 g_emulator->m_gdbServer->stopServer();
             }
@@ -1064,7 +1104,8 @@ the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingWebServer>()) {
-                g_emulator->m_webServer->startServer(settings.get<Emulator::SettingWebServerPort>());
+                g_emulator->m_webServer->startServer(&g_emulator->m_loop,
+                                                     settings.get<Emulator::SettingWebServerPort>());
             } else {
                 g_emulator->m_webServer->stopServer();
             }
@@ -1192,20 +1233,15 @@ void PCSX::GUI::interruptsScaler() {
     ImGui::End();
 }
 
-void PCSX::GUI::showThemes(bool& changed) {
-    if (!m_showThemes) return;
+void PCSX::GUI::showThemes() {
     static const char* imgui_themes[6] = {"Default", "Classic", "Light",
                                           "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
-    ImGui::Begin(_("Theme selector"), &m_showThemes);
     if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
         for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
             bool selected = (curr_item == imgui_themes[n]);
             if (ImGui::Selectable(imgui_themes[n], selected)) {
                 curr_item = imgui_themes[n];
                 apply_theme(n);
-
-                changed = true; // tell the GUI to save the current theme
-                *&settings.get<PCSX::GUI::GUITheme>().value = n;
             }
             if (selected) {
                 ImGui::SetItemDefaultFocus();
@@ -1213,7 +1249,6 @@ void PCSX::GUI::showThemes(bool& changed) {
         }
         ImGui::EndCombo();
     }
-    ImGui::End();
 }
 
 void PCSX::GUI::about() {

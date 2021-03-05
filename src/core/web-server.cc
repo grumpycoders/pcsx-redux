@@ -27,6 +27,7 @@
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
+#include "support/hashtable.h"
 
 namespace {
 
@@ -64,8 +65,8 @@ class VramExecutor : public PCSX::WebExecutor {
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingWebServer>()) {
-            startServer(g_emulator->settings.get<Emulator::SettingWebServerPort>());
+        if (g_emulator->settings.get<Emulator::SettingWebServer>() && (m_serverStatus != SERVER_STARTED)) {
+            startServer(&g_emulator->m_loop, g_emulator->settings.get<Emulator::SettingWebServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
@@ -75,43 +76,58 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
 
 void PCSX::WebServer::stopServer() {
     assert(m_serverStatus == SERVER_STARTED);
+    m_serverStatus = SERVER_STOPPING;
     for (auto& client : m_clients) client.close();
-    m_server->close();
+    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
 }
 
-void PCSX::WebServer::startServer(int port) {
+void PCSX::WebServer::startServer(uv_loop_t* loop, int port) {
     assert(m_serverStatus == SERVER_STOPPED);
-    m_server = g_emulator->m_loop->resource<uvw::TCPHandle>();
-    m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent&, uvw::TCPHandle& srv) { onNewConnection(); });
-    m_server->on<uvw::CloseEvent>(
-        [this](const uvw::CloseEvent&, uvw::TCPHandle& srv) { m_serverStatus = SERVER_STOPPED; });
-    m_server->on<uvw::ErrorEvent>(
-        [this](const uvw::ErrorEvent& event, uvw::TCPHandle& srv) { m_gotError = event.what(); });
-    m_gotError = "";
-    m_server->bind("0.0.0.0", port);
-    if (!m_gotError.empty()) {
-        g_system->printf("Error while trying to bind to port %i: %s\n", port, m_gotError.c_str());
-        m_server->close();
-        return;
-    }
-    m_server->listen();
-    if (!m_gotError.empty()) {
-        g_system->printf("Error while trying to listen to port %i: %s\n", port, m_gotError.c_str());
-        m_server->close();
-        return;
-    }
+    m_loop = loop;
+    uv_tcp_init(loop, &m_server);
+    m_server.data = this;
 
+    struct sockaddr_in bindAddr;
+    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
+    if (result != 0) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+        return;
+    }
+    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
+    if (result != 0) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+        return;
+    }
+    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
+    if (result != 0) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+        return;
+    }
     m_serverStatus = SERVER_STARTED;
 }
 
-void PCSX::WebServer::onNewConnection() {
-    WebClient* client = new WebClient(this, m_server);
-    m_clients.push_back(client);
-    client->accept(m_server);
+void PCSX::WebServer::closeCB(uv_handle_t* handle) {
+    WebServer* self = static_cast<WebServer*>(handle->data);
+    self->m_serverStatus = SERVER_STOPPED;
+}
+
+void PCSX::WebServer::onNewConnectionTrampoline(uv_stream_t* handle, int status) {
+    WebServer* self = static_cast<WebServer*>(handle->data);
+    self->onNewConnection(status);
+}
+
+void PCSX::WebServer::onNewConnection(int status) {
+    if (status < 0) return;
+    WebClient* client = new WebClient(this);
+    if (client->accept(&m_server)) {
+        m_clients.push_back(client);
+    } else {
+        delete client;
+    }
 }
 
 struct PCSX::WebClient::WebClientImpl {
-    struct WriteRequest : public Intrusive::List<WriteRequest>::Node {
+    struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
         WriteRequest() {}
         WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
         void enqueue(WebClientImpl* client) {
@@ -119,17 +135,26 @@ struct PCSX::WebClient::WebClientImpl {
                 delete this;
                 return;
             }
-            client->m_requests.push_back(this);
-            client->m_tcp->write(static_cast<char*>(const_cast<void*>(m_slice.data())), m_slice.size());
+            m_buf.base = static_cast<char*>(const_cast<void*>(m_slice.data()));
+            m_buf.len = m_slice.size();
+            client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
+            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), &m_buf, 1, writeCB);
         }
-        void gotWriteEvent() { delete this; }
+        static void writeCB(uv_write_t* request, int status) {
+            WebClientImpl* client = static_cast<WebClientImpl*>(request->handle->data);
+            auto self = client->m_requests.find(reinterpret_cast<uintptr_t>(request));
+            delete &*self;
+            if ((status != 0) || (client->m_closeScheduled && (client->m_requests.size() == 0))) client->close();
+        }
+        uv_buf_t m_buf;
         uv_write_t m_req;
         Slice m_slice;
     };
-    Intrusive::List<WriteRequest> m_requests;
+    Intrusive::HashTable<uintptr_t, WriteRequest> m_requests;
 
-    WebClientImpl(WebServer* server, WebClient* parent, std::shared_ptr<uvw::TCPHandle> srv)
-        : m_server(server), m_tcp(srv->loop().resource<uvw::TCPHandle>()), m_parent(parent) {
+    WebClientImpl(WebServer* server, WebClient* parent) : m_server(server), m_parent(parent) {
+        uv_tcp_init(server->m_loop, &m_tcp);
+        m_tcp.data = this;
         m_httpParserSettings.on_message_begin = WebClientImpl::onMessageBeginTrampoline;
         m_httpParserSettings.on_url = WebClientImpl::onUrlTrampoline;
         m_httpParserSettings.on_status = WebClientImpl::onStatusTrampoline;
@@ -146,28 +171,15 @@ struct PCSX::WebClient::WebClientImpl {
     void close() {
         if (m_status != OPEN) return;
         m_status = CLOSING;
-        m_tcp->close();
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
     }
-    void accept(std::shared_ptr<uvw::TCPHandle> srv) {
+    bool accept(uv_tcp_t* srv) {
         assert(m_status == CLOSED);
-        m_tcp->on<uvw::CloseEvent>([this](const uvw::CloseEvent&, uvw::TCPHandle&) { delete m_parent; });
-        m_tcp->on<uvw::EndEvent>([this](const uvw::EndEvent&, uvw::TCPHandle&) { onEOF(); });
-        m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& e, uvw::TCPHandle&) {
-            const char* name = e.name();
-            const char* what = e.what();
-            g_system->printf("WebServer libuv error: %s - %s\n", name, what);
-            close();
-        });
-        m_tcp->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle&) { read(event); });
-        m_tcp->on<uvw::WriteEvent>([this](const uvw::WriteEvent&, uvw::TCPHandle&) {
-            auto top = m_requests.begin();
-            if (top == m_requests.end()) return;
-            top->gotWriteEvent();
-            if (m_closeScheduled && (m_requests.size() == 0)) close();
-        });
-        srv->accept(*m_tcp);
-        m_tcp->read();
-        m_status = OPEN;
+        if (uv_accept(reinterpret_cast<uv_stream_t*>(srv), reinterpret_cast<uv_stream_t*>(&m_tcp)) == 0) {
+            uv_read_start(reinterpret_cast<uv_stream_t*>(&m_tcp), allocTrampoline, readTrampoline);
+            m_status = OPEN;
+        }
+        return m_status == OPEN;
     }
 
     void onEOF() {
@@ -257,12 +269,33 @@ struct PCSX::WebClient::WebClientImpl {
     static int onChunkCompleteTrampoline(http_parser* parser) {
         return static_cast<WebClientImpl*>(parser->data)->onChunkComplete();
     }
-    void read(const uvw::DataEvent& event) {
-        if (m_status != OPEN) return;
+    static void allocTrampoline(uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
+        WebClientImpl* client = static_cast<WebClientImpl*>(handle->data);
+        client->alloc(suggestedSize, buf);
+    }
+    void alloc(size_t suggestedSize, uv_buf_t* buf) {
+        assert(!m_allocated);
+        m_allocated = true;
+        buf->base = m_buffer;
+        buf->len = sizeof(m_buffer);
+    }
+    static void readTrampoline(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+        WebClientImpl* client = static_cast<WebClientImpl*>(stream->data);
+        client->read(nread, buf);
+    }
+    void read(ssize_t nread, const uv_buf_t* buf) {
+        m_allocated = false;
+        if (nread <= 0) {
+            close();
+            return;
+        }
         Slice slice;
-        slice.borrow(event.data.get(), event.length);
-
+        slice.borrow(m_buffer, nread);
         processData(slice);
+    }
+    static void closeCB(uv_handle_t* handle) {
+        WebClientImpl* client = static_cast<WebClientImpl*>(handle->data);
+        delete client->m_parent;
     }
     void processData(const Slice& slice) {
         const char* ptr = reinterpret_cast<const char*>(slice.data());
@@ -332,7 +365,10 @@ struct PCSX::WebClient::WebClientImpl {
     }
 
     WebServer* m_server;
-    std::shared_ptr<uvw::TCPHandle> m_tcp;
+    uv_tcp_t m_tcp;
+    static constexpr size_t BUFFER_SIZE = 256;
+    char m_buffer[BUFFER_SIZE];
+    bool m_allocated = false;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
     http_parser_settings m_httpParserSettings;
     http_parser m_httpParser;
@@ -345,10 +381,9 @@ struct PCSX::WebClient::WebClientImpl {
     bool m_closeScheduled = false;
 };
 
-PCSX::WebClient::WebClient(WebServer* server, std::shared_ptr<uvw::TCPHandle> srv)
-    : m_impl(std::make_unique<WebClientImpl>(server, this, srv)) {}
+PCSX::WebClient::WebClient(WebServer* server) : m_impl(std::make_unique<WebClientImpl>(server, this)) {}
 void PCSX::WebClient::close() { m_impl->close(); }
-void PCSX::WebClient::accept(std::shared_ptr<uvw::TCPHandle> srv) { m_impl->accept(srv); }
+bool PCSX::WebClient::accept(uv_tcp_t* srv) { return m_impl->accept(srv); }
 void PCSX::WebClient::write(Slice&& slice) { m_impl->write(std::move(slice)); }
 void PCSX::WebClient::write(std::string&& str) { m_impl->write(std::move(str)); }
 void PCSX::WebClient::write(const std::string& str) { m_impl->write(str); }

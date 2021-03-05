@@ -1867,9 +1867,7 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 }
 
 void PCSX::CDRiso::PrintTracks() {
-    int i;
-
-    for (i = 1; i <= m_numtracks; i++) {
+    for (int i = 1; i <= m_numtracks; i++) {
         PCSX::g_system->printf(
             _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
             (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
@@ -1979,8 +1977,6 @@ bool PCSX::CDRiso::open(void) {
 }
 
 void PCSX::CDRiso::close() {
-    int i;
-
     if (m_cdHandle != NULL) {
         m_cdHandle->close();
         delete m_cdHandle;
@@ -1999,7 +1995,7 @@ void PCSX::CDRiso::close() {
         m_compr_img = NULL;
     }
 
-    for (i = 1; i <= m_numtracks; i++) {
+    for (int i = 1; i <= m_numtracks; i++) {
         if (m_ti[i].handle != NULL) {
             m_ti[i].handle->close();
             delete m_ti[i].handle;
@@ -2095,11 +2091,9 @@ bool PCSX::CDRiso::getTD(uint8_t track, uint8_t *buffer) {
 // decode 'raw' subchannel data ripped by cdrdao
 void PCSX::CDRiso::DecodeRawSubData() {
     unsigned char subQData[12];
-    int i;
-
     memset(subQData, 0, sizeof(subQData));
 
-    for (i = 0; i < 8 * 12; i++) {
+    for (int i = 0; i < 8 * 12; i++) {
         if (m_subbuffer[i] & (1 << 6)) {  // only subchannel Q is needed
             subQData[i >> 3] |= (1 << (7 - (i & 7)));
         }
@@ -2221,10 +2215,9 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
     }
 
     if (PCSX::g_emulator->settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
-        int i;
         unsigned char tmp;
 
-        for (i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
+        for (int i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
             tmp = buffer[i * 2];
             buffer[i * 2] = buffer[i * 2 + 1];
             buffer[i * 2 + 1] = tmp;

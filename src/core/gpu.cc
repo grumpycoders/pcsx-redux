@@ -75,8 +75,8 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         // next 32-bit pointer
         addr = psxMu32(addr & ~0x3) & 0xffffff;
         size += 1;
-    } while (addr != 0xffffff);
-
+    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
+                                   // 0xFF'FFFF any pointer with bit 23 set will do.
     return size;
 }
 
@@ -101,7 +101,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
         case 0x01000200:  // vram2mem
             PSXDMA_LOG("*** DMA2 GPU - vram2mem *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
             ptr = (uint32_t *)PSXM(madr);
-            if (ptr == NULL) {
+            if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - vram2mem *** NULL Pointer!!!\n");
                 break;
             }
@@ -124,7 +124,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU mem2vram *** %lx addr = %lxh, BCR %lxh => size %d = BA(%d) * BS(%xh)\n", chcr,
                        madr, bcr, size, size / bs, size / (bcr >> 16));
             ptr = (uint32_t *)PSXM(madr);
-            if (ptr == NULL) {
+            if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
                 break;
             }

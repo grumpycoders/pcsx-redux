@@ -57,18 +57,17 @@ static void idct(int *block, int used_col) {
     int tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     int z5, z10, z11, z12, z13;
     int *ptr;
-    int i;
 
     // the block has only the DC coefficient
     if (used_col == -1) {
         int v = block[0];
-        for (i = 0; i < PCSX::MDEC::DSIZE2; i++) block[i] = v;
+        for (int i = 0; i < PCSX::MDEC::DSIZE2; i++) block[i] = v;
         return;
     }
 
     // last_col keeps track of the highest column with non zero coefficients
     ptr = block;
-    for (i = 0; i < PCSX::MDEC::DSIZE; i++, ptr++) {
+    for (int i = 0; i < PCSX::MDEC::DSIZE; i++, ptr++) {
         if ((used_col & (1 << i)) == 0) {
             // the column is empty or has only the DC coefficient
             if (ptr[PCSX::MDEC::DSIZE * 0]) {
@@ -135,9 +134,10 @@ static void idct(int *block, int used_col) {
 
     ptr = block;
     if (used_col == 1) {
-        for (i = 0; i < PCSX::MDEC::DSIZE; i++) fillrow(block + PCSX::MDEC::DSIZE * i, block[PCSX::MDEC::DSIZE * i]);
+        for (int i = 0; i < PCSX::MDEC::DSIZE; i++)
+            fillrow(block + PCSX::MDEC::DSIZE * i, block[PCSX::MDEC::DSIZE * i]);
     } else {
-        for (i = 0; i < PCSX::MDEC::DSIZE; i++, ptr += PCSX::MDEC::DSIZE) {
+        for (int i = 0; i < PCSX::MDEC::DSIZE; i++, ptr += PCSX::MDEC::DSIZE) {
             z10 = ptr[0] + ptr[4];
             z11 = ptr[0] - ptr[4];
             z13 = ptr[2] + ptr[6];
@@ -188,9 +188,7 @@ enum {
 };
 
 void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
-    int i;
-
-    for (i = 0; i < DSIZE2; i++) {
+    for (int i = 0; i < DSIZE2; i++) {
         iqtab[i] = (iq_y[i] * SCALER(aanscales[zscan[i]], AAN_PRESCALE_SCALE));
     }
 }
@@ -261,10 +259,9 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
 #define CLAMP_SCALE5(a) (CLAMP5(SCALE5(a)))
 
 inline void PCSX::MDEC::putlinebw15(uint16_t *image, int *Yblk) {
-    int i;
     int A = (mdec.reg0 & MDEC0_STP) ? 0x8000 : 0;
 
-    for (i = 0; i < 8; i++, Yblk++) {
+    for (int i = 0; i < 8; i++, Yblk++) {
         int Y = *Yblk;
         // missing rounding
         image[i] = SWAP_LE16((CLAMP5(Y >> 3) * 0x421) | A);
@@ -313,10 +310,8 @@ inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
 }
 
 static inline void putlinebw24(uint8_t *image, int *Yblk) {
-    int i;
-    unsigned char Y;
-    for (i = 0; i < 8 * 3; i += 3, Yblk++) {
-        Y = CLAMP8(*Yblk);
+    for (int i = 0; i < 8 * 3; i += 3, Yblk++) {
+        uint8_t Y = CLAMP8(*Yblk);
         image[i + 0] = Y;
         image[i + 1] = Y;
         image[i + 2] = Y;

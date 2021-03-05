@@ -92,5 +92,5 @@ std::vector<PCSX::Stacktrace::Element> PCSX::Stacktrace::computeStacktrace(Memor
     std::vector<Element> ret;
     computeStacktraceRec(ret, mem, regs->pc, regs->GPR.n.sp, regs->GPR.n.ra);
 
-    return std::move(ret);
+    return ret;
 }

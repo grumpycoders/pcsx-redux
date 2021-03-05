@@ -23,6 +23,7 @@
 #include <stdarg.h>
 
 #include <filesystem>
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -147,6 +148,11 @@ class System {
         if (localeInfo == LOCALES.end()) return nullptr;
         return localeInfo->second.ranges;
     }
+    std::vector<std::pair<PCSX::u8string, const ImWchar *>> getLocaleExtra() {
+        auto localeInfo = LOCALES.find(m_currentLocale);
+        if (localeInfo == LOCALES.end()) return {};
+        return localeInfo->second.extraFonts;
+    }
     std::vector<std::string> localesNames() {
         std::vector<std::string> locales;
         for (auto &l : m_locales) {
@@ -157,6 +163,17 @@ class System {
 
     std::filesystem::path getBinDir() { return m_binDir; }
 
+    // needs to be odd, and is a replica of ImGui's range tables
+    enum class Range {
+        KOREAN = 1,
+        JAPANESE = 3,
+        CHINESE_FULL = 5,
+        CHINESE_SIMPLIFIED = 7,
+        CYRILLIC = 9,
+        THAI = 11,
+        VIETNAMESE = 13,
+    };
+
   private:
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
@@ -166,7 +183,7 @@ class System {
     int m_exitCode = 0;
     struct LocaleInfo {
         const std::string filename;
-        // todo: add extra font well-known filenames
+        const std::vector<std::pair<PCSX::u8string, const ImWchar *>> extraFonts;
         const ImWchar *ranges = nullptr;
     };
     static const std::map<std::string, LocaleInfo> LOCALES;

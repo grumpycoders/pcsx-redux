@@ -72,7 +72,7 @@ static inline std::vector<std::string> split(const std::string &str, const std::
         if (!token.empty()) tokens.push_back(token);
         prev = pos + delim.length();
     } while (pos < str.length() && prev < str.length());
-    return std::move(tokens);
+    return tokens;
 }
 
 static inline bool startsWith(const std::string &s1, const std::string &s2) { return s1.rfind(s2, 0) == 0; }

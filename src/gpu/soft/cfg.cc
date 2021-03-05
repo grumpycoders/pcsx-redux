@@ -318,7 +318,6 @@ void ComboBoxAddRes(HWND hWC, const char *cs) {
 bool OnInitSoftDialog(HWND hW) {
     HWND hWC;
     char cs[256];
-    int i;
     DEVMODE dv;
 
     ReadGPUConfig();  // read registry stuff
@@ -327,7 +326,7 @@ bool OnInitSoftDialog(HWND hW) {
 
     memset(&dv, 0, sizeof(DEVMODE));
     dv.dmSize = sizeof(DEVMODE);
-    i = 0;
+    int i = 0;
 
     while (EnumDisplaySettings(NULL, i, &dv)) {
         wsprintf(cs, "%4d x %4d - default", dv.dmPelsWidth, dv.dmPelsHeight);
@@ -514,9 +513,7 @@ void OnCfgCancel(HWND hW) { EndDialog(hW, false); }
 bool BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_INITDIALOG: {
-            int i;
-
-            for (i = 0; i < 32; i++) {
+            for (int i = 0; i < 32; i++) {
                 if (dwCfgFixes & (1 << i)) CheckDlgButton(hW, IDC_FIX1 + i, true);
             }
         }
@@ -528,9 +525,8 @@ bool BugFixesDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     return true;
 
                 case IDOK: {
-                    int i;
                     dwCfgFixes = 0;
-                    for (i = 0; i < 32; i++) {
+                    for (int i = 0; i < 32; i++) {
                         if (IsDlgButtonChecked(hW, IDC_FIX1 + i)) dwCfgFixes |= (1 << i);
                     }
                     EndDialog(hW, true);
@@ -865,8 +861,7 @@ bool KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_COMMAND: {
             switch (LOWORD(wParam)) {
                 case IDC_DEFAULT: {
-                    int i;
-                    for (i = IDC_KEY1; i <= IDC_KEY10; i++) SetGPUKey(GetDlgItem(hW, i), szKeyDefaults[i - IDC_KEY1]);
+                    for (int i = IDC_KEY1; i <= IDC_KEY10; i++) SetGPUKey(GetDlgItem(hW, i), szKeyDefaults[i - IDC_KEY1]);
                 } break;
 
                 case IDCANCEL:
@@ -874,8 +869,8 @@ bool KeyDlgProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     return true;
                 case IDOK: {
                     HWND hWC;
-                    int i;
-                    for (i = IDC_KEY1; i <= IDC_KEY10; i++) {
+
+                    for (int i = IDC_KEY1; i <= IDC_KEY10; i++) {
                         hWC = GetDlgItem(hW, i);
                         szGPUKeys[i - IDC_KEY1] = (char)ComboBox_GetItemData(hWC, ComboBox_GetCurSel(hWC));
                         if (szGPUKeys[i - IDC_KEY1] < 0x20) szGPUKeys[i - IDC_KEY1] = 0x20;

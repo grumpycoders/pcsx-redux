@@ -37,7 +37,6 @@ extern "C" {
 #include "luv/src/luv.h"
 }
 #include "spu/interface.h"
-#include "uvw.hpp"
 
 PCSX::Emulator::Emulator()
     : m_psxMem(new PCSX::Memory()),
@@ -55,7 +54,6 @@ PCSX::Emulator::Emulator()
       m_spu(new PCSX::SPU::impl()),
       m_pad1(new PCSX::PAD(PAD::PAD1)),
       m_pad2(new PCSX::PAD(PAD::PAD2)),
-      m_loop(uvw::Loop::create()),
       m_lua(new PCSX::Lua()) {
     m_lua->open_base();
     m_lua->open_bit();
@@ -67,13 +65,18 @@ PCSX::Emulator::Emulator()
     m_lua->open_string();
     m_lua->open_table();
     LuaFFI::open_zlib(m_lua.get());
-    luv_set_loop(m_lua->getState(), m_loop->raw());
+    uv_loop_init(&m_loop);
+    luv_set_loop(m_lua->getState(), &m_loop);
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
 }
 
-PCSX::Emulator::~Emulator() { m_lua->close(); }
+PCSX::Emulator::~Emulator() {
+    // TODO: move Lua and uv_loop to g_system.
+    m_lua->close();
+    uv_loop_close(&g_emulator->m_loop);
+}
 
 int PCSX::Emulator::EmuInit() {
     assert(g_system);
