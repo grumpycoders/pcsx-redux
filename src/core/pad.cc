@@ -158,17 +158,13 @@ uint16_t PCSX::PAD::getButtons() {
     } else if (m_pad) {
         bool buttons[16];
         for (unsigned i = 0; i < 16; i++) buttons[i] = isControllerButtonPressed(i);
-        Sint16 axisX, axisY, trL, trR;
+        Sint16 axisX, axisY;
         axisX = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_LEFTX);
         axisY = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_LEFTY);
-        trL = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
-        trR = SDL_GameControllerGetAxis(m_pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
         if (axisY >= threshold) buttons[6] = true;
         if (axisX >= threshold) buttons[5] = true;
         if (axisY <= -threshold) buttons[4] = true;
         if (axisX <= -threshold) buttons[7] = true;
-        if (trL >= threshold) buttons[8] = true;
-        if (trR >= threshold) buttons[9] = true;
         result = 0;
         for (unsigned i = 0; i < 16; i++) result |= !buttons[i] << i;
     }
