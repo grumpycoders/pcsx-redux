@@ -256,7 +256,7 @@ class GUI final {
     ImFont *m_mainFont;
     ImFont *m_monoFont;
 
-    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges);
+    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
 

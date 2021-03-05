@@ -66,7 +66,7 @@ class File {
         for (size_t i = 0; i < size; i++) {
             r += (char)byte();
         }
-        return std::move(r);
+        return r;
     }
     ssize_t read(void* dest, ssize_t size);
     ssize_t write(const void* dest, size_t size);
@@ -75,7 +75,7 @@ class File {
         read(data, size);
         Slice slice;
         slice.acquire(data, size);
-        return std::move(slice);
+        return slice;
     }
     int getc();
     bool failed();

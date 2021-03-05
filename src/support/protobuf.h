@@ -26,10 +26,10 @@
 #include <memory>
 #include <ostream>
 #include <string>
-#include <tuple>
 #include <type_traits>
 #include <vector>
 
+#include "support/tuple.h"
 #include "typestring.hh"
 
 namespace PCSX {
@@ -657,9 +657,9 @@ struct MessageField<MessageType, irqus::typestring<C...>, fieldNumberValue> : pu
 template <typename name, typename... fields>
 class Message;
 template <char... C, typename... fields>
-class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...> {
+class Message<irqus::typestring<C...>, fields...> : private SimpleTuple<fields...> {
     using myself = Message<irqus::typestring<C...>, fields...>;
-    using base = std::tuple<fields...>;
+    using base = SimpleTuple<fields...>;
 
   public:
     static constexpr bool isMessage = true;
@@ -667,8 +667,8 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     static constexpr bool matches(unsigned wireType) { return wireType == 2; }
     using type = myself;
     Message() { verifyIntegrity<0, fields...>(); }
-    Message(const fields &... values) : base(values...) { verifyIntegrity<0, fields...>(); }
-    Message(fields &&... values) : base(values...) { verifyIntegrity<0, fields...>(); }
+    Message(const fields &... values) : base({values...}) { verifyIntegrity<0, fields...>(); }
+    Message(fields &&... values) : base({values...}) { verifyIntegrity<0, fields...>(); }
     using name = irqus::typestring<C...>;
     static constexpr char const typeName[sizeof...(C) + 1] = {C..., '\0'};
     static constexpr void dumpSchema(std::ostream &stream) {
@@ -679,12 +679,14 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     template <typename FieldType>
     constexpr const FieldType &get() const {
         static_assert(hasFieldType<FieldType>());
-        return std::get<FieldType>(*this);
+        constexpr size_t pos = SimpleTupleImpl::find<FieldType, fields...>();
+        return SimpleTupleImpl::getAt<pos>(this);
     }
     template <typename FieldType>
     constexpr FieldType &get() {
         static_assert(hasFieldType<FieldType>());
-        return std::get<FieldType>(*this);
+        constexpr size_t pos = SimpleTupleImpl::find<FieldType, fields...>();
+        return SimpleTupleImpl::getAt<pos>(this);
     }
     static constexpr bool needsToSerializeHeader() { return false; }
     constexpr void serialize(OutSlice *slice) const { serialize<0, fields...>(slice); }
@@ -713,7 +715,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     constexpr void reset() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr void reset() {
-        std::get<index>(*this).reset();
+        SimpleTupleImpl::getAt<index>(this).reset();
         reset<index + 1, nestedFields...>();
     }
     template <size_t index>
@@ -740,7 +742,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     constexpr void serialize(OutSlice *slice) const {}
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr void serialize(OutSlice *slice) const {
-        const FieldType &field = std::get<index>(*this);
+        const FieldType &field = SimpleTupleImpl::getAt<index>(this);
         if (field.hasData()) {
             if (!FieldType::needsToSerializeHeader()) {
                 slice->putVarInt((FieldType::fieldNumber << 3) | FieldType::wireType);
@@ -771,7 +773,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     }
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr void deserialize(uint64_t fieldNumber, unsigned wireType, InSlice *slice) {
-        FieldType &field = std::get<index>(*this);
+        FieldType &field = SimpleTupleImpl::getAt<index>(this);
         if (FieldType::fieldNumber == fieldNumber) {
             if (!FieldType::matches(wireType)) throw CorruptedWireFormat();
             field.deserialize(slice, wireType);
@@ -785,7 +787,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     }
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr bool hasData() const {
-        const FieldType &field = std::get<index>(*this);
+        const FieldType &field = SimpleTupleImpl::getAt<index>(this);
         if (field.hasData()) return true;
         return hasData<index + 1, nestedFields...>();
     }
@@ -794,7 +796,7 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     constexpr void commit() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr void commit() {
-        FieldType &field = std::get<index>(*this);
+        FieldType &field = SimpleTupleImpl::getAt<index>(this);
         field.commit();
         commit<index + 1, nestedFields...>();
     }
@@ -824,7 +826,7 @@ class EmptyMessage<irqus::typestring<C...>> {
 };
 
 template <typename... fields>
-class ProtoFile : private std::tuple<fields...> {
+class ProtoFile : private SimpleTuple<fields...> {
   public:
     static constexpr void dumpSchema(std::ostream &stream) {
         stream << "syntax = \"proto3\";" << std::endl << std::endl;

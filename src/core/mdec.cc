@@ -134,7 +134,8 @@ static void idct(int *block, int used_col) {
 
     ptr = block;
     if (used_col == 1) {
-        for (int i = 0; i < PCSX::MDEC::DSIZE; i++) fillrow(block + PCSX::MDEC::DSIZE * i, block[PCSX::MDEC::DSIZE * i]);
+        for (int i = 0; i < PCSX::MDEC::DSIZE; i++)
+            fillrow(block + PCSX::MDEC::DSIZE * i, block[PCSX::MDEC::DSIZE * i]);
     } else {
         for (int i = 0; i < PCSX::MDEC::DSIZE; i++, ptr += PCSX::MDEC::DSIZE) {
             z10 = ptr[0] + ptr[4];

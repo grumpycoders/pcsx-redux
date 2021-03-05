@@ -1,5 +1,6 @@
 TARGET := pcsx-redux
 BUILD ?= Release
+PREFIX ?= /usr/local
 
 UNAME_S := $(shell uname -s)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -95,7 +96,20 @@ NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
 
+CP ?= cp
+MKDIRP ?= mkdir -p
+
 all: dep $(TARGET)
+
+strip: all
+	strip $(TARGET)
+
+install: all
+	$(MKDIRP) $(PREFIX)/bin
+	$(MKDIRP) $(PREFIX)/share/pcsx-redux/fonts
+	$(CP) $(TARGET) $(PREFIX)/bin
+	$(CP) third_party/noto/* $(PREFIX)/share/pcsx-redux/fonts
+	$(CP) resources/*.ico $(PREFIX)/share/pcsx-redux
 
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15

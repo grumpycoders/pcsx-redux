@@ -35,6 +35,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include <uv.h>
 #include <zlib.h>
 
 #include <filesystem>
@@ -42,7 +43,6 @@
 #include <string>
 
 #include "support/settings.h"
-#include "uvw.hpp"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
@@ -217,7 +217,7 @@ class Emulator {
     std::unique_ptr<PAD> m_pad2;
     std::unique_ptr<Lua> m_lua;
 
-    std::shared_ptr<uvw::Loop> m_loop;
+    uv_loop_t m_loop;
 
     char m_cdromId[10] = "";
     char m_cdromLabel[33] = "";
