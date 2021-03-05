@@ -232,8 +232,6 @@ int pcsxMain(int argc, char **argv) {
     const auto &logfile = logfileArg.empty() ? logfileSet : logfileArg;
     if (!logfile.empty()) system->useLogfile(logfile);
 
-    system->activateLocale(emulator->settings.get<PCSX::Emulator::SettingLocale>());
-
     LoadPlugins();
     emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();

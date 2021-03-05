@@ -332,6 +332,8 @@ end)(jit.status()))
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
+        g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
+
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
         PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
