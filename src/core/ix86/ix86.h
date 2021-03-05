@@ -211,6 +211,8 @@ class ix86 {
     // arithmetic instructions         /
     ////////////////////////////////////
 
+    /* add imm8 to r32 */
+    void ADD8ItoR32(mainRegister to, uint8_t from);
     /* add imm32 to r32 */
     void ADD32ItoR(mainRegister to, uint32_t from);
     /* add imm32 to m32 */

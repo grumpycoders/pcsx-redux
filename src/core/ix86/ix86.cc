@@ -319,6 +319,15 @@ void PCSX::ix86::CMOVLE32MtoR(mainRegister to, uint32_t from) { CMOV32MtoR(0x4E,
 
 // arithmic instructions
 
+// add imm8 to r32
+// preferable to using a 32-bit immediate wherever appropriate due to saving on code size
+// TODO: potentially template
+void PCSX::ix86::ADD8ItoR32(mainRegister to, uint8_t from) {
+    write8 (0x83); // opcode for all op r32, imm8 instructions
+    ModRM (3, 0, to); // 3 -> Decides the addressing mode. 0 -> The sub-opcode
+    write8 (from); // immediate
+}
+
 /* add imm32 to r32 */
 void PCSX::ix86::ADD32ItoR(mainRegister to, uint32_t from) {
     if (to == EAX) {
