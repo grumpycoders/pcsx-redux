@@ -588,7 +588,7 @@ void PCSX::GUI::endFrame() {
                             if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
                                 stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
                             else {
-                                const auto lastFile = PCSX::BinaryLoader::g_isoFilename.empty() ? "BIOS" : PCSX::BinaryLoader::g_isoFilename;
+                                const auto lastFile = BinaryLoader::g_isoFilename.empty() ? "BIOS" : BinaryLoader::g_isoFilename;
                                 stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
                             }
 
@@ -610,7 +610,7 @@ void PCSX::GUI::endFrame() {
                             if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
                                 stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will try reading a state named SLUS00213.sstate
                             else {
-                                const auto lastFile = isoFilename.empty() ? "BIOS" : isoFilename;
+                                const auto lastFile = BinaryLoader::g_isoFilename.empty() ? "BIOS" : BinaryLoader::g_isoFilename;
                                 stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
                             }
 
@@ -831,7 +831,6 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            PCSX::BinaryLoader::g_isoFilename = std::filesystem::path (m_exeToLoad).filename().string(); // cache bin name
             
             g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
             g_system->softReset();

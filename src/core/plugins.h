@@ -17,9 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PLUGINS_H__
-#define __PLUGINS_H__
-
+#pragma once
 #include "core/psxemulator.h"
 
 #ifndef _WIN32
@@ -330,5 +328,3 @@ const char* GetExeFile(void);
 const char* GetAppPath(void);
 const char* GetLdrFile(void);
 void SetCdOpenCaseTime(int64_t time);
-
-#endif

@@ -26,7 +26,7 @@ namespace PCSX {
 namespace BinaryLoader {
 
 bool load(const PCSX::u8string& str);
-std::string g_isoFilename;
+static std::string g_isoFilename;
 
 }  // namespace BinaryLoader
 

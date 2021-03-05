@@ -682,7 +682,7 @@ void SetIsoFile(const char *filename) {
         return;
     }
 
-    PCSX::BinaryLoader::g_isoFilename = std::string (filename);
+    PCSX::BinaryLoader::g_isoFilename = filename;
     strncpy(IsoFile, filename, MAXPATHLEN);
 }
 
@@ -692,7 +692,7 @@ void SetExeFile(const char *filename) {
         return;
     }
 
-    PCSX::BinaryLoader::g_isoFilename = std::string (filename);
+    PCSX::BinaryLoader::g_isoFilename = filename;
     strncpy(ExeFile, filename, MAXPATHLEN);
 }
 
