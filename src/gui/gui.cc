@@ -563,7 +563,7 @@ void PCSX::GUI::endFrame() {
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
                     for (auto i = 1; i < 10; i++) {
-                        const auto str = _("Slot ") + std::to_string (i);
+                        const auto str = fmt::format(_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) {
                             const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
                             std::string stateName;
@@ -571,7 +571,7 @@ void PCSX::GUI::endFrame() {
                             if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
                                 stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
                             else {
-                                const auto lastFile = isoFilename.empty() ? "BIOS" : isoFilename;
+                                const auto lastFile = PCSX::BinaryLoader::g_isoFilename.empty() ? "BIOS" : PCSX::BinaryLoader::g_isoFilename;
                                 stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
                             }
 
@@ -799,7 +799,6 @@ void PCSX::GUI::endFrame() {
             PCSX::g_emulator->m_cdrom->m_iso.close();
             SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
 
-            isoFilename = std::filesystem::path (fileToOpen[0]).filename().string(); // cache iso name
             PCSX::g_emulator->m_cdrom->m_iso.open();
             CheckCdrom();
         }
@@ -817,7 +816,7 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            isoFilename = std::filesystem::path (m_exeToLoad).filename().string(); // cache bin name
+            PCSX::BinaryLoader::g_isoFilename = std::filesystem::path (m_exeToLoad).filename().string(); // cache bin name
             
             g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
             g_system->softReset();

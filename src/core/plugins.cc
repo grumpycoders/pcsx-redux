@@ -23,6 +23,7 @@
 
 #include "core/plugins.h"
 
+#include "core/binloader.h"
 #include "core/cdriso.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -680,6 +681,8 @@ void SetIsoFile(const char *filename) {
         IsoFile[0] = '\0';
         return;
     }
+
+    PCSX::BinaryLoader::g_isoFilename = std::string (filename);
     strncpy(IsoFile, filename, MAXPATHLEN);
 }
 
@@ -688,6 +691,8 @@ void SetExeFile(const char *filename) {
         ExeFile[0] = '\0';
         return;
     }
+
+    PCSX::BinaryLoader::g_isoFilename = std::string (filename);
     strncpy(ExeFile, filename, MAXPATHLEN);
 }
 
