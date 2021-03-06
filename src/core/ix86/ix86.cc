@@ -763,6 +763,13 @@ void PCSX::ix86::JMP32R(mainRegister to) {
     ModRM(3, 4, to);
 }
 
+
+/* jc/jb/jnae rel8 */
+unsigned PCSX::ix86::JC8(uint8_t to) { return J8Rel(0x72, to); }
+
+/* jnc/jnb/jae rel8 */
+unsigned PCSX::ix86::JNC8(uint8_t to) { return J8Rel(0x73, to); }
+
 /* je rel8 */
 unsigned PCSX::ix86::JE8(uint8_t to) { return J8Rel(0x74, to); }
 
@@ -924,6 +931,14 @@ void PCSX::ix86::BT32ItoR(mainRegister to, mainRegister from) {
     write16(0xba0f);
     write8(0xe0 | to);
     write8(from);
+}
+
+// Test bit 'bit' of memory address and copy it to carry
+void PCSX::ix86::BT32IToM(uint32_t to, uint8_t bit) {
+    write16 (0xba0f); // 2 byte opcode
+    write8 (0x25); // mod rm
+    write32 (to); // address
+    write8 (bit); // bit number
 }
 
 /* sets r8 */

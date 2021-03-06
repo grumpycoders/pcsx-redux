@@ -355,6 +355,10 @@ class ix86 {
     /* jmp r32 */
     void JMP32R(mainRegister to);
 
+    /* jc/jb/jnae rel8 */
+    unsigned JC8(uint8_t to);
+    /* jnc/jnb/jae rel8 */
+    unsigned JNC8(uint8_t to);
     /* je rel8 */
     unsigned JE8(uint8_t to);
     /* jz rel8 */
@@ -576,6 +580,7 @@ class ix86 {
     void EMMS();
     void FEMMS();
     void BT32ItoR(mainRegister to, mainRegister from);
+    void BT32IToM(uint32_t to, uint8_t bit);
     void RCR32ItoR(mainRegister to, mainRegister from);
 
     // Basara:changed
