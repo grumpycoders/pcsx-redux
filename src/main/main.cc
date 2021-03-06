@@ -33,6 +33,7 @@
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "tracy/Tracy.hpp"
 
 static PCSX::GUI *s_gui;
 
@@ -202,6 +203,7 @@ class SystemImpl : public PCSX::System {
 using json = nlohmann::json;
 
 int pcsxMain(int argc, char **argv) {
+    ZoneScoped;
     const flags::args args(argc, argv);
 
     if (args.get<bool>("dumpproto")) {
