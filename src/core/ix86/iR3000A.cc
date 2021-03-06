@@ -370,7 +370,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                                  \
         PGXP_DBG_OP_E(op)                                             \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, nReg));       \
-        gen.ADD8ItoR32(PCSX::ix86::ESP, (4 * nReg) + 4);              \
+        gen.ADD32ItoR(PCSX::ix86::ESP, (4 * nReg) + 4);               \
     }
 
 #define PGXP_REC_FUNC_2(pu, op, reg1, reg2)                  \
