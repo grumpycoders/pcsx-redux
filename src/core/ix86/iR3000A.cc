@@ -30,6 +30,7 @@
 #endif
 #endif
 
+#include <fstream>
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
@@ -257,6 +258,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     void testSWInt();
 
     void recRecompile();
+    void recDump();
 
     static uint32_t gteMFC2Wrapper() { return PCSX::g_emulator->m_gte->MFC2(); }
     static uint32_t gteCFC2Wrapper() { return PCSX::g_emulator->m_gte->CFC2(); }
@@ -3211,6 +3213,15 @@ void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
 
     // reset to ensure new func tables are used
     Reset();
+}
+
+// For debugging/optimizing
+// Dump the entire code buffer so that it can be analyzed in a program like Cutter/Ghidra to look for redundant code that could be optimized or code that is broken
+// Do NOT call in normal usage
+void X86DynaRecCPU::recDump() {
+    const auto size = (uintptr_t) gen.x86GetPtr()- (uintptr_t) m_recMem;
+    std::ofstream file ("X86DynarecDump.bin", std::ios::binary);
+    file.write ((const char*) m_recMem, size);
 }
 
 #else
