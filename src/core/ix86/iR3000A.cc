@@ -116,7 +116,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     bool m_pcInEBP;
     bool m_stopRecompile;
 
-    uint32_t m_functionPtr;
     uint32_t m_arg1;
     uint32_t m_arg2;
 
@@ -722,14 +721,11 @@ void X86DynaRecCPU::execute() {
     if (newPC != 0xffffffff) {
         m_psxRegs.pc = newPC;
         psxBranchTest();
-    } else {
-        void (*functionPtr)(uint32_t, uint32_t) = (void (*)(uint32_t, uint32_t))m_functionPtr;
-        if (functionPtr) {
-            functionPtr(m_arg1, m_arg2);
-        } else {
-            psxException(m_arg1, m_arg2);
-        }
     }
+
+    else
+        psxException(m_arg1, m_arg2);
+
     if (debug) PCSX::g_emulator->m_debug->processAfter();
 }
 
@@ -785,7 +781,7 @@ void X86DynaRecCPU::recCOP0() {
 
 // REC_SYS(COP2);
 void X86DynaRecCPU::recCOP2() {
-    gen.TEST8IToM ((uint32_t)&m_psxRegs.CP0.n.Status + 3, 0x40); // check if bit 30 of SR is not set (ie GTE is disabled)
+    gen.TEST8ItoM ((uint32_t)&m_psxRegs.CP0.n.Status + 3, 0x40); // check if bit 30 of SR is not set (ie GTE is disabled)
                                                                // In order to save bytes by using a single-byte immediate,
                                                                // We only operate on the top byte of SR
     unsigned slot = gen.JZ8(0); // skip instruction if GTE is disabled
@@ -2398,7 +2394,6 @@ void X86DynaRecCPU::recSYSCALL() {
     gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
     gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
     gen.MOV32ItoM((uint32_t)&m_arg1, 0x20);
-    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
 
     m_pcInEBP = true;
     m_stopRecompile = true;
@@ -2409,7 +2404,6 @@ void X86DynaRecCPU::recBREAK() {
     gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
     gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
     gen.MOV32ItoM((uint32_t)&m_arg1, 0x24);
-    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
 
     m_pcInEBP = true;
     m_stopRecompile = true;
@@ -2772,7 +2766,6 @@ void X86DynaRecCPU::testSWInt() {
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND8ItoR32(PCSX::ix86::EAX, 1);
     unsigned slot2 = gen.JE8(0);
-    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
     gen.MOV32RtoM((uint32_t)&m_arg1, PCSX::ix86::EDX);
     gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EBP);

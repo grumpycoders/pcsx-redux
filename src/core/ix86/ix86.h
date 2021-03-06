@@ -440,7 +440,7 @@ class ix86 {
     void CMP32MtoR(mainRegister to, uint32_t from);
 
     /* test i8 to m8 */
-    void TEST8ItoM(uint32_t address, uint8_t imm)
+    void TEST8ItoM(uint32_t address, uint8_t imm);
     /* test imm32 to r32 */
     void TEST32ItoR(mainRegister to, uint32_t from);
     /* test r32 to r32 */
