@@ -2393,7 +2393,7 @@ void X86DynaRecCPU::recSYSCALL() {
     gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
     gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
     gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
-    gen.MOV32ItoM((uint32_t)&m_arg1, 0x20);
+    gen.MOV32ItoM((uint32_t)&m_arg1, Exceptions::Syscall);
 
     m_pcInEBP = true;
     m_stopRecompile = true;
@@ -2403,7 +2403,7 @@ void X86DynaRecCPU::recBREAK() {
     gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
     gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
     gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
-    gen.MOV32ItoM((uint32_t)&m_arg1, 0x24);
+    gen.MOV32ItoM((uint32_t)&m_arg1, Exceptions::Break);
 
     m_pcInEBP = true;
     m_stopRecompile = true;

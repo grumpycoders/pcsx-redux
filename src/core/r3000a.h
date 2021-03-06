@@ -282,6 +282,18 @@ class R3000Acpu {
     virtual bool Implemented() = 0;
 
     const std::string &getName() { return m_name; }
+    enum Exceptions {
+        Interrupt = 0,
+        LoadAddressError = 0x10,
+        StoreAddressError = 0x14,
+        InstructionBusError = 0x18,
+        DataBusError = 0x1C,
+        Syscall = 0x20,
+        Break = 0x24,
+        ReservedInstruction = 0x28,
+        CoprocessorUnusable = 0x2C,
+        ArithmeticOverflow = 0x30
+    };
 
   public:
     static int psxInit();
