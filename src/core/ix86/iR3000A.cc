@@ -785,8 +785,10 @@ void X86DynaRecCPU::recCOP0() {
 
 // REC_SYS(COP2);
 void X86DynaRecCPU::recCOP2() {
-    gen.BT32IToM ((uint32_t)&m_psxRegs.CP0.n.Status, 30); // check if bit 30 of SR is not set (ie GTE is disabled)
-    unsigned slot = gen.JNC8(0); // skip instruction if GTE is disabled
+    gen.TEST8IToM ((uint32_t)&m_psxRegs.CP0.n.Status + 3, 0x40); // check if bit 30 of SR is not set (ie GTE is disabled)
+                                                               // In order to save bytes by using a single-byte immediate,
+                                                               // We only operate on the top byte of SR
+    unsigned slot = gen.JZ8(0); // skip instruction if GTE is disabled
 
     func_t func = m_pRecCP2[_Funct_];
     (*this.*func)();

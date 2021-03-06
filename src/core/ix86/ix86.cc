@@ -921,6 +921,14 @@ void PCSX::ix86::TEST32ItoR(mainRegister to, uint32_t from) {
     write32(from);
 }
 
+/* test i8 to to m8 */
+// NASM syntax: test byte [addr], imm8
+void PCSX::ix86::TEST8ItoM(uint32_t address, uint8_t imm) {
+    write16(0x05f6); // opcode + modrm
+    write32(address); // address
+    write8 (imm);
+}
+
 /* test r32 to r32 */
 void PCSX::ix86::TEST32RtoR(mainRegister to, mainRegister from) {
     write8(0x85);
@@ -934,10 +942,11 @@ void PCSX::ix86::BT32ItoR(mainRegister to, mainRegister from) {
 }
 
 // Test bit 'bit' of memory address and copy it to carry
-void PCSX::ix86::BT32IToM(uint32_t to, uint8_t bit) {
+// NASM syntax: bt dword [addr], bit
+void PCSX::ix86::BT32IToM(uint32_t address, uint8_t bit) {
     write16 (0xba0f); // 2 byte opcode
     write8 (0x25); // mod rm
-    write32 (to); // address
+    write32 (address); // address
     write8 (bit); // bit number
 }
 

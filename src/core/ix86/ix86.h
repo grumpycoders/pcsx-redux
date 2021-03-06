@@ -439,6 +439,8 @@ class ix86 {
     /* cmp m32 to r32 */
     void CMP32MtoR(mainRegister to, uint32_t from);
 
+    /* test i8 to m8 */
+    void TEST8ItoM(uint32_t address, uint8_t imm)
     /* test imm32 to r32 */
     void TEST32ItoR(mainRegister to, uint32_t from);
     /* test r32 to r32 */
@@ -580,7 +582,7 @@ class ix86 {
     void EMMS();
     void FEMMS();
     void BT32ItoR(mainRegister to, mainRegister from);
-    void BT32IToM(uint32_t to, uint8_t bit);
+    void BT32IToM(uint32_t address, uint8_t bit);
     void RCR32ItoR(mainRegister to, mainRegister from);
 
     // Basara:changed
