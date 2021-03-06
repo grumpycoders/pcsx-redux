@@ -29,6 +29,7 @@
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "tracy/Tracy.hpp"
 
 enum Exceptions {
     Interrupt = 0,
@@ -1443,6 +1444,7 @@ void InterpretedCPU::Reset() {
     m_delayedLoadInfo[1].pcActive = false;
 }
 void InterpretedCPU::Execute() {
+    ZoneScoped;
     while (hasToRun()) execI();
 }
 void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}

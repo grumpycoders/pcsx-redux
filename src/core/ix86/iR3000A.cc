@@ -42,6 +42,7 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "spu/interface.h"
+#include "tracy/Tracy.hpp"
 
 namespace {
 
@@ -734,6 +735,7 @@ void X86DynaRecCPU::execute() {
 }
 
 void X86DynaRecCPU::Execute() {
+    ZoneScoped;
     while (hasToRun()) execute();
 }
 

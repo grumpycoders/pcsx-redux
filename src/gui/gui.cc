@@ -58,6 +58,7 @@
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "stb/stb_image.h"
+#include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
@@ -428,6 +429,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
+    ZoneScoped;
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
@@ -981,6 +983,8 @@ void PCSX::GUI::endFrame() {
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
+    
+    FrameMark
 }
 
 static void ShowHelpMarker(const char* desc) {
