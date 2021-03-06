@@ -225,7 +225,6 @@
     <ClInclude Include="..\..\src\support\settings.h" />
     <ClInclude Include="..\..\src\support\slice.h" />
     <ClInclude Include="..\..\src\support\tree.h" />
-    <ClInclude Include="..\..\src\support\tuple.h" />
     <ClInclude Include="..\..\third_party\interval_tree.h" />
     <ClInclude Include="..\..\third_party\json.hpp" />
     <ClInclude Include="..\..\third_party\typestring.hh" />
