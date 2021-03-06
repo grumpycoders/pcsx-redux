@@ -225,6 +225,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     void recSRLV();
     void recSRAV();
 
+    void recException(Exceptions exception);
     void recSYSCALL();
     void recBREAK();
 
@@ -718,13 +719,9 @@ void X86DynaRecCPU::execute() {
     if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == 0) recRecompile();
     uint32_t newPC = (*recFunc)();
-    if (newPC != 0xffffffff) {
-        m_psxRegs.pc = newPC;
-        psxBranchTest();
-    }
-
-    else
-        psxException(m_arg1, m_arg2);
+        
+    m_psxRegs.pc = newPC;
+    psxBranchTest();
 
     if (debug) PCSX::g_emulator->m_debug->processAfter();
 }
@@ -2389,24 +2386,47 @@ void X86DynaRecCPU::recSRAV() {
     }
 }
 
-void X86DynaRecCPU::recSYSCALL() {
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
-    gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
-    gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
-    gen.MOV32ItoM((uint32_t)&m_arg1, Exceptions::Syscall);
+/// eax: scratch
+/// ecx: Status Register
+/// ebp: PC after the exception
+void X86DynaRecCPU::recException (Exceptions exception) {
+    auto CAUSE = (uint32_t) exception;
+    auto EPC = m_pc - 4; // epc = address of the instruction calling the exception.
+                        // the minus 4 is because m_pc gets pre-incremented
 
-    m_pcInEBP = true;
-    m_stopRecompile = true;
+    if (m_inDelaySlot) { // there's special handling if an exception is fired in a delay slot
+        CAUSE |= 0x80000000; // set CAUSE.31
+        EPC -= 4; // decrement EPC by 4 so that it now **points to the address of the branch, not the instr that caused an exception)
+    }
+
+    gen.MOV32ItoM ((uint32_t) &m_psxRegs.CP0.n.EPC, EPC); // set EPC
+    gen.MOV32ItoM ((uint32_t) &m_psxRegs.CP0.n.Cause, CAUSE); // set CAUSE
+
+    gen.MOV32ItoR (PCSX::ix86::EBP, 0x80000080); // PC after exception
+    gen.MOV32ItoR (PCSX::ix86::EAX, 0xbfc00180); // PC if the BEV bit is set in SR
+    gen.MOV32MtoR (PCSX::ix86::ECX, (uint32_t) &m_psxRegs.CP0.n.Status); // ECX = SR;
+
+    gen.BT32ItoR (PCSX::ix86::ECX, 22); // check if BEV is set in SR
+    gen.CMOVB32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if BEV is set, copy eax to ebp
+    gen.MOV32RtoR (PCSX::ix86::EAX, PCSX::ix86::ECX); // copy SR to EAX
+
+    // ASM equivalent to Status = (Status & ~0x3f) | ((Status & 0xf) << 2);
+    gen.AND8ItoR32 (PCSX::ix86::EAX, 0xF); // EAX = (Status & 0xF) << 2
+    gen.SHL32ItoR (PCSX::ix86::EAX, 2); 
+    gen.AND32ItoR (PCSX::ix86::ECX, ~0x3F); // ECX = Status & ~0x3F
+    gen.OR32RtoR (PCSX::ix86::ECX, PCSX::ix86::EAX); // ECX = (Status & ~0x3f) | ((Status & 0xf) << 2)
+    gen.MOV32RtoM ((uint32_t) &m_psxRegs.CP0.n.Status, PCSX::ix86::ECX); // Finally, store SR back
+
+    m_pcInEBP = true; // The PC after the exception is now in EBP
+    m_stopRecompile = true; // Stop compilation (without a delay slot, as exceptions have none)
+}
+
+void X86DynaRecCPU::recSYSCALL() {
+    recException (Exceptions::Syscall);
 }
 
 void X86DynaRecCPU::recBREAK() {
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
-    gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
-    gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
-    gen.MOV32ItoM((uint32_t)&m_arg1, Exceptions::Break);
-
-    m_pcInEBP = true;
-    m_stopRecompile = true;
+    recException (Exceptions::Break);
 }
 
 void X86DynaRecCPU::recMFHI() {
@@ -3093,7 +3113,7 @@ void X86DynaRecCPU::recRecompile() {
         if (delayedLoad.active) {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
-            gen.MOV32RtoR(PCSX::ix86::EDX, PCSX::ix86::EBX);
+            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EBX);
             gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EDX);  // edx &= 0xFFFF
             gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)MASKS);
             gen.MOV32RmStoR(PCSX::ix86::EAX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);

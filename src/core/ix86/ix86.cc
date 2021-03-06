@@ -281,6 +281,9 @@ void PCSX::ix86::MOVZX32M16toR(mainRegister to, uint32_t from) {
     write32(from);
 }
 
+/* cmovb r32 to r32 */
+void PCSX::ix86::CMOVB32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x42, to, from); }
+
 /* cmovne r32 to r32 */
 void PCSX::ix86::CMOVNE32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x45, to, from); }
 
@@ -935,10 +938,10 @@ void PCSX::ix86::TEST32RtoR(mainRegister to, mainRegister from) {
     ModRM(3, from, to);
 }
 
-void PCSX::ix86::BT32ItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::BT32ItoR(mainRegister to, uint8_t bit) {
     write16(0xba0f);
     write8(0xe0 | to);
-    write8(from);
+    write8(bit);
 }
 
 // Test bit 'bit' of memory address and copy it to carry

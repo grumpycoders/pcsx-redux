@@ -182,6 +182,8 @@ class ix86 {
     /* movzx m16 to r32 */
     void MOVZX32M16toR(mainRegister to, uint32_t from);
 
+    /* cmovb r32 to r32 */
+    void CMOVB32RtoR(mainRegister to, mainRegister from);
     /* cmovne r32 to r32 */
     void CMOVNE32RtoR(mainRegister to, mainRegister from);
     /* cmovne m32 to r32*/
@@ -581,7 +583,7 @@ class ix86 {
     /* emms */
     void EMMS();
     void FEMMS();
-    void BT32ItoR(mainRegister to, mainRegister from);
+    void BT32ItoR(mainRegister to, uint8_t bit);
     void BT32IToM(uint32_t address, uint8_t bit);
     void RCR32ItoR(mainRegister to, mainRegister from);
 
