@@ -23,12 +23,13 @@
 
 namespace PCSX {
 struct psxRegisters;
+class GUI;
 
 namespace Widgets {
 
 class Registers {
   public:
-    void draw(psxRegisters* registers, const char* title);
+    void draw(GUI* gui, psxRegisters* registers, const char* title);
 
     bool m_show = false;
 

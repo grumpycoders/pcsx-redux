@@ -856,7 +856,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
+        m_registers.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
