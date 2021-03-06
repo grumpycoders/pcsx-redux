@@ -3113,8 +3113,7 @@ void X86DynaRecCPU::recRecompile() {
         if (delayedLoad.active) {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
-            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EBX);
-            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EDX);  // edx &= 0xFFFF
+            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EBX);  // edx = ebx & 0xFFFF
             gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)MASKS);
             gen.MOV32RmStoR(PCSX::ix86::EAX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
             if (IsConst(index)) {
