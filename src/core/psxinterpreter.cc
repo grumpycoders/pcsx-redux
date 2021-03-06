@@ -1459,7 +1459,6 @@ inline bool InterpretedCPU::execI() {
     m_currentDelayedLoad ^= 1;
     auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     if (delayedLoad.active) {
-        if (delayedLoad.index >= 32) abort();
         m_psxRegs.GPR.r[delayedLoad.index] &= delayedLoad.mask;
         m_psxRegs.GPR.r[delayedLoad.index] |= delayedLoad.value;
         delayedLoad.active = false;
