@@ -38,6 +38,7 @@ CPPFLAGS_Debug += -O0
 CPPFLAGS_Coverage += -O0
 CPPFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
+CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
 ifeq ($(CC_IS_CLANG),true)
     CXXFLAGS += -fcoroutines-ts
@@ -86,6 +87,7 @@ SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/luv/src/luv.c
+SRCS += third_party/tracy/TracyClient.cpp
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
