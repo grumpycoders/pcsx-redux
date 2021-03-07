@@ -2494,7 +2494,7 @@ void X86DynaRecCPU::recBLTZ() {
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
     gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
-    gen.TEST8ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_]+3, 0x80);  // check if rs >= 0 (signed)
+    gen.TEST8ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_]+3, 0x80);  // check if rs < 0 (signed)
                                                               // To avoid a 4-byte immediate, we just use test on the top byte of the register
                                                               // To get the sign bit
     gen.CMOVS32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
