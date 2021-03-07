@@ -30,8 +30,7 @@ struct LogName {
 };
 
 template <const LogName &name, bool enabled>
-class Logger {
-  public:
+struct Logger {
     static void Log(const char *fmt, ...) {
         if (!enabled) return;
         va_list a;
@@ -43,6 +42,7 @@ class Logger {
         if (!enabled) return;
         g_system->log(name.name, fmt, a);
     }
+    static constexpr bool c_enabled = enabled;
 };
 
 static constexpr LogName PadLogName = {"PAD"};
