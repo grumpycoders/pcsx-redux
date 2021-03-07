@@ -1015,7 +1015,6 @@ bool PCSX::GUI::configure() {
         }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
-        changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
         changed |= ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value);
