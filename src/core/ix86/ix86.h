@@ -192,6 +192,10 @@ class ix86 {
     void CMOVE32RtoR(mainRegister to, mainRegister from);
     /* cmove m32 to r32*/
     void CMOVE32MtoR(mainRegister to, uint32_t from);
+    /* cmovs r32 to r32*/
+    void CMOVS32RtoR(mainRegister to, mainRegister from);
+    /* cmovns r32 to r32*/
+    void CMOVNS32RtoR(mainRegister to, mainRegister from);
     /* cmovg r32 to r32*/
     void CMOVG32RtoR(mainRegister to, mainRegister from);
     /* cmovg m32 to r32*/

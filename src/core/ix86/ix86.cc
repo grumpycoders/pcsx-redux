@@ -296,6 +296,12 @@ void PCSX::ix86::CMOVE32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x
 /* cmove m32 to r32*/
 void PCSX::ix86::CMOVE32MtoR(mainRegister to, uint32_t from) { CMOV32MtoR(0x44, to, from); }
 
+/* cmovs r32 to r32*/
+void PCSX::ix86::CMOVS32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x48, to, from); }
+
+/* cmovns r32 to r32*/
+void PCSX::ix86::CMOVNS32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x49, to, from); }
+
 /* cmovg r32 to r32*/
 void PCSX::ix86::CMOVG32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x4F, to, from); }
 
