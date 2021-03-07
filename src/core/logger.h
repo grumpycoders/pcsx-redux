@@ -127,5 +127,10 @@ typedef Logger<MiscLogName, false> MISC_LOGGER;
                                  PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
         PCSX::PSXMEM_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define PSXCPU_LOG PCSX::PSXCPU_LOGGER::Log
+#define PSXCPU_LOG(...)                                                                       \
+    {                                                                                         \
+        PCSX::PSXCPU_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::PSXCPU_LOGGER::Log(__VA_ARGS__);                                                \
+    }
 #define MISC_LOG PCSX::MISC_LOGGER::Log

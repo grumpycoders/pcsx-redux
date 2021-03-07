@@ -169,9 +169,8 @@ struct psxRegisters {
     uint32_t cycle;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
-    struct {
-        uint32_t sCycle, cycle;
-    } intCycle[32];
+    uint32_t intTargets[32];
+    uint32_t lowestTarget;
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
 };
@@ -207,18 +206,18 @@ struct psxRegisters {
 /**** R3000A Instruction Macros ****/
 #define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
-#define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
-#define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
-#define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
-#define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
-#define _fSa_(code) ((code >> 6) & 0x1F)     // The sa part of the instruction register
-#define _fIm_(code) ((uint16_t)code)         // The immediate part of the instruction register
+#define _fOp_(code) ((code >> 26))  // The opcode part of the instruction register
+#define _fFunct_(code) ((code)&0x3F)  // The funct part of the instruction register
+#define _fRd_(code) ((code >> 11) & 0x1F)  // The rd part of the instruction register
+#define _fRt_(code) ((code >> 16) & 0x1F)  // The rt part of the instruction register
+#define _fRs_(code) ((code >> 21) & 0x1F)  // The rs part of the instruction register
+#define _fSa_(code) ((code >> 6) & 0x1F)  // The sa part of the instruction register
+#define _fIm_(code) ((uint16_t)code)  // The immediate part of the instruction register
 #define _fTarget_(code) (code & 0x03ffffff)  // The target part of the instruction register
 
-#define _fImm_(code) ((int16_t)code)   // sign-extended immediate
+#define _fImm_(code) ((int16_t)code)  // sign-extended immediate
 #define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
-#define _fImmLU_(code) (code << 16)    // LUI
+#define _fImmLU_(code) (code << 16)  // LUI
 
 #define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
 #define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
@@ -248,7 +247,7 @@ struct psxRegisters {
 #define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
-#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
+#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)  // Calculates the target during a branch instruction
 
 /*
 The "SetLink" mechanism uses the delayed load. This may sound counter intuitive, but this is the only way to
@@ -293,16 +292,24 @@ class R3000Acpu {
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
+        PSXCPU_LOG("intsched %08x at %08x\n", interrupt, eCycle);
+        const uint32_t cycle = m_psxRegs.cycle;
+        uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
         m_psxRegs.interrupt |= (1 << interrupt);
-        m_psxRegs.intCycle[interrupt].cycle = eCycle * m_interruptScales[interrupt];
-        m_psxRegs.intCycle[interrupt].sCycle = m_psxRegs.cycle;
+        m_psxRegs.intTargets[interrupt] = target;
+        int32_t lowest = m_psxRegs.lowestTarget - cycle;
+        int32_t maybeNewLowest = target - cycle;
+        if (maybeNewLowest < lowest) m_psxRegs.lowestTarget = target;
     }
 
     psxRegisters m_psxRegs;
     float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
-    virtual void Reset() { invalidateCache(); }
+    virtual void Reset() {
+        invalidateCache();
+        m_psxRegs.interrupt = 0;
+    }
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
