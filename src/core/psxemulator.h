@@ -150,11 +150,10 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
-             SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
-             Setting8MB>
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
+             SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
+             SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest, SettingGdbServerPort,
+             SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:
