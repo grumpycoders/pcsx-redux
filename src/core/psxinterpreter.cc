@@ -1471,7 +1471,7 @@ void InterpretedCPU::Shutdown() {}
 template <bool debug>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
-    while (!ranDelaySlot) {
+    do {
         if (m_nextIsDelaySlot) {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
@@ -1511,7 +1511,7 @@ inline void InterpretedCPU::execBlock() {
             psxBranchTest();
         }
         if (debug) PCSX::g_emulator->m_debug->processAfter();
-    }
+    } while (!ranDelaySlot && !debug);
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {
