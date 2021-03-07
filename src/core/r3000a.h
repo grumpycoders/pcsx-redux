@@ -174,7 +174,6 @@ struct psxRegisters {
     } intCycle[32];
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
-    bool ICache_valid;
 };
 
 // U64 and S64 are used to wrap long integer constants.
@@ -303,7 +302,7 @@ class R3000Acpu {
     float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
-    virtual void Reset() { m_psxRegs.ICache_valid = false; }
+    virtual void Reset() { invalidateCache(); }
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
@@ -420,11 +419,12 @@ class R3000Acpu {
 Formula One 2001
 - Use old CPU cache code when the RAM location is
   updated with new code (affects in-game racing)
-
-TODO:
-- I-cache / D-cache swapping
-- Isolate D-cache from RAM
 */
+
+    inline void invalidateCache() {
+        memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
+        memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
+    }
 
     inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
         uint32_t pc_bank, pc_offset, pc_cache;
@@ -436,14 +436,6 @@ TODO:
 
         IAddr = m_psxRegs.ICache_Addr;
         ICode = m_psxRegs.ICache_Code;
-
-        // clear I-cache
-        if (!m_psxRegs.ICache_valid) {
-            memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
-            memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
-
-            m_psxRegs.ICache_valid = true;
-        }
 
         // uncached
         if (pc_bank >= 0xa0) return (uint32_t *)PSXM(pc);

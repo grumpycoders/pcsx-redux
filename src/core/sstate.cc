@@ -55,7 +55,6 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             IntCyclesField {},
             ICacheAddr { g_emulator->m_psxCpu->m_psxRegs.ICache_Addr },
             ICacheCode { g_emulator->m_psxCpu->m_psxRegs.ICache_Code },
-            ICacheValid { g_emulator->m_psxCpu->m_psxRegs.ICache_valid },
             NextIsDelaySlot { g_emulator->m_psxCpu->m_nextIsDelaySlot },
             DelaySlotInfo1 {
                 DelaySlotIndex { g_emulator->m_psxCpu->m_delayedLoadInfo[0].index },

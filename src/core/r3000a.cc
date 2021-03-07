@@ -205,17 +205,9 @@ void PCSX::R3000Acpu::psxBranchTest() {
             }
         }
     }
-    if (psxHu32(0x1070) & psxHu32(0x1074)) {
-        if ((m_psxRegs.CP0.n.Status & 0x401) == 0x401) {
-            uint32_t opcode;
-
-            // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
-            opcode = SWAP_LE32(*Read_ICache(m_psxRegs.pc, true));
-            if (((opcode >> 24) & 0xfe) != 0x4a) {
-                PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
-                psxException(0x400, 0);
-            }
-        }
+    if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
+        PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
+        psxException(0x400, 0);
     }
 }
 

@@ -61,7 +61,7 @@ typedef Protobuf::Message<TYPESTRING("InterruptCycles"), IntSCycle, IntCycle> In
 typedef Protobuf::RepeatedField<IntCycles, 32, TYPESTRING("interrupt_cycles"), 9> IntCyclesField;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_code"), 11> ICacheCode;
-typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("icache_valid"), 12> ICacheValid;
+// skip id 12
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("next_is_delay_slot"), 13> NextIsDelaySlot;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("index"), 1> DelaySlotIndex;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mask"), 6> DelaySlotMask;
@@ -76,8 +76,7 @@ typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_1"), 1
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 15> DelaySlotInfo2;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("current_delayed_load"), 16> CurrentDelayedLoad;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, IntCyclesField,
-                          ICacheAddr, ICacheCode, ICacheValid, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2,
-                          CurrentDelayedLoad>
+                          ICacheAddr, ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
