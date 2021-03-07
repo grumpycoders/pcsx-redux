@@ -45,6 +45,8 @@ class SPUInterface {
   public:
     using json = nlohmann::json;
 
+    virtual ~SPUInterface() {}
+
     void interrupt();
     virtual bool open() = 0;
     virtual long init(void) = 0;
