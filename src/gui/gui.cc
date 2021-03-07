@@ -58,6 +58,7 @@
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "stb/stb_image.h"
+#include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
@@ -428,6 +429,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
+    ZoneScoped;
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
@@ -856,7 +858,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
+        m_registers.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
@@ -981,6 +983,8 @@ void PCSX::GUI::endFrame() {
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
+    
+    FrameMark
 }
 
 static void ShowHelpMarker(const char* desc) {
@@ -1011,7 +1015,6 @@ bool PCSX::GUI::configure() {
         }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
-        changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
         changed |= ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value);

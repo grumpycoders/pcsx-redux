@@ -43,6 +43,7 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "spu/interface.h"
+#include "tracy/Tracy.hpp"
 
 namespace {
 
@@ -281,13 +282,12 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         delayedLoad.index = _Rt_;
     }
 
-#define CP2_FUNC(f)                                                         \
-    static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(); }         \
-    void rec##f() {                                                         \
-        iFlushRegs();                                                       \
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
-        gen.CALLFunc((uint32_t)gte##f##Wrapper);                            \
-        /*  branch = 2; */                                                  \
+#define CP2_FUNC(f)                                                                                           \
+    static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); } \
+    void rec##f() {                                                                                           \
+        iFlushRegs();                                                                                         \
+        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code);                                   \
+        gen.CALLFunc((uint32_t)gte##f##Wrapper);                                                              \
     }
 
     CP2_FUNC(MTC2);
@@ -729,6 +729,7 @@ void X86DynaRecCPU::execute() {
 }
 
 void X86DynaRecCPU::Execute() {
+    ZoneScoped;
     while (hasToRun()) execute();
 }
 

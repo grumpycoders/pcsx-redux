@@ -23,10 +23,11 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) {
+void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
@@ -37,6 +38,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
     std::string editorToOpen;
 
     if (ImGui::BeginTabBar(_("Registers"))) {
+        gui->useMonoFont();
         if (ImGui::BeginTabItem("GPR")) {
             unsigned counter = 0;
             for (auto& reg : registers->GPR.r) {
@@ -155,6 +157,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
             ImGui::Text("int  : %08x", registers->interrupt);
             ImGui::EndTabItem();
         }
+        ImGui::PopFont();
         ImGui::EndTabBar();
     }
 
