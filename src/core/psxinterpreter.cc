@@ -1477,7 +1477,7 @@ inline bool InterpretedCPU::execI() {
         m_inDelaySlot = true;
         m_nextIsDelaySlot = false;
     }
-    uint32_t *code = Read_ICache(m_psxRegs.pc, false);
+    uint32_t *code = Read_ICache(m_psxRegs.pc);
     m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
 
     if (PCSX::PSXCPU_LOGGER::c_enabled && PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVerbose>()) {

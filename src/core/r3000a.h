@@ -426,7 +426,7 @@ Formula One 2001
         memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
     }
 
-    inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
+    inline uint32_t *Read_ICache(uint32_t pc) {
         uint32_t pc_bank, pc_offset, pc_cache;
         uint8_t *IAddr, *ICode;
 
@@ -437,9 +437,6 @@ Formula One 2001
         IAddr = m_psxRegs.ICache_Addr;
         ICode = m_psxRegs.ICache_Code;
 
-        // uncached
-        if (pc_bank >= 0xa0) return (uint32_t *)PSXM(pc);
-
         // cached - RAM
         if (pc_bank == 0x80 || pc_bank == 0x00) {
             if (SWAP_LE32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
@@ -449,27 +446,22 @@ Formula One 2001
                 // Cache miss - addresses don't match
                 // - default: 0xffffffff (not init)
 
-                if (!isolate) {
-                    // cache line is 4 bytes wide
-                    pc_offset &= ~0xf;
-                    pc_cache &= ~0xf;
+                // cache line is 4 bytes wide
+                pc_offset &= ~0xf;
+                pc_cache &= ~0xf;
 
-                    // address line
-                    *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
-                    *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
-                    *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
-                    *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
+                // address line
+                *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
+                *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
+                *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
+                *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
 
-                    // opcode line
-                    pc_offset = pc & ~0xf;
-                    *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
-                    *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
-                    *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
-                    *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
-                }
-
-                // normal code
-                return (uint32_t *)PSXM(pc);
+                // opcode line
+                pc_offset = pc & ~0xf;
+                *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
+                *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
+                *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
+                *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
             }
         }
 
