@@ -137,7 +137,7 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
     template <bool debug>
-    bool execI();
+    void execBlock();
     void doBranch(uint32_t tar);
 
     void MTC0(int reg, uint32_t val);
@@ -1459,11 +1459,9 @@ void InterpretedCPU::Execute() {
     while (hasToRun()) {
         const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>();
         if (debug) {
-            while (!execI<true>())
-                ;
+            execBlock<true>();
         } else {
-            while (!execI<false>())
-                ;
+            execBlock<false>();
         }
     }
 }
@@ -1471,47 +1469,48 @@ void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
 template <bool debug>
-inline bool InterpretedCPU::execI() {
+inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
-    if (m_nextIsDelaySlot) {
-        m_inDelaySlot = true;
-        m_nextIsDelaySlot = false;
-    }
-    uint32_t *code = Read_ICache(m_psxRegs.pc);
-    m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
+    while (!ranDelaySlot) {
+        if (m_nextIsDelaySlot) {
+            m_inDelaySlot = true;
+            m_nextIsDelaySlot = false;
+        }
+        uint32_t *code = Read_ICache(m_psxRegs.pc);
+        m_psxRegs.code = ((code == NULL) ? 0 : SWAP_LE32(*code));
 
-    if (PCSX::PSXCPU_LOGGER::c_enabled && PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVerbose>()) {
-        std::string ins = PCSX::Disasm::asString(m_psxRegs.code, 0, m_psxRegs.pc, nullptr, true);
-        PSXCPU_LOG("%s\n", ins.c_str());
-    }
+        if (PCSX::PSXCPU_LOGGER::c_enabled && PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVerbose>()) {
+            std::string ins = PCSX::Disasm::asString(m_psxRegs.code, 0, m_psxRegs.pc, nullptr, true);
+            PSXCPU_LOG("%s\n", ins.c_str());
+        }
 
-    if (debug) PCSX::g_emulator->m_debug->processBefore();
+        if (debug) PCSX::g_emulator->m_debug->processBefore();
 
-    m_psxRegs.pc += 4;
-    m_psxRegs.cycle += PCSX::Emulator::BIAS;
+        m_psxRegs.pc += 4;
+        m_psxRegs.cycle += PCSX::Emulator::BIAS;
 
-    cIntFunc_t func = s_pPsxBSC[m_psxRegs.code >> 26];
-    (*this.*func)();
+        cIntFunc_t func = s_pPsxBSC[m_psxRegs.code >> 26];
+        (*this.*func)();
 
-    m_currentDelayedLoad ^= 1;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    if (delayedLoad.active) {
-        m_psxRegs.GPR.r[delayedLoad.index] &= delayedLoad.mask;
-        m_psxRegs.GPR.r[delayedLoad.index] |= delayedLoad.value;
-        delayedLoad.active = false;
+        m_currentDelayedLoad ^= 1;
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (delayedLoad.active) {
+            m_psxRegs.GPR.r[delayedLoad.index] &= delayedLoad.mask;
+            m_psxRegs.GPR.r[delayedLoad.index] |= delayedLoad.value;
+            delayedLoad.active = false;
+        }
+        if (delayedLoad.pcActive) {
+            m_psxRegs.pc = delayedLoad.pcValue;
+            delayedLoad.pcActive = false;
+        }
+        if (m_inDelaySlot) {
+            m_inDelaySlot = false;
+            ranDelaySlot = true;
+            InterceptBIOS();
+            psxBranchTest();
+        }
+        if (debug) PCSX::g_emulator->m_debug->processAfter();
     }
-    if (delayedLoad.pcActive) {
-        m_psxRegs.pc = delayedLoad.pcValue;
-        delayedLoad.pcActive = false;
-    }
-    if (m_inDelaySlot) {
-        m_inDelaySlot = false;
-        ranDelaySlot = true;
-        InterceptBIOS();
-        psxBranchTest();
-    }
-    if (debug) PCSX::g_emulator->m_debug->processAfter();
-    return ranDelaySlot;
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {
