@@ -20,6 +20,7 @@
 #include "gui/widgets/log.h"
 
 #include "core/system.h"
+#include "gui/gui.h"
 
 void PCSX::Widgets::Log::clear() {
     m_buffer.clear();
@@ -34,12 +35,14 @@ void PCSX::Widgets::Log::addLog(const char* fmt, va_list args) {
     m_scrollToBottom = m_follow;
 }
 
-void PCSX::Widgets::Log::draw(const char* title) {
+void PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
         return;
     }
     ImGui::Checkbox(_("Follow"), &m_follow);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Mono"), &m_mono);
     ImGui::SameLine();
     if (ImGui::Button(_("Clear"))) clear();
     ImGui::SameLine();
@@ -47,6 +50,7 @@ void PCSX::Widgets::Log::draw(const char* title) {
     ImGui::SameLine();
     m_filter.Draw(_("Filter"), -100.0f);
     ImGui::Separator();
+    if (m_mono) gui->useMonoFont();
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
     if (copy) ImGui::LogToClipboard();
 
@@ -65,5 +69,6 @@ void PCSX::Widgets::Log::draw(const char* title) {
     if (m_scrollToBottom) ImGui::SetScrollHereY(1.0f);
     m_scrollToBottom = false;
     ImGui::EndChild();
+    if (m_mono) ImGui::PopFont();
     ImGui::End();
 }

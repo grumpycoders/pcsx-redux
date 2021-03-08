@@ -804,7 +804,7 @@ void PCSX::GUI::endFrame() {
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw(_("Logs"));
+        m_log.draw(this, _("Logs"));
     }
 
     if (m_luaConsole.m_show) {
