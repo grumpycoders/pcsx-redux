@@ -983,7 +983,7 @@ void PCSX::GUI::endFrame() {
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
-    
+
     FrameMark
 }
 

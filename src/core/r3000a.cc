@@ -119,10 +119,11 @@ void PCSX::R3000Acpu::psxBranchTest() {
 
     int32_t lowestDistance = std::numeric_limits<int32_t>::max();
     uint32_t lowestTarget = cycle;
-    uint32_t * targets = m_psxRegs.intTargets;
+    uint32_t* targets = m_psxRegs.intTargets;
 
     if ((interrupts != 0) && (((int32_t)(m_psxRegs.lowestTarget - cycle)) <= 0)) {
-        auto checkAndUpdate = [&lowestDistance, &lowestTarget, interrupts, cycle, targets, this](unsigned interrupt, std::function<void()> act) {
+        auto checkAndUpdate = [&lowestDistance, &lowestTarget, interrupts, cycle, targets, this](
+                                  unsigned interrupt, std::function<void()> act) {
             uint32_t mask = 1 << interrupt;
             if ((interrupts & mask) == 0) return;
             uint32_t target = targets[interrupt];
