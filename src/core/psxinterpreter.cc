@@ -724,7 +724,8 @@ void InterpretedCPU::psxJR(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
         if (_rRs_ & 3) {  // if the jump is unaligned, throw an exception and ret
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Attempted unaligned JR from 0x%08x, firing exception!\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"), _rRs_, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = _rRs_;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
@@ -743,7 +744,8 @@ void InterpretedCPU::psxJALR(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
         if (temp & 3) {  // if the address is unaligned, throw an exception and return
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Attempted unaligned JALR from 0x%08x, firing exception!\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = temp;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
@@ -782,7 +784,8 @@ void InterpretedCPU::psxLH(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Unaligned address in LH from 0x%08x\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = _oB_;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
@@ -800,7 +803,8 @@ void InterpretedCPU::psxLHU(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Unaligned address in LHU from 0x%08x\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = _oB_;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
@@ -818,7 +822,8 @@ void InterpretedCPU::psxLW(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 3) {
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Unaligned address in LW from 0x%08x\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = _oB_;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
         }
@@ -872,7 +877,8 @@ void InterpretedCPU::psxSH(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Unaligned address in SH from 0x%08x\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = _oB_;
             psxException(Exceptions::StoreAddressError, m_inDelaySlot);
             return;
         }
@@ -884,7 +890,8 @@ void InterpretedCPU::psxSW(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
         if (_oB_ & 3) {
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Unaligned address in SW from 0x%08x\n"), m_psxRegs.pc);
+            PCSX::g_system->printf(_("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_, m_psxRegs.pc);
+            m_psxRegs.CP0.n.BadVAddr = _oB_;
             psxException(Exceptions::StoreAddressError, m_inDelaySlot);
             return;
         }

@@ -78,8 +78,10 @@ void installKernelHandlers() {
 
 void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
     struct Registers *regs = &__globals.threads[0].registers;
+    uint32_t badv;
+    asm("mfc0 %0, $8\nnop\n" : "=r"(badv));
     osDbgPrintf("=== Unimplemented %x:%x syscall from %p ===\r\n", table, call, ra);
-    osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", regs->returnPC, regs->SR, regs->Cause);
+    osDbgPrintf("epc = %p - status = %p - cause = %p - badv = %p\r\n", regs->returnPC, regs->SR, regs->Cause, badv);
     osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", regs->GPR.r[0], regs->GPR.r[1], regs->GPR.r[2],
                 regs->GPR.r[3]);
     osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", regs->GPR.r[4], regs->GPR.r[5], regs->GPR.r[6],
