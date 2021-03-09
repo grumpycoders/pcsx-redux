@@ -44,6 +44,7 @@ getCop0CauseAndEPC:
     nop
 
     .align 2
+    .global exceptionHandler
     .type exceptionHandler, @function
 exceptionHandler:
     nop
