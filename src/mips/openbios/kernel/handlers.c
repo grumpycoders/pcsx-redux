@@ -62,6 +62,7 @@ SOFTWARE.
 void unimplementedThunk() __attribute__((long_call));
 void breakVector();
 void exceptionVector();
+void exceptionHandler();
 void A0Vector();
 void B0Vector();
 void C0Vector();
@@ -256,7 +257,7 @@ void *B0table[0x60] = {
 
 void *C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
-    unimplementedThunk, getFreeTCBslot, unimplementedThunk, installExceptionHandler, // 04
+    unimplementedThunk, getFreeTCBslot, exceptionHandler, installExceptionHandler, // 04
     kern_initheap, unimplementedThunk, setTimerAutoAck, unimplementedThunk, // 08
     enqueueIrqHandler, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 0c
     unimplementedThunk, unimplementedThunk, setupFileIO, unimplementedThunk, // 10
