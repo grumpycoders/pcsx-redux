@@ -264,11 +264,16 @@ returnFromException:
     lw    $s7, 0x5c($k1)
     lw    $t8, 0x60($k1)
     lw    $t9, 0x64($k1)
-    /* 68 and 6c are k0 and k1 */
+    /* 68 is k0 */
     lw    $gp, 0x70($k1)
     lw    $sp, 0x74($k1)
     lw    $fp, 0x78($k1)
     lw    $ra, 0x7c($k1)
+    /* Some games rely on $k1 to stay invariant at all times, even during
+       interrupts. See for example Batman - Gotham City Racer NTSC (SLUS-01141)
+       between addresses 8002c43c and 8002c4d4, which contains an obvious
+       but horrible piece of inline assembly that has no regard for MIPS ABI. */
+    lw    $k1, 0x6c($k1)
     jr    $k0
     rfe
 
