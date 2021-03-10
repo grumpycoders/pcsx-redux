@@ -24,7 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
 
 // clang-format off
 
@@ -92,7 +94,7 @@ SOFTWARE.
 
     This patch fixes older versions of the exception handler, which didn't
     take GTE instructions into account properly. Our exception handler is
-    correct, so no patch nor behavior change is necessary.
+    correct, so no patch nor behavior change is necessary. Let the patch through.
 
  */
 
@@ -100,11 +102,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int patch_gte_2_execute(uint32_t* ra) {
-    ra[2] = 8 | 0x10000000;
-    ra[3] = 0;
-    return 1;
-}
+enum patch_behavior patch_gte_2_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 
