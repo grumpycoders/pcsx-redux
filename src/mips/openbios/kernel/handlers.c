@@ -110,7 +110,7 @@ static void installExceptionHandler() { installHandler((uint32_t *)exceptionVect
 
 void __attribute__((noreturn)) returnFromException();
 
-#define EXCEPTION_STACK_SIZE 0x180
+#define EXCEPTION_STACK_SIZE 0x800
 
 static uint32_t s_exceptionStack[EXCEPTION_STACK_SIZE];
 void *g_exceptionStackPtr = s_exceptionStack + EXCEPTION_STACK_SIZE;
