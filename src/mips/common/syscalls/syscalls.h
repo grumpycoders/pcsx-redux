@@ -165,6 +165,24 @@ static __attribute__((always_inline)) void syscall_qsort(void *base, size_t nel,
     ((void (*)(void *, size_t, size_t, int (*)(const void *, const void *)))0xa0)(base, nel, width, compar);
 }
 
+static __attribute__((always_inline)) void *syscall_userMalloc(size_t size) {
+    register int n asm("t1") = 0x33;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((void *(*)(size_t))0xa0)(size);
+}
+
+static __attribute__((always_inline)) void syscall_userFree(void *ptr) {
+    register int n asm("t1") = 0x34;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(void *))0xa0)(ptr);
+}
+
+static __attribute__((always_inline)) void syscall_userInitheap(void *ptr, size_t size) {
+    register int n asm("t1") = 0x39;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(void *, size_t))0xa0)(ptr, size);
+}
+
 static __attribute__((always_inline)) void syscall__exit(int code) {
     register int n asm("t1") = 0x3a;
     __asm__ volatile("" : "=r"(n) : "r"(n));
