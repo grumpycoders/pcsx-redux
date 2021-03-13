@@ -302,7 +302,7 @@ std::string PCSX::Lua::tostring(int i) {
 
 std::string PCSX::Lua::escapeString(const std::string& s) {
     std::string r = "";
-    
+
     for (int i = 0; i < s.size(); i++) {
         switch (s[i]) {
             case '"':

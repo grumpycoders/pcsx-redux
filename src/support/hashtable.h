@@ -58,10 +58,10 @@ class HashTable final {
       private:
         void unlinkInternal() { m_parent = nullptr; }
         friend class HashTable;
-        Key m_key = Key();
+        Key m_key;
         Node* m_next = nullptr;
         HashTable<Key, T, Hash, Id>* m_parent = nullptr;
-        uint32_t m_hash = 0;
+        uint32_t m_hash;
     };
 
   private:

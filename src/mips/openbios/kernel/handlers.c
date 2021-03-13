@@ -62,6 +62,7 @@ SOFTWARE.
 void unimplementedThunk() __attribute__((long_call));
 void breakVector();
 void exceptionVector();
+void exceptionHandler();
 void A0Vector();
 void B0Vector();
 void C0Vector();
@@ -78,8 +79,10 @@ void installKernelHandlers() {
 
 void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
     struct Registers *regs = &__globals.threads[0].registers;
+    uint32_t badv;
+    asm("mfc0 %0, $8\nnop\n" : "=r"(badv));
     osDbgPrintf("=== Unimplemented %x:%x syscall from %p ===\r\n", table, call, ra);
-    osDbgPrintf("epc = %p - status = %p - cause = %p\r\n", regs->returnPC, regs->SR, regs->Cause);
+    osDbgPrintf("epc = %p - status = %p - cause = %p - badv = %p\r\n", regs->returnPC, regs->SR, regs->Cause, badv);
     osDbgPrintf("r0 = %p - at = %p - v0 = %p - v1 = %p\r\n", regs->GPR.r[0], regs->GPR.r[1], regs->GPR.r[2],
                 regs->GPR.r[3]);
     osDbgPrintf("a0 = %p - a1 = %p - a2 = %p - a3 = %p\r\n", regs->GPR.r[4], regs->GPR.r[5], regs->GPR.r[6],
@@ -107,7 +110,7 @@ static void installExceptionHandler() { installHandler((uint32_t *)exceptionVect
 
 void __attribute__((noreturn)) returnFromException();
 
-#define EXCEPTION_STACK_SIZE 0x180
+#define EXCEPTION_STACK_SIZE 0x800
 
 static uint32_t s_exceptionStack[EXCEPTION_STACK_SIZE];
 void *g_exceptionStackPtr = s_exceptionStack + EXCEPTION_STACK_SIZE;
@@ -254,7 +257,7 @@ void *B0table[0x60] = {
 
 void *C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
-    unimplementedThunk, getFreeTCBslot, unimplementedThunk, installExceptionHandler, // 04
+    unimplementedThunk, getFreeTCBslot, exceptionHandler, installExceptionHandler, // 04
     kern_initheap, unimplementedThunk, setTimerAutoAck, unimplementedThunk, // 08
     enqueueIrqHandler, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 0c
     unimplementedThunk, unimplementedThunk, setupFileIO, unimplementedThunk, // 10

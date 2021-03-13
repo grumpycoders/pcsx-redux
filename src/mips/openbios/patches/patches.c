@@ -37,30 +37,30 @@ int g_patch_permissive = 0;
 
 struct patch {
     uint32_t hash;
-    int (*execute)(uint32_t* ra);
+    enum patch_behavior (*execute)(uint32_t* ra);
     const char* name;
 };
 
 // The following has been automatically generated, do not edit.
 // See generate.c if you need to make changes.
 
-int patch_card_info_1_execute(uint32_t* ra);
-int patch_card2_1_execute(uint32_t* ra);
-int patch_card2_2_execute(uint32_t* ra);
-int patch_pad_1_execute(uint32_t* ra);
-int patch_pad_2_execute(uint32_t* ra);
-int patch_pad_3_execute(uint32_t* ra);
-int remove_ChgclrPAD_1_execute(uint32_t* ra);
-int remove_ChgclrPAD_2_execute(uint32_t* ra);
-int send_pad_1_execute(uint32_t* ra);
-int send_pad_2_execute(uint32_t* ra);
-int clear_card_1_execute(uint32_t* ra);
-int initgun_1_execute(uint32_t* ra);
-int patch_card_1_execute(uint32_t* ra);
-int patch_card_2_execute(uint32_t* ra);
-int patch_gte_1_execute(uint32_t* ra);
-int patch_gte_2_execute(uint32_t* ra);
-int patch_gte_3_execute(uint32_t* ra);
+enum patch_behavior patch_card_info_1_execute(uint32_t* ra);
+enum patch_behavior patch_card2_1_execute(uint32_t* ra);
+enum patch_behavior patch_card2_2_execute(uint32_t* ra);
+enum patch_behavior patch_pad_1_execute(uint32_t* ra);
+enum patch_behavior patch_pad_2_execute(uint32_t* ra);
+enum patch_behavior patch_pad_3_execute(uint32_t* ra);
+enum patch_behavior remove_ChgclrPAD_1_execute(uint32_t* ra);
+enum patch_behavior remove_ChgclrPAD_2_execute(uint32_t* ra);
+enum patch_behavior send_pad_1_execute(uint32_t* ra);
+enum patch_behavior send_pad_2_execute(uint32_t* ra);
+enum patch_behavior clear_card_1_execute(uint32_t* ra);
+enum patch_behavior initgun_1_execute(uint32_t* ra);
+enum patch_behavior patch_card_1_execute(uint32_t* ra);
+enum patch_behavior patch_card_2_execute(uint32_t* ra);
+enum patch_behavior patch_gte_1_execute(uint32_t* ra);
+enum patch_behavior patch_gte_2_execute(uint32_t* ra);
+enum patch_behavior patch_gte_3_execute(uint32_t* ra);
 
 static const uint32_t generic_hash_mask_b0 = 0xffc9a655;
 static const uint32_t generic_hash_mask_c0 = 0x5aa45555;
@@ -189,9 +189,9 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
         if (patches->hash == h) {
             romsyscall_printf("Found %c0 patch hash %08x \"%s\", issued from %p, executing...\n", t, h, patches->name,
                               ra);
-            int v = patches->execute(ra);
-            if (!v) continue;
-            if (v == 2) return;
+            enum patch_behavior v = patches->execute(ra);
+            if (v == PATCH_NOT_MATCHING) continue;
+            if (v == PATCH_PASSTHROUGH) return;
             ra[0] = 0;
             ra[1] = 0;
             syscall_flushCache();

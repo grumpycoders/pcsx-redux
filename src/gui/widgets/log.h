@@ -24,6 +24,7 @@
 #include "imgui.h"
 
 namespace PCSX {
+class GUI;
 namespace Widgets {
 
 class Log {
@@ -37,7 +38,7 @@ class Log {
         va_end(args);
     }
     void addLog(const char* fmt, va_list args);
-    void draw(const char* title);
+    void draw(GUI* gui, const char* title);
 
     bool& m_show;
 
@@ -48,6 +49,7 @@ class Log {
     bool m_scrollToBottom = false;
 
     bool m_follow = true;
+    bool m_mono = true;
 };
 
 }  // namespace Widgets

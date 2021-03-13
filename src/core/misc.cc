@@ -195,7 +195,7 @@ bool LoadCdromFile(const char *filename, EXE_HEADER *head) {
 
     // Cache clear/invalidate dynarec/int. Fixes startup of Casper/X-Files and possibly others.
     PCSX::g_emulator->m_psxCpu->Clear(addr, size / 4);
-    PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = false;
+    PCSX::g_emulator->m_psxCpu->invalidateCache();
 
     while (size) {
         incTime();
@@ -637,7 +637,7 @@ static void split(char *str, char key, char *pout) {
     char *psrc = str;
     char *pdst = pout;
     int len = strlen(str);
-    
+
     for (int i = 0; i < len; i++) {
         if (psrc[i] == '\0' || psrc[i] == key) {
             *pdst = '\0';

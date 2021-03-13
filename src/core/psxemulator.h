@@ -128,7 +128,6 @@ class Emulator {
     typedef SettingPath<TYPESTRING("PpfDir")> SettingPpfDir;
     typedef SettingPath<TYPESTRING("PsxExe")> SettingPsxExe;
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
-    typedef Setting<bool, TYPESTRING("SioIrq")> SettingSioIrq;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
@@ -152,11 +151,10 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingFastBoot, SettingDebug, SettingLoggingCDROM, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
-             SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
-             Setting8MB>
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
+             SettingDebug, SettingLoggingCDROM, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
+             SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest, SettingGdbServerPort,
+             SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:

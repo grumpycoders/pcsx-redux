@@ -58,6 +58,7 @@
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
 #include "stb/stb_image.h"
+#include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
@@ -106,6 +107,15 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 void LoadImguiBindings(lua_State* lState);
 
 ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
+    const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
+    if (knownRange == System::Range::KOREAN) ranges = io.Fonts->GetGlyphRangesKorean();
+    if (knownRange == System::Range::JAPANESE) ranges = io.Fonts->GetGlyphRangesJapanese();
+    if (knownRange == System::Range::CHINESE_FULL) ranges = io.Fonts->GetGlyphRangesChineseFull();
+    if (knownRange == System::Range::CHINESE_SIMPLIFIED) ranges = io.Fonts->GetGlyphRangesChineseSimplifiedCommon();
+    if (knownRange == System::Range::CYRILLIC) ranges = io.Fonts->GetGlyphRangesCyrillic();
+    if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
+    if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
+
     decltype(s_imguiUserErrorFunctor) backup = nullptr;
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
@@ -323,6 +333,8 @@ end)(jit.status()))
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
+        g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
+
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
         PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
@@ -417,6 +429,7 @@ void PCSX::GUI::saveCfg() {
 }
 
 void PCSX::GUI::startFrame() {
+    ZoneScoped;
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
@@ -791,7 +804,7 @@ void PCSX::GUI::endFrame() {
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw(_("Logs"));
+        m_log.draw(this, _("Logs"));
     }
 
     if (m_luaConsole.m_show) {
@@ -845,7 +858,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
+        m_registers.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
@@ -970,6 +983,8 @@ void PCSX::GUI::endFrame() {
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
+
+    FrameMark
 }
 
 static void ShowHelpMarker(const char* desc) {
@@ -1000,7 +1015,6 @@ bool PCSX::GUI::configure() {
         }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
-        changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
         changed |= ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value);

@@ -408,7 +408,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
                         m_writeok = 0;
                         setLuts();
 
-                        PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = false;
+                        PCSX::g_emulator->m_psxCpu->invalidateCache();
                         break;
                     case 0x00:
                     case 0x1e988:

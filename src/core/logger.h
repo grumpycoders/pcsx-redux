@@ -30,8 +30,7 @@ struct LogName {
 };
 
 template <const LogName &name, bool enabled>
-class Logger {
-  public:
+struct Logger {
     static void Log(const char *fmt, ...) {
         if (!enabled) return;
         va_list a;
@@ -43,6 +42,7 @@ class Logger {
         if (!enabled) return;
         g_system->log(name.name, fmt, a);
     }
+    static constexpr bool c_enabled = enabled;
 };
 
 static constexpr LogName PadLogName = {"PAD"};
@@ -127,5 +127,10 @@ typedef Logger<MiscLogName, false> MISC_LOGGER;
                                  PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
         PCSX::PSXMEM_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define PSXCPU_LOG PCSX::PSXCPU_LOGGER::Log
+#define PSXCPU_LOG(...)                                                                       \
+    {                                                                                         \
+        PCSX::PSXCPU_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::PSXCPU_LOGGER::Log(__VA_ARGS__);                                                \
+    }
 #define MISC_LOG PCSX::MISC_LOGGER::Log

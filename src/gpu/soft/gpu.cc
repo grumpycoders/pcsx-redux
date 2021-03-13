@@ -137,6 +137,7 @@
 #include "gpu/soft/key.h"
 #include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
+#include "tracy/Tracy.hpp"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>
@@ -746,6 +747,7 @@ uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 
 void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
+    ZoneScoped;
     if (m_dumpFile) {
         uint32_t data = 0x01000001;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
@@ -1181,6 +1183,7 @@ void PCSX::SoftGPU::impl::stopDump() {
 }
 
 void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
+    ZoneScoped;
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;
@@ -1380,8 +1383,8 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
         if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count);
 
         addr = baseAddrL[addr >> 2] & 0xffffff;
-    } while (!(addr & 0x800000)); // contrary to some documentation, the end-of-linked-list marker is not actually 0xFF'FFFF
-                                  // any pointer with bit 23 set will do.
+    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
+                                   // 0xFF'FFFF any pointer with bit 23 set will do.
 
     GPUIsIdle;
 

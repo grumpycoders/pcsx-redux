@@ -169,12 +169,10 @@ struct psxRegisters {
     uint32_t cycle;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
-    struct {
-        uint32_t sCycle, cycle;
-    } intCycle[32];
+    uint32_t intTargets[32];
+    uint32_t lowestTarget;
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
-    bool ICache_valid;
 };
 
 // U64 and S64 are used to wrap long integer constants.
@@ -294,16 +292,24 @@ class R3000Acpu {
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
+        PSXCPU_LOG("intsched %08x at %08x\n", interrupt, eCycle);
+        const uint32_t cycle = m_psxRegs.cycle;
+        uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
         m_psxRegs.interrupt |= (1 << interrupt);
-        m_psxRegs.intCycle[interrupt].cycle = eCycle * m_interruptScales[interrupt];
-        m_psxRegs.intCycle[interrupt].sCycle = m_psxRegs.cycle;
+        m_psxRegs.intTargets[interrupt] = target;
+        int32_t lowest = m_psxRegs.lowestTarget - cycle;
+        int32_t maybeNewLowest = target - cycle;
+        if (maybeNewLowest < lowest) m_psxRegs.lowestTarget = target;
     }
 
     psxRegisters m_psxRegs;
     float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
-    virtual void Reset() { m_psxRegs.ICache_valid = false; }
+    virtual void Reset() {
+        invalidateCache();
+        m_psxRegs.interrupt = 0;
+    }
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
@@ -420,13 +426,14 @@ class R3000Acpu {
 Formula One 2001
 - Use old CPU cache code when the RAM location is
   updated with new code (affects in-game racing)
-
-TODO:
-- I-cache / D-cache swapping
-- Isolate D-cache from RAM
 */
 
-    inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
+    inline void invalidateCache() {
+        memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
+        memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
+    }
+
+    inline uint32_t *Read_ICache(uint32_t pc) {
         uint32_t pc_bank, pc_offset, pc_cache;
         uint8_t *IAddr, *ICode;
 
@@ -437,17 +444,6 @@ TODO:
         IAddr = m_psxRegs.ICache_Addr;
         ICode = m_psxRegs.ICache_Code;
 
-        // clear I-cache
-        if (!m_psxRegs.ICache_valid) {
-            memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
-            memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
-
-            m_psxRegs.ICache_valid = true;
-        }
-
-        // uncached
-        if (pc_bank >= 0xa0) return (uint32_t *)PSXM(pc);
-
         // cached - RAM
         if (pc_bank == 0x80 || pc_bank == 0x00) {
             if (SWAP_LE32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
@@ -457,27 +453,22 @@ TODO:
                 // Cache miss - addresses don't match
                 // - default: 0xffffffff (not init)
 
-                if (!isolate) {
-                    // cache line is 4 bytes wide
-                    pc_offset &= ~0xf;
-                    pc_cache &= ~0xf;
+                // cache line is 4 bytes wide
+                pc_offset &= ~0xf;
+                pc_cache &= ~0xf;
 
-                    // address line
-                    *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
-                    *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
-                    *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
-                    *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
+                // address line
+                *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
+                *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
+                *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
+                *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
 
-                    // opcode line
-                    pc_offset = pc & ~0xf;
-                    *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
-                    *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
-                    *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
-                    *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
-                }
-
-                // normal code
-                return (uint32_t *)PSXM(pc);
+                // opcode line
+                pc_offset = pc & ~0xf;
+                *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
+                *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
+                *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
+                *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
             }
         }
 

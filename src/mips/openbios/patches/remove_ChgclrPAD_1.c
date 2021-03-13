@@ -24,7 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
 #include "openbios/sio0/pad.h"
 
 // clang-format off
@@ -83,13 +85,13 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int remove_ChgclrPAD_1_execute(uint32_t* ra) {
+enum patch_behavior remove_ChgclrPAD_1_execute(uint32_t* ra) {
     patch_remove_ChgclrPAD();
 
     ra[2] = 7 | 0x10000000;
     ra[3] = 0;
 
-    return 1;
+    return PATCH_COUNTERPATCH;
 }
 
 #else

@@ -221,10 +221,10 @@ int main() {
     printf("// The following has been automatically generated, do not edit.\n");
     printf("// See generate.c if you need to make changes.\n\n");
     for (unsigned i = 0; i < b0_len; i++) {
-        printf("int %s(uint32_t* ra);\n", b0[i].execute);
+        printf("enum patch_behavior %s(uint32_t* ra);\n", b0[i].execute);
     }
     for (unsigned i = 0; i < c0_len; i++) {
-        printf("int %s(uint32_t* ra);\n", c0[i].execute);
+        printf("enum patch_behavior %s(uint32_t* ra);\n", c0[i].execute);
     }
     printf("\n");
     printf("static const uint32_t generic_hash_mask_b0 = 0x%08x;\n", min_mask_b0);

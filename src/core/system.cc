@@ -28,8 +28,12 @@
 
 PCSX::System* PCSX::g_system = NULL;
 
-static const ImWchar c_greekRange[] = {0x0020, 0x00ff, 0x0370, 0x03ff, 0};
-static const ImWchar c_hindiRange[] = {0x0900, 0x097f, 0};
+static const ImWchar c_frenchRanges[] = {0x0020, 0x00ff, 0x0152, 0x0153, 0};
+static const ImWchar c_greekRanges[] = {0x0020, 0x00ff, 0x0370, 0x03ff, 0};
+static const ImWchar c_hindiSupplementalRanges[] = {0x0900, 0x097f, 0};
+static const ImWchar* const c_japaneseRanges = reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE);
+static const ImWchar c_malteseRanges[] = {0x0020, 0x00ff, 0x010a, 0x010b, 0x0120, 0x0121,
+                                          0x0126, 0x0127, 0x017b, 0x017c, 0};
 
 // locale names have to be written in basic latin or extended latin, in order
 // to be properly displayed in the UI with the default range
@@ -40,23 +44,27 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     },
     {
         "Ellinika",
-        {"el.po", {}, c_greekRange},
+        {"el.po", {}, c_greekRanges},
     },
     {
         "Français",
-        {"fr.po", {}, nullptr},
+        {"fr.po", {}, c_frenchRanges},
     },
     {
         "Hindi",
-        {"hi.po", {{MAKEU8("NotoSansDevanagari-Regular.ttf"), c_hindiRange}}, nullptr},
+        {"hi.po", {{MAKEU8("NotoSansDevanagari-Regular.ttf"), c_hindiSupplementalRanges}}, nullptr},
     },
     {
         "Italiano",
         {"it.po", {}, nullptr},
     },
     {
+        "Nihongo",
+        {"jp.po", {{MAKEU8("NotoSansCJKjp-Regular.otf"), c_japaneseRanges}}, nullptr},
+    },
+    {
         "Malti",
-        {"mt.po", {}, nullptr},
+        {"mt.po", {}, c_malteseRanges},
     },
 };
 

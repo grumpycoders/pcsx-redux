@@ -41,7 +41,7 @@ void PCSX::ix86::x86SetJ8(unsigned slot) {
     assert(*j8 == 0);
     uint32_t jump = (m_x86Ptr - (int8_t*)j8) - 1;
 
-    assert (jump <= 0x7f); // assert that the jump is within range of the displacement
+    assert(jump <= 0x7f);  // assert that the jump is within range of the displacement
     *j8 = (uint8_t)jump;
 }
 
