@@ -362,6 +362,20 @@ C0Handler:
     nop
 
     .align 2
+    .global OBtable
+    .global OBHandler
+    .type OBHandler, @function
+
+OBHandler:
+    li    $t0, %lo(OBtable)
+    sll   $t2, $t1, 2
+    add   $t2, $t0
+    lw    $t2, 0($t2)
+    nop
+    jr    $t2
+    nop
+
+    .align 2
     .global unimplementedThunk
     .global unimplemented
     .type unimplementedThunk, @function

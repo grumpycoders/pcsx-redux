@@ -66,6 +66,7 @@ void exceptionHandler();
 void A0Vector();
 void B0Vector();
 void C0Vector();
+void OBHandler();
 
 static void __inline__ installHandler(const uint32_t *src, uint32_t *dst) {
     for (int i = 0; i < 4; i++) dst[i] = src[i];
@@ -146,6 +147,8 @@ static void __inline__ subPatchA0table(int src, int dst, int len) {
 static void patchA0table() {
     subPatchA0table(0x32, 0x00, 10);
     subPatchA0table(0x3c, 0x3b, 4);
+    // marking OpenBIOS' entry point
+    *((uintptr_t *)(__ramA0table + 10)) |= 1;
 }
 
 static void clearFileError(struct File *file) { file->errno = PSXENOERR; }
@@ -180,7 +183,7 @@ static __attribute__((section(".ramtext"))) void *wrapper_calloc(size_t nitems, 
 static const void *romA0table[0xc0] = {
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 00
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 04
-    unimplementedThunk, unimplementedThunk, psxtodigit, (void *) 'O' /*atof*/, // 08
+    unimplementedThunk, unimplementedThunk, psxtodigit, OBHandler /*atof*/, // 08
     strtol, strtol, psxabs, psxabs, // 0c
     atoi, atol, psxatob, psxsetjmp, // 10
     psxlongjmp, strcat, strncat, strcmp, // 14
@@ -267,6 +270,12 @@ void *C0table[0x20] = {
 };
 
 // clang-format on
+
+static uint32_t getOpenBiosVersion() { return 0; }
+
+void *OBtable[] = {
+    getOpenBiosVersion,
+};
 
 void *getB0table() {
     uint32_t ra;
