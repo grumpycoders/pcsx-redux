@@ -7,6 +7,7 @@ SRCS = \
 ../common/hardware/sio1.c \
 ../common/psxlibc/fastmemset.s \
 boot/boot.s \
+card/card.c \
 cdrom/cdrom.c \
 cdrom/events.c \
 cdrom/filesystem.c \

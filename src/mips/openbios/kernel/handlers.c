@@ -36,6 +36,7 @@ SOFTWARE.
 #include "common/psxlibc/setjmp.h"
 #include "common/psxlibc/stdio.h"
 #include "common/syscalls/syscalls.h"
+#include "openbios/card/card.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/filesystem.h"
 #include "openbios/cdrom/statemachine.h"
@@ -155,23 +156,6 @@ static void clearFileError(struct File *file) { file->errno = PSXENOERR; }
 
 static void *getB0table();
 static void *getC0table();
-static int dummyMC() { return 0; }
-
-static int card_info_stub(int param) {
-    // Retail BIOS calls B(4D), waits for the card read to return
-    // (takes several frames), A(A9), which eventually calls
-    // DeliverEvent(0xF4000001, 0x100) when no card is inserted.
-    //
-    // In other words, this event would never be delivered on the
-    // same call to card_info(). But it seems to work well enough
-    // to get many memory-card-probing games ingame, sometimes
-    // with minor glitches (e.g. flickering menu text in FF7).
-    psxprintf("card_info_stub(0x%X)\n", param);
-    syscall_deliverEvent(0xF4000001, 0x100);
-    return 1;
-}
-
-static int card_status_stub() { return 0x11; }
 
 static __attribute__((section(".ramtext"))) void *wrapper_calloc(size_t nitems, size_t size) {
     uint8_t *ptr = user_malloc(nitems * size);
@@ -209,7 +193,7 @@ static const void *romA0table[0xc0] = {
     dev_cd_chdir, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 64
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 68
     unimplementedThunk, unimplementedThunk, unimplementedThunk, clearFileError, // 6c
-    dummyMC, initCDRom, deinitCDRom, psxdummy, // 70
+    unimplementedThunk, initCDRom, deinitCDRom, psxdummy, // 70
     psxdummy, psxdummy, psxdummy, psxdummy, // 74
     cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
     cdromGetStatus, psxdummy, cdromRead, psxdummy, // 7c
@@ -218,13 +202,13 @@ static const void *romA0table[0xc0] = {
     psxdummy, psxdummy, psxdummy, psxdummy, // 88
     psxdummy, psxdummy, psxdummy, psxdummy, // 8c
     cdromIOVerifier, cdromDMAVerifier, cdromIOHandler, cdromDMAVerifier, // 90
-    getLastCDRomError, cdromInnerInit, addCDRomDevice, dummyMC /* addMemoryCardDevice */, // 94
+    getLastCDRomError, cdromInnerInit, addCDRomDevice, addMemoryCardDevice, // 94
     addConsoleDevice, addDummyConsoleDevice, unimplementedThunk, unimplementedThunk, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // a4
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, card_info_stub, // a8
-    unimplementedThunk, dummyMC, unimplementedThunk, unimplementedThunk, // ac
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // a8
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b8
@@ -250,12 +234,12 @@ void *B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
-    removeDevice, unimplementedThunk, dummyMC, dummyMC, // 48
-    dummyMC, unimplementedThunk, dummyMC, dummyMC, // 4c
-    dummyMC, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
+    removeDevice, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 48
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 4c
+    unimplementedThunk, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
     unimplementedThunk, unimplementedThunk, unimplementedThunk, setSIO0AutoAck, // 58
-    card_status_stub, card_status_stub, unimplementedThunk, unimplementedThunk, // 5c
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 5c
 };
 
 void *C0table[0x20] = {

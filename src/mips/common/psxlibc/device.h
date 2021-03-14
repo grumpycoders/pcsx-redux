@@ -53,10 +53,10 @@ typedef int (*device_write)(struct File *, void *buffer, int size);
 typedef void (*device_deinit)();
 
 struct Device {
-    char *name;
+    const char *name;
     uint32_t flags /* PSXDTTYPE_* */;
     uint32_t blockSize;
-    char *desc;
+    const char *desc;
     device_init init;
     device_open open;
     device_action action;
