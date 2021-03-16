@@ -36,6 +36,7 @@ main/main.c \
 pio/pio.c \
 shell/shell.c \
 sio0/busyloop.s \
+sio0/carddriver.s \
 sio0/driver.c \
 sio0/pad.c \
 tty/tty.c \

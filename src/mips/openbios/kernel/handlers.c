@@ -55,6 +55,7 @@ SOFTWARE.
 #include "openbios/kernel/threads.h"
 #include "openbios/main/main.h"
 #include "openbios/patches/patches.h"
+#include "openbios/sio0/card.h"
 #include "openbios/sio0/pad.h"
 #include "openbios/sio0/sio0.h"
 #include "openbios/tty/tty.h"
@@ -70,7 +71,7 @@ void C0Vector();
 void OBHandler();
 
 static void __inline__ installHandler(const uint32_t *src, uint32_t *dst) {
-    for (int i = 0; i < 4; i++) dst[i] = src[i];
+    for (unsigned i = 0; i < 4; i++) dst[i] = src[i];
 }
 
 void installKernelHandlers() {
@@ -234,7 +235,7 @@ void *B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
-    removeDevice, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 48
+    removeDevice, unimplementedThunk, initCard, unimplementedThunk, // 48
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 4c
     unimplementedThunk, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54

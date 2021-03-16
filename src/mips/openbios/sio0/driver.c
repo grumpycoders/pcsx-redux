@@ -295,3 +295,43 @@ void __attribute__((section(".ramtext"))) stopPad() {
     sysDeqIntRP(2, &g_sio0HandlerInfo);
     leaveCriticalSection();
 }
+
+int g_mcActionInProgress;
+int g_mcPortFlipping;
+int g_mcFlags[2];
+struct HandlerInfo g_mcHandlerInfo;
+static int s_mcInitializedAlready = 0;
+
+void exceptionHandlerPatchSlot1();
+void exceptionHandlerCardFastTrackPatch();
+
+/* The original code incorrectly uses $k0 and $k1 for this loop */
+static void __attribute__((section(".ramtext"))) patchExceptionHandlerForMC() {
+    const uint32_t* src = (const uint32_t*)exceptionHandlerCardFastTrackPatch;
+    uint32_t* dst = (uint32_t*)exceptionHandlerPatchSlot1;
+    for (unsigned i = 0; i < 4; i++) dst[i] = src[i];
+    syscall_flushCache();
+}
+
+int g_mcFastTrackActive = 0;
+uint8_t* g_mcFastTrackOperation = NULL;
+uint8_t* g_mcFastTrackBuffer = NULL;
+uint32_t* g_mcFastTrackChecksumPtr = NULL;
+uint32_t g_mcFastTrackCounter = 0;
+
+int __attribute__((section(".ramtext"))) initCard(int padStarted) {
+    setupBasicSio0Handler();
+    g_mcActionInProgress = 0;
+    g_mcPortFlipping = 0;
+    g_mcFlags[0] = 1;
+    g_mcFlags[1] = 1;
+    g_mcHandlerInfo.handler;
+    g_mcHandlerInfo.verifier;
+    g_mcHandlerInfo.next = NULL;
+    g_mcHandlerInfo.padding = 0;
+    patchExceptionHandlerForMC();
+    int ret = s_mcInitializedAlready;
+    s_mcInitializedAlready = 1;
+    s_padStarted = padStarted;
+    return ret;
+}
