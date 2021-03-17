@@ -29,3 +29,11 @@ SOFTWARE.
 #include <stdlib.h>
 
 int initCard(int padStarted);
+int startCard();
+
+void mcHandler(int v);
+int mcVerifier();
+
+void mcResetStatus();
+int mcWaitForStatus();
+int mcWaitForStatusAndReturnIndex();

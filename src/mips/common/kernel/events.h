@@ -36,8 +36,9 @@ enum event_class {
     //  0xf0000007 - unused, should be Timer 2
     EVENT_CONTROLLER = 0xf0000008,  // IRQ7
     EVENT_SPU = 0xf0000009,         // IRQ9
-    EVENT_PIO = 0xf000000A,         // IRQ10
-    EVENT_SIO = 0xf000000B,         // IRQ8
+    EVENT_PIO = 0xf000000a,         // IRQ10
+    EVENT_SIO = 0xf000000b,         // IRQ8
+    EVENT_CARD = 0xf0000011,
 };
 
 enum event_mode {

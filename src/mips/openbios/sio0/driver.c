@@ -26,9 +26,11 @@ SOFTWARE.
 
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
+#include "common/kernel/events.h"
 #include "common/psxlibc/string.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/handlers/handlers.h"
+#include "openbios/kernel/events.h"
 #include "openbios/sio0/pad.h"
 
 static int s_remove_ChgclrPAD = 0;
@@ -52,11 +54,11 @@ static size_t s_padBufferSizes[2];
 
 struct HandlerInfo g_sio0HandlerInfo;
 
-static int s_padAutoAck;
+static int s_sio0AutoAck;
 
 int __attribute__((section(".ramtext"))) setSIO0AutoAck(int value) {
-    int ret = s_padAutoAck;
-    s_padAutoAck = value;
+    int ret = s_sio0AutoAck;
+    s_sio0AutoAck = value;
     return ret;
 }
 
@@ -84,7 +86,7 @@ void __attribute__((section(".ramtext"))) patch_setPadOutputData(uint8_t* pad1Ou
     s_padOutputSizes[1] = pad2OutputSize;
 }
 
-static uint32_t s_padMask;
+static uint32_t s_sio0Mask;
 
 static void __attribute__((section(".ramtext"))) padAbort(int pad) {
     uint8_t** padBufferPtr = &s_padBufferPtrs[pad];
@@ -112,7 +114,7 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     SIOS[0].ctrl = mask | 0x1003;
     while (!(SIOS[0].stat & 1))
         ;
-    s_padMask = mask;
+    s_sio0Mask = mask;
     SIOS[0].fifo = 1;
     busyloop(20);
     SIOS[0].ctrl |= 0x10;
@@ -219,7 +221,119 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     return 0;
 }
 
-static void __attribute__((section(".ramtext"))) readCard() {}
+int g_mcActionInProgress;
+int g_mcPortFlipping;
+int g_mcLastPort;
+int g_mcGotError;
+uint8_t g_mcFlags[2];
+int g_mcOperation;
+struct HandlerInfo g_mcHandlerInfo;
+static int s_mcInitializedAlready = 0;
+static int s_skipErrorOnNewCard;
+int g_mcFastTrackActive = 0;
+uint8_t* g_mcFastTrackOperationPtr = NULL;
+uint8_t* g_mcFastTrackBuffer = NULL;
+uint32_t* g_mcFastTrackChecksumPtr = NULL;
+uint32_t g_mcFastTrackCounter = 0;
+uint8_t* g_mcUserBuffers[2];
+uint32_t g_mcChecksum[2];
+typedef int (*mcOpHandler)();
+mcOpHandler g_mcHandlers[2];
+
+static int __attribute__((section(".ramtext"))) mcVerifier() {
+    if (((IMASK & IRQ_CONTROLLER) == 0) || ((IREG & IRQ_CONTROLLER) == 0)) return 0;
+    if (g_mcFastTrackActive) return 0;
+    return 1;
+}
+
+static void __attribute__((section(".ramtext"))) mcHandler(int v) {
+    if (g_mcPortFlipping == 0) {
+        s_sio0Mask = 0x0000;
+    } else {
+        s_sio0Mask = 0x2000;
+    }
+
+    SIOS[0].ctrl |= s_sio0Mask | 0x0012;
+    g_mcOperation++;
+    int mcResult = g_mcHandlers[g_mcPortFlipping]();
+
+    switch (mcResult) {
+        case 0:
+            IREG = ~IRQ_CONTROLLER;
+            IMASK |= IRQ_CONTROLLER;
+            break;
+        case 1:
+            g_mcActionInProgress = 0;
+            SIOS[0].ctrl = 0;
+            g_mcOperation = 0;
+            sysDeqIntRP(1, &g_mcHandlerInfo);
+            IREG = ~IRQ_CONTROLLER;
+            IMASK &= ~IRQ_CONTROLLER;
+            if (g_mcGotError) break;
+            s_skipErrorOnNewCard = 0;
+            g_mcFlags[g_mcPortFlipping] = 1;
+            g_mcLastPort = g_mcPortFlipping;
+            syscall_mcLowLevelOpCompleted();
+            deliverEvent(EVENT_CARD, 0x0004);
+            break;
+        default:
+            g_mcActionInProgress = 0;
+            SIOS[0].ctrl = 0;
+            if (!g_mcGotError) {
+                s_skipErrorOnNewCard = 0;
+                g_mcFlags[g_mcPortFlipping] = 0x21;
+                g_mcLastPort = g_mcPortFlipping;
+                syscall_mcLowLevelOpError1();
+                deliverEvent(EVENT_CARD, 0x8000);
+            }
+            g_mcOperation = 0;
+            g_mcGotError = 0;
+            sysDeqIntRP(1, &g_mcHandlerInfo);
+            IREG = ~IRQ_CONTROLLER;
+            IMASK &= ~IRQ_CONTROLLER;
+            break;
+    }
+}
+
+static void __attribute__((section(".ramtext"))) firstStageCardAction() {
+    undeliverEvent(EVENT_CARD, 0x0004);
+    undeliverEvent(EVENT_CARD, 0x8000);
+    undeliverEvent(EVENT_CARD, 0x0100);
+    undeliverEvent(EVENT_CARD, 0x0200);
+    undeliverEvent(EVENT_CARD, 0x2000);
+
+    if (g_mcActionInProgress) {
+        g_mcActionInProgress = 0;
+        g_mcOperation = 0;
+        IREG = ~IRQ_CONTROLLER;
+        IMASK &= ~IRQ_CONTROLLER;
+        SIOS[0].ctrl = 0;
+        s_skipErrorOnNewCard = 0;
+        g_mcFlags[g_mcPortFlipping] = 0x11;
+        g_mcLastPort = g_mcPortFlipping;
+        syscall_mcLowLevelOpError2();
+        deliverEvent(EVENT_CARD, 0x0100);
+        sysDeqIntRP(1, &g_mcHandlerInfo);
+        SIOS[0].ctrl = 0x40;
+        SIOS[0].baudRate = 0x88;
+        SIOS[0].mode = 13;
+        SIOS[0].ctrl = 0;
+        return;
+    }
+
+    g_mcPortFlipping = 1 - g_mcPortFlipping;
+    if (g_mcFlags[g_mcPortFlipping] & 1) return;
+    g_mcFastTrackCounter = 0;
+    g_mcFastTrackActive = 0;
+    g_mcFastTrackBuffer = g_mcUserBuffers[g_mcPortFlipping];
+    g_mcFastTrackOperationPtr = &g_mcFlags[g_mcPortFlipping];
+    g_mcFastTrackChecksumPtr = &g_mcChecksum[g_mcPortFlipping];
+    sysDeqIntRP(1, &g_mcHandlerInfo);
+    sysEnqIntRP(1, &g_mcHandlerInfo);
+    g_mcOperation = 0;
+    g_mcGotError = 0;
+    mcHandler(1);
+}
 
 static int __attribute__((section(".ramtext"))) sio0Verifier() {
     if (((IMASK & IRQ_VBLANK) == 0) || ((IREG & IRQ_VBLANK) == 0)) return 0;
@@ -232,8 +346,8 @@ static void __attribute__((section(".ramtext"))) sio0Handler(int v) {
         readPad(1);
         if (g_userPadBuffer) readPadHighLevel();
     }
-    if (!s_remove_ChgclrPAD && s_padAutoAck) IREG = ~IRQ_VBLANK;
-    if (s_cardStarted) readCard();
+    if (!s_remove_ChgclrPAD && s_sio0AutoAck) IREG = ~IRQ_VBLANK;
+    if (s_cardStarted) firstStageCardAction();
 }
 
 static void __attribute__((section(".ramtext"))) setupBasicSio0Handler() {
@@ -261,8 +375,6 @@ initPad(uint8_t* pad1Buffer, size_t pad1BufferSize, uint8_t* pad2Buffer, size_t 
     return 1;
 }
 
-static int s_sio0State;
-
 static void __attribute__((section(".ramtext"))) setupSIO0() {
     SIOS[0].ctrl = 0x40;
     SIOS[0].baudRate = 0x88;
@@ -274,7 +386,7 @@ static void __attribute__((section(".ramtext"))) setupSIO0() {
     SIOS[0].ctrl = 0x2002;
     busyloop(10);
     SIOS[0].ctrl = 0;
-    s_sio0State = 0;
+    s_skipErrorOnNewCard = 0;
 }
 
 int __attribute__((section(".ramtext"))) startPad() {
@@ -296,12 +408,6 @@ void __attribute__((section(".ramtext"))) stopPad() {
     leaveCriticalSection();
 }
 
-int g_mcActionInProgress;
-int g_mcPortFlipping;
-int g_mcFlags[2];
-struct HandlerInfo g_mcHandlerInfo;
-static int s_mcInitializedAlready = 0;
-
 void exceptionHandlerPatchSlot1();
 void exceptionHandlerCardFastTrackPatch();
 
@@ -313,20 +419,14 @@ static void __attribute__((section(".ramtext"))) patchExceptionHandlerForMC() {
     syscall_flushCache();
 }
 
-int g_mcFastTrackActive = 0;
-uint8_t* g_mcFastTrackOperation = NULL;
-uint8_t* g_mcFastTrackBuffer = NULL;
-uint32_t* g_mcFastTrackChecksumPtr = NULL;
-uint32_t g_mcFastTrackCounter = 0;
-
 int __attribute__((section(".ramtext"))) initCard(int padStarted) {
     setupBasicSio0Handler();
     g_mcActionInProgress = 0;
     g_mcPortFlipping = 0;
     g_mcFlags[0] = 1;
     g_mcFlags[1] = 1;
-    g_mcHandlerInfo.handler;
-    g_mcHandlerInfo.verifier;
+    g_mcHandlerInfo.handler = mcHandler;
+    g_mcHandlerInfo.verifier = mcVerifier;
     g_mcHandlerInfo.next = NULL;
     g_mcHandlerInfo.padding = 0;
     patchExceptionHandlerForMC();
@@ -334,4 +434,17 @@ int __attribute__((section(".ramtext"))) initCard(int padStarted) {
     s_mcInitializedAlready = 1;
     s_padStarted = padStarted;
     return ret;
+}
+
+int __attribute__((section(".ramtext"))) startCard(void) {
+    setupSIO0();
+    enterCriticalSection();
+    sysDeqIntRP(2, &g_sio0HandlerInfo);
+    sysEnqIntRP(2, &g_sio0HandlerInfo);
+    IMASK |= IRQ_VBLANK;
+    setSIO0AutoAck(1);
+    setTimerAutoAck(3, 0);
+    s_cardStarted = 1;
+    leaveCriticalSection();
+    return 1;
 }

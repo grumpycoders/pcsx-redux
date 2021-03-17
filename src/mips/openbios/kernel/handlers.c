@@ -194,7 +194,7 @@ static const void *romA0table[0xc0] = {
     dev_cd_chdir, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 64
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 68
     unimplementedThunk, unimplementedThunk, unimplementedThunk, clearFileError, // 6c
-    unimplementedThunk, initCDRom, deinitCDRom, psxdummy, // 70
+    initBackupUnit, initCDRom, deinitCDRom, unimplementedThunk, // 70
     psxdummy, psxdummy, psxdummy, psxdummy, // 74
     cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
     cdromGetStatus, psxdummy, cdromRead, psxdummy, // 7c
@@ -235,7 +235,7 @@ void *B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
-    removeDevice, unimplementedThunk, initCard, unimplementedThunk, // 48
+    removeDevice, unimplementedThunk, initCard, startCard, // 48
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 4c
     unimplementedThunk, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54

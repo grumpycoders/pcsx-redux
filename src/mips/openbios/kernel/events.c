@@ -111,7 +111,7 @@ int closeEvent(uint32_t event) {
     return 1;
 }
 
-void undeliverEvent(uint32_t class, uint32_t spec) {
+__attribute__((section(".ramtext"))) void undeliverEvent(uint32_t class, uint32_t spec) {
     struct EventInfo *ptr, *end;
 
     ptr = __globals.events;

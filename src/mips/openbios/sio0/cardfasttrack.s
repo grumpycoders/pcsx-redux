@@ -30,7 +30,7 @@ SOFTWARE.
     .align 2
     .section .ramtext, "ax", @progbits
     .global g_mcFastTrackActive
-    .global g_mcFastTrackOperation
+    .global g_mcFastTrackOperationPtr
     .global g_mcFastTrackBuffer
     .global g_mcFastTrackChecksumPtr
     .global g_mcFastTrackCounter
@@ -43,7 +43,7 @@ SOFTWARE.
 
     uint8_t b;
     if (g_mcFastTrackActive && (IREG & IRQ_CONTROLLER) && (IMASK & IRQ_CONTROLLER)) {
-        switch(g_mcFastTrackOperation) {
+        switch(g_mcFastTrackOperationPtr) {
             case MC_FASTTRACK_WRITE: // 4
                 SIOS[0].fifo;
                 SIOS[0].fifo = b = *g_mcFastTrackBuffer++;
@@ -77,8 +77,8 @@ exceptionHandlerCardFastTrack:
     andi  $v0, 0x80
     beqz  $v0, mcFastTrackExit
 /* from here, we can also use $k0 */
-    lui   $v0, %hi(g_mcFastTrackOperation)
-    lw    $v0, %lo(g_mcFastTrackOperation)($v0)
+    lui   $v0, %hi(g_mcFastTrackOperationPtr)
+    lw    $v0, %lo(g_mcFastTrackOperationPtr)($v0)
     li    $at, 2
     lbu   $v0, 0($v0)
     lui   $k0, %hi(g_mcFastTrackBuffer)

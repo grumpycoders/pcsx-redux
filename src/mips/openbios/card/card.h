@@ -27,3 +27,4 @@ SOFTWARE.
 #pragma once
 
 int addMemoryCardDevice();
+int initBackupUnit();
