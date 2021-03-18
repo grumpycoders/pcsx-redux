@@ -24,12 +24,19 @@ SOFTWARE.
 
 */
 
+#include "openbios/sio0/card.h"
+
+#include "common/hardware/hwregs.h"
+#include "common/hardware/irq.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
-#include "openbios/sio0/card.h"
+#include "openbios/kernel/events.h"
+#include "openbios/sio0/sio0.h"
 
 int g_overallMCsuccess;
 int g_mcErrors[4];
+static uint32_t s_mcChecksums[2];
+static uint8_t s_mcCommand[2];
 
 void mcResetStatus() {
     g_overallMCsuccess = 0;
@@ -72,4 +79,116 @@ int mcWaitForStatusAndReturnIndex() {
             }
         }
     }
+}
+
+int __attribute__((section(".ramtext"))) mcReadHandler() {
+    int port = g_mcPortFlipping;
+    int sector = g_mcSector[port];
+    uint8_t* buffer = g_mcUserBuffers[port];
+
+    uint8_t b;
+
+    switch (g_mcOperation) {
+        case 1:
+            g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
+            SIOS[0].ctrl = g_sio0Mask | 0x1003;
+            SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            g_mcActionInProgress = 1;
+            break;
+        case 2:
+            SIOS[0].fifo = 'R';
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            break;
+        case 3:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (g_skipErrorOnNewCard) return 0;
+            if ((b & 0x08) == 0) return 0;
+            g_skipErrorOnNewCard = 0;  // durr?
+            g_mcFlags[port] = 1;
+            g_mcLastPort = g_mcPortFlipping;
+            syscall_mcLowLevelOpError3();
+            deliverEvent(EVENT_CARD, 0x2000);
+            g_mcGotError = 1;
+            return -1;
+            break;
+        case 4:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != 0x5a) return -1;
+            break;
+        case 5:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != 0x5d) return -1;
+            break;
+        case 6:
+            SIOS[0].fifo = sector;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            break;
+        case 7:
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            break;
+        case 8:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != 0x5c) return -1;
+            break;
+        case 9:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != 0x5d) return -1;
+            break;
+        case 10:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != (sector >> 8)) return -1;
+            s_mcChecksums[port] = (sector ^ (sector >> 8)) & 0xff;
+            s_mcCommand[port] = 0;
+            break;
+        case 11:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = s_mcCommand[port];
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != (sector & 0xff)) return -1;
+            g_mcFastTrackActive = 1;
+            break;
+        case 12:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            buffer[0x7f] = b;
+            s_mcChecksums[port] ^= b;
+            break;
+        case 13:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (b != s_mcChecksums[port]) return -1;
+            while ((SIOS[0].stat & 2) == 0)
+                ;
+            return SIOS[0].fifo == 0x47 ? 1 : -1;
+    }
+    return 0;
 }

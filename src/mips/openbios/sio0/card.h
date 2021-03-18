@@ -31,9 +31,23 @@ SOFTWARE.
 int initCard(int padStarted);
 int startCard();
 
-void mcHandler(int v);
-int mcVerifier();
-
 void mcResetStatus();
 int mcWaitForStatus();
 int mcWaitForStatusAndReturnIndex();
+void mcAllowNewCard();
+int mcReadCardSector(int deviceId, int sector, uint8_t* buffer);
+
+// internals
+int mcReadHandler();
+extern int g_mcOperation;
+extern int g_mcPortFlipping;
+extern uint8_t* g_mcUserBuffers[2];
+extern int g_mcSector[2];
+extern int g_mcDeviceId[2];
+extern int g_mcActionInProgress;
+extern int g_skipErrorOnNewCard;
+extern uint8_t g_mcFlags[2];
+extern int g_mcPortFlipping;
+extern int g_mcLastPort;
+extern int g_mcGotError;
+extern int g_mcFastTrackActive;

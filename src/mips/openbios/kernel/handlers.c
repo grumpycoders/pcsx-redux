@@ -236,8 +236,8 @@ void *B0table[0x60] = {
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
     removeDevice, unimplementedThunk, initCard, startCard, // 48
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 4c
-    unimplementedThunk, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, mcReadCardSector, // 4c
+    mcAllowNewCard, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
     unimplementedThunk, unimplementedThunk, unimplementedThunk, setSIO0AutoAck, // 58
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 5c
