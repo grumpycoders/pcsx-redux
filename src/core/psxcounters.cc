@@ -265,7 +265,7 @@ void PCSX::Counters::psxRcntWtarget(uint32_t index, uint32_t value) {
 
     psxRcntUpdate();
 
-    m_rcnts[index].target = value;  // TODO: only upper 16bit used
+    m_rcnts[index].target = value;  // The target is only 16 bits. To make sure of this, the 32-bit write handlers mask it with 0xFFFF
 
     psxRcntWcountInternal(index, psxRcntRcountInternal(index));
     psxRcntSet();
