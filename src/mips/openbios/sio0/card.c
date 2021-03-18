@@ -33,13 +33,13 @@ SOFTWARE.
 #include "openbios/kernel/events.h"
 #include "openbios/sio0/sio0.h"
 
-int g_overallMCsuccess;
+int g_mcOverallSuccess;
 int g_mcErrors[4];
 static uint32_t s_mcChecksums[2];
 static uint8_t s_mcCommand[2];
 
 void mcResetStatus() {
-    g_overallMCsuccess = 0;
+    g_mcOverallSuccess = 0;
     g_mcErrors[0] = 0;
     g_mcErrors[1] = 0;
     g_mcErrors[2] = 0;
@@ -53,7 +53,7 @@ void mcResetStatus() {
 
 int mcWaitForStatus() {
     while (1) {
-        if (g_overallMCsuccess) {
+        if (g_mcOverallSuccess) {
             mcResetStatus();
             return 1;
         }
@@ -68,7 +68,7 @@ int mcWaitForStatus() {
 
 int mcWaitForStatusAndReturnIndex() {
     while (1) {
-        if (g_overallMCsuccess) {
+        if (g_mcOverallSuccess) {
             mcResetStatus();
             return 0;
         }
@@ -189,6 +189,59 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
             while ((SIOS[0].stat & 2) == 0)
                 ;
             return SIOS[0].fifo == 0x47 ? 1 : -1;
+        default:
+            return -1;
+    }
+    return 0;
+}
+
+int __attribute__((section(".ramtext"))) mcInfoHandler() {
+    int port;
+    uint8_t b;
+
+    port = g_mcPortFlipping;
+    switch (g_mcOperation) {
+        case 1:
+            g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
+            SIOS[0].ctrl = g_sio0Mask | 0x1003;
+            SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
+            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            g_mcActionInProgress = 1;
+            break;
+        case 2:
+            SIOS[0].fifo = 0x52;
+            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            break;
+        case 3:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            if (g_skipErrorOnNewCard) return 0;
+            if ((b & 0x0c) == 0) break;
+
+            g_skipErrorOnNewCard = 0;
+            g_mcFlags[port] = 1;
+            g_mcLastPort = g_mcPortFlipping;
+            if ((b & 0x04) != 0) {
+                syscall_mcLowLevelOpError1();
+                deliverEvent(EVENT_CARD, 0x8000);
+            } else {
+                syscall_mcLowLevelOpError3();
+                deliverEvent(EVENT_CARD, 0x2000);
+            }
+            g_mcGotError = 1;
+            return -1;
+        case 4:
+            b = SIOS[0].fifo;
+            SIOS[0].fifo = 0;
+            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
+            IREG = ~IRQ_CONTROLLER;
+            return (b == 0x5a) ? 1 : -1;
+        default:
+            return -1;
     }
     return 0;
 }

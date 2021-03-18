@@ -469,3 +469,19 @@ int mcReadCardSector(int deviceId, int sector, uint8_t* buffer) {
 
     return 1;
 }
+
+int cardInfoInternal(int deviceId) {
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if ((g_mcFlags[port] & 1) == 0) return 0;
+
+    g_mcOperation = 0;
+    g_mcDeviceId[port] = deviceId;
+    g_mcUserBuffers[port] = NULL;
+    g_mcHandlers[port] = mcInfoHandler;
+    g_mcSector[port] = 0;
+    g_mcFlags[port] = 0;
+}
+
+int mcGetLastDevice() { return g_mcDeviceId[g_mcLastPort]; }

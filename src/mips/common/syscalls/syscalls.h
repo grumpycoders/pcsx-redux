@@ -437,6 +437,12 @@ static __attribute__((always_inline)) void syscall_mcAllowNewCard() {
     ((void (*)())0xb0)();
 }
 
+static __attribute__((always_inline)) int syscall_mcGetLastDevice() {
+    register int n asm("t1") = 0x58;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)())0xb0)();
+}
+
 /* C0 table */
 static __attribute__((always_inline)) int syscall_enqueueRCntIrqs(int priority) {
     register int n asm("t1") = 0x00;

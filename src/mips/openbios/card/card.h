@@ -28,3 +28,5 @@ SOFTWARE.
 
 int addMemoryCardDevice();
 int initBackupUnit();
+int cardInfo(int deviceId);
+void mcLowLevelOpCompleted();

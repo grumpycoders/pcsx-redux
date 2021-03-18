@@ -27,10 +27,13 @@ SOFTWARE.
 #include <stdint.h>
 #include <string.h>
 
+#include "common/hardware/pcsxhw.h"
+#include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/card/card.h"
 #include "openbios/kernel/libcmisc.h"
 #include "openbios/sio0/card.h"
+#include "osdebug.h"
 
 int g_buOperation[2];
 int g_buAutoFormat;
@@ -45,6 +48,14 @@ struct BuDirectoryEntry {
 struct BuDirectoryEntry s_buDirEntries[2][15];
 static uint8_t s_buBuffer[2][128];
 static int32_t s_buBroken[2][20];
+
+static __attribute__((noreturn)) void buUnimplemented(const char *function, int op) {
+    osDbgPrintf("=== Unimplemented backup unit function %s, op %i ===\r\n", function, op);
+    osDbgPrintf("=== halting ===\r\n");
+    pcsx_debugbreak();
+    while (1)
+        ;
+}
 
 static void buClear() {
     g_buOperation[1] = 0;
@@ -256,4 +267,37 @@ int initBackupUnit() {
     buInit(0x00);
     buInit(0x10);
     return 0;
+}
+
+int cardInfo(int deviceId) {
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    g_buOperation[port] = 1;
+    int ret = syscall_cardInfoInternal(deviceId);
+    if (!ret) g_buOperation[port] = 0;
+    return ret != 0;
+}
+
+void buSomethingSomething(int port, int spec) {
+    g_buOperation[port] = 0;
+    // something1[port] = 0;
+    // something2[port] = 0;
+    syscall_deliverEvent(EVENT_VBLANK, spec);
+}
+
+void mcLowLevelOpCompleted() {
+    g_mcOverallSuccess = 1;
+    int deviceId = syscall_mcGetLastDevice();
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    switch (g_buOperation[port]) {
+        case 0:
+            return;
+        case 1:
+        case 8:
+            buSomethingSomething(port, 4);
+            break;
+        default:
+            buUnimplemented("mcLowLevelOpCompleted", g_buOperation[port]);
+    }
 }

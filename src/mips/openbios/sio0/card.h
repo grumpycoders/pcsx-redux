@@ -35,10 +35,13 @@ void mcResetStatus();
 int mcWaitForStatus();
 int mcWaitForStatusAndReturnIndex();
 void mcAllowNewCard();
+int mcGetLastDevice();
 int mcReadCardSector(int deviceId, int sector, uint8_t* buffer);
+int cardInfoInternal(int deviceId);
 
 // internals
 int mcReadHandler();
+int mcInfoHandler();
 extern int g_mcOperation;
 extern int g_mcPortFlipping;
 extern uint8_t* g_mcUserBuffers[2];
@@ -51,3 +54,5 @@ extern int g_mcPortFlipping;
 extern int g_mcLastPort;
 extern int g_mcGotError;
 extern int g_mcFastTrackActive;
+
+extern int g_mcOverallSuccess;
