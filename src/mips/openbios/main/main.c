@@ -250,6 +250,17 @@ static void zeroUserMemoryUntilStack() {
     fastMemset((void *)0xa0010000, 0, end - 0x10000);
 }
 
+// Horror story #2314.21
+// The original BIOS writes garbage to the first few bytes of kernel RAM, 
+// However, r-types accidentally dereferences a NULL pointer, and depeending
+// on the value of the halfword at NULL, it might fire a DMA with the 
+// kernel as the destionation address, wiping out the kernel and crashing before the title screen
+void patchNULL () {
+    __asm__ volatile ("addiu $v0, $0, 3"); // $v0 = 3 
+    __asm__ volatile ("sh $v0, 0($0)"); // *(uint16_t*) NULL = 3. We have to use inline assembly here to prevent UB
+    psxprintf ("Patching NULL...\n");
+}
+
 static struct psxExeHeader s_binaryInfo;
 
 // This is another horror. The location of this variable is technically
@@ -383,6 +394,7 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     psxprintf("                S_ADDR(%08x)  S_SIZE(%08x)\n", s_configuration.stackBase, 0);
     enterCriticalSection();
     SETJMPFATAL(0x38b);
+    patchNULL();
     gameMainThunk(&s_binaryInfo, 1, NULL);
     psxprintf("End of Main\n");
     fatal(0x38c);
