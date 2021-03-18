@@ -222,6 +222,13 @@ static int buInit(int deviceId) {
         }
     }
     for (unsigned i = 0; i < 15; i++) {
+        if (entriesStates[i] != 0) continue;
+        // what ?
+        dirEntries[i].fileSize = 0;
+        dirEntries[i].allocState = 0xa0;
+        dirEntries[i].nextBlock = -1;
+    }
+    for (unsigned i = 0; i < 15; i++) {
         if (!syscall_mcReadSector(deviceId, i + 16, buffer)) goto buInitFailure;
         if (!mcWaitForStatus()) goto buInitFailure;
         if (!buVerifySectorChecksum(buffer)) goto buInitFailure;
