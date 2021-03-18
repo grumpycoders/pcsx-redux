@@ -204,7 +204,7 @@ static __attribute__((always_inline)) int syscall_unresolvedException() {
 static __attribute__((always_inline)) void syscall_flushCache() {
     register int n asm("t1") = 0x44;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((void (*)())0xa0)();
+    ((void (*)())0xa0)();
 }
 
 static __attribute__((always_inline)) int syscall_cdromSeekL(uint8_t *msf) {
@@ -306,7 +306,7 @@ static __attribute__((always_inline)) void syscall_mcLowLevelOpError4() {
 static __attribute__((always_inline)) int syscall_ioabortraw(int code) {
     register int n asm("t1") = 0xb2;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((int (*)(int))0xa0)(code);
+    return ((int (*)(int))0xa0)(code);
 }
 
 /* B0 table */
@@ -319,7 +319,7 @@ static __attribute__((always_inline)) void *syscall_kmalloc(unsigned size) {
 static __attribute__((always_inline)) void syscall_kfree(void *ptr) {
     register int n asm("t1") = 0x01;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((void (*)(void *))0xb0)(ptr);
+    ((void (*)(void *))0xb0)(ptr);
 }
 
 static __attribute__((always_inline)) int syscall_initTimer(uint32_t timer, uint16_t target, uint16_t flags) {
@@ -410,19 +410,25 @@ static __attribute__((always_inline)) void syscall_putchar(int c) {
 static __attribute__((always_inline)) int syscall_addDevice(const struct Device *device) {
     register int n asm("t1") = 0x47;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((int (*)(const struct Device *))0xb0)(device);
+    return ((int (*)(const struct Device *))0xb0)(device);
+}
+
+static __attribute__((always_inline)) int syscall_cardInfoInternal(int deviceID) {
+    register int n asm("t1") = 0x4d;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(int))0xb0)(deviceID);
 }
 
 static __attribute__((always_inline)) int syscall_mcWriteSector(int deviceID, int sector, const uint8_t *buffer) {
     register int n asm("t1") = 0x4e;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((int (*)(int, int, const uint8_t *))0xb0)(deviceID, sector, buffer);
+    return ((int (*)(int, int, const uint8_t *))0xb0)(deviceID, sector, buffer);
 }
 
 static __attribute__((always_inline)) int syscall_mcReadSector(int deviceID, int sector, uint8_t *buffer) {
     register int n asm("t1") = 0x4f;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((int (*)(int, int, uint8_t *))0xb0)(deviceID, sector, buffer);
+    return ((int (*)(int, int, uint8_t *))0xb0)(deviceID, sector, buffer);
 }
 
 static __attribute__((always_inline)) void syscall_mcAllowNewCard() {
