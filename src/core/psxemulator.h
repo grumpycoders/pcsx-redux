@@ -135,7 +135,8 @@ class Emulator {
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
     typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
-    typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
+    typedef Setting<bool, TYPESTRING("Trace")> SettingTrace;
+    typedef Setting<bool, TYPESTRING("SkipISR")> SettingSkipISR;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
@@ -151,9 +152,10 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
-             SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest, SettingGdbServerPort,
-             SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
+             SettingDebug, SettingTrace, SettingSkipISR, SettingRCntFix, SettingIsoPath, SettingLocale,
+             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
+             SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
+             Setting8MB>
         settings;
     class PcsxConfig {
       public:

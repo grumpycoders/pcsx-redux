@@ -310,6 +310,7 @@ class R3000Acpu {
         invalidateCache();
         m_psxRegs.interrupt = 0;
     }
+    bool m_inISR = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {

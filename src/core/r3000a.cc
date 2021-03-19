@@ -65,6 +65,8 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     // Set the Cause
     m_psxRegs.CP0.n.Cause = code;
 
+    m_inISR = true;
+
     // Set the EPC & PC
     if (bd) {
         PSXCPU_LOG("bd set!!!\n");

@@ -136,7 +136,7 @@ class InterpretedCPU : public PCSX::R3000Acpu {
     cIntFunc_t *s_pPsxCP2 = NULL;
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
-    template <bool debug>
+    template <bool debug, bool trace>
     void execBlock();
     void doBranch(uint32_t tar);
 
@@ -691,6 +691,7 @@ void InterpretedCPU::psxSYSCALL(uint32_t code) {
 
 void InterpretedCPU::psxRFE(uint32_t code) {
     //  PCSX::g_system->printf("psxRFE\n");
+    m_inISR = false;
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & 0xfffffff0) | ((m_psxRegs.CP0.n.Status & 0x3c) >> 2);
     psxTestSWInts();
 }
@@ -1465,17 +1466,27 @@ void InterpretedCPU::Execute() {
     ZoneScoped;
     while (hasToRun()) {
         const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>();
+        const bool &trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingTrace>();
+        const bool &skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSkipISR>();
         if (debug) {
-            execBlock<true>();
+            if (!trace || (skipISR && m_inISR)) {
+                execBlock<true, false>();
+            } else {
+                execBlock<true, true>();
+            }
         } else {
-            execBlock<false>();
+            if (!trace || (skipISR && m_inISR)) {
+                execBlock<false, false>();
+            } else {
+                execBlock<false, true>();
+            }
         }
     }
 }
 void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
-template <bool debug>
+template <bool debug, bool trace>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
     do {
@@ -1487,12 +1498,12 @@ inline void InterpretedCPU::execBlock() {
         // TODO: throw an exception here if we don't have a pointer
         uint32_t code = m_psxRegs.code = codePtr ? SWAP_LE32(*codePtr) : 0;
 
-        if (PCSX::PSXCPU_LOGGER::c_enabled && PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVerbose>()) {
+        if constexpr (trace) {
             std::string ins = PCSX::Disasm::asString(code, 0, m_psxRegs.pc, nullptr, true);
-            PSXCPU_LOG("%s\n", ins.c_str());
+            PCSX::g_system->printf("%s\n", ins.c_str());
         }
 
-        if (debug) PCSX::g_emulator->m_debug->processBefore();
+        if constexpr (debug) PCSX::g_emulator->m_debug->processBefore();
 
         m_psxRegs.pc += 4;
         m_psxRegs.cycle += PCSX::Emulator::BIAS;
@@ -1517,7 +1528,7 @@ inline void InterpretedCPU::execBlock() {
             InterceptBIOS();
             psxBranchTest();
         }
-        if (debug) PCSX::g_emulator->m_debug->processAfter();
+        if constexpr (debug) PCSX::g_emulator->m_debug->processAfter();
     } while (!ranDelaySlot && !debug);
 }
 

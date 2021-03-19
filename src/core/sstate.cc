@@ -73,6 +73,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             },
             CurrentDelayedLoad { g_emulator->m_psxCpu->m_currentDelayedLoad },
             IntTargetsField { g_emulator->m_psxCpu->m_psxRegs.intTargets },
+            InISR { g_emulator->m_psxCpu->m_inISR },
         },
         GPU {},
         SPU {},
