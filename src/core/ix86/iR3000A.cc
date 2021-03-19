@@ -2570,15 +2570,12 @@ void X86DynaRecCPU::recBLTZAL() {
     // Branch if Rs < 0
     uint32_t target = _Imm_ * 4 + m_pc;
     maybeCancelDelayedLoad(31);
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);  // always link, whether the branch is taken or not
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);  // always link, whether the branch is taken or not
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k < 0) {
             m_needsStackFrame = true;
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-            delayedLoad.active = true;
-            delayedLoad.index = 31;
             m_pcInEBP = true;
             m_stopRecompile = true;
             gen.MOV32ItoR(PCSX::ix86::EBP, target);
@@ -2588,9 +2585,6 @@ void X86DynaRecCPU::recBLTZAL() {
 
     iFlushReg(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = 31;
     m_pcInEBP = true;
     m_stopRecompile = true;
 
@@ -2604,15 +2598,12 @@ void X86DynaRecCPU::recBGEZAL() {
     // Branch if Rs >= 0
     uint32_t target = _Imm_ * 4 + m_pc;
     maybeCancelDelayedLoad(31);
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);  // always link, whether branch is taken or not
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);  // always link, whether branch is taken or not
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k >= 0) {
             m_needsStackFrame = true;
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-            delayedLoad.active = true;
-            delayedLoad.index = 31;
             m_pcInEBP = true;
             m_stopRecompile = true;
             gen.MOV32ItoR(PCSX::ix86::EBP, target);
@@ -2622,10 +2613,6 @@ void X86DynaRecCPU::recBGEZAL() {
 
     iFlushReg(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = 31;
-
     m_pcInEBP = true;
     m_stopRecompile = true;
 
@@ -2648,10 +2635,7 @@ void X86DynaRecCPU::recJAL() {
     // jal target
     maybeCancelDelayedLoad(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = 31;
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4); // link
     uint32_t target = _Target_ * 4 + (m_pc & 0xf0000000);
     m_nextIsDelaySlot = true;
     m_stopRecompile = true;
