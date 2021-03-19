@@ -1376,9 +1376,10 @@ void X86DynaRecCPU::recMULTU() {
 void X86DynaRecCPU::recDIV() {
     // Lo/Hi = Rs / Rt (signed)
 
-    unsigned slot1;
+    unsigned slot1, slot2, slot3, slot4;
+    bool emitIntMinCheck = false;
 
-    if (IsConst(_Rt_)) {
+    if (IsConst(_Rt_)) { // check divisor
         if (m_iRegs[_Rt_].k == 0) {
             gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
             if (IsConst(_Rs_)) {
@@ -1389,24 +1390,58 @@ void X86DynaRecCPU::recDIV() {
             }
             return;
         }
+
+        else if (m_iRegs[_Rt_].k == 0xFFFFFFFF) { // divisor == -1
+            if (IsConst(_Rs_) && m_iRegs[_Rs_].k == 0x80000000) { // If the dividend is INT_MIN and the divisor is -1, the result can't fit in a register
+                gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0x80000000); // in this case, lo is set to INT_MIN
+                gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, 0); // and hi is set to 0
+                return;
+            }
+
+            else if (!IsConst(_Rs_))
+                emitIntMinCheck = true; // divisor is -1 so we'll have to emit this
+        }
+
         gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);  // check if ECX == 0
         slot1 = gen.JE8(0);
+
+        if (!IsConst(_Rs_)) 
+            emitIntMinCheck = true;
+        else 
+            emitIntMinCheck = m_iRegs[_Rs_].k == 0x80000000;
     }
-    if (IsConst(_Rs_)) {
+
+    if (IsConst(_Rs_))
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
-    } else {
+
+    else
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
+
+    if (emitIntMinCheck) {
+        gen.CMP32ItoR (PCSX::ix86::EAX, INT32_MIN); // check if dividend is INT_MIN
+        slot2 = gen.JNE8 (0); // if not, bail
+        gen.CMP32ItoR (PCSX::ix86::ECX, -1); // check if ECX is -1
+        slot3 = gen.JNE8 (0); // if not, bail again 
+
+        // If we do have the edge case where we're dividing INT32_MIN / -1, set lo to 0x8000'0000 and hi to 0 then exit the division
+        gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0x80000000); 
+        gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.hi, 0); 
+        slot4 = gen.JMP8 (0); 
+        
+        gen.x86SetJ8 (slot2); // where to jump to if no weird edge case
+        gen.x86SetJ8 (slot3); 
     }
+
     gen.CDQ();
     gen.IDIV32R(PCSX::ix86::ECX);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EDX);
 
     if (!IsConst(_Rt_)) {
-        unsigned slot2 = gen.JMP8(0);
+        unsigned slot5 = gen.JMP8(0);
 
         gen.x86SetJ8(slot1);
 
@@ -1418,8 +1453,11 @@ void X86DynaRecCPU::recDIV() {
             gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
         }
 
-        gen.x86SetJ8(slot2);
+        gen.x86SetJ8(slot5);
     }
+
+    if (emitIntMinCheck) 
+        gen.x86SetJ8(slot4);
 }
 
 void X86DynaRecCPU::recDIVU() {
