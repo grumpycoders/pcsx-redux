@@ -2676,13 +2676,11 @@ void X86DynaRecCPU::recJALR() {
     // jalr Rs
     maybeCancelDelayedLoad(_Rd_);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = _Rd_;
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
     m_nextIsDelaySlot = true;
     m_stopRecompile = true;
-    m_pcInEBP = true;
+    m_pcInEBP = true;    
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], m_pc + 4); // link
+
     if (IsConst(_Rs_)) {
         gen.MOV32ItoR(PCSX::ix86::EBP, m_iRegs[_Rs_].k & ~3);  // force align jump address
     } else {
