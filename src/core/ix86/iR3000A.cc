@@ -1376,17 +1376,27 @@ void X86DynaRecCPU::recMULTU() {
 void X86DynaRecCPU::recDIV() {
     // Lo/Hi = Rs / Rt (signed)
 
-    unsigned slot1, slot2, slot3, slot4;
+    unsigned slot1, slot4;
     bool emitIntMinCheck = false;
 
     if (IsConst(_Rt_)) { // check divisor
-        if (m_iRegs[_Rt_].k == 0) {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
+        if (m_iRegs[_Rt_].k == 0) { // case when divisor is 0
             if (IsConst(_Rs_)) {
                 gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, m_iRegs[_Rs_].k);
+
+                if (m_iRegs[_Rs_].k & 0x80000000) // set lo to 1 if dividend (eax) is negative, -1 otherwise
+                    gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 1);
+                else
+                    gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0xFFFFFFFF);
             } else {
                 gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
                 gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
+                        
+                // set lo to 1 if dividend (eax) is negative, -1 otherwise (taken from Clang with -O3)
+                gen.SHR32ItoR (PCSX::ix86::EAX, 31);
+                gen.ADD32RtoR (PCSX::ix86::EAX, PCSX::ix86::EAX);
+                gen.DEC32R (PCSX::ix86::EAX);
+                gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
             }
             return;
         }
@@ -1422,9 +1432,9 @@ void X86DynaRecCPU::recDIV() {
 
     if (emitIntMinCheck) {
         gen.CMP32ItoR (PCSX::ix86::EAX, INT32_MIN); // check if dividend is INT_MIN
-        slot2 = gen.JNE8 (0); // if not, bail
+        const auto slot2 = gen.JNE8 (0); // if not, bail
         gen.CMP32ItoR (PCSX::ix86::ECX, -1); // check if ECX is -1
-        slot3 = gen.JNE8 (0); // if not, bail again 
+        const auto slot3 = gen.JNE8 (0); // if not, bail again 
 
         // If we do have the edge case where we're dividing INT32_MIN / -1, set lo to 0x8000'0000 and hi to 0 then exit the division
         gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0x80000000); 
@@ -1444,19 +1454,30 @@ void X86DynaRecCPU::recDIV() {
         unsigned slot5 = gen.JMP8(0);
 
         gen.x86SetJ8(slot1);
+        
+        // Code to be executed when we've got a divisor of 0
+        if (IsConst(_Rs_)) {  // set lo/hi if rs is constant
+            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, m_iRegs[_Rs_].k); // set hi to the value of rs
+             if (m_iRegs[_Rs_].k & 0x80000000) // set lo to 1 if dividend (eax) is negative, -1 otherwise
+                gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 1);
+            else
+                gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0xFFFFFFFF);
+    
+        } else { // set lo/hi if rs is not constant
+            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]); // rs in eax
+            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX); // set hi to rs
 
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
-        if (IsConst(_Rs_)) {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, m_iRegs[_Rs_].k);
-        } else {
-            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
+            // set lo to 1 if dividend (eax) is negative, -1 otherwise (taken from Clang with -O3)
+            gen.SHR32ItoR (PCSX::ix86::EAX, 31);
+            gen.ADD32RtoR (PCSX::ix86::EAX, PCSX::ix86::EAX);
+            gen.DEC32R (PCSX::ix86::EAX);
+            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
         }
 
         gen.x86SetJ8(slot5);
     }
 
-    if (emitIntMinCheck) 
+    if (emitIntMinCheck)
         gen.x86SetJ8(slot4);
 }
 
