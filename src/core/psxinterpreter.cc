@@ -725,7 +725,8 @@ void InterpretedCPU::psxJR(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
         if (_rRs_ & 3) {  // if the jump is unaligned, throw an exception and ret
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"), _rRs_, m_psxRegs.pc);
+            PCSX::g_system->printf(_("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"), _rRs_,
+                                   m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _rRs_;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
@@ -745,7 +746,8 @@ void InterpretedCPU::psxJALR(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
         if (temp & 3) {  // if the address is unaligned, throw an exception and return
             m_psxRegs.pc -= 4;
-            PCSX::g_system->printf(_("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp, m_psxRegs.pc);
+            PCSX::g_system->printf(_("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp,
+                                   m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = temp;
             psxException(Exceptions::LoadAddressError, m_inDelaySlot);
             return;
@@ -1525,7 +1527,11 @@ inline void InterpretedCPU::execBlock() {
         if (m_inDelaySlot) {
             m_inDelaySlot = false;
             ranDelaySlot = true;
-            InterceptBIOS();
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>()) {
+                InterceptBIOS<true>();
+            } else {
+                InterceptBIOS<false>();
+            }
             psxBranchTest();
         }
         if constexpr (debug) PCSX::g_emulator->m_debug->processAfter();
