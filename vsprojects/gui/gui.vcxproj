@@ -185,6 +185,7 @@
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc" />
     <ClCompile Include="..\..\src\gui\widgets\console.cc" />
     <ClCompile Include="..\..\src\gui\widgets\dwarf.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\events.cc" />
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc" />
@@ -201,6 +202,7 @@
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
     <ClInclude Include="..\..\src\gui\widgets\dwarf.h" />
+    <ClInclude Include="..\..\src\gui\widgets\events.h" />
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\luaeditor.h" />

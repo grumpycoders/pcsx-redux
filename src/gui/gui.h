@@ -31,6 +31,7 @@
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
+#include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -233,6 +234,8 @@ class GUI final {
     Widgets::Types m_types;
     Widgets::Source m_source;
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
+
+    Widgets::Events m_events;
 
     EventBus::Listener m_listener;
 

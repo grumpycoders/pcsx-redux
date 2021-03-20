@@ -699,6 +699,7 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
+                ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
@@ -820,6 +821,9 @@ void PCSX::GUI::endFrame() {
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"));
+    }
+    if (m_events.m_show) {
+        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_psxMem->g_psxM), _("Kernel events"));
     }
 
     {
