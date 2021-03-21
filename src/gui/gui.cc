@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <type_traits>
 #include <unordered_set>
 
 #include "core/binloader.h"
@@ -52,10 +53,12 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
 #include "lua/glffi.h"
 #include "lua/luawrapper.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
 #include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
@@ -535,6 +538,7 @@ void PCSX::GUI::endFrame() {
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGL();
+    auto& emuSettings = PCSX::g_emulator->settings;
 
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -700,6 +704,23 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
+                    ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                    constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
+                    unsigned& s = emuSettings.get<PCSX::Emulator::SettingFirstChanceException>().value;
+                    for (auto& e : exceptions) {
+                        unsigned f = 1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
+                        bool selected = s & f;
+                        changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
+                        if (selected) {
+                            s |= f;
+                        } else {
+                            s &= ~f;
+                        }
+                    }
+                    ImGui::PopItemFlag();
+                    ImGui::EndMenu();
+                }
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();

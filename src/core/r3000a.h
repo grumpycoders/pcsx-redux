@@ -19,8 +19,11 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <atomic>
 #include <memory>
+#include <type_traits>
 
 #include "core/kernel.h"
 #include "core/psxcounters.h"
@@ -287,6 +290,22 @@ class R3000Acpu {
     virtual bool isDynarec() = 0;
     void psxReset();
     void psxShutdown();
+
+    enum class Exception : uint32_t {
+        Interrupt = 0,
+        LoadAddressError = 4,
+        StoreAddressError = 5,
+        InstructionBusError = 6,
+        DataBusError = 7,
+        Syscall = 8,
+        Break = 9,
+        ReservedInstruction = 10,
+        CoprocessorUnusable = 11,
+        ArithmeticOverflow = 12,
+    };
+    void psxException(Exception e, bool bd) {
+        psxException(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd);
+    }
     void psxException(uint32_t code, bool bd);
     void psxBranchTest();
 

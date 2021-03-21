@@ -30,6 +30,8 @@
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
 #include "core/spu.h"
+#include "fmt/format.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
@@ -63,24 +65,34 @@ void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     // Set the Cause
-    m_psxRegs.CP0.n.Cause = code;
+    unsigned ec = (code >> 2) & 0x1f;
+    auto e = magic_enum::enum_cast<Exception>(ec);
+    if (e.has_value()) {
+        ec = 1 << ec;
+        if (g_emulator->settings.get<Emulator::SettingFirstChanceException>() & ec) {
+            auto name = magic_enum::enum_name(e.value());
+            g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
+            g_system->pause();
+        }
+    }
 
     m_inISR = true;
 
     // Set the EPC & PC
     if (bd) {
-        PSXCPU_LOG("bd set!!!\n");
-        g_system->printf("bd set!!!\n");
-        m_psxRegs.CP0.n.Cause |= 0x80000000;
+        code |= 0x80000000;
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc - 4);
-    } else
+    } else {
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc);
+    }
 
-    if (m_psxRegs.CP0.n.Status & 0x400000)
+    if (m_psxRegs.CP0.n.Status & 0x400000) {
         m_psxRegs.pc = 0xbfc00180;
-    else
+    } else {
         m_psxRegs.pc = 0x80000080;
+    }
 
+    m_psxRegs.CP0.n.Cause = code;
     // Set the Status
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
 }
