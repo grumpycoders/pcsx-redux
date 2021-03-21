@@ -39,6 +39,7 @@ enum event_class {
     EVENT_PIO = 0xf000000a,         // IRQ10
     EVENT_SIO = 0xf000000b,         // IRQ8
     EVENT_CARD = 0xf0000011,
+    EVENT_BU = 0xf4000001,
 };
 
 enum event_mode {

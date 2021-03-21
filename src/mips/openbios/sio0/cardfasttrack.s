@@ -94,11 +94,11 @@ mcFastTrackWrite:
     addiu $k0, 1
     sw    $k0, %lo(g_mcFastTrackBuffer)($at)
     lbu   $0, 0x1040($v1)
-    sw    $v0, 0x1040($v1)
-    lbu   $k0, 0x104a($v1)
+    sb    $v0, 0x1040($v1)
+    lhu   $k0, 0x104a($v1)
     lui   $at, %hi(g_mcFastTrackChecksumPtr)
     ori   $k0, 0x0010
-    sw    $k0, 0x104a($v1)
+    sh    $k0, 0x104a($v1)
     lw    $k0, %lo(g_mcFastTrackChecksumPtr)($at)
     nop
     lw    $at, 0($k0)
@@ -122,14 +122,14 @@ mcFastTrackRead:
     lbu   $v0, 0x1040($v1)
     lw    $k0, %lo(g_mcFastTrackBuffer)($k0)
     move  $at, $k0 /* gotta break those bad emulators */
-    sw    $v0, 0($k0)
+    sb    $v0, 0($k0)
     addiu $k0, 1
     sw    $k0, %lo(g_mcFastTrackBuffer)($at)
     sw    $0, 0x1040($v1)
-    lbu   $k0, 0x104a($v1)
+    lhu   $k0, 0x104a($v1)
     lui   $at, %hi(g_mcFastTrackChecksumPtr)
     ori   $k0, 0x0010
-    sw    $k0, 0x104a($v1)
+    sh    $k0, 0x104a($v1)
     lw    $k0, %lo(g_mcFastTrackChecksumPtr)($at)
     nop
     lw    $at, 0($k0)

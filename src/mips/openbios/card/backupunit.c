@@ -49,6 +49,9 @@ struct BuDirectoryEntry s_buDirEntries[2][15];
 static uint8_t s_buBuffer[2][128];
 static int32_t s_buBroken[2][20];
 
+static int s_buCurrentState[2];
+static int s_buCurrentSector[2];
+
 static __attribute__((noreturn)) void buUnimplemented(const char *function, int op) {
     osDbgPrintf("=== Unimplemented backup unit function %s, op %i ===\r\n", function, op);
     osDbgPrintf("=== halting ===\r\n");
@@ -118,7 +121,7 @@ static int buFormat(int deviceId) {
     }
 
     for (unsigned i = 0; i < 20; i++) {
-        int32_t *broken = &s_buBroken[2][i];
+        int32_t *broken = &s_buBroken[port][i];
         *broken = -1;
         memcpy(buffer, broken, sizeof(uint32_t));
         buComputeSectorChecksum(buffer);
@@ -278,26 +281,158 @@ int cardInfo(int deviceId) {
     return ret != 0;
 }
 
-void buSomethingSomething(int port, int spec) {
+static void buFinishAndTrigger(int port, int spec) {
     g_buOperation[port] = 0;
-    // something1[port] = 0;
-    // something2[port] = 0;
-    syscall_deliverEvent(EVENT_VBLANK, spec);
+    s_buCurrentState[port] = 0;
+    s_buCurrentSector[port] = 0;
+    syscall_deliverEvent(EVENT_BU, spec);
 }
 
-void mcLowLevelOpCompleted() {
+void buLowLevelOpCompleted() {
     g_mcOverallSuccess = 1;
     int deviceId = syscall_mcGetLastDevice();
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;
+    uint8_t *buffer = s_buBuffer[port];
+    struct BuDirectoryEntry *dirEntries = s_buDirEntries[port];
+    int32_t * broken = s_buBroken[port];
+
     switch (g_buOperation[port]) {
         case 0:
             return;
         case 1:
         case 8:
-            buSomethingSomething(port, 4);
+            buFinishAndTrigger(port, 0x0004);
+            break;
+        case 4:
+            switch (s_buCurrentState[port]) {
+                case 1:
+                    if ((buffer[0] != 'M') || (buffer[1] == 'C')) {
+                        g_mcOverallSuccess = 0;
+                        g_mcErrors[2] = 1;
+                        buFinishAndTrigger(port, 0x2000);
+                        return;
+                    }
+                    for (unsigned int i = 0; i < 15; i++) {
+                        psxbzero(&dirEntries[i], sizeof(struct BuDirectoryEntry));
+                        dirEntries[i].fileSize = 0;
+                        dirEntries[i].nextBlock = -1;
+                        dirEntries[i].allocState = 0xa0;
+                    }
+                    if (!syscall_mcReadSector(deviceId, 1, buffer)) {
+                        g_mcOverallSuccess = 0;
+                        g_mcErrors[0] = 1;
+                        buFinishAndTrigger(port, 0x8000);
+                        return;
+                    }
+                    s_buCurrentSector[port] = 0;
+                    s_buCurrentState[port] = 2;
+                    break;
+                case 2:
+                    if (buVerifySectorChecksum(buffer)) {
+                        memcpy(&dirEntries[s_buCurrentSector[port]], buffer, sizeof(struct BuDirectoryEntry));
+                    }
+                    if (++s_buCurrentSector[port] < 15) {
+                        if (syscall_mcReadSector(deviceId, s_buCurrentSector[port], buffer)) return;
+                        g_mcOverallSuccess = 0;
+                        g_mcErrors[0] = 1;
+                        buFinishAndTrigger(port, 0x8000);
+                        return;
+                    }
+                    uint32_t entriesStates[15];
+                    for (unsigned i = 0; i < 15; i++) {
+                        entriesStates[i] = 0;
+                        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;
+                    }
+                    // this is fully unused...?
+                    int numBlocks[15];
+                    for (unsigned i = 0; i < 15; i++) numBlocks[i] = 0;
+                    for (unsigned i = 0; i < 15; i++) {
+                        uint32_t allocState = dirEntries[i].allocState;
+                        if (allocState != 0x51) continue;
+                        numBlocks[i] = 1;
+                        int32_t size = dirEntries[i].fileSize;
+                        int16_t next = dirEntries[i].nextBlock;
+                        if (size < 0) size += 0x1fff;
+                        int blocks = size >> 13;
+                        while ((--blocks > 0) && (next != -1)) {
+                            numBlocks[next]++;
+                            next = dirEntries[next].nextBlock;
+                        }
+                    }
+                    for (unsigned i = 0; i < 15; i++) {
+                        if (entriesStates[i] != 0) continue;
+                        // what ?
+                        dirEntries[i].fileSize = 0;
+                        dirEntries[i].allocState = 0xa0;
+                        dirEntries[i].nextBlock = -1;
+                    }
+                    for (unsigned i = 0; i < 20; i++) {
+                        broken[i] = -1;
+                    }
+                    if (!syscall_mcReadSector(deviceId, 16, buffer)) {
+                        buFinishAndTrigger(port, 0x8000);
+                    }
+                    s_buCurrentSector[port] = 0;
+                    s_buCurrentState[port] = 3;
+                    break;
+                case 3:
+                    if (buVerifySectorChecksum(buffer)) {
+                        memcpy(&broken[s_buCurrentSector[port]], buffer, 4);
+                    }
+                    if (++s_buCurrentSector[port] < 20) {
+                        if (syscall_mcReadSector(deviceId, s_buCurrentSector[port] + 16, buffer)) return;
+                        g_mcOverallSuccess = 0;
+                        g_mcErrors[0] = 1;
+                        buFinishAndTrigger(port, 0x8000);
+                        return;
+                    }
+                    buFinishAndTrigger(port, 0x0004);
+                    break;
+            }
             break;
         default:
-            buUnimplemented("mcLowLevelOpCompleted", g_buOperation[port]);
+            buUnimplemented("buLowLevelOpCompleted", g_buOperation[port]);
+    }
+}
+
+void buError0() {
+    g_mcErrors[0] = 1;
+    int deviceId = syscall_mcGetLastDevice();
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port]) buFinishAndTrigger(port, 0x8000);
+}
+
+void buError1() {
+    g_mcErrors[1] = 1;
+    int deviceId = syscall_mcGetLastDevice();
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port]) buFinishAndTrigger(port, 0x0100);
+}
+
+void buError2() {
+    g_mcErrors[2] = 1;
+    int deviceId = syscall_mcGetLastDevice();
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port]) buFinishAndTrigger(port, 0x2000);
+}
+
+int buReadTOC(int deviceId) {
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    g_buOperation[port] = 4;
+    if (syscall_mcReadSector(deviceId, 0, s_buBuffer[port])) {
+        g_buOperation[port] = 4;
+        s_buCurrentState[port] = 1;
+        return 1;
+    } else {
+        g_buOperation[port] = 0;
+        return 0;
     }
 }

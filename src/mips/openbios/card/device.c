@@ -32,7 +32,7 @@ SOFTWARE.
 #include "openbios/kernel/libcmisc.h"
 #include "osdebug.h"
 
-static __attribute__((noreturn)) void mcUnimplemented(const char *function, uint32_t ra) {
+static __attribute__((noreturn)) void buUnimplemented(const char *function, uint32_t ra) {
     osDbgPrintf("=== Unimplemented memory card function %s from %p ===\r\n", function, ra);
     osDbgPrintf("=== halting ===\r\n");
     pcsx_debugbreak();
@@ -40,70 +40,70 @@ static __attribute__((noreturn)) void mcUnimplemented(const char *function, uint
         ;
 }
 
-static int mcOpen(struct File *file, const char *filename) {
+static int buOpen(struct File *file, const char *filename) {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcOpen", ra);
+    buUnimplemented("mcOpen", ra);
 }
 
-static int mcClose(struct File *file) {
+static int buClose(struct File *file) {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcClose", ra);
+    buUnimplemented("mcClose", ra);
 }
 
-static int mcRead(struct File *file, void *buffer, int size) {
+static int buRead(struct File *file, void *buffer, int size) {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcRead", ra);
+    buUnimplemented("mcRead", ra);
 }
 
-static int mcWrite(struct File *file, void *buffer, int size) {
+static int buWrite(struct File *file, void *buffer, int size) {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcWrite", ra);
+    buUnimplemented("mcWrite", ra);
 }
 
-static void mcErase() {
+static void buErase() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcErase", ra);
+    buUnimplemented("mcErase", ra);
 }
 
-static void mcUndelete() {
+static void buUndelete() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcUndelete", ra);
+    buUnimplemented("mcUndelete", ra);
 }
 
-static void mcFirstFile() {
+static void buFirstFile() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcFirstFile", ra);
+    buUnimplemented("mcFirstFile", ra);
 }
 
-static void mcNextFile() {
+static void buNextFile() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcNextFile", ra);
+    buUnimplemented("mcNextFile", ra);
 }
 
-static void mcFormat() {
+static void buFormat() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcFormat", ra);
+    buUnimplemented("mcFormat", ra);
 }
 
-static void mcRename() {
+static void buRename() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcRename", ra);
+    buUnimplemented("mcRename", ra);
 }
 
-static void mcDeinit() {
+static void buDeinit() {
     uint32_t ra;
     asm("move %0, $ra\n" : "=r"(ra));
-    mcUnimplemented("mcDeinit", ra);
+    buUnimplemented("mcDeinit", ra);
 }
 
 static const struct Device s_cardDevice = {
@@ -112,20 +112,20 @@ static const struct Device s_cardDevice = {
     .blockSize = 0x80,
     .desc = "MEMORY CARD",
     .init = psxdummy,
-    .open = mcOpen,
+    .open = buOpen,
     .action = psxdummy,
-    .close = mcClose,
+    .close = buClose,
     .ioctl = psxdummy,
-    .read = mcRead,
-    .write = mcWrite,
-    .erase = mcErase,
-    .undelete = mcUndelete,
-    .firstfile = mcFirstFile,
-    .nextfile = mcNextFile,
-    .format = mcFormat,
+    .read = buRead,
+    .write = buWrite,
+    .erase = buErase,
+    .undelete = buUndelete,
+    .firstfile = buFirstFile,
+    .nextfile = buNextFile,
+    .format = buFormat,
     .chdir = psxdummy,
-    .rename = mcRename,
-    .deinit = mcDeinit,
+    .rename = buRename,
+    .deinit = buDeinit,
     .check = psxdummy,
 };
 

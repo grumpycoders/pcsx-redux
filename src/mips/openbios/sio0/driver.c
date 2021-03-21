@@ -276,7 +276,7 @@ static void __attribute__((section(".ramtext"))) mcHandler(int v) {
             g_skipErrorOnNewCard = 0;
             g_mcFlags[g_mcPortFlipping] = 1;
             g_mcLastPort = g_mcPortFlipping;
-            syscall_mcLowLevelOpCompleted();
+            syscall_buLowLevelOpCompleted();
             deliverEvent(EVENT_CARD, 0x0004);
             break;
         default:
@@ -453,12 +453,12 @@ int __attribute__((section(".ramtext"))) startCard() {
 }
 
 void mcAllowNewCard() { g_skipErrorOnNewCard = 1; }
-int mcReadCardSector(int deviceId, int sector, uint8_t* buffer) {
+int mcReadSector(int deviceId, int sector, uint8_t* buffer) {
     int port = deviceId < 0 ? deviceId + 15 : deviceId;
     port >>= 4;
 
     if ((g_mcFlags[port] & 1) == 0) return 0;
-    if ((sector <= 0) || (sector >= 0x40)) return 0;
+    if ((sector < 0) || (sector > 0x400)) return 0;
 
     g_mcOperation = 0;
     g_mcDeviceId[port] = deviceId;

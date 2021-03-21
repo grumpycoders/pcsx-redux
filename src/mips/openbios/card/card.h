@@ -29,4 +29,8 @@ SOFTWARE.
 int addMemoryCardDevice();
 int initBackupUnit();
 int cardInfo(int deviceId);
-void mcLowLevelOpCompleted();
+void buLowLevelOpCompleted();
+int buReadTOC(int deviceId);
+void buError0();
+void buError1();
+void buError2();

@@ -31,7 +31,7 @@ ENTRY(_reset)
 
 MEMORY {
     kseg0i(rwx): ORIGIN = 0x00000000, LENGTH = 0x500
-    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 2M - 0x500
+    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 0x10000 - 0x500
     ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 400K
     consts (rx): ORIGIN = 0xbfc66000, LENGTH = 104K

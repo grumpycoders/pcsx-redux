@@ -273,7 +273,7 @@ static __attribute__((always_inline)) void syscall_dequeueCDRomHandlers() {
     ((void (*)())0xa0)();
 }
 
-static __attribute__((always_inline)) void syscall_mcLowLevelOpCompleted() {
+static __attribute__((always_inline)) void syscall_buLowLevelOpCompleted() {
     register int n asm("t1") = 0xa7;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xa0)();

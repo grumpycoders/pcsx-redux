@@ -36,7 +36,7 @@ int mcWaitForStatus();
 int mcWaitForStatusAndReturnIndex();
 void mcAllowNewCard();
 int mcGetLastDevice();
-int mcReadCardSector(int deviceId, int sector, uint8_t* buffer);
+int mcReadSector(int deviceId, int sector, uint8_t* buffer);
 int cardInfoInternal(int deviceId);
 
 // internals
@@ -56,3 +56,4 @@ extern int g_mcGotError;
 extern int g_mcFastTrackActive;
 
 extern int g_mcOverallSuccess;
+extern int g_mcErrors[4];

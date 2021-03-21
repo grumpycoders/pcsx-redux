@@ -207,9 +207,9 @@ static const void *romA0table[0xc0] = {
     addConsoleDevice, addDummyConsoleDevice, unimplementedThunk, unimplementedThunk, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, mcLowLevelOpCompleted, // a4
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, cardInfo, // a8
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
+    unimplementedThunk, unimplementedThunk, unimplementedThunk, buLowLevelOpCompleted, // a4
+    buError0, buError1, buError2, cardInfo, // a8
+    buReadTOC, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b8
@@ -236,7 +236,7 @@ void *B0table[0x60] = {
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
     removeDevice, unimplementedThunk, initCard, startCard, // 48
-    unimplementedThunk, cardInfoInternal, unimplementedThunk, mcReadCardSector, // 4c
+    unimplementedThunk, cardInfoInternal, unimplementedThunk, mcReadSector, // 4c
     mcAllowNewCard, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
     mcGetLastDevice, unimplementedThunk, unimplementedThunk, setSIO0AutoAck, // 58

@@ -84,10 +84,11 @@ __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t 
     end = (struct EventInfo *)(((char *)ptr) + __globals.eventsSize);
     while (ptr < end) {
         if ((ptr->flags == EVENT_FLAG_ENABLED) && (class == ptr->class) && (spec == ptr->spec)) {
-            if (ptr->mode == EVENT_MODE_NO_CALLBACK)
+            if (ptr->mode == EVENT_MODE_NO_CALLBACK) {
                 ptr->flags = EVENT_FLAG_PENDING;
-            else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler)
+            } else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler) {
                 ptr->handler();
+            }
         }
         ptr++;
     }
