@@ -137,6 +137,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
     typedef Setting<bool, TYPESTRING("Trace")> SettingTrace;
     typedef Setting<bool, TYPESTRING("KernelEventsLog")> SettingKernelEventsLog;
+    typedef Setting<unsigned, TYPESTRING("FirstChanceException"), 0x00001cf0> SettingFirstChanceException;
     typedef Setting<bool, TYPESTRING("SkipISR")> SettingSkipISR;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
@@ -153,10 +154,10 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
-             SettingDebug, SettingTrace, SettingKernelEventsLog, SettingSkipISR, SettingRCntFix, SettingIsoPath,
-             SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer,
-             SettingGdbManifest, SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort,
-             SettingDynarec, Setting8MB>
+             SettingDebug, SettingTrace, SettingKernelEventsLog, SettingFirstChanceException, SettingSkipISR,
+             SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted,
+             SettingBiosOverlay, SettingGdbServer, SettingGdbManifest, SettingGdbServerPort, SettingGdbServerTrace,
+             SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:

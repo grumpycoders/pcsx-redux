@@ -92,19 +92,6 @@
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 #define _SetLink(x) delayedLoad(x, _PC_ + 4);                // Sets the return address in the link register
 
-enum Exceptions {
-    Interrupt = 0,
-    LoadAddressError = 0x10,
-    StoreAddressError = 0x14,
-    InstructionBusError = 0x18,
-    DataBusError = 0x1C,
-    Syscall = 0x20,
-    Break = 0x24,
-    ReservedInstruction = 0x28,
-    CoprocessorUnusable = 0x2C,
-    ArithmeticOverflow = 0x30
-};
-
 class InterpretedCPU : public PCSX::R3000Acpu {
   public:
     InterpretedCPU() : R3000Acpu("Interpreted") {}
@@ -404,7 +391,7 @@ void InterpretedCPU::psxADDI(uint32_t code) {
         if (overflow) {                                    // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Signed overflow in ADDI instruction from 0x%08x!\n"), m_psxRegs.pc);
-            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
+            psxException(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
     }
@@ -459,7 +446,7 @@ void InterpretedCPU::psxADD(uint32_t code) {
         if (overflow) {                                   // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Signed overflow in ADD instruction from 0x%08x!\n"), m_psxRegs.pc);
-            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
+            psxException(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
     }
@@ -484,7 +471,7 @@ void InterpretedCPU::psxSUB(uint32_t code) {
         if (overflow) {                                    // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Signed overflow in SUB instruction from 0x%08x!\n"), m_psxRegs.pc);
-            psxException(Exceptions::ArithmeticOverflow, m_inDelaySlot);
+            psxException(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
         }
     }
@@ -671,7 +658,7 @@ void InterpretedCPU::psxMTLO(uint32_t code) { _rLo_ = _rRs_; }  // Lo = Rs
  *********************************************************/
 void InterpretedCPU::psxBREAK(uint32_t code) {
     m_psxRegs.pc -= 4;
-    psxException(Exceptions::Break, m_inDelaySlot);
+    psxException(Exception::Break, m_inDelaySlot);
     if (m_inDelaySlot) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (!delayedLoad.pcActive) abort();
@@ -681,7 +668,7 @@ void InterpretedCPU::psxBREAK(uint32_t code) {
 
 void InterpretedCPU::psxSYSCALL(uint32_t code) {
     m_psxRegs.pc -= 4;
-    psxException(Exceptions::Syscall, m_inDelaySlot);
+    psxException(Exception::Syscall, m_inDelaySlot);
     if (m_inDelaySlot) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         if (!delayedLoad.pcActive) abort();
@@ -728,7 +715,7 @@ void InterpretedCPU::psxJR(uint32_t code) {
             PCSX::g_system->printf(_("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"), _rRs_,
                                    m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _rRs_;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            psxException(Exception::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -749,7 +736,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
             PCSX::g_system->printf(_("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp,
                                    m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = temp;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            psxException(Exception::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -789,7 +776,7 @@ void InterpretedCPU::psxLH(uint32_t code) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_, m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            psxException(Exception::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -808,7 +795,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_, m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            psxException(Exception::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -827,7 +814,7 @@ void InterpretedCPU::psxLW(uint32_t code) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_, m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exceptions::LoadAddressError, m_inDelaySlot);
+            psxException(Exception::LoadAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -882,7 +869,7 @@ void InterpretedCPU::psxSH(uint32_t code) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_, m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
+            psxException(Exception::StoreAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -895,7 +882,7 @@ void InterpretedCPU::psxSW(uint32_t code) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->printf(_("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_, m_psxRegs.pc);
             m_psxRegs.CP0.n.BadVAddr = _oB_;
-            psxException(Exceptions::StoreAddressError, m_inDelaySlot);
+            psxException(Exception::StoreAddressError, m_inDelaySlot);
             return;
         }
     }
@@ -1000,7 +987,7 @@ void InterpretedCPU::psxNULL(uint32_t code) {
     PSXCPU_LOG("psx: Unimplemented op %x\n", code);
     m_psxRegs.pc -= 4;
     PCSX::g_system->printf(_("Encountered reserved opcode from 0x%08x, firing an exception\n"), m_psxRegs.pc);
-    psxException(Exceptions::ReservedInstruction, m_inDelaySlot);
+    psxException(Exception::ReservedInstruction, m_inDelaySlot);
 }
 
 void InterpretedCPU::psxSPECIAL(uint32_t code) { (*this.*(s_pPsxSPC[_Funct_]))(code); }
