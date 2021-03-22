@@ -233,7 +233,7 @@ void *B0table[0x60] = {
     psxread, psxwrite, psxclose, psxioctl, // 34
     psxexit, isFileConsole, psxgetc, psxputc, // 38
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
-    unimplementedThunk, unimplementedThunk, firstFile, unimplementedThunk, // 40
+    unimplementedThunk, format, firstFile, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
     removeDevice, unimplementedThunk, initCard, startCard, // 48
     unimplementedThunk, cardInfoInternal, unimplementedThunk, mcReadSector, // 4c

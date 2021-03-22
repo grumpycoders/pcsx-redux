@@ -174,7 +174,7 @@ struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry) {
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;
 
-    if (!g_buOperation[port] != 0) {
+    if (g_buOperation[port] != 0) {
         file->errno = PSXEBUSY;
         return NULL;
     }
@@ -196,10 +196,23 @@ struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry) {
     return entry;
 }
 
-void dev_bu_format() {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcFormat", ra);
+int dev_bu_format(struct File *file) {
+    int deviceId = file->deviceId;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port] != 0) {
+        file->errno = PSXEBUSY;
+        return 1;
+    }
+
+    mcResetStatus();
+    if (!buFormat(deviceId)) {
+        file->errno = PSXEBUSY;
+        return 1;
+    }
+    file->errno = PSXENOERR;
+    return 0;
 }
 
 void dev_bu_rename() {

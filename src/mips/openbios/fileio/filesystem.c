@@ -32,9 +32,8 @@ SOFTWARE.
 #include "openbios/fileio/fileio.h"
 
 struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry) {
-    const char *filename;
     struct DirEntry *ret;
-    int deviceID;
+    int deviceId;
     struct Device *device;
     struct File *file;
 
@@ -42,7 +41,7 @@ struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry) {
         psxerrno = PSXEMFILE;
         return NULL;
     }
-    filename = splitFilepathAndFindDevice(filepath, &device, &deviceID);
+    const char * filename = splitFilepathAndFindDevice(filepath, &device, &deviceId);
     file = g_firstFile;
     if (filename == ((char *)-1)) {
         psxerrno = PSXENODEV;
@@ -50,8 +49,34 @@ struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry) {
         g_firstFile->flags = 0;
         return NULL;
     } else {
-        g_firstFile->deviceId = deviceID;
+        g_firstFile->deviceId = deviceId;
         file->device = device;
         return device->firstFile(file, filename, entry);
     }
+}
+
+int format(const char *deviceName) {
+    struct File *file = findEmptyFile();
+    if (!file) {
+        psxerrno = PSXEMFILE;
+        return 0;
+    }
+
+    int deviceId;
+    struct Device *device;
+
+    const char * filename = splitFilepathAndFindDevice(deviceName, &device, &deviceId);
+    if (filename == (const char*) -1) {
+        psxerrno = PSXENODEV;
+        file->flags = 0;
+        return 0;
+    }
+
+    file->deviceId = deviceId;
+    file->device = device;
+    int res = device->format(file);
+    file->flags = 0;
+    if (!res) return 1;
+    psxerrno = file->errno;
+    return 0;
 }

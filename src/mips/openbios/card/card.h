@@ -46,6 +46,6 @@ void dev_bu_erase();
 void dev_bu_undelete();
 struct DirEntry *dev_bu_firstFile(struct File *file, const char *filename, struct DirEntry *entry);
 struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
-void dev_bu_format();
+int dev_bu_format(struct File *file);
 void dev_bu_rename();
 void dev_bu_deinit();
