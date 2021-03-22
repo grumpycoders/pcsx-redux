@@ -516,8 +516,20 @@ static __attribute__((always_inline)) int syscall_ioabort(const char *msg) {
     return ((int (*)(const char *))0xc0)(msg);
 }
 
-static __attribute__((always_inline)) int syscall_patchA0table() {
+static __attribute__((always_inline)) void syscall_setDeviceStatus(int status) {
+    register int n asm("t1") = 0x1a;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(int))0xc0)(status);
+}
+
+static __attribute__((always_inline)) void syscall_patchA0table() {
     register int n asm("t1") = 0x1c;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xc0)();
+}
+
+static __attribute__((always_inline)) int syscall_getDeviceStatus() {
+    register int n asm("t1") = 0x1d;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)())0xc0)();
 }

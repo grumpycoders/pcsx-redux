@@ -287,7 +287,7 @@ static int s_cdFirstFileSkipDirectoryCheck;
 static int s_cdFirstFileDirectoryEntryID;
 static char s_cdFirstFilePattern[21];
 
-struct DirEntry *dev_cd_firstfile(struct File *file, const char *filename, struct DirEntry *entry) {
+struct DirEntry *dev_cd_firstFile(struct File *file, const char *filename, struct DirEntry *entry) {
     if (!cdromReadPathTable()) {
         s_cdFirstFileErrno = PSXEBUSY;
         return NULL;
@@ -309,12 +309,12 @@ struct DirEntry *dev_cd_firstfile(struct File *file, const char *filename, struc
     }
     s_foundDirectoryEntry = 0;
     s_cdFirstFileSkipDirectoryCheck = 1;
-    entry = dev_cd_nextfile(file, entry);
+    entry = dev_cd_nextFile(file, entry);
     s_cdFirstFileDirectoryEntryID = s_cachedDirectoryEntryID;
     return entry;
 }
 
-struct DirEntry *dev_cd_nextfile(struct File *file, struct DirEntry *entry) {
+struct DirEntry *dev_cd_nextFile(struct File *file, struct DirEntry *entry) {
     int status = cdromBlockGetStatus();
     if (status & 0x10) {
         uint32_t oldHash = s_currentDiscHash;

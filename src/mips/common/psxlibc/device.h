@@ -26,7 +26,9 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "common/psxlibc/stdio.h"
 
 struct File;
 
@@ -50,6 +52,8 @@ typedef int (*device_close)(struct File *);
 typedef int (*device_ioctl)(struct File *, int cmd, int arg);
 typedef int (*device_read)(struct File *, void *buffer, int size);
 typedef int (*device_write)(struct File *, void *buffer, int size);
+typedef struct DirEntry *(*device_firstFile)(struct File *file, const char *filename, struct DirEntry *entry);
+typedef struct DirEntry *(*device_nextFile)(struct File *file, struct DirEntry *entry);
 typedef void (*device_deinit)();
 
 struct Device {
@@ -65,7 +69,9 @@ struct Device {
     device_read read;
     device_write write;
     void *erase, *undelete;
-    void *firstfile, *nextfile, *format, *chdir, *rename;
+    device_firstFile firstFile;
+    device_nextFile nextFile;
+    void *format, *chdir, *rename;
     device_deinit deinit;
     void *check;
 };

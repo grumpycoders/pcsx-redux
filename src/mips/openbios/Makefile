@@ -15,6 +15,7 @@ cdrom/filesystem.c \
 cdrom/helpers.c \
 cdrom/statemachine.c \
 charset/sjis.c \
+fileio/filesystem.c \
 fileio/misc.c \
 fileio/stdio.c \
 gpu/gpu.c \

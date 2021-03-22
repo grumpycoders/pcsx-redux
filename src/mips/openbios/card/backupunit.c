@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include "openbios/card/backupunit.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -38,16 +40,9 @@ SOFTWARE.
 int g_buOperation[2];
 int g_buAutoFormat;
 
-struct BuDirectoryEntry {
-    uint32_t allocState;
-    int32_t fileSize;
-    int16_t nextBlock;
-    char name[22];
-};
-
-struct BuDirectoryEntry s_buDirEntries[2][15];
-static uint8_t s_buBuffer[2][128];
-static int32_t s_buBroken[2][20];
+struct BuDirectoryEntry g_buDirEntries[2][15];
+uint8_t g_buBuffer[2][128];
+int32_t g_buBroken[2][20];
 
 static int s_buCurrentState[2];
 static int s_buCurrentSector[2];
@@ -67,7 +62,7 @@ static void buClear() {
 
     mcResetStatus();
 
-    struct BuDirectoryEntry *ptr1 = s_buDirEntries[0], *ptr2 = s_buDirEntries[1];
+    struct BuDirectoryEntry *ptr1 = g_buDirEntries[0], *ptr2 = g_buDirEntries[1];
 
     for (unsigned i = 0; i < 15; i++) {
         psxbzero(ptr1, sizeof(struct BuDirectoryEntry));
@@ -93,11 +88,11 @@ static int buVerifySectorChecksum(uint8_t *buffer) {
     return buffer[0x7f] == checksum;
 }
 
-static int buFormat(int deviceId) {
+int buFormat(int deviceId) {
     int port = deviceId < 0 ? deviceId + 15 : deviceId;
     port >>= 4;
 
-    uint8_t *const buffer = s_buBuffer[port];
+    uint8_t *const buffer = g_buBuffer[port];
 
     psxbzero(buffer, 0x80);
     buffer[0] = 'M';
@@ -109,7 +104,7 @@ static int buFormat(int deviceId) {
     mcWaitForStatus();
 
     for (unsigned i = 0; i < 15; i++) {
-        struct BuDirectoryEntry *entry = &s_buDirEntries[port][i];
+        struct BuDirectoryEntry *entry = &g_buDirEntries[port][i];
         psxbzero(entry, sizeof(struct BuDirectoryEntry));
         entry->allocState = 0xa0;
         entry->fileSize = 0;
@@ -121,7 +116,7 @@ static int buFormat(int deviceId) {
     }
 
     for (unsigned i = 0; i < 20; i++) {
-        int32_t *broken = &s_buBroken[port][i];
+        int32_t *broken = &g_buBroken[port][i];
         *broken = -1;
         memcpy(buffer, broken, sizeof(uint32_t));
         buComputeSectorChecksum(buffer);
@@ -133,7 +128,7 @@ static int buFormat(int deviceId) {
 }
 
 static int buValidateEntryAndCorrect(int port, int entryId) {
-    struct BuDirectoryEntry *entries = s_buDirEntries[port];
+    struct BuDirectoryEntry *entries = g_buDirEntries[port];
     struct BuDirectoryEntry *entry = &entries[entryId];
 
     uint8_t mask;
@@ -184,15 +179,15 @@ static int buValidateEntryAndCorrect(int port, int entryId) {
     return 0;
 }
 
-static int buInit(int deviceId) {
+int buInit(int deviceId) {
     syscall_mcAllowNewCard();
 
     int port = deviceId < 0 ? deviceId + 15 : deviceId;
     port >>= 4;
 
-    uint8_t *const buffer = s_buBuffer[port];
-    struct BuDirectoryEntry *const dirEntries = s_buDirEntries[port];
-    int32_t *const broken = s_buBroken[port];
+    uint8_t *const buffer = g_buBuffer[port];
+    struct BuDirectoryEntry *const dirEntries = g_buDirEntries[port];
+    int32_t *const broken = g_buBroken[port];
 
     if (!syscall_mcReadSector(deviceId, 0, buffer)) goto buInitFailure;
     if (!mcWaitForStatus()) goto buInitFailure;
@@ -242,7 +237,7 @@ static int buInit(int deviceId) {
         dirEntries[i].allocState = 0xa0;
         dirEntries[i].nextBlock = -1;
     }
-    for (unsigned i = 0; i < 15; i++) {
+    for (unsigned i = 0; i < 20; i++) {
         if (!syscall_mcReadSector(deviceId, i + 16, buffer)) goto buInitFailure;
         if (!mcWaitForStatus()) goto buInitFailure;
         if (!buVerifySectorChecksum(buffer)) goto buInitFailure;
@@ -293,9 +288,9 @@ void buLowLevelOpCompleted() {
     int deviceId = syscall_mcGetLastDevice();
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;
-    uint8_t *buffer = s_buBuffer[port];
-    struct BuDirectoryEntry *dirEntries = s_buDirEntries[port];
-    int32_t * broken = s_buBroken[port];
+    uint8_t *buffer = g_buBuffer[port];
+    struct BuDirectoryEntry *dirEntries = g_buDirEntries[port];
+    int32_t *broken = g_buBroken[port];
 
     switch (g_buOperation[port]) {
         case 0:
@@ -427,7 +422,7 @@ int buReadTOC(int deviceId) {
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;
     g_buOperation[port] = 4;
-    if (syscall_mcReadSector(deviceId, 0, s_buBuffer[port])) {
+    if (syscall_mcReadSector(deviceId, 0, g_buBuffer[port])) {
         g_buOperation[port] = 4;
         s_buCurrentState[port] = 1;
         return 1;

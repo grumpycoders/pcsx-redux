@@ -62,3 +62,10 @@ const char *splitFilepathAndFindDevice(const char *name, struct Device **device,
 extern uint32_t psxerrno;
 
 void cdevscan();
+
+struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry);
+
+extern struct File *g_firstFile;
+
+int getDeviceStatus();
+void setDeviceStatus(int deviceStatus);

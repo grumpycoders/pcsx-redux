@@ -24,28 +24,20 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include <stdint.h>
 
-#include "common/psxlibc/direntry.h"
-#include "common/psxlibc/stdio.h"
+struct BuDirectoryEntry {
+    uint32_t allocState;
+    int32_t fileSize;
+    int16_t nextBlock;
+    char name[22];
+};
 
-int addMemoryCardDevice();
-int initBackupUnit();
-int cardInfo(int deviceId);
-void buLowLevelOpCompleted();
-int buReadTOC(int deviceId);
-void buError0();
-void buError1();
-void buError2();
+extern struct BuDirectoryEntry g_buDirEntries[2][15];
+extern uint8_t g_buBuffer[2][128];
+extern int32_t g_buBroken[2][20];
+extern int g_buOperation[2];
+extern int g_buAutoFormat;
 
-int dev_bu_open(struct File *file, const char *filename);
-int dev_bu_close(struct File *file);
-int dev_bu_read(struct File *file, void *buffer, int size);
-int dev_bu_write(struct File *file, void *buffer, int size);
-void dev_bu_erase();
-void dev_bu_undelete();
-struct DirEntry *dev_bu_firstFile(struct File *file, const char *filename, struct DirEntry *entry);
-struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
-void dev_bu_format();
-void dev_bu_rename();
-void dev_bu_deinit();
+int buInit(int deviceId);
+int buFormat(int deviceId);

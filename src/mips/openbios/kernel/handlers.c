@@ -190,10 +190,10 @@ static const void *romA0table[0xc0] = {
     initCDRom, unimplementedThunk, deinitCDRom, psxdummy, // 54
     psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
     dev_tty_open, dev_tty_action, dev_tty_ioctl, dev_cd_open, // 5c
-    dev_cd_read, psxdummy, dev_cd_firstfile, dev_cd_nextfile, // 60
-    dev_cd_chdir, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 64
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 68
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, clearFileError, // 6c
+    dev_cd_read, psxdummy, dev_cd_firstFile, dev_cd_nextFile, // 60
+    dev_cd_chdir, dev_bu_open, dev_bu_read, dev_bu_write, // 64
+    dev_bu_close, dev_bu_firstFile, dev_bu_nextFile, dev_bu_erase, // 68
+    dev_bu_undelete, dev_bu_format, dev_bu_rename, clearFileError, // 6c
     initBackupUnit, initCDRom, deinitCDRom, unimplementedThunk, // 70
     psxdummy, psxdummy, psxdummy, psxdummy, // 74
     cdromSeekL, psxdummy, psxdummy, psxdummy, // 78
@@ -233,7 +233,7 @@ void *B0table[0x60] = {
     psxread, psxwrite, psxclose, psxioctl, // 34
     psxexit, isFileConsole, psxgetc, psxputc, // 38
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 40
+    unimplementedThunk, unimplementedThunk, firstFile, unimplementedThunk, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
     removeDevice, unimplementedThunk, initCard, startCard, // 48
     unimplementedThunk, cardInfoInternal, unimplementedThunk, mcReadSector, // 4c
@@ -250,8 +250,8 @@ void *C0table[0x20] = {
     enqueueIrqHandler, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 0c
     unimplementedThunk, unimplementedThunk, setupFileIO, unimplementedThunk, // 10
     unimplementedThunk, unimplementedThunk, cdevscan, unimplementedThunk, // 14
-    setupFileIO, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 18
-    patchA0table, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 1c
+    setupFileIO, unimplementedThunk, setDeviceStatus, unimplementedThunk, // 18
+    patchA0table, getDeviceStatus, unimplementedThunk, unimplementedThunk, // 1c
 };
 
 // clang-format on

@@ -24,28 +24,34 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include <stddef.h>
 
+#include "common/psxlibc/device.h"
 #include "common/psxlibc/direntry.h"
 #include "common/psxlibc/stdio.h"
+#include "openbios/fileio/fileio.h"
 
-int addMemoryCardDevice();
-int initBackupUnit();
-int cardInfo(int deviceId);
-void buLowLevelOpCompleted();
-int buReadTOC(int deviceId);
-void buError0();
-void buError1();
-void buError2();
+struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry) {
+    const char *filename;
+    struct DirEntry *ret;
+    int deviceID;
+    struct Device *device;
+    struct File *file;
 
-int dev_bu_open(struct File *file, const char *filename);
-int dev_bu_close(struct File *file);
-int dev_bu_read(struct File *file, void *buffer, int size);
-int dev_bu_write(struct File *file, void *buffer, int size);
-void dev_bu_erase();
-void dev_bu_undelete();
-struct DirEntry *dev_bu_firstFile(struct File *file, const char *filename, struct DirEntry *entry);
-struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
-void dev_bu_format();
-void dev_bu_rename();
-void dev_bu_deinit();
+    if ((g_firstFile == NULL) && ((g_firstFile = findEmptyFile()) == NULL)) {
+        psxerrno = PSXEMFILE;
+        return NULL;
+    }
+    filename = splitFilepathAndFindDevice(filepath, &device, &deviceID);
+    file = g_firstFile;
+    if (filename == ((char *)-1)) {
+        psxerrno = PSXENODEV;
+        ret = NULL;
+        g_firstFile->flags = 0;
+        return NULL;
+    } else {
+        g_firstFile->deviceId = deviceID;
+        file->device = device;
+        return device->firstFile(file, filename, entry);
+    }
+}
