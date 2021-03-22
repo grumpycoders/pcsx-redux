@@ -64,6 +64,7 @@ extern uint32_t psxerrno;
 void cdevscan();
 
 struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry);
+struct DirEntry *nextFile(struct DirEntry *entry);
 int format(const char *deviceName);
 
 extern struct File *g_firstFile;

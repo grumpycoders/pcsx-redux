@@ -46,7 +46,7 @@ enum {
 };
 
 typedef void (*device_init)();
-typedef int (*device_open)(struct File *, const char *filename);
+typedef int (*device_open)(struct File *, const char *filename, int mode);
 typedef int (*device_action)(struct File *, enum FileAction);
 typedef int (*device_close)(struct File *);
 typedef int (*device_ioctl)(struct File *, int cmd, int arg);

@@ -37,14 +37,17 @@ int mcWaitForStatusAndReturnIndex();
 void mcAllowNewCard();
 int mcGetLastDevice();
 int mcReadSector(int deviceId, int sector, uint8_t* buffer);
+int mcWriteSector(int deviceId, int sector, uint8_t* buffer);
 int cardInfoInternal(int deviceId);
 
 // internals
 int mcReadHandler();
+int mcWriteHandler();
 int mcInfoHandler();
 extern int g_mcOperation;
 extern int g_mcPortFlipping;
 extern uint8_t* g_mcUserBuffers[2];
+extern uint32_t g_mcChecksum[2];
 extern int g_mcSector[2];
 extern int g_mcDeviceId[2];
 extern int g_mcActionInProgress;

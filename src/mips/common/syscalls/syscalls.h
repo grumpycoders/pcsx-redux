@@ -279,25 +279,25 @@ static __attribute__((always_inline)) void syscall_buLowLevelOpCompleted() {
     ((void (*)())0xa0)();
 }
 
-static __attribute__((always_inline)) void syscall_mcLowLevelOpError1() {
+static __attribute__((always_inline)) void syscall_buLowLevelOpError1() {
     register int n asm("t1") = 0xa8;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xa0)();
 }
 
-static __attribute__((always_inline)) void syscall_mcLowLevelOpError2() {
+static __attribute__((always_inline)) void syscall_buLowLevelOpError2() {
     register int n asm("t1") = 0xa9;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xa0)();
 }
 
-static __attribute__((always_inline)) void syscall_mcLowLevelOpError3() {
+static __attribute__((always_inline)) void syscall_buLowLevelOpError3() {
     register int n asm("t1") = 0xaa;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xa0)();
 }
 
-static __attribute__((always_inline)) void syscall_mcLowLevelOpError4() {
+static __attribute__((always_inline)) void syscall_buLowLevelOpError4() {
     register int n asm("t1") = 0xae;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xa0)();

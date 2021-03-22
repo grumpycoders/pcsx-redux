@@ -41,3 +41,4 @@ extern int g_buAutoFormat;
 
 int buInit(int deviceId);
 int buFormat(int deviceId);
+int buWriteTOC(int deviceId, int* bitmap);

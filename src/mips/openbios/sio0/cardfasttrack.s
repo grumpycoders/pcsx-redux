@@ -57,7 +57,8 @@ SOFTWARE.
                 SIOS[0].fifo = 0;
                 SIOS[0].ctrl |= 0x0010;
                 IREG = ~IRQ_CONTROLLER;
-                if (++g_mcFastTrackCount > 0x7f) g_mcFastTrackActive = 0;
+                *g_mcFastTrackChecksum ^= b;
+                if (++g_mcFastTrackCount > 0x7e) g_mcFastTrackActive = 0;
                 break;
         }
     }
@@ -125,7 +126,7 @@ mcFastTrackRead:
     sb    $v0, 0($k0)
     addiu $k0, 1
     sw    $k0, %lo(g_mcFastTrackBuffer)($at)
-    sw    $0, 0x1040($v1)
+    sb    $0, 0x1040($v1)
     lhu   $k0, 0x104a($v1)
     lui   $at, %hi(g_mcFastTrackChecksumPtr)
     ori   $k0, 0x0010

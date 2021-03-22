@@ -50,11 +50,11 @@ int patternMatch(const char *filename, const char *pattern) {
     return 1;
 }
 
-int buNextFileInternal(int deviceId, int index, char *pattern, struct DirEntry *entry) {
+int buNextFileInternal(int deviceId, int index, const char *pattern) {
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;
 
-    while (index < 15) {
+    for (; index < 15; index++) {
         struct BuDirectoryEntry *buEntry = &g_buDirEntries[port][index];
         if (syscall_getDeviceStatus() == 0) {
             if (buEntry->allocState != 0x51) continue;
@@ -102,16 +102,98 @@ static __attribute__((noreturn)) void dev_bu_unimplemented(const char *function,
         ;
 }
 
-int dev_bu_open(struct File *file, const char *filename) {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcOpen", ra);
+int dev_bu_open(struct File *file, const char *path, int mode) {
+    int deviceId = file->deviceId;
+    file->errno = PSXEBUSY;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    int firstIndex;
+    struct BuDirectoryEntry *buEntries = g_buDirEntries[port];
+
+    if (g_buOperation[port] != 0) return 1;
+
+    mcResetStatus();
+    if (((mode & PSXF_ASYNC) != PSXF_ASYNC) && !buDevInit(deviceId)) return 1;
+    if ((mode & PSXF_CREAT) == PSXF_CREAT) {
+        syscall_setDeviceStatus(0);
+        firstIndex = buNextFileInternal(deviceId, 0, path);
+        if (firstIndex != -1) {
+            file->errno = PSXENOENT;
+            return 1;
+        }
+        int availableBlocks = 0;
+        int bitmap[15];
+        for (unsigned i = 0; i < 15; i++) {
+            bitmap[i] = 0;
+            if ((buEntries[i].allocState & 0xf0) == 0xa0) availableBlocks++;
+        }
+        unsigned futureBlockCount = mode >> 16;
+        futureBlockCount &= 0x0000ffff;
+        file->length = futureBlockCount << 13;
+        if (futureBlockCount > availableBlocks) {
+            file->errno = PSXENOSPC;
+            return 1;
+        }
+        // [sic] yes, this is totally useless and redundant
+        futureBlockCount = file->length >> 13;
+        if ((file->length & 0x1fff) != 0) futureBlockCount++;
+        int blockCount = 0;
+        int prevIndex;
+        for (int index = 0; index < 15; index++) {
+            struct BuDirectoryEntry *entry = &buEntries[index];
+            if ((entry->allocState & 0xf0) != 0xa0) continue;
+            if (blockCount == 0) {
+                entry->allocState = 0x51;
+                entry->fileSize = file->length;
+                strncpy(entry->name, path, 20);
+                bitmap[index] = 0x51;
+                firstIndex = index;
+            } else {
+                buEntries[prevIndex].nextBlock = index;
+                entry->allocState = 0x52;
+                if (bitmap[index] != 0x51) bitmap[index] = 0x52;  // what?
+            }
+            prevIndex = index;
+            if (futureBlockCount > ++blockCount) continue;
+            entry->nextBlock = -1;
+            if (blockCount > 1) entry->allocState = 0x53;
+            if (!buWriteTOC(deviceId, bitmap)) break;
+            while (firstIndex) {  // yes, that's broken... it'll do an infinite loop
+                entry = &buEntries[firstIndex];
+                entry->nextBlock = -1;
+                firstIndex = entry->nextBlock;  // yes, I shit you not
+                entry->allocState = 0xa0;
+                entry->fileSize = 0;
+            }
+            file->errno = PSXEBUSY;
+            blockCount++;
+            prevIndex = index;
+        }
+    } else {
+        syscall_setDeviceStatus(0);
+        firstIndex = buNextFileInternal(deviceId, 0, path);
+        if (firstIndex == -1) {
+            file->errno = PSXENOENT;
+            return 1;
+        }
+    }
+    file->LBA = firstIndex;
+    file->offset = 0;
+    file->errno = PSXENOERR;
+    file->length = buEntries[firstIndex].fileSize;
+    return 0;
 }
 
 int dev_bu_close(struct File *file) {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcClose", ra);
+    int deviceId = file->deviceId;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    if (g_buOperation[port] == 0) {
+        mcResetStatus();
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 int dev_bu_read(struct File *file, void *buffer, int size) {
@@ -180,7 +262,7 @@ struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry) {
     }
 
     mcResetStatus();
-    int index = buNextFileInternal(deviceId, s_buNextFileIndex + 1, s_findFilePattern, entry);
+    int index = buNextFileInternal(deviceId, s_buNextFileIndex + 1, s_findFilePattern);
     if (index == -1) {
         file->errno = PSXENOENT;
         return NULL;

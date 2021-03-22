@@ -208,7 +208,7 @@ static const void *romA0table[0xc0] = {
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplementedThunk, unimplementedThunk, unimplementedThunk, buLowLevelOpCompleted, // a4
-    buError0, buError1, buError2, cardInfo, // a8
+    buLowLevelOpError1, buLowLevelOpError2, buLowLevelOpError3, cardInfo, // a8
     buReadTOC, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
@@ -233,10 +233,10 @@ void *B0table[0x60] = {
     psxread, psxwrite, psxclose, psxioctl, // 34
     psxexit, isFileConsole, psxgetc, psxputc, // 38
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
-    unimplementedThunk, format, firstFile, unimplementedThunk, // 40
+    unimplementedThunk, format, firstFile, nextFile, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
     removeDevice, unimplementedThunk, initCard, startCard, // 48
-    unimplementedThunk, cardInfoInternal, unimplementedThunk, mcReadSector, // 4c
+    unimplementedThunk, cardInfoInternal, mcWriteSector, mcReadSector, // 4c
     mcAllowNewCard, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
     mcGetLastDevice, unimplementedThunk, unimplementedThunk, setSIO0AutoAck, // 58

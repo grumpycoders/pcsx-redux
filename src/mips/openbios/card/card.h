@@ -34,11 +34,11 @@ int initBackupUnit();
 int cardInfo(int deviceId);
 void buLowLevelOpCompleted();
 int buReadTOC(int deviceId);
-void buError0();
-void buError1();
-void buError2();
+void buLowLevelOpError1();
+void buLowLevelOpError2();
+void buLowLevelOpError3();
 
-int dev_bu_open(struct File *file, const char *filename);
+int dev_bu_open(struct File *file, const char *filename, int mode);
 int dev_bu_close(struct File *file);
 int dev_bu_read(struct File *file, void *buffer, int size);
 int dev_bu_write(struct File *file, void *buffer, int size);

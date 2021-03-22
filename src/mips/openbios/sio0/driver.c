@@ -286,7 +286,7 @@ static void __attribute__((section(".ramtext"))) mcHandler(int v) {
                 g_skipErrorOnNewCard = 0;
                 g_mcFlags[g_mcPortFlipping] = 0x21;
                 g_mcLastPort = g_mcPortFlipping;
-                syscall_mcLowLevelOpError1();
+                syscall_buLowLevelOpError1();
                 deliverEvent(EVENT_CARD, 0x8000);
             }
             g_mcOperation = 0;
@@ -314,7 +314,7 @@ static void __attribute__((section(".ramtext"))) firstStageCardAction() {
         g_skipErrorOnNewCard = 0;
         g_mcFlags[g_mcPortFlipping] = 0x11;
         g_mcLastPort = g_mcPortFlipping;
-        syscall_mcLowLevelOpError2();
+        syscall_buLowLevelOpError2();
         deliverEvent(EVENT_CARD, 0x0100);
         sysDeqIntRP(1, &g_mcHandlerInfo);
         SIOS[0].ctrl = 0x40;
@@ -453,6 +453,7 @@ int __attribute__((section(".ramtext"))) startCard() {
 }
 
 void mcAllowNewCard() { g_skipErrorOnNewCard = 1; }
+
 int mcReadSector(int deviceId, int sector, uint8_t* buffer) {
     int port = deviceId < 0 ? deviceId + 15 : deviceId;
     port >>= 4;
@@ -466,6 +467,23 @@ int mcReadSector(int deviceId, int sector, uint8_t* buffer) {
     g_mcHandlers[port] = mcReadHandler;
     g_mcSector[port] = sector;
     g_mcFlags[port] = 2;
+
+    return 1;
+}
+
+int mcWriteSector(int deviceId, int sector, uint8_t* buffer) {
+    int port = deviceId < 0 ? deviceId + 15 : deviceId;
+    port >>= 4;
+
+    if ((g_mcFlags[port] & 1) == 0) return 0;
+    if ((sector < 0) || (sector > 0x400)) return 0;
+
+    g_mcOperation = 0;
+    g_mcDeviceId[port] = deviceId;
+    g_mcUserBuffers[port] = buffer;
+    g_mcHandlers[port] = mcWriteHandler;
+    g_mcSector[port] = sector;
+    g_mcFlags[port] = 4;
 
     return 1;
 }

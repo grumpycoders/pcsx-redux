@@ -341,7 +341,7 @@ C0Vector:
     .type A0Handler, @function
 
 A0Handler:
-    li    $t0, %lo(__ramA0table)
+    la    $t0, __ramA0table
     sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -354,7 +354,7 @@ A0Handler:
     .type B0Handler, @function
 
 B0Handler:
-    li    $t0, %lo(B0table)
+    la    $t0, B0table
     sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -367,7 +367,7 @@ B0Handler:
     .type C0Handler, @function
 
 C0Handler:
-    li    $t0, %lo(C0table)
+    la    $t0, C0table
     sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)

@@ -229,7 +229,7 @@ static int findDirectoryEntryForFilename(int id, const char *filename) {
     return -1;
 }
 
-int dev_cd_open(struct File *file, char *filename) {
+int dev_cd_open(struct File *file, char *filename, int mode) {
     if ((cdromBlockGetStatus() & 0x10) && !cdromReadPathTable()) {
         file->errno = PSXEBUSY;
         return -1;

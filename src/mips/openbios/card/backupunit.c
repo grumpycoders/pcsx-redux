@@ -30,10 +30,12 @@ SOFTWARE.
 #include <string.h>
 
 #include "common/hardware/pcsxhw.h"
+#include "common/psxlibc/setjmp.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/card/card.h"
 #include "openbios/kernel/libcmisc.h"
+#include "openbios/kernel/setjmp.h"
 #include "openbios/sio0/card.h"
 #include "osdebug.h"
 
@@ -391,7 +393,7 @@ void buLowLevelOpCompleted() {
     }
 }
 
-void buError0() {
+void buLowLevelOpError1() {
     g_mcErrors[0] = 1;
     int deviceId = syscall_mcGetLastDevice();
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
@@ -400,7 +402,7 @@ void buError0() {
     if (g_buOperation[port]) buFinishAndTrigger(port, 0x8000);
 }
 
-void buError1() {
+void buLowLevelOpError2() {
     g_mcErrors[1] = 1;
     int deviceId = syscall_mcGetLastDevice();
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
@@ -409,7 +411,7 @@ void buError1() {
     if (g_buOperation[port]) buFinishAndTrigger(port, 0x0100);
 }
 
-void buError2() {
+void buLowLevelOpError3() {
     g_mcErrors[2] = 1;
     int deviceId = syscall_mcGetLastDevice();
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
@@ -430,4 +432,37 @@ int buReadTOC(int deviceId) {
         g_buOperation[port] = 0;
         return 0;
     }
+}
+
+static int filterInner(int state) { return state != 0x52; }
+static int filterFirst(int state) { return state != 0x51; }
+
+static int buWriteTOCInternal(int deviceId, struct JmpBuf * buf, int (*filter)(int), int * bitmap) {
+    int index = 0;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    uint8_t *buffer = g_buBuffer[port];
+
+    while (1) {
+        if ((filter == NULL) || (filter(bitmap[index]) == 0)) {
+            memcpy(buffer, &g_buDirEntries[port][index], sizeof(struct BuDirectoryEntry));
+            buComputeSectorChecksum(buffer);
+            if (!syscall_mcWriteSector(deviceId, index + 1, buffer) || !mcWaitForStatus()) psxlongjmp(buf, 1);
+        }
+        if (++index != 15) continue;
+        if (cardInfo(deviceId) && mcWaitForStatus()) return 1;
+        psxlongjmp(buf, 1);
+    }
+}
+
+int buWriteTOC(int deviceId, int *bitmap) {
+    struct JmpBuf buf;
+    int gotError = psxsetjmp(&buf);
+    if (!gotError) {
+        buWriteTOCInternal(deviceId, &buf, filterInner, bitmap);
+        buWriteTOCInternal(deviceId, &buf, filterFirst, bitmap);
+        // so... no final block? (0x53)
+    }
+
+    return gotError != 0;
 }
