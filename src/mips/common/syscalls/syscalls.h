@@ -334,17 +334,17 @@ static __attribute__((always_inline)) int syscall_enableTimerIRQ(uint32_t timer)
     return ((int (*)(uint32_t))0xb0)(timer);
 }
 
-static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t class, uint32_t spec) {
+static __attribute__((always_inline)) void syscall_deliverEvent(uint32_t classId, uint32_t spec) {
     register int n asm("t1") = 0x07;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void (*)(uint32_t, uint32_t))0xb0)(class, spec);
+    ((void (*)(uint32_t, uint32_t))0xb0)(classId, spec);
 }
 
-static __attribute__((always_inline)) uint32_t syscall_openEvent(uint32_t class, uint32_t spec, uint32_t mode,
+static __attribute__((always_inline)) uint32_t syscall_openEvent(uint32_t classId, uint32_t spec, uint32_t mode,
                                                                  void *handler) {
     register int n asm("t1") = 0x08;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((uint32_t(*)(uint32_t, uint32_t, uint32_t, void *))0xb0)(class, spec, mode, handler);
+    return ((uint32_t(*)(uint32_t, uint32_t, uint32_t, void *))0xb0)(classId, spec, mode, handler);
 }
 
 static __attribute__((always_inline)) int syscall_closeEvent(uint32_t event) {
@@ -365,6 +365,24 @@ static __attribute__((always_inline)) int syscall_enableEvent(uint32_t event) {
     return ((int (*)(uint32_t))0xb0)(event);
 }
 
+static __attribute__((always_inline)) void syscall_initPad(void *buffer1, size_t size1, void *buffer2, size_t size2) {
+    register int n asm("t1") = 0x12;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(void*, size_t, void*, size_t))0xb0)(buffer1, size1, buffer2, size2);
+}
+
+static __attribute__((always_inline)) void syscall_startPad() {
+    register int n asm("t1") = 0x13;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xb0)();
+}
+
+static __attribute__((always_inline)) void syscall_stopPad() {
+    register int n asm("t1") = 0x14;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xb0)();
+}
+
 static __attribute__((noreturn)) __attribute__((always_inline)) void syscall_returnFromException() {
     register int n asm("t1") = 0x17;
     __asm__ volatile("" : "=r"(n) : "r"(n));
@@ -377,10 +395,10 @@ static __attribute__((always_inline)) void syscall_setDefaultExceptionJmpBuf() {
     ((void (*)())0xb0)();
 }
 
-static __attribute__((always_inline)) void syscall_undeliverEvent(uint32_t class, uint32_t mode) {
+static __attribute__((always_inline)) void syscall_undeliverEvent(uint32_t classId, uint32_t mode) {
     register int n asm("t1") = 0x20;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void (*)(uint32_t, uint32_t))0xb0)(class, mode);
+    ((void (*)(uint32_t, uint32_t))0xb0)(classId, mode);
 }
 
 static __attribute__((always_inline)) int syscall_open(const char *filename, int mode) {
