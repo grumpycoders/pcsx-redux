@@ -90,6 +90,28 @@ static int buVerifySectorChecksum(uint8_t *buffer) {
     return buffer[0x7f] == checksum;
 }
 
+int buReallocateBrokenSectorAndRetry(int deviceId, int sector, char *buffer) {
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+
+    for (int index = 0; index < 20; index++) {
+        int32_t *broken = &g_buBroken[port][index];
+        if (*broken == -1) continue;
+        *broken = -2;
+        if (!syscall_mcWriteSector(deviceId, index + 16 + 20, buffer) && !mcWaitForStatus()) {
+            return buReallocateBrokenSectorAndRetry(deviceId, sector, buffer); // what...?
+        }
+        *broken = sector;
+        buffer = g_buBuffer[port];
+        psxbzero(buffer, 0x80);
+        memcpy(buffer, broken, 4);
+        buComputeSectorChecksum(buffer);
+        if (syscall_mcWriteSector(deviceId, index + 16, buffer)) return mcWaitForStatus();
+        break;
+    }
+
+    return 0;
+}
+
 int buFormat(int deviceId) {
     int port = deviceId < 0 ? deviceId + 15 : deviceId;
     port >>= 4;
@@ -278,7 +300,7 @@ int cardInfo(int deviceId) {
     return ret != 0;
 }
 
-static void buFinishAndTrigger(int port, int spec) {
+void buFinishAndTrigger(int port, int spec) {
     g_buOperation[port] = 0;
     s_buCurrentState[port] = 0;
     s_buCurrentSector[port] = 0;

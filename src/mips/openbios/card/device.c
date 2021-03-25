@@ -39,7 +39,7 @@ SOFTWARE.
 static char s_findFilePattern[20];
 static int s_buNextFileIndex;
 
-int patternMatch(const char *filename, const char *pattern) {
+static int patternMatch(const char *filename, const char *pattern) {
     char c;
 
     while ((c = *filename++)) {
@@ -50,7 +50,7 @@ int patternMatch(const char *filename, const char *pattern) {
     return 1;
 }
 
-int buNextFileInternal(int deviceId, int index, const char *pattern) {
+static int buNextFileInternal(int deviceId, int index, const char *pattern) {
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;
 
@@ -202,10 +202,158 @@ int dev_bu_read(struct File *file, void *buffer, int size) {
     dev_bu_unimplemented("mcRead", ra);
 }
 
+int g_buOpSectorStart[2];
+int g_buOpSectorCount[2];
+int g_buOpActualSector[2];
+char *g_buOpBuffer[2];
+struct File *g_buOpFile[2];
+
+static int s_buOpError[2];
+
+static int buRelativeToAbsoluteSector(int port, int block, int sector) {
+    int nextBlock;
+    int start;
+
+    start = block << 6;
+    block <<= 5;
+    while (sector >= 0x3f) {
+        nextBlock = g_buDirEntries[port][block].nextBlock;
+        sector = sector - 0x40;
+        if (nextBlock == -1) return -1;
+        block = nextBlock << 5;
+    }
+    start = nextBlock << 6;
+    return start + sector + 0x40;
+}
+
+static int buGetReallocated(int port, int sector) {
+    int32_t *broken = g_buBroken[port];
+    for (int index = 0; index < 20; index++) {
+        if (sector == broken[index]) return index + 16 + 20;
+    }
+    return -1;
+}
+
+static int buWriteBuffer(int deviceId, int sector, int sectorCount, char *buffer) {
+    int actualSector;
+    int ret = 0;
+
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    for (int index = 0; index < sectorCount; index++) {
+        actualSector = buGetReallocated(port, sector);
+        if (actualSector == -1) actualSector = sector;
+        if (!syscall_mcWriteSector(deviceId, actualSector, buffer)) return 0;
+        int status = mcWaitForStatusAndReturnIndex();
+        if (status == 4) {
+            // I don't get it... this acts as if the *previous* write failed...
+            // The buffer, sector, and index are definitely all incremented
+            // *after* this loop. Meaning any sort of write retry on broken
+            // sectors will just do utter nonsense and corrupt data.
+            actualSector = buGetReallocated(port, sector - 1);
+            if (actualSector == -1) actualSector = sector - 1;
+            if (!buReallocateBrokenSectorAndRetry(deviceId, actualSector, buffer - 0x80)) {
+                s_buOpError[port] = 1;
+                return -1;
+            }
+        } else if (status != 0) {
+            s_buOpError[port] = status;
+            return -1;
+        }
+        buffer += 0x80;
+        ret += 0x80;
+        sector++;
+    }
+    if (!cardInfo(deviceId)) return 0;
+    int status = mcWaitForStatusAndReturnIndex();
+    if (status == 4) {
+        // This time the retry is technically correct, except...
+        actualSector = buGetReallocated(port, sector - 1);
+        // ... they forgot a -1 here...
+        // There's just no way the sector reallocation system
+        // works in any meaningful way, at least while using
+        // the BIOS to write. Hopefully there's code in the
+        // SDKs that correct these horrors...?
+        if (actualSector == -1) actualSector = sector;
+        actualSector = buReallocateBrokenSectorAndRetry(deviceId, actualSector, buffer - 0x80);
+        if (actualSector == 0) {
+            s_buOpError[port] = 1;
+            return -1;
+        }
+    } else if (status != 0) {
+        s_buOpError[port] = status;
+        return -1;
+    }
+    return ret;
+}
+
 int dev_bu_write(struct File *file, void *buffer, int size) {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcWrite", ra);
+    int deviceId = file->deviceId;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port] != 0) return -1;
+    mcResetStatus();
+    uint32_t offset = file->offset;
+    if (((offset & 0x7f) != 0) || (offset >= file->length)) {
+        file->errno = PSXEINVAL;
+        return -1;
+    }
+
+    uint32_t sectorStart = offset >> 7;
+    int sectorCount = size < 0 ? size + 0x7f : size;
+    sectorCount >>= 7;
+
+    if ((file->flags & PSXF_ASYNC) != 0) {
+        if (g_buOperation[port] != 0) return -1;  // yes, again...
+        g_buOperation[port] = 3;
+        g_buOpSectorStart[port] = sectorStart;
+        g_buOpSectorCount[port] = sectorCount;
+        g_buOpBuffer[port] = buffer;
+        g_buOpFile[port] = file;
+        mcResetStatus();  // yes, again...
+        if (sectorCount == 0) {
+            // you'd think you'd want this as an early out, wouldn't you?
+            file->errno = PSXENOERR;
+            g_mcOverallSuccess = 1;
+            buFinishAndTrigger(port, 4);
+            return 0;
+        }
+        int absoluteSector = buRelativeToAbsoluteSector(port, file->LBA, sectorStart);
+        int actualSector = buGetReallocated(port, absoluteSector);
+        if (actualSector == -1) actualSector = absoluteSector;
+        g_buOpActualSector[port] = actualSector;
+        file->errno = PSXEBUSY;
+        if (!syscall_mcWriteSector(deviceId, actualSector, buffer)) return -1;
+        file->errno = PSXENOERR;
+        return 0;
+    }
+
+    int writtenSectorCount = 0;
+    while (sectorCount > 0) {
+        int sectorLimit = sectorStart & 0x3f;
+        if ((sectorStart > 0) && (sectorLimit != 0)) {
+            sectorLimit -= 0x40;
+        }
+        sectorLimit = 0x40 - sectorLimit;
+        int actualSectorCount = sectorCount;
+        if (sectorCount > sectorLimit) actualSectorCount = sectorLimit;
+        int absoluteSector = buRelativeToAbsoluteSector(port, file->LBA, sectorStart);
+        int bytesWritten = buWriteBuffer(deviceId, absoluteSector, actualSectorCount, buffer);
+        sectorCount -= actualSectorCount;
+        if (bytesWritten != (actualSectorCount * 0x80)) break;
+        sectorStart += actualSectorCount;
+        buffer += actualSectorCount * 0x80;
+        writtenSectorCount += actualSectorCount;
+    }
+
+    int bytesWritten = writtenSectorCount * 0x80;
+    file->offset += bytesWritten;
+    file->errno = PSXENOERR;
+    g_buOperation[port] = 0;
+    if (size != bytesWritten) return -s_buOpError[port];
+
+    return size;
 }
 
 void dev_bu_erase() {

@@ -42,3 +42,5 @@ extern int g_buAutoFormat;
 int buInit(int deviceId);
 int buFormat(int deviceId);
 int buWriteTOC(int deviceId, int* bitmap);
+int buReallocateBrokenSectorAndRetry(int deviceId, int sector, char* buffer);
+void buFinishAndTrigger(int port, int spec);

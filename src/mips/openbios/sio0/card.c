@@ -63,6 +63,7 @@ int mcWaitForStatus() {
                 return 0;
             }
         }
+        __asm__ volatile("");
     }
 }
 
@@ -78,6 +79,7 @@ int mcWaitForStatusAndReturnIndex() {
                 return i + 1;
             }
         }
+        __asm__ volatile("");
     }
 }
 
@@ -280,7 +282,7 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
                 ;
             if (!g_skipErrorOnNewCard && ((s_mcFlagByte[port] & 4) != 0)) {
                 g_mcLastPort = g_mcPortFlipping;
-                g_skipErrorOnNewCard = 0; // whyyyy
+                g_skipErrorOnNewCard = 0;  // whyyyy
                 g_mcFlags[g_mcPortFlipping] = 1;
                 syscall_buLowLevelOpError3();
                 deliverEvent(EVENT_CARD, 0x8001);
