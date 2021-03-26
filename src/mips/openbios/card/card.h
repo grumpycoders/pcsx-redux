@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +26,34 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
 #include "common/psxlibc/direntry.h"
 #include "common/psxlibc/stdio.h"
 
-extern char g_cdromCWD[128];
+int addMemoryCardDevice();
+int initBackupUnit();
+int cardInfo(int deviceId);
+void buLowLevelOpCompleted();
+int buReadTOC(int deviceId);
+void buLowLevelOpError1();
+void buLowLevelOpError2();
+void buLowLevelOpError3();
 
-int cdromReadPathTable();
-int dev_cd_open(struct File* file, char* filename, int mode);
-int dev_cd_read(struct File* file, char* buffer, int size);
-struct DirEntry* dev_cd_firstFile(struct File* file, const char* filename, struct DirEntry* entry);
-struct DirEntry* dev_cd_nextFile(struct File* file, struct DirEntry* entry);
-int dev_cd_chdir(struct File* file, char* name);
+int dev_bu_open(struct File *file, const char *filename, int mode);
+int dev_bu_close(struct File *file);
+int dev_bu_read(struct File *file, void *buffer, int size);
+int dev_bu_write(struct File *file, void *buffer, int size);
+void dev_bu_erase();
+void dev_bu_undelete();
+struct DirEntry *dev_bu_firstFile(struct File *file, const char *filename, struct DirEntry *entry);
+struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
+int dev_bu_format(struct File *file);
+void dev_bu_rename();
+void dev_bu_deinit();
+
+extern int g_buOpSectorStart[2];
+extern int g_buOpSectorCount[2];
+extern int g_buOpActualSector[2];
+extern char *g_buOpBuffer[2];
+extern struct File *g_buOpFile[2];
+int buRelativeToAbsoluteSector(int port, int block, int sector);
+int buGetReallocated(int port, int sector);

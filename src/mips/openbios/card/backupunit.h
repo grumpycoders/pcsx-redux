@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,29 +24,23 @@ SOFTWARE.
 
 */
 
-#pragma once
-
 #include <stdint.h>
-#include <stdlib.h>
 
-/* This one is a tough one. Technically, this should return a struct, that's
-   using however the older gcc ABI. There's no way to reproduce the ABI
-   with modern gcc as far as I know, but it's also likely the rest of
-   the returned struct isn't actually used, so we might be lucky here
-   in terms of API. As far as ABI is concerned however, inlined assembly
-   code will solve the issue. */
-int initPadHighLevel(uint32_t padType, uint32_t* buffer, int c, int d);
-uint32_t readPadHighLevel();
-int initPad(uint8_t* pad1Buffer, size_t pad1BufferSize, uint8_t* pad2Buffer, size_t pad2BufferSize);
-int startPad();
-void stopPad();
+struct BuDirectoryEntry {
+    uint32_t allocState;
+    int32_t fileSize;
+    int16_t nextBlock;
+    char name[22];
+};
 
-void patch_remove_ChgclrPAD();
-void patch_disable_slotChangeOnAbort();
-void patch_startPad();
-void patch_stopPad();
-void patch_send_pad();
-void patch_setPadOutputData(uint8_t* pad1OutputBuffer, size_t pad1OutputSize, uint8_t* pad2OutputBuffer,
-                            size_t pad2OutputSize);
+extern struct BuDirectoryEntry g_buDirEntries[2][15];
+extern uint8_t g_buBuffer[2][128];
+extern int32_t g_buBroken[2][20];
+extern int g_buOperation[2];
+extern int g_buAutoFormat;
 
-extern uint32_t* g_userPadBuffer;
+int buInit(int deviceId);
+int buFormat(int deviceId);
+int buWriteTOC(int deviceId, int* bitmap);
+int buReallocateBrokenSectorAndRetry(int deviceId, int sector, char* buffer);
+void buFinishAndTrigger(int port, int spec);

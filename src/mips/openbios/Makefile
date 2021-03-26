@@ -7,12 +7,15 @@ SRCS = \
 ../common/hardware/sio1.c \
 ../common/psxlibc/fastmemset.s \
 boot/boot.s \
+card/backupunit.c \
+card/device.c \
 cdrom/cdrom.c \
 cdrom/events.c \
 cdrom/filesystem.c \
 cdrom/helpers.c \
 cdrom/statemachine.c \
 charset/sjis.c \
+fileio/filesystem.c \
 fileio/misc.c \
 fileio/stdio.c \
 gpu/gpu.c \
@@ -35,6 +38,8 @@ main/main.c \
 pio/pio.c \
 shell/shell.c \
 sio0/busyloop.s \
+sio0/card.c \
+sio0/cardfasttrack.s \
 sio0/driver.c \
 sio0/pad.c \
 tty/tty.c \

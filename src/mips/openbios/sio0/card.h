@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,27 +26,41 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
 #include <stdlib.h>
 
-/* This one is a tough one. Technically, this should return a struct, that's
-   using however the older gcc ABI. There's no way to reproduce the ABI
-   with modern gcc as far as I know, but it's also likely the rest of
-   the returned struct isn't actually used, so we might be lucky here
-   in terms of API. As far as ABI is concerned however, inlined assembly
-   code will solve the issue. */
-int initPadHighLevel(uint32_t padType, uint32_t* buffer, int c, int d);
-uint32_t readPadHighLevel();
-int initPad(uint8_t* pad1Buffer, size_t pad1BufferSize, uint8_t* pad2Buffer, size_t pad2BufferSize);
-int startPad();
-void stopPad();
+int initCard(int padStarted);
+int startCard();
+int stopCard();
 
-void patch_remove_ChgclrPAD();
-void patch_disable_slotChangeOnAbort();
-void patch_startPad();
-void patch_stopPad();
-void patch_send_pad();
-void patch_setPadOutputData(uint8_t* pad1OutputBuffer, size_t pad1OutputSize, uint8_t* pad2OutputBuffer,
-                            size_t pad2OutputSize);
+void mcResetStatus();
+int mcWaitForStatus();
+int mcWaitForStatusAndReturnIndex();
+void mcAllowNewCard();
+int mcGetLastDevice();
+int mcReadSector(int deviceId, int sector, uint8_t* buffer);
+int mcWriteSector(int deviceId, int sector, uint8_t* buffer);
+int cardInfoInternal(int deviceId);
 
-extern uint32_t* g_userPadBuffer;
+// internals
+int mcReadHandler();
+int mcWriteHandler();
+int mcInfoHandler();
+extern int g_mcOperation;
+extern int g_mcPortFlipping;
+extern uint8_t* g_mcUserBuffers[2];
+extern uint32_t g_mcChecksum[2];
+extern int g_mcSector[2];
+extern int g_mcDeviceId[2];
+extern int g_mcActionInProgress;
+extern int g_skipErrorOnNewCard;
+extern uint8_t g_mcFlags[2];
+extern int g_mcPortFlipping;
+extern int g_mcLastPort;
+extern int g_mcGotError;
+extern int g_mcFastTrackActive;
+
+extern int g_mcOverallSuccess;
+extern int g_mcErrors[4];
+
+extern int g_mcHandlerDelayPatch;
+extern int g_mcCardInfoPatchActivated;

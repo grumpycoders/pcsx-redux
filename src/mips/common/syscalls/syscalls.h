@@ -28,8 +28,8 @@ SOFTWARE.
 
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
 #include "common/psxlibc/circularbuffer.h"
 #include "common/psxlibc/device.h"
 #include "common/psxlibc/handlers.h"
@@ -204,7 +204,7 @@ static __attribute__((always_inline)) int syscall_unresolvedException() {
 static __attribute__((always_inline)) void syscall_flushCache() {
     register int n asm("t1") = 0x44;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((void (*)())0xa0)();
+    ((void (*)())0xa0)();
 }
 
 static __attribute__((always_inline)) int syscall_cdromSeekL(uint8_t *msf) {
@@ -273,10 +273,40 @@ static __attribute__((always_inline)) void syscall_dequeueCDRomHandlers() {
     ((void (*)())0xa0)();
 }
 
+static __attribute__((always_inline)) void syscall_buLowLevelOpCompleted() {
+    register int n asm("t1") = 0xa7;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xa0)();
+}
+
+static __attribute__((always_inline)) void syscall_buLowLevelOpError1() {
+    register int n asm("t1") = 0xa8;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xa0)();
+}
+
+static __attribute__((always_inline)) void syscall_buLowLevelOpError2() {
+    register int n asm("t1") = 0xa9;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xa0)();
+}
+
+static __attribute__((always_inline)) void syscall_buLowLevelOpError3() {
+    register int n asm("t1") = 0xaa;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xa0)();
+}
+
+static __attribute__((always_inline)) void syscall_buLowLevelOpError4() {
+    register int n asm("t1") = 0xae;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xa0)();
+}
+
 static __attribute__((always_inline)) int syscall_ioabortraw(int code) {
     register int n asm("t1") = 0xb2;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((int (*)(int))0xa0)(code);
+    return ((int (*)(int))0xa0)(code);
 }
 
 /* B0 table */
@@ -289,7 +319,7 @@ static __attribute__((always_inline)) void *syscall_kmalloc(unsigned size) {
 static __attribute__((always_inline)) void syscall_kfree(void *ptr) {
     register int n asm("t1") = 0x01;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((void (*)(void *))0xb0)(ptr);
+    ((void (*)(void *))0xb0)(ptr);
 }
 
 static __attribute__((always_inline)) int syscall_initTimer(uint32_t timer, uint16_t target, uint16_t flags) {
@@ -398,7 +428,37 @@ static __attribute__((always_inline)) void syscall_putchar(int c) {
 static __attribute__((always_inline)) int syscall_addDevice(const struct Device *device) {
     register int n asm("t1") = 0x47;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((int (*)(const struct Device *))0xb0)(device);
+    return ((int (*)(const struct Device *))0xb0)(device);
+}
+
+static __attribute__((always_inline)) int syscall_cardInfoInternal(int deviceID) {
+    register int n asm("t1") = 0x4d;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(int))0xb0)(deviceID);
+}
+
+static __attribute__((always_inline)) int syscall_mcWriteSector(int deviceID, int sector, const uint8_t *buffer) {
+    register int n asm("t1") = 0x4e;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(int, int, const uint8_t *))0xb0)(deviceID, sector, buffer);
+}
+
+static __attribute__((always_inline)) int syscall_mcReadSector(int deviceID, int sector, uint8_t *buffer) {
+    register int n asm("t1") = 0x4f;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(int, int, uint8_t *))0xb0)(deviceID, sector, buffer);
+}
+
+static __attribute__((always_inline)) void syscall_mcAllowNewCard() {
+    register int n asm("t1") = 0x50;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)())0xb0)();
+}
+
+static __attribute__((always_inline)) int syscall_mcGetLastDevice() {
+    register int n asm("t1") = 0x58;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)())0xb0)();
 }
 
 /* C0 table */
@@ -474,9 +534,20 @@ static __attribute__((always_inline)) int syscall_ioabort(const char *msg) {
     return ((int (*)(const char *))0xc0)(msg);
 }
 
-static __attribute__((always_inline)) int syscall_patchA0table() {
+static __attribute__((always_inline)) void syscall_setDeviceStatus(int status) {
+    register int n asm("t1") = 0x1a;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(int))0xc0)(status);
+}
+
+static __attribute__((always_inline)) void syscall_patchA0table() {
     register int n asm("t1") = 0x1c;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xc0)();
 }
 
+static __attribute__((always_inline)) int syscall_getDeviceStatus() {
+    register int n asm("t1") = 0x1d;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)())0xc0)();
+}
