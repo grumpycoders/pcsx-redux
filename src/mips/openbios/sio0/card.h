@@ -30,6 +30,7 @@ SOFTWARE.
 
 int initCard(int padStarted);
 int startCard();
+int stopCard();
 
 void mcResetStatus();
 int mcWaitForStatus();

@@ -456,6 +456,15 @@ int __attribute__((section(".ramtext"))) startCard() {
     return 1;
 }
 
+int __attribute__((section(".ramtext"))) stopCard() {
+    enterCriticalSection();
+    setTimerAutoAck(3, 1);
+    sysDeqIntRP(2, &g_sio0HandlerInfo);
+    s_cardStarted = 0;
+    leaveCriticalSection();
+    return 1;
+}
+
 void mcAllowNewCard() { g_skipErrorOnNewCard = 1; }
 
 int mcReadSector(int deviceId, int sector, uint8_t* buffer) {
