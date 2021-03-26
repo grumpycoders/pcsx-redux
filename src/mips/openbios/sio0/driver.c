@@ -242,6 +242,7 @@ typedef int (*mcOpHandler)();
 mcOpHandler g_mcHandlers[2];
 int g_mcDeviceId[2];
 int g_mcSector[2];
+int g_mcHandlerDelayPatch = 0;
 
 static int __attribute__((section(".ramtext"))) mcVerifier() {
     if (((IMASK & IRQ_CONTROLLER) == 0) || ((IREG & IRQ_CONTROLLER) == 0)) return 0;
@@ -257,6 +258,9 @@ static void __attribute__((section(".ramtext"))) mcHandler(int v) {
     }
 
     SIOS[0].ctrl |= g_sio0Mask | 0x0012;
+    int delay = g_mcHandlerDelayPatch;
+    for (unsigned i = 0; i < delay; i++) __asm__ __volatile__("");
+
     g_mcOperation++;
     int mcResult = g_mcHandlers[g_mcPortFlipping]();
 

@@ -41,7 +41,8 @@ LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 CPPFLAGS_Release += -Os
 LDFLAGS_Release += -Os
 
-CPPFLAGS_Debug += -O0
+CPPFLAGS_Debug += -Og
+CPPFLAGS_Coverage += -Og
 
 LDFLAGS += -g
 CPPFLAGS += -g

@@ -81,18 +81,16 @@ SOFTWARE.
         800785a0 08 00 e0 03          jr              ra
         800785a4 00 00 00 00          _nop
 
+    This patch will modify the fasttrack function to properly handle IREG/IMASK, tho it is technically a lot more problematic,
+    as it writes its new function in kernel space, around address 0x0000df80.
+
  */
 
 // clang-format on
 
 #ifndef GENERATE_HASHES
 
-// not doing anything about it for now
-enum patch_behavior patch_card_2_execute(uint32_t* ra) {
-    ra[2] = 18 | 0x10000000;
-    ra[3] = 0;
-    return PATCH_COUNTERPATCH;
-}
+enum patch_behavior patch_card_2_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 

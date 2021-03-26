@@ -65,21 +65,25 @@ SOFTWARE.
 */
 
 exceptionHandlerCardFastTrack:
-/* can only use $v0, $v1, and $at for this section */
+/* can only use $v0, $v1, and $at for this section; also, games will
+   patch portions of it, so this preamble is the same */
     lw    $v0, g_mcFastTrackActive
     lui   $v1, 0x1f80
     beqz  $v0, mcFastTrackExit
+    nop
     lw    $v0, 0x1070($v1)
     nop
     andi  $v0, 0x80
     beqz  $v0, mcFastTrackExit
+    nop
     lw    $v0, 0x1074($v1)
     nop
     andi  $v0, 0x80
     beqz  $v0, mcFastTrackExit
-/* from here, we can also use $k0 */
-    lui   $v0, %hi(g_mcFastTrackOperationPtr)
-    lw    $v0, %lo(g_mcFastTrackOperationPtr)($v0)
+    nop
+/* from here, we can also use $k0, and write different code,
+   as only the above is patched by games */
+    lw    $v0, g_mcFastTrackOperationPtr
     li    $at, 2
     lbu   $v0, 0($v0)
     lui   $k0, %hi(g_mcFastTrackBuffer)

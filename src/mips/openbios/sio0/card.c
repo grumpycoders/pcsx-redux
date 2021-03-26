@@ -35,6 +35,7 @@ SOFTWARE.
 
 int g_mcOverallSuccess;
 int g_mcErrors[4];
+int g_mcCardInfoPatchActivated = 0;
 static uint8_t s_mcCommand[2];
 static uint8_t s_mcFlagByte[2];
 
@@ -336,8 +337,8 @@ int __attribute__((section(".ramtext"))) mcInfoHandler() {
             return -1;
         case 4:
             b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
+            if (!g_mcCardInfoPatchActivated) SIOS[0].fifo = 0;
+            SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             return (b == 0x5a) ? 1 : -1;
         default:

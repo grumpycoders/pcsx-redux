@@ -60,3 +60,6 @@ extern int g_mcFastTrackActive;
 
 extern int g_mcOverallSuccess;
 extern int g_mcErrors[4];
+
+extern int g_mcHandlerDelayPatch;
+extern int g_mcCardInfoPatchActivated;
