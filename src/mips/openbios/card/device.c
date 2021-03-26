@@ -196,12 +196,6 @@ int dev_bu_close(struct File *file) {
     }
 }
 
-int dev_bu_read(struct File *file, void *buffer, int size) {
-    uint32_t ra;
-    asm("move %0, $ra\n" : "=r"(ra));
-    dev_bu_unimplemented("mcRead", ra);
-}
-
 int g_buOpSectorStart[2];
 int g_buOpSectorCount[2];
 int g_buOpActualSector[2];
@@ -225,6 +219,28 @@ static int buGetReallocated(int port, int sector) {
         if (sector == broken[index]) return index + 16 + 20;
     }
     return -1;
+}
+
+static int buReadBuffer(int deviceId, int sector, int sectorCount, char *buffer) {
+    int actualSector;
+    int ret = 0;
+
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+    for (int index = 0; index < sectorCount; index++) {
+        actualSector = buGetReallocated(port, sector);
+        if (actualSector == -1) actualSector = sector;
+        if (!syscall_mcReadSector(deviceId, actualSector, buffer)) return 0;
+        int status = mcWaitForStatusAndReturnIndex();
+        if (status != 0) {
+            s_buOpError[port] = status;
+            return -1;
+        }
+        buffer += 0x80;
+        ret += 0x80;
+        sector++;
+    }
+    return ret;
 }
 
 static int buWriteBuffer(int deviceId, int sector, int sectorCount, char *buffer) {
@@ -278,6 +294,75 @@ static int buWriteBuffer(int deviceId, int sector, int sectorCount, char *buffer
         return -1;
     }
     return ret;
+}
+
+int dev_bu_read(struct File *file, void *buffer, int size) {
+    int deviceId = file->deviceId;
+    int port = deviceId >= 0 ? deviceId : deviceId + 15;
+    port >>= 4;
+
+    if (g_buOperation[port] != 0) return -1;
+    mcResetStatus();
+    uint32_t offset = file->offset;
+    if (((offset & 0x7f) != 0) || (offset >= file->length)) {
+        file->errno = PSXEINVAL;
+        return -1;
+    }
+
+    uint32_t sectorStart = offset >> 7;
+    int sectorCount = size < 0 ? size + 0x7f : size;
+    sectorCount >>= 7;
+
+    if ((file->flags & PSXF_ASYNC) != 0) {
+        if (g_buOperation[port] != 0) return -1;  // yes, again...
+        g_buOperation[port] = 2;
+        g_buOpSectorStart[port] = sectorStart;
+        g_buOpSectorCount[port] = sectorCount;
+        g_buOpBuffer[port] = buffer;
+        g_buOpFile[port] = file;
+        mcResetStatus();  // yes, again...
+        if (sectorCount == 0) {
+            // you'd think you'd want this as an early out, wouldn't you?
+            file->errno = PSXENOERR;
+            g_mcOverallSuccess = 1;
+            buFinishAndTrigger(port, 4);
+            return 0;
+        }
+        int absoluteSector = buRelativeToAbsoluteSector(port, file->LBA, sectorStart);
+        int actualSector = buGetReallocated(port, absoluteSector);
+        if (actualSector == -1) actualSector = absoluteSector;
+        g_buOpActualSector[port] = actualSector;
+        file->errno = PSXEBUSY;
+        if (!syscall_mcReadSector(deviceId, actualSector, buffer)) return -1;
+        file->errno = PSXENOERR;
+        return 0;
+    }
+
+    int writtenSectorCount = 0;
+    while (sectorCount > 0) {
+        int sectorLimit = sectorStart & 0x3f;
+        if ((sectorStart > 0) && (sectorLimit != 0)) {
+            sectorLimit -= 0x40;
+        }
+        sectorLimit = 0x40 - sectorLimit;
+        int actualSectorCount = sectorCount;
+        if (sectorCount > sectorLimit) actualSectorCount = sectorLimit;
+        int absoluteSector = buRelativeToAbsoluteSector(port, file->LBA, sectorStart);
+        int bytesWritten = buReadBuffer(deviceId, absoluteSector, actualSectorCount, buffer);
+        sectorCount -= actualSectorCount;
+        if (bytesWritten != (actualSectorCount * 0x80)) break;
+        sectorStart += actualSectorCount;
+        buffer += actualSectorCount * 0x80;
+        writtenSectorCount += actualSectorCount;
+    }
+
+    int bytesWritten = writtenSectorCount * 0x80;
+    file->offset += bytesWritten;
+    file->errno = PSXENOERR;
+    g_buOperation[port] = 0;
+    if (size != bytesWritten) return -s_buOpError[port];
+
+    return size;
 }
 
 int dev_bu_write(struct File *file, void *buffer, int size) {
