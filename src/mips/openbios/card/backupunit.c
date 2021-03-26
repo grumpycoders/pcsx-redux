@@ -236,27 +236,24 @@ int buInit(int deviceId) {
     uint32_t entriesStates[15];
     for (unsigned i = 0; i < 15; i++) {
         entriesStates[i] = 0;
-        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;
+        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52; // this makes no sense
     }
-    // this is fully unused...?
-    int numBlocks[15];
-    for (unsigned i = 0; i < 15; i++) numBlocks[i] = 0;
+    for (unsigned i = 0; i < 15; i++) entriesStates[i] = 0;
     for (unsigned i = 0; i < 15; i++) {
         uint32_t allocState = dirEntries[i].allocState;
         if ((allocState != 0x51) && (allocState != 0xa1)) continue;
-        numBlocks[i] = 1;
+        entriesStates[i] = 1;
         int32_t size = dirEntries[i].fileSize;
         int16_t next = dirEntries[i].nextBlock;
         if (size < 0) size += 0x1fff;
         int blocks = size >> 13;
         while ((--blocks > 0) && (next != -1)) {
-            numBlocks[next]++;
+            entriesStates[next]++;
             next = dirEntries[next].nextBlock;
         }
     }
     for (unsigned i = 0; i < 15; i++) {
         if (entriesStates[i] != 0) continue;
-        // what ?
         dirEntries[i].fileSize = 0;
         dirEntries[i].allocState = 0xa0;
         dirEntries[i].nextBlock = -1;
@@ -326,7 +323,7 @@ void buLowLevelOpCompleted() {
         case 4:
             switch (s_buCurrentState[port]) {
                 case 1:
-                    if ((buffer[0] != 'M') || (buffer[1] == 'C')) {
+                    if ((buffer[0] != 'M') || (buffer[1] != 'C')) {
                         g_mcOverallSuccess = 0;
                         g_mcErrors[2] = 1;
                         buFinishAndTrigger(port, 0x2000);
@@ -361,21 +358,19 @@ void buLowLevelOpCompleted() {
                     uint32_t entriesStates[15];
                     for (unsigned i = 0; i < 15; i++) {
                         entriesStates[i] = 0;
-                        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;
+                        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52; // this makes no sense
                     }
-                    // this is fully unused...?
-                    int numBlocks[15];
-                    for (unsigned i = 0; i < 15; i++) numBlocks[i] = 0;
+                    for (unsigned i = 0; i < 15; i++) entriesStates[i] = 0;
                     for (unsigned i = 0; i < 15; i++) {
                         uint32_t allocState = dirEntries[i].allocState;
                         if (allocState != 0x51) continue;
-                        numBlocks[i] = 1;
+                        entriesStates[i] = 1;
                         int32_t size = dirEntries[i].fileSize;
                         int16_t next = dirEntries[i].nextBlock;
                         if (size < 0) size += 0x1fff;
                         int blocks = size >> 13;
                         while ((--blocks > 0) && (next != -1)) {
-                            numBlocks[next]++;
+                            entriesStates[next]++;
                             next = dirEntries[next].nextBlock;
                         }
                     }

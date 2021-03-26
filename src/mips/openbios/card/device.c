@@ -211,19 +211,12 @@ struct File *g_buOpFile[2];
 static int s_buOpError[2];
 
 static int buRelativeToAbsoluteSector(int port, int block, int sector) {
-    int nextBlock;
-    int start;
-
-    start = block << 6;
-    block <<= 5;
     while (sector >= 0x3f) {
-        nextBlock = g_buDirEntries[port][block].nextBlock;
+        block = g_buDirEntries[port][block].nextBlock;
         sector = sector - 0x40;
-        if (nextBlock == -1) return -1;
-        block = nextBlock << 5;
+        if (block == -1) return -1;
     }
-    start = nextBlock << 6;
-    return start + sector + 0x40;
+    return (block * 64) + sector + 0x40;
 }
 
 static int buGetReallocated(int port, int sector) {

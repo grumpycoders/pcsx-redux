@@ -500,6 +500,8 @@ int cardInfoInternal(int deviceId) {
     g_mcHandlers[port] = mcInfoHandler;
     g_mcSector[port] = 0;
     g_mcFlags[port] = 0;
+
+    return 1;
 }
 
 int mcGetLastDevice() { return g_mcDeviceId[g_mcLastPort]; }
