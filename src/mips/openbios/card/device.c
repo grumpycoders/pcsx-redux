@@ -204,7 +204,7 @@ struct File *g_buOpFile[2];
 
 static int s_buOpError[2];
 
-static int buRelativeToAbsoluteSector(int port, int block, int sector) {
+int buRelativeToAbsoluteSector(int port, int block, int sector) {
     while (sector >= 0x3f) {
         block = g_buDirEntries[port][block].nextBlock;
         sector = sector - 0x40;
@@ -213,7 +213,7 @@ static int buRelativeToAbsoluteSector(int port, int block, int sector) {
     return (block * 64) + sector + 0x40;
 }
 
-static int buGetReallocated(int port, int sector) {
+int buGetReallocated(int port, int sector) {
     int32_t *broken = g_buBroken[port];
     for (int index = 0; index < 20; index++) {
         if (sector == broken[index]) return index + 16 + 20;

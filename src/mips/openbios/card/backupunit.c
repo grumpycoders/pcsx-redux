@@ -30,8 +30,8 @@ SOFTWARE.
 #include <string.h>
 
 #include "common/hardware/pcsxhw.h"
-#include "common/psxlibc/setjmp.h"
 #include "common/kernel/events.h"
+#include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/card/card.h"
 #include "openbios/kernel/libcmisc.h"
@@ -98,7 +98,7 @@ int buReallocateBrokenSectorAndRetry(int deviceId, int sector, char *buffer) {
         if (*broken == -1) continue;
         *broken = -2;
         if (!syscall_mcWriteSector(deviceId, index + 16 + 20, buffer) && !mcWaitForStatus()) {
-            return buReallocateBrokenSectorAndRetry(deviceId, sector, buffer); // what...?
+            return buReallocateBrokenSectorAndRetry(deviceId, sector, buffer);  // what...?
         }
         *broken = sector;
         buffer = g_buBuffer[port];
@@ -236,7 +236,7 @@ int buInit(int deviceId) {
     uint32_t entriesStates[15];
     for (unsigned i = 0; i < 15; i++) {
         entriesStates[i] = 0;
-        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52; // this makes no sense
+        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;  // this makes no sense
     }
     for (unsigned i = 0; i < 15; i++) entriesStates[i] = 0;
     for (unsigned i = 0; i < 15; i++) {
@@ -312,14 +312,63 @@ void buLowLevelOpCompleted() {
     uint8_t *buffer = g_buBuffer[port];
     struct BuDirectoryEntry *dirEntries = g_buDirEntries[port];
     int32_t *broken = g_buBroken[port];
+    struct File *file = g_buOpFile[port];
 
     switch (g_buOperation[port]) {
         case 0:
-            return;
+            break;
+        case 7:
+            syscall_deliverEvent(file->fd, 0x0004);
+            file->offset += 0x80;
+            // fallthrough
         case 1:
         case 8:
             buFinishAndTrigger(port, 0x0004);
             break;
+        case 2: {
+            if (--g_buOpSectorCount[port] == 0) {
+                buFinishAndTrigger(port, 0x0004);
+                syscall_deliverEvent(g_buOpFile[port]->fd, 0x0004);
+                break;
+            }
+            g_buOpBuffer[port] += 0x80;
+            file->offset += 0x80;
+            int absoluteSector = buRelativeToAbsoluteSector(port, file->LBA, ++g_buOpSectorStart[port]);
+            int actualSector = buGetReallocated(port, absoluteSector);
+            if (actualSector == -1) actualSector = absoluteSector;
+            if (!syscall_mcReadSector(deviceId, actualSector, g_buOpBuffer[port])) {
+                g_mcOverallSuccess = 0;
+                g_mcErrors[0] = 1;
+                buFinishAndTrigger(port, 0x8000);
+            }
+            break;
+        }
+        case 6:
+            g_buOpBuffer[port] = 3;
+            // fallthrough
+        case 3: {
+            if (--g_buOpSectorCount[port] == 0) {
+                g_mcOverallSuccess = 0;
+                if (!cardInfo(deviceId)) {
+                    g_mcErrors[0] = 1;
+                    buFinishAndTrigger(port, 0x8000);
+                }
+                g_buOperation[port] = 7;
+                break;
+            }
+            g_buOpBuffer[port] += 0x80;
+            file->offset += 0x80;
+            int absoluteSector = buRelativeToAbsoluteSector(port, file->LBA, ++g_buOpSectorStart[port]);
+            int actualSector = buGetReallocated(port, absoluteSector);
+            if (actualSector == -1) actualSector = absoluteSector;
+            g_buOpActualSector[port] = actualSector;
+            if (!syscall_mcWriteSector(deviceId, actualSector, g_buOpBuffer[port])) {
+                g_mcOverallSuccess = 0;
+                g_mcErrors[0] = 1;
+                buFinishAndTrigger(port, 0x8000);
+            }
+            break;
+        }
         case 4:
             switch (s_buCurrentState[port]) {
                 case 1:
@@ -358,7 +407,7 @@ void buLowLevelOpCompleted() {
                     uint32_t entriesStates[15];
                     for (unsigned i = 0; i < 15; i++) {
                         entriesStates[i] = 0;
-                        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52; // this makes no sense
+                        if (buValidateEntryAndCorrect(port, i)) entriesStates[i] = 0x52;  // this makes no sense
                     }
                     for (unsigned i = 0; i < 15; i++) entriesStates[i] = 0;
                     for (unsigned i = 0; i < 15; i++) {
@@ -405,8 +454,25 @@ void buLowLevelOpCompleted() {
                     break;
             }
             break;
-        default:
+        case 5:
             buUnimplemented("buLowLevelOpCompleted", g_buOperation[port]);
+            g_buOperation[port] = 6;
+            // brokensomething?
+            psxbzero(buffer, 0x80);
+            // memcpy(buffer, ...?)
+            buComputeSectorChecksum(buffer);
+            // if (!syscall_mcWriteSector(deviceId, ...?, buffer))
+            {
+                g_mcOverallSuccess = 0;
+                g_mcErrors[0] = 1;
+                buFinishAndTrigger(port, 0x8000);
+            }
+            break;
+        default:
+            g_mcOverallSuccess = 0;
+            g_mcErrors[0] = 1;
+            buFinishAndTrigger(port, 0x8000);
+            break;
     }
 }
 
@@ -454,7 +520,7 @@ int buReadTOC(int deviceId) {
 static int filterInner(int state) { return state != 0x52; }
 static int filterFirst(int state) { return state != 0x51; }
 
-static int buWriteTOCInternal(int deviceId, struct JmpBuf * buf, int (*filter)(int), int * bitmap) {
+static int buWriteTOCInternal(int deviceId, struct JmpBuf *buf, int (*filter)(int), int *bitmap) {
     int index = 0;
     int port = deviceId >= 0 ? deviceId : deviceId + 15;
     port >>= 4;

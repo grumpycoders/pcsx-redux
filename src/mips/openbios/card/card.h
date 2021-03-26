@@ -49,3 +49,11 @@ struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
 int dev_bu_format(struct File *file);
 void dev_bu_rename();
 void dev_bu_deinit();
+
+extern int g_buOpSectorStart[2];
+extern int g_buOpSectorCount[2];
+extern int g_buOpActualSector[2];
+extern char *g_buOpBuffer[2];
+extern struct File *g_buOpFile[2];
+int buRelativeToAbsoluteSector(int port, int block, int sector);
+int buGetReallocated(int port, int sector);
