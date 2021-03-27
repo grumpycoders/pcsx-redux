@@ -38,5 +38,5 @@ static __attribute__((always_inline)) uint32_t getOpenBiosVersion() {
     register int n asm("t1") = 0x00;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     uintptr_t* a0table = (uintptr_t*)0x200;
-    ((uint32_t (*)())(a0table[10] ^ 1))();
+    ((uint32_t(*)())(a0table[10] ^ 1))();
 }

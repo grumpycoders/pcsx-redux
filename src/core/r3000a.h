@@ -415,7 +415,8 @@ class R3000Acpu {
                     case 0x07: {
                         g_system->printf("deliverEvent(%s, %s) from 0x%08x\n",
                                          Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
-                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(), m_psxRegs.GPR.n.ra);
+                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
+                                         m_psxRegs.GPR.n.ra);
                         break;
                     }
                     case 0x08: {
@@ -424,8 +425,8 @@ class R3000Acpu {
                         g_system->printf("openEvent(%s, %s, %s, 0x%08x) --> 0x%08x from 0x%08x\n",
                                          Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
                                          Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
-                                         Kernel::Events::Event::resolveMode(m_psxRegs.GPR.n.a2).c_str(), m_psxRegs.GPR.n.a3,
-                                         id | 0xf1000000, m_psxRegs.GPR.n.ra);
+                                         Kernel::Events::Event::resolveMode(m_psxRegs.GPR.n.a2).c_str(),
+                                         m_psxRegs.GPR.n.a3, id | 0xf1000000, m_psxRegs.GPR.n.ra);
                         break;
                     }
                     case 0x09: {
@@ -466,7 +467,8 @@ class R3000Acpu {
                     case 0x20: {
                         g_system->printf("undeliverEvent(%s, %s) from 0x%08x\n",
                                          Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
-                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(), m_psxRegs.GPR.n.ra);
+                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
+                                         m_psxRegs.GPR.n.ra);
                         break;
                     }
                 }
