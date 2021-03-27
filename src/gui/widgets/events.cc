@@ -30,7 +30,8 @@ void PCSX::Widgets::Events::draw(const uint32_t* psxMemory, const char* title) {
         return;
     }
 
-    ImGui::Checkbox(_("Log kernel events"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>().value);
+    ImGui::Checkbox(_("Log kernel events"),
+                    &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>().value);
 
     static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
                                              ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |

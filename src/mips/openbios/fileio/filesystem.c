@@ -41,7 +41,7 @@ struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry) {
         psxerrno = PSXEMFILE;
         return NULL;
     }
-    const char * filename = splitFilepathAndFindDevice(filepath, &device, &deviceId);
+    const char *filename = splitFilepathAndFindDevice(filepath, &device, &deviceId);
     file = g_firstFile;
     if (filename == ((char *)-1)) {
         psxerrno = PSXENODEV;
@@ -69,8 +69,8 @@ int format(const char *deviceName) {
     int deviceId;
     struct Device *device;
 
-    const char * filename = splitFilepathAndFindDevice(deviceName, &device, &deviceId);
-    if (filename == (const char*) -1) {
+    const char *filename = splitFilepathAndFindDevice(deviceName, &device, &deviceId);
+    if (filename == (const char *)-1) {
         psxerrno = PSXENODEV;
         file->flags = 0;
         return 0;

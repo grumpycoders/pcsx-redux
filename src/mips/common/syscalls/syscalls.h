@@ -368,7 +368,7 @@ static __attribute__((always_inline)) int syscall_enableEvent(uint32_t event) {
 static __attribute__((always_inline)) void syscall_initPad(void *buffer1, size_t size1, void *buffer2, size_t size2) {
     register int n asm("t1") = 0x12;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void (*)(void*, size_t, void*, size_t))0xb0)(buffer1, size1, buffer2, size2);
+    ((void (*)(void *, size_t, void *, size_t))0xb0)(buffer1, size1, buffer2, size2);
 }
 
 static __attribute__((always_inline)) void syscall_startPad() {
