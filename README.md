@@ -39,10 +39,12 @@ Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(s
 
 #### GNU/Linux Dependencies
 
- - Debian derivatives :
+If you're only interested in compiling psx code, you can simply clone the pcsx-redux repo, then install `g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu` then follow the instructions in `/pcsx-redux/src/mips/psyq/README.md` to convert the PsyQ libraries. You might find them pre-compiled online.
+
+ - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y git make pkg-config clang-11 g++-10 g++-mipsel-linux-gnu libavcodec-dev libavformat-dev libavutil-dev libfreetype-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libsdl2-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
