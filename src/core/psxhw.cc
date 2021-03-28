@@ -347,10 +347,10 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
             PCSX::g_emulator->m_cdrom->write3(value);
             break;
         case 0x1f802041:
-            PCSX::g_system->biosPrintf("BIOS Trace1: 0x%02x\n", value);
+            PCSX::g_system->log(LogClass::PSXHW, "BIOS Trace1: 0x%02x\n", value);
             break;
         case 0x1f802042:
-            PCSX::g_system->biosPrintf("BIOS Trace2: 0x%02x\n", value);
+            PCSX::g_system->log(LogClass::PSXHW, "BIOS Trace2: 0x%02x\n", value);
             break;
         case 0x1f802080:
             PCSX::g_system->biosPutc(value);

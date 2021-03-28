@@ -377,8 +377,6 @@ void PCSX::SIO::netError() {
 
     PCSX::g_emulator->m_cdromId[0] = '\0';
     PCSX::g_emulator->m_cdromLabel[0] = '\0';
-
-    PCSX::g_system->runGui();
 }
 
 void PCSX::SIO::interrupt() {

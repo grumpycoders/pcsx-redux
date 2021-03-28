@@ -237,7 +237,7 @@ class Tree final : public BaseTree {
     const_iterator cend() const { return const_iterator(&m_nil, m_nil); }
     bool empty() const { return m_count == 0; }
     void clear() {
-        while (m_count) unlink(m_root);
+        while (m_count) unlink(dynamic_cast<Node*>(m_root));
     }
     iterator insert(const Key& key, Node* const z) {
         z->unlink();

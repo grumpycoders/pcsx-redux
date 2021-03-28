@@ -794,7 +794,8 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+            std::filesystem::path p = fileToOpen[0];
+            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p);
             g_system->softReset();
         }
     }
@@ -1003,7 +1004,7 @@ void PCSX::GUI::endFrame() {
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
-        m_log.addLog("Got ImGui User Error: %s\n", m_imguiUserError.c_str());
+        g_system->log(LogClass::UI, "Got ImGui User Error: %s\n", m_imguiUserError.c_str());
         m_gotImguiUserError = false;
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
@@ -1324,11 +1325,12 @@ void PCSX::GUI::shellReached() {
 
     if (m_exeToLoad.empty()) return;
     PCSX::u8string filename = std::move(m_exeToLoad);
+    std::filesystem::path p = filename;
 
-    g_system->biosPrintf("Hijacked shell, loading %s...\n", filename.c_str());
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p);
     bool success = BinaryLoader::load(filename);
     if (success) {
-        g_system->biosPrintf("Successful: new PC = %08x...\n", regs.pc);
+        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
     }
 }
 
@@ -1351,7 +1353,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
         m_exeToLoad = path.u8string();
-        g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->m_iso.close();

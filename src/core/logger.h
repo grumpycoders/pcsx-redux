@@ -22,57 +22,60 @@
 #include <stdarg.h>
 
 #include "core/system.h"
+#include "fmt/printf.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 namespace PCSX {
 
-struct LogName {
-    const char *name;
+enum class LogClass : unsigned {
+    UNCATEGORIZED,
+    MIPS,
+    UI,
+    PAD,
+    SIO1,
+    GTE,
+    CDR,
+    CDR_IO,
+    EMU,
+    PSXHW,
+    PSXBIOS,
+    PSXDMA,
+    PSXMEM,
+    PSXCPU,
+    MISC,
 };
 
-template <const LogName &name, bool enabled>
+template <LogClass logClass, bool enabled>
 struct Logger {
-    static void Log(const char *fmt, ...) {
+    template <typename... Args>
+    static void Log(const char *format, const Args &...args) {
         if (!enabled) return;
-        va_list a;
-        va_start(a, fmt);
-        g_system->log(name.name, fmt, a);
-        va_end(a);
+        std::string s = fmt::sprintf(format, args...);
+        g_system->log(logClass, s);
     }
-    static void LogVA(const char *fmt, va_list a) {
+    static void Log(const std::string & s) {
         if (!enabled) return;
-        g_system->log(name.name, fmt, a);
+        g_system->log(logClass, s);
     }
     static constexpr bool c_enabled = enabled;
+    static constexpr LogClass c_logClass = logClass;
 };
-
-static constexpr LogName PadLogName = {"PAD"};
-static constexpr LogName Sio1LogName = {"SIO1"};
-static constexpr LogName GteLogName = {"GTE"};
-static constexpr LogName CdrLogName = {"CDR"};
-static constexpr LogName CdrIOLogName = {"CDR_IO"};
-static constexpr LogName EmuLogName = {"EMU"};
-static constexpr LogName PsxHWLogName = {"PSXHW"};
-static constexpr LogName PsxBIOSLogName = {"PSXBIOS"};
-static constexpr LogName PsxDMALogName = {"PSXDMA"};
-static constexpr LogName PsxMEMLogName = {"PSXMEM"};
-static constexpr LogName PsxCPULogName = {"PSXCPU"};
-static constexpr LogName MiscLogName = {"MISC"};
 
 /*
  * Specifies at compilation time which logs should be activated.
  */
-typedef Logger<PadLogName, false> PAD_LOGGER;
-typedef Logger<Sio1LogName, false> SIO1_LOGGER;
-typedef Logger<GteLogName, false> GTE_LOGGER;
-typedef Logger<CdrLogName, false> CDR_LOGGER;
-typedef Logger<CdrIOLogName, false> CDRIO_LOGGER;
-typedef Logger<EmuLogName, false> EMU_LOGGER;
-typedef Logger<PsxHWLogName, false> PSXHW_LOGGER;
-typedef Logger<PsxBIOSLogName, false> PSXBIOS_LOGGER;
-typedef Logger<PsxDMALogName, false> PSXDMA_LOGGER;
-typedef Logger<PsxMEMLogName, false> PSXMEM_LOGGER;
-typedef Logger<PsxCPULogName, false> PSXCPU_LOGGER;
-typedef Logger<MiscLogName, false> MISC_LOGGER;
+typedef Logger<LogClass::PAD, false> PAD_LOGGER;
+typedef Logger<LogClass::SIO1, false> SIO1_LOGGER;
+typedef Logger<LogClass::GTE, false> GTE_LOGGER;
+typedef Logger<LogClass::CDR, false> CDR_LOGGER;
+typedef Logger<LogClass::CDR_IO, false> CDRIO_LOGGER;
+typedef Logger<LogClass::EMU, false> EMU_LOGGER;
+typedef Logger<LogClass::PSXHW, false> PSXHW_LOGGER;
+typedef Logger<LogClass::PSXBIOS, false> PSXBIOS_LOGGER;
+typedef Logger<LogClass::PSXDMA, false> PSXDMA_LOGGER;
+typedef Logger<LogClass::PSXMEM, false> PSXMEM_LOGGER;
+typedef Logger<LogClass::PSXCPU, false> PSXCPU_LOGGER;
+typedef Logger<LogClass::MISC, false> MISC_LOGGER;
 
 }  // namespace PCSX
 
@@ -102,12 +105,6 @@ typedef Logger<MiscLogName, false> MISC_LOGGER;
         PCSX::PSXHW_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
         PCSX::PSXHW_LOGGER::Log(__VA_ARGS__);                                                \
-    }
-#define PSXHW_LOGV(fmt, va)                                                                  \
-    {                                                                                        \
-        PCSX::PSXHW_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
-                                PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXHW_LOGGER::LogVA(fmt, va);                                                  \
     }
 #define PSXBIOS_LOG(...)                                                                       \
     {                                                                                          \
