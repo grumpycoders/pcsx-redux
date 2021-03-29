@@ -19,9 +19,13 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <atomic>
 #include <memory>
+#include <type_traits>
 
+#include "core/kernel.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -286,13 +290,29 @@ class R3000Acpu {
     virtual bool isDynarec() = 0;
     void psxReset();
     void psxShutdown();
+
+    enum class Exception : uint32_t {
+        Interrupt = 0,
+        LoadAddressError = 4,
+        StoreAddressError = 5,
+        InstructionBusError = 6,
+        DataBusError = 7,
+        Syscall = 8,
+        Break = 9,
+        ReservedInstruction = 10,
+        CoprocessorUnusable = 11,
+        ArithmeticOverflow = 12,
+    };
+    void psxException(Exception e, bool bd) {
+        psxException(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd);
+    }
     void psxException(uint32_t code, bool bd);
     void psxBranchTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
-        PSXCPU_LOG("intsched %08x at %08x\n", interrupt, eCycle);
+        PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
         const uint32_t cycle = m_psxRegs.cycle;
         uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
         m_psxRegs.interrupt |= (1 << interrupt);
@@ -310,6 +330,7 @@ class R3000Acpu {
         invalidateCache();
         m_psxRegs.interrupt = 0;
     }
+    bool m_inISR = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
@@ -367,6 +388,7 @@ class R3000Acpu {
         }
         return true;
     }
+    template <bool eventLog>
     inline void InterceptBIOS() {
         const uint32_t pc = m_psxRegs.pc & 0x1fffff;
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
@@ -382,9 +404,74 @@ class R3000Acpu {
         if (pc == 0xb0) {
             switch (call) {
                 case 0x3d:  // putchar
-                    PCSX::g_system->biosPutc(r.a0);
-                    PCSX::g_emulator->m_psxCpu->psxBranchTest();
+                    g_system->biosPutc(r.a0);
                     break;
+            }
+        }
+
+        if constexpr (eventLog) {
+            if (pc == 0xb0) {
+                switch (call) {
+                    case 0x07: {
+                        g_system->printf("deliverEvent(%s, %s) from 0x%08x\n",
+                                         Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
+                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
+                                         m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x08: {
+                        int id = Kernel::Events::getFirstFreeEvent(
+                            reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM));
+                        g_system->printf("openEvent(%s, %s, %s, 0x%08x) --> 0x%08x from 0x%08x\n",
+                                         Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
+                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
+                                         Kernel::Events::Event::resolveMode(m_psxRegs.GPR.n.a2).c_str(),
+                                         m_psxRegs.GPR.n.a3, id | 0xf1000000, m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x09: {
+                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                                 m_psxRegs.GPR.n.a0};
+                        g_system->printf("closeEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x0a: {
+                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                                 m_psxRegs.GPR.n.a0};
+                        g_system->printf("waitEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x0b: {
+                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                                 m_psxRegs.GPR.n.a0};
+                        g_system->printf("testEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x0c: {
+                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                                 m_psxRegs.GPR.n.a0};
+                        g_system->printf("enableEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x0d: {
+                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                                 m_psxRegs.GPR.n.a0};
+                        g_system->printf("disableEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                    case 0x20: {
+                        g_system->printf("undeliverEvent(%s, %s) from 0x%08x\n",
+                                         Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
+                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
+                                         m_psxRegs.GPR.n.ra);
+                        break;
+                    }
+                }
             }
         }
     }

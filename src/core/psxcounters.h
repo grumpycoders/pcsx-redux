@@ -31,7 +31,6 @@ class Counters {
   private:
     /******************************************************************************/
     static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
-    static void verboseLog(int32_t level, const char *str, ...);
     uint32_t psxRcntRcountInternal(uint32_t index);
     void psxRcntWcountInternal(uint32_t index, uint32_t value);
 

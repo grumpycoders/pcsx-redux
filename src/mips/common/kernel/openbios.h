@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,17 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
+#include <stdint.h>
 
-int addDummyConsoleDevice();
-int addConsoleDevice();
+static inline int isOpenBiosPresent() {
+    uintptr_t* a0table = (uintptr_t*)0x200;
+    return (a0table[10] & 3) == 1;
+}
 
-extern int g_cachedInstallTTY;
-extern int g_installTTY;
-
-void dev_tty_init();
-int dev_tty_open(struct File *file, const char *filename, int mode);
-int dev_tty_action(struct File *file, enum FileAction action);
-int dev_tty_ioctl(struct File *file, int req, int arg);
+static __attribute__((always_inline)) uint32_t getOpenBiosVersion() {
+    if (!isOpenBiosPresent()) return 0;
+    register int n asm("t1") = 0x00;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    uintptr_t* a0table = (uintptr_t*)0x200;
+    ((uint32_t(*)())(a0table[10] ^ 1))();
+}

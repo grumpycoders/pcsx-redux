@@ -28,5 +28,8 @@ SOFTWARE.
 
 #include "common/psxlibc/handlers.h"
 
-extern struct HandlerInfo g_sio0HandlerInfo;
 int setSIO0AutoAck(int value);
+
+// internals
+extern struct HandlerInfo g_sio0HandlerInfo;
+extern uint32_t g_sio0Mask;

@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,41 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
+#include <stdlib.h>
 
-int addDummyConsoleDevice();
-int addConsoleDevice();
+int initCard(int padStarted);
+int startCard();
+int stopCard();
 
-extern int g_cachedInstallTTY;
-extern int g_installTTY;
+void mcResetStatus();
+int mcWaitForStatus();
+int mcWaitForStatusAndReturnIndex();
+void mcAllowNewCard();
+int mcGetLastDevice();
+int mcReadSector(int deviceId, int sector, uint8_t* buffer);
+int mcWriteSector(int deviceId, int sector, uint8_t* buffer);
+int cardInfoInternal(int deviceId);
 
-void dev_tty_init();
-int dev_tty_open(struct File *file, const char *filename, int mode);
-int dev_tty_action(struct File *file, enum FileAction action);
-int dev_tty_ioctl(struct File *file, int req, int arg);
+// internals
+int mcReadHandler();
+int mcWriteHandler();
+int mcInfoHandler();
+extern int g_mcOperation;
+extern int g_mcPortFlipping;
+extern uint8_t* g_mcUserBuffers[2];
+extern uint32_t g_mcChecksum[2];
+extern int g_mcSector[2];
+extern int g_mcDeviceId[2];
+extern int g_mcActionInProgress;
+extern int g_skipErrorOnNewCard;
+extern uint8_t g_mcFlags[2];
+extern int g_mcPortFlipping;
+extern int g_mcLastPort;
+extern int g_mcGotError;
+extern int g_mcFastTrackActive;
+
+extern int g_mcOverallSuccess;
+extern int g_mcErrors[4];
+
+extern int g_mcHandlerDelayPatch;
+extern int g_mcCardInfoPatchActivated;

@@ -95,7 +95,7 @@ int psxopen(const char* path, int mode) {
     file->deviceId = deviceId;
     file->device = device;
     file->deviceFlags = device->flags;
-    if (device->open(file, filename) != 0) {
+    if (device->open(file, filename, mode) != 0) {
         psxerrno = file->errno;
         file->flags = 0;
         return -1;

@@ -190,6 +190,7 @@
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc" />
     <ClCompile Include="..\..\src\core\ix86\ix86.cc" />
+    <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\misc.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
@@ -228,6 +229,7 @@
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\ix86\ix86.h" />
+    <ClInclude Include="..\..\src\core\kernel.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
@@ -247,7 +249,6 @@
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />
     <ClInclude Include="..\..\src\core\sio.h" />
-    <ClInclude Include="..\..\src\core\sjisfont.h" />
     <ClInclude Include="..\..\src\core\spu.h" />
     <ClInclude Include="..\..\src\core\sstate.h" />
     <ClInclude Include="..\..\src\core\stacktrace.h" />

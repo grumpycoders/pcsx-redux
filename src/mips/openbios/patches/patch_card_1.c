@@ -80,18 +80,15 @@ SOFTWARE.
         8005cea0 08 00 e0 03          jr              ra
         8005cea4 00 00 00 00          _nop
 
+    This patch will modify the fasttrack function to properly handle IREG/IMASK.
+
  */
 
 // clang-format on
 
 #ifndef GENERATE_HASHES
 
-// not doing anything about it for now
-enum patch_behavior patch_card_1_execute(uint32_t* ra) {
-    ra[2] = 16 | 0x10000000;
-    ra[3] = 0;
-    return PATCH_COUNTERPATCH;
-}
+enum patch_behavior patch_card_1_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 

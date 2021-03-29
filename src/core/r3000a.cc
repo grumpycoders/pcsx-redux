@@ -30,6 +30,8 @@
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
 #include "core/spu.h"
+#include "fmt/format.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
@@ -55,30 +57,40 @@ void PCSX::R3000Acpu::psxReset() {
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
     PCSX::g_emulator->m_hw->psxHwReset();
-
-    EMU_LOG("*BIOS END*\n");
 }
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     // Set the Cause
-    m_psxRegs.CP0.n.Cause = code;
+    unsigned ec = (code >> 2) & 0x1f;
+    auto e = magic_enum::enum_cast<Exception>(ec);
+    if (e.has_value()) {
+        ec = 1 << ec;
+        if (g_emulator->settings.get<Emulator::SettingFirstChanceException>() & ec) {
+            auto name = magic_enum::enum_name(e.value());
+            g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
+            g_system->pause();
+        }
+    }
+
+    m_inISR = true;
 
     // Set the EPC & PC
     if (bd) {
-        PSXCPU_LOG("bd set!!!\n");
-        g_system->printf("bd set!!!\n");
-        m_psxRegs.CP0.n.Cause |= 0x80000000;
+        code |= 0x80000000;
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc - 4);
-    } else
+    } else {
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc);
+    }
 
-    if (m_psxRegs.CP0.n.Status & 0x400000)
+    if (m_psxRegs.CP0.n.Status & 0x400000) {
         m_psxRegs.pc = 0xbfc00180;
-    else
+    } else {
         m_psxRegs.pc = 0x80000080;
+    }
 
+    m_psxRegs.CP0.n.Cause = code;
     // Set the Status
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
 }
@@ -135,7 +147,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
                 }
             } else {
                 m_psxRegs.interrupt &= ~mask;
-                PSXCPU_LOG("inttrig %08x\n", PSXINT_CDRLID);
+                PSXIRQ_LOG("Triggering interrupt %08x\n", interrupt);
                 act();
             }
         };
@@ -155,7 +167,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         m_psxRegs.lowestTarget = lowestTarget;
     }
     if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
-        PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
+        PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
         psxException(0x400, 0);
     }
 }

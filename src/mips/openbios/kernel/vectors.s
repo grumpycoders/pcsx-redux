@@ -45,8 +45,13 @@ getCop0CauseAndEPC:
 
     .align 2
     .global exceptionHandler
+    .global exceptionHandlerPatchSlot1
+    .global exceptionHandlerPatchSlot2
+    .global exceptionHandlerPatchSlot3
+    .global exceptionHandlerPatchSlot4
     .type exceptionHandler, @function
 exceptionHandler:
+/* These 4 nops here are most likely for an injected very early handler */
     nop
     nop
     nop
@@ -80,18 +85,27 @@ exceptionHandler:
 noCOP2adjustmentNeeded:
     sw    $v1, 0x80($k0)
 
+/* These 4 blocs of 4 nops are each for an early exception handler slot.
+   Only registers at, v0, v1, and ra are saved at this point. The first
+   slot is used by the memory card driver. The second is used by the
+   lightgun driver. These are sometimes cleared out by patches. */
+
+exceptionHandlerPatchSlot1:
     nop
     nop
     nop
     nop
+exceptionHandlerPatchSlot2:
     nop
     nop
     nop
     nop
+exceptionHandlerPatchSlot3:
     nop
     nop
     nop
     nop
+exceptionHandlerPatchSlot4:
     nop
     nop
     nop
@@ -327,7 +341,7 @@ C0Vector:
     .type A0Handler, @function
 
 A0Handler:
-    li    $t0, %lo(__ramA0table)
+    la    $t0, __ramA0table
     sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -340,7 +354,7 @@ A0Handler:
     .type B0Handler, @function
 
 B0Handler:
-    li    $t0, %lo(B0table)
+    la    $t0, B0table
     sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
@@ -353,11 +367,25 @@ B0Handler:
     .type C0Handler, @function
 
 C0Handler:
-    li    $t0, %lo(C0table)
+    la    $t0, C0table
     sll   $t2, $t1, 2
     add   $t2, $t0
     lw    $t2, 0($t2)
     li    $t0, 0xc0
+    jr    $t2
+    nop
+
+    .align 2
+    .global OBtable
+    .global OBHandler
+    .type OBHandler, @function
+
+OBHandler:
+    li    $t0, %lo(OBtable)
+    sll   $t2, $t1, 2
+    add   $t2, $t0
+    lw    $t2, 0($t2)
+    nop
     jr    $t2
     nop
 

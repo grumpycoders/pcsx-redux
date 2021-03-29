@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <type_traits>
 #include <unordered_set>
 
 #include "core/binloader.h"
@@ -52,10 +53,12 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
 #include "lua/glffi.h"
 #include "lua/luawrapper.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
 #include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
@@ -307,6 +310,9 @@ end)(jit.status()))
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
             }
+            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
+                m_log.deserialize(j["loggers"]);
+            }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
@@ -425,6 +431,7 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
+    j["loggers"] = m_log.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -535,6 +542,7 @@ void PCSX::GUI::endFrame() {
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGL();
+    auto& emuSettings = PCSX::g_emulator->settings;
 
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -699,6 +707,24 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
+                ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
+                    ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                    constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
+                    unsigned& s = emuSettings.get<PCSX::Emulator::SettingFirstChanceException>().value;
+                    for (auto& e : exceptions) {
+                        unsigned f = 1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
+                        bool selected = s & f;
+                        changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
+                        if (selected) {
+                            s |= f;
+                        } else {
+                            s &= ~f;
+                        }
+                    }
+                    ImGui::PopItemFlag();
+                    ImGui::EndMenu();
+                }
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
@@ -772,7 +798,8 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+            std::filesystem::path p = fileToOpen[0];
+            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p);
             g_system->softReset();
         }
     }
@@ -804,7 +831,7 @@ void PCSX::GUI::endFrame() {
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw(this, _("Logs"));
+        changed |= m_log.draw(this, _("Logs"));
     }
 
     if (m_luaConsole.m_show) {
@@ -820,6 +847,9 @@ void PCSX::GUI::endFrame() {
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"));
+    }
+    if (m_events.m_show) {
+        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_psxMem->g_psxM), _("Kernel events"));
     }
 
     {
@@ -978,7 +1008,7 @@ void PCSX::GUI::endFrame() {
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
-        m_log.addLog("Got ImGui User Error: %s\n", m_imguiUserError.c_str());
+        g_system->log(LogClass::UI, "Got ImGui User Error: %s\n", m_imguiUserError.c_str());
         m_gotImguiUserError = false;
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
@@ -1299,11 +1329,12 @@ void PCSX::GUI::shellReached() {
 
     if (m_exeToLoad.empty()) return;
     PCSX::u8string filename = std::move(m_exeToLoad);
+    std::filesystem::path p = filename;
 
-    g_system->biosPrintf("Hijacked shell, loading %s...\n", filename.c_str());
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p);
     bool success = BinaryLoader::load(filename);
     if (success) {
-        g_system->biosPrintf("Successful: new PC = %08x...\n", regs.pc);
+        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
     }
 }
 
@@ -1326,7 +1357,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
         m_exeToLoad = path.u8string();
-        g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->m_iso.close();

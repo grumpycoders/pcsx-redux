@@ -696,14 +696,17 @@ void X86DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
     PCSX::g_system->message("Unrecoverable error while running recompiler\n");
-    PCSX::g_system->runGui();
 }
 
 void X86DynaRecCPU::execute() {
     uint32_t (**recFunc)() = NULL;
     char *p;
 
-    InterceptBIOS();
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>()) {
+        InterceptBIOS<true>();
+    } else {
+        InterceptBIOS<false>();
+    }
 
     p = (char *)PC_REC(m_psxRegs.pc);
 

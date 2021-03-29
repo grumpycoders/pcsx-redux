@@ -1,7 +1,9 @@
+// screw you code formatter, this one needs to stay on top
+#include <stdlib.h>
+// then, these can work; the psyq library is badly written and won't include what it uses
 #include <libetc.h>
 #include <libgpu.h>
 #include <libgte.h>
-#include <stdlib.h>
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(*(a)))
 

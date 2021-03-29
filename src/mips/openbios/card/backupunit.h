@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,23 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include <stdint.h>
 
-#include "common/psxlibc/device.h"
-#include "common/psxlibc/stdio.h"
+struct BuDirectoryEntry {
+    uint32_t allocState;
+    int32_t fileSize;
+    int16_t nextBlock;
+    char name[22];
+};
 
-int addDummyConsoleDevice();
-int addConsoleDevice();
+extern struct BuDirectoryEntry g_buDirEntries[2][15];
+extern uint8_t g_buBuffer[2][128];
+extern int32_t g_buBroken[2][20];
+extern int g_buOperation[2];
+extern int g_buAutoFormat;
 
-extern int g_cachedInstallTTY;
-extern int g_installTTY;
-
-void dev_tty_init();
-int dev_tty_open(struct File *file, const char *filename, int mode);
-int dev_tty_action(struct File *file, enum FileAction action);
-int dev_tty_ioctl(struct File *file, int req, int arg);
+int buInit(int deviceId);
+int buFormat(int deviceId);
+int buWriteTOC(int deviceId, int* bitmap);
+int buReallocateBrokenSectorAndRetry(int deviceId, int sector, char* buffer);
+void buFinishAndTrigger(int port, int spec);
