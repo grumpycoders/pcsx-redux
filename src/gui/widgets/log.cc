@@ -20,6 +20,7 @@
 #include "gui/widgets/log.h"
 
 #include "core/logger.h"
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "gui/gui.h"
 #include "imgui.h"
@@ -101,6 +102,18 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
             ImGui::PopItemFlag();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu(_("Special"))) {
+            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            changed |= ImGui::MenuItem(_("Log CD-ROM commands"), nullptr,
+                                       &g_emulator->settings.get<Emulator::SettingLoggingCDROM>().value);
+            changed |= ImGui::MenuItem(_("CPU trace"), nullptr,
+                                       &g_emulator->settings.get<Emulator::SettingTrace>().value);
+            changed |= ImGui::MenuItem(_("Skip ISR during CPU traces"), nullptr,
+                                       &g_emulator->settings.get<Emulator::SettingSkipISR>().value);
+            ImGui::PopItemFlag();
+            ImGui::EndMenu();
+        }
+
         if (changed) rebuildActive();
         ImGui::EndMenuBar();
     }

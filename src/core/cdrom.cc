@@ -25,15 +25,16 @@
 
 #include "core/ppf.h"
 #include "core/psxdma.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
 
 namespace {
 
 class CDRomImpl : public PCSX::CDRom {
     /* CD-ROM magic numbers */
-    enum {
+    enum Commands {
         CdlSync = 0,
-        CdlNop = 1,
+        CdlGetStat = 1,
         CdlSetloc = 2,
         CdlPlay = 3,
         CdlForward = 4,
@@ -64,12 +65,6 @@ class CDRomImpl : public PCSX::CDRom {
         CdlGetQ = 29,
         CdlReadToc = 30,
     };
-
-    static const inline char *CmdName[] = {
-        "CdlSync",     "CdlNop",     "CdlSetloc", "CdlPlay",  "CdlForward", "CdlBackward",  "CdlReadN",   "CdlStandby",
-        "CdlStop",     "CdlPause",   "CdlInit",   "CdlMute",  "CdlDemute",  "CdlSetfilter", "CdlSetmode", "CdlGetmode",
-        "CdlGetlocL",  "CdlGetlocP", "CdlReadT",  "CdlGetTN", "CdlGetTD",   "CdlSeekL",     "CdlSeekP",   "CdlSetclock",
-        "CdlGetclock", "CdlTest",    "CdlID",     "CdlReadS", "CdlReset",   "NULL",         "CDlReadToc", "NULL"};
 
     static const inline uint8_t Test04[] = {0};
     static const inline uint8_t Test05[] = {0};
@@ -197,8 +192,9 @@ class CDRomImpl : public PCSX::CDRom {
 
     inline void StopCdda() {
         if (m_play) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
                 m_iso.stop();
+            }
             m_statP &= ~STATUS_PLAY;
             m_play = false;
             m_fastForward = 0;
@@ -227,8 +223,8 @@ class CDRomImpl : public PCSX::CDRom {
             case MODE_SIZE_2328:
                 bufSize = 12 + 2328;
                 break;
-            default:
             case MODE_SIZE_2048:
+            default:
                 bufSize = 12 + 2048;
                 break;
         }
@@ -305,7 +301,7 @@ class CDRomImpl : public PCSX::CDRom {
                     CheckCdrom();
 
                     // m_statP STATUS_SHELLOPEN is "sticky"
-                    // and is only cleared by CdlNop
+                    // and is only cleared by CdlGetStat
 
                     m_driveState = DRIVESTATE_RESCAN_CD;
                     scheduleCDLidIRQ(cdReadTime * 105);
@@ -426,7 +422,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         CDROM_LOG(" -> %02x,%02x %02x:%02x:%02x %02x:%02x:%02x\n", m_subq.track, m_subq.index, m_subq.relative[0],
-                m_subq.relative[1], m_subq.relative[2], m_subq.absolute[0], m_subq.absolute[1], m_subq.absolute[2]);
+                  m_subq.relative[1], m_subq.relative[2], m_subq.absolute[0], m_subq.absolute[1], m_subq.absolute[2]);
     }
 
     void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
@@ -580,13 +576,17 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_irq = 0;
-        CDROM_LOG("CDRINT %x %x %x %x\n", m_seeked, m_stat, irq, m_irqRepeated);
+        CDROM_IO_LOG("CDRINT %x %x %x %x\n", m_seeked, m_stat, irq, m_irqRepeated);
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingLoggingCDROM>()) {
+            logCDROM(irq);
+        }
+
         switch (irq) {
             case CdlSync:
                 // TOOD: sometimes/always return error?
                 break;
 
-            case CdlNop:
+            case CdlGetStat:
                 if (m_driveState != DRIVESTATE_LID_OPEN) m_statP &= ~STATUS_SHELLOPEN;
                 no_busy_error = 1;
                 break;
@@ -640,8 +640,9 @@ class CDRomImpl : public PCSX::CDRom {
                 ReadTrack(m_setSectorPlay);
                 m_trackChanged = false;
 
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
                     m_iso.play(m_setSectorPlay);
+                }
 
                 // Vib Ribbon: gameplay checks flag
                 m_statP &= ~STATUS_SEEK;
@@ -661,10 +662,11 @@ class CDRomImpl : public PCSX::CDRom {
                 m_stat = Complete;
 
                 // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastForward == 0)
+                if (m_fastForward == 0) {
                     m_fastForward = 2;
-                else
+                } else {
                     m_fastForward++;
+                }
 
                 m_fastBackward = 0;
                 break;
@@ -673,10 +675,11 @@ class CDRomImpl : public PCSX::CDRom {
                 m_stat = Complete;
 
                 // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastBackward == 0)
+                if (m_fastBackward == 0) {
                     m_fastBackward = 2;
-                else
+                } else {
                     m_fastBackward++;
+                }
 
                 m_fastForward = 0;
                 break;
@@ -929,9 +932,10 @@ class CDRomImpl : public PCSX::CDRom {
                 }
                 Find_CurTrack(m_setSectorPlay);
 
-                if ((m_mode & MODE_CDDA) && m_curTrack > 1)
+                if ((m_mode & MODE_CDDA) && m_curTrack > 1) {
                     // Read* acts as play for cdda tracks in cdda mode
                     goto do_CdlPlay;
+                }
 
                 m_reading = 1;
                 m_firstSector = 1;
@@ -1112,8 +1116,9 @@ class CDRomImpl : public PCSX::CDRom {
                     attenuate(m_xa.pcm, m_xa.nsamples, m_xa.stereo);
                     PCSX::g_emulator->m_spu->playADPCMchannel(&m_xa);
                     m_firstSector = 0;
-                } else
+                } else {
                     m_firstSector = -1;
+                }
             }
         }
 
@@ -1165,10 +1170,11 @@ class CDRomImpl : public PCSX::CDRom {
     */
 
     uint8_t read0(void) final {
-        if (m_resultReady)
+        if (m_resultReady) {
             m_ctrl |= 0x20;
-        else
+        } else {
             m_ctrl &= ~0x20;
+        }
 
         if (m_OCUP) m_ctrl |= 0x40;
         //  else
@@ -1186,10 +1192,11 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     uint8_t read1(void) final {
-        if ((m_resultP & 0xf) < m_resultC)
+        if ((m_resultP & 0xf) < m_resultC) {
             psxHu8(0x1801) = m_result[m_resultP & 0xf];
-        else
+        } else {
             psxHu8(0x1801) = 0;
+        }
         m_resultP++;
         if (m_resultP == m_resultC) m_resultReady = 0;
         CDROM_IO_LOG("cdr r1: %02x\n", psxHu8(0x1801));
@@ -1213,7 +1220,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_cmd = rt;
         m_OCUP = 0;
 
-        CDROM_IO_LOG("CD1 write: %x (%s)", rt, CmdName[rt]);
+        CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
         if (m_paramC) {
             CDROM_IO_LOG(" Param[%d] = {", m_paramC);
             for (i = 0; i < m_paramC; i++) CDROM_IO_LOG(" %x,", m_param[i]);
@@ -1286,8 +1293,9 @@ class CDRomImpl : public PCSX::CDRom {
         CDROM_IO_LOG("cdr w2: %02x\n", rt);
         switch (m_ctrl & 3) {
             case 0:
-                if (m_paramC < 8)  // FIXME: size and wrapping
+                if (m_paramC < 8) {  // FIXME: size and wrapping
                     m_param[m_paramC++] = rt;
+                }
                 return;
             case 1:
                 m_reg2 = rt;
@@ -1303,10 +1311,11 @@ class CDRomImpl : public PCSX::CDRom {
     }
 
     uint8_t read3(void) final {
-        if (m_ctrl & 0x1)
+        if (m_ctrl & 0x1) {
             psxHu8(0x1803) = m_stat | 0xE0;
-        else
+        } else {
             psxHu8(0x1803) = m_reg2 | 0xE0;
+        }
         CDROM_IO_LOG("cdr r3: %02x\n", psxHu8(0x1803));
         return psxHu8(0x1803);
     }
@@ -1327,8 +1336,8 @@ class CDRomImpl : public PCSX::CDRom {
             case 3:
                 if (rt & 0x20) {
                     memcpy(&m_attenuatorLeftToLeft, &m_attenuatorLeftToLeftT, 4);
-                    CDROM_IO_LOG("CD-XA Volume: %02x %02x | %02x %02x\n", m_attenuatorLeftToLeft, m_attenuatorLeftToRight,
-                               m_attenuatorRightToLeft, m_attenuatorRightToRight);
+                    CDROM_IO_LOG("CD-XA Volume: %02x %02x | %02x %02x\n", m_attenuatorLeftToLeft,
+                                 m_attenuatorLeftToRight, m_attenuatorRightToLeft, m_attenuatorRightToRight);
                 }
                 return;
         }
@@ -1380,8 +1389,8 @@ class CDRomImpl : public PCSX::CDRom {
                         case MODE_SIZE_2328:
                             cdsize = 2328;
                             break;
-                        default:
                         case MODE_SIZE_2048:
+                        default:
                             cdsize = 2048;
                             break;
                     }
@@ -1529,16 +1538,19 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_play) {
             Find_CurTrack(m_setSectorPlay);
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
                 m_iso.play(m_setSectorPlay);
+            }
         }
     }
 
     int freeze(gzFile f, int Mode) final {
         uint8_t tmpp[3];
 
-        if (Mode == 0 && PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+        if (Mode == 0 &&
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
             m_iso.stop();
+        }
 
         // gzfreeze(&m_cdr, sizeof(m_cdr));
 
@@ -1554,8 +1566,9 @@ class CDRomImpl : public PCSX::CDRom {
 
             if (m_play) {
                 Find_CurTrack(m_setSectorPlay);
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED)
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
                     m_iso.play(m_setSectorPlay);
+                }
             }
         }
 
@@ -1566,6 +1579,22 @@ class CDRomImpl : public PCSX::CDRom {
         getCdInfo();
         StopCdda();
         lidSeekInterrupt();
+    }
+
+    void logCDROM(int command) {
+        const auto delayedString = (command & 0x100) ? "[Delayed]" : "";  // log if this is a delayed CD-ROM IRQ
+
+        switch (command & 0xff) {
+            // TODO: decode more commands
+            case CdlTest:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlTest %02x\n", delayedString,
+                                    m_param[0]);
+                break;
+            default:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
+                                    magic_enum::enum_names<Commands>()[command & 0xff]);
+                break;
+        }
     }
 };
 
