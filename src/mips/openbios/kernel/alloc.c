@@ -153,8 +153,8 @@ static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size, enum
     // We *may* have the bottom of our heap that has shifted, because of a free.
     // So let's check first if we have free space there, because I'm nervous
     // about having an incomplete data structure.
-    void *heap_base = heap ? user_heap_base : kern_heap_base;
-    heap_t *head = heap ? user_head : kern_head;
+    void *heap_base = heap == HEAP_USER ? user_heap_base : kern_heap_base;
+    heap_t *head = heap == HEAP_USER ? user_head : kern_head;
     if (((uintptr_t)heap_base + size) < (uintptr_t)head) {
         new = (heap_t *)heap_base;
         ptr = (void *)((uintptr_t) new + sizeof(heap_t));
@@ -165,6 +165,11 @@ static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size, enum
         new->next = head;
         head->prev = new;
         head = new;
+        if (heap == HEAP_USER) {
+            user_head = head;
+        } else {
+            kern_head = head;
+        }
         return ptr;
     }
 
@@ -218,14 +223,24 @@ static __attribute__((section(".ramtext"))) void multi_free(void *ptr, enum heap
         head = head->next;
 
         if (head) {
+            if (heap == HEAP_USER) {
+                user_head = head;
+            } else {
+                kern_head = head;
+            }
             head->prev = NULL;
         } else {
             if (heap == HEAP_USER) {
                 user_tail = NULL;
+                user_heap_base = NULL;
+                user_head = NULL;
+                user_heap_bottom = NULL;
             } else {
                 kern_tail = NULL;
+                kern_heap_base = NULL;
+                kern_head = NULL;
+                kern_heap_bottom = NULL;
             }
-            sbrk(-size, heap);
         }
 
         return;
@@ -233,8 +248,9 @@ static __attribute__((section(".ramtext"))) void multi_free(void *ptr, enum heap
 
     // Finding the proper block
     cur = head;
-    for (cur = head; ptr != cur->ptr; cur = cur->next)
+    for (cur = head; ptr != cur->ptr; cur = cur->next) {
         if (!cur->next) return;
+    }
 
     if (cur->next) {
         // In the middle, just unlink it
@@ -243,8 +259,18 @@ static __attribute__((section(".ramtext"))) void multi_free(void *ptr, enum heap
         // At the end, shrink heap
         if (heap == HEAP_USER) {
             user_tail = cur->prev;
+            if (!user_tail) {
+                user_heap_base = NULL;
+                user_head = NULL;
+                user_heap_bottom = NULL;
+            }
         } else {
             kern_tail = cur->prev;
+            if (!kern_tail) {
+                kern_heap_base = NULL;
+                kern_head = NULL;
+                kern_heap_bottom = NULL;
+            }
         }
         top = sbrk(0, heap);
         size = (top - cur->prev->ptr) - cur->prev->size;

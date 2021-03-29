@@ -98,7 +98,11 @@ _boot:
     li    $t0, 0x3022
     sw    $t0, SBUS_DEV1_CTRL
 
-    li    $t0, 0x70777
+    /* The original code uses 70777 here, but we have
+       some debugging routines hitting 0x1f802080,
+       beyond the normal range, so we need to extend it,
+       to avoid crashes on the real hardware. */
+    li    $t0, 0x80777
     sw    $t0, SBUS_DEV8_CTRL
 
     /* clearing out all registers */

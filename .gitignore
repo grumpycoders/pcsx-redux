@@ -8,6 +8,9 @@
 
 Debug/
 Release/
+ReleaseWithTracy/
+Enabled/
+Disabled/
 
 .vs/
 

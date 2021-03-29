@@ -60,8 +60,8 @@ static const struct Device s_ttyDevice = {
     .write = psxdummy,
     .erase = psxdummy,
     .undelete = psxdummy,
-    .firstfile = psxdummy,
-    .nextfile = psxdummy,
+    .firstFile = psxdummy,
+    .nextFile = psxdummy,
     .format = psxdummy,
     .chdir = psxdummy,
     .rename = psxdummy,
@@ -85,8 +85,8 @@ static const struct Device s_dummyDevice = {
     .write = psxdummy,
     .erase = psxdummy,
     .undelete = psxdummy,
-    .firstfile = psxdummy,
-    .nextfile = psxdummy,
+    .firstFile = psxdummy,
+    .nextFile = psxdummy,
     .format = psxdummy,
     .chdir = psxdummy,
     .rename = psxdummy,
@@ -114,7 +114,7 @@ void dev_tty_init() {
     s_circ.start = s_circ.end = NULL;
 }
 
-int dev_tty_open(struct File *file) {
+int dev_tty_open(struct File *file, const char *filename, int mode) {
     POST = 0x0c;
     if (file->deviceId < 2) {
         file->flags |= PSXF_SCAN2;
@@ -194,7 +194,7 @@ int dev_tty_ioctl(struct File *file, int req, int arg) {
             s_circ.start = s_circ.end = s_circ.buffer;
             break;
         case PSXTIOCREOPEN:
-            return dev_tty_open(file);
+            return dev_tty_open(file, (char *)0x7403, arg);
             break;
         default:
             file->errno = PSXEINVAL;

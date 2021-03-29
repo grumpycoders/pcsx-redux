@@ -30,6 +30,8 @@
 #include "core/mdec.h"
 #include "core/pgxp_mem.h"
 #include "core/spu.h"
+#include "fmt/format.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
@@ -55,30 +57,40 @@ void PCSX::R3000Acpu::psxReset() {
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
     PCSX::g_emulator->m_hw->psxHwReset();
-
-    EMU_LOG("*BIOS END*\n");
 }
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     // Set the Cause
-    m_psxRegs.CP0.n.Cause = code;
+    unsigned ec = (code >> 2) & 0x1f;
+    auto e = magic_enum::enum_cast<Exception>(ec);
+    if (e.has_value()) {
+        ec = 1 << ec;
+        if (g_emulator->settings.get<Emulator::SettingFirstChanceException>() & ec) {
+            auto name = magic_enum::enum_name(e.value());
+            g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
+            g_system->pause();
+        }
+    }
+
+    m_inISR = true;
 
     // Set the EPC & PC
     if (bd) {
-        PSXCPU_LOG("bd set!!!\n");
-        g_system->printf("bd set!!!\n");
-        m_psxRegs.CP0.n.Cause |= 0x80000000;
+        code |= 0x80000000;
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc - 4);
-    } else
+    } else {
         m_psxRegs.CP0.n.EPC = (m_psxRegs.pc);
+    }
 
-    if (m_psxRegs.CP0.n.Status & 0x400000)
+    if (m_psxRegs.CP0.n.Status & 0x400000) {
         m_psxRegs.pc = 0xbfc00180;
-    else
+    } else {
         m_psxRegs.pc = 0x80000080;
+    }
 
+    m_psxRegs.CP0.n.Cause = code;
     // Set the Status
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
 }
@@ -107,115 +119,56 @@ void PCSX::R3000Acpu::psxBranchTest() {
     }
 #endif
 
-    if ((m_psxRegs.cycle - PCSX::g_emulator->m_psxCounters->m_psxNextsCounter) >=
+    const uint32_t cycle = m_psxRegs.cycle;
+
+    if ((cycle - PCSX::g_emulator->m_psxCounters->m_psxNextsCounter) >=
         PCSX::g_emulator->m_psxCounters->m_psxNextCounter)
         PCSX::g_emulator->m_psxCounters->psxRcntUpdate();
 
-    if (m_psxRegs.spuInterrupt.exchange(false)) {
-        PCSX::g_emulator->m_spu->interrupt();
+    if (m_psxRegs.spuInterrupt.exchange(false)) PCSX::g_emulator->m_spu->interrupt();
+
+    const uint32_t interrupts = m_psxRegs.interrupt;
+
+    int32_t lowestDistance = std::numeric_limits<int32_t>::max();
+    uint32_t lowestTarget = cycle;
+    uint32_t* targets = m_psxRegs.intTargets;
+
+    if ((interrupts != 0) && (((int32_t)(m_psxRegs.lowestTarget - cycle)) <= 0)) {
+        auto checkAndUpdate = [&lowestDistance, &lowestTarget, interrupts, cycle, targets, this](
+                                  unsigned interrupt, std::function<void()> act) {
+            uint32_t mask = 1 << interrupt;
+            if ((interrupts & mask) == 0) return;
+            uint32_t target = targets[interrupt];
+            int32_t dist = target - cycle;
+            if (dist > 0) {
+                if (lowestDistance > dist) {
+                    lowestDistance = dist;
+                    lowestTarget = target;
+                }
+            } else {
+                m_psxRegs.interrupt &= ~mask;
+                PSXIRQ_LOG("Triggering interrupt %08x\n", interrupt);
+                act();
+            }
+        };
+
+        checkAndUpdate(PSXINT_SIO, []() { g_emulator->m_sio->interrupt(); });
+        checkAndUpdate(PSXINT_CDR, []() { g_emulator->m_cdrom->interrupt(); });
+        checkAndUpdate(PSXINT_CDREAD, []() { g_emulator->m_cdrom->readInterrupt(); });
+        checkAndUpdate(PSXINT_GPUDMA, []() { GPU::gpuInterrupt(); });
+        checkAndUpdate(PSXINT_MDECOUTDMA, []() { g_emulator->m_mdec->mdec1Interrupt(); });
+        checkAndUpdate(PSXINT_SPUDMA, []() { spuInterrupt(); });
+        checkAndUpdate(PSXINT_MDECINDMA, []() { g_emulator->m_mdec->mdec0Interrupt(); });
+        checkAndUpdate(PSXINT_GPUOTCDMA, []() { gpuotcInterrupt(); });
+        checkAndUpdate(PSXINT_CDRDMA, []() { g_emulator->m_cdrom->dmaInterrupt(); });
+        checkAndUpdate(PSXINT_CDRPLAY, []() { g_emulator->m_cdrom->playInterrupt(); });
+        checkAndUpdate(PSXINT_CDRDBUF, []() { g_emulator->m_cdrom->decodedBufferInterrupt(); });
+        checkAndUpdate(PSXINT_CDRLID, []() { g_emulator->m_cdrom->lidSeekInterrupt(); });
+        m_psxRegs.lowestTarget = lowestTarget;
     }
-
-    if (m_psxRegs.interrupt) {
-        if ((m_psxRegs.interrupt & (1 << PSXINT_SIO)) &&
-            !PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) {  // sio
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SIO].sCycle) >= m_psxRegs.intCycle[PSXINT_SIO].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_SIO);
-                PCSX::g_emulator->m_sio->interrupt();
-            }
-        }
-        if (m_psxRegs.interrupt & (1 << PSXINT_CDR)) {  // cdr
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDR].sCycle) >= m_psxRegs.intCycle[PSXINT_CDR].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_CDR);
-                PCSX::g_emulator->m_cdrom->interrupt();
-            }
-        }
-        if (m_psxRegs.interrupt & (1 << PSXINT_CDREAD)) {  // cdr read
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDREAD].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_CDREAD].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_CDREAD);
-                PCSX::g_emulator->m_cdrom->readInterrupt();
-            }
-        }
-        if (m_psxRegs.interrupt & (1 << PSXINT_GPUDMA)) {  // gpu dma
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_GPUDMA].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_GPUDMA].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_GPUDMA);
-                PCSX::GPU::gpuInterrupt();
-            }
-        }
-        if (m_psxRegs.interrupt & (1 << PSXINT_MDECOUTDMA)) {  // mdec out dma
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_MDECOUTDMA].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_MDECOUTDMA].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_MDECOUTDMA);
-                PCSX::g_emulator->m_mdec->mdec1Interrupt();
-            }
-        }
-        if (m_psxRegs.interrupt & (1 << PSXINT_SPUDMA)) {  // spu dma
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_SPUDMA].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_SPUDMA].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_SPUDMA);
-                spuInterrupt();
-            }
-        }
-        if (m_psxRegs.interrupt & (1 << PSXINT_MDECINDMA)) {  // mdec in
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_MDECINDMA].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_MDECINDMA].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_MDECINDMA);
-                PCSX::g_emulator->m_mdec->mdec0Interrupt();
-            }
-        }
-
-        if (m_psxRegs.interrupt & (1 << PSXINT_GPUOTCDMA)) {  // gpu otc
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_GPUOTCDMA].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_GPUOTCDMA].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_GPUOTCDMA);
-                gpuotcInterrupt();
-            }
-        }
-
-        if (m_psxRegs.interrupt & (1 << PSXINT_CDRDMA)) {  // cdrom
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRDMA].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_CDRDMA].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_CDRDMA);
-                PCSX::g_emulator->m_cdrom->dmaInterrupt();
-            }
-        }
-
-        if (m_psxRegs.interrupt & (1 << PSXINT_CDRPLAY)) {  // cdr play timing
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRPLAY].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_CDRPLAY].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_CDRPLAY);
-                PCSX::g_emulator->m_cdrom->playInterrupt();
-            }
-        }
-
-        if (m_psxRegs.interrupt & (1 << PSXINT_CDRDBUF)) {  // cdr decoded buffer
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRDBUF].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_CDRDBUF].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_CDRDBUF);
-                PCSX::g_emulator->m_cdrom->decodedBufferInterrupt();
-            }
-        }
-
-        if (m_psxRegs.interrupt & (1 << PSXINT_CDRLID)) {  // cdr lid states
-            if ((m_psxRegs.cycle - m_psxRegs.intCycle[PSXINT_CDRLID].sCycle) >=
-                m_psxRegs.intCycle[PSXINT_CDRLID].cycle) {
-                m_psxRegs.interrupt &= ~(1 << PSXINT_CDRLID);
-                PCSX::g_emulator->m_cdrom->lidSeekInterrupt();
-            }
-        }
-    }
-    if (psxHu32(0x1070) & psxHu32(0x1074)) {
-        if ((m_psxRegs.CP0.n.Status & 0x401) == 0x401) {
-            uint32_t opcode;
-
-            // Crash Bandicoot 2: Don't run exceptions when GTE in pipeline
-            opcode = SWAP_LE32(*Read_ICache(m_psxRegs.pc, true));
-            if (((opcode >> 24) & 0xfe) != 0x4a) {
-                PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
-                psxException(0x400, 0);
-            }
-        }
+    if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
+        PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
+        psxException(0x400, 0);
     }
 }
 

@@ -128,7 +128,6 @@ class Emulator {
     typedef SettingPath<TYPESTRING("PpfDir")> SettingPpfDir;
     typedef SettingPath<TYPESTRING("PsxExe")> SettingPsxExe;
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
-    typedef Setting<bool, TYPESTRING("SioIrq")> SettingSioIrq;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
@@ -136,7 +135,11 @@ class Emulator {
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
     typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
-    typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
+    typedef Setting<bool, TYPESTRING("Trace")> SettingTrace;
+    typedef Setting<bool, TYPESTRING("KernelEventsLog")> SettingKernelEventsLog;
+    typedef Setting<unsigned, TYPESTRING("FirstChanceException"), 0x00001cf0> SettingFirstChanceException;
+    typedef Setting<bool, TYPESTRING("SkipISR")> SettingSkipISR;
+    typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> SettingLoggingCDROM;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
@@ -151,11 +154,11 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
-             SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
-             Setting8MB>
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
+             SettingDebug, SettingLoggingCDROM, SettingTrace, SettingKernelEventsLog, SettingFirstChanceException, SettingSkipISR,
+             SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted,
+             SettingBiosOverlay, SettingGdbServer, SettingGdbManifest, SettingGdbServerPort, SettingGdbServerTrace,
+             SettingWebServer, SettingWebServerPort, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:

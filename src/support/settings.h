@@ -26,11 +26,11 @@
 #include <filesystem>
 #include <functional>
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 #include "core/system.h"
 #include "json.hpp"
-#include "support/tuple.h"
 #include "typestring.hh"
 
 namespace PCSX {
@@ -157,20 +157,17 @@ class SettingArray<irqus::typestring<C...>, nestedSetting> : public std::vector<
 };
 
 template <typename... settings>
-class Settings : private SimpleTuple<settings...> {
+class Settings : private std::tuple<settings...> {
     using json = nlohmann::json;
-    using base = SimpleTuple<settings...>;
 
   public:
     template <typename setting>
     constexpr const setting &get() const {
-        constexpr size_t pos = SimpleTupleImpl::find<setting, settings...>();
-        return SimpleTupleImpl::getAt<pos>(this);
+        return std::get<setting>(*this);
     }
     template <typename setting>
     constexpr setting &get() {
-        constexpr size_t pos = SimpleTupleImpl::find<setting, settings...>();
-        return SimpleTupleImpl::getAt<pos>(this);
+        return std::get<setting>(*this);
     }
     constexpr void reset() { reset<0, settings...>(); }
     json serialize() const {
@@ -197,7 +194,7 @@ class Settings : private SimpleTuple<settings...> {
     constexpr void reset() {}
     template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void reset() {
-        settingType &setting = SimpleTupleImpl::getAt<index>(this);
+        settingType &setting = std::get<index>(*this);
         setting.reset();
         reset<index + 1, nestedSettings...>();
     }
@@ -205,7 +202,7 @@ class Settings : private SimpleTuple<settings...> {
     constexpr void serialize(json &j) const {}
     template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void serialize(json &j) const {
-        const settingType &setting = SimpleTupleImpl::getAt<index>(this);
+        const settingType &setting = std::get<index>(*this);
         j[settingType::name::data()] = setting.serialize();
         serialize<index + 1, nestedSettings...>(j);
     }
@@ -213,7 +210,7 @@ class Settings : private SimpleTuple<settings...> {
     constexpr void deserialize(const json &j, bool doReset = true) {}
     template <size_t index, typename settingType, typename... nestedSettings>
     constexpr void deserialize(const json &j, bool doReset = true) {
-        settingType &setting = SimpleTupleImpl::getAt<index>(this);
+        settingType &setting = std::get<index>(*this);
         try {
             if (j.find(settingType::name::data()) != j.end()) {
                 setting.deserialize(j[settingType::name::data()]);
@@ -229,7 +226,7 @@ class Settings : private SimpleTuple<settings...> {
 
 }  // namespace PCSX
 
-#if defined(_MSC_VER) && !defined(__llvm__)
+#ifdef _MSC_VER
 #define TYPESTRING_MAX_CONST_CHAR 99
 
 #define TYPESTRING_MIN(a, b) (a) < (b) ? (a) : (b)

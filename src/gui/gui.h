@@ -31,6 +31,7 @@
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
+#include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -41,6 +42,7 @@
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
 
@@ -54,6 +56,8 @@ struct GLFWwindow;
 
 namespace PCSX {
 
+enum class LogClass : unsigned;
+
 class GUI final {
   public:
     GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
@@ -64,13 +68,9 @@ class GUI final {
     void bindVRAMTexture();
     void setViewport();
     void setFullscreen(bool);
-    void addLog(const char *fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        addLog(fmt, args);
-        va_end(args);
+    bool addLog(LogClass logClass, const std::string &msg) {
+        return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
-    void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
     class Notifier {
       public:
         Notifier(std::function<const char *()> title) : m_title(title) {}
@@ -95,12 +95,7 @@ class GUI final {
         const std::function<const char *()> m_title;
         std::string m_message;
     };
-    void addNotification(const char *fmt, va_list args) {
-        char notification[1024];
-        vsnprintf(notification, 1023, fmt, args);
-        notification[1023] = 0;
-        m_notifier.notify(notification);
-    }
+    void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
     void magicOpen(const char *path);
 
@@ -233,6 +228,8 @@ class GUI final {
     Widgets::Types m_types;
     Widgets::Source m_source;
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
+
+    Widgets::Events m_events;
 
     EventBus::Listener m_listener;
 

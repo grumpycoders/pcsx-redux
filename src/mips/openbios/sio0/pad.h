@@ -26,9 +26,8 @@ SOFTWARE.
 
 #pragma once
 
+#include <stdint.h>
 #include <stdlib.h>
-
-#include "common/compiler/stdint.h"
 
 /* This one is a tough one. Technically, this should return a struct, that's
    using however the older gcc ABI. There's no way to reproduce the ABI

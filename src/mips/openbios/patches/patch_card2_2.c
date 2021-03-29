@@ -24,7 +24,10 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
+#include "openbios/sio0/card.h"
 
 // clang-format off
 
@@ -73,17 +76,19 @@ SOFTWARE.
         80078610 08 00 e0 03          jr              ra
         80078614 00 00 00 00          _nop
 
+    This patch introduces a small delay of 40 loops in the memory card handler.
+
  */
 
 // clang-format on
 
 #ifndef GENERATE_HASHES
 
-// not doing anything about it for now
-int patch_card2_2_execute(uint32_t* ra) {
+enum patch_behavior patch_card2_2_execute(uint32_t* ra) {
     ra[2] = 9 | 0x10000000;
     ra[3] = 0;
-    return 1;
+    g_mcHandlerDelayPatch = 40;
+    return PATCH_COUNTERPATCH;
 }
 
 #else

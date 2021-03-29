@@ -48,3 +48,5 @@ extern int g_patch_permissive;
 
 enum patch_table { PATCH_TABLE_B0, PATCH_TABLE_C0 };
 void patch_hook(uint32_t* ra, enum patch_table table);
+
+enum patch_behavior { PATCH_NOT_MATCHING, PATCH_COUNTERPATCH, PATCH_PASSTHROUGH };

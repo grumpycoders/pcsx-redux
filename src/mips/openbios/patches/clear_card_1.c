@@ -24,7 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
 
 // clang-format off
 
@@ -90,7 +92,7 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int clear_card_1_execute(uint32_t* ra) { return 2; }
+enum patch_behavior clear_card_1_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 
