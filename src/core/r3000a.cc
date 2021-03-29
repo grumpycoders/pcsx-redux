@@ -57,8 +57,6 @@ void PCSX::R3000Acpu::psxReset() {
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 
     PCSX::g_emulator->m_hw->psxHwReset();
-
-    EMU_LOG("*BIOS END*\n");
 }
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
@@ -149,7 +147,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
                 }
             } else {
                 m_psxRegs.interrupt &= ~mask;
-                PSXCPU_LOG("inttrig %08x\n", PSXINT_CDRLID);
+                PSXIRQ_LOG("Triggering interrupt %08x\n", interrupt);
                 act();
             }
         };
@@ -169,7 +167,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
         m_psxRegs.lowestTarget = lowestTarget;
     }
     if ((psxHu32(0x1070) & psxHu32(0x1074)) && ((m_psxRegs.CP0.n.Status & 0x401) == 0x401)) {
-        PSXCPU_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
+        PSXIRQ_LOG("Interrupt: %x %x\n", psxHu32(0x1070), psxHu32(0x1074));
         psxException(0x400, 0);
     }
 }

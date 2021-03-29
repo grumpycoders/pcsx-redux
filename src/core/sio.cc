@@ -220,7 +220,7 @@ void PCSX::SIO::writeMcd(uint8_t value) {
 }
 
 void PCSX::SIO::write8(uint8_t value) {
-    PAD_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
+    SIO0_LOG("sio write8 %x (PAR:%x PAD:%x MCDL%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
     if (m_padState) {
         writePad(value);
         return;
@@ -290,7 +290,7 @@ void PCSX::SIO::writeStatus16(uint16_t value) {}
 void PCSX::SIO::writeMode16(uint16_t value) { m_modeReg = value; }
 
 void PCSX::SIO::writeCtrl16(uint16_t value) {
-    PAD_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
+    SIO0_LOG("sio ctrlwrite16 %x (PAR:%x PAD:%x MCD:%x)\n", value, m_bufferIndex, m_padState, m_mcdState);
     m_ctrlReg = value & ~RESET_ERR;
     if (value & RESET_ERR) m_statusReg &= ~IRQ;
     if ((m_ctrlReg & SIO_RESET) || (!m_ctrlReg)) {
@@ -341,7 +341,7 @@ uint8_t PCSX::SIO::sioRead8() {
         }
     }
 
-    PAD_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
+    SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
             m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
             m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
     return ret;
@@ -377,12 +377,10 @@ void PCSX::SIO::netError() {
 
     PCSX::g_emulator->m_cdromId[0] = '\0';
     PCSX::g_emulator->m_cdromLabel[0] = '\0';
-
-    PCSX::g_system->runGui();
 }
 
 void PCSX::SIO::interrupt() {
-    PAD_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
+    SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.n.Status);
     //  PCSX::g_system->printf("Sio Interrupt\n");
     m_statusReg |= IRQ;
     psxHu32ref(0x1070) |= SWAP_LEu32(0x80);

@@ -310,6 +310,9 @@ end)(jit.status()))
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
             }
+            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
+                m_log.deserialize(j["loggers"]);
+            }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
@@ -428,6 +431,7 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
+    j["loggers"] = m_log.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -794,7 +798,8 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+            std::filesystem::path p = fileToOpen[0];
+            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p);
             g_system->softReset();
         }
     }
@@ -826,7 +831,7 @@ void PCSX::GUI::endFrame() {
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw(this, _("Logs"));
+        changed |= m_log.draw(this, _("Logs"));
     }
 
     if (m_luaConsole.m_show) {
@@ -1003,7 +1008,7 @@ void PCSX::GUI::endFrame() {
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
-        m_log.addLog("Got ImGui User Error: %s\n", m_imguiUserError.c_str());
+        g_system->log(LogClass::UI, "Got ImGui User Error: %s\n", m_imguiUserError.c_str());
         m_gotImguiUserError = false;
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
@@ -1324,11 +1329,12 @@ void PCSX::GUI::shellReached() {
 
     if (m_exeToLoad.empty()) return;
     PCSX::u8string filename = std::move(m_exeToLoad);
+    std::filesystem::path p = filename;
 
-    g_system->biosPrintf("Hijacked shell, loading %s...\n", filename.c_str());
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p);
     bool success = BinaryLoader::load(filename);
     if (success) {
-        g_system->biosPrintf("Successful: new PC = %08x...\n", regs.pc);
+        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
     }
 }
 
@@ -1351,7 +1357,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
         m_exeToLoad = path.u8string();
-        g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->m_iso.close();

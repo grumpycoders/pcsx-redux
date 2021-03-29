@@ -19,9 +19,15 @@
 
 #pragma once
 
-#include <stdarg.h>
+#include <stdexcept>
+#include <string>
 
+#include "core/misc.h"
 #include "imgui.h"
+#include "json.hpp"
+#include "support/hashtable.h"
+#include "support/list.h"
+#include "support/tree.h"
 
 namespace PCSX {
 class GUI;
@@ -29,23 +35,72 @@ namespace Widgets {
 
 class Log {
   public:
-    Log(bool& show) : m_show(show) {}
-    void clear();
-    void addLog(const char* fmt, ...) IM_FMTARGS(2) {
-        va_list args;
-        va_start(args, fmt);
-        addLog(fmt, args);
-        va_end(args);
+    using json = nlohmann::json;
+    json serialize() const;
+    void deserialize(const json& j);
+    Log(bool& show);
+    ~Log() {
+        clear();
+        m_classes.destroyAll();
     }
-    void addLog(const char* fmt, va_list args);
-    void draw(GUI* gui, const char* title);
+    void clear() { m_allLogs.destroyAll(); }
+    template <size_t L>
+    bool addLog(unsigned logClass, const char (&log)[L]) {
+        std::string str(log);
+        return addLog(logClass, str);
+    }
+    bool addLog(unsigned logClass, const char* log) {
+        std::string str(log);
+        return addLog(logClass, str);
+    }
+    bool addLog(unsigned logClass, const std::string& log) {
+        auto c = m_classes.find(logClass);
+        if (c == m_classes.end()) throw std::runtime_error("Unknown log class");
+        if (!c->enabled) return false;
+        c->buffer += log;
+        auto lines = Misc::split(c->buffer, "\n", true);
+        c->buffer = lines.back();
+        lines.pop_back();
+        for (auto& line : lines) {
+            Element* element = new Element(std::move(line));
+            c->list.push_back(element);
+            m_allLogs.push_back(element);
+            if (c->displayed) m_activeLogs.insert(m_activeLogs.size(), element);
+        }
+        return true;
+    }
+    bool draw(GUI* gui, const char* title);
 
     bool& m_show;
 
   private:
-    ImGuiTextBuffer m_buffer;
-    ImGuiTextFilter m_filter;
-    ImVector<int> m_lineOffsets;  // Index to lines offset
+    void addClass(unsigned logClass, const std::string& s) { m_classes.insert(logClass, new ClassElement(s)); }
+    void rebuildActive();
+    struct Element;
+    struct Class {};
+    typedef Intrusive::List<Element> All;
+    typedef Intrusive::Tree<unsigned, Element> ActiveTree;
+    typedef Intrusive::List<Element, Class> ClassList;
+    struct Element : public All::Node, public ActiveTree::Node, public ClassList::Node {
+        Element(const std::string& e) : entry(e) {}
+        Element(std::string&& e) : entry(std::move(e)) {}
+        const std::string entry;
+    };
+
+    All m_allLogs;
+    ActiveTree m_activeLogs;
+    struct ClassElement;
+    typedef Intrusive::HashTable<unsigned, ClassElement> ClassMap;
+    struct ClassElement : public ClassMap::Node {
+        ClassElement(const std::string& n) : name(n) {}
+        const std::string name;
+        std::string buffer;
+        ClassList list;
+        bool enabled = true;
+        bool displayed = true;
+    };
+    ClassMap m_classes;
+
     bool m_scrollToBottom = false;
     bool m_follow = true;
     bool m_mono = true;
