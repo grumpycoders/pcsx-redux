@@ -1585,6 +1585,7 @@ class CDRomImpl : public PCSX::CDRom {
         const auto delayedString = (command & 0x100) ? "[Delayed]" : "";  // log if this is a delayed CD-ROM IRQ
 
         switch (command & 0xff) {
+            // TODO: decode more commands
             case CdlTest:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlTest %02x\n", delayedString,
                                     m_param[0]);

@@ -102,7 +102,6 @@ class Log {
     ClassMap m_classes;
 
     bool m_scrollToBottom = false;
-
     bool m_follow = true;
     bool m_mono = true;
 };
