@@ -26,21 +26,54 @@
 #include "imgui_internal.h"
 #include "magic_enum/include/magic_enum.hpp"
 
+PCSX::Widgets::Log::json PCSX::Widgets::Log::serialize() const {
+    json ret;
+    for (auto logClass : magic_enum::enum_values<LogClass>()) {
+        auto c = m_classes.find(magic_enum::enum_integer(logClass));
+        std::string name = std::string{magic_enum::enum_name(logClass)};
+        json j;
+        j["enabled"] = c->enabled;
+        j["displayed"] = c->displayed;
+        ret[name] = j;
+    }
+    return ret;
+}
+
+void PCSX::Widgets::Log::deserialize(const json& j) {
+    for (auto logClass : magic_enum::enum_values<LogClass>()) {
+        auto c = m_classes.find(magic_enum::enum_integer(logClass));
+        std::string name = std::string{magic_enum::enum_name(logClass)};
+        if ((j.count(name) == 1) && j[name].is_object()) {
+            c->enabled = j[name]["enabled"];
+            c->displayed = j[name]["displayed"];
+        }
+    }
+}
+
 PCSX::Widgets::Log::Log(bool& show) : m_show(show) {
     for (auto logClass : magic_enum::enum_values<LogClass>()) {
         addClass(magic_enum::enum_integer(logClass), std::string{magic_enum::enum_name(logClass)});
     }
 }
 
-void PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
+bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
-        return;
+        return false;
     }
+    bool changed = false;
     if (ImGui::BeginMenuBar()) {
-        bool changed = false;
         if (ImGui::BeginMenu(_("Enabled"))) {
             ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            if (ImGui::MenuItem(_("Enable all"))) {
+                for (auto& c : m_classes) c.enabled = true;
+                changed = true;
+            }
+            if (ImGui::MenuItem(_("Disable all"))) {
+                for (auto& c : m_classes) c.enabled = false;
+                changed = true;
+            }
+            ImGui::Separator();
             for (auto logClass : magic_enum::enum_values<LogClass>()) {
                 auto c = m_classes.find(magic_enum::enum_integer(logClass));
                 std::string name = std::string{magic_enum::enum_name(logClass)};
@@ -51,6 +84,15 @@ void PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
         }
         if (ImGui::BeginMenu(_("Displayed"))) {
             ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            if (ImGui::MenuItem(_("Display all"))) {
+                for (auto& c : m_classes) c.displayed = true;
+                changed = true;
+            }
+            if (ImGui::MenuItem(_("Hide all"))) {
+                for (auto& c : m_classes) c.displayed = false;
+                changed = true;
+            }
+            ImGui::Separator();
             for (auto logClass : magic_enum::enum_values<LogClass>()) {
                 auto c = m_classes.find(magic_enum::enum_integer(logClass));
                 std::string name = std::string{magic_enum::enum_name(logClass)};
@@ -91,6 +133,8 @@ void PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     ImGui::EndChild();
     if (m_mono) ImGui::PopFont();
     ImGui::End();
+
+    return changed;
 }
 
 void PCSX::Widgets::Log::rebuildActive() {

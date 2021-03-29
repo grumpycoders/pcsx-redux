@@ -24,6 +24,7 @@
 
 #include "core/misc.h"
 #include "imgui.h"
+#include "json.hpp"
 #include "support/hashtable.h"
 #include "support/list.h"
 #include "support/tree.h"
@@ -34,6 +35,9 @@ namespace Widgets {
 
 class Log {
   public:
+    using json = nlohmann::json;
+    json serialize() const;
+    void deserialize(const json& j);
     Log(bool& show);
     ~Log() {
         clear();
@@ -65,7 +69,7 @@ class Log {
         }
         return true;
     }
-    void draw(GUI* gui, const char* title);
+    bool draw(GUI* gui, const char* title);
 
     bool& m_show;
 

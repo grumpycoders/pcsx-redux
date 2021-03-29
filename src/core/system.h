@@ -33,6 +33,11 @@
 #include "support/djbhash.h"
 #include "support/eventbus.h"
 
+namespace fmt {
+template <>
+struct formatter<std::filesystem::path> : formatter<std::string> {};
+}  // namespace fmt
+
 namespace PCSX {
 
 enum class LogClass : unsigned;
@@ -40,16 +45,7 @@ enum class LogClass : unsigned;
 // a hack, until c++-20 is fully adopted everywhere.
 typedef decltype(std::filesystem::path().u8string()) u8string;
 #define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
-}
 
-namespace fmt {
-template <>
-struct formatter<std::filesystem::path> : formatter<std::string> {};
-template <>
-struct formatter<PCSX::u8string> : formatter<std::string> {};
-}  // namespace fmt
-
-namespace PCSX {
 namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};

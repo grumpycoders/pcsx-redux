@@ -310,6 +310,9 @@ end)(jit.status()))
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
             }
+            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
+                m_log.deserialize(j["loggers"]);
+            }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
@@ -428,6 +431,7 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
+    j["loggers"] = m_log.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -827,7 +831,7 @@ void PCSX::GUI::endFrame() {
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw(this, _("Logs"));
+        changed |= m_log.draw(this, _("Logs"));
     }
 
     if (m_luaConsole.m_show) {
