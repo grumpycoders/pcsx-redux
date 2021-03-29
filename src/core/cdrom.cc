@@ -25,13 +25,14 @@
 
 #include "core/ppf.h"
 #include "core/psxdma.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
 
 namespace {
 
 class CDRomImpl : public PCSX::CDRom {
     /* CD-ROM magic numbers */
-    enum {
+    enum Commands {
         CdlSync = 0,
         CdlGetStat = 1,
         CdlSetloc = 2,
@@ -63,13 +64,6 @@ class CDRomImpl : public PCSX::CDRom {
         CdlReset = 28,
         CdlGetQ = 29,
         CdlReadToc = 30,
-    };
-
-    static const inline char *CmdName[] = {
-        "CdlSync",     "CdlGetStat", "CdlSetloc", "CdlPlay",  "CdlForward", "CdlBackward",  "CdlReadN",   "CdlStandby",
-        "CdlStop",     "CdlPause",   "CdlInit",   "CdlMute",  "CdlDemute",  "CdlSetfilter", "CdlSetmode", "CdlGetmode",
-        "CdlGetlocL",  "CdlGetlocP", "CdlReadT",  "CdlGetTN", "CdlGetTD",   "CdlSeekL",     "CdlSeekP",   "CdlSetclock",
-        "CdlGetclock", "CdlTest",    "CdlID",     "CdlReadS", "CdlReset",   "NULL",         "CDlReadToc", "NULL",
     };
 
     static const inline uint8_t Test04[] = {0};
@@ -428,7 +422,7 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         CDROM_LOG(" -> %02x,%02x %02x:%02x:%02x %02x:%02x:%02x\n", m_subq.track, m_subq.index, m_subq.relative[0],
-                m_subq.relative[1], m_subq.relative[2], m_subq.absolute[0], m_subq.absolute[1], m_subq.absolute[2]);
+                  m_subq.relative[1], m_subq.relative[2], m_subq.absolute[0], m_subq.absolute[1], m_subq.absolute[2]);
     }
 
     void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
@@ -1226,7 +1220,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_cmd = rt;
         m_OCUP = 0;
 
-        CDROM_IO_LOG("CD1 write: %x (%s)", rt, CmdName[rt]);
+        CDROM_IO_LOG("CD1 write: %x (%s)", rt, magic_enum::enum_names<Commands>()[rt]);
         if (m_paramC) {
             CDROM_IO_LOG(" Param[%d] = {", m_paramC);
             for (i = 0; i < m_paramC; i++) CDROM_IO_LOG(" %x,", m_param[i]);
@@ -1342,8 +1336,8 @@ class CDRomImpl : public PCSX::CDRom {
             case 3:
                 if (rt & 0x20) {
                     memcpy(&m_attenuatorLeftToLeft, &m_attenuatorLeftToLeftT, 4);
-                    CDROM_IO_LOG("CD-XA Volume: %02x %02x | %02x %02x\n", m_attenuatorLeftToLeft, m_attenuatorLeftToRight,
-                               m_attenuatorRightToLeft, m_attenuatorRightToRight);
+                    CDROM_IO_LOG("CD-XA Volume: %02x %02x | %02x %02x\n", m_attenuatorLeftToLeft,
+                                 m_attenuatorLeftToRight, m_attenuatorRightToLeft, m_attenuatorRightToRight);
                 }
                 return;
         }
@@ -1553,7 +1547,8 @@ class CDRomImpl : public PCSX::CDRom {
     int freeze(gzFile f, int Mode) final {
         uint8_t tmpp[3];
 
-        if (Mode == 0 && PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
+        if (Mode == 0 &&
+            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDDA>() != PCSX::Emulator::CDDA_DISABLED) {
             m_iso.stop();
         }
 
@@ -1586,18 +1581,20 @@ class CDRomImpl : public PCSX::CDRom {
         lidSeekInterrupt();
     }
 
-    void logCDROM (int command) {
-        const auto delayedString = (command & 0x100) ? "[Delayed]" : ""; // log if this is a delayed CD-ROM IRQ
+    void logCDROM(int command) {
+        const auto delayedString = (command & 0x100) ? "[Delayed]" : "";  // log if this is a delayed CD-ROM IRQ
 
         switch (command & 0xff) {
             case CdlTest:
-                PCSX::g_system->printf ("[CDROM]%s Command: CdlTest %02x\n", delayedString, m_param[0]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: CdlTest %02x\n", delayedString,
+                                    m_param[0]);
                 break;
             default:
-                PCSX::g_system->printf ("[CDROM]%s Command: %s\n", delayedString, CmdName[command & 0xff]);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "[CDROM]%s Command: %s\n", delayedString,
+                                    magic_enum::enum_names<Commands>()[command & 0xff]);
                 break;
         }
-    } 
+    }
 };
 
 }  // namespace
