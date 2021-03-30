@@ -552,10 +552,10 @@ Formula One 2001
 
                 // opcode line
                 pc_offset = pc & ~0xf;
-                *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
-                *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
-                *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
-                *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
+                *(uint32_t *)(ICode + pc_cache + 0x0) = *(uint32_t *)PSXM(pc_offset + 0x0);
+                *(uint32_t *)(ICode + pc_cache + 0x4) = *(uint32_t *)PSXM(pc_offset + 0x4);
+                *(uint32_t *)(ICode + pc_cache + 0x8) = *(uint32_t *)PSXM(pc_offset + 0x8);
+                *(uint32_t *)(ICode + pc_cache + 0xc) = *(uint32_t *)PSXM(pc_offset + 0xc);
             }
         }
 
