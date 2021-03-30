@@ -153,9 +153,11 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].data.get<Chan::SB>().value[28].value = 0;
 
     // repair LDChen's ADSR changes
-    for (unsigned i = 0; i < 24; i++) {
-        writeRegister(0x1f801c00 + (i << 4) + 0xc8, regArea[(i << 3) + 0x64]);
-        writeRegister(0x1f801c00 + (i << 4) + 0xca, regArea[(i << 3) + 0x65]);
+    if (spuAddr < 0x7ffff) {
+        for (unsigned i = 0; i < 24; i++) {
+            writeRegister(0x1f801c00 + (i << 4) + 0xc8, regArea[(i << 3) + 0x64]);
+            writeRegister(0x1f801c00 + (i << 4) + 0xca, regArea[(i << 3) + 0x65]);
+        }
     }
 
     SetupThread();  // start sound processing again
