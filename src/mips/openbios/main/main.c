@@ -252,7 +252,7 @@ static void zeroUserMemoryUntilStack() {
 
 // Horror story #2314.21
 // The original BIOS writes garbage to the first few bytes of kernel RAM, 
-// However, r-types accidentally dereferences a NULL pointer, and depeending
+// However, R-Types accidentally dereferences a NULL pointer, and depending
 // on the value of the halfword at NULL, it might fire a DMA with the 
 // kernel as the destionation address, wiping out the kernel and crashing before the title screen
 void patchNULL () {
