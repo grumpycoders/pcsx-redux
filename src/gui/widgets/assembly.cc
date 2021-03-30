@@ -517,6 +517,8 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOver(); });
     ImGui::SameLine();
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
+    ImGui::SameLine();
+    ImGui::Text(_("In ISR: %s"), g_emulator->m_psxCpu->m_inISR ? "yes" : "no");
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
             g_emulator->m_debug->stepOver();
