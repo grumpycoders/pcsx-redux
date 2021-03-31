@@ -26,12 +26,12 @@ SOFTWARE.
 
 OUTPUT_ARCH(mips)
 
-EXTERN(_reset)
-ENTRY(_reset)
+EXTERN(_cartBoot)
+ENTRY(_cartBoot)
 
 MEMORY {
     kseg0i(rwx): ORIGIN = 0x00000000, LENGTH = 0x500
-    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 2M - 0x500
+    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 0xdf80 - 0x500
     ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     rom (rx)   : ORIGIN = 0xbf000000, LENGTH = 512K
     dcache     : ORIGIN = 0x1f800000, LENGTH = 0x400
@@ -49,6 +49,8 @@ __data_len_val  = (__data_end - __data_start);
 __bss_len_val   = (__bss_end - __bss_start);
 
 __stack_start   = ORIGIN(ram) + LENGTH(ram);
+
+PROVIDE(flushCache = flushCacheFromRealBios);
 
 SECTIONS {
     .base (NOLOAD) : {
@@ -88,7 +90,7 @@ SECTIONS {
     .text : {
         LONG(0);
         . = ALIGN(0x80);
-        LONG(_reset);
+        LONG(_cartBoot);
         BYTE(0x4C); BYTE(0x69); BYTE(0x63); BYTE(0x65);
         BYTE(0x6E); BYTE(0x73); BYTE(0x65); BYTE(0x64);
         BYTE(0x20); BYTE(0x62); BYTE(0x79); BYTE(0x20);
