@@ -66,8 +66,6 @@ patches/send_pad_1.c \
 patches/send_pad_2.c \
 \
 ../shell/shell_data.o \
-font1.o \
-font2.o \
 \
 uC-sdk-glue/BoardConsole.c \
 uC-sdk-glue/BoardInit.c \
@@ -88,6 +86,7 @@ uC-sdk-glue/init.c \
 
 ifeq ($(BOOT),rom)
 LDSCRIPT = psx-bios.ld
+SRCS += font1.o font2.o
 else
 LDSCRIPT = psx-bios-as-cart.ld
 endif
