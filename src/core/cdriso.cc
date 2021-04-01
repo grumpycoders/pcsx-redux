@@ -37,7 +37,6 @@
 
 #include "core/cdriso.h"
 #include "core/cdrom.h"
-#include "core/plugins.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 
@@ -1883,14 +1882,14 @@ bool PCSX::CDRiso::open(void) {
         return true;  // it's already open
     }
 
-    m_cdHandle = new File(GetIsoFile());
+    m_cdHandle = new File(m_isoPath);
     if (m_cdHandle->failed()) {
         delete m_cdHandle;
         m_cdHandle = NULL;
         return false;
     }
 
-    PCSX::g_system->printf(_("Loaded CD Image: %s"), GetIsoFile());
+    PCSX::g_system->printf(_("Loaded CD Image: %s"), m_isoPath);
 
     m_cddaBigEndian = false;
     m_subChanMixed = false;
@@ -1902,33 +1901,33 @@ bool PCSX::CDRiso::open(void) {
     m_useCompressed = false;
     m_cdimg_read_func = &CDRiso::cdread_normal;
 
-    if (parsecue(GetIsoFile()) == 0) {
+    if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+cue]");
-    } else if (parsetoc(GetIsoFile()) == 0) {
+    } else if (parsetoc(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+toc]");
-    } else if (parseccd(GetIsoFile()) == 0) {
+    } else if (parseccd(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+ccd]");
-    } else if (parsemds(GetIsoFile()) == 0) {
+    } else if (parsemds(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+mds]");
     }
     // TODO Is it possible that cue/ccd+ecm? otherwise use else if below to supressn extra checks
-    if (handlepbp(GetIsoFile()) == 0) {
+    if (handlepbp(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[pbp]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
-    } else if (handlecbin(GetIsoFile()) == 0) {
+    } else if (handlecbin(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[cbin]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
-    } else if ((handleecm(GetIsoFile(), m_cdHandle, NULL) == 0)) {
+    } else if ((handleecm(reinterpret_cast<const char *>(m_isoPath.string().c_str()), m_cdHandle, NULL) == 0)) {
         PCSX::g_system->printf("[+ecm]");
-    } else if (handlearchive(GetIsoFile(), NULL) == 0) {
+    } else if (handlearchive(reinterpret_cast<const char *>(m_isoPath.string().c_str()), NULL) == 0) {
     }
 
-    if (!m_subChanMixed && opensubfile(GetIsoFile()) == 0) {
+    if (!m_subChanMixed && opensubfile(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+sub]");
     }
-    if (opensbifile(GetIsoFile()) == 0) {
+    if (opensbifile(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+sbi]");
     }
 
@@ -1970,7 +1969,7 @@ bool PCSX::CDRiso::open(void) {
 
     // make sure we have another handle open for cdda
     if (m_numtracks > 1 && m_ti[1].handle == NULL) {
-        m_ti[1].handle = new File(GetIsoFile());
+        m_ti[1].handle = new File(m_isoPath);
     }
 
     return true;

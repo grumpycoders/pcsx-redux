@@ -153,17 +153,15 @@ int pcsxMain(int argc, char **argv) {
     const auto &logfile = logfileArg.empty() ? logfileSet : logfileArg;
     if (!logfile.empty()) system->useLogfile(logfile);
 
-    LoadPlugins();
+    emulator->m_cdrom->m_iso.init();
+    emulator->m_gpu->init();
+    emulator->m_spu->init();
+
     emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();
 
     emulator->EmuInit();
     emulator->EmuReset();
-
-    std::string iso = args.get<std::string>("iso", "");
-    if (!iso.empty()) SetIsoFile(iso.c_str());
-    emulator->m_cdrom->m_iso.open();
-    CheckCdrom();
 
     if (args.get<bool>("run", false)) system->start();
 

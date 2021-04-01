@@ -23,6 +23,7 @@
 
 #include "core/cdrom.h"
 
+#include "core/cdriso.h"
 #include "core/ppf.h"
 #include "core/psxdma.h"
 #include "magic_enum/include/magic_enum.hpp"
@@ -134,7 +135,7 @@ class CDRomImpl : public PCSX::CDRom {
         SEEK_DONE = 1,
     };
 
-    struct CdrStat cdr_stat;
+    struct PCSX::CdrStat cdr_stat;
 
     static constexpr unsigned int msf2sec(const uint8_t *msf) { return ((msf[0] * 60 + msf[1]) * 75) + msf[2]; }
     static constexpr void sec2msf(unsigned int s, uint8_t *msf) {
@@ -392,7 +393,7 @@ class CDRomImpl : public PCSX::CDRom {
 
     void ReadTrack(const uint8_t *time) {
         unsigned char tmp[3];
-        struct SubQ *subq;
+        struct PCSX::SubQ *subq;
         uint16_t crc;
 
         tmp[0] = itob(time[0]);
@@ -406,7 +407,7 @@ class CDRomImpl : public PCSX::CDRom {
         m_suceeded = m_iso.readTrack(tmp);
         memcpy(m_prev, tmp, 3);
 
-        subq = (struct SubQ *)m_iso.getBufferSub();
+        subq = (struct PCSX::SubQ *)m_iso.getBufferSub();
         if (subq != NULL && m_curTrack == 1) {
             crc = calcCrc((uint8_t *)subq + 12, 10);
             if (crc == (((uint16_t)subq->CRC[0] << 8) | subq->CRC[1])) {

@@ -344,11 +344,8 @@ end)(jit.status()))
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
         PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
-        PCSX::g_emulator->m_cdrom->m_iso.close();
         if (!isoToOpen.empty()) {
-            SetIsoFile(reinterpret_cast<const char*>(isoToOpen.c_str()));
-            PCSX::g_emulator->m_cdrom->m_iso.open();
-            CheckCdrom();
+            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
         }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
@@ -588,70 +585,27 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
 
-                if (ImGui::BeginMenu(_("Save state slots"))) {
-                    for (auto i = 1; i < 10; i++) {
-                        const auto str = fmt::format(_("Slot {}"), i);
-                        if (ImGui::MenuItem(str.c_str())) {
-                            const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
-                            std::string stateName;
+                auto buildSaveStateFilename = [](int i) {
+                    // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                    const auto gameID = g_emulator->m_cdromId;
 
-                            if (gameID[0] != '\0') // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X EXEs don't have proper IDs
-                                stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will generate a state named SLUS00213.sstate
-                            else {
-                                const auto lastFile = BinaryLoader::g_isoFilename.empty() ? "BIOS" : BinaryLoader::g_isoFilename;
-                                stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
-                            }
-
-                            zstr::ofstream save(stateName, std::ios::binary);
-                            save << SaveStates::save();   
-                        }
+                    // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
+                    // EXEs don't have proper IDs
+                    if (gameID[0] != 0) {
+                        // For games with an ID of SLUS00213 for example, this will generate a state named
+                        // SLUS00213.sstate
+                        return fmt::format("{}.sstate{}", gameID, i);
+                    } else {
+                        // For games without IDs, identify them via filename
+                        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
+                        const auto lastFile = iso.empty() ? "BIOS" : iso.string();
+                        return fmt::format("{}.sstate{}", lastFile, i);
                     }
+                };
 
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu(_("Load state slots"))) {
-                    for (auto i = 1; i < 10; i++) {
-                        const auto str = fmt::format(_("Slot {}"), i);
-                        if (ImGui::MenuItem(str.c_str())) {
-                            const auto gameID = g_emulator->m_cdromId; // the ID of the game. Every savestate is marked with the ID of the game it's from.
-                            std::string stateName;
-
-                            if (gameID[0] != '\0') // Check if the game has a non-NULL ID. Some stuff like PS-X EXEs don't have proper IDs
-                                stateName = fmt::format ("{}.sstate{}", gameID, i); // For a ROM with an ID of SLUS00213 for example, this will try reading a state named SLUS00213.sstate
-                            else {
-                                const auto lastFile = BinaryLoader::g_isoFilename.empty() ? "BIOS" : BinaryLoader::g_isoFilename;
-                                stateName = fmt::format ("{}.sstate{}", lastFile, i); // For ROMs without IDs, identify them via filename
-                            }
-
-                            if (!std::filesystem::exists(std::filesystem::path(stateName))) // abort if this state does not exist
-                                break;
-
-                            zstr::ifstream save(stateName, std::ios::binary);
-                            std::ostringstream os;
-                            constexpr unsigned buff_size = 1 << 16;
-                            char* buff = new char[buff_size];
-                            while (true) {
-                                save.read(buff, buff_size);
-                                std::streamsize cnt = save.gcount();
-                                if (cnt == 0) break;
-                                os.write(buff, cnt);
-                            }
-                            delete[] buff;
-                            SaveStates::load(os.str());  
-                        }
-                    }
-
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::MenuItem(_("Save global state"))) {
-                    zstr::ofstream save("Global.sstate", std::ios::binary);
-                    save << SaveStates::save();
-                }
-
-                if (ImGui::MenuItem(_("Load global state"))) {
-                    zstr::ifstream save("Global.sstate", std::ios::binary);
+                auto loadSaveState = [](const std::filesystem::path& filename) {
+                    if (!std::filesystem::exists(std::filesystem::path(filename))) return;
+                    zstr::ifstream save(filename.string(), std::ios::binary);
                     std::ostringstream os;
                     constexpr unsigned buff_size = 1 << 16;
                     char* buff = new char[buff_size];
@@ -663,7 +617,37 @@ void PCSX::GUI::endFrame() {
                     }
                     delete[] buff;
                     SaveStates::load(os.str());
+                };
+
+                if (ImGui::BeginMenu(_("Save state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        const auto str = fmt::format(_("Slot {}"), i);
+                        if (ImGui::MenuItem(str.c_str())) {
+                            zstr::ofstream save(buildSaveStateFilename(i), std::ios::binary);
+                            save << SaveStates::save();
+                        }
+                    }
+
+                    ImGui::EndMenu();
                 }
+
+                if (ImGui::BeginMenu(_("Load state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        const auto str = fmt::format(_("Slot {}"), i);
+                        if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                static constexpr char globalSaveState[] = "global.sstate";
+
+                if (ImGui::MenuItem(_("Save global state"))) {
+                    zstr::ofstream save(globalSaveState, std::ios::binary);
+                    save << SaveStates::save();
+                }
+
+                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
@@ -840,10 +824,7 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->m_iso.close();
-            SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
-
-            PCSX::g_emulator->m_cdrom->m_iso.open();
-            CheckCdrom();
+            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
         }
     }
 
@@ -1421,10 +1402,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->m_iso.close();
-        SetIsoFile(pathStr);
-        PCSX::g_emulator->m_cdrom->m_iso.open();
-        CheckCdrom();
+        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);
     }
 
     free(extension);
