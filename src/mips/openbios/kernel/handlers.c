@@ -33,6 +33,7 @@ SOFTWARE.
 #include <string.h>
 
 #include "common/hardware/pcsxhw.h"
+#include "common/kernel/openbios.h"
 #include "common/psxlibc/setjmp.h"
 #include "common/psxlibc/stdio.h"
 #include "common/syscalls/syscalls.h"
@@ -256,10 +257,14 @@ void *C0table[0x20] = {
 
 // clang-format on
 
-static uint32_t getOpenBiosVersion() { return 0; }
+extern struct BuildId __build_id;
+
+static uint32_t getOpenBiosApiVersionImpl() { return 0; }
+static struct BuildId *getOpenBiosBuildIdImpl() { return &__build_id; }
 
 void *OBtable[] = {
-    getOpenBiosVersion,
+    getOpenBiosApiVersionImpl,
+    getOpenBiosBuildIdImpl,
 };
 
 void *getB0table() {
