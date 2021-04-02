@@ -28,15 +28,31 @@ SOFTWARE.
 
 #include <stdint.h>
 
+// https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-18048.html
+struct BuildId {
+    uint32_t namesz;
+    uint32_t descsz;
+    uint32_t type;
+    uint8_t strings[];
+};
+
 static inline int isOpenBiosPresent() {
     uintptr_t* a0table = (uintptr_t*)0x200;
-    return (a0table[10] & 3) == 1;
+    return (a0table[11] & 3) == 1;
 }
 
-static __attribute__((always_inline)) uint32_t getOpenBiosVersion() {
+static inline uint32_t getOpenBiosApiVersion() {
     if (!isOpenBiosPresent()) return 0;
     register int n asm("t1") = 0x00;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     uintptr_t* a0table = (uintptr_t*)0x200;
-    ((uint32_t(*)())(a0table[10] ^ 1))();
+    return ((uint32_t(*)())(a0table[11] ^ 1))();
+}
+
+static inline struct BuildId* getOpenBiosBuildId() {
+    if (!isOpenBiosPresent()) return 0;
+    register int n asm("t1") = 0x01;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    uintptr_t* a0table = (uintptr_t*)0x200;
+    return ((struct BuildId * (*)())(a0table[11] ^ 1))();
 }

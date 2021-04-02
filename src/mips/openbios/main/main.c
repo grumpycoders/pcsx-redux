@@ -32,6 +32,7 @@ SOFTWARE.
 
 #include "common/hardware/cop0.h"
 #include "common/hardware/spu.h"
+#include "common/kernel/openbios.h"
 #include "common/psxlibc/handlers.h"
 #include "common/psxlibc/setjmp.h"
 #include "common/syscalls/syscalls.h"
@@ -270,13 +271,7 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
     exec(binaryInfo, argc, argv);
 }
 
-// https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-18048.html
-extern struct {
-    uint32_t namesz;
-    uint32_t descsz;
-    uint32_t type;
-    uint8_t strings[];
-} __build_id;
+extern struct BuildId __build_id;
 
 static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 1;
