@@ -31,7 +31,7 @@
 /******************************************************************************/
 
 template <typename... Args>
-void verboseLog(int32_t level, const char *str, const Args &...args) {
+void verboseLog(int32_t level, const char *str, const Args &... args) {
     PSXHW_LOG(str, args...);
 }
 

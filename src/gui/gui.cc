@@ -348,7 +348,8 @@ end)(jit.status()))
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
-        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);    }
+        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+    }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
