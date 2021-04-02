@@ -151,7 +151,7 @@ static void patchA0table() {
     subPatchA0table(0x32, 0x00, 10);
     subPatchA0table(0x3c, 0x3b, 4);
     // marking OpenBIOS' entry point
-    *((uintptr_t *)(__ramA0table + 10)) |= 1;
+    *((uintptr_t *)(__ramA0table + 11)) |= 1;
 }
 
 static void clearFileError(struct File *file) { file->errno = PSXENOERR; }
