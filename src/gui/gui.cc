@@ -330,12 +330,16 @@ end)(jit.status()))
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
+        auto argPath1 = m_args.get<std::string>("memcard1");
+        auto argPath2 = m_args.get<std::string>("memcard2");
+        if (argPath1.has_value()) emuSettings.get<Emulator::SettingMcd1>().value = argPath1.value();
+        if (argPath2.has_value()) emuSettings.get<Emulator::SettingMcd2>().value = argPath1.value();
         PCSX::u8string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
-        PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
 
-        std::string biosCfg = m_args.get<std::string>("bios", "");
-        if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
+        PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
+        auto biosCfg = m_args.get<std::string>("bios");
+        if (biosCfg.has_value()) emuSettings.get<Emulator::SettingBios>() = biosCfg.value();
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
@@ -343,11 +347,8 @@ end)(jit.status()))
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
-        PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
-        if (!isoToOpen.empty()) {
-            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
-        }
-    }
+        std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
+        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);    }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
