@@ -22,11 +22,30 @@
 
 #include <stdio.h>
 
-#include "core/plugins.h"
+#include <filesystem>
+
 #include "core/psxemulator.h"
 #include "support/file.h"
 
 namespace PCSX {
+
+struct CdrStat {
+    uint32_t Type;
+    uint32_t Status;
+    unsigned char Time[3];
+};
+
+struct SubQ {
+    char res0[12];
+    unsigned char ControlAndADR;
+    unsigned char TrackNumber;
+    unsigned char IndexNumber;
+    unsigned char TrackRelativeAddress[3];
+    unsigned char Filler;
+    unsigned char AbsoluteAddress[3];
+    unsigned char CRC[2];
+    char res1[72];
+};
 
 class CDRiso {
   public:
@@ -34,6 +53,13 @@ class CDRiso {
     void setCdOpenCaseTime(int64_t time) { m_cdOpenCaseTime = time; }
     void init();
     void shutdown();
+    void setIsoPath(const std::filesystem::path& path) {
+        close();
+        m_isoPath = path;
+        open();
+        CheckCdrom();
+    }
+    const std::filesystem::path& getIsoPath() { return m_isoPath; }
     bool open();
     void close();
     bool getTN(uint8_t* buffer);
@@ -55,6 +81,7 @@ class CDRiso {
     bool CheckSBI(const uint8_t* time);
 
   private:
+    std::filesystem::path m_isoPath;
     typedef ssize_t (CDRiso::*read_func_t)(File* f, unsigned int base, void* dest, int sector);
 
     int64_t m_cdOpenCaseTime = 0;

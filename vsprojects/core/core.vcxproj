@@ -199,7 +199,6 @@
     <ClCompile Include="..\..\src\core\pgxp_gte.cc" />
     <ClCompile Include="..\..\src\core\pgxp_mem.cc" />
     <ClCompile Include="..\..\src\core\pgxp_value.cc" />
-    <ClCompile Include="..\..\src\core\plugins.cc" />
     <ClCompile Include="..\..\src\core\ppf.cc" />
     <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
@@ -239,7 +238,6 @@
     <ClInclude Include="..\..\src\core\pgxp_gte.h" />
     <ClInclude Include="..\..\src\core\pgxp_mem.h" />
     <ClInclude Include="..\..\src\core\pgxp_value.h" />
-    <ClInclude Include="..\..\src\core\plugins.h" />
     <ClInclude Include="..\..\src\core\ppf.h" />
     <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />

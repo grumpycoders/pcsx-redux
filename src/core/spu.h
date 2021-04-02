@@ -20,7 +20,6 @@
 #pragma once
 
 #include "core/decode_xa.h"
-#include "core/plugins.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"

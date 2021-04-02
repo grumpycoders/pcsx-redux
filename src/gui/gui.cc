@@ -344,11 +344,8 @@ end)(jit.status()))
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
         PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
-        PCSX::g_emulator->m_cdrom->m_iso.close();
         if (!isoToOpen.empty()) {
-            SetIsoFile(reinterpret_cast<const char*>(isoToOpen.c_str()));
-            PCSX::g_emulator->m_cdrom->m_iso.open();
-            CheckCdrom();
+            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
         }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
@@ -587,12 +584,28 @@ void PCSX::GUI::endFrame() {
                     std::ofstream schema("sstate.proto");
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
-                if (ImGui::MenuItem(_("Save state"))) {
-                    zstr::ofstream save("sstate", std::ios::binary);
-                    save << SaveStates::save();
-                }
-                if (ImGui::MenuItem(_("Load state"))) {
-                    zstr::ifstream save("sstate", std::ios::binary);
+
+                auto buildSaveStateFilename = [](int i) {
+                    // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                    const auto gameID = g_emulator->m_cdromId;
+
+                    // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
+                    // EXEs don't have proper IDs
+                    if (gameID[0] != 0) {
+                        // For games with an ID of SLUS00213 for example, this will generate a state named
+                        // SLUS00213.sstate
+                        return fmt::format("{}.sstate{}", gameID, i);
+                    } else {
+                        // For games without IDs, identify them via filename
+                        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
+                        const auto lastFile = iso.empty() ? "BIOS" : iso.string();
+                        return fmt::format("{}.sstate{}", lastFile, i);
+                    }
+                };
+
+                auto loadSaveState = [](const std::filesystem::path& filename) {
+                    if (!std::filesystem::exists(std::filesystem::path(filename))) return;
+                    zstr::ifstream save(filename.string(), std::ios::binary);
                     std::ostringstream os;
                     constexpr unsigned buff_size = 1 << 16;
                     char* buff = new char[buff_size];
@@ -604,7 +617,38 @@ void PCSX::GUI::endFrame() {
                     }
                     delete[] buff;
                     SaveStates::load(os.str());
+                };
+
+                if (ImGui::BeginMenu(_("Save state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        const auto str = fmt::format(_("Slot {}"), i);
+                        if (ImGui::MenuItem(str.c_str())) {
+                            zstr::ofstream save(buildSaveStateFilename(i), std::ios::binary);
+                            save << SaveStates::save();
+                        }
+                    }
+
+                    ImGui::EndMenu();
                 }
+
+                if (ImGui::BeginMenu(_("Load state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        const auto str = fmt::format(_("Slot {}"), i);
+                        if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                static constexpr char globalSaveState[] = "global.sstate";
+
+                if (ImGui::MenuItem(_("Save global state"))) {
+                    zstr::ofstream save(globalSaveState, std::ios::binary);
+                    save << SaveStates::save();
+                }
+
+                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
+
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
                     PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
@@ -780,9 +824,7 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->m_iso.close();
-            SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
-            PCSX::g_emulator->m_cdrom->m_iso.open();
-            CheckCdrom();
+            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
         }
     }
 
@@ -1298,14 +1340,14 @@ void PCSX::GUI::about() {
         };
         ImGui::TextUnformatted(_("OpenGL information"));
         ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
-        someString(_("vendor"), GL_VENDOR);
-        someString(_("renderer"), GL_RENDERER);
-        someString(_("version"), GL_VERSION);
-        someString(_("shading language version"), GL_SHADING_LANGUAGE_VERSION);
+        someString(_("Vendor"), GL_VENDOR);
+        someString(_("Renderer"), GL_RENDERER);
+        someString(_("Version"), GL_VERSION);
+        someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
         GLint n, i;
         glGetIntegerv(GL_NUM_EXTENSIONS, &n);
         checkGL();
-        ImGui::TextUnformatted(_("extensions:"));
+        ImGui::TextUnformatted(_("Extensions:"));
         ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
         for (i = 0; i < n; i++) {
             const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
@@ -1360,10 +1402,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->m_iso.close();
-        SetIsoFile(pathStr);
-        PCSX::g_emulator->m_cdrom->m_iso.open();
-        CheckCdrom();
+        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);
     }
 
     free(extension);
