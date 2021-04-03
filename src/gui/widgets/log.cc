@@ -106,8 +106,8 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
             ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             changed |= ImGui::MenuItem(_("Log CD-ROM commands"), nullptr,
                                        &g_emulator->settings.get<Emulator::SettingLoggingCDROM>().value);
-            changed |= ImGui::MenuItem(_("CPU trace"), nullptr,
-                                       &g_emulator->settings.get<Emulator::SettingTrace>().value);
+            changed |=
+                ImGui::MenuItem(_("CPU trace"), nullptr, &g_emulator->settings.get<Emulator::SettingTrace>().value);
             changed |= ImGui::MenuItem(_("Skip ISR during CPU traces"), nullptr,
                                        &g_emulator->settings.get<Emulator::SettingSkipISR>().value);
             ImGui::PopItemFlag();

@@ -342,8 +342,8 @@ uint8_t PCSX::SIO::sioRead8() {
     }
 
     SIO0_LOG("sio read8 ;ret = %x (I:%x ST:%x BUF:(%x %x %x))\n", ret, m_bufferIndex, m_statusReg,
-            m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
-            m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
+             m_buffer[m_bufferIndex > 0 ? m_bufferIndex - 1 : 0], m_buffer[m_bufferIndex],
+             m_buffer[m_bufferIndex < BUFFER_SIZE - 1 ? m_bufferIndex + 1 : BUFFER_SIZE - 1]);
     return ret;
 }
 

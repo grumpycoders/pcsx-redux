@@ -46,7 +46,7 @@ enum class LogClass : unsigned {
 template <LogClass logClass, bool enabled>
 struct Logger {
     template <typename... Args>
-    static void Log(const char *format, const Args &...args) {
+    static void Log(const char *format, const Args &... args) {
         if (!enabled) return;
         std::string s = fmt::sprintf(format, args...);
         g_system->log(logClass, s);
