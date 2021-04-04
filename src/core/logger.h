@@ -41,6 +41,7 @@ enum class LogClass : unsigned {
     DMA,            // dma-related information
     MEMORY,         // memory access related information
     IRQ,            // irq scheduling and triggering information
+    KERNEL,         // kernel logs
 };
 
 template <LogClass logClass, bool enabled>

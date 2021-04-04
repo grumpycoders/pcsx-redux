@@ -177,6 +177,157 @@ void PCSX::R3000Acpu::psxSetPGXPMode(uint32_t pgxpMode) {
     // g_emulator->m_psxCpu->Reset();
 }
 
+static std::string fileFlagsToString(uint16_t flags) {
+    std::string ret = " ";
+    if (flags & 0x0001) ret += "READ ";
+    if (flags & 0x0002) ret += "WRITE ";
+    if (flags & 0x0004) ret += "NBLOCK ";
+    if (flags & 0x0008) ret += "SCAN ";
+    if (flags & 0x0010) ret += "RLOCK ";
+    if (flags & 0x0020) ret += "WLOCK ";
+    if (flags & 0x0040) ret += "U0040 ";
+    if (flags & 0x0080) ret += "U0080 ";
+    if (flags & 0x0100) ret += "APPEND ";
+    if (flags & 0x0200) ret += "CREAT ";
+    if (flags & 0x0400) ret += "TRUNC ";
+    if (flags & 0x0800) ret += "U0800 ";
+    if (flags & 0x1000) ret += "SCAN2 ";
+    if (flags & 0x2000) ret += "RCOM ";
+    if (flags & 0x4000) ret += "NBUF ";
+    if (flags & 0x8000) ret += "ASYNC ";
+    return ret;
+}
+
+void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
+    switch (call) {
+        case 0x00: {
+            g_system->log(LogClass::KERNEL, "open(%s, 0x%04x {%s}) from 0x%08x\n", PSXM(m_psxRegs.GPR.n.a0),
+                          m_psxRegs.GPR.n.a1, fileFlagsToString(m_psxRegs.GPR.n.a1), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x01: {
+            g_system->log(LogClass::KERNEL, "lseek(%i, %i, %i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1,
+                          m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x02: {
+            g_system->log(LogClass::KERNEL, "read(%i, 0x%08x, %i) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x03: {
+            g_system->log(LogClass::KERNEL, "write(%i, 0x%08x, %i) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          m_psxRegs.GPR.n.a1, m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x04: {
+            g_system->log(LogClass::KERNEL, "close(%i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x05: {
+            g_system->log(LogClass::KERNEL, "ioctl(%i, %i, %i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1,
+                          m_psxRegs.GPR.n.a2, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x06: {
+            g_system->log(LogClass::KERNEL, "exit(%i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x07: {
+            g_system->log(LogClass::KERNEL, "isFileConsole(%i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x08: {
+            g_system->log(LogClass::KERNEL, "getc(%i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x09: {
+            g_system->log(LogClass::KERNEL, "putc(%i, %i) from 0x%08x\n", m_psxRegs.GPR.n.a0, m_psxRegs.GPR.n.a1,
+                          m_psxRegs.GPR.n.ra);
+            break;
+        }
+        default: {
+            g_system->log(LogClass::KERNEL, "unknown kernel call B0:%02X\n", call);
+            break;
+        }
+    }
+}
+
+void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
+    switch (call) {
+        case 0x07: {
+            g_system->log(LogClass::KERNEL, "deliverEvent(%s, %s) from 0x%08x\n",
+                          Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
+                          Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x08: {
+            int id =
+                Kernel::Events::getFirstFreeEvent(reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM));
+            g_system->log(LogClass::KERNEL, "openEvent(%s, %s, %s, 0x%08x) --> 0x%08x from 0x%08x\n",
+                          Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
+                          Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
+                          Kernel::Events::Event::resolveMode(m_psxRegs.GPR.n.a2).c_str(), m_psxRegs.GPR.n.a3,
+                          id | 0xf1000000, m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x09: {
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                     m_psxRegs.GPR.n.a0};
+            g_system->log(LogClass::KERNEL, "closeEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x0a: {
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                     m_psxRegs.GPR.n.a0};
+            g_system->log(LogClass::KERNEL, "waitEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x0b: {
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                     m_psxRegs.GPR.n.a0};
+            g_system->log(LogClass::KERNEL, "testEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x0c: {
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                     m_psxRegs.GPR.n.a0};
+            g_system->log(LogClass::KERNEL, "enableEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x0d: {
+            Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
+                                     m_psxRegs.GPR.n.a0};
+            g_system->log(LogClass::KERNEL, "disableEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
+                          ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        case 0x20: {
+            g_system->log(LogClass::KERNEL, "undeliverEvent(%s, %s) from 0x%08x\n",
+                          Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
+                          Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(), m_psxRegs.GPR.n.ra);
+            break;
+        }
+        default: {
+            g_system->log(LogClass::KERNEL, "unknown kernel call B0:%02X\n", call);
+            break;
+        }
+    }
+}
+
+void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
+    switch (call) {
+        default: {
+            g_system->log(LogClass::KERNEL, "unknown kernel call C0:%02X\n", call);
+            break;
+        }
+    }
+}
+
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
     std::unique_ptr<PCSX::R3000Acpu> cpu = getInterpreted();
     if (cpu->Implemented()) return cpu;

@@ -702,11 +702,7 @@ void X86DynaRecCPU::execute() {
     uint32_t (**recFunc)() = NULL;
     char *p;
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>()) {
-        InterceptBIOS<true>();
-    } else {
-        InterceptBIOS<false>();
-    }
+    InterceptBIOS();
 
     p = (char *)PC_REC(m_psxRegs.pc);
 

@@ -110,6 +110,8 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
                 ImGui::MenuItem(_("CPU trace"), nullptr, &g_emulator->settings.get<Emulator::SettingTrace>().value);
             changed |= ImGui::MenuItem(_("Skip ISR during CPU traces"), nullptr,
                                        &g_emulator->settings.get<Emulator::SettingSkipISR>().value);
+            changed |= ImGui::MenuItem(_("Log kernel calls"), nullptr,
+                                       &g_emulator->settings.get<Emulator::SettingKernelLog>().value);
             ImGui::PopItemFlag();
             ImGui::EndMenu();
         }

@@ -1525,11 +1525,7 @@ inline void InterpretedCPU::execBlock() {
         if (m_inDelaySlot) {
             m_inDelaySlot = false;
             ranDelaySlot = true;
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>()) {
-                InterceptBIOS<true>();
-            } else {
-                InterceptBIOS<false>();
-            }
+            InterceptBIOS();
             psxBranchTest();
         }
         if constexpr (debug) PCSX::g_emulator->m_debug->processAfter();
