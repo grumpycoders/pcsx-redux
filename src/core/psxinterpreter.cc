@@ -1494,6 +1494,7 @@ inline void InterpretedCPU::execBlock() {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
         }
+        // TODO: throw an exception here if pc is out of range
         uint32_t *codePtr = Read_ICache(m_psxRegs.pc);
         // TODO: throw an exception here if we don't have a pointer
         uint32_t code = m_psxRegs.code = codePtr ? SWAP_LE32(*codePtr) : 0;

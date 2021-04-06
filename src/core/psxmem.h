@@ -125,6 +125,7 @@ class Memory {
     (PCSX::g_emulator->m_psxMem->g_psxMemRLUT[(mem) >> 16] == 0 \
          ? NULL                                                 \
          : (uint8_t *)(PCSX::g_emulator->m_psxMem->g_psxMemRLUT[(mem) >> 16] + ((mem)&0xffff)))
+#define PSXS(mem) (mem ? (const char *)PSXM(mem) : "<NULL>")
 #define PSXMs8(mem) (*(int8_t *)PSXM(mem))
 #define PSXMs16(mem) (SWAP_LE16(*(int16_t *)PSXM(mem)))
 #define PSXMs32(mem) (SWAP_LE32(*(int32_t *)PSXM(mem)))
