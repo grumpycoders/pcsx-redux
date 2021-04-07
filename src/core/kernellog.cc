@@ -773,8 +773,20 @@ void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
 
 static const char *const B0names[] = {
     // 00
-    "kern_malloc",  "kern_free", nullptr,      nullptr,     nullptr,     nullptr,       nullptr,
-    "deliverEvent", "openEvent", "closeEvent", "waitEvent", "testEvent", "enableEvent", "disableEvent",
+    "kern_malloc", "kern_free", "initTimer", "getTimer", "enableTimerIRQ", "disableTimerIRQ", "restartTimer",
+    "deliverEvent", "openEvent", "closeEvent", "waitEvent", "testEvent", "enableEvent", "disableEvent", "openThread",
+    "closeThread",
+    // 10
+    "changeThread", nullptr, "initPad", "startPad", "stopPad", "initPadHighLevel", "readPadHighLevel",
+    "returnFromException", "setDefaultExceptionJmpBuf", "setExceptionJmpBuf", nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr,
+    // 20
+    "undeliverEvent", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, nullptr,
+    // 30
+    nullptr, nullptr, "open", "lseek", "read", "write", "close", "ioctl", "exit", "isFileConsole", "getc", "putc",
+    "getchar", "putchar", "gets", "puts",
+    // 40
     // eol
 };
 
@@ -798,6 +810,26 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
         }
         case 0x01: {
             g_system->log(LogClass::KERNEL, "0x%08x)", n.a0);
+            break;
+        }
+        case 0x02: {
+            g_system->log(LogClass::KERNEL, "%i, %i, 0x%04x)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x03: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x04: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x05: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x06: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
             break;
         }
         case 0x07: {
@@ -839,9 +871,113 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             g_system->log(LogClass::KERNEL, "0x%08x {%s, %s})", n.a0, ev.getClass().c_str(), ev.getSpec().c_str());
             break;
         }
+        case 0x0e: {
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x, 0x%08x)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x0f: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x10: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x12: {
+            g_system->log(LogClass::KERNEL, "0x%08x, %i, 0x%08x, %i)", n.a0, n.a1, n.a2, n.a3);
+            break;
+        }
+        case 0x13: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x14: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x15: {
+            g_system->log(LogClass::KERNEL, "%i, 0x%08x, ...)", n.a0, n.a1);
+            break;
+        }
+        case 0x16: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x17: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x18: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x19: {
+            uint32_t *jmpBuf = (uint32_t *)PSXM(n.a0);
+            uint32_t ra = jmpBuf[0];
+            uint32_t sp = jmpBuf[1];
+            g_system->log(LogClass::KERNEL, "0x%08x {.ra = 0x%08x, .sp = 0x%08x})", n.a0, SWAP_LE32(ra), SWAP_LE32(sp));
+            break;
+        }
         case 0x20: {
             g_system->log(LogClass::KERNEL, "%s, %s)", Kernel::Events::Event::resolveClass(n.a0).c_str(),
                           Kernel::Events::Event::resolveSpec(n.a1).c_str());
+            break;
+        }
+        case 0x32: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%04x {%s})", n.a0, PSXS(n.a0), n.a1,
+                          fileFlagsToString(n.a1));
+            break;
+        }
+        case 0x33: {
+            g_system->log(LogClass::KERNEL, "%i, %i, %i)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x34: {
+            g_system->log(LogClass::KERNEL, "%i, 0x%08x, %i)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x35: {
+            g_system->log(LogClass::KERNEL, "%i, 0x%08x, %i)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x36: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x37: {
+            g_system->log(LogClass::KERNEL, "%i, %i, %i)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x38: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x39: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x3a: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x3b: {
+            g_system->log(LogClass::KERNEL, "%i, %i)", n.a0, n.a1);
+            break;
+        }
+        case 0x3c: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x3d: {
+            g_system->log(LogClass::KERNEL, "'%c')", n.a0);
+            break;
+        }
+        case 0x3e: {
+            g_system->log(LogClass::KERNEL, "0x%08x)", n.a0);
+            break;
+        }
+        case 0x3f: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
             break;
         }
         default: {

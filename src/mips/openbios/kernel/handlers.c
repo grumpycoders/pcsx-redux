@@ -219,8 +219,8 @@ static const void *romA0table[0xc0] = {
 };
 
 void *B0table[0x60] = {
-    kern_malloc, kern_free, unimplementedThunk, unimplementedThunk, // 00
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, deliverEvent, // 04
+    kern_malloc, kern_free, initTimer, getTimer, // 00
+    enableTimerIRQ, disableTimerIRQ, restartTimer, deliverEvent, // 04
     openEvent, closeEvent, waitEvent, testEvent, // 08
     enableEvent, disableEvent, openThread, closeThread, // 0c
     changeThread, unimplementedThunk, initPad, startPad, // 10
