@@ -501,11 +501,12 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     DummyAsm dummy;
 
     uint32_t pc = virtToReal(m_registers->pc);
-    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>().value);
+    auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+    ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value);
     ImGui::SameLine();
-    ImGui::Checkbox(_("CPU trace"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingTrace>().value);
+    ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
     ImGui::SameLine();
-    ImGui::Checkbox(_("Skip ISR"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSkipISR>().value);
+    ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });

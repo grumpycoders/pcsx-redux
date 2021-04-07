@@ -33,6 +33,7 @@
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
@@ -230,6 +231,7 @@ class GUI final {
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     Widgets::Events m_events;
+    Widgets::KernelLog m_kernelLog;
 
     EventBus::Listener m_listener;
 

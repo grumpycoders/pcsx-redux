@@ -210,18 +210,18 @@ struct psxRegisters {
 /**** R3000A Instruction Macros ****/
 #define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
-#define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
-#define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
-#define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
-#define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
-#define _fSa_(code) ((code >> 6) & 0x1F)     // The sa part of the instruction register
-#define _fIm_(code) ((uint16_t)code)         // The immediate part of the instruction register
+#define _fOp_(code) ((code >> 26))  // The opcode part of the instruction register
+#define _fFunct_(code) ((code)&0x3F)  // The funct part of the instruction register
+#define _fRd_(code) ((code >> 11) & 0x1F)  // The rd part of the instruction register
+#define _fRt_(code) ((code >> 16) & 0x1F)  // The rt part of the instruction register
+#define _fRs_(code) ((code >> 21) & 0x1F)  // The rs part of the instruction register
+#define _fSa_(code) ((code >> 6) & 0x1F)  // The sa part of the instruction register
+#define _fIm_(code) ((uint16_t)code)  // The immediate part of the instruction register
 #define _fTarget_(code) (code & 0x03ffffff)  // The target part of the instruction register
 
-#define _fImm_(code) ((int16_t)code)   // sign-extended immediate
+#define _fImm_(code) ((int16_t)code)  // sign-extended immediate
 #define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
-#define _fImmLU_(code) (code << 16)    // LUI
+#define _fImmLU_(code) (code << 16)  // LUI
 
 #define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
 #define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
@@ -251,7 +251,7 @@ struct psxRegisters {
 #define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
-#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
+#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)  // Calculates the target during a branch instruction
 
 /*
 The "SetLink" mechanism uses the delayed load. This may sound counter intuitive, but this is the only way to
@@ -411,7 +411,7 @@ class R3000Acpu {
             }
         }
 
-        if (g_emulator->settings.get<Emulator::SettingKernelLog>()) {
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::KernelLog>()) {
             switch (pc) {
                 case 0xa0:
                     logA0KernelCall(call);
@@ -425,7 +425,6 @@ class R3000Acpu {
             }
         }
     }
-
 
   public:
     /*

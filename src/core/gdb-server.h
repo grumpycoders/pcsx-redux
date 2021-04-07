@@ -130,7 +130,8 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     static const char toHex[];
     struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
         void enqueue(GdbClient* client) {
-            if (g_emulator->settings.get<Emulator::SettingGdbServerTrace>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                    .get<Emulator::DebugSettings::GdbServerTrace>()) {
                 std::string msg((const char*)m_slice.data(), m_slice.size());
                 g_system->printf("GDB <-- PCSX %s\n", msg.c_str());
             }
@@ -152,7 +153,8 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
             uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), m_bufs, 3, writeCB);
         }
         void enqueueRaw(GdbClient* client) {
-            if (g_emulator->settings.get<Emulator::SettingGdbServerTrace>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                    .get<Emulator::DebugSettings::GdbServerTrace>()) {
                 std::string msg((const char*)m_slice.data(), m_slice.size());
                 g_system->printf("GDB <-- PCSX %s\n", msg.c_str());
             }

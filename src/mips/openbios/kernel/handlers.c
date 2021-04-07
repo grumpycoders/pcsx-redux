@@ -40,6 +40,7 @@ SOFTWARE.
 #include "openbios/card/card.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/filesystem.h"
+#include "openbios/cdrom/helpers.h"
 #include "openbios/cdrom/statemachine.h"
 #include "openbios/charset/sjis.h"
 #include "openbios/fileio/fileio.h"
@@ -208,7 +209,7 @@ static const void *romA0table[0xc0] = {
     addConsoleDevice, addDummyConsoleDevice, unimplementedThunk, unimplementedThunk, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, buLowLevelOpCompleted, // a4
+    unimplementedThunk, cdromBlockReading, cdromBlockGetStatus, buLowLevelOpCompleted, // a4
     buLowLevelOpError1, buLowLevelOpError2, buLowLevelOpError3, cardInfo, // a8
     buReadTOC, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0

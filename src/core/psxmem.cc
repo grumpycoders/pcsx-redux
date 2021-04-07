@@ -238,7 +238,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR1);
             }
             return *(uint8_t *)(p + (mem & 0xffff));
@@ -266,7 +266,7 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR2);
             }
             return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
@@ -294,7 +294,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR4);
             }
             return SWAP_LEu32(*(uint32_t *)(p + (mem & 0xffff)));
@@ -324,7 +324,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW1);
             }
             *(uint8_t *)(p + (mem & 0xffff)) = value;
@@ -352,7 +352,7 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW2);
             }
             *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
@@ -381,7 +381,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW4);
             }
             *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);
