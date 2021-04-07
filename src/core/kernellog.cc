@@ -787,6 +787,11 @@ static const char *const B0names[] = {
     nullptr, nullptr, "open", "lseek", "read", "write", "close", "ioctl", "exit", "isFileConsole", "getc", "putc",
     "getchar", "putchar", "gets", "puts",
     // 40
+    "chdir", "format", "firstFile", "nextFile", "rename", "delete", "undelete", "addDevice", "removeDevice",
+    "printInstalledDevices", "initCard", "startCard", "stopCard", "mcWriteSector", "mcReadSector",
+    // 50
+    "mcAllowNewCard", "Krom2RawAdd", nullptr, "Krom2Offset", "getErrno", "getFileErrno", "getC0table", "getB0table",
+    "mcGetLastDevice", "checkDevice", nullptr, "setSIO0AutoAck",
     // eol
 };
 
@@ -978,6 +983,70 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
         }
         case 0x3f: {
             g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x40: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x41: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x42: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x)", n.a0, PSXS(n.a0), n.a1);
+            break;
+        }
+        case 0x43: {
+            g_system->log(LogClass::KERNEL, "0x%08x)", n.a0);
+            break;
+        }
+        case 0x44: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            break;
+        }
+        case 0x45: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x46: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x47: {
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, deviceToString((uint32_t *)PSXM(n.a0)));
+            break;
+        }
+        case 0x48: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x49: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x4a: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x4b: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x4c: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x4d: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x4e: {
+            g_system->log(LogClass::KERNEL, "%i, %i, 0x%08x)", n.a0, n.a1, n.a2);
+            break;
+        }
+        case 0x4f: {
+            g_system->log(LogClass::KERNEL, "%i, %i, 0x%08x)", n.a0, n.a1, n.a2);
             break;
         }
         default: {

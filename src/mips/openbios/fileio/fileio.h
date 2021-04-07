@@ -71,3 +71,5 @@ extern struct File *g_firstFile;
 
 int getDeviceStatus();
 void setDeviceStatus(int deviceStatus);
+
+void printInstalledDevices();
