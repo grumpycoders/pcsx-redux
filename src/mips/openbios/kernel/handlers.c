@@ -211,7 +211,7 @@ static const void *romA0table[0xc0] = {
     unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
     unimplementedThunk, cdromBlockReading, cdromBlockGetStatus, buLowLevelOpCompleted, // a4
     buLowLevelOpError1, buLowLevelOpError2, buLowLevelOpError3, cardInfo, // a8
-    buReadTOC, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
+    buReadTOC, buSetAutoFormat, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b8
