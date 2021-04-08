@@ -549,3 +549,9 @@ int buWriteTOC(int deviceId, int *bitmap) {
 
     return gotError != 0;
 }
+
+int buSetAutoFormat(int autoFormat) {
+    int old = g_buAutoFormat;
+    g_buAutoFormat = autoFormat;
+    return old;
+}

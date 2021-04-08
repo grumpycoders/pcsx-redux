@@ -57,3 +57,4 @@ extern char *g_buOpBuffer[2];
 extern struct File *g_buOpFile[2];
 int buRelativeToAbsoluteSector(int port, int block, int sector);
 int buGetReallocated(int port, int sector);
+int buSetAutoFormat(int autoFormat);
