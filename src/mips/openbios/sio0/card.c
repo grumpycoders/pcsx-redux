@@ -64,7 +64,7 @@ int mcWaitForStatus() {
                 return 0;
             }
         }
-        __asm__ volatile("");
+        __asm__ volatile("" : : : "memory");
     }
 }
 
@@ -80,7 +80,7 @@ int mcWaitForStatusAndReturnIndex() {
                 return i + 1;
             }
         }
-        __asm__ volatile("");
+        __asm__ volatile("" : : : "memory");
     }
 }
 
