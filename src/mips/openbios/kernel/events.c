@@ -49,7 +49,7 @@ int initEvents(int count) {
     return size;
 }
 
-static int getFreeEvCBSlot(void) {
+int getFreeEvCBSlot(void) {
     struct EventInfo *ptr, *end;
     int slot = 0;
 

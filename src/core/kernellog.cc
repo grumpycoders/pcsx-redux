@@ -182,6 +182,30 @@ const char *PCSX::Kernel::getA0name(uint32_t call) {
 }
 
 void PCSX::R3000Acpu::logA0KernelCall(uint32_t call) {
+    auto &debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+    uint32_t *flags = nullptr;
+    switch (call / 32) {
+        case 0:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallA0_00_1f>().value;
+            break;
+        case 1:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallA0_20_3f>().value;
+            break;
+        case 2:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallA0_40_5f>().value;
+            break;
+        case 3:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallA0_60_7f>().value;
+            break;
+        case 4:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallA0_80_9f>().value;
+            break;
+        case 5:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallA0_a0_bf>().value;
+            break;
+    }
+    uint32_t bit = 1 << (call % 32);
+    if (!flags || ((*flags & bit) == 0)) return;
     auto &n = m_psxRegs.GPR.n;
     const char *const name = Kernel::getA0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall A0:%02X:%s(", call, name);
@@ -804,6 +828,21 @@ const char *PCSX::Kernel::getB0name(uint32_t call) {
 }
 
 void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
+    auto &debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+    uint32_t *flags = nullptr;
+    switch (call / 32) {
+        case 0:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallB0_00_1f>().value;
+            break;
+        case 1:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallB0_20_3f>().value;
+            break;
+        case 2:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallB0_40_5f>().value;
+            break;
+    }
+    uint32_t bit = 1 << (call % 32);
+    if (!flags || ((*flags & bit) == 0)) return;
     auto &n = m_psxRegs.GPR.n;
     const char *const name = Kernel::getB0name(call);
     if (name) g_system->log(LogClass::KERNEL, "KernelCall B0:%02X:%s(", call, name);
@@ -1049,6 +1088,46 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
             g_system->log(LogClass::KERNEL, "%i, %i, 0x%08x)", n.a0, n.a1, n.a2);
             break;
         }
+        case 0x50: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x51: {
+            g_system->log(LogClass::KERNEL, "0x%04x)", n.a0);
+            break;
+        }
+        case 0x53: {
+            g_system->log(LogClass::KERNEL, "0x%04x)", n.a0);
+            break;
+        }
+        case 0x54: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x55: {
+            g_system->log(LogClass::KERNEL, "0x%08x {%s})", n.a0, fileToString((uint32_t *)PSXM(n.a0)));
+            break;
+        }
+        case 0x56: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x57: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x58: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x59: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\")", n.a0, PSXS(n.a0));
+            break;
+        }
+        case 0x5b: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
         default: {
             g_system->log(LogClass::KERNEL, "KernelCall: unknown kernel call B0:%02X", call);
             break;
@@ -1059,8 +1138,13 @@ void PCSX::R3000Acpu::logB0KernelCall(uint32_t call) {
 
 static const char *const C0names[] = {
     // 00
+    "enqueueRCntIrqs", "enqueueSyscallHandler", "sysEnqIntRP", "sysDeqIntRP", "getFreeEvCBSlot", "getFreeTCBslot",
+    "exceptionHandler", "installExceptionHandler", "kern_initheap", nullptr, "setTimerAutoAck", nullptr,
+    "enqueueIrqHandler", nullptr, nullptr, nullptr,
+    // 10
+    nullptr, nullptr, "setupFileIO", "reopenStdio", nullptr, "cdevinput", "cdevscan", "circgetc", "circputc", "ioAbortWithMsg",
+    "setDeviceStatus", "installStdIo", "patchA0table", "getDeviceStatus",
     // eol
-    nullptr,
 };
 
 unsigned PCSX::Kernel::getC0namesSize() { return (sizeof(C0names) / sizeof(C0names[0])); }
@@ -1072,8 +1156,109 @@ const char *PCSX::Kernel::getC0name(uint32_t call) {
 }
 
 void PCSX::R3000Acpu::logC0KernelCall(uint32_t call) {
+    auto &debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+    uint32_t *flags = nullptr;
+    switch (call / 32) {
+        case 0:
+            flags = &debugSettings.get<Emulator::DebugSettings::KernelCallC0_00_1f>().value;
+            break;
+    }
+    uint32_t bit = 1 << (call % 32);
+    if (!flags || ((*flags & bit) == 0)) return;
     auto &n = m_psxRegs.GPR.n;
     switch (call) {
+        case 0x00: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x01: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x02: {
+            g_system->log(LogClass::KERNEL, "%i, 0x%08x)", n.a0, n.a1);
+            break;
+        }
+        case 0x03: {
+            g_system->log(LogClass::KERNEL, "%i, 0x%08x)", n.a0, n.a1);
+            break;
+        }
+        case 0x04: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x05: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x06: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x07: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x08: {
+            g_system->log(LogClass::KERNEL, "0x%08x, %i)", n.a0, n.a1);
+            break;
+        }
+        case 0x0a: {
+            g_system->log(LogClass::KERNEL, "%i, %i)", n.a0, n.a1);
+            break;
+        }
+        case 0x0c: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x0d: {
+            g_system->log(LogClass::KERNEL, "%i, %i)", n.a0, n.a1);
+            break;
+        }
+        case 0x12: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x13: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x15: {
+            g_system->log(LogClass::KERNEL, "0x%08x, '%c')", n.a0, n.a1);
+            break;
+        }
+        case 0x16: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x17: {
+            g_system->log(LogClass::KERNEL, "0x%08x, 0x%08x:\"%s\")", n.a0, n.a1, PSXS(n.a1));
+            break;
+        }
+        case 0x18: {
+            g_system->log(LogClass::KERNEL, "'%c', 0x%08x)", n.a0, n.a1);
+            break;
+        }
+        case 0x19: {
+            g_system->log(LogClass::KERNEL, "0x%08x:\"%s\", 0x%08x:\"%s\")", n.a0, PSXS(n.a0), n.a1, PSXS(n.a1));
+            break;
+        }
+        case 0x1a: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x1b: {
+            g_system->log(LogClass::KERNEL, "%i)", n.a0);
+            break;
+        }
+        case 0x1c: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
+        case 0x1d: {
+            g_system->log(LogClass::KERNEL, ")");
+            break;
+        }
         default: {
             g_system->log(LogClass::KERNEL, "KernelCall: unknown kernel call C0:%02X from 0x%08x\n", call,
                           m_psxRegs.GPR.n.ra);

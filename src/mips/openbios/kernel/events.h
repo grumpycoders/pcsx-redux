@@ -39,3 +39,4 @@ int enableEvent(uint32_t event);
 int disableEvent(uint32_t event);
 int closeEvent(uint32_t event);
 int waitEvent(uint32_t event);
+int getFreeEvCBSlot();

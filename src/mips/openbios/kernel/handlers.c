@@ -247,12 +247,12 @@ void *B0table[0x60] = {
 
 void *C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
-    unimplementedThunk, getFreeTCBslot, exceptionHandler, installExceptionHandler, // 04
+    getFreeEvCBSlot, getFreeTCBslot, exceptionHandler, installExceptionHandler, // 04
     kern_initheap, unimplementedThunk, setTimerAutoAck, unimplementedThunk, // 08
     enqueueIrqHandler, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 0c
-    unimplementedThunk, unimplementedThunk, setupFileIO, unimplementedThunk, // 10
+    unimplementedThunk, unimplementedThunk, setupFileIO, reopenStdio, // 10
     unimplementedThunk, unimplementedThunk, cdevscan, unimplementedThunk, // 14
-    setupFileIO, unimplementedThunk, setDeviceStatus, unimplementedThunk, // 18
+    unimplementedThunk, ioAbortWithMsg, setDeviceStatus, installStdIo, // 18
     patchA0table, getDeviceStatus, unimplementedThunk, unimplementedThunk, // 1c
 };
 

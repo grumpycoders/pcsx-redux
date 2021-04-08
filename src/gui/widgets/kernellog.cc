@@ -73,7 +73,8 @@ bool PCSX::Widgets::KernelLog::draw(R3000Acpu* cpu, const char* title) {
                         break;
                 }
                 ImGui::TableSetColumnIndex(1);
-                changed |= ImGui::CheckboxFlags(name, flags, 1 << (i % 32));
+                std::string label = fmt::format("{}##a{}", name, i);
+                changed |= ImGui::CheckboxFlags(label.c_str(), flags, 1 << (i % 32));
             }
             name = Kernel::getB0name(i);
             if (name) {
@@ -90,7 +91,8 @@ bool PCSX::Widgets::KernelLog::draw(R3000Acpu* cpu, const char* title) {
                         break;
                 }
                 ImGui::TableSetColumnIndex(2);
-                changed |= ImGui::CheckboxFlags(name, flags, 1 << (i % 32));
+                std::string label = fmt::format("{}##b{}", name, i);
+                changed |= ImGui::CheckboxFlags(label.c_str(), flags, 1 << (i % 32));
             }
             name = Kernel::getC0name(i);
             if (name) {
@@ -101,7 +103,8 @@ bool PCSX::Widgets::KernelLog::draw(R3000Acpu* cpu, const char* title) {
                         break;
                 }
                 ImGui::TableSetColumnIndex(3);
-                changed |= ImGui::CheckboxFlags(name, flags, 1 << (i % 32));
+                std::string label = fmt::format("{}##c{}", name, i);
+                changed |= ImGui::CheckboxFlags(label.c_str(), flags, 1 << (i % 32));
             }
         }
         ImGui::EndTable();
