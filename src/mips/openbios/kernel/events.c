@@ -143,8 +143,7 @@ int waitEvent(uint32_t event) {
     }
     if (ptr->flags == EVENT_FLAG_ENABLED) {
         volatile uint32_t *flags = &ptr->flags;
-        while (*flags != EVENT_FLAG_PENDING)
-            ;
+        while (*flags != EVENT_FLAG_PENDING) __asm__ volatile("" : : : "memory");
         *flags = EVENT_FLAG_ENABLED;
         return 1;
     }
