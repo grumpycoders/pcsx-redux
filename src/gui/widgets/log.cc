@@ -104,12 +104,15 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
         }
         if (ImGui::BeginMenu(_("Special"))) {
             ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
             changed |= ImGui::MenuItem(_("Log CD-ROM commands"), nullptr,
-                                       &g_emulator->settings.get<Emulator::SettingLoggingCDROM>().value);
-            changed |=
-                ImGui::MenuItem(_("CPU trace"), nullptr, &g_emulator->settings.get<Emulator::SettingTrace>().value);
+                                       &debugSettings.get<Emulator::DebugSettings::LoggingCDROM>().value);
+            changed |= ImGui::MenuItem(_("CPU trace"), nullptr,
+                                       &debugSettings.get<Emulator::DebugSettings::Trace>().value);
             changed |= ImGui::MenuItem(_("Skip ISR during CPU traces"), nullptr,
-                                       &g_emulator->settings.get<Emulator::SettingSkipISR>().value);
+                                       &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
+            changed |= ImGui::MenuItem(_("Log kernel calls"), nullptr,
+                                       &debugSettings.get<Emulator::DebugSettings::KernelLog>().value);
             ImGui::PopItemFlag();
             ImGui::EndMenu();
         }

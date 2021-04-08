@@ -542,6 +542,7 @@ void PCSX::GUI::endFrame() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGL();
     auto& emuSettings = PCSX::g_emulator->settings;
+    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
 
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -754,10 +755,11 @@ void PCSX::GUI::endFrame() {
                 }
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                 ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
                 if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
                     ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
                     constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
-                    unsigned& s = emuSettings.get<PCSX::Emulator::SettingFirstChanceException>().value;
+                    unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
                     for (auto& e : exceptions) {
                         unsigned f = 1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
                         bool selected = s & f;
@@ -894,6 +896,9 @@ void PCSX::GUI::endFrame() {
     }
     if (m_events.m_show) {
         m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_psxMem->g_psxM), _("Kernel events"));
+    }
+    if (m_kernelLog.m_show) {
+        changed |= m_kernelLog.draw(g_emulator->m_psxCpu.get(), _("Kernel Calls"));
     }
 
     {
@@ -1077,7 +1082,8 @@ bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
     bool selectBiosOverlayDialog = false;
-    auto& settings = PCSX::g_emulator->settings;
+    auto& settings = g_emulator->settings;
+    auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
     if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
@@ -1152,15 +1158,15 @@ faster by not displaying the logo.)"));
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
-        changed |= ImGui::Checkbox(_("Enable Debugger"), &settings.get<Emulator::SettingDebug>().value);
+        changed |= ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value);
         ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticable extend.)"));
-        if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
+        if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
-            if (settings.get<Emulator::SettingGdbServer>()) {
+            if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
                 g_emulator->m_gdbServer->startServer(&g_emulator->m_loop,
-                                                     settings.get<Emulator::SettingGdbServerPort>());
+                                                     debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
             } else {
                 g_emulator->m_gdbServer->stopServer();
             }
@@ -1168,21 +1174,24 @@ can slow down emulation to a noticable extend.)"));
         ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
-        changed |= ImGui::Checkbox(_("GDB send manifest"), &settings.get<Emulator::SettingGdbManifest>().value);
+        changed |=
+            ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
         ShowHelpMarker(_(R"(Enables sending the processor's manifest
 from the gdb server. Keep this enabled, unless
 you want to connect IDA to this server, as it
 has a bug in its manifest parser.)"));
-        changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
-        changed |= ImGui::Checkbox(_("GDB Server Trace"), &settings.get<Emulator::SettingGdbServerTrace>().value);
+        changed |=
+            ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
+        changed |=
+            ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
         ShowHelpMarker(_(R"(The GDB server will start tracing its
 protocol into the logs, which can be helpful to debug
 the gdb server system itself.)"));
-        if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
+        if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
             changed = true;
-            if (settings.get<Emulator::SettingWebServer>()) {
+            if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
                 g_emulator->m_webServer->startServer(&g_emulator->m_loop,
-                                                     settings.get<Emulator::SettingWebServerPort>());
+                                                     debugSettings.get<Emulator::DebugSettings::WebServerPort>());
             } else {
                 g_emulator->m_webServer->stopServer();
             }
@@ -1190,7 +1199,8 @@ the gdb server system itself.)"));
         ShowHelpMarker(_(R"(This will activate a web-server, that you can
 query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
-        changed |= ImGui::InputInt(_("Web Server Port"), &settings.get<Emulator::SettingWebServerPort>().value);
+        changed |=
+            ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});

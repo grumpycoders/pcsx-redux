@@ -28,6 +28,13 @@ namespace PCSX {
 
 namespace Kernel {
 
+unsigned getA0namesSize();
+unsigned getB0namesSize();
+unsigned getC0namesSize();
+const char* getA0name(uint32_t call);
+const char* getB0name(uint32_t call);
+const char* getC0name(uint32_t call);
+
 namespace Events {
 
 class Event {

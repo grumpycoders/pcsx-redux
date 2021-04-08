@@ -386,7 +386,8 @@ void InterpretedCPU::psxADDI(uint32_t code) {
     auto imm = _Imm_;
     uint32_t res = rs + imm;
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
@@ -442,7 +443,8 @@ void InterpretedCPU::psxADD(uint32_t code) {
     auto rt = _rRt_;
     uint32_t res = rs + rt;
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                   // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
@@ -468,7 +470,8 @@ void InterpretedCPU::psxSUB(uint32_t code) {
     auto rt = _rRt_;
     uint32_t res = rs - rt;
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
             m_psxRegs.pc -= 4;
@@ -712,7 +715,9 @@ void InterpretedCPU::psxJAL(uint32_t code) {
  * Format:  OP rs, rd                                     *
  *********************************************************/
 void InterpretedCPU::psxJR(uint32_t code) {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
+        // if in debug mode, check for unaligned jump
         if (_rRs_ & 3) {  // if the jump is unaligned, throw an exception and ret
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU,
@@ -734,7 +739,9 @@ void InterpretedCPU::psxJALR(uint32_t code) {
         _SetLink(_Rd_);
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {  // if in debug mode, check for unaligned jump
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
+        // if in debug mode, check for unaligned jump
         if (temp & 3) {  // if the address is unaligned, throw an exception and return
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU,
@@ -776,7 +783,8 @@ void InterpretedCPU::psxLBU(uint32_t code) {
 
 void InterpretedCPU::psxLH(uint32_t code) {
     // load delay = 1 latency
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_,
@@ -796,7 +804,8 @@ void InterpretedCPU::psxLH(uint32_t code) {
 
 void InterpretedCPU::psxLHU(uint32_t code) {
     // load delay = 1 latency
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_,
@@ -816,7 +825,8 @@ void InterpretedCPU::psxLHU(uint32_t code) {
 
 void InterpretedCPU::psxLW(uint32_t code) {
     // load delay = 1 latency
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         if (_oB_ & 3) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_,
@@ -872,7 +882,8 @@ void InterpretedCPU::psxLWR(uint32_t code) {
 
 void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _u8(_rRt_)); }
 void InterpretedCPU::psxSH(uint32_t code) {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         if (_oB_ & 1) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_,
@@ -886,7 +897,8 @@ void InterpretedCPU::psxSH(uint32_t code) {
 }
 
 void InterpretedCPU::psxSW(uint32_t code) {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+            .get<PCSX::Emulator::DebugSettings::Debug>()) {
         if (_oB_ & 3) {
             m_psxRegs.pc -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_,
@@ -1465,9 +1477,12 @@ void InterpretedCPU::Reset() {
 void InterpretedCPU::Execute() {
     ZoneScoped;
     while (hasToRun()) {
-        const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>();
-        const bool &trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingTrace>();
-        const bool &skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSkipISR>();
+        const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                                .get<PCSX::Emulator::DebugSettings::Debug>();
+        const bool &trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                                .get<PCSX::Emulator::DebugSettings::Trace>();
+        const bool &skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                                  .get<PCSX::Emulator::DebugSettings::SkipISR>();
         if (debug) {
             if (!trace || (skipISR && m_inISR)) {
                 execBlock<true, false>();
@@ -1494,6 +1509,7 @@ inline void InterpretedCPU::execBlock() {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
         }
+        // TODO: throw an exception here if pc is out of range
         uint32_t *codePtr = Read_ICache(m_psxRegs.pc);
         // TODO: throw an exception here if we don't have a pointer
         uint32_t code = m_psxRegs.code = codePtr ? SWAP_LE32(*codePtr) : 0;
@@ -1525,11 +1541,7 @@ inline void InterpretedCPU::execBlock() {
         if (m_inDelaySlot) {
             m_inDelaySlot = false;
             ranDelaySlot = true;
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>()) {
-                InterceptBIOS<true>();
-            } else {
-                InterceptBIOS<false>();
-            }
+            InterceptBIOS();
             psxBranchTest();
         }
         if constexpr (debug) PCSX::g_emulator->m_debug->processAfter();

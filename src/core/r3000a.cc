@@ -67,7 +67,9 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     auto e = magic_enum::enum_cast<Exception>(ec);
     if (e.has_value()) {
         ec = 1 << ec;
-        if (g_emulator->settings.get<Emulator::SettingFirstChanceException>() & ec) {
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                .get<Emulator::DebugSettings::FirstChanceException>() &
+            ec) {
             auto name = magic_enum::enum_name(e.value());
             g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
             g_system->pause();
@@ -131,7 +133,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
 
     int32_t lowestDistance = std::numeric_limits<int32_t>::max();
     uint32_t lowestTarget = cycle;
-    uint32_t* targets = m_psxRegs.intTargets;
+    uint32_t *targets = m_psxRegs.intTargets;
 
     if ((interrupts != 0) && (((int32_t)(m_psxRegs.lowestTarget - cycle)) <= 0)) {
         auto checkAndUpdate = [&lowestDistance, &lowestTarget, interrupts, cycle, targets, this](

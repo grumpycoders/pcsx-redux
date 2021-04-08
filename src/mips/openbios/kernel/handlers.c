@@ -40,6 +40,7 @@ SOFTWARE.
 #include "openbios/card/card.h"
 #include "openbios/cdrom/cdrom.h"
 #include "openbios/cdrom/filesystem.h"
+#include "openbios/cdrom/helpers.h"
 #include "openbios/cdrom/statemachine.h"
 #include "openbios/charset/sjis.h"
 #include "openbios/fileio/fileio.h"
@@ -208,7 +209,7 @@ static const void *romA0table[0xc0] = {
     addConsoleDevice, addDummyConsoleDevice, unimplementedThunk, unimplementedThunk, // 98
     setConfiguration, getConfiguration, setCDRomIRQAutoAck, setMemSize, // 9c
     unimplementedThunk, unimplementedThunk, enqueueCDRomHandlers, dequeueCDRomHandlers, // a0
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, buLowLevelOpCompleted, // a4
+    unimplementedThunk, cdromBlockReading, cdromBlockGetStatus, buLowLevelOpCompleted, // a4
     buLowLevelOpError1, buLowLevelOpError2, buLowLevelOpError3, cardInfo, // a8
     buReadTOC, unimplementedThunk, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
@@ -218,8 +219,8 @@ static const void *romA0table[0xc0] = {
 };
 
 void *B0table[0x60] = {
-    kern_malloc, kern_free, unimplementedThunk, unimplementedThunk, // 00
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, deliverEvent, // 04
+    kern_malloc, kern_free, initTimer, getTimer, // 00
+    enableTimerIRQ, disableTimerIRQ, restartTimer, deliverEvent, // 04
     openEvent, closeEvent, waitEvent, testEvent, // 08
     enableEvent, disableEvent, openThread, closeThread, // 0c
     changeThread, unimplementedThunk, initPad, startPad, // 10
@@ -236,7 +237,7 @@ void *B0table[0x60] = {
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplementedThunk, format, firstFile, nextFile, // 40
     unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
-    removeDevice, unimplementedThunk, initCard, startCard, // 48
+    removeDevice, printInstalledDevices, initCard, startCard, // 48
     stopCard, cardInfoInternal, mcWriteSector, mcReadSector, // 4c
     mcAllowNewCard, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
     unimplementedThunk, unimplementedThunk, getC0table, getB0table, // 54
@@ -246,12 +247,12 @@ void *B0table[0x60] = {
 
 void *C0table[0x20] = {
     enqueueRCntIrqs, enqueueSyscallHandler, sysEnqIntRP, sysDeqIntRP, // 00
-    unimplementedThunk, getFreeTCBslot, exceptionHandler, installExceptionHandler, // 04
+    getFreeEvCBSlot, getFreeTCBslot, exceptionHandler, installExceptionHandler, // 04
     kern_initheap, unimplementedThunk, setTimerAutoAck, unimplementedThunk, // 08
     enqueueIrqHandler, unimplementedThunk, unimplementedThunk, unimplementedThunk, // 0c
-    unimplementedThunk, unimplementedThunk, setupFileIO, unimplementedThunk, // 10
+    unimplementedThunk, unimplementedThunk, setupFileIO, reopenStdio, // 10
     unimplementedThunk, unimplementedThunk, cdevscan, unimplementedThunk, // 14
-    setupFileIO, unimplementedThunk, setDeviceStatus, unimplementedThunk, // 18
+    unimplementedThunk, ioAbortWithMsg, setDeviceStatus, installStdIo, // 18
     patchA0table, getDeviceStatus, unimplementedThunk, unimplementedThunk, // 1c
 };
 

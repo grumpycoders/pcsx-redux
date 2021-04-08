@@ -702,11 +702,7 @@ void X86DynaRecCPU::execute() {
     uint32_t (**recFunc)() = NULL;
     char *p;
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingKernelEventsLog>()) {
-        InterceptBIOS<true>();
-    } else {
-        InterceptBIOS<false>();
-    }
+    InterceptBIOS();
 
     p = (char *)PC_REC(m_psxRegs.pc);
 
@@ -717,7 +713,8 @@ void X86DynaRecCPU::execute() {
         return;
     }
 
-    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>();
+    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                            .get<PCSX::Emulator::DebugSettings::Debug>();
 
     if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == 0) recRecompile();

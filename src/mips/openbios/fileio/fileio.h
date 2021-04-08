@@ -49,6 +49,7 @@ void ioabortraw(int code);
 
 void setupFileIO(int installTTY);
 void installStdIo(int installTTY);
+void reopenStdio();
 
 struct Device *findDevice(const char *name);
 int addDevice(struct Device *);
@@ -71,3 +72,6 @@ extern struct File *g_firstFile;
 
 int getDeviceStatus();
 void setDeviceStatus(int deviceStatus);
+
+void printInstalledDevices();
+void ioAbortWithMsg(const char *msg1, const char *msg2);

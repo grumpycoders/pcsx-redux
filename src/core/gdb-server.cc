@@ -32,8 +32,10 @@ const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
 PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingGdbServer>() && (m_serverStatus != SERVER_STARTED)) {
-            startServer(&g_emulator->m_loop, g_emulator->settings.get<Emulator::SettingGdbServerPort>());
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServer>() &&
+            (m_serverStatus != SERVER_STARTED)) {
+            startServer(&g_emulator->m_loop, g_emulator->settings.get<Emulator::SettingDebugSettings>()
+                                                 .get<Emulator::DebugSettings::GdbServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
@@ -451,7 +453,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
 
 void PCSX::GdbClient::processCommand() {
     if (m_ackEnabled) sendAck();
-    if (g_emulator->settings.get<Emulator::SettingGdbServerTrace>()) {
+    if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerTrace>()) {
         g_system->printf("GDB --> PCSX %s\n", m_cmd.c_str());
     }
     static const std::string qSupported = "qSupported:";
@@ -636,7 +638,7 @@ void PCSX::GdbClient::processCommand() {
     } else if (Misc::startsWith(m_cmd, qSupported)) {
         // do we care about any features gdb supports?
         // auto elements = split(m_cmd.substr(qSupported.length()), ";");
-        if (g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
             write("PacketSize=4000;qXfer:features:read+;qXfer:threads:read+;qXfer:memory-map:read+;QStartNoAckMode+");
         } else {
             write("PacketSize=4000;qXfer:threads:read+;QStartNoAckMode+");
@@ -656,9 +658,11 @@ void PCSX::GdbClient::processCommand() {
             monitor += c;
         }
         processMonitorCommand(monitor);
-    } else if (Misc::startsWith(m_cmd, qXferMemMap) && g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
+    } else if (Misc::startsWith(m_cmd, qXferMemMap) &&
+               g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(memoryMap, m_cmd.substr(qXferMemMap.length()));
-    } else if (Misc::startsWith(m_cmd, qXferFeatures) && g_emulator->settings.get<Emulator::SettingGdbManifest>()) {
+    } else if (Misc::startsWith(m_cmd, qXferFeatures) &&
+               g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (Misc::startsWith(m_cmd, qXferThreads)) {
         writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));

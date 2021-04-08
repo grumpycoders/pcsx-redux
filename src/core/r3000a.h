@@ -210,18 +210,18 @@ struct psxRegisters {
 /**** R3000A Instruction Macros ****/
 #define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
-#define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
-#define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
-#define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
-#define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
-#define _fSa_(code) ((code >> 6) & 0x1F)     // The sa part of the instruction register
-#define _fIm_(code) ((uint16_t)code)         // The immediate part of the instruction register
+#define _fOp_(code) ((code >> 26))  // The opcode part of the instruction register
+#define _fFunct_(code) ((code)&0x3F)  // The funct part of the instruction register
+#define _fRd_(code) ((code >> 11) & 0x1F)  // The rd part of the instruction register
+#define _fRt_(code) ((code >> 16) & 0x1F)  // The rt part of the instruction register
+#define _fRs_(code) ((code >> 21) & 0x1F)  // The rs part of the instruction register
+#define _fSa_(code) ((code >> 6) & 0x1F)  // The sa part of the instruction register
+#define _fIm_(code) ((uint16_t)code)  // The immediate part of the instruction register
 #define _fTarget_(code) (code & 0x03ffffff)  // The target part of the instruction register
 
-#define _fImm_(code) ((int16_t)code)   // sign-extended immediate
+#define _fImm_(code) ((int16_t)code)  // sign-extended immediate
 #define _fImmU_(code) (code & 0xffff)  // zero-extended immediate
-#define _fImmLU_(code) (code << 16)    // LUI
+#define _fImmLU_(code) (code << 16)  // LUI
 
 #define _Op_ _fOp_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
 #define _Funct_ _fFunct_(PCSX::g_emulator->m_psxCpu->m_psxRegs.code)
@@ -251,7 +251,7 @@ struct psxRegisters {
 #define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
-#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
+#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)  // Calculates the target during a branch instruction
 
 /*
 The "SetLink" mechanism uses the delayed load. This may sound counter intuitive, but this is the only way to
@@ -388,7 +388,9 @@ class R3000Acpu {
         }
         return true;
     }
-    template <bool eventLog>
+    void logA0KernelCall(uint32_t call);
+    void logB0KernelCall(uint32_t call);
+    void logC0KernelCall(uint32_t call);
     inline void InterceptBIOS() {
         const uint32_t pc = m_psxRegs.pc & 0x1fffff;
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
@@ -409,103 +411,19 @@ class R3000Acpu {
             }
         }
 
-        if constexpr (eventLog) {
-            if (pc == 0xb0) {
-                switch (call) {
-                    case 0x07: {
-                        g_system->printf("deliverEvent(%s, %s) from 0x%08x\n",
-                                         Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
-                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
-                                         m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x08: {
-                        int id = Kernel::Events::getFirstFreeEvent(
-                            reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM));
-                        g_system->printf("openEvent(%s, %s, %s, 0x%08x) --> 0x%08x from 0x%08x\n",
-                                         Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
-                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
-                                         Kernel::Events::Event::resolveMode(m_psxRegs.GPR.n.a2).c_str(),
-                                         m_psxRegs.GPR.n.a3, id | 0xf1000000, m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x09: {
-                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
-                                                 m_psxRegs.GPR.n.a0};
-                        g_system->printf("closeEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
-                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x0a: {
-                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
-                                                 m_psxRegs.GPR.n.a0};
-                        g_system->printf("waitEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
-                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x0b: {
-                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
-                                                 m_psxRegs.GPR.n.a0};
-                        g_system->printf("testEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
-                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x0c: {
-                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
-                                                 m_psxRegs.GPR.n.a0};
-                        g_system->printf("enableEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
-                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x0d: {
-                        Kernel::Events::Event ev{reinterpret_cast<const uint32_t *>(g_emulator->m_psxMem->g_psxM),
-                                                 m_psxRegs.GPR.n.a0};
-                        g_system->printf("disableEvent(0x%08x {%s, %s}) from 0x%08x\n", m_psxRegs.GPR.n.a0,
-                                         ev.getClass().c_str(), ev.getSpec().c_str(), m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                    case 0x20: {
-                        g_system->printf("undeliverEvent(%s, %s) from 0x%08x\n",
-                                         Kernel::Events::Event::resolveClass(m_psxRegs.GPR.n.a0).c_str(),
-                                         Kernel::Events::Event::resolveSpec(m_psxRegs.GPR.n.a1).c_str(),
-                                         m_psxRegs.GPR.n.ra);
-                        break;
-                    }
-                }
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::KernelLog>()) {
+            switch (pc) {
+                case 0xa0:
+                    logA0KernelCall(call);
+                    break;
+                case 0xb0:
+                    logB0KernelCall(call);
+                    break;
+                case 0xc0:
+                    logC0KernelCall(call);
+                    break;
             }
         }
-    }
-
-  private:
-    /* gets ev for use with s_Event */
-    int GetEv() {
-        const auto r = m_psxRegs.GPR.n;
-        int ev = (r.a0 >> 24) & 0xf;
-        if (ev == 0xf) ev = 0x5;
-        ev *= 32;
-        ev += r.a0 & 0x1f;
-        return ev;
-    }
-
-    int GetSpec() {
-        int spec = 0;
-        const auto r = m_psxRegs.GPR.n;
-        switch (r.a1) {
-            case 0x0301:
-                spec = 16;
-                break;
-            case 0x0302:
-                spec = 17;
-                break;
-            default:
-                for (int i = 0; i < 16; i++)
-                    if (r.a1 & (1 << i)) {
-                        spec = i;
-                        break;
-                    }
-                break;
-        }
-        return spec;
     }
 
   public:
