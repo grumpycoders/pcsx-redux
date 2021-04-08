@@ -812,7 +812,7 @@ static const char *const B0names[] = {
     "getchar", "putchar", "gets", "puts",
     // 40
     "chdir", "format", "firstFile", "nextFile", "rename", "delete", "undelete", "addDevice", "removeDevice",
-    "printInstalledDevices", "initCard", "startCard", "stopCard", "mcWriteSector", "mcReadSector",
+    "printInstalledDevices", "initCard", "startCard", "stopCard", "cardInfoInternal", "mcWriteSector", "mcReadSector",
     // 50
     "mcAllowNewCard", "Krom2RawAdd", nullptr, "Krom2Offset", "getErrno", "getFileErrno", "getC0table", "getB0table",
     "mcGetLastDevice", "checkDevice", nullptr, "setSIO0AutoAck",
