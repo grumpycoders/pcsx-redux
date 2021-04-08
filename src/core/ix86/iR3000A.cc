@@ -713,7 +713,8 @@ void X86DynaRecCPU::execute() {
         return;
     }
 
-    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>();
+    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                            .get<PCSX::Emulator::DebugSettings::Debug>();
 
     if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == 0) recRecompile();
