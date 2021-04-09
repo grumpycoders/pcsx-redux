@@ -578,7 +578,8 @@ class CDRomImpl : public PCSX::CDRom {
 
         m_irq = 0;
         CDROM_IO_LOG("CDRINT %x %x %x %x\n", m_seeked, m_stat, irq, m_irqRepeated);
-        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>().get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
             logCDROM(irq);
         }
 

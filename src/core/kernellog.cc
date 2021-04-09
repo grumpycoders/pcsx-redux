@@ -1142,8 +1142,8 @@ static const char *const C0names[] = {
     "exceptionHandler", "installExceptionHandler", "kern_initheap", nullptr, "setTimerAutoAck", nullptr,
     "enqueueIrqHandler", nullptr, nullptr, nullptr,
     // 10
-    nullptr, nullptr, "setupFileIO", "reopenStdio", nullptr, "cdevinput", "cdevscan", "circgetc", "circputc", "ioAbortWithMsg",
-    "setDeviceStatus", "installStdIo", "patchA0table", "getDeviceStatus",
+    nullptr, nullptr, "setupFileIO", "reopenStdio", nullptr, "cdevinput", "cdevscan", "circgetc", "circputc",
+    "ioAbortWithMsg", "setDeviceStatus", "installStdIo", "patchA0table", "getDeviceStatus",
     // eol
 };
 
