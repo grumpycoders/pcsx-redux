@@ -55,3 +55,6 @@
 [submodule "third_party/magic_enum"]
 	path = third_party/magic_enum
 	url = https://github.com/Neargye/magic_enum.git
+[submodule "third_party/ucl"]
+	path = third_party/ucl
+	url = https://github.com/Distrotech/ucl.git
