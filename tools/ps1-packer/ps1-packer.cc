@@ -17,10 +17,17 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <memory.h>
+
 #include "flags.h"
 #include "fmt/format.h"
 #include "support/file.h"
 #include "ucl/ucl.h"
+
+extern "C" {
+ucl_voidp ucl_memcpy(ucl_voidp dest, const ucl_voidp src, ucl_uint len) { return memcpy(dest, src, len); }
+ucl_voidp ucl_memset(ucl_voidp s, int c, ucl_uint len) { return memset(s, c, len); }
+}
 
 int main(int argc, char** argv) {
     flags::args args(argc, argv);
