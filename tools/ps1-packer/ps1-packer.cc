@@ -160,10 +160,55 @@ Usage: {} input.ps-exe [-h] [-shell] -o output.ps-exe
     pushBytes(dataOut, lui(Reg::A1, getHI(addr)));
     pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(sizeof(n2e_d::code) + 6 * 4))));
     pushBytes(dataOut, addiu(Reg::A1, Reg::A1, getLO(addr)));
-    pushBytes(dataOut, lui(Reg::RA, getHI(pc)));
-    pushBytes(dataOut, addiu(Reg::RA, Reg::RA, getLO(pc)));
-    pushBytes(dataOut, j(0xa0));
-    pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+    if (shell) {
+        pushBytes(dataOut, bgezal(Reg::R0, 36));
+        pushBytes(dataOut, addiu(Reg::S0, Reg::R0, 0xa0));
+        // this goes to 0x40
+        pushBytes(dataOut, 0x40803800); // mtc0 $0, $t7
+        pushBytes(dataOut, jr(Reg::RA));
+        pushBytes(dataOut, 0x42000010); // rfe
+        // this goes to 0x80030000
+        pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
+        pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
+        pushBytes(dataOut, lui(Reg::GP, getHI(gp)));
+        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, addiu(Reg::GP, Reg::GP, getLO(gp)));
+        // copying stuff around
+        pushBytes(dataOut, addiu(Reg::S1, Reg::RA, 0));
+
+        pushBytes(dataOut, addiu(Reg::A0, Reg::R0, 0x40));
+        pushBytes(dataOut, addiu(Reg::A1, Reg::S1, 0));
+        pushBytes(dataOut, addiu(Reg::A2, Reg::R0, 12));
+        pushBytes(dataOut, jalr(Reg::S0));
+        pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x2a));
+
+        pushBytes(dataOut, lui(Reg::A0, 0x8003));
+        pushBytes(dataOut, addiu(Reg::A1, Reg::S1, 12));
+        pushBytes(dataOut, addiu(Reg::A2, Reg::R0, 20));
+        pushBytes(dataOut, jalr(Reg::S0));
+        pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x2a));
+
+        constexpr uint32_t partialReboot = 0xbfc00390;
+
+        pushBytes(dataOut, lui(Reg::RA, getHI(partialReboot)));
+        pushBytes(dataOut, addiu(Reg::RA, Reg::RA, getLO(partialReboot)));
+
+        pushBytes(dataOut, lui(Reg::T0, 0b1100101010000000));
+        pushBytes(dataOut, lui(Reg::T1, 0x8003));
+        pushBytes(dataOut, addiu(Reg::T2, Reg::R0, -1));
+        pushBytes(dataOut, 0x40883800); // mtc0 $t0, $7
+        pushBytes(dataOut, 0x40892800); // mtc0 $t1, $5
+        pushBytes(dataOut, 0x408a4800); // mtc0 $t2, $9
+
+        pushBytes(dataOut, jr(Reg::S0));
+        pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+    } else {
+        pushBytes(dataOut, addiu(Reg::T0, Reg::R0, 0xa0));
+        pushBytes(dataOut, lui(Reg::RA, getHI(pc)));
+        pushBytes(dataOut, addiu(Reg::RA, Reg::RA, getLO(pc)));
+        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+    }
     while ((dataOut.size() & 0x7ff) != 0) dataOut.push_back(0);
 
     std::vector<uint8_t> header;
