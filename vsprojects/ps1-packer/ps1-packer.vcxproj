@@ -159,6 +159,9 @@
       <Project>{70340ff5-b49d-453f-a4f0-75efb08e0df0}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\tools\ps1-packer\n2e-d.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
