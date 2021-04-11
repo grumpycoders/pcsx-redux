@@ -69,6 +69,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     auto inputs = args.positional();
     const bool asksForHelp = args.get<bool>("h").value_or(false);
     const bool hasOutput = output.has_value();
+    const uint32_t tload = std::stoul(args.get<std::string>("tload").value_or("0"), nullptr, 0);
     const bool oneInput = inputs.size() == 1;
     const bool shell = args.get<bool>("shell").value_or(false);
     if (asksForHelp || !oneInput || !hasOutput) {
@@ -77,6 +78,7 @@ Usage: {} input.ps-exe [-h] [-shell] -o output.ps-exe
   input.ps-exe      mandatory: specify the input ps-exe file.
   -o output.ps-exe  mandatory: name of the output file.
   -h                displays this help information and exit.
+  -tload            force loading at this address instead of doing in-place.
   -shell            adds a kernel reset stub; see documentation for details.
 )",
                    argv[0]);
@@ -131,8 +133,21 @@ Usage: {} input.ps-exe [-h] [-shell] -o output.ps-exe
         return -1;
     }
     dataOut.resize(outSize);
-    uint32_t newPC = addr + dataIn.size();
-    uint32_t compLoad = newPC - dataOut.size();
+    pushBytes<uint32_t>(dataOut, 0xdeadbeef);
+    uint32_t newPC;
+    uint32_t compLoad;
+    bool inplace;
+
+    if (tload != 0) {
+        while ((dataOut.size() & 3) != 0) dataOut.push_back(0);
+        compLoad = tload;
+        newPC = compLoad + dataOut.size();
+        inplace = false;
+    } else {
+        newPC = addr + dataIn.size() + 16;
+        compLoad = newPC - dataOut.size();
+        inplace = true;
+    }
     newPC += sizeof(n2e_d::code);
     assert((newPC & 3) == 0);
 
@@ -171,10 +186,12 @@ Input file: {}
 pc: 0x{:08x}  gp: 0x{:08x}  sp: 0x{:08x}
 bss: {}@0x{:08x}
 code size: {} -> {}
+loading address: 0x{:08x}
+inplace decompression: {}
 
 new pc: 0x{:08x}
 )",
-               input, pc, gp, sp, bssSize, bssAddr, dataIn.size(), dataOut.size(), newPC);
+               input, pc, gp, sp, bssSize, bssAddr, dataIn.size(), dataOut.size(), compLoad, inplace ? "yes" : "no", newPC);
 
     if (bssSize != 0) fmt::print("Warning: bss not empty.\n");
     FILE* out = fopen(output.value().c_str(), "wb");
