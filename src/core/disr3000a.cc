@@ -478,14 +478,22 @@ declare(disMULTU) {
  *********************************************************/
 declare(disBGEZ) {
     if (delaySlotNext) *delaySlotNext = true;
-    dOpCode("bgez");
-    GPR(_Rs_);
+    if (_Rs_ == 0) {
+        dOpCode("b");
+    } else {
+        dOpCode("bgez");
+        GPR(_Rs_);
+    }
     dBranch();
 }
 declare(disBGEZAL) {
     if (delaySlotNext) *delaySlotNext = true;
-    dOpCode("bgezal");
-    GPR(_Rs_);
+    if (_Rs_ == 0) {
+        dOpCode("bal");
+    } else {
+        dOpCode("bgezal");
+        GPR(_Rs_);
+    }
     dBranch();
 }
 declare(disBGTZ) {
