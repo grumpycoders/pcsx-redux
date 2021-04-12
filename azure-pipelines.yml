@@ -65,6 +65,7 @@ steps:
       !**\pcsxrunner.exe
       !**\pcsx-redux.exe
       !**\psyq-obj-parser.exe
+      !**\ps1-packer.exe
       !third_party\**\*.exe
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'
