@@ -1113,7 +1113,7 @@ with development binaries and games.)"));
             static const char* types[] = {"Auto", "NTSC", "PAL"};
             auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
             auto& type = settings.get<Emulator::SettingVideo>().value;
-            if (ImGui::BeginCombo(_("System Type"), types[type])) {
+            if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)])) {
                 if (ImGui::Selectable(types[0], autodetect)) {
                     changed = true;
                     autodetect = true;
