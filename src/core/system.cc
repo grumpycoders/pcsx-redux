@@ -91,20 +91,24 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
     uint64_t hashValue;
     std::map<uint64_t, std::string> locale;
 
-    if (in->failed()) {
-        return false;
-    }
+    if (in->failed()) return false;
+
+    std::string comment;
+    bool fuzzy = false;
 
     while ((c = in->getc()) >= 0) {
         if (c == '\n' || c == '\r') {
-            if (inString) {
-                return false;
-            }
+            if (inString) return false;
+            if (inComment) fuzzy = comment.find(", fuzzy") != std::string::npos;
             inComment = false;
             newLine = true;
+            comment.clear();
             continue;
         }
-        if (inComment) continue;
+        if (inComment) {
+            comment += c;
+            continue;
+        }
         if (newLine) {
             newLine = false;
             if (c == '#') {
@@ -112,9 +116,7 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                 continue;
             }
             if (c == '\"') {
-                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) {
-                    return false;
-                }
+                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) return false;
                 inString = true;
                 continue;
             }
@@ -201,10 +203,10 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                     break;
                 case WAITING_MSGIDTOKEN:
                 case WAITING_MSGSTRTOKEN:
-                    if (token.length() == 0) {
+                    if (token.empty()) {
                         switch (state) {
                             case WAITING_MSGIDTOKEN:
-                                if (currentString.length()) locale[hashValue] = currentString;
+                                if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
                                 break;
                             case WAITING_MSGSTRTOKEN:
                                 hashValue = djbHash::hash(currentString);
@@ -238,11 +240,9 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
         }
     }
 
-    if (inString || (state != WAITING_MSGIDTOKEN)) {
-        return false;
-    }
+    if (inString || (state != WAITING_MSGIDTOKEN)) return false;
 
-    if (currentString != "") locale[hashValue] = currentString;
+    if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
     m_locales[name] = locale;
     return true;
 }
