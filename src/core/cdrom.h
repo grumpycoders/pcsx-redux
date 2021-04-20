@@ -21,7 +21,6 @@
 
 #include "core/cdriso.h"
 #include "core/decode_xa.h"
-#include "core/plugins.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
@@ -142,6 +141,9 @@ class CDRom {
     bool m_trackChanged;
     // end savestate
     friend SaveStates::SaveState SaveStates::constructSaveState();
+
+  private:
+    void logCDROM(int command);
 };
 
 }  // namespace PCSX

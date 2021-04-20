@@ -28,11 +28,19 @@
 #include <string>
 #include <vector>
 
+#include "fmt/printf.h"
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
 
+namespace fmt {
+template <>
+struct formatter<std::filesystem::path> : formatter<std::string> {};
+}  // namespace fmt
+
 namespace PCSX {
+
+enum class LogClass : unsigned;
 
 // a hack, until c++-20 is fully adopted everywhere.
 typedef decltype(std::filesystem::path().u8string()) u8string;
@@ -59,21 +67,31 @@ class System {
     // Requests a system reset
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
-    // Printf used by bios syscalls
+    // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
-    virtual void biosPrintf(const char *fmt, ...) = 0;
-    virtual void vbiosPrintf(const char *fmt, va_list va) = 0;
-    // Printf used by the code in general, to indicate errors most of the time
-    // TODO: convert them all to logs
-    virtual void printf(const char *fmt, ...) = 0;
+    // Legacy printf stuff; needs to be replaced with loggers
+    template <typename... Args>
+    void printf(const char *format, const Args &... args) {
+        std::string s = fmt::sprintf(format, args...);
+        printf(s);
+    }
+    virtual void printf(const std::string &) = 0;
     // Add a log line
-    virtual void log(const char *facility, const char *fmt, va_list a) = 0;
-    // Message used to print msg to users
-    virtual void message(const char *fmt, ...) = 0;
+    template <typename... Args>
+    void log(LogClass logClass, const char *format, const Args &... args) {
+        std::string s = fmt::sprintf(format, args...);
+        log(logClass, s);
+    }
+    virtual void log(LogClass, const std::string &) = 0;
+    // Display a popup message to the user
+    template <typename... Args>
+    void message(const char *format, const Args &... args) {
+        std::string s = fmt::sprintf(format, args...);
+        message(s);
+    }
+    virtual void message(const std::string &) = 0;
     // Called periodically; if vsync = true, this while the emulated hardware vsyncs
     virtual void update(bool vsync = false) = 0;
-    // Returns to the Gui
-    virtual void runGui() = 0;
     // Close mem and plugins
     virtual void close() = 0;
     virtual void purgeAllEvents() = 0;

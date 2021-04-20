@@ -25,15 +25,14 @@
 
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "fmt/printf.h"
 #include "spu/interface.h"
 
 /******************************************************************************/
 
-void PCSX::Counters::verboseLog(int32_t level, const char *str, ...) {
-    va_list va;
-    va_start(va, str);
-    PSXHW_LOGV(str, va);
-    va_end(va);
+template <typename... Args>
+void verboseLog(int32_t level, const char *str, const Args &... args) {
+    PSXHW_LOG(str, args...);
 }
 
 inline void PCSX::Counters::psxRcntWcountInternal(uint32_t index, uint32_t value) {
@@ -265,7 +264,8 @@ void PCSX::Counters::psxRcntWtarget(uint32_t index, uint32_t value) {
 
     psxRcntUpdate();
 
-    m_rcnts[index].target = value;  // TODO: only upper 16bit used
+    m_rcnts[index].target =
+        value;  // The target is only 16 bits. To make sure of this, the 32-bit write handlers mask it with 0xFFFF
 
     psxRcntWcountInternal(index, psxRcntRcountInternal(index));
     psxRcntSet();

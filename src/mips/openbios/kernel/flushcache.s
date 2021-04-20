@@ -28,10 +28,10 @@ SOFTWARE.
 
     .section .text, "ax", @progbits
     .align 2
-    .global flushCache
-    .type flushCache, @function
+    .global flushCacheImpl
+    .type flushCacheImpl, @function
 
-flushCache:
+flushCacheImpl:
     mfc0  $t3, $12
     nop
 
@@ -40,7 +40,7 @@ flushCache:
        few instructions are going to effectively unplug all other busses from
        the main CPU. Since flushCache can only be called from that space,
        thanks to the syscall, this should not be necessary here.
-       
+
        A few other changes from the retail bios:
          - the cop0 status register is mutated BEFORE unplugging the busses.
          - the register k0 is left untouched.

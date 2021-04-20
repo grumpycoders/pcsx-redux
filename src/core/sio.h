@@ -21,7 +21,6 @@
 
 #include <string>
 
-#include "core/plugins.h"
 #include "core/psemu_plugin_defs.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -95,9 +94,7 @@ class SIO {
         PAD_STATE_READ_DATA = 2,
     };
     inline void scheduleInterrupt(uint32_t eCycle) {
-        if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) {
-            g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
-        }
+        g_emulator->m_psxCpu->scheduleInterrupt(PSXINT_SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro
         m_statusReg &= ~RX_RDY;

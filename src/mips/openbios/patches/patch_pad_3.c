@@ -24,7 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
 #include "openbios/sio0/pad.h"
 
 // clang-format off
@@ -79,15 +81,13 @@ SOFTWARE.
 
 #ifndef GENERATE_HASHES
 
-int patch_pad_3_execute(uint32_t* ra) {
+enum patch_behavior patch_pad_3_execute(uint32_t* ra) {
     patch_disable_slotChangeOnAbort();
-    uint32_t ptr;
-    int16_t addend;
 
     ra[2] = 2 | 0x10000000;
     ra[3] = 0;
 
-    return 1;
+    return PATCH_COUNTERPATCH;
 }
 
 #else

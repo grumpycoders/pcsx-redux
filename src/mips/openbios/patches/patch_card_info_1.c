@@ -24,7 +24,10 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
+#include "openbios/sio0/card.h"
 
 // clang-format off
 
@@ -57,18 +60,20 @@ SOFTWARE.
         80078474 08 00 e0 03          jr              ra
         80078478 00 00 00 00          _nop
 
+    The patch simply prevents a fifo write in mcInfoHandler.
+
  */
 
 // clang-format on
 
 #ifndef GENERATE_HASHES
 
-// not doing anything about it for now
-int patch_card_info_1_execute(uint32_t* ra) {
+enum patch_behavior patch_card_info_1_execute(uint32_t* ra) {
     ra[2] = 0 | 0x10000000;
     ra[3] = 0;
     ra[5] = 0;
-    return 1;
+    g_mcCardInfoPatchActivated = 1;
+    return PATCH_COUNTERPATCH;
 }
 
 #else

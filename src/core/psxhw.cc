@@ -25,6 +25,7 @@
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
+#include "core/logger.h"
 #include "core/mdec.h"
 #include "spu/interface.h"
 
@@ -33,7 +34,6 @@
 static inline void setIrq(uint32_t irq) { psxHu32ref(0x1070) |= SWAP_LEu32(irq); }
 
 void PCSX::HW::psxHwReset() {
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) setIrq(0x80);
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) setIrq(0x200);
 
     memset(PCSX::g_emulator->m_psxMem->g_psxH, 0, 0x10000);
@@ -105,23 +105,23 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
         case 0x1f801040:
             hard = PCSX::g_emulator->m_sio->sioRead8();
             hard |= PCSX::g_emulator->m_sio->sioRead8() << 8;
-            PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
+            SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f801044:
             hard = PCSX::g_emulator->m_sio->readStatus16();
-            PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
+            SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f801048:
             hard = PCSX::g_emulator->m_sio->readMode16();
-            PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
+            SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f80104a:
             hard = PCSX::g_emulator->m_sio->readCtrl16();
-            PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
+            SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
         case 0x1f80104e:
             hard = PCSX::g_emulator->m_sio->readBaud16();
-            PAD_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
+            SIO0_LOG("sio read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
 #ifdef ENABLE_SIO1API
         case 0x1f801050:
@@ -215,7 +215,7 @@ uint32_t PCSX::HW::psxHwRead32(uint32_t add) {
             hard |= PCSX::g_emulator->m_sio->sioRead8() << 8;
             hard |= PCSX::g_emulator->m_sio->sioRead8() << 16;
             hard |= PCSX::g_emulator->m_sio->sioRead8() << 24;
-            PAD_LOG("sio read32 ;ret = %x\n", hard);
+            SIO0_LOG("sio read32 ;ret = %x\n", hard);
             return hard;
 #ifdef ENABLE_SIO1API
         case 0x1f801050:
@@ -348,10 +348,10 @@ void PCSX::HW::psxHwWrite8(uint32_t add, uint8_t value) {
             PCSX::g_emulator->m_cdrom->write3(value);
             break;
         case 0x1f802041:
-            PCSX::g_system->biosPrintf("BIOS Trace1: 0x%02x\n", value);
+            PCSX::g_system->log(LogClass::HARDWARE, "BIOS Trace1: 0x%02x\n", value);
             break;
         case 0x1f802042:
-            PCSX::g_system->biosPrintf("BIOS Trace2: 0x%02x\n", value);
+            PCSX::g_system->log(LogClass::HARDWARE, "BIOS Trace2: 0x%02x\n", value);
             break;
         case 0x1f802080:
             PCSX::g_system->biosPutc(value);
@@ -374,23 +374,23 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
         case 0x1f801040:
             PCSX::g_emulator->m_sio->write8((unsigned char)value);
             PCSX::g_emulator->m_sio->write8((unsigned char)(value >> 8));
-            PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
+            SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f801044:
             PCSX::g_emulator->m_sio->writeStatus16(value);
-            PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
+            SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f801048:
             PCSX::g_emulator->m_sio->writeMode16(value);
-            PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
+            SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f80104a:  // control register
             PCSX::g_emulator->m_sio->writeCtrl16(value);
-            PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
+            SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
         case 0x1f80104e:  // baudrate register
             PCSX::g_emulator->m_sio->writeBaud16(value);
-            PAD_LOG("sio write16 %x, %x\n", add & 0xf, value);
+            SIO0_LOG("sio write16 %x, %x\n", add & 0xf, value);
             return;
 #ifdef ENABLE_SIO1API
         case 0x1f801050:
@@ -416,7 +416,6 @@ void PCSX::HW::psxHwWrite16(uint32_t add, uint16_t value) {
 #endif
         case 0x1f801070:
             PSXHW_LOG("IREG 16bit write %x\n", value);
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) psxHu16ref(0x1070) |= SWAP_LEu16(0x80);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>())
                 psxHu16ref(0x1070) |= SWAP_LEu16(0x200);
             psxHu16ref(0x1070) &= SWAP_LEu16(value);
@@ -518,7 +517,7 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
             PCSX::g_emulator->m_sio->write8((unsigned char)((value & 0xff) >> 8));
             PCSX::g_emulator->m_sio->write8((unsigned char)((value & 0xff) >> 16));
             PCSX::g_emulator->m_sio->write8((unsigned char)((value & 0xff) >> 24));
-            PAD_LOG("sio write32 %x\n", value);
+            SIO0_LOG("sio write32 %x\n", value);
             return;
 #ifdef ENABLE_SIO1API
         case 0x1f801050:
@@ -533,7 +532,6 @@ void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {
             return;  // Ram size
         case 0x1f801070:
             PSXHW_LOG("IREG 32bit write %x\n", value);
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSioIrq>()) setIrq(0x80);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSpuIrq>()) setIrq(0x200);
             psxHu32ref(0x1070) &= SWAP_LEu32(value);
             return;

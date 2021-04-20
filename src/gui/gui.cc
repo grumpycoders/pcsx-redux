@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <type_traits>
 #include <unordered_set>
 
 #include "core/binloader.h"
@@ -52,12 +53,15 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
 #include "lua/glffi.h"
 #include "lua/luawrapper.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
 #include "stb/stb_image.h"
+#include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
 using json = nlohmann::json;
@@ -307,6 +311,9 @@ end)(jit.status()))
             if ((j.count("gui") == 1 && j["gui"].is_object())) {
                 settings.deserialize(j["gui"]);
             }
+            if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
+                m_log.deserialize(j["loggers"]);
+            }
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
@@ -326,12 +333,16 @@ end)(jit.status()))
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
+        auto argPath1 = m_args.get<std::string>("memcard1");
+        auto argPath2 = m_args.get<std::string>("memcard2");
+        if (argPath1.has_value()) emuSettings.get<Emulator::SettingMcd1>().value = argPath1.value();
+        if (argPath2.has_value()) emuSettings.get<Emulator::SettingMcd2>().value = argPath1.value();
         PCSX::u8string path1 = emuSettings.get<Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<Emulator::SettingMcd2>().string();
-        PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
 
-        std::string biosCfg = m_args.get<std::string>("bios", "");
-        if (!biosCfg.empty()) emuSettings.get<Emulator::SettingBios>() = biosCfg;
+        PCSX::g_emulator->m_sio->LoadMcds(path1, path2);
+        auto biosCfg = m_args.get<std::string>("bios");
+        if (biosCfg.has_value()) emuSettings.get<Emulator::SettingBios>() = biosCfg.value();
 
         m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
 
@@ -339,13 +350,8 @@ end)(jit.status()))
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
-        PCSX::u8string isoToOpen = MAKEU8(m_args.get<std::string>("iso", "").c_str());
-        PCSX::g_emulator->m_cdrom->m_iso.close();
-        if (!isoToOpen.empty()) {
-            SetIsoFile(reinterpret_cast<const char*>(isoToOpen.c_str()));
-            PCSX::g_emulator->m_cdrom->m_iso.open();
-            CheckCdrom();
-        }
+        std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
+        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -427,10 +433,12 @@ void PCSX::GUI::saveCfg() {
     j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
+    j["loggers"] = m_log.serialize();
     cfg << std::setw(2) << j << std::endl;
 }
 
 void PCSX::GUI::startFrame() {
+    ZoneScoped;
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
@@ -536,6 +544,8 @@ void PCSX::GUI::endFrame() {
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGL();
+    auto& emuSettings = PCSX::g_emulator->settings;
+    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
 
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -580,12 +590,28 @@ void PCSX::GUI::endFrame() {
                     std::ofstream schema("sstate.proto");
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
-                if (ImGui::MenuItem(_("Save state"))) {
-                    zstr::ofstream save("sstate", std::ios::binary);
-                    save << SaveStates::save();
-                }
-                if (ImGui::MenuItem(_("Load state"))) {
-                    zstr::ifstream save("sstate", std::ios::binary);
+
+                auto buildSaveStateFilename = [](int i) {
+                    // the ID of the game. Every savestate is marked with the ID of the game it's from.
+                    const auto gameID = g_emulator->m_cdromId;
+
+                    // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
+                    // EXEs don't have proper IDs
+                    if (gameID[0] != 0) {
+                        // For games with an ID of SLUS00213 for example, this will generate a state named
+                        // SLUS00213.sstate
+                        return fmt::format("{}.sstate{}", gameID, i);
+                    } else {
+                        // For games without IDs, identify them via filename
+                        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
+                        const auto lastFile = iso.empty() ? "BIOS" : iso.string();
+                        return fmt::format("{}.sstate{}", lastFile, i);
+                    }
+                };
+
+                auto loadSaveState = [](const std::filesystem::path& filename) {
+                    if (!std::filesystem::exists(std::filesystem::path(filename))) return;
+                    zstr::ifstream save(filename.string(), std::ios::binary);
                     std::ostringstream os;
                     constexpr unsigned buff_size = 1 << 16;
                     char* buff = new char[buff_size];
@@ -597,7 +623,38 @@ void PCSX::GUI::endFrame() {
                     }
                     delete[] buff;
                     SaveStates::load(os.str());
+                };
+
+                if (ImGui::BeginMenu(_("Save state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        const auto str = fmt::format(_("Slot {}"), i);
+                        if (ImGui::MenuItem(str.c_str())) {
+                            zstr::ofstream save(buildSaveStateFilename(i), std::ios::binary);
+                            save << SaveStates::save();
+                        }
+                    }
+
+                    ImGui::EndMenu();
                 }
+
+                if (ImGui::BeginMenu(_("Load state slots"))) {
+                    for (auto i = 1; i < 10; i++) {
+                        const auto str = fmt::format(_("Slot {}"), i);
+                        if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                static constexpr char globalSaveState[] = "global.sstate";
+
+                if (ImGui::MenuItem(_("Save global state"))) {
+                    zstr::ofstream save(globalSaveState, std::ios::binary);
+                    save << SaveStates::save();
+                }
+
+                if (ImGui::MenuItem(_("Load global state"))) loadSaveState(globalSaveState);
+
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
                     PCSX::g_emulator->m_cdrom->setCdOpenCaseTime(-1);
@@ -701,6 +758,25 @@ void PCSX::GUI::endFrame() {
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
+                ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
+                ImGui::MenuItem(_("Kernel Calls"), nullptr, &m_kernelLog.m_show);
+                if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
+                    ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                    constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
+                    unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
+                    for (auto& e : exceptions) {
+                        unsigned f = 1 << static_cast<std::underlying_type<PCSX::R3000Acpu::Exception>::type>(e.first);
+                        bool selected = s & f;
+                        changed |= ImGui::MenuItem(std::string(e.second).c_str(), nullptr, &selected);
+                        if (selected) {
+                            s |= f;
+                        } else {
+                            s &= ~f;
+                        }
+                    }
+                    ImGui::PopItemFlag();
+                    ImGui::EndMenu();
+                }
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                 ImGui::Separator();
@@ -756,9 +832,7 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->m_iso.close();
-            SetIsoFile(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
-            PCSX::g_emulator->m_cdrom->m_iso.open();
-            CheckCdrom();
+            PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(reinterpret_cast<const char*>(fileToOpen[0].c_str()));
         }
     }
 
@@ -774,7 +848,8 @@ void PCSX::GUI::endFrame() {
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
-            g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+            std::filesystem::path p = fileToOpen[0];
+            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p);
             g_system->softReset();
         }
     }
@@ -806,7 +881,7 @@ void PCSX::GUI::endFrame() {
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_log.draw(_("Logs"));
+        changed |= m_log.draw(this, _("Logs"));
     }
 
     if (m_luaConsole.m_show) {
@@ -822,6 +897,12 @@ void PCSX::GUI::endFrame() {
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"));
+    }
+    if (m_events.m_show) {
+        m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_psxMem->g_psxM), _("Kernel events"));
+    }
+    if (m_kernelLog.m_show) {
+        changed |= m_kernelLog.draw(g_emulator->m_psxCpu.get(), _("Kernel Calls"));
     }
 
     {
@@ -860,7 +941,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(&PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
+        m_registers.draw(this, &PCSX::g_emulator->m_psxCpu->m_psxRegs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
@@ -981,11 +1062,13 @@ void PCSX::GUI::endFrame() {
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
-        m_log.addLog("Got ImGui User Error: %s\n", m_imguiUserError.c_str());
+        g_system->log(LogClass::UI, "Got ImGui User Error: %s\n", m_imguiUserError.c_str());
         m_gotImguiUserError = false;
         L->push();
         L->setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
+
+    FrameMark
 }
 
 static void ShowHelpMarker(const char* desc) {
@@ -1004,7 +1087,8 @@ bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
     bool selectBiosOverlayDialog = false;
-    auto& settings = PCSX::g_emulator->settings;
+    auto& settings = g_emulator->settings;
+    auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
     if (!m_showCfg) return false;
 
     ImGui::SetNextWindowPos(ImVec2(50, 30), ImGuiCond_FirstUseEver);
@@ -1016,7 +1100,6 @@ bool PCSX::GUI::configure() {
         }
         ImGui::Separator();
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
-        changed |= ImGui::Checkbox(_("Always enable SIO IRQ"), &settings.get<Emulator::SettingSioIrq>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
         changed |= ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value);
@@ -1035,7 +1118,7 @@ with development binaries and games.)"));
             static const char* types[] = {"Auto", "NTSC", "PAL"};
             auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
             auto& type = settings.get<Emulator::SettingVideo>().value;
-            if (ImGui::BeginCombo(_("System Type"), types[type])) {
+            if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)])) {
                 if (ImGui::Selectable(types[0], autodetect)) {
                     changed = true;
                     autodetect = true;
@@ -1080,15 +1163,15 @@ faster by not displaying the logo.)"));
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
-        changed |= ImGui::Checkbox(_("Enable Debugger"), &settings.get<Emulator::SettingDebug>().value);
+        changed |= ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value);
         ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticable extend.)"));
-        if (ImGui::Checkbox(_("Enable GDB Server"), &settings.get<Emulator::SettingGdbServer>().value)) {
+        if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
-            if (settings.get<Emulator::SettingGdbServer>()) {
+            if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
                 g_emulator->m_gdbServer->startServer(&g_emulator->m_loop,
-                                                     settings.get<Emulator::SettingGdbServerPort>());
+                                                     debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
             } else {
                 g_emulator->m_gdbServer->stopServer();
             }
@@ -1096,21 +1179,24 @@ can slow down emulation to a noticable extend.)"));
         ShowHelpMarker(_(R"(This will activate a gdb-server that you can
 connect to with any gdb-remote compliant client.
 You also need to enable the debugger.)"));
-        changed |= ImGui::Checkbox(_("GDB send manifest"), &settings.get<Emulator::SettingGdbManifest>().value);
+        changed |=
+            ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
         ShowHelpMarker(_(R"(Enables sending the processor's manifest
 from the gdb server. Keep this enabled, unless
 you want to connect IDA to this server, as it
 has a bug in its manifest parser.)"));
-        changed |= ImGui::InputInt(_("GDB Server Port"), &settings.get<Emulator::SettingGdbServerPort>().value);
-        changed |= ImGui::Checkbox(_("GDB Server Trace"), &settings.get<Emulator::SettingGdbServerTrace>().value);
+        changed |=
+            ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
+        changed |=
+            ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
         ShowHelpMarker(_(R"(The GDB server will start tracing its
 protocol into the logs, which can be helpful to debug
 the gdb server system itself.)"));
-        if (ImGui::Checkbox(_("Enable Web Server"), &settings.get<Emulator::SettingWebServer>().value)) {
+        if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
             changed = true;
-            if (settings.get<Emulator::SettingWebServer>()) {
+            if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
                 g_emulator->m_webServer->startServer(&g_emulator->m_loop,
-                                                     settings.get<Emulator::SettingWebServerPort>());
+                                                     debugSettings.get<Emulator::DebugSettings::WebServerPort>());
             } else {
                 g_emulator->m_webServer->stopServer();
             }
@@ -1118,7 +1204,8 @@ the gdb server system itself.)"));
         ShowHelpMarker(_(R"(This will activate a web-server, that you can
 query using a REST api. See the wiki for details.
 The debugger might be required in some cases.)"));
-        changed |= ImGui::InputInt(_("Web Server Port"), &settings.get<Emulator::SettingWebServerPort>().value);
+        changed |=
+            ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
         if (ImGui::CollapsingHeader(_("Advanced BIOS patching"))) {
             auto& overlays = settings.get<Emulator::SettingBiosOverlay>();
             if (ImGui::Button(_("Add one entry"))) overlays.push_back({});
@@ -1276,14 +1363,14 @@ void PCSX::GUI::about() {
         };
         ImGui::TextUnformatted(_("OpenGL information"));
         ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
-        someString(_("vendor"), GL_VENDOR);
-        someString(_("renderer"), GL_RENDERER);
-        someString(_("version"), GL_VERSION);
-        someString(_("shading language version"), GL_SHADING_LANGUAGE_VERSION);
+        someString(_("Vendor"), GL_VENDOR);
+        someString(_("Renderer"), GL_RENDERER);
+        someString(_("Version"), GL_VERSION);
+        someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
         GLint n, i;
         glGetIntegerv(GL_NUM_EXTENSIONS, &n);
         checkGL();
-        ImGui::TextUnformatted(_("extensions:"));
+        ImGui::TextUnformatted(_("Extensions:"));
         ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
         for (i = 0; i < n; i++) {
             const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
@@ -1307,11 +1394,12 @@ void PCSX::GUI::shellReached() {
 
     if (m_exeToLoad.empty()) return;
     PCSX::u8string filename = std::move(m_exeToLoad);
+    std::filesystem::path p = filename;
 
-    g_system->biosPrintf("Hijacked shell, loading %s...\n", filename.c_str());
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p);
     bool success = BinaryLoader::load(filename);
     if (success) {
-        g_system->biosPrintf("Successful: new PC = %08x...\n", regs.pc);
+        g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
     }
 }
 
@@ -1334,13 +1422,10 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
         m_exeToLoad = path.u8string();
-        g_system->biosPrintf("Scheduling to load %s and soft reseting.\n", m_exeToLoad.c_str());
+        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
         g_system->softReset();
     } else {
-        PCSX::g_emulator->m_cdrom->m_iso.close();
-        SetIsoFile(pathStr);
-        PCSX::g_emulator->m_cdrom->m_iso.open();
-        CheckCdrom();
+        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);
     }
 
     free(extension);

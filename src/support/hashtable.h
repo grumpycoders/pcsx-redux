@@ -58,10 +58,10 @@ class HashTable final {
       private:
         void unlinkInternal() { m_parent = nullptr; }
         friend class HashTable;
-        Key m_key = Key();
+        Key m_key;
         Node* m_next = nullptr;
         HashTable<Key, T, Hash, Id>* m_parent = nullptr;
-        uint32_t m_hash = 0;
+        uint32_t m_hash;
     };
 
   private:
@@ -162,6 +162,15 @@ class HashTable final {
 
         m_count++;
         return iterator(node);
+    }
+    const_iterator find(const Key& key) const {
+        uint32_t bucket = Hash::hash(key) & m_mask;
+        for (Node* p = m_array[bucket]; p; p = p->m_next) {
+            if (Hash::isEqual(key, p->m_key)) {
+                return const_iterator(p);
+            }
+        }
+        return end();
     }
     iterator find(const Key& key) {
         uint32_t bucket = Hash::hash(key) & m_mask;

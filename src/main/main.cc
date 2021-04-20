@@ -26,6 +26,7 @@
 
 #include "core/cdrom.h"
 #include "core/gpu.h"
+#include "core/logger.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
@@ -33,123 +34,42 @@
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "tracy/Tracy.hpp"
 
 static PCSX::GUI *s_gui;
 
 class SystemImpl : public PCSX::System {
-    virtual void printf(const char *fmt, ...) final {
-        // print message to debugging console
-        va_list a;
-        va_start(a, fmt);
-        if (m_logfile) {
-            va_list c;
-            va_copy(c, a);
-            vfprintf(m_logfile, fmt, c);
-            va_end(c);
-        }
-        if (m_enableStdout) {
-            va_list c;
-            va_copy(c, a);
-            vprintf(fmt, c);
-            va_end(c);
-        }
-        s_gui->addLog(fmt, a);
-        va_end(a);
-    }
-
     virtual void biosPutc(int c) final {
         if (c == '\r') return;
-        if (c == '\n') {
-            biosPrintf("%s\n", m_putcharBuffer.c_str());
-            m_putcharBuffer.clear();
-            return;
-        }
         m_putcharBuffer += std::string(1, c);
+        if (c == '\n') {
+            log(PCSX::LogClass::MIPS, m_putcharBuffer);
+            m_putcharBuffer.clear();
+        }
+    }
+    virtual void message(const std::string &s) final {
+        if (s_gui->addLog(PCSX::LogClass::UI, s)) {
+            if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
+            if (m_enableStdout) ::printf("%s", s.c_str());
+        }
+        s_gui->addNotification(s.c_str());
     }
 
-    virtual void biosPrintf(const char *fmt, ...) final {
-        // print message to debugging console
-        va_list a;
-        va_start(a, fmt);
-        if (m_logfile) {
-            va_list c;
-            va_copy(c, a);
-            vfprintf(m_logfile, fmt, c);
-            va_end(c);
-        }
-        if (m_enableStdout) {
-            va_list c;
-            va_copy(c, a);
-            vprintf(fmt, c);
-            va_end(c);
-        }
-        s_gui->addLog(fmt, a);
-        va_end(a);
+    virtual void log(PCSX::LogClass logClass, const std::string &s) final {
+        if (!s_gui->addLog(logClass, s)) return;
+        if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
+        if (m_enableStdout) ::printf("%s", s.c_str());
     }
 
-    virtual void vbiosPrintf(const char *fmt, va_list a) final {
-        if (m_logfile) {
-            va_list c;
-            va_copy(c, a);
-            vfprintf(m_logfile, fmt, c);
-            va_end(c);
-        }
-        if (m_enableStdout) {
-            va_list c;
-            va_copy(c, a);
-            vprintf(fmt, c);
-            va_end(c);
-        }
-        s_gui->addLog(fmt, a);
-    }
-
-    virtual void message(const char *fmt, ...) final {
-        // display message to user as a pop-up
-        va_list a;
-        va_start(a, fmt);
-        if (m_logfile) {
-            va_list c;
-            va_copy(c, a);
-            vfprintf(m_logfile, fmt, c);
-            va_end(c);
-        }
-        if (m_enableStdout) {
-            va_list c;
-            va_copy(c, a);
-            vprintf(fmt, c);
-            va_end(c);
-        }
-        va_list c;
-        va_copy(c, a);
-        s_gui->addLog(fmt, c);
-        va_end(c);
-        s_gui->addNotification(fmt, a);
-        va_end(a);
-    }
-
-    virtual void log(const char *facility, const char *fmt, va_list a) final {
-        if (m_logfile) {
-            va_list c;
-            va_copy(c, a);
-            vfprintf(m_logfile, fmt, c);
-            va_end(c);
-        }
-        if (m_enableStdout) {
-            va_list c;
-            va_copy(c, a);
-            vprintf(fmt, c);
-            va_end(c);
-        }
-        s_gui->addLog(fmt, a);
+    virtual void printf(const std::string &s) final {
+        if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
+        if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
+        if (m_enableStdout) ::printf("%s", s.c_str());
     }
 
     virtual void update(bool vsync = false) final {
         // called on vblank to update states
         s_gui->update(vsync);
-    }
-
-    virtual void runGui() final {
-        // called when the UI needs to show up
     }
 
     virtual void softReset() final {
@@ -175,7 +95,7 @@ class SystemImpl : public PCSX::System {
         if (m_args.get<bool>("testmode")) {
             quit(code);
         } else {
-            printf("PSX software requested an exit with code %i\n", code);
+            PCSX::System::log(PCSX::LogClass::UI, "PSX software requested an exit with code %i\n", code);
             pause();
         }
     }
@@ -202,6 +122,7 @@ class SystemImpl : public PCSX::System {
 using json = nlohmann::json;
 
 int pcsxMain(int argc, char **argv) {
+    ZoneScoped;
     const flags::args args(argc, argv);
 
     if (args.get<bool>("dumpproto")) {
@@ -232,17 +153,15 @@ int pcsxMain(int argc, char **argv) {
     const auto &logfile = logfileArg.empty() ? logfileSet : logfileArg;
     if (!logfile.empty()) system->useLogfile(logfile);
 
-    LoadPlugins();
+    emulator->m_cdrom->m_iso.init();
+    emulator->m_gpu->init();
+    emulator->m_spu->init();
+
     emulator->m_gpu->open(s_gui);
     emulator->m_spu->open();
 
     emulator->EmuInit();
     emulator->EmuReset();
-
-    std::string iso = args.get<std::string>("iso", "");
-    if (!iso.empty()) SetIsoFile(iso.c_str());
-    emulator->m_cdrom->m_iso.open();
-    CheckCdrom();
 
     if (args.get<bool>("run", false)) system->start();
 

@@ -137,6 +137,7 @@
 #include "gpu/soft/key.h"
 #include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
+#include "tracy/Tracy.hpp"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>
@@ -746,6 +747,7 @@ uint32_t PCSX::SoftGPU::impl::readStatus(void)  // READ STATUS
 
 void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 {
+    ZoneScoped;
     if (m_dumpFile) {
         uint32_t data = 0x01000001;
         fwrite(&data, sizeof(data), 1, (FILE *)m_dumpFile);
@@ -1181,6 +1183,7 @@ void PCSX::SoftGPU::impl::stopDump() {
 }
 
 void PCSX::SoftGPU::impl::writeDataMem(uint32_t *pMem, int iSize) {
+    ZoneScoped;
     unsigned char command;
     uint32_t gdata = 0;
     int i = 0;

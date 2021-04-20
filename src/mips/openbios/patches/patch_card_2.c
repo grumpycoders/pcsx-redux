@@ -24,7 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
 
 // clang-format off
 
@@ -79,18 +81,16 @@ SOFTWARE.
         800785a0 08 00 e0 03          jr              ra
         800785a4 00 00 00 00          _nop
 
+    This patch will modify the fasttrack function to properly handle IREG/IMASK, tho it is technically a lot more problematic,
+    as it writes its new function in kernel space, around address 0x0000df80.
+
  */
 
 // clang-format on
 
 #ifndef GENERATE_HASHES
 
-// not doing anything about it for now
-int patch_card_2_execute(uint32_t* ra) {
-    ra[2] = 18 | 0x10000000;
-    ra[3] = 0;
-    return 1;
-}
+enum patch_behavior patch_card_2_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 

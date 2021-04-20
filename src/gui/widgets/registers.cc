@@ -23,10 +23,11 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) {
+void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
@@ -37,6 +38,7 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
     std::string editorToOpen;
 
     if (ImGui::BeginTabBar(_("Registers"))) {
+        gui->useMonoFont();
         if (ImGui::BeginTabItem("GPR")) {
             unsigned counter = 0;
             for (auto& reg : registers->GPR.r) {
@@ -151,18 +153,23 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
         }
         if (ImGui::BeginTabItem(_("Misc"))) {
             ImGui::Text("pc   : %08x", registers->pc);
+            ImGui::SameLine();
+            if (ImGui::SmallButton(_("Edit##pc"))) {
+                editorToOpen = fmt::format(_("Edit value of pc"));
+                snprintf(m_registerEditor, 19, "%08x", registers->pc);
+            }
             ImGui::Text("cycle: %08x", registers->cycle);
             ImGui::Text("int  : %08x", registers->interrupt);
             ImGui::EndTabItem();
         }
+        ImGui::PopFont();
         ImGui::EndTabBar();
     }
 
     ImGui::End();
 
     if (!editorToOpen.empty()) ImGui::OpenPopup(editorToOpen.c_str());
-    unsigned counter = 0;
-    for (auto& reg : registers->GPR.r) {
+    for (unsigned counter = 0; counter < 35; counter++) {
         const char* name;
         if (counter >= 32) {
             switch (counter) {
@@ -172,6 +179,9 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
                 case 33:
                     name = "lo";
                     break;
+                case 34:
+                    name = "pc";
+                    break;
                 default:
                     name = "??";
                     break;
@@ -179,7 +189,6 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
         } else {
             name = PCSX::Disasm::s_disRNameGPR[counter];
         }
-        counter++;
         std::string editor = fmt::format(_("Edit value of {}"), name);
         if (ImGui::BeginPopupModal(editor.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text(_("Change the value of register %s:"), name);
@@ -188,7 +197,11 @@ void PCSX::Widgets::Registers::draw(psxRegisters* registers, const char* title) 
                 char* endPtr;
                 uint32_t newReg = strtoul(m_registerEditor, &endPtr, 16);
                 if (!*endPtr) {
-                    reg = newReg;
+                    if (counter == 34) {
+                        registers->pc = newReg;
+                    } else {
+                        registers->GPR.r[counter] = newReg;
+                    }
                     ImGui::CloseCurrentPopup();
                 }
             }

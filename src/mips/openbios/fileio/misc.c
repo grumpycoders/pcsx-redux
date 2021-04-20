@@ -42,8 +42,9 @@ SOFTWARE.
 
 static struct File s_files[16];
 static struct Device s_devices[10];
-static struct File *s_firstFile;
+struct File *g_firstFile;
 static int s_deviceStatus;
+static int s_stopOnEscape;
 
 uint32_t psxerrno = PSXENOERR;
 
@@ -62,11 +63,14 @@ void setupFileIO(int installTTY) {
     POST = 1;
     installStdIo(installTTY);
     POST = 2;
-    s_firstFile = NULL;
+    g_firstFile = NULL;
     s_deviceStatus = 0;
     syscall_addCDRomDevice();
     syscall_addMemoryCardDevice();
 }
+
+int getDeviceStatus() { return s_deviceStatus; }
+void setDeviceStatus(int deviceStatus) { s_deviceStatus = deviceStatus; }
 
 void printInstalledDevices() {
     struct Device *ptr;
@@ -81,8 +85,7 @@ struct Device *findDevice(const char *name) {
         if (ptr->name && !syscall_strcmp(ptr->name, name)) return ptr;
     }
 
-    // what?
-    // s_ignoreCarriageReturns = 0;
+    s_stopOnEscape = 0;
     romsyscall_printf("%s is not known device\n", name);
     romsyscall_printf("Known devices are:\n");
     printInstalledDevices();

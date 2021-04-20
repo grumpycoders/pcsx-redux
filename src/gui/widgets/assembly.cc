@@ -501,10 +501,14 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     DummyAsm dummy;
 
     uint32_t pc = virtToReal(m_registers->pc);
-    ImGui::Checkbox(_("Enable Debugger"), &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>().value);
+    auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+    ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
-    ImGui::SameLine();
     DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
     ImGui::SameLine();
     DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
@@ -514,6 +518,8 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     DButton(_("Step Over"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOver(); });
     ImGui::SameLine();
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
+    ImGui::SameLine();
+    ImGui::Text(_("In ISR: %s"), g_emulator->m_psxCpu->m_inISR ? "yes" : "no");
     if (!g_system->running()) {
         if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
             g_emulator->m_debug->stepOver();

@@ -104,10 +104,10 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 )"));
 
     // Load BIOS
-    PCSX::u8string biosPath = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBios>().string();
-    File *f = new File(biosPath);
+    auto &biosPath = g_emulator->settings.get<PCSX::Emulator::SettingBios>().value;
+    File *f = new File(biosPath.string());
     if (f->failed()) {
-        PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.c_str());
+        PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath);
         delete f;
         f = new File("openbios.bin");
         if (f->failed()) {
@@ -115,24 +115,24 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
                 "Could not open OpenBIOS fallback. Things won't work properly.\nAdd a valid BIOS in the configuration "
                 "and hard reset.\n"));
         } else {
-            g_emulator->settings.get<Emulator::SettingBios>() = "openbios.bin";
+            biosPath = "openbios.bin";
         }
     } else {
         f->read(g_psxR, bios_size);
         f->close();
         if ((g_psxR[0] == 0x7f) && (g_psxR[1] == 'E') && (g_psxR[2] == 'L') && (g_psxR[3] == 'F')) {
             Elf e;
-            if (e.load(biosPath)) m_elfs.push_back(std::move(e));
+            if (e.load(biosPath.string())) m_elfs.push_back(std::move(e));
             auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
-            if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description().c_str());
+            if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description());
         }
-        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.c_str());
+        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath);
     }
     delete f;
 
     for (auto &overlay : g_emulator->settings.get<Emulator::SettingBiosOverlay>()) {
         if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
-        const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>();
+        const auto &filename = overlay.get<Emulator::OverlaySetting::Filename>().value;
         auto foffset = overlay.get<Emulator::OverlaySetting::FileOffset>();
         auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
         auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
@@ -140,7 +140,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         File *f = new File(filename);
 
         if (f->failed()) {
-            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename);
             failed = true;
         }
 
@@ -155,12 +155,11 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
                 if (foffset < 0) {
                     // fail if the negative offset is more than the total file size
-                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"),
-                                            filename.string().c_str());
+                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename);
                     failed = true;
                 }
             } else if (foffset > fsize) {
-                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename);
                 failed = true;
             }
         }
@@ -175,16 +174,14 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
                 lsize = fsize + lsize;
 
                 if (lsize < 0) {
-                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"),
-                                            filename.string().c_str());
+                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename);
                     failed = true;
                 }
             }
         }
         if (!failed) {
             if (lsize > fsize) {
-                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"),
-                                        filename.string().c_str());
+                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename);
                 failed = true;
             }
         }
@@ -196,18 +193,17 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
                 if (loffset < 0) {
                     // fail if the negative offset is more than the BIOS size
-                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"),
-                                            filename.string().c_str());
+                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename);
                     failed = true;
                 }
             } else if (loffset > bios_size) {
-                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string().c_str());
+                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename);
                 failed = true;
             }
         }
         if (!failed) {
             f->read(g_psxR + loffset, lsize);
-            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string().c_str());
+            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename);
         }
 
         f->close();
@@ -242,7 +238,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR1);
             }
             return *(uint8_t *)(p + (mem & 0xffff));
@@ -270,7 +266,7 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR2);
             }
             return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
@@ -298,7 +294,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR4);
             }
             return SWAP_LEu32(*(uint32_t *)(p + (mem & 0xffff)));
@@ -328,7 +324,7 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW1);
             }
             *(uint8_t *)(p + (mem & 0xffff)) = value;
@@ -356,7 +352,7 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW2);
             }
             *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
@@ -385,7 +381,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>()) {
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW4);
             }
             *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);
@@ -408,7 +404,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
                         m_writeok = 0;
                         setLuts();
 
-                        PCSX::g_emulator->m_psxCpu->m_psxRegs.ICache_valid = false;
+                        PCSX::g_emulator->m_psxCpu->invalidateCache();
                         break;
                     case 0x00:
                     case 0x1e988:

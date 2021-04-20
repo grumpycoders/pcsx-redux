@@ -28,7 +28,7 @@ The result of the compilation should be a file called `openbios.elf` that contai
 
 ## Status
 
-This subproject is currently under construction. OpenBIOS does almost all the same things as the retail BIOS does when booting, aside from properly setting up the memory card device. Currently, some games are booting and working properly with this code.
+This subproject is still under construction, but is fairly functional and usable. OpenBIOS does almost all the same things as the retail BIOS does when booting, and implements most of its features. [Many games](https://docs.google.com/spreadsheets/d/1UNGs7uYb8viAbm7YJaf1CR4dkgX7ZzntUdcowGsjcVc/edit?usp=sharing) are booting and working properly with this code. It can be used in emulators or on the real console, either while replacing the rom chip, or by using the "cart" build and programming the flash chip of a cheat cart with the result.
 
 ## Organization
 
