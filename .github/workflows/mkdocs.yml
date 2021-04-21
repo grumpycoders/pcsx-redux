@@ -1,0 +1,32 @@
+name: Publish docs via GitHub Pages
+on:
+  push:
+    branches:
+      - docs
+
+jobs:
+  build:
+    name: Deploy docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v1
+
+      - name: Cancel previous run
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Recall previous docker images
+        uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+
+      - name: Deploy docs
+        uses: nicolasnoble/mkdocs-deploy-gh-pages@master
+        # Or use mhausenblas/mkdocs-deploy-gh-pages@nomaterial to build without the mkdocs-material theme
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_DOMAIN: pcsx-redux.consoledev.net
+          CONFIG_FILE: mkdocs.yml
+          EXTRA_PACKAGES: build-base cairo cairo-gobject fontconfig gdk-pixbuf jpeg-dev libffi-dev msttcorefonts-installer pango zlib-dev
+          POST_INSTALL: update-ms-fonts && fc-cache -f
