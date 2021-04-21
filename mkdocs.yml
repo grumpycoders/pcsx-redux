@@ -1,6 +1,6 @@
 site_name: PCSX-Redux
 site_url: https://pcsx-redux.consoledev.net/
-repo_url: https://github.com/grumpycoders/pcsx-redux.git/
+repo_url: https://github.com/grumpycoders/pcsx-redux/
 edit_uri: edit/docs/docs/
 
 theme:
