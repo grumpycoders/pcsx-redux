@@ -27,8 +27,8 @@ theme:
 
 plugins:
   - search
-  - with-pdf:
-      output_path: pcsx-redux.pdf
+#  - with-pdf:
+#      output_path: pcsx-redux.pdf
 
 extra_css:
     - css/extra.css
