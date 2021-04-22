@@ -240,7 +240,6 @@
     <ClInclude Include="..\..\src\core\pgxp_mem.h" />
     <ClInclude Include="..\..\src\core\pgxp_value.h" />
     <ClInclude Include="..\..\src\core\ppf.h" />
-    <ClInclude Include="..\..\src\core\psemu_plugin_defs.h" />
     <ClInclude Include="..\..\src\core\psxemulator.h" />
     <ClInclude Include="..\..\src\core\psxcounters.h" />
     <ClInclude Include="..\..\src\core\psxdma.h" />
