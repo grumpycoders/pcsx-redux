@@ -164,7 +164,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
-    typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
+    typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
