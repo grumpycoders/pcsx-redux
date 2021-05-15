@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include <stdatomic.h>
+
 #include "openbios/sio0/card.h"
 
 #include "common/hardware/hwregs.h"
@@ -64,7 +66,7 @@ int mcWaitForStatus() {
                 return 0;
             }
         }
-        __asm__ volatile("" : : : "memory");
+        atomic_signal_fence(memory_order_consume);
     }
 }
 
@@ -80,7 +82,7 @@ int mcWaitForStatusAndReturnIndex() {
                 return i + 1;
             }
         }
-        __asm__ volatile("" : : : "memory");
+        atomic_signal_fence(memory_order_consume);
     }
 }
 
