@@ -25,6 +25,7 @@
 
 #include "GL/gl3w.h"
 #include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "core/system.h"
 #include "http-parser/http_parser.h"
 #include "support/hashtable.h"
@@ -33,7 +34,7 @@ namespace {
 
 class VramExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
-        return urldata.path == "/api/v1/vram/raw";
+        return urldata.path == "/api/v1/gpu/vram/raw";
     }
     virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
         client->write("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 1048576\r\n\r\n");
@@ -58,12 +59,42 @@ class VramExecutor : public PCSX::WebExecutor {
     VramExecutor() : m_listener(PCSX::g_system->m_eventBus) {
         m_listener.listen<PCSX::Events::CreatedVRAMTexture>([this](const auto& event) { m_VRAMTexture = event.id; });
     }
+    virtual ~VramExecutor() = default;
+};
+
+class RamExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return urldata.path == "/api/v1/cpu/ram/raw";
+    }
+    virtual bool execute(PCSX::WebClient* client, const PCSX::RequestData& request) final {
+        const auto& ram8M = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
+        if (ram8M) {
+            client->write(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 8388608\r\n\r\n");
+        } else {
+            client->write(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 2097152\r\n\r\n");
+        }
+        uint32_t size = 1024 * 1024 * (ram8M ? 8 : 2);
+        uint8_t* data = (uint8_t*)malloc(size);
+        memcpy(data, PCSX::g_emulator->m_psxMem->g_psxM, size);
+        PCSX::Slice slice;
+        slice.acquire(data, size);
+        client->write(std::move(slice));
+
+        return true;
+    }
+
+  public:
+    RamExecutor() = default;
+    virtual ~RamExecutor() = default;
 };
 
 }  // namespace
 
 PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
+    m_executors.push_back(new RamExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
