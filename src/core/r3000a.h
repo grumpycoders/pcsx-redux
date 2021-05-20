@@ -411,6 +411,7 @@ class R3000Acpu {
                     if (r.a0 != 1) break;
                     uint8_t *str = PSXM(r.a1);
                     uint32_t size = r.a2;
+                    m_psxRegs.GPR.n.v0 = size;
                     while (size--) {
                         g_system->biosPutc(*str++);
                     }
