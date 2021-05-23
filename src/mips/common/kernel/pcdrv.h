@@ -30,7 +30,7 @@ SOFTWARE.
 
 static inline int PCinit() {
     register int r asm("v0");
-    __asm__ volatile("break 0x101\n" : "=r"(r));
+    __asm__ volatile("break 0, 0x101\n" : "=r"(r));
     return r;
 }
 
@@ -40,7 +40,7 @@ static inline int PCcreat(const char *name, int perms) {
     register int a2 asm("a2") = 0;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0x102\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
+    __asm__ volatile("break 0, 0x102\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
     if (v0 == 0) return v1;
     return -1;
 }
@@ -51,7 +51,7 @@ static inline int PCopen(char *name, int flags, int perms) {
     register const char *a1 asm("a1") = name;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0x103\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
+    __asm__ volatile("break 0, 0x103\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
     if (v0 == 0) return v1;
     return -1;
 }
@@ -60,7 +60,7 @@ static inline int PCclose(int fd) {
     register int a0 asm("a0") = fd;
     register int a1 asm("a1") = fd;
     register int v0 asm("v0");
-    __asm__ volatile("break 0x104\n" : "=r"(v0) : "r"(a0), "r"(a1) : "v1");
+    __asm__ volatile("break 0, 0x104\n" : "=r"(v0) : "r"(a0), "r"(a1) : "v1");
     return v0;
 }
 
@@ -70,7 +70,7 @@ static inline int PCread(int fd, void *buf, int len) {
     register int a2 asm("a2") = len;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0x105\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
+    __asm__ volatile("break 0, 0x105\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
     if (v0 == 0) return v1;
     return -1;
 }
@@ -81,7 +81,7 @@ static inline int PCwrite(int fd, const void *buf, int len) {
     register int a2 asm("a2") = len;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
+    __asm__ volatile("break 0, 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
     if (v0 == 0) return v1;
     return -1;
 }
@@ -93,7 +93,7 @@ static inline int PClseek(int fd, int offset, int wheel) {
     register int a1 asm("a1") = fd;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
+    __asm__ volatile("break 0, 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
     if (v0 == 0) return v1;
     return -1;
 }
