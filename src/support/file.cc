@@ -107,7 +107,7 @@ PCSX::File::File(const char *filename, Create) : m_filename(filename) {
 #endif
 }
 #else
-PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = fopen(filename, "wb"); }
+PCSX::File::File(const char *filename, Create) : m_filename(filename) { m_handle = fopen(filename, "wb"); }
 #endif
 
 char *PCSX::File::gets(char *s, int size) {
