@@ -151,10 +151,10 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         m_psxRegs.pc += 4;
                         return;
                     }
-                    if ((regs.v1 = file->read(PSXM(regs.a2), regs.a1)) < 0) {
+                    if ((regs.v1 = file->read(PSXM(regs.a1), regs.a2)) < 0) {
                         regs.v0 = -1;
                     } else {
-                        regs.v1 = -1;
+                        regs.v0 = 0;
                     }
                     m_psxRegs.pc += 4;
                     return;
@@ -167,10 +167,10 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         m_psxRegs.pc += 4;
                         return;
                     }
-                    if ((regs.v1 = file->write(PSXM(regs.a2), regs.a1)) < 0) {
+                    if ((regs.v1 = file->write(PSXM(regs.a1), regs.a2)) < 0) {
                         regs.v0 = -1;
                     } else {
-                        regs.v1 = -1;
+                        regs.v0 = 0;
                     }
                     m_psxRegs.pc += 4;
                     return;
