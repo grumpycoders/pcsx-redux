@@ -522,7 +522,7 @@ Formula One 2001
         std::string m_relativeFilename;
     };
     PCdrvFiles m_pcdrvFiles;
-    uint32_t m_pcdrvIndex = 0;
+    uint16_t m_pcdrvIndex = 0;
 };
 
 class Cpus {

@@ -69,91 +69,111 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     if (e.has_value()) {
         if (debugSettings.get<Emulator::DebugSettings::PCdrv>() && (e.value() == Exception::Break)) {
             uint32_t code = (PSXMu32(m_psxRegs.pc) >> 6) & 0xfffff;
-            auto& n = m_psxRegs.GPR.n;
+            auto& regs = m_psxRegs.GPR.n;
             switch (code) {
-                case 0x101: {  // PCInit
+                case 0x101: {  // PCinit
                     m_pcdrvFiles.destroyAll();
+                    regs.v0 = 0;
+                    regs.v1 = 0;
                     return;
                 }
-                case 0x102: {  // PCCreat
-                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
-                    auto file = m_pcdrvFiles.insert(m_pcdrvIndex++, new PCdrvFile(basepath / filename, File::CREATE));
-                    file->m_relativeFilename = filename;
-                    if (file->failed()) {
-                        n.v0 = -1;
-                        n.v1 = -1;
-                        delete &*file;
-                    } else {
-                        n.v0 = 0;
-                        n.v1 = file->getKey();
-                    }
-                    return;
-                }
-                case 0x103: {  // PCOpen
-                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
-                    auto file = m_pcdrvFiles.insert(m_pcdrvIndex++, new PCdrvFile(basepath / filename));
-                    file->m_relativeFilename = filename;
-                    if (file->failed()) {
-                        n.v0 = -1;
-                        n.v1 = -1;
-                        delete &*file;
-                    } else {
-                        n.v0 = 0;
-                        n.v1 = file->getKey();
-                    }
-                    return;
-                }
-                case 0x104: {  // PCClose
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
-                    if (file == m_pcdrvFiles.end()) {
-                        n.v0 = -1;
-                        n.v1 = -1;
-                    } else {
-                        n.v0 = 0;
-                        n.v1 = 0;
-                        delete &*file;
-                    }
-                    return;
-                }
-                case 0x105: {  // PCRead
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
-                    if (file == m_pcdrvFiles.end()) {
-                        n.v0 = -1;
-                        n.v1 = -1;
+                case 0x102: {  // PCcreat
+                    if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
                         return;
                     }
-                    if ((n.v1 = file->read(PSXM(n.a2), n.a1)) < 0) {
-                        n.v0 = -1;
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
+                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
+                    PCdrvFiles::iterator file;
+                    do {
+                        file = m_pcdrvFiles.find(++m_pcdrvIndex);
+                    } while (file != m_pcdrvFiles.end());
+                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename, File::CREATE));
+                    file->m_relativeFilename = filename;
+                    if (file->failed()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        delete &*file;
                     } else {
-                        n.v1 = -1;
+                        regs.v0 = 0;
+                        regs.v1 = file->getKey();
                     }
                     return;
                 }
-                case 0x106: {  // PCWrite
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
-                    if (file == m_pcdrvFiles.end()) {
-                        n.v0 = -1;
-                        n.v1 = -1;
+                case 0x103: {  // PCopen
+                    if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
                         return;
                     }
-                    if ((n.v1 = file->write(PSXM(n.a2), n.a1)) < 0) {
-                        n.v0 = -1;
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
+                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
+                    PCdrvFiles::iterator file;
+                    do {
+                        file = m_pcdrvFiles.find(++m_pcdrvIndex);
+                    } while (file != m_pcdrvFiles.end());
+                    file = m_pcdrvFiles.insert(m_pcdrvIndex, new PCdrvFile(basepath / filename));
+                    file->m_relativeFilename = filename;
+                    if (file->failed()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        delete &*file;
                     } else {
-                        n.v1 = -1;
+                        regs.v0 = 0;
+                        regs.v1 = file->getKey();
                     }
                     return;
                 }
-                case 0x107: {  // PClSeek
+                case 0x104: {  // PCclose
                     auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
                     if (file == m_pcdrvFiles.end()) {
-                        n.v0 = -1;
-                        n.v1 = -1;
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                    } else {
+                        regs.v0 = 0;
+                        regs.v1 = 0;
+                        delete &*file;
+                    }
+                    return;
+                }
+                case 0x105: {  // PCread
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        return;
+                    }
+                    if ((regs.v1 = file->read(PSXM(regs.a2), regs.a1)) < 0) {
+                        regs.v0 = -1;
+                    } else {
+                        regs.v1 = -1;
+                    }
+                    return;
+                }
+                case 0x106: {  // PCwrite
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        return;
+                    }
+                    if ((regs.v1 = file->write(PSXM(regs.a2), regs.a1)) < 0) {
+                        regs.v0 = -1;
+                    } else {
+                        regs.v1 = -1;
+                    }
+                    return;
+                }
+                case 0x107: {  // PClseek
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
                         return;
                     }
                     int wheel;
-                    switch (n.a2) {
+                    switch (regs.a3) {
                         case 0:
                             wheel = SEEK_SET;
                             break;
@@ -164,17 +184,17 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                             wheel = SEEK_END;
                             break;
                         default:
-                            n.v0 = -1;
-                            n.v1 = -1;
+                            regs.v0 = -1;
+                            regs.v1 = -1;
                             return;
                     }
-                    auto ret = file->seek(n.a1, wheel);
+                    auto ret = file->seek(regs.a2, wheel);
                     if (ret == 0) {
-                        n.v0 = 0;
-                        n.v1 = file->tell();
+                        regs.v0 = 0;
+                        regs.v1 = file->tell();
                     } else {
-                        n.v0 = -1;
-                        n.v1 = ret;
+                        regs.v0 = -1;
+                        regs.v1 = ret;
                     }
                     return;
                 }
