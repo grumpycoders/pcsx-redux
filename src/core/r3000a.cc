@@ -62,14 +62,128 @@ void PCSX::R3000Acpu::psxReset() {
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
-    // Set the Cause
+    auto& emuSettings = g_emulator->settings;
+    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     unsigned ec = (code >> 2) & 0x1f;
     auto e = magic_enum::enum_cast<Exception>(ec);
     if (e.has_value()) {
+        if (debugSettings.get<Emulator::DebugSettings::PCdrv>() && (e.value() == Exception::Break)) {
+            uint32_t code = (PSXMu32(m_psxRegs.pc) >> 6) & 0xfffff;
+            auto& n = m_psxRegs.GPR.n;
+            switch (code) {
+                case 0x101: {  // PCInit
+                    m_pcdrvFiles.destroyAll();
+                    return;
+                }
+                case 0x102: {  // PCCreat
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
+                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
+                    auto file = m_pcdrvFiles.insert(m_pcdrvIndex++, new PCdrvFile(basepath / filename, File::CREATE));
+                    file->m_relativeFilename = filename;
+                    if (file->failed()) {
+                        n.v0 = -1;
+                        n.v1 = -1;
+                        delete &*file;
+                    } else {
+                        n.v0 = 0;
+                        n.v1 = file->getKey();
+                    }
+                    return;
+                }
+                case 0x103: {  // PCOpen
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
+                    const char* filename = PSXS(m_psxRegs.GPR.n.a0);
+                    auto file = m_pcdrvFiles.insert(m_pcdrvIndex++, new PCdrvFile(basepath / filename));
+                    file->m_relativeFilename = filename;
+                    if (file->failed()) {
+                        n.v0 = -1;
+                        n.v1 = -1;
+                        delete &*file;
+                    } else {
+                        n.v0 = 0;
+                        n.v1 = file->getKey();
+                    }
+                    return;
+                }
+                case 0x104: {  // PCClose
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        n.v0 = -1;
+                        n.v1 = -1;
+                    } else {
+                        n.v0 = 0;
+                        n.v1 = 0;
+                        delete &*file;
+                    }
+                    return;
+                }
+                case 0x105: {  // PCRead
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        n.v0 = -1;
+                        n.v1 = -1;
+                        return;
+                    }
+                    if ((n.v1 = file->read(PSXM(n.a2), n.a1)) < 0) {
+                        n.v0 = -1;
+                    } else {
+                        n.v1 = -1;
+                    }
+                    return;
+                }
+                case 0x106: {  // PCWrite
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        n.v0 = -1;
+                        n.v1 = -1;
+                        return;
+                    }
+                    if ((n.v1 = file->write(PSXM(n.a2), n.a1)) < 0) {
+                        n.v0 = -1;
+                    } else {
+                        n.v1 = -1;
+                    }
+                    return;
+                }
+                case 0x107: {  // PClSeek
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    if (file == m_pcdrvFiles.end()) {
+                        n.v0 = -1;
+                        n.v1 = -1;
+                        return;
+                    }
+                    int wheel;
+                    switch (n.a2) {
+                        case 0:
+                            wheel = SEEK_SET;
+                            break;
+                        case 1:
+                            wheel = SEEK_CUR;
+                            break;
+                        case 2:
+                            wheel = SEEK_END;
+                            break;
+                        default:
+                            n.v0 = -1;
+                            n.v1 = -1;
+                            return;
+                    }
+                    auto ret = file->seek(n.a1, wheel);
+                    if (ret == 0) {
+                        n.v0 = 0;
+                        n.v1 = file->tell();
+                    } else {
+                        n.v0 = -1;
+                        n.v1 = ret;
+                    }
+                    return;
+                }
+                default:
+                    break;
+            }
+        }
         ec = 1 << ec;
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                .get<Emulator::DebugSettings::FirstChanceException>() &
-            ec) {
+        if (debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) {
             auto name = magic_enum::enum_name(e.value());
             g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
             g_system->pause();
@@ -92,6 +206,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
         m_psxRegs.pc = 0x80000080;
     }
 
+    // Set the Cause
     m_psxRegs.CP0.n.Cause = code;
     // Set the Status
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
@@ -133,7 +248,7 @@ void PCSX::R3000Acpu::psxBranchTest() {
 
     int32_t lowestDistance = std::numeric_limits<int32_t>::max();
     uint32_t lowestTarget = cycle;
-    uint32_t *targets = m_psxRegs.intTargets;
+    uint32_t* targets = m_psxRegs.intTargets;
 
     if ((interrupts != 0) && (((int32_t)(m_psxRegs.lowestTarget - cycle)) <= 0)) {
         auto checkAndUpdate = [&lowestDistance, &lowestTarget, interrupts, cycle, targets, this](

@@ -294,6 +294,7 @@ end)(jit.status()))
         io.IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
+        auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
         if (cfg.is_open()) {
             try {
@@ -349,6 +350,15 @@ end)(jit.status()))
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
         PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+
+        auto argPCdrv = m_args.get<bool>("pcdrv");
+        auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");
+        if (argPCdrv.has_value()) {
+            debugSettings.get<Emulator::DebugSettings::PCdrv>().value = argPCdrv.value();
+        }
+        if (argPCdrvBase.has_value()) {
+            debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
