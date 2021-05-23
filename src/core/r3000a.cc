@@ -75,12 +75,14 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     m_pcdrvFiles.destroyAll();
                     regs.v0 = 0;
                     regs.v1 = 0;
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 case 0x102: {  // PCcreat
                     if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        m_psxRegs.pc += 4;
                         return;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
@@ -99,12 +101,14 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         regs.v0 = 0;
                         regs.v1 = file->getKey();
                     }
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 case 0x103: {  // PCopen
                     if (m_pcdrvFiles.size() > std::numeric_limits<decltype(m_pcdrvIndex)>::max()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        m_psxRegs.pc += 4;
                         return;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
@@ -123,6 +127,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         regs.v0 = 0;
                         regs.v1 = file->getKey();
                     }
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 case 0x104: {  // PCclose
@@ -135,6 +140,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         regs.v1 = 0;
                         delete &*file;
                     }
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 case 0x105: {  // PCread
@@ -142,6 +148,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        m_psxRegs.pc += 4;
                         return;
                     }
                     if ((regs.v1 = file->read(PSXM(regs.a2), regs.a1)) < 0) {
@@ -149,6 +156,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     } else {
                         regs.v1 = -1;
                     }
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 case 0x106: {  // PCwrite
@@ -156,6 +164,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        m_psxRegs.pc += 4;
                         return;
                     }
                     if ((regs.v1 = file->write(PSXM(regs.a2), regs.a1)) < 0) {
@@ -163,6 +172,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     } else {
                         regs.v1 = -1;
                     }
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 case 0x107: {  // PClseek
@@ -170,6 +180,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
+                        m_psxRegs.pc += 4;
                         return;
                     }
                     int wheel;
@@ -186,6 +197,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         default:
                             regs.v0 = -1;
                             regs.v1 = -1;
+                            m_psxRegs.pc += 4;
                             return;
                     }
                     auto ret = file->seek(regs.a2, wheel);
@@ -196,6 +208,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                         regs.v0 = -1;
                         regs.v1 = ret;
                     }
+                    m_psxRegs.pc += 4;
                     return;
                 }
                 default:
