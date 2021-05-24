@@ -48,6 +48,7 @@ class File {
     File(const char* filename);
     File(const char* filename, Create);
     ~File() { close(); }
+    bool writable() { return m_writable; }
     File* dup() { return new File(m_filename); }
     char* gets(char* s, int size);
     std::string gets();
@@ -94,6 +95,7 @@ class File {
     ssize_t m_ptr = 0;
     ssize_t m_size = 0;
     const uint8_t* m_data = NULL;
+    bool m_writable = false;
 };
 
 }  // namespace PCSX

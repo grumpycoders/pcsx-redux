@@ -523,6 +523,16 @@ Formula One 2001
     };
     PCdrvFiles m_pcdrvFiles;
     uint16_t m_pcdrvIndex = 0;
+
+  public:
+    void closeAllPCdevFiles() { m_pcdrvFiles.destroyAll(); }
+    void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+        for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
+            walker(iter->getKey(), iter->filename(), iter->writable());
+        }
+    }
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, File::Create);
 };
 
 class Cpus {

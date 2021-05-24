@@ -246,15 +246,22 @@ typedef Protobuf::Message<TYPESTRING("MDEC"), MDECReg0, MDECReg1, MDECRl, MDECRl
     MDEC;
 typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 
-// skip id 12, next id = 13
+// skip id 12
+
+typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("fd"), 1> PCdrvFD;
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("filename"), 2> PCdrvFilename;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("create"), 3> PCdrvCreate;
+typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate> PCdrvFile;
+typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdrvFilesField;
 
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
-                          GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField>
+                          GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField,
+                          PCdrvFilesField>
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDRom, Hardware, Rcnt, Counters, MDEC, SaveState>
+                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();
