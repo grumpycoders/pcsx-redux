@@ -144,14 +144,14 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     return;
                 }
                 case 0x105: {  // PCread
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a1);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_psxRegs.pc += 4;
                         return;
                     }
-                    if ((regs.v1 = file->read(PSXM(regs.a1), regs.a2)) < 0) {
+                    if ((regs.v1 = file->read(PSXM(regs.a3), regs.a2)) < 0) {
                         regs.v0 = -1;
                     } else {
                         regs.v0 = 0;
@@ -160,14 +160,14 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
                     return;
                 }
                 case 0x106: {  // PCwrite
-                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a0);
+                    auto file = m_pcdrvFiles.find(m_psxRegs.GPR.n.a1);
                     if (file == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_psxRegs.pc += 4;
                         return;
                     }
-                    if ((regs.v1 = file->write(PSXM(regs.a1), regs.a2)) < 0) {
+                    if ((regs.v1 = file->write(PSXM(regs.a3), regs.a2)) < 0) {
                         regs.v0 = -1;
                     } else {
                         regs.v0 = 0;
