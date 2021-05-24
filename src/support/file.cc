@@ -90,6 +90,7 @@ PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = fopen
 
 #ifdef _WIN32
 PCSX::File::File(const char *filename, Create) : m_filename(filename) {
+    m_writable = true;
 #ifdef UNICODE
     int needed;
     LPWSTR str;
@@ -107,7 +108,10 @@ PCSX::File::File(const char *filename, Create) : m_filename(filename) {
 #endif
 }
 #else
-PCSX::File::File(const char *filename, Create) : m_filename(filename) { m_handle = fopen(filename, "wb"); }
+PCSX::File::File(const char *filename, Create) : m_filename(filename) {
+    m_writable = true;
+    m_handle = fopen(filename, "wb");
+}
 #endif
 
 char *PCSX::File::gets(char *s, int size) {

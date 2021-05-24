@@ -155,6 +155,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         Hardware {},
         Counters {},
         MDEC {},
+        PCdrvFilesField {},
     };
     // clang-format on
 }
@@ -170,6 +171,10 @@ std::string PCSX::SaveStates::save() {
 
     g_emulator->m_psxCounters->save(state.get<CountersField>());
     g_emulator->m_mdec->save(state.get<MDECField>());
+
+    g_emulator->m_psxCpu->listAllPCdevFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
+        state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
+    });
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
@@ -214,6 +219,18 @@ bool PCSX::SaveStates::load(const std::string& data) {
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+
+    g_emulator->m_psxCpu->closeAllPCdevFiles();
+    for (auto& file : state.get<PCdrvFilesField>().value) {
+        uint16_t fd = file.get<PCdrvFD>().value;
+        std::string filename = file.get<PCdrvFilename>().value;
+        bool create = file.get<PCdrvCreate>().value;
+        if (create) {
+            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd, File::CREATE);
+        } else {
+            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd);
+        }
+    }
 
     return true;
 }

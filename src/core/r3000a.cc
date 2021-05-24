@@ -245,6 +245,20 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     m_psxRegs.CP0.n.Status = (m_psxRegs.CP0.n.Status & ~0x3f) | ((m_psxRegs.CP0.n.Status & 0xf) << 2);
 }
 
+void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd) {
+    auto& emuSettings = g_emulator->settings;
+    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
+    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
+    m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename));
+}
+
+void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, File::Create) {
+    auto& emuSettings = g_emulator->settings;
+    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
+    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
+    m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename, File::CREATE));
+}
+
 void PCSX::R3000Acpu::psxBranchTest() {
 #if 0
     if( SPU_async )
