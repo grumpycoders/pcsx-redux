@@ -24,9 +24,9 @@ SOFTWARE.
 
 */
 
-#include <stdatomic.h>
-
 #include "openbios/sio0/card.h"
+
+#include <stdatomic.h>
 
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"

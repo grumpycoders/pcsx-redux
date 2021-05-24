@@ -24,9 +24,9 @@ SOFTWARE.
 
 */
 
-#include <stdatomic.h>
-
 #include "openbios/kernel/events.h"
+
+#include <stdatomic.h>
 
 #include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
