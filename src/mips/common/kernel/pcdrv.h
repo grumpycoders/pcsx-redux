@@ -65,23 +65,25 @@ static inline int PCclose(int fd) {
 }
 
 static inline int PCread(int fd, void *buf, int len) {
-    register int a0 asm("a0") = fd;
-    register void *a1 asm("a1") = buf;
+    register int a0 asm("a0") = 0;
+    register int a1 asm("a1") = fd;
     register int a2 asm("a2") = len;
+    register void *a3 asm("a3") = buf;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0, 0x105\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
+    __asm__ volatile("break 0, 0x105\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
     if (v0 == 0) return v1;
     return -1;
 }
 
 static inline int PCwrite(int fd, const void *buf, int len) {
-    register int a0 asm("a0") = fd;
-    register const void *a1 asm("a1") = buf;
+    register int a0 asm("a0") = 0;
+    register int a1 asm("a1") = fd;
     register int a2 asm("a2") = len;
+    register const void *a3 asm("a3") = buf;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0, 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2));
+    __asm__ volatile("break 0, 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
     if (v0 == 0) return v1;
     return -1;
 }
