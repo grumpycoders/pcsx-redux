@@ -24,9 +24,9 @@ SOFTWARE.
 
 */
 
-#include <stdatomic.h>
-
 #include "openbios/cdrom/statemachine.h"
+
+#include <stdatomic.h>
 
 #include "common/hardware/cdrom.h"
 #include "common/hardware/dma.h"
