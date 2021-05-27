@@ -75,7 +75,7 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 LD := $(CXX)
 
 SRCS := $(call rwildcard,src/,*.cc)
-SRCS += $(wildcard third_party/fmt/src/*.cc)
+SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
 SRCS += $(IMGUI_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
