@@ -66,51 +66,37 @@ PCSX::File::File(void *data, ssize_t size) {
     m_size = size;
 }
 
-#ifdef _WIN32
-PCSX::File::File(const char *filename) : m_filename(filename) {
-#ifdef UNICODE
-    int needed;
-    LPWSTR str;
-
-    needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
-    if (needed <= 0) return;
-    str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
+#if defined(_WIN32) && defined(UNICODE)
+static FILE *openwrapper(const char *filename, const wchar_t *mode) {
+    int needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
+    if (needed <= 0) return nullptr;
+    LPWSTR str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
     MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed * sizeof(wchar_t));
-
-    m_handle = _wfopen(str, L"rb");
-
+    FILE *ret = _wfopen(str, mode);
     _freea(str);
-#else
-    m_handle = fopen(filename, "rb");
-#endif
+    return ret;
+}
+
+PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = openwrapper(filename, L"rb"); }
+
+PCSX::File::File(const char *filename, Create) : m_filename(filename) {
+    m_writable = true;
+    m_handle = openwrapper(filename, L"wb");
+}
+
+PCSX::File::File(const char *filename, ReadWrite) : m_filename(filename) {
+    m_writable = true;
+    m_handle = openwrapper(filename, L"rb+");
 }
 #else
 PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = fopen(filename, "rb"); }
-#endif
-
-#ifdef _WIN32
 PCSX::File::File(const char *filename, Create) : m_filename(filename) {
     m_writable = true;
-#ifdef UNICODE
-    int needed;
-    LPWSTR str;
-
-    needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
-    if (needed <= 0) return;
-    str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed * sizeof(wchar_t));
-
-    m_handle = _wfopen(str, L"wb");
-
-    _freea(str);
-#else
     m_handle = fopen(filename, "wb");
-#endif
 }
-#else
-PCSX::File::File(const char *filename, Create) : m_filename(filename) {
+PCSX::File::File(const char *filename, ReadWrite) : m_filename(filename) {
     m_writable = true;
-    m_handle = fopen(filename, "wb");
+    m_handle = fopen(filename, "rb+");
 }
 #endif
 

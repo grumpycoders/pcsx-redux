@@ -517,8 +517,9 @@ Formula One 2001
     struct PCdrvFile;
     typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
     struct PCdrvFile : public File, public PCdrvFiles::Node {
-        PCdrvFile(const std::filesystem::path &filename) : File(filename) {}
+        PCdrvFile(const std::filesystem::path &filename) : File(filename, File::READWRITE) {}
         PCdrvFile(const std::filesystem::path &filename, File::Create) : File(filename, File::CREATE) {}
+        virtual ~PCdrvFile() = default;
         std::string m_relativeFilename;
     };
     PCdrvFiles m_pcdrvFiles;
@@ -528,7 +529,7 @@ Formula One 2001
     void closeAllPCdevFiles() { m_pcdrvFiles.destroyAll(); }
     void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->filename(), iter->writable());
+            walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
         }
     }
     void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
