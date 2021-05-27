@@ -33,11 +33,6 @@
 #include "support/djbhash.h"
 #include "support/eventbus.h"
 
-namespace fmt {
-template <>
-struct formatter<std::filesystem::path> : formatter<std::string> {};
-}  // namespace fmt
-
 namespace PCSX {
 
 enum class LogClass : unsigned;
