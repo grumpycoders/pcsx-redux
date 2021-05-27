@@ -805,7 +805,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             file_len = 0;
             if (m_ti[m_numtracks + 1].handle->failed()) {
-                PCSX::g_system->message(_("\ncould not open: %s\n"), m_ti[m_numtracks + 1].handle->filename());
+                PCSX::g_system->message(_("\ncould not open: %s\n"), m_ti[m_numtracks + 1].handle->filename().string());
                 delete m_ti[m_numtracks + 1].handle;
                 m_ti[m_numtracks + 1].handle = nullptr;
                 continue;
@@ -1888,7 +1888,7 @@ bool PCSX::CDRiso::open(void) {
         return false;
     }
 
-    PCSX::g_system->printf(_("Loaded CD Image: %s"), m_isoPath);
+    PCSX::g_system->printf(_("Loaded CD Image: %s"), m_isoPath.string());
 
     m_cddaBigEndian = false;
     m_subChanMixed = false;

@@ -855,7 +855,7 @@ void PCSX::GUI::endFrame() {
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
             std::filesystem::path p = fileToOpen[0];
-            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p);
+            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p.string());
             g_system->softReset();
         }
     }
@@ -1395,7 +1395,7 @@ void PCSX::GUI::shellReached() {
     PCSX::u8string filename = std::move(m_exeToLoad);
     std::filesystem::path p = filename;
 
-    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p);
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
     bool success = BinaryLoader::load(filename);
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
@@ -1421,7 +1421,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
         m_exeToLoad = path.u8string();
-        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
+        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);

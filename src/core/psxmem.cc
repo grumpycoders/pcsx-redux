@@ -107,7 +107,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
     auto &biosPath = g_emulator->settings.get<PCSX::Emulator::SettingBios>().value;
     File *f = new File(biosPath.string());
     if (f->failed()) {
-        PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath);
+        PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.string());
         delete f;
         f = new File("openbios.bin");
         if (f->failed()) {
@@ -126,7 +126,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
             auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
             if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description());
         }
-        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath);
+        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
     }
     delete f;
 
@@ -140,7 +140,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         File *f = new File(filename);
 
         if (f->failed()) {
-            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename);
+            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string());
             failed = true;
         }
 
@@ -155,11 +155,11 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
                 if (foffset < 0) {
                     // fail if the negative offset is more than the total file size
-                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename);
+                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                     failed = true;
                 }
             } else if (foffset > fsize) {
-                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename);
+                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                 failed = true;
             }
         }
@@ -174,14 +174,14 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
                 lsize = fsize + lsize;
 
                 if (lsize < 0) {
-                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename);
+                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename.string());
                     failed = true;
                 }
             }
         }
         if (!failed) {
             if (lsize > fsize) {
-                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename);
+                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename.string());
                 failed = true;
             }
         }
@@ -193,17 +193,17 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
                 if (loffset < 0) {
                     // fail if the negative offset is more than the BIOS size
-                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename);
+                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                     failed = true;
                 }
             } else if (loffset > bios_size) {
-                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename);
+                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                 failed = true;
             }
         }
         if (!failed) {
             f->read(g_psxR + loffset, lsize);
-            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename);
+            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string());
         }
 
         f->close();
