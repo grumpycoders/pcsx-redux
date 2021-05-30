@@ -63,3 +63,28 @@ jobs:
          delete-branch: true
          title: '[Chores] Format code'
          draft: false
+
+  export-mips:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Filter repository
+      env:
+        FILTER_BRANCH_SQUELCH_WARNING: 1
+      run: |
+        cp -rv .github/filter-mips /tmp
+        /tmp/filter-mips/filter.sh
+    - name: Pushing result
+      env:
+        PAT: ${{ secrets.PAT }}
+      run: |
+        git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
+        git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
+        git push https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
