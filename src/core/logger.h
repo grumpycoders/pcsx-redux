@@ -22,98 +22,84 @@
 #include <stdarg.h>
 
 #include "core/system.h"
+#include "fmt/printf.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 namespace PCSX {
 
-struct LogName {
-    const char *name;
+enum class LogClass : unsigned {
+    UNCATEGORIZED,  // anything printf that hasn't been converted yet
+    MIPS,           // only the things coming from MIPS code
+    UI,             // messages from the UI specifically
+    SIO0,           // pad and memory card information
+    SIO1,           // uart information
+    GTE,            // gte information
+    CDROM,          // low level cdrom information
+    CDROM_IO,       // high level cdrom information (iso file access)
+    CPU,            // CPU-related information
+    HARDWARE,       // hardware-level (0x1f801000) information
+    DMA,            // dma-related information
+    MEMORY,         // memory access related information
+    IRQ,            // irq scheduling and triggering information
+    KERNEL,         // kernel logs
 };
 
-template <const LogName &name, bool enabled>
-class Logger {
-  public:
-    static void Log(const char *fmt, ...) {
+template <LogClass logClass, bool enabled>
+struct Logger {
+    template <typename... Args>
+    static void Log(const char *format, const Args &... args) {
         if (!enabled) return;
-        va_list a;
-        va_start(a, fmt);
-        g_system->log(name.name, fmt, a);
-        va_end(a);
+        std::string s = fmt::sprintf(format, args...);
+        g_system->log(logClass, s);
     }
-    static void LogVA(const char *fmt, va_list a) {
+    static void Log(const std::string &s) {
         if (!enabled) return;
-        g_system->log(name.name, fmt, a);
+        g_system->log(logClass, s);
     }
+    static constexpr bool c_enabled = enabled;
+    static constexpr LogClass c_logClass = logClass;
 };
 
-static constexpr LogName PadLogName = {"PAD"};
-static constexpr LogName Sio1LogName = {"SIO1"};
-static constexpr LogName GteLogName = {"GTE"};
-static constexpr LogName CdrLogName = {"CDR"};
-static constexpr LogName CdrIOLogName = {"CDR_IO"};
-static constexpr LogName EmuLogName = {"EMU"};
-static constexpr LogName PsxHWLogName = {"PSXHW"};
-static constexpr LogName PsxBIOSLogName = {"PSXBIOS"};
-static constexpr LogName PsxDMALogName = {"PSXDMA"};
-static constexpr LogName PsxMEMLogName = {"PSXMEM"};
-static constexpr LogName PsxCPULogName = {"PSXCPU"};
-static constexpr LogName MiscLogName = {"MISC"};
-
-/*
- * Specifies at compilation time which logs should be activated.
- */
-typedef Logger<PadLogName, false> PAD_LOGGER;
-typedef Logger<Sio1LogName, false> SIO1_LOGGER;
-typedef Logger<GteLogName, false> GTE_LOGGER;
-typedef Logger<CdrLogName, false> CDR_LOGGER;
-typedef Logger<CdrIOLogName, false> CDRIO_LOGGER;
-typedef Logger<EmuLogName, false> EMU_LOGGER;
-typedef Logger<PsxHWLogName, false> PSXHW_LOGGER;
-typedef Logger<PsxBIOSLogName, false> PSXBIOS_LOGGER;
-typedef Logger<PsxDMALogName, false> PSXDMA_LOGGER;
-typedef Logger<PsxMEMLogName, false> PSXMEM_LOGGER;
-typedef Logger<PsxCPULogName, false> PSXCPU_LOGGER;
-typedef Logger<MiscLogName, false> MISC_LOGGER;
+// Specifies at compilation time which logs should be activated.
+// The rule of thumb is they typically can be spammy or costly,
+// and shouldn't be enabled on a retail build.
+typedef Logger<LogClass::SIO0, false> SIO0_LOGGER;
+typedef Logger<LogClass::SIO1, false> SIO1_LOGGER;
+typedef Logger<LogClass::GTE, false> GTE_LOGGER;
+typedef Logger<LogClass::CDROM, false> CDROM_LOGGER;
+typedef Logger<LogClass::CDROM_IO, false> CDROM_IO_LOGGER;
+typedef Logger<LogClass::HARDWARE, false> PSXHW_LOGGER;
+typedef Logger<LogClass::DMA, false> PSXDMA_LOGGER;
+typedef Logger<LogClass::MEMORY, false> PSXMEM_LOGGER;
+typedef Logger<LogClass::IRQ, false> PSXIRQ_LOGGER;
 
 }  // namespace PCSX
 
-#define PAD_LOG(...)                                                                       \
-    {                                                                                      \
-        PCSX::PAD_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
-                              PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PAD_LOGGER::Log(__VA_ARGS__);                                                \
+#define SIO0_LOG(...)                                                                       \
+    {                                                                                       \
+        PCSX::SIO0_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+                               PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::SIO0_LOGGER::Log(__VA_ARGS__);                                                \
     }
 #define SIO1_LOG PCSX::SIO1_LOGGER::Log
 #define GTE_LOG PCSX::GTE_LOGGER::Log
-#define CDR_LOG(...)                                                                       \
-    {                                                                                      \
-        PCSX::CDR_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
-                              PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::CDR_LOGGER::Log(__VA_ARGS__);                                                \
-    }
-#define CDR_LOG_IO(...)                                                                      \
+#define CDROM_LOG(...)                                                                       \
     {                                                                                        \
-        PCSX::CDRIO_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+        PCSX::CDROM_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::CDRIO_LOGGER::Log(__VA_ARGS__);                                                \
+        PCSX::CDROM_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define EMU_LOG PCSX::EMU_LOGGER::Log
+#define CDROM_IO_LOG(...)                                                                       \
+    {                                                                                           \
+        PCSX::CDROM_IO_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+                                   PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::CDROM_IO_LOGGER::Log(__VA_ARGS__);                                                \
+    }
 #define PSXHW_LOG(...)                                                                       \
     {                                                                                        \
         PCSX::PSXHW_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
         PCSX::PSXHW_LOGGER::Log(__VA_ARGS__);                                                \
-    }
-#define PSXHW_LOGV(fmt, va)                                                                  \
-    {                                                                                        \
-        PCSX::PSXHW_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
-                                PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXHW_LOGGER::LogVA(fmt, va);                                                  \
-    }
-#define PSXBIOS_LOG(...)                                                                       \
-    {                                                                                          \
-        PCSX::PSXBIOS_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
-                                  PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
-        PCSX::PSXBIOS_LOGGER::Log(__VA_ARGS__);                                                \
     }
 #define PSXDMA_LOG(...)                                                                       \
     {                                                                                         \
@@ -127,5 +113,9 @@ typedef Logger<MiscLogName, false> MISC_LOGGER;
                                  PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
         PCSX::PSXMEM_LOGGER::Log(__VA_ARGS__);                                                \
     }
-#define PSXCPU_LOG PCSX::PSXCPU_LOGGER::Log
-#define MISC_LOG PCSX::MISC_LOGGER::Log
+#define PSXIRQ_LOG(...)                                                                       \
+    {                                                                                         \
+        PCSX::PSXIRQ_LOGGER::Log("%8.8lx %8.8lx: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc, \
+                                 PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle);                \
+        PCSX::PSXIRQ_LOGGER::Log(__VA_ARGS__);                                                \
+    }

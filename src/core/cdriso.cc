@@ -37,7 +37,6 @@
 
 #include "core/cdriso.h"
 #include "core/cdrom.h"
-#include "core/plugins.h"
 #include "core/ppf.h"
 #include "core/psxemulator.h"
 
@@ -806,8 +805,7 @@ int PCSX::CDRiso::parsecue(const char *isofileString) {
 
             file_len = 0;
             if (m_ti[m_numtracks + 1].handle->failed()) {
-                PCSX::g_system->message(_("\ncould not open: %s\n"),
-                                        m_ti[m_numtracks + 1].handle->filename().u8string().c_str());
+                PCSX::g_system->message(_("\ncould not open: %s\n"), m_ti[m_numtracks + 1].handle->filename().string());
                 delete m_ti[m_numtracks + 1].handle;
                 m_ti[m_numtracks + 1].handle = nullptr;
                 continue;
@@ -1867,9 +1865,7 @@ uint8_t *PCSX::CDRiso::getBuffer() {
 }
 
 void PCSX::CDRiso::PrintTracks() {
-    int i;
-
-    for (i = 1; i <= m_numtracks; i++) {
+    for (int i = 1; i <= m_numtracks; i++) {
         PCSX::g_system->printf(
             _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
             (m_ti[i].type == trackinfo::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
@@ -1885,14 +1881,14 @@ bool PCSX::CDRiso::open(void) {
         return true;  // it's already open
     }
 
-    m_cdHandle = new File(GetIsoFile());
+    m_cdHandle = new File(m_isoPath);
     if (m_cdHandle->failed()) {
         delete m_cdHandle;
         m_cdHandle = NULL;
         return false;
     }
 
-    PCSX::g_system->printf(_("Loaded CD Image: %s"), GetIsoFile());
+    PCSX::g_system->printf(_("Loaded CD Image: %s"), m_isoPath.string());
 
     m_cddaBigEndian = false;
     m_subChanMixed = false;
@@ -1904,33 +1900,33 @@ bool PCSX::CDRiso::open(void) {
     m_useCompressed = false;
     m_cdimg_read_func = &CDRiso::cdread_normal;
 
-    if (parsecue(GetIsoFile()) == 0) {
+    if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+cue]");
-    } else if (parsetoc(GetIsoFile()) == 0) {
+    } else if (parsetoc(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+toc]");
-    } else if (parseccd(GetIsoFile()) == 0) {
+    } else if (parseccd(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+ccd]");
-    } else if (parsemds(GetIsoFile()) == 0) {
+    } else if (parsemds(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+mds]");
     }
     // TODO Is it possible that cue/ccd+ecm? otherwise use else if below to supressn extra checks
-    if (handlepbp(GetIsoFile()) == 0) {
+    if (handlepbp(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[pbp]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
-    } else if (handlecbin(GetIsoFile()) == 0) {
+    } else if (handlecbin(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[cbin]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
-    } else if ((handleecm(GetIsoFile(), m_cdHandle, NULL) == 0)) {
+    } else if ((handleecm(reinterpret_cast<const char *>(m_isoPath.string().c_str()), m_cdHandle, NULL) == 0)) {
         PCSX::g_system->printf("[+ecm]");
-    } else if (handlearchive(GetIsoFile(), NULL) == 0) {
+    } else if (handlearchive(reinterpret_cast<const char *>(m_isoPath.string().c_str()), NULL) == 0) {
     }
 
-    if (!m_subChanMixed && opensubfile(GetIsoFile()) == 0) {
+    if (!m_subChanMixed && opensubfile(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+sub]");
     }
-    if (opensbifile(GetIsoFile()) == 0) {
+    if (opensbifile(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
         PCSX::g_system->printf("[+sbi]");
     }
 
@@ -1972,15 +1968,13 @@ bool PCSX::CDRiso::open(void) {
 
     // make sure we have another handle open for cdda
     if (m_numtracks > 1 && m_ti[1].handle == NULL) {
-        m_ti[1].handle = new File(GetIsoFile());
+        m_ti[1].handle = new File(m_isoPath);
     }
 
     return true;
 }
 
 void PCSX::CDRiso::close() {
-    int i;
-
     if (m_cdHandle != NULL) {
         m_cdHandle->close();
         delete m_cdHandle;
@@ -1999,7 +1993,7 @@ void PCSX::CDRiso::close() {
         m_compr_img = NULL;
     }
 
-    for (i = 1; i <= m_numtracks; i++) {
+    for (int i = 1; i <= m_numtracks; i++) {
         if (m_ti[i].handle != NULL) {
             m_ti[i].handle->close();
             delete m_ti[i].handle;
@@ -2095,11 +2089,9 @@ bool PCSX::CDRiso::getTD(uint8_t track, uint8_t *buffer) {
 // decode 'raw' subchannel data ripped by cdrdao
 void PCSX::CDRiso::DecodeRawSubData() {
     unsigned char subQData[12];
-    int i;
-
     memset(subQData, 0, sizeof(subQData));
 
-    for (i = 0; i < 8 * 12; i++) {
+    for (int i = 0; i < 8 * 12; i++) {
         if (m_subbuffer[i] & (1 << 6)) {  // only subchannel Q is needed
             subQData[i >> 3] |= (1 << (7 - (i & 7)));
         }
@@ -2221,10 +2213,9 @@ bool PCSX::CDRiso::readCDDA(unsigned char m, unsigned char s, unsigned char f, u
     }
 
     if (PCSX::g_emulator->settings.get<Emulator::SettingCDDA>() == PCSX::Emulator::CDDA_ENABLED_BE || m_cddaBigEndian) {
-        int i;
         unsigned char tmp;
 
-        for (i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
+        for (int i = 0; i < PCSX::CDRom::CD_FRAMESIZE_RAW / 2; i++) {
             tmp = buffer[i * 2];
             buffer[i * 2] = buffer[i * 2 + 1];
             buffer[i * 2 + 1] = tmp;

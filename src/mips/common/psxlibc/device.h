@@ -26,7 +26,9 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "common/psxlibc/stdio.h"
 
 struct File;
 
@@ -44,19 +46,22 @@ enum {
 };
 
 typedef void (*device_init)();
-typedef int (*device_open)(struct File *, const char *filename);
+typedef int (*device_open)(struct File *, const char *filename, int mode);
 typedef int (*device_action)(struct File *, enum FileAction);
 typedef int (*device_close)(struct File *);
 typedef int (*device_ioctl)(struct File *, int cmd, int arg);
 typedef int (*device_read)(struct File *, void *buffer, int size);
 typedef int (*device_write)(struct File *, void *buffer, int size);
+typedef struct DirEntry *(*device_firstFile)(struct File *file, const char *filename, struct DirEntry *entry);
+typedef struct DirEntry *(*device_nextFile)(struct File *file, struct DirEntry *entry);
+typedef int (*device_format)(struct File *file);
 typedef void (*device_deinit)();
 
 struct Device {
-    char *name;
+    const char *name;
     uint32_t flags /* PSXDTTYPE_* */;
     uint32_t blockSize;
-    char *desc;
+    const char *desc;
     device_init init;
     device_open open;
     device_action action;
@@ -65,7 +70,10 @@ struct Device {
     device_read read;
     device_write write;
     void *erase, *undelete;
-    void *firstfile, *nextfile, *format, *chdir, *rename;
+    device_firstFile firstFile;
+    device_nextFile nextFile;
+    device_format format;
+    void *chdir, *rename;
     device_deinit deinit;
     void *check;
 };

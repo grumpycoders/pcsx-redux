@@ -19,12 +19,18 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <atomic>
 #include <memory>
+#include <type_traits>
 
+#include "core/kernel.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "support/file.h"
+#include "support/hashtable.h"
 
 namespace PCSX {
 
@@ -169,12 +175,10 @@ struct psxRegisters {
     uint32_t cycle;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
-    struct {
-        uint32_t sCycle, cycle;
-    } intCycle[32];
+    uint32_t intTargets[32];
+    uint32_t lowestTarget;
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
-    bool ICache_valid;
 };
 
 // U64 and S64 are used to wrap long integer constants.
@@ -272,8 +276,7 @@ this wouldn't work at all.
 
 class R3000Acpu {
   public:
-    R3000Acpu() {}
-    virtual ~R3000Acpu() {}
+    virtual ~R3000Acpu() { m_pcdrvFiles.destroyAll(); }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
@@ -288,22 +291,47 @@ class R3000Acpu {
     virtual bool isDynarec() = 0;
     void psxReset();
     void psxShutdown();
+
+    enum class Exception : uint32_t {
+        Interrupt = 0,
+        LoadAddressError = 4,
+        StoreAddressError = 5,
+        InstructionBusError = 6,
+        DataBusError = 7,
+        Syscall = 8,
+        Break = 9,
+        ReservedInstruction = 10,
+        CoprocessorUnusable = 11,
+        ArithmeticOverflow = 12,
+    };
+    void psxException(Exception e, bool bd) {
+        psxException(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd);
+    }
     void psxException(uint32_t code, bool bd);
     void psxBranchTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
+        PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
+        const uint32_t cycle = m_psxRegs.cycle;
+        uint32_t target = cycle + eCycle * m_interruptScales[interrupt];
         m_psxRegs.interrupt |= (1 << interrupt);
-        m_psxRegs.intCycle[interrupt].cycle = eCycle * m_interruptScales[interrupt];
-        m_psxRegs.intCycle[interrupt].sCycle = m_psxRegs.cycle;
+        m_psxRegs.intTargets[interrupt] = target;
+        int32_t lowest = m_psxRegs.lowestTarget - cycle;
+        int32_t maybeNewLowest = target - cycle;
+        if (maybeNewLowest < lowest) m_psxRegs.lowestTarget = target;
     }
 
     psxRegisters m_psxRegs;
     float m_interruptScales[14] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
-    virtual void Reset() { m_psxRegs.ICache_valid = false; }
+    virtual void Reset() {
+        invalidateCache();
+        m_psxRegs.interrupt = 0;
+    }
+    bool m_inISR = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
@@ -361,58 +389,67 @@ class R3000Acpu {
         }
         return true;
     }
+    void logA0KernelCall(uint32_t call);
+    void logB0KernelCall(uint32_t call);
+    void logC0KernelCall(uint32_t call);
     inline void InterceptBIOS() {
         const uint32_t pc = m_psxRegs.pc & 0x1fffff;
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
         const auto r = m_psxRegs.GPR.n;
 
-        // Intercept printf, puts and putchar, even if running the binary bios.
-        // The binary bios doesn't have the TTY output set up by default,
-        // so this hack enables us to properly display printfs. Also,
+        // Intercepts write, puts, putc, and putchar.
+        // The BIOS doesn't have the TTY output set up by default,
+        // so this hack enables us to properly display printfs. However,
         // sometimes, games will fully redirect printf's output, so it
-        // will stop calling putchar.
+        // will stop calling putchar. We'd need to also intercept
+        // printf, but interpreting it is awful. The hope is it'd
+        // eventually call one of these 4 functions.
         const uint32_t call = r.t1 & 0xff;
         if (pc == 0xb0) {
             switch (call) {
-                case 0x3d:  // putchar
-                    PCSX::g_system->biosPutc(r.a0);
-                    PCSX::g_emulator->m_psxCpu->psxBranchTest();
+                case 0x35: {  // write
+                    if (r.a0 != 1) break;
+                    uint8_t *str = PSXM(r.a1);
+                    uint32_t size = r.a2;
+                    m_psxRegs.GPR.n.v0 = size;
+                    while (size--) {
+                        g_system->biosPutc(*str++);
+                    }
+                    break;
+                }
+                case 0x3b: {  // putc
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3d: {  // putchar
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3f: {  // puts
+                    uint8_t *str = PSXM(r.a0);
+                    uint8_t c;
+                    while ((c = *str++) != 0) {
+                        g_system->biosPutc(c);
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::KernelLog>()) {
+            switch (pc) {
+                case 0xa0:
+                    logA0KernelCall(call);
+                    break;
+                case 0xb0:
+                    logB0KernelCall(call);
+                    break;
+                case 0xc0:
+                    logC0KernelCall(call);
                     break;
             }
         }
-    }
-
-  private:
-    /* gets ev for use with s_Event */
-    int GetEv() {
-        const auto r = m_psxRegs.GPR.n;
-        int ev = (r.a0 >> 24) & 0xf;
-        if (ev == 0xf) ev = 0x5;
-        ev *= 32;
-        ev += r.a0 & 0x1f;
-        return ev;
-    }
-
-    int GetSpec() {
-        int spec = 0;
-        const auto r = m_psxRegs.GPR.n;
-        switch (r.a1) {
-            case 0x0301:
-                spec = 16;
-                break;
-            case 0x0302:
-                spec = 17;
-                break;
-            default:
-                for (int i = 0; i < 16; i++)
-                    if (r.a1 & (1 << i)) {
-                        spec = i;
-                        break;
-                    }
-                break;
-        }
-        return spec;
     }
 
   public:
@@ -420,13 +457,14 @@ class R3000Acpu {
 Formula One 2001
 - Use old CPU cache code when the RAM location is
   updated with new code (affects in-game racing)
-
-TODO:
-- I-cache / D-cache swapping
-- Isolate D-cache from RAM
 */
 
-    inline uint32_t *Read_ICache(uint32_t pc, bool isolate) {
+    inline void invalidateCache() {
+        memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
+        memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
+    }
+
+    inline uint32_t *Read_ICache(uint32_t pc) {
         uint32_t pc_bank, pc_offset, pc_cache;
         uint8_t *IAddr, *ICode;
 
@@ -437,17 +475,6 @@ TODO:
         IAddr = m_psxRegs.ICache_Addr;
         ICode = m_psxRegs.ICache_Code;
 
-        // clear I-cache
-        if (!m_psxRegs.ICache_valid) {
-            memset(m_psxRegs.ICache_Addr, 0xff, sizeof(m_psxRegs.ICache_Addr));
-            memset(m_psxRegs.ICache_Code, 0xff, sizeof(m_psxRegs.ICache_Code));
-
-            m_psxRegs.ICache_valid = true;
-        }
-
-        // uncached
-        if (pc_bank >= 0xa0) return (uint32_t *)PSXM(pc);
-
         // cached - RAM
         if (pc_bank == 0x80 || pc_bank == 0x00) {
             if (SWAP_LE32(*(uint32_t *)(IAddr + pc_cache)) == pc_offset) {
@@ -457,27 +484,22 @@ TODO:
                 // Cache miss - addresses don't match
                 // - default: 0xffffffff (not init)
 
-                if (!isolate) {
-                    // cache line is 4 bytes wide
-                    pc_offset &= ~0xf;
-                    pc_cache &= ~0xf;
+                // cache line is 4 bytes wide
+                pc_offset &= ~0xf;
+                pc_cache &= ~0xf;
 
-                    // address line
-                    *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
-                    *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
-                    *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
-                    *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
+                // address line
+                *(uint32_t *)(IAddr + pc_cache + 0x0) = SWAP_LE32(pc_offset + 0x0);
+                *(uint32_t *)(IAddr + pc_cache + 0x4) = SWAP_LE32(pc_offset + 0x4);
+                *(uint32_t *)(IAddr + pc_cache + 0x8) = SWAP_LE32(pc_offset + 0x8);
+                *(uint32_t *)(IAddr + pc_cache + 0xc) = SWAP_LE32(pc_offset + 0xc);
 
-                    // opcode line
-                    pc_offset = pc & ~0xf;
-                    *(uint32_t *)(ICode + pc_cache + 0x0) = psxMu32ref(pc_offset + 0x0);
-                    *(uint32_t *)(ICode + pc_cache + 0x4) = psxMu32ref(pc_offset + 0x4);
-                    *(uint32_t *)(ICode + pc_cache + 0x8) = psxMu32ref(pc_offset + 0x8);
-                    *(uint32_t *)(ICode + pc_cache + 0xc) = psxMu32ref(pc_offset + 0xc);
-                }
-
-                // normal code
-                return (uint32_t *)PSXM(pc);
+                // opcode line
+                pc_offset = pc & ~0xf;
+                *(uint32_t *)(ICode + pc_cache + 0x0) = *(uint32_t *)PSXM(pc_offset + 0x0);
+                *(uint32_t *)(ICode + pc_cache + 0x4) = *(uint32_t *)PSXM(pc_offset + 0x4);
+                *(uint32_t *)(ICode + pc_cache + 0x8) = *(uint32_t *)PSXM(pc_offset + 0x8);
+                *(uint32_t *)(ICode + pc_cache + 0xc) = *(uint32_t *)PSXM(pc_offset + 0xc);
             }
         }
 
@@ -491,6 +513,27 @@ TODO:
 
   private:
     const std::string m_name;
+
+    struct PCdrvFile;
+    typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
+    struct PCdrvFile : public File, public PCdrvFiles::Node {
+        PCdrvFile(const std::filesystem::path &filename) : File(filename, File::READWRITE) {}
+        PCdrvFile(const std::filesystem::path &filename, File::Create) : File(filename, File::CREATE) {}
+        virtual ~PCdrvFile() = default;
+        std::string m_relativeFilename;
+    };
+    PCdrvFiles m_pcdrvFiles;
+    uint16_t m_pcdrvIndex = 0;
+
+  public:
+    void closeAllPCdevFiles() { m_pcdrvFiles.destroyAll(); }
+    void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+        for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
+            walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
+        }
+    }
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, File::Create);
 };
 
 class Cpus {

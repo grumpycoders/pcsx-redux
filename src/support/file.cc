@@ -22,10 +22,12 @@
 #include <algorithm>
 
 const uint8_t PCSX::File::m_internalBuffer = 0;
+
 void PCSX::File::close() {
     if (m_handle) fclose(m_handle);
     m_handle = nullptr;
 }
+
 ssize_t PCSX::File::seek(ssize_t pos, int wheel) {
     if (m_handle) return fseek(m_handle, pos, wheel);
     if (!m_data) return -1;
@@ -41,16 +43,19 @@ ssize_t PCSX::File::seek(ssize_t pos, int wheel) {
             break;
     }
     m_ptr = std::max(std::min(m_ptr, m_size), (ssize_t)0);
-    return m_ptr;
+    return 0;
 }
+
 ssize_t PCSX::File::tell() {
     if (m_handle) return ftell(m_handle);
     if (m_data) return m_ptr;
     return -1;
 }
+
 void PCSX::File::flush() {
     if (m_handle) fflush(m_handle);
 }
+
 PCSX::File::File(void *data, ssize_t size) {
     if (data) {
         m_data = static_cast<uint8_t *>(data);
@@ -60,27 +65,41 @@ PCSX::File::File(void *data, ssize_t size) {
     }
     m_size = size;
 }
-#ifdef _WIN32
-PCSX::File::File(const char *filename) : m_filename(filename) {
-#ifdef UNICODE
-    int needed;
-    LPWSTR str;
 
-    needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
-    if (needed <= 0) return;
-    str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
+#if defined(_WIN32) && defined(UNICODE)
+static FILE *openwrapper(const char *filename, const wchar_t *mode) {
+    int needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
+    if (needed <= 0) return nullptr;
+    LPWSTR str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
     MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed * sizeof(wchar_t));
-
-    m_handle = _wfopen(str, L"rb");
-
+    FILE *ret = _wfopen(str, mode);
     _freea(str);
-#else
-    m_handle = fopen(filename, "rb");
-#endif
+    return ret;
+}
+
+PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = openwrapper(filename, L"rb"); }
+
+PCSX::File::File(const char *filename, Create) : m_filename(filename) {
+    m_writable = true;
+    m_handle = openwrapper(filename, L"wb");
+}
+
+PCSX::File::File(const char *filename, ReadWrite) : m_filename(filename) {
+    m_writable = true;
+    m_handle = openwrapper(filename, L"rb+");
 }
 #else
 PCSX::File::File(const char *filename) : m_filename(filename) { m_handle = fopen(filename, "rb"); }
+PCSX::File::File(const char *filename, Create) : m_filename(filename) {
+    m_writable = true;
+    m_handle = fopen(filename, "wb");
+}
+PCSX::File::File(const char *filename, ReadWrite) : m_filename(filename) {
+    m_writable = true;
+    m_handle = fopen(filename, "rb+");
+}
 #endif
+
 char *PCSX::File::gets(char *s, int size) {
     if (m_handle) return fgets(s, size, m_handle);
     if (!m_data) return nullptr;
@@ -103,6 +122,7 @@ char *PCSX::File::gets(char *s, int size) {
         size--;
     }
 }
+
 std::string PCSX::File::gets() {
     int c;
     std::string ret;
@@ -114,6 +134,7 @@ std::string PCSX::File::gets() {
         ret += c;
     }
 }
+
 ssize_t PCSX::File::read(void *dest, ssize_t size) {
     if (m_handle) return fread(dest, 1, size, m_handle);
     if (!m_data) return -1;
@@ -123,17 +144,21 @@ ssize_t PCSX::File::read(void *dest, ssize_t size) {
     m_ptr += size;
     return size;
 }
+
 ssize_t PCSX::File::write(const void *dest, size_t size) {
-    abort();
+    if (m_handle) return fwrite(dest, 1, size, m_handle);
     return -1;
 }
+
 int PCSX::File::getc() {
     if (m_handle) return fgetc(m_handle);
     if (!m_data) return -1;
     if (m_size == m_ptr) return -1;
     return m_data[m_ptr++];
 }
+
 bool PCSX::File::failed() { return !m_handle && !m_data; }
+
 bool PCSX::File::eof() {
     if (m_handle) return feof(m_handle);
     if (!m_data) return true;

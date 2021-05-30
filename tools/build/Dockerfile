@@ -7,6 +7,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV TZ Etc/GMT
 
 RUN apt update
+RUN apt dist-upgrade -y
 
 # Utility packages
 RUN apt install -y git
@@ -14,14 +15,15 @@ RUN apt install -y make
 RUN apt install -y pkg-config
 
 # Compilers & base libraries
-RUN apt install -y clang-10
-RUN apt install -y g++-9
+RUN apt install -y clang-11
+RUN apt install -y g++-10
 RUN apt install -y g++-mipsel-linux-gnu
 
 # Development packages
 RUN apt install -y libavcodec-dev
 RUN apt install -y libavformat-dev
 RUN apt install -y libavutil-dev
+RUN apt install -y libfreetype-dev
 RUN apt install -y libglfw3-dev
 RUN apt install -y libsdl2-dev
 RUN apt install -y libswresample-dev
@@ -42,6 +44,9 @@ RUN apt install -y xvfb
 #RUN apt install -y libavcodec-dev:i386
 #RUN apt install -y libavformat-dev:i386
 #RUN apt install -y libavutil-dev:i386
+#RUN apt install -y libfreetype-dev:i386
+# Doesn't exist, and likely never will
+# https://bugs.launchpad.net/ubuntu/+source/glfw3/+bug/1881946
 #RUN apt install -y libglfw3-dev:i386
 #RUN apt install -y libsdl2-dev:i386
 #RUN apt install -y libswresample-dev:i386

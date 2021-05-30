@@ -98,7 +98,11 @@ _boot:
     li    $t0, 0x3022
     sw    $t0, SBUS_DEV1_CTRL
 
-    li    $t0, 0x70777
+    /* The original code uses 70777 here, but we have
+       some debugging routines hitting 0x1f802080,
+       beyond the normal range, so we need to extend it,
+       to avoid crashes on the real hardware. */
+    li    $t0, 0x80777
     sw    $t0, SBUS_DEV8_CTRL
 
     /* clearing out all registers */
@@ -205,3 +209,49 @@ bss_init_skip:
     sb    $t1, 1($t0)
 stop:
     b     stop
+
+    .set noreorder
+    .global _cartBoot
+    .global cartBootCop0Hook
+    .type _cartBoot, @function
+
+_cartBoot:
+    lui   $t0, 0b1100101010000000
+    li    $t1, 0x0314
+    li    $t2, 0xffff
+    mtc0  $t0, $7
+    mtc0  $t1, $5
+    mtc0  $t2, $9
+    lui   $t9, %hi(cartBootCop0Hook)
+    lw    $t0, (%lo(cartBootCop0Hook)+0x00)($t9)
+    lw    $t1, (%lo(cartBootCop0Hook)+0x04)($t9)
+    lw    $t2, (%lo(cartBootCop0Hook)+0x08)($t9)
+    lw    $t3, (%lo(cartBootCop0Hook)+0x0c)($t9)
+    lw    $t4, (%lo(cartBootCop0Hook)+0x10)($t9)
+    lw    $t5, (%lo(cartBootCop0Hook)+0x14)($t9)
+    sw    $t0, 0x40($0)
+    sw    $t1, 0x44($0)
+    sw    $t2, 0x48($0)
+    sw    $t3, 0x4c($0)
+    sw    $t4, 0x50($0)
+    /* ironically, what we just did technically requires
+       calling flushCache, but since our whole point here
+       is to grab its pointer, we obviously cannot */
+    jr    $ra
+    sw    $t5, 0x54($0)
+
+cartBootCop0Hook:
+    lw    $t0, 0x310($0)
+    la    $t1, _reset
+    sw    $t0, 0x5c($0)
+    j     $t1
+    mtc0  $0, $7
+
+    .global flushCacheFromRealBios
+    .type flushCacheFromRealBios, @function
+
+flushCacheFromRealBios:
+    lw    $t0, 0x5c($0)
+    nop
+    jr    $t0
+    nop

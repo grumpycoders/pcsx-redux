@@ -47,7 +47,7 @@ class HashTable final {
         Node(const Node&) = delete;
         Node& operator=(const Node&) = delete;
         Node(Node&& src) = delete;
-        ~Node() { unlink(); }
+        virtual ~Node() { unlink(); }
         bool isLinked() const { return m_parent; }
         void unlink() {
             if (!isLinked()) return;
@@ -162,6 +162,15 @@ class HashTable final {
 
         m_count++;
         return iterator(node);
+    }
+    const_iterator find(const Key& key) const {
+        uint32_t bucket = Hash::hash(key) & m_mask;
+        for (Node* p = m_array[bucket]; p; p = p->m_next) {
+            if (Hash::isEqual(key, p->m_key)) {
+                return const_iterator(p);
+            }
+        }
+        return end();
     }
     iterator find(const Key& key) {
         uint32_t bucket = Hash::hash(key) & m_mask;

@@ -34,14 +34,14 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
     return SaveState {
         SaveStateInfo {
             VersionString {},
-            Version {}
+            Version {},
         },
         Thumbnail {},
         Memory {
             RAM { g_emulator->m_psxMem->g_psxM },
             ROM { g_emulator->m_psxMem->g_psxR },
             Parallel { g_emulator->m_psxMem->g_psxP },
-            HardwareMemory { g_emulator->m_psxMem->g_psxH }
+            HardwareMemory { g_emulator->m_psxMem->g_psxH },
         },
         Registers {
             GPR { g_emulator->m_psxCpu->m_psxRegs.GPR.r },
@@ -52,10 +52,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             Code { g_emulator->m_psxCpu->m_psxRegs.code },
             Cycle { g_emulator->m_psxCpu->m_psxRegs.cycle },
             Interrupt { g_emulator->m_psxCpu->m_psxRegs.interrupt },
-            IntCyclesField {},
             ICacheAddr { g_emulator->m_psxCpu->m_psxRegs.ICache_Addr },
             ICacheCode { g_emulator->m_psxCpu->m_psxRegs.ICache_Code },
-            ICacheValid { g_emulator->m_psxCpu->m_psxRegs.ICache_valid },
             NextIsDelaySlot { g_emulator->m_psxCpu->m_nextIsDelaySlot },
             DelaySlotInfo1 {
                 DelaySlotIndex { g_emulator->m_psxCpu->m_delayedLoadInfo[0].index },
@@ -73,7 +71,9 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
                 DelaySlotActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].active },
                 DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].pcActive }
             },
-            CurrentDelayedLoad { g_emulator->m_psxCpu->m_currentDelayedLoad }
+            CurrentDelayedLoad { g_emulator->m_psxCpu->m_currentDelayedLoad },
+            IntTargetsField { g_emulator->m_psxCpu->m_psxRegs.intTargets },
+            InISR { g_emulator->m_psxCpu->m_inISR },
         },
         GPU {},
         SPU {},
@@ -150,46 +150,31 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDSubQRelative { g_emulator->m_cdrom->m_subq.relative },
             CDSubQAbsolute { g_emulator->m_cdrom->m_subq.absolute },
             CDTrackChanged { g_emulator->m_cdrom->m_trackChanged },
-            CDLocationChanged { g_emulator->m_cdrom->m_locationChanged }
+            CDLocationChanged { g_emulator->m_cdrom->m_locationChanged },
         },
         Hardware {},
         Counters {},
-        MDEC {}
+        MDEC {},
+        PCdrvFilesField {},
     };
     // clang-format on
-}
-
-static void intCyclesFromState(const PCSX::SaveStates::SaveState& state) {
-    auto& intCyclesState = state.get<PCSX::SaveStates::RegistersField>().get<PCSX::SaveStates::IntCyclesField>();
-    auto& intCycles = PCSX::g_emulator->m_psxCpu->m_psxRegs.intCycle;
-    for (unsigned i = 0; i < 32; i++) {
-        intCycles[i].sCycle = intCyclesState.value[i].get<PCSX::SaveStates::IntSCycle>().value;
-        intCycles[i].cycle = intCyclesState.value[i].get<PCSX::SaveStates::IntCycle>().value;
-    }
-}
-
-static void intCyclesToState(PCSX::SaveStates::SaveState& state) {
-    auto& intCyclesState = state.get<PCSX::SaveStates::RegistersField>().get<PCSX::SaveStates::IntCyclesField>();
-    auto& intCycles = PCSX::g_emulator->m_psxCpu->m_psxRegs.intCycle;
-    intCyclesState.value.resize(32);
-    for (unsigned i = 0; i < 32; i++) {
-        intCyclesState.value[i].get<PCSX::SaveStates::IntSCycle>().value = intCycles[i].sCycle;
-        intCyclesState.value[i].get<PCSX::SaveStates::IntCycle>().value = intCycles[i].cycle;
-    }
 }
 
 std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
 
-    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v1";
-    state.get<SaveStateInfoField>().get<Version>().value = 1;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v2";
+    state.get<SaveStateInfoField>().get<Version>().value = 2;
 
-    intCyclesToState(state);
     g_emulator->m_gpu->save(state.get<GPUField>());
     g_emulator->m_spu->save(state.get<SPUField>());
 
     g_emulator->m_psxCounters->save(state.get<CountersField>());
     g_emulator->m_mdec->save(state.get<MDECField>());
+
+    g_emulator->m_psxCpu->listAllPCdevFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
+        state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
+    });
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
@@ -206,13 +191,13 @@ bool PCSX::SaveStates::load(const std::string& data) {
         return false;
     }
 
-    if (state.get<SaveStateInfoField>().get<Version>().value != 1) {
+    if (state.get<SaveStateInfoField>().get<Version>().value != 2) {
         return false;
     }
 
     PCSX::g_emulator->m_psxCpu->Reset();
     state.commit();
-    intCyclesFromState(state);
+    g_emulator->m_psxCpu->m_psxRegs.lowestTarget = g_emulator->m_psxCpu->m_psxRegs.cycle;
     g_emulator->m_gpu->load(state.get<GPUField>());
     g_emulator->m_spu->load(state.get<SPUField>());
     g_emulator->m_cdrom->load();
@@ -234,6 +219,18 @@ bool PCSX::SaveStates::load(const std::string& data) {
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+
+    g_emulator->m_psxCpu->closeAllPCdevFiles();
+    for (auto& file : state.get<PCdrvFilesField>().value) {
+        uint16_t fd = file.get<PCdrvFD>().value;
+        std::string filename = file.get<PCdrvFilename>().value;
+        bool create = file.get<PCdrvCreate>().value;
+        if (create) {
+            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd, File::CREATE);
+        } else {
+            g_emulator->m_psxCpu->restorePCdrvFile(filename, fd);
+        }
+    }
 
     return true;
 }

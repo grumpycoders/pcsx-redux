@@ -28,6 +28,46 @@
 
 PCSX::System* PCSX::g_system = NULL;
 
+static const ImWchar c_frenchRanges[] = {0x0020, 0x00ff, 0x0152, 0x0153, 0};
+static const ImWchar c_greekRanges[] = {0x0020, 0x00ff, 0x0370, 0x03ff, 0};
+static const ImWchar c_hindiSupplementalRanges[] = {0x0900, 0x097f, 0};
+static const ImWchar* const c_japaneseRanges = reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE);
+static const ImWchar c_malteseRanges[] = {0x0020, 0x00ff, 0x010a, 0x010b, 0x0120, 0x0121,
+                                          0x0126, 0x0127, 0x017b, 0x017c, 0};
+
+// locale names have to be written in basic latin or extended latin, in order
+// to be properly displayed in the UI with the default range
+const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
+    {
+        "Deutsch",
+        {"de.po", {}, nullptr},
+    },
+    {
+        "Ellinika",
+        {"el.po", {}, c_greekRanges},
+    },
+    {
+        "Français",
+        {"fr.po", {}, c_frenchRanges},
+    },
+    {
+        "Hindi",
+        {"hi.po", {{MAKEU8("NotoSansDevanagari-Regular.ttf"), c_hindiSupplementalRanges}}, nullptr},
+    },
+    {
+        "Italiano",
+        {"it.po", {}, nullptr},
+    },
+    {
+        "Nihongo",
+        {"jp.po", {{MAKEU8("NotoSansCJKjp-Regular.otf"), c_japaneseRanges}}, nullptr},
+    },
+    {
+        "Malti",
+        {"mt.po", {}, c_malteseRanges},
+    },
+};
+
 bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::path& path) {
     std::unique_ptr<File> in(new File(path));
     int c;
@@ -51,20 +91,24 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
     uint64_t hashValue;
     std::map<uint64_t, std::string> locale;
 
-    if (in->failed()) {
-        return false;
-    }
+    if (in->failed()) return false;
+
+    std::string comment;
+    bool fuzzy = false;
 
     while ((c = in->getc()) >= 0) {
         if (c == '\n' || c == '\r') {
-            if (inString) {
-                return false;
-            }
+            if (inString) return false;
+            if (inComment) fuzzy = comment.find(", fuzzy") != std::string::npos;
             inComment = false;
             newLine = true;
+            comment.clear();
             continue;
         }
-        if (inComment) continue;
+        if (inComment) {
+            comment += c;
+            continue;
+        }
         if (newLine) {
             newLine = false;
             if (c == '#') {
@@ -72,9 +116,7 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                 continue;
             }
             if (c == '\"') {
-                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) {
-                    return false;
-                }
+                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) return false;
                 inString = true;
                 continue;
             }
@@ -161,10 +203,10 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                     break;
                 case WAITING_MSGIDTOKEN:
                 case WAITING_MSGSTRTOKEN:
-                    if (token.length() == 0) {
+                    if (token.empty()) {
                         switch (state) {
                             case WAITING_MSGIDTOKEN:
-                                if (currentString.length()) locale[hashValue] = currentString;
+                                if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
                                 break;
                             case WAITING_MSGSTRTOKEN:
                                 hashValue = djbHash::hash(currentString);
@@ -198,11 +240,9 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
         }
     }
 
-    if (inString || (state != WAITING_MSGIDTOKEN)) {
-        return false;
-    }
+    if (inString || (state != WAITING_MSGIDTOKEN)) return false;
 
-    if (currentString != "") locale[hashValue] = currentString;
+    if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
     m_locales[name] = locale;
     return true;
 }

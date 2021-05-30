@@ -621,6 +621,71 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
     }
 };
 
+template <typename FieldType, typename name, uint64_t fieldNumberValue>
+struct RepeatedVariableField;
+template <typename FieldType, char... C, uint64_t fieldNumberValue>
+struct RepeatedVariableField<FieldType, irqus::typestring<C...>, fieldNumberValue> {
+    RepeatedVariableField() { reset(); }
+    static constexpr uint64_t fieldNumber = fieldNumberValue;
+    static constexpr unsigned wireType = 2;
+    typedef irqus::typestring<C...> fieldName;
+    static constexpr void dumpSchema(std::ostream &stream) {
+        stream << "    repeated " << FieldType::typeName << " " << fieldName::data() << " = " << fieldNumberValue << ";"
+               << std::endl;
+    }
+    std::vector<FieldType> value;
+    size_t count = 0;
+    constexpr void reset() {
+        value.clear();
+        count = 0;
+    }
+    static constexpr bool matches(unsigned wireType) { return wireType == 2 || FieldType::matches(wireType); }
+    static constexpr bool needsToSerializeHeader() { return FieldType::wireType == 2; }
+    void serialize(OutSlice *slice) const {
+        if (FieldType::wireType == 2) {
+            for (const auto &v : value) {
+                OutSlice subSlice;
+                v.serialize(&subSlice);
+                std::string subSliceData = subSlice.finalize();
+                slice->putVarInt((fieldNumber << 3) | FieldType::wireType);
+                slice->putVarInt(subSliceData.size());
+                slice->putBytes(subSliceData);
+            }
+        } else {
+            OutSlice subSlice;
+            for (const auto &v : value) {
+                v.serialize(&subSlice);
+            }
+            std::string subSliceData = subSlice.finalize();
+            slice->putVarInt(subSliceData.size());
+            slice->putBytes(subSliceData);
+        }
+    }
+    void deserialize(InSlice *slice, unsigned wireType) {
+        if (FieldType::wireType != wireType) {
+            InSlice subSlice = slice->getSubSlice(slice->getVarInt());
+            while (subSlice.bytesLeft()) {
+                deserializeOne(&subSlice, wireType);
+            }
+        } else {
+            deserializeOne(slice, wireType);
+        }
+    }
+    constexpr bool hasData() const { return !value.empty(); }
+    constexpr void commit() {}
+
+  private:
+    void deserializeOne(InSlice *slice, unsigned wireType) {
+        value.resize(++count);
+        if (FieldType::wireType == 2) {
+            InSlice subSlice = slice->getSubSlice(slice->getVarInt());
+            value[count].deserialize(&subSlice, FieldType::wireType);
+        } else {
+            value[count].deserialize(slice, wireType);
+        }
+    }
+};
+
 template <typename MessageType, typename name, uint64_t fieldNumberValue>
 struct MessageField;
 template <typename MessageType, char... C, uint64_t fieldNumberValue>

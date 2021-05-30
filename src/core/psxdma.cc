@@ -41,7 +41,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
         case 0x01000201:  // cpu to spu transfer
             PSXDMA_LOG("*** DMA4 SPU - mem2spu *** %x addr = %x size = %x\n", chcr, madr, bcr);
             ptr = (uint16_t *)PSXM(madr);
-            if (ptr == NULL) {
+            if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
                 break;
             }
@@ -57,7 +57,7 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
         case 0x01000200:  // spu to cpu transfer
             PSXDMA_LOG("*** DMA4 SPU - spu2mem *** %x addr = %x size = %x\n", chcr, madr, bcr);
             ptr = (uint16_t *)PSXM(madr);
-            if (ptr == NULL) {
+            if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA4 SPU - spu2mem *** NULL Pointer!!!\n");
                 break;
             }
@@ -89,7 +89,7 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA6 OT *** %x addr = %x size = %x\n", chcr, madr, bcr);
 
     if (chcr == 0x11000002) {
-        if (mem == NULL) {
+        if (mem == nullptr) {
             PSXDMA_LOG("*** DMA6 OT *** NULL Pointer!!!\n");
             HW_DMA6_CHCR &= SWAP_LE32(~0x01000000);
             DMA_INTERRUPT(6);

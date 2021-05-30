@@ -35,6 +35,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include <uv.h>
 #include <zlib.h>
 
 #include <filesystem>
@@ -42,7 +43,6 @@
 #include <string>
 
 #include "support/settings.h"
-#include "uvw.hpp"
 
 #ifndef MAXPATHLEN
 #ifdef _WIN32
@@ -97,6 +97,7 @@ class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
+class Lua;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -118,6 +119,39 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("Enabled")> Enabled;
         typedef Settings<Filename, FileOffset, LoadOffset, LoadSize, Enabled> type;
     };
+    struct DebugSettings {
+        typedef Setting<bool, TYPESTRING("Debug")> Debug;
+        typedef Setting<bool, TYPESTRING("Trace")> Trace;
+        typedef Setting<bool, TYPESTRING("KernelLog")> KernelLog;
+        typedef Setting<uint32_t, TYPESTRING("FirstChanceException"), 0x00001cf0> FirstChanceException;
+        typedef Setting<bool, TYPESTRING("SkipISR")> SkipISR;
+        typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> LoggingCDROM;
+        typedef Setting<bool, TYPESTRING("GdbServer"), false> GdbServer;
+        typedef Setting<bool, TYPESTRING("GdbManifest"), true> GdbManifest;
+        typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> GdbServerPort;
+        typedef Setting<bool, TYPESTRING("GdbServerTrace"), false> GdbServerTrace;
+        typedef Setting<bool, TYPESTRING("WebServer"), false> WebServer;
+        typedef Setting<int, TYPESTRING("WebServerPort"), 8080> WebServerPort;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallA0_00_1f"), 0xffffffff> KernelCallA0_00_1f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallA0_20_3f"), 0xffffffff> KernelCallA0_20_3f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallA0_40_5f"), 0xffffffff> KernelCallA0_40_5f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallA0_60_7f"), 0xffffffff> KernelCallA0_60_7f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallA0_80_9f"), 0xffffffff> KernelCallA0_80_9f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallA0_a0_bf"), 0xffffffff> KernelCallA0_a0_bf;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallB0_00_1f"), 0xffffffff> KernelCallB0_00_1f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallB0_20_3f"), 0xffffffff> KernelCallB0_20_3f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallB0_40_5f"), 0xffffffff> KernelCallB0_40_5f;
+        typedef Setting<uint32_t, TYPESTRING("KernelCallC0_00_1f"), 0xffffffff> KernelCallC0_00_1f;
+        typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
+        typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
+        typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
+                         GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
+                         KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
+                         KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
+                         KernelCallC0_00_1f, PCdrv, PCdrvBase>
+            type;
+    };
+    typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
     typedef SettingArray<TYPESTRING("Overlay"), OverlaySetting::type> SettingBiosOverlay;
     typedef Setting<bool, TYPESTRING("Stdout")> SettingStdout;
     typedef SettingPath<TYPESTRING("Logfile")> SettingLogfile;
@@ -127,34 +161,23 @@ class Emulator {
     typedef SettingPath<TYPESTRING("PpfDir")> SettingPpfDir;
     typedef SettingPath<TYPESTRING("PsxExe")> SettingPsxExe;
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
-    typedef Setting<bool, TYPESTRING("SioIrq")> SettingSioIrq;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
-    typedef Setting<bool, TYPESTRING("FastBoot"), true> SettingFastBoot;
-    typedef Setting<bool, TYPESTRING("Debug")> SettingDebug;
-    typedef Setting<bool, TYPESTRING("Verbose")> SettingVerbose;
+    typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
-    typedef Setting<bool, TYPESTRING("GdbServer"), false> SettingGdbServer;
-    typedef Setting<bool, TYPESTRING("GdbManifest"), true> SettingGdbManifest;
-    typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> SettingGdbServerPort;
-    typedef Setting<bool, TYPESTRING("GdbServerTrace"), false> SettingGdbServerTrace;
-    typedef Setting<bool, TYPESTRING("WebServer"), false> SettingWebServer;
-    typedef Setting<int, TYPESTRING("WebServerPort"), 8080> SettingWebServerPort;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSioIrq, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA,
-             SettingFastBoot, SettingDebug, SettingVerbose, SettingRCntFix, SettingIsoPath, SettingLocale,
-             SettingMcd1Inserted, SettingMcd2Inserted, SettingBiosOverlay, SettingGdbServer, SettingGdbManifest,
-             SettingGdbServerPort, SettingGdbServerTrace, SettingWebServer, SettingWebServerPort, SettingDynarec,
-             Setting8MB>
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
+             SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
+             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB>
         settings;
     class PcsxConfig {
       public:
@@ -214,8 +237,9 @@ class Emulator {
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<PAD> m_pad1;
     std::unique_ptr<PAD> m_pad2;
+    std::unique_ptr<Lua> m_lua;
 
-    std::shared_ptr<uvw::Loop> m_loop;
+    uv_loop_t m_loop;
 
     char m_cdromId[10] = "";
     char m_cdromLabel[33] = "";

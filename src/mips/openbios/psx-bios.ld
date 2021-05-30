@@ -31,7 +31,7 @@ ENTRY(_reset)
 
 MEMORY {
     kseg0i(rwx): ORIGIN = 0x00000000, LENGTH = 0x500
-    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 2M - 0x500
+    kseg0 (rwx): ORIGIN = 0x00000500, LENGTH = 0xdf80 - 0x500
     ram (rwx)  : ORIGIN = 0x80010000, LENGTH = 2M - 0x10000
     rom (rx)   : ORIGIN = 0xbfc00000, LENGTH = 400K
     consts (rx): ORIGIN = 0xbfc66000, LENGTH = 104K
@@ -50,6 +50,8 @@ __data_len_val  = (__data_end - __data_start);
 __bss_len_val   = (__bss_end - __bss_start);
 
 __stack_start   = ORIGIN(ram) + LENGTH(ram);
+
+PROVIDE(flushCache = flushCacheImpl);
 
 SECTIONS {
     .base (NOLOAD) : {

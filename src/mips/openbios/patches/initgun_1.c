@@ -24,7 +24,9 @@ SOFTWARE.
 
 */
 
-#include "common/compiler/stdint.h"
+#include <stdint.h>
+
+#include "openbios/patches/patches.h"
 
 // clang-format off
 
@@ -82,7 +84,7 @@ SOFTWARE.
 #ifndef GENERATE_HASHES
 
 // allowing it to run
-int initgun_1_execute(uint32_t* ra) { return 2; }
+enum patch_behavior initgun_1_execute(uint32_t* ra) { return PATCH_PASSTHROUGH; }
 
 #else
 

@@ -28,9 +28,6 @@
 [submodule "third_party/fmt"]
 	path = third_party/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "third_party/uvw"]
-	path = third_party/uvw
-	url = https://github.com/skypjack/uvw.git
 [submodule "third_party/http-parser"]
 	path = third_party/http-parser
 	url = https://github.com/nodejs/http-parser.git
@@ -40,3 +37,24 @@
 [submodule "third_party/libcester"]
 	path = third_party/libcester
 	url = https://github.com/exoticlibraries/libcester.git
+[submodule "third_party/luajit"]
+	path = third_party/luajit
+	url = https://github.com/grumpycoders/LuaJIT.git
+[submodule "third_party/luv"]
+	path = third_party/luv
+	url = https://github.com/luvit/luv.git
+[submodule "third_party/freetype"]
+	path = third_party/freetype
+	url = https://gitlab.freedesktop.org/freetype/freetype.git
+[submodule "third_party/stb"]
+	path = third_party/stb
+	url = https://github.com/nothings/stb.git
+[submodule "third_party/tracy"]
+	path = third_party/tracy
+	url = https://github.com/wolfpld/tracy.git
+[submodule "third_party/magic_enum"]
+	path = third_party/magic_enum
+	url = https://github.com/Neargye/magic_enum.git
+[submodule "third_party/ucl"]
+	path = third_party/ucl
+	url = https://github.com/Distrotech/ucl.git

@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "openbios/kernel/events.h"
 
+#include <stdatomic.h>
+
 #include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
@@ -49,7 +51,7 @@ int initEvents(int count) {
     return size;
 }
 
-static int getFreeEvCBSlot(void) {
+int getFreeEvCBSlot(void) {
     struct EventInfo *ptr, *end;
     int slot = 0;
 
@@ -84,10 +86,11 @@ __attribute__((section(".ramtext"))) void deliverEvent(uint32_t class, uint32_t 
     end = (struct EventInfo *)(((char *)ptr) + __globals.eventsSize);
     while (ptr < end) {
         if ((ptr->flags == EVENT_FLAG_ENABLED) && (class == ptr->class) && (spec == ptr->spec)) {
-            if (ptr->mode == EVENT_MODE_NO_CALLBACK)
+            if (ptr->mode == EVENT_MODE_NO_CALLBACK) {
                 ptr->flags = EVENT_FLAG_PENDING;
-            else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler)
+            } else if (ptr->mode == EVENT_MODE_CALLBACK && ptr->handler) {
                 ptr->handler();
+            }
         }
         ptr++;
     }
@@ -111,7 +114,7 @@ int closeEvent(uint32_t event) {
     return 1;
 }
 
-void undeliverEvent(uint32_t class, uint32_t spec) {
+__attribute__((section(".ramtext"))) void undeliverEvent(uint32_t class, uint32_t spec) {
     struct EventInfo *ptr, *end;
 
     ptr = __globals.events;
@@ -141,10 +144,8 @@ int waitEvent(uint32_t event) {
         return 1;
     }
     if (ptr->flags == EVENT_FLAG_ENABLED) {
-        volatile uint32_t *flags = &ptr->flags;
-        while (*flags != EVENT_FLAG_PENDING)
-            ;
-        *flags = EVENT_FLAG_ENABLED;
+        while (ptr->flags != EVENT_FLAG_PENDING) atomic_signal_fence(memory_order_consume);
+        ptr->flags = EVENT_FLAG_ENABLED;
         return 1;
     }
     return 0;

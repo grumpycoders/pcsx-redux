@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <GL/gl3w.h>
 #include <stdarg.h>
 
 #include <string>
@@ -28,15 +29,21 @@
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
+#include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
+#include "gui/widgets/luaeditor.h"
+#include "gui/widgets/luainspector.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
+#include "magic_enum/include/magic_enum.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
 
@@ -50,6 +57,8 @@ struct GLFWwindow;
 
 namespace PCSX {
 
+enum class LogClass : unsigned;
+
 class GUI final {
   public:
     GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
@@ -60,13 +69,9 @@ class GUI final {
     void bindVRAMTexture();
     void setViewport();
     void setFullscreen(bool);
-    void addLog(const char *fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        addLog(fmt, args);
-        va_end(args);
+    bool addLog(LogClass logClass, const std::string &msg) {
+        return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
-    void addLog(const char *fmt, va_list args) { m_log.addLog(fmt, args); }
     class Notifier {
       public:
         Notifier(std::function<const char *()> title) : m_title(title) {}
@@ -91,16 +96,27 @@ class GUI final {
         const std::function<const char *()> m_title;
         std::string m_message;
     };
-    void addNotification(const char *fmt, va_list args) {
-        char notification[1024];
-        vsnprintf(notification, 1023, fmt, args);
-        notification[1023] = 0;
-        m_notifier.notify(notification);
-    }
+    void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
     void magicOpen(const char *path);
 
     static void checkGL();
+
+    static const char *glErrorToString(GLenum error) {
+        static const std::map<GLenum, const char *> glErrorMap = {
+            {GL_NO_ERROR, "GL_NO_ERROR"},
+            {GL_INVALID_ENUM, "GL_INVALID_ENUM"},
+            {GL_INVALID_VALUE, "GL_INVALID_VALUE"},
+            {GL_INVALID_OPERATION, "GL_INVALID_OPERATION"},
+            {GL_INVALID_FRAMEBUFFER_OPERATION, "GL_INVALID_FRAMEBUFFER_OPERATION"},
+            {GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
+            {GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
+            {GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"},
+        };
+        auto f = glErrorMap.find(error);
+        if (f == glErrorMap.end()) return "Unknown error";
+        return f->second;
+    }
 
   private:
     void saveCfg();
@@ -148,13 +164,18 @@ class GUI final {
     typedef Setting<bool, TYPESTRING("FullscreenRender"), true> FullscreenRender;
     typedef Setting<bool, TYPESTRING("ShowMenu")> ShowMenu;
     typedef Setting<bool, TYPESTRING("ShowLog")> ShowLog;
+    typedef Setting<bool, TYPESTRING("ShowLuaConsole")> ShowLuaConsole;
+    typedef Setting<bool, TYPESTRING("ShowLuaInspector")> ShowLuaInspector;
+    typedef Setting<bool, TYPESTRING("ShowLuaEditor")> ShowLuaEditor;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
     typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
+    typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
+    typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -195,6 +216,7 @@ class GUI final {
     std::vector<std::string> m_overlayLoadSizes;
 
     bool m_showCfg = false;
+    bool m_showUiCfg = false;
 
     const flags::args &m_args;
 
@@ -206,6 +228,10 @@ class GUI final {
 
     Widgets::Types m_types;
     Widgets::Source m_source;
+    Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
+
+    Widgets::Events m_events;
+    Widgets::KernelLog m_kernelLog;
 
     EventBus::Listener m_listener;
 
@@ -220,6 +246,22 @@ class GUI final {
 
     PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};
+    Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
+    Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
+
+    bool m_gotImguiUserError = false;
+    std::string m_imguiUserError;
+
+    ImFont *m_mainFont;
+    ImFont *m_monoFont;
+
+    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
+
+    bool m_reloadFonts = true;
+
+  public:
+    void useMainFont() { ImGui::PushFont(m_mainFont); }
+    void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };
 
 }  // namespace PCSX

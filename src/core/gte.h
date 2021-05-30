@@ -40,33 +40,33 @@ class GTE {
         // CPU[Rt] = GTE_C[Rd]
         return PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
     }
-    void MTC2() { MTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
-    void CTC2() { CTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
-    void LWC2() { MTC2_internal(PCSX::g_emulator->m_psxMem->psxMemRead32(gteoB), _Rt_); }
-    void SWC2() { PCSX::g_emulator->m_psxMem->psxMemWrite32(gteoB, MFC2_internal(_Rt_)); }
+    void MTC2(uint32_t code) { MTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
+    void CTC2(uint32_t code) { CTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
+    void LWC2(uint32_t code) { MTC2_internal(PCSX::g_emulator->m_psxMem->psxMemRead32(gteoB), _Rt_); }
+    void SWC2(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite32(gteoB, MFC2_internal(_Rt_)); }
 
-    void RTPS() { docop2(gteop); }
-    void NCLIP() { docop2(gteop); }
-    void OP() { docop2(gteop); }
-    void DPCS() { docop2(gteop); }
-    void INTPL() { docop2(gteop); }
-    void MVMVA() { docop2(gteop); }
-    void NCDS() { docop2(gteop); }
-    void CDP() { docop2(gteop); }
-    void NCDT() { docop2(gteop); }
-    void NCCS() { docop2(gteop); }
-    void CC() { docop2(gteop); }
-    void NCS() { docop2(gteop); }
-    void NCT() { docop2(gteop); }
-    void SQR() { docop2(gteop); }
-    void DCPL() { docop2(gteop); }
-    void DPCT() { docop2(gteop); }
-    void AVSZ3() { docop2(gteop); }
-    void AVSZ4() { docop2(gteop); }
-    void RTPT() { docop2(gteop); }
-    void GPF() { docop2(gteop); }
-    void GPL() { docop2(gteop); }
-    void NCCT() { docop2(gteop); }
+    void RTPS(uint32_t code) { docop2(gteop); }
+    void NCLIP(uint32_t code) { docop2(gteop); }
+    void OP(uint32_t code) { docop2(gteop); }
+    void DPCS(uint32_t code) { docop2(gteop); }
+    void INTPL(uint32_t code) { docop2(gteop); }
+    void MVMVA(uint32_t code) { docop2(gteop); }
+    void NCDS(uint32_t code) { docop2(gteop); }
+    void CDP(uint32_t code) { docop2(gteop); }
+    void NCDT(uint32_t code) { docop2(gteop); }
+    void NCCS(uint32_t code) { docop2(gteop); }
+    void CC(uint32_t code) { docop2(gteop); }
+    void NCS(uint32_t code) { docop2(gteop); }
+    void NCT(uint32_t code) { docop2(gteop); }
+    void SQR(uint32_t code) { docop2(gteop); }
+    void DCPL(uint32_t code) { docop2(gteop); }
+    void DPCT(uint32_t code) { docop2(gteop); }
+    void AVSZ3(uint32_t code) { docop2(gteop); }
+    void AVSZ4(uint32_t code) { docop2(gteop); }
+    void RTPT(uint32_t code) { docop2(gteop); }
+    void GPF(uint32_t code) { docop2(gteop); }
+    void GPL(uint32_t code) { docop2(gteop); }
+    void NCCT(uint32_t code) { docop2(gteop); }
 
   private:
     int s_sf;

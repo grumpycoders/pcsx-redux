@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "openbios/cdrom/statemachine.h"
 
+#include <stdatomic.h>
+
 #include "common/hardware/cdrom.h"
 #include "common/hardware/dma.h"
 #include "common/hardware/irq.h"
@@ -254,8 +256,7 @@ static void __attribute__((section(".ramtext"))) setSessionResponse() {
     }
 }
 
-// sigh... this is an anti-pattern, but a necessary one.
-static volatile int s_initializationComplete;
+static int s_initializationComplete;
 static uint8_t *s_idResponsePtr;
 
 static void __attribute__((section(".ramtext"))) complete() {
@@ -765,6 +766,7 @@ int __attribute__((section(".ramtext"))) cdromInnerInit() {
     int wait = 30000;
     while (wait-- && s_initializationComplete != 2) {
         if (s_initializationComplete == 1) return 1;
+        atomic_signal_fence(memory_order_consume);
     }
     return 0;
 }

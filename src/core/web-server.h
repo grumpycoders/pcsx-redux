@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <uv.h>
+
 #include <map>
 #include <memory>
 #include <string>
@@ -26,7 +28,6 @@
 #include "support/eventbus.h"
 #include "support/list.h"
 #include "support/slice.h"
-#include "uvw.hpp"
 
 namespace PCSX {
 
@@ -92,10 +93,10 @@ class WebExecutor : public Intrusive::List<WebExecutor>::Node {
 
 class WebClient : public Intrusive::List<WebClient>::Node {
   public:
-    WebClient(WebServer* server, std::shared_ptr<uvw::TCPHandle> srv);
+    WebClient(WebServer* server);
     typedef Intrusive::List<WebClient> ListType;
     void close();
-    void accept(std::shared_ptr<uvw::TCPHandle> srv);
+    bool accept(uv_tcp_t* srv);
     void write(Slice&& slice);
     template <size_t L>
     void write(const char (&str)[L]) {
@@ -116,19 +117,24 @@ class WebClient : public Intrusive::List<WebClient>::Node {
 class WebServer {
   public:
     WebServer();
+    ~WebServer() { m_executors.destroyAll(); }
     enum WebServerStatus {
         SERVER_STOPPED,
+        SERVER_STOPPING,
         SERVER_STARTED,
     };
     WebServerStatus getServerStatus() { return m_serverStatus; }
 
-    void startServer(int port = 8080);
+    void startServer(uv_loop_t* loop, int port = 8080);
     void stopServer();
 
   private:
-    void onNewConnection();
+    static void onNewConnectionTrampoline(uv_stream_t* server, int status);
+    void onNewConnection(int status);
+    static void closeCB(uv_handle_t* handle);
     WebServerStatus m_serverStatus;
-    std::shared_ptr<uvw::TCPHandle> m_server;
+    uv_tcp_t m_server;
+    uv_loop_t* m_loop;
     WebClient::ListType m_clients;
     EventBus::Listener m_listener;
     Intrusive::List<WebExecutor> m_executors;

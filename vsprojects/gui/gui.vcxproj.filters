@@ -1,37 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Source Files\widgets">
-      <UniqueIdentifier>{550f5451-9737-4710-b320-854f75c4a5c8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\widgets">
-      <UniqueIdentifier>{eb0f3a1a-e98f-4259-be79-02b40f94f10a}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\..\src\gui\gui.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\widgets\log.cc">
-      <Filter>Source Files\widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\gui\widgets\registers.cc">
-      <Filter>Source Files\widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\gui\widgets\filedialog.cc">
-      <Filter>Source Files\widgets</Filter>
+    <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc">
+      <Filter>Source Files\themes</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\assembly.cc">
       <Filter>Source Files\widgets</Filter>
@@ -39,37 +13,52 @@
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc">
+    <ClCompile Include="..\..\src\gui\widgets\console.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\dwarf.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\widgets\types.cc">
+    <ClCompile Include="..\..\src\gui\widgets\filedialog.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\log.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\luainspector.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\registers.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\source.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc">
+    <ClCompile Include="..\..\src\gui\widgets\types.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\resources-win32.cc">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\resources-unix.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\events.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\kernellog.cc">
+      <Filter>Source Files\widgets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\gui\widgets\log.h">
-      <Filter>Header Files\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h">
-      <Filter>Header Files\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\gui\widgets\registers.h">
-      <Filter>Header Files\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\gui\widgets\filedialog.h">
-      <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\assembly.h">
       <Filter>Header Files\widgets</Filter>
@@ -77,20 +66,70 @@
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h">
+    <ClInclude Include="..\..\src\gui\widgets\console.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\dwarf.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gui\widgets\types.h">
+    <ClInclude Include="..\..\src\gui\widgets\filedialog.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\log.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\luaeditor.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\luainspector.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\registers.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\source.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\types.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\resources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\events.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\kernellog.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{83f49945-96a9-4d1a-846c-8d73b1990353}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{9f640599-3d5b-46fe-95cd-05078c9bd840}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\widgets">
+      <UniqueIdentifier>{dde3751f-d89f-4a36-b33a-3374c3bcf860}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\widgets">
+      <UniqueIdentifier>{e2eb4534-5495-4b9f-b5a5-743a4e0a6ed8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\themes">
+      <UniqueIdentifier>{14ff82ac-30d0-4f3b-913d-829943355140}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{400fe0a4-9b79-4497-8575-c20e964a0afe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

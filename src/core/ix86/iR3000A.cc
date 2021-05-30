@@ -42,6 +42,7 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "spu/interface.h"
+#include "tracy/Tracy.hpp"
 
 namespace {
 
@@ -279,13 +280,12 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         delayedLoad.index = _Rt_;
     }
 
-#define CP2_FUNC(f)                                                         \
-    static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(); }         \
-    void rec##f() {                                                         \
-        iFlushRegs();                                                       \
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code); \
-        gen.CALLFunc((uint32_t)gte##f##Wrapper);                            \
-        /*  branch = 2; */                                                  \
+#define CP2_FUNC(f)                                                                                           \
+    static void gte##f##Wrapper() { PCSX::g_emulator->m_gte->f(PCSX::g_emulator->m_psxCpu->m_psxRegs.code); } \
+    void rec##f() {                                                                                           \
+        iFlushRegs();                                                                                         \
+        gen.MOV32ItoM((uint32_t)&m_psxRegs.code, (uint32_t)m_psxRegs.code);                                   \
+        gen.CALLFunc((uint32_t)gte##f##Wrapper);                                                              \
     }
 
     CP2_FUNC(MTC2);
@@ -632,8 +632,6 @@ void X86DynaRecCPU::iPushReg(unsigned reg) {
     }
 
 bool X86DynaRecCPU::Init() {
-    int i;
-
     m_psxRecLUT = (uintptr_t *)calloc(0x010000, sizeof(uintptr_t));
 
 #ifndef _WIN32
@@ -650,11 +648,18 @@ bool X86DynaRecCPU::Init() {
         return false;
     }
 
-    for (i = 0; i < 0x80; i++) m_psxRecLUT[i + 0x0000] = (uintptr_t)&m_recRAM[(i & 0x1f) << 16];
+    for (auto i = 0; i < 0x80; i++)
+        m_psxRecLUT[i] =
+            (uintptr_t)&m_recRAM[(i & 0x1f)
+                                 << 16];  // map KUSEG/KSEG0/KSEG1 WRAM respectively to the recompiler block LUT
     memcpy(m_psxRecLUT + 0x8000, m_psxRecLUT, 0x80 * sizeof(uintptr_t));
     memcpy(m_psxRecLUT + 0xa000, m_psxRecLUT, 0x80 * sizeof(uintptr_t));
 
-    for (i = 0; i < 0x08; i++) m_psxRecLUT[i + 0xbfc0] = (uintptr_t)&m_recROM[i << 16];
+    for (auto i = 0; i < 8; i++)
+        m_psxRecLUT[i + 0x1fc0] =
+            (uintptr_t)&m_recROM[i << 16];  // map KUSEG/KSEG0/KSEG1 BIOS respectively to the recompiler block LUT
+    memcpy(m_psxRecLUT + 0x9fc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
+    memcpy(m_psxRecLUT + 0xbfc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
 
     gen.x86Init(m_recMem);
 
@@ -691,7 +696,6 @@ void X86DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
     PCSX::g_system->message("Unrecoverable error while running recompiler\n");
-    PCSX::g_system->runGui();
 }
 
 void X86DynaRecCPU::execute() {
@@ -709,7 +713,8 @@ void X86DynaRecCPU::execute() {
         return;
     }
 
-    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebug>();
+    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                            .get<PCSX::Emulator::DebugSettings::Debug>();
 
     if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == 0) recRecompile();
@@ -729,6 +734,7 @@ void X86DynaRecCPU::execute() {
 }
 
 void X86DynaRecCPU::Execute() {
+    ZoneScoped;
     while (hasToRun()) execute();
 }
 
@@ -2469,11 +2475,11 @@ void X86DynaRecCPU::recBLTZ() {
 
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JL32(0);
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
+    gen.CMOVL32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);   // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBGTZ() {
@@ -2494,17 +2500,18 @@ void X86DynaRecCPU::recBGTZ() {
 
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JG32(0);
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs > 0 (signed)
+    gen.CMOVG32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);   // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBLTZAL() {
     // Branch if Rs < 0
     uint32_t target = _Imm_ * 4 + m_pc;
     maybeCancelDelayedLoad(31);
+    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);  // always link, whether the branch is taken or not
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
@@ -2513,7 +2520,6 @@ void X86DynaRecCPU::recBLTZAL() {
             auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
             delayedLoad.active = true;
             delayedLoad.index = 31;
-            gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
             m_pcInEBP = true;
             m_stopRecompile = true;
             gen.MOV32ItoR(PCSX::ix86::EBP, target);
@@ -2526,21 +2532,20 @@ void X86DynaRecCPU::recBLTZAL() {
     auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
     delayedLoad.index = 31;
-    gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&m_psxRegs.GPR.n.ra);
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JGE32(0);
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
+    gen.CMOVL32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);   // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBGEZAL() {
     // Branch if Rs >= 0
     uint32_t target = _Imm_ * 4 + m_pc;
     maybeCancelDelayedLoad(31);
+    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);  // always link, whether branch is taken or not
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
@@ -2549,7 +2554,6 @@ void X86DynaRecCPU::recBGEZAL() {
             auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
             delayedLoad.active = true;
             delayedLoad.index = 31;
-            gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
             m_pcInEBP = true;
             m_stopRecompile = true;
             gen.MOV32ItoR(PCSX::ix86::EBP, target);
@@ -2562,15 +2566,14 @@ void X86DynaRecCPU::recBGEZAL() {
     auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
     delayedLoad.active = true;
     delayedLoad.index = 31;
-    gen.MOV32MtoR(PCSX::ix86::EDI, (uint32_t)&m_psxRegs.GPR.n.ra);
+
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JL32(0);
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs >= 0 (signed)
+    gen.CMOVGE32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recJ() {
@@ -2653,10 +2656,10 @@ void X86DynaRecCPU::recBEQ() {
     }
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    unsigned slot = gen.JE32(0);
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::ECX, target);             // ecx = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);           // ebp = addr if jump not taken
+    gen.CMOVE32RtoR(PCSX::ix86::EBP, PCSX::ix86::ECX);  // if the values are equal, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBNE() {
@@ -2683,10 +2686,10 @@ void X86DynaRecCPU::recBNE() {
     }
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    unsigned slot = gen.JNE32(0);
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::ECX, target);              // ecx = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMOVNE32RtoR(PCSX::ix86::EBP, PCSX::ix86::ECX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBLEZ() {
@@ -2707,11 +2710,11 @@ void X86DynaRecCPU::recBLEZ() {
 
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JLE32(0);
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
+    gen.CMOVLE32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBGEZ() {
@@ -2732,11 +2735,11 @@ void X86DynaRecCPU::recBGEZ() {
 
     m_pcInEBP = true;
     m_stopRecompile = true;
-    gen.MOV32ItoR(PCSX::ix86::EBP, target);
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);
-    unsigned slot = gen.JGE32(0);
-    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);
-    gen.x86SetJ32(slot);
+
+    gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
+    gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
+    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
+    gen.CMOVGE32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recMFC0() {
@@ -2768,7 +2771,6 @@ void X86DynaRecCPU::testSWInt() {
     unsigned slot1 = gen.JE8(0);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.AND32ItoR(PCSX::ix86::EAX, 1);
-    gen.TEST32RtoR(PCSX::ix86::EAX, PCSX::ix86::EAX);
     unsigned slot2 = gen.JE8(0);
     gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
     gen.MOV32RtoM((uint32_t)&m_arg1, PCSX::ix86::EDX);

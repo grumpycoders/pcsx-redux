@@ -719,13 +719,10 @@ void PCSX::Cheats::CheatSearchIncreasedBy16(uint16_t val) {
 }
 
 void PCSX::Cheats::CheatSearchIncreasedBy32(uint32_t val) {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PSXMu32(g_searchResults[i]) - PrevMu32(g_searchResults[i]) == val) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -735,13 +732,10 @@ void PCSX::Cheats::CheatSearchIncreasedBy32(uint32_t val) {
 }
 
 void PCSX::Cheats::CheatSearchDecreasedBy8(uint8_t val) {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu8(g_searchResults[i]) - PSXMu8(g_searchResults[i]) == val) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -751,13 +745,10 @@ void PCSX::Cheats::CheatSearchDecreasedBy8(uint8_t val) {
 }
 
 void PCSX::Cheats::CheatSearchDecreasedBy16(uint16_t val) {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu16(g_searchResults[i]) - PSXMu16(g_searchResults[i]) == val) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -767,13 +758,10 @@ void PCSX::Cheats::CheatSearchDecreasedBy16(uint16_t val) {
 }
 
 void PCSX::Cheats::CheatSearchDecreasedBy32(uint32_t val) {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu32(g_searchResults[i]) - PSXMu32(g_searchResults[i]) == val) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -783,13 +771,10 @@ void PCSX::Cheats::CheatSearchDecreasedBy32(uint32_t val) {
 }
 
 void PCSX::Cheats::CheatSearchIncreased8() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu8(g_searchResults[i]) < PSXMu8(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -799,13 +784,10 @@ void PCSX::Cheats::CheatSearchIncreased8() {
 }
 
 void PCSX::Cheats::CheatSearchIncreased16() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu16(g_searchResults[i]) < PSXMu16(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -815,13 +797,10 @@ void PCSX::Cheats::CheatSearchIncreased16() {
 }
 
 void PCSX::Cheats::CheatSearchIncreased32() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu32(g_searchResults[i]) < PSXMu32(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -831,13 +810,10 @@ void PCSX::Cheats::CheatSearchIncreased32() {
 }
 
 void PCSX::Cheats::CheatSearchDecreased8() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu8(g_searchResults[i]) > PSXMu8(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -847,13 +823,10 @@ void PCSX::Cheats::CheatSearchDecreased8() {
 }
 
 void PCSX::Cheats::CheatSearchDecreased16() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu16(g_searchResults[i]) > PSXMu16(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -863,13 +836,10 @@ void PCSX::Cheats::CheatSearchDecreased16() {
 }
 
 void PCSX::Cheats::CheatSearchDecreased32() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu32(g_searchResults[i]) > PSXMu32(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -879,13 +849,10 @@ void PCSX::Cheats::CheatSearchDecreased32() {
 }
 
 void PCSX::Cheats::CheatSearchDifferent8() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu8(g_searchResults[i]) != PSXMu8(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -895,13 +862,10 @@ void PCSX::Cheats::CheatSearchDifferent8() {
 }
 
 void PCSX::Cheats::CheatSearchDifferent16() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu16(g_searchResults[i]) != PSXMu16(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -911,13 +875,10 @@ void PCSX::Cheats::CheatSearchDifferent16() {
 }
 
 void PCSX::Cheats::CheatSearchDifferent32() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu32(g_searchResults[i]) != PSXMu32(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -927,13 +888,10 @@ void PCSX::Cheats::CheatSearchDifferent32() {
 }
 
 void PCSX::Cheats::CheatSearchNoChange8() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu8(g_searchResults[i]) == PSXMu8(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -943,13 +901,10 @@ void PCSX::Cheats::CheatSearchNoChange8() {
 }
 
 void PCSX::Cheats::CheatSearchNoChange16() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu16(g_searchResults[i]) == PSXMu16(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
@@ -959,13 +914,10 @@ void PCSX::Cheats::CheatSearchNoChange16() {
 }
 
 void PCSX::Cheats::CheatSearchNoChange32() {
-    uint32_t i, j;
-
     assert(g_prevM != NULL);  // not possible for the first search
+    uint32_t j = 0;
 
-    j = 0;
-
-    for (i = 0; i < g_numSearchResults; i++) {
+    for (uint32_t i = 0; i < g_numSearchResults; i++) {
         if (PrevMu32(g_searchResults[i]) == PSXMu32(g_searchResults[i])) {
             g_searchResults[j++] = g_searchResults[i];
         }
