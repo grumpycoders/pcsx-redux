@@ -76,13 +76,15 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Filter repository
+      env:
+        FILTER_BRANCH_SQUELCH_WARNING: 1
       run: |
         cp -rv .github/filter-mips /tmp
         /tmp/filter-mips/filter.sh
     - name: Pushing result
       env:
         PAT: ${{ secrets.PAT }}
-        FILTER_BRANCH_SQUELCH_WARNING: 1
       run: |
+        git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
         git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
-        git push --set-upstream nugget main
+        git push https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
