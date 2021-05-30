@@ -70,6 +70,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -80,6 +82,7 @@ jobs:
     - name: Pushing result
       env:
         PAT: ${{ secrets.PAT }}
+        FILTER_BRANCH_SQUELCH_WARNING: 1
       run: |
         git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
         git push --set-upstream nugget main
