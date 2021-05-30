@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,48 +26,19 @@ SOFTWARE.
 
 #pragma once
 
-#include "common/hardware/hwregs.h"
+#include <stdint.h>
 
-#define CDROM_REG0 HW_U8(0x1f801800)
-#define CDROM_REG1 HW_U8(0x1f801801)
-#define CDROM_REG2 HW_U8(0x1f801802)
-#define CDROM_REG3 HW_U8(0x1f801803)
-
-#define CDROM_REG0_UC HW_U8(0xbf801800)
-#define CDROM_REG1_UC HW_U8(0xbf801801)
-#define CDROM_REG2_UC HW_U8(0xbf801802)
-#define CDROM_REG3_UC HW_U8(0xbf801803)
-
-enum {
-    CDL_SYNC = 0,
-    CDL_NOP = 1,
-    CDL_SETLOC = 2,
-    CDL_PLAY = 3,
-    CDL_FORWARD = 4,
-    CDL_BACKWARD = 5,
-    CDL_READN = 6,
-    CDL_STANDBY = 7,
-    CDL_STOP = 8,
-    CDL_PAUSE = 9,
-    CDL_INIT = 10,
-    CDL_MUTE = 11,
-    CDL_DEMUTE = 12,
-    CDL_SETFILTER = 13,
-    CDL_SETMODE = 14,
-    CDL_GETMODE = 15,
-    CDL_GETLOCL = 16,
-    CDL_GETLOCP = 17,
-    CDL_READT = 18,
-    CDL_GETTN = 19,
-    CDL_GETTD = 20,
-    CDL_SEEKL = 21,
-    CDL_SEEKP = 22,
-    CDL_SETCLOCK = 23,
-    CDL_GETCLOCK = 24,
-    CDL_TEST = 25,
-    CDL_GETID = 26,
-    CDL_READS = 27,
-    CDL_RESET = 28,
-    CDL_GETQ = 29,
-    CDL_READTOC = 30,
-};
+static __inline__ uint32_t readUnaligned(const void *in, int pos) {
+    const uint8_t *buffer = (uint8_t *)in;
+    uint32_t r = 0;
+    pos += 4;
+    r <<= 8;
+    r += buffer[--pos];
+    r <<= 8;
+    r += buffer[--pos];
+    r <<= 8;
+    r += buffer[--pos];
+    r <<= 8;
+    r += buffer[--pos];
+    return r;
+}
