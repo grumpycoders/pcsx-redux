@@ -71,7 +71,7 @@ static inline int PCread(int fd, void *buf, int len) {
     register void *a3 asm("a3") = buf;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0, 0x105\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
+    __asm__ volatile("break 0, 0x105\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3) : "memory");
     if (v0 == 0) return v1;
     return -1;
 }
