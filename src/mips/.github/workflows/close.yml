@@ -1,0 +1,13 @@
+name: Close Pull Request
+
+on:
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: superbrothers/close-pull-request@v3
+      with:
+        comment: "Thank you for your pull request, but this repository is a read-only mirror of the [mips](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips) subdirectory of the [pcsx-redux](https://github.com/grumpycoders/pcsx-redux) project. Please open your pull request there instead."
