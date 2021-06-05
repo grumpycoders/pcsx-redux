@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PCSX-Redux
+Exec=/usr/bin/pcsx-redux
+Icon=pcsx-redux
+Terminal=true
+Type=Application
+Categories=Game;Emulator
+X-KDE-RunOnDiscreteGpu=true
