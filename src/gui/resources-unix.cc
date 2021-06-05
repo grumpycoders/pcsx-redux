@@ -23,7 +23,7 @@
 #include "support/file.h"
 
 void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> process) {
-    std::filesystem::path fname = "pcsx.ico";
+    std::filesystem::path fname = "pcsx-redux.ico";
     std::filesystem::path dir = "resources";
     File* ico = nullptr;
     ico = new File(fname);

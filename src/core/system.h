@@ -137,6 +137,7 @@ class System {
             } else if (loadLocale(l.first, m_binDir / l.second.filename)) {
             } else if (loadLocale(l.first,
                                   std::filesystem::current_path() / ".." / ".." / "i18n" / l.second.filename)) {
+            } else if (loadLocale(l.first, m_binDir / ".." / "share" / "i18n" / l.second.filename)) {
             } else {
                 loadLocale(l.first, std::filesystem::current_path() / l.second.filename);
             }

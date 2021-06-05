@@ -23,7 +23,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\resources\pcsx.ico">
+    <Image Include="..\..\resources\pcsx-redux.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

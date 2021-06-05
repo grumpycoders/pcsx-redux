@@ -111,12 +111,20 @@ all: dep $(TARGET)
 strip: all
 	strip $(TARGET)
 
-install: all
+openbios:
+	$(MAKE) $(MAKEOPTS) -C src/mips/openbios
+
+install: all strip openbios
 	$(MKDIRP) $(PREFIX)/bin
+	$(MKDIRP) $(PREFIX)/share/icons/hicolor/256x256/apps
 	$(MKDIRP) $(PREFIX)/share/pcsx-redux/fonts
+	$(MKDIRP) $(PREFIX)/share/pcsx-redux/i18n
+	$(MKDIRP) $(PREFIX)/share/pcsx-redux/resourc
 	$(CP) $(TARGET) $(PREFIX)/bin
 	$(CP) third_party/noto/* $(PREFIX)/share/pcsx-redux/fonts
-	$(CP) resources/*.ico $(PREFIX)/share/pcsx-redux
+	$(CP) i18n/*.po $(PREFIX)/share/pcsx-redux/i18n
+	$(CP) resources/*.ico $(PREFIX)/share/pcsx-redux/resources
+	convert resources/pcsx-redux.ico[0] -alpha on -background none $(PREFIX)/share/icons/hicolor/256x256/apps/pcsx-redux.png
 
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
@@ -175,7 +183,7 @@ psyq-obj-parser: $(NONMAIN_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
 ps1-packer: $(NONMAIN_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(NONMAIN_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
 
-.PHONY: all dep clean gitclean regen-i18n runtests
+.PHONY: all dep clean gitclean regen-i18n runtests openbios
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
 DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
