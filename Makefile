@@ -119,7 +119,7 @@ install: all strip openbios
 	$(MKDIRP) $(PREFIX)/share/icons/hicolor/256x256/apps
 	$(MKDIRP) $(PREFIX)/share/pcsx-redux/fonts
 	$(MKDIRP) $(PREFIX)/share/pcsx-redux/i18n
-	$(MKDIRP) $(PREFIX)/share/pcsx-redux/resourc
+	$(MKDIRP) $(PREFIX)/share/pcsx-redux/resources
 	$(CP) $(TARGET) $(PREFIX)/bin
 	$(CP) third_party/noto/* $(PREFIX)/share/pcsx-redux/fonts
 	$(CP) i18n/*.po $(PREFIX)/share/pcsx-redux/i18n
