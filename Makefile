@@ -1,6 +1,6 @@
 TARGET := pcsx-redux
 BUILD ?= Release
-PREFIX ?= /usr/local
+DESTDIR ?= /usr/local
 
 UNAME_S := $(shell uname -s)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -115,16 +115,23 @@ openbios:
 	$(MAKE) $(MAKEOPTS) -C src/mips/openbios
 
 install: all strip openbios
-	$(MKDIRP) $(PREFIX)/bin
-	$(MKDIRP) $(PREFIX)/share/icons/hicolor/256x256/apps
-	$(MKDIRP) $(PREFIX)/share/pcsx-redux/fonts
-	$(MKDIRP) $(PREFIX)/share/pcsx-redux/i18n
-	$(MKDIRP) $(PREFIX)/share/pcsx-redux/resources
-	$(CP) $(TARGET) $(PREFIX)/bin
-	$(CP) third_party/noto/* $(PREFIX)/share/pcsx-redux/fonts
-	$(CP) i18n/*.po $(PREFIX)/share/pcsx-redux/i18n
-	$(CP) resources/*.ico $(PREFIX)/share/pcsx-redux/resources
-	convert resources/pcsx-redux.ico[0] -alpha on -background none $(PREFIX)/share/icons/hicolor/256x256/apps/pcsx-redux.png
+	$(MKDIRP) $(DESTDIR)/bin
+	$(MKDIRP) $(DESTDIR)/share/applications
+	$(MKDIRP) $(DESTDIR)/share/icons/hicolor/256x256/apps
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/fonts
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/i18n
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/resources
+	$(CP) $(TARGET) $(DESTDIR)/bin
+	$(CP) resources/pcsx-redux.desktop $(DESTDIR)/share/applications
+	convert resources/pcsx-redux.ico[0] -alpha on -background none $(DESTDIR)/share/icons/hicolor/256x256/apps/pcsx-redux.png
+	$(CP) third_party/noto/* $(DESTDIR)/share/pcsx-redux/fonts
+	$(CP) i18n/*.po $(DESTDIR)/share/pcsx-redux/i18n
+	$(CP) resources/*.ico $(DESTDIR)/share/pcsx-redux/resources
+
+appimage:
+	rm -rf AppDir
+	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
+	appimage-builder --skip-tests
 
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
@@ -183,7 +190,7 @@ psyq-obj-parser: $(NONMAIN_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
 ps1-packer: $(NONMAIN_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(NONMAIN_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
 
-.PHONY: all dep clean gitclean regen-i18n runtests openbios
+.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
 DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
