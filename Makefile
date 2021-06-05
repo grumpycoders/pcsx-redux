@@ -124,7 +124,7 @@ install: all strip openbios
 	$(CP) third_party/noto/* $(PREFIX)/share/pcsx-redux/fonts
 	$(CP) i18n/*.po $(PREFIX)/share/pcsx-redux/i18n
 	$(CP) resources/*.ico $(PREFIX)/share/pcsx-redux/resources
-	convert resources/pcsx.ico[0] -alpha on -background none $(PREFIX)/share/icons/hicolor/256x256/apps/pcsx.png
+	convert resources/pcsx-redux.ico[0] -alpha on -background none $(PREFIX)/share/icons/hicolor/256x256/apps/pcsx-redux.png
 
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15

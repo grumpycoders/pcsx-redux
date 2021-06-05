@@ -306,7 +306,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\resources\pcsx.ico" />
+    <Image Include="..\..\resources\pcsx-redux.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\resources\pcsx-redux.rc" />
