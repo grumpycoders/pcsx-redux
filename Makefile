@@ -118,14 +118,12 @@ install: all strip openbios
 	$(MKDIRP) $(DESTDIR)/bin
 	$(MKDIRP) $(DESTDIR)/share/applications
 	$(MKDIRP) $(DESTDIR)/share/icons/hicolor/256x256/apps
-	$(MKDIRP) $(DESTDIR)/share/metainfo
 	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/fonts
 	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/i18n
 	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/resources
 	$(CP) $(TARGET) $(DESTDIR)/bin
 	$(CP) resources/pcsx-redux.desktop $(DESTDIR)/share/applications
 	convert resources/pcsx-redux.ico[0] -alpha on -background none $(DESTDIR)/share/icons/hicolor/256x256/apps/pcsx-redux.png
-	$(CP) resources/pcsx-redux.appdata.xml $(DESTDIR)/share/metainfo
 	$(CP) third_party/noto/* $(DESTDIR)/share/pcsx-redux/fonts
 	$(CP) i18n/*.po $(DESTDIR)/share/pcsx-redux/i18n
 	$(CP) resources/*.ico $(DESTDIR)/share/pcsx-redux/resources

@@ -44,6 +44,16 @@ RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/ap
 WORKDIR /
 RUN pip3 install appimage-builder
 RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 14.17.0
+RUN mkdir -p /usr/local/nvm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash \
+    && . $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+RUN . $NVM_DIR/nvm.sh && npm install -g appcenter-cli
+RUN apt install -y zip
 
 RUN mkdir /project
 RUN mkdir -p /home/coder/dconf

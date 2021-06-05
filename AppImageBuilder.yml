@@ -1,7 +1,7 @@
 # appimage-builder recipe see https://appimage-builder.readthedocs.io for details
 version: 1
 AppDir:
-  path: /project/AppDir
+  path: ./AppDir
   app_info:
     id: pcsx-redux
     name: PCSX-Redux

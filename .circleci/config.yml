@@ -21,11 +21,13 @@ jobs:
       - run-with-retry/run-with-retry:
           command: |
             make -j 2 all pcsx-redux-tests
-            make -C src/mips/openbios -j 2
-            cp src/mips/openbios/openbios.bin .
-            make -C src/mips/openbios clean
             make -C src/mips/tests -j 2
-            cp ./openbios.bin src/mips/openbios/
+            make -C src/mips/openbios -j 2 clean all
+      - run:
+          name: Packaging
+          command: |
+            make install DESTDIR=AppDir/usr
+            appimage-builder --skip-tests
       - run:
           name: Test
           command: |
@@ -34,6 +36,17 @@ jobs:
             xvfb-run catchsegv ./pcsx-redux-tests
       - store_test_results:
           path: /tmp/test-results
+      - when:
+          condition:
+            equal: [ "main", << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Deploy
+                command: |
+                  . /usr/local/nvm/nvm.sh
+                  export BUILD=`git rev-parse HEAD | cut -c 1-8`
+                  zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
+                  appcenter appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64
   coverage:
     docker:
       - image: grumpycoders/pcsx-redux-build:latest
