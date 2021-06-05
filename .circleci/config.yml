@@ -46,7 +46,7 @@ jobs:
                   . /usr/local/nvm/nvm.sh
                   export BUILD=`git rev-parse HEAD | cut -c 1-8`
                   zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
-                  appcenter appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64
+                  appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g 3f8d49c4-b0d5-4ea1-a1e0-21ab17e75fdc -a grumpycoders/pcsx-redux-linux64
   coverage:
     docker:
       - image: grumpycoders/pcsx-redux-build:latest
