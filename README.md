@@ -21,7 +21,11 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
  - Improve the rendering experience.
 
 ## Where?
-There are currently regular builds of pcsx-redux for Windows, available here: https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux/distribution_groups/public
+|Download page|
+|--------|
+|[Windows Intel 32-bits](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-win32/distribution_groups/public)|
+|[Windows Intel 64-bits](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-win64/distribution_groups/public)|
+|[Linux Intel 64-bits (AppImage)](https://install.appcenter.ms/orgs/grumpycoders/apps/pcsx-redux-linux64/distribution_groups/public)|
 
 ## How?
 The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
