@@ -67,6 +67,7 @@ jobs:
         name: App
     - name: Binary fixups
       run: |
+        find .
         rm PCSX-Redux.app/Contents/MacOS/PCSX-Redux
         chmod a+x PCSX-Redux.app/Resources/bin/pcsx-redux
         ln -s ../Resources/bin/pcsx-redux PCSX-Redux.app/Contents/MacOS/PCSX-Redux
