@@ -1,6 +1,6 @@
 #!/bin/sh
 
-brew install imagemagick
+brew install imagemagick dylibbundler
 
 APP=PCSX-Redux
 PATH="$PATH:/usr/libexec"
@@ -12,3 +12,4 @@ convert resources/pcsx-redux.ico[0] -alpha on -background none ${APP}.app/Conten
 PlistBuddy ${APP}.app/Contents/Info.plist -c "add CFBundleDisplayName string ${APP}"
 PlistBuddy ${APP}.app/Contents/Info.plist -c "add CFBundleIconFile string app.icns"
 PlistBuddy ${APP}.app/Contents/version.plist -c "add ProjectName string ${APP}"
+dylibbundler -od -b -x ./PCSX-Redux.app/Contents/Resources/bin/pcsx-redux -d ./PCSX-Redux.app/Contents/Resources/lib/ -p @executable_path/../lib/

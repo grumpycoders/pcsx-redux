@@ -22,3 +22,5 @@ jobs:
       run: git submodule update --init --recursive
     - name: Build pcsx-redux
       run: make -j2
+    - name: Bundle
+      run: ./.github/scripts/create-app.sh
