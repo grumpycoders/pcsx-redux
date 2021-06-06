@@ -67,9 +67,10 @@ jobs:
         name: App
     - name: Binary fixups
       run: |
-        find .
+        mkdir PCSX-Redux.app
+        mv Contents PCSX-Redux.app
         rm PCSX-Redux.app/Contents/MacOS/PCSX-Redux
-        chmod a+x PCSX-Redux.app/Resources/bin/pcsx-redux
+        chmod a+x PCSX-Redux.app/Contents/Resources/bin/pcsx-redux
         ln -s ../Resources/bin/pcsx-redux PCSX-Redux.app/Contents/MacOS/PCSX-Redux
     - name: Distribute app
       env:
