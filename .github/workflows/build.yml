@@ -7,20 +7,74 @@ on:
   pull_request:
 
 jobs:
-  macos-build-and-test:
-
-    runs-on: macOS-latest
-
+  build-openbios:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch submodules
+      run: git submodule update --init --recursive
+    - name: Install dependencies
+      run: sudo apt-get install -y g++-mipsel-linux-gnu
+    - name: Build OpenBIOS
+      run: make -C src/mips/openbios -j2
+    - name: Install OpenBIOS
+      run: make install-openbios DESTDIR=PCSX-Redux.app/Contents/Resources
+    - name: Upload results for MacOS build job
+      uses: actions/upload-artifact@v2
+      with:
+        name: App
+        path: PCSX-Redux.app/
+
+  macos-build-and-test:
+    runs-on: macOS-latest
+    needs: build-openbios
+    steps:
+    - uses: actions/checkout@v1
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
       run: git submodule update --init --recursive
     - name: Build pcsx-redux
       run: make -j2
+    - name: Download OpenBIOS build
+      uses: actions/download-artifact@v2
+      with:
+        name: App
     - name: Bundle
       run: ./.github/scripts/create-app.sh
+    - name: Upload whole app
+      uses: actions/upload-artifact@v2
+      with:
+        name: App
+        path: PCSX-Redux.app/
+
+  publish-app:
+    runs-on: ubuntu-latest
+    needs: macos-build-and-test
+    if: github.event_name == 'push'
+    steps:
+    - name: Install node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+        check-latest: true
+    - name: Download app build
+      uses: actions/download-artifact@v2
+      with:
+        name: App
+    - name: Binary fixups
+      run: |
+        rm PCSX-Redux.app/Contents/MacOS/PCSX-Redux
+        chmod a+x PCSX-Redux.app/Resources/bin/pcsx-redux
+        ln -s ../Resources/bin/pcsx-redux PCSX-Redux.app/Contents/MacOS/PCSX-Redux
+    - name: Distribute app
+      env:
+        APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
+      run: |
+        npm install -g appcenter-cli
+        export BUILD=`git rev-parse HEAD | cut -c 1-8`
+        zip -r PCSX-Redux-$BUILD-MacOS.zip PCSX-Redux.app
+        appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-MacOS.zip -g d2b9a1eb-5177-4180-9427-c06cc523b33b -a grumpycoders/pcsx-redux-macos

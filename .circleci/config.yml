@@ -26,7 +26,7 @@ jobs:
       - run:
           name: Packaging
           command: |
-            make install DESTDIR=AppDir/usr
+            make install install-openbios DESTDIR=AppDir/usr
             appimage-builder --skip-tests
       - run:
           name: Test

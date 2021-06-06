@@ -114,7 +114,7 @@ strip: all
 openbios:
 	$(MAKE) $(MAKEOPTS) -C src/mips/openbios
 
-install: all strip openbios
+install: all strip
 	$(MKDIRP) $(DESTDIR)/bin
 	$(MKDIRP) $(DESTDIR)/share/applications
 	$(MKDIRP) $(DESTDIR)/share/icons/hicolor/256x256/apps
@@ -127,6 +127,11 @@ install: all strip openbios
 	$(CP) third_party/noto/* $(DESTDIR)/share/pcsx-redux/fonts
 	$(CP) i18n/*.po $(DESTDIR)/share/pcsx-redux/i18n
 	$(CP) resources/*.ico $(DESTDIR)/share/pcsx-redux/resources
+
+install-openbios: openbios
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/resources
+	$(CP) src/mips/openbios/openbios.bin $(DESTDIR)/share/pcsx-redux/resources
+	$(CP) src/mips/openbios/openbios.elf $(DESTDIR)/share/pcsx-redux/resources
 
 appimage:
 	rm -rf AppDir
