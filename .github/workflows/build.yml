@@ -78,4 +78,4 @@ jobs:
       run: |
         npm install -g appcenter-cli
         export BUILD=`git rev-parse HEAD | cut -c 1-8`
-        appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD.dmg -g 45026cdd-80b8-49e4-b836-974b723f7730 -a grumpycoders/pcsx-redux-macos --disable-telemetry
+        appcenter distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD.dmg -g 45026cdd-80b8-49e4-b836-974b723f7730 -a grumpycoders/pcsx-redux-macos --disable-telemetry
