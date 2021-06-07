@@ -73,11 +73,17 @@ jobs:
         rm PCSX-Redux.app/Contents/MacOS/PCSX-Redux
         chmod a+x PCSX-Redux.app/Contents/Resources/bin/pcsx-redux
         ln -s ../Resources/bin/pcsx-redux PCSX-Redux.app/Contents/MacOS/PCSX-Redux
+        export BUILD=`git rev-parse HEAD | cut -c 1-8`
+        zip -r PCSX-Redux-$BUILD-MacOS.zip PCSX-Redux.app
+    - name: Upload results for MacOS build job
+      uses: actions/upload-artifact@v2
+      with:
+        name: Zip
+        path: **/*.zip
     - name: Distribute app
       env:
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
       run: |
         npm install -g appcenter-cli
         export BUILD=`git rev-parse HEAD | cut -c 1-8`
-        zip -r PCSX-Redux-$BUILD-MacOS.zip PCSX-Redux.app
-        appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-MacOS.zip -g d2b9a1eb-5177-4180-9427-c06cc523b33b -a grumpycoders/pcsx-redux-macos
+        appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-MacOS.zip -g d2b9a1eb-5177-4180-9427-c06cc523b33b -a grumpycoders/pcsx-redux-macos --disable-telemetry
