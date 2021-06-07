@@ -45,11 +45,17 @@ jobs:
         name: App
     - name: Bundle
       run: ./.github/scripts/create-app.sh
-    - name: Upload whole app
+    - name: Create DMG
+      run: |
+        export BUILD=`git rev-parse HEAD | cut -c 1-8`
+        mkdir dmgdir
+        mv PCSX-Redux.app dmgdir
+        hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
+    - name: Upload DMG
       uses: actions/upload-artifact@v2
       with:
-        name: App
-        path: PCSX-Redux.app/
+        name: Dmg
+        path: '**/*.dmg'
 
   publish-app:
     runs-on: ubuntu-latest
@@ -62,26 +68,10 @@ jobs:
       with:
         node-version: '14'
         check-latest: true
-    - name: Download app build
+    - name: Download DMG
       uses: actions/download-artifact@v2
       with:
-        name: App
-    - name: Binary fixups
-      run: |
-        mkdir PCSX-Redux.app
-        mv Contents PCSX-Redux.app/
-        rm PCSX-Redux.app/Contents/MacOS/PCSX-Redux
-        chmod a+x PCSX-Redux.app/Contents/Resources/bin/pcsx-redux
-        ln -s ../Resources/bin/pcsx-redux PCSX-Redux.app/Contents/MacOS/PCSX-Redux
-        mkdir dmgdir
-        mv PCSX-Redux.app dmgdir
-        export BUILD=`git rev-parse HEAD | cut -c 1-8`
-        hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
-    - name: Upload results for MacOS build job
-      uses: actions/upload-artifact@v2
-      with:
-        name: Zip
-        path: '**/*.dmg'
+        name: Dmg
     - name: Distribute app
       env:
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
