@@ -79,7 +79,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: Zip
-        path: **/*.zip
+        path: '**/*.zip'
     - name: Distribute app
       env:
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
