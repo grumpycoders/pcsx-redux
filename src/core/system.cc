@@ -248,8 +248,8 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
 }
 
 bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& path)> walker,
-    const std::filesystem::path& name, const std::filesystem::path& releasePath,
-    const std::filesystem::path& sourcePath) {
+                                const std::filesystem::path& name, const std::filesystem::path& releasePath,
+                                const std::filesystem::path& sourcePath) {
     // First, let's try the base filename from the same directory as our main binary.
     if (walker(m_binDir / name)) return true;
 
