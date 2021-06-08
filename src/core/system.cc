@@ -267,6 +267,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
     // If our main binary is at the root - that's the Unix way.
     if (walker(m_binDir / sourcePath / name)) return true;
     // And if it's in a subfolder - that's the Window / Visual Studio way.
+    if (walker(m_binDir / ".." / ".." / sourcePath / name)) return true;
     if (walker(m_binDir / ".." / ".." / ".." / sourcePath / name)) return true;
 
     // No luck here...
