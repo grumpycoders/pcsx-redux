@@ -45,7 +45,7 @@ jobs:
       run: ./.github/scripts/create-app.sh
     - name: Create DMG
       run: |
-        cp openbios.bin PCSX-Redux.app/Contents/Resources
+        cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
         export BUILD=`git rev-parse HEAD | cut -c 1-8`
         mkdir dmgdir
         mv PCSX-Redux.app dmgdir
