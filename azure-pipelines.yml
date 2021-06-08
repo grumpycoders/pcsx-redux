@@ -64,6 +64,7 @@ steps:
       **\*.exe
       !**\pcsxrunner.exe
       !**\pcsx-redux.exe
+      !**\pcsx-wrapper.exe
       !**\psyq-obj-parser.exe
       !**\ps1-packer.exe
       !third_party\**\*.exe
