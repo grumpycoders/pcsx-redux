@@ -20,13 +20,11 @@ jobs:
       run: sudo apt-get install -y g++-mipsel-linux-gnu
     - name: Build OpenBIOS
       run: make -C src/mips/openbios -j2
-    - name: Install OpenBIOS
-      run: make install-openbios DESTDIR=PCSX-Redux.app/Contents/Resources
     - name: Upload results for MacOS build job
       uses: actions/upload-artifact@v2
       with:
-        name: App
-        path: PCSX-Redux.app/
+        name: OpenBIOS
+        path: src/mips/openbios/openbios.bin
 
   macos-build-and-test:
     runs-on: macOS-latest
@@ -42,11 +40,12 @@ jobs:
     - name: Download OpenBIOS build
       uses: actions/download-artifact@v2
       with:
-        name: App
+        name: OpenBIOS
     - name: Bundle
       run: ./.github/scripts/create-app.sh
     - name: Create DMG
       run: |
+        cp openbios.bin PCSX-Redux.app/Contents/Resources
         export BUILD=`git rev-parse HEAD | cut -c 1-8`
         mkdir dmgdir
         mv PCSX-Redux.app dmgdir
