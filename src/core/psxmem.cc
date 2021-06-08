@@ -121,7 +121,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
                 "Could not open OpenBIOS fallback. Things won't work properly.\nAdd a valid BIOS in the configuration "
                 "and hard reset.\n"));
         } else {
-            biosPath = "openbios.bin";
+            biosPath = f->filename();
         }
     } else {
         f->read(g_psxR, bios_size);
