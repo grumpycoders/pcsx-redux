@@ -66,21 +66,21 @@ class System {
     virtual void biosPutc(int c) = 0;
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(s);
     }
     virtual void printf(const std::string &) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, s);
     }
     virtual void log(LogClass, const std::string &) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(s);
     }
@@ -130,17 +130,12 @@ class System {
         return ret->second.c_str();
     }
 
+    bool findResource(std::function<bool(const std::filesystem::path &path)> walker, const std::filesystem::path &name,
+                      const std::filesystem::path &releasePath, const std::filesystem::path &sourcePath);
     void loadAllLocales() {
         for (auto &l : LOCALES) {
-            if (loadLocale(l.first, m_binDir / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, m_binDir / l.second.filename)) {
-            } else if (loadLocale(l.first,
-                                  std::filesystem::current_path() / ".." / ".." / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, m_binDir / ".." / "share" / "i18n" / l.second.filename)) {
-            } else {
-                loadLocale(l.first, std::filesystem::current_path() / l.second.filename);
-            }
+            findResource([name = l.first, this](std::filesystem::path filename) { return loadLocale(name, filename); },
+                         l.second.filename, "i18n", "i18n");
         }
     }
 

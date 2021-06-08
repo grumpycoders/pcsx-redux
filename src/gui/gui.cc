@@ -125,31 +125,13 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     cfg.MergeMode = combine;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
-    ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(path.u8string().c_str()), size, &cfg, ranges);
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / "fonts" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / ".." / "share" / "pcsx-redux" / "fonts" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / "third_party" / "noto" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / ".." / ".." / "third_party" / "noto" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
+    g_system->findResource(
+        [&ret, fonts = io.Fonts, size, &cfg, ranges](const std::filesystem::path& filename) mutable {
+            ret = fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(filename.u8string().c_str()), size, &cfg,
+                                            ranges);
+            return ret != nullptr;
+        },
+        path, "fonts", std::filesystem::path("third_party") / "noto");
     std::swap(backup, s_imguiUserErrorFunctor);
     return ret;
 }
