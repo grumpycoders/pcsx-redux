@@ -50,9 +50,17 @@ steps:
     maximumCpuCount: false
     configuration: '$(buildConfiguration)'
 
+- task: PowerShell@2
+  inputs:
+    targetType: 'InlineScript'
+    script: |
+      Rename-Item -Path "vsprojects/Release/pcsx-redux.exe" -NewName "pcsx-redux.main"
+      Rename-Item -Path "vsprojects/Release/pcsx-wrapper.exe" -NewName "pcsx-redux.exe"
+
 - task: CopyFiles@2
   inputs:
     Contents: |
+      vsprojects/Release/pcsx-redux.main
       vsprojects/Release/pcsx-redux.exe
       vsprojects/Release/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
@@ -63,8 +71,8 @@ steps:
     testAssemblyVer2: |
       **\*.exe
       !**\pcsxrunner.exe
+      !**\pcsx-redux.main
       !**\pcsx-redux.exe
-      !**\pcsx-wrapper.exe
       !**\psyq-obj-parser.exe
       !**\ps1-packer.exe
       !third_party\**\*.exe
