@@ -27,11 +27,11 @@ void PCSX::Resources::loadIcon(std::function<void(const uint8_t*, uint32_t)> pro
     std::filesystem::path dir = "resources";
     std::unique_ptr<File> ico;
 
-    g_system->loadResource(
-        [&ico](const std::filesystem& filename) {
-            std::unique_ptr<File> newFile(new File(path));
+    g_system->findResource(
+        [&ico](const std::filesystem::path& filename) {
+            std::unique_ptr<File> newFile(new File(filename));
             ico.swap(newFile);
-            return !ico.failed();
+            return !ico->failed();
         },
         "pcsx-redux.ico", "resources", "resources");
 
