@@ -261,7 +261,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
     // And finally, MacOS had to do differently, of course. The MacOS app has this layout:
     // binary is in Contents/MacOS/
     // rest is in Contents/Resources/share/pcsx-redux
-    if (walker(m_binDir / ".." / ".." / "Resources" / "share" / "pcsx-redux" / releasePath / name)) return true;
+    if (walker(m_binDir / ".." / "Resources" / "share" / "pcsx-redux" / releasePath / name)) return true;
 
     // And finally, let's try if we're running from sources.
     // If our main binary is at the root - that's the Unix way.
