@@ -67,6 +67,8 @@ jobs:
       run: |
        Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
        SetFile -a C PCSX-Redux-$BUILD.dmg
+    - name: Removing temporary dmg folder
+      run: rm -rf dmgdir
     - name: Upload DMG
       uses: actions/upload-artifact@v2
       with:
