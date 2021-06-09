@@ -247,7 +247,10 @@ bool loadPSF(File& file, bool seenRefresh = false, unsigned depth = 0) {
 
 }  // namespace PCSX
 
-bool PCSX::BinaryLoader::load(const PCSX::u8string& filename) {
+bool PCSX::BinaryLoader::load(const std::filesystem::path& filename) {
+    File ny(filename.parent_path() / "libps.exe");
+    if (!ny.failed()) loadPSEXE(ny);
+
     File file(filename);
 
     if (file.failed()) return false;
