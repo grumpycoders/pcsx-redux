@@ -178,7 +178,7 @@ msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
 endef
 
 regen-i18n:
-	find src -name *.cc -or -name *.c -or -name *.h > pcsx-src-list.txt
+	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
 	xgettext --keyword=_ --language=C++ --add-comments --sort-output -o i18n/pcsx-redux.pot --omit-header -f pcsx-src-list.txt
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
