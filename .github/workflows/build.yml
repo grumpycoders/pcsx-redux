@@ -49,7 +49,16 @@ jobs:
         export BUILD=`git rev-parse HEAD | cut -c 1-8`
         mkdir dmgdir
         mv PCSX-Redux.app dmgdir
+        cp dmgdir/PCSX-Redux.app/Contents/Resources/pcsx-redux.icns .
+        sips -i pcsx-redux.icns
+        DeRez -only icns pcsx-redux.icns > icns.rsrc
+        ln -s /Applications dmgdir
+        cp pcsx-redux.icns dmgdir/.VolumeIcon.icns
+        SetFile -c icnC dmgdir/.VolumeIcon.icns
+        SetFile -a C dmgdir
         hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
+        Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
+        SetFile -a C PCSX-Redux-$BUILD.dmg
     - name: Upload DMG
       uses: actions/upload-artifact@v2
       with:
