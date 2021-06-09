@@ -51,22 +51,10 @@ jobs:
       run: |
         mkdir dmgdir
         mv PCSX-Redux.app dmgdir
-        cp dmgdir/PCSX-Redux.app/Contents/Resources/pcsx-redux.icns .
-    - name: Creating dmg icon
-      run: |
-        sips -i pcsx-redux.icns
-        DeRez -only icns pcsx-redux.icns > icns.rsrc
-        cp pcsx-redux.icns dmgdir/.VolumeIcon.icns
-        SetFile -c icnC dmgdir/.VolumeIcon.icns
-        SetFile -a C dmgdir
     - name: Creating Application link
       run: ln -s /Applications dmgdir
     - name: Creating dmg file
       run: hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
-    - name: Applying icon to dmg file
-      run: |
-       Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
-       SetFile -a C PCSX-Redux-$BUILD.dmg
     - name: Upload DMG
       uses: actions/upload-artifact@v2
       with:
