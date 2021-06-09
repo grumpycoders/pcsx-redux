@@ -43,22 +43,30 @@ jobs:
         name: OpenBIOS
     - name: Bundle
       run: ./.github/scripts/create-app.sh
-    - name: Create DMG
+    - name: Create BUILD environment
+      run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - name: Injecting OpenBIOS
+      run: cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
+    - name: Adjusting for dmg folder
       run: |
-        cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
-        export BUILD=`git rev-parse HEAD | cut -c 1-8`
         mkdir dmgdir
         mv PCSX-Redux.app dmgdir
         cp dmgdir/PCSX-Redux.app/Contents/Resources/pcsx-redux.icns .
+    - name: Creating dmg icon
+      run: |
         sips -i pcsx-redux.icns
         DeRez -only icns pcsx-redux.icns > icns.rsrc
-        ln -s /Applications dmgdir
         cp pcsx-redux.icns dmgdir/.VolumeIcon.icns
         SetFile -c icnC dmgdir/.VolumeIcon.icns
         SetFile -a C dmgdir
-        hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
-        Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
-        SetFile -a C PCSX-Redux-$BUILD.dmg
+    - name: Creating Application link
+      run: ln -s /Applications dmgdir
+    - name: Creating dmg file
+      run: hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
+    - name: Applying icon to dmg file
+      run: |
+       Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
+       SetFile -a C PCSX-Redux-$BUILD.dmg
     - name: Upload DMG
       uses: actions/upload-artifact@v2
       with:
@@ -76,6 +84,10 @@ jobs:
       with:
         node-version: '14'
         check-latest: true
+    - name: Install appcenter
+      run: npm install -g appcenter-cli
+    - name: Create BUILD environment
+      run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Download DMG
       uses: actions/download-artifact@v2
       with:
@@ -83,7 +95,4 @@ jobs:
     - name: Distribute app
       env:
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
-      run: |
-        npm install -g appcenter-cli
-        export BUILD=`git rev-parse HEAD | cut -c 1-8`
-        appcenter distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
+      run: appcenter distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
