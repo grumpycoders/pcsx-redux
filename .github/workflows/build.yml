@@ -71,7 +71,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: Dmg
-        path: '**/*.dmg'
+        path: 'PCSX-Redux-$BUILD.dmg'
 
   publish-app:
     runs-on: ubuntu-latest
