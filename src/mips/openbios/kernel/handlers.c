@@ -300,7 +300,7 @@ void copyDataAndInitializeBSS() {
        Likely the intend being that there's a faster memset at
        this location, for the specific purpose of handling
        a memset using the i-cache. We can tune this later. */
-    memset(&__bss_start, 0, __data_len);
+    memset(&__bss_start, 0, __bss_len);
 }
 
 /* This also could be handled by the crt0, by putting the

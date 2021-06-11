@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "openbios/kernel/events.h"
 
+#include <stdatomic.h>
+
 #include "common/compiler/stdint.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/fileio/fileio.h"
@@ -142,7 +144,7 @@ int waitEvent(uint32_t event) {
         return 1;
     }
     if (ptr->flags == EVENT_FLAG_ENABLED) {
-        while (ptr->flags != EVENT_FLAG_PENDING) __asm__ volatile("" : : : "memory");
+        while (ptr->flags != EVENT_FLAG_PENDING) atomic_signal_fence(memory_order_consume);
         ptr->flags = EVENT_FLAG_ENABLED;
         return 1;
     }

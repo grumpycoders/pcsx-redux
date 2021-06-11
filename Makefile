@@ -1,6 +1,6 @@
 TARGET := pcsx-redux
 BUILD ?= Release
-PREFIX ?= /usr/local
+DESTDIR ?= /usr/local
 
 UNAME_S := $(shell uname -s)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -31,7 +31,7 @@ CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W -DIMGUI_ENABLE_FREETYPE
-CPPFLAGS += -include src/forced-includes/imgui.h
+IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
 
 CPPFLAGS_Release += -O3
 CPPFLAGS_Debug += -O0
@@ -75,8 +75,9 @@ LDFLAGS += $(LDFLAGS_$(BUILD))
 LD := $(CXX)
 
 SRCS := $(call rwildcard,src/,*.cc)
-SRCS += $(wildcard third_party/fmt/src/*.cc)
-SRCS += $(wildcard third_party/imgui/*.cpp)
+SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
+IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
+SRCS += $(IMGUI_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
 SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
@@ -95,6 +96,9 @@ OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 OBJECTS += third_party/luajit/src/libluajit.a
 
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
+IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
+
+$(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
@@ -107,12 +111,32 @@ all: dep $(TARGET)
 strip: all
 	strip $(TARGET)
 
-install: all
-	$(MKDIRP) $(PREFIX)/bin
-	$(MKDIRP) $(PREFIX)/share/pcsx-redux/fonts
-	$(CP) $(TARGET) $(PREFIX)/bin
-	$(CP) third_party/noto/* $(PREFIX)/share/pcsx-redux/fonts
-	$(CP) resources/*.ico $(PREFIX)/share/pcsx-redux
+openbios:
+	$(MAKE) $(MAKEOPTS) -C src/mips/openbios
+
+install: all strip
+	$(MKDIRP) $(DESTDIR)/bin
+	$(MKDIRP) $(DESTDIR)/share/applications
+	$(MKDIRP) $(DESTDIR)/share/icons/hicolor/256x256/apps
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/fonts
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/i18n
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/resources
+	$(CP) $(TARGET) $(DESTDIR)/bin
+	$(CP) resources/pcsx-redux.desktop $(DESTDIR)/share/applications
+	convert resources/pcsx-redux.ico[0] -alpha on -background none $(DESTDIR)/share/icons/hicolor/256x256/apps/pcsx-redux.png
+	$(CP) third_party/noto/* $(DESTDIR)/share/pcsx-redux/fonts
+	$(CP) i18n/*.po $(DESTDIR)/share/pcsx-redux/i18n
+	$(CP) resources/*.ico $(DESTDIR)/share/pcsx-redux/resources
+
+install-openbios: openbios
+	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/resources
+	$(CP) src/mips/openbios/openbios.bin $(DESTDIR)/share/pcsx-redux/resources
+	zip -j src/mips/openbios/openbios.zip src/mips/openbios/openbios.elf
+
+appimage:
+	rm -rf AppDir
+	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
+	appimage-builder --skip-tests
 
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) XCFLAGS=-DLUAJIT_ENABLE_GC64 MACOSX_DEPLOYMENT_TARGET=10.15
@@ -121,22 +145,22 @@ $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
 
 %.o: %.c
-	$(CC) -c -o $@ $< $(CPPFLAGS) $(CFLAGS)
+	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
 %.o: %.cc
-	$(CXX) -c -o $@ $< $(CPPFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
 
 %.o: %.cpp
-	$(CXX) -c -o $@ $< $(CPPFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
 
 %.dep: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 %.dep: %.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 %.dep: %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 clean:
 	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o
@@ -154,7 +178,7 @@ msgmerge --update i18n/$(1).po i18n/pcsx-redux.pot
 endef
 
 regen-i18n:
-	find src -name *.cc -or -name *.c -or -name *.h > pcsx-src-list.txt
+	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
 	xgettext --keyword=_ --language=C++ --add-comments --sort-output -o i18n/pcsx-redux.pot --omit-header -f pcsx-src-list.txt
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
@@ -171,7 +195,7 @@ psyq-obj-parser: $(NONMAIN_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
 ps1-packer: $(NONMAIN_OBJECTS) tools/ps1-packer/ps1-packer.cc
 	$(LD) -o $@ $(NONMAIN_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
 
-.PHONY: all dep clean gitclean regen-i18n runtests
+.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
 
 DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
 DEPS := $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))

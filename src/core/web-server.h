@@ -117,6 +117,7 @@ class WebClient : public Intrusive::List<WebClient>::Node {
 class WebServer {
   public:
     WebServer();
+    ~WebServer() { m_executors.destroyAll(); }
     enum WebServerStatus {
         SERVER_STOPPED,
         SERVER_STOPPING,

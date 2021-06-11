@@ -55,7 +55,7 @@ msgstr "  Fichier"
 msgid "  Size"
 msgstr "  Taille"
 
-#: src/gui/gui.cc:808
+#: src/gui/gui.cc:800
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.2f FPS (%.2f ms)"
@@ -68,11 +68,11 @@ msgstr "(Sans titre)"
 msgid "24 bits shift"
 msgstr ""
 
-#: src/gui/gui.cc:1107
+#: src/gui/gui.cc:1099
 msgid "8MB"
 msgstr ""
 
-#: src/gui/gui.cc:798 src/gui/gui.cc:1345
+#: src/gui/gui.cc:790 src/gui/gui.cc:1337
 msgid "About"
 msgstr "À propos de PCSX-Redux"
 
@@ -80,7 +80,7 @@ msgstr "À propos de PCSX-Redux"
 msgid "Accurate - best quality, but slower"
 msgstr "Fidèle - meilleure qualité, mais plus lent"
 
-#: src/gui/gui.cc:1101
+#: src/gui/gui.cc:1093
 msgid ""
 "Activates the dynamic-recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -107,7 +107,7 @@ msgstr ""
 "Ajouter une marque visible pour indiquer les instructions qui se trouvent à "
 "l'emplacement d'un Delay Slot."
 
-#: src/gui/gui.cc:1206
+#: src/gui/gui.cc:1198
 msgid "Add one entry"
 msgstr ""
 
@@ -115,15 +115,15 @@ msgstr ""
 msgid "Address"
 msgstr "Adresse"
 
-#: src/gui/gui.cc:1204
+#: src/gui/gui.cc:1196
 msgid "Advanced BIOS patching"
 msgstr ""
 
-#: src/gui/gui.cc:1098
+#: src/gui/gui.cc:1090
 msgid "Always enable SPU IRQ"
 msgstr "Toujours activer l'IRQ du SPU"
 
-#: src/gui/gui.cc:945
+#: src/gui/gui.cc:937
 msgid "Assembly"
 msgstr "Assembleur"
 
@@ -165,20 +165,20 @@ msgstr ""
 msgid "Auto save"
 msgstr ""
 
-#: src/gui/gui.cc:406
+#: src/gui/gui.cc:398
 msgid "BIOS"
 msgstr "BIOS"
 
-#: src/core/psxmem.cc:127
+#: src/core/psxmem.cc:133
 #, c-format
 msgid "BIOS entry point: %s\n"
 msgstr ""
 
-#: src/gui/gui.cc:1157
+#: src/gui/gui.cc:1149
 msgid "BIOS file"
 msgstr "Fichier du BIOS"
 
-#: src/gui/gui.cc:1136
+#: src/gui/gui.cc:1128
 msgid "Big Endian"
 msgstr "Big Endian"
 
@@ -214,7 +214,7 @@ msgstr "Break on word write map"
 msgid "Breakpoint Type"
 msgstr "Type de Breakpoint"
 
-#: src/gui/gui.cc:745
+#: src/gui/gui.cc:737
 #, fuzzy
 msgid "Breakpoint on vsync"
 msgstr "Breakpoints sur de nouveaux syscalls"
@@ -224,7 +224,7 @@ msgstr "Breakpoints sur de nouveaux syscalls"
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s\n"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:59 src/gui/gui.cc:949
+#: src/gui/gui.cc:941 src/gui/widgets/breakpoints.cc:59
 msgid "Breakpoints"
 msgstr "Breakpoints"
 
@@ -252,19 +252,19 @@ msgstr "ID du CD-ROM : %.9s\n"
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Titre du CD-ROM : %.32s\n"
 
-#: src/gui/gui.cc:1138
+#: src/gui/gui.cc:1130
 msgid "CDDA"
 msgstr "CDDA"
 
-#: src/gui/gui.cc:381
+#: src/gui/gui.cc:373
 msgid "CLUT VRAM selector"
 msgstr ""
 
-#: src/gui/widgets/log.cc:111 src/gui/widgets/assembly.cc:507
+#: src/gui/widgets/assembly.cc:507 src/gui/widgets/log.cc:111
 msgid "CPU trace"
 msgstr ""
 
-#: src/gui/gui.cc:803
+#: src/gui/gui.cc:795
 #, c-format
 msgid "CPU: %s"
 msgstr ""
@@ -300,11 +300,11 @@ msgstr "Cheats sauvegardés sur : %s\n"
 msgid "Clear"
 msgstr "Effacer"
 
-#: src/gui/gui.cc:578
+#: src/gui/gui.cc:570
 msgid "Close ISO"
 msgstr "Fermer l'ISO"
 
-#: src/gui/gui.cc:660
+#: src/gui/gui.cc:652
 msgid "Close LID"
 msgstr "Fermer le CAPOT"
 
@@ -320,7 +320,7 @@ msgstr "Colonnes"
 msgid "Combined pseudo-instructions"
 msgstr "Pseudo-instructions combinées"
 
-#: src/gui/gui.cc:702
+#: src/gui/gui.cc:694
 msgid "Configuration"
 msgstr "Configuration"
 
@@ -342,7 +342,7 @@ msgstr ""
 msgid "Core"
 msgstr ""
 
-#: src/gui/gui.cc:1354
+#: src/gui/gui.cc:1346
 #, fuzzy, c-format
 msgid "Core profile: %s"
 msgstr "Erreur lors de l'ouverture du fichier : %s.\n"
@@ -392,7 +392,7 @@ msgstr "Impossible de trouver les détails du flux\n"
 msgid "Could not load cheats from: %s\n"
 msgstr "Impossible de charger les cheats à partir de : %s\n"
 
-#: src/core/psxmem.cc:143
+#: src/core/psxmem.cc:148
 #, fuzzy, c-format
 msgid "Could not open BIOS Overlay:\"%s\"!\n"
 msgstr "Impossible d'ouvrir le BIOS : \"%s\". Utilisation du Bios HLE !\n"
@@ -402,7 +402,7 @@ msgstr "Impossible d'ouvrir le BIOS : \"%s\". Utilisation du Bios HLE !\n"
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr "Impossible d'ouvrir le BIOS : \"%s\". Utilisation du Bios HLE !\n"
 
-#: src/core/psxmem.cc:115
+#: src/core/psxmem.cc:121
 #, c-format
 msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
@@ -431,11 +431,11 @@ msgstr ""
 msgid "Data##{}{:08x}"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:447 src/gui/gui.cc:726
+#: src/gui/gui.cc:718 src/gui/widgets/assembly.cc:447
 msgid "Debug"
 msgstr "Débug"
 
-#: src/gui/gui.cc:1099
+#: src/gui/gui.cc:1091
 msgid "Decode MDEC videos in B&W"
 msgstr "Décoder les vidéos MDEC en N&B"
 
@@ -466,7 +466,7 @@ msgstr "Désactivé"
 msgid "Disable##"
 msgstr "Désactivé"
 
-#: src/gui/gui.cc:1136
+#: src/gui/gui.cc:1128
 msgid "Disabled"
 msgstr "Désactivé"
 
@@ -494,15 +494,15 @@ msgstr "Flux audio en mono au lieu de stéréo."
 msgid "Draw arrows for jumps"
 msgstr "Draw arrows for jumps"
 
-#: src/gui/gui.cc:586
+#: src/gui/gui.cc:578
 msgid "Dump save state proto schema"
 msgstr ""
 
-#: src/gui/gui.cc:956
+#: src/gui/gui.cc:948
 msgid "Dwarf"
 msgstr ""
 
-#: src/gui/gui.cc:1100
+#: src/gui/gui.cc:1092
 msgid "Dynarec CPU"
 msgstr ""
 
@@ -522,18 +522,18 @@ msgstr ""
 msgid "Edit##{}"
 msgstr ""
 
-#: src/gui/gui.cc:1108
+#: src/gui/gui.cc:1100
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
 "with development binaries and games."
 msgstr ""
 
-#: src/gui/gui.cc:686 src/gui/gui.cc:703
+#: src/gui/gui.cc:678 src/gui/gui.cc:695
 msgid "Emulation"
 msgstr "Emulation"
 
-#: src/gui/gui.cc:1091
+#: src/gui/gui.cc:1083
 msgid "Emulation Configuration"
 msgstr "Configuration de l'Emulation"
 
@@ -541,22 +541,22 @@ msgstr "Configuration de l'Emulation"
 msgid "Enable Alpha channel view"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:505 src/gui/gui.cc:1161
+#: src/gui/gui.cc:1153 src/gui/widgets/assembly.cc:505
 #, fuzzy
 msgid "Enable Debugger"
 msgstr "Activer les compteurs"
 
-#: src/gui/gui.cc:1165
+#: src/gui/gui.cc:1157
 #, fuzzy
 msgid "Enable GDB Server"
 msgstr "Activer le décodeur XA"
 
-#: src/gui/gui.cc:1190
+#: src/gui/gui.cc:1182
 #, fuzzy
 msgid "Enable Web Server"
 msgstr "Activer le décodeur XA"
 
-#: src/gui/gui.cc:1097
+#: src/gui/gui.cc:1089
 msgid "Enable XA decoder"
 msgstr "Activer le décodeur XA"
 
@@ -578,12 +578,12 @@ msgstr "Active le flux audio"
 msgid "Enable##"
 msgstr ""
 
-#: src/gui/widgets/log.cc:67 src/gui/gui.cc:1249
+#: src/gui/gui.cc:1241 src/gui/widgets/log.cc:67
 #, fuzzy
 msgid "Enabled"
 msgstr "Désactivé"
 
-#: src/gui/gui.cc:1179
+#: src/gui/gui.cc:1171
 msgid ""
 "Enables sending the processor's manifest\n"
 "from the gdb server. Keep this enabled, unless\n"
@@ -614,7 +614,7 @@ msgstr ""
 msgid "Execution map"
 msgstr "Break on execution map"
 
-#: src/gui/gui.cc:1362
+#: src/gui/gui.cc:1354
 #, fuzzy
 msgid "Extensions:"
 msgstr "extensions :"
@@ -629,21 +629,21 @@ msgstr "Impossible de trouver le codec %s\n"
 msgid "Failed to open %s codec\n"
 msgstr "Impossible d'ouvrir le codec %s\n"
 
-#: src/gui/gui.cc:1151
+#: src/gui/gui.cc:1143
 msgid "Fast boot"
 msgstr "Démarrage rapide"
 
-#: src/gui/widgets/assembly.cc:443 src/gui/widgets/vram-viewer.cc:464
-#: src/gui/gui.cc:576
+#: src/gui/gui.cc:568 src/gui/widgets/assembly.cc:443
+#: src/gui/widgets/vram-viewer.cc:464
 msgid "File"
 msgstr "Fichier"
 
-#: src/gui/gui.cc:1225
+#: src/gui/gui.cc:1217
 #, fuzzy
 msgid "File Offset"
 msgstr "Fichiers"
 
-#: src/gui/gui.cc:1217
+#: src/gui/gui.cc:1209
 #, fuzzy
 msgid "Filename"
 msgstr "Fichier"
@@ -656,7 +656,7 @@ msgstr "Fichiers"
 msgid "Filter"
 msgstr "Filtre"
 
-#: src/gui/gui.cc:759
+#: src/gui/gui.cc:751
 msgid "First Chance Exceptions"
 msgstr ""
 
@@ -672,28 +672,28 @@ msgstr "Suivre"
 msgid "Follow PC"
 msgstr "Suivre PC"
 
-#: src/gui/gui.cc:789
+#: src/gui/gui.cc:781
 msgid "Fullscreen render"
 msgstr "Afficher en plein-écran"
 
-#: src/gui/gui.cc:805
+#: src/gui/gui.cc:797
 #, c-format
 msgid "GAME ID: %s"
 msgstr ""
 
-#: src/gui/gui.cc:1184
+#: src/gui/gui.cc:1176
 msgid "GDB Server Port"
 msgstr ""
 
-#: src/gui/gui.cc:1186
+#: src/gui/gui.cc:1178
 msgid "GDB Server Trace"
 msgstr ""
 
-#: src/gui/gui.cc:1178
+#: src/gui/gui.cc:1170
 msgid "GDB send manifest"
 msgstr ""
 
-#: src/gui/gui.cc:720
+#: src/gui/gui.cc:712
 msgid "GPU"
 msgstr "GPU"
 
@@ -705,15 +705,15 @@ msgstr "Interpolation gaussienne - bonne qualité"
 msgid "Generates IRQs when buffers are decoded."
 msgstr "Génère des IRQ lorsque les tampons sont décodés."
 
-#: src/gui/gui.cc:696
+#: src/gui/gui.cc:688
 msgid "Hard Reset"
 msgstr "Bouton 'Reset'"
 
-#: src/gui/gui.cc:404
+#: src/gui/gui.cc:396
 msgid "Hardware Registers"
 msgstr "Registres Matériel"
 
-#: src/gui/gui.cc:795
+#: src/gui/gui.cc:787
 msgid "Help"
 msgstr "Aide"
 
@@ -729,11 +729,11 @@ msgstr "Origine"
 msgid "ID"
 msgstr ""
 
-#: src/gui/gui.cc:810
+#: src/gui/gui.cc:802
 msgid "Idle"
 msgstr ""
 
-#: src/gui/gui.cc:1092
+#: src/gui/gui.cc:1084
 msgid "Idle Swap Interval"
 msgstr ""
 
@@ -746,7 +746,7 @@ msgstr ""
 msgid "Interpolation"
 msgstr "Interpolation"
 
-#: src/gui/gui.cc:1308
+#: src/gui/gui.cc:1300
 msgid "Interrupt Scaler"
 msgstr ""
 
@@ -756,32 +756,32 @@ msgid "Invalid PPF patch: %s.\n"
 msgstr "Patch PPF invalide :%s.\n"
 
 #. fail if the negative offset is more than the total file size
-#: src/core/psxmem.cc:158 src/core/psxmem.cc:162
+#: src/core/psxmem.cc:163 src/core/psxmem.cc:167
 #, c-format
 msgid "Invalid file offset for BIOS Overlay:\"%s\"!\n"
 msgstr ""
 
 #. fail if the negative offset is more than the BIOS size
-#: src/core/psxmem.cc:196 src/core/psxmem.cc:200
+#: src/core/psxmem.cc:201 src/core/psxmem.cc:205
 #, c-format
 msgid "Invalid load offset for BIOS Overlay:\"%s\"!\n"
 msgstr ""
 
-#: src/core/psxmem.cc:177 src/core/psxmem.cc:184
+#: src/core/psxmem.cc:182 src/core/psxmem.cc:189
 #, c-format
 msgid "Invalid load size specified BIOS Overlay:\"%s\"!\n"
 msgstr ""
 
-#: src/gui/gui.cc:758 src/gui/gui.cc:901
+#: src/gui/gui.cc:750 src/gui/gui.cc:893
 #, fuzzy
 msgid "Kernel Calls"
 msgstr "Journal des événements"
 
-#: src/gui/gui.cc:757
+#: src/gui/gui.cc:749
 msgid "Kernel Events"
 msgstr ""
 
-#: src/gui/gui.cc:898
+#: src/gui/gui.cc:890
 #, fuzzy
 msgid "Kernel events"
 msgstr "Journal des événements"
@@ -790,15 +790,15 @@ msgstr "Journal des événements"
 msgid "Link error:\n"
 msgstr ""
 
-#: src/gui/gui.cc:1136
+#: src/gui/gui.cc:1128
 msgid "Little Endian"
 msgstr "Little Endian"
 
-#: src/gui/gui.cc:1233
+#: src/gui/gui.cc:1225
 msgid "Load Offset"
 msgstr ""
 
-#: src/gui/gui.cc:1241
+#: src/gui/gui.cc:1233
 #, fuzzy
 msgid "Load Size"
 msgstr "  Taille"
@@ -807,15 +807,15 @@ msgstr "  Taille"
 msgid "Load Symbols"
 msgstr "Charger les Symboles"
 
-#: src/gui/gui.cc:582
+#: src/gui/gui.cc:574
 msgid "Load binary"
 msgstr ""
 
-#: src/gui/gui.cc:653
+#: src/gui/gui.cc:645
 msgid "Load global state"
 msgstr ""
 
-#: src/gui/gui.cc:637
+#: src/gui/gui.cc:629
 msgid "Load state slots"
 msgstr ""
 
@@ -823,12 +823,12 @@ msgstr ""
 msgid "Load symbols map"
 msgstr "Charger les symboles de la map"
 
-#: src/core/psxmem.cc:206
+#: src/core/psxmem.cc:211
 #, fuzzy, c-format
 msgid "Loaded BIOS overlay: %s\n"
 msgstr "BIOS chargé :%s\n"
 
-#: src/core/psxmem.cc:129
+#: src/core/psxmem.cc:135
 #, c-format
 msgid "Loaded BIOS: %s\n"
 msgstr "BIOS chargé :%s\n"
@@ -854,7 +854,7 @@ msgstr "Fichier SBI chargé : %s.\n"
 msgid "Loading memory card %s\n"
 msgstr "Chargement de la carte mémoire %s\n"
 
-#: src/gui/gui.cc:976
+#: src/gui/gui.cc:968
 msgid "Locale"
 msgstr "Langue"
 
@@ -867,7 +867,7 @@ msgstr ""
 msgid "Log kernel calls"
 msgstr "Journal des nouveaux syscalls"
 
-#: src/gui/gui.cc:880
+#: src/gui/gui.cc:872
 msgid "Logs"
 msgstr "Journaux"
 
@@ -883,15 +883,15 @@ msgstr "Très fort"
 msgid "Low"
 msgstr "Faible"
 
-#: src/gui/gui.cc:886
+#: src/gui/gui.cc:878
 msgid "Lua Console"
 msgstr ""
 
-#: src/gui/gui.cc:895
+#: src/gui/gui.cc:887
 msgid "Lua Editor"
 msgstr ""
 
-#: src/gui/gui.cc:892
+#: src/gui/gui.cc:884
 msgid "Lua Inspector"
 msgstr ""
 
@@ -899,12 +899,12 @@ msgstr ""
 msgid "Lua Source"
 msgstr ""
 
-#: src/gui/gui.cc:996
+#: src/gui/gui.cc:988
 #, fuzzy
 msgid "Main Font Size"
 msgstr "  Taille"
 
-#: src/gui/gui.cc:379
+#: src/gui/gui.cc:371
 msgid "Main VRAM Viewer"
 msgstr ""
 
@@ -940,21 +940,21 @@ msgstr "Map word writes"
 msgid "Medium"
 msgstr "Moyen"
 
-#: src/gui/gui.cc:669
+#: src/gui/gui.cc:661
 #, fuzzy
 msgid "Memory Card 1 inserted"
 msgstr "Impossible de charger la carte mémoire %s !\n"
 
-#: src/gui/gui.cc:673
+#: src/gui/gui.cc:665
 #, fuzzy
 msgid "Memory Card 2 inserted"
 msgstr "Impossible de charger la carte mémoire %s !\n"
 
-#: src/gui/gui.cc:394
+#: src/gui/gui.cc:386
 msgid "Memory Editor #"
 msgstr "Editeur de Mémoire #"
 
-#: src/gui/gui.cc:746
+#: src/gui/gui.cc:738
 msgid "Memory Editors"
 msgstr "Editeurs de Mémoire"
 
@@ -971,20 +971,20 @@ msgstr "Divers"
 msgid "Mode"
 msgstr ""
 
-#: src/spu/cfg.cc:67 src/gui/widgets/log.cc:126
+#: src/gui/widgets/log.cc:126 src/spu/cfg.cc:67
 msgid "Mono"
 msgstr "Mono"
 
-#: src/gui/gui.cc:997
+#: src/gui/gui.cc:989
 #, fuzzy
 msgid "Mono Font Size"
 msgstr "  Taille"
 
-#: src/gui/gui.cc:1260
+#: src/gui/gui.cc:1252
 msgid "Move down"
 msgstr ""
 
-#: src/gui/gui.cc:1256
+#: src/gui/gui.cc:1248
 msgid "Move up"
 msgstr ""
 
@@ -1019,7 +1019,7 @@ msgstr ""
 msgid "Open Binary"
 msgstr ""
 
-#: src/gui/gui.cc:577
+#: src/gui/gui.cc:569
 msgid "Open ISO"
 msgstr "Ouvrir un ISO"
 
@@ -1027,15 +1027,15 @@ msgstr "Ouvrir un ISO"
 msgid "Open Image"
 msgstr "Ouvrir un fichier image"
 
-#: src/gui/gui.cc:656
+#: src/gui/gui.cc:648
 msgid "Open LID"
 msgstr "Ouvrir le CAPOT"
 
-#: src/gui/gui.cc:664
+#: src/gui/gui.cc:656
 msgid "Open and close LID"
 msgstr "Ouvrir et refermer le CAPOT"
 
-#: src/gui/gui.cc:1353
+#: src/gui/gui.cc:1345
 msgid "OpenGL information"
 msgstr "Information sur l'OpenGL"
 
@@ -1047,7 +1047,7 @@ msgstr "Options"
 msgid "Order by"
 msgstr ""
 
-#: src/gui/gui.cc:866
+#: src/gui/gui.cc:858
 msgid "Output"
 msgstr "Sortie"
 
@@ -1056,12 +1056,12 @@ msgstr "Sortie"
 msgid "PCSX-Redux booting\n"
 msgstr "Démarrage de PCSX-Redux\n"
 
-#: src/gui/gui.cc:400
+#: src/gui/gui.cc:392
 msgid "Parallel Port"
 msgstr "Port Parallèle"
 
-#: src/gui/widgets/assembly.cc:448 src/gui/widgets/assembly.cc:512
-#: src/gui/gui.cc:690
+#: src/gui/gui.cc:682 src/gui/widgets/assembly.cc:448
+#: src/gui/widgets/assembly.cc:512
 msgid "Pause"
 msgstr "Pause"
 
@@ -1082,7 +1082,7 @@ msgstr ""
 msgid "Pseudo-instructions filling"
 msgstr "Remplacement des pseudo-instructions"
 
-#: src/gui/gui.cc:680
+#: src/gui/gui.cc:672
 msgid "Quit"
 msgstr "Quitter"
 
@@ -1114,7 +1114,7 @@ msgstr ""
 msgid "Read Word"
 msgstr ""
 
-#: src/gui/gui.cc:677
+#: src/gui/gui.cc:669
 msgid "Reboot"
 msgstr ""
 
@@ -1127,15 +1127,15 @@ msgstr ""
 msgid "Register"
 msgstr "Registres"
 
-#: src/gui/widgets/registers.cc:40 src/gui/gui.cc:940
+#: src/gui/gui.cc:932 src/gui/widgets/registers.cc:40
 msgid "Registers"
 msgstr "Registres"
 
-#: src/gui/gui.cc:991
+#: src/gui/gui.cc:983
 msgid "Reload locales"
 msgstr "Recharger les langues"
 
-#: src/gui/gui.cc:1252
+#: src/gui/gui.cc:1244
 #, fuzzy
 msgid "Remove"
 msgstr "Enlever##"
@@ -1148,12 +1148,12 @@ msgstr "Retirer les Breakpoints à partir d'ici"
 msgid "Remove##"
 msgstr "Enlever##"
 
-#: src/gui/gui.cc:1356
+#: src/gui/gui.cc:1348
 #, fuzzy
 msgid "Renderer"
 msgstr "carte graphique"
 
-#: src/gui/gui.cc:1309
+#: src/gui/gui.cc:1301
 msgid "Reset all"
 msgstr ""
 
@@ -1177,7 +1177,7 @@ msgstr "Racines"
 msgid "Run to cursor"
 msgstr "Exécuter jusqu'au curseur"
 
-#: src/gui/gui.cc:721
+#: src/gui/gui.cc:713
 msgid "SPU"
 msgstr "SPU"
 
@@ -1185,11 +1185,11 @@ msgstr "SPU"
 msgid "SPU configuration"
 msgstr "Configuration du SPU"
 
-#: src/gui/gui.cc:648
+#: src/gui/gui.cc:640
 msgid "Save global state"
 msgstr ""
 
-#: src/gui/gui.cc:625
+#: src/gui/gui.cc:617
 msgid "Save state slots"
 msgstr ""
 
@@ -1198,7 +1198,7 @@ msgstr ""
 msgid "Saving memory card %s\n"
 msgstr "Sauvegarde de la carte mémoire %s\n"
 
-#: src/gui/gui.cc:402
+#: src/gui/gui.cc:394
 msgid "Scratch Pad"
 msgstr "Scratch Pad"
 
@@ -1219,55 +1219,55 @@ msgstr ""
 msgid "Set Breakpoint here"
 msgstr "Placer un Breakpoint ici"
 
-#: src/gui/gui.cc:1358
+#: src/gui/gui.cc:1350
 #, fuzzy
 msgid "Shading language version"
 msgstr "version GLSL"
 
-#: src/gui/gui.cc:743
+#: src/gui/gui.cc:735
 msgid "Show Assembly"
 msgstr "Afficher l'Assembleur"
 
-#: src/gui/gui.cc:744
+#: src/gui/gui.cc:736
 msgid "Show Breakpoints"
 msgstr "Afficher les Breakpoints"
 
-#: src/gui/gui.cc:733
+#: src/gui/gui.cc:725
 #, fuzzy
 msgid "Show CLUT VRAM viewer"
 msgstr "Afficher la VRAM"
 
-#: src/gui/gui.cc:796
+#: src/gui/gui.cc:788
 msgid "Show ImGui Demo"
 msgstr "Afficher la démo du ImGui"
 
-#: src/gui/gui.cc:756
+#: src/gui/gui.cc:748
 msgid "Show Interrupts Scaler"
 msgstr ""
 
-#: src/gui/gui.cc:727
+#: src/gui/gui.cc:719
 msgid "Show Logs"
 msgstr "Afficher les journaux"
 
-#: src/gui/gui.cc:728
+#: src/gui/gui.cc:720
 #, fuzzy
 msgid "Show Lua Console"
 msgstr "Afficher les journaux"
 
-#: src/gui/gui.cc:729
+#: src/gui/gui.cc:721
 msgid "Show Lua Inspector"
 msgstr ""
 
-#: src/gui/gui.cc:730
+#: src/gui/gui.cc:722
 #, fuzzy
 msgid "Show Lua editor"
 msgstr "Afficher les Registres"
 
-#: src/gui/gui.cc:742
+#: src/gui/gui.cc:734
 msgid "Show Registers"
 msgstr "Afficher les Registres"
 
-#: src/gui/gui.cc:777
+#: src/gui/gui.cc:769
 msgid "Show SPU debug"
 msgstr "Afficher le debug du SPU"
 
@@ -1275,7 +1275,7 @@ msgstr "Afficher le debug du SPU"
 msgid "Show Shader Editor"
 msgstr ""
 
-#: src/gui/gui.cc:736
+#: src/gui/gui.cc:728
 #, fuzzy
 msgid "Show VRAM viewer #"
 msgstr "Afficher la VRAM"
@@ -1304,7 +1304,7 @@ msgstr "Show half read BPs"
 msgid "Show half write BPs    "
 msgstr "Show half write BPs"
 
-#: src/gui/gui.cc:732
+#: src/gui/gui.cc:724
 #, fuzzy
 msgid "Show main VRAM viewer"
 msgstr "Afficher la VRAM"
@@ -1313,16 +1313,16 @@ msgstr "Afficher la VRAM"
 msgid "Show no breakpoints"
 msgstr "Ne pas afficher de Breakpoints"
 
-#: src/gui/gui.cc:791
+#: src/gui/gui.cc:783
 msgid "Show raw DWARF info"
 msgstr ""
 
-#: src/gui/gui.cc:787
+#: src/gui/gui.cc:779
 #, fuzzy
 msgid "Show source"
 msgstr "Afficher les journaux"
 
-#: src/gui/gui.cc:786
+#: src/gui/gui.cc:778
 #, fuzzy
 msgid "Show types"
 msgstr "Afficher les Registres"
@@ -1366,15 +1366,15 @@ msgstr ""
 msgid "Skip ISR during CPU traces"
 msgstr ""
 
-#: src/gui/gui.cc:627 src/gui/gui.cc:639
+#: src/gui/gui.cc:619 src/gui/gui.cc:631
 msgid "Slot {}"
 msgstr ""
 
-#: src/gui/gui.cc:693
+#: src/gui/gui.cc:685
 msgid "Soft Reset"
 msgstr "Redémarrage du CPU"
 
-#: src/gui/widgets/source.cc:87 src/gui/gui.cc:961
+#: src/gui/gui.cc:953 src/gui/widgets/source.cc:87
 msgid "Source"
 msgstr ""
 
@@ -1386,11 +1386,11 @@ msgstr ""
 msgid "Special"
 msgstr ""
 
-#: src/gui/gui.cc:687
+#: src/gui/gui.cc:679
 msgid "Start"
 msgstr "Démarrer"
 
-#: src/gui/gui.cc:779
+#: src/gui/gui.cc:771
 msgid "Start GPU dump"
 msgstr ""
 
@@ -1421,7 +1421,7 @@ msgstr "Step Out"
 msgid "Step over"
 msgstr "Step Over"
 
-#: src/gui/gui.cc:782
+#: src/gui/gui.cc:774
 msgid "Stop GPU dump"
 msgstr ""
 
@@ -1440,11 +1440,11 @@ msgstr ""
 msgid "Symbols"
 msgstr "Charger les Symboles"
 
-#: src/gui/gui.cc:1116
+#: src/gui/gui.cc:1108
 msgid "System Type"
 msgstr "Type de système"
 
-#: src/gui/gui.cc:1187
+#: src/gui/gui.cc:1179
 msgid ""
 "The GDB server will start tracing its\n"
 "protocol into the logs, which can be helpful to debug\n"
@@ -1457,25 +1457,25 @@ msgid "The memory card %s doesn't exist - creating it\n"
 msgstr "La carte mémoire %s n'existe pas - création en cours\n"
 
 #. Used for theme combo box
-#: src/gui/gui.cc:1326
+#: src/gui/gui.cc:1318
 msgid "Themes"
 msgstr ""
 
-#: src/gui/gui.cc:1174
+#: src/gui/gui.cc:1166
 msgid ""
 "This will activate a gdb-server that you can\n"
 "connect to with any gdb-remote compliant client.\n"
 "You also need to enable the debugger."
 msgstr ""
 
-#: src/gui/gui.cc:1199
+#: src/gui/gui.cc:1191
 msgid ""
 "This will activate a web-server, that you can\n"
 "query using a REST api. See the wiki for details.\n"
 "The debugger might be required in some cases."
 msgstr ""
 
-#: src/gui/gui.cc:1152
+#: src/gui/gui.cc:1144
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -1483,7 +1483,7 @@ msgid ""
 "faster by not displaying the logo."
 msgstr ""
 
-#: src/gui/gui.cc:1162
+#: src/gui/gui.cc:1154
 msgid ""
 "This will enable the usage of various breakpoints\n"
 "throughout the execution of mips code. Enabling this\n"
@@ -1499,11 +1499,11 @@ msgstr "Piste %.2d (%s) - Commence à %.2d:%.2d:%.2d, Durée %.2d:%.2d:%.2d\n"
 msgid "Types"
 msgstr ""
 
-#: src/gui/gui.cc:722
+#: src/gui/gui.cc:714
 msgid "UI"
 msgstr ""
 
-#: src/gui/gui.cc:970
+#: src/gui/gui.cc:962
 #, fuzzy
 msgid "UI Configuration"
 msgstr "Configuration"
@@ -1553,16 +1553,16 @@ msgstr "Version du PPF non-supportée (%d).\n"
 msgid "VRAM Shader Editor"
 msgstr "Editeurs de Mémoire"
 
-#: src/gui/gui.cc:731
+#: src/gui/gui.cc:723
 msgid "VRAM viewers"
 msgstr ""
 
-#: src/gui/gui.cc:1355
+#: src/gui/gui.cc:1347
 #, fuzzy
 msgid "Vendor"
 msgstr "fabriquant"
 
-#: src/gui/gui.cc:1357
+#: src/gui/gui.cc:1349
 #, fuzzy
 msgid "Version"
 msgstr "version OpenGL"
@@ -1599,11 +1599,11 @@ msgstr ""
 msgid "Volume"
 msgstr "Volume"
 
-#: src/gui/gui.cc:385
+#: src/gui/gui.cc:377
 msgid "Vram Viewer #"
 msgstr ""
 
-#: src/gui/gui.cc:1203
+#: src/gui/gui.cc:1195
 msgid "Web Server Port"
 msgstr ""
 

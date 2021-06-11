@@ -125,31 +125,13 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     cfg.MergeMode = combine;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
-    ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(path.u8string().c_str()), size, &cfg, ranges);
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / "fonts" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / ".." / "share" / "pcsx-redux" / "fonts" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / "third_party" / "noto" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / ".." / ".." / "third_party" / "noto" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
+    g_system->findResource(
+        [&ret, fonts = io.Fonts, size, &cfg, ranges](const std::filesystem::path& filename) mutable {
+            ret = fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(filename.u8string().c_str()), size, &cfg,
+                                            ranges);
+            return ret != nullptr;
+        },
+        path, "fonts", std::filesystem::path("third_party") / "noto");
     std::swap(backup, s_imguiUserErrorFunctor);
     return ret;
 }
@@ -295,6 +277,7 @@ end)(jit.status()))
         io.IniFilename = nullptr;
         std::ifstream cfg("pcsx.json");
         auto& emuSettings = PCSX::g_emulator->settings;
+        auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
         if (cfg.is_open()) {
             try {
@@ -352,6 +335,15 @@ end)(jit.status()))
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
         PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+
+        auto argPCdrv = m_args.get<bool>("pcdrv");
+        auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");
+        if (argPCdrv.has_value()) {
+            debugSettings.get<Emulator::DebugSettings::PCdrv>().value = argPCdrv.value();
+        }
+        if (argPCdrvBase.has_value()) {
+            debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
+        }
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -849,7 +841,7 @@ void PCSX::GUI::endFrame() {
         if (!fileToOpen.empty()) {
             m_exeToLoad = fileToOpen[0];
             std::filesystem::path p = fileToOpen[0];
-            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p);
+            g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p.string());
             g_system->softReset();
         }
     }
@@ -1396,7 +1388,7 @@ void PCSX::GUI::shellReached() {
     PCSX::u8string filename = std::move(m_exeToLoad);
     std::filesystem::path p = filename;
 
-    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p);
+    g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
     bool success = BinaryLoader::load(filename);
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
@@ -1422,7 +1414,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
         m_exeToLoad = path.u8string();
-        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path);
+        g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
         PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(pathStr);

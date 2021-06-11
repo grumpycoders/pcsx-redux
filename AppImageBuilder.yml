@@ -1,0 +1,186 @@
+# appimage-builder recipe see https://appimage-builder.readthedocs.io for details
+version: 1
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: pcsx-redux
+    name: PCSX-Redux
+    icon: pcsx-redux
+    version: HEAD
+    exec: usr/bin/pcsx-redux
+    exec_args: $@
+  apt:
+    arch:
+    - amd64
+    allow_unauthenticated: true
+    sources:
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal main restricted
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal universe
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-updates universe
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal multiverse
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-updates multiverse
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted
+        universe multiverse
+    - sourceline: deb http://security.ubuntu.com/ubuntu/ focal-security main restricted
+    - sourceline: deb http://security.ubuntu.com/ubuntu/ focal-security universe
+    - sourceline: deb http://security.ubuntu.com/ubuntu/ focal-security multiverse
+    include:
+    - libasound2-data
+    - libbz2-1.0:amd64
+    - libcom-err2:amd64
+    - libexpat1:amd64
+    - libgcc-s1:amd64
+    - libgpg-error0:amd64
+    - libkeyutils1:amd64
+    - liblzma5:amd64
+    - libmount1:amd64
+    - libpcre3:amd64
+    - libpulse0:amd64
+    - libsystemd0:amd64
+    - libudev1:amd64
+    - libuuid1:amd64
+    - zlib1g:amd64
+  files:
+    include:
+    - /lib/x86_64-linux-gnu/libFLAC.so.8
+    - /lib/x86_64-linux-gnu/libGLX.so.0
+    - /lib/x86_64-linux-gnu/libGLdispatch.so.0
+    - /lib/x86_64-linux-gnu/libOpenCL.so.1
+    - /lib/x86_64-linux-gnu/libSDL2-2.0.so.0
+    - /lib/x86_64-linux-gnu/libX11.so.6
+    - /lib/x86_64-linux-gnu/libXau.so.6
+    - /lib/x86_64-linux-gnu/libXcursor.so.1
+    - /lib/x86_64-linux-gnu/libXdmcp.so.6
+    - /lib/x86_64-linux-gnu/libXext.so.6
+    - /lib/x86_64-linux-gnu/libXfixes.so.3
+    - /lib/x86_64-linux-gnu/libXi.so.6
+    - /lib/x86_64-linux-gnu/libXinerama.so.1
+    - /lib/x86_64-linux-gnu/libXrandr.so.2
+    - /lib/x86_64-linux-gnu/libXrender.so.1
+    - /lib/x86_64-linux-gnu/libXss.so.1
+    - /lib/x86_64-linux-gnu/libXxf86vm.so.1
+    - /lib/x86_64-linux-gnu/libaom.so.0
+    - /lib/x86_64-linux-gnu/libapparmor.so.1
+    - /lib/x86_64-linux-gnu/libasound.so.2
+    - /lib/x86_64-linux-gnu/libasyncns.so.0
+    - /lib/x86_64-linux-gnu/libavcodec.so.58
+    - /lib/x86_64-linux-gnu/libavformat.so.58
+    - /lib/x86_64-linux-gnu/libavutil.so.56
+    - /lib/x86_64-linux-gnu/libbluray.so.2
+    - /lib/x86_64-linux-gnu/libbsd.so.0
+    - /lib/x86_64-linux-gnu/libcairo-gobject.so.2
+    - /lib/x86_64-linux-gnu/libcairo.so.2
+    - /lib/x86_64-linux-gnu/libchromaprint.so.1
+    - /lib/x86_64-linux-gnu/libcodec2.so.0.9
+    - /lib/x86_64-linux-gnu/libdatrie.so.1
+    - /lib/x86_64-linux-gnu/libffi.so.7
+    - /lib/x86_64-linux-gnu/libfontconfig.so.1
+    - /lib/x86_64-linux-gnu/libfreetype.so.6
+    - /lib/x86_64-linux-gnu/libfribidi.so.0
+    - /lib/x86_64-linux-gnu/libgcrypt.so.20
+    - /lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0
+    - /lib/x86_64-linux-gnu/libgio-2.0.so.0
+    - /lib/x86_64-linux-gnu/libglfw.so.3
+    - /lib/x86_64-linux-gnu/libglib-2.0.so.0
+    - /lib/x86_64-linux-gnu/libgme.so.0
+    - /lib/x86_64-linux-gnu/libgmodule-2.0.so.0
+    - /lib/x86_64-linux-gnu/libgmp.so.10
+    - /lib/x86_64-linux-gnu/libgnutls.so.30
+    - /lib/x86_64-linux-gnu/libgobject-2.0.so.0
+    - /lib/x86_64-linux-gnu/libgomp.so.1
+    - /lib/x86_64-linux-gnu/libgraphite2.so.3
+    - /lib/x86_64-linux-gnu/libgsm.so.1
+    - /lib/x86_64-linux-gnu/libgssapi_krb5.so.2
+    - /lib/x86_64-linux-gnu/libharfbuzz.so.0
+    - /lib/x86_64-linux-gnu/libhogweed.so.5
+    - /lib/x86_64-linux-gnu/libicudata.so.66
+    - /lib/x86_64-linux-gnu/libicuuc.so.66
+    - /lib/x86_64-linux-gnu/libidn2.so.0
+    - /lib/x86_64-linux-gnu/libk5crypto.so.3
+    - /lib/x86_64-linux-gnu/libkrb5.so.3
+    - /lib/x86_64-linux-gnu/libkrb5support.so.0
+    - /lib/x86_64-linux-gnu/liblz4.so.1
+    - /lib/x86_64-linux-gnu/libmp3lame.so.0
+    - /lib/x86_64-linux-gnu/libmpg123.so.0
+    - /lib/x86_64-linux-gnu/libnettle.so.7
+    - /lib/x86_64-linux-gnu/libnuma.so.1
+    - /lib/x86_64-linux-gnu/libogg.so.0
+    - /lib/x86_64-linux-gnu/libopenjp2.so.7
+    - /lib/x86_64-linux-gnu/libopenmpt.so.0
+    - /lib/x86_64-linux-gnu/libopus.so.0
+    - /lib/x86_64-linux-gnu/libp11-kit.so.0
+    - /lib/x86_64-linux-gnu/libpango-1.0.so.0
+    - /lib/x86_64-linux-gnu/libpangocairo-1.0.so.0
+    - /lib/x86_64-linux-gnu/libpangoft2-1.0.so.0
+    - /lib/x86_64-linux-gnu/libpcre2-8.so.0
+    - /lib/x86_64-linux-gnu/libpixman-1.so.0
+    - /lib/x86_64-linux-gnu/libpng16.so.16
+    - /lib/x86_64-linux-gnu/libpulse.so.0
+    - /lib/x86_64-linux-gnu/librsvg-2.so.2
+    - /lib/x86_64-linux-gnu/libshine.so.3
+    - /lib/x86_64-linux-gnu/libsnappy.so.1
+    - /lib/x86_64-linux-gnu/libsndfile.so.1
+    - /lib/x86_64-linux-gnu/libsoxr.so.0
+    - /lib/x86_64-linux-gnu/libspeex.so.1
+    - /lib/x86_64-linux-gnu/libssh-gcrypt.so.4
+    - /lib/x86_64-linux-gnu/libstdc++.so.6
+    - /lib/x86_64-linux-gnu/libswresample.so.3
+    - /lib/x86_64-linux-gnu/libtasn1.so.6
+    - /lib/x86_64-linux-gnu/libthai.so.0
+    - /lib/x86_64-linux-gnu/libtheoradec.so.1
+    - /lib/x86_64-linux-gnu/libtheoraenc.so.1
+    - /lib/x86_64-linux-gnu/libtwolame.so.0
+    - /lib/x86_64-linux-gnu/libunistring.so.2
+    - /lib/x86_64-linux-gnu/libuv.so.1
+    - /lib/x86_64-linux-gnu/libva-drm.so.2
+    - /lib/x86_64-linux-gnu/libva-x11.so.2
+    - /lib/x86_64-linux-gnu/libva.so.2
+    - /lib/x86_64-linux-gnu/libvdpau.so.1
+    - /lib/x86_64-linux-gnu/libvorbis.so.0
+    - /lib/x86_64-linux-gnu/libvorbisenc.so.2
+    - /lib/x86_64-linux-gnu/libvorbisfile.so.3
+    - /lib/x86_64-linux-gnu/libvpx.so.6
+    - /lib/x86_64-linux-gnu/libwavpack.so.1
+    - /lib/x86_64-linux-gnu/libwayland-client.so.0
+    - /lib/x86_64-linux-gnu/libwayland-cursor.so.0
+    - /lib/x86_64-linux-gnu/libwayland-egl.so.1
+    - /lib/x86_64-linux-gnu/libwebp.so.6
+    - /lib/x86_64-linux-gnu/libwebpmux.so.3
+    - /lib/x86_64-linux-gnu/libwrap.so.0
+    - /lib/x86_64-linux-gnu/libx264.so.155
+    - /lib/x86_64-linux-gnu/libx265.so.179
+    - /lib/x86_64-linux-gnu/libxkbcommon.so.0
+    - /lib/x86_64-linux-gnu/libxml2.so.2
+    - /lib/x86_64-linux-gnu/libxvidcore.so.4
+    - /lib/x86_64-linux-gnu/libzvbi.so.0
+    exclude:
+    - usr/share/man
+    - usr/share/doc/*/README.*
+    - usr/share/doc/*/changelog.*
+    - usr/share/doc/*/NEWS.*
+    - usr/share/doc/*/TODO.*
+  test:
+    fedora-30:
+      image: appimagecrafters/tests-env:fedora-30
+      command: ./AppRun
+      use_host_x: true
+    debian-stable:
+      image: appimagecrafters/tests-env:debian-stable
+      command: ./AppRun
+      use_host_x: true
+    archlinux-latest:
+      image: appimagecrafters/tests-env:archlinux-latest
+      command: ./AppRun
+      use_host_x: true
+    centos-7:
+      image: appimagecrafters/tests-env:centos-7
+      command: ./AppRun
+      use_host_x: true
+    ubuntu-xenial:
+      image: appimagecrafters/tests-env:ubuntu-xenial
+      command: ./AppRun
+      use_host_x: true
+AppImage:
+  arch: x86_64
+  update-information: guess

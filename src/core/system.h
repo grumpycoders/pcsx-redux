@@ -33,11 +33,6 @@
 #include "support/djbhash.h"
 #include "support/eventbus.h"
 
-namespace fmt {
-template <>
-struct formatter<std::filesystem::path> : formatter<std::string> {};
-}  // namespace fmt
-
 namespace PCSX {
 
 enum class LogClass : unsigned;
@@ -135,16 +130,12 @@ class System {
         return ret->second.c_str();
     }
 
+    bool findResource(std::function<bool(const std::filesystem::path &path)> walker, const std::filesystem::path &name,
+                      const std::filesystem::path &releasePath, const std::filesystem::path &sourcePath);
     void loadAllLocales() {
         for (auto &l : LOCALES) {
-            if (loadLocale(l.first, m_binDir / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, m_binDir / l.second.filename)) {
-            } else if (loadLocale(l.first,
-                                  std::filesystem::current_path() / ".." / ".." / "i18n" / l.second.filename)) {
-            } else {
-                loadLocale(l.first, std::filesystem::current_path() / l.second.filename);
-            }
+            findResource([name = l.first, this](std::filesystem::path filename) { return loadLocale(name, filename); },
+                         l.second.filename, "i18n", "i18n");
         }
     }
 

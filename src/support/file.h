@@ -35,14 +35,25 @@ class File {
     ssize_t seek(ssize_t pos, int wheel);
     ssize_t tell();
     void flush();
+    enum Create { CREATE };
+    enum ReadWrite { READWRITE };
     File(void* data, ssize_t size);
     File(const std::filesystem::path& filename) : File(filename.u8string()) {}
+    File(const std::filesystem::path& filename, Create) : File(filename.u8string(), CREATE) {}
+    File(const std::filesystem::path& filename, ReadWrite) : File(filename.u8string(), READWRITE) {}
 #if defined(__cpp_lib_char8_t)
     File(const std::u8string& filename) : File(reinterpret_cast<const char*>(filename.c_str())) {}
+    File(const std::u8string& filename, Create) : File(reinterpret_cast<const char*>(filename.c_str()), CREATE) {}
+    File(const std::u8string& filename, ReadWrite) : File(reinterpret_cast<const char*>(filename.c_str()), READWRITE) {}
 #endif
     File(const std::string& filename) : File(filename.c_str()) {}
+    File(const std::string& filename, Create) : File(filename.c_str(), CREATE) {}
+    File(const std::string& filename, ReadWrite) : File(filename.c_str(), READWRITE) {}
     File(const char* filename);
+    File(const char* filename, Create);
+    File(const char* filename, ReadWrite);
     ~File() { close(); }
+    bool writable() { return m_writable; }
     File* dup() { return new File(m_filename); }
     char* gets(char* s, int size);
     std::string gets();
@@ -89,6 +100,7 @@ class File {
     ssize_t m_ptr = 0;
     ssize_t m_size = 0;
     const uint8_t* m_data = NULL;
+    bool m_writable = false;
 };
 
 }  // namespace PCSX

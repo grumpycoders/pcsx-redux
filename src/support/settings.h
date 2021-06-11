@@ -243,13 +243,7 @@ class Settings : private std::tuple<settings...> {
         ts_getChr(s, 42), ts_getChr(s, 43), ts_getChr(s, 44), ts_getChr(s, 45), ts_getChr(s, 46), ts_getChr(s, 47), \
         ts_getChr(s, 48), ts_getChr(s, 49), ts_getChr(s, 50), ts_getChr(s, 51), ts_getChr(s, 52), ts_getChr(s, 53), \
         ts_getChr(s, 54), ts_getChr(s, 55), ts_getChr(s, 56), ts_getChr(s, 57), ts_getChr(s, 58), ts_getChr(s, 59), \
-        ts_getChr(s, 60), ts_getChr(s, 61), ts_getChr(s, 62), ts_getChr(s, 63), ts_getChr(s, 64), ts_getChr(s, 65), \
-        ts_getChr(s, 66), ts_getChr(s, 67), ts_getChr(s, 68), ts_getChr(s, 69), ts_getChr(s, 70), ts_getChr(s, 71), \
-        ts_getChr(s, 72), ts_getChr(s, 72), ts_getChr(s, 72), ts_getChr(s, 73), ts_getChr(s, 74), ts_getChr(s, 75), \
-        ts_getChr(s, 76), ts_getChr(s, 77), ts_getChr(s, 78), ts_getChr(s, 79), ts_getChr(s, 80), ts_getChr(s, 81), \
-        ts_getChr(s, 82), ts_getChr(s, 83), ts_getChr(s, 84), ts_getChr(s, 85), ts_getChr(s, 86), ts_getChr(s, 87), \
-        ts_getChr(s, 88), ts_getChr(s, 89), ts_getChr(s, 90), ts_getChr(s, 91), ts_getChr(s, 92), ts_getChr(s, 93), \
-        ts_getChr(s, 94), ts_getChr(s, 95), ts_getChr(s, 96), ts_getChr(s, 97), ts_getChr(s, 98), ts_getChr(s, 99)>
+        ts_getChr(s, 60), ts_getChr(s, 61), ts_getChr(s, 62), ts_getChr(s, 63)>
 
 #define ts_getChr(name, ii) \
     ((TYPESTRING_MIN(ii, TYPESTRING_MAX_CONST_CHAR)) < sizeof(name) / sizeof(*name) ? name[ii] : 0)

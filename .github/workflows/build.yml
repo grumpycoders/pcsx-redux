@@ -7,18 +7,94 @@ on:
   pull_request:
 
 jobs:
-  macos-build-and-test:
-
-    runs-on: macOS-latest
-
+  build-openbios:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: n1hility/cancel-previous-runs@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch submodules
+      run: git submodule update --init --recursive
+    - name: Install dependencies
+      run: sudo apt-get install -y g++-mipsel-linux-gnu
+    - name: Build OpenBIOS
+      run: make -C src/mips/openbios -j2
+    - name: Upload results for MacOS build job
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenBIOS
+        path: src/mips/openbios/openbios.bin
+
+  macos-build-and-test:
+    runs-on: macOS-latest
+    needs: build-openbios
+    steps:
+    - uses: actions/checkout@v1
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
       run: git submodule update --init --recursive
     - name: Build pcsx-redux
       run: make -j2
+    - name: Download OpenBIOS build
+      uses: actions/download-artifact@v2
+      with:
+        name: OpenBIOS
+    - name: Bundle
+      run: ./.github/scripts/create-app.sh
+    - name: Create BUILD environment
+      run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - name: Injecting OpenBIOS
+      run: cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
+    - name: Adjusting for dmg folder
+      run: |
+        mkdir dmgdir
+        mv PCSX-Redux.app dmgdir
+        cp dmgdir/PCSX-Redux.app/Contents/Resources/pcsx-redux.icns .
+    - name: Creating dmg icon
+      run: |
+        sips -i pcsx-redux.icns
+        DeRez -only icns pcsx-redux.icns > icns.rsrc
+        cp pcsx-redux.icns dmgdir/.VolumeIcon.icns
+        SetFile -c icnC dmgdir/.VolumeIcon.icns
+        SetFile -a C dmgdir
+    - name: Creating Application link
+      run: ln -s /Applications dmgdir
+    - name: Creating dmg file
+      run: hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD.dmg
+    - name: Applying icon to dmg file
+      run: |
+       Rez -append icns.rsrc -o PCSX-Redux-$BUILD.dmg
+       SetFile -a C PCSX-Redux-$BUILD.dmg
+    - name: Removing temporary dmg folder
+      run: rm -rf dmgdir
+    - name: Upload DMG
+      uses: actions/upload-artifact@v2
+      with:
+        name: Dmg
+        path: '**/*.dmg'
+
+  publish-app:
+    runs-on: ubuntu-latest
+    needs: macos-build-and-test
+    if: github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+        check-latest: true
+    - name: Install appcenter
+      run: npm install -g appcenter-cli
+    - name: Create BUILD environment
+      run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - name: Download DMG
+      uses: actions/download-artifact@v2
+      with:
+        name: Dmg
+    - name: Distribute app
+      env:
+        APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
+      run: appcenter distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry

@@ -29,6 +29,8 @@
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "support/file.h"
+#include "support/hashtable.h"
 
 namespace PCSX {
 
@@ -274,8 +276,7 @@ this wouldn't work at all.
 
 class R3000Acpu {
   public:
-    R3000Acpu() {}
-    virtual ~R3000Acpu() {}
+    virtual ~R3000Acpu() { m_pcdrvFiles.destroyAll(); }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
@@ -397,17 +398,42 @@ class R3000Acpu {
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
         const auto r = m_psxRegs.GPR.n;
 
-        // Intercept printf, puts and putchar, even if running the binary bios.
-        // The binary bios doesn't have the TTY output set up by default,
-        // so this hack enables us to properly display printfs. Also,
+        // Intercepts write, puts, putc, and putchar.
+        // The BIOS doesn't have the TTY output set up by default,
+        // so this hack enables us to properly display printfs. However,
         // sometimes, games will fully redirect printf's output, so it
-        // will stop calling putchar.
+        // will stop calling putchar. We'd need to also intercept
+        // printf, but interpreting it is awful. The hope is it'd
+        // eventually call one of these 4 functions.
         const uint32_t call = r.t1 & 0xff;
         if (pc == 0xb0) {
             switch (call) {
-                case 0x3d:  // putchar
+                case 0x35: {  // write
+                    if (r.a0 != 1) break;
+                    uint8_t *str = PSXM(r.a1);
+                    uint32_t size = r.a2;
+                    m_psxRegs.GPR.n.v0 = size;
+                    while (size--) {
+                        g_system->biosPutc(*str++);
+                    }
+                    break;
+                }
+                case 0x3b: {  // putc
                     g_system->biosPutc(r.a0);
                     break;
+                }
+                case 0x3d: {  // putchar
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3f: {  // puts
+                    uint8_t *str = PSXM(r.a0);
+                    uint8_t c;
+                    while ((c = *str++) != 0) {
+                        g_system->biosPutc(c);
+                    }
+                    break;
+                }
             }
         }
 
@@ -487,6 +513,27 @@ Formula One 2001
 
   private:
     const std::string m_name;
+
+    struct PCdrvFile;
+    typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
+    struct PCdrvFile : public File, public PCdrvFiles::Node {
+        PCdrvFile(const std::filesystem::path &filename) : File(filename, File::READWRITE) {}
+        PCdrvFile(const std::filesystem::path &filename, File::Create) : File(filename, File::CREATE) {}
+        virtual ~PCdrvFile() = default;
+        std::string m_relativeFilename;
+    };
+    PCdrvFiles m_pcdrvFiles;
+    uint16_t m_pcdrvIndex = 0;
+
+  public:
+    void closeAllPCdevFiles() { m_pcdrvFiles.destroyAll(); }
+    void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+        for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
+            walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
+        }
+    }
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, File::Create);
 };
 
 class Cpus {

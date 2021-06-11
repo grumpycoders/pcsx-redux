@@ -105,17 +105,23 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
     // Load BIOS
     auto &biosPath = g_emulator->settings.get<PCSX::Emulator::SettingBios>().value;
-    File *f = new File(biosPath.string());
+    std::unique_ptr<File> f(new File(biosPath.string()));
     if (f->failed()) {
-        PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath);
-        delete f;
-        f = new File("openbios.bin");
+        PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.string());
+
+        g_system->findResource(
+            [&f](const std::filesystem::path &filename) {
+                std::unique_ptr<File> newFile(new File(filename));
+                f.swap(newFile);
+                return !f->failed();
+            },
+            "openbios.bin", "resources", std::filesystem::path("src") / "mips" / "openbios");
         if (f->failed()) {
             PCSX::g_system->printf(_(
                 "Could not open OpenBIOS fallback. Things won't work properly.\nAdd a valid BIOS in the configuration "
                 "and hard reset.\n"));
         } else {
-            biosPath = "openbios.bin";
+            biosPath = f->filename();
         }
     } else {
         f->read(g_psxR, bios_size);
@@ -126,9 +132,8 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
             auto [entry, stack] = (--m_elfs.end())->findByAddress(0xbfc00000);
             if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description());
         }
-        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath);
+        PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
     }
-    delete f;
 
     for (auto &overlay : g_emulator->settings.get<Emulator::SettingBiosOverlay>()) {
         if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
@@ -137,10 +142,10 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
         auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
         bool failed = false;
-        File *f = new File(filename);
+        std::unique_ptr<File> f(new File(filename));
 
         if (f->failed()) {
-            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename);
+            PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string());
             failed = true;
         }
 
@@ -155,11 +160,11 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
                 if (foffset < 0) {
                     // fail if the negative offset is more than the total file size
-                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename);
+                    PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                     failed = true;
                 }
             } else if (foffset > fsize) {
-                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename);
+                PCSX::g_system->message(_("Invalid file offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                 failed = true;
             }
         }
@@ -174,14 +179,14 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
                 lsize = fsize + lsize;
 
                 if (lsize < 0) {
-                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename);
+                    PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename.string());
                     failed = true;
                 }
             }
         }
         if (!failed) {
             if (lsize > fsize) {
-                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename);
+                PCSX::g_system->message(_("Invalid load size specified BIOS Overlay:\"%s\"!\n"), filename.string());
                 failed = true;
             }
         }
@@ -193,21 +198,20 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
                 if (loffset < 0) {
                     // fail if the negative offset is more than the BIOS size
-                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename);
+                    PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                     failed = true;
                 }
             } else if (loffset > bios_size) {
-                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename);
+                PCSX::g_system->message(_("Invalid load offset for BIOS Overlay:\"%s\"!\n"), filename.string());
                 failed = true;
             }
         }
         if (!failed) {
             f->read(g_psxR + loffset, lsize);
-            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename);
+            PCSX::g_system->printf(_("Loaded BIOS overlay: %s\n"), filename.string());
         }
 
         f->close();
-        delete f;
     }
 }
 

@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "openbios/cdrom/statemachine.h"
 
+#include <stdatomic.h>
+
 #include "common/hardware/cdrom.h"
 #include "common/hardware/dma.h"
 #include "common/hardware/irq.h"
@@ -87,7 +89,7 @@ int __attribute__((section(".ramtext"))) cdromSeekL(uint8_t *msf) {
     CDROM_REG2 = msf[0];
     CDROM_REG2 = msf[1];
     CDROM_REG2 = msf[2];
-    CDROM_REG1 = 2;
+    CDROM_REG1 = CDL_SETLOC;
     s_currentState = SEEKL_SETLOC;
     return 1;
 }
@@ -97,7 +99,7 @@ int __attribute__((section(".ramtext"))) cdromGetStatus(uint8_t *responsePtr) {
     cdromUndeliverAll();
     CDROM_REG0 = 0;
     s_currentState = GETSTATUS;
-    CDROM_REG1 = 1;
+    CDROM_REG1 = CDL_NOP;
     s_getStatusResponsePtr = responsePtr;
     return 1;
 }
@@ -124,7 +126,7 @@ int __attribute__((section(".ramtext"))) cdromRead(int count, void *buffer, uint
     s_currentState = READ_SETMODE;
     CDROM_REG0 = 0;
     CDROM_REG2 = mode;
-    CDROM_REG1 = 14;
+    CDROM_REG1 = CDL_SETMODE;
     return 1;
 }
 
@@ -137,7 +139,7 @@ int __attribute__((section(".ramtext"))) cdromSetMode(uint32_t mode) {
     CDROM_REG0 = 0;
     CDROM_REG2 = mode;
     s_currentState = SETMODE;
-    CDROM_REG1 = 14;
+    CDROM_REG1 = CDL_SETMODE;
     return 1;
 }
 
@@ -175,7 +177,7 @@ static void __attribute__((section(".ramtext"))) initiateDMA(void) {
     s_readBuffer += s_wordsToRead;
     if (s_sectorCounter != 0) return;
     CDROM_REG0 = 0;
-    CDROM_REG1 = 9;
+    CDROM_REG1 = CDL_PAUSE;
     s_currentState = PAUSING;
 }
 
@@ -234,7 +236,7 @@ static int s_gotInt5;
 
 static void __attribute__((section(".ramtext"))) genericErrorState() {
     CDROM_REG0 = 0;
-    CDROM_REG1 = 10;
+    CDROM_REG1 = CDL_INIT;
     s_currentState = GOT_ERROR_AND_REINIT;
     s_preemptedState = IDLE;
     s_err1 = 1;
@@ -248,7 +250,7 @@ static void __attribute__((section(".ramtext"))) setSessionResponse() {
         s_currentState = 0xf14;
         CDROM_REG0 = 0;
         CDROM_REG2 = 0;
-        CDROM_REG1 = 20;
+        CDROM_REG1 = CDL_GETTD;
     } else {
         genericErrorState();
     }
@@ -351,7 +353,7 @@ static void __attribute__((section(".ramtext"))) getLocPAck() {
     } else {
         s_preemptedState = IDLE;
     }
-    syscall_deliverEvent(0xf000000e, 0x0020);
+    syscall_deliverEvent(EVENT_CDROM, 0x0020);
 }
 
 static uint8_t *s_testAckPtr;
@@ -412,7 +414,7 @@ static void __attribute__((section(".ramtext"))) getTDack() {
     s_getTDtrackNum++;
     CDROM_REG2 = (trackNum / 10) * 0x10 + trackNum % 10;
     s_currentState = 0x14;
-    CDROM_REG1 = 0x14;
+    CDROM_REG1 = CDL_GETTD;
 }
 
 static uint8_t *s_getParamResultsPtr;
@@ -446,7 +448,7 @@ static void __attribute__((section(".ramtext"))) getTNack(void) {
     s_getTDtrackNum = s_firstTrack + 1;
     CDROM_REG2 = f;
     s_currentState = 0x14;
-    CDROM_REG1 = 0x14;
+    CDROM_REG1 = CDL_GETTD;
 }
 
 static void __attribute__((section(".ramtext"))) unlockAck() {
@@ -470,14 +472,14 @@ static void __attribute__((section(".ramtext"))) readSetModeResponse() {
         } else {
             s_currentState = 0xe6;
         }
-        CDROM_REG1 = 6;
+        CDROM_REG1 = CDL_READN;
     } else {
         if (s_currentState == READ_SETMODE) {
             s_currentState = READS;
         } else {
             s_currentState = 0xeb;
         }
-        CDROM_REG1 = 0x1b;
+        CDROM_REG1 = CDL_READS;
     }
 }
 
@@ -486,7 +488,7 @@ static void __attribute__((section(".ramtext"))) chainGetTNack() {
     ptr[0] = CDROM_REG1;
     ptr[1] = CDROM_REG1;
     CDROM_REG0 = 0;
-    CDROM_REG1 = 0x13;
+    CDROM_REG1 = CDL_GETTN;
     s_currentState = 0x13;
 }
 
@@ -616,7 +618,7 @@ static void __attribute__((section(".ramtext"))) discError() {
                 s_gotInt5 = 1;
                 s_preemptedState = IDLE;
                 CDROM_REG0 = 0;
-                CDROM_REG1 = 10;
+                CDROM_REG1 = CDL_INIT;
                 s_currentState = GOT_ERROR_AND_REINIT;
                 break;
             } else {
@@ -764,7 +766,7 @@ int __attribute__((section(".ramtext"))) cdromInnerInit() {
     int wait = 30000;
     while (wait-- && s_initializationComplete != 2) {
         if (s_initializationComplete == 1) return 1;
-        __asm__ volatile("" : : : "memory");
+        atomic_signal_fence(memory_order_consume);
     }
     return 0;
 }
