@@ -75,6 +75,8 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+PCSX::GUI* PCSX::GUI::s_gui = nullptr;
+
 void PCSX::GUI::bindVRAMTexture() {
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     checkGL();
@@ -305,8 +307,9 @@ end)(jit.status()))
         }
 
         setFullscreen(m_fullscreen);
-        const auto currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value; // On boot: reload GUI theme
-        apply_theme (currentTheme);
+        const auto currentTheme =
+            g_emulator->settings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
+        apply_theme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
             emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
@@ -355,6 +358,16 @@ end)(jit.status()))
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    m_createWindowOldCallback = platform_io.Platform_CreateWindow;
+    platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
+        s_gui->m_createWindowOldCallback(viewport);
+        // absolutely horrendous hack, but the only way we have to grab the
+        // newly created GLFWwindow pointer...
+        auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+        glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+    };
+    glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
@@ -427,6 +440,11 @@ void PCSX::GUI::saveCfg() {
     j["gui"] = settings.serialize();
     j["loggers"] = m_log.serialize();
     cfg << std::setw(2) << j << std::endl;
+}
+
+void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+    g_system->m_eventBus->signal(Events::Keyboard{key, scancode, action, mods});
 }
 
 void PCSX::GUI::startFrame() {
@@ -960,7 +978,7 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
-    changed |= PCSX::g_emulator->m_pad1->configure(); // TODO: make static
+    changed |= PCSX::g_emulator->m_pad1->configure();  // TODO: make static
     changed |= configure();
 
     if (m_showUiCfg) {

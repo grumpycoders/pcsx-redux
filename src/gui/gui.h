@@ -60,8 +60,23 @@ namespace PCSX {
 enum class LogClass : unsigned;
 
 class GUI final {
+    // imgui can't handle more than one "instance", so...
+    static GUI *s_gui;
+    void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
+    static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        s_gui->glfwKeyCallback(window, key, scancode, action, mods);
+    }
+    void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+
   public:
-    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
+    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+        assert(s_gui == nullptr);
+        s_gui = this;
+    }
+    ~GUI() {
+        assert(s_gui == this);
+        s_gui = nullptr;
+    }
     void init();
     void close();
     void update(bool vsync = false);
