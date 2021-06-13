@@ -296,8 +296,18 @@ end)(jit.status()))
             if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
                 m_log.deserialize(j["loggers"]);
             }
+
+            auto& windowSizeX = settings.get<WindowSizeX>();
+            auto& windowSizeY = settings.get<WindowSizeY>();
+            if (!windowSizeX) {
+                windowSizeX = 1280;
+            }
+            if (!windowSizeY) {
+                windowSizeY = 800;
+            }
+
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
-            glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
+            glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
             PCSX::g_emulator->m_spu->setCfg(j);
         } else {
             saveCfg();
