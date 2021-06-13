@@ -30,6 +30,7 @@
 #endif
 #endif
 
+#include <fstream>
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
@@ -117,7 +118,6 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     bool m_pcInEBP;
     bool m_stopRecompile;
 
-    uint32_t m_functionPtr;
     uint32_t m_arg1;
     uint32_t m_arg2;
 
@@ -227,6 +227,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     void recSRLV();
     void recSRAV();
 
+    void recException(Exceptions exception);
     void recSYSCALL();
     void recBREAK();
 
@@ -258,6 +259,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
     void testSWInt();
 
     void recRecompile();
+    void recDump();
 
     static uint32_t gteMFC2Wrapper() { return PCSX::g_emulator->m_gte->MFC2(); }
     static uint32_t gteCFC2Wrapper() { return PCSX::g_emulator->m_gte->CFC2(); }
@@ -328,7 +330,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
 #define PGXP_REC_FUNC_OP(pu, op, nReg) PGXP_psxTraceOp##nReg
 #define PGXP_DBG_OP_E(op)    \
     gen.PUSH32I(DBG_E_##op); \
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
 #else
 #define PGXP_REC_FUNC_OP(pu, op, nReg) PGXP_##pu##_##op
 #define PGXP_DBG_OP_E(op)
@@ -342,7 +344,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                        \
         PGXP_DBG_OP_E(op)                                   \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, )); \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 4);                  \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 4);                 \
         rec##op();                                          \
     }
 
@@ -352,7 +354,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                         \
         PGXP_DBG_OP_E(op)                                    \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 1)); \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 8);                   \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 8);                  \
         rec##op();                                           \
     }
 
@@ -380,7 +382,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                         \
         PGXP_DBG_OP_E(op)                                    \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2)); \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 12);                  \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 12);                 \
         rec##op();                                           \
     }
 
@@ -401,7 +403,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                                          \
         PGXP_DBG_OP_E(op)                                                     \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));                  \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 12);                                   \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 12);                                  \
     }
 
 #define CPU_REG_NC(idx) gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[idx])
@@ -430,7 +432,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                           \
         PGXP_DBG_OP_E(op)                                      \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 2));   \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 12);                    \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 12);                    \
     }
 
 #define PGXP_REC_FUNC_R2_1(pu, op, test, reg1, reg2, reg3)     \
@@ -450,7 +452,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                           \
         PGXP_DBG_OP_E(op)                                      \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 3));   \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 16);                    \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 16);                   \
     }
 
 #define PGXP_REC_FUNC_R2_2(pu, op, test, reg1, reg2, reg3, reg4) \
@@ -471,7 +473,7 @@ class X86DynaRecCPU : public PCSX::R3000Acpu {
         gen.PUSH32I(m_psxRegs.code);                             \
         PGXP_DBG_OP_E(op)                                        \
         gen.CALLFunc((uint32_t)PGXP_REC_FUNC_OP(pu, op, 4));     \
-        gen.ADD32ItoR(PCSX::ix86::ESP, 20);                      \
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 20);                     \
     }
 
     //#define PGXP_REC_FUNC_R1i_1(pu, op, test, reg1, reg2) \
@@ -719,17 +721,10 @@ void X86DynaRecCPU::execute() {
     if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == 0) recRecompile();
     uint32_t newPC = (*recFunc)();
-    if (newPC != 0xffffffff) {
-        m_psxRegs.pc = newPC;
-        psxBranchTest();
-    } else {
-        void (*functionPtr)(uint32_t, uint32_t) = (void (*)(uint32_t, uint32_t))m_functionPtr;
-        if (functionPtr) {
-            functionPtr(m_arg1, m_arg2);
-        } else {
-            psxException(m_arg1, m_arg2);
-        }
-    }
+        
+    m_psxRegs.pc = newPC;
+    psxBranchTest();
+
     if (debug) PCSX::g_emulator->m_debug->processAfter();
 }
 
@@ -786,9 +781,10 @@ void X86DynaRecCPU::recCOP0() {
 
 // REC_SYS(COP2);
 void X86DynaRecCPU::recCOP2() {
-    gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
-    gen.AND32ItoR(PCSX::ix86::EAX, 0x40000000);
-    unsigned slot = gen.JZ8(0);
+    gen.TEST8ItoM ((uint32_t)&m_psxRegs.CP0.n.Status + 3, 0x40); // check if bit 30 of SR is not set (ie GTE is disabled)
+                                                               // In order to save bytes by using a single-byte immediate,
+                                                               // We only operate on the top byte of SR
+    unsigned slot = gen.JZ8(0); // skip instruction if GTE is disabled
 
     func_t func = m_pRecCP2[_Funct_];
     (*this.*func)();
@@ -1521,7 +1517,7 @@ void X86DynaRecCPU::recLB() {
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead8Wrapper);
     if (_Rt_) gen.MOVSX32R8toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLBU() {
@@ -1558,7 +1554,7 @@ void X86DynaRecCPU::recLBU() {
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead8Wrapper);
     if (_Rt_) gen.MOVZX32R8toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLH() {
@@ -1595,7 +1591,7 @@ void X86DynaRecCPU::recLH() {
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead16Wrapper);
     if (_Rt_) gen.MOVSX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLHU() {
@@ -1633,7 +1629,7 @@ void X86DynaRecCPU::recLHU() {
                 gen.PUSH32I(addr);
                 gen.CALLFunc((uint32_t)SPUreadRegisterWrapper);
                 gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-                gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+                gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
                 return;
             }
             switch (addr) {
@@ -1644,7 +1640,7 @@ void X86DynaRecCPU::recLHU() {
                     gen.PUSH32I((addr >> 4) & 0x3);
                     gen.CALLFunc((uint32_t)psxRcntRcountWrapper);
                     gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+                    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
                     return;
 
                 case 0x1f801104:
@@ -1654,7 +1650,7 @@ void X86DynaRecCPU::recLHU() {
                     gen.PUSH32I((addr >> 4) & 0x3);
                     gen.CALLFunc((uint32_t)psxRcntRmodeWrapper);
                     gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+                    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
                     return;
 
                 case 0x1f801108:
@@ -1664,7 +1660,7 @@ void X86DynaRecCPU::recLHU() {
                     gen.PUSH32I((addr >> 4) & 0x3);
                     gen.CALLFunc((uint32_t)psxRcntRtargetWrapper);
                     gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+                    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
                     return;
             }
         }
@@ -1673,7 +1669,7 @@ void X86DynaRecCPU::recLHU() {
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead16Wrapper);
     if (_Rt_) gen.MOVZX32R16toR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLW() {
@@ -1754,7 +1750,7 @@ void X86DynaRecCPU::recLW() {
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemRead32Wrapper);
     if (_Rt_) gen.MOV32RtoR(PCSX::ix86::EDI, PCSX::ix86::EAX);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
 }
 
 void X86DynaRecCPU::recLWL() {
@@ -1799,9 +1795,9 @@ void X86DynaRecCPU::recLWL() {
     gen.CALLFunc((uint32_t)psxMemRead32Wrapper);
 
     if (_Rt_) {
-        gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
         gen.POP32R(PCSX::ix86::EDX);
-        gen.AND32ItoR(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
+        gen.AND8ItoR32(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
 
         gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)LWL_SHIFT);
         gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
@@ -1814,7 +1810,7 @@ void X86DynaRecCPU::recLWL() {
         gen.MOVZX32R16toR(PCSX::ix86::EBX, PCSX::ix86::EBX);
         gen.OR32RtoR(PCSX::ix86::EBX, PCSX::ix86::ECX);
     } else {
-        gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
     }
 }
 
@@ -1861,9 +1857,9 @@ void X86DynaRecCPU::recLWR() {
     gen.CALLFunc((uint32_t)psxMemRead32Wrapper);
 
     if (_Rt_) {
-        gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
         gen.POP32R(PCSX::ix86::EDX);
-        gen.AND32ItoR(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
+        gen.AND8ItoR32(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
 
         gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)LWR_SHIFT);
         gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
@@ -1876,7 +1872,7 @@ void X86DynaRecCPU::recLWR() {
         gen.MOVZX32R16toR(PCSX::ix86::EBX, PCSX::ix86::EBX);
         gen.OR32RtoR(PCSX::ix86::EBX, PCSX::ix86::ECX);
     } else {
-        gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+        gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
     }
 }
 
@@ -1899,7 +1895,7 @@ void X86DynaRecCPU::recSB() {
             gen.PUSH32I(addr & ~3);
             gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
             gen.CALLFunc((uint32_t)&recClearWrapper);
-            gen.ADD32ItoR(PCSX::ix86::ESP, 12);
+            gen.ADD8ItoR32(PCSX::ix86::ESP, 12);
             return;
         }
 
@@ -1922,7 +1918,7 @@ void X86DynaRecCPU::recSB() {
     }
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemWrite8Wrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::recSH() {
@@ -1945,7 +1941,7 @@ void X86DynaRecCPU::recSH() {
             gen.PUSH32I(addr & ~3);
             gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
             gen.CALLFunc((uint32_t)&recClearWrapper);
-            gen.ADD32ItoR(PCSX::ix86::ESP, 12);
+            gen.ADD8ItoR32(PCSX::ix86::ESP, 12);
             return;
         }
 
@@ -1967,7 +1963,7 @@ void X86DynaRecCPU::recSH() {
                 }
                 gen.PUSH32I(addr);
                 gen.CALLFunc((uint32_t)SPUwriteRegisterWrapper);
-                gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+                gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
                 return;
             }
         }
@@ -1981,7 +1977,7 @@ void X86DynaRecCPU::recSH() {
     }
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemWrite16Wrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::recSW() {
@@ -2003,7 +1999,7 @@ void X86DynaRecCPU::recSW() {
             gen.PUSH32I(addr);
             gen.PUSH32I(reinterpret_cast<uintptr_t>(this));
             gen.CALLFunc((uint32_t)&recClearWrapper);
-            gen.ADD32ItoR(PCSX::ix86::ESP, 12);
+            gen.ADD8ItoR32(PCSX::ix86::ESP, 12);
             return;
         }
 
@@ -2049,7 +2045,7 @@ void X86DynaRecCPU::recSW() {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
                     gen.CALLFunc((uint32_t)GPU_writeDataWrapper);
-                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+                    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
                     return;
 
                 case 0x1f801814:
@@ -2059,7 +2055,7 @@ void X86DynaRecCPU::recSW() {
                         gen.PUSH32M((uint32_t)&m_psxRegs.GPR.r[_Rt_]);
                     }
                     gen.CALLFunc((uint32_t)&GPU_writeStatusWrapper);
-                    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+                    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
                     return;
             }
         }
@@ -2073,7 +2069,7 @@ void X86DynaRecCPU::recSW() {
     }
     iPushOfB();
     gen.CALLFunc((uint32_t)psxMemWrite32Wrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::iSWLk(uint32_t shift) {
@@ -2122,9 +2118,9 @@ void X86DynaRecCPU::recSWL() {
 
     gen.CALLFunc((uint32_t)psxMemRead32Wrapper);
 
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
     gen.POP32R(PCSX::ix86::EDX);
-    gen.AND32ItoR(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
+    gen.AND8ItoR32(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
 
     gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)SWL_MASK);
     gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
@@ -2152,7 +2148,7 @@ void X86DynaRecCPU::recSWL() {
     gen.PUSH32R(PCSX::ix86::EAX);
 
     gen.CALLFunc((uint32_t)psxMemWrite32Wrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::iSWRk(uint32_t shift) {
@@ -2201,9 +2197,9 @@ void X86DynaRecCPU::recSWR() {
 
     gen.CALLFunc((uint32_t)psxMemRead32Wrapper);
 
-    gen.ADD32ItoR(PCSX::ix86::ESP, 4);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 4);
     gen.POP32R(PCSX::ix86::EDX);
-    gen.AND32ItoR(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
+    gen.AND8ItoR32(PCSX::ix86::EDX, 0x3);  // shift = addr & 3;
 
     gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)SWR_MASK);
     gen.MOV32RmStoR(PCSX::ix86::ECX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
@@ -2231,7 +2227,7 @@ void X86DynaRecCPU::recSWR() {
     gen.PUSH32R(PCSX::ix86::EAX);
 
     gen.CALLFunc((uint32_t)psxMemWrite32Wrapper);
-    gen.ADD32ItoR(PCSX::ix86::ESP, 8);
+    gen.ADD8ItoR32(PCSX::ix86::ESP, 8);
 }
 
 void X86DynaRecCPU::recSLL() {
@@ -2301,7 +2297,7 @@ void X86DynaRecCPU::recSLLV() {
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k & 0x1f);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+        // gen.AND8ItoR32(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
         // happens implicitly on all x86 processors except for 8086.
         // So no need to do it manually
         gen.SHL32CLtoR(PCSX::ix86::EAX);
@@ -2311,7 +2307,7 @@ void X86DynaRecCPU::recSLLV() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+        // gen.AND8ItoR32(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
         // happens implicitly on all x86 processors except for 8086.
         // So no need to do it manually
         gen.SHL32CLtoR(PCSX::ix86::EAX);
@@ -2338,7 +2334,7 @@ void X86DynaRecCPU::recSRLV() {
 
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rt_].k);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);  // place shift amount in ECX
-        // gen.AND32ItoR(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
+        // gen.AND8ItoR32(PCSX::ix86::ECX,0x1f);  // MIPS spec says that the shift amount is masked by 31. however this
         // happens implicitly
         // on all x86 processors except for 8086.
         // So no need to do it manually
@@ -2349,7 +2345,7 @@ void X86DynaRecCPU::recSRLV() {
 
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-        // gen.AND32ItoR(PCSX::ix86::ECX, 0x1f); Commented out cause useless, see the rest of the comments about masking
+        // gen.AND8ItoR32(PCSX::ix86::ECX, 0x1f); Commented out cause useless, see the rest of the comments about masking
         // shift amounts
         gen.SHR32CLtoR(PCSX::ix86::EAX);
         gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], PCSX::ix86::EAX);
@@ -2393,26 +2389,47 @@ void X86DynaRecCPU::recSRAV() {
     }
 }
 
-void X86DynaRecCPU::recSYSCALL() {
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
-    gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
-    gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
-    gen.MOV32ItoM((uint32_t)&m_arg1, 0x20);
-    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
+/// eax: scratch
+/// ecx: Status Register
+/// ebp: PC after the exception
+void X86DynaRecCPU::recException (Exceptions exception) {
+    auto CAUSE = (uint32_t) exception;
+    auto EPC = m_pc - 4; // epc = address of the instruction calling the exception.
+                        // the minus 4 is because m_pc gets pre-incremented
 
-    m_pcInEBP = true;
-    m_stopRecompile = true;
+    if (m_inDelaySlot) { // there's special handling if an exception is fired in a delay slot
+        CAUSE |= 0x80000000; // set CAUSE.31
+        EPC -= 4; // decrement EPC by 4 so that it now **points to the address of the branch, not the instr that caused an exception)
+    }
+
+    gen.MOV32ItoM ((uint32_t) &m_psxRegs.CP0.n.EPC, EPC); // set EPC
+    gen.MOV32ItoM ((uint32_t) &m_psxRegs.CP0.n.Cause, CAUSE); // set CAUSE
+
+    gen.MOV32ItoR (PCSX::ix86::EBP, 0x80000080); // PC after exception
+    gen.MOV32ItoR (PCSX::ix86::EAX, 0xbfc00180); // PC if the BEV bit is set in SR
+    gen.MOV32MtoR (PCSX::ix86::ECX, (uint32_t) &m_psxRegs.CP0.n.Status); // ECX = SR;
+
+    gen.BT32ItoR (PCSX::ix86::ECX, 22); // check if BEV is set in SR
+    gen.CMOVB32RtoR (PCSX::ix86::EBP, PCSX::ix86::EAX); // if BEV is set, copy eax to ebp
+    gen.MOV32RtoR (PCSX::ix86::EAX, PCSX::ix86::ECX); // copy SR to EAX
+
+    // ASM equivalent to Status = (Status & ~0x3f) | ((Status & 0xf) << 2);
+    gen.AND8ItoR32 (PCSX::ix86::EAX, 0xF); // EAX = (Status & 0xF) << 2
+    gen.SHL32ItoR (PCSX::ix86::EAX, 2); 
+    gen.AND32ItoR (PCSX::ix86::ECX, ~0x3F); // ECX = Status & ~0x3F
+    gen.OR32RtoR (PCSX::ix86::ECX, PCSX::ix86::EAX); // ECX = (Status & ~0x3f) | ((Status & 0xf) << 2)
+    gen.MOV32RtoM ((uint32_t) &m_psxRegs.CP0.n.Status, PCSX::ix86::ECX); // Finally, store SR back
+
+    m_pcInEBP = true; // The PC after the exception is now in EBP
+    m_stopRecompile = true; // Stop compilation (without a delay slot, as exceptions have none)
+}
+
+void X86DynaRecCPU::recSYSCALL() {
+    recException (Exceptions::Syscall);
 }
 
 void X86DynaRecCPU::recBREAK() {
-    gen.MOV32ItoM((uint32_t)&m_psxRegs.pc, (uint32_t)m_pc - 4);
-    gen.MOV32ItoR(PCSX::ix86::EBP, 0xffffffff);
-    gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot ? 1 : 0);
-    gen.MOV32ItoM((uint32_t)&m_arg1, 0x24);
-    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
-
-    m_pcInEBP = true;
-    m_stopRecompile = true;
+    recException (Exceptions::Break);
 }
 
 void X86DynaRecCPU::recMFHI() {
@@ -2478,8 +2495,10 @@ void X86DynaRecCPU::recBLTZ() {
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
     gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
-    gen.CMOVL32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);   // if so, move the jump addr into ebp
+    gen.TEST8ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_]+3, 0x80);  // check if rs < 0 (signed)
+                                                              // To avoid a 4-byte immediate, we just use test on the top byte of the register
+                                                              // To get the sign bit
+    gen.CMOVS32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBGTZ() {
@@ -2537,8 +2556,10 @@ void X86DynaRecCPU::recBLTZAL() {
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
     gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
-    gen.CMOVL32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);   // if so, move the jump addr into ebp
+    gen.TEST8ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_]+3, 0x80);  // check if rs < 0 (signed)
+                                                              // To avoid a 4-byte immediate, we just use test on the top byte of the register
+                                                              // To get the sign bit
+    gen.CMOVS32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recBGEZAL() {
@@ -2572,8 +2593,10 @@ void X86DynaRecCPU::recBGEZAL() {
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
     gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs >= 0 (signed)
-    gen.CMOVGE32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
+    gen.TEST8ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_]+3, 0x80);  // check if rs >= 0 (signed)
+                                                              // To avoid a 4-byte immediate, we just use test on the top byte of the register
+                                                              // To get the sign bit
+    gen.CMOVNS32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recJ() {
@@ -2738,8 +2761,10 @@ void X86DynaRecCPU::recBGEZ() {
 
     gen.MOV32ItoR(PCSX::ix86::EAX, target);              // eax = addr if jump taken
     gen.MOV32ItoR(PCSX::ix86::EBP, m_pc + 4);            // ebp = addr if jump not taken
-    gen.CMP32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_], 0);  // check if rs < 0 (signed)
-    gen.CMOVGE32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
+    gen.TEST8ItoM((uint32_t)&m_psxRegs.GPR.r[_Rs_]+3, 0x80);  // check if rs >= 0 (signed)
+                                                              // To avoid a 4-byte immediate, we just use test on the top byte of the register
+                                                              // To get the sign bit
+    gen.CMOVNS32RtoR(PCSX::ix86::EBP, PCSX::ix86::EAX);  // if so, move the jump addr into ebp
 }
 
 void X86DynaRecCPU::recMFC0() {
@@ -2770,9 +2795,8 @@ void X86DynaRecCPU::testSWInt() {
     gen.AND32ItoR(PCSX::ix86::EAX, 0x300);  // This AND will set the zero flag if eax = 0 afterwards
     unsigned slot1 = gen.JE8(0);
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
-    gen.AND32ItoR(PCSX::ix86::EAX, 1);
+    gen.AND8ItoR32(PCSX::ix86::EAX, 1);
     unsigned slot2 = gen.JE8(0);
-    gen.MOV32ItoM((uint32_t)&m_functionPtr, 0);
     gen.MOV32RtoM((uint32_t)&m_arg1, PCSX::ix86::EDX);
     gen.MOV32ItoM((uint32_t)&m_arg2, m_inDelaySlot);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.pc, PCSX::ix86::EBP);
@@ -2809,7 +2833,7 @@ void X86DynaRecCPU::recRFE() {
     gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.CP0.n.Status);
     gen.MOV32RtoR(PCSX::ix86::ECX, PCSX::ix86::EAX);
     gen.AND32ItoR(PCSX::ix86::EAX, 0xfffffff0);
-    gen.AND32ItoR(PCSX::ix86::ECX, 0x3c);
+    gen.AND8ItoR32(PCSX::ix86::ECX, 0x3c);
     gen.SHR32ItoR(PCSX::ix86::ECX, 2);
     gen.OR32RtoR(PCSX::ix86::EAX, PCSX::ix86::ECX);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.CP0.n.Status, PCSX::ix86::EAX);
@@ -3100,8 +3124,7 @@ void X86DynaRecCPU::recRecompile() {
         if (delayedLoad.active) {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
-            gen.MOV32RtoR(PCSX::ix86::EDX, PCSX::ix86::EBX);
-            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EDX);  // edx &= 0xFFFF
+            gen.MOVZX32R16toR(PCSX::ix86::EDX, PCSX::ix86::EBX);  // edx = ebx & 0xFFFF
             gen.MOV32ItoR(PCSX::ix86::ECX, (uint32_t)MASKS);
             gen.MOV32RmStoR(PCSX::ix86::EAX, PCSX::ix86::ECX, PCSX::ix86::EDX, 2);
             if (IsConst(index)) {
@@ -3199,6 +3222,15 @@ void X86DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
 
     // reset to ensure new func tables are used
     Reset();
+}
+
+// For debugging/optimizing
+// Dump the entire code buffer so that it can be analyzed in a program like Cutter/Ghidra to look for redundant code that could be optimized or code that is broken
+// Do NOT call in normal usage
+void X86DynaRecCPU::recDump() {
+    const auto size = (uintptr_t) gen.x86GetPtr()- (uintptr_t) m_recMem;
+    std::ofstream file ("X86DynarecDump.bin", std::ios::binary);
+    file.write ((const char*) m_recMem, size);
 }
 
 #else

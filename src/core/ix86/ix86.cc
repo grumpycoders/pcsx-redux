@@ -281,6 +281,9 @@ void PCSX::ix86::MOVZX32M16toR(mainRegister to, uint32_t from) {
     write32(from);
 }
 
+/* cmovb r32 to r32 */
+void PCSX::ix86::CMOVB32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x42, to, from); }
+
 /* cmovne r32 to r32 */
 void PCSX::ix86::CMOVNE32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x45, to, from); }
 
@@ -292,6 +295,12 @@ void PCSX::ix86::CMOVE32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x
 
 /* cmove m32 to r32*/
 void PCSX::ix86::CMOVE32MtoR(mainRegister to, uint32_t from) { CMOV32MtoR(0x44, to, from); }
+
+/* cmovs r32 to r32*/
+void PCSX::ix86::CMOVS32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x48, to, from); }
+
+/* cmovns r32 to r32*/
+void PCSX::ix86::CMOVNS32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x49, to, from); }
 
 /* cmovg r32 to r32*/
 void PCSX::ix86::CMOVG32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0x4F, to, from); }
@@ -318,6 +327,15 @@ void PCSX::ix86::CMOVLE32RtoR(mainRegister to, mainRegister from) { CMOV32RtoR(0
 void PCSX::ix86::CMOVLE32MtoR(mainRegister to, uint32_t from) { CMOV32MtoR(0x4E, to, from); }
 
 // arithmic instructions
+
+// add imm8 to r32
+// preferable to using a 32-bit immediate wherever appropriate due to saving on code size
+// TODO: potentially template
+void PCSX::ix86::ADD8ItoR32(mainRegister to, uint8_t from) {
+    write8 (0x83); // opcode for all op r32, imm8 instructions
+    ModRM (3, 0, to); // 3 -> Decides the addressing mode. 0 -> The sub-opcode
+    write8 (from); // immediate
+}
 
 /* add imm32 to r32 */
 void PCSX::ix86::ADD32ItoR(mainRegister to, uint32_t from) {
@@ -650,6 +668,15 @@ void PCSX::ix86::XOR32MtoR(mainRegister to, uint32_t from) {
     write32(from);
 }
 
+// and imm8 to r32
+// preferable to using a 32-bit immediate wherever appropriate due to saving on code size
+// TODO: potentially template
+void PCSX::ix86::AND8ItoR32(mainRegister to, uint8_t from) {
+    write8 (0x83); // opcode for all op r32, imm8 instructions
+    ModRM (3, 0x4, to); // 3 -> Decides the addressing mode. 4 -> The sub-opcode
+    write8 (from); // immediate
+}
+
 /* and imm32 to r32 */
 void PCSX::ix86::AND32ItoR(mainRegister to, uint32_t from) {
     if (to == EAX) {
@@ -744,6 +771,13 @@ void PCSX::ix86::JMP32R(mainRegister to) {
     write8(0xFF);
     ModRM(3, 4, to);
 }
+
+
+/* jc/jb/jnae rel8 */
+unsigned PCSX::ix86::JC8(uint8_t to) { return J8Rel(0x72, to); }
+
+/* jnc/jnb/jae rel8 */
+unsigned PCSX::ix86::JNC8(uint8_t to) { return J8Rel(0x73, to); }
 
 /* je rel8 */
 unsigned PCSX::ix86::JE8(uint8_t to) { return J8Rel(0x74, to); }
@@ -896,16 +930,33 @@ void PCSX::ix86::TEST32ItoR(mainRegister to, uint32_t from) {
     write32(from);
 }
 
+/* test i8 to to m8 */
+// NASM syntax: test byte [addr], imm8
+void PCSX::ix86::TEST8ItoM(uint32_t address, uint8_t imm) {
+    write16(0x05f6); // opcode + modrm
+    write32(address); // address
+    write8 (imm);
+}
+
 /* test r32 to r32 */
 void PCSX::ix86::TEST32RtoR(mainRegister to, mainRegister from) {
     write8(0x85);
     ModRM(3, from, to);
 }
 
-void PCSX::ix86::BT32ItoR(mainRegister to, mainRegister from) {
+void PCSX::ix86::BT32ItoR(mainRegister to, uint8_t bit) {
     write16(0xba0f);
     write8(0xe0 | to);
-    write8(from);
+    write8(bit);
+}
+
+// Test bit 'bit' of memory address and copy it to carry
+// NASM syntax: bt dword [addr], bit
+void PCSX::ix86::BT32IToM(uint32_t address, uint8_t bit) {
+    write16 (0xba0f); // 2 byte opcode
+    write8 (0x25); // mod rm
+    write32 (address); // address
+    write8 (bit); // bit number
 }
 
 /* sets r8 */

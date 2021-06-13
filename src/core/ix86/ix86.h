@@ -182,6 +182,8 @@ class ix86 {
     /* movzx m16 to r32 */
     void MOVZX32M16toR(mainRegister to, uint32_t from);
 
+    /* cmovb r32 to r32 */
+    void CMOVB32RtoR(mainRegister to, mainRegister from);
     /* cmovne r32 to r32 */
     void CMOVNE32RtoR(mainRegister to, mainRegister from);
     /* cmovne m32 to r32*/
@@ -190,6 +192,10 @@ class ix86 {
     void CMOVE32RtoR(mainRegister to, mainRegister from);
     /* cmove m32 to r32*/
     void CMOVE32MtoR(mainRegister to, uint32_t from);
+    /* cmovs r32 to r32*/
+    void CMOVS32RtoR(mainRegister to, mainRegister from);
+    /* cmovns r32 to r32*/
+    void CMOVNS32RtoR(mainRegister to, mainRegister from);
     /* cmovg r32 to r32*/
     void CMOVG32RtoR(mainRegister to, mainRegister from);
     /* cmovg m32 to r32*/
@@ -211,6 +217,8 @@ class ix86 {
     // arithmetic instructions         /
     ////////////////////////////////////
 
+    /* add imm8 to r32 */
+    void ADD8ItoR32(mainRegister to, uint8_t from);
     /* add imm32 to r32 */
     void ADD32ItoR(mainRegister to, uint32_t from);
     /* add imm32 to m32 */
@@ -323,6 +331,8 @@ class ix86 {
     /* xor m32 to r32 */
     void XOR32MtoR(mainRegister to, uint32_t from);
 
+    /* and imm8 to r32 */
+    void AND8ItoR32(mainRegister to, uint8_t from);
     /* and imm32 to r32 */
     void AND32ItoR(mainRegister to, uint32_t from);
     /* and imm32 to m32 */
@@ -351,6 +361,10 @@ class ix86 {
     /* jmp r32 */
     void JMP32R(mainRegister to);
 
+    /* jc/jb/jnae rel8 */
+    unsigned JC8(uint8_t to);
+    /* jnc/jnb/jae rel8 */
+    unsigned JNC8(uint8_t to);
     /* je rel8 */
     unsigned JE8(uint8_t to);
     /* jz rel8 */
@@ -431,6 +445,8 @@ class ix86 {
     /* cmp m32 to r32 */
     void CMP32MtoR(mainRegister to, uint32_t from);
 
+    /* test i8 to m8 */
+    void TEST8ItoM(uint32_t address, uint8_t imm);
     /* test imm32 to r32 */
     void TEST32ItoR(mainRegister to, uint32_t from);
     /* test r32 to r32 */
@@ -571,7 +587,8 @@ class ix86 {
     /* emms */
     void EMMS();
     void FEMMS();
-    void BT32ItoR(mainRegister to, mainRegister from);
+    void BT32ItoR(mainRegister to, uint8_t bit);
+    void BT32IToM(uint32_t address, uint8_t bit);
     void RCR32ItoR(mainRegister to, mainRegister from);
 
     // Basara:changed
