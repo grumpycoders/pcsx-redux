@@ -22,10 +22,11 @@
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <memory.h>
 
 #include "imgui.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 enum {
     // MOUSE SCPH-1030
@@ -60,7 +61,13 @@ struct PadDataS {
     uint8_t moveX, moveY;
 };
 
-PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {}
+PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::Keyboard>([this](const auto& event) {
+        if (m_showCfg) {
+            m_pads[m_selectedPadForConfig].keyboardEvent(event);
+        }
+    });
+}
 
 void PCSX::Pads::Pad::map() {
     // invalid buttons
@@ -243,367 +250,166 @@ uint8_t PCSX::Pads::Pad::startPoll(PadDataS* pad) {
 }
 
 bool PCSX::Pads::configure() {
-    bool changed = false;
-
-#if 0
     if (!m_showCfg) {
-        configuringButton = false;  // since the GUI is off, turn off configuring buttons
-        return changed;               // early exit if the pad config window is off
+        return false;
     }
 
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 220), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(_("Pad configuration"), &m_showCfg)) {
         ImGui::End();
-        return changed;
+        return false;
     }
 
-    static const char* inputDevices[] = {"Pad 1 [Keyboard]", "Pad 1 [Controller]", "Pad 2 [Keyboard]",
-                                         "Pad 2 [Controller]"};  // list of options for the drop down table
-    static const char* buttonNames[] = {
-        "Cross   ", "Square  ", "Triangle", "Circle  ", "Select  ", "Start   ",
-        "L1      ", "R1      ", "L2      ", "R2      "};  // PS1 controller buttons (padded to 8 characters for GUI
-                                                          // prettiness)
-    static const char* dpadDirections[] = {
-        "Up      ", "Right   ", "Down    ",
-        "Left    "};  // PS1 controller dpad directions (padded to 8 characters for GUI prettiness)
-    auto& type = m_settings.get<SettingSelectedPad>().value;
+    static std::function<const char*()> const c_padNames[] = {
+        []() { return _("Pad 1"); },
+        []() { return _("Pad 2"); },
+    };
 
-    if (ImGui::BeginCombo(_("Device"), inputDevices[type])) {
-        for (auto i = 0; i < 4; i++) {
-            if (ImGui::Selectable(inputDevices[i])) {  // present the options (Configure joypad 1, joypad 2, etc)
+    if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
+        for (unsigned i = 0; i < 2; i++) {
+            if (ImGui::Selectable(c_padNames[i](), m_selectedPadForConfig == i)) {
+                m_selectedPadForConfig = i;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    return m_pads[m_selectedPadForConfig].configure();
+}
+
+// GLFW doesn't support converting some of the most common keys to strings
+// Key: The scancode of a GLFW key
+static std::string keyToString(int key) {
+    // define strings for some common keys that are not supported by glfwGetKeyName
+    switch (key) {
+        case GLFW_KEY_UP:
+            return _("Keyboard Up");
+        case GLFW_KEY_RIGHT:
+            return _("Keyboard Right");
+        case GLFW_KEY_DOWN:
+            return _("Keyboard Down");
+        case GLFW_KEY_LEFT:
+            return _("Keyboard Left");
+        case GLFW_KEY_BACKSPACE:
+            return _("Keyboard Backspace");
+        case GLFW_KEY_ENTER:
+            return _("Keyboard Enter");
+        case GLFW_KEY_SPACE:
+            return _("Keyboard Space");
+    };
+
+    auto keyName = glfwGetKeyName(key, 0);
+    if (keyName == nullptr) {
+        return fmt::format(_("Unknown keyboard key {}"), key);
+    }
+
+    auto str = std::string(keyName);
+    str[0] = toupper(str[0]);
+    return fmt::format("Keyboard {}", str);
+}
+
+void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
+    if (m_buttonToWait == -1) {
+        return;
+    }
+    getButtonFromGUIIndex(m_buttonToWait) = event.key;
+    m_buttonToWait = -1;
+}
+
+bool PCSX::Pads::Pad::configure() {
+    bool changed = false;
+
+    static std::function<const char*()> const c_inputDevices[] = {
+        []() { return _("Auto"); },
+        []() { return _("Controller"); },
+        []() { return _("Keyboard"); },
+    };
+    static std::function<const char*()> const c_buttonNames[] = {
+        []() { return _("Cross"); },  []() { return _("Square"); }, []() { return _("Triangle"); },
+        []() { return _("Circle"); }, []() { return _("Select"); }, []() { return _("Start"); },
+        []() { return _("L1"); },     []() { return _("R1"); },     []() { return _("L2"); },
+        []() { return _("R2"); },
+    };
+    static std::function<const char*()> const c_dpadDirections[] = {
+        []() { return _("Up"); },
+        []() { return _("Right"); },
+        []() { return _("Down"); },
+        []() { return _("Left"); },
+    };
+
+    ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value);
+
+    auto& type = m_settings.get<SettingInputType>().value;
+
+    if (ImGui::BeginCombo(_("Device type"), c_inputDevices[magic_enum::enum_integer<InputType>(type)]())) {
+        for (auto i : magic_enum::enum_values<InputType>()) {
+            if (ImGui::Selectable(c_inputDevices[magic_enum::enum_integer<InputType>(i)](), i == type)) {
                 changed = true;
-                type = (pad_config_option_t)i;
+                type = i;
             }
         }
 
         ImGui::EndCombo();
     }
 
-    const auto buttonSize = ImVec2(200, 30);  // Nice button size for every button so that it's aligned
-
-    ImGui::Text(_("Configure buttons"));
-    for (auto i = 0; i < 10;) {  // render the GUI for 2 buttons at a time. 2 buttons per line.
-        ImGui::Text(buttonNames[i]);
+    ImGui::Text(_("Keyboard mapping"));
+    for (auto i = 0; i < 10; i++) {
+        ImGui::Text(c_buttonNames[i]());
         ImGui::SameLine();
-        if (ImGui::Button(keyToString(*getButtonFromGUIIndex(i, type), i, type).c_str(),
-                          buttonSize)) {  // if the button gets pressed, set this as the button to be configured
-            configButton(i);              // mark button to be configured
-            changed = true;
+        bool hasToPop = false;
+        if (m_buttonToWait == i) {
+            const ImVec4 hilight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+            ImGui::PushStyleColor(ImGuiCol_Button, hilight);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hilight);
         }
-        i++;
-
-        ImGui::SameLine();
-
-        ImGui::Text(buttonNames[i]);
-        ImGui::SameLine();
-        if (ImGui::Button(keyToString(*getButtonFromGUIIndex(i, type), i, type).c_str(),
-                          buttonSize)) {  // if the button gets pressed, set this as the button to be configured
-            configButton(i);              // mark button to be configured
-            changed = true;
+        if (ImGui::Button(keyToString(getButtonFromGUIIndex(i)).c_str())) {
+            m_buttonToWait = i;
         }
-        i++;
-    }
-
-    ImGui::NewLine();
-    ImGui::Text(_("Configure dpad"));
-    for (auto i = 0; i < 4;) {  // render the GUI for 2 dpad directions at a time. 2 buttons per line.
-        ImGui::Text(dpadDirections[i]);
-        ImGui::SameLine();
-        if (ImGui::Button(keyToString(*getButtonFromGUIIndex(i + 10, type), i + 10, type).c_str(),
-                          buttonSize)) {  // if the button gets pressed, set this as the button to be configured
-            configButton(i +
-                         10);  // mark button to be configured (+10 because the dpad is preceded by 10 other buttons)
-            changed = true;
+        if (!hasToPop) {
+            ImGui::PopStyleColor(3);
         }
-
-        i++;
-        ImGui::SameLine();
-
-        ImGui::Text(dpadDirections[i]);
-        ImGui::SameLine();
-        if (ImGui::Button(keyToString(*getButtonFromGUIIndex(i + 10, type), i + 10, type).c_str(),
-                          buttonSize)) {  // if the button gets pressed, set this as the button to be configured
-            configButton(i + 10);         // mark button to be configured
-            changed = true;
-        }
-        i++;
     }
 
     ImGui::End();
 
-    if (configuringButton && (type == Pad_Controller || type == Pad2_Controller)) {  // handle joypad rebinding
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_JOYBUTTONDOWN) {
-                auto* button = getButtonFromGUIIndex(configuredButtonIndex,
-                                                     type);  // get reference to the button that we want to change
-                *button = event.cbutton.button;              // change the button's mapping
-                save = true;                                 // tell the program to save
-                configuringButton = false;  // Now that we changed the binding, we're not configuring a button anymore
-                break;
-            }
-
-            else if (event.type ==
-                     SDL_JOYAXISMOTION) {  // L2 and R2 are not actually buttons on most controllers, but axis. Pain.
-                if ((event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT ||
-                     event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) &&
-                    event.jaxis.value >= TRIGGER_DEADZONE) {
-                    const auto key = (event.jaxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
-                                         ? SDL_CONTROLLER_BUTTON_LEFTSHOULDER2
-                                         : SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2;
-                    *getButtonFromGUIIndex(configuredButtonIndex, type) =
-                        key;  // change the button's mapping to our custom L2 scancode
-                    save = true;
-                    configuringButton = false;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (save) {  // check if a button was rebinded
-        save = false;
-        return true;
-    }
-
-#endif
-
     return changed;
 }
 
-#if 0
-/// Mark a button as the button to config
-void PCSX::PAD::configButton(int index) {
-    configuringButton = true;
-    configuredButtonIndex = index;
-}
-
-/// Actually update the binding for the button set to be configured
-void PCSX::PAD::updateBinding(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (!configuringButton)  // if we're not configuring a button, exit early
-        return;
-
-    const auto type = m_settings.get<SettingSelectedPad>();
-    if (type == Pad_Controller ||
-        type == Pad2_Controller)  // if we're configuring a controller and not the keyboard, exit early
-        return;
-
-    *getButtonFromGUIIndex(configuredButtonIndex, type) =
-        key;                    // set the scancode of the button that's being configured
-    configuringButton = false;  // since we changed the mapping, we're not configuring a button anymore
-    save = true;                // tell the GUI we need to save the new config
-}
-
-int* PCSX::PAD::getButtonFromGUIIndex(int buttonIndex, pad_config_option_t configOption) {
-    if (configOption == Pad_Keyboard) {
-        switch (buttonIndex) {  // Order is the same as they're on the GUI
-            case 0:
-                return &m_settings.get<Keyboard_PadCross>().value;
-            case 1:
-                return &m_settings.get<Keyboard_PadSquare>().value;
-            case 2:
-                return &m_settings.get<Keyboard_PadTriangle>().value;
-            case 3:
-                return &m_settings.get<Keyboard_PadCircle>().value;
-            case 4:
-                return &m_settings.get<Keyboard_PadSelect>().value;
-            case 5:
-                return &m_settings.get<Keyboard_PadStart>().value;
-            case 6:
-                return &m_settings.get<Keyboard_PadL1>().value;
-            case 7:
-                return &m_settings.get<Keyboard_PadR1>().value;
-            case 8:
-                return &m_settings.get<Keyboard_PadL2>().value;
-            case 9:
-                return &m_settings.get<Keyboard_PadR2>().value;
-            case 10:
-                return &m_settings.get<Keyboard_PadUp>().value;
-            case 11:
-                return &m_settings.get<Keyboard_PadRight>().value;
-            case 12:
-                return &m_settings.get<Keyboard_PadDown>().value;
-            case 13:
-                return &m_settings.get<Keyboard_PadLeft>().value;
-            default:
-                printf("[PAD] Somehow read from invalid button config\n");
-        }
-    }
-
-    else if (configOption == Pad2_Keyboard) {
-        switch (buttonIndex) {  // Order is the same as they're on the GUI
-            case 0:
-                return &m_settings.get<Keyboard_Pad2Cross>().value;
-            case 1:
-                return &m_settings.get<Keyboard_Pad2Square>().value;
-            case 2:
-                return &m_settings.get<Keyboard_Pad2Triangle>().value;
-            case 3:
-                return &m_settings.get<Keyboard_Pad2Circle>().value;
-            case 4:
-                return &m_settings.get<Keyboard_Pad2Select>().value;
-            case 5:
-                return &m_settings.get<Keyboard_Pad2Start>().value;
-            case 6:
-                return &m_settings.get<Keyboard_Pad2L1>().value;
-            case 7:
-                return &m_settings.get<Keyboard_Pad2R1>().value;
-            case 8:
-                return &m_settings.get<Keyboard_Pad2L2>().value;
-            case 9:
-                return &m_settings.get<Keyboard_Pad2R2>().value;
-            case 10:
-                return &m_settings.get<Keyboard_Pad2Up>().value;
-            case 11:
-                return &m_settings.get<Keyboard_Pad2Right>().value;
-            case 12:
-                return &m_settings.get<Keyboard_Pad2Down>().value;
-            case 13:
-                return &m_settings.get<Keyboard_Pad2Left>().value;
-            default:
-                printf("[PAD] Somehow read from invalid button config\n");
-        }
-    }
-
-    else if (configOption == Pad_Controller) {
-        switch (buttonIndex) {
-            case 0:
-                return &m_settings.get<Controller_PadCross>().value;
-            case 1:
-                return &m_settings.get<Controller_PadSquare>().value;
-            case 2:
-                return &m_settings.get<Controller_PadTriangle>().value;
-            case 3:
-                return &m_settings.get<Controller_PadCircle>().value;
-            case 4:
-                return &m_settings.get<Controller_PadSelect>().value;
-            case 5:
-                return &m_settings.get<Controller_PadStart>().value;
-            case 6:
-                return &m_settings.get<Controller_PadL1>().value;
-            case 7:
-                return &m_settings.get<Controller_PadR1>().value;
-            case 8:
-                return &m_settings.get<Controller_PadL2>().value;
-            case 9:
-                return &m_settings.get<Controller_PadR2>().value;
-            case 10:
-                return &m_settings.get<Controller_PadUp>().value;
-            case 11:
-                return &m_settings.get<Controller_PadRight>().value;
-            case 12:
-                return &m_settings.get<Controller_PadDown>().value;
-            case 13:
-                return &m_settings.get<Controller_PadLeft>().value;
-            default:
-                printf("[PAD] Somehow read from invalid button config\n");
-        }
-    }
-
-    else if (configOption == Pad2_Controller) {
-        switch (buttonIndex) {
-            case 0:
-                return &m_settings.get<Controller_Pad2Cross>().value;
-            case 1:
-                return &m_settings.get<Controller_Pad2Square>().value;
-            case 2:
-                return &m_settings.get<Controller_Pad2Triangle>().value;
-            case 3:
-                return &m_settings.get<Controller_Pad2Circle>().value;
-            case 4:
-                return &m_settings.get<Controller_Pad2Select>().value;
-            case 5:
-                return &m_settings.get<Controller_Pad2Start>().value;
-            case 6:
-                return &m_settings.get<Controller_Pad2L1>().value;
-            case 7:
-                return &m_settings.get<Controller_Pad2R1>().value;
-            case 8:
-                return &m_settings.get<Controller_Pad2L2>().value;
-            case 9:
-                return &m_settings.get<Controller_Pad2R2>().value;
-            case 10:
-                return &m_settings.get<Controller_Pad2Up>().value;
-            case 11:
-                return &m_settings.get<Controller_Pad2Right>().value;
-            case 12:
-                return &m_settings.get<Controller_Pad2Down>().value;
-            case 13:
-                return &m_settings.get<Controller_Pad2Left>().value;
-            default:
-                printf("[PAD] Somehow read from invalid button config\n");
-        }
-    }
-
-    else
-        printf("Invalid joypad number. This is neither joypad 1 nor 2");
-}
-
-/// GLFW doesn't support converting some of the most common keys to strings, and neither does the SDL controller API
-/// Key: The scancode of a GLFW key or an SDL controller button
-/// Index: The button's id (used for when there's multiple buttons with the same label)
-/// ConfigOption: Are we configuring a controller or the keyboard
-std::string PCSX::PAD::keyToString(int key, int index, pad_config_option_t configOption) {
-    if (configOption == Pad_Controller || configOption == Pad2_Controller) {  // if it's a controller button
-        switch (key) {
-            case SDL_CONTROLLER_BUTTON_INVALID:
-                return fmt::format("Unmapped##{}", index);
-            case SDL_CONTROLLER_BUTTON_START:
-                return fmt::format("Start##{}", index);
-            case SDL_CONTROLLER_BUTTON_BACK:
-                return fmt::format("Select##{}", index);
-            case SDL_CONTROLLER_BUTTON_DPAD_UP:
-                return fmt::format("D-Pad Up##{}", index);
-            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-                return fmt::format("D-Pad Right##{}", index);
-            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-                return fmt::format("D-Pad Down##{}", index);
-            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-                return fmt::format("D-Pad Left##{}", index);
-            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-                return fmt::format("Left Shoulder##{}", index);
-            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-                return fmt::format("Right Shoulder##{}", index);
-            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER2:
-                return fmt::format("Left Shoulder 2##{}", index);
-            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER2:
-                return fmt::format("Right Shoulder 2##{}", index);
-
-            default:
-                return fmt::format("Controller button {}##{}", key, index);
-        }
-    }
-
-    // else if it is a keyboard key
-    switch (key) {  // define strings for some common keys that are not supported by glfwGetKeyName
-        case GLFW_KEY_UP:
-            return fmt::format("Keyboard Up##{}", index);
-        case GLFW_KEY_RIGHT:
-            return fmt::format("Keyboard Right##{}", index);
-        case GLFW_KEY_DOWN:
-            return fmt::format("Keyboard Down##{}", index);
-        case GLFW_KEY_LEFT:
-            return fmt::format("Keyboard Left##{}", index);
-        case GLFW_KEY_BACKSPACE:
-            return fmt::format("Keyboard Backspace##{}", index);
-        case GLFW_KEY_ENTER:
-            return fmt::format("Keyboard Enter##{}", index);
-        case GLFW_KEY_SPACE:
-            return fmt::format("Keyboard Space##{}", index);
-
-        default: {  // handle the rest of the buttons
-            auto keyName = glfwGetKeyName(key, 0);
-            if (keyName == nullptr) return fmt::format("Keyboard Unknown##{}", index);
-
-            auto str = std::string(keyName);  // capitalize first character of the key's name
-            str[0] = toupper(str[0]);
-            return fmt::format("Keyboard {}##{}", str, index);
-        }
+int& PCSX::Pads::Pad::getButtonFromGUIIndex(int buttonIndex) {
+    switch (buttonIndex) {
+        case 0:
+            return m_settings.get<Keyboard_PadCross>().value;
+        case 1:
+            return m_settings.get<Keyboard_PadSquare>().value;
+        case 2:
+            return m_settings.get<Keyboard_PadTriangle>().value;
+        case 3:
+            return m_settings.get<Keyboard_PadCircle>().value;
+        case 4:
+            return m_settings.get<Keyboard_PadSelect>().value;
+        case 5:
+            return m_settings.get<Keyboard_PadStart>().value;
+        case 6:
+            return m_settings.get<Keyboard_PadL1>().value;
+        case 7:
+            return m_settings.get<Keyboard_PadR1>().value;
+        case 8:
+            return m_settings.get<Keyboard_PadL2>().value;
+        case 9:
+            return m_settings.get<Keyboard_PadR2>().value;
+        case 10:
+            return m_settings.get<Keyboard_PadUp>().value;
+        case 11:
+            return m_settings.get<Keyboard_PadRight>().value;
+        case 12:
+            return m_settings.get<Keyboard_PadDown>().value;
+        case 13:
+            return m_settings.get<Keyboard_PadLeft>().value;
+        default:
+            abort();
     }
 }
-
-#endif
 
 json PCSX::Pads::getCfg() {
     json ret;

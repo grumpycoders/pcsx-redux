@@ -89,7 +89,7 @@ class Pads {
     typedef Setting<int, TYPESTRING("Controller_PadR2"), GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
 
     typedef Setting<InputType, TYPESTRING("PadType"), InputType::Auto> SettingInputType;
-    typedef SettingString<TYPESTRING("ID")> SettingControllerID;
+    typedef Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
 
@@ -114,29 +114,33 @@ class Pads {
         void setDefaults(bool firstController);
         void map();
 
+        bool configure();
+        void keyboardEvent(const Events::Keyboard &);
+        int &getButtonFromGUIIndex(int buttonIndex);
+
         int m_scancodes[16];
         int m_padMapping[16];
 
-        int m_padID = -1;
-  
+        int m_padID = 0;
+        int m_buttonToWait = -1;
+
         PadSettings m_settings;
-  
+
         uint8_t m_buf[256];
         int m_bufcount, m_bufc;
-  
+
         uint8_t m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     };
 
     Pad m_pads[2];
+    unsigned m_selectedPadForConfig = 0;
 
 #if 0
 
     void mapScancodes();           // load keyboard bindings
     void configButton(int index);  // pick the button to config
-    static int *getButtonFromGUIIndex(int buttonIndex, pad_config_option_t configOption);
-    static std::string keyToString(int key, int index, pad_config_option_t configOption);
 
   public:
     static bool configuringButton;     // are we configuring a button in the GUI?
