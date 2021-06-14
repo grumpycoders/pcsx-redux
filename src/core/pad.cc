@@ -617,14 +617,21 @@ json PCSX::Pads::Pad::getCfg() { return m_settings.serialize(); }
 void PCSX::Pads::setCfg(const json& j) {
     if (j.count("pads") && j["pads"].is_array()) {
         auto padsCfg = j["pads"];
-        // xxx
-        printf("Blah");
+        if (padsCfg.size() >= 1) {
+            m_pads[0].setCfg(padsCfg[0]);
+        }
+        if (padsCfg.size() >= 2) {
+            m_pads[0].setCfg(padsCfg[1]);
+        }
     } else {
         setDefaults();
     }
 }
 
-void PCSX::Pads::Pad::setCfg(const json& j) { map(); }
+void PCSX::Pads::Pad::setCfg(const json& j) {
+    m_settings.deserialize(j);
+    map();
+}
 
 void PCSX::Pads::setDefaults() {
     m_pads[0].setDefaults(true);
