@@ -66,10 +66,10 @@ void PCSX::SIO::writePad(uint8_t value) {
                 m_bufferIndex = 1;
                 switch (m_ctrlReg & 0x2002) {
                     case 0x0002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad1->poll(value);
+                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port1);
                         break;
                     case 0x2002:
-                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad2->poll(value);
+                        m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port2);
                         break;
                 }
 
@@ -121,10 +121,10 @@ void PCSX::SIO::writePad(uint8_t value) {
                                     }*/
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad1->poll(value);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port1);
                     break;
                 case 0x2002:
-                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pad2->poll(value);
+                    m_buffer[m_bufferIndex] = PCSX::g_emulator->m_pads->poll(value, Pads::Port2);
                     break;
             }
 
@@ -235,10 +235,10 @@ void PCSX::SIO::write8(uint8_t value) {
 
             switch (m_ctrlReg & 0x2002) {
                 case 0x0002:
-                    m_buffer[0] = PCSX::g_emulator->m_pad1->startPoll();
+                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port1);
                     break;
                 case 0x2002:
-                    m_buffer[0] = PCSX::g_emulator->m_pad2->startPoll();
+                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port2);
                     break;
             }
 

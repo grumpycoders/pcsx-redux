@@ -247,7 +247,6 @@ end)(jit.status()))
 
     s_this = this;
     glfwSetDropCallback(m_window, drop_callback);
-    glfwSetKeyCallback(m_window, PCSX::PAD::updateBinding);
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
         int x, y, comp;
@@ -302,8 +301,10 @@ end)(jit.status()))
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
             PCSX::g_emulator->m_spu->setCfg(j);
+            PCSX::g_emulator->m_pads->setCfg(j);
         } else {
             saveCfg();
+            PCSX::g_emulator->m_pads->setDefaults();
         }
 
         setFullscreen(m_fullscreen);
@@ -439,6 +440,7 @@ void PCSX::GUI::saveCfg() {
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
     j["loggers"] = m_log.serialize();
+    j["pads"] = PCSX::g_emulator->m_pads->getCfg();
     cfg << std::setw(2) << j << std::endl;
 }
 
@@ -452,19 +454,6 @@ void PCSX::GUI::startFrame() {
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
-
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case SDL_JOYDEVICEADDED:
-            case SDL_JOYDEVICEREMOVED:
-                PCSX::g_emulator->m_pad1->shutdown();
-                PCSX::g_emulator->m_pad2->shutdown();
-                PCSX::g_emulator->m_pad1->init();
-                PCSX::g_emulator->m_pad2->init();
-                break;
-        }
-    }
 
     auto& io = ImGui::GetIO();
 
@@ -733,7 +722,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pad1->m_showCfg);
+                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -978,7 +967,7 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
-    changed |= PCSX::g_emulator->m_pad1->configure();  // TODO: make static
+    changed |= PCSX::g_emulator->m_pads->configure();
     changed |= configure();
 
     if (m_showUiCfg) {
