@@ -52,8 +52,7 @@ PCSX::Emulator::Emulator()
       m_debug(new PCSX::Debug()),
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
-      m_pad1(new PCSX::PAD(PAD::PAD1)),
-      m_pad2(new PCSX::PAD(PAD::PAD2)),
+      m_pads(new PCSX::Pads()),
       m_lua(new PCSX::Lua()) {
     m_lua->open_base();
     m_lua->open_bit();
@@ -83,8 +82,7 @@ int PCSX::Emulator::EmuInit() {
     if (m_psxMem->psxMemInit() == -1) return -1;
     int ret = PCSX::R3000Acpu::psxInit();
     EmuSetPGXPMode(m_config.PGXP_Mode);
-    m_pad1->init();
-    m_pad2->init();
+    m_pads->init();
     return ret;
 }
 
@@ -94,10 +92,8 @@ void PCSX::Emulator::EmuReset() {
     m_psxMem->psxMemReset();
 
     m_psxCpu->psxReset();
-    m_pad1->shutdown();
-    m_pad2->shutdown();
-    m_pad1->init();
-    m_pad2->init();
+    m_pads->shutdown();
+    m_pads->init();
 }
 
 void PCSX::Emulator::EmuShutdown() {
@@ -109,8 +105,7 @@ void PCSX::Emulator::EmuShutdown() {
     m_psxMem->psxMemShutdown();
     m_psxCpu->psxShutdown();
 
-    m_pad1->shutdown();
-    m_pad2->shutdown();
+    m_pads->shutdown();
 }
 
 void PCSX::Emulator::vsync() {

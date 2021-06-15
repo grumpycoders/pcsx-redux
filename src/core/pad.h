@@ -19,41 +19,139 @@
 
 #pragma once
 
-#include <SDL.h>
+#include <GLFW/glfw3.h>
 #include <stdint.h>
 
+#include "core/psxemulator.h"
+#include "core/system.h"
+#include "imgui.h"
+#include "json.hpp"
+
 struct PadDataS;
+using json = nlohmann::json;
 
 namespace PCSX {
-class PAD {
+class Pads {
   public:
-    enum pad_t { PAD1, PAD2 };
-    PAD(pad_t pad);
-    ~PAD();
+    enum Port { Port1, Port2 };
+    enum class InputType { Auto, Controller, Keyboard };
+
+    Pads();
     void init();
-    void shutdown();
-    unsigned char startPoll();
-    unsigned char poll(unsigned char);
+    void shutdown() {}
+    uint8_t startPoll(Port);
+    uint8_t poll(uint8_t, Port);
+
+    json getCfg();
+    void setCfg(const json &j);
+    void setDefaults();
+    bool configure();
+    bool m_showCfg = false;
+
+    void scanGamepads();
 
   private:
-    void readPort(PadDataS *pad);
-    unsigned char startPoll(PadDataS *pad);
-    uint16_t getButtons();
+    EventBus::Listener m_listener;
+    int m_gamepadsMap[16];
 
-    pad_t m_padIdx = PAD1;
+    static const int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
+    static const int GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 2;
+    static const int GLFW_GAMEPAD_BUTTON_INVALID = GLFW_GAMEPAD_BUTTON_LAST + 3;
 
-    bool m_connected = false;
-    bool m_isKeyboard = false;
-    int m_joystick = -1;
-    int m_scancodes[16];
-    SDL_GameController *m_pad = NULL;
+    // settings block
+    // Pad keyboard bindings
+    typedef Setting<int, TYPESTRING("Keyboard_PadUp"), GLFW_KEY_UP> Keyboard_PadUp;
+    typedef Setting<int, TYPESTRING("Keyboard_PadRight"), GLFW_KEY_RIGHT> Keyboard_PadRight;
+    typedef Setting<int, TYPESTRING("Keyboard_PadDown"), GLFW_KEY_DOWN> Keyboard_PadDown;
+    typedef Setting<int, TYPESTRING("Keyboard_PadLeft"), GLFW_KEY_LEFT> Keyboard_PadLeft;
+    typedef Setting<int, TYPESTRING("Keyboard_PadCross"), GLFW_KEY_X> Keyboard_PadCross;
+    typedef Setting<int, TYPESTRING("Keyboard_PadTriangle"), GLFW_KEY_S> Keyboard_PadTriangle;
+    typedef Setting<int, TYPESTRING("Keyboard_PadSquare"), GLFW_KEY_Z> Keyboard_PadSquare;
+    typedef Setting<int, TYPESTRING("Keyboard_PadCircle"), GLFW_KEY_D> Keyboard_PadCircle;
+    typedef Setting<int, TYPESTRING("Keyboard_PadSelect"), GLFW_KEY_BACKSPACE> Keyboard_PadSelect;
+    typedef Setting<int, TYPESTRING("Keyboard_PadSstart"), GLFW_KEY_ENTER> Keyboard_PadStart;
+    typedef Setting<int, TYPESTRING("Keyboard_PadL1"), GLFW_KEY_Q> Keyboard_PadL1;
+    typedef Setting<int, TYPESTRING("Keyboard_PadL2"), GLFW_KEY_A> Keyboard_PadL2;
+    typedef Setting<int, TYPESTRING("Keyboard_PadR1"), GLFW_KEY_R> Keyboard_PadR1;
+    typedef Setting<int, TYPESTRING("Keyboard_PadR2"), GLFW_KEY_F> Keyboard_PadR2;
 
-    unsigned char m_buf[256];
-    unsigned char m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-    unsigned char m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
-    unsigned char m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    // Pad controller bindings
+    typedef Setting<int, TYPESTRING("Controller_PadUp"), GLFW_GAMEPAD_BUTTON_DPAD_UP> Controller_PadUp;
+    typedef Setting<int, TYPESTRING("Controller_PadRight"), GLFW_GAMEPAD_BUTTON_DPAD_RIGHT> Controller_PadRight;
+    typedef Setting<int, TYPESTRING("Controller_PadDown"), GLFW_GAMEPAD_BUTTON_DPAD_DOWN> Controller_PadDown;
+    typedef Setting<int, TYPESTRING("Controller_PadLeft"), GLFW_GAMEPAD_BUTTON_DPAD_LEFT> Controller_PadLeft;
+    typedef Setting<int, TYPESTRING("Controller_PadCross"), GLFW_GAMEPAD_BUTTON_CROSS> Controller_PadCross;
+    typedef Setting<int, TYPESTRING("Controller_PadTriangle"), GLFW_GAMEPAD_BUTTON_TRIANGLE> Controller_PadTriangle;
+    typedef Setting<int, TYPESTRING("Controller_PadSquare"), GLFW_GAMEPAD_BUTTON_SQUARE> Controller_PadSquare;
+    typedef Setting<int, TYPESTRING("Controller_PadCircle"), GLFW_GAMEPAD_BUTTON_CIRCLE> Controller_PadCircle;
+    typedef Setting<int, TYPESTRING("Controller_PadSelect"), GLFW_GAMEPAD_BUTTON_BACK> Controller_PadSelect;
+    typedef Setting<int, TYPESTRING("Controller_PadSstart"), GLFW_GAMEPAD_BUTTON_START> Controller_PadStart;
+    typedef Setting<int, TYPESTRING("Controller_PadL1"), GLFW_GAMEPAD_BUTTON_LEFT_BUMPER> Controller_PadL1;
+    typedef Setting<int, TYPESTRING("Controller_PadL2"), GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER> Controller_PadL2;
+    typedef Setting<int, TYPESTRING("Controller_PadR1"), GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER> Controller_PadR1;
+    typedef Setting<int, TYPESTRING("Controller_PadR2"), GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
 
-    int m_bufcount, m_bufc;
+    typedef Setting<InputType, TYPESTRING("PadType"), InputType::Auto> SettingInputType;
+    typedef Setting<int, TYPESTRING("ID")> SettingControllerID;
+
+    typedef Setting<bool, TYPESTRING("Connected")> SettingConnected;
+
+    typedef Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
+                     Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
+                     Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadR1, Keyboard_PadR2,
+                     Controller_PadUp, Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross,
+                     Controller_PadTriangle, Controller_PadSquare, Controller_PadCircle, Controller_PadSelect,
+                     Controller_PadStart, Controller_PadL1, Controller_PadL2, Controller_PadR1, Controller_PadR2,
+                     SettingInputType, SettingControllerID, SettingConnected>
+        PadSettings;
+
+    struct Pad {
+        void readPort(PadDataS *pad);
+        uint8_t startPoll(PadDataS *pad);
+        uint8_t poll(uint8_t);
+        uint16_t getButtons();
+        bool isControllerButtonPressed(int button, GLFWgamepadstate *state);
+
+        json getCfg();
+        void setCfg(const json &j);
+        void setDefaults(bool firstController);
+        void map();
+
+        bool configure();
+        void keyboardEvent(const Events::Keyboard &);
+        int &getButtonFromGUIIndex(int buttonIndex);
+
+        int m_scancodes[16];
+        int m_padMapping[16];
+
+        int m_padID = 0;
+        int m_buttonToWait = -1;
+        bool m_changed = false;
+
+        PadSettings m_settings;
+
+        uint8_t m_buf[256];
+        int m_bufcount, m_bufc;
+
+        uint8_t m_stdpar[10] = {0x00, 0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_mousepar[8] = {0x00, 0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
+        uint8_t m_analogpar[9] = {0x00, 0xff, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    };
+
+    Pad m_pads[2];
+    unsigned m_selectedPadForConfig = 0;
+
+#if 0
+
+    void mapScancodes();           // load keyboard bindings
+    void configButton(int index);  // pick the button to config
+
+  public:
+    static bool configuringButton;     // are we configuring a button in the GUI?
+    static int configuredButtonIndex;  // Which button are we configuring in the GUI?
+    static bool save;                  // do we need to save?
+
+#endif
 };
 
 }  // namespace PCSX

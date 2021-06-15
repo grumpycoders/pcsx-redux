@@ -182,9 +182,6 @@
     <ClInclude Include="..\..\src\core\ppf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\psemu_plugin_defs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\psxcounters.h">
       <Filter>Header Files</Filter>
     </ClInclude>

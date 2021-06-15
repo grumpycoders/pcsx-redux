@@ -86,18 +86,18 @@ class Cheats;
 class Counters;
 class Debug;
 class GdbServer;
-class WebServer;
 class GPU;
 class GTE;
 class HW;
+class Lua;
 class MDEC;
 class Memory;
-class PAD;
+class Pads;
 class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
-class Lua;
+class WebServer;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -174,10 +174,11 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
+    typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB>
+             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme>
         settings;
     class PcsxConfig {
       public:
@@ -221,23 +222,22 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
-    std::unique_ptr<Memory> m_psxMem;
-    std::unique_ptr<R3000Acpu> m_psxCpu;
-    std::unique_ptr<Counters> m_psxCounters;
-    std::unique_ptr<GTE> m_gte;
-    std::unique_ptr<SIO> m_sio;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<Cheats> m_cheats;
-    std::unique_ptr<MDEC> m_mdec;
-    std::unique_ptr<GPU> m_gpu;
-    std::unique_ptr<GdbServer> m_gdbServer;
-    std::unique_ptr<WebServer> m_webServer;
+    std::unique_ptr<Counters> m_psxCounters;
     std::unique_ptr<Debug> m_debug;
+    std::unique_ptr<GdbServer> m_gdbServer;
+    std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GTE> m_gte;
     std::unique_ptr<HW> m_hw;
-    std::unique_ptr<SPUInterface> m_spu;
-    std::unique_ptr<PAD> m_pad1;
-    std::unique_ptr<PAD> m_pad2;
     std::unique_ptr<Lua> m_lua;
+    std::unique_ptr<MDEC> m_mdec;
+    std::unique_ptr<Memory> m_psxMem;
+    std::unique_ptr<Pads> m_pads;
+    std::unique_ptr<R3000Acpu> m_psxCpu;
+    std::unique_ptr<SIO> m_sio;
+    std::unique_ptr<SPUInterface> m_spu;
+    std::unique_ptr<WebServer> m_webServer;
 
     uv_loop_t m_loop;
 

@@ -54,6 +54,9 @@ struct HardReset {};
 struct CreatedVRAMTexture {
     unsigned int id;
 };
+struct Keyboard {
+    int key, scancode, action, mods;
+};
 }  // namespace Events
 
 class System {
