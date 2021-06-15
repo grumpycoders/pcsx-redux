@@ -412,14 +412,14 @@ bool PCSX::Pads::Pad::configure() {
 
     ImGui::Text(_("Keyboard mapping"));
     if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {
-        ImGui::TableSetupColumn(_("Gamepad button"));
         ImGui::TableSetupColumn(_("Computer button mapping"));
+        ImGui::TableSetupColumn(_("Gamepad button"));
         ImGui::TableHeadersRow();
         for (auto i = 0; i < 10; i++) {
             ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text(c_buttonNames[i]());
             ImGui::TableSetColumnIndex(1);
+            ImGui::Text(c_buttonNames[i]());
+            ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
             if (m_buttonToWait == i) {
                 const ImVec4 hilight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
