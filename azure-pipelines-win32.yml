@@ -34,7 +34,6 @@ steps:
     Contents: |
       LICENSE
       i18n/*.po
-      third_party/SDL_GameControllerDB/gamecontrollerdb.txt
     TargetFolder: '$(build.artifactStagingDirectory)/assets'
 
 - task: CopyFiles@2
@@ -42,6 +41,13 @@ steps:
     Contents: |
       third_party/noto/*
     TargetFolder: '$(build.artifactStagingDirectory)/assets/fonts'
+    FlattenFolders: true
+
+- task: CopyFiles@2
+  inputs:
+    Contents: |
+      third_party/SDL_GameControllerDB/gamecontrollerdb.txt
+    TargetFolder: '$(build.artifactStagingDirectory)/assets'
     FlattenFolders: true
 
 - task: VSBuild@1
