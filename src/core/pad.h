@@ -37,7 +37,7 @@ class Pads {
     enum class InputType { Auto, Controller, Keyboard };
 
     Pads();
-    void init() {}
+    void init();
     void shutdown() {}
     uint8_t startPoll(Port);
     uint8_t poll(uint8_t, Port);
@@ -48,8 +48,11 @@ class Pads {
     bool configure();
     bool m_showCfg = false;
 
+    void scanGamepads();
+
   private:
     EventBus::Listener m_listener;
+    int m_gamepadsMap[16];
 
     static const int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
     static const int GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 2;
@@ -123,6 +126,7 @@ class Pads {
 
         int m_padID = 0;
         int m_buttonToWait = -1;
+        bool m_changed = false;
 
         PadSettings m_settings;
 

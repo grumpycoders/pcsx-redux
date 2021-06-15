@@ -25,8 +25,10 @@
 #include <fmt/format.h>
 #include <memory.h>
 
+#include "core/system.h"
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
+#include "support/file.h"
 
 enum {
     // MOUSE SCPH-1030
@@ -61,6 +63,27 @@ struct PadDataS {
     uint8_t moveX, moveY;
 };
 
+void PCSX::Pads::init() {
+    scanGamepads();
+    g_system->findResource(
+        [](const std::filesystem::path& filename) -> bool {
+            std::unique_ptr<File> database(new File(filename));
+            if (database->failed()) {
+                return false;
+            }
+
+            database->seek(0, SEEK_END);
+            size_t dbsize = database->tell();
+            database->seek(0, SEEK_SET);
+            auto dbStr = database->readString(dbsize);
+
+            int ret = glfwUpdateGamepadMappings(dbStr.c_str());
+
+            return ret;
+        },
+        "gamecontrollerdb.txt", "resources", std::filesystem::path("third_party") / "SDL_GameControllerDB");
+}
+
 PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::Keyboard>([this](const auto& event) {
         if (m_showCfg) {
@@ -69,7 +92,21 @@ PCSX::Pads::Pads() : m_listener(g_system->m_eventBus) {
     });
 }
 
+void PCSX::Pads::scanGamepads() {
+    static_assert((1 + GLFW_JOYSTICK_LAST - GLFW_JOYSTICK_1) <= sizeof(m_gamepadsMap) / sizeof(m_gamepadsMap[0]));
+    for (auto& m : m_gamepadsMap) {
+        m = -1;
+    }
+    unsigned index = 0;
+    for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; i++) {
+        if (glfwJoystickPresent(i) && glfwJoystickIsGamepad(i)) {
+            m_gamepadsMap[index++] = i;
+        }
+    }
+}
+
 void PCSX::Pads::Pad::map() {
+    m_padID = g_emulator->m_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
     // invalid buttons
     m_scancodes[1] = 255;
     m_scancodes[2] = 255;
@@ -114,13 +151,16 @@ static const float AXIS_THRESHOLD = 0.75;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
 bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
-    switch (button) {
+    int mapped = m_padMapping[button];
+    switch (mapped) {
         case GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER:
             return state->axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] >= TRIGGER_THRESHOLD;
         case GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER:
             return state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] >= TRIGGER_THRESHOLD;
+        case GLFW_GAMEPAD_BUTTON_INVALID:
+            return false;
         default:
-            return state->buttons[m_padMapping[button]];
+            return state->buttons[mapped];
     }
 }
 
@@ -142,7 +182,12 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     }
 
     if (m_padID >= 0) {
-        hasPad = glfwGetGamepadState(m_padID, &state);
+        hasPad = glfwGetGamepadState(g_emulator->m_pads->m_gamepadsMap[m_padID], &state);
+        if (!hasPad) {
+            const char* guid = glfwGetJoystickGUID(g_emulator->m_pads->m_gamepadsMap[m_padID]);
+            g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
+            m_padID = -1;
+        }
     }
 
     if (!hasPad) {
@@ -183,10 +228,7 @@ uint8_t PCSX::Pads::poll(uint8_t value, Port port) {
     return m_pads[index].poll(value);
 }
 
-uint8_t PCSX::Pads::Pad::poll(uint8_t value) {
-    if (m_bufc > m_bufcount) return 0;
-    return m_buf[m_bufc++];
-}
+uint8_t PCSX::Pads::Pad::poll(uint8_t value) { return m_bufc > m_bufcount ? 0xff : m_buf[m_bufc++]; }
 
 uint8_t PCSX::Pads::Pad::startPoll(PadDataS* pad) {
     m_bufc = 0;
@@ -255,7 +297,7 @@ bool PCSX::Pads::configure() {
     }
 
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(550, 220), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(_("Pad configuration"), &m_showCfg)) {
         ImGui::End();
         return false;
@@ -266,6 +308,11 @@ bool PCSX::Pads::configure() {
         []() { return _("Pad 2"); },
     };
 
+    if (ImGui::Button(_("Rescan gamepads and re-read game controllers database"))) {
+        shutdown();
+        init();
+    }
+
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {
             if (ImGui::Selectable(c_padNames[i](), m_selectedPadForConfig == i)) {
@@ -275,12 +322,21 @@ bool PCSX::Pads::configure() {
         ImGui::EndCombo();
     }
 
-    return m_pads[m_selectedPadForConfig].configure();
+    bool changed = false;
+    if (ImGui::Button(_("Set defaults"))) {
+        changed = true;
+        m_pads[m_selectedPadForConfig].setDefaults(m_selectedPadForConfig == 0);
+    }
+
+    changed |= m_pads[m_selectedPadForConfig].configure();
+
+    ImGui::End();
+
+    return changed;
 }
 
 // GLFW doesn't support converting some of the most common keys to strings
-// Key: The scancode of a GLFW key
-static std::string keyToString(int key) {
+static std::string glfwKeyToString(int key) {
     // define strings for some common keys that are not supported by glfwGetKeyName
     switch (key) {
         case GLFW_KEY_UP:
@@ -315,11 +371,11 @@ void PCSX::Pads::Pad::keyboardEvent(const Events::Keyboard& event) {
     }
     getButtonFromGUIIndex(m_buttonToWait) = event.key;
     m_buttonToWait = -1;
+    m_changed = true;
+    map();
 }
 
 bool PCSX::Pads::Pad::configure() {
-    bool changed = false;
-
     static std::function<const char*()> const c_inputDevices[] = {
         []() { return _("Auto"); },
         []() { return _("Controller"); },
@@ -338,7 +394,8 @@ bool PCSX::Pads::Pad::configure() {
         []() { return _("Left"); },
     };
 
-    ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value);
+    bool changed = false;
+    changed |= ImGui::Checkbox(_("Connected"), &m_settings.get<SettingConnected>().value);
 
     auto& type = m_settings.get<SettingInputType>().value;
 
@@ -354,24 +411,64 @@ bool PCSX::Pads::Pad::configure() {
     }
 
     ImGui::Text(_("Keyboard mapping"));
-    for (auto i = 0; i < 10; i++) {
-        ImGui::Text(c_buttonNames[i]());
-        ImGui::SameLine();
-        bool hasToPop = false;
-        if (m_buttonToWait == i) {
-            const ImVec4 hilight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
-            ImGui::PushStyleColor(ImGuiCol_Button, hilight);
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hilight);
+    if (ImGui::BeginTable("Mapping", 2, ImGuiTableFlags_SizingFixedSame)) {
+        ImGui::TableSetupColumn(_("Gamepad button"));
+        ImGui::TableSetupColumn(_("Computer button mapping"));
+        ImGui::TableHeadersRow();
+        for (auto i = 0; i < 10; i++) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(c_buttonNames[i]());
+            ImGui::TableSetColumnIndex(1);
+            bool hasToPop = false;
+            if (m_buttonToWait == i) {
+                const ImVec4 hilight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+                ImGui::PushStyleColor(ImGuiCol_Button, hilight);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hilight);
+                hasToPop = true;
+            }
+            if (ImGui::Button(glfwKeyToString(getButtonFromGUIIndex(i)).c_str(), ImVec2{-1, 0})) {
+                m_buttonToWait = i;
+            }
+            if (hasToPop) {
+                ImGui::PopStyleColor(2);
+            }
         }
-        if (ImGui::Button(keyToString(getButtonFromGUIIndex(i)).c_str())) {
-            m_buttonToWait = i;
+        ImGui::EndTable();
+    }
+
+    const char* preview = _("No gamepad selected or connected");
+    auto& id = m_settings.get<SettingControllerID>().value;
+    int glfwjid = id >= 0 ? g_emulator->m_pads->m_gamepadsMap[id] : -1;
+
+    std::vector<const char*> gamepadsNames;
+
+    for (auto& m : g_emulator->m_pads->m_gamepadsMap) {
+        if (m == -1) {
+            continue;
         }
-        if (!hasToPop) {
-            ImGui::PopStyleColor(3);
+        const char* name = glfwGetGamepadName(m);
+        gamepadsNames.push_back(name);
+        if (m == glfwjid) {
+            preview = name;
         }
     }
 
-    ImGui::End();
+    if (ImGui::BeginCombo(_("Gamepad"), preview)) {
+        for (int i = 0; i < gamepadsNames.size(); i++) {
+            if (ImGui::Selectable(gamepadsNames[i])) {
+                changed = true;
+                id = i;
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (m_changed) {
+        changed = true;
+        m_changed = false;
+    }
 
     return changed;
 }
@@ -425,9 +522,13 @@ void PCSX::Pads::setCfg(const json& j) {
         auto padsCfg = j["pads"];
         if (padsCfg.size() >= 1) {
             m_pads[0].setCfg(padsCfg[0]);
+        } else {
+            m_pads[0].setDefaults(true);
         }
         if (padsCfg.size() >= 2) {
-            m_pads[0].setCfg(padsCfg[1]);
+            m_pads[1].setCfg(padsCfg[1]);
+        } else {
+            m_pads[1].setDefaults(false);
         }
     } else {
         setDefaults();

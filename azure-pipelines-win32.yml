@@ -34,6 +34,7 @@ steps:
     Contents: |
       LICENSE
       i18n/*.po
+      third_party/SDL_GameControllerDB/gamecontrollerdb.txt
     TargetFolder: '$(build.artifactStagingDirectory)/assets'
 
 - task: CopyFiles@2
