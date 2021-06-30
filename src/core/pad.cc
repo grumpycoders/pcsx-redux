@@ -182,11 +182,14 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     }
 
     if (m_padID >= 0) {
-        hasPad = glfwGetGamepadState(g_emulator->m_pads->m_gamepadsMap[m_padID], &state);
-        if (!hasPad) {
-            const char* guid = glfwGetJoystickGUID(g_emulator->m_pads->m_gamepadsMap[m_padID]);
-            g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
-            m_padID = -1;
+        int glfwID = g_emulator->m_pads->m_gamepadsMap[m_padID];
+        if ((glfwID >= GLFW_JOYSTICK_1) && (glfwID <= GLFW_JOYSTICK_LAST)) {
+            hasPad = glfwGetGamepadState(glfwID, &state);
+            if (!hasPad) {
+                const char* guid = glfwGetJoystickGUID(glfwID);
+                g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
+                m_padID = -1;
+            }
         }
     }
 
