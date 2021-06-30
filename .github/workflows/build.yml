@@ -16,6 +16,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: Fetch submodules
       run: git submodule update --init --recursive
+    - name: Update packages
+      run: sudo apt-get update
     - name: Install dependencies
       run: sudo apt-get install -y g++-mipsel-linux-gnu
     - name: Build OpenBIOS
