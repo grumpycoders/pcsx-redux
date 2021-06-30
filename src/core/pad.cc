@@ -184,7 +184,7 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     if (m_padID >= 0) {
         int glfwID = g_emulator->m_pads->m_gamepadsMap[m_padID];
         if ((glfwID >= GLFW_JOYSTICK_1) && (glfwID <= GLFW_JOYSTICK_LAST)) {
-            hasPad = glfwGetGamepadState(g_emulator->m_pads->m_gamepadsMap[m_padID], &state);
+            hasPad = glfwGetGamepadState(glfwID, &state);
         }
         if (!hasPad) {
             const char* guid = glfwGetJoystickGUID(g_emulator->m_pads->m_gamepadsMap[m_padID]);
