@@ -23,6 +23,7 @@
 
 #include "gpu/soft/externals.h"
 #include "gpu/soft/soft.h"
+#include "gpu/soft/fps.h"
 
 namespace PCSX {
 
@@ -38,7 +39,7 @@ class SoftPrim : public SoftRenderer {
         }
     }
 
-    bool configure(bool *);
+    bool configure();
 
     inline void reset() {
         GlobalTextAddrX = 0;

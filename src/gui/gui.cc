@@ -60,6 +60,7 @@
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
+#include "gpu/soft/fps.h"
 #include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
@@ -330,6 +331,10 @@ end)(jit.status()))
         if (emuSettings.get<Emulator::SettingMcd2>().empty()) {
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
+
+        s_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
+        s_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
+        s_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
 
         auto argPath1 = m_args.get<std::string>("memcard1");
         auto argPath2 = m_args.get<std::string>("memcard2");

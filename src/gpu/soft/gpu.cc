@@ -469,9 +469,9 @@ void updateDisplay(void)  // UPDATE DISPLAY
 
     if (dwActFixes & 32)  // pc fps calculation fix
     {
-        if (UseFrameLimit)
+        if (s_useFrameLimit)
             PCFrameCap();  // -> brake
-                           //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
+                           //        if (s_useFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
     }
 
     //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
@@ -482,7 +482,7 @@ void updateDisplay(void)  // UPDATE DISPLAY
     if (iFastFwd)  // fastfwd ?
     {
         static int fpscount;
-        UseFrameSkip = 1;
+        s_useFrameSkip = 1;
 
         if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
         if (fpscount % 6)                     // -> skip 6/7 frames
@@ -494,7 +494,7 @@ void updateDisplay(void)  // UPDATE DISPLAY
         return;
     }
 
-    if (UseFrameSkip)  // skip ?
+    if (s_useFrameSkip)  // skip ?
     {
         if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
         if (dwActFixes & 0xa0)                // -> pc fps calculation fix/old skipping fix
@@ -637,7 +637,7 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
 
     if (iFrameLimit == 2) SetAutoFrameCap();  // -> set it
 
-    if (UseFrameSkip) updateDisplay();  // stupid stuff when frame skipping enabled
+    if (s_useFrameSkip) updateDisplay();  // stupid stuff when frame skipping enabled
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -694,10 +694,10 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
     {
         if (dwActFixes & 64)  // lazy screen update fix
         {
-            if (bDoLazyUpdate && !UseFrameSkip) updateDisplay();
+            if (bDoLazyUpdate && !s_useFrameSkip) updateDisplay();
             bDoLazyUpdate = false;
         } else {
-            if (bDoVSyncUpdate && !UseFrameSkip)  // some primitives drawn?
+            if (bDoVSyncUpdate && !s_useFrameSkip)  // some primitives drawn?
                 updateDisplay();                  // -> update display
         }
     }
@@ -853,7 +853,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 
             if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
             {
-                if (UseFrameSkip) updateDisplay();
+                if (s_useFrameSkip) updateDisplay();
                 if (dwActFixes & 64) bDoLazyUpdate = true;
             }
         }
@@ -981,7 +981,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 __inline void FinishedVRAMWrite(void) {
     /*
     // NEWX
-     if(!PSXDisplay.Interlaced && UseFrameSkip)            // stupid frame skipping
+     if(!PSXDisplay.Interlaced && s_useFrameSkip)            // stupid frame skipping
       {
        VRAMWrite.Width +=VRAMWrite.x;
        VRAMWrite.Height+=VRAMWrite.y;
@@ -1586,13 +1586,13 @@ void GPUsetframelimit(uint32_t option) {
     bInitCap = true;
 
     if (option == 1) {
-        UseFrameLimit = 1;
-        UseFrameSkip = 0;
+        s_useFrameLimit = 1;
+        s_useFrameSkip = 0;
         iFrameLimit = 2;
         SetAutoFrameCap();
         // BuildDispMenu(0);
     } else {
-        UseFrameLimit = 0;
+        s_useFrameLimit = 0;
     }
 }
 

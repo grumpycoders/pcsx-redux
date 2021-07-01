@@ -42,9 +42,9 @@
 #include "gpu/soft/fps.h"
 
 #include <SDL.h>
-
 #include <algorithm>
 
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
@@ -59,9 +59,6 @@ float fFrameRateHz = 0;
 Uint32 dwFrameRateTicks = 16;
 float fFrameRate;
 int iFrameLimit = 2;
-bool UseFrameLimit = false;
-bool UseFrameSkip = false;
-bool bSSSPSXLimit = true;
 
 ////////////////////////////////////////////////////////////////////////
 // FPS skipping / limit
@@ -76,22 +73,22 @@ float fps_cur = 0;
 #define MAXLACE 16
 
 void CheckFrameRate(void) {
-    if (UseFrameSkip)  // skipping mode?
+    if (s_useFrameSkip)  // skipping mode?
     {
         if (!(dwActFixes & 0x80))  // not old skipping mode?
         {
             dwLaceCnt++;                                // -> store cnt of vsync between frames
-            if (dwLaceCnt >= MAXLACE && UseFrameLimit)  // -> if there are many laces without screen toggling,
+            if (dwLaceCnt >= MAXLACE && s_useFrameLimit)  // -> if there are many laces without screen toggling,
             {                                           //    do std frame limitation
                 if (dwLaceCnt == MAXLACE) bInitCap = true;
 
-                if (bSSSPSXLimit)
+                if (s_SSSPSXLimit)
                     FrameCapSSSPSX();
                 else
                     FrameCap();
             }
-        } else if (UseFrameLimit) {
-            if (bSSSPSXLimit)
+        } else if (s_useFrameLimit) {
+            if (s_SSSPSXLimit)
                 FrameCapSSSPSX();
             else
                 FrameCap();
@@ -99,7 +96,7 @@ void CheckFrameRate(void) {
         calcfps();  // -> calc fps display in skipping mode
     } else          // non-skipping mode:
     {
-        if (UseFrameLimit)
+        if (s_useFrameLimit)
             FrameCap();  // -> do it
                          //        if (ulKeybits & KEY_SHOWFPS) calcfps();  // -> and calc fps display
     }
@@ -249,7 +246,7 @@ void FrameSkip(void) {
 
         if (bInitCap || bSkipNextFrame)  // first time or we skipped before?
         {
-            if (UseFrameLimit && !bInitCap)  // frame limit wanted and not first time called?
+            if (s_useFrameLimit && !bInitCap)  // frame limit wanted and not first time called?
             {
                 Uint32 dwT = _ticks_since_last_update;  // -> that's the time of the last drawn frame
                 dwLastLace +=
@@ -327,7 +324,7 @@ void FrameSkip(void) {
 
         if (_ticks_since_last_update > dwWaitTime)  // hey, we needed way too int32_t for that frame...
         {
-            if (UseFrameLimit)  // if limitation, we skip just next frame,
+            if (s_useFrameLimit)  // if limitation, we skip just next frame,
             {                   // and decide after, if we need to do more
                 iNumSkips = 0;
             } else {
@@ -337,7 +334,7 @@ void FrameSkip(void) {
             }
             bSkipNextFrame = true;  // -> signal for skipping the next frame
         } else                      // we were faster than real psx? fine :)
-            if (UseFrameLimit)      // frame limit used? so we wait til the 'real psx time' has been reached
+            if (s_useFrameLimit)      // frame limit used? so we wait til the 'real psx time' has been reached
         {
             if (dwLaceCnt > MAXLACE)  // -> security check
                 _ticks_since_last_update = dwWaitTime;
@@ -385,7 +382,7 @@ void calcfps(void)  // fps calculations
         lastticks = curticks;
         //--------------------------------------------------//
 
-        if (UseFrameSkip && !UseFrameLimit && _ticks_since_last_update)
+        if (s_useFrameSkip && !s_useFrameLimit && _ticks_since_last_update)
             fps_skip = std::min(fps_skip, (((float)CPUFrequency) / ((float)_ticks_since_last_update) + 1.0f));
 
         LastTime = CurrentTime;
@@ -393,13 +390,13 @@ void calcfps(void)  // fps calculations
         curticks = SDL_GetTicks();
         _ticks_since_last_update = curticks - lastticks;
 
-        if (UseFrameSkip && !UseFrameLimit && _ticks_since_last_update)
+        if (s_useFrameSkip && !s_useFrameLimit && _ticks_since_last_update)
             fps_skip = std::min(fps_skip, ((float)1000 / (float)_ticks_since_last_update + 1.0f));
 
         lastticks = curticks;
     }
 
-    if (UseFrameSkip && UseFrameLimit) {
+    if (s_useFrameSkip && s_useFrameLimit) {
         fpsskip_tck += _ticks_since_last_update;
 
         if (++fpsskip_cnt == 2) {
@@ -426,7 +423,7 @@ void calcfps(void)  // fps calculations
         fps_cnt = 0;
         fps_tck = 1;
 
-        if (UseFrameLimit && fps_cur > fFrameRateHz)  // optical adjust ;) avoids flickering fps display
+        if (s_useFrameLimit && fps_cur > fFrameRateHz)  // optical adjust ;) avoids flickering fps display
             fps_cur = fFrameRateHz;
     }
 }

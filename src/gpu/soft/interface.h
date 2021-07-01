@@ -50,7 +50,7 @@ class impl : public GPU {
     virtual void updateLace() final;
     virtual bool configure() final {
         if (m_showCfg) {
-            return m_softPrim.configure(&m_showCfg);
+            return m_softPrim.configure();
         } else {
             return false;
         }
