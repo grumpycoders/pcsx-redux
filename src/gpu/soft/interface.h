@@ -58,9 +58,7 @@ class impl : public GPU {
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;
-    virtual void setDither (int setting) final {
-        m_softPrim.m_useDither = setting;
-    }
+    virtual void setDither(int setting) final { m_softPrim.m_useDither = setting; }
 
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;
