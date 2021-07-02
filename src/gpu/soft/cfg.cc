@@ -200,13 +200,13 @@ void ReadConfigFile() {
 
     GetValue("SSSPSXLimit", bSSSPSXLimit);
 
-    GetValue("s_useFrameLimit", s_useFrameLimit);
-    if (s_useFrameLimit < 0) s_useFrameLimit = 0;
-    if (s_useFrameLimit > 1) s_useFrameLimit = 1;
+    GetValue("g_useFrameLimit", g_useFrameLimit);
+    if (g_useFrameLimit < 0) g_useFrameLimit = 0;
+    if (g_useFrameLimit > 1) g_useFrameLimit = 1;
 
-    GetValue("s_useFrameSkip", s_useFrameSkip);
-    if (s_useFrameSkip < 0) s_useFrameSkip = 0;
-    if (s_useFrameSkip > 1) s_useFrameSkip = 1;
+    GetValue("g_useFrameSkip", g_useFrameSkip);
+    if (g_useFrameSkip < 0) g_useFrameSkip = 0;
+    if (g_useFrameSkip > 1) g_useFrameSkip = 1;
 
     GetValue("FPSDetection", iFrameLimit);
     if (iFrameLimit < 1) iFrameLimit = 1;
@@ -361,8 +361,8 @@ bool OnInitSoftDialog(HWND hW) {
     if (i == CB_ERR) i = 0;
     ComboBox_SetCurSel(hWC, i);
 
-    if (s_useFrameLimit) CheckDlgButton(hW, IDC_USELIMIT, true);
-    if (s_useFrameSkip) CheckDlgButton(hW, IDC_USESKIPPING, true);
+    if (g_useFrameLimit) CheckDlgButton(hW, IDC_USELIMIT, true);
+    if (g_useFrameSkip) CheckDlgButton(hW, IDC_USESKIPPING, true);
     if (iWindowMode)
         CheckRadioButton(hW, IDC_DISPMODE1, IDC_DISPMODE2, IDC_DISPMODE2);
     else
@@ -428,14 +428,14 @@ void GetSettings(HWND hW) {
         iWindowMode = 0;
 
     if (IsDlgButtonChecked(hW, IDC_USELIMIT))  // fps limit
-        s_useFrameLimit = 1;
+        g_useFrameLimit = 1;
     else
-        s_useFrameLimit = 0;
+        g_useFrameLimit = 0;
 
     if (IsDlgButtonChecked(hW, IDC_USESKIPPING))  // fps skip
-        s_useFrameSkip = 1;
+        g_useFrameSkip = 1;
     else
-        s_useFrameSkip = 0;
+        g_useFrameSkip = 0;
 
     if (IsDlgButtonChecked(hW, IDC_GAMEFIX))  // game fix
         iUseFixes = 1;
@@ -626,8 +626,8 @@ void ReadGPUConfig(void) {
     // predefines
     iColDepth = 16;
     iWindowMode = 0;
-    s_useFrameLimit = 1;
-    s_useFrameSkip = 0;
+    g_useFrameLimit = 1;
+    g_useFrameSkip = 0;
     iFrameLimit = 2;
     fFrameRate = 200.0f;
     dwCfgFixes = 0;
@@ -649,11 +649,11 @@ void ReadGPUConfig(void) {
             if (RegQueryValueEx(myKey, "ColDepth", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 iColDepth = (int)temp;
             size = 4;
-            if (RegQueryValueEx(myKey, "s_useFrameLimit", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                s_useFrameLimit = (int)temp;
+            if (RegQueryValueEx(myKey, "g_useFrameLimit", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
+                g_useFrameLimit = (int)temp;
             size = 4;
-            if (RegQueryValueEx(myKey, "s_useFrameSkip", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
-                s_useFrameSkip = (int)temp;
+            if (RegQueryValueEx(myKey, "g_useFrameSkip", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
+                g_useFrameSkip = (int)temp;
             size = 4;
             if (RegQueryValueEx(myKey, "FrameLimit", 0, &type, (LPBYTE)&temp, &size) == ERROR_SUCCESS)
                 iFrameLimit = (int)temp;
@@ -665,8 +665,8 @@ void ReadGPUConfig(void) {
                 iUseFixes = (int)temp;
             size = 4;
             if (!iFrameLimit) {
-                s_useFrameLimit = 1;
-                s_useFrameSkip = 0;
+                g_useFrameLimit = 1;
+                g_useFrameSkip = 0;
                 iFrameLimit = 2;
             }
 
@@ -733,10 +733,10 @@ void WriteGPUConfig(void) {
     RegSetValueEx(myKey, "WindowMode", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iColDepth;
     RegSetValueEx(myKey, "ColDepth", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = s_useFrameLimit;
-    RegSetValueEx(myKey, "s_useFrameLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
-    temp = s_useFrameSkip;
-    RegSetValueEx(myKey, "s_useFrameSkip", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
+    temp = g_useFrameLimit;
+    RegSetValueEx(myKey, "g_useFrameLimit", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
+    temp = g_useFrameSkip;
+    RegSetValueEx(myKey, "g_useFrameSkip", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = dwCfgFixes;
     RegSetValueEx(myKey, "CfgFixes", 0, REG_DWORD, (LPBYTE)&temp, sizeof(temp));
     temp = iUseFixes;

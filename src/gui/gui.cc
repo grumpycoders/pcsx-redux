@@ -332,9 +332,9 @@ end)(jit.status()))
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
-        s_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
-        s_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
-        s_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
+        g_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
+        g_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
+        g_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
 
         auto argPath1 = m_args.get<std::string>("memcard1");
         auto argPath2 = m_args.get<std::string>("memcard2");

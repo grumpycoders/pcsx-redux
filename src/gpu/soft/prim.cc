@@ -110,19 +110,19 @@ bool PCSX::SoftGPU::SoftPrim::configure() {
 
     if (ImGui::Begin("Soft GPU configuration")) {
         changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
-        if (ImGui::Checkbox("Use framelimit", &s_useFrameLimit)) {
+        if (ImGui::Checkbox("Use framelimit", &g_useFrameLimit)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingFrameLimit>() = s_useFrameLimit;
+            g_emulator->settings.get<Emulator::SettingFrameLimit>() = g_useFrameLimit;
         }
 
-        if (ImGui::Checkbox("Use frameskip", &s_useFrameSkip)) {
+        if (ImGui::Checkbox("Use frameskip", &g_useFrameSkip)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingFrameskip>() = s_useFrameSkip;
+            g_emulator->settings.get<Emulator::SettingFrameskip>() = g_useFrameSkip;
         }
 
-        if (ImGui::Checkbox("SSSPSXLimit", &s_SSSPSXLimit)) {
+        if (ImGui::Checkbox("SSSPSXLimit", &g_SSSPSXLimit)) {
             changed = true;
-            g_emulator->settings.get<Emulator::SettingSSSPSXLimit>() = s_SSSPSXLimit;
+            g_emulator->settings.get<Emulator::SettingSSSPSXLimit>() = g_SSSPSXLimit;
         }
 
         ImGui::End();
@@ -690,7 +690,7 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
     /*
      if(!PSXDisplay.Interlaced)                            // stupid frame skip stuff
       {
-       if(s_useFrameSkip &&
+       if(g_useFrameSkip &&
           imageX1<PSXDisplay.DisplayEnd.x &&
           imageSX>=PSXDisplay.DisplayPosition.x &&
           imageY1<PSXDisplay.DisplayEnd.y &&
