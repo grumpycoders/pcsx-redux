@@ -21,7 +21,6 @@
 
 #include <string>
 
-#include "core/psemu_plugin_defs.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"

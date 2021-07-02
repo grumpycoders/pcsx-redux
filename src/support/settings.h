@@ -227,7 +227,7 @@ class Settings : private std::tuple<settings...> {
 }  // namespace PCSX
 
 #ifdef _MSC_VER
-#define TYPESTRING_MAX_CONST_CHAR 99
+#define TYPESTRING_MAX_CONST_CHAR 63
 
 #define TYPESTRING_MIN(a, b) (a) < (b) ? (a) : (b)
 

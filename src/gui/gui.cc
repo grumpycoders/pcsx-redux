@@ -76,6 +76,8 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+PCSX::GUI* PCSX::GUI::s_gui = nullptr;
+
 void PCSX::GUI::bindVRAMTexture() {
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     checkGL();
@@ -126,31 +128,13 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     cfg.MergeMode = combine;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
-    ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(path.u8string().c_str()), size, &cfg, ranges);
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / "fonts" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = g_system->getBinDir() / ".." / "share" / "pcsx-redux" / "fonts" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / "third_party" / "noto" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
-    if (!ret) {
-        auto tryMe = std::filesystem::current_path() / ".." / ".." / "third_party" / "noto" / path;
-        ret = io.Fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(tryMe.u8string().c_str()), size, &cfg, ranges);
-    }
+    g_system->findResource(
+        [&ret, fonts = io.Fonts, size, &cfg, ranges](const std::filesystem::path& filename) mutable {
+            ret = fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(filename.u8string().c_str()), size, &cfg,
+                                            ranges);
+            return ret != nullptr;
+        },
+        path, "fonts", std::filesystem::path("third_party") / "noto");
     std::swap(backup, s_imguiUserErrorFunctor);
     return ret;
 }
@@ -315,14 +299,29 @@ end)(jit.status()))
             if ((j.count("loggers") == 1 && j["loggers"].is_object())) {
                 m_log.deserialize(j["loggers"]);
             }
+
+            auto& windowSizeX = settings.get<WindowSizeX>();
+            auto& windowSizeY = settings.get<WindowSizeY>();
+            if (!windowSizeX) {
+                windowSizeX = 1280;
+            }
+            if (!windowSizeY) {
+                windowSizeY = 800;
+            }
+
             glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
-            glfwSetWindowSize(m_window, settings.get<WindowSizeX>(), settings.get<WindowSizeY>());
+            glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
             PCSX::g_emulator->m_spu->setCfg(j);
+            PCSX::g_emulator->m_pads->setCfg(j);
         } else {
             saveCfg();
+            PCSX::g_emulator->m_pads->setDefaults();
         }
 
         setFullscreen(m_fullscreen);
+        const auto currentTheme =
+            g_emulator->settings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
+        apply_theme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
             emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
@@ -376,6 +375,17 @@ end)(jit.status()))
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    m_createWindowOldCallback = platform_io.Platform_CreateWindow;
+    platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
+        s_gui->m_createWindowOldCallback(viewport);
+        // absolutely horrendous hack, but the only way we have to grab the
+        // newly created GLFWwindow pointer...
+        auto window = *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+        glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+    };
+    glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
+    glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
@@ -447,7 +457,13 @@ void PCSX::GUI::saveCfg() {
     j["emulator"] = PCSX::g_emulator->settings.serialize();
     j["gui"] = settings.serialize();
     j["loggers"] = m_log.serialize();
+    j["pads"] = PCSX::g_emulator->m_pads->getCfg();
     cfg << std::setw(2) << j << std::endl;
+}
+
+void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+    g_system->m_eventBus->signal(Events::Keyboard{key, scancode, action, mods});
 }
 
 void PCSX::GUI::startFrame() {
@@ -455,19 +471,6 @@ void PCSX::GUI::startFrame() {
     uv_run(&g_emulator->m_loop, UV_RUN_NOWAIT);
     if (glfwWindowShouldClose(m_window)) g_system->quit();
     glfwPollEvents();
-
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case SDL_JOYDEVICEADDED:
-            case SDL_JOYDEVICEREMOVED:
-                PCSX::g_emulator->m_pad1->shutdown();
-                PCSX::g_emulator->m_pad2->shutdown();
-                PCSX::g_emulator->m_pad1->init();
-                PCSX::g_emulator->m_pad2->init();
-                break;
-        }
-    }
 
     auto& io = ImGui::GetIO();
 
@@ -736,6 +739,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -980,11 +984,12 @@ void PCSX::GUI::endFrame() {
     PCSX::g_emulator->m_spu->debug();
     changed |= PCSX::g_emulator->m_spu->configure();
     changed |= PCSX::g_emulator->m_gpu->configure();
+    changed |= PCSX::g_emulator->m_pads->configure();
     changed |= configure();
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
-            showThemes();
+            changed |= showThemes();
             bool needFontReload = false;
             {
                 std::string currentLocale = g_system->localeName();
@@ -1336,14 +1341,18 @@ void PCSX::GUI::interruptsScaler() {
     ImGui::End();
 }
 
-void PCSX::GUI::showThemes() {
+bool PCSX::GUI::showThemes() {
     static const char* imgui_themes[6] = {"Default", "Classic", "Light",
                                           "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
-    if (ImGui::BeginCombo(_("Themes"), curr_item, ImGuiComboFlags_HeightLarge)) {
+    auto changed = false;
+    auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
+
+    if (ImGui::BeginCombo(_("Themes"), imgui_themes[currentTheme], ImGuiComboFlags_HeightLarge)) {
         for (int n = 0; n < IM_ARRAYSIZE(imgui_themes); n++) {
-            bool selected = (curr_item == imgui_themes[n]);
+            bool selected = (currentTheme == n);
             if (ImGui::Selectable(imgui_themes[n], selected)) {
-                curr_item = imgui_themes[n];
+                currentTheme = n;
+                changed = true;
                 apply_theme(n);
             }
             if (selected) {
@@ -1352,6 +1361,8 @@ void PCSX::GUI::showThemes() {
         }
         ImGui::EndCombo();
     }
+
+    return changed;
 }
 
 void PCSX::GUI::about() {

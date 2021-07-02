@@ -246,3 +246,30 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
     m_locales[name] = locale;
     return true;
 }
+
+bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& path)> walker,
+                                const std::filesystem::path& name, const std::filesystem::path& releasePath,
+                                const std::filesystem::path& sourcePath) {
+    // First, let's try the base filename from the same directory as our main binary.
+    if (walker(m_binDir / name)) return true;
+
+    // Then, let's search for our release folders...
+    // Maybe in a subfolder next to our main binary? That's the Windows way.
+    if (walker(m_binDir / releasePath / name)) return true;
+    // Next up, the Unix way: binary is in /bin, and resources are in /share/pcsx-redux.
+    if (walker(m_binDir / ".." / "share" / "pcsx-redux" / releasePath / name)) return true;
+    // And finally, MacOS had to do differently, of course. The MacOS app has this layout:
+    // binary is in Contents/MacOS/
+    // rest is in Contents/Resources/share/pcsx-redux
+    if (walker(m_binDir / ".." / "Resources" / "share" / "pcsx-redux" / releasePath / name)) return true;
+
+    // And finally, let's try if we're running from sources.
+    // If our main binary is at the root - that's the Unix way.
+    if (walker(m_binDir / sourcePath / name)) return true;
+    // And if it's in a subfolder - that's the Window / Visual Studio way.
+    if (walker(m_binDir / ".." / ".." / sourcePath / name)) return true;
+    if (walker(m_binDir / ".." / ".." / ".." / sourcePath / name)) return true;
+
+    // No luck here...
+    return false;
+}

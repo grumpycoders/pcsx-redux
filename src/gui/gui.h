@@ -60,8 +60,23 @@ namespace PCSX {
 enum class LogClass : unsigned;
 
 class GUI final {
+    // imgui can't handle more than one "instance", so...
+    static GUI *s_gui;
+    void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
+    static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        s_gui->glfwKeyCallback(window, key, scancode, action, mods);
+    }
+    void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+
   public:
-    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
+    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+        assert(s_gui == nullptr);
+        s_gui = this;
+    }
+    ~GUI() {
+        assert(s_gui == this);
+        s_gui = nullptr;
+    }
     void init();
     void close();
     void update(bool vsync = false);
@@ -125,7 +140,7 @@ class GUI final {
     void endFrame();
 
     bool configure();
-    void showThemes();  // Theme window : Allows for custom imgui themes
+    bool showThemes();  // Theme window : Allows for custom imgui themes
     void about();
     void interruptsScaler();
 
@@ -174,8 +189,9 @@ class GUI final {
     typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
+    typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -237,8 +253,6 @@ class GUI final {
 
     void shellReached();
 
-    // ImGui themes: Defined in themes/imgui_themes.c
-    const char *curr_item = "Default";
     void apply_theme(int n);
     void cherry_theme();
     void mono_theme();

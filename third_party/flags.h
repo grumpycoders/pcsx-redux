@@ -97,9 +97,12 @@ inline std::vector<std::string_view> get_values(
     auto iter = options.cbegin(bucket);
     auto end = options.cend(bucket);
     while (iter != end) {
-        values.emplace_back(iter++->second.value());
+        auto & opt = *iter++;
+        if (opt.second.has_value()) {
+            values.emplace_back(opt.second.value());
+        }
     }
-    return std::move(values);
+    return values;
 }
 
 // Coerces the string value of the given option into <T>.

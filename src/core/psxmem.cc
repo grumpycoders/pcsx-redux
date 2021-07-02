@@ -105,17 +105,23 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
 
     // Load BIOS
     auto &biosPath = g_emulator->settings.get<PCSX::Emulator::SettingBios>().value;
-    File *f = new File(biosPath.string());
+    std::unique_ptr<File> f(new File(biosPath.string()));
     if (f->failed()) {
         PCSX::g_system->printf(_("Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"), biosPath.string());
-        delete f;
-        f = new File("openbios.bin");
+
+        g_system->findResource(
+            [&f](const std::filesystem::path &filename) {
+                std::unique_ptr<File> newFile(new File(filename));
+                f.swap(newFile);
+                return !f->failed();
+            },
+            "openbios.bin", "resources", std::filesystem::path("src") / "mips" / "openbios");
         if (f->failed()) {
             PCSX::g_system->printf(_(
                 "Could not open OpenBIOS fallback. Things won't work properly.\nAdd a valid BIOS in the configuration "
                 "and hard reset.\n"));
         } else {
-            biosPath = "openbios.bin";
+            biosPath = f->filename();
         }
     } else {
         f->read(g_psxR, bios_size);
@@ -128,7 +134,6 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         }
         PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
     }
-    delete f;
 
     for (auto &overlay : g_emulator->settings.get<Emulator::SettingBiosOverlay>()) {
         if (!overlay.get<Emulator::OverlaySetting::Enabled>()) continue;
@@ -137,7 +142,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         auto loffset = overlay.get<Emulator::OverlaySetting::LoadOffset>();
         auto lsize = overlay.get<Emulator::OverlaySetting::LoadSize>();
         bool failed = false;
-        File *f = new File(filename);
+        std::unique_ptr<File> f(new File(filename));
 
         if (f->failed()) {
             PCSX::g_system->message(_("Could not open BIOS Overlay:\"%s\"!\n"), filename.string());
@@ -207,7 +212,6 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
         }
 
         f->close();
-        delete f;
     }
 }
 
