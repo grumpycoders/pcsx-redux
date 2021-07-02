@@ -53,9 +53,10 @@ class SoftPrim : public SoftRenderer {
         sSetMask = 0;
         lSetMask = 0;
     }
+    
+    int m_useDither = 0;
 
   private:
-    int iUseDither = 0;
     int32_t GlobalTextREST;
 
     typedef void (SoftPrim::*func_t)(unsigned char *);

@@ -71,6 +71,7 @@ float fps_cur = 0;
 bool g_useFrameLimit = false;
 bool g_useFrameSkip = false;
 bool g_SSSPSXLimit = true;
+
 ////////////////////////////////////////////////////////////////////////
 
 #define MAXLACE 16

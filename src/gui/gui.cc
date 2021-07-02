@@ -335,6 +335,7 @@ end)(jit.status()))
         g_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
         g_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
         g_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
+        PCSX::g_emulator->m_gpu->setDither (emuSettings.get<Emulator::SettingDither>());
 
         auto argPath1 = m_args.get<std::string>("memcard1");
         auto argPath2 = m_args.get<std::string>("memcard2");

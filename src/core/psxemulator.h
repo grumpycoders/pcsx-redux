@@ -177,11 +177,12 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("UseFrameSkip", false)> SettingFrameskip;
     typedef Setting<bool, TYPESTRING("UseFrameLimit", false)> SettingFrameLimit;
     typedef Setting<bool, TYPESTRING("SSSPSXLimit", true)> SettingSSSPSXLimit;
+    typedef Setting<int, TYPESTRING("Dither", 0)> SettingDither;
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingFrameskip,
-             SettingFrameLimit, SettingSSSPSXLimit>
+             SettingFrameLimit, SettingSSSPSXLimit, SettingDither>
         settings;
     class PcsxConfig {
       public:

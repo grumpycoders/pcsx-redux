@@ -109,7 +109,11 @@ bool PCSX::SoftGPU::SoftPrim::configure() {
                                          "Always dither g-shaded polygons (slowest)"};
 
     if (ImGui::Begin("Soft GPU configuration")) {
-        changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
+        if (ImGui::Combo("Dithering", &m_useDither, ditherValues, 3)) {
+            changed = true;
+            g_emulator->settings.get<Emulator::SettingDither>() = m_useDither;
+        }
+
         if (ImGui::Checkbox("Use framelimit", &g_useFrameLimit)) {
             changed = true;
             g_emulator->settings.get<Emulator::SettingFrameLimit>() = g_useFrameLimit;
@@ -153,7 +157,7 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
             lGPUstatusRet = (lGPUstatusRet & 0xffffe000) | (gdata & 0x1fff);
 
             // tekken dithering? right now only if dithering is forced by user
-            if (iUseDither == 2)
+            if (m_useDither == 2)
                 iDither = 2;
             else
                 iDither = 0;
@@ -167,11 +171,11 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
 
     usMirror = gdata & 0x3000;
 
-    if (iUseDither == 2) {
+    if (m_useDither == 2) {
         iDither = 2;
     } else {
         if (gdata & 200)
-            iDither = iUseDither;
+            iDither = m_useDither;
         else
             iDither = 0;
     }
