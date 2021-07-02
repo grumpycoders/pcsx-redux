@@ -698,7 +698,7 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
             bDoLazyUpdate = false;
         } else {
             if (bDoVSyncUpdate && !g_useFrameSkip)  // some primitives drawn?
-                updateDisplay();                  // -> update display
+                updateDisplay();                    // -> update display
         }
     }
 

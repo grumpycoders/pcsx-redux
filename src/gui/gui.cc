@@ -49,6 +49,7 @@
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
+#include "gpu/soft/externals.h"
 #include "gui/resources.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -60,7 +61,6 @@
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
-#include "gpu/soft/externals.h"
 #include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
@@ -334,7 +334,7 @@ end)(jit.status()))
         g_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
         g_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
         g_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
-        PCSX::g_emulator->m_gpu->setDither (emuSettings.get<Emulator::SettingDither>());
+        PCSX::g_emulator->m_gpu->setDither(emuSettings.get<Emulator::SettingDither>());
 
         auto argPath1 = m_args.get<std::string>("memcard1");
         auto argPath2 = m_args.get<std::string>("memcard2");

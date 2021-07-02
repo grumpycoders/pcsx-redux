@@ -42,6 +42,7 @@
 #include "gpu/soft/fps.h"
 
 #include <SDL.h>
+
 #include <algorithm>
 
 #include "core/psxemulator.h"
@@ -81,9 +82,9 @@ void CheckFrameRate(void) {
     {
         if (!(dwActFixes & 0x80))  // not old skipping mode?
         {
-            dwLaceCnt++;                                // -> store cnt of vsync between frames
+            dwLaceCnt++;                                  // -> store cnt of vsync between frames
             if (dwLaceCnt >= MAXLACE && g_useFrameLimit)  // -> if there are many laces without screen toggling,
-            {                                           //    do std frame limitation
+            {                                             //    do std frame limitation
                 if (dwLaceCnt == MAXLACE) bInitCap = true;
 
                 if (g_SSSPSXLimit)
@@ -329,7 +330,7 @@ void FrameSkip(void) {
         if (_ticks_since_last_update > dwWaitTime)  // hey, we needed way too int32_t for that frame...
         {
             if (g_useFrameLimit)  // if limitation, we skip just next frame,
-            {                   // and decide after, if we need to do more
+            {                     // and decide after, if we need to do more
                 iNumSkips = 0;
             } else {
                 iNumSkips = _ticks_since_last_update / dwWaitTime;  // -> calc number of frames to skip to catch up
@@ -338,7 +339,7 @@ void FrameSkip(void) {
             }
             bSkipNextFrame = true;  // -> signal for skipping the next frame
         } else                      // we were faster than real psx? fine :)
-            if (g_useFrameLimit)      // frame limit used? so we wait til the 'real psx time' has been reached
+            if (g_useFrameLimit)    // frame limit used? so we wait til the 'real psx time' has been reached
         {
             if (dwLaceCnt > MAXLACE)  // -> security check
                 _ticks_since_last_update = dwWaitTime;

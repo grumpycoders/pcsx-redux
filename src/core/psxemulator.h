@@ -183,8 +183,8 @@ class Emulator {
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
              SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
              SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme,
-             SettingFrameskip, SettingFrameLimit, SettingSSSPSXLimit, SettingDither>
+             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingFrameskip,
+             SettingFrameLimit, SettingSSSPSXLimit, SettingDither>
         settings;
     class PcsxConfig {
       public:

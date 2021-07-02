@@ -53,7 +53,7 @@ class SoftPrim : public SoftRenderer {
         sSetMask = 0;
         lSetMask = 0;
     }
-    
+
     int m_useDither = 0;
 
   private:
