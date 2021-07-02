@@ -38,7 +38,7 @@ class SoftPrim : public SoftRenderer {
         }
     }
 
-    bool configure(bool *);
+    bool configure();
 
     inline void reset() {
         GlobalTextAddrX = 0;
@@ -53,9 +53,10 @@ class SoftPrim : public SoftRenderer {
         sSetMask = 0;
         lSetMask = 0;
     }
+    
+    int m_useDither = 0;
 
   private:
-    int iUseDither = 0;
     int32_t GlobalTextREST;
 
     typedef void (SoftPrim::*func_t)(unsigned char *);

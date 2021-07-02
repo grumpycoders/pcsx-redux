@@ -50,7 +50,7 @@ class impl : public GPU {
     virtual void updateLace() final;
     virtual bool configure() final {
         if (m_showCfg) {
-            return m_softPrim.configure(&m_showCfg);
+            return m_softPrim.configure();
         } else {
             return false;
         }
@@ -58,6 +58,9 @@ class impl : public GPU {
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;
+    virtual void setDither (int setting) final {
+        m_softPrim.m_useDither = setting;
+    }
 
     SoftPrim m_softPrim;
     void *m_dumpFile = nullptr;

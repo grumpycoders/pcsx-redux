@@ -78,6 +78,8 @@ class GPU {
     virtual void pgxpCacheVertex(short sx, short sy, const unsigned char *_pVertex) {}
     virtual int32_t test(void) { return 0; }
     virtual void about(void) {}
+
+    virtual void setDither(int setting) {}
 };
 
 }  // namespace PCSX
