@@ -105,7 +105,7 @@ bool PCSX::SoftGPU::SoftPrim::configure() {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-    static const char *ditherValues[] = {"No dithering (fastest)", "Game dependend dithering (slow)",
+    static const char *ditherValues[] = {"No dithering (fastest)", "Game-dependent dithering (slow)",
                                          "Always dither g-shaded polygons (slowest)"};
 
     if (ImGui::Begin("Soft GPU configuration")) {
