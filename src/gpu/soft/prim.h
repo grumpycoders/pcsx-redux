@@ -23,7 +23,6 @@
 
 #include "gpu/soft/externals.h"
 #include "gpu/soft/soft.h"
-#include "gpu/soft/fps.h"
 
 namespace PCSX {
 

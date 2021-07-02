@@ -38,8 +38,4 @@ void SetFPSHandler(void);
 void InitFPS(void);
 void CheckFrameRate(void);
 
-extern bool g_useFrameLimit;
-extern bool g_useFrameSkip;
-extern bool g_SSSPSXLimit;
-
 #endif  // _FPS_INTERNALS_H

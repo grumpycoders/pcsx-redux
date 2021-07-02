@@ -218,6 +218,10 @@ extern float fps_skip;
 extern float fps_cur;
 extern bool UsePerformanceCounter;
 
+extern bool g_useFrameLimit;
+extern bool g_useFrameSkip;
+extern bool g_SSSPSXLimit;
+
 // key.c
 
 // cfg.c

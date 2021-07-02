@@ -60,7 +60,7 @@
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
-#include "gpu/soft/fps.h"
+#include "gpu/soft/externals.h"
 #include "stb/stb_image.h"
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
