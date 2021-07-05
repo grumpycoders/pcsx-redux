@@ -1376,50 +1376,109 @@ void X86DynaRecCPU::recMULTU() {
 void X86DynaRecCPU::recDIV() {
     // Lo/Hi = Rs / Rt (signed)
 
-    unsigned slot1;
+    unsigned slot1, slot4;
+    bool emitIntMinCheck = false;
 
-    if (IsConst(_Rt_)) {
-        if (m_iRegs[_Rt_].k == 0) {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
+    if (IsConst(_Rt_)) { // check divisor
+        if (m_iRegs[_Rt_].k == 0) { // case when divisor is 0
             if (IsConst(_Rs_)) {
                 gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, m_iRegs[_Rs_].k);
+
+                if (m_iRegs[_Rs_].k & 0x80000000) // set lo to 1 if dividend (eax) is negative, -1 otherwise
+                    gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 1);
+                else
+                    gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0xFFFFFFFF);
             } else {
                 gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
                 gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
+                        
+                // set lo to 1 if dividend (eax) is negative, -1 otherwise (taken from Clang with -O3)
+                gen.SHR32ItoR (PCSX::ix86::EAX, 31);
+                gen.ADD32RtoR (PCSX::ix86::EAX, PCSX::ix86::EAX);
+                gen.DEC32R (PCSX::ix86::EAX);
+                gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
             }
             return;
         }
+
+        else if (m_iRegs[_Rt_].k == 0xFFFFFFFF) { // divisor == -1
+            if (IsConst(_Rs_) && m_iRegs[_Rs_].k == 0x80000000) { // If the dividend is INT_MIN and the divisor is -1, the result can't fit in a register
+                gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0x80000000); // in this case, lo is set to INT_MIN
+                gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, 0); // and hi is set to 0
+                return;
+            }
+
+            else if (!IsConst(_Rs_))
+                emitIntMinCheck = true; // divisor is -1 so we'll have to emit this
+        }
+
         gen.MOV32ItoR(PCSX::ix86::ECX, m_iRegs[_Rt_].k);
     } else {
         gen.MOV32MtoR(PCSX::ix86::ECX, (uint32_t)&m_psxRegs.GPR.r[_Rt_]);
         gen.TEST32RtoR(PCSX::ix86::ECX, PCSX::ix86::ECX);  // check if ECX == 0
         slot1 = gen.JE8(0);
+
+        if (!IsConst(_Rs_)) 
+            emitIntMinCheck = true;
+        else 
+            emitIntMinCheck = m_iRegs[_Rs_].k == 0x80000000;
     }
-    if (IsConst(_Rs_)) {
+
+    if (IsConst(_Rs_))
         gen.MOV32ItoR(PCSX::ix86::EAX, m_iRegs[_Rs_].k);
-    } else {
+
+    else
         gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
+
+    if (emitIntMinCheck) {
+        gen.CMP32ItoR (PCSX::ix86::EAX, INT32_MIN); // check if dividend is INT_MIN
+        const auto slot2 = gen.JNE8 (0); // if not, bail
+        gen.CMP32ItoR (PCSX::ix86::ECX, -1); // check if ECX is -1
+        const auto slot3 = gen.JNE8 (0); // if not, bail again 
+
+        // If we do have the edge case where we're dividing INT32_MIN / -1, set lo to 0x8000'0000 and hi to 0 then exit the division
+        gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0x80000000); 
+        gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.hi, 0); 
+        slot4 = gen.JMP8 (0); 
+        
+        gen.x86SetJ8 (slot2); // where to jump to if no weird edge case
+        gen.x86SetJ8 (slot3); 
     }
+
     gen.CDQ();
     gen.IDIV32R(PCSX::ix86::ECX);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
     gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EDX);
 
     if (!IsConst(_Rt_)) {
-        unsigned slot2 = gen.JMP8(0);
+        unsigned slot5 = gen.JMP8(0);
 
         gen.x86SetJ8(slot1);
+        
+        // Code to be executed when we've got a divisor of 0
+        if (IsConst(_Rs_)) {  // set lo/hi if rs is constant
+            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, m_iRegs[_Rs_].k); // set hi to the value of rs
+             if (m_iRegs[_Rs_].k & 0x80000000) // set lo to 1 if dividend (eax) is negative, -1 otherwise
+                gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 1);
+            else
+                gen.MOV32ItoM ((uint32_t)&m_psxRegs.GPR.n.lo, 0xFFFFFFFF);
+    
+        } else { // set lo/hi if rs is not constant
+            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]); // rs in eax
+            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX); // set hi to rs
 
-        gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.lo, 0xffffffff);
-        if (IsConst(_Rs_)) {
-            gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.n.hi, m_iRegs[_Rs_].k);
-        } else {
-            gen.MOV32MtoR(PCSX::ix86::EAX, (uint32_t)&m_psxRegs.GPR.r[_Rs_]);
-            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.hi, PCSX::ix86::EAX);
+            // set lo to 1 if dividend (eax) is negative, -1 otherwise (taken from Clang with -O3)
+            gen.SHR32ItoR (PCSX::ix86::EAX, 31);
+            gen.ADD32RtoR (PCSX::ix86::EAX, PCSX::ix86::EAX);
+            gen.DEC32R (PCSX::ix86::EAX);
+            gen.MOV32RtoM((uint32_t)&m_psxRegs.GPR.n.lo, PCSX::ix86::EAX);
         }
 
-        gen.x86SetJ8(slot2);
+        gen.x86SetJ8(slot5);
     }
+
+    if (emitIntMinCheck)
+        gen.x86SetJ8(slot4);
 }
 
 void X86DynaRecCPU::recDIVU() {
@@ -2511,15 +2570,12 @@ void X86DynaRecCPU::recBLTZAL() {
     // Branch if Rs < 0
     uint32_t target = _Imm_ * 4 + m_pc;
     maybeCancelDelayedLoad(31);
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);  // always link, whether the branch is taken or not
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);  // always link, whether the branch is taken or not
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k < 0) {
             m_needsStackFrame = true;
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-            delayedLoad.active = true;
-            delayedLoad.index = 31;
             m_pcInEBP = true;
             m_stopRecompile = true;
             gen.MOV32ItoR(PCSX::ix86::EBP, target);
@@ -2529,9 +2585,6 @@ void X86DynaRecCPU::recBLTZAL() {
 
     iFlushReg(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = 31;
     m_pcInEBP = true;
     m_stopRecompile = true;
 
@@ -2545,15 +2598,12 @@ void X86DynaRecCPU::recBGEZAL() {
     // Branch if Rs >= 0
     uint32_t target = _Imm_ * 4 + m_pc;
     maybeCancelDelayedLoad(31);
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);  // always link, whether branch is taken or not
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4);  // always link, whether branch is taken or not
 
     m_nextIsDelaySlot = true;
     if (IsConst(_Rs_)) {
         if ((int32_t)m_iRegs[_Rs_].k >= 0) {
             m_needsStackFrame = true;
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-            delayedLoad.active = true;
-            delayedLoad.index = 31;
             m_pcInEBP = true;
             m_stopRecompile = true;
             gen.MOV32ItoR(PCSX::ix86::EBP, target);
@@ -2563,10 +2613,6 @@ void X86DynaRecCPU::recBGEZAL() {
 
     iFlushReg(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = 31;
-
     m_pcInEBP = true;
     m_stopRecompile = true;
 
@@ -2589,10 +2635,7 @@ void X86DynaRecCPU::recJAL() {
     // jal target
     maybeCancelDelayedLoad(31);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = 31;
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[31], m_pc + 4); // link
     uint32_t target = _Target_ * 4 + (m_pc & 0xf0000000);
     m_nextIsDelaySlot = true;
     m_stopRecompile = true;
@@ -2617,13 +2660,11 @@ void X86DynaRecCPU::recJALR() {
     // jalr Rs
     maybeCancelDelayedLoad(_Rd_);
     m_needsStackFrame = true;
-    auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-    delayedLoad.active = true;
-    delayedLoad.index = _Rd_;
-    gen.MOV32ItoR(PCSX::ix86::EDI, m_pc + 4);
     m_nextIsDelaySlot = true;
     m_stopRecompile = true;
-    m_pcInEBP = true;
+    m_pcInEBP = true;    
+    gen.MOV32ItoM((uint32_t)&m_psxRegs.GPR.r[_Rd_], m_pc + 4); // link
+
     if (IsConst(_Rs_)) {
         gen.MOV32ItoR(PCSX::ix86::EBP, m_iRegs[_Rs_].k & ~3);  // force align jump address
     } else {

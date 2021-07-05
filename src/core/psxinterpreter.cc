@@ -90,7 +90,7 @@
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
-#define _SetLink(x) delayedLoad(x, _PC_ + 4);                // Sets the return address in the link register
+#define _SetLink(x) (m_psxRegs.GPR.r[x] =  _PC_ + 4);         // Sets the return address in the link register
 
 class InterpretedCPU : public PCSX::R3000Acpu {
   public:
@@ -525,19 +525,19 @@ void InterpretedCPU::psxSLTU(uint32_t code) {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 void InterpretedCPU::psxDIV(uint32_t code) {
-    if (!_i32(_rRt_)) {
-        _i32(_rHi_) = _i32(_rRs_);
-        if (_i32(_rRs_) & 0x80000000) {
-            _i32(_rLo_) = 1;
+    if (!_rRt_) {
+        _rHi_ = _rRs_;
+        if (_rRs_ & 0x80000000) {
+            _rLo_ = 1;
         } else {
-            _i32(_rLo_) = 0xFFFFFFFF;
+            _rLo_ = 0xFFFFFFFF;
         }
-    } else if (_i32(_rRs_) == 0x80000000 && _i32(_rRt_) == 0xFFFFFFFF) {
-        _i32(_rLo_) = 0x80000000;
-        _i32(_rHi_) = 0;
+    } else if (_rRs_ == 0x80000000 && _rRt_ == 0xFFFFFFFF) {
+        _rLo_ = 0x80000000;
+        _rHi_ = 0;
     } else {
-        _i32(_rLo_) = _i32(_rRs_) / _i32(_rRt_);
-        _i32(_rHi_) = _i32(_rRs_) % _i32(_rRt_);
+        _rLo_ = (uint32_t) (int32_t(_rRs_) / int32_t(_rRt_));
+        _rHi_ = (uint32_t) (int32_t(_rRs_) % int32_t(_rRt_));
     }
 }
 
