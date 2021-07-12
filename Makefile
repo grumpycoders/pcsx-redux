@@ -69,8 +69,8 @@ LDFLAGS += -g
 LDFLAGS_Coverage += -fprofile-instr-generate -fcoverage-mapping
 LDFLAGS_asan += -fsanitize=address
 
-CPPFLAGS += $(CPPFLAGS_$(BUILD))
-LDFLAGS += $(LDFLAGS_$(BUILD))
+CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
+LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
 
 LD := $(CXX)
 
