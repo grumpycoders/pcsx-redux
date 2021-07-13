@@ -91,6 +91,18 @@
             ]
         },
         {
+            "label": "make_shell",
+            "type": "shell",
+            "group": "build",
+            "command": "${workspaceRoot}/dockermake.sh -C src/mips/shell all",
+            "windows": {
+                "command": "${workspaceRoot}\\dockermake.bat -C src/mips/shell all"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
             "label": "make_cube",
             "type": "shell",
             "group": "build",
