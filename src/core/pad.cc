@@ -425,12 +425,14 @@ bool PCSX::Pads::Pad::configure() {
             ImGui::TableSetColumnIndex(0);
             bool hasToPop = false;
             if (m_buttonToWait == i) {
-                const ImVec4 hilight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
-                ImGui::PushStyleColor(ImGuiCol_Button, hilight);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hilight);
+                const ImVec4 highlight = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+                ImGui::PushStyleColor(ImGuiCol_Button, highlight);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, highlight);
                 hasToPop = true;
             }
-            if (ImGui::Button(glfwKeyToString(getButtonFromGUIIndex(i)).c_str(), ImVec2{-1, 0})) {
+
+            const auto keyName = fmt::format ("{}##{}", glfwKeyToString(getButtonFromGUIIndex(i)), i); // THe name of the mapped key
+            if (ImGui::Button(keyName.c_str(), ImVec2{-1, 0})) {
                 m_buttonToWait = i;
             }
             if (hasToPop) {
