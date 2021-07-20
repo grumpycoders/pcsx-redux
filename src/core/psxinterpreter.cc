@@ -92,7 +92,7 @@
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
 #define _SetLink(x) delayedLoad(x, _PC_ + 4);                // Sets the return address in the link register
 
-class InterpretedCPU : public PCSX::R3000Acpu {
+class InterpretedCPU final : public PCSX::R3000Acpu {
   public:
     InterpretedCPU() : R3000Acpu("Interpreted") {}
 

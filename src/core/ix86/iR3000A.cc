@@ -73,7 +73,7 @@ void SPUwriteRegisterWrapper(unsigned long addr, unsigned short value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
-class X86DynaRecCPU : public PCSX::R3000Acpu {
+class X86DynaRecCPU final : public PCSX::R3000Acpu {
     inline uintptr_t PC_REC(uint32_t addr) {
         uintptr_t base = m_psxRecLUT[addr >> 16];
         uint32_t offset = addr & 0xffff;
