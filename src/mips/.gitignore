@@ -7,3 +7,7 @@ cmake-build-*/
 *.map
 *.cpe
 *.ps-exe
+
+# for nugget  mirror
+*.dep
+*.o
