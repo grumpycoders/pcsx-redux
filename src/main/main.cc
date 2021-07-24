@@ -38,7 +38,7 @@
 
 static PCSX::GUI *s_gui;
 
-class SystemImpl : public PCSX::System {
+class SystemImpl final : public PCSX::System {
     virtual void biosPutc(int c) final {
         if (c == '\r') return;
         m_putcharBuffer += std::string(1, c);
@@ -80,6 +80,11 @@ class SystemImpl : public PCSX::System {
     virtual void hardReset() final {
         // debugger or UI is requesting a reset
         PCSX::g_emulator->EmuReset();
+
+        // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
+        s_gui->setViewport();
+        s_gui->bindVRAMTexture();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, PCSX::g_emulator->m_gpu->getVRAM());
     }
 
     virtual void close() final {

@@ -696,6 +696,9 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
                 // let's not reply to gdb just yet, until we've reached the shell
                 // and are ready to load a binary.
                 return;
+            } else if (words[1] == "hard") {
+                writeEscaped("Emulation hard-reset\n");
+                g_system->hardReset();
             }
         }
     }
