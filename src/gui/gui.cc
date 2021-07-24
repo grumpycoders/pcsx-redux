@@ -507,14 +507,14 @@ void PCSX::GUI::startFrame() {
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
     if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) { // Load savestate 0 (quick state slot)
-        const auto saveStateName = buildSaveStateFilename(0);
-        loadSaveState(saveStateName);
-    }
-
-    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) { // Save savestate 0
+    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) { // Save to quick-save slot
         zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
         save << SaveStates::save();
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) { // Load from quick-save slot
+        const auto saveStateName = buildSaveStateFilename(0);
+        loadSaveState(saveStateName);
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_F3)) g_system->start(); // Start system
@@ -624,7 +624,7 @@ void PCSX::GUI::endFrame() {
                 }
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
-                    if (ImGui::MenuItem(_("Save to quick-save slot"))) {
+                    if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
                         zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
                         save << SaveStates::save();
                     }
@@ -641,7 +641,7 @@ void PCSX::GUI::endFrame() {
                 }
 
                 if (ImGui::BeginMenu(_("Load state slots"))) {
-                    if (ImGui::MenuItem(_("Load quick-save slot"))) loadSaveState(buildSaveStateFilename(0));
+                    if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
 
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(_("Slot {}"), i);
@@ -692,16 +692,16 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
-                if (ImGui::MenuItem(_("Start"), nullptr, nullptr, !g_system->running())) {
+                if (ImGui::MenuItem(_("Start"), "F3", nullptr, !g_system->running())) {
                     g_system->start();
                 }
-                if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, g_system->running())) {
+                if (ImGui::MenuItem(_("Pause"), "F4", nullptr, g_system->running())) {
                     g_system->pause();
                 }
-                if (ImGui::MenuItem(_("Soft Reset"))) {
+                if (ImGui::MenuItem(_("Soft Reset"), "F5")) {
                     g_system->softReset();
                 }
-                if (ImGui::MenuItem(_("Hard Reset"))) {
+                if (ImGui::MenuItem(_("Hard Reset"), "F6")) {
                     g_system->hardReset();
                 }
                 ImGui::EndMenu();
