@@ -252,6 +252,8 @@ class GUI final {
     EventBus::Listener m_listener;
 
     void shellReached();
+    std::string buildSaveStateFilename(int i);
+    void loadSaveState(const std::filesystem::path& filename);
 
     void apply_theme(int n);
     void cherry_theme();
