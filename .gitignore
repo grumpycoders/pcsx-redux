@@ -49,7 +49,7 @@ fb.bat
 .DS_store
 
 
-
+# Savestate files
 *.sstate
 *.sstate1
 *.sstate2
@@ -60,3 +60,6 @@ fb.bat
 *.sstate7
 *.sstate8
 *.sstate9
+
+# GPU dump files
+*.dump 
