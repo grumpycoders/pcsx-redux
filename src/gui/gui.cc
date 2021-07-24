@@ -507,18 +507,20 @@ void PCSX::GUI::startFrame() {
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
     if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) { // Load savestate 1
-        const auto saveStateName = buildSaveStateFilename(1);
+    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) { // Load savestate 0 (quick state slot)
+        const auto saveStateName = buildSaveStateFilename(0);
         loadSaveState(saveStateName);
     }
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) { // Save savestate 1
-        zstr::ofstream save(buildSaveStateFilename(1), std::ios::binary);
+    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) { // Save savestate 0
+        zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
         save << SaveStates::save();
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_F3)) g_system->start(); // Start system
-    if (ImGui::IsKeyPressed(GLFW_KEY_PAUSE)) g_system->pause(); // Pause system
+    if (ImGui::IsKeyPressed(GLFW_KEY_PAUSE) || ImGui::IsKeyPressed(GLFW_KEY_F4)) g_system->pause(); // Pause system
+    if (ImGui::IsKeyPressed(GLFW_KEY_F5)) g_system->softReset(); // Soft reset
+    if (ImGui::IsKeyPressed(GLFW_KEY_F6)) g_system->hardReset(); // Hard reset
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -622,6 +624,11 @@ void PCSX::GUI::endFrame() {
                 }
 
                 if (ImGui::BeginMenu(_("Save state slots"))) {
+                    if (ImGui::MenuItem(_("Save to quick-save slot"))) {
+                        zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
+                        save << SaveStates::save();
+                    }
+
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) {
@@ -634,6 +641,8 @@ void PCSX::GUI::endFrame() {
                 }
 
                 if (ImGui::BeginMenu(_("Load state slots"))) {
+                    if (ImGui::MenuItem(_("Load quick-save slot"))) loadSaveState(buildSaveStateFilename(0));
+
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));

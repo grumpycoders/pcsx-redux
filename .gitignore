@@ -51,6 +51,7 @@ fb.bat
 
 # Savestate files
 *.sstate
+*.sstate0
 *.sstate1
 *.sstate2
 *.sstate3
