@@ -351,8 +351,7 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 
     szDebugText[0] = 0;  // init debug text buffer
 
-    psxVSecure = (unsigned char *)malloc((iGPUHeight * 2) * 1024 +
-                                         (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
+    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 + (1024 * 1024)]();  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
 
     //!!! ATTENTION !!!
@@ -366,9 +365,7 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
 
-    memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
     memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
-
     SetFPSHandler();
 
     PSXDisplay.RGB24 = false;  // init some stuff
@@ -450,9 +447,9 @@ int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
 
 int32_t PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
-    free(psxVSecure);
+    delete[] psxVSecure;
 
-    return 0;  // nothinh to do
+    return 0;  // nothing to do
 }
 
 ////////////////////////////////////////////////////////////////////////
