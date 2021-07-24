@@ -255,10 +255,11 @@ class GUI final {
     std::string buildSaveStateFilename(int i);
     void loadSaveState(const std::filesystem::path& filename);
 
-    void apply_theme(int n);
-    void cherry_theme();
-    void mono_theme();
-    void dracula_theme();
+    void applyTheme(int theme);
+    void cherryTheme();
+    void monoTheme();
+    void draculaTheme();
+    void oliveTheme();
 
     PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};

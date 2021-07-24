@@ -321,7 +321,7 @@ end)(jit.status()))
         setFullscreen(m_fullscreen);
         const auto currentTheme =
             g_emulator->settings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
-        apply_theme(currentTheme);
+        applyTheme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
             emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
@@ -1331,8 +1331,8 @@ void PCSX::GUI::interruptsScaler() {
 }
 
 bool PCSX::GUI::showThemes() {
-    static const char* imgui_themes[6] = {"Default", "Classic", "Light",
-                                          "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
+    static const char* imgui_themes[] = {"Default", "Classic", "Light",
+                                          "Cherry",  "Mono", "Dracula", "Olive"};  // Used for theme combo box
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
 
@@ -1342,7 +1342,7 @@ bool PCSX::GUI::showThemes() {
             if (ImGui::Selectable(imgui_themes[n], selected)) {
                 currentTheme = n;
                 changed = true;
-                apply_theme(n);
+                applyTheme(n);
             }
             if (selected) {
                 ImGui::SetItemDefaultFocus();
