@@ -587,8 +587,8 @@ void X86DynaRecCPU::MapConst(unsigned reg, uint32_t value) {
 void X86DynaRecCPU::iFlushReg(unsigned reg) {
     if (IsConst(reg)) {
         gen.mov(dword [&m_psxRegs.GPR.r[reg]], m_iRegs[reg].k);
+        m_iRegs[reg].state = ST_UNK;
     }
-    m_iRegs[reg].state = ST_UNK;
 }
 
 void X86DynaRecCPU::iFlushRegs() {
