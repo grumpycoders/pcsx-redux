@@ -189,7 +189,6 @@
     <ClCompile Include="..\..\src\core\gpu.cc" />
     <ClCompile Include="..\..\src\core\gte.cc" />
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc" />
-    <ClCompile Include="..\..\src\core\ix86\ix86.cc" />
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
@@ -228,7 +227,6 @@
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
-    <ClInclude Include="..\..\src\core\ix86\ix86.h" />
     <ClInclude Include="..\..\src\core\kernel.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
