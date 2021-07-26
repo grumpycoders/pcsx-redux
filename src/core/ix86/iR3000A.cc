@@ -43,6 +43,7 @@
 #include "core/system.h"
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
+#include "xbyak.h"
 
 namespace {
 
