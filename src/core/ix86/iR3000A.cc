@@ -88,7 +88,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
 
   public:
     X86DynaRecCPU() : R3000Acpu("x86 DynaRec"), gen(ALLOC_SIZE) {
-        m_recMem = gen.getCode();
+        m_recMem = (int8_t*) gen.getCode();
     }
 
   private:
@@ -1793,13 +1793,11 @@ void X86DynaRecCPU::recLWL() {
         gen.pop(edx);
         gen.and_(edx, 0x3);  // shift = addr & 3;
 
-        gen.mov(ecx, (uint32_t)LWL_SHIFT);
-        gen.mov(ecx, dword [ecx + edx * 4]);
+        gen.mov(ecx, dword [(uint32_t) LWL_SHIFT + edx * 4]);
         gen.shl(eax, cl);  // mem(eax) << LWL_SHIFT[shift]
         gen.mov(edi, eax);
 
-        gen.mov(ecx, (uint32_t)LWL_MASK_INDEX);
-        gen.mov(ecx, dword [ecx + edx * 2]);
+        gen.mov(ecx, dword [(uint32_t)LWL_MASK_INDEX + edx * 4]);
         gen.shl(ecx, 16);
         gen.movzx(ebx, bx);
         gen.or_(ebx, ecx);
@@ -1855,13 +1853,11 @@ void X86DynaRecCPU::recLWR() {
         gen.pop(edx);
         gen.and_(edx, 0x3);  // shift = addr & 3;
 
-        gen.mov(ecx, (uint32_t)LWR_SHIFT);
-        gen.mov(ecx, dword [ecx + edx * 2]);
+        gen.mov(ecx, dword [(uint32_t)LWR_SHIFT + edx * 4]);
         gen.shr(eax, cl);  // mem(eax) << LWR_SHIFT[shift]
         gen.mov(edi, eax);
 
-        gen.mov(ecx, (uint32_t)LWR_MASK_INDEX);
-        gen.mov(ecx, dword [ecx + edx * 2]);
+        gen.mov(ecx, dword [(uint32_t)LWR_MASK_INDEX + edx * 4]);
         gen.shl(ecx, 16);
         gen.movzx(ebx, bx);
         gen.or_(ebx, ecx);
@@ -2115,13 +2111,9 @@ void X86DynaRecCPU::recSWL() {
     gen.add(esp, 4);
     gen.pop(edx);
     gen.and_(edx, 0x3);  // shift = addr & 3;
+    gen.and_(eax, dword [(uint32_t)SWL_MASK + edx * 4]);  // mem & SWL_MASK[shift]
 
-    gen.mov(ecx, (uint32_t)SWL_MASK);
-    gen.mov(ecx, dword [ecx + edx * 2]);
-    gen.and_(eax, ecx);  // mem & SWL_MASK[shift]
-
-    gen.mov(ecx, (uint32_t)SWL_SHIFT);
-    gen.mov(ecx, dword [ecx + edx * 2]);
+    gen.mov(ecx, dword [(uint32_t)SWL_SHIFT + edx * 4]);
     if (IsConst(_Rt_)) {
         gen.mov(edx, m_iRegs[_Rt_].k);
     } else {
@@ -2194,13 +2186,9 @@ void X86DynaRecCPU::recSWR() {
     gen.add(esp, 4);
     gen.pop(edx);
     gen.and_(edx, 0x3);  // shift = addr & 3;
+    gen.and_(eax, dword [(uint32_t)SWR_MASK + edx * 4]);  // mem & SWR_MASK[shift]
 
-    gen.mov(ecx, (uint32_t)SWR_MASK);
-    gen.mov(ecx, dword [ecx + edx * 2]);
-    gen.and_(eax, ecx);  // mem & SWR_MASK[shift]
-
-    gen.mov(ecx, (uint32_t)SWR_SHIFT);
-    gen.mov(ecx, dword [ecx + edx * 2]);
+    gen.mov(ecx, dword [(uint32_t)SWR_SHIFT + edx * 4]);
     if (IsConst(_Rt_)) {
         gen.mov(edx, m_iRegs[_Rt_].k);
     } else {
