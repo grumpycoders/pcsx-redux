@@ -257,7 +257,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     void recCTC0();
 
     void recRFE();
-
+    void recException(uint32_t cause);
     void testSWInt();
 
     void recRecompile();
@@ -707,13 +707,9 @@ void X86DynaRecCPU::execute() {
 
     if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == 0) recRecompile();
-    uint32_t newPC = (*recFunc)();
-    if (newPC != 0xffffffff) {
-        m_psxRegs.pc = newPC;
-        psxBranchTest();
-    } else {
-        psxException(m_arg1, m_arg2);
-    }
+    m_psxRegs.pc = (*recFunc)();
+    psxBranchTest();
+    
     if (debug) PCSX::g_emulator->m_debug->processAfter();
 }
 
@@ -2366,24 +2362,43 @@ void X86DynaRecCPU::recSRAV() {
     }
 }
 
-void X86DynaRecCPU::recSYSCALL() {
-    gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc - 4);
-    gen.mov(ebp, 0xffffffff);
-    gen.mov(dword [&m_arg2], m_inDelaySlot ? 1 : 0);
-    gen.mov(dword [&m_arg1], 0x20);
+/// eax: scratch
+/// ecx: Status Register
+/// ebp: PC after the exception
+void X86DynaRecCPU::recException(uint32_t cause) {
+    // If in delay slot: epc = address of branch, else epc = address of last instruction
+    const uint32_t epc = m_inDelaySlot ? m_pc - 8 : m_pc - 4;
+    if (m_inDelaySlot) {
+        cause |= 0x80000000; // Set BD bit
+    }
 
-    m_pcInEBP = true;
-    m_stopRecompile = true;
+    gen.mov(dword [&m_psxRegs.CP0.n.EPC], epc); // set EPC
+    gen.mov(dword [&m_psxRegs.CP0.n.Cause], cause); // set CAUSE
+
+    gen.mov(ebp, 0x80000000); // ebp = pc after exception
+    gen.mov(eax, 0xBFC00180); // PC if the BEV bit is set in SR
+    gen.mov(ecx, dword [&m_psxRegs.CP0.n.Status]); // ecx = SR
+    gen.test(ecx, 1 << 22); // Check if bev is enabled
+    gen.cmovnz(ebp, eax); // If it is, copy eax to ebp
+    gen.mov(eax, ecx); // Copy SR to eax
+
+    // ASM equivalent to Status = (Status & ~0x3F) | ((Status & 0xF) << 2);
+    gen.and_(eax, 0xF);
+    gen.shl(eax, 2);
+    gen.and_(ecx, ~0x3F);
+    gen.or_(ecx, eax);
+    gen.mov(dword [&m_psxRegs.CP0.n.Status], ecx); // Finally, store SR back
+
+    m_pcInEBP = true; // The PC after the exception is now in EBP
+    m_stopRecompile = true; // Stop compilation (without a delay slot, as exceptions have none)
+}
+
+void X86DynaRecCPU::recSYSCALL() {
+    recException(0x20);
 }
 
 void X86DynaRecCPU::recBREAK() {
-    gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc - 4);
-    gen.mov(ebp, 0xffffffff);
-    gen.mov(dword [&m_arg2], m_inDelaySlot ? 1 : 0);
-    gen.mov(dword [&m_arg1], 0x24);
-
-    m_pcInEBP = true;
-    m_stopRecompile = true;
+    recException(0x24);
 }
 
 void X86DynaRecCPU::recMFHI() {
