@@ -121,7 +121,6 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_pcInEBP;
     bool m_stopRecompile;
 
-    uint32_t m_functionPtr;
     uint32_t m_arg1;
     uint32_t m_arg2;
 
@@ -713,12 +712,7 @@ void X86DynaRecCPU::execute() {
         m_psxRegs.pc = newPC;
         psxBranchTest();
     } else {
-        void (*functionPtr)(uint32_t, uint32_t) = (void (*)(uint32_t, uint32_t))m_functionPtr;
-        if (functionPtr) {
-            functionPtr(m_arg1, m_arg2);
-        } else {
-            psxException(m_arg1, m_arg2);
-        }
+        psxException(m_arg1, m_arg2);
     }
     if (debug) PCSX::g_emulator->m_debug->processAfter();
 }
@@ -2377,7 +2371,6 @@ void X86DynaRecCPU::recSYSCALL() {
     gen.mov(ebp, 0xffffffff);
     gen.mov(dword [&m_arg2], m_inDelaySlot ? 1 : 0);
     gen.mov(dword [&m_arg1], 0x20);
-    gen.mov(dword [&m_functionPtr], 0);
 
     m_pcInEBP = true;
     m_stopRecompile = true;
@@ -2388,7 +2381,6 @@ void X86DynaRecCPU::recBREAK() {
     gen.mov(ebp, 0xffffffff);
     gen.mov(dword [&m_arg2], m_inDelaySlot ? 1 : 0);
     gen.mov(dword [&m_arg1], 0x24);
-    gen.mov(dword [&m_functionPtr], 0);
 
     m_pcInEBP = true;
     m_stopRecompile = true;
@@ -2752,7 +2744,6 @@ void X86DynaRecCPU::testSWInt() {
     gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
     gen.and_(eax, 1);
     gen.je(label, CodeGenerator::LabelType::T_NEAR);
-    gen.mov(dword [&m_functionPtr], 0);
     gen.mov(dword [&m_arg1], edx);
     gen.mov(dword [&m_arg2], m_inDelaySlot);
     gen.mov(dword [&m_psxRegs.pc], ebp);
@@ -3079,8 +3070,7 @@ void X86DynaRecCPU::recRecompile() {
         if (delayedLoad.active) {
             delayedLoad.active = false;
             const unsigned index = delayedLoad.index;
-            gen.mov(edx, ebx);
-            gen.movzx(edx, dx);  // edx &= 0xFFFF
+            gen.movzx(edx, bx); // edx = ebx & 0xFFFF
             gen.mov(eax, dword [(uint32_t)MASKS + edx * 4]);
             if (IsConst(index)) {
                 gen.and_(eax, m_iRegs[index].k);
