@@ -2064,11 +2064,12 @@ void X86DynaRecCPU::recSW() {
 
 void X86DynaRecCPU::iSWLk(uint32_t shift) {
     if (IsConst(_Rt_)) {
-        gen.mov(ecx, m_iRegs[_Rt_].k);
+        gen.mov(ecx, m_iRegs[_Rt_].k >> SWL_SHIFT[shift]);
     } else {
         gen.mov(ecx, dword [&m_psxRegs.GPR.r[_Rt_]]);
+        gen.shr(ecx, SWL_SHIFT[shift]);
     }
-    gen.shr(ecx, SWL_SHIFT[shift]);
+
     gen.and_(eax, SWL_MASK[shift]);
     gen.or_(eax, ecx);
 }
@@ -3080,8 +3081,7 @@ void X86DynaRecCPU::recRecompile() {
             const unsigned index = delayedLoad.index;
             gen.mov(edx, ebx);
             gen.movzx(edx, dx);  // edx &= 0xFFFF
-            gen.mov(ecx, (uint32_t)MASKS);
-            gen.mov(eax, dword [ecx + edx * 4]);
+            gen.mov(eax, dword [(uint32_t)MASKS + edx * 4]);
             if (IsConst(index)) {
                 gen.and_(eax, m_iRegs[index].k);
                 gen.or_(eax, esi);
