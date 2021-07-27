@@ -89,7 +89,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
 
   public:
     X86DynaRecCPU() : R3000Acpu("x86 DynaRec"), gen(ALLOC_SIZE) {
-        m_recMem = (int8_t*) gen.getCode();
+        m_recMem = (uint8_t*) gen.getCode();
     }
 
   private:
@@ -116,7 +116,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     static constexpr size_t RECMEM_SIZE = 8 * 1024 * 1024;
     CodeGenerator gen;
 
-    int8_t *m_recMem;    /* the recompiled blocks will be here */
+    uint8_t *m_recMem;   /* the recompiled blocks will be here */
     uint8_t *m_recRAM;   /* and the s_ptr to the blocks here */
     uint8_t *m_recROM;   /* and here */
 
@@ -696,7 +696,7 @@ void X86DynaRecCPU::execute() {
     DynarecCallback* recFunc = nullptr; // A pointer to the host code to execute
     InterceptBIOS();
 
-    const auto p = (char *)PC_REC(m_psxRegs.pc);
+    const auto p = (uint8_t *)PC_REC(m_psxRegs.pc);
 
     if (p != nullptr && IsPcValid(m_psxRegs.pc)) {
         recFunc = (DynarecCallback*)p;
@@ -3026,8 +3026,6 @@ const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
 };
 
 void X86DynaRecCPU::recRecompile() {
-    char *p;
-
     /* if the code buffer reached the mem limit reset whole mem */
     if (gen.getSize() >= RECMEM_SIZE) {
         Reset();
@@ -3096,8 +3094,8 @@ void X86DynaRecCPU::recRecompile() {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        p = (char *)PSXM(m_pc);
-        if (p == NULL) {
+        const auto p = (uint8_t *)PSXM(m_pc);
+        if (p == nullptr) {
             recError();
             return;
         }
