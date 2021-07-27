@@ -114,10 +114,10 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     static constexpr size_t RECMEM_SIZE = 8 * 1024 * 1024;
     CodeGenerator gen;
 
-    uint8_t *m_recRAM;   /* Pointers to compiled RAM blocks here */
-    uint8_t *m_recROM;   /* Pointers to compiled BIOS blocks here */
+    uint8_t *m_recRAM;   // Pointers to compiled RAM blocks here
+    uint8_t *m_recROM;   // Pointers to compiled BIOS blocks here 
 
-    uint32_t m_pc; /* recompiler pc */
+    uint32_t m_pc; // recompiler pc
 
     bool m_needsStackFrame;
     bool m_pcInEBP;
@@ -637,46 +637,52 @@ void X86DynaRecCPU::iPushReg(unsigned reg) {
     }
 
 bool X86DynaRecCPU::Init() {
-    m_psxRecLUT = new uintptr_t[0x010000]();
+    // Initialize recompiler memory
+    // Check for 8MB RAM expansion
+    const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
+    const auto ramSize = ramExpansion  ? 0x800000 : 0x200000;
+    const auto ramPages = ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
 
-    m_recRAM = new uint8_t[0x200000]();
+    m_psxRecLUT = new uintptr_t[0x010000]();
     m_recROM = new uint8_t[0x080000]();
+    m_recRAM = new uint8_t[ramSize]();
+
     if (m_recRAM == nullptr || m_recROM == nullptr || gen.getCode() == nullptr || m_psxRecLUT == nullptr) {
         PCSX::g_system->message("Error allocating memory");
         return false;
     }
 
-    for (auto i = 0; i < 0x80; i++)
+    for (auto i = 0; i < ramPages; i++)
         m_psxRecLUT[i] =
             (uintptr_t)&m_recRAM[(i & 0x1f)
                                  << 16];  // map KUSEG/KSEG0/KSEG1 WRAM respectively to the recompiler block LUT
-    memcpy(m_psxRecLUT + 0x8000, m_psxRecLUT, 0x80 * sizeof(uintptr_t));
-    memcpy(m_psxRecLUT + 0xa000, m_psxRecLUT, 0x80 * sizeof(uintptr_t));
-
+    std::memcpy(m_psxRecLUT + 0x8000, m_psxRecLUT, ramPages * sizeof(uintptr_t));
+    std::memcpy(m_psxRecLUT + 0xa000, m_psxRecLUT, ramPages * sizeof(uintptr_t));
     for (auto i = 0; i < 8; i++)
         m_psxRecLUT[i + 0x1fc0] =
             (uintptr_t)&m_recROM[i << 16];  // map KUSEG/KSEG0/KSEG1 BIOS respectively to the recompiler block LUT
-    memcpy(m_psxRecLUT + 0x9fc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
-    memcpy(m_psxRecLUT + 0xbfc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
+    std::memcpy(m_psxRecLUT + 0x9fc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
+    std::memcpy(m_psxRecLUT + 0xbfc0, &m_psxRecLUT[0x1fc0], 8 * sizeof(uintptr_t));
+    
+    // Mark registers as non-constant, except for $zero
+    std::memset(m_iRegs, 0, sizeof(m_iRegs));
+    m_iRegs[0].state = ST_CONST;
+    m_iRegs[0].k = 0;
+
+    // Reset code generator
+    gen.reset();
 
     return true;
 }
 
 void X86DynaRecCPU::Reset() {
-    R3000Acpu::Reset();
-
-    std::memset(m_recRAM, 0, 0x200000);
-    std::memset(m_recROM, 0, 0x080000);
-
-    gen.reset();
-    memset(m_iRegs, 0, sizeof(m_iRegs));
-    m_iRegs[0].state = ST_CONST;
-    m_iRegs[0].k = 0;
+    R3000Acpu::Reset(); // Reset CPU registers
+    Shutdown();         // Deinit and re-init dynarec
+    Init();
 }
 
 void X86DynaRecCPU::Shutdown() {
     if (gen.getCode() == nullptr) return; // This should be true, it's only here as a safety measure.
-    gen.reset();
     delete[] m_psxRecLUT;
     delete[] m_recRAM;
     delete[] m_recROM;
