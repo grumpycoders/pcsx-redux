@@ -88,9 +88,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool Implemented() final { return true; }
 
   public:
-    X86DynaRecCPU() : R3000Acpu("x86 DynaRec"), gen(ALLOC_SIZE) {
-        m_recMem = (uint8_t*) gen.getCode();
-    }
+    X86DynaRecCPU() : R3000Acpu("x86 DynaRec"), gen(ALLOC_SIZE) {}
 
   private:
     virtual bool Init() final;
@@ -116,9 +114,8 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     static constexpr size_t RECMEM_SIZE = 8 * 1024 * 1024;
     CodeGenerator gen;
 
-    uint8_t *m_recMem;   /* the recompiled blocks will be here */
-    uint8_t *m_recRAM;   /* and the s_ptr to the blocks here */
-    uint8_t *m_recROM;   /* and here */
+    uint8_t *m_recRAM;   /* Pointers to compiled RAM blocks here */
+    uint8_t *m_recROM;   /* Pointers to compiled BIOS blocks here */
 
     uint32_t m_pc; /* recompiler pc */
 
@@ -644,7 +641,7 @@ bool X86DynaRecCPU::Init() {
 
     m_recRAM = new uint8_t[0x200000]();
     m_recROM = new uint8_t[0x080000]();
-    if (m_recRAM == nullptr || m_recROM == nullptr || m_recMem == nullptr || m_psxRecLUT == nullptr) {
+    if (m_recRAM == nullptr || m_recROM == nullptr || gen.getCode() == nullptr || m_psxRecLUT == nullptr) {
         PCSX::g_system->message("Error allocating memory");
         return false;
     }
@@ -670,7 +667,6 @@ void X86DynaRecCPU::Reset() {
 
     std::memset(m_recRAM, 0, 0x200000);
     std::memset(m_recROM, 0, 0x080000);
-    std::memset(m_recMem, 0, ALLOC_SIZE);
 
     gen.reset();
     memset(m_iRegs, 0, sizeof(m_iRegs));
@@ -679,7 +675,7 @@ void X86DynaRecCPU::Reset() {
 }
 
 void X86DynaRecCPU::Shutdown() {
-    if (m_recMem == nullptr) return;
+    if (gen.getCode() == nullptr) return; // This should be true, it's only here as a safety measure.
     gen.reset();
     delete[] m_psxRecLUT;
     delete[] m_recRAM;
