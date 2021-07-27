@@ -101,6 +101,10 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     virtual bool isDynarec() final { return true; }
 
     static void recClearWrapper(X86DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
+    static uint32_t psxExceptionWrapper(X86DynaRecCPU *that, int e, int32_t bd) {
+        that->psxException(e, bd);
+        return that->m_psxRegs.pc;
+    }
 
     void maybeCancelDelayedLoad(uint32_t index) {
         unsigned other = m_currentDelayedLoad ^ 1;
@@ -257,7 +261,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     void recCTC0();
 
     void recRFE();
-    void recException(uint32_t cause);
+    void recException(Exception e);
     void testSWInt();
 
     void recRecompile();
@@ -2365,40 +2369,26 @@ void X86DynaRecCPU::recSRAV() {
 /// eax: scratch
 /// ecx: Status Register
 /// ebp: PC after the exception
-void X86DynaRecCPU::recException(uint32_t cause) {
-    // If in delay slot: epc = address of branch, else epc = address of last instruction
-    const uint32_t epc = m_inDelaySlot ? m_pc - 8 : m_pc - 4;
-    if (m_inDelaySlot) {
-        cause |= 0x80000000; // Set BD bit
-    }
-
-    gen.mov(dword [&m_psxRegs.CP0.n.EPC], epc); // set EPC
-    gen.mov(dword [&m_psxRegs.CP0.n.Cause], cause); // set CAUSE
-
-    gen.mov(ebp, 0x80000000); // ebp = pc after exception
-    gen.mov(eax, 0xBFC00180); // PC if the BEV bit is set in SR
-    gen.mov(ecx, dword [&m_psxRegs.CP0.n.Status]); // ecx = SR
-    gen.test(ecx, 1 << 22); // Check if bev is enabled
-    gen.cmovnz(ebp, eax); // If it is, copy eax to ebp
-    gen.mov(eax, ecx); // Copy SR to eax
-
-    // ASM equivalent to Status = (Status & ~0x3F) | ((Status & 0xF) << 2);
-    gen.and_(eax, 0xF);
-    gen.shl(eax, 2);
-    gen.and_(ecx, ~0x3F);
-    gen.or_(ecx, eax);
-    gen.mov(dword [&m_psxRegs.CP0.n.Status], ecx); // Finally, store SR back
+/// This is slightly inefficient but BREAK/Syscall are extremely uncommon so it doesn't matter.
+void X86DynaRecCPU::recException(Exception e) {
+    gen.push((int32_t) m_inDelaySlot); // Push bd parameter, promoted to int32_t to avoid bool size being implementation-defined
+    gen.push(static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Push exception code parameter
+    gen.push(reinterpret_cast<uintptr_t>(this)); // Push pointer to this object
+    gen.mov(dword [&m_psxRegs.pc], m_pc - 4); // Store address of current instruction in PC for the exception wrapper to use
+    gen.call(psxExceptionWrapper);  // Call the exception wrapper function
+    gen.mov(ebp, eax); // Move the new PC to EBP.
+    gen.add(esp, 12); // Fix up stack
 
     m_pcInEBP = true; // The PC after the exception is now in EBP
     m_stopRecompile = true; // Stop compilation (without a delay slot, as exceptions have none)
 }
 
 void X86DynaRecCPU::recSYSCALL() {
-    recException(0x20);
+    recException(Exception::Syscall);
 }
 
 void X86DynaRecCPU::recBREAK() {
-    recException(0x24);
+    recException(Exception::Break);
 }
 
 void X86DynaRecCPU::recMFHI() {
@@ -3128,9 +3118,7 @@ void X86DynaRecCPU::recRecompile() {
     processDelayedLoad();
 
     iFlushRegs();
-
-    count = ((m_pc - old_pc) / 4) * PCSX::Emulator::BIAS;
-    gen.add(dword [&m_psxRegs.cycle], count);
+    gen.add(dword [&m_psxRegs.cycle], count * PCSX::Emulator::BIAS);
 
     if (m_pcInEBP) {
         gen.mov(eax, ebp);
