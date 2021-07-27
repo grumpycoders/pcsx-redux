@@ -55,6 +55,7 @@ class X86DynaRecCPU;
 
 typedef void (X86DynaRecCPU::*func_t)();
 typedef const func_t cfunc_t;
+using DynarecCallback = uint32_t(*)();
 
 uint8_t psxMemRead8Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead8(mem); }
 uint16_t psxMemRead16Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead16(mem); }
@@ -137,12 +138,12 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
 
     iRegisters m_iRegs[32];
 
-    cfunc_t *m_pRecBSC = NULL;
-    cfunc_t *m_pRecSPC = NULL;
-    cfunc_t *m_pRecREG = NULL;
-    cfunc_t *m_pRecCP0 = NULL;
-    cfunc_t *m_pRecCP2 = NULL;
-    cfunc_t *m_pRecCP2BSC = NULL;
+    cfunc_t *m_pRecBSC = nullptr;
+    cfunc_t *m_pRecSPC = nullptr;
+    cfunc_t *m_pRecREG = nullptr;
+    cfunc_t *m_pRecCP0 = nullptr;
+    cfunc_t *m_pRecCP2 = nullptr;
+    cfunc_t *m_pRecCP2BSC = nullptr;
 
     static const func_t m_recBSC[64];
     static const func_t m_recSPC[64];
@@ -692,15 +693,13 @@ void X86DynaRecCPU::recError() {
 }
 
 void X86DynaRecCPU::execute() {
-    uint32_t (**recFunc)() = NULL;
-    char *p;
-
+    DynarecCallback* recFunc = nullptr; // A pointer to the host code to execute
     InterceptBIOS();
 
-    p = (char *)PC_REC(m_psxRegs.pc);
+    const auto p = (char *)PC_REC(m_psxRegs.pc);
 
-    if (p != NULL && IsPcValid(m_psxRegs.pc)) {
-        recFunc = (uint32_t(**)())(uint32_t)p;
+    if (p != nullptr && IsPcValid(m_psxRegs.pc)) {
+        recFunc = (DynarecCallback*)p;
     } else {
         recError();
         return;
@@ -710,7 +709,7 @@ void X86DynaRecCPU::execute() {
                             .get<PCSX::Emulator::DebugSettings::Debug>();
 
     if (debug) PCSX::g_emulator->m_debug->processBefore();
-    if (*recFunc == 0) recRecompile();
+    if (*recFunc == nullptr) recRecompile();
     m_psxRegs.pc = (*recFunc)();
     psxBranchTest();
     
@@ -3029,8 +3028,8 @@ const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
 void X86DynaRecCPU::recRecompile() {
     char *p;
 
-    /* if gen.m_x86Ptr reached the mem limit reset whole mem */
-    if (((uint32_t)gen.getCurr() - (uint32_t)m_recMem) >= RECMEM_SIZE) {
+    /* if the code buffer reached the mem limit reset whole mem */
+    if (gen.getSize() >= RECMEM_SIZE) {
         Reset();
     } else {
         gen.align(32);
@@ -3038,8 +3037,9 @@ void X86DynaRecCPU::recRecompile() {
 
     m_pc = m_psxRegs.pc;
     uint32_t old_pc = m_pc;
-    int8_t *startPtr = (int8_t*) gen.getCurr();
-    (*(uint32_t *)PC_REC(m_pc)) = (uint32_t)startPtr;
+    const auto startPtr = (uintptr_t)gen.getCurr();
+
+    (*(uintptr_t *)PC_REC(m_pc)) = startPtr;
     m_needsStackFrame = false;
     m_pcInEBP = false;
     m_nextIsDelaySlot = false;
@@ -3049,12 +3049,15 @@ void X86DynaRecCPU::recRecompile() {
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     unsigned count = 0;
+
+    // Set up stack frame. 
+    // If our block doesn't require one, this will be emitted, but the block address will be adjusted so it won't be executed
     gen.push(ebp);
     gen.push(ebx);
     gen.xor_(ebx, ebx);
     gen.push(esi);
     gen.push(edi);
-    int8_t *endStackFramePtr = (int8_t*) gen.getCurr();
+    const auto endStackFramePtr = (uintptr_t)gen.getCurr();
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
@@ -3133,8 +3136,8 @@ void X86DynaRecCPU::recRecompile() {
         gen.pop(ebp);
         gen.ret();
     } else {
-        ptrdiff_t count = endStackFramePtr - startPtr;
-        (*(uint32_t *)PC_REC(old_pc)) = (uint32_t)endStackFramePtr;
+        const uintptr_t count = endStackFramePtr - startPtr;
+        (*(uintptr_t *)PC_REC(old_pc)) = endStackFramePtr;
         gen.nop(count);
         gen.ret();
     }
