@@ -2376,6 +2376,7 @@ void X86DynaRecCPU::recException(Exception e) {
 
     m_pcInEBP = true; // The PC after the exception is now in EBP
     m_stopRecompile = true; // Stop compilation (without a delay slot, as exceptions have none)
+    m_needsStackFrame = true; // Since we called a C++ function, we need to set up a stack frame
 }
 
 void X86DynaRecCPU::recSYSCALL() {
