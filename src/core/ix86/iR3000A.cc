@@ -342,23 +342,23 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
 #define PGXP_REC_FUNC_PASS(pu, op) \
     void pgxpRec##op() { rec##op(); }
 
-#define PGXP_REC_FUNC(pu, op)                               \
-    void pgxpRec##op() {                                    \
-        gen.push(dword, m_psxRegs.code);                    \
-        PGXP_DBG_OP_E(op)                                   \
-        gen.call(PGXP_REC_FUNC_OP(pu, op, )); \
-        gen.add(esp, 4);                                    \
-        rec##op();                                          \
+#define PGXP_REC_FUNC(pu, op)                  \
+    void pgxpRec##op() {                       \
+        gen.push(dword, m_psxRegs.code);       \
+        PGXP_DBG_OP_E(op)                      \
+        gen.call(PGXP_REC_FUNC_OP(pu, op, ));  \
+        gen.add(esp, 4);                       \
+        rec##op();                             \
     }
 
-#define PGXP_REC_FUNC_1(pu, op, reg1)                        \
-    void pgxpRec##op() {                                     \
-        reg1;                                                \
-        gen.push(dword, m_psxRegs.code);                     \
-        PGXP_DBG_OP_E(op)                                    \
-        gen.call(PGXP_REC_FUNC_OP(pu, op, 1)); \
-        gen.add(esp, 8);                   \
-        rec##op();                                           \
+#define PGXP_REC_FUNC_1(pu, op, reg1)           \
+    void pgxpRec##op() {                        \
+        reg1;                                   \
+        gen.push(dword, m_psxRegs.code);        \
+        PGXP_DBG_OP_E(op)                       \
+        gen.call(PGXP_REC_FUNC_OP(pu, op, 1));  \
+        gen.add(esp, 8);                        \
+        rec##op();                              \
     }
 
 #define PGXP_REC_FUNC_2_2(pu, op, test, nReg, reg1, reg2, reg3, reg4) \
@@ -604,43 +604,43 @@ void X86DynaRecCPU::iPushReg(unsigned reg) {
     }
 }
 
-#define REC_FUNC(f)                                                         \
-    void psx##f();                                                          \
-    void rec##f() {                                                         \
-        iFlushRegs();                                                       \
-        gen.mov(dword [&m_psxRegs.code], (uint32_t)m_psxRegs.code);         \
-        gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc);                     \
-        gen.call(psx##f);                                                   \
+#define REC_FUNC(f)                                                  \
+    void psx##f();                                                   \
+    void rec##f() {                                                  \
+        iFlushRegs();                                                \
+        gen.mov(dword [&m_psxRegs.code], (uint32_t)m_psxRegs.code);  \
+        gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc);              \
+        gen.call(psx##f);                                            \
         /*  branch = 2; */                                                  \
     }
 
-#define REC_SYS(f)                                                          \
-    void psx##f();                                                          \
-    void rec##f() {                                                         \
-        iFlushRegs();                                                       \
-        gen.mov(dword [&m_psxRegs.code], (uint32_t)m_psxRegs.code);         \
-        gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc);                     \
-        gen.call(psx##f);                                                   \
-        branch = 2;                                                         \
-        iRet();                                                             \
+#define REC_SYS(f)                                                   \
+    void psx##f();                                                   \
+    void rec##f() {                                                  \
+        iFlushRegs();                                                \
+        gen.mov(dword [&m_psxRegs.code], (uint32_t)m_psxRegs.code);  \
+        gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc);              \
+        gen.call(psx##f);                                            \
+        branch = 2;                                                  \
+        iRet();                                                      \
     }
 
-#define REC_BRANCH(f)                                                       \
-    void psx##f();                                                          \
-    void rec##f() {                                                         \
-        iFlushRegs();                                                       \
-        gen.mov(dword [&m_psxRegs.code], (uint32_t)m_psxRegs.code);         \
-        gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc);                     \
-        gen.call(psx##f);                                                   \
-        branch = 2;                                                         \
-        iRet();                                                             \
+#define REC_BRANCH(f)                                                \
+    void psx##f();                                                   \
+    void rec##f() {                                                  \
+        iFlushRegs();                                                \
+        gen.mov(dword [&m_psxRegs.code], (uint32_t)m_psxRegs.code);  \
+        gen.mov(dword [&m_psxRegs.pc], (uint32_t)m_pc);              \
+        gen.call(psx##f);                                            \
+        branch = 2;                                                  \
+        iRet();                                                      \
     }
 
 bool X86DynaRecCPU::Init() {
     // Initialize recompiler memory
     // Check for 8MB RAM expansion
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-    const auto ramSize = ramExpansion  ? 0x800000 : 0x200000;
+    const auto ramSize = ramExpansion ? 0x800000 : 0x200000;
     const auto ramPages = ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
 
     m_psxRecLUT = new uintptr_t[0x010000]();
