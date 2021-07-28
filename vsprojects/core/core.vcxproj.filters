@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\src\core\disr3000a.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\gpu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -148,6 +151,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\decode_xa.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">
+      <Filter>Header Files\DynaRec_x64</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\gpu.h">
       <Filter>Header Files</Filter>

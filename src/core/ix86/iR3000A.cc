@@ -3195,6 +3195,8 @@ class DynaRecCPU : public PCSX::R3000Acpu {
 
 }  // namespace
 
-std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() {
-    return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU());
-}
+#if defined(DYNAREC_X86_32) || defined(DYNAREC_NONE)
+    std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() {
+        return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU());
+    }
+#endif
