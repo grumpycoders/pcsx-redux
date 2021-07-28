@@ -61,3 +61,6 @@
 [submodule "third_party/SDL_GameControllerDB"]
 	path = third_party/SDL_GameControllerDB
 	url = https://github.com/gabomdq/SDL_GameControllerDB
+[submodule "third_party/xbyak"]
+	path = third_party/xbyak
+	url = https://github.com/herumi/xbyak

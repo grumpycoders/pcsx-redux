@@ -24,9 +24,6 @@
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc">
       <Filter>Source Files\ix86</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\ix86\ix86.cc">
-      <Filter>Source Files\ix86</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\cdriso.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -205,9 +202,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\system.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\ix86\ix86.h">
-      <Filter>Header Files\ix86</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\psxemulator.h">
       <Filter>Header Files</Filter>
