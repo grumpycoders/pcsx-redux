@@ -348,7 +348,7 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
 }
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
-    std::unique_ptr<PCSX::R3000Acpu> cpu = getX86DynaRec();
+    std::unique_ptr<PCSX::R3000Acpu> cpu = getDynaRec();
     if (cpu->Implemented()) return cpu;
     return nullptr;
 }

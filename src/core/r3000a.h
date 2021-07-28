@@ -32,6 +32,14 @@
 #include "support/file.h"
 #include "support/hashtable.h"
 
+#if defined(__i386__) || defined(_M_IX86)
+    #define DYNAREC_X86_32
+#elif defined(__x86_64) || defined(_M_AMD64)
+    #define DYNAREC_X86_64
+#else
+    #define DYNAREC_NONE
+#endif
+
 namespace PCSX {
 
 typedef union {
@@ -542,7 +550,7 @@ class Cpus {
     static std::unique_ptr<R3000Acpu> DynaRec();
 
   private:
-    static std::unique_ptr<R3000Acpu> getX86DynaRec();
+    static std::unique_ptr<R3000Acpu> getDynaRec();
     static std::unique_ptr<R3000Acpu> getInterpreted();
 };
 
