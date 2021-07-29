@@ -184,7 +184,9 @@
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.cc" />
+    <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc" />
+    <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
     <ClCompile Include="..\..\src\core\elfloader.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />

@@ -42,7 +42,13 @@
     <ClCompile Include="..\..\src\core\disr3000a.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\gpu.cc">

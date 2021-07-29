@@ -4,6 +4,7 @@
 #if defined(DYNAREC_X86_64)
 #include "fmt/format.h"
 #include "emitter.h"
+#include "tracy/Tracy.hpp"
 
 using DynarecCallback = uint32_t(*)(); // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -22,12 +23,19 @@ private:
         uint32_t val = 0; // The register's cached value used for constant propagation
         RegState state = RegState::Constant; // Is this register's value a constant, or some unknown
 
-        bool allocated = false; // Has this register been allocated to a host reg?
+        bool isAllocated = false; // Has this register been allocated to a host reg?
         bool writeback = false; // Does this register need to be written back to memory at the end of the block?
         Reg32 allocatedReg; // If a host reg has been allocated to this register, which reg is it?
+
+        bool isConst() { return state == RegState::Constant; }
     };
 
     Register m_registers[32];
+    void allocateReg(int reg);
+    void allocateReg(int reg1, int reg2);
+    void allocateReg(int reg1, int reg2, int reg3);
+    void reserveRegs(int count) { fmt::print ("Should have reserved {} regs\n", count); };
+    unsigned int allocatedRegisters = 0; // how many registers have been allocated in this block?
 
 public:
     DynaRecCPU() : R3000Acpu("x86-64 DynaRec") {}
@@ -84,8 +92,9 @@ public:
         delete[] m_biosBlocks;
     }
    
-    virtual void Execute() final { 
-        fmt::print ("Can't execute. Oops\n"); abort(); 
+    virtual void Execute() final {
+        ZoneScoped; // Tell the Tracy profiler to do its thing
+        while (hasToRun()) execute();
     }
 
     virtual void Clear(uint32_t Addr, uint32_t Size) final { fmt::print ("Can't clear. Oops\n"); abort(); }
@@ -95,5 +104,6 @@ public:
 private:
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
+    void execute();
 };
 #endif // DYNAREC_X86_64
