@@ -689,7 +689,7 @@ void X86DynaRecCPU::execute() {
     InterceptBIOS();
     const auto recFunc = (DynarecCallback*)PC_REC(m_psxRegs.pc);
 
-    if (recFunc == nullptr || !IsPcValid(m_psxRegs.pc)) {
+    if (!IsPcValid(m_psxRegs.pc) || recFunc == nullptr) {
         recError();
         return;
     }
@@ -731,8 +731,8 @@ void X86DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
 }
 
 void X86DynaRecCPU::recNULL() {
-    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, code %08x\n", m_pc, m_psxRegs.code);
-    recError();
+    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_psxRegs.code);
+    recException(Exception::ReservedInstruction);
 }
 
 /*********************************************************
@@ -2730,18 +2730,23 @@ void X86DynaRecCPU::testSWInt() {
     m_pcInEBP = true;
     m_stopRecompile = true;
 
-    gen.mov(edx, dword [&m_psxRegs.CP0.n.Cause]);
     gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
+    gen.test(eax, 1); // Check if interrupts are enabled
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR); // If not, skip to the end
+
+    gen.mov(edx, dword [&m_psxRegs.CP0.n.Cause]);
     gen.and_(eax, edx);
     gen.and_(eax, 0x300);  // This AND will set the zero flag if eax = 0 afterwards
-    gen.je(label, CodeGenerator::LabelType::T_NEAR);
-    gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
-    gen.and_(eax, 1);
-    gen.je(label, CodeGenerator::LabelType::T_NEAR);
-    gen.mov(dword [&m_arg1], edx);
-    gen.mov(dword [&m_arg2], m_inDelaySlot);
-    gen.mov(dword [&m_psxRegs.pc], ebp);
-    gen.mov(ebp, 0xffffffff);
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR);
+
+    gen.push((int32_t) m_inDelaySlot); // Push bd parameter, promoted to int32_t to avoid bool size being implementation-defined
+    gen.push(edx);  // Push exception code parameter (TODO: Technically not correct but this is what the former JIT did)
+    gen.push(reinterpret_cast<uintptr_t>(this)); // Push pointer to this object
+    gen.mov(dword [&m_psxRegs.pc], m_pc - 4); // Store address of current instruction in PC for the exception wrapper to use
+    gen.call(psxExceptionWrapper);  // Call the exception wrapper function
+    gen.mov(ebp, eax); // Move the new PC to EBP.
+    gen.add(esp, 12); // Fix up stack
+
     gen.L(label);
 }
 
