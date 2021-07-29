@@ -682,7 +682,7 @@ void X86DynaRecCPU::Shutdown() {
 void X86DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
-    PCSX::g_system->message("Unrecoverable error while running recompiler\n");
+    PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);
 }
 
 void X86DynaRecCPU::execute() {
