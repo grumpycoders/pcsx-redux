@@ -224,6 +224,7 @@
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
+    <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />
     <ClInclude Include="..\..\src\core\elfloader.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
