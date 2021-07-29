@@ -102,7 +102,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     uintptr_t *m_psxRecLUT;
-    static constexpr size_t RECMEM_SIZE = 8 * 1024 * 1024;
+    static constexpr size_t RECMEM_SIZE = 16 * 1024 * 1024;
     CodeGenerator gen;
 
     uint8_t *m_recRAM;   // Pointers to compiled RAM blocks here
@@ -113,9 +113,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_needsStackFrame;
     bool m_pcInEBP;
     bool m_stopRecompile;
-
-    uint32_t m_arg1;
-    uint32_t m_arg2;
+    uint32_t m_ramSize;
 
     enum iRegState { ST_UNK = 0, ST_CONST = 1 };
 
@@ -153,6 +151,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     void iFlushReg(unsigned reg);
     void iFlushRegs();
     void iPushReg(unsigned reg);
+    void flushCache(); // Flush Dynarec cache when it overflows
 
     void recError();
     void execute();
@@ -631,12 +630,12 @@ bool X86DynaRecCPU::Init() {
     // Initialize recompiler memory
     // Check for 8MB RAM expansion
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-    const auto ramSize = ramExpansion ? 0x800000 : 0x200000;
-    const auto ramPages = ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
+    m_ramSize = ramExpansion ? 0x800000 : 0x200000;
+    const auto ramPages = m_ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
 
     m_psxRecLUT = new uintptr_t[0x010000]();
     m_recROM = new uint8_t[0x080000]();
-    m_recRAM = new uint8_t[ramSize]();
+    m_recRAM = new uint8_t[m_ramSize]();
 
     if (m_recRAM == nullptr || m_recROM == nullptr || gen.getCode() == nullptr || m_psxRecLUT == nullptr) {
         PCSX::g_system->message("Error allocating memory");
@@ -683,6 +682,14 @@ void X86DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
     PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);
+}
+
+// Flush dynarec cache when it overflows
+void X86DynaRecCPU::flushCache() {
+    gen.reset();   // Reset the emitter's code pointer and code size variables
+    gen.align(32); // Align next block
+    std::memset(m_recROM, 0, 0x080000); // Delete all BIOS blocks
+    std::memset(m_recRAM, 0, m_ramSize); // Delete all RAM blocks
 }
 
 void X86DynaRecCPU::execute() {
@@ -3024,7 +3031,7 @@ const func_t X86DynaRecCPU::m_pgxpRecBSCMem[64] = {
 void X86DynaRecCPU::recRecompile() {
     /* if the code buffer reached the mem limit reset whole mem */
     if (gen.getSize() >= RECMEM_SIZE) {
-        Reset();
+        flushCache();
     } else {
         gen.align(32);
     }
