@@ -2729,6 +2729,7 @@ void X86DynaRecCPU::testSWInt() {
 
     m_pcInEBP = true;
     m_stopRecompile = true;
+    m_needsStackFrame = true;
 
     gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
     gen.test(eax, 1); // Check if interrupts are enabled
@@ -2736,11 +2737,11 @@ void X86DynaRecCPU::testSWInt() {
 
     gen.mov(edx, dword [&m_psxRegs.CP0.n.Cause]);
     gen.and_(eax, edx);
-    gen.and_(eax, 0x300);  // This AND will set the zero flag if eax = 0 afterwards
-    gen.jz(label, CodeGenerator::LabelType::T_NEAR);
+    gen.and_(eax, 0x300);  // Check if an interrupt was force-fired
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR); // Skip to the end if not
 
     gen.push((int32_t) m_inDelaySlot); // Push bd parameter, promoted to int32_t to avoid bool size being implementation-defined
-    gen.push(edx);  // Push exception code parameter (TODO: Technically not correct but this is what the former JIT did)
+    gen.push(edx);  // Push exception code parameter (This gets masked in psxException) TODO: Mask here to be safe?
     gen.push(reinterpret_cast<uintptr_t>(this)); // Push pointer to this object
     gen.mov(dword [&m_psxRegs.pc], m_pc - 4); // Store address of current instruction in PC for the exception wrapper to use
     gen.call(psxExceptionWrapper);  // Call the exception wrapper function
