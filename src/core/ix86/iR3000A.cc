@@ -21,15 +21,6 @@
  * i386 assembly functions for R3000A core.
  */
 
-#ifndef _WIN32
-#include <sys/mman.h>
-#ifndef MAP_ANONYMOUS
-#ifdef MAP_ANON
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-#endif
-#endif
-
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
@@ -695,14 +686,10 @@ void X86DynaRecCPU::recError() {
 }
 
 void X86DynaRecCPU::execute() {
-    DynarecCallback* recFunc = nullptr; // A pointer to the host code to execute
     InterceptBIOS();
+    const auto recFunc = (DynarecCallback*)PC_REC(m_psxRegs.pc);
 
-    const auto p = (uint8_t *)PC_REC(m_psxRegs.pc);
-
-    if (p != nullptr && IsPcValid(m_psxRegs.pc)) {
-        recFunc = (DynarecCallback*)p;
-    } else {
+    if (recFunc == nullptr || !IsPcValid(m_psxRegs.pc)) {
         recError();
         return;
     }
