@@ -21,15 +21,6 @@
  * i386 assembly functions for R3000A core.
  */
 
-#ifndef _WIN32
-#include <sys/mman.h>
-#ifndef MAP_ANONYMOUS
-#ifdef MAP_ANON
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-#endif
-#endif
-
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
@@ -111,7 +102,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     uintptr_t *m_psxRecLUT;
-    static constexpr size_t RECMEM_SIZE = 8 * 1024 * 1024;
+    static constexpr size_t RECMEM_SIZE = 16 * 1024 * 1024;
     CodeGenerator gen;
 
     uint8_t *m_recRAM;   // Pointers to compiled RAM blocks here
@@ -122,9 +113,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_needsStackFrame;
     bool m_pcInEBP;
     bool m_stopRecompile;
-
-    uint32_t m_arg1;
-    uint32_t m_arg2;
+    uint32_t m_ramSize;
 
     enum iRegState { ST_UNK = 0, ST_CONST = 1 };
 
@@ -162,6 +151,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void iFlushReg(unsigned reg);
     void iFlushRegs();
     void iPushReg(unsigned reg);
+    void flushCache(); // Flush Dynarec cache when it overflows
 
     void recError();
     void execute();
@@ -640,12 +630,12 @@ bool DynaRecCPU::Init() {
     // Initialize recompiler memory
     // Check for 8MB RAM expansion
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-    const auto ramSize = ramExpansion ? 0x800000 : 0x200000;
-    const auto ramPages = ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
+    m_ramSize = ramExpansion ? 0x800000 : 0x200000;
+    const auto ramPages = m_ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
 
     m_psxRecLUT = new uintptr_t[0x010000]();
     m_recROM = new uint8_t[0x080000]();
-    m_recRAM = new uint8_t[ramSize]();
+    m_recRAM = new uint8_t[m_ramSize]();
 
     if (m_recRAM == nullptr || m_recROM == nullptr || gen.getCode() == nullptr || m_psxRecLUT == nullptr) {
         PCSX::g_system->message("Error allocating memory");
@@ -691,18 +681,22 @@ void DynaRecCPU::Shutdown() {
 void DynaRecCPU::recError() {
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
-    PCSX::g_system->message("Unrecoverable error while running recompiler\n");
+    PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);
+}
+
+// Flush dynarec cache when it overflows
+void DynaRecCPU::flushCache() {
+    gen.reset();   // Reset the emitter's code pointer and code size variables
+    gen.align(32); // Align next block
+    std::memset(m_recROM, 0, 0x080000); // Delete all BIOS blocks
+    std::memset(m_recRAM, 0, m_ramSize); // Delete all RAM blocks
 }
 
 void DynaRecCPU::execute() {
-    DynarecCallback* recFunc = nullptr; // A pointer to the host code to execute
     InterceptBIOS();
+    const auto recFunc = (DynarecCallback*)PC_REC(m_psxRegs.pc);
 
-    const auto p = (uint8_t *)PC_REC(m_psxRegs.pc);
-
-    if (p != nullptr && IsPcValid(m_psxRegs.pc)) {
-        recFunc = (DynarecCallback*)p;
-    } else {
+    if (!IsPcValid(m_psxRegs.pc) || recFunc == nullptr) {
         recError();
         return;
     }
@@ -744,8 +738,8 @@ void DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
 }
 
 void DynaRecCPU::recNULL() {
-    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, code %08x\n", m_pc, m_psxRegs.code);
-    recError();
+    PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_psxRegs.code);
+    recException(Exception::ReservedInstruction);
 }
 
 /*********************************************************
@@ -2742,19 +2736,25 @@ void DynaRecCPU::testSWInt() {
 
     m_pcInEBP = true;
     m_stopRecompile = true;
+    m_needsStackFrame = true;
+
+    gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
+    gen.test(eax, 1); // Check if interrupts are enabled
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR); // If not, skip to the end
 
     gen.mov(edx, dword [&m_psxRegs.CP0.n.Cause]);
-    gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
     gen.and_(eax, edx);
-    gen.and_(eax, 0x300);  // This AND will set the zero flag if eax = 0 afterwards
-    gen.je(label, CodeGenerator::LabelType::T_NEAR);
-    gen.mov(eax, dword [&m_psxRegs.CP0.n.Status]);
-    gen.and_(eax, 1);
-    gen.je(label, CodeGenerator::LabelType::T_NEAR);
-    gen.mov(dword [&m_arg1], edx);
-    gen.mov(dword [&m_arg2], m_inDelaySlot);
-    gen.mov(dword [&m_psxRegs.pc], ebp);
-    gen.mov(ebp, 0xffffffff);
+    gen.and_(eax, 0x300);  // Check if an interrupt was force-fired
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR); // Skip to the end if not
+
+    gen.push((int32_t) m_inDelaySlot); // Push bd parameter, promoted to int32_t to avoid bool size being implementation-defined
+    gen.push(edx);  // Push exception code parameter (This gets masked in psxException) TODO: Mask here to be safe?
+    gen.push(reinterpret_cast<uintptr_t>(this)); // Push pointer to this object
+    gen.mov(dword [&m_psxRegs.pc], m_pc - 4); // Store address of current instruction in PC for the exception wrapper to use
+    gen.call(psxExceptionWrapper);  // Call the exception wrapper function
+    gen.mov(ebp, eax); // Move the new PC to EBP.
+    gen.add(esp, 12); // Fix up stack
+
     gen.L(label);
 }
 
@@ -3031,7 +3031,7 @@ const func_t DynaRecCPU::m_pgxpRecBSCMem[64] = {
 void DynaRecCPU::recRecompile() {
     /* if the code buffer reached the mem limit reset whole mem */
     if (gen.getSize() >= RECMEM_SIZE) {
-        Reset();
+        flushCache();
     } else {
         gen.align(32);
     }
