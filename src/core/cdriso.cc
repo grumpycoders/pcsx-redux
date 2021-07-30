@@ -1234,6 +1234,81 @@ fail_io:
     return -1;
 }
 
+int PCSX::CDRiso::handlechd(const char *isofile) {
+    uint32_t frame_offset = 0;
+    uint32_t file_offset = 0;
+
+    m_chd_img = (chd_img_t *)calloc(1, sizeof(*m_chd_img));
+    if (m_chd_img == NULL)
+        goto fail_io;
+    
+    if (chd_open(isofile, CHD_OPEN_READ, NULL, &m_chd_img->chd) != CHDERR_NONE) 
+        goto fail_io;
+
+    m_chd_img->header = chd_get_header(m_chd_img->chd);
+
+    m_chd_img->buffer = (unsigned char *)malloc(m_chd_img->header->hunkbytes);
+    if (m_chd_img->buffer == NULL) 
+        goto fail_io;
+
+    m_chd_img->sectors_per_hunk = m_chd_img->header->hunkbytes / (2352 + 96);
+    m_chd_img->current_hunk = (unsigned int)-1;
+
+    m_cddaBigEndian = true;
+    m_numtracks = 0;
+
+    memset(m_ti, 0, sizeof(m_ti));
+
+    while (1)
+    {
+        struct {
+            char type[64];
+            char subtype[32];
+            char pgtype[32];
+            char pgsub[32];
+            uint32_t track;
+            uint32_t frames;
+            uint32_t pregap;
+            uint32_t postgap;
+        } md;
+        char meta[256];
+
+        if (chd_get_metadata(m_chd_img->chd, CDROM_TRACK_METADATA2_TAG, m_numtracks, meta, 255, NULL, NULL, NULL) == CHDERR_NONE)
+            sscanf(meta, CDROM_TRACK_METADATA2_FORMAT, &md.track, md.type, md.subtype, &md.frames, &md.pregap, md.pgtype, md.pgsub, &md.postgap);
+        else if (chd_get_metadata(m_chd_img->chd, CDROM_TRACK_METADATA_TAG, m_numtracks, meta, 255, NULL, NULL, NULL) == CHDERR_NONE)
+            sscanf(meta, CDROM_TRACK_METADATA_FORMAT, &md.track, md.type, md.subtype, &md.frames);
+        else
+            break;
+
+        if (md.track == 1)
+            md.pregap = 150;
+        else
+            sec2msf(msf2sec(m_ti[md.track - 1].length) + md.pregap, m_ti[md.track - 1].length);
+
+        m_ti[md.track].type = !strncmp(md.type, "AUDIO", 5) ? trackinfo::CDDA : trackinfo::DATA;
+
+        sec2msf(frame_offset + md.pregap, m_ti[md.track].start);
+        sec2msf(md.frames, m_ti[md.track].length);
+
+        m_ti[md.track].start_offset = file_offset;
+
+        frame_offset += md.pregap + md.frames + md.postgap;
+        file_offset += md.frames + md.postgap;
+        m_numtracks++;
+    }
+
+    if (m_numtracks)
+        return 0;
+
+fail_io:
+    if (m_chd_img != NULL) {
+        free(m_chd_img->buffer);
+        free(m_chd_img);
+        m_chd_img = NULL;
+    }
+    return -1;
+}
+
 // this function tries to get the .sub file of the given .img
 int PCSX::CDRiso::opensubfile(const char *isoname) {
     char subname[MAXPATHLEN];
@@ -1451,6 +1526,26 @@ ssize_t PCSX::CDRiso::cdread_compressed(File *f, unsigned int base, void *dest, 
 finish:
     if (dest != m_cdbuffer)  // copy avoid HACK
         memcpy(dest, m_compr_img->buff_raw[m_compr_img->sector_in_blk], PCSX::CDRom::CD_FRAMESIZE_RAW);
+    return PCSX::CDRom::CD_FRAMESIZE_RAW;
+}
+
+ssize_t PCSX::CDRiso::cdread_chd(File *f, unsigned int base, void *dest, int sector) {
+    int hunk;
+
+    if (base)
+        sector += base;
+
+    hunk = sector / m_chd_img->sectors_per_hunk;
+    m_chd_img->sector_in_hunk = sector % m_chd_img->sectors_per_hunk;
+
+    if (hunk != m_chd_img->current_hunk)
+    {
+        chd_read(m_chd_img->chd, hunk, m_chd_img->buffer);
+        m_chd_img->current_hunk = hunk;
+    }
+
+    if (dest != m_cdbuffer) // copy avoid HACK
+        memcpy(dest, (void *)m_chd_img->buffer[m_chd_img->sector_in_hunk], PCSX::CDRom::CD_FRAMESIZE_RAW);
     return PCSX::CDRom::CD_FRAMESIZE_RAW;
 }
 
@@ -1859,6 +1954,8 @@ int PCSX::CDRiso::handlearchive(const char *isoname, int32_t *accurate_length) {
 uint8_t *PCSX::CDRiso::getBuffer() {
     if (m_useCompressed) {
         return m_compr_img->buff_raw[m_compr_img->sector_in_blk] + 12;
+    } else if (m_useCHD) {
+        return &m_chd_img->buffer[m_chd_img->sector_in_hunk + 12];
     } else {
         return m_cdbuffer + 12;
     }
@@ -1898,6 +1995,7 @@ bool PCSX::CDRiso::open(void) {
     m_multifile = false;
 
     m_useCompressed = false;
+    m_useCHD = false;
     m_cdimg_read_func = &CDRiso::cdread_normal;
 
     if (parsecue(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
@@ -1918,6 +2016,10 @@ bool PCSX::CDRiso::open(void) {
         PCSX::g_system->printf("[cbin]");
         m_useCompressed = true;
         m_cdimg_read_func = &CDRiso::cdread_compressed;
+    } else if (handlechd(reinterpret_cast<const char *>(m_isoPath.string().c_str())) == 0) {
+        PCSX::g_system->printf("[chd]");
+        m_useCHD = true;
+        m_cdimg_read_func = &CDRiso::cdread_chd;
     } else if ((handleecm(reinterpret_cast<const char *>(m_isoPath.string().c_str()), m_cdHandle, NULL) == 0)) {
         PCSX::g_system->printf("[+ecm]");
     } else if (handlearchive(reinterpret_cast<const char *>(m_isoPath.string().c_str()), NULL) == 0) {
@@ -1991,6 +2093,13 @@ void PCSX::CDRiso::close() {
         free(m_compr_img->index_table);
         free(m_compr_img);
         m_compr_img = NULL;
+    }
+
+    if (m_chd_img != NULL) {
+        chd_close(m_chd_img->chd);
+        free(m_chd_img->buffer);
+        free(m_chd_img);
+        m_chd_img = NULL;
     }
 
     for (int i = 1; i <= m_numtracks; i++) {

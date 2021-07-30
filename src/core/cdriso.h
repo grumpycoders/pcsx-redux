@@ -26,6 +26,7 @@
 
 #include "core/psxemulator.h"
 #include "support/file.h"
+#include "libchdr/chd.h"
 
 namespace PCSX {
 
@@ -86,6 +87,7 @@ class CDRiso {
 
     int64_t m_cdOpenCaseTime = 0;
     bool m_useCompressed = false;
+    bool m_useCHD = false;
 
     File* m_cdHandle = NULL;
     File* m_subHandle = NULL;
@@ -119,6 +121,15 @@ class CDRiso {
         unsigned int current_block;
         unsigned int sector_in_blk;
     }* m_compr_img = NULL;
+
+    struct chd_img_t {
+        unsigned char* buffer;
+        chd_file* chd;
+        const chd_header* header;
+        unsigned int sectors_per_hunk;
+        unsigned int current_hunk;
+        unsigned int sector_in_hunk;
+    }* m_chd_img = NULL;
 
     read_func_t m_cdimg_read_func = NULL;
     read_func_t m_cdimg_read_func_archive = NULL;
@@ -203,11 +214,13 @@ class CDRiso {
     int parsemds(const char* isofile);
     int handlepbp(const char* isofile);
     int handlecbin(const char* isofile);
+    int handlechd(const char *isofile);
     int opensubfile(const char* isoname);
     ssize_t cdread_normal(File* f, unsigned int base, void* dest, int sector);
     ssize_t cdread_sub_mixed(File* f, unsigned int base, void* dest, int sector);
     ssize_t cdread_compressed(File* f, unsigned int base, void* dest, int sector);
     ssize_t cdread_2048(File* f, unsigned int base, void* dest, int sector);
+    ssize_t cdread_chd(File* f, unsigned int base, void* dest, int sector);
     ssize_t cdread_ecm_decode(File* f, unsigned int base, void* dest, int sector);
     int handleecm(const char* isoname, File* cdh, int32_t* accurate_length);
     void PrintTracks();
