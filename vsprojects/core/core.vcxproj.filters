@@ -19,6 +19,12 @@
     <Filter Include="Source Files\ix86">
       <UniqueIdentifier>{f3ac4441-f8d0-4cf2-8c18-a1a8df1e5c67}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\DynaRec_x64">
+      <UniqueIdentifier>{977d5853-19bd-442f-9d0e-1754e7a6ef04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\DynaRec_x64">
+      <UniqueIdentifier>{c8d2bddb-ee57-46cc-947a-e63b4a02e604}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc">
@@ -41,15 +47,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\core\disr3000a.cc">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
-      <Filter>Source Files\DynaRec_x64</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\gpu.cc">
       <Filter>Source Files</Filter>
@@ -138,6 +135,15 @@
     <ClCompile Include="..\..\src\core\kernellog.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\cdriso.h">
@@ -157,12 +163,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\decode_xa.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h">
-      <Filter>Header Files\DynaRec_x64</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">
-      <Filter>Header Files\DynaRec_x64</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\gpu.h">
       <Filter>Header Files</Filter>
@@ -253,6 +253,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\kernel.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h">
+      <Filter>Header Files\DynaRec_x64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">
+      <Filter>Header Files\DynaRec_x64</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
