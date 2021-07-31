@@ -145,8 +145,9 @@ static const char *const A0names[] = {
     "srand", "qsort", "strtod", "user_malloc", "user_free", "lsearch", "bsearch", "user_calloc", "user_realloc",
     "user_initheap", nullptr, "getchar", "putchar", "gets", "puts", "printf",
     // 40
-    "SystemErrorUnresolvedException", "loadExeHeader", "loadExe", "exec", "flushCache", "installKernelHandlers", "GPU_dw", 
-    "GPU_mem2vram", "GPU_send", "GPU_cw", "GPU_cwb", "GPU_sendPackets", "GPU_abort", "GPU_getStatus", "GPU_sync", nullptr,
+    "SystemErrorUnresolvedException", "loadExeHeader", "loadExe", "exec", "flushCache", "installKernelHandlers",
+    "GPU_dw", "GPU_mem2vram", "GPU_send", "GPU_cw", "GPU_cwb", "GPU_sendPackets", "GPU_abort", "GPU_getStatus",
+    "GPU_sync", nullptr,
     // 50
     nullptr, "loadAndExec", nullptr, nullptr, "initCDRom", "initMC", "deinitCDRom", nullptr, nullptr, nullptr, nullptr,
     "dev_tty_init", "dev_tty_open", "dev_tty_action", "dev_tty_ioctl", "dev_cd_open",

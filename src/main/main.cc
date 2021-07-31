@@ -84,7 +84,8 @@ class SystemImpl final : public PCSX::System {
         // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
         s_gui->setViewport();
         s_gui->bindVRAMTexture();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, PCSX::g_emulator->m_gpu->getVRAM());
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV,
+                        PCSX::g_emulator->m_gpu->getVRAM());
     }
 
     virtual void close() final {
