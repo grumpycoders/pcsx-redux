@@ -16,6 +16,7 @@ private:
     DynarecCallback* m_ramBlocks;  // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
     DynarecCallback* m_biosBlocks; // Pointers to compiled BIOS blocks
     Emitter gen;
+    uint32_t m_pc; // Recompiler PC
 
     enum class RegState { Unknown, Constant };
 
@@ -105,5 +106,7 @@ private:
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
     void execute();
+    void error();
+    DynarecCallback* getBlockPointer(uint32_t pc);
 };
 #endif // DYNAREC_X86_64

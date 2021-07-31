@@ -18,6 +18,6 @@ struct Emitter final : public CodeGenerator {
 
     template <typename T>
     void callFunc (T& func) {
-        call ((void*) &func);
+        call (reinterpret_cast<void*>(&func));
     }
 };
