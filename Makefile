@@ -12,6 +12,7 @@ LOCALES := fr
 
 CXXFLAGS += -std=c++2a
 CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
+CPPFLAGS += -I.
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/fmt/include/
