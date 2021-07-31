@@ -1377,23 +1377,36 @@ void PCSX::GUI::about() {
             checkGL();
             ImGui::TextWrapped("%s: %s", str, value);
         };
-        ImGui::TextUnformatted(_("OpenGL information"));
-        ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
-        someString(_("Vendor"), GL_VENDOR);
-        someString(_("Renderer"), GL_RENDERER);
-        someString(_("Version"), GL_VERSION);
-        someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
-        GLint n, i;
-        glGetIntegerv(GL_NUM_EXTENSIONS, &n);
-        checkGL();
-        ImGui::TextUnformatted(_("Extensions:"));
-        ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
-        for (i = 0; i < n; i++) {
-            const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
-            checkGL();
-            ImGui::Text("%s", extension);
+        if (ImGui::BeginTabBar("AboutTabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem(_("Authors"))) {
+                ImGui::BeginChild("Authors", ImVec2(0, 0), true);
+                ImGui::Text("%s",
+#include "AUTHORS"
+                );
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("OpenGL information"))) {
+                ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
+                someString(_("Vendor"), GL_VENDOR);
+                someString(_("Renderer"), GL_RENDERER);
+                someString(_("Version"), GL_VERSION);
+                someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
+                GLint n, i;
+                glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+                checkGL();
+                ImGui::TextUnformatted(_("Extensions:"));
+                ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
+                for (i = 0; i < n; i++) {
+                    const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
+                    checkGL();
+                    ImGui::Text("%s", extension);
+                }
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
-        ImGui::EndChild();
     }
     ImGui::End();
 }

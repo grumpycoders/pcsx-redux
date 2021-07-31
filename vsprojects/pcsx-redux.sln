@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		..\src\.clang-format = ..\src\.clang-format
 		..\src\.editorconfig = ..\src\.editorconfig
+		..\AUTHORS = ..\AUTHORS
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GPU", "GPU", "{60F01E36-B838-4AA0-8057-8324E0E39526}"
@@ -441,7 +442,7 @@ Global
 		{1CD0CD6A-5B97-4EFD-A0A9-35546DEA460E} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal
