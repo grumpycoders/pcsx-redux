@@ -351,7 +351,8 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 
     szDebugText[0] = 0;  // init debug text buffer
 
-    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 + (1024 * 1024)]();  // always alloc one extra MB for soft drawing funcs security
+    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 +
+                             (1024 * 1024)]();  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
 
     //!!! ATTENTION !!!
