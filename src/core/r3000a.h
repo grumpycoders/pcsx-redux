@@ -400,10 +400,16 @@ class R3000Acpu {
     void logA0KernelCall(uint32_t call);
     void logB0KernelCall(uint32_t call);
     void logC0KernelCall(uint32_t call);
-    inline void InterceptBIOS() {
-        const uint32_t pc = m_psxRegs.pc & 0x1fffff;
-        const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
-        if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+
+    template <bool checkPC = true>
+    inline void InterceptBIOS(uint32_t currentPC) {
+        const uint32_t pc = currentPC & 0x1fffff;
+
+        if constexpr (checkPC) {
+            const uint32_t base = (currentPC >> 20) & 0xffc;
+            if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+        }
+
         const auto r = m_psxRegs.GPR.n;
 
         // Intercepts write, puts, putc, and putchar.
