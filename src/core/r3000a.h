@@ -396,6 +396,11 @@ class R3000Acpu {
         const uint32_t pc = m_psxRegs.pc & 0x1fffff;
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+
+        interceptKernelCall(pc);
+    }
+
+    inline void interceptKernelCall(uint32_t pc) {
         const auto r = m_psxRegs.GPR.n;
 
         // Intercepts write, puts, putc, and putchar.
