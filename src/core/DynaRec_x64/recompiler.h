@@ -20,6 +20,9 @@ private:
     Emitter gen;
     uint32_t m_pc; // Recompiler PC
 
+    uint32_t m_inDelaySlot;
+    uint32_t m_ramSize;
+
     enum class RegState { Unknown, Constant };
 
     struct Register {
@@ -57,15 +60,15 @@ public:
         // Initialize recompiler memory
         // Check for 8MB RAM expansion
         const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-        const auto ramSize = ramExpansion ? 0x800000 : 0x200000;
+        m_ramSize = ramExpansion ? 0x800000 : 0x200000;
         const auto biosSize = 0x80000;
-        const auto ramPages = ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
+        const auto ramPages = m_ramSize >> 16; // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
 
         m_recompilerLUT = new DynarecCallback*[0x10000](); // Split the 32-bit address space into 64KB pages, so 0x10000 pages in total
         
         // Instructions need to be on 4-byte boundaries. So the amount of valid block entrypoints 
         // in a region of memory is REGION_SIZE / 4
-        m_ramBlocks = new DynarecCallback[ramSize / 4](); 
+        m_ramBlocks = new DynarecCallback[m_ramSize / 4](); 
         m_biosBlocks = new DynarecCallback[biosSize / 4](); 
 
         for (auto page = 0; page < ramPages; page++) { // Map RAM to the recompiler LUT
@@ -118,6 +121,7 @@ private:
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
     void execute();
     void error();
+    void flushCache();
     DynarecCallback* getBlockPointer(uint32_t pc);
 };
 #endif // DYNAREC_X86_64

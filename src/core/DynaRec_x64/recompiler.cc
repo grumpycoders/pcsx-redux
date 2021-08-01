@@ -29,4 +29,11 @@ void DynaRecCPU::error() {
     PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);
 }
 
+void DynaRecCPU::flushCache() {
+    gen.reset();    // Reset the emitter's code pointer and code size variables
+    gen.align(32);  // Align next block
+    std::memset(m_recROM, 0, 0x080000 / 4 * sizeof(DynarecCallback*));  // Delete all BIOS blocks
+    std::memset(m_recRAM, 0, m_ramSize / 4 * sizeof(DynarecCallback*)); // Delete all RAM blocks
+}
+
 #endif // DYNAREC_X86_64
