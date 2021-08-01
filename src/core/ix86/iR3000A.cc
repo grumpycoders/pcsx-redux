@@ -695,7 +695,7 @@ void X86DynaRecCPU::execute() {
     InterceptBIOS();
     const auto recFunc = (DynarecCallback *)PC_REC(m_psxRegs.pc);
 
-    if (!IsPcValid(m_psxRegs.pc) || recFunc == nullptr) {
+    if (!IsPcValid(m_psxRegs.pc)) {
         recError();
         return;
     }
