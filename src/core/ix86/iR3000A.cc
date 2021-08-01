@@ -95,6 +95,40 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
         return that->m_psxRegs.pc;
     }
 
+    template <uint32_t pc>
+    static void interceptKernelCallWrapper(X86DynaRecCPU *that) {
+        that->InterceptBIOS<false>(pc);
+    }
+
+    void handleKernelCall() {
+        const uint32_t pc = m_psxRegs.pc & 0x1fffff;
+        const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
+        if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return; // Mask out the segment, return if not a kernel call vector
+
+        switch (pc) { // Handle the A0/B0/C0 vectors
+            case 0xA0:
+                m_needsStackFrame = true;
+                gen.push(dword, reinterpret_cast<uintptr_t>(this)); // Push pointer to this object
+                gen.call(interceptKernelCallWrapper<0xA0>);         // Call wrapper
+                gen.add(esp, 4); // Fix up stack
+                break;
+            
+            case 0xB0:
+                m_needsStackFrame = true;
+                gen.push(dword, reinterpret_cast<uintptr_t>(this));
+                gen.call(interceptKernelCallWrapper<0xB0>);
+                gen.add(esp, 4);
+                break;
+            
+            case 0xC0:
+                m_needsStackFrame = true;
+                gen.push(dword, reinterpret_cast<uintptr_t>(this));
+                gen.call(interceptKernelCallWrapper<0xC0>);
+                gen.add(esp, 4);
+                break;
+        }
+    }
+
     void maybeCancelDelayedLoad(uint32_t index) {
         unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
@@ -692,10 +726,9 @@ void X86DynaRecCPU::flushCache() {
 }
 
 void X86DynaRecCPU::execute() {
-    InterceptBIOS();
     const auto recFunc = (DynarecCallback *)PC_REC(m_psxRegs.pc);
 
-    if (!IsPcValid(m_psxRegs.pc) || recFunc == nullptr) {
+    if (!IsPcValid(m_psxRegs.pc)) {
         recError();
         return;
     }
@@ -1752,8 +1785,7 @@ void X86DynaRecCPU::recLWL() {
             if (LWL_SHIFT[shift]) gen.shl(eax, LWL_SHIFT[shift]);
             gen.mov(edi, eax);
             if (LWL_MASK_INDEX[shift]) {
-                gen.mov(ecx, LWL_MASK_INDEX[shift]);
-                gen.shl(ecx, 16);
+                gen.mov(ecx, LWL_MASK_INDEX[shift] << 16);
                 gen.or_(ebx, ecx);
             }
         };
@@ -1812,8 +1844,7 @@ void X86DynaRecCPU::recLWR() {
             if (LWR_SHIFT[shift]) gen.shl(eax, LWR_SHIFT[shift]);
             gen.mov(edi, eax);
             if (LWR_MASK_INDEX[shift]) {
-                gen.mov(ecx, LWR_MASK_INDEX[shift]);
-                gen.shr(ecx, 16);
+                gen.mov(ecx, LWR_MASK_INDEX[shift] >> 16);
                 gen.or_(ebx, ecx);
             }
         };
@@ -1883,7 +1914,7 @@ void X86DynaRecCPU::recSB() {
                 gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_psxMem->g_psxH[addr & 0xfff]], (uint8_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(al, Xbyak::util::byte[&m_psxRegs.GPR.r[_Rt_]]);
-                gen.mov(Xbyak::util::byte[t & PCSX::g_emulator->m_psxMem->g_psxH[addr & 0xfff]], al);
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_psxMem->g_psxH[addr & 0xfff]], al);
             }
             return;
         }
@@ -2132,7 +2163,7 @@ void X86DynaRecCPU::iSWRk(uint32_t shift) {
     } else {
         gen.mov(ecx, dword[&m_psxRegs.GPR.r[_Rt_]]);
     }
-    gen.shl(ecx, SWR_SHIFT[shift]);
+    if (SWR_SHIFT[shift]) gen.shl(ecx, SWR_SHIFT[shift]);
     gen.and_(eax, SWR_MASK[shift]);
     gen.or_(eax, ecx);
 }
@@ -3061,6 +3092,7 @@ void X86DynaRecCPU::recRecompile() {
     gen.push(esi);
     gen.push(edi);
     const auto endStackFramePtr = (uintptr_t)gen.getCurr();
+    handleKernelCall(); // Emit extra code if this is one of the kernel call vectors
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
