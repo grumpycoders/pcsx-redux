@@ -406,7 +406,36 @@ class R3000Acpu {
         // printf, but interpreting it is awful. The hope is it'd
         // eventually call one of these 4 functions.
         const uint32_t call = r.t1 & 0xff;
-        if (pc == 0xb0) {
+        if (pc == 0xa0) {
+            switch (call) {
+                case 0x03: {  // write
+                    if (r.a0 != 1) break;
+                    uint8_t *str = PSXM(r.a1);
+                    uint32_t size = r.a2;
+                    m_psxRegs.GPR.n.v0 = size;
+                    while (size--) {
+                        g_system->biosPutc(*str++);
+                    }
+                    break;
+                }
+                case 0x09: {  // putc
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3c: {  // putchar
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3e: {  // puts
+                    uint8_t *str = PSXM(r.a0);
+                    uint8_t c;
+                    while ((c = *str++) != 0) {
+                        g_system->biosPutc(c);
+                    }
+                    break;
+                }
+            }
+        } else if (pc == 0xb0) {
             switch (call) {
                 case 0x35: {  // write
                     if (r.a0 != 1) break;
