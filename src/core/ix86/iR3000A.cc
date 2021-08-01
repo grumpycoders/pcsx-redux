@@ -97,7 +97,7 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <uint32_t pc>
     static void interceptKernelCallWrapper(X86DynaRecCPU *that) {
-        that->interceptKernelCall(pc);
+        that->InterceptBIOS<false>(pc);
     }
 
     void handleKernelCall() {
