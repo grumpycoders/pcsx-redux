@@ -23,6 +23,7 @@ mkdir -p ${APP}.app/Contents/MacOS
 ln -s ../Resources/bin/pcsx-redux ${APP}.app/Contents/MacOS/${APP}
 PlistBuddy ${APP}.app/Contents/Info.plist -c "add CFBundleDisplayName string ${APP}"
 PlistBuddy ${APP}.app/Contents/Info.plist -c "add CFBundleIconFile string pcsx-redux.icns"
+PlistBuddy ${APP}.app/Contents/Info.plist -c "add NSHighResolutionCapable bool true"
 PlistBuddy ${APP}.app/Contents/version.plist -c "add ProjectName string ${APP}"
 dylibbundler -od -b -x ./PCSX-Redux.app/Contents/Resources/bin/pcsx-redux -d ./PCSX-Redux.app/Contents/Resources/lib/ -p @executable_path/../lib/
 cp pcsx-redux.icns ${APP}.app/Contents/Resources/

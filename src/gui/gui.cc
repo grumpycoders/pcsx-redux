@@ -572,17 +572,20 @@ void PCSX::GUI::endFrame() {
 
     if (m_fullscreenRender) {
         ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-        auto basePos = ImGui::GetMainViewport()->Pos;
-        ImGui::SetNextWindowPos(
-            ImVec2((w - m_renderSize.x) / 2.0f + basePos.x, (h - m_renderSize.y) / 2.0f + basePos.y));
-        ImGui::SetNextWindowSize(m_renderSize);
+        const auto basePos = ImGui::GetMainViewport()->Pos;
+        const auto displayFramebufferScale = ImGui::GetIO().DisplayFramebufferScale;
+        const auto logicalRenderSize =
+            ImVec2(m_renderSize[0] / displayFramebufferScale[0], m_renderSize[1] / displayFramebufferScale[1]);
+        ImGui::SetNextWindowPos(ImVec2((w - m_renderSize.x) / 2.0f / displayFramebufferScale[0] + basePos.x,
+                                       (h - m_renderSize.y) / 2.0f / displayFramebufferScale[0] + basePos.y));
+        ImGui::SetNextWindowSize(logicalRenderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::Begin("FullScreenRender", nullptr,
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::Image(texture, m_renderSize, ImVec2(0, 0), ImVec2(1, 1));
+        ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
         ImGui::End();
         ImGui::PopStyleVar(2);
     }
@@ -1377,23 +1380,36 @@ void PCSX::GUI::about() {
             checkGL();
             ImGui::TextWrapped("%s: %s", str, value);
         };
-        ImGui::TextUnformatted(_("OpenGL information"));
-        ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
-        someString(_("Vendor"), GL_VENDOR);
-        someString(_("Renderer"), GL_RENDERER);
-        someString(_("Version"), GL_VERSION);
-        someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
-        GLint n, i;
-        glGetIntegerv(GL_NUM_EXTENSIONS, &n);
-        checkGL();
-        ImGui::TextUnformatted(_("Extensions:"));
-        ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
-        for (i = 0; i < n; i++) {
-            const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
-            checkGL();
-            ImGui::Text("%s", extension);
+        if (ImGui::BeginTabBar("AboutTabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem(_("Authors"))) {
+                ImGui::BeginChild("Authors", ImVec2(0, 0), true);
+                ImGui::Text("%s",
+#include "AUTHORS"
+                );
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("OpenGL information"))) {
+                ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
+                someString(_("Vendor"), GL_VENDOR);
+                someString(_("Renderer"), GL_RENDERER);
+                someString(_("Version"), GL_VERSION);
+                someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
+                GLint n, i;
+                glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+                checkGL();
+                ImGui::TextUnformatted(_("Extensions:"));
+                ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
+                for (i = 0; i < n; i++) {
+                    const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
+                    checkGL();
+                    ImGui::Text("%s", extension);
+                }
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
-        ImGui::EndChild();
     }
     ImGui::End();
 }
