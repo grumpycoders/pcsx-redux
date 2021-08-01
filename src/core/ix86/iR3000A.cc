@@ -1914,7 +1914,7 @@ void X86DynaRecCPU::recSB() {
                 gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_psxMem->g_psxH[addr & 0xfff]], (uint8_t)m_iRegs[_Rt_].k);
             } else {
                 gen.mov(al, Xbyak::util::byte[&m_psxRegs.GPR.r[_Rt_]]);
-                gen.mov(Xbyak::util::byte[t & PCSX::g_emulator->m_psxMem->g_psxH[addr & 0xfff]], al);
+                gen.mov(Xbyak::util::byte[&PCSX::g_emulator->m_psxMem->g_psxH[addr & 0xfff]], al);
             }
             return;
         }
