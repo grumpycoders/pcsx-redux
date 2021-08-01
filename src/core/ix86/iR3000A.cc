@@ -1785,8 +1785,7 @@ void X86DynaRecCPU::recLWL() {
             if (LWL_SHIFT[shift]) gen.shl(eax, LWL_SHIFT[shift]);
             gen.mov(edi, eax);
             if (LWL_MASK_INDEX[shift]) {
-                gen.mov(ecx, LWL_MASK_INDEX[shift]);
-                gen.shl(ecx, 16);
+                gen.mov(ecx, LWL_MASK_INDEX[shift] << 16);
                 gen.or_(ebx, ecx);
             }
         };
@@ -1845,8 +1844,7 @@ void X86DynaRecCPU::recLWR() {
             if (LWR_SHIFT[shift]) gen.shl(eax, LWR_SHIFT[shift]);
             gen.mov(edi, eax);
             if (LWR_MASK_INDEX[shift]) {
-                gen.mov(ecx, LWR_MASK_INDEX[shift]);
-                gen.shr(ecx, 16);
+                gen.mov(ecx, LWR_MASK_INDEX[shift] >> 16);
                 gen.or_(ebx, ecx);
             }
         };
@@ -2165,7 +2163,7 @@ void X86DynaRecCPU::iSWRk(uint32_t shift) {
     } else {
         gen.mov(ecx, dword[&m_psxRegs.GPR.r[_Rt_]]);
     }
-    gen.shl(ecx, SWR_SHIFT[shift]);
+    if (SWR_SHIFT[shift]) gen.shl(ecx, SWR_SHIFT[shift]);
     gen.and_(eax, SWR_MASK[shift]);
     gen.or_(eax, ecx);
 }
