@@ -257,6 +257,9 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">
       <Filter>Header Files\DynaRec_x64</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
+      <Filter>Header Files\DynaRec_x64</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

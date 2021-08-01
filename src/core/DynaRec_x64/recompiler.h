@@ -2,9 +2,11 @@
 #include "core/r3000a.h"
 
 #if defined(DYNAREC_X86_64)
+#include <array>
 #include "fmt/format.h"
-#include "emitter.h"
 #include "tracy/Tracy.hpp"
+#include "emitter.h"
+#include "regAllocation.h"
 
 using DynarecCallback = uint32_t(*)(); // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -29,13 +31,22 @@ private:
         Reg32 allocatedReg; // If a host reg has been allocated to this register, which reg is it?
 
         bool isConst() { return state == RegState::Constant; }
+        void markConst(uint32_t value) {
+            val = value;
+            state = RegState::Constant;
+            isAllocated = false;
+        }
     };
-
+    
     Register m_registers[32];
+    std::array <bool, ALLOCATEABLE_REG_COUNT> m_isHostRegAllocated;
+    
     void allocateReg(int reg);
     void allocateReg(int reg1, int reg2);
     void allocateReg(int reg1, int reg2, int reg3);
     void reserveRegs(int count) { fmt::print ("Should have reserved {} regs\n", count); };
+    constexpr int allocateableRegCount();
+
     unsigned int allocatedRegisters = 0; // how many registers have been allocated in this block?
 
 public:
