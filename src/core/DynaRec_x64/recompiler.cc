@@ -36,4 +36,13 @@ void DynaRecCPU::flushCache() {
     std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
 }
 
+void DynaRecCPU::recompile(DynarecCallback*& callback) {
+    gen.align(32);  // Align next block
+
+    if (gen.getSize() > codeCacheSize) { // Flush JIT cache if we've gone above the acceptable size
+        flushCache();
+    }
+
+    flushRegs();
+}
 #endif // DYNAREC_X86_64

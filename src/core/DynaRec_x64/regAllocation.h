@@ -27,6 +27,7 @@ using namespace Xbyak::util;
 	constexpr Reg32 arg2 = edx; // register where second arg is stored
 	constexpr Reg32 arg3 = r8d; // register where third arg is stored
 	constexpr Reg32 arg4 = r9d; // register where fourth arg is stored
+    #define IS_VOLATILE(x) ((x) >= 6) // Check if register "x" out of the allocateable regs is a volatile one
 
 #else // System V calling convention
     constexpr Reg64 contextPointer = rbp;
@@ -39,5 +40,6 @@ using namespace Xbyak::util;
 	constexpr Reg32 arg2 = esi;
 	constexpr Reg32 arg3 = edx;
 	constexpr Reg32 arg4 = ecx;
+    #define IS_VOLATILE(x) ((x) >= 4)
 #endif
 #endif // DYNAREC_X86_64

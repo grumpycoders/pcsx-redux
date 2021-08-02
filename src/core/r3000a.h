@@ -187,6 +187,7 @@ struct psxRegisters {
     uint32_t lowestTarget;
     uint8_t ICache_Addr[0x1000];
     uint8_t ICache_Code[0x1000];
+    uint64_t hostRegisterCache[16]; // For the JIT: An array to store non-volatile regs in when the register allocator uses them
 };
 
 // U64 and S64 are used to wrap long integer constants.

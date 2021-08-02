@@ -3,10 +3,14 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+#include <optional>
 #include "fmt/format.h"
 #include "tracy/Tracy.hpp"
 #include "emitter.h"
 #include "regAllocation.h"
+
+#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t) &m_psxRegs.hostRegisterCache[(x)] - (uintptr_t) &m_psxRegs)
+#define GPR_OFFSET(x) ((uintptr_t) &m_psxRegs.GPR.r[(x)] - (uintptr_t) &m_psxRegs)
 
 using DynarecCallback = uint32_t(*)(); // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -20,7 +24,7 @@ private:
     Emitter gen;
     uint32_t m_pc; // Recompiler PC
 
-    uint32_t m_inDelaySlot;
+    bool m_inDelaySlot;
     uint32_t m_ramSize;
 
     enum class RegState { Unknown, Constant };
@@ -37,20 +41,33 @@ private:
         void markConst(uint32_t value) {
             val = value;
             state = RegState::Constant;
+            unallocate();
+        }
+
+        void markUnknown() {
+            state = RegState::Unknown;
+        }
+
+        void setWriteback(bool wb) {
+            writeback = wb;
+        }
+
+        void unallocate() { 
             isAllocated = false;
+            writeback = false;
         }
     };
     
     Register m_registers[32];
-    std::array <bool, ALLOCATEABLE_REG_COUNT> m_isHostRegAllocated;
+    std::array <std::optional<int>, ALLOCATEABLE_REG_COUNT> m_hostRegMappings;
     
     void allocateReg(int reg);
     void allocateReg(int reg1, int reg2);
     void allocateReg(int reg1, int reg2, int reg3);
-    void reserveRegs(int count) { fmt::print ("Should have reserved {} regs\n", count); };
+    void reserveReg(int index);
+    void flushRegs();
     constexpr int allocateableRegCount();
-
-    unsigned int allocatedRegisters = 0; // how many registers have been allocated in this block?
+    unsigned int m_allocatedRegisters = 0; // how many registers have been allocated in this block?
 
 public:
     DynaRecCPU() : R3000Acpu("x86-64 DynaRec") {}
@@ -120,8 +137,10 @@ private:
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
     void execute();
+    void recompile(DynarecCallback*& callback);
     void error();
     void flushCache();
+    void loadContext();
     DynarecCallback* getBlockPointer(uint32_t pc);
 };
 #endif // DYNAREC_X86_64
