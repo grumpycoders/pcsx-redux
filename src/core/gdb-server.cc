@@ -99,7 +99,9 @@ PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
     m_loop = srv->loop;
     uv_tcp_init(m_loop, &m_tcp);
     m_tcp.data = this;
+    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { m_exception = false; });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
+        m_exception = event.exception;
         if (m_waitingForShell) {
             // This is a bit of a problem. If there's any remaining
             // breakpoint, we just blow past them. I'm not sure
@@ -422,7 +424,7 @@ std::string PCSX::GdbClient::dumpOneRegister(int n) {
     } else if (n == 36) {
         value = regs.CP0.n.Cause;
     } else if (n == 37) {
-        value = regs.pc;
+        value = m_exception ? regs.CP0.n.EPC : regs.pc;
     }
 
     return dumpValue(value);
