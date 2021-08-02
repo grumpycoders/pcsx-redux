@@ -11,8 +11,12 @@
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t) &m_psxRegs.hostRegisterCache[(x)] - (uintptr_t) &m_psxRegs)
 #define GPR_OFFSET(x) ((uintptr_t) &m_psxRegs.GPR.r[(x)] - (uintptr_t) &m_psxRegs)
+#define PC_OFFSET ((uintptr_t) &m_psxRegs.pc - (uintptr_t) &m_psxRegs)
 
-using DynarecCallback = uint32_t(*)(); // A function pointer to JIT-emitted code
+static uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead32(mem); }
+static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value); }
+
+using DynarecCallback = void(*)(); // A function pointer to JIT-emitted code
 
 using namespace Xbyak;
 using namespace Xbyak::util;
@@ -62,7 +66,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     };
     
-    Register m_registers[32];
+    Register m_regs[32];
     std::array <std::optional<int>, ALLOCATEABLE_REG_COUNT> m_hostRegMappings;
     
     void allocateReg(int reg);
@@ -70,8 +74,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void allocateReg(int reg1, int reg2, int reg3);
     void reserveReg(int index);
     void flushRegs();
-    constexpr int allocateableRegCount();
     unsigned int m_allocatedRegisters = 0; // how many registers have been allocated in this block?
+
+    void prepareForCall();
+    void returnFromCall();
 
 public:
     DynaRecCPU() : R3000Acpu("x86-64 DynaRec") {}
@@ -110,6 +116,7 @@ public:
             PCSX::g_system->message("[Dynarec] Error allocating memory");
             return false;
         }
+        m_regs[0].markConst(0); // $zero is always zero!
 
         gen.reset();
         return true;
@@ -156,20 +163,25 @@ private:
 
     // Instruction definitions
     void recUnknown();
+    void recADDIU();
+    void recJ();
     void recLUI();
+    void recORI();
+    void recSLL();
+    void recSW();
 
     const func_t m_recBSC[64] = {
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 00
+        &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recJ, &DynaRecCPU::recUnknown,  // 00
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recADDIU,   &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recORI,     &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 20
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSW,       // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34

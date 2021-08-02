@@ -16,6 +16,7 @@ using namespace Xbyak::util;
     constexpr Reg64 contextPointer = rbp; // Pointer to CPU context
     constexpr Reg64 memPointer = rbx; // Pointer to memory page table
     constexpr int ALLOCATEABLE_REG_COUNT = 8;
+    constexpr int ALLOCATEABLE_NON_VOLATILE_COUNT = 6;
 
     // Our allocateable registers and the order they should be allocated
     // We prefer using non-volatile regs first
@@ -37,6 +38,7 @@ using namespace Xbyak::util;
     constexpr Reg64 contextPointer = rbp;
     constexpr Reg64 memPointer = rbx;
     constexpr int ALLOCATEABLE_REG_COUNT = 8;
+    constexpr int ALLOCATEABLE_NON_VOLATILE_COUNT = 4;
     constexpr std::array <Reg32, ALLOCATEABLE_REG_COUNT> allocateableRegisters = { r12d, r13d, r14d, r15d, r8d, r9d, r10d, r11d };
     constexpr std::array <Reg32, 4> allocateableVolatiles = { r8d, r9d, r10d, r11d };
 

@@ -21,14 +21,19 @@ void DynaRecCPU::execute() {
         error();
     }
 
+    auto ptr = (uint8_t*) gen.getCurr();
     auto recompilerFunc = getBlockPointer(m_pc);
     if (*recompilerFunc == nullptr) { // Check if this block has been compiled, compile it if not
         recompile(recompilerFunc);
     }
 
+    while (ptr != gen.getCurr()) {
+        fmt::print("{:02X} ", *ptr++);
+    }
+
     fmt::print("OK done\n");
     abort();
-    m_psxRegs.pc = (*recompilerFunc)(); // Jump to emitted code
+    (*recompilerFunc)(); // Jump to emitted code
     psxBranchTest(); // Check scheduler events
 }
 
@@ -79,6 +84,9 @@ void DynaRecCPU::recompile(DynarecCallback*& callback) {
     };
 
     while (shouldContinue()) {
+        m_inDelaySlot = m_nextIsDelaySlot;
+        m_nextIsDelaySlot = false;
+
         fmt::print("Instruction\n");
         const auto p = (uint8_t*)PSXM(m_pc); // Fetch instruction
         if (p == nullptr) { // Error if it can't be fetched
