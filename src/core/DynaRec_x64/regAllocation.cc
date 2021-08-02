@@ -63,7 +63,8 @@ void DynaRecCPU::flushRegs() {
 }
 
 void DynaRecCPU::loadContext() { 
-    gen.mov(rbp, (uint64_t) &m_psxRegs); 
+    gen.push(contextPointer); // Save context pointer register in stack
+    gen.mov(contextPointer, (uint64_t) &m_psxRegs); // Load context pointer
 }
 
 void DynaRecCPU::allocateReg(int reg) {

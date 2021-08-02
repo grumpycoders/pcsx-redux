@@ -61,6 +61,10 @@ void DynaRecCPU::recompile(DynarecCallback*& callback) {
     }
 
     loadContext(); // Load a pointer to our CPU context
+    if constexpr (isWindows()) {
+        gen.sub(rsp, 32); // Allocate shadow stack space on Windows
+    }
+
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
             return true;
@@ -98,5 +102,9 @@ void DynaRecCPU::recompile(DynarecCallback*& callback) {
     }
     
     flushRegs();
+    if constexpr (isWindows()) {
+        gen.add(rsp, 32); // Deallocate shadow stack space on Windows
+    }
+    gen.pop(contextPointer); // Restore our context pointer register
 }
 #endif // DYNAREC_X86_64
