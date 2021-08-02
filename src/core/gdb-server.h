@@ -239,6 +239,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
         QSYMBOL_WAITING_FOR_RESET,
     } m_qsymbolState = QSYMBOL_IDLE;
     bool m_waitingForShell = false;
+    bool m_exception = false;
     std::string m_cmd;
     uint8_t m_crc;
     EventBus::Listener m_listener;
