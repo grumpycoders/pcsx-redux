@@ -45,7 +45,7 @@ void DynaRecCPU::error() {
 
 void DynaRecCPU::flushCache() {
     gen.reset();    // Reset the emitter's code pointer and code size variables
-    gen.align(32);  // Align next block
+    gen.align(16);  // Align next block
     std::memset(m_biosBlocks, 0, 0x080000 / 4 * sizeof(DynarecCallback));  // Delete all BIOS blocks
     std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
 }
@@ -59,7 +59,7 @@ void DynaRecCPU::recompile(DynarecCallback*& callback) {
     m_needsStackFrame = false;
 
     int count = 0; // How many instructions have we compiled?
-    gen.align(32);  // Align next block
+    gen.align(16);  // Align next block
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
