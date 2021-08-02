@@ -13,25 +13,29 @@
 #define GPR_OFFSET(x) ((uintptr_t) &m_psxRegs.GPR.r[(x)] - (uintptr_t) &m_psxRegs)
 
 using DynarecCallback = uint32_t(*)(); // A function pointer to JIT-emitted code
+
 using namespace Xbyak;
 using namespace Xbyak::util;
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
-private:
+    typedef void (DynaRecCPU::*func_t)();  // A function pointer to a dynarec member function, used for m_recBSC
+  private:
     DynarecCallback** m_recompilerLUT;
     DynarecCallback* m_ramBlocks;  // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
     DynarecCallback* m_biosBlocks; // Pointers to compiled BIOS blocks
     Emitter gen;
     uint32_t m_pc; // Recompiler PC
 
-    bool m_inDelaySlot;
-    uint32_t m_ramSize;
+    bool m_needsStackFrame; // Do we need to setup a stack frame? Usually needed when the block has C fallbacks
+    bool m_stopCompiling; // Should we stop compiling code?
+    uint32_t m_ramSize;   // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
+    const int MAX_BLOCK_SIZE = 30;
 
     enum class RegState { Unknown, Constant };
 
     struct Register {
         uint32_t val = 0; // The register's cached value used for constant propagation
-        RegState state = RegState::Constant; // Is this register's value a constant, or some unknown
+        RegState state = RegState::Unknown; // Is this register's value a constant, or some unknown
 
         bool isAllocated = false; // Has this register been allocated to a host reg?
         bool writeback = false; // Does this register need to be written back to memory at the end of the block?
@@ -142,5 +146,35 @@ private:
     void flushCache();
     void loadContext();
     DynarecCallback* getBlockPointer(uint32_t pc);
+
+    void maybeCancelDelayedLoad(uint32_t index) {
+        const unsigned other = m_currentDelayedLoad ^ 1;
+        if (m_delayedLoadInfo[other].index == index) {
+            m_delayedLoadInfo[other].active = false;
+        }
+    }
+
+    // Instruction definitions
+    void recUnknown();
+    void recLUI();
+
+    const func_t m_recBSC[64] = {
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 00
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 20
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 38
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 3c
+    };
 };
 #endif // DYNAREC_X86_64

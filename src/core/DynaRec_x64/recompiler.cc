@@ -17,10 +17,19 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 
 void DynaRecCPU::execute() {
     m_pc = m_psxRegs.pc;
-    if (!isPcValid(m_pc)) error();
+    if (!isPcValid(m_pc)) {
+        error();
+    }
 
-    const auto recompilerFunc = getBlockPointer(m_pc);
-    if (*recompilerFunc == nullptr) fmt::print("Need to compile block at {:08X}\n", m_pc);
+    auto recompilerFunc = getBlockPointer(m_pc);
+    if (*recompilerFunc == nullptr) { // Check if this block has been compiled, compile it if not
+        recompile(recompilerFunc);
+    }
+
+    fmt::print("OK done\n");
+    abort();
+    m_psxRegs.pc = (*recompilerFunc)(); // Jump to emitted code
+    psxBranchTest(); // Check scheduler events
 }
 
 void DynaRecCPU::error() {
@@ -37,12 +46,57 @@ void DynaRecCPU::flushCache() {
 }
 
 void DynaRecCPU::recompile(DynarecCallback*& callback) {
+    m_stopCompiling = false;
+    m_inDelaySlot = false;
+    m_nextIsDelaySlot = false;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
+    m_needsStackFrame = false;
+
+    int count = 0; // How many instructions have we compiled?
     gen.align(32);  // Align next block
 
-    if (gen.getSize() > codeCacheSize) { // Flush JIT cache if we've gone above the acceptable size
+    if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
     }
 
+    loadContext(); // Load a pointer to our CPU context
+    auto shouldContinue = [&]() {
+        if (m_nextIsDelaySlot) {
+            return true;
+        }
+        if (m_stopCompiling) {
+            return false;
+        }
+        if (count >= MAX_BLOCK_SIZE && !m_delayedLoadInfo[0].active && !m_delayedLoadInfo[1].active) {
+            return false;
+        }
+        return true;
+    };
+
+    while (shouldContinue()) {
+        fmt::print("Instruction\n");
+        const auto p = (uint8_t*)PSXM(m_pc); // Fetch instruction
+        if (p == nullptr) { // Error if it can't be fetched
+            error();
+            return;
+        }
+
+        m_psxRegs.code = *(uint32_t*)p; // Actually read the instruction
+        m_pc += 4; // Increment recompiler PC
+        count++;   // Increment instruction count
+
+        auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
+        (*this.*func)(); // Jump into the handler to recompile it
+
+        //const bool isOtherActive = m_delayedLoadInfo[m_currentDelayedLoad].active;
+        //processDelayedLoad();
+        //if (isOtherActive) {
+        //    gen.mov(esi, edi);
+        //    gen.shr(ebx, 16);
+        //}
+    }
+    
     flushRegs();
 }
 #endif // DYNAREC_X86_64
