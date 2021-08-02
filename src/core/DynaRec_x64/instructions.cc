@@ -9,7 +9,7 @@ void DynaRecCPU::recUnknown() {
 }
 
 void DynaRecCPU::recLUI() {
-    if (_Rt_) return;
+    if (!_Rt_) return;
 
     maybeCancelDelayedLoad(_Rt_);
     m_registers[_Rt_].markConst(m_psxRegs.code << 16);
