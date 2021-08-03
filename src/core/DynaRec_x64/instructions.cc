@@ -316,7 +316,7 @@ void DynaRecCPU::recBEQ() {
     }
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        if (m_regs[_Rs_].val != m_regs[_Rt_].val) {
+        if (m_regs[_Rs_].val == m_regs[_Rt_].val) {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
             gen.mov(dword[contextPointer + PC_OFFSET], target);
