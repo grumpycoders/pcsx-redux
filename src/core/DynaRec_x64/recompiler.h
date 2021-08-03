@@ -3,6 +3,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+#include <fstream>
 #include <optional>
 #include "fmt/format.h"
 #include "tracy/Tracy.hpp"
@@ -147,12 +148,17 @@ public:
     virtual void SetPGXPMode(uint32_t pgxpMode) final {}
     virtual bool isDynarec() final { return true; }
 
+    void dumpBuffer() {
+        std::ofstream file("DynarecOutput.bin", std::ios::binary); // Make a file for our dump
+        file.write((const char*) gen.getCode(), gen.getSize()); // Write the code buffer to the dump
+    }
+
+  private:
     static uint32_t psxExceptionWrapper(DynaRecCPU* that, int e, int32_t bd) {
         that->psxException(e, bd);
         return that->m_psxRegs.pc;
     }
 
-private:
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
     void execute();

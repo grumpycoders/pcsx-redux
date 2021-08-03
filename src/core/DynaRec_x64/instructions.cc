@@ -3,6 +3,7 @@
 #define BAILZERO(x) if (!(x)) { return; }
 
 void DynaRecCPU::recUnknown() {
+    dumpBuffer();
     fmt::print("Unknown instruction for dynarec - address {:08X}, instruction {:08X}\n", m_pc, m_psxRegs.code);
     abort();
     PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_psxRegs.code);
@@ -182,7 +183,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
 
     m_pcWrittenBack = true;
     m_stopCompiling = true;
-    m_needsStackFrame = true;
+    prepareForCall();
 
     gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]); // eax = SR
     gen.test(eax, 1);                                      // Check if interrupts are enabled
@@ -197,7 +198,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     gen.mov(arg1.cvt64(), (uint64_t) this); // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
-    gen.call(psxExceptionWrapper); // Call the exception wrapper function
+    gen.callFunc(psxExceptionWrapper); // Call the exception wrapper function
 
     gen.L(label);
 }
