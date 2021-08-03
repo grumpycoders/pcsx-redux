@@ -89,8 +89,17 @@ void DynaRecCPU::recSW() {
     }
 
     else {
-        fmt::print("SW without a constant address\n");
-        abort();
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.mov(arg2, m_regs[_Rt_].val);
+        } else {
+            allocateReg(_Rt_);
+            gen.mov(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        allocateReg(_Rs_);
+        gen.mov(arg1, m_regs[_Rs_].allocatedReg);  // Address to write to in arg1   TODO: Optimize
+        prepareForCall();
+        gen.callFunc(psxMemRead32Wrapper);
     }
 }
 
@@ -238,6 +247,105 @@ void DynaRecCPU::recBNE() {
     gen.mov(eax, m_pc + 4);  // eax = addr if jump not taken
     gen.cmovne(eax, ecx);    // if not equal, move the jump addr into eax
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
+}
+
+void DynaRecCPU::recBEQ() {
+    // Branch if Rs != Rt
+    const auto target = _Imm_ * 4 + m_pc;
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        if (m_regs[_Rs_].val != m_regs[_Rt_].val) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.mov(dword[contextPointer + PC_OFFSET], target);
+        }
+        return;
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rt_);
+        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rs_);
+        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        allocateReg(_Rt_, _Rs_);
+        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    gen.mov(ecx, target);   // ecx = addr if jump taken
+    gen.mov(eax, m_pc + 4); // eax = addr if jump not taken
+    gen.cmove(eax, ecx);    // if not equal, move the jump addr into eax
+    gen.mov(dword[contextPointer + PC_OFFSET], eax);
+}
+
+void DynaRecCPU::recLB() {
+    if (_Rt_) {
+        allocateReg(_Rt_);
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        gen.mov(arg1, addr);
+    } else {
+        allocateReg(_Rs_);
+        gen.mov(arg2, m_regs[_Rs_].allocatedReg);
+    }
+
+    prepareForCall();
+    gen.callFunc(psxMemRead8Wrapper);
+
+    if (_Rt_) {
+        gen.movsx(m_regs[_Rt_].allocatedReg, al);
+    }
+}
+
+void DynaRecCPU::recLBU() {
+    if (_Rt_) {
+        allocateReg(_Rt_);
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        gen.mov(arg1, addr);
+    } else {
+        allocateReg(_Rs_);
+        gen.mov(arg2, m_regs[_Rs_].allocatedReg);
+    }
+
+    prepareForCall();
+    gen.callFunc(psxMemRead8Wrapper);
+
+    if (_Rt_) {
+        gen.movzx(m_regs[_Rt_].allocatedReg, al);
+    }
+}
+
+void DynaRecCPU::recLW() {
+    if (_Rt_) {
+        allocateReg(_Rt_);
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        gen.mov(arg1, addr);
+    } else {
+        allocateReg(_Rs_);
+        gen.mov(arg2, m_regs[_Rs_].allocatedReg);
+    }
+
+    prepareForCall();
+    gen.callFunc(psxMemRead32Wrapper);
+
+    if (_Rt_) {
+        gen.mov(m_regs[_Rt_].allocatedReg, eax);
+    }
 }
 
 #endif DYNAREC_X86_64

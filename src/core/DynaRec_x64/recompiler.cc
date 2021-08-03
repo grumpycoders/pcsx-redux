@@ -16,6 +16,11 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 }
 
 void DynaRecCPU::execute() {
+    if (!m_shellStarted) {
+        m_shellStarted = true;  // HACK to sideload test ROMs: Remove!
+        PCSX::g_system->m_eventBus->signal(PCSX::Events::ExecutionFlow::ShellReached{});
+    }
+
     m_pc = m_psxRegs.pc;
     if (!isPcValid(m_pc)) {
         error();
@@ -116,5 +121,10 @@ void DynaRecCPU::recompile(DynarecCallback*& callback) {
     gen.add(dword[contextPointer + CYCLE_OFFSET], count); // Add block cycles
     gen.pop(contextPointer); // Restore our context pointer register
     gen.ret();
+}
+
+void DynaRecCPU::recSpecial() {
+    auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
+    (*this.*func)();                             // Jump into the handler to recompile it
 }
 #endif // DYNAREC_X86_64
