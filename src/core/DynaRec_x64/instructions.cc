@@ -62,6 +62,19 @@ void DynaRecCPU::recSLL() {
 void DynaRecCPU::recSW() {
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointer(addr);
+        if (pointer != nullptr) {
+            gen.mov(rax, (uintptr_t) pointer);
+            if (m_regs[_Rt_].isConst()) {
+                gen.mov(dword[rax], m_regs[_Rt_].val);
+            } else {
+                allocateReg(_Rt_);
+                gen.mov(dword[rax], m_regs[_Rt_].allocatedReg);
+            }
+
+            return;
+        }
+
         if (m_regs[_Rt_].isConst()) { // Value to write in arg2
             gen.mov(arg2, m_regs[_Rt_].val);
         } else {
@@ -84,6 +97,7 @@ void DynaRecCPU::recJ() {
     const uint32_t target = _Target_ * 4 + (m_pc & 0xf0000000);
     m_nextIsDelaySlot = true;
     m_stopCompiling = true;
+    m_pcWrittenBack = true;
 
     gen.mov(dword[contextPointer + PC_OFFSET], target); // Write PC
 }
@@ -121,6 +135,71 @@ void DynaRecCPU::recADDIU() {
             gen.lea(m_regs[_Rt_].allocatedReg, dword [m_regs[_Rs_].allocatedReg + _Imm_]);
         }
     }
+}
+
+void DynaRecCPU::recCOP0() {
+    switch (_Rs_) {  // figure out the type of COP0 opcode
+        case 4:
+            recMTC0();
+            break;
+        default:
+            fmt::print("Unimplemented cop0 op {}\n", _Rs_);
+            abort();
+            break;
+    }
+}
+
+// TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
+void DynaRecCPU::recMTC0() {
+    if (m_regs[_Rt_].isConst()) {
+        if (_Rd_ == 13) {
+            gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].val & ~0xFC00);
+        } else if (_Rd_ != 6 && _Rd_ != 14 &&_Rd_ != 15) { // Don't write to JUMPDEST, EPC or PRID
+            gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].val);
+        }
+    }
+
+    else {
+        allocateReg(_Rt_);
+        if (_Rd_ == 13) {
+            gen.and_(m_regs[_Rt_].allocatedReg, ~0xFC00);
+        }
+
+        gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg); // Write rt to the cop0 reg
+    }
+
+    // Writing to SR/Cause can sometimes forcefully fire an interrupt. So we need to emit extra code to check.
+    if (_Rd_ == 12 || _Rd_ == 13) {
+        testSoftwareInterrupt();
+    }
+}
+
+void DynaRecCPU::testSoftwareInterrupt() { 
+    Label label;
+    if (!m_pcWrittenBack) {
+        gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+    m_needsStackFrame = true;
+
+    gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]); // eax = SR
+    gen.test(eax, 1);                                      // Check if interrupts are enabled
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR);       // If not, skip to the end
+
+    gen.mov(arg2, dword[contextPointer + COP0_OFFSET(13)]); // arg2 = CAUSE
+    gen.and_(eax, arg2);
+    gen.and_(eax, 0x300);                             // Check if an interrupt was force-fired
+    gen.jz(label, CodeGenerator::LabelType::T_NEAR);  // Skip to the end if not
+
+    // Fire the interrupt if it was triggered
+    gen.mov(arg1.cvt64(), (uint64_t) this); // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
+    gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
+    gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
+    gen.call(psxExceptionWrapper); // Call the exception wrapper function
+
+    gen.L(label);
 }
 
 #endif DYNAREC_X86_64

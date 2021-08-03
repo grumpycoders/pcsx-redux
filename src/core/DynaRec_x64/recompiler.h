@@ -11,7 +11,9 @@
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t) &m_psxRegs.hostRegisterCache[(x)] - (uintptr_t) &m_psxRegs)
 #define GPR_OFFSET(x) ((uintptr_t) &m_psxRegs.GPR.r[(x)] - (uintptr_t) &m_psxRegs)
+#define COP0_OFFSET(x) ((uintptr_t) &m_psxRegs.CP0.r[(x)] - (uintptr_t) &m_psxRegs)
 #define PC_OFFSET ((uintptr_t) &m_psxRegs.pc - (uintptr_t) &m_psxRegs)
+#define CYCLE_OFFSET ((uintptr_t)&m_psxRegs.cycle - (uintptr_t)&m_psxRegs)
 
 static uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead32(mem); }
 static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value); }
@@ -32,6 +34,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     bool m_needsStackFrame; // Do we need to setup a stack frame? Usually needed when the block has C fallbacks
     bool m_stopCompiling; // Should we stop compiling code?
+    bool m_pcWrittenBack; // Has the PC been written back already by a jump?
     uint32_t m_ramSize;   // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
     const int MAX_BLOCK_SIZE = 30;
 
@@ -144,6 +147,11 @@ public:
     virtual void SetPGXPMode(uint32_t pgxpMode) final {}
     virtual bool isDynarec() final { return true; }
 
+    static uint32_t psxExceptionWrapper(DynaRecCPU* that, int e, int32_t bd) {
+        that->psxException(e, bd);
+        return that->m_psxRegs.pc;
+    }
+
 private:
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
@@ -164,18 +172,21 @@ private:
     // Instruction definitions
     void recUnknown();
     void recADDIU();
+    void recCOP0();
     void recJ();
     void recLUI();
+    void recMTC0();
     void recORI();
     void recSLL();
     void recSW();
+    void testSoftwareInterrupt();
 
     const func_t m_recBSC[64] = {
         &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recJ, &DynaRecCPU::recUnknown,  // 00
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
         &DynaRecCPU::recUnknown, &DynaRecCPU::recADDIU,   &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
         &DynaRecCPU::recUnknown, &DynaRecCPU::recORI,     &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
