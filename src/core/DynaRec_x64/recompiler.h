@@ -177,6 +177,7 @@ public:
     // Instruction definitions
     void recUnknown();
     void recADDIU();
+    void recBNE();
     void recCOP0();
     void recJ();
     void recLUI();
@@ -188,7 +189,7 @@ public:
 
     const func_t m_recBSC[64] = {
         &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recJ, &DynaRecCPU::recUnknown,  // 00
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recBNE, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
         &DynaRecCPU::recUnknown, &DynaRecCPU::recADDIU,   &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
         &DynaRecCPU::recUnknown, &DynaRecCPU::recORI,     &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
         &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10

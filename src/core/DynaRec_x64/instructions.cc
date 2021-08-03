@@ -179,9 +179,9 @@ void DynaRecCPU::testSoftwareInterrupt() {
     Label label;
     if (!m_pcWrittenBack) {
         gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
+        m_pcWrittenBack = true;
     }
 
-    m_pcWrittenBack = true;
     m_stopCompiling = true;
     prepareForCall();
 
@@ -195,12 +195,49 @@ void DynaRecCPU::testSoftwareInterrupt() {
     gen.jz(label, CodeGenerator::LabelType::T_NEAR);  // Skip to the end if not
 
     // Fire the interrupt if it was triggered
-    gen.mov(arg1.cvt64(), (uint64_t) this); // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
+    // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
+    gen.lea(arg1.cvt64(), qword[contextPointer - ((uintptr_t) &m_psxRegs - (uintptr_t)this)]);
     gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
     gen.callFunc(psxExceptionWrapper); // Call the exception wrapper function
 
     gen.L(label);
+}
+
+void DynaRecCPU::recBNE() {
+    // Branch if Rs != Rt
+    const auto target = _Imm_ * 4 + m_pc;
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        if (m_regs[_Rs_].val != m_regs[_Rt_].val) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.mov(dword[contextPointer + PC_OFFSET], target);
+        }
+        return;
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rt_);
+        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rs_);
+        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        allocateReg(_Rt_, _Rs_);
+        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    gen.mov(ecx, target);    // ecx = addr if jump taken
+    gen.mov(eax, m_pc + 4);  // eax = addr if jump not taken
+    gen.cmovne(eax, ecx);    // if not equal, move the jump addr into eax
+    gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 
 #endif DYNAREC_X86_64
