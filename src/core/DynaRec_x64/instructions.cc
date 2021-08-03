@@ -85,7 +85,7 @@ void DynaRecCPU::recSW() {
 
         gen.mov(arg1, addr); // Address to write to in arg1   TODO: Optimize
         prepareForCall();
-        gen.callFunc(psxMemRead32Wrapper);
+        gen.callFunc(psxMemWrite32Wrapper);
     }
 
     else {
