@@ -59,6 +59,8 @@ void DynaRecCPU::flushRegs() {
             }
         }
     }
+
+    m_allocatedRegisters = 0;
 }
 
 void DynaRecCPU::loadContext() { 

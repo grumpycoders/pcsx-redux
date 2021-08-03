@@ -154,9 +154,8 @@ public:
     }
 
   private:
-    static uint32_t psxExceptionWrapper(DynaRecCPU* that, int e, int32_t bd) {
+    static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) {
         that->psxException(e, bd);
-        return that->m_psxRegs.pc;
     }
 
     // Check if we're executing from valid memory
