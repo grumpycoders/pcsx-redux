@@ -21,7 +21,10 @@ static uint16_t psxMemRead16Wrapper(uint32_t mem) { return PCSX::g_emulator->m_p
 static uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead32(mem); }
 static void psxMemWrite8Wrapper(uint32_t mem, uint8_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite8(mem, value); }
 static void psxMemWrite16Wrapper(uint32_t mem, uint16_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite16(mem, value); }
-static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value); }
+static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) {
+    fmt::print("Wrote {:08X} to {:08X}\n", value, mem);
+    PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value);
+}
 
 using DynarecCallback = void(*)(); // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -103,17 +106,19 @@ public:
         // Instructions need to be on 4-byte boundaries. So the amount of valid block entrypoints 
         // in a region of memory is REGION_SIZE / 4
         m_ramBlocks = new DynarecCallback[m_ramSize / 4](); 
-        m_biosBlocks = new DynarecCallback[biosSize / 4](); 
+        m_biosBlocks = new DynarecCallback[biosSize / 4]();
 
+        // For every 64KB page of memory, we can have 64*1024/4 unique blocks = 0x4000
+        // Hence the multiplications below
         for (auto page = 0; page < ramPages; page++) { // Map RAM to the recompiler LUT
-            const auto pointer = &m_ramBlocks[page << 16]; // Get a pointer to the page of RAM blocks
+            const auto pointer = &m_ramBlocks[page * 0x4000]; // Get a pointer to the page of RAM blocks
             m_recompilerLUT[page + 0x0000] = pointer; // Map KUSEG, KSEG0 and KSEG1 RAM respectively
             m_recompilerLUT[page + 0x8000] = pointer;
             m_recompilerLUT[page + 0xA000] = pointer;
         }
 
         for (auto page = 0; page < 8; page++) { // Map BIOS to recompiler LUT
-            const auto pointer = &m_biosBlocks[page << 16];
+            const auto pointer = &m_biosBlocks[page * 0x4000];
             m_recompilerLUT[page + 0x1FC0] = pointer; // Map KUSEG, KSEG0 and KSEG1 BIOS respectively
             m_recompilerLUT[page + 0x9FC0] = pointer;
             m_recompilerLUT[page + 0xBFC0] = pointer;

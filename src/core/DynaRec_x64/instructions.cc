@@ -50,8 +50,8 @@ void DynaRecCPU::recSLL() {
     if (m_regs[_Rt_].isConst()) {
         m_regs[_Rd_].markConst(m_regs[_Rt_].val << _Sa_);
     } else {
-        m_regs[_Rd_].setWriteback(true);
         allocateReg(_Rt_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
 
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
         if (_Sa_) {

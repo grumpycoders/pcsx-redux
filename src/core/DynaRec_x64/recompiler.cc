@@ -22,8 +22,10 @@ void DynaRecCPU::execute() {
     }
 
     m_pc = m_psxRegs.pc;
+    //fmt::print("Executing from {:08X}\n", m_pc);
     if (!isPcValid(m_pc)) {
         error();
+        return;
     }
 
     auto recompilerFunc = getBlockPointer(m_pc);
@@ -88,7 +90,6 @@ void DynaRecCPU::recompile(DynarecCallback*& callback) {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        fmt::print("Instruction\n");
         const auto p = (uint8_t*)PSXM(m_pc); // Fetch instruction
         if (p == nullptr) { // Error if it can't be fetched
             error();
