@@ -202,6 +202,7 @@ public:
     void recOR();
     void recORI();
     void recSLL();
+    void recSLTU();
     void recSRL();
     void recSW();
     void testSoftwareInterrupt();
@@ -236,7 +237,7 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 20
         &DynaRecCPU::recUnknown, &DynaRecCPU::recOR, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSLTU,  // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34

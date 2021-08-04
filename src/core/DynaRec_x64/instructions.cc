@@ -245,6 +245,39 @@ void DynaRecCPU::recJ() {
     gen.mov(dword[contextPointer + PC_OFFSET], target); // Write PC
 }
 
+void DynaRecCPU::recSLTU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst(m_regs[_Rs_].val < m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rd_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.xor_(eax, eax);
+        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.setge(al);
+        gen.mov(m_regs[_Rd_].allocatedReg, eax);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rd_, _Rs_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.xor_(eax, eax);
+        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.setl(al);
+        gen.mov(m_regs[_Rd_].allocatedReg, eax);
+    } else {
+        allocateReg(_Rd_, _Rs_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.xor_(eax, eax);
+        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.setl(al);
+        gen.mov(m_regs[_Rd_].allocatedReg, eax);
+    }
+}
+
 void DynaRecCPU::recADDIU() {
     // Rt = Rs + Im
     BAILZERO(_Rt_);
