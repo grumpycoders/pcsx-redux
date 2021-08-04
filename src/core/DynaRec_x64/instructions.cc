@@ -178,20 +178,26 @@ void DynaRecCPU::recOR() {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rs_, _Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        if (_Rd_ == _Rs_) {
+            gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        } else if (_Rd_ == _Rt_) {
+            gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        } else {
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        }
     }
 }
 
