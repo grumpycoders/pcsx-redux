@@ -51,7 +51,7 @@ void DynaRecCPU::flushCache() {
     std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
 }
 
-void DynaRecCPU::recompile(DynarecCallback*& callback) {
+void DynaRecCPU::recompile(DynarecCallback* callback) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;

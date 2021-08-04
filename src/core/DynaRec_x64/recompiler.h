@@ -169,7 +169,7 @@ public:
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
     void execute();
-    void recompile(DynarecCallback*& callback);
+    void recompile(DynarecCallback* callback);
     void error();
     void flushCache();
     void loadContext();

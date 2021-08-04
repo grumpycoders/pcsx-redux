@@ -9,7 +9,7 @@ constexpr uint32_t codeCacheSize = 32 * 1024 * 1024;
 
 // Allocate a bit more memory to be safe.
 // This has to be static so JIT code will be able to call C++ functions without absolute calls
-static uint8_t* s_codeCache[codeCacheSize + 0x1000]; 
+static uint8_t s_codeCache[codeCacheSize + 0x1000]; 
 
 struct Emitter final : public CodeGenerator {                   
     Emitter() : CodeGenerator(codeCacheSize, s_codeCache) { // Initialize emitter and memory
