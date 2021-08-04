@@ -62,6 +62,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             unallocate();
         }
 
+        // Note: It's important that markUnknown does not modify the val field as that would mess up codegen
         void markUnknown() {
             state = RegState::Unknown;
         }

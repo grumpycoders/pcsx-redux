@@ -272,7 +272,7 @@ void DynaRecCPU::recLB() {
         gen.mov(arg1, addr);
     } else {
         allocateReg(_Rs_);
-        gen.mov(arg2, m_regs[_Rs_].allocatedReg);
+        gen.lea(arg1, dword [m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
     prepareForCall();
@@ -294,7 +294,7 @@ void DynaRecCPU::recLBU() {
         gen.mov(arg1, addr);
     } else {
         allocateReg(_Rs_);
-        gen.mov(arg2, m_regs[_Rs_].allocatedReg);
+        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
     prepareForCall();
@@ -316,7 +316,7 @@ void DynaRecCPU::recLW() {
         gen.mov(arg1, addr);
     } else {
         allocateReg(_Rs_);
-        gen.mov(arg2, m_regs[_Rs_].allocatedReg);
+        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
     prepareForCall();
@@ -370,7 +370,7 @@ void DynaRecCPU::recSW() {
         }
 
         allocateReg(_Rs_);
-        gen.mov(arg1, m_regs[_Rs_].allocatedReg);  // Address to write to in arg1   TODO: Optimize
+        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);  // Address to write to in arg1   TODO: Optimize
         prepareForCall();
         gen.callFunc(psxMemWrite32Wrapper);
     }
