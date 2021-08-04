@@ -17,6 +17,32 @@ void DynaRecCPU::recLUI() {
     m_regs[_Rt_].markConst(m_psxRegs.code << 16);
 }
 
+void DynaRecCPU::recANDI() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+
+    if (_Rs_ == _Rt_) {
+        if (m_regs[_Rs_].isConst()) {
+            m_regs[_Rt_].val &= _ImmU_;
+        } else {
+            m_regs[_Rt_].setWriteback(true);
+            allocateReg(_Rt_);
+            gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
+        }
+    } else {
+        if (m_regs[_Rs_].isConst()) {
+            m_regs[_Rt_].markConst(m_regs[_Rs_].val & _ImmU_);
+        } else {
+            m_regs[_Rt_].setWriteback(true);
+            allocateReg(_Rt_, _Rs_);
+            gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
+            if (_ImmU_) {
+                gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
+            }
+        }
+    }
+}
+
 void DynaRecCPU::recORI() {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
@@ -56,6 +82,23 @@ void DynaRecCPU::recSLL() {
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
         if (_Sa_) {
             gen.shl(m_regs[_Rd_].allocatedReg, _Sa_);
+        }
+    }
+}
+
+void DynaRecCPU::recSRL() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst(m_regs[_Rt_].val >> _Sa_);
+    } else {
+        allocateReg(_Rt_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        if (_Sa_) {
+            gen.shr(m_regs[_Rd_].allocatedReg, _Sa_);
         }
     }
 }
@@ -277,7 +320,6 @@ void DynaRecCPU::testSoftwareInterrupt() {
 }
 
 void DynaRecCPU::recBNE() {
-    // Branch if Rs != Rt
     const auto target = _Imm_ * 4 + m_pc;
     m_nextIsDelaySlot = true;
 
@@ -313,8 +355,6 @@ void DynaRecCPU::recBNE() {
 }
 
 void DynaRecCPU::recBEQ() {
-    // Branch if Rs != Rt
-    dumpBuffer();
     const auto target = _Imm_ * 4 + m_pc;
     m_nextIsDelaySlot = true;
 
@@ -346,6 +386,38 @@ void DynaRecCPU::recBEQ() {
     gen.mov(ecx, target);   // ecx = addr if jump taken
     gen.mov(eax, m_pc + 4); // eax = addr if jump not taken
     gen.cmove(eax, ecx);    // if not equal, move the jump addr into eax
+    gen.mov(dword[contextPointer + PC_OFFSET], eax);
+}
+
+void DynaRecCPU::recBGTZ() {
+    uint32_t target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if ((int32_t) m_regs[_Rs_].val > 0) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.mov(dword[contextPointer + PC_OFFSET], target);
+        }
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    if (m_regs[_Rs_].isAllocated) { // Don't bother allocating Rs unless it's already allocated
+        gen.test(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    } else {
+        gen.cmp(dword[contextPointer + GPR_OFFSET(_Rs_)], 0);
+    }
+
+    gen.mov(eax, target);   // eax = addr if jump taken
+    gen.mov(ecx, m_pc + 4); // ecx = addr if jump not taken
+    gen.cmovg(eax, ecx);    // if taken, move the jump addr into eax
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 

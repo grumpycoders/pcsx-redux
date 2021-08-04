@@ -16,11 +16,6 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 }
 
 void DynaRecCPU::execute() {
-    if (!m_shellStarted) {
-        m_shellStarted = true;  // HACK to sideload test ROMs: Remove!
-        PCSX::g_system->m_eventBus->signal(PCSX::Events::ExecutionFlow::ShellReached{});
-    }
-
     m_pc = m_psxRegs.pc;
     //fmt::print("Executing from {:08X}\n", m_pc);
     if (!isPcValid(m_pc)) {
@@ -39,6 +34,7 @@ void DynaRecCPU::execute() {
 }
 
 void DynaRecCPU::error() {
+    dumpBuffer();
     PCSX::g_system->hardReset();
     PCSX::g_system->stop();
     PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);

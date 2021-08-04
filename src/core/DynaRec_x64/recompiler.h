@@ -188,8 +188,10 @@ public:
 
     void recADDU();
     void recADDIU();
-    void recBNE();
+    void recANDI();
     void recBEQ();
+    void recBNE();
+    void recBGTZ();
     void recCOP0();
     void recJ();
     void recLB();
@@ -199,14 +201,15 @@ public:
     void recMTC0();
     void recORI();
     void recSLL();
+    void recSRL();
     void recSW();
     void testSoftwareInterrupt();
 
     const func_t m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recUnknown, &DynaRecCPU::recJ, &DynaRecCPU::recUnknown,  // 00
-        &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
+        &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recUnknown, &DynaRecCPU::recBGTZ,  // 04
         &DynaRecCPU::recUnknown, &DynaRecCPU::recADDIU,   &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recORI,     &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
+        &DynaRecCPU::recANDI, &DynaRecCPU::recORI,     &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
         &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
@@ -222,7 +225,7 @@ public:
     };
 
     const func_t m_recSPC[64] = {
-        &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 00
+        &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recSRL, &DynaRecCPU::recUnknown,  // 00
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
