@@ -37,7 +37,27 @@ void abort() {
         ;
 }
 
+// This will be called if a pure virtual function is called, usually mistakenly calling
+// a method after its object got deleted, because that's the only way this happens.
 __attribute__((weak)) void __cxa_pure_virtual() { abort(); }
+
+// All of these (and probably more) will be called one way or another through
+// the normal C++ ABI. These are declared weak here so they can be overriden
+// by an actual proper implementation that'd do what they should do.
+__attribute__((weak)) void * __builtin_new(size_t size) { abort(); }
+__attribute__((weak)) void __builtin_delete(void * ptr) { abort(); }
+// void * operator new(unsigned int);
+__attribute__((weak)) void * _Znwj(unsigned int size) { abort(); }
+// void * operator new[](unsigned int);
+__attribute__((weak)) void * _Znaj(unsigned int size) { abort(); }
+// void operator delete(void*);
+__attribute__((weak)) void _ZdlPv(void * ptr) { abort(); }
+// void operator delete[](void*);
+__attribute__((weak)) void _ZdaPv(void * ptr) { abort(); }
+// void operator delete(void*, unsigned int);
+__attribute__((weak)) void _ZdlPvj(void * ptr, unsigned int size) { abort(); }
+// void operator delete[](void*, unsigned int);
+__attribute__((weak)) void _ZdaPvj(void * ptr, unsigned int size) { abort(); }
 
 /*
 
@@ -46,12 +66,14 @@ __attribute__((weak)) void __cxa_pure_virtual() { abort(); }
   it's pretty difficult to define something that'd be one size fits all. It's
   best to drop these in your own project with your own memory allocation functions.
 
-__attribute__((weak)) void * __builtin_new(size_t size) { return malloc(size); }
-__attribute__((weak)) void __builtin_delete(void * ptr) { free(ptr); }
-__attribute__((weak)) void * _Znwj(unsigned int size) { return malloc(size); }
-__attribute__((weak)) void * _Znaj(unsigned int size) { return malloc(size); }
-__attribute__((weak)) void _ZdlPv(void * ptr) { free(ptr); }
-__attribute__((weak)) void _ZdaPv(void * ptr) { free(ptr); }
+void * __builtin_new(size_t size) { return malloc(size); }
+void __builtin_delete(void * ptr) { free(ptr); }
+void * _Znwj(unsigned int size) { return malloc(size); }
+void * _Znaj(unsigned int size) { return malloc(size); }
+void _ZdlPv(void * ptr) { free(ptr); }
+void _ZdaPv(void * ptr) { free(ptr); }
+void _ZdlPvj(void * ptr, unsigned int size) { free(ptr); }
+void _ZdaPvj(void * ptr, unsigned int size) { free(ptr); }
 
   One way to make this all work would be to have the following snippet to
   initialize the heap through the bios or any other mean before the memory
