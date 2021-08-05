@@ -53,4 +53,17 @@ __attribute__((weak)) void * _Znaj(unsigned int size) { return malloc(size); }
 __attribute__((weak)) void _ZdlPv(void * ptr) { free(ptr); }
 __attribute__((weak)) void _ZdaPv(void * ptr) { free(ptr); }
 
+  One way to make this all work would be to have the following snippet to
+  initialize the heap through the bios or any other mean before the memory
+  allocation functions can be safely used:
+
+static uint8_t global_heap[HEAPSIZE];
+static void init_heap_wrapper() {
+    InitHeap(global_heap, HEAPSIZE);
+}
+
+__attribute__((section(".preinit_array"))) static fptr pi_heap[] = {
+    init_heap_wrapper
+};
+
 */
