@@ -36,7 +36,7 @@ class Hello {
     // Using the default virtual destructor will try to use
     // the delete operator, which will try and use free().
     // See the cxxglue.c file for more information.
-    // virtual ~Hello() = default;
+    virtual ~Hello() = default;
     void print();
 
   private:
