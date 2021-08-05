@@ -77,9 +77,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             writeback = false;
         }
     };
+
+    struct HostRegister {
+        std::optional<int> mappedReg = std::nullopt; // The register this is allocated to, if any
+        bool restore = false; // Did this register need to get restored after this block?
+    };
     
     Register m_regs[32];
-    std::array <std::optional<int>, ALLOCATEABLE_REG_COUNT> m_hostRegMappings;
+    std::array <HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     
     void allocateReg(int reg);
     void allocateReg(int reg1, int reg2);
