@@ -720,7 +720,7 @@ void DynaRecCPU::recError() {
 // Flush dynarec cache when it overflows
 void DynaRecCPU::flushCache() {
     gen.reset();                          // Reset the emitter's code pointer and code size variables
-    gen.align(32);                        // Align next block
+    gen.align(16);                        // Align next block
     std::memset(m_recROM, 0, 0x080000);   // Delete all BIOS blocks
     std::memset(m_recRAM, 0, m_ramSize);  // Delete all RAM blocks
 }
@@ -3065,7 +3065,7 @@ void DynaRecCPU::recRecompile() {
     if (gen.getSize() >= RECMEM_SIZE) {
         flushCache();
     } else {
-        gen.align(32);
+        gen.align(16);
     }
 
     m_pc = m_psxRegs.pc;
