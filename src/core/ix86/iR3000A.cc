@@ -84,7 +84,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual bool Init() final;
     virtual void Reset() final;
     virtual void Execute() final;
-    virtual void Clear(uint32_t Addr, uint32_t Size) final;
+    virtual void Clear(uint32_t addr, uint32_t size) final;
     virtual void Shutdown() final;
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
     virtual bool isDynarec() final { return true; }
@@ -749,24 +749,22 @@ void DynaRecCPU::Execute() {
     while (hasToRun()) execute();
 }
 
-void DynaRecCPU::Clear(uint32_t Addr, uint32_t Size) {
-    uint32_t bank, offset;
-
-    bank = Addr >> 24;
-    offset = Addr & 0xffffff;
+void DynaRecCPU::Clear(uint32_t addr, uint32_t size) {
+    const uint32_t bank = addr >> 24;
+    uint32_t offset = addr & 0xffffff;
 
     // Pitfall 3D - clear dynarec slots that contain 'stale' ram data
     // - fixes stage 1 loading crash
-    if (bank == 0x80 || bank == 0xa0 || bank == 0x00) {
+    if (bank == 0x00 || bank == 0x80 || bank == 0xa0) {
         offset &= 0x1fffff;
 
         if (offset >= DYNAREC_BLOCK * 4)
-            memset((void *)PC_REC(Addr - DYNAREC_BLOCK * 4), 0, DYNAREC_BLOCK * 4);
+            memset((void *)PC_REC(addr - DYNAREC_BLOCK * 4), 0, DYNAREC_BLOCK * 4);
         else
-            memset((void *)PC_REC(Addr - offset), 0, offset);
+            memset((void *)PC_REC(addr - offset), 0, offset);
     }
 
-    memset((void *)PC_REC(Addr), 0, Size * 4);
+    memset((void *)PC_REC(addr), 0, size * 4);
 }
 
 void DynaRecCPU::recNULL() {
