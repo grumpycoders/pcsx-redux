@@ -541,7 +541,7 @@ void DynaRecCPU::recBGTZ() {
     m_pcWrittenBack = true;
     m_stopCompiling = true;
 
-    if (m_regs[_Rs_].isAllocated) { // Don't bother allocating Rs unless it's already allocated
+    if (m_regs[_Rs_].isAllocated()) { // Don't bother allocating Rs unless it's already allocated
         gen.test(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
     } else {
         gen.cmp(dword[contextPointer + GPR_OFFSET(_Rs_)], 0);
