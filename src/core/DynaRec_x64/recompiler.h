@@ -22,7 +22,6 @@ static uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_p
 static void psxMemWrite8Wrapper(uint32_t mem, uint8_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite8(mem, value); }
 static void psxMemWrite16Wrapper(uint32_t mem, uint16_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite16(mem, value); }
 static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) {
-    fmt::print("Wrote {:08X} to {:08X}\n", value, mem);
     PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value);
 }
 

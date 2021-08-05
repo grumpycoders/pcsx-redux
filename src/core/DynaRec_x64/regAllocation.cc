@@ -14,21 +14,8 @@ void DynaRecCPU::reserveReg(int index) {
     m_regs[index].allocatedReg = regToAllocate;
     m_regs[index].allocated = true;
 
-    // If the register was already allocated previously with writeback, flush old value and unallocate it
-    if (m_hostRegs[m_allocatedRegisters].mappedReg) {
-        // The guest register this was previously allocated to
-        const auto previous = m_hostRegs[m_allocatedRegisters].mappedReg.value();
-        if (m_regs[previous].writeback) {
-            gen.mov(dword[contextPointer + GPR_OFFSET(previous)], regToAllocate);
-            m_regs[previous].writeback = false;
-        }
-
-        m_regs[previous].allocated = false;  // rip, you're no longer allocated
-    }
-
-    // Check if the newly allocated register is non-volatile and back it up. Don't back it up if it was already
-    // allocated before
-    else if (!IS_VOLATILE(m_allocatedRegisters) && !m_hostRegs[m_allocatedRegisters].restore) {
+    // If allocating a non-volatile that hasn't been allocated before, back it up in reg cache
+    if (!IS_VOLATILE(m_allocatedRegisters) && !m_hostRegs[m_allocatedRegisters].restore) {
         gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(m_allocatedRegisters)], regToAllocate.cvt64());
         m_hostRegs[m_allocatedRegisters].restore = true;  // Mark this register as "To be restored"
     }
