@@ -262,11 +262,6 @@ void DynaRecCPU::recSRL() {
 }
 
 void DynaRecCPU::recLB() {
-    if (_Rt_) {
-        allocateReg(_Rt_);
-        m_regs[_Rt_].setWriteback(true);
-    }
-
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         gen.mov(arg1, addr);
@@ -279,16 +274,13 @@ void DynaRecCPU::recLB() {
     gen.callFunc(psxMemRead8Wrapper);
 
     if (_Rt_) {
+        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise prepareForCall might flush it
+        m_regs[_Rt_].setWriteback(true);
         gen.movsx(m_regs[_Rt_].allocatedReg, al);
     }
 }
 
 void DynaRecCPU::recLBU() {
-    if (_Rt_) {
-        allocateReg(_Rt_);
-        m_regs[_Rt_].setWriteback(true);
-    }
-
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         gen.mov(arg1, addr);
@@ -301,16 +293,13 @@ void DynaRecCPU::recLBU() {
     gen.callFunc(psxMemRead8Wrapper);
 
     if (_Rt_) {
+        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise prepareForCall might flush it
+        m_regs[_Rt_].setWriteback(true);
         gen.movzx(m_regs[_Rt_].allocatedReg, al);
     }
 }
 
 void DynaRecCPU::recLW() {
-    if (_Rt_) {
-        allocateReg(_Rt_);
-        m_regs[_Rt_].setWriteback(true);
-    }
-
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         gen.mov(arg1, addr);
@@ -323,6 +312,8 @@ void DynaRecCPU::recLW() {
     gen.callFunc(psxMemRead32Wrapper);
 
     if (_Rt_) {
+        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise prepareForCall might flush it
+        m_regs[_Rt_].setWriteback(true);
         gen.mov(m_regs[_Rt_].allocatedReg, eax);
     }
 }
