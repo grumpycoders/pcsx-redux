@@ -258,7 +258,6 @@ class GUI final {
     void mono_theme();
     void dracula_theme();
 
-    PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
@@ -274,6 +273,23 @@ class GUI final {
     bool m_reloadFonts = true;
 
   public:
+    struct {
+        bool empty() const { return filename.empty(); }
+        void set(const PCSX::u8string &newfilename) {
+            filename = newfilename;
+            pauseAfterLoad = !g_system->running();
+            if (!empty()) {
+                g_system->start();
+            }
+        }
+        PCSX::u8string &&get() { return std::move(filename); }
+        bool hasToPause() { return pauseAfterLoad; }
+
+      private:
+        PCSX::u8string filename;
+        bool pauseAfterLoad = true;
+    } m_exeToLoad;
+
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };
