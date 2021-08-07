@@ -205,6 +205,7 @@ public:
     void recSLTU();
     void recSRL();
     void recSW();
+    void recXORI();
     void testSoftwareInterrupt();
 
     // Prepare for a call to a C++ function and then actually emit it
@@ -218,7 +219,7 @@ public:
         &DynaRecCPU::recSpecial, &DynaRecCPU::recUnknown, &DynaRecCPU::recJ, &DynaRecCPU::recUnknown,  // 00
         &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recUnknown, &DynaRecCPU::recBGTZ,  // 04
         &DynaRecCPU::recADDIU, &DynaRecCPU::recADDIU,   &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
-        &DynaRecCPU::recANDI, &DynaRecCPU::recORI,     &DynaRecCPU::recUnknown, &DynaRecCPU::recLUI,      // 0c
+        &DynaRecCPU::recANDI, &DynaRecCPU::recORI,     &DynaRecCPU::recXORI, &DynaRecCPU::recLUI,      // 0c
         &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
