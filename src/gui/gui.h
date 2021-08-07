@@ -263,7 +263,9 @@ class GUI final {
         void set(const PCSX::u8string &newfilename) {
             filename = newfilename;
             pauseAfterLoad = !g_system->running();
-            g_system->start();
+            if (!empty()) {
+                g_system->start();
+            }
         }
         PCSX::u8string &&get() { return std::move(filename); }
         bool hasToPause() { return pauseAfterLoad; }
