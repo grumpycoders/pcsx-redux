@@ -227,6 +227,39 @@ void DynaRecCPU::recORI() {
     }
 }
 
+void DynaRecCPU::recXOR() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst(m_regs[_Rs_].val ^ m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rt_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.xor_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rs_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.xor_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        allocateReg(_Rs_, _Rd_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rd_ == _Rs_) {
+            gen.xor_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        } else if (_Rd_ == _Rt_) {
+            gen.xor_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        } else {
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.xor_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        }
+    }
+}
+
 void DynaRecCPU::recXORI() {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
@@ -269,6 +302,26 @@ void DynaRecCPU::recSLL() {
         
         if (_Sa_) {
             gen.shl(m_regs[_Rd_].allocatedReg, _Sa_);
+        }
+    }
+}
+
+void DynaRecCPU::recSRA() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst((int32_t) m_regs[_Rt_].val >> _Sa_);
+    } else {
+        allocateReg(_Rt_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rd_ != _Rt_) {
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        }
+
+        if (_Sa_) {
+            gen.sar(m_regs[_Rd_].allocatedReg, _Sa_);
         }
     }
 }
