@@ -205,7 +205,9 @@ public:
     void recSLLV();
     void recSLTU();
     void recSRA();
+    void recSRAV();
     void recSRL();
+    void recSRLV();
     void recSW();
     void recXOR();
     void recXORI();
@@ -239,7 +241,7 @@ public:
 
     const func_t m_recSPC[64] = {
         &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recSRL, &DynaRecCPU::recSRA,  // 00
-        &DynaRecCPU::recSLLV, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
+        &DynaRecCPU::recSLLV, &DynaRecCPU::recUnknown, &DynaRecCPU::recSRLV, &DynaRecCPU::recSRAV,  // 04
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10

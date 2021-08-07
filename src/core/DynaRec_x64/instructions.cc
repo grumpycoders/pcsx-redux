@@ -364,6 +364,44 @@ void DynaRecCPU::recSRA() {
     }
 }
 
+void DynaRecCPU::recSRAV() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst((int32_t) m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
+    } else if (m_regs[_Rs_].isConst()) {
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rt_ == _Rd_) {
+            allocateReg(_Rd_);
+            gen.sar(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
+        } else {
+            allocateReg(_Rd_, _Rt_);
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.sar(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
+        }
+    } else if (m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].setWriteback(true);
+
+        allocateReg(_Rd_, _Rs_);
+        gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.sar(m_regs[_Rd_].allocatedReg, cl);  // No need to mask the shift amount, x86 does so implicitly
+    } else {
+        allocateReg(_Rd_, _Rs_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+        gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
+
+        if (_Rt_ == _Rd_) {
+            gen.sar(m_regs[_Rd_].allocatedReg, cl);
+        } else {
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.sar(m_regs[_Rd_].allocatedReg, cl);
+        }
+    }
+}
+
 void DynaRecCPU::recSRL() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -380,6 +418,44 @@ void DynaRecCPU::recSRL() {
 
         if (_Sa_) {
             gen.shr(m_regs[_Rd_].allocatedReg, _Sa_);
+        }
+    }
+}
+
+void DynaRecCPU::recSRLV() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst(m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
+    } else if (m_regs[_Rs_].isConst()) {
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rt_ == _Rd_) {
+            allocateReg(_Rd_);
+            gen.shr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
+        } else {
+            allocateReg(_Rd_, _Rt_);
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.shr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
+        }
+    } else if (m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].setWriteback(true);
+
+        allocateReg(_Rd_, _Rs_);
+        gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.shr(m_regs[_Rd_].allocatedReg, cl);  // No need to mask the shift amount, x86 does so implicitly
+    } else {
+        allocateReg(_Rd_, _Rs_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+        gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
+
+        if (_Rt_ == _Rd_) {
+            gen.shr(m_regs[_Rd_].allocatedReg, cl);
+        } else {
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.shr(m_regs[_Rd_].allocatedReg, cl);
         }
     }
 }
