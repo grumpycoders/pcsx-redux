@@ -7,12 +7,9 @@
 // Map the guest register corresponding to the index to a host register
 // Used internally by the allocateReg functions
 void DynaRecCPU::reserveReg(int index) {
-    static_assert(ALLOCATEABLE_REG_COUNT == 8);
-
     const auto regToAllocate = allocateableRegisters[m_allocatedRegisters];  // Fetch the next host reg to be allocated
-    m_regs[index].markUnknown();  // If the reg was constant before, mark it as unknown
     m_regs[index].allocatedReg = regToAllocate;
-    m_regs[index].allocated = true;
+    m_regs[index].state = RegState::Allocated;
 
     // If allocating a non-volatile that hasn't been allocated before, back it up in reg cache
     if (!IS_VOLATILE(m_allocatedRegisters) && !m_hostRegs[m_allocatedRegisters].restore) {
@@ -34,7 +31,7 @@ void DynaRecCPU::flushRegs() {
         }
 
         else if (m_regs[i].isAllocated()) {  // If it's been allocated to a register, unallocate
-            m_regs[i].allocated = false;
+            m_regs[i].markUnknown();
             if (m_regs[i].writeback) {  // And if writeback was specified, write the value back
                 gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_regs[i].allocatedReg);
                 m_regs[i].writeback = false;  // And turn writeback off
@@ -71,9 +68,10 @@ void DynaRecCPU::prepareForCall() {
             const auto previous = m_hostRegs[i].mappedReg.value();  // Get previously allocated register
             if (m_regs[previous].writeback) {                       // Spill to guest reg if writeback is enabled
                 gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
+                m_regs[previous].writeback = false;
             }
 
-            m_regs[previous].unallocate();  // Unallocate it
+            m_regs[previous].markUnknown();  // Unallocate it
             m_hostRegs[i].mappedReg = std::nullopt;
         }
     }
@@ -84,13 +82,17 @@ void DynaRecCPU::spillRegisterCache() {
     for (auto i = 0; i < m_allocatedRegisters; i++) {
         if (m_hostRegs[i].mappedReg) {  // Check if the register is still allocated to a guest register
             const auto previous = m_hostRegs[i].mappedReg.value();  // Get the reg it's allocated to
+            if (m_regs[previous].isConst()) { // The previous register might have become const now - in that case, let it be
+                continue;
+            }
+
             if (m_regs[previous].writeback) {  // Spill to guest register if writeback is enabled and disable writeback
                 gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
                 m_regs[previous].writeback = false;
             }
 
             m_hostRegs[i].mappedReg = std::nullopt;  // Unallocate it
-            m_regs[previous].allocated = false;
+            m_regs[previous].markUnknown();
         }
     }
 

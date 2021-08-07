@@ -44,22 +44,21 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     uint32_t m_ramSize;   // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
     const int MAX_BLOCK_SIZE = 50;
 
-    enum class RegState { Unknown, Constant };
+    enum class RegState { Unknown, Constant, Allocated };
 
     struct Register {
         uint32_t val = 0; // The register's cached value used for constant propagation
-        RegState state = RegState::Unknown; // Is this register's value a constant, or some unknown
+        RegState state = RegState::Unknown; // Is this register's value a constant, allocated to a host reg, or unknown
 
-        bool allocated = false; // Has this register been allocated to a host reg?
         bool writeback = false; // Does this register need to be written back to memory at the end of the block?
         Reg32 allocatedReg; // If a host reg has been allocated to this register, which reg is it?
 
         inline bool isConst() { return state == RegState::Constant; }
-        inline bool isAllocated() { return allocated; }
+        inline bool isAllocated() { return state == RegState::Allocated; }
         inline void markConst(uint32_t value) {
             val = value;
             state = RegState::Constant;
-            unallocate();
+            writeback = false; // Disable writeback in case the reg was previously allocated with writeback
         }
 
         // Note: It's important that markUnknown does not modify the val field as that would mess up codegen
@@ -69,11 +68,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
         inline void setWriteback(bool wb) {
             writeback = wb;
-        }
-
-        void unallocate() { 
-            allocated = false;
-            writeback = false;
         }
     };
 
