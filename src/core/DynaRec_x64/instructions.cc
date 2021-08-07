@@ -532,9 +532,9 @@ void DynaRecCPU::recBGTZ() {
         gen.cmp(dword[contextPointer + GPR_OFFSET(_Rs_)], 0);
     }
 
-    gen.mov(eax, target);   // eax = addr if jump taken
-    gen.mov(ecx, m_pc + 4); // ecx = addr if jump not taken
-    gen.cmovg(eax, ecx);    // if taken, move the jump addr into eax
+    gen.mov(eax, m_pc + 4); // eax = addr if jump not taken
+    gen.mov(ecx, target); // ecx = addr if jump is taken
+    gen.cmovg(eax, ecx);  // if taken, move the jump addr into eax
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 

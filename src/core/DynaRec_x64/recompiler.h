@@ -42,7 +42,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_stopCompiling; // Should we stop compiling code?
     bool m_pcWrittenBack; // Has the PC been written back already by a jump?
     uint32_t m_ramSize;   // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
-    const int MAX_BLOCK_SIZE = 30;
+    const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
 
