@@ -270,11 +270,10 @@ void DynaRecCPU::recLB() {
         gen.lea(arg1, dword [m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
-    prepareForCall();
-    gen.callFunc(psxMemRead8Wrapper);
+    call(psxMemRead8Wrapper);
 
     if (_Rt_) {
-        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise prepareForCall might flush it
+        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise call() might flush it
         m_regs[_Rt_].setWriteback(true);
         gen.movsx(m_regs[_Rt_].allocatedReg, al);
     }
@@ -289,11 +288,10 @@ void DynaRecCPU::recLBU() {
         gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
-    prepareForCall();
-    gen.callFunc(psxMemRead8Wrapper);
+    call(psxMemRead8Wrapper);
 
     if (_Rt_) {
-        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise prepareForCall might flush it
+        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise call() might flush it
         m_regs[_Rt_].setWriteback(true);
         gen.movzx(m_regs[_Rt_].allocatedReg, al);
     }
@@ -308,11 +306,10 @@ void DynaRecCPU::recLW() {
         gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
-    prepareForCall();
-    gen.callFunc(psxMemRead32Wrapper);
+    call(psxMemRead32Wrapper);
 
     if (_Rt_) {
-        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise prepareForCall might flush it
+        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise call() might flush it
         m_regs[_Rt_].setWriteback(true);
         gen.mov(m_regs[_Rt_].allocatedReg, eax);
     }
@@ -348,8 +345,7 @@ void DynaRecCPU::recSW() {
         }
 
         gen.mov(arg1, addr); // Address to write to in arg1   TODO: Optimize
-        prepareForCall();
-        gen.callFunc(psxMemWrite32Wrapper);
+        call(psxMemWrite32Wrapper);
     }
 
     else {
@@ -362,8 +358,7 @@ void DynaRecCPU::recSW() {
 
         allocateReg(_Rs_);
         gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);  // Address to write to in arg1   TODO: Optimize
-        prepareForCall();
-        gen.callFunc(psxMemWrite32Wrapper);
+        call(psxMemWrite32Wrapper);
     }
 }
 
@@ -412,7 +407,6 @@ void DynaRecCPU::testSoftwareInterrupt() {
     }
 
     m_stopCompiling = true;
-    prepareForCall();
 
     gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]); // eax = SR
     gen.test(eax, 1);                                      // Check if interrupts are enabled
@@ -428,7 +422,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     gen.lea(arg1.cvt64(), qword[contextPointer - ((uintptr_t) &m_psxRegs - (uintptr_t)this)]);
     gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
-    gen.callFunc(psxExceptionWrapper); // Call the exception wrapper function
+    call(psxExceptionWrapper); // Call the exception wrapper function
 
     gen.L(label);
 }

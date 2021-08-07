@@ -213,6 +213,13 @@ public:
     void recSW();
     void testSoftwareInterrupt();
 
+    // Prepare for a call to a C++ function and then actually emit it
+    template <typename T>
+    void call(T& func) {
+        prepareForCall();
+        gen.callFunc(func);
+    }
+
     const func_t m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recUnknown, &DynaRecCPU::recJ, &DynaRecCPU::recUnknown,  // 00
         &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recUnknown, &DynaRecCPU::recBGTZ,  // 04
