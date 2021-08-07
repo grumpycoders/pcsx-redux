@@ -347,8 +347,6 @@ end)(jit.status()))
         auto biosCfg = m_args.get<std::string>("bios");
         if (biosCfg.has_value()) emuSettings.get<Emulator::SettingBios>() = biosCfg.value();
 
-        m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
-
         g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
@@ -364,6 +362,8 @@ end)(jit.status()))
         if (argPCdrvBase.has_value()) {
             debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
         }
+
+        m_exeToLoad.set(MAKEU8(m_args.get<std::string>("loadexe", "").c_str()));
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 
@@ -866,7 +866,7 @@ void PCSX::GUI::endFrame() {
         changed = true;
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
-            m_exeToLoad = fileToOpen[0];
+            m_exeToLoad.set(fileToOpen[0]);
             std::filesystem::path p = fileToOpen[0];
             g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p.string());
             g_system->softReset();
@@ -1425,13 +1425,17 @@ void PCSX::GUI::shellReached() {
     if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
 
     if (m_exeToLoad.empty()) return;
-    PCSX::u8string filename = std::move(m_exeToLoad);
+    PCSX::u8string filename = m_exeToLoad.get();
     std::filesystem::path p = filename;
 
     g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
     bool success = BinaryLoader::load(filename);
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
+    }
+
+    if (m_exeToLoad.hasToPause()) {
+        g_system->pause();
     }
 }
 
@@ -1453,7 +1457,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     extension[extensionPath.length() - 1] = 0;
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
-        m_exeToLoad = path.u8string();
+        m_exeToLoad.set(path.u8string());
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
