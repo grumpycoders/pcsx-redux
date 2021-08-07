@@ -362,8 +362,6 @@ end)(jit.status()))
         if (argPCdrvBase.has_value()) {
             debugSettings.get<Emulator::DebugSettings::PCdrvBase>().value = argPCdrvBase.value();
         }
-
-        m_exeToLoad.set(MAKEU8(m_args.get<std::string>("loadexe", "").c_str()));
     }
     if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
 

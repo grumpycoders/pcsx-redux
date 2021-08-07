@@ -170,6 +170,7 @@ int pcsxMain(int argc, char **argv) {
     emulator->EmuReset();
 
     if (args.get<bool>("run", false)) system->start();
+    s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
 
     auto luaexecs = args.values("exec");
     for (auto &luaexec : luaexecs) {
