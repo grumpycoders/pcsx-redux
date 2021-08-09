@@ -497,6 +497,11 @@ void DynaRecCPU::recSRLV() {
     }
 }
 
+void DynaRecCPU::recMULT() {
+    fmt::print("Lo: {}\nHi: {}\n", (void*) &m_psxRegs.GPR.n.lo, (void*) &m_psxRegs.GPR.n.hi);
+    abort();
+}
+
 void DynaRecCPU::recLB() {
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;

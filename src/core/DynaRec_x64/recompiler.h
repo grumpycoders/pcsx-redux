@@ -199,6 +199,7 @@ public:
     void recLW();
     void recLUI();
     void recMTC0();
+    void recMULT();
     void recNOR();
     void recOR();
     void recORI();
@@ -247,7 +248,7 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
+        &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 20
         &DynaRecCPU::recUnknown, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
