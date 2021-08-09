@@ -464,7 +464,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             return spuCtrl;
 
         case H_SPUstat:
-            return spuStat;
+            return (spuStat & ~0x3F) | (spuCtrl & 0x3F);
 
         case H_SPUaddr:
             return (uint16_t)(spuAddr >> 3);
