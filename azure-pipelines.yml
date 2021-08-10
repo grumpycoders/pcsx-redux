@@ -19,7 +19,7 @@ steps:
 
 - task: PowerShell@2
   inputs:
-    targetType: 'InlineScript'
+    targetType: 'inline'
     script: |
       wget https://christiansoltenborn.gallerycdn.vsassets.io/extensions/christiansoltenborn/googletestadapter/0.17.1.1389/1571333606547/GoogleTestAdapter-0.17.1.vsix -OutFile GoogleTestAdapter-0.17.1.zip
 
@@ -59,7 +59,7 @@ steps:
 
 - task: PowerShell@2
   inputs:
-    targetType: 'InlineScript'
+    targetType: 'inline'
     script: |
       Rename-Item -Path "vsprojects/x64/Release/pcsx-redux.exe" -NewName "pcsx-redux.main"
       Rename-Item -Path "vsprojects/x64/Release/pcsx-wrapper.exe" -NewName "pcsx-redux.exe"
