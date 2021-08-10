@@ -508,17 +508,10 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// SOUND OFF register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val)  // SOUND OFF PSX COMMAND
-{
-    int ch;
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        if (val & 1)  // && s_chan[i].bOn)  mmm...
-        {
+// Stop sound for voices [start, end] if the corresponding bit in val is set to 1
+void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if (val & 1) {
             s_chan[ch].data.get<Chan::Stop>().value = true;
         }
     }
@@ -635,16 +628,9 @@ void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
     s_chan[ch].data.get<Chan::ActFreq>().value = NP;  // store frequency
 }
 
-////////////////////////////////////////////////////////////////////////
-// REVERB register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val)  // REVERB ON PSX COMMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        s_chan[ch].data.get<Chan::Reverb>().value = !!(val & 1);  // -> reverb on/off
+// Enable/disable reverb for voices [start, end] depending on val
+void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        s_chan[ch].data.get<Chan::Reverb>().value = val & 1;
     }
 }
