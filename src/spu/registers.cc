@@ -470,29 +470,15 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
 
         case H_SPUirqAddr:
             return spuIrq;
-
-            // case H_SPUIsOn1:
-            // return IsSoundOn(0,16);
-
-            // case H_SPUIsOn2:
-            // return IsSoundOn(16,24);
     }
 
     return regArea[(r - 0xc00) >> 1];
 }
 
-////////////////////////////////////////////////////////////////////////
-// SOUND ON register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX COMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        if ((val & 1) && s_chan[ch].pStart)  // mmm... start has to be set before key on !?!
-        {
+// Start ADSR for voices [start, end] depending on val
+void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if ((val & 1) && s_chan[ch].pStart) { // mmm... start has to be set before key on !?!
             s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
             s_chan[ch].data.get<Chan::New>().value = true;
             dwNewChannel |= (1 << ch);  // bitfield for faster testing
@@ -509,21 +495,13 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// FMOD register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX COMMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        if (val & 1)  // -> fmod on/off
-        {
-            if (ch > 0) {
-                s_chan[ch].data.get<Chan::FMod>().value = 1;      // --> sound channel
-                s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // --> freq channel
+// Set pitch modulation for voices [start, end] depending on val
+void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if (val & 1) { // Check if modulation should be enabled for this voice
+            if (ch > 0) { // Pitch modulation doesn't work for voice 0
+                s_chan[ch].data.get<Chan::FMod>().value = 1;      // sound channel
+                s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // freq channel
             }
         } else {
             s_chan[ch].data.get<Chan::FMod>().value = 0;  // --> turn off fmod
@@ -531,17 +509,10 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX C
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// NOISE register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX COMMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        s_chan[ch].data.get<Chan::Noise>().value = !!(val & 1);  // -> noise on/off
+// Set voices [start, end] to output ADPCM or noise, depending on if the corresponding bit in val is set to 0 or 1 respectively
+void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        s_chan[ch].data.get<Chan::Noise>().value = val & 1;
     }
 }
 
