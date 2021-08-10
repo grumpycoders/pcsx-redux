@@ -133,7 +133,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
                     .get<Emulator::DebugSettings::GdbServerTrace>()) {
                 std::string msg((const char*)m_slice.data(), m_slice.size());
-                g_system->printf("GDB <-- PCSX %s\n", msg.c_str());
+                g_system->log(LogClass::GDB, "GDB <-- PCSX %s\n", msg.c_str());
             }
             m_bufs[0].base = &m_before;
             m_bufs[0].len = 1;
@@ -156,7 +156,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
                     .get<Emulator::DebugSettings::GdbServerTrace>()) {
                 std::string msg((const char*)m_slice.data(), m_slice.size());
-                g_system->printf("GDB <-- PCSX %s\n", msg.c_str());
+                g_system->log(LogClass::GDB, "GDB <-- PCSX %s\n", msg.c_str());
             }
             m_bufs[0].base = static_cast<char*>(const_cast<void*>(m_slice.data()));
             m_bufs[0].len = m_slice.size();
@@ -232,7 +232,6 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     bool m_passthrough = false;
     bool m_ackEnabled = true;
     bool m_waitingForTrap = false;
-    bool m_sentBanner = false;
     enum {
         QSYMBOL_IDLE,
         QSYMBOL_WAITING_FOR_START,

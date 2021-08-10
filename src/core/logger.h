@@ -42,6 +42,7 @@ enum class LogClass : unsigned {
     MEMORY,         // memory access related information
     IRQ,            // irq scheduling and triggering information
     KERNEL,         // kernel logs
+    GDB,            // GDB logs
 };
 
 template <LogClass logClass, bool enabled>
