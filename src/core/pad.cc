@@ -22,10 +22,10 @@
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <fmt/format.h>
 #include <memory.h>
 
 #include "core/system.h"
+#include "fmt/format.h"
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"

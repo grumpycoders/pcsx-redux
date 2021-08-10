@@ -44,6 +44,10 @@ typedef decltype(std::filesystem::path().u8string()) u8string;
 namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};
+struct LogMessage {
+    LogClass logClass;
+    std::string message;
+};
 namespace ExecutionFlow {
 struct ShellReached {};
 struct Run {};

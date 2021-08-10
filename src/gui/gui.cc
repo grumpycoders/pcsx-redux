@@ -1202,6 +1202,24 @@ You also need to enable the debugger.)"));
 from the gdb server. Keep this enabled, unless
 you want to connect IDA to this server, as it
 has a bug in its manifest parser.)"));
+        auto& currentGdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
+        auto currentName = magic_enum::enum_name(currentGdbLog);
+
+        if (ImGui::BeginCombo(_("PCSX Logs to GDB"), currentName.data())) {
+            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::GdbLog>()) {
+                bool selected = (v == currentGdbLog);
+                auto name = magic_enum::enum_name(v);
+                if (ImGui::Selectable(name.data(), selected)) {
+                    currentGdbLog = v;
+                    changed = true;
+                }
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
         changed |=
             ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
         changed |=

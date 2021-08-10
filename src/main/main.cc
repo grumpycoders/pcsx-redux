@@ -51,6 +51,7 @@ class SystemImpl final : public PCSX::System {
         if (s_gui->addLog(PCSX::LogClass::UI, s)) {
             if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
             if (m_enableStdout) ::printf("%s", s.c_str());
+            m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
         }
         s_gui->addNotification(s.c_str());
     }
@@ -59,12 +60,14 @@ class SystemImpl final : public PCSX::System {
         if (!s_gui->addLog(logClass, s)) return;
         if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
         if (m_enableStdout) ::printf("%s", s.c_str());
+        m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
     }
 
     virtual void printf(const std::string &s) final {
         if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
         if (m_enableStdout) ::printf("%s", s.c_str());
+        m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
 
     virtual void update(bool vsync = false) final {
