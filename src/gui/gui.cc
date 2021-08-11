@@ -875,9 +875,9 @@ void PCSX::GUI::endFrame() {
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.render(m_VRAMTexture);
-    m_clutVRAMviewer.render(m_VRAMTexture);
-    for (auto& viewer : m_VRAMviewers) viewer.render(m_VRAMTexture);
+    m_mainVRAMviewer.render(m_VRAMTexture, this);
+    m_clutVRAMviewer.render(m_VRAMTexture, this);
+    for (auto& viewer : m_VRAMviewers) viewer.render(m_VRAMTexture, this);
 
     if (!m_fullscreenRender) {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);

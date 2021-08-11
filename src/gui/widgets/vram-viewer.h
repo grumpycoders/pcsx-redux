@@ -22,10 +22,14 @@
 #include <functional>
 #include <string>
 
-#include "ImGuiColorTextEdit/TextEditor.h"
+#include "GL/gl3w.h"
+#include "gui/widgets/shader-editor.h"
 #include "imgui.h"
 
 namespace PCSX {
+
+class GUI;
+
 namespace Widgets {
 
 class VRAMViewer {
@@ -37,14 +41,14 @@ class VRAMViewer {
         destination->m_hasClut = true;
     }
     void resetView();
-    void drawEditor();
     void destroy();
 
-    void render(unsigned int VRAMTexture);
+    void render(GLuint VRAMTexture, GUI *gui);
 
   private:
+    void drawEditor(GUI *gui);
     static inline const float RATIOS[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
-    void drawVRAM(unsigned int textureID);
+    void drawVRAM(GLuint textureID);
     void compileShader(const char *VS, const char *PS);
     void modeChanged();
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -53,7 +57,7 @@ class VRAMViewer {
     }
     void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
 
-    unsigned int m_shaderProgram = 0;
+    GLuint m_shaderProgram = 0;
     int m_attribLocationTex;
     int m_attribLocationProjMtx;
     int m_attribLocationVtxPos;
@@ -84,11 +88,7 @@ class VRAMViewer {
     ImVec2 m_origin;
     ImVec2 m_cornerTL = {0.0f, 0.0f};
     ImVec2 m_cornerBR = {1024.0f, 512.0f};
-    unsigned int m_textureID;
-    TextEditor m_vertexShaderEditor;
-    TextEditor m_pixelShaderEditor;
-
-    std::string m_errorMessage;
+    GLuint m_textureID;
 
     enum : int {
         VRAM_24BITS,
@@ -105,7 +105,6 @@ class VRAMViewer {
     bool m_show = false;
 
   private:
-    bool m_showEditor = false;
     std::function<std::string()> m_title;
 
     bool m_hasClut = false;
@@ -113,6 +112,8 @@ class VRAMViewer {
     VRAMViewer *m_clutDestination = nullptr;
 
     bool m_firstShown = false;
+
+    ShaderEditor m_editor;
 };
 
 }  // namespace Widgets

@@ -61,7 +61,7 @@ uniform vec2 u_cornerBR;
 uniform int u_24shift;
 in vec2 fragUV;
 out vec4 outColor;
-//layout(origin_upper_left) in vec4 gl_FragCoord; // causes my machine to crash on failed assert due to Invalid layout qualifier "origin_upper_left" and seems unnecessary
+layout(origin_upper_left) in vec4 gl_FragCoord; // causes some machines to crash on failed assert due to Invalid layout qualifier "origin_upper_left"
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
@@ -195,89 +195,11 @@ void main() {
 )";
 
 void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
-    GLint status = 0;
-
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &VS, 0);
-    glCompileShader(vertexShader);
-
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
-    if (status == 0) {
-        GLint maxLength;
-        glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (char *)malloc(maxLength);
-        glGetShaderInfoLog(vertexShader, maxLength, &maxLength, log);
-
-        m_errorMessage = std::string(_("Vertex Shader compilation error:\n")) + log;
-
-        free(log);
-        glDeleteShader(vertexShader);
-        PCSX::GUI::checkGL();
-        return;
-    }
-
-    GLuint pixelShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(pixelShader, 1, &PS, 0);
-    glCompileShader(pixelShader);
-
-    glGetShaderiv(pixelShader, GL_COMPILE_STATUS, &status);
-    if (status == 0) {
-        GLint maxLength;
-        glGetShaderiv(pixelShader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (char *)malloc(maxLength);
-
-        glGetShaderInfoLog(pixelShader, maxLength, &maxLength, log);
-
-        m_errorMessage = std::string(_("Pixel Shader compilation error:\n")) + log;
-
-        free(log);
-        glDeleteShader(vertexShader);
-        glDeleteShader(pixelShader);
-        PCSX::GUI::checkGL();
-        return;
-    }
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, pixelShader);
-
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
-    if (status == 0) {
-        GLint maxLength;
-        glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &maxLength);
-        char *log = (char *)malloc(maxLength);
-
-        glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, log);
-
-        m_errorMessage = std::string(_("Link error:\n")) + log;
-
-        free(log);
-        glDeleteProgram(shaderProgram);
-        glDeleteShader(vertexShader);
-        glDeleteShader(pixelShader);
-        PCSX::GUI::checkGL();
-        return;
-    }
-
-    int attribLocationVtxPos = glGetAttribLocation(shaderProgram, "i_position");
-    int attribLocationVtxUV = glGetAttribLocation(shaderProgram, "i_texUV");
-
-    if ((attribLocationVtxPos == -1) || (attribLocationVtxUV == -1)) {
-        m_errorMessage = "Missing i_position and/or i_texUV locations";
-        glDeleteProgram(shaderProgram);
-        glDeleteShader(vertexShader);
-        glDeleteShader(pixelShader);
-        PCSX::GUI::checkGL();
-        return;
-    }
+    auto ret = m_editor.compile(VS, PS, {"i_position", "i_texUV"});
+    if (!ret.has_value()) return;
 
     destroy();
-    glDeleteShader(vertexShader);
-    glDeleteShader(pixelShader);
-
-    m_shaderProgram = shaderProgram;
+    m_shaderProgram = ret.value();
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
@@ -295,16 +217,14 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
     m_attribLocationClut = glGetUniformLocation(m_shaderProgram, "u_clut");
     m_attribLocation24shift = glGetUniformLocation(m_shaderProgram, "u_24shift");
-    m_attribLocationVtxPos = attribLocationVtxPos;
-    m_attribLocationVtxUV = attribLocationVtxUV;
+    m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "i_position");
+    m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
 
-    m_errorMessage = "";
     PCSX::GUI::checkGL();
 }
 
 void PCSX::Widgets::VRAMViewer::init() {
-    m_vertexShaderEditor.SetText(s_defaultVertexShader);
-    m_pixelShaderEditor.SetText(s_defaultPixelShader);
+    m_editor.setText(s_defaultVertexShader, s_defaultPixelShader);
     compileShader(s_defaultVertexShader, s_defaultPixelShader);
     SDL_assert(m_shaderProgram);
 }
@@ -379,22 +299,10 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     }
 }
 
-void PCSX::Widgets::VRAMViewer::drawEditor() {
-    auto contents = ImGui::GetContentRegionAvail();
-    ImGuiStyle &style = ImGui::GetStyle();
-    const float heightSeparator = style.ItemSpacing.y;
-    float footerHeight = heightSeparator * 2 + 5 * ImGui::GetTextLineHeightWithSpacing();
-    float width = contents.x / 2 - style.ItemInnerSpacing.x;
-    m_vertexShaderEditor.Render(_("Vertex Shader"), ImVec2(width, -footerHeight), true);
-    ImGui::SameLine();
-    m_pixelShaderEditor.Render(_("Pixel Shader"), ImVec2(width, -footerHeight), true);
-    ImGui::BeginChild("Errors", ImVec2(0, 0), true);
-    ImGui::Text("%s", m_errorMessage.c_str());
-    ImGui::EndChild();
-
-    if (m_vertexShaderEditor.IsTextChanged() || m_pixelShaderEditor.IsTextChanged()) {
-        compileShader(m_vertexShaderEditor.GetText().c_str(), m_pixelShaderEditor.GetText().c_str());
-    }
+void PCSX::Widgets::VRAMViewer::drawEditor(GUI *gui) {
+    bool changed = m_editor.draw(_("VRAM Shader Editor"), gui);
+    if (!changed) return;
+    compileShader(m_editor.getVertexText().c_str(), m_editor.getPixelText().c_str());
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -452,7 +360,7 @@ void PCSX::Widgets::VRAMViewer::resetView() {
     m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
 }
 
-void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
+void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture, GUI * gui) {
     if (m_show) {
         auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
@@ -491,7 +399,7 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
                     ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
                     ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
                     ImGui::Separator();
-                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_showEditor);
+                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_editor.m_show);
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();
@@ -501,11 +409,8 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture) {
         ImGui::End();
     }
 
-    if (m_showEditor) {
-        if (ImGui::Begin(_("VRAM Shader Editor"), &m_showEditor)) {
-            drawEditor();
-        }
-        ImGui::End();
+    if (m_editor.m_show) {
+        drawEditor(gui);
     }
 }
 
