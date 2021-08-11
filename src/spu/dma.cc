@@ -27,40 +27,26 @@
 #include "spu/externals.h"
 #include "spu/interface.h"
 
-////////////////////////////////////////////////////////////////////////
-// READ DMA (many values)
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::readDMAMem(uint16_t* pusPSXMem, int iSize) {
-    for (int i = 0; i < iSize; i++) {
-        *pusPSXMem++ = spuMem[spuAddr >> 1];  // spu addr got by writeregister
-        spuAddr += 2;                         // inc spu addr
-        if (spuAddr > 0x7ffff) spuAddr = 0;   // wrap
+// SPU RAM -> Main RAM DMA
+void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
+    for (int i = 0; i < size; i++) {
+        *mainMem++ = spuMem[spuAddr >> 1]; // Copy 2 bytes
+        spuAddr = (spuAddr + 2) & 0x7ffff; // Increment SPU address and wrap around
     }
 
     iSpuAsyncWait = 0;
 }
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
 
 // to investigate: do sound data updates by writedma affect spu
 // irqs? Will an irq be triggered, if new data is written to
 // the memory irq address?
 
-////////////////////////////////////////////////////////////////////////
-// WRITE DMA (many values)
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::writeDMAMem(uint16_t* pusPSXMem, int iSize) {
-    for (int i = 0; i < iSize; i++) {
-        spuMem[spuAddr >> 1] = *pusPSXMem++;  // spu addr got by writeregister
-        spuAddr += 2;                         // inc spu addr
-        if (spuAddr > 0x7ffff) spuAddr = 0;   // wrap
+// Main RAM -> SPU RAM DMA
+void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
+    for (int i = 0; i < size; i++) {
+        spuMem[spuAddr >> 1] = *mainMem++;  // Copy 2 bytes
+        spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
     }
 
     iSpuAsyncWait = 0;
 }
-
-////////////////////////////////////////////////////////////////////////
