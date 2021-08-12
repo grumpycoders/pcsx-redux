@@ -808,6 +808,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
+                ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_shaderEditor.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show raw DWARF info"), nullptr, &m_dwarf.m_show);
                 ImGui::EndMenu();
@@ -888,8 +889,8 @@ void PCSX::GUI::endFrame() {
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
-            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize,
-                         ImVec2(0, 0), ImVec2(1, 1));
+            ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+            ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::End();
         if (!outputShown) m_fullscreenRender = true;
@@ -980,6 +981,10 @@ void PCSX::GUI::endFrame() {
     m_types.draw();
     if (m_source.m_show) {
         m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
+    }
+
+    if (m_shaderEditor.m_show) {
+        m_shaderEditor.draw(_("Output Video"), this);
     }
 
     PCSX::g_emulator->m_spu->debug();
