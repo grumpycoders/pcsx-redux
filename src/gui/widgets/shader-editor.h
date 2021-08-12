@@ -26,6 +26,7 @@
 
 #include "GL/gl3w.h"
 #include "ImGuiColorTextEdit/TextEditor.h"
+#include "lua/luawrapper.h"
 
 namespace PCSX {
 
@@ -35,25 +36,37 @@ namespace Widgets {
 
 class ShaderEditor {
   public:
-    std::optional<GLuint> [[nodiscard]] compile(std::string_view VS, std::string_view PS,
-                                                const std::vector<std::string_view>& mandatoryAttributes = {});
+    ShaderEditor(const std::string& base) : m_baseFilename(base), m_index(++s_index) {}
+    [[nodiscard]] std::optional<GLuint> compile(const std::vector<std::string_view>& mandatoryAttributes = {});
 
     bool m_show = false;
 
-    void setText(std::string_view VS, std::string_view PS) {
+    void setText(std::string_view VS, std::string_view PS, std::string_view L) {
         m_vertexShaderEditor.SetText(VS.data());
         m_pixelShaderEditor.SetText(PS.data());
+        m_luaEditor.SetText(L.data());
     }
 
     bool draw(std::string_view title, GUI* gui);
 
+  private:
     std::string getVertexText() { return m_vertexShaderEditor.GetText(); }
     std::string getPixelText() { return m_pixelShaderEditor.GetText(); }
+    std::string getLuaText() { return m_luaEditor.GetText(); }
 
-  private:
+    const std::string m_baseFilename;
+
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
+    TextEditor m_luaEditor;
     std::string m_errorMessage;
+    std::vector<std::string> m_lastLuaErrors;
+    bool m_displayError = false;
+    bool m_autoreload = true;
+    bool m_autosave = true;
+
+    static lua_Number s_index;
+    const lua_Number m_index;
 };
 
 }  // namespace Widgets

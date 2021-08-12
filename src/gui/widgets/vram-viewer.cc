@@ -194,8 +194,8 @@ void main() {
 }
 )";
 
-void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
-    auto ret = m_editor.compile(VS, PS, {"i_position", "i_texUV"});
+void PCSX::Widgets::VRAMViewer::compileShader() {
+    auto ret = m_editor.compile({"i_position", "i_texUV"});
     if (!ret.has_value()) return;
 
     destroy();
@@ -223,9 +223,10 @@ void PCSX::Widgets::VRAMViewer::compileShader(const char *VS, const char *PS) {
     PCSX::GUI::checkGL();
 }
 
-void PCSX::Widgets::VRAMViewer::init() {
-    m_editor.setText(s_defaultVertexShader, s_defaultPixelShader);
-    compileShader(s_defaultVertexShader, s_defaultPixelShader);
+void PCSX::Widgets::VRAMViewer::init(bool isMain) {
+    m_isMain = isMain;
+    m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, "");
+    compileShader();
     SDL_assert(m_shaderProgram);
 }
 
@@ -302,7 +303,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
 void PCSX::Widgets::VRAMViewer::drawEditor(GUI *gui) {
     bool changed = m_editor.draw(_("VRAM Shader Editor"), gui);
     if (!changed) return;
-    compileShader(m_editor.getVertexText().c_str(), m_editor.getPixelText().c_str());
+    compileShader();
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -360,7 +361,7 @@ void PCSX::Widgets::VRAMViewer::resetView() {
     m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
 }
 
-void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture, GUI * gui) {
+void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture, GUI *gui) {
     if (m_show) {
         auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
@@ -398,8 +399,10 @@ void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture, GUI * gui) {
                     }
                     ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
                     ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
-                    ImGui::Separator();
-                    ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_editor.m_show);
+                    if (m_isMain) {
+                        ImGui::Separator();
+                        ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_editor.m_show);
+                    }
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();

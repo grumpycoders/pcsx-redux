@@ -399,7 +399,7 @@ end)(jit.status()))
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
 
-    m_mainVRAMviewer.init();
+    m_mainVRAMviewer.init(true);
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
     m_clutVRAMviewer.init();
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
@@ -910,7 +910,7 @@ void PCSX::GUI::endFrame() {
     if (m_luaInspector.m_show) {
         ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get());
+        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get(), this);
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"));

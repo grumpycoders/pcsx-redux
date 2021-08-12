@@ -34,7 +34,7 @@ namespace Widgets {
 
 class VRAMViewer {
   public:
-    void init();
+    void init(bool isMain = false);
     void setTitle(std::function<std::string()> title) { m_title = title; }
     void setClutDestination(VRAMViewer *destination) {
         m_clutDestination = destination;
@@ -49,13 +49,15 @@ class VRAMViewer {
     void drawEditor(GUI *gui);
     static inline const float RATIOS[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
     void drawVRAM(GLuint textureID);
-    void compileShader(const char *VS, const char *PS);
+    void compileShader();
     void modeChanged();
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
         VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
         that->imguiCB(parentList, cmd);
     }
     void imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd);
+
+    bool m_isMain = false;
 
     GLuint m_shaderProgram = 0;
     int m_attribLocationTex;
@@ -113,7 +115,7 @@ class VRAMViewer {
 
     bool m_firstShown = false;
 
-    ShaderEditor m_editor;
+    ShaderEditor m_editor = {"vram-viewer"};
 };
 
 }  // namespace Widgets

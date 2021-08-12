@@ -19,15 +19,20 @@
 
 #include "gui/widgets/shader-editor.h"
 
+#include <filesystem>
+
 #include "GL/gl3w.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
+#include "lua/luawrapper.h"
 
-std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(std::string_view VS, std::string_view PS,
-                                                           const std::vector<std::string_view> &mandatoryAttributes) {
+lua_Number PCSX::Widgets::ShaderEditor::s_index = 0;
+
+std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std::string_view> &mandatoryAttributes) {
     GLint status = 0;
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    auto VS = getVertexText();
     const char *VSv = VS.data();
     glShaderSource(vertexShader, 1, &VSv, 0);
     glCompileShader(vertexShader);
@@ -48,6 +53,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(std::string_view VS, 
     }
 
     GLuint pixelShader = glCreateShader(GL_FRAGMENT_SHADER);
+    auto PS = getPixelText();
     const char *PSv = PS.data();
     glShaderSource(pixelShader, 1, &PSv, 0);
     glCompileShader(pixelShader);
@@ -110,26 +116,93 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(std::string_view VS, 
 
     m_errorMessage.clear();
 
+    auto &L = g_emulator->m_lua;
+
+    if (m_autoreload) {
+        m_lastLuaErrors.clear();
+        auto oldNormalPrinter = L->normalPrinter;
+        auto oldErrorPrinter = L->errorPrinter;
+        L->normalPrinter = [](const std::string &) {};
+        L->errorPrinter = [this](const std::string &msg) { m_lastLuaErrors.push_back(msg); };
+        try {
+            L->push("SHADER_EDITOR");
+            L->gettable(LUA_REGISTRYINDEX);
+            if (L->isnil()) {
+                L->pop();
+                L->newtable();
+                L->push("SHADER_EDITOR");
+                L->copy(-2);
+                L->settable(LUA_REGISTRYINDEX);
+            }
+            L->push(m_index);
+            L->newtable();
+            if (L->newmetatable("SHADER_EDITOR_METATABLE")) {
+                L->push("__index");
+                L->push("_G");
+                L->gettable(LUA_GLOBALSINDEX);
+                L->settable();
+            }
+            L->setmetatable();
+            L->load(getLuaText(), "pcsx.lua", false);
+            L->copy(-2);
+            L->setfenv(-2);
+            L->pcall();
+            bool gotGLerror = false;
+            GLenum glError = GL_NO_ERROR;
+            while ((glError = glGetError()) != GL_NO_ERROR) {
+                std::string msg = "glError from Lua: ";
+                msg += PCSX::GUI::glErrorToString(glError);
+                m_lastLuaErrors.push_back(msg);
+                gotGLerror = true;
+            }
+            if (!gotGLerror) {
+                m_displayError = false;
+                L->settable();
+                L->pop();
+            } else {
+                L->pop(3);
+            }
+        } catch (...) {
+            m_displayError = true;
+        }
+        L->normalPrinter = oldNormalPrinter;
+        L->errorPrinter = oldErrorPrinter;
+    }
+
+    if (m_autosave) {
+        // TODO
+    }
+
     return shaderProgram;
 }
 
 bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
     if (!ImGui::Begin(title.data(), &m_show)) return false;
+    ImGui::Checkbox(_("Auto reload"), &m_autoreload);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Auto save"), &m_autosave);
     auto contents = ImGui::GetContentRegionAvail();
     ImGuiStyle &style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = heightSeparator * 2 + 5 * ImGui::GetTextLineHeightWithSpacing();
-    float width = contents.x / 2 - style.ItemInnerSpacing.x;
+    float width = contents.x / 3 - style.ItemInnerSpacing.x;
     gui->useMonoFont();
     m_vertexShaderEditor.Render(_("Vertex Shader"), ImVec2(width, -footerHeight), true);
     ImGui::SameLine();
     m_pixelShaderEditor.Render(_("Pixel Shader"), ImVec2(width, -footerHeight), true);
+    ImGui::SameLine();
+    m_luaEditor.Render(_("Lua Invoker"), ImVec2(width, -footerHeight), true);
     ImGui::PopFont();
     ImGui::BeginChild("Errors", ImVec2(0, 0), true);
     ImGui::Text("%s", m_errorMessage.c_str());
+    if (m_displayError) {
+        for (auto &msg : m_lastLuaErrors) {
+            ImGui::TextUnformatted(msg.c_str());
+        }
+    }
     ImGui::EndChild();
 
     ImGui::End();
 
-    return m_vertexShaderEditor.IsTextChanged() || m_pixelShaderEditor.IsTextChanged();
+    return m_vertexShaderEditor.IsTextChanged() || m_pixelShaderEditor.IsTextChanged() || m_luaEditor.IsTextChanged();
 }

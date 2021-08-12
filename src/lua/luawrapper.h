@@ -221,6 +221,11 @@ class Lua {
 
     lua_State* getState() { return L; }
 
+    void getfenv(int index) { lua_getfenv(L, index); }
+    int setfenv(int index) { return lua_setfenv(L, index); }
+
+    bool newmetatable(const char* name) { return luaL_newmetatable(L, name) != 0; }
+
   private:
     lua_State* L;
 };
