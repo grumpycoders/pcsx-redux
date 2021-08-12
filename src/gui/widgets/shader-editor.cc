@@ -124,25 +124,30 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
         auto oldErrorPrinter = L->errorPrinter;
         L->normalPrinter = [](const std::string &) {};
         L->errorPrinter = [this](const std::string &msg) { m_lastLuaErrors.push_back(msg); };
-        try {
-            L->push("SHADER_EDITOR");
-            L->gettable(LUA_REGISTRYINDEX);
-            if (L->isnil()) {
-                L->pop();
-                L->newtable();
-                L->push("SHADER_EDITOR");
-                L->copy(-2);
-                L->settable(LUA_REGISTRYINDEX);
-            }
-            L->push(m_index);
+        int top = L->gettop();
+        // grabbing the table where we'll store our shader invoker
+        L->push("SHADER_EDITOR");
+        L->gettable(LUA_REGISTRYINDEX);
+        if (L->isnil()) {
+            L->pop();
             L->newtable();
-            if (L->newmetatable("SHADER_EDITOR_METATABLE")) {
-                L->push("__index");
-                L->push("_G");
-                L->gettable(LUA_GLOBALSINDEX);
-                L->settable();
-            }
-            L->setmetatable();
+            L->push("SHADER_EDITOR");
+            L->copy(-2);
+            L->settable(LUA_REGISTRYINDEX);
+        }
+        // each ShaderEditor has its own constant index for this table
+        L->push(m_index);
+        // this table will contain the sandbox environment
+        L->newtable();
+        // assign _G to __index's metatable
+        if (L->newmetatable("SHADER_EDITOR_METATABLE")) {
+            L->push("__index");
+            L->push("_G");
+            L->gettable(LUA_GLOBALSINDEX);
+            L->settable();
+        }
+        L->setmetatable();
+        try {
             L->load(getLuaText(), "pcsx.lua", false);
             L->copy(-2);
             L->setfenv(-2);
@@ -158,12 +163,12 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
             if (!gotGLerror) {
                 m_displayError = false;
                 L->settable();
-                L->pop();
-            } else {
-                L->pop(3);
             }
         } catch (...) {
             m_displayError = true;
+        }
+        while (top < L->gettop()) {
+            L->pop();
         }
         L->normalPrinter = oldNormalPrinter;
         L->errorPrinter = oldErrorPrinter;
