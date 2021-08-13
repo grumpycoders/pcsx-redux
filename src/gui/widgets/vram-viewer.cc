@@ -222,9 +222,7 @@ void PCSX::Widgets::VRAMViewer::compileShader() {
     PCSX::GUI::checkGL();
 }
 
-PCSX::Widgets::VRAMViewer::VRAMViewer() {
-    m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, "");
-}
+PCSX::Widgets::VRAMViewer::VRAMViewer() { m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, ""); }
 
 void PCSX::Widgets::VRAMViewer::drawVRAM(GLuint textureID) {
     if (!m_shaderProgram) {

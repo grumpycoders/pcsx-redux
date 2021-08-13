@@ -30,8 +30,8 @@
 // SPU RAM -> Main RAM DMA
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
     for (int i = 0; i < size; i++) {
-        *mainMem++ = spuMem[spuAddr >> 1]; // Copy 2 bytes
-        spuAddr = (spuAddr + 2) & 0x7ffff; // Increment SPU address and wrap around
+        *mainMem++ = spuMem[spuAddr >> 1];  // Copy 2 bytes
+        spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
     }
 
     iSpuAsyncWait = 0;

@@ -44,20 +44,20 @@ __attribute__((weak)) void __cxa_pure_virtual() { abort(); }
 // All of these (and probably more) will be called one way or another through
 // the normal C++ ABI. These are declared weak here so they can be overriden
 // by an actual proper implementation that'd do what they should do.
-__attribute__((weak)) void * __builtin_new(size_t size) { abort(); }
-__attribute__((weak)) void __builtin_delete(void * ptr) { abort(); }
+__attribute__((weak)) void* __builtin_new(size_t size) { abort(); }
+__attribute__((weak)) void __builtin_delete(void* ptr) { abort(); }
 // void * operator new(unsigned int);
-__attribute__((weak)) void * _Znwj(unsigned int size) { abort(); }
+__attribute__((weak)) void* _Znwj(unsigned int size) { abort(); }
 // void * operator new[](unsigned int);
-__attribute__((weak)) void * _Znaj(unsigned int size) { abort(); }
+__attribute__((weak)) void* _Znaj(unsigned int size) { abort(); }
 // void operator delete(void*);
-__attribute__((weak)) void _ZdlPv(void * ptr) { abort(); }
+__attribute__((weak)) void _ZdlPv(void* ptr) { abort(); }
 // void operator delete[](void*);
-__attribute__((weak)) void _ZdaPv(void * ptr) { abort(); }
+__attribute__((weak)) void _ZdaPv(void* ptr) { abort(); }
 // void operator delete(void*, unsigned int);
-__attribute__((weak)) void _ZdlPvj(void * ptr, unsigned int size) { abort(); }
+__attribute__((weak)) void _ZdlPvj(void* ptr, unsigned int size) { abort(); }
 // void operator delete[](void*, unsigned int);
-__attribute__((weak)) void _ZdaPvj(void * ptr, unsigned int size) { abort(); }
+__attribute__((weak)) void _ZdaPvj(void* ptr, unsigned int size) { abort(); }
 
 /*
 
