@@ -33,7 +33,7 @@
 
 lua_Number PCSX::Widgets::ShaderEditor::s_index = 0;
 
-static const const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
+static const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
 /* The Vertex Shader isn't necessarily very useful, but is still provided here. */
 precision mediump float;
 layout (location = 0) in vec2 Position;
@@ -403,7 +403,7 @@ void PCSX::Widgets::ShaderEditor::render(ImTextureID textureID, const ImVec2 &sr
         return;
     }
 
-    m_textureID = reinterpret_cast<GLuint>(textureID);
+    m_textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(textureID));
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
