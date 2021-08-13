@@ -34,16 +34,16 @@ namespace Widgets {
 
 class VRAMViewer {
   public:
-    void init(bool isMain = false);
+    VRAMViewer();
+    void setMain() { m_isMain = true; }
     void setTitle(std::function<std::string()> title) { m_title = title; }
     void setClutDestination(VRAMViewer *destination) {
         m_clutDestination = destination;
         destination->m_hasClut = true;
     }
     void resetView();
-    void destroy();
 
-    void render(GLuint VRAMTexture, GUI *gui);
+    void draw(GLuint VRAMTexture, GUI *gui);
 
   private:
     void drawEditor(GUI *gui);

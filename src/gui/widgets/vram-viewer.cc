@@ -198,7 +198,6 @@ void PCSX::Widgets::VRAMViewer::compileShader() {
     auto ret = m_editor.compile({"i_position", "i_texUV"});
     if (!ret.has_value()) return;
 
-    destroy();
     m_shaderProgram = ret.value();
     m_attribLocationTex = glGetUniformLocation(m_shaderProgram, "u_vramTexture");
     m_attribLocationProjMtx = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
@@ -223,19 +222,15 @@ void PCSX::Widgets::VRAMViewer::compileShader() {
     PCSX::GUI::checkGL();
 }
 
-void PCSX::Widgets::VRAMViewer::init(bool isMain) {
-    m_isMain = isMain;
+PCSX::Widgets::VRAMViewer::VRAMViewer() {
     m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, "");
-    compileShader();
+}
+
+void PCSX::Widgets::VRAMViewer::drawVRAM(GLuint textureID) {
+    if (!m_shaderProgram) {
+        compileShader();
+    }
     SDL_assert(m_shaderProgram);
-}
-
-void PCSX::Widgets::VRAMViewer::destroy() {
-    if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
-    PCSX::GUI::checkGL();
-}
-
-void PCSX::Widgets::VRAMViewer::drawVRAM(unsigned int textureID) {
     m_textureID = textureID;
     m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();
@@ -361,7 +356,7 @@ void PCSX::Widgets::VRAMViewer::resetView() {
     m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
 }
 
-void PCSX::Widgets::VRAMViewer::render(unsigned int VRAMTexture, GUI *gui) {
+void PCSX::Widgets::VRAMViewer::draw(unsigned int VRAMTexture, GUI *gui) {
     if (m_show) {
         auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {

@@ -36,7 +36,8 @@ namespace Widgets {
 
 class ShaderEditor {
   public:
-    ShaderEditor(const std::string& base) : m_baseFilename(base), m_index(++s_index) {}
+    ShaderEditor(const std::string& base, std::string_view dVS = "", std::string_view dPS = "",
+                 std::string_view dL = "");
     [[nodiscard]] std::optional<GLuint> compile(const std::vector<std::string_view>& mandatoryAttributes = {});
 
     bool m_show = false;
@@ -48,22 +49,34 @@ class ShaderEditor {
     }
 
     bool draw(std::string_view title, GUI* gui);
+    void render(ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
 
   private:
     std::string getVertexText() { return m_vertexShaderEditor.GetText(); }
     std::string getPixelText() { return m_pixelShaderEditor.GetText(); }
     std::string getLuaText() { return m_luaEditor.GetText(); }
 
+    void getRegistry(std::unique_ptr<Lua>& L);
+
+    static void imguiCBtrampoline(const ImDrawList* parentList, const ImDrawCmd* cmd) {
+        ShaderEditor* that = reinterpret_cast<ShaderEditor*>(cmd->UserCallbackData);
+        that->imguiCB(parentList, cmd);
+    }
+    void imguiCB(const ImDrawList* parentList, const ImDrawCmd* cmd);
+
     const std::string m_baseFilename;
 
     TextEditor m_vertexShaderEditor;
     TextEditor m_pixelShaderEditor;
     TextEditor m_luaEditor;
+    GLuint m_shaderProgram = 0;
     std::string m_errorMessage;
     std::vector<std::string> m_lastLuaErrors;
     bool m_displayError = false;
     bool m_autoreload = true;
     bool m_autosave = true;
+    bool m_showAll = true;
+    GLuint m_textureID;
 
     static lua_Number s_index;
     const lua_Number m_index;
