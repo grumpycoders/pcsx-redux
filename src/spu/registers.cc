@@ -77,19 +77,19 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
     if (r >= 0x0c00 && r < 0x0d80) {
         int ch = (r >> 4) - 0xc0;  // Figure out which voice it is
         switch (r & 0x0f) {
-            case 0: // Left volume
+            case 0:  // Left volume
                 SetVolumeL((uint8_t)ch, val);
                 break;
-            case 2: // Right volume
+            case 2:  // Right volume
                 SetVolumeR((uint8_t)ch, val);
                 break;
-            case 4: // Pitch
+            case 4:  // Pitch
                 SetPitch(ch, val);
                 break;
-            case 6: // Sample start address
+            case 6:  // Sample start address
                 s_chan[ch].pStart = spuMemC + ((uint32_t)val << 3);
                 break;
-            case 8: { // Attack/Decay/Sustain/Release (ADSR)
+            case 8: {  // Attack/Decay/Sustain/Release (ADSR)
                 //---------------------------------------------//
                 s_chan[ch].ADSRX.get<exAttackModeExp>().value = (val & 0x8000) ? 1 : 0;
                 s_chan[ch].ADSRX.get<exAttackRate>().value = ((val >> 8) & 0x007f) ^ 0x7f;
@@ -100,7 +100,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].ADSR.get<AttackModeExp>().value = (val & 0x8000) ? 1 : 0;  // 0x007f
 
                 uint32_t lx = (((val >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31U, lx);              // no overflow on shift!
+                lx = std::min(31U, lx);                      // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -115,7 +115,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].ADSR.get<SustainLevel>().value = (1024 * (val & 0xf)) / 15;
 
                 lx = (val >> 4) & 0x000f;  // decay:
-                if (lx)                     // our const decay value is time it takes from 100% to 0% of volume
+                if (lx)                    // our const decay value is time it takes from 100% to 0% of volume
                 {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
                     if (!lx) lx = 1;
@@ -138,10 +138,10 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].ADSR.get<ReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
 
                 uint32_t lx = ((((val >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31U, lx);                // values are used to hold the volume
-                if (lx)                                // until a sound stop occurs
-                {                                      // the highest value we reach (due to
-                    lx = (1 << lx);                    // overflow checking) is:
+                lx = std::min(31U, lx);                        // values are used to hold the volume
+                if (lx)                                        // until a sound stop occurs
+                {                                              // the highest value we reach (due to
+                    lx = (1 << lx);                            // overflow checking) is:
                     if (lx < 2147483)
                         lx = (lx * SUSTAIN_MS) / 10000L;  // 94704 seconds = 1578 minutes = 26 hours...
                     else
@@ -168,7 +168,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 else
                     s_chan[ch].ADSR.get<SustainModeDec>().value = 1;
             } break;
-            case 12: // TODO: Emulate ADSR Volume
+            case 12:  // TODO: Emulate ADSR Volume
                 break;
             //------------------------------------------------//
             case 14:  // loop?
@@ -478,7 +478,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
 // Start ADSR for voices [start, end] depending on val
 void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
     for (int ch = start; ch < end; ch++, val >>= 1) {
-        if ((val & 1) && s_chan[ch].pStart) { // mmm... start has to be set before key on !?!
+        if ((val & 1) && s_chan[ch].pStart) {  // mmm... start has to be set before key on !?!
             s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
             s_chan[ch].data.get<Chan::New>().value = true;
             dwNewChannel |= (1 << ch);  // bitfield for faster testing
@@ -498,9 +498,9 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val) {
 // Set pitch modulation for voices [start, end] depending on val
 void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
     for (int ch = start; ch < end; ch++, val >>= 1) {
-        if (val & 1) { // Check if modulation should be enabled for this voice
-            if (ch > 0) { // Pitch modulation doesn't work for voice 0
-                s_chan[ch].data.get<Chan::FMod>().value = 1;      // sound channel
+        if (val & 1) {                                        // Check if modulation should be enabled for this voice
+            if (ch > 0) {                                     // Pitch modulation doesn't work for voice 0
+                s_chan[ch].data.get<Chan::FMod>().value = 1;  // sound channel
                 s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // freq channel
             }
         } else {
@@ -509,7 +509,8 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
     }
 }
 
-// Set voices [start, end] to output ADPCM or noise, depending on if the corresponding bit in val is set to 0 or 1 respectively
+// Set voices [start, end] to output ADPCM or noise, depending on if the corresponding bit in val is set to 0 or 1
+// respectively
 void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
     for (int ch = start; ch < end; ch++, val >>= 1) {
         s_chan[ch].data.get<Chan::Noise>().value = val & 1;

@@ -103,23 +103,24 @@ class X86DynaRecCPU final : public PCSX::R3000Acpu {
     void handleKernelCall() {
         const uint32_t pc = m_psxRegs.pc & 0x1fffff;
         const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
-        if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return; // Mask out the segment, return if not a kernel call vector
+        if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
+            return;  // Mask out the segment, return if not a kernel call vector
 
-        switch (pc) { // Handle the A0/B0/C0 vectors
+        switch (pc) {  // Handle the A0/B0/C0 vectors
             case 0xA0:
                 m_needsStackFrame = true;
-                gen.push(dword, reinterpret_cast<uintptr_t>(this)); // Push pointer to this object
-                gen.call(interceptKernelCallWrapper<0xA0>);         // Call wrapper
-                gen.add(esp, 4); // Fix up stack
+                gen.push(dword, reinterpret_cast<uintptr_t>(this));  // Push pointer to this object
+                gen.call(interceptKernelCallWrapper<0xA0>);          // Call wrapper
+                gen.add(esp, 4);                                     // Fix up stack
                 break;
-            
+
             case 0xB0:
                 m_needsStackFrame = true;
                 gen.push(dword, reinterpret_cast<uintptr_t>(this));
                 gen.call(interceptKernelCallWrapper<0xB0>);
                 gen.add(esp, 4);
                 break;
-            
+
             case 0xC0:
                 m_needsStackFrame = true;
                 gen.push(dword, reinterpret_cast<uintptr_t>(this));
@@ -3092,7 +3093,7 @@ void X86DynaRecCPU::recRecompile() {
     gen.push(esi);
     gen.push(edi);
     const auto endStackFramePtr = (uintptr_t)gen.getCurr();
-    handleKernelCall(); // Emit extra code if this is one of the kernel call vectors
+    handleKernelCall();  // Emit extra code if this is one of the kernel call vectors
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
