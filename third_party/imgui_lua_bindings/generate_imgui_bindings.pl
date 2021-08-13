@@ -249,9 +249,9 @@ sub generateImguiGeneric {
           }
           push(@funcArgs, $name);
         #const ImVec2& with default or not
-        } elsif ($args[$i] =~ m/^ *const ImVec2& ([^ ]*) *(= * ImVec2 [^ ]* [^ ]*|) *$/) {
+        } elsif ($args[$i] =~ m/^ *const ImVec2& +([^ ]*) *(= * ImVec2 [^ ]* +[^ ]*|) *$/) {
           my $name = $1;
-          if ($2 =~ m/^= * ImVec2 ([^ ]*) ([^ ]*)$/) {
+          if ($2 =~ m/^= * ImVec2 ([^ ]*) +([^ ]*)$/) {
             push(@before, "OPTIONAL_IM_VEC_2_ARG($name, $1, $2)");
           } else {
             push(@before, "IM_VEC_2_ARG($name)");
@@ -263,9 +263,9 @@ sub generateImguiGeneric {
           push(@before, "IM_VEC_2_ARG($name)");
           push(@funcArgs, $name);
         #const ImVec4& with default or not
-        } elsif ($args[$i] =~ m/^ *const ImVec4& ([^ ]*) *(= * ImVec4 [^ ]* [^ ]* [^ ]* [^ ]*|) *$/) {
+        } elsif ($args[$i] =~ m/^ *const ImVec4& +([^ ]*) *(= * ImVec4 [^ ]* +[^ ]* +[^ ]* +[^ ]*|) *$/) {
           my $name = $1;
-          if ($2 =~ m/^= * ImVec4 ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*)$/) {
+          if ($2 =~ m/^= * ImVec4 +([^ ]*) +([^ ]*) +([^ ]*) +([^ ]*)$/) {
             push(@before, "OPTIONAL_IM_VEC_4_ARG($name, $1, $2, $3, $4)");
           } else {
             push(@before, "IM_VEC_4_ARG($name)");

@@ -399,13 +399,11 @@ end)(jit.status()))
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
 
-    m_mainVRAMviewer.init();
+    m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
-    m_clutVRAMviewer.init();
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
     unsigned counter = 1;
     for (auto& viewer : m_VRAMviewers) {
-        viewer.init();
         viewer.setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
         counter++;
     }
@@ -583,9 +581,23 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        m_shaderEditor.render(texture, m_renderSize, logicalRenderSize);
         ImGui::End();
         ImGui::PopStyleVar(2);
+    } else {
+        ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
+        bool outputShown = true;
+        if (ImGui::Begin(
+                _("Output"), &outputShown,
+                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
+            ImVec2 textureSize = ImGui::GetContentRegionAvail();
+            normalizeDimensions(textureSize, m_renderRatio);
+            ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+            m_shaderEditor.render(texture, m_renderSize, textureSize);
+        }
+        ImGui::End();
+        if (!outputShown) m_fullscreenRender = true;
     }
 
     bool showOpenIsoFileDialog = false;
@@ -808,6 +820,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
+                ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_shaderEditor.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show raw DWARF info"), nullptr, &m_dwarf.m_show);
                 ImGui::EndMenu();
@@ -875,25 +888,9 @@ void PCSX::GUI::endFrame() {
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.render(m_VRAMTexture);
-    m_clutVRAMviewer.render(m_VRAMTexture);
-    for (auto& viewer : m_VRAMviewers) viewer.render(m_VRAMTexture);
-
-    if (!m_fullscreenRender) {
-        ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        bool outputShown = true;
-        if (ImGui::Begin(
-                _("Output"), &outputShown,
-                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
-            ImVec2 textureSize = ImGui::GetContentRegionAvail();
-            normalizeDimensions(textureSize, m_renderRatio);
-            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize,
-                         ImVec2(0, 0), ImVec2(1, 1));
-        }
-        ImGui::End();
-        if (!outputShown) m_fullscreenRender = true;
-    }
+    m_mainVRAMviewer.draw(m_VRAMTexture, this);
+    m_clutVRAMviewer.draw(m_VRAMTexture, this);
+    for (auto& viewer : m_VRAMviewers) viewer.draw(m_VRAMTexture, this);
 
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
@@ -910,7 +907,7 @@ void PCSX::GUI::endFrame() {
     if (m_luaInspector.m_show) {
         ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get());
+        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get(), this);
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"));
@@ -980,6 +977,11 @@ void PCSX::GUI::endFrame() {
     m_types.draw();
     if (m_source.m_show) {
         m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
+    }
+
+    if (m_shaderEditor.draw(_("Output Video"), this)) {
+        // maybe thottle this?
+        m_shaderEditor.compile();
     }
 
     PCSX::g_emulator->m_spu->debug();

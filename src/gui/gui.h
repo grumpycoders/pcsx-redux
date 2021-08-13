@@ -38,6 +38,7 @@
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/shader-editor.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
@@ -271,6 +272,7 @@ class GUI final {
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
+    Widgets::ShaderEditor m_shaderEditor = {"output"};
 
   public:
     struct {
