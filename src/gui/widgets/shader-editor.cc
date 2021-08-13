@@ -34,6 +34,7 @@
 lua_Number PCSX::Widgets::ShaderEditor::s_index = 0;
 
 static const const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
+/* The Vertex Shader isn't necessarily very useful, but is still provided here. */
 precision mediump float;
 layout (location = 0) in vec2 Position;
 layout (location = 1) in vec2 UV;
@@ -48,6 +49,7 @@ void main() {
 })";
 
 static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
+/* The Pixel Shader is most likely what the user will want to change. */
 precision mediump float;
 uniform sampler2D Texture;
 in vec2 Frag_UV;
@@ -58,19 +60,28 @@ void main() {
 })";
 
 static const char *const c_defaultLuaInvoker = R"(
+-- All of this code is sandboxed, as in any global variable it
+-- creates will be attached to a local environment. The global
+-- environment is still accessible as normal.
+
 -- This function is called to issue an ImGui::Image when it's time
--- to display the video output of the emulated screen.
+-- to display the video output of the emulated screen. It can
+-- prepare some values to later attach to the shader program.
 function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
     imgui.Image(textureID, dstSizeX, dstSizeY, 0, 0, 1, 1)
 end
 
 -- This function is called to draw some UI, at the same time
--- as the shader editor.
+-- as the shader editor, but regardless of the status of the
+-- shader editor window. Its purpose is to potentially display
+-- a piece of UI to let the user interact with the shader program.
 function Draw()
 end
 
 -- This function is called just before executing the shader program,
--- to give it a chance to bind some attributes to it.
+-- to give it a chance to bind some attributes to it, that'd come
+-- from either the global state, or the locally computed attributes
+-- from the two functions above.
 function BindAttributes(textureID, shaderProgramID)
 end
 )";
@@ -472,7 +483,7 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
             L->push(lua_Number(m_textureID));
             L->push(lua_Number(m_shaderProgram));
             try {
-                L->pcall(1);
+                L->pcall(2);
                 bool gotGLerror = false;
                 GLenum glError = GL_NO_ERROR;
                 while ((glError = glGetError()) != GL_NO_ERROR) {
