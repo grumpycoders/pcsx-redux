@@ -979,11 +979,9 @@ void PCSX::GUI::endFrame() {
         m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
     }
 
-    if (m_shaderEditor.m_show) {
-        if (m_shaderEditor.draw(_("Output Video"), this)) {
-            // maybe thottle this?
-            m_shaderEditor.compile();
-        }
+    if (m_shaderEditor.draw(_("Output Video"), this)) {
+        // maybe thottle this?
+        m_shaderEditor.compile();
     }
 
     PCSX::g_emulator->m_spu->debug();
