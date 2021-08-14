@@ -17,6 +17,11 @@ void DynaRecCPU::recLUI() {
     m_regs[_Rt_].markConst(m_psxRegs.code << 16);
 }
 
+// The Dynarec doesn't currently handle overflow exceptions, so we treat ADD the same as ADDU
+void DynaRecCPU::recADD() { 
+    recADDU();
+}
+
 void DynaRecCPU::recADDU() {
     // Rd = Rs + Rt
     BAILZERO(_Rd_);
@@ -139,6 +144,39 @@ void DynaRecCPU::recSLTU() {
         gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
         gen.setl(al);
         gen.mov(m_regs[_Rd_].allocatedReg, eax);
+    }
+}
+
+void DynaRecCPU::recAND() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst(m_regs[_Rs_].val & m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rt_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rs_, _Rd_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+    } else {
+        allocateReg(_Rs_, _Rd_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rd_ == _Rs_) {
+            gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        } else if (_Rd_ == _Rt_) {
+            gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        } else {
+            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+            gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
+        }
     }
 }
 
@@ -687,6 +725,9 @@ void DynaRecCPU::recSW() {
 
 void DynaRecCPU::recCOP0() {
     switch (_Rs_) {  // figure out the type of COP0 opcode
+        case 0:
+            recMFC0();
+            break;
         case 4:
             recMTC0();
             break;
@@ -695,6 +736,15 @@ void DynaRecCPU::recCOP0() {
             abort();
             break;
     }
+}
+
+void DynaRecCPU::recMFC0() {
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
+    allocateReg(_Rt_);
+    m_regs[_Rt_].setWriteback(true);
+
+    gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP0_OFFSET(_Rd_)]);
 }
 
 // TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
