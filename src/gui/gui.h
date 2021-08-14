@@ -272,7 +272,8 @@ class GUI final {
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
-    Widgets::ShaderEditor m_shaderEditor = {"output"};
+    Widgets::ShaderEditor m_outputShaderEditor = {"output", true};
+    Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen", false};
 
   public:
     struct {

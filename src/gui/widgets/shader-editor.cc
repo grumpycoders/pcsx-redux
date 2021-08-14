@@ -86,9 +86,9 @@ function BindAttributes(textureID, shaderProgramID)
 end
 )";
 
-PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_view dVS, std::string_view dPS,
-                                          std::string_view dL)
-    : m_baseFilename(base), m_index(++s_index) {
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const bool useImGui, std::string_view dVS,
+                                          std::string_view dPS, std::string_view dL)
+    : m_baseFilename(base), m_index(++s_index), m_useImGui(useImGui) {
     std::filesystem::path f = base;
     {
         f.replace_extension("glslv");
@@ -300,36 +300,43 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
 }
 
 bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
-    auto &L = g_emulator->m_lua;
-    int top = L->gettop();
-    getRegistry(L);
-    L->push(m_index);
-    L->gettable();
-    if (L->istable()) {
-        L->push("Draw");
+    auto &Lorg = g_emulator->m_lua;
+    {
+        int top = Lorg->gettop();
+        auto L = Lorg->thread();
+        getRegistry(L);
+        L->push(m_index);
         L->gettable();
-        if (L->isfunction()) {
-            L->copy(-2);
-            L->setfenv();
-            try {
-                L->pcall();
-                bool gotGLerror = false;
-                GLenum glError = GL_NO_ERROR;
-                while ((glError = glGetError()) != GL_NO_ERROR) {
-                    std::string msg = "glError: ";
-                    msg += PCSX::GUI::glErrorToString(glError);
-                    m_lastLuaErrors.push_back(msg);
-                    gotGLerror = true;
+        if (L->istable()) {
+            L->push("Draw");
+            L->gettable();
+            if (L->isfunction()) {
+                L->copy(-2);
+                L->setfenv();
+                try {
+                    L->pcall();
+                    bool gotGLerror = false;
+                    GLenum glError = GL_NO_ERROR;
+                    while ((glError = glGetError()) != GL_NO_ERROR) {
+                        std::string msg = "glError: ";
+                        msg += PCSX::GUI::glErrorToString(glError);
+                        m_lastLuaErrors.push_back(msg);
+                        gotGLerror = true;
+                    }
+                    if (gotGLerror) throw("OpenGL error while running Lua code");
+                } catch (...) {
+                    getRegistry(Lorg);
+                    Lorg->push(m_index);
+                    Lorg->gettable();
+                    Lorg->push("Draw");
+                    Lorg->push();
+                    Lorg->settable();
                 }
-                if (gotGLerror) throw("OpenGL error while running Lua code");
-            } catch (...) {
-                L->push();
-                L->setfield("Draw");
             }
         }
-    }
-    while (top < L->gettop()) {
-        L->pop();
+        while (top < Lorg->gettop()) {
+            Lorg->pop();
+        }
     }
     if (!m_show) return false;
     if (!ImGui::Begin(title.data(), &m_show)) return false;
@@ -408,47 +415,57 @@ void PCSX::Widgets::ShaderEditor::render(ImTextureID textureID, const ImVec2 &sr
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
 
-    auto &L = g_emulator->m_lua;
-    int top = L->gettop();
-    getRegistry(L);
-    L->push(m_index);
-    L->gettable();
-    if (L->isnil() || !L->istable()) {
-        ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
-    } else {
-        L->push("Image");
+    auto &Lorg = g_emulator->m_lua;
+    {
+        int top = Lorg->gettop();
+        auto L = Lorg->thread();
+        getRegistry(L);
+        L->push(m_index);
         L->gettable();
-        if (L->isfunction()) {
-            L->copy(-2);
-            L->setfenv();
-            L->push(lua_Number(m_textureID));
-            L->push(srcSize.x);
-            L->push(srcSize.y);
-            L->push(dstSize.x);
-            L->push(dstSize.y);
-            try {
-                L->pcall(5);
-                bool gotGLerror = false;
-                GLenum glError = GL_NO_ERROR;
-                while ((glError = glGetError()) != GL_NO_ERROR) {
-                    std::string msg = "glError: ";
-                    msg += PCSX::GUI::glErrorToString(glError);
-                    m_lastLuaErrors.push_back(msg);
-                    gotGLerror = true;
-                }
-                if (gotGLerror) throw("OpenGL error while running Lua code");
-            } catch (...) {
-                L->push();
-                L->setfield("Image");
-            }
-        } else {
+        if (L->isnil() || !L->istable()) {
             ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
+        } else {
+            L->push("Image");
+            L->gettable();
+            if (L->isfunction()) {
+                L->copy(-2);
+                L->setfenv();
+                L->push(lua_Number(m_textureID));
+                L->push(srcSize.x);
+                L->push(srcSize.y);
+                L->push(dstSize.x);
+                L->push(dstSize.y);
+                if (!m_useImGui) {
+                    L->push(lua_Number(m_shaderProgram));
+                }
+                try {
+                    L->pcall(m_useImGui ? 5 : 6);
+                    bool gotGLerror = false;
+                    GLenum glError = GL_NO_ERROR;
+                    while ((glError = glGetError()) != GL_NO_ERROR) {
+                        std::string msg = "glError: ";
+                        msg += PCSX::GUI::glErrorToString(glError);
+                        m_lastLuaErrors.push_back(msg);
+                        gotGLerror = true;
+                    }
+                    if (gotGLerror) throw("OpenGL error while running Lua code");
+                } catch (...) {
+                    getRegistry(Lorg);
+                    Lorg->push(m_index);
+                    Lorg->gettable();
+                    Lorg->push("Image");
+                    Lorg->push();
+                    Lorg->settable();
+                }
+            } else {
+                ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
+            }
+        }
+        while (top < Lorg->gettop()) {
+            Lorg->pop();
         }
     }
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
-    while (top < L->gettop()) {
-        L->pop();
-    }
 }
 
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -469,38 +486,45 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    auto &L = g_emulator->m_lua;
-    int top = L->gettop();
-    getRegistry(L);
-    L->push(m_index);
-    L->gettable();
-    if (L->istable()) {
-        L->push("BindAttributes");
+    auto &Lorg = g_emulator->m_lua;
+    {
+        int top = Lorg->gettop();
+        auto L = Lorg->thread();
+        getRegistry(L);
+        L->push(m_index);
         L->gettable();
-        if (L->isfunction()) {
-            L->copy(-2);
-            L->setfenv();
-            L->push(lua_Number(m_textureID));
-            L->push(lua_Number(m_shaderProgram));
-            try {
-                L->pcall(2);
-                bool gotGLerror = false;
-                GLenum glError = GL_NO_ERROR;
-                while ((glError = glGetError()) != GL_NO_ERROR) {
-                    std::string msg = "glError: ";
-                    msg += PCSX::GUI::glErrorToString(glError);
-                    m_lastLuaErrors.push_back(msg);
-                    gotGLerror = true;
+        if (L->istable()) {
+            L->push("BindAttributes");
+            L->gettable();
+            if (L->isfunction()) {
+                L->copy(-2);
+                L->setfenv();
+                L->push(lua_Number(m_textureID));
+                L->push(lua_Number(m_shaderProgram));
+                try {
+                    L->pcall(2);
+                    bool gotGLerror = false;
+                    GLenum glError = GL_NO_ERROR;
+                    while ((glError = glGetError()) != GL_NO_ERROR) {
+                        std::string msg = "glError: ";
+                        msg += PCSX::GUI::glErrorToString(glError);
+                        m_lastLuaErrors.push_back(msg);
+                        gotGLerror = true;
+                    }
+                    if (gotGLerror) throw("OpenGL error while running Lua code");
+                } catch (...) {
+                    getRegistry(Lorg);
+                    Lorg->push(m_index);
+                    Lorg->gettable();
+                    Lorg->push("BindAttributes");
+                    Lorg->push();
+                    Lorg->settable();
                 }
-                if (gotGLerror) throw("OpenGL error while running Lua code");
-            } catch (...) {
-                L->push();
-                L->setfield("BindAttributes");
             }
         }
-    }
-    while (top < L->gettop()) {
-        L->pop();
+        while (top < Lorg->gettop()) {
+            Lorg->pop();
+        }
     }
 
     PCSX::GUI::checkGL();

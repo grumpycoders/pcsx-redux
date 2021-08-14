@@ -115,7 +115,7 @@ class VRAMViewer {
 
     bool m_firstShown = false;
 
-    ShaderEditor m_editor = {"vram-viewer"};
+    ShaderEditor m_editor = {"vram-viewer", true};
 };
 
 }  // namespace Widgets
