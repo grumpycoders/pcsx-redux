@@ -556,6 +556,47 @@ void DynaRecCPU::recLW() {
     }
 }
 
+void DynaRecCPU::recSB() {
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointer(addr);
+        if (pointer != nullptr) {
+            gen.mov(rax, (uintptr_t)pointer);
+            if (m_regs[_Rt_].isConst()) {
+                gen.mov(word[rax], m_regs[_Rt_].val & 0xFF);
+            } else {
+                allocateReg(_Rt_);
+                gen.mov(word[rax], m_regs[_Rt_].allocatedReg.cvt8());
+            }
+
+            return;
+        }
+
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.mov(arg2, m_regs[_Rt_].val & 0xFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
+        }
+
+        gen.mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite8Wrapper);
+    }
+
+    else {
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.mov(arg2, m_regs[_Rt_].val & 0xFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
+        }
+
+        allocateReg(_Rs_);
+        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite8Wrapper);
+    }
+}
+
 void DynaRecCPU::recSH() {
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
@@ -585,15 +626,15 @@ void DynaRecCPU::recSH() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val);
+            gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
-            gen.mov(arg2, m_regs[_Rt_].allocatedReg);
+            gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt16());
         }
 
         allocateReg(_Rs_);
         gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);  // Address to write to in arg1   TODO: Optimize
-        call(psxMemWrite32Wrapper);
+        call(psxMemWrite16Wrapper);
     }
 }
 
@@ -751,6 +792,12 @@ void DynaRecCPU::recJ() {
     m_pcWrittenBack = true;
 
     gen.mov(dword[contextPointer + PC_OFFSET], target);  // Write PC
+}
+
+void DynaRecCPU::recJAL() {
+    maybeCancelDelayedLoad(31);
+    m_regs[31].markConst(m_pc + 4); // Set $ra to the return value, then treat instruction like a normal J
+    recJ();
 }
 
 void DynaRecCPU::recBEQ() {
