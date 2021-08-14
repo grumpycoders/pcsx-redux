@@ -505,6 +505,18 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
             L->push("BindAttributes");
             L->gettable();
             if (L->isfunction()) {
+                {
+                    Lorg->push("SHADER_EDITOR");
+                    Lorg->gettable(LUA_REGISTRYINDEX);
+                    Lorg->push("imgui");
+                    Lorg->copy();
+                    Lorg->copy();
+                    Lorg->gettable(LUA_GLOBALSINDEX);
+                    Lorg->settable(-4);
+                    Lorg->push();
+                    Lorg->settable(LUA_GLOBALSINDEX);
+                    Lorg->pop();
+                }
                 L->copy(-2);
                 L->setfenv();
                 L->push(lua_Number(textureID));
@@ -527,6 +539,15 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
                     Lorg->push("BindAttributes");
                     Lorg->push();
                     Lorg->settable();
+                }
+                {
+                    Lorg->push("SHADER_EDITOR");
+                    Lorg->gettable(LUA_REGISTRYINDEX);
+                    Lorg->push("imgui");
+                    Lorg->copy();
+                    Lorg->gettable(-3);
+                    Lorg->settable(LUA_GLOBALSINDEX);
+                    Lorg->pop();
                 }
             }
         }
@@ -648,8 +669,7 @@ void PCSX::Widgets::ShaderEditor::render(GLuint textureID, const ImVec2 &texSize
 
     loc = glGetAttribLocation(m_shaderProgram, "Color");
     if (loc >= 0) {
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->color);
+        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)&((VertexData *)nullptr)->color);
         glEnableVertexAttribArray(loc);
     }
 
