@@ -273,7 +273,7 @@ sub generateImguiGeneric {
           push(@funcArgs, $name);
           # one of the various enums
           # we are handling these as ints
-        } elsif ($args[$i] =~ m/^ *(ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiKey|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags) ([^ ]*)( = 0|) *$/) {
+        } elsif ($args[$i] =~ m/^ *(ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiKey|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags|ImGuiSliderFlags|ImDrawFlags|ImGuiButtonFlags|ImGuiColorEditFlags|ImGuiComboFlags|ImGuiDockNodeFlags|ImGuiDragDropFlags|ImGuiPopupFlags|ImGuiTabBarFlags|ImGuiTabItemFlags|ImGuiTableColumnFlags|ImGuiTableFlags|ImGuiTableRowFlags|ImGuiTreeNodeFlags) ([^ ]*)( = 0|) *$/) {
          #These are ints
          my $name = $2;
           if ($3 =~ m/^ = 0$/) {

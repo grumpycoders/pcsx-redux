@@ -581,7 +581,7 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_shaderEditor.render(texture, m_renderSize, logicalRenderSize);
+        m_outputShaderEditor.renderWithImgui(texture, m_renderSize, logicalRenderSize);
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -594,7 +594,7 @@ void PCSX::GUI::endFrame() {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_shaderEditor.render(texture, m_renderSize, textureSize);
+            m_outputShaderEditor.renderWithImgui(texture, m_renderSize, textureSize);
         }
         ImGui::End();
         if (!outputShown) m_fullscreenRender = true;
@@ -820,7 +820,8 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
-                ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_shaderEditor.m_show);
+                ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
+                ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show raw DWARF info"), nullptr, &m_dwarf.m_show);
                 ImGui::EndMenu();
@@ -979,9 +980,14 @@ void PCSX::GUI::endFrame() {
         m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
     }
 
-    if (m_shaderEditor.draw(_("Output Video"), this)) {
-        // maybe thottle this?
-        m_shaderEditor.compile();
+    if (m_outputShaderEditor.draw(_("Output Video"), this)) {
+        // maybe throttle this?
+        m_outputShaderEditor.compile();
+    }
+
+    if (m_offscreenShaderEditor.draw(_("Offscreen Render"), this)) {
+        // maybe throttle this?
+        m_offscreenShaderEditor.compile();
     }
 
     PCSX::g_emulator->m_spu->debug();

@@ -155,6 +155,8 @@ class GUI final {
         }
     }
 
+    const ImVec2 &getRenderSize() { return m_renderSize; }
+
   private:
     GLFWwindow *m_window = nullptr;
     bool m_hasCoreProfile = false;
@@ -272,9 +274,11 @@ class GUI final {
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
-    Widgets::ShaderEditor m_shaderEditor = {"output"};
+    Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
   public:
+    Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
+
     struct {
         bool empty() const { return filename.empty(); }
         void set(const PCSX::u8string &newfilename) {

@@ -162,9 +162,9 @@ vec4 readTexture(in vec2 pos) {
             ret = texture(u_vramTexture, u_clut + vec2(float(p) * 1.0f / 1024.0f, 0.0f));
         }
     } else if (u_greyscale) {
-         ret = vec4(0.299, 0.587, 0.114, 0.0f) * ret;
-         ret = vec4(ret.r + ret.g + ret.b);
-         ret.a = 1.0f;
+        ret = vec4(0.299, 0.587, 0.114, 0.0f) * ret;
+        ret = vec4(ret.r + ret.g + ret.b);
+        ret.a = 1.0f;
     }
 
     return ret;

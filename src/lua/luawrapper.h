@@ -58,6 +58,9 @@ class Lua {
     void open_string();
     void open_table();
 
+    std::unique_ptr<Lua> thread(bool saveit = false);
+    void weaken();
+
     int wrap_open(openlualib_t open) {
         int n = gettop();
         int r = open(L);

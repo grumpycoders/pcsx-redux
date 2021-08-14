@@ -39,6 +39,7 @@ class ShaderEditor {
     ShaderEditor(const std::string& base, std::string_view dVS = "", std::string_view dPS = "",
                  std::string_view dL = "");
     [[nodiscard]] std::optional<GLuint> compile(const std::vector<std::string_view>& mandatoryAttributes = {});
+    ~ShaderEditor();
 
     bool m_show = false;
 
@@ -49,7 +50,9 @@ class ShaderEditor {
     }
 
     bool draw(std::string_view title, GUI* gui);
-    void render(ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
+    void renderWithImgui(ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
+    void render(GLuint textureID, const ImVec2& texSize, const ImVec2& srcLoc, const ImVec2& srcSize,
+                const ImVec2& dstSize);
 
   private:
     std::string getVertexText() { return m_vertexShaderEditor.GetText(); }
@@ -76,10 +79,12 @@ class ShaderEditor {
     bool m_autoreload = true;
     bool m_autosave = true;
     bool m_showAll = true;
-    GLuint m_textureID;
 
     static lua_Number s_index;
     const lua_Number m_index;
+
+    GLuint m_vao = 0;
+    GLuint m_vbo = 0;
 };
 
 }  // namespace Widgets
