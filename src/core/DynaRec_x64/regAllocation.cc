@@ -9,7 +9,8 @@
 void DynaRecCPU::reserveReg(int index) {
     const auto regToAllocate = allocateableRegisters[m_allocatedRegisters];  // Fetch the next host reg to be allocated
     m_regs[index].allocatedReg = regToAllocate;
-    m_regs[index].state = RegState::Allocated;
+    m_regs[index].markUnknown(); // Mark the register's value as unknown if it were previously const propagated
+    m_regs[index].allocated = true; // Mark register as allocated
 
     // If allocating a non-volatile that hasn't been allocated before, back it up in reg cache
     if (!IS_VOLATILE(m_allocatedRegisters) && !m_hostRegs[m_allocatedRegisters].restore) {
@@ -31,7 +32,7 @@ void DynaRecCPU::flushRegs() {
         }
 
         else if (m_regs[i].isAllocated()) {  // If it's been allocated to a register, unallocate
-            m_regs[i].markUnknown();
+            m_regs[i].allocated = false;
             if (m_regs[i].writeback) {  // And if writeback was specified, write the value back
                 gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_regs[i].allocatedReg);
                 m_regs[i].writeback = false;  // And turn writeback off
@@ -63,17 +64,24 @@ void DynaRecCPU::loadContext() {
 // Spill the volatile allocated registers into guest registers in preparation for a call to a C++ function
 void DynaRecCPU::prepareForCall() {
     m_needsStackFrame = true;
-    for (auto i = ALLOCATEABLE_NON_VOLATILE_COUNT; i < ALLOCATEABLE_REG_COUNT; i++) {  // iterate volatile regs
-        if (m_hostRegs[i].mappedReg) {                              // Unallocate and spill to guest regs as appropriate
-            const auto previous = m_hostRegs[i].mappedReg.value();  // Get previously allocated register
-            if (m_regs[previous].writeback) {                       // Spill to guest reg if writeback is enabled
-                gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
-                m_regs[previous].writeback = false;
-            }
+    if (m_allocatedRegisters > ALLOCATEABLE_NON_VOLATILE_COUNT) { // Check if there's any allocated volatiles to flush
+        for (auto i = ALLOCATEABLE_NON_VOLATILE_COUNT; i < m_allocatedRegisters; i++) {  // iterate volatile regs
+            if (m_hostRegs[i].mappedReg) {  // Unallocate and spill to guest regs as appropriate
+                const auto previous = m_hostRegs[i].mappedReg.value();  // Get previously allocated register
+                if (m_regs[previous].writeback) {                       // Spill to guest reg if writeback is enabled
+                    gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
+                    m_regs[previous].writeback = false;
+                }
 
-            m_regs[previous].markUnknown();  // Unallocate it
-            m_hostRegs[i].mappedReg = std::nullopt;
+                m_regs[previous].allocated = false;  // Unallocate it
+                m_hostRegs[i].mappedReg = std::nullopt;
+            }
         }
+
+        // Since we just flushed all our volatiles, we can perform an optimization by making the allocator start allocating from the first
+        // volatile again. This makes it so we have to flush less often, as we free up regs every time we call a C++ function instead of
+        // letting them linger and go to waste.
+        m_allocatedRegisters = ALLOCATEABLE_NON_VOLATILE_COUNT;
     }
 }
 
@@ -82,9 +90,6 @@ void DynaRecCPU::spillRegisterCache() {
     for (auto i = 0; i < m_allocatedRegisters; i++) {
         if (m_hostRegs[i].mappedReg) {  // Check if the register is still allocated to a guest register
             const auto previous = m_hostRegs[i].mappedReg.value();  // Get the reg it's allocated to
-            if (m_regs[previous].isConst()) { // The previous register might have become const now - in that case, let it be
-                continue;
-            }
 
             if (m_regs[previous].writeback) {  // Spill to guest register if writeback is enabled and disable writeback
                 gen.mov(dword[contextPointer + GPR_OFFSET(previous)], allocateableRegisters[i]);
@@ -92,7 +97,7 @@ void DynaRecCPU::spillRegisterCache() {
             }
 
             m_hostRegs[i].mappedReg = std::nullopt;  // Unallocate it
-            m_regs[previous].markUnknown();
+            m_regs[previous].allocated = false;
         }
     }
 
