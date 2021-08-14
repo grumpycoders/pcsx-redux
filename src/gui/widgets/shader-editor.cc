@@ -648,8 +648,7 @@ void PCSX::Widgets::ShaderEditor::render(GLuint textureID, const ImVec2 &texSize
 
     loc = glGetAttribLocation(m_shaderProgram, "Color");
     if (loc >= 0) {
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->color);
+        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)&((VertexData *)nullptr)->color);
         glEnableVertexAttribArray(loc);
     }
 
