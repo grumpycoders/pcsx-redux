@@ -57,6 +57,7 @@ in vec4 Frag_Color;
 layout (location = 0) out vec4 Out_Color;
 void main() {
     Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
+    Out_Color.a = 1.0;
 })";
 
 static const char *const c_defaultLuaInvoker = R"(
@@ -67,6 +68,9 @@ static const char *const c_defaultLuaInvoker = R"(
 -- This function is called to issue an ImGui::Image when it's time
 -- to display the video output of the emulated screen. It can
 -- prepare some values to later attach to the shader program.
+--
+-- This function won't be called for non-ImGui renders, such as
+-- the offscreen render of the vram.
 function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
     imgui.Image(textureID, dstSizeX, dstSizeY, 0, 0, 1, 1)
 end
@@ -82,13 +86,15 @@ end
 -- to give it a chance to bind some attributes to it, that'd come
 -- from either the global state, or the locally computed attributes
 -- from the two functions above.
-function BindAttributes(textureID, shaderProgramID)
+--
+-- The last four parameters will only exist for non-ImGui renders.
+function BindAttributes(textureID, shaderProgramID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
 end
 )";
 
-PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const bool useImGui, std::string_view dVS,
-                                          std::string_view dPS, std::string_view dL)
-    : m_baseFilename(base), m_index(++s_index), m_useImGui(useImGui) {
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_view dVS, std::string_view dPS,
+                                          std::string_view dL)
+    : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
     {
         f.replace_extension("glslv");
@@ -128,6 +134,14 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const bool us
             m_luaEditor.SetText(c_defaultLuaInvoker);
         }
         m_luaEditor.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua());
+    }
+}
+
+PCSX::Widgets::ShaderEditor::~ShaderEditor() {
+    glDeleteVertexArrays(1, &m_vao);
+    glDeleteBuffers(1, &m_vbo);
+    if (m_shaderProgram != 0) {
+        glDeleteProgram(m_shaderProgram);
     }
 }
 
@@ -401,7 +415,7 @@ void PCSX::Widgets::ShaderEditor::getRegistry(std::unique_ptr<Lua> &L) {
     }
 }
 
-void PCSX::Widgets::ShaderEditor::render(ImTextureID textureID, const ImVec2 &srcSize, const ImVec2 &dstSize) {
+void PCSX::Widgets::ShaderEditor::renderWithImgui(ImTextureID textureID, const ImVec2 &srcSize, const ImVec2 &dstSize) {
     if (m_shaderProgram == 0) {
         compile();
     }
@@ -409,8 +423,6 @@ void PCSX::Widgets::ShaderEditor::render(ImTextureID textureID, const ImVec2 &sr
         ImGui::Image(textureID, dstSize, {0, 0}, {1, 1});
         return;
     }
-
-    m_textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(textureID));
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(imguiCBtrampoline, this);
@@ -430,16 +442,13 @@ void PCSX::Widgets::ShaderEditor::render(ImTextureID textureID, const ImVec2 &sr
             if (L->isfunction()) {
                 L->copy(-2);
                 L->setfenv();
-                L->push(lua_Number(m_textureID));
+                L->push(static_cast<lua_Number>(reinterpret_cast<uintptr_t>(textureID)));
                 L->push(srcSize.x);
                 L->push(srcSize.y);
                 L->push(dstSize.x);
                 L->push(dstSize.y);
-                if (!m_useImGui) {
-                    L->push(lua_Number(m_shaderProgram));
-                }
                 try {
-                    L->pcall(m_useImGui ? 5 : 6);
+                    L->pcall(5);
                     bool gotGLerror = false;
                     GLenum glError = GL_NO_ERROR;
                     while ((glError = glGetError()) != GL_NO_ERROR) {
@@ -469,22 +478,21 @@ void PCSX::Widgets::ShaderEditor::render(ImTextureID textureID, const ImVec2 &sr
 }
 
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
+    GLuint textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(cmd->TextureId));
+
+    GLfloat currentProjection[4][4];
     GLint imguiProgramID;
     glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
 
     GLint projMatrixLocation = glGetUniformLocation(imguiProgramID, "ProjMtx");
-
-    GLfloat currentProjection[4][4];
     glGetUniformfv(imguiProgramID, projMatrixLocation, &currentProjection[0][0]);
 
     glUseProgram(m_shaderProgram);
     int proj = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
-    if (proj != -1) {
+    if (proj >= 0) {
         glUniformMatrix4fv(proj, 1, GL_FALSE, &currentProjection[0][0]);
     }
-    glBindTexture(GL_TEXTURE_2D, m_textureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, textureID);
 
     auto &Lorg = g_emulator->m_lua;
     {
@@ -499,7 +507,7 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
             if (L->isfunction()) {
                 L->copy(-2);
                 L->setfenv();
-                L->push(lua_Number(m_textureID));
+                L->push(lua_Number(textureID));
                 L->push(lua_Number(m_shaderProgram));
                 try {
                     L->pcall(2);
@@ -528,4 +536,195 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
     }
 
     PCSX::GUI::checkGL();
+}
+
+void PCSX::Widgets::ShaderEditor::render(GLuint textureID, const ImVec2 &texSize, const ImVec2 &srcLoc,
+                                         const ImVec2 &srcSize, const ImVec2 &dstSize) {
+    if (m_shaderProgram == 0) {
+        compile();
+    }
+    if (m_shaderProgram == 0) {
+        return;
+    }
+
+    if (m_vao == 0) {
+        glGenVertexArrays(1, &m_vao);
+        glGenBuffers(1, &m_vbo);
+    }
+
+    glBindVertexArray(m_vao);
+
+    glUseProgram(m_shaderProgram);
+    struct VertexData {
+        float positions[3];
+        float textures[2];
+        float color[4];
+    };
+
+    VertexData quadVertices[6];
+
+    quadVertices[0].positions[0] = -1.0;
+    quadVertices[0].positions[1] = -1.0;
+    quadVertices[0].positions[2] = 0.0;
+    quadVertices[0].textures[0] = srcLoc.x;
+    quadVertices[0].textures[1] = srcLoc.y;
+    quadVertices[0].color[0] = 1.0;
+    quadVertices[0].color[1] = 1.0;
+    quadVertices[0].color[2] = 1.0;
+    quadVertices[0].color[3] = 1.0;
+
+    quadVertices[1].positions[0] = 1.0;
+    quadVertices[1].positions[1] = -1.0;
+    quadVertices[1].positions[2] = 0.0;
+    quadVertices[1].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[1].textures[1] = srcLoc.y;
+    quadVertices[1].color[0] = 1.0;
+    quadVertices[1].color[1] = 1.0;
+    quadVertices[1].color[2] = 1.0;
+    quadVertices[1].color[3] = 1.0;
+
+    quadVertices[2].positions[0] = 1.0;
+    quadVertices[2].positions[1] = 1.0;
+    quadVertices[2].positions[2] = 0.0;
+    quadVertices[2].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[2].textures[1] = srcLoc.y + srcSize.y;
+    quadVertices[2].color[0] = 1.0;
+    quadVertices[2].color[1] = 1.0;
+    quadVertices[2].color[2] = 1.0;
+    quadVertices[2].color[3] = 1.0;
+
+    quadVertices[3].positions[0] = -1.0;
+    quadVertices[3].positions[1] = -1.0;
+    quadVertices[3].positions[2] = 0.0;
+    quadVertices[3].textures[0] = srcLoc.x;
+    quadVertices[3].textures[1] = srcLoc.y;
+    quadVertices[3].color[0] = 1.0;
+    quadVertices[3].color[1] = 1.0;
+    quadVertices[3].color[2] = 1.0;
+    quadVertices[3].color[3] = 1.0;
+
+    quadVertices[4].positions[0] = -1.0;
+    quadVertices[4].positions[1] = 1.0;
+    quadVertices[4].positions[2] = 0.0;
+    quadVertices[4].textures[0] = srcLoc.x;
+    quadVertices[4].textures[1] = srcLoc.y + srcSize.y;
+    quadVertices[4].color[0] = 1.0;
+    quadVertices[4].color[1] = 1.0;
+    quadVertices[4].color[2] = 1.0;
+    quadVertices[4].color[3] = 1.0;
+
+    quadVertices[5].positions[0] = 1.0;
+    quadVertices[5].positions[1] = 1.0;
+    quadVertices[5].positions[2] = 0.0;
+    quadVertices[5].textures[0] = srcLoc.x + srcSize.x;
+    quadVertices[5].textures[1] = srcLoc.y + srcSize.y;
+    quadVertices[5].color[0] = 1.0;
+    quadVertices[5].color[1] = 1.0;
+    quadVertices[5].color[2] = 1.0;
+    quadVertices[5].color[3] = 1.0;
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * 6, &quadVertices[0], GL_STATIC_DRAW);
+
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    int loc;
+
+    loc = glGetAttribLocation(m_shaderProgram, "Position");
+    if (loc >= 0) {
+        glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                              (void *)&((VertexData *)nullptr)->positions);
+        glEnableVertexAttribArray(loc);
+    }
+
+    loc = glGetAttribLocation(m_shaderProgram, "UV");
+    if (loc >= 0) {
+        glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                              (void *)&((VertexData *)nullptr)->textures);
+        glEnableVertexAttribArray(loc);
+    }
+
+    loc = glGetAttribLocation(m_shaderProgram, "Color");
+    if (loc >= 0) {
+        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
+                              (void *)&((VertexData *)nullptr)->color);
+        glEnableVertexAttribArray(loc);
+    }
+
+    GLfloat currentProjection[4][4];
+    currentProjection[0][0] = 1.0f;
+    currentProjection[0][1] = 0.0f;
+    currentProjection[0][2] = 0.0f;
+    currentProjection[0][3] = 0.0f;
+    currentProjection[1][0] = 0.0f;
+    currentProjection[1][1] = 1.0f;
+    currentProjection[1][2] = 0.0f;
+    currentProjection[1][3] = 0.0f;
+    currentProjection[2][0] = 0.0f;
+    currentProjection[2][1] = 0.0f;
+    currentProjection[2][2] = 1.0f;
+    currentProjection[2][3] = 0.0f;
+    currentProjection[3][0] = 0.0f;
+    currentProjection[3][1] = 0.0f;
+    currentProjection[3][2] = 0.0f;
+    currentProjection[3][3] = 1.0f;
+    int proj = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
+    if (proj >= 0) {
+        glUniformMatrix4fv(proj, 1, GL_FALSE, &currentProjection[0][0]);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    auto &Lorg = g_emulator->m_lua;
+    {
+        int top = Lorg->gettop();
+        auto L = Lorg->thread();
+        getRegistry(L);
+        L->push(m_index);
+        L->gettable();
+        if (L->istable()) {
+            L->push("BindAttributes");
+            L->gettable();
+            if (L->isfunction()) {
+                L->copy(-2);
+                L->setfenv();
+                L->push(static_cast<lua_Number>(textureID));
+                L->push(lua_Number(m_shaderProgram));
+                L->push(srcSize.x);
+                L->push(srcSize.y);
+                L->push(dstSize.x);
+                L->push(dstSize.y);
+                try {
+                    L->pcall(6);
+                    bool gotGLerror = false;
+                    GLenum glError = GL_NO_ERROR;
+                    while ((glError = glGetError()) != GL_NO_ERROR) {
+                        std::string msg = "glError: ";
+                        msg += PCSX::GUI::glErrorToString(glError);
+                        m_lastLuaErrors.push_back(msg);
+                        gotGLerror = true;
+                    }
+                    if (gotGLerror) throw("OpenGL error while running Lua code");
+                } catch (...) {
+                    getRegistry(Lorg);
+                    Lorg->push(m_index);
+                    Lorg->gettable();
+                    Lorg->push("BindAttributes");
+                    Lorg->push();
+                    Lorg->settable();
+                }
+            }
+        }
+        while (top < Lorg->gettop()) {
+            Lorg->pop();
+        }
+    }
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glUseProgram(0);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

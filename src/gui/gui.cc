@@ -581,7 +581,7 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.render(texture, m_renderSize, logicalRenderSize);
+        m_outputShaderEditor.renderWithImgui(texture, m_renderSize, logicalRenderSize);
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -594,7 +594,7 @@ void PCSX::GUI::endFrame() {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.render(texture, m_renderSize, textureSize);
+            m_outputShaderEditor.renderWithImgui(texture, m_renderSize, textureSize);
         }
         ImGui::End();
         if (!outputShown) m_fullscreenRender = true;
