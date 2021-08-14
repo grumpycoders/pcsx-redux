@@ -64,6 +64,16 @@ static const char *const c_defaultLuaInvoker = R"(
 -- All of this code is sandboxed, as in any global variable it
 -- creates will be attached to a local environment. The global
 -- environment is still accessible as normal.
+-- Note that the environment is wiped every time the shader is
+-- recompiled one way or another.
+
+-- The environment will have the `shaderProgramID` variable set
+-- before being evaluated, meaning this code is perfectly valid:
+function Constructor(shaderProgramID)
+    -- Cache some Shader Attributes locations
+    print('Shader compiled: program ID = ' .. shaderProgramID)
+end
+Constructor(shaderProgramID)
 
 -- This function is called to issue an ImGui::Image when it's time
 -- to display the video output of the emulated screen. It can
@@ -257,6 +267,9 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
             L->settable();
         }
         L->setmetatable();
+        L->push("shaderProgramID");
+        L->push(static_cast<lua_Number>(shaderProgram));
+        L->settable();
         try {
             f.replace_extension("lua");
             L->load(getLuaText(), f.string().c_str(), false);
@@ -505,6 +518,18 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
             L->push("BindAttributes");
             L->gettable();
             if (L->isfunction()) {
+                {
+                    Lorg->push("SHADER_EDITOR");
+                    Lorg->gettable(LUA_REGISTRYINDEX);
+                    Lorg->push("imgui");
+                    Lorg->copy();
+                    Lorg->copy();
+                    Lorg->gettable(LUA_GLOBALSINDEX);
+                    Lorg->settable(-4);
+                    Lorg->push();
+                    Lorg->settable(LUA_GLOBALSINDEX);
+                    Lorg->pop();
+                }
                 L->copy(-2);
                 L->setfenv();
                 L->push(lua_Number(textureID));
@@ -527,6 +552,15 @@ void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const Im
                     Lorg->push("BindAttributes");
                     Lorg->push();
                     Lorg->settable();
+                }
+                {
+                    Lorg->push("SHADER_EDITOR");
+                    Lorg->gettable(LUA_REGISTRYINDEX);
+                    Lorg->push("imgui");
+                    Lorg->copy();
+                    Lorg->gettable(-3);
+                    Lorg->settable(LUA_GLOBALSINDEX);
+                    Lorg->pop();
                 }
             }
         }
@@ -648,8 +682,7 @@ void PCSX::Widgets::ShaderEditor::render(GLuint textureID, const ImVec2 &texSize
 
     loc = glGetAttribLocation(m_shaderProgram, "Color");
     if (loc >= 0) {
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData),
-                              (void *)&((VertexData *)nullptr)->color);
+        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)&((VertexData *)nullptr)->color);
         glEnableVertexAttribArray(loc);
     }
 

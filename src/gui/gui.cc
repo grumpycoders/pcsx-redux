@@ -902,7 +902,7 @@ void PCSX::GUI::endFrame() {
     if (m_luaConsole.m_show) {
         ImGui::SetNextWindowPos(ImVec2(15, 545), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_luaConsole.draw(_("Lua Console"));
+        m_luaConsole.draw(_("Lua Console"), this);
     }
 
     if (m_luaInspector.m_show) {
