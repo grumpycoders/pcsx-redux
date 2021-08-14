@@ -23,7 +23,6 @@ void DynaRecCPU::recADD() {
 }
 
 void DynaRecCPU::recADDU() {
-    // Rd = Rs + Rt
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
 
@@ -80,7 +79,6 @@ void DynaRecCPU::recADDU() {
 }
 
 void DynaRecCPU::recADDIU() {
-    // Rt = Rs + Im
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
 
@@ -928,6 +926,38 @@ void DynaRecCPU::recBGTZ() {
     gen.mov(eax, m_pc + 4); // eax = addr if jump not taken
     gen.mov(ecx, target); // ecx = addr if jump is taken
     gen.cmovg(eax, ecx);  // if taken, move the jump addr into eax
+    gen.mov(dword[contextPointer + PC_OFFSET], eax);
+}
+
+void DynaRecCPU::recBLEZ() {
+    uint32_t target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if ((int32_t)m_regs[_Rs_].val <= 0) {
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            gen.mov(dword[contextPointer + PC_OFFSET], target);
+        }
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    if (m_regs[_Rs_].isAllocated()) {  // Don't bother allocating Rs unless it's already allocated
+        gen.test(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    } else {
+        gen.cmp(dword[contextPointer + GPR_OFFSET(_Rs_)], 0);
+    }
+
+    gen.mov(eax, m_pc + 4);  // eax = addr if jump not taken
+    gen.mov(ecx, target);    // ecx = addr if jump is taken
+    gen.cmovle(eax, ecx);     // if taken, move the jump addr into eax
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 
