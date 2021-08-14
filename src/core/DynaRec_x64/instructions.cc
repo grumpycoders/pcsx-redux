@@ -800,6 +800,20 @@ void DynaRecCPU::recJAL() {
     recJ();
 }
 
+void DynaRecCPU::recJR() {
+    m_nextIsDelaySlot = true;
+    m_stopCompiling = true;
+    m_pcWrittenBack = true;
+
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(dword[contextPointer + PC_OFFSET], m_regs[_Rs_].val & ~3);  // force align jump address
+    } else {
+        allocateReg(_Rs_);
+        gen.and_(m_regs[_Rs_].allocatedReg, ~3); // Align jump address
+        gen.mov(dword[contextPointer + PC_OFFSET], m_regs[_Rs_].allocatedReg);
+    }
+}
+
 void DynaRecCPU::recBEQ() {
     const auto target = _Imm_ * 4 + m_pc;
     m_nextIsDelaySlot = true;
