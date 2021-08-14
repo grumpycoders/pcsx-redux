@@ -154,7 +154,12 @@ public:
         while (hasToRun()) execute();
     }
 
-    virtual void Clear(uint32_t Addr, uint32_t Size) final { fmt::print ("Can't clear. Oops\n"); abort(); }
+    // TODO: Make it less slow and bad
+    // Possibly clear blocks more aggressively
+    virtual void Clear(uint32_t addr, uint32_t size) final { 
+        memset((void*) getBlockPointer(addr), 0, size * sizeof(DynarecCallback));
+    }
+
     virtual void SetPGXPMode(uint32_t pgxpMode) final {}
     virtual bool isDynarec() final { return true; }
 
@@ -205,6 +210,7 @@ public:
     void recNOR();
     void recOR();
     void recORI();
+    void recSH();
     void recSLL();
     void recSLLV();
     void recSLTU();
@@ -233,9 +239,9 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recLW,  // 20
+        &DynaRecCPU::recLB, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recLW,  // 20
         &DynaRecCPU::recLBU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSW,       // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recSH, &DynaRecCPU::recUnknown, &DynaRecCPU::recSW,       // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34

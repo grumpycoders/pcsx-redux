@@ -16,13 +16,7 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 }
 
 void DynaRecCPU::execute() {
-    if (!m_shellStarted) {
-        m_shellStarted = true;  // HACK to sideload test ROMs: Remove!
-        PCSX::g_system->m_eventBus->signal(PCSX::Events::ExecutionFlow::ShellReached{});
-    }
-
     m_pc = m_psxRegs.pc;
-    //fmt::print("Executing from {:08X}\n", m_pc);
     if (!isPcValid(m_pc)) {
         error();
         return;

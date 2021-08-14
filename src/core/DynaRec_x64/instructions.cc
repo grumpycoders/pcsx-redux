@@ -556,6 +556,47 @@ void DynaRecCPU::recLW() {
     }
 }
 
+void DynaRecCPU::recSH() {
+    if (m_regs[_Rs_].isConst()) {
+        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointer(addr);
+        if (pointer != nullptr) {
+            gen.mov(rax, (uintptr_t)pointer);
+            if (m_regs[_Rt_].isConst()) {
+                gen.mov(word[rax], m_regs[_Rt_].val & 0xFFFF);
+            } else {
+                allocateReg(_Rt_);
+                gen.mov(word[rax], m_regs[_Rt_].allocatedReg.cvt16());
+            }
+
+            return;
+        }
+
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+        } else {
+            allocateReg(_Rt_);
+            gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt16());
+        }
+
+        gen.mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite16Wrapper);
+    }
+
+    else {
+        if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
+            gen.mov(arg2, m_regs[_Rt_].val);
+        } else {
+            allocateReg(_Rt_);
+            gen.mov(arg2, m_regs[_Rt_].allocatedReg);
+        }
+
+        allocateReg(_Rs_);
+        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);  // Address to write to in arg1   TODO: Optimize
+        call(psxMemWrite32Wrapper);
+    }
+}
+
 void DynaRecCPU::recSW() {
     // Hack: The only place where cache isolation should be enabled is the BIOS' flushcache
     // So in that case we don't even compile SWs. This shouldn't break except perhaps with unofficial BIOSes

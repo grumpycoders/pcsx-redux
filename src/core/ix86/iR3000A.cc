@@ -764,7 +764,7 @@ void DynaRecCPU::Clear(uint32_t addr, uint32_t size) {
             memset((void *)PC_REC(addr - offset), 0, offset);
     }
 
-    memset((void *)PC_REC(addr), 0, size * 4);
+    memset((void *)PC_REC(addr), 0, size * sizeof(DynarecCallback));
 }
 
 void DynaRecCPU::recNULL() {
