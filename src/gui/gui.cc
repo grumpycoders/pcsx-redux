@@ -69,11 +69,15 @@ using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
 extern "C" void pcsxStaticImguiUserError(const char* msg) {
-    if (s_imguiUserErrorFunctor) s_imguiUserErrorFunctor(msg);
+    if (s_imguiUserErrorFunctor) {
+        s_imguiUserErrorFunctor(msg);
+    } else {
+        throw std::runtime_error(msg);
+    }
 }
 
-static void glfw_error_callback(int error, const char* description) {
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
+    if (!exp) throw std::runtime_error(msg);
 }
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
@@ -122,7 +126,7 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
 
-    decltype(s_imguiUserErrorFunctor) backup = nullptr;
+    decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
     cfg.MergeMode = combine;
@@ -213,7 +217,8 @@ end)(jit.status()))
 )",
                             "gui startup");
 
-    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetErrorCallback(
+        [](int error, const char* description) { fprintf(stderr, "Glfw Error %d: %s\n", error, description); });
     if (!glfwInit()) {
         abort();
     }
