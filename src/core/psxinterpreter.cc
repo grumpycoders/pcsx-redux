@@ -57,7 +57,6 @@
 #undef _rLo_
 #undef _JumpTarget_
 #undef _BranchTarget_
-#undef _SetLink
 
 #define _PC_ m_psxRegs.pc  // The next PC to be executed
 
@@ -90,7 +89,6 @@
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
-#define _SetLink(x) delayedLoad(x, _PC_ + 4);                // Sets the return address in the link register
 
 class InterpretedCPU final : public PCSX::R3000Acpu {
   public:
