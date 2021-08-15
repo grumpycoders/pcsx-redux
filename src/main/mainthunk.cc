@@ -67,8 +67,10 @@ int main(int argc, char** argv) {
             r = pcsxMain(argc, argv);
         } catch (std::exception& e) {
             errorMsg = e.what();
+            r = -1;
         } catch (...) {
             errorMsg = "An unknown exception occured.";
+            r = -1;
         }
     } while (r == 0x12eb007);
 
