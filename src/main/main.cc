@@ -180,7 +180,7 @@ int pcsxMain(int argc, char **argv) {
         try {
             emulator->m_lua->load(luaexec.data(), "cmdline", false);
             emulator->m_lua->pcall();
-        } catch (std::runtime_error &e) {
+        } catch (std::exception &e) {
             if (args.get<bool>("lua_stdout", false)) {
                 fprintf(stderr, "%s\n", e.what());
             }

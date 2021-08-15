@@ -228,7 +228,9 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GLuint textureID) {
     if (!m_shaderProgram) {
         compileShader();
     }
-    SDL_assert(m_shaderProgram);
+    if (!m_shaderProgram) {
+        throw std::runtime_error("Unable to compile VRAM viewer shader.");
+    }
     m_textureID = textureID;
     m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();

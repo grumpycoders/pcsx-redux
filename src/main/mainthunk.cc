@@ -18,13 +18,65 @@
  ***************************************************************************/
 
 #include <SDL_main.h>
+#include <stdio.h>
+
+#include <stdexcept>
+#include <string>
 
 #include "main/main.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+static void Complain(const char* msg) { MessageBoxA(nullptr, msg, "Error", MB_ICONERROR | MB_OK); }
+#elif defined(__APPLE__) && defined(__MACH__)
+extern "C" void Complain(const char* msg);
+#else
+#include <X11/Xlib.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void Complain(const char* msg) {
+    Display* d = XOpenDisplay(nullptr);
+    if (!d) return;
+
+    int s = DefaultScreen(d);
+    Window w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 100, 600, 1, BlackPixel(d, s), WhitePixel(d, s));
+    XSelectInput(d, w, ExposureMask | KeyPressMask);
+    XMapWindow(d, w);
+
+    XEvent e;
+    while (1) {
+        XNextEvent(d, &e);
+        if (e.type == Expose) {
+            XDrawString(d, w, DefaultGC(d, s), 10, 10, msg, strlen(msg));
+        }
+        if (e.type == KeyPress) break;
+    }
+
+    XCloseDisplay(d);
+    return;
+}
+#endif
+
 int main(int argc, char** argv) {
     int r;
+    std::string errorMsg;
     do {
-        r = pcsxMain(argc, argv);
+        try {
+            r = pcsxMain(argc, argv);
+        } catch (std::exception& e) {
+            errorMsg = e.what();
+        } catch (...) {
+            errorMsg = "An unknown exception occured.";
+        }
     } while (r == 0x12eb007);
-    return r;
+
+    if (errorMsg.empty()) return r;
+
+    fprintf(stderr, "%s\n", errorMsg.c_str());
+
+    Complain(errorMsg.c_str());
+
+    return -1;
 }

@@ -57,11 +57,11 @@ endif
 LDFLAGS += `pkg-config --libs $(PACKAGES)`
 
 ifeq ($(UNAME_S),Darwin)
-    LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation 
+    LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation
     LDFLAGS += -mmacosx-version-min=10.15
 else
     LDFLAGS += -lstdc++fs
-    LDFLAGS += -lGL
+    LDFLAGS += -lGL -lX11
 endif
 
 LDFLAGS += third_party/luajit/src/libluajit.a
@@ -92,9 +92,13 @@ SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+ifeq ($(UNAME_S),Darwin)
+    SRCS += src/core/main/complain.mm
+endif
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
+OBJECTS += $(patsubst %.mm,%.o,$(filter %.mm,$(SRCS)))
 OBJECTS += third_party/luajit/src/libluajit.a
 
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
@@ -156,6 +160,9 @@ $(TARGET): $(OBJECTS)
 
 %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
+
+%.o: %.mm
+	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
 %.dep: %.c
 	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
