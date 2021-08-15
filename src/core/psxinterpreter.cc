@@ -123,7 +123,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 
     template <bool debug, bool trace>
     void execBlock();
-    void doBranch(uint32_t tar);
+    void doBranch(uint32_t target);
 
     void MTC0(int reg, uint32_t val);
 
@@ -368,9 +368,9 @@ GTE_WR(CTC2);
 
 // These macros are used to assemble the repassembler functions
 
-inline void InterpretedCPU::doBranch(uint32_t tar) {
+inline void InterpretedCPU::doBranch(uint32_t target) {
     m_nextIsDelaySlot = true;
-    delayedPCLoad(tar);
+    delayedPCLoad(target);
 }
 
 /*********************************************************
