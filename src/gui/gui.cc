@@ -20,7 +20,7 @@
 #define GLFW_INCLUDE_NONE
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
-#define STBI_ASSERT(x)
+#define STBI_ASSERT(x) assert(x)
 #define STBI_NO_HDR
 #define STBI_NO_LINEAR
 #define STBI_NO_STDIO
@@ -165,7 +165,7 @@ void PCSX::GUI::init() {
                 }
                 gotGLerror = true;
             }
-        } catch (std::runtime_error& e) {
+        } catch (std::exception& e) {
             m_luaConsole.addError(e.what());
             if (m_args.get<bool>("lua_stdout", false)) {
                 fprintf(stderr, "%s\n", e.what());
@@ -247,7 +247,10 @@ end)(jit.status()))
 
         m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
     }
-    assert(m_window);
+
+    if (!m_window) {
+        throw std::runtime_error("Unable to create main Window. Check OpenGL drivers.");
+    }
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
 
@@ -272,7 +275,9 @@ end)(jit.status()))
     });
 
     result = gl3wInit();
-    assert(result == 0);
+    if (result) {
+        throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
+    }
 
     LuaFFI::open_gl(g_emulator->m_lua.get());
 
