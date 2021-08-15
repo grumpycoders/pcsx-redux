@@ -1,9 +1,9 @@
 #import <Cocoa/Cocoa.h>
 
-void Complain(const char* message) {
+extern "C" void Complain(const char* message) {
     NSAlert* alert = [[NSAlert alloc] init];
 
-    [alert setMessageText:[NSString stringWithCString:title encoding:[NSString defaultCStringEncoding]]];
+    [alert setMessageText:@"Fatal Error"];
     [alert setInformativeText:[NSString stringWithCString:message encoding:[NSString defaultCStringEncoding]]];
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12

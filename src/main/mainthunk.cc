@@ -60,7 +60,7 @@ static void Complain(const char* msg) {
 #endif
 
 int main(int argc, char** argv) {
-    int r;
+    int r = 0;
     std::string errorMsg;
     do {
         try {

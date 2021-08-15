@@ -57,7 +57,7 @@ endif
 LDFLAGS += `pkg-config --libs $(PACKAGES)`
 
 ifeq ($(UNAME_S),Darwin)
-    LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation
+    LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation -framework Cocoa
     LDFLAGS += -mmacosx-version-min=10.15
 else
     LDFLAGS += -lstdc++fs
@@ -93,7 +93,7 @@ SRCS += third_party/luv/src/luv.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 ifeq ($(UNAME_S),Darwin)
-    SRCS += src/core/main/complain.mm
+    SRCS += src/main/complain.mm
 endif
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))

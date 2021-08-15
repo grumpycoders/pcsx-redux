@@ -275,7 +275,7 @@ end)(jit.status()))
     });
 
     result = gl3wInit();
-    if (!result) {
+    if (result) {
         throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
     }
 
