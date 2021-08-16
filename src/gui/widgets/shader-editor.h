@@ -49,6 +49,10 @@ class ShaderEditor {
         m_luaEditor.SetText(L.data());
     }
 
+    const std::string& errorMessage() {
+        return m_errorMessage;
+    }
+
     bool draw(std::string_view title, GUI* gui);
     void renderWithImgui(ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
     void render(GLuint textureID, const ImVec2& texSize, const ImVec2& srcLoc, const ImVec2& srcSize,

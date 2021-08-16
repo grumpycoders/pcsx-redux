@@ -61,7 +61,7 @@ uniform vec2 u_cornerBR;
 uniform int u_24shift;
 in vec2 fragUV;
 out vec4 outColor;
-layout(origin_upper_left) in vec4 gl_FragCoord; // causes some machines to crash on failed assert due to Invalid layout qualifier "origin_upper_left"
+in vec4 gl_FragCoord;
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
@@ -229,7 +229,13 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GLuint textureID) {
         compileShader();
     }
     if (!m_shaderProgram) {
-        throw std::runtime_error("Unable to compile VRAM viewer shader.");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0.0, 0.0, 1.0));
+        ImGui::TextWrapped(
+            "Unable to compile VRAM viewer shader:\n%s",
+            m_editor.errorMessage().c_str()
+        );
+        ImGui::PopStyleColor();
+        return;
     }
     m_textureID = textureID;
     m_resolution = ImGui::GetContentRegionAvail();
@@ -302,6 +308,10 @@ void PCSX::Widgets::VRAMViewer::drawEditor(GUI *gui) {
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
+    if (!m_shaderProgram) {
+        return;
+    }
+
     GLint imguiProgramID;
     glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
 
