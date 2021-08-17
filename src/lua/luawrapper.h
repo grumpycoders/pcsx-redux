@@ -58,6 +58,9 @@ class Lua {
     void open_string();
     void open_table();
 
+    std::unique_ptr<Lua> thread(bool saveit = false);
+    void weaken();
+
     int wrap_open(openlualib_t open) {
         int n = gettop();
         int r = open(L);
@@ -220,6 +223,11 @@ class Lua {
     int sethook(lua_Hook func, int mask, int count) { return lua_sethook(L, func, mask, count); }
 
     lua_State* getState() { return L; }
+
+    void getfenv(int index = -1) { lua_getfenv(L, index); }
+    int setfenv(int index = -2) { return lua_setfenv(L, index); }
+
+    bool newmetatable(const char* name) { return luaL_newmetatable(L, name) != 0; }
 
   private:
     lua_State* L;

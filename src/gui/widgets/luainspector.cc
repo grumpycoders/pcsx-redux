@@ -22,6 +22,7 @@
 #include <set>
 
 #include "fmt/format.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "lua/luawrapper.h"
 
@@ -80,7 +81,7 @@ void PCSX::Widgets::LuaInspector::dumpTree(const std::string& label, Lua* L, int
     }
 }
 
-void PCSX::Widgets::LuaInspector::draw(const char* title, Lua* L) {
+void PCSX::Widgets::LuaInspector::draw(const char* title, Lua* L, PCSX::GUI* gui) {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
@@ -98,6 +99,7 @@ void PCSX::Widgets::LuaInspector::draw(const char* title, Lua* L) {
         ImGui::EndCombo();
     }
     ImGui::BeginChild("tree");
+    gui->useMonoFont();
     switch (m_display) {
         case Display::GLOBALS:
             dumpTree("_G", L, LUA_GLOBALSINDEX);
@@ -111,6 +113,7 @@ void PCSX::Widgets::LuaInspector::draw(const char* title, Lua* L) {
             break;
         }
     }
+    ImGui::PopFont();
     ImGui::EndChild();
     ImGui::End();
 }

@@ -128,6 +128,12 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> LoggingCDROM;
         typedef Setting<bool, TYPESTRING("GdbServer"), false> GdbServer;
         typedef Setting<bool, TYPESTRING("GdbManifest"), true> GdbManifest;
+        enum class GdbLog {
+            None,
+            TTY,
+            All,
+        };
+        typedef Setting<GdbLog, TYPESTRING("GdbLog"), GdbLog::TTY> GdbLogSetting;
         typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> GdbServerPort;
         typedef Setting<bool, TYPESTRING("GdbServerTrace"), false> GdbServerTrace;
         typedef Setting<bool, TYPESTRING("WebServer"), false> WebServer;
@@ -145,7 +151,7 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
         typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
-                         GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
+                         GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
                          KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
                          KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
                          KernelCallC0_00_1f, PCdrv, PCdrvBase>

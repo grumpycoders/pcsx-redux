@@ -73,41 +73,34 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
     regArea[(r - 0xc00) >> 1] = val;
 
-    if (r >= 0x0c00 && r < 0x0d80)  // some channel info?
-    {
-        int ch = (r >> 4) - 0xc0;  // calc channel
+    // Check if this is one of the voice configuration registers
+    if (r >= 0x0c00 && r < 0x0d80) {
+        int ch = (r >> 4) - 0xc0;  // Figure out which voice it is
         switch (r & 0x0f) {
-            //------------------------------------------------// r volume
-            case 0:
+            case 0:  // Left volume
                 SetVolumeL((uint8_t)ch, val);
                 break;
-            //------------------------------------------------// l volume
-            case 2:
+            case 2:  // Right volume
                 SetVolumeR((uint8_t)ch, val);
                 break;
-            //------------------------------------------------// pitch
-            case 4:
+            case 4:  // Pitch
                 SetPitch(ch, val);
                 break;
-            //------------------------------------------------// start
-            case 6:
+            case 6:  // Sample start address
                 s_chan[ch].pStart = spuMemC + ((uint32_t)val << 3);
                 break;
-            //------------------------------------------------// level with pre-calcs
-            case 8: {
-                const uint32_t lval = val;
-                uint32_t lx;
+            case 8: {  // Attack/Decay/Sustain/Release (ADSR)
                 //---------------------------------------------//
-                s_chan[ch].ADSRX.get<exAttackModeExp>().value = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exAttackRate>().value = ((lval >> 8) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((lval >> 4) & 0x000f) ^ 0x1f);
-                s_chan[ch].ADSRX.get<exSustainLevel>().value = (lval & 0x000f) << 27;
+                s_chan[ch].ADSRX.get<exAttackModeExp>().value = (val & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exAttackRate>().value = ((val >> 8) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exDecayRate>().value = 4 * (((val >> 4) & 0x000f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exSustainLevel>().value = (val & 0x000f) << 27;
                 //---------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.get<AttackModeExp>().value = (lval & 0x8000) ? 1 : 0;  // 0x007f
+                s_chan[ch].ADSR.get<AttackModeExp>().value = (val & 0x8000) ? 1 : 0;  // 0x007f
 
-                lx = (((lval >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
-                lx = std::min(31U, lx);              // no overflow on shift!
+                uint32_t lx = (((val >> 8) & 0x007f) >> 2);  // attack time to run from 0 to 100% volume
+                lx = std::min(31U, lx);                      // no overflow on shift!
                 if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483)
@@ -118,12 +111,11 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 }
                 s_chan[ch].ADSR.get<AttackTime>().value = lx;
 
-                s_chan[ch].ADSR.get<SustainLevel>().value =  // our adsr vol runs from 0 to 1024, so scale the sustain
-                                                             // level
-                    (1024 * ((lval)&0x000f)) / 15;
+                // our adsr vol runs from 0 to 1024, so scale the sustain level
+                s_chan[ch].ADSR.get<SustainLevel>().value = (1024 * (val & 0xf)) / 15;
 
-                lx = (lval >> 4) & 0x000f;  // decay:
-                if (lx)                     // our const decay value is time it takes from 100% to 0% of volume
+                lx = (val >> 4) & 0x000f;  // decay:
+                if (lx)                    // our const decay value is time it takes from 100% to 0% of volume
                 {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
                     if (!lx) lx = 1;
@@ -134,24 +126,22 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             } break;
             //------------------------------------------------// adsr times with pre-calcs
             case 10: {
-                const uint32_t lval = val;
-                uint32_t lx;
                 //----------------------------------------------//
-                s_chan[ch].ADSRX.get<exSustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exSustainIncrease>().value = (lval & 0x4000) ? 0 : 1;
-                s_chan[ch].ADSRX.get<exSustainRate>().value = ((lval >> 6) & 0x007f) ^ 0x7f;
-                s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
-                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((lval & 0x001f) ^ 0x1f);
+                s_chan[ch].ADSRX.get<exSustainModeExp>().value = (val & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exSustainIncrease>().value = (val & 0x4000) ? 0 : 1;
+                s_chan[ch].ADSRX.get<exSustainRate>().value = ((val >> 6) & 0x007f) ^ 0x7f;
+                s_chan[ch].ADSRX.get<exReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSRX.get<exReleaseRate>().value = 4 * ((val & 0x001f) ^ 0x1f);
                 //----------------------------------------------// stuff below is only for debug mode
 
-                s_chan[ch].ADSR.get<SustainModeExp>().value = (lval & 0x8000) ? 1 : 0;
-                s_chan[ch].ADSR.get<ReleaseModeExp>().value = (lval & 0x0020) ? 1 : 0;
+                s_chan[ch].ADSR.get<SustainModeExp>().value = (val & 0x8000) ? 1 : 0;
+                s_chan[ch].ADSR.get<ReleaseModeExp>().value = (val & 0x0020) ? 1 : 0;
 
-                lx = ((((lval >> 6) & 0x007f) >> 2));  // sustain time... often very high
-                lx = std::min(31U, lx);                // values are used to hold the volume
-                if (lx)                                // until a sound stop occurs
-                {                                      // the highest value we reach (due to
-                    lx = (1 << lx);                    // overflow checking) is:
+                uint32_t lx = ((((val >> 6) & 0x007f) >> 2));  // sustain time... often very high
+                lx = std::min(31U, lx);                        // values are used to hold the volume
+                if (lx)                                        // until a sound stop occurs
+                {                                              // the highest value we reach (due to
+                    lx = (1 << lx);                            // overflow checking) is:
                     if (lx < 2147483)
                         lx = (lx * SUSTAIN_MS) / 10000L;  // 94704 seconds = 1578 minutes = 26 hours...
                     else
@@ -160,7 +150,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 }
                 s_chan[ch].ADSR.get<SustainTime>().value = lx;
 
-                lx = (lval & 0x001f);
+                lx = (val & 0x001f);
                 s_chan[ch].ADSR.get<ReleaseVal>().value = lx;
                 if (lx)              // release time from 100% to 0%
                 {                    // note: the release time will be
@@ -173,13 +163,12 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 }
                 s_chan[ch].ADSR.get<ReleaseTime>().value = lx;
 
-                if (lval & 0x4000)  // add/dec flag
+                if (val & 0x4000)  // add/dec flag
                     s_chan[ch].ADSR.get<SustainModeDec>().value = -1;
                 else
                     s_chan[ch].ADSR.get<SustainModeDec>().value = 1;
             } break;
-            //------------------------------------------------// adsr volume... mmm have to investigate this
-            case 12:
+            case 12:  // TODO: Emulate ADSR Volume
                 break;
             //------------------------------------------------//
             case 14:  // loop?
@@ -192,30 +181,28 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
         }
 
         iSpuAsyncWait = 0;
-
         return;
     }
 
     switch (r) {
-        //-------------------------------------------------//
         case H_SPUaddr:
             spuAddr = (uint32_t)val << 3;
             break;
-        //-------------------------------------------------//
+
         case H_SPUdata:
             spuMem[spuAddr >> 1] = val;
             spuAddr += 2;
             if (spuAddr > 0x7ffff) spuAddr = 0;
             break;
-        //-------------------------------------------------//
+
         case H_SPUctrl:
             spuCtrl = val;
             break;
-        //-------------------------------------------------//
+
         case H_SPUstat:
             spuStat = val & 0xf800;
             break;
-        //-------------------------------------------------//
+
         case H_SPUReverbAddr:
             if (val == 0xFFFF || val <= 0x200) {
                 rvb.StartAddr = rvb.CurrAddr = 0;
@@ -227,16 +214,16 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 }
             }
             break;
-        //-------------------------------------------------//
+
         case H_SPUirqAddr:
             spuIrq = val;
             pSpuIrq = spuMemC + ((uint32_t)val << 3);
             break;
-        //-------------------------------------------------//
+
         case H_SPUrvolL:
             rvb.VolLeft = val;
             break;
-        //-------------------------------------------------//
+
         case H_SPUrvolR:
             rvb.VolRight = val;
             break;
@@ -267,56 +254,61 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                  //auxprintf("M1 %04x\n",val);
                   break;
             */
-        //-------------------------------------------------//
+
         case H_SPUon1:
             SoundOn(0, 16, val);
             break;
-            //-------------------------------------------------//
+
         case H_SPUon2:
             SoundOn(16, 24, val);
             break;
-        //-------------------------------------------------//
+
         case H_SPUoff1:
             SoundOff(0, 16, val);
             break;
-        //-------------------------------------------------//
+
         case H_SPUoff2:
             SoundOff(16, 24, val);
             break;
-        //-------------------------------------------------//
+
         case H_CDLeft:
             iLeftXAVol = val & 0x7fff;
-            if (cddavCallback) cddavCallback(0, val);
+            if (cddavCallback) {
+                cddavCallback(0, val);
+            }
             break;
+
         case H_CDRight:
             iRightXAVol = val & 0x7fff;
-            if (cddavCallback) cddavCallback(1, val);
+            if (cddavCallback) {
+                cddavCallback(1, val);
+            }
             break;
-        //-------------------------------------------------//
+
         case H_FMod1:
             FModOn(0, 16, val);
             break;
-        //-------------------------------------------------//
+
         case H_FMod2:
             FModOn(16, 24, val);
             break;
-        //-------------------------------------------------//
+
         case H_Noise1:
             NoiseOn(0, 16, val);
             break;
-        //-------------------------------------------------//
+
         case H_Noise2:
             NoiseOn(16, 24, val);
             break;
-        //-------------------------------------------------//
+
         case H_RVBon1:
             ReverbOn(0, 16, val);
             break;
-        //-------------------------------------------------//
+
         case H_RVBon2:
             ReverbOn(16, 24, val);
             break;
-        //-------------------------------------------------//
+
         case H_Reverb + 0:
 
             rvb.FB_SRC_A = val;
@@ -453,7 +445,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             case 14:  // get loop address
             {
                 const int ch = (r >> 4) - 0xc0;
-                if (s_chan[ch].pLoop == NULL) return 0;
+                if (s_chan[ch].pLoop == nullptr) return 0;
                 return (uint16_t)((s_chan[ch].pLoop - spuMemC) >> 3);
             }
         }
@@ -464,7 +456,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             return spuCtrl;
 
         case H_SPUstat:
-            return spuStat;
+            return (spuStat & ~0x3F) | (spuCtrl & 0x3F);
 
         case H_SPUaddr:
             return (uint16_t)(spuAddr >> 3);
@@ -478,29 +470,15 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
 
         case H_SPUirqAddr:
             return spuIrq;
-
-            // case H_SPUIsOn1:
-            // return IsSoundOn(0,16);
-
-            // case H_SPUIsOn2:
-            // return IsSoundOn(16,24);
     }
 
     return regArea[(r - 0xc00) >> 1];
 }
 
-////////////////////////////////////////////////////////////////////////
-// SOUND ON register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX COMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        if ((val & 1) && s_chan[ch].pStart)  // mmm... start has to be set before key on !?!
-        {
+// Start ADSR for voices [start, end] depending on val
+void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if ((val & 1) && s_chan[ch].pStart) {  // mmm... start has to be set before key on !?!
             s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
             s_chan[ch].data.get<Chan::New>().value = true;
             dwNewChannel |= (1 << ch);  // bitfield for faster testing
@@ -508,37 +486,22 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val)  // SOUND ON PSX
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// SOUND OFF register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val)  // SOUND OFF PSX COMMAND
-{
-    int ch;
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        if (val & 1)  // && s_chan[i].bOn)  mmm...
-        {
+// Stop sound for voices [start, end] if the corresponding bit in val is set to 1
+void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if (val & 1) {
             s_chan[ch].data.get<Chan::Stop>().value = true;
         }
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// FMOD register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX COMMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        if (val & 1)  // -> fmod on/off
-        {
-            if (ch > 0) {
-                s_chan[ch].data.get<Chan::FMod>().value = 1;      // --> sound channel
-                s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // --> freq channel
+// Set pitch modulation for voices [start, end] depending on val
+void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if (val & 1) {                                        // Check if modulation should be enabled for this voice
+            if (ch > 0) {                                     // Pitch modulation doesn't work for voice 0
+                s_chan[ch].data.get<Chan::FMod>().value = 1;  // sound channel
+                s_chan[ch - 1].data.get<Chan::FMod>().value = 2;  // freq channel
             }
         } else {
             s_chan[ch].data.get<Chan::FMod>().value = 0;  // --> turn off fmod
@@ -546,17 +509,11 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val)  // FMOD ON PSX C
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// NOISE register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val)  // NOISE ON PSX COMMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        s_chan[ch].data.get<Chan::Noise>().value = !!(val & 1);  // -> noise on/off
+// Set voices [start, end] to output ADPCM or noise, depending on if the corresponding bit in val is set to 0 or 1
+// respectively
+void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        s_chan[ch].data.get<Chan::Noise>().value = val & 1;
     }
 }
 
@@ -635,16 +592,9 @@ void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)  // SET PITCH
     s_chan[ch].data.get<Chan::ActFreq>().value = NP;  // store frequency
 }
 
-////////////////////////////////////////////////////////////////////////
-// REVERB register write
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val)  // REVERB ON PSX COMMAND
-{
-    int ch;
-
-    for (ch = start; ch < end; ch++, val >>= 1)  // loop channels
-    {
-        s_chan[ch].data.get<Chan::Reverb>().value = !!(val & 1);  // -> reverb on/off
+// Enable/disable reverb for voices [start, end] depending on val
+void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        s_chan[ch].data.get<Chan::Reverb>().value = val & 1;
     }
 }

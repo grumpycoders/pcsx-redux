@@ -19,10 +19,11 @@
 
 #include "gui/widgets/console.h"
 
+#include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-void PCSX::Widgets::Console::draw(const char* title) {
+void PCSX::Widgets::Console::draw(const char* title, GUI* gui) {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
@@ -44,6 +45,7 @@ void PCSX::Widgets::Console::draw(const char* title) {
     // Options menu
     if (ImGui::BeginPopup("Options")) {
         ImGui::Checkbox("Auto-scroll", &m_autoScroll);
+        ImGui::Checkbox("Mono", &m_mono);
         ImGui::EndPopup();
     }
 
@@ -52,6 +54,7 @@ void PCSX::Widgets::Console::draw(const char* title) {
     ImGui::Separator();
 
     // Reserve enough left-over height for 1 separator + 1 input text
+    if (m_mono) gui->useMonoFont();
     const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false,
                       ImGuiWindowFlags_HorizontalScrollbar);
@@ -77,12 +80,14 @@ void PCSX::Widgets::Console::draw(const char* title) {
     }
     if (copy_to_clipboard) ImGui::LogFinish();
 
-    if (m_scrollToBottom || (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()))
+    if (m_scrollToBottom || (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())) {
         ImGui::SetScrollHereY(1.0f);
+    }
     m_scrollToBottom = false;
 
     ImGui::PopStyleVar();
     ImGui::EndChild();
+    if (m_mono) ImGui::PopFont();
     ImGui::Separator();
 
     // Command-line

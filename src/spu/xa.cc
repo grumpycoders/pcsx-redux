@@ -53,7 +53,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
     if (!iSize) return;                             // none? bye
 
-    SDL_assert_always(iSize <= 32 * 1024);
+    assert(iSize <= 32 * 1024);
 
     //----------------------------------------------------//
     if (settings.get<StreamingPitch>())  // pitch change option?

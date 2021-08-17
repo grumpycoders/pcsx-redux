@@ -219,7 +219,7 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
         if (debugSettings.get<Emulator::DebugSettings::FirstChanceException>() & ec) {
             auto name = magic_enum::enum_name(e.value());
             g_system->printf(fmt::format("First chance exception: {} from 0x{:08x}\n", name, m_psxRegs.pc).c_str());
-            g_system->pause();
+            g_system->pause(true);
         }
     }
 

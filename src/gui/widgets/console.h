@@ -26,6 +26,7 @@
 #include "imgui.h"
 
 namespace PCSX {
+class GUI;
 namespace Widgets {
 
 class Console {
@@ -38,7 +39,7 @@ class Console {
     void addError(const std::string& str) { m_items.push_back(std::make_pair(LineType::ERRORMSG, str)); }
     void addError(std::string&& str) { m_items.push_back(std::make_pair(LineType::ERRORMSG, std::move(str))); }
 
-    void draw(const char* title);
+    void draw(const char* title, GUI* gui);
 
     bool& m_show;
 
@@ -61,6 +62,7 @@ class Console {
     int m_historyPos = -1;  // -1: new line, 0..History.Size-1 browsing history.
     bool m_autoScroll = true;
     bool m_scrollToBottom = false;
+    bool m_mono = true;
     std::function<void(const std::string&)> m_cmdExec;
 };
 

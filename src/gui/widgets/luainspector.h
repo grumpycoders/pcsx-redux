@@ -23,12 +23,13 @@
 
 namespace PCSX {
 class Lua;
+class GUI;
 namespace Widgets {
 
 class LuaInspector {
   public:
     LuaInspector(bool& show) : m_show(show) {}
-    void draw(const char* title, Lua* L);
+    void draw(const char* title, Lua* L, GUI* gui);
 
     bool& m_show;
 

@@ -35,7 +35,11 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
 
 PCSX::Lua::Lua() : L(lua_open()) {
     assert(("Couldn't create Lua VM", L));
+    lua_atpanic(L, [](lua_State* L) -> int { throw std::runtime_error(lua_tostring(L, 1)); });
     setCallWrap(callwrap);
+    push("_THREADS");
+    newtable();
+    settable(LUA_REGISTRYINDEX);
 }
 
 PCSX::Lua& PCSX::Lua::operator=(Lua&& oL) noexcept {
@@ -111,6 +115,29 @@ void PCSX::Lua::open_string() {
     int n = gettop();
     luaopen_string(L);
     while (n < gettop()) pop();
+}
+
+std::unique_ptr<PCSX::Lua> PCSX::Lua::thread(bool saveit) {
+    checkstack();
+    lua_State* L1 = lua_newthread(L);
+    if (saveit) {                     // -1 = thread
+        push("_THREADS");             // -2 = thread, -1 = "_THREADS"
+        gettable(LUA_REGISTRYINDEX);  // -2 = thread, -1 = _THREADS
+        push(L1);                     // -3 = thread, -2 = _THREADS, -1 = key-Lt
+        copy(-3);                     // -4 = thread, -3 = _THREADS, -2 = key-Lt, -1 = thread
+        settable();                   // -2 = thread, -1 = _THREADS
+        pop();                        // -1 = thread
+    }
+    return std::make_unique<Lua>(L1);
+}
+
+void PCSX::Lua::weaken() {
+    push("_THREADS");             // -1 = "_THREADS"
+    gettable(LUA_REGISTRYINDEX);  // -1 = _THREADS
+    push(L);                      // -2 = _THREADS, -1 = key-Lt
+    push();                       // -3 = _THREADS, -2 = key-Lt, -1 = nil
+    settable();                   // -1 = _THREADS
+    pop();
 }
 
 void PCSX::Lua::setCallWrap(lua_CallWrapper wrapper) {

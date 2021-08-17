@@ -20,7 +20,7 @@
 #define GLFW_INCLUDE_NONE
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
-#define STBI_ASSERT(x)
+#define STBI_ASSERT(x) assert(x)
 #define STBI_NO_HDR
 #define STBI_NO_LINEAR
 #define STBI_NO_STDIO
@@ -69,11 +69,15 @@ using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
 extern "C" void pcsxStaticImguiUserError(const char* msg) {
-    if (s_imguiUserErrorFunctor) s_imguiUserErrorFunctor(msg);
+    if (s_imguiUserErrorFunctor) {
+        s_imguiUserErrorFunctor(msg);
+    } else {
+        throw std::runtime_error(msg);
+    }
 }
 
-static void glfw_error_callback(int error, const char* description) {
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
+    if (!exp) throw std::runtime_error(msg);
 }
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
@@ -122,7 +126,7 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
 
-    decltype(s_imguiUserErrorFunctor) backup = nullptr;
+    decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
     cfg.MergeMode = combine;
@@ -161,7 +165,7 @@ void PCSX::GUI::init() {
                 }
                 gotGLerror = true;
             }
-        } catch (std::runtime_error& e) {
+        } catch (std::exception& e) {
             m_luaConsole.addError(e.what());
             if (m_args.get<bool>("lua_stdout", false)) {
                 fprintf(stderr, "%s\n", e.what());
@@ -213,7 +217,8 @@ end)(jit.status()))
 )",
                             "gui startup");
 
-    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetErrorCallback(
+        [](int error, const char* description) { fprintf(stderr, "Glfw Error %d: %s\n", error, description); });
     if (!glfwInit()) {
         abort();
     }
@@ -242,7 +247,10 @@ end)(jit.status()))
 
         m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
     }
-    assert(m_window);
+
+    if (!m_window) {
+        throw std::runtime_error("Unable to create main Window. Check OpenGL drivers.");
+    }
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(0);
 
@@ -267,7 +275,9 @@ end)(jit.status()))
     });
 
     result = gl3wInit();
-    assert(result == 0);
+    if (result) {
+        throw std::runtime_error("Unable to initialize OpenGL layer. Check OpenGL drivers.");
+    }
 
     LuaFFI::open_gl(g_emulator->m_lua.get());
 
@@ -347,8 +357,6 @@ end)(jit.status()))
         auto biosCfg = m_args.get<std::string>("bios");
         if (biosCfg.has_value()) emuSettings.get<Emulator::SettingBios>() = biosCfg.value();
 
-        m_exeToLoad = MAKEU8(m_args.get<std::string>("loadexe", "").c_str());
-
         g_system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
 
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
@@ -401,13 +409,11 @@ end)(jit.status()))
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
     checkGL();
 
-    m_mainVRAMviewer.init();
+    m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
-    m_clutVRAMviewer.init();
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
     unsigned counter = 1;
     for (auto& viewer : m_VRAMviewers) {
-        viewer.init();
         viewer.setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });
         counter++;
     }
@@ -585,9 +591,23 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::Image(texture, logicalRenderSize, ImVec2(0, 0), ImVec2(1, 1));
+        m_outputShaderEditor.renderWithImgui(texture, m_renderSize, logicalRenderSize);
         ImGui::End();
         ImGui::PopStyleVar(2);
+    } else {
+        ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
+        bool outputShown = true;
+        if (ImGui::Begin(
+                _("Output"), &outputShown,
+                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
+            ImVec2 textureSize = ImGui::GetContentRegionAvail();
+            normalizeDimensions(textureSize, m_renderRatio);
+            ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+            m_outputShaderEditor.renderWithImgui(texture, m_renderSize, textureSize);
+        }
+        ImGui::End();
+        if (!outputShown) m_fullscreenRender = true;
     }
 
     bool showOpenIsoFileDialog = false;
@@ -810,6 +830,8 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show source"), nullptr, &m_source.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Fullscreen render"), nullptr, &m_fullscreenRender);
+                ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
+                ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show raw DWARF info"), nullptr, &m_dwarf.m_show);
                 ImGui::EndMenu();
@@ -866,7 +888,7 @@ void PCSX::GUI::endFrame() {
         changed = true;
         std::vector<PCSX::u8string> fileToOpen = m_openBinaryDialog.selected();
         if (!fileToOpen.empty()) {
-            m_exeToLoad = fileToOpen[0];
+            m_exeToLoad.set(fileToOpen[0]);
             std::filesystem::path p = fileToOpen[0];
             g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", p.string());
             g_system->softReset();
@@ -877,25 +899,9 @@ void PCSX::GUI::endFrame() {
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.render(m_VRAMTexture);
-    m_clutVRAMviewer.render(m_VRAMTexture);
-    for (auto& viewer : m_VRAMviewers) viewer.render(m_VRAMTexture);
-
-    if (!m_fullscreenRender) {
-        ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        bool outputShown = true;
-        if (ImGui::Begin(
-                _("Output"), &outputShown,
-                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
-            ImVec2 textureSize = ImGui::GetContentRegionAvail();
-            normalizeDimensions(textureSize, m_renderRatio);
-            ImGui::Image(reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]), textureSize,
-                         ImVec2(0, 0), ImVec2(1, 1));
-        }
-        ImGui::End();
-        if (!outputShown) m_fullscreenRender = true;
-    }
+    m_mainVRAMviewer.draw(m_VRAMTexture, this);
+    m_clutVRAMviewer.draw(m_VRAMTexture, this);
+    for (auto& viewer : m_VRAMviewers) viewer.draw(m_VRAMTexture, this);
 
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
@@ -906,13 +912,13 @@ void PCSX::GUI::endFrame() {
     if (m_luaConsole.m_show) {
         ImGui::SetNextWindowPos(ImVec2(15, 545), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_luaConsole.draw(_("Lua Console"));
+        m_luaConsole.draw(_("Lua Console"), this);
     }
 
     if (m_luaInspector.m_show) {
         ImGui::SetNextWindowPos(ImVec2(20, 550), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
-        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get());
+        m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get(), this);
     }
     if (m_luaEditor.m_show) {
         m_luaEditor.draw(_("Lua Editor"));
@@ -982,6 +988,16 @@ void PCSX::GUI::endFrame() {
     m_types.draw();
     if (m_source.m_show) {
         m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
+    }
+
+    if (m_outputShaderEditor.draw(_("Output Video"), this)) {
+        // maybe throttle this?
+        m_outputShaderEditor.compile();
+    }
+
+    if (m_offscreenShaderEditor.draw(_("Offscreen Render"), this)) {
+        // maybe throttle this?
+        m_offscreenShaderEditor.compile();
     }
 
     PCSX::g_emulator->m_spu->debug();
@@ -1204,6 +1220,24 @@ You also need to enable the debugger.)"));
 from the gdb server. Keep this enabled, unless
 you want to connect IDA to this server, as it
 has a bug in its manifest parser.)"));
+        auto& currentGdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
+        auto currentName = magic_enum::enum_name(currentGdbLog);
+
+        if (ImGui::BeginCombo(_("PCSX Logs to GDB"), currentName.data())) {
+            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::GdbLog>()) {
+                bool selected = (v == currentGdbLog);
+                auto name = magic_enum::enum_name(v);
+                if (ImGui::Selectable(name.data(), selected)) {
+                    currentGdbLog = v;
+                    changed = true;
+                }
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
         changed |=
             ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
         changed |=
@@ -1425,13 +1459,17 @@ void PCSX::GUI::shellReached() {
     if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
 
     if (m_exeToLoad.empty()) return;
-    PCSX::u8string filename = std::move(m_exeToLoad);
+    PCSX::u8string filename = m_exeToLoad.get();
     std::filesystem::path p = filename;
 
     g_system->log(LogClass::UI, "Hijacked shell, loading %s...\n", p.string());
     bool success = BinaryLoader::load(filename);
     if (success) {
         g_system->log(LogClass::UI, "Successful: new PC = %08x...\n", regs.pc);
+    }
+
+    if (m_exeToLoad.hasToPause()) {
+        g_system->pause();
     }
 }
 
@@ -1453,7 +1491,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     extension[extensionPath.length() - 1] = 0;
 
     if (std::find(exeExtensions.begin(), exeExtensions.end(), extension) != exeExtensions.end()) {
-        m_exeToLoad = path.u8string();
+        m_exeToLoad.set(path.u8string());
         g_system->log(LogClass::UI, "Scheduling to load %s and soft reseting.\n", path.string());
         g_system->softReset();
     } else {
