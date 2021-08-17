@@ -567,25 +567,23 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
  * Register branch logic                                  *
  * Format:  OP rs, offset                                 *
  *********************************************************/
-#define RepZBranchi32(op) \
-    if (_i32(_rRs_) op 0) { doBranch(_BranchTarget_); }
-#define RepZBranchLinki32(op) \
-    if (_i32(_rRs_) op 0) { doBranch(_BranchTarget_); }  \
-    maybeCancelDelayedLoad(31); \
+#define RepZBranchi32(op)         \
+    if (_i32(_rRs_) op 0) {       \
+        doBranch(_BranchTarget_); \
+    }
+#define RepZBranchLinki32(op)     \
+    if (_i32(_rRs_) op 0) {       \
+        doBranch(_BranchTarget_); \
+    }                             \
+    maybeCancelDelayedLoad(31);   \
     m_psxRegs.GPR.r[31] = m_psxRegs.pc + 4
 
-void InterpretedCPU::psxBGEZ(uint32_t code) { RepZBranchi32(>=) }  // Branch if Rs >= 0
-void InterpretedCPU::psxBGEZAL(uint32_t code) {                    // Branch if Rs >= 0 and link
-    maybeCancelDelayedLoad(31);
-    RepZBranchLinki32(>=);
-}
-void InterpretedCPU::psxBGTZ(uint32_t code) { RepZBranchi32(>) }   // Branch if Rs >  0
-void InterpretedCPU::psxBLEZ(uint32_t code) { RepZBranchi32(<=) }  // Branch if Rs <= 0
-void InterpretedCPU::psxBLTZ(uint32_t code) { RepZBranchi32(<) }   // Branch if Rs <  0
-void InterpretedCPU::psxBLTZAL(uint32_t code) {                    // Branch if Rs <  0 and link
-    maybeCancelDelayedLoad(31);
-    RepZBranchLinki32(<);
-}
+void InterpretedCPU::psxBGEZ(uint32_t code) { RepZBranchi32(>=) }         // Branch if Rs >= 0
+void InterpretedCPU::psxBGEZAL(uint32_t code) { RepZBranchLinki32(>=); }  // Branch if Rs >= 0 and link
+void InterpretedCPU::psxBGTZ(uint32_t code) { RepZBranchi32(>) }          // Branch if Rs >  0
+void InterpretedCPU::psxBLEZ(uint32_t code) { RepZBranchi32(<=) }         // Branch if Rs <= 0
+void InterpretedCPU::psxBLTZ(uint32_t code) { RepZBranchi32(<) }          // Branch if Rs <  0
+void InterpretedCPU::psxBLTZAL(uint32_t code) { RepZBranchLinki32(<); }   // Branch if Rs <  0 and link
 /*********************************************************
  * Shift arithmetic with constant shift                   *
  * Format:  OP rd, rt, sa                                 *
