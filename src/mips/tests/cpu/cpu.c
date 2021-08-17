@@ -73,7 +73,7 @@ CESTER_TEST(cpu_LWR_LWL_delayed, test_instance,
     cester_assert_uint_eq(0x88112233, out);
 )
 
-CESTER_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
+CESTER_SKIP_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
     // running a branch in a branch delay slot is technically
     // not allowed, but some games still do this, and the
     // behavior is deterministic; read the assembly code
@@ -84,7 +84,7 @@ CESTER_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
     cester_assert_uint_eq(9, out);
 )
 
-CESTER_TEST(cpu_JUMP_JUMP_slot, test_instance,
+CESTER_SKIP_TEST(cpu_JUMP_JUMP_slot, test_instance,
     // while branches are relative PC adjustments, jumps
     // are absolute; this is technically the same test as
     // above, but without the relative quirkness
