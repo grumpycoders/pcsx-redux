@@ -848,6 +848,12 @@ void DynaRecCPU::recJAL() {
     recJ();
 }
 
+void DynaRecCPU::recJALR() {
+    recJR();
+    maybeCancelDelayedLoad(_Rd_);
+    m_regs[_Rd_].markConst(m_pc + 4); // Link
+}
+
 void DynaRecCPU::recJR() {
     m_nextIsDelaySlot = true;
     m_stopCompiling = true;
@@ -859,6 +865,65 @@ void DynaRecCPU::recJR() {
         allocateReg(_Rs_);
         gen.and_(m_regs[_Rs_].allocatedReg, ~3); // Align jump address
         gen.mov(dword[contextPointer + PC_OFFSET], m_regs[_Rs_].allocatedReg);
+    }
+}
+
+void DynaRecCPU::recREGIMM() {
+    const bool isBGEZ = ((m_psxRegs.code >> 16) & 1) != 0;
+    const bool link = ((m_psxRegs.code >> 17) & 0xF) == 8;
+    const auto target = _Imm_ * 4 + m_pc;
+
+    m_nextIsDelaySlot = true;
+
+    if (target == m_pc + 4) {
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        if (isBGEZ) { // BGEZ
+            if ((int32_t)m_regs[_Rs_].val >= 0) {
+                m_pcWrittenBack = true;
+                m_stopCompiling = true;
+
+                gen.mov(dword[contextPointer + PC_OFFSET], target);
+            }
+        }
+
+        else { // BLTZ
+            if ((int32_t)m_regs[_Rs_].val < 0) {
+                m_pcWrittenBack = true;
+                m_stopCompiling = true;
+
+                gen.mov(dword[contextPointer + PC_OFFSET], target);
+            }
+        }
+
+        if (link) {
+            maybeCancelDelayedLoad(31);
+            m_regs[31].markConst(m_pc + 4);
+        }
+
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    allocateReg(_Rs_);
+    gen.test(m_regs[_Rs_].allocatedReg, m_regs[_Rs_].allocatedReg);
+    gen.mov(ecx, target);    // ecx = addr if jump taken
+    gen.mov(eax, m_pc + 4);  // eax = addr if jump not taken
+
+    if (isBGEZ) { // We're lazy so we can handle the difference between bgez/bltz by just emitting a different form of cmov
+        gen.cmovns(eax, ecx);  // if not equal, move the jump addr into eax
+    } else {
+        gen.cmovs(eax, ecx);
+    }
+    
+    gen.mov(dword[contextPointer + PC_OFFSET], eax);
+    if (link) {
+        maybeCancelDelayedLoad(31);
+        m_regs[31].markConst(m_pc + 4);
     }
 }
 
