@@ -164,7 +164,7 @@ public:
     virtual bool isDynarec() final { return true; }
 
     void dumpBuffer() {
-        std::ofstream file("DynarecOutput.bin", std::ios::binary); // Make a file for our dump
+        std::ofstream file("DynarecOutput.dump", std::ios::binary); // Make a file for our dump
         file.write((const char*) gen.getCode(), gen.getSize()); // Write the code buffer to the dump
     }
 

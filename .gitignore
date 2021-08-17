@@ -63,3 +63,10 @@ fb.bat
 
 # GPU dump files
 *.dump 
+
+# IDA database files
+*.id0
+*.id1
+*.nam
+*.til
+*.idb
