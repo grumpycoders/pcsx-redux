@@ -915,9 +915,9 @@ void DynaRecCPU::recREGIMM() {
     gen.mov(eax, m_pc + 4);  // eax = addr if jump not taken
 
     if (isBGEZ) { // We're lazy so we can handle the difference between bgez/bltz by just emitting a different form of cmov
-        gen.cmovns(eax, ecx);  // if not equal, move the jump addr into eax
+        gen.cmovns(eax, ecx);  // if $rs >= 0, move the jump addr into eax
     } else {
-        gen.cmovs(eax, ecx);
+        gen.cmovs(eax, ecx);   // if $rs < 0, move the jump addr into eax
     }
     
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
