@@ -64,3 +64,6 @@
 [submodule "third_party/xbyak"]
 	path = third_party/xbyak
 	url = https://github.com/herumi/xbyak
+[submodule "third_party/zep"]
+	path = third_party/zep
+	url = git@github.com:nicolasnoble/zep.git

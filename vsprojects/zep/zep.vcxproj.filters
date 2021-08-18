@@ -1,0 +1,282 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\zep">
+      <UniqueIdentifier>{8358b7ab-f32e-4d99-9415-46297dca3137}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\imgui">
+      <UniqueIdentifier>{1365b917-d496-4307-a7b7-52ec36c88621}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\mcommon">
+      <UniqueIdentifier>{71353879-be17-447b-b375-5160b6882f9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\mcommon\utf8">
+      <UniqueIdentifier>{ee09e699-9d4a-4c2a-bee1-7f7783d08a48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\mcommon\math">
+      <UniqueIdentifier>{9cacc36a-7c9b-4da5-8f9e-e473ee579df3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\mcommon\string">
+      <UniqueIdentifier>{7ae743a7-6b89-4f58-9ec4-fb2e2f45d191}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\mcommon\animation">
+      <UniqueIdentifier>{fe474763-0053-49e6-af77-116962934ea1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zep\mcommon\file">
+      <UniqueIdentifier>{67d5a1ac-9b19-40dc-a6d3-1621482fac71}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\zep\src\buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\commands.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\display.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\editor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\filesystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\glyph_iterator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\indexer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\keymap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\line_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mode_search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mode_standard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mode_tree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mode_vim.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\range_markers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\regress.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\scroller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\splits.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\syntax.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\syntax_markdown.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\syntax_providers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\syntax_rainbow_brackets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\syntax_tree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\tab_window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\theme.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\zep\include\zep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\buffer.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\commands.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\display.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\editor.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\filesystem.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\gap_buffer.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\glyph_iterator.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\indexer.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\keymap.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\line_widgets.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_search.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_standard.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_tree.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_vim.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\range_markers.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\regress.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\scroller.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\splits.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_markdown.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_providers.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_rainbow_brackets.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_tree.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\tab_window.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\theme.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\window.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\zep_config.h">
+      <Filter>Header Files\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\console_imgui.h">
+      <Filter>Header Files\zep\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\display_imgui.h">
+      <Filter>Header Files\zep\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\editor_imgui.h">
+      <Filter>Header Files\zep\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\usb_hid_keys.h">
+      <Filter>Header Files\zep\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\callback.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\gsl-lite.hpp">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\logger.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\platform.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\registrar.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\signals.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\threadpool.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\threadutils.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8.h">
+      <Filter>Header Files\zep\mcommon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\checked.h">
+      <Filter>Header Files\zep\mcommon\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\core.h">
+      <Filter>Header Files\zep\mcommon\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\cpp11.h">
+      <Filter>Header Files\zep\mcommon\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\unchecked.h">
+      <Filter>Header Files\zep\mcommon\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\math\math.h">
+      <Filter>Header Files\zep\mcommon\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\string\murmur_hash.h">
+      <Filter>Header Files\zep\mcommon\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\string\stringutils.h">
+      <Filter>Header Files\zep\mcommon\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\animation\timer.h">
+      <Filter>Header Files\zep\mcommon\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\cpptoml.h">
+      <Filter>Header Files\zep\mcommon\file</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\fnmatch.h">
+      <Filter>Header Files\zep\mcommon\file</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\path.h">
+      <Filter>Header Files\zep\mcommon\file</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
