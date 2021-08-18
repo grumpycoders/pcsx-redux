@@ -231,6 +231,7 @@ public:
     void recSLL();
     void recSLLV();
     void recSLTI();
+    void recSLTIU();
     void recSLTU();
     void recSRA();
     void recSRAV();
@@ -252,7 +253,7 @@ public:
     const func_t m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
         &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recBLEZ, &DynaRecCPU::recBGTZ,  // 04
-        &DynaRecCPU::recADDIU, &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI, &DynaRecCPU::recUnknown,  // 08
+        &DynaRecCPU::recADDIU, &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI, &DynaRecCPU::recSLTIU,  // 08
         &DynaRecCPU::recANDI, &DynaRecCPU::recORI,     &DynaRecCPU::recXORI, &DynaRecCPU::recLUI,      // 0c
         &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
@@ -273,7 +274,7 @@ public:
         &DynaRecCPU::recSLLV, &DynaRecCPU::recUnknown, &DynaRecCPU::recSRLV, &DynaRecCPU::recSRAV,  // 04
         &DynaRecCPU::recJR, &DynaRecCPU::recJALR, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recMFHI, &DynaRecCPU::recUnknown, &DynaRecCPU::recMFLO, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recDIV, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c

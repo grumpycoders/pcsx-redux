@@ -173,6 +173,22 @@ void DynaRecCPU::recSLTI() {
     }
 }
 
+void DynaRecCPU::recSLTIU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst()) {
+        m_regs[_Rt_].markConst(m_regs[_Rs_].val < (uint32_t) _Imm_);
+    } else {
+        allocateReg(_Rt_, _Rs_);
+        m_regs[_Rt_].setWriteback(true);
+
+        gen.cmp(m_regs[_Rs_].allocatedReg, _Imm_);
+        gen.setb(al);
+        gen.movzx(m_regs[_Rt_].allocatedReg, al);
+    }
+}
+
 void DynaRecCPU::recSLTU() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -1144,6 +1160,24 @@ void DynaRecCPU::recDIV() {
 
         gen.L(end);
     }
+}
+
+// TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
+void DynaRecCPU::recMFLO() {
+    maybeCancelDelayedLoad(_Rd_);
+    allocateReg(_Rd_);
+    m_regs[_Rd_].setWriteback(true);
+
+    gen.mov(m_regs[_Rd_].allocatedReg, dword[contextPointer + LO_OFFSET]);
+}
+
+// TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
+void DynaRecCPU::recMFHI() {
+    maybeCancelDelayedLoad(_Rd_);
+    allocateReg(_Rd_);
+    m_regs[_Rd_].setWriteback(true);
+
+    gen.mov(m_regs[_Rd_].allocatedReg, dword[contextPointer + HI_OFFSET]);
 }
 
 #endif DYNAREC_X86_64
