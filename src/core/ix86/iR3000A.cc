@@ -1384,6 +1384,8 @@ void DynaRecCPU::recMULTU() {
     gen.mov(dword[&m_psxRegs.GPR.n.hi], edx);
 }
 
+// TODO: Fix division by zero (Emulated but wrong)
+// Fix INT_MIN / -1 (Not emulated)
 void DynaRecCPU::recDIV() {
     // Lo/Hi = Rs / Rt (signed)
     Label label1;

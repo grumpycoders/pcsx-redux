@@ -14,6 +14,8 @@
 #define GPR_OFFSET(x) ((uintptr_t) &m_psxRegs.GPR.r[(x)] - (uintptr_t) &m_psxRegs)
 #define COP0_OFFSET(x) ((uintptr_t) &m_psxRegs.CP0.r[(x)] - (uintptr_t) &m_psxRegs)
 #define PC_OFFSET ((uintptr_t) &m_psxRegs.pc - (uintptr_t) &m_psxRegs)
+#define LO_OFFSET ((uintptr_t) &m_psxRegs.GPR.n.lo - (uintptr_t) &m_psxRegs)
+#define HI_OFFSET ((uintptr_t) &m_psxRegs.GPR.n.hi - (uintptr_t) &m_psxRegs)
 #define CYCLE_OFFSET ((uintptr_t)&m_psxRegs.cycle - (uintptr_t)&m_psxRegs)
 
 static uint8_t psxMemRead8Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead8(mem); }
@@ -203,6 +205,8 @@ public:
     void recBGTZ();
     void recBLEZ();
     void recCOP0();
+    void recDIV();
+    void recDIVU();
     void recJ();
     void recJAL();
     void recJALR();
@@ -213,6 +217,10 @@ public:
     void recLUI();
     void recMFC0();
     void recMTC0();
+    void recMFHI();
+    void recMFLO();
+    void recMTHI();
+    void recMTLO();
     void recMULT();
     void recNOR();
     void recOR();
@@ -228,6 +236,7 @@ public:
     void recSRAV();
     void recSRL();
     void recSRLV();
+    void recSUBU();
     void recSW();
     void recXOR();
     void recXORI();
@@ -266,9 +275,9 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
-        &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
+        &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recDIV, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
-        &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 20
+        &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recSUBU,  // 20
         &DynaRecCPU::recAND, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSLTU,  // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c

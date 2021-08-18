@@ -112,6 +112,51 @@ void DynaRecCPU::recADDIU() {
     }
 }
 
+void DynaRecCPU::recSUBU() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst(m_regs[_Rs_].val - m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rd_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.mov(eax, m_regs[_Rs_].val); // Left hand operand in eax
+        gen.sub(eax, m_regs[_Rt_].allocatedReg); // Subtract right hand operand
+        gen.mov(m_regs[_Rd_].allocatedReg, eax); // Store result
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rd_, _Rs_);
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rs_ == _Rd_) {
+            switch (m_regs[_Rt_].val) {
+                case 1:
+                    gen.dec(m_regs[_Rd_].allocatedReg);
+                    break;
+                case -1:
+                    gen.inc(m_regs[_Rd_].allocatedReg);
+                    break;
+                default:
+                    gen.sub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+            }
+        } else {
+            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg - m_regs[_Rt_].val]);
+        }
+    } else {
+        allocateReg(_Rd_, _Rs_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        if (_Rs_ == _Rd_) {  // Rd -= Rt
+            gen.sub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        } else {
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);
+            gen.sub(eax, m_regs[_Rt_].allocatedReg);
+            gen.mov(m_regs[_Rd_].allocatedReg, eax);
+        }
+    }
+}
+
 void DynaRecCPU::recSLTI() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -1037,6 +1082,68 @@ void DynaRecCPU::recBLEZ() {
     gen.mov(ecx, target);    // ecx = addr if jump is taken
     gen.cmovle(eax, ecx);     // if taken, move the jump addr into eax
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
+}
+
+// TODO: Handle INT_MIN / -1
+void DynaRecCPU::recDIV() {
+    Label divisionByZero;
+
+    if (m_regs[_Rt_].isConst()) { // Check divisor if constant
+        if (m_regs[_Rt_].val == 0) { // Handle case where divisor is 0
+            if (m_regs[_Rs_].isConst()) {
+                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val); // HI = $rs
+                gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rs_].val & 0x80000000 ? 1 : -1); // LO = 1 or -1 depending on the sign of $rs
+            }
+
+            else {
+                allocateReg(_Rs_);
+                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].allocatedReg); // Set hi to $rs
+                gen.mov(eax, m_regs[_Rs_].allocatedReg);
+                gen.shr(eax, 31);
+                gen.lea(eax, dword[rax + rax - 1]);
+                gen.mov(dword[contextPointer + LO_OFFSET], eax); // Set lo to 1 or -1 depending on the sign of $rs
+            }
+
+            return;
+        }
+
+        gen.mov(ecx, m_regs[_Rt_].val); // Divisor in ecx
+        if (m_regs[_Rs_].isConst()) {
+            gen.mov(eax, m_regs[_Rs_].val);
+        } else {
+            allocateReg(_Rs_);
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);
+        }
+    } else { // non-constant divisor
+        if (m_regs[_Rs_].isConst()) {
+            allocateReg(_Rt_);
+            gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
+        } else {
+            allocateReg(_Rt_, _Rs_);
+            gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
+            gen.mov(eax, m_regs[_Rs_].allocatedReg); // Dividend in eax
+            gen.test(ecx, ecx);  // Check if divisor is 0
+            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
+        }
+    }
+
+    gen.cdq(); // Sign extend dividend to 64 bits in edx:eax
+    gen.idiv(ecx); // Signed division by divisor
+    gen.mov(dword[contextPointer + LO_OFFSET], eax); // Lo = quotient
+    gen.mov(dword[contextPointer + HI_OFFSET], edx); // Hi = remainder
+
+    if (!m_regs[_Rt_].isConst()) { // Emit a division by 0 handler if the divisor is unknown at compile time
+        Label end;
+        gen.jmp(end, CodeGenerator::LabelType::T_NEAR); // skip to the end if not a div by zero
+        gen.L(divisionByZero); // Here starts our division by 0 handler
+
+        gen.mov(dword[contextPointer + HI_OFFSET], eax);  // Set hi to $rs
+        gen.shr(eax, 31);
+        gen.lea(eax, dword[rax + rax - 1]);
+        gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Set lo to 1 or -1 depending on the sign of $rs
+
+        gen.L(end);
+    }
 }
 
 #endif DYNAREC_X86_64
