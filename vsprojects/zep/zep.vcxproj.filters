@@ -37,6 +37,18 @@
     <Filter Include="Header Files\zep\mcommon\file">
       <UniqueIdentifier>{67d5a1ac-9b19-40dc-a6d3-1621482fac71}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\mcommon">
+      <UniqueIdentifier>{94f67219-c258-4ebc-bfd7-13ec1156d097}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mcommon\animation">
+      <UniqueIdentifier>{429414a1-92fb-454c-9364-8046bf2852d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mcommon\file">
+      <UniqueIdentifier>{e2606ba9-e5fb-49e3-adee-3744679c6c7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mcommon\string">
+      <UniqueIdentifier>{a66990f2-4ee1-45a8-852b-e146ac5cfeaf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\third_party\zep\src\buffer.cpp">
@@ -116,6 +128,15 @@
     </ClCompile>
     <ClCompile Include="..\..\third_party\zep\src\window.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\animation\timer.cpp">
+      <Filter>Source Files\mcommon\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\file\path.cpp">
+      <Filter>Source Files\mcommon\file</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\string\stringutils.cpp">
+      <Filter>Source Files\mcommon\string</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

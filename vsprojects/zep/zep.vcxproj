@@ -152,6 +152,9 @@
     <ClCompile Include="..\..\third_party\zep\src\indexer.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\keymap.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\line_widgets.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\animation\timer.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\file\path.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\string\stringutils.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode_search.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode_standard.cpp" />

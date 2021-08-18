@@ -298,6 +298,9 @@
     <ProjectReference Include="..\tracy\tracy.vcxproj">
       <Project>{95de2266-7ce9-44bd-9e7b-dca2b9586d01}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\zep\zep.vcxproj">
+      <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\zlib\zlib.vcxproj">
       <Project>{3125e078-7261-48c4-803e-4b29ceeaa56b}</Project>
     </ProjectReference>
