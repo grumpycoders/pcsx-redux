@@ -2392,10 +2392,8 @@ void DynaRecCPU::recSRAV() {
     }
 }
 
-/// eax: scratch
-/// ecx: Status Register
-/// ebp: PC after the exception
-/// This is slightly inefficient but BREAK/Syscall are extremely uncommon so it doesn't matter.
+// Pushed the this pointer, exception type and bd to the stack, then calls a wrapper function for exceptions
+// Note: We need it to call psxException as some debugger tools won't work without it.
 void DynaRecCPU::recException(Exception e) {
     gen.push(
         (int32_t)
