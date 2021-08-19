@@ -23,9 +23,7 @@ static uint16_t psxMemRead16Wrapper(uint32_t mem) { return PCSX::g_emulator->m_p
 static uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead32(mem); }
 static void psxMemWrite8Wrapper(uint32_t mem, uint8_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite8(mem, value); }
 static void psxMemWrite16Wrapper(uint32_t mem, uint16_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite16(mem, value); }
-static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) {
-    PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value);
-}
+static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value); }
 
 using DynarecCallback = void(*)(); // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -204,6 +202,7 @@ public:
     void recBNE();
     void recBGTZ();
     void recBLEZ();
+    void recBREAK();
     void recCOP0();
     void recDIV();
     void recDIVU();
@@ -238,16 +237,23 @@ public:
     void recSRL();
     void recSRLV();
     void recSUBU();
+    void recSYSCALL();
     void recSW();
     void recXOR();
     void recXORI();
     void testSoftwareInterrupt();
+    void recException(Exception e);
 
     // Prepare for a call to a C++ function and then actually emit it
     template <typename T>
     void call(T& func) {
         prepareForCall();
         gen.callFunc(func);
+    }
+
+    // Load a pointer to the JIT object in "reg" using lea with the context pointer
+    void loadThisPointer(Xbyak::Reg64 reg) {
+        gen.lea(reg, qword[contextPointer - ((uintptr_t)&m_psxRegs - (uintptr_t)this)]);
     }
 
     const func_t m_recBSC[64] = {
@@ -273,8 +279,8 @@ public:
         &DynaRecCPU::recSLL, &DynaRecCPU::recUnknown, &DynaRecCPU::recSRL, &DynaRecCPU::recSRA,  // 00
         &DynaRecCPU::recSLLV, &DynaRecCPU::recUnknown, &DynaRecCPU::recSRLV, &DynaRecCPU::recSRAV,  // 04
         &DynaRecCPU::recJR, &DynaRecCPU::recJALR, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
-        &DynaRecCPU::recMFHI, &DynaRecCPU::recUnknown, &DynaRecCPU::recMFLO, &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recSYSCALL, &DynaRecCPU::recBREAK, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
+        &DynaRecCPU::recMFHI, &DynaRecCPU::recMTHI, &DynaRecCPU::recMFLO, &DynaRecCPU::recMTLO,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recDIV, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c

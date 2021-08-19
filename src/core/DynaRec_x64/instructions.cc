@@ -864,7 +864,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
 
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
-    gen.lea(arg1.cvt64(), qword[contextPointer - ((uintptr_t) &m_psxRegs - (uintptr_t)this)]);
+    loadThisPointer(arg1.cvt64());
     gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
     call(psxExceptionWrapper); // Call the exception wrapper function
@@ -1178,6 +1178,44 @@ void DynaRecCPU::recMFHI() {
     m_regs[_Rd_].setWriteback(true);
 
     gen.mov(m_regs[_Rd_].allocatedReg, dword[contextPointer + HI_OFFSET]);
+}
+
+void DynaRecCPU::recMTLO() {
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rs_].val);
+    } else {
+        allocateReg(_Rs_);
+        gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rs_].allocatedReg);
+    }
+}
+
+void DynaRecCPU::recMTHI() {
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val);
+    } else {
+        allocateReg(_Rs_);
+        gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].allocatedReg);
+    }
+}
+
+void DynaRecCPU::recException(Exception e) {
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+
+    loadThisPointer(arg1.cvt64()); // Pointer to this object in arg1
+    gen.mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2); // Exception type in arg2
+    gen.mov(arg3, (int32_t)m_inDelaySlot); // Store whether we're in a delay slot in arg3
+    gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);  // PC for exception handler to use
+
+    call(psxExceptionWrapper); // Call the exception wrapper
+}
+
+void DynaRecCPU::recSYSCALL() {
+    recException(Exception::Syscall);
+}
+
+void DynaRecCPU::recBREAK() {
+    recException(Exception::Break);
 }
 
 #endif DYNAREC_X86_64
