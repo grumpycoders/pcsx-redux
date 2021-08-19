@@ -803,6 +803,9 @@ void DynaRecCPU::recCOP0() {
         case 4:
             recMTC0();
             break;
+        case 16:
+            recRFE();
+            break;
         default:
             fmt::print("Unimplemented cop0 op {}\n", _Rs_);
             abort();
@@ -840,10 +843,24 @@ void DynaRecCPU::recMTC0() {
 
     // Writing to SR/Cause can sometimes forcefully fire an interrupt. So we need to emit extra code to check.
     if (_Rd_ == 12 || _Rd_ == 13) {
-        testSoftwareInterrupt();
+        testSoftwareInterrupt<true>();
     }
 }
 
+void DynaRecCPU::recRFE() {
+    gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]); // eax = COP0 status register
+    gen.mov(ecx, eax); // Copy to ecx
+    gen.and_(eax, ~0xF); // Clear bottom 4 bits of eax
+    gen.and_(ecx, 0x3c); // Shift bits [5:2] of previous SR two places to the right, mask out the rest of the cached SR value
+    gen.shr(ecx, 2);
+    gen.or_(eax, ecx); // Merge the shifted bits into eax
+    gen.mov(dword[contextPointer + COP0_OFFSET(12)], eax); // Write eax back to SR
+    testSoftwareInterrupt<false>();
+}
+
+// Checks if a write to SR/CAUSE forcibly triggered an interrupt
+// loadSR: Shows if SR is already in eax or if it should be loaded from memory
+template <bool loadSR>
 void DynaRecCPU::testSoftwareInterrupt() { 
     Label label;
     if (!m_pcWrittenBack) {
@@ -853,7 +870,9 @@ void DynaRecCPU::testSoftwareInterrupt() {
 
     m_stopCompiling = true;
 
-    gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]); // eax = SR
+    if constexpr (loadSR) {
+        gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]);  // eax = SR
+    }
     gen.test(eax, 1);                                      // Check if interrupts are enabled
     gen.jz(label, CodeGenerator::LabelType::T_NEAR);       // If not, skip to the end
 

@@ -225,6 +225,7 @@ public:
     void recOR();
     void recORI();
     void recREGIMM();
+    void recRFE();
     void recSB();
     void recSH();
     void recSLL();
@@ -241,8 +242,10 @@ public:
     void recSW();
     void recXOR();
     void recXORI();
-    void testSoftwareInterrupt();
     void recException(Exception e);
+    
+    template <bool readSR>
+    void testSoftwareInterrupt();
 
     // Prepare for a call to a C++ function and then actually emit it
     template <typename T>
