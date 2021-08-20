@@ -46,7 +46,8 @@ void main() {
     Frag_UV = UV;
     Frag_Color = Color;
     gl_Position = u_projMatrix * vec4(Position.xy, 0, 1);
-})";
+}
+)";
 
 static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
 /* The Pixel Shader is most likely what the user will want to change. */
@@ -58,7 +59,8 @@ layout (location = 0) out vec4 Out_Color;
 void main() {
     Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
     Out_Color.a = 1.0;
-})";
+}
+)";
 
 static const char *const c_defaultLuaInvoker = R"(
 -- All of this code is sandboxed, as in any global variable it
@@ -113,11 +115,10 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_v
             std::ostringstream code;
             code << in.rdbuf();
             in.close();
-            m_vertexShaderEditor.SetText(code.str());
+            m_vertexShaderEditor.setText(code.str());
         } else {
-            m_vertexShaderEditor.SetText(c_defaultVertexShader);
+            m_vertexShaderEditor.setText(c_defaultVertexShader);
         }
-        m_vertexShaderEditor.SetLanguageDefinition(TextEditor::LanguageDefinition::GLSL());
     }
     {
         f.replace_extension("glslp");
@@ -126,11 +127,10 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_v
             std::ostringstream code;
             code << in.rdbuf();
             in.close();
-            m_pixelShaderEditor.SetText(code.str());
+            m_pixelShaderEditor.setText(code.str());
         } else {
-            m_pixelShaderEditor.SetText(c_defaultPixelShader);
+            m_pixelShaderEditor.setText(c_defaultPixelShader);
         }
-        m_pixelShaderEditor.SetLanguageDefinition(TextEditor::LanguageDefinition::GLSL());
     }
     {
         f.replace_extension("lua");
@@ -139,11 +139,10 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_v
             std::ostringstream code;
             code << in.rdbuf();
             in.close();
-            m_luaEditor.SetText(code.str());
+            m_luaEditor.setText(code.str());
         } else {
-            m_luaEditor.SetText(c_defaultLuaInvoker);
+            m_luaEditor.setText(c_defaultLuaInvoker);
         }
-        m_luaEditor.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua());
     }
 }
 
@@ -305,17 +304,17 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
         {
             f.replace_extension("glslv");
             std::ofstream out(f, std::ofstream::out);
-            out << m_vertexShaderEditor.GetText();
+            out << m_vertexShaderEditor.getText();
         }
         {
             f.replace_extension("glslp");
             std::ofstream out(f, std::ofstream::out);
-            out << m_pixelShaderEditor.GetText();
+            out << m_pixelShaderEditor.getText();
         }
         {
             f.replace_extension("lua");
             std::ofstream out(f, std::ofstream::out);
-            out << m_luaEditor.GetText();
+            out << m_luaEditor.getText();
         }
     }
 
@@ -379,23 +378,37 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
     float width = contents.x / 3 - style.ItemInnerSpacing.x;
     gui->useMonoFont();
     if (m_showAll) {
-        m_vertexShaderEditor.Render(_("Vertex Shader"), {width, -footerHeight}, true);
+        ImVec2 size = {width, contents.y - footerHeight};
+        ImGui::BeginChild("VertexShaderEditor", size);
+        m_vertexShaderEditor.draw();
+        ImGui::EndChild();
         ImGui::SameLine();
-        m_pixelShaderEditor.Render(_("Pixel Shader"), {width, -footerHeight}, true);
+        ImGui::BeginChild("PixelShaderEditor", size);
+        m_pixelShaderEditor.draw();
+        ImGui::EndChild();
         ImGui::SameLine();
-        m_luaEditor.Render(_("Lua Invoker"), {width, -footerHeight}, true);
+        ImGui::BeginChild("LuaInvoker", size);
+        m_luaEditor.draw();
+        ImGui::EndChild();
     } else {
         if (ImGui::BeginTabBar("MyTabBar")) {
+            ImVec2 size = {contents.x, contents.y - footerHeight};
             if (ImGui::BeginTabItem(_("Vertex Shader"))) {
-                m_vertexShaderEditor.Render(_("Vertex Shader"), {0, -footerHeight}, true);
+                ImGui::BeginChild("VertexShaderEditor", size);
+                m_vertexShaderEditor.draw();
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(_("Pixel Shader"))) {
-                m_pixelShaderEditor.Render(_("Pixel Shader"), {0, -footerHeight}, true);
+                ImGui::BeginChild("PixelShaderEditor", size);
+                m_pixelShaderEditor.draw();
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(_("Lua Invoker"))) {
-                m_luaEditor.Render(_("Lua Invoker"), {0, -footerHeight}, true);
+                ImGui::BeginChild("LuaInvoker", size);
+                m_luaEditor.draw();
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
@@ -413,7 +426,7 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
 
     ImGui::End();
 
-    return m_vertexShaderEditor.IsTextChanged() || m_pixelShaderEditor.IsTextChanged() || m_luaEditor.IsTextChanged();
+    return m_vertexShaderEditor.hasTextChanged() || m_pixelShaderEditor.hasTextChanged() || m_luaEditor.hasTextChanged();
 }
 
 void PCSX::Widgets::ShaderEditor::getRegistry(std::unique_ptr<Lua> &L) {
