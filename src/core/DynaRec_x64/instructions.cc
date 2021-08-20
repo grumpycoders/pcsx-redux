@@ -1181,6 +1181,62 @@ void DynaRecCPU::recDIV() {
     }
 }
 
+void DynaRecCPU::recDIVU() {
+    Label divisionByZero;
+
+    if (m_regs[_Rt_].isConst()) {     // Check divisor if constant
+        if (m_regs[_Rt_].val == 0) {  // Handle case where divisor is 0
+            if (m_regs[_Rs_].isConst()) {
+                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val);  // HI = $rs
+                gen.mov(dword[contextPointer + LO_OFFSET], -1);  // LO gets set to -1 on DIVU by zero
+            }
+
+            else {
+                allocateReg(_Rs_);
+                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].allocatedReg);  // Set hi to $rs
+                gen.mov(dword[contextPointer + LO_OFFSET], -1); // Set lo to -1
+            }
+
+            return;
+        }
+
+        gen.mov(ecx, m_regs[_Rt_].val);  // Divisor in ecx
+        if (m_regs[_Rs_].isConst()) {
+            gen.mov(eax, m_regs[_Rs_].val);
+        } else {
+            allocateReg(_Rs_);
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);
+        }
+    } else {  // non-constant divisor
+        if (m_regs[_Rs_].isConst()) {
+            allocateReg(_Rt_);
+            gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
+        } else {
+            allocateReg(_Rt_, _Rs_);
+            gen.mov(ecx, m_regs[_Rt_].allocatedReg);                   // Divisor in ecx
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);                   // Dividend in eax
+            gen.test(ecx, ecx);                                        // Check if divisor is 0
+            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
+        }
+    }
+
+    gen.xor_(edx, edx); // Set top 32 bits of dividend to 
+    gen.div(ecx);     // Unsigned division by divisor
+    gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Lo = quotient
+    gen.mov(dword[contextPointer + HI_OFFSET], edx);  // Hi = remainder
+
+    if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
+        Label end;
+        gen.jmp(end, CodeGenerator::LabelType::T_NEAR);  // skip to the end if not a div by zero
+        gen.L(divisionByZero);                           // Here starts our division by 0 handler
+
+        gen.mov(dword[contextPointer + HI_OFFSET], eax);  // Set hi to $rs
+        gen.mov(dword[contextPointer + LO_OFFSET], -1);  // Set lo to -1
+
+        gen.L(end);
+    }
+}
+
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFLO() {
     maybeCancelDelayedLoad(_Rd_);

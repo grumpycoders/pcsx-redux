@@ -142,7 +142,9 @@ public:
         Init();
     }
     
-    virtual void Shutdown() final { 
+    virtual void Shutdown() final {
+        printf("Bye\n");
+        dumpBuffer();
         if (gen.getCode() == nullptr) return; // This should never be true
         delete[] m_recompilerLUT;
         delete[] m_ramBlocks;
@@ -285,7 +287,7 @@ public:
         &DynaRecCPU::recSYSCALL, &DynaRecCPU::recBREAK, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
         &DynaRecCPU::recMFHI, &DynaRecCPU::recMTHI, &DynaRecCPU::recMFLO, &DynaRecCPU::recMTLO,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
-        &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recDIV, &DynaRecCPU::recUnknown,  // 18
+        &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recDIV, &DynaRecCPU::recDIVU,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recSUBU,  // 20
         &DynaRecCPU::recAND, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
