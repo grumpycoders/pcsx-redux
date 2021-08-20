@@ -63,8 +63,7 @@ void DynaRecCPU::loadContext() {
 
 // Spill the volatile allocated registers into guest registers in preparation for a call to a C++ function
 void DynaRecCPU::prepareForCall() {
-    m_needsStackFrame = true;
-    if (m_allocatedRegisters > ALLOCATEABLE_NON_VOLATILE_COUNT) { // Check if there's any allocated volatiles to flush
+    if (m_allocatedRegisters > ALLOCATEABLE_NON_VOLATILE_COUNT) {  // Check if there's any allocated volatiles to flush
         for (auto i = ALLOCATEABLE_NON_VOLATILE_COUNT; i < m_allocatedRegisters; i++) {  // iterate volatile regs
             if (m_hostRegs[i].mappedReg) {  // Unallocate and spill to guest regs as appropriate
                 const auto previous = m_hostRegs[i].mappedReg.value();  // Get previously allocated register
@@ -78,9 +77,9 @@ void DynaRecCPU::prepareForCall() {
             }
         }
 
-        // Since we just flushed all our volatiles, we can perform an optimization by making the allocator start allocating from the first
-        // volatile again. This makes it so we have to flush less often, as we free up regs every time we call a C++ function instead of
-        // letting them linger and go to waste.
+        // Since we just flushed all our volatiles, we can perform an optimization by making the allocator start
+        // allocating from the first volatile again. This makes it so we have to flush less often, as we free up
+        // regs every time we call a C++ function instead of letting them linger and go to waste.
         m_allocatedRegisters = ALLOCATEABLE_NON_VOLATILE_COUNT;
     }
 }

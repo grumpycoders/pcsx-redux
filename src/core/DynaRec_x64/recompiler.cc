@@ -52,7 +52,6 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     m_nextIsDelaySlot = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
-    m_needsStackFrame = false;
     m_pcWrittenBack = false;
 
     int count = 0; // How many instructions have we compiled?
@@ -64,9 +63,6 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
 
     *callback = (DynarecCallback) gen.getCurr();
     loadContext(); // Load a pointer to our CPU context
-    if constexpr (isWindows()) {
-        gen.sub(rsp, 32); // Allocate shadow stack space on Windows
-    }
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
@@ -108,8 +104,12 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     
     flushRegs();
     if constexpr (isWindows()) {
-        gen.add(rsp, 32); // Deallocate shadow stack space on Windows
+        if (m_needsStackFrame) {
+            gen.add(rsp, 32);  // Deallocate shadow stack space on Windows
+            m_needsStackFrame = false;
+        }
     }
+
     if (!m_pcWrittenBack) {
         gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
     }

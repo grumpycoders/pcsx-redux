@@ -38,7 +38,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     Emitter gen;
     uint32_t m_pc; // Recompiler PC
 
-    bool m_needsStackFrame; // Do we need to setup a stack frame? Usually needed when the block has C fallbacks
+    bool m_needsStackFrame = false; // Do we need to setup a stack frame? Usually needed when the block has C fallbacks
     bool m_stopCompiling; // Should we stop compiling code?
     bool m_pcWrittenBack; // Has the PC been written back already by a jump?
     uint32_t m_ramSize;   // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
@@ -131,6 +131,7 @@ public:
             return false;
         }
         m_regs[0].markConst(0); // $zero is always zero!
+        m_needsStackFrame = false;
 
         gen.reset();
         return true;
@@ -232,6 +233,7 @@ public:
     void recSH();
     void recSLL();
     void recSLLV();
+    void recSLT();
     void recSLTI();
     void recSLTIU();
     void recSLTU();
@@ -249,9 +251,26 @@ public:
     template <bool readSR>
     void testSoftwareInterrupt();
 
+    // Sets up the shadow stack space on Windows for function calls
+    void setupStackFrame() {
+        if constexpr (isWindows()) {
+            if (!m_needsStackFrame) {
+                m_needsStackFrame = true;
+                gen.sub(rsp, 32);
+            }
+        }
+    }
+
     // Prepare for a call to a C++ function and then actually emit it
-    template <typename T>
+    // setupStack: Tells us if we should check whether we need to set up a stack frame for this call.
+    // Should only be false for instructions that use conditional calls, as the stack frame should be set up
+    // unconditionally in that case
+    template <bool setupStack = true, typename T>
     void call(T& func) {
+        if constexpr (setupStack) {
+            setupStackFrame();
+        }
+
         prepareForCall();
         gen.callFunc(func);
     }
@@ -291,7 +310,7 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recSUBU,  // 20
         &DynaRecCPU::recAND, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSLTU,  // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSLT, &DynaRecCPU::recSLTU,  // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34

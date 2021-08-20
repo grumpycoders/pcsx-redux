@@ -219,6 +219,36 @@ void DynaRecCPU::recSLTU() {
     }
 }
 
+void DynaRecCPU::recSLT() {
+    BAILZERO(_Rd_);
+    maybeCancelDelayedLoad(_Rd_);
+
+    if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
+        m_regs[_Rd_].markConst((int32_t) m_regs[_Rs_].val < (int32_t) m_regs[_Rt_].val);
+    } else if (m_regs[_Rs_].isConst()) {
+        allocateReg(_Rd_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.setge(al);
+        gen.movzx(m_regs[_Rd_].allocatedReg, al);
+    } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rd_, _Rs_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.setl(al);
+        gen.movzx(m_regs[_Rd_].allocatedReg, al);
+    } else {
+        allocateReg(_Rd_, _Rs_, _Rt_);
+        m_regs[_Rd_].setWriteback(true);
+
+        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].allocatedReg);
+        gen.setl(al);
+        gen.movzx(m_regs[_Rd_].allocatedReg, al);
+    }
+}
+
 void DynaRecCPU::recAND() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -869,6 +899,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     }
 
     m_stopCompiling = true;
+    setupStackFrame(); // This function uses a conditional call, so we will have to set up a stack frame separately and unconditionally.
 
     if constexpr (loadSR) {
         gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]);  // eax = SR
@@ -886,7 +917,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     loadThisPointer(arg1.cvt64());
     gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
-    call(psxExceptionWrapper); // Call the exception wrapper function
+    call<false>(psxExceptionWrapper); // Call the exception wrapper function
 
     gen.L(label);
 }
