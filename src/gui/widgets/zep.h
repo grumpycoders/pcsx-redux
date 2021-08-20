@@ -21,9 +21,9 @@
 
 #include <optional>
 
+#include "zep/editor.h"
 #include "zep/filesystem.h"
 #include "zep/imgui/display_imgui.h"
-#include "zep/imgui/editor_imgui.h"
 #include "zep/mode_standard.h"
 #include "zep/mode_vim.h"
 #include "zep/tab_window.h"
@@ -38,7 +38,7 @@ static Zep::NVec2f GetPixelScale() { return Zep::NVec2f(2.25f); }
 class ZepEditor final : public Zep::IZepComponent {
   public:
     ZepEditor(const std::string &name)
-        : m_editor(std::make_unique<Zep::ZepEditor_ImGui>(Zep::ZepPath(""), GetPixelScale())) {
+        : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(GetPixelScale()), Zep::ZepPath(""))) {
         m_editor->RegisterCallback(this);
 
         m_editor->InitWithText(name, "");
@@ -52,7 +52,7 @@ class ZepEditor final : public Zep::IZepComponent {
         m_editor.reset();
     }
 
-    bool draw();
+    void draw();
 
     virtual Zep::ZepEditor &GetEditor() const override final { return *m_editor; }
 
@@ -76,7 +76,7 @@ class ZepEditor final : public Zep::IZepComponent {
     }
 
   private:
-    std::unique_ptr<Zep::ZepEditor_ImGui> m_editor;
+    std::unique_ptr<Zep::ZepEditor> m_editor;
     std::optional<decltype(m_editor->GetMRUBuffer()->GetLastUpdateTime())> m_lastUpdateTime;
 };
 
