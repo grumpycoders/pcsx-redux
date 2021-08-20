@@ -16,13 +16,13 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 }
 
 void DynaRecCPU::execute() {
-    m_pc = m_psxRegs.pc;
-    if (!isPcValid(m_pc)) {
+    InterceptBIOS(m_psxRegs.pc);
+    if (!isPcValid(m_psxRegs.pc)) {
         error();
         return;
     }
 
-    auto recompilerFunc = getBlockPointer(m_pc);
+    auto recompilerFunc = getBlockPointer(m_psxRegs.pc);
     if (*recompilerFunc == nullptr) { // Check if this block has been compiled, compile it if not
         recompile(recompilerFunc);
     }
@@ -53,6 +53,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
+    m_pc = m_psxRegs.pc;
 
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block

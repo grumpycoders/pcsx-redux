@@ -3209,7 +3209,7 @@ void DynaRecCPU::SetPGXPMode(uint32_t pgxpMode) {
     Reset();
 }
 
-#else
+#elsif defined(DYNAREC_NONE)
 
 class DynaRecCPU : public PCSX::R3000Acpu {
   public:

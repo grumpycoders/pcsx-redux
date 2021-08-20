@@ -112,6 +112,10 @@ void DynaRecCPU::recADDIU() {
     }
 }
 
+void DynaRecCPU::recSUB() {
+    recSUBU();
+}
+
 void DynaRecCPU::recSUBU() {
     BAILZERO(_Rd_);
     maybeCancelDelayedLoad(_Rd_);
@@ -290,20 +294,18 @@ void DynaRecCPU::recANDI() {
         if (m_regs[_Rs_].isConst()) {
             m_regs[_Rt_].val &= _ImmU_;
         } else {
-            m_regs[_Rt_].setWriteback(true);
             allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
             gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
             m_regs[_Rt_].markConst(m_regs[_Rs_].val & _ImmU_);
         } else {
-            m_regs[_Rt_].setWriteback(true);
             allocateReg(_Rt_, _Rs_);
+            m_regs[_Rt_].setWriteback(true);
             gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
-            if (_ImmU_) {
-                gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
-            }
+            gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     }
 }
@@ -386,16 +388,16 @@ void DynaRecCPU::recORI() {
         if (m_regs[_Rs_].isConst()) {
             m_regs[_Rt_].val |= _ImmU_;
         } else {
-            m_regs[_Rt_].setWriteback(true);
             allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
             gen.or_(m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
             m_regs[_Rt_].markConst(m_regs[_Rs_].val | _ImmU_);
         } else {
-            m_regs[_Rt_].setWriteback(true);
             allocateReg(_Rt_, _Rs_);
+            m_regs[_Rt_].setWriteback(true);
             gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
             if (_ImmU_) {
                 gen.or_(m_regs[_Rt_].allocatedReg, _ImmU_);
@@ -445,16 +447,16 @@ void DynaRecCPU::recXORI() {
         if (m_regs[_Rs_].isConst()) {
             m_regs[_Rt_].val ^= _ImmU_;
         } else {
-            m_regs[_Rt_].setWriteback(true);
             allocateReg(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
             gen.xor_(m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
             m_regs[_Rt_].markConst(m_regs[_Rs_].val ^ _ImmU_);
         } else {
-            m_regs[_Rt_].setWriteback(true);
             allocateReg(_Rt_, _Rs_);
+            m_regs[_Rt_].setWriteback(true);
             gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
             if (_ImmU_) {
                 gen.xor_(m_regs[_Rt_].allocatedReg, _ImmU_);
@@ -490,20 +492,20 @@ void DynaRecCPU::recSLLV() {
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
         m_regs[_Rd_].markConst(m_regs[_Rt_].val << (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
-        m_regs[_Rd_].setWriteback(true);
-
         if (_Rt_ == _Rd_) {
             allocateReg(_Rd_);
+            m_regs[_Rd_].setWriteback(true);
             gen.shl(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
         } else {
             allocateReg(_Rd_, _Rt_);
+            m_regs[_Rd_].setWriteback(true);
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
             gen.shl(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
         }
     } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        allocateReg(_Rd_, _Rs_);
         gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
         gen.shl(m_regs[_Rd_].allocatedReg, cl);  // No need to mask the shift amount, x86 does so implicitly
@@ -548,20 +550,20 @@ void DynaRecCPU::recSRAV() {
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
         m_regs[_Rd_].markConst((int32_t) m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
-        m_regs[_Rd_].setWriteback(true);
-
         if (_Rt_ == _Rd_) {
             allocateReg(_Rd_);
+            m_regs[_Rd_].setWriteback(true);
             gen.sar(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
         } else {
             allocateReg(_Rd_, _Rt_);
+            m_regs[_Rd_].setWriteback(true);
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
             gen.sar(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
         }
     } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        allocateReg(_Rd_, _Rs_);
         gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
         gen.sar(m_regs[_Rd_].allocatedReg, cl);  // No need to mask the shift amount, x86 does so implicitly
@@ -606,28 +608,28 @@ void DynaRecCPU::recSRLV() {
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
         m_regs[_Rd_].markConst(m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
-        m_regs[_Rd_].setWriteback(true);
-
         if (_Rt_ == _Rd_) {
             allocateReg(_Rd_);
+            m_regs[_Rd_].setWriteback(true);
             gen.shr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
         } else {
             allocateReg(_Rd_, _Rt_);
+            m_regs[_Rd_].setWriteback(true);
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
             gen.shr(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val & 0x1F);
         }
     } else if (m_regs[_Rt_].isConst()) {
+        allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        allocateReg(_Rd_, _Rs_);
         gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
         gen.shr(m_regs[_Rd_].allocatedReg, cl);  // No need to mask the shift amount, x86 does so implicitly
     } else {
         allocateReg(_Rd_, _Rs_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
+        
         gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
-
         if (_Rt_ == _Rd_) {
             gen.shr(m_regs[_Rd_].allocatedReg, cl);
         } else {
@@ -638,8 +640,35 @@ void DynaRecCPU::recSRLV() {
 }
 
 void DynaRecCPU::recMULT() {
-    fmt::print("Lo: {}\nHi: {}\n", (void*) &m_psxRegs.GPR.n.lo, (void*) &m_psxRegs.GPR.n.hi);
-    abort();
+    if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
+        gen.mov(qword[contextPointer + LO_OFFSET], 0);  // Set both LO and HI to 0 in a single 64-bit write
+        return;
+    }
+
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(eax, m_regs[_Rs_].val);
+
+        if (m_regs[_Rt_].isConst()) {
+            gen.mov(edx, m_regs[_Rt_].val);
+            gen.imul(edx);
+        } else {
+            allocateReg(_Rt_);
+            gen.imul(m_regs[_Rt_].allocatedReg);
+        }
+    } else {
+        if (m_regs[_Rt_].isConst()) {
+            allocateReg(_Rs_);
+            gen.mov(eax, m_regs[_Rt_].val);
+            gen.imul(m_regs[_Rs_].allocatedReg);
+        } else {
+            allocateReg(_Rt_, _Rs_);
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);
+            gen.imul(m_regs[_Rt_].allocatedReg);
+        }
+    }
+
+    gen.mov(dword[contextPointer + LO_OFFSET], eax);
+    gen.mov(dword[contextPointer + HI_OFFSET], edx);
 }
 
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
@@ -1111,7 +1140,7 @@ void DynaRecCPU::recBEQ() {
 
     gen.mov(ecx, target);   // ecx = addr if jump taken
     gen.mov(eax, m_pc + 4); // eax = addr if jump not taken
-    gen.cmove(eax, ecx);    // if not equal, move the jump addr into eax
+    gen.cmove(eax, ecx);    // if equal, move the jump addr into eax
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 
@@ -1213,6 +1242,9 @@ void DynaRecCPU::recDIV() {
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
             gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
+            gen.mov(ecx, m_regs[_Rt_].allocated); // Divisor in ecx
+            gen.test(ecx, ecx); // Check if divisor is 0
+            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
         } else {
             allocateReg(_Rt_, _Rs_);
             gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
@@ -1271,11 +1303,14 @@ void DynaRecCPU::recDIVU() {
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
             gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
+            gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
+            gen.test(ecx, ecx); // Check if divisor is 0
+            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
         } else {
             allocateReg(_Rt_, _Rs_);
-            gen.mov(ecx, m_regs[_Rt_].allocatedReg);                   // Divisor in ecx
-            gen.mov(eax, m_regs[_Rs_].allocatedReg);                   // Dividend in eax
-            gen.test(ecx, ecx);                                        // Check if divisor is 0
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);  // Dividend in eax
+            gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
+            gen.test(ecx, ecx); // Check if divisor is 0
             gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
         }
     }
@@ -1353,4 +1388,4 @@ void DynaRecCPU::recBREAK() {
     recException(Exception::Break);
 }
 
-#endif DYNAREC_X86_64
+#endif // DYNAREC_X86_64

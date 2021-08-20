@@ -244,6 +244,7 @@ public:
     void recSRAV();
     void recSRL();
     void recSRLV();
+    void recSUB();
     void recSUBU();
     void recSYSCALL();
     void recSW();
@@ -317,7 +318,7 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recMULT, &DynaRecCPU::recMULTU, &DynaRecCPU::recDIV, &DynaRecCPU::recDIVU,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
-        &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recSUBU,  // 20
+        &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recSUB, &DynaRecCPU::recSUBU,  // 20
         &DynaRecCPU::recAND, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSLT, &DynaRecCPU::recSLTU,  // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
