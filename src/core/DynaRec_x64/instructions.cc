@@ -1212,124 +1212,130 @@ void DynaRecCPU::recBLEZ() {
 void DynaRecCPU::recDIV() {
     Label divisionByZero;
 
-    if (m_regs[_Rt_].isConst()) { // Check divisor if constant
-        if (m_regs[_Rt_].val == 0) { // Handle case where divisor is 0
-            if (m_regs[_Rs_].isConst()) {
-                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val); // HI = $rs
-                gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rs_].val & 0x80000000 ? 1 : -1); // LO = 1 or -1 depending on the sign of $rs
-            }
-
-            else {
-                allocateReg(_Rs_);
-                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].allocatedReg); // Set hi to $rs
-                gen.mov(eax, m_regs[_Rs_].allocatedReg);
-                gen.shr(eax, 31);
-                gen.lea(eax, dword[rax + rax - 1]);
-                gen.mov(dword[contextPointer + LO_OFFSET], eax); // Set lo to 1 or -1 depending on the sign of $rs
-            }
-
-            return;
-        }
-
-        gen.mov(ecx, m_regs[_Rt_].val); // Divisor in ecx
-        if (m_regs[_Rs_].isConst()) {
-            gen.mov(eax, m_regs[_Rs_].val);
-        } else {
-            allocateReg(_Rs_);
-            gen.mov(eax, m_regs[_Rs_].allocatedReg);
-        }
-    } else { // non-constant divisor
-        if (m_regs[_Rs_].isConst()) {
-            allocateReg(_Rt_);
-            gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
-            gen.mov(ecx, m_regs[_Rt_].allocated); // Divisor in ecx
-            gen.test(ecx, ecx); // Check if divisor is 0
-            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
-        } else {
-            allocateReg(_Rt_, _Rs_);
-            gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
-            gen.mov(eax, m_regs[_Rs_].allocatedReg); // Dividend in eax
-            gen.test(ecx, ecx);  // Check if divisor is 0
-            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
-        }
-    }
-
-    gen.cdq(); // Sign extend dividend to 64 bits in edx:eax
-    gen.idiv(ecx); // Signed division by divisor
-    gen.mov(dword[contextPointer + LO_OFFSET], eax); // Lo = quotient
-    gen.mov(dword[contextPointer + HI_OFFSET], edx); // Hi = remainder
-
-    if (!m_regs[_Rt_].isConst()) { // Emit a division by 0 handler if the divisor is unknown at compile time
-        Label end;
-        gen.jmp(end, CodeGenerator::LabelType::T_NEAR); // skip to the end if not a div by zero
-        gen.L(divisionByZero); // Here starts our division by 0 handler
-
-        gen.mov(dword[contextPointer + HI_OFFSET], eax);  // Set hi to $rs
-        gen.shr(eax, 31);
-        gen.lea(eax, dword[rax + rax - 1]);
-        gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Set lo to 1 or -1 depending on the sign of $rs
-
-        gen.L(end);
-    }
-}
-
-void DynaRecCPU::recDIVU() {
-    Label divisionByZero;
-
     if (m_regs[_Rt_].isConst()) {     // Check divisor if constant
         if (m_regs[_Rt_].val == 0) {  // Handle case where divisor is 0
             if (m_regs[_Rs_].isConst()) {
+                gen.mov(dword[contextPointer + LO_OFFSET],
+                        m_regs[_Rs_].val & 0x80000000 ? 1 : -1);  // LO = 1 or -1 depending on the sign of $rs
                 gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val);  // HI = $rs
-                gen.mov(dword[contextPointer + LO_OFFSET], -1);  // LO gets set to -1 on DIVU by zero
             }
 
             else {
                 allocateReg(_Rs_);
                 gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].allocatedReg);  // Set hi to $rs
-                gen.mov(dword[contextPointer + LO_OFFSET], -1); // Set lo to -1
+                gen.mov(eax, m_regs[_Rs_].allocatedReg);
+                gen.shr(eax, 31);
+                gen.lea(eax, dword[rax + rax - 1]);
+                gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Set lo to 1 or -1 depending on the sign of $rs
             }
 
             return;
         }
 
-        gen.mov(ecx, m_regs[_Rt_].val);  // Divisor in ecx
         if (m_regs[_Rs_].isConst()) {
-            gen.mov(eax, m_regs[_Rs_].val);
-        } else {
-            allocateReg(_Rs_);
-            gen.mov(eax, m_regs[_Rs_].allocatedReg);
+            gen.mov(dword[contextPointer + LO_OFFSET], (int32_t)m_regs[_Rt_].val / (int32_t)m_regs[_Rs_].val);
+            gen.mov(dword[contextPointer + HI_OFFSET], (int32_t)m_regs[_Rt_].val % (int32_t)m_regs[_Rs_].val);
+            return;
         }
-    } else {  // non-constant divisor
+
+        allocateReg(_Rs_);
+        gen.mov(eax, m_regs[_Rs_].allocatedReg);
+        gen.mov(ecx, m_regs[_Rt_].val);  // Divisor in ecx
+    } else {                             // non-constant divisor
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
             gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
-            gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
-            gen.test(ecx, ecx); // Check if divisor is 0
-            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
-        } else {
+        }
+
+        else {
             allocateReg(_Rt_, _Rs_);
             gen.mov(eax, m_regs[_Rs_].allocatedReg);  // Dividend in eax
-            gen.mov(ecx, m_regs[_Rt_].allocatedReg); // Divisor in ecx
-            gen.test(ecx, ecx); // Check if divisor is 0
-            gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
         }
+
+        gen.mov(ecx, m_regs[_Rt_].allocatedReg);                   // Divisor in ecx
+        gen.test(ecx, ecx);                                        // Check if divisor is 0
+        gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
     }
 
-    gen.xor_(edx, edx); // Set top 32 bits of dividend to 
-    gen.div(ecx);     // Unsigned division by divisor
-    gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Lo = quotient
-    gen.mov(dword[contextPointer + HI_OFFSET], edx);  // Hi = remainder
+    gen.cdq();      // Sign extend dividend to 64 bits in edx:eax
+    gen.idiv(ecx);  // Signed division by divisor
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
         Label end;
         gen.jmp(end, CodeGenerator::LabelType::T_NEAR);  // skip to the end if not a div by zero
         gen.L(divisionByZero);                           // Here starts our division by 0 handler
 
-        gen.mov(dword[contextPointer + HI_OFFSET], eax);  // Set hi to $rs
-        gen.mov(dword[contextPointer + LO_OFFSET], -1);  // Set lo to -1
+        gen.mov(edx, eax);  // Set hi to $rs
+        gen.shr(eax, 31);
+        gen.lea(eax, dword[rax + rax - 1]);  // Set lo to 1 or -1 depending on the sign of $rs
 
         gen.L(end);
     }
+
+    gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Lo = quotient
+    gen.mov(dword[contextPointer + HI_OFFSET], edx);  // Hi = remainder
+}
+
+void DynaRecCPU::recDIVU() {
+    Label divisionByZero;
+
+    if (m_regs[_Rt_].isConst()) {                            // Check divisor if constant
+        if (m_regs[_Rt_].val == 0) {                         // Handle case where divisor is 0
+            gen.mov(dword[contextPointer + LO_OFFSET], -1);  // Set lo to -1
+
+            if (m_regs[_Rs_].isConst()) {
+                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val);  // HI = $rs
+            }
+
+            else {
+                allocateReg(_Rs_);
+                gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].allocatedReg);  // Set hi to $rs
+            }
+
+            return;
+        }
+
+        if (m_regs[_Rs_].isConst()) {
+            gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rt_].val / m_regs[_Rs_].val);
+            gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rt_].val % m_regs[_Rs_].val);
+            return;
+        }
+
+        allocateReg(_Rs_);
+        gen.mov(eax, m_regs[_Rs_].allocatedReg);
+        gen.mov(ecx, m_regs[_Rt_].val);  // Divisor in ecx
+    } else {                             // non-constant divisor
+        if (m_regs[_Rs_].isConst()) {
+            allocateReg(_Rt_);
+            gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
+        }
+
+        else {
+            allocateReg(_Rt_, _Rs_);
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);  // Dividend in eax
+        }
+
+        gen.mov(ecx, m_regs[_Rt_].allocatedReg);                   // Divisor in ecx
+        gen.test(ecx, ecx);                                        // Check if divisor is 0
+        gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
+    }
+
+    gen.xor_(edx, edx);  // Set top 32 bits of dividend to
+    gen.div(ecx);        // Unsigned division by divisor
+
+    if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
+        Label end;
+        gen.jmp(end, CodeGenerator::LabelType::T_NEAR);  // skip to the end if not a div by zero
+        gen.L(divisionByZero);                           // Here starts our division by 0 handler
+
+        gen.mov(edx, eax);  // Set hi to $rs
+        gen.mov(eax, -1);   // Set lo to -1
+
+        gen.L(end);
+    }
+
+    gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Lo = quotient
+    gen.mov(dword[contextPointer + HI_OFFSET], edx);  // Hi = remainder
 }
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
