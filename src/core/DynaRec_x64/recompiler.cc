@@ -114,7 +114,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
     }
 
-    gen.add(dword[contextPointer + CYCLE_OFFSET], count); // Add block cycles
+    gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
     gen.pop(contextPointer); // Restore our context pointer register
     gen.ret();
 }

@@ -642,26 +642,43 @@ void DynaRecCPU::recMULT() {
     abort();
 }
 
-void DynaRecCPU::recLB() {
+// TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
+void DynaRecCPU::recMULTU() {
+    if ((m_regs[_Rs_].isConst() && m_regs[_Rs_].val == 0) || (m_regs[_Rt_].isConst() && m_regs[_Rt_].val == 0)) {
+        gen.mov(qword[contextPointer + LO_OFFSET], 0); // Set both LO and HI to 0 in a single 64-bit write
+        return;
+    }
+
     if (m_regs[_Rs_].isConst()) {
-        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
-        gen.mov(arg1, addr);
+        gen.mov(eax, m_regs[_Rs_].val);
+        
+        if (m_regs[_Rt_].isConst()) {
+            gen.mov(edx, m_regs[_Rt_].val);
+            gen.mul(edx);
+        }
+        else {
+            allocateReg(_Rt_);
+            gen.mul(m_regs[_Rt_].allocatedReg);
+        }
     } else {
-        allocateReg(_Rs_);
-        gen.lea(arg1, dword [m_regs[_Rs_].allocatedReg + _Imm_]);
+        if (m_regs[_Rt_].isConst()) {
+            allocateReg(_Rs_);
+            gen.mov(eax, m_regs[_Rt_].val);
+            gen.mul(m_regs[_Rs_].allocatedReg);
+        } else {
+            allocateReg(_Rt_, _Rs_);
+            gen.mov(eax, m_regs[_Rs_].allocatedReg);
+            gen.mul(m_regs[_Rt_].allocatedReg);
+        }
     }
 
-    call(psxMemRead8Wrapper);
-
-    if (_Rt_) {
-        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise call() might flush it
-        m_regs[_Rt_].setWriteback(true);
-        gen.movsx(m_regs[_Rt_].allocatedReg, al);
-    }
+    gen.mov(dword[contextPointer + LO_OFFSET], eax);
+    gen.mov(dword[contextPointer + HI_OFFSET], edx);
 }
 
-void DynaRecCPU::recLBU() {
-    if (m_regs[_Rs_].isConst()) {
+template <int size, bool signExtend>
+void DynaRecCPU::recompileLoad() {
+    if (m_regs[_Rs_].isConst()) { // Store the address in first argument register
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         gen.mov(arg1, addr);
     } else {
@@ -669,32 +686,44 @@ void DynaRecCPU::recLBU() {
         gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
     }
 
-    call(psxMemRead8Wrapper);
+    switch (size) {
+        case 8:
+            call(psxMemRead8Wrapper);
+            break;
+        case 16:
+            call(psxMemRead16Wrapper);
+            break;
+        case 32:
+            call(psxMemRead32Wrapper);
+            break;
+        default:
+            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_psxRegs.code);
+            break;
+    }
 
     if (_Rt_) {
-        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise call() might flush it
+        allocateReg(_Rt_);  // Allocate $rt after calling the read function, otherwise call() might flush it
         m_regs[_Rt_].setWriteback(true);
-        gen.movzx(m_regs[_Rt_].allocatedReg, al);
+        
+        switch (size) {
+            case 8:
+                signExtend ? gen.movsx(m_regs[_Rt_].allocatedReg, al) : gen.movzx(m_regs[_Rt_].allocatedReg, al);
+                break;
+            case 16:
+                signExtend ? gen.movsx(m_regs[_Rt_].allocatedReg, ax) : gen.movzx(m_regs[_Rt_].allocatedReg, ax);
+                break;
+            case 32:
+                gen.mov(m_regs[_Rt_].allocatedReg, eax);
+                break;
+        }
     }
 }
 
-void DynaRecCPU::recLW() {
-    if (m_regs[_Rs_].isConst()) {
-        const uint32_t addr = m_regs[_Rs_].val + _Imm_;
-        gen.mov(arg1, addr);
-    } else {
-        allocateReg(_Rs_);
-        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
-    }
-
-    call(psxMemRead32Wrapper);
-
-    if (_Rt_) {
-        allocateReg(_Rt_); // Allocate $rt after calling the read function, otherwise call() might flush it
-        m_regs[_Rt_].setWriteback(true);
-        gen.mov(m_regs[_Rt_].allocatedReg, eax);
-    }
-}
+void DynaRecCPU::recLB()  { recompileLoad<8, true>(); }
+void DynaRecCPU::recLBU() { recompileLoad<8, false>(); }
+void DynaRecCPU::recLH()  { recompileLoad<16, true>(); }
+void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
+void DynaRecCPU::recLW()  { recompileLoad<32, false>(); }
 
 void DynaRecCPU::recSB() {
     if (m_regs[_Rs_].isConst()) {
@@ -703,10 +732,10 @@ void DynaRecCPU::recSB() {
         if (pointer != nullptr) {
             gen.mov(rax, (uintptr_t)pointer);
             if (m_regs[_Rt_].isConst()) {
-                gen.mov(word[rax], m_regs[_Rt_].val & 0xFF);
+                gen.mov(Xbyak::util::byte[rax], m_regs[_Rt_].val & 0xFF);
             } else {
                 allocateReg(_Rt_);
-                gen.mov(word[rax], m_regs[_Rt_].allocatedReg.cvt8());
+                gen.mov(Xbyak::util::byte[rax], m_regs[_Rt_].allocatedReg.cvt8());
             }
 
             return;

@@ -215,6 +215,8 @@ public:
     void recJR();
     void recLB();
     void recLBU();
+    void recLH();
+    void recLHU();
     void recLW();
     void recLUI();
     void recMFC0();
@@ -224,6 +226,7 @@ public:
     void recMTHI();
     void recMTLO();
     void recMULT();
+    void recMULTU();
     void recNOR();
     void recOR();
     void recORI();
@@ -280,6 +283,12 @@ public:
         gen.lea(reg, qword[contextPointer - ((uintptr_t)&m_psxRegs - (uintptr_t)this)]);
     }
 
+    template <int size, bool signExtend>
+    void recompileLoad();
+
+    template <int size>
+    void recompileStore();
+
     const func_t m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
         &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recBLEZ, &DynaRecCPU::recBGTZ,  // 04
@@ -289,8 +298,8 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
-        &DynaRecCPU::recLB, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recLW,  // 20
-        &DynaRecCPU::recLBU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
+        &DynaRecCPU::recLB, &DynaRecCPU::recLH, &DynaRecCPU::recUnknown, &DynaRecCPU::recLW,  // 20
+        &DynaRecCPU::recLBU, &DynaRecCPU::recLHU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
         &DynaRecCPU::recSB, &DynaRecCPU::recSH, &DynaRecCPU::recUnknown, &DynaRecCPU::recSW,       // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
@@ -306,7 +315,7 @@ public:
         &DynaRecCPU::recSYSCALL, &DynaRecCPU::recBREAK, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
         &DynaRecCPU::recMFHI, &DynaRecCPU::recMTHI, &DynaRecCPU::recMFLO, &DynaRecCPU::recMTLO,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
-        &DynaRecCPU::recMULT, &DynaRecCPU::recUnknown, &DynaRecCPU::recDIV, &DynaRecCPU::recDIVU,  // 18
+        &DynaRecCPU::recMULT, &DynaRecCPU::recMULTU, &DynaRecCPU::recDIV, &DynaRecCPU::recDIVU,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recUnknown, &DynaRecCPU::recSUBU,  // 20
         &DynaRecCPU::recAND, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
