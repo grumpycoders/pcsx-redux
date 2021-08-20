@@ -158,8 +158,8 @@ void DynaRecCPU::recSUBU() {
 }
 
 void DynaRecCPU::recSLTI() {
-    BAILZERO(_Rd_);
-    maybeCancelDelayedLoad(_Rd_);
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
 
     if (m_regs[_Rs_].isConst()) {
         m_regs[_Rt_].markConst((int32_t) m_regs[_Rs_].val < _Imm_);
@@ -174,8 +174,8 @@ void DynaRecCPU::recSLTI() {
 }
 
 void DynaRecCPU::recSLTIU() {
-    BAILZERO(_Rd_);
-    maybeCancelDelayedLoad(_Rd_);
+    BAILZERO(_Rt_);
+    maybeCancelDelayedLoad(_Rt_);
 
     if (m_regs[_Rs_].isConst()) {
         m_regs[_Rt_].markConst(m_regs[_Rs_].val < (uint32_t) _Imm_);
