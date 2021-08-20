@@ -29,10 +29,12 @@ CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS += -Ithird_party/luv/src
 CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
+CPPFLAGS += -Ithird_party/zep/include
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -Ithird_party/xbyak/xbyak
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W -DIMGUI_ENABLE_FREETYPE
+CPPFLAGS += -DZEP_FEATURE_CPP_FILE_SYSTEM
 IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
 
 CPPFLAGS_Release += -O3
@@ -92,6 +94,10 @@ SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS += $(wildcard third_party/zep/src/*.cpp)
+SRCS += third_party/zep/src/mcommon/animation/timer.cpp
+SRCS += third_party/zep/src/mcommon/file/path.cpp
+SRCS += third_party/zep/src/mcommon/string/stringutils.cpp
 ifeq ($(UNAME_S),Darwin)
     SRCS += src/main/complain.mm
 endif
