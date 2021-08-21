@@ -43,7 +43,7 @@ class ZepEditor final : public Zep::IZepComponent {
 
         ZepSyntax_Lua::registerSyntax(m_editor);
 
-        m_editor->InitWithText(name, "");
+        m_editor->InitWithText(name, "\n");
         m_editor->SetGlobalMode(Zep::ZepMode_Standard::StaticName());
     }
 

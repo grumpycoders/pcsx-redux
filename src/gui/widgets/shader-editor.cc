@@ -34,7 +34,7 @@
 lua_Number PCSX::Widgets::ShaderEditor::s_index = 0;
 
 static const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
-/* The Vertex Shader isn't necessarily very useful, but is still provided here. */
+// The Vertex Shader isn't necessarily very useful, but is still provided here.
 precision mediump float;
 layout (location = 0) in vec2 Position;
 layout (location = 1) in vec2 UV;
@@ -50,7 +50,7 @@ void main() {
 )";
 
 static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
-/* The Pixel Shader is most likely what the user will want to change. */
+// The Pixel Shader is most likely what the user will want to change.
 precision mediump float;
 uniform sampler2D Texture;
 in vec2 Frag_UV;
