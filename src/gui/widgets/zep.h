@@ -21,6 +21,7 @@
 
 #include <optional>
 
+#include "gui/widgets/zep-lua.h"
 #include "zep/editor.h"
 #include "zep/filesystem.h"
 #include "zep/imgui/display_imgui.h"
@@ -40,6 +41,8 @@ class ZepEditor final : public Zep::IZepComponent {
         : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""))) {
         m_editor->RegisterCallback(this);
 
+        ZepSyntax_Lua::registerSyntax(m_editor);
+
         m_editor->InitWithText(name, "");
         m_editor->SetGlobalMode(Zep::ZepMode_Standard::StaticName());
     }
@@ -51,7 +54,7 @@ class ZepEditor final : public Zep::IZepComponent {
         m_editor.reset();
     }
 
-    void draw(GUI*gui);
+    void draw(GUI *gui);
 
     virtual Zep::ZepEditor &GetEditor() const override final { return *m_editor; }
 

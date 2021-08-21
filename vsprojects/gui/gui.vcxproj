@@ -196,6 +196,7 @@
     <ClCompile Include="..\..\src\gui\widgets\source.cc" />
     <ClCompile Include="..\..\src\gui\widgets\types.cc" />
     <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\zep-lua.cc" />
     <ClCompile Include="..\..\src\gui\widgets\zep.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -216,6 +217,7 @@
     <ClInclude Include="..\..\src\gui\widgets\source.h" />
     <ClInclude Include="..\..\src\gui\widgets\types.h" />
     <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />
+    <ClInclude Include="..\..\src\gui\widgets\zep-lua.h" />
     <ClInclude Include="..\..\src\gui\widgets\zep.h" />
     <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
