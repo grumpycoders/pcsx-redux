@@ -328,8 +328,8 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
         &DynaRecCPU::recLB, &DynaRecCPU::recLH, &DynaRecCPU::recLWL, &DynaRecCPU::recLW,  // 20
         &DynaRecCPU::recLBU, &DynaRecCPU::recLHU, &DynaRecCPU::recLWR, &DynaRecCPU::recUnknown,  // 24
-        &DynaRecCPU::recSB, &DynaRecCPU::recSH, &DynaRecCPU::recUnknown, &DynaRecCPU::recSW,       // 28
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
+        &DynaRecCPU::recSB, &DynaRecCPU::recSH, &DynaRecCPU::recSWL, &DynaRecCPU::recSW,       // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSWR, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 38
