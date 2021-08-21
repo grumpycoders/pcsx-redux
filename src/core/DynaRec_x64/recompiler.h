@@ -37,12 +37,19 @@
 #define HI_OFFSET ((uintptr_t) &m_psxRegs.GPR.n.hi - (uintptr_t) &m_psxRegs)
 #define CYCLE_OFFSET ((uintptr_t)&m_psxRegs.cycle - (uintptr_t)&m_psxRegs)
 
-static uint8_t psxMemRead8Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead8(mem); }
-static uint16_t psxMemRead16Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead16(mem); }
-static uint32_t psxMemRead32Wrapper(uint32_t mem) { return PCSX::g_emulator->m_psxMem->psxMemRead32(mem); }
-static void psxMemWrite8Wrapper(uint32_t mem, uint8_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite8(mem, value); }
-static void psxMemWrite16Wrapper(uint32_t mem, uint16_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite16(mem, value); }
-static void psxMemWrite32Wrapper(uint32_t mem, uint32_t value) { PCSX::g_emulator->m_psxMem->psxMemWrite32(mem, value); }
+static uint8_t psxMemRead8Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead8(address); }
+static uint16_t psxMemRead16Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead16(address); }
+static uint32_t psxMemRead32Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead32(address); }
+
+static void psxMemWrite8Wrapper(uint32_t address, uint8_t value) {
+    PCSX::g_emulator->m_psxMem->psxMemWrite8(address, value);
+}
+static void psxMemWrite16Wrapper(uint32_t address, uint16_t value) {
+    PCSX::g_emulator->m_psxMem->psxMemWrite16(address, value);
+}
+static void psxMemWrite32Wrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_psxMem->psxMemWrite32(address, value);
+}
 
 using DynarecCallback = void(*)(); // A function pointer to JIT-emitted code
 using namespace Xbyak;
@@ -237,6 +244,8 @@ public:
     void recLH();
     void recLHU();
     void recLW();
+    void recLWL();
+    void recLWR();
     void recLUI();
     void recMFC0();
     void recMTC0();
@@ -267,6 +276,8 @@ public:
     void recSUBU();
     void recSYSCALL();
     void recSW();
+    void recSWL();
+    void recSWR();
     void recXOR();
     void recXORI();
     void recException(Exception e);
@@ -315,8 +326,8 @@ public:
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
-        &DynaRecCPU::recLB, &DynaRecCPU::recLH, &DynaRecCPU::recUnknown, &DynaRecCPU::recLW,  // 20
-        &DynaRecCPU::recLBU, &DynaRecCPU::recLHU, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
+        &DynaRecCPU::recLB, &DynaRecCPU::recLH, &DynaRecCPU::recLWL, &DynaRecCPU::recLW,  // 20
+        &DynaRecCPU::recLBU, &DynaRecCPU::recLHU, &DynaRecCPU::recLWR, &DynaRecCPU::recUnknown,  // 24
         &DynaRecCPU::recSB, &DynaRecCPU::recSH, &DynaRecCPU::recUnknown, &DynaRecCPU::recSW,       // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
