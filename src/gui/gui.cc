@@ -573,6 +573,8 @@ void PCSX::GUI::endFrame() {
     glfwGetFramebufferSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
     normalizeDimensions(m_renderSize, m_renderRatio);
+    m_renderSize.x = std::max(m_renderSize.x, 1.0f);
+    m_renderSize.y = std::max(m_renderSize.y, 1.0f);
 
     bool changed = false;
 
