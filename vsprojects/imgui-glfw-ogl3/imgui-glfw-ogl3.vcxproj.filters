@@ -21,9 +21,6 @@
     <ClCompile Include="..\..\third_party\imgui\imgui_draw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\third_party\imgui\examples\libs\gl3w\GL\gl3w.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\third_party\imgui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +40,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\third_party\imgui\misc\freetype\imgui_freetype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\gl3w\GL\gl3w.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
