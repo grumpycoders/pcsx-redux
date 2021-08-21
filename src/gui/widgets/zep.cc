@@ -19,10 +19,37 @@
 
 #include "gui/widgets/zep.h"
 
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
-void PCSX::Widgets::ZepEditor::draw() {
+#include "gui/gui.h"
+
+static float dpi_pixel_height_from_point_size(float pointSize, float pixelScaleY) {
+    const auto fontDotsPerInch = 72.0f;
+    auto inches = pointSize / fontDotsPerInch;
+    return inches * (pixelScaleY * 96.0f);
+}
+
+void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
     auto dpiScale = ImGui::GetWindowDpiScale();
+
+    if (!m_dpiScale.has_value() || (m_dpiScale.value() != dpiScale)) {
+        m_dpiScale = dpiScale;
+        auto& display = m_editor->GetDisplay();
+        display.SetPixelScale(Zep::NVec2f(dpiScale));
+        auto font = gui->getMono();
+        int fontPixelHeight = (int)dpi_pixel_height_from_point_size(14.0f, dpiScale);
+
+        display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, font, fontPixelHeight));
+        display.SetFont(Zep::ZepTextType::Text, std::make_shared<Zep::ZepFont_ImGui>(display, font, fontPixelHeight));
+        display.SetFont(Zep::ZepTextType::Heading1,
+                        std::make_shared<Zep::ZepFont_ImGui>(display, font, int(fontPixelHeight * 1.75)));
+        display.SetFont(Zep::ZepTextType::Heading2,
+                        std::make_shared<Zep::ZepFont_ImGui>(display, font, int(fontPixelHeight * 1.5)));
+        display.SetFont(Zep::ZepTextType::Heading3,
+                        std::make_shared<Zep::ZepFont_ImGui>(display, font, int(fontPixelHeight * 1.25)));
+    }
+
     auto min = ImGui::GetCursorScreenPos();
     auto max = ImGui::GetContentRegionAvail();
     max.x = std::max(1.0f, max.x);

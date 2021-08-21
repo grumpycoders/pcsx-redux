@@ -380,34 +380,34 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
     if (m_showAll) {
         ImVec2 size = {width, contents.y - footerHeight};
         ImGui::BeginChild("VertexShaderEditor", size);
-        m_vertexShaderEditor.draw();
+        m_vertexShaderEditor.draw(gui);
         ImGui::EndChild();
         ImGui::SameLine();
         ImGui::BeginChild("PixelShaderEditor", size);
-        m_pixelShaderEditor.draw();
+        m_pixelShaderEditor.draw(gui);
         ImGui::EndChild();
         ImGui::SameLine();
         ImGui::BeginChild("LuaInvoker", size);
-        m_luaEditor.draw();
+        m_luaEditor.draw(gui);
         ImGui::EndChild();
     } else {
         if (ImGui::BeginTabBar("MyTabBar")) {
             ImVec2 size = {contents.x, contents.y - footerHeight};
             if (ImGui::BeginTabItem(_("Vertex Shader"))) {
                 ImGui::BeginChild("VertexShaderEditor", size);
-                m_vertexShaderEditor.draw();
+                m_vertexShaderEditor.draw(gui);
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(_("Pixel Shader"))) {
                 ImGui::BeginChild("PixelShaderEditor", size);
-                m_pixelShaderEditor.draw();
+                m_pixelShaderEditor.draw(gui);
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(_("Lua Invoker"))) {
                 ImGui::BeginChild("LuaInvoker", size);
-                m_luaEditor.draw();
+                m_luaEditor.draw(gui);
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }

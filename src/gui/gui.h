@@ -278,6 +278,7 @@ class GUI final {
 
   public:
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
+    ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
 
     struct {
         bool empty() const { return filename.empty(); }

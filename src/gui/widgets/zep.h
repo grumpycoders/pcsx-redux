@@ -31,14 +31,13 @@
 #include "zep/window.h"
 
 namespace PCSX {
+class GUI;
 namespace Widgets {
-
-static Zep::NVec2f GetPixelScale() { return Zep::NVec2f(2.25f); }
 
 class ZepEditor final : public Zep::IZepComponent {
   public:
     ZepEditor(const std::string &name)
-        : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(GetPixelScale()), Zep::ZepPath(""))) {
+        : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""))) {
         m_editor->RegisterCallback(this);
 
         m_editor->InitWithText(name, "");
@@ -52,7 +51,7 @@ class ZepEditor final : public Zep::IZepComponent {
         m_editor.reset();
     }
 
-    void draw();
+    void draw(GUI*gui);
 
     virtual Zep::ZepEditor &GetEditor() const override final { return *m_editor; }
 
@@ -78,6 +77,7 @@ class ZepEditor final : public Zep::IZepComponent {
   private:
     std::unique_ptr<Zep::ZepEditor> m_editor;
     std::optional<decltype(m_editor->GetMRUBuffer()->GetLastUpdateTime())> m_lastUpdateTime;
+    std::optional<float> m_dpiScale;
 };
 
 }  // namespace Widgets
