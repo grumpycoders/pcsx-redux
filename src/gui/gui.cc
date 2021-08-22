@@ -923,7 +923,7 @@ void PCSX::GUI::endFrame() {
         m_luaInspector.draw(_("Lua Inspector"), g_emulator->m_lua.get(), this);
     }
     if (m_luaEditor.m_show) {
-        m_luaEditor.draw(_("Lua Editor"));
+        m_luaEditor.draw(_("Lua Editor"), this);
     }
     if (m_events.m_show) {
         m_events.draw(reinterpret_cast<const uint32_t*>(g_emulator->m_psxMem->g_psxM), _("Kernel events"));
@@ -989,7 +989,7 @@ void PCSX::GUI::endFrame() {
 
     m_types.draw();
     if (m_source.m_show) {
-        m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc);
+        m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc, this);
     }
 
     if (m_outputShaderEditor.draw(_("Output Video"), this)) {

@@ -89,7 +89,6 @@ SRCS += third_party/imgui/examples/libs/gl3w/GL/gl3w.c
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
-SRCS += third_party/ImGuiColorTextEdit/TextEditor.cpp
 SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/tracy/TracyClient.cpp

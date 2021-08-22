@@ -23,25 +23,31 @@
 
 #include <filesystem>
 
-#include "ImGuiColorTextEdit/TextEditor.h"
 #include "core/stacktrace.h"
+#include "gui/widgets/zep.h"
 
 namespace PCSX {
+
+class GUI;
 
 namespace Widgets {
 
 class Source {
   public:
-    Source() { m_text.SetReadOnly(true); }
+    Source() {
+        /*
+        m_text.SetReadOnly(true);
+        */
+    }
     bool m_show = false;
 
-    void draw(const char* title, uint32_t pc);
+    void draw(const char* title, uint32_t pc, GUI* gui);
 
   private:
     uint64_t m_oldPC = 0xffffffffffffffff;
     std::vector<Stacktrace::Element> m_currentStacktrace;
     std::filesystem::path m_oldPath;
-    TextEditor m_text;
+    ZepEditor m_text = {"src.c"};
 };
 
 }  // namespace Widgets
