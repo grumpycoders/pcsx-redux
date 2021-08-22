@@ -394,7 +394,7 @@ end)(jit.status()))
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
-    ImGui_ImplOpenGL3_Init(nullptr);
+    ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -573,6 +573,8 @@ void PCSX::GUI::endFrame() {
     glfwGetFramebufferSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
     normalizeDimensions(m_renderSize, m_renderRatio);
+    m_renderSize.x = std::max(m_renderSize.x, 1.0f);
+    m_renderSize.y = std::max(m_renderSize.y, 1.0f);
 
     bool changed = false;
 
