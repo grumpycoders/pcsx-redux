@@ -41,8 +41,9 @@ CPPFLAGS += -I../../openbios/uC-sdk-glue
 SRCS += \
 ../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
-lwlr.s \
 branchbranch.s \
 cpu.c \
+links.s \
+lwlr.s \
 
 include ../../common.mk
