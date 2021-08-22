@@ -267,17 +267,20 @@
 #define CV2(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
 #define CV3(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
 
-static uint32_t gte_leadingzerocount(uint32_t lzcs) {
-    uint32_t lzcr = 0;
+// Returns the number of leading zeroes in a 32-bit integer, with 0 returning 32
+static uint32_t gte_leadingzerocount(uint32_t num) {
+    uint32_t count = 0;
 
-    if ((lzcs & 0x80000000) == 0) lzcs = ~lzcs;
-
-    while ((lzcs & 0x80000000) != 0) {
-        lzcr++;
-        lzcs <<= 1;
+    if (num == 0) { // We need to special-case 0 otherwise the loop below is infinite
+        return 32;
     }
 
-    return lzcr;
+    while ((num & 0x80000000) == 0) { // Count how many of the top bits are zeroes until we encounter a 1
+        count++;
+        num <<= 1;
+    }
+
+    return count;
 }
 
 static int32_t LIM(int32_t value, int32_t max, int32_t min, uint32_t flag) {
