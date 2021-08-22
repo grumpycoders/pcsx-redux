@@ -121,28 +121,17 @@ PCSX::Widgets::ZepSyntax_Lua::ZepSyntax_Lua(Zep::ZepBuffer& buffer)
 
 void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
     auto& buffer = m_buffer.GetWorkingBuffer();
-    auto itrCurrent = buffer.begin() + m_processedChar;
+    auto itrCurrent = buffer.begin();
     auto itrEnd = buffer.begin() + m_targetChar;
 
     assert(std::distance(itrCurrent, itrEnd) < int(m_syntax.size()));
     assert(m_syntax.size() == buffer.size());
 
-    std::string delim(" \t,.\n;(){}[]=:");
-    std::string lineEnd("\n");
+    static const std::string delim(" \t+-*/&|^!=~%#$<>@,\n;(){}[]=:");
+    static const std::string lineEnd("\n");
+    static const std::string whiteSpace(" \t");
+    static const std::string delimWithDot = delim + ".";
 
-    // Walk backwards to previous delimiter
-    while (itrCurrent > buffer.begin()) {
-        if (std::find(delim.begin(), delim.end(), *itrCurrent) == delim.end()) {
-            itrCurrent--;
-        } else {
-            break;
-        }
-    }
-
-    // Back to the previous line
-    while (itrCurrent > buffer.begin() && *itrCurrent != '\n') {
-        itrCurrent--;
-    }
     itrEnd = buffer.find_first_of(itrEnd, buffer.end(), lineEnd.begin(), lineEnd.end());
 
     // Mark a region of the syntax buffer with the correct marker
@@ -166,23 +155,113 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
             return;
         }
 
+        if (lineEnd.find_first_of(*itrCurrent) != std::string::npos) {
+            itrCurrent++;
+            continue;
+        }
+
+        if (whiteSpace.find_first_of(*itrCurrent) != std::string::npos) {
+            mark(itrCurrent, itrCurrent + 1, Zep::ThemeColor::Whitespace, Zep::ThemeColor::None);
+            itrCurrent++;
+            continue;
+        }
+
+        auto itrFirst = itrCurrent;
+        auto itrLast = buffer.find_first_of(itrFirst, buffer.end(), lineEnd.begin(), lineEnd.end());
+
+        // comments & multiline strings and comments
+        auto ch = *itrCurrent;
+        auto getFurther = [&](unsigned inc) -> decltype(ch) {
+            auto itr = itrCurrent + inc;
+            return itr < buffer.end() ? *itr : '\n';
+        };
+        auto isMultilineString = [&](unsigned inc) -> int {
+            auto ch = getFurther(inc++);
+            if (ch != '[') return -1;
+            int ret = 0;
+            while (true) {
+                ch = getFurther(inc++);
+                switch (ch) {
+                    case '[':
+                        return ret;
+                        break;
+                    case '=':
+                        ret++;
+                        break;
+                    default:
+                        return -1;
+                        break;
+                }
+            }
+        };
+        std::function<int(unsigned, int, bool)> findEndMultiline = [&](unsigned inc, int level, bool isComment) -> int {
+            if (isComment) {
+                while ((inc + itrCurrent) < buffer.end()) {
+                    auto ch = getFurther(inc++);
+                    if (ch == '-' && (getFurther(inc) == '-')) {
+                        inc++;
+                        break;
+                    }
+                }
+            }
+            while ((inc + itrCurrent) < buffer.end()) {
+                auto ch = getFurther(inc++);
+                if (ch == ']') {
+                    for (unsigned c = 0; c < level; c++) {
+                        ch = getFurther(inc++);
+                        if (ch != '=') return findEndMultiline(inc, level, isComment);
+                    }
+                    ch = getFurther(inc++);
+                    if (ch != ']') return findEndMultiline(inc, level, isComment);
+                    return inc - 1;
+                }
+            }
+            return -1;
+        };
+        switch (ch) {
+            case '-': {
+                if (getFurther(1) == '-') {
+                    auto mlc = isMultilineString(2);
+                    if (mlc < 0) {
+                        mark(itrCurrent, itrLast, Zep::ThemeColor::Comment, Zep::ThemeColor::None);
+                        itrCurrent = itrLast + 1;
+                        continue;
+                    }
+                    auto mlcEnd = findEndMultiline(4 + mlc, mlc, true);
+                    if (mlcEnd >= 0) {
+                        mark(itrCurrent, itrCurrent + mlcEnd, Zep::ThemeColor::Comment, Zep::ThemeColor::None);
+                        itrCurrent += mlcEnd + 1;
+                        continue;
+                    }
+                }
+            } break;
+            case '[': {
+                auto mls = isMultilineString(0);
+                if (mls < 0) break;
+                auto mlsEnd = findEndMultiline(2 + mls, mls, true);
+                if (mlsEnd >= 0) {
+                    mark(itrCurrent, itrCurrent + mlsEnd, Zep::ThemeColor::String, Zep::ThemeColor::None);
+                    itrCurrent += mlsEnd + 1;
+                    continue;
+                }
+            } break;
+        }
+
+        static const std::string parenthesis("{}[]()");
+        if (parenthesis.find_first_of(ch) != std::string::npos) {
+            mark(itrCurrent, itrCurrent + 1, Zep::ThemeColor::Parenthesis, Zep::ThemeColor::None);
+            itrCurrent++;
+            continue;
+        }
+
         // Find a token, skipping delim <itrFirst, itrLast>
-        auto itrFirst = buffer.find_first_not_of(itrCurrent, buffer.end(), delim.begin(), delim.end());
+        itrFirst = buffer.find_first_not_of(itrCurrent, buffer.end(), delimWithDot.begin(), delimWithDot.end());
         if (itrFirst == buffer.end()) break;
 
-        auto itrLast = buffer.find_first_of(itrFirst, buffer.end(), delim.begin(), delim.end());
+        itrLast = buffer.find_first_of(itrFirst, buffer.end(), delimWithDot.begin(), delimWithDot.end());
 
         // Ensure we found a token
         assert(itrLast >= itrFirst);
-
-        // Mark whitespace
-        for (auto& itr = itrCurrent; itr < itrFirst; itr++) {
-            if (*itr == ' ') {
-                mark(itr, itr + 1, Zep::ThemeColor::Whitespace, Zep::ThemeColor::None);
-            } else if (*itr == '\t') {
-                mark(itr, itr + 1, Zep::ThemeColor::Whitespace, Zep::ThemeColor::None);
-            }
-        }
 
         // Do I need to make a string here?
         auto token = std::string(itrFirst, itrLast);
@@ -191,12 +270,103 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
             mark(itrFirst, itrLast, Zep::ThemeColor::Keyword, Zep::ThemeColor::None);
         } else if (m_identifiers.find(token) != m_identifiers.end()) {
             mark(itrFirst, itrLast, Zep::ThemeColor::Identifier, Zep::ThemeColor::None);
-        } else if (token.find_first_not_of("0123456789") == std::string::npos) {
-            mark(itrFirst, itrLast, Zep::ThemeColor::Number, Zep::ThemeColor::None);
-        } else if (token.find_first_not_of("{}()[]") == std::string::npos) {
-            mark(itrFirst, itrLast, Zep::ThemeColor::Parenthesis, Zep::ThemeColor::None);
         } else {
             mark(itrFirst, itrLast, Zep::ThemeColor::Normal, Zep::ThemeColor::None);
+        }
+
+        // Find numbers - very crude, but better than nothing
+        // won't handle exponent numbers, nor C++17's hexadecimal floating points
+        auto maybeParseHexa = [&](decltype(itrFirst) itr, decltype(itrFirst)& last) -> bool {
+            auto first = itr;
+            static const std::string hexa("0123456789abcdefABCDEF");
+            while (itr < buffer.end()) {
+                auto ch = *itr;
+                if (delim.find_first_of(ch) != std::string::npos) {
+                    break;
+                }
+                if (hexa.find_first_of(ch) == std::string::npos) {
+                    return false;
+                }
+                itr++;
+            }
+
+            last = itr;
+            return itr != first;
+        };
+        auto maybeParseOctal = [&](decltype(itrFirst) itr, decltype(itrFirst)& last) -> bool {
+            auto first = itr;
+            static const std::string octal("01234567");
+            while (itr < buffer.end()) {
+                auto ch = *itr;
+                if (delim.find_first_of(ch) != std::string::npos) {
+                    break;
+                }
+                if (octal.find_first_of(ch) == std::string::npos) {
+                    return false;
+                }
+                itr++;
+            }
+
+            last = itr;
+            return itr != first;
+        };
+        auto maybeParseFloat = [&](decltype(itrFirst) itr, decltype(itrFirst)& last) -> bool {
+            auto first = itr;
+            static const std::string numbers("0123456789");
+            bool gotDot = false;
+            bool gotF = false;
+            bool gotSomething = false;
+            while (itr < buffer.end()) {
+                auto ch = *itr;
+                if (delim.find_first_of(ch) != std::string::npos) {
+                    break;
+                } else if (gotF) {
+                    return false;
+                }
+                if (ch == '.') {
+                    if (!gotDot) {
+                        gotDot = true;
+                    } else {
+                        return false;
+                    }
+                } else if (ch == 'f' && !gotF) {
+                    gotF = true;
+                } else if (numbers.find_first_of(ch) != std::string::npos) {
+                    gotSomething = true;
+                } else {
+                    return false;
+                }
+                itr++;
+            }
+
+            last = itr;
+            return itr != first && gotSomething;
+        };
+        if (std::isdigit(*itrFirst) || *itrFirst == '.') {
+            auto itrNum = itrFirst;
+            auto last = itrFirst;
+            bool parsed = false;
+            if (*itrFirst == '0') {
+                itrNum++;
+                switch (*itrNum) {
+                    case 'x':
+                        parsed = maybeParseHexa(itrFirst + 2, last);
+                        break;
+                    case '.':
+                        parsed = maybeParseFloat(itrFirst, last);
+                        break;
+                    default:
+                        parsed = maybeParseOctal(itrFirst, last);
+                        break;
+                }
+            } else {
+                parsed = maybeParseFloat(itrFirst, last);
+            }
+
+            if (parsed) {
+                itrLast = last;
+                mark(itrFirst, itrLast, Zep::ThemeColor::Number, Zep::ThemeColor::None);
+            }
         }
 
         // Find String
@@ -228,8 +398,6 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
         };
         findString('\"');
         findString('\'');
-
-        // TODO: comments, multiline comments, and multiline strings
 
         itrCurrent = itrLast;
     }
