@@ -94,6 +94,7 @@ SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/tracy/TracyClient.cpp
 SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
 SRCS += third_party/zep/src/mcommon/file/path.cpp
