@@ -30,6 +30,7 @@ void DynaRecCPU::reserveReg(int index) {
     m_regs[index].allocatedReg = regToAllocate;
     m_regs[index].markUnknown(); // Mark the register's value as unknown if it were previously const propagated
     m_regs[index].allocated = true; // Mark register as allocated
+    m_regs[index].allocatedRegIndex = m_allocatedRegisters;
 
     // If allocating a non-volatile that hasn't been allocated before, back it up in reg cache
     if (!IS_VOLATILE(m_allocatedRegisters) && !m_hostRegs[m_allocatedRegisters].restore) {

@@ -33,7 +33,7 @@ void DynaRecCPU::recLUI() {
     BAILZERO(_Rt_);
 
     maybeCancelDelayedLoad(_Rt_);
-    m_regs[_Rt_].markConst(m_psxRegs.code << 16);
+    markConst(_Rt_, m_psxRegs.code << 16);
 }
 
 // The Dynarec doesn't currently handle overflow exceptions, so we treat ADD the same as ADDU
@@ -46,7 +46,7 @@ void DynaRecCPU::recADDU() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rs_].val + m_regs[_Rt_].val);
+        markConst(_Rd_, m_regs[_Rs_].val + m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -121,7 +121,7 @@ void DynaRecCPU::recADDIU() {
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
-            m_regs[_Rt_].markConst(m_regs[_Rs_].val + _Imm_);
+            markConst(_Rt_, m_regs[_Rs_].val + _Imm_);
         } else {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
@@ -140,7 +140,7 @@ void DynaRecCPU::recSUBU() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rs_].val - m_regs[_Rt_].val);
+        markConst(_Rd_, m_regs[_Rs_].val - m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -185,7 +185,7 @@ void DynaRecCPU::recSLTI() {
     maybeCancelDelayedLoad(_Rt_);
 
     if (m_regs[_Rs_].isConst()) {
-        m_regs[_Rt_].markConst((int32_t) m_regs[_Rs_].val < _Imm_);
+        markConst(_Rt_, (int32_t) m_regs[_Rs_].val < _Imm_);
     } else {
         allocateReg(_Rt_, _Rs_);
         m_regs[_Rt_].setWriteback(true);
@@ -201,7 +201,7 @@ void DynaRecCPU::recSLTIU() {
     maybeCancelDelayedLoad(_Rt_);
 
     if (m_regs[_Rs_].isConst()) {
-        m_regs[_Rt_].markConst(m_regs[_Rs_].val < (uint32_t) _Imm_);
+        markConst(_Rt_, m_regs[_Rs_].val < (uint32_t) _Imm_);
     } else {
         allocateReg(_Rt_, _Rs_);
         m_regs[_Rt_].setWriteback(true);
@@ -217,7 +217,7 @@ void DynaRecCPU::recSLTU() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rs_].val < m_regs[_Rt_].val);
+        markConst(_Rd_, m_regs[_Rs_].val < m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -247,7 +247,7 @@ void DynaRecCPU::recSLT() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst((int32_t) m_regs[_Rs_].val < (int32_t) m_regs[_Rt_].val);
+        markConst(_Rd_, (int32_t) m_regs[_Rs_].val < (int32_t) m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -277,7 +277,7 @@ void DynaRecCPU::recAND() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rs_].val & m_regs[_Rt_].val);
+        markConst(_Rd_, m_regs[_Rs_].val & m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -319,7 +319,7 @@ void DynaRecCPU::recANDI() {
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
-            m_regs[_Rt_].markConst(m_regs[_Rs_].val & _ImmU_);
+            markConst(_Rt_, m_regs[_Rs_].val & _ImmU_);
         } else {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
@@ -334,7 +334,7 @@ void DynaRecCPU::recNOR() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(~(m_regs[_Rs_].val | m_regs[_Rt_].val));
+        markConst(_Rd_, ~(m_regs[_Rs_].val | m_regs[_Rt_].val));
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -371,7 +371,7 @@ void DynaRecCPU::recOR() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rs_].val | m_regs[_Rt_].val);
+        markConst(_Rd_, m_regs[_Rs_].val | m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -413,7 +413,7 @@ void DynaRecCPU::recORI() {
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
-            m_regs[_Rt_].markConst(m_regs[_Rs_].val | _ImmU_);
+            markConst(_Rt_, m_regs[_Rs_].val | _ImmU_);
         } else {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
@@ -430,7 +430,7 @@ void DynaRecCPU::recXOR() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rs_].val ^ m_regs[_Rt_].val);
+        markConst(_Rd_, m_regs[_Rs_].val ^ m_regs[_Rt_].val);
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -472,7 +472,7 @@ void DynaRecCPU::recXORI() {
         }
     } else {
         if (m_regs[_Rs_].isConst()) {
-            m_regs[_Rt_].markConst(m_regs[_Rs_].val ^ _ImmU_);
+            markConst(_Rt_, m_regs[_Rs_].val ^ _ImmU_);
         } else {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
@@ -489,7 +489,7 @@ void DynaRecCPU::recSLL() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rt_].val << _Sa_);
+        markConst(_Rd_, m_regs[_Rt_].val << _Sa_);
     } else {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -509,7 +509,7 @@ void DynaRecCPU::recSLLV() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rt_].val << (m_regs[_Rs_].val & 0x1F));
+        markConst(_Rd_, m_regs[_Rt_].val << (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
         if (_Rt_ == _Rd_) {
             allocateReg(_Rd_);
@@ -547,7 +547,7 @@ void DynaRecCPU::recSRA() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst((int32_t) m_regs[_Rt_].val >> _Sa_);
+        markConst(_Rd_, (int32_t) m_regs[_Rt_].val >> _Sa_);
     } else {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -567,7 +567,7 @@ void DynaRecCPU::recSRAV() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst((int32_t) m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
+        markConst(_Rd_, (int32_t) m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
         if (_Rt_ == _Rd_) {
             allocateReg(_Rd_);
@@ -605,7 +605,7 @@ void DynaRecCPU::recSRL() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rt_].val >> _Sa_);
+        markConst(_Rd_, m_regs[_Rt_].val >> _Sa_);
     } else {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
@@ -625,7 +625,7 @@ void DynaRecCPU::recSRLV() {
     maybeCancelDelayedLoad(_Rd_);
 
     if (m_regs[_Rs_].isConst() && m_regs[_Rt_].isConst()) {
-        m_regs[_Rd_].markConst(m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
+        markConst(_Rd_, m_regs[_Rt_].val >> (m_regs[_Rs_].val & 0x1F));
     } else if (m_regs[_Rs_].isConst()) {
         if (_Rt_ == _Rd_) {
             allocateReg(_Rd_);
@@ -771,7 +771,7 @@ void DynaRecCPU::recLB()  { recompileLoad<8, true>(); }
 void DynaRecCPU::recLBU() { recompileLoad<8, false>(); }
 void DynaRecCPU::recLH()  { recompileLoad<16, true>(); }
 void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
-void DynaRecCPU::recLW()  { recompileLoad<32, false>(); }
+void DynaRecCPU::recLW()  { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
@@ -1413,14 +1413,14 @@ void DynaRecCPU::recJ() {
 
 void DynaRecCPU::recJAL() {
     maybeCancelDelayedLoad(31);
-    m_regs[31].markConst(m_pc + 4); // Set $ra to the return value, then treat instruction like a normal J
+    markConst(31, m_pc + 4); // Set $ra to the return value, then treat instruction like a normal J
     recJ();
 }
 
 void DynaRecCPU::recJALR() {
     recJR();
     maybeCancelDelayedLoad(_Rd_);
-    m_regs[_Rd_].markConst(m_pc + 4); // Link
+    markConst(_Rd_, m_pc + 4); // Link
 }
 
 void DynaRecCPU::recJR() {
@@ -1469,7 +1469,7 @@ void DynaRecCPU::recREGIMM() {
 
         if (link) {
             maybeCancelDelayedLoad(31);
-            m_regs[31].markConst(m_pc + 4);
+            markConst(31, m_pc + 4);
         }
 
         return;
@@ -1492,7 +1492,7 @@ void DynaRecCPU::recREGIMM() {
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
     if (link) {
         maybeCancelDelayedLoad(31);
-        m_regs[31].markConst(m_pc + 4);
+        markConst(31, m_pc + 4);
     }
 }
 

@@ -79,6 +79,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         bool allocated = false; // Has this guest register been allocated to a host reg?
         bool writeback = false; // Does this register need to be written back to memory at the end of the block?
         Reg32 allocatedReg; // If a host reg has been allocated to this register, which reg is it?
+        int allocatedRegIndex = 0;
 
         inline bool isConst() { return state == RegState::Constant; }
         inline bool isAllocated() { return allocated; }
@@ -98,6 +99,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             writeback = wb;
         }
     };
+
+    inline void markConst(int index, uint32_t value) {
+        m_regs[index].markConst(value);
+        if (m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg == index) {
+            m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg = {};  // Unmap the register on the host reg side too
+        }
+    }
 
     struct HostRegister {
         std::optional<int> mappedReg = std::nullopt; // The register this is allocated to, if any

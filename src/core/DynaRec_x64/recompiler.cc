@@ -35,6 +35,13 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 }
 
 void DynaRecCPU::execute() {
+    
+    fmt::print("PC: {:08X}", m_psxRegs.pc);
+    for (auto i = 0; i < 34; i++) {
+        fmt::print(" r{}: {:08X}", i, m_psxRegs.GPR.r[i]);
+    }
+    fmt::print("\n");
+    
     InterceptBIOS(m_psxRegs.pc);
     if (!isPcValid(m_psxRegs.pc)) {
         error();
