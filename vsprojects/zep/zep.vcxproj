@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</ProjectGuid>
+    <RootNamespace>zep</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\zep\extensions\repl\mode_repl.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\buffer.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\commands.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\display.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\editor.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\filesystem.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\glyph_iterator.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\indexer.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\keymap.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\line_widgets.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\animation\timer.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\file\path.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mcommon\string\stringutils.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mode.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mode_search.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mode_standard.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mode_tree.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mode_vim.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\range_markers.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\regress.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\scroller.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\splits.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\syntax.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\syntax_markdown.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\syntax_providers.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\syntax_rainbow_brackets.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\syntax_tree.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\tab_window.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\theme.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\zep\extensions\repl\mode_repl.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\buffer.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\commands.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\display.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\editor.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\filesystem.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\gap_buffer.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\glyph_iterator.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\console_imgui.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\display_imgui.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\editor_imgui.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\imgui\usb_hid_keys.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\indexer.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\keymap.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\line_widgets.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\animation\timer.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\callback.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\cpptoml.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\fnmatch.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\path.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\gsl-lite.hpp" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\logger.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\math\math.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\platform.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\registrar.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\signals.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\string\murmur_hash.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\string\stringutils.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\threadpool.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\threadutils.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\checked.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\core.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\cpp11.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\unchecked.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_search.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_standard.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_tree.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_vim.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\range_markers.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\regress.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\scroller.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\splits.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_markdown.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_providers.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_rainbow_brackets.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\syntax_tree.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\tab_window.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\theme.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\window.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\zep_config.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

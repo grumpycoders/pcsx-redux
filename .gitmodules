@@ -10,9 +10,6 @@
 [submodule "third_party/imgui_club"]
 	path = third_party/imgui_club
 	url = https://github.com/ocornut/imgui_club.git
-[submodule "third_party/ImGuiColorTextEdit"]
-	path = third_party/ImGuiColorTextEdit
-	url = https://github.com/grumpycoders/ImGuiColorTextEdit.git
 [submodule "third_party/libuv"]
 	path = third_party/libuv
 	url = https://github.com/libuv/libuv.git
@@ -64,3 +61,6 @@
 [submodule "third_party/xbyak"]
 	path = third_party/xbyak
 	url = https://github.com/herumi/xbyak
+[submodule "third_party/zep"]
+	path = third_party/zep
+	url = https://github.com/nicolasnoble/zep.git

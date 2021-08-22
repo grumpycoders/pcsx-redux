@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
+ *   Copyright (C) 2021 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,33 +19,20 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <filesystem>
-
-#include "gui/widgets/zep.h"
+#include "zep/editor.h"
+#include "zep/syntax.h"
 
 namespace PCSX {
-
-class GUI;
-
 namespace Widgets {
 
-class LuaEditor {
+class ZepSyntax_Lua final : public Zep::ZepSyntax {
+    using tSyntaxFactory = std::function<std::shared_ptr<Zep::ZepSyntax>(Zep::ZepBuffer*)>;
+
   public:
-    LuaEditor(bool& show);
-    bool& m_show;
-
-    void draw(const char* title, GUI* gui);
-
-  private:
-    ZepEditor m_text = {"pcsx.lua"};
-    std::vector<std::string> m_lastErrors;
-    bool m_displayError = false;
-    bool m_autoreload = true;
-    bool m_autosave = true;
+    ZepSyntax_Lua(Zep::ZepBuffer& buffer);
+    static void registerSyntax(std::unique_ptr<Zep::ZepEditor>& editor);
+    virtual void UpdateSyntax() override;
 };
 
 }  // namespace Widgets
-
 }  // namespace PCSX
