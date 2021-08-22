@@ -37,6 +37,10 @@ PCSX::Widgets::ZepEditor::ZepEditor(const std::string& name)
 
     Zep::ZepRegressExCommand::Register(*m_editor);
 
+    auto& config = m_editor->GetConfig();
+    config.autoHideCommandRegion = false;
+    config.showNormalModeKeyStrokes = true;
+
     // Repl
     Zep::ZepReplExCommand::Register(*m_editor, this);
     Zep::ZepReplEvaluateOuterCommand::Register(*m_editor, this);
