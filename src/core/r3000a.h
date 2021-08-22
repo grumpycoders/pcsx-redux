@@ -40,6 +40,8 @@
     #define DYNAREC_NONE // Placeholder for AA64
 #elif defined(__arm__) || defined(_M_ARM)
     #define DYNAREC_NONE // Placeholder for AA32
+#elif defined(__powerpc__) || defined(_M_PPC)
+    #define DYNAREC_NONE // Placeholder for PPC
 #else
     #define DYNAREC_NONE
 #endif
