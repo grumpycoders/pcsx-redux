@@ -30,7 +30,7 @@
 #include "core/r3000a.h"
 #include "fmt/format.h"
 
-void PCSX::Widgets::Source::draw(const char* title, uint32_t pc, PCSX::GUI * gui) {
+void PCSX::Widgets::Source::draw(const char* title, uint32_t pc, PCSX::GUI* gui) {
     auto switchSource = [this](std::filesystem::path path, int line) mutable -> bool {
         if (!std::filesystem::exists(path)) {
             if (path.is_absolute()) path = path.relative_path();

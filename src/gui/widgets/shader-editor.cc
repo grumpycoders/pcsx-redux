@@ -426,7 +426,8 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
 
     ImGui::End();
 
-    return m_vertexShaderEditor.hasTextChanged() || m_pixelShaderEditor.hasTextChanged() || m_luaEditor.hasTextChanged();
+    return m_vertexShaderEditor.hasTextChanged() || m_pixelShaderEditor.hasTextChanged() ||
+           m_luaEditor.hasTextChanged();
 }
 
 void PCSX::Widgets::ShaderEditor::getRegistry(std::unique_ptr<Lua> &L) {
