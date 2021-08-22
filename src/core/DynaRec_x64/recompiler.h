@@ -103,7 +103,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline void markConst(int index, uint32_t value) {
         m_regs[index].markConst(value);
         if (m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg == index) {
-            m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg = {};  // Unmap the register on the host reg side too
+            m_hostRegs[m_regs[index].allocatedRegIndex].mappedReg = std::nullopt;  // Unmap the register on the host reg side too
         }
     }
 

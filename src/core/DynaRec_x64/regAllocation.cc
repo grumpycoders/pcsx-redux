@@ -133,6 +133,7 @@ void DynaRecCPU::allocateReg(int reg) {
 }
 
 void DynaRecCPU::allocateReg(int reg1, int reg2) {
+start:
     if (reg1 == reg2) {
         if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
@@ -144,6 +145,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2) {
         if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -153,6 +155,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2) {
         else if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -161,6 +164,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2) {
         else if (!m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg2);
@@ -169,6 +173,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2) {
 }
 
 void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
+start:
     if (reg1 == reg2 && reg1 == reg3) {  // All 3 regs are the same
         if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
@@ -183,6 +188,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         if (!m_regs[reg1].isAllocated() && !m_regs[reg3].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -192,6 +198,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -200,6 +207,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg3].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg3);
@@ -210,6 +218,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -219,6 +228,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -227,6 +237,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg2);
@@ -237,6 +248,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -246,6 +258,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -254,6 +267,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg2);
@@ -264,6 +278,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated() && !m_regs[reg3].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 2) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -274,6 +289,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -283,6 +299,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg1].isAllocated() && !m_regs[reg3].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -292,6 +309,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg2].isAllocated() && !m_regs[reg3].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg2);
@@ -301,6 +319,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg1].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg1);
@@ -309,6 +328,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg2);
@@ -317,6 +337,7 @@ void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
         else if (!m_regs[reg3].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
                 spillRegisterCache();
+                goto start;
             }
 
             reserveReg(reg3);
