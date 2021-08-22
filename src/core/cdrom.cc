@@ -1112,7 +1112,11 @@ class CDRomImpl : public PCSX::CDRom {
                 m_channel = m_transfer[4 + 1];
             }
 
-            if ((m_transfer[4 + 2] & 0x4) && (m_transfer[4 + 1] == m_channel) && (m_transfer[4 + 0] == m_file)) {
+			/* Gameblabla - Ignore sectors with channel 255. 
+			 * This fixes the missing sound in Blue's Clues : Blue's Big Musical.
+			 * (Taxi 2 is also said to be affected by the same issue)
+			 * */
+            if ((m_transfer[4 + 2] & 0x4) && (m_transfer[4 + 1] == m_channel) && (m_transfer[4 + 0] == m_file) && m_channel != 255) {
                 int ret = xa_decode_sector(&m_xa, m_transfer + 4, m_firstSector);
                 if (!ret) {
                     attenuate(m_xa.pcm, m_xa.nsamples, m_xa.stereo);
