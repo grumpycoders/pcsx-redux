@@ -155,12 +155,13 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
             return;
         }
 
-        if (lineEnd.find_first_of(*itrCurrent) != std::string::npos) {
+        auto ch = *itrCurrent;
+        if (lineEnd.find_first_of(ch) != std::string::npos || ch == 0) {
             itrCurrent++;
             continue;
         }
 
-        if (whiteSpace.find_first_of(*itrCurrent) != std::string::npos) {
+        if (whiteSpace.find_first_of(ch) != std::string::npos) {
             mark(itrCurrent, itrCurrent + 1, Zep::ThemeColor::Whitespace, Zep::ThemeColor::None);
             itrCurrent++;
             continue;
@@ -170,7 +171,6 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
         auto itrLast = buffer.find_first_of(itrFirst, buffer.end(), lineEnd.begin(), lineEnd.end());
 
         // comments & multiline strings and comments
-        auto ch = *itrCurrent;
         auto getFurther = [&](unsigned inc) -> decltype(ch) {
             auto itr = itrCurrent + inc;
             return itr < buffer.end() ? *itr : '\n';
@@ -251,6 +251,44 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
         if (parenthesis.find_first_of(ch) != std::string::npos) {
             mark(itrCurrent, itrCurrent + 1, Zep::ThemeColor::Parenthesis, Zep::ThemeColor::None);
             itrCurrent++;
+            continue;
+        }
+
+        // Find String
+        auto findString = [&](uint8_t ch) -> bool {
+            auto itrString = itrFirst;
+            if (*itrString == ch) {
+                itrString++;
+
+                while (itrString < buffer.end()) {
+                    // handle end of string
+                    if (*itrString == ch) {
+                        itrString++;
+                        mark(itrFirst, itrString, Zep::ThemeColor::String, Zep::ThemeColor::None);
+                        itrLast = itrString + 1;
+                        return true;
+                        break;
+                    }
+
+                    if (itrString < (buffer.end() - 1)) {
+                        auto itrNext = itrString + 1;
+                        // Ignore quoted
+                        if (*itrString == '\\' && *itrNext == ch) {
+                            itrString++;
+                        }
+                    }
+
+                    itrString++;
+                }
+            }
+            return false;
+        };
+        if (findString('\"')) {
+            itrCurrent = itrLast + 1;
+            continue;
+        }
+        if (findString('\'')) {
+            itrCurrent = itrLast + 1;
             continue;
         }
 
@@ -368,36 +406,6 @@ void PCSX::Widgets::ZepSyntax_Lua::UpdateSyntax() {
                 mark(itrFirst, itrLast, Zep::ThemeColor::Number, Zep::ThemeColor::None);
             }
         }
-
-        // Find String
-        auto findString = [&](uint8_t ch) {
-            auto itrString = itrFirst;
-            if (*itrString == ch) {
-                itrString++;
-
-                while (itrString < buffer.end()) {
-                    // handle end of string
-                    if (*itrString == ch) {
-                        itrString++;
-                        mark(itrFirst, itrString, Zep::ThemeColor::String, Zep::ThemeColor::None);
-                        itrLast = itrString + 1;
-                        break;
-                    }
-
-                    if (itrString < (buffer.end() - 1)) {
-                        auto itrNext = itrString + 1;
-                        // Ignore quoted
-                        if (*itrString == '\\' && *itrNext == ch) {
-                            itrString++;
-                        }
-                    }
-
-                    itrString++;
-                }
-            }
-        };
-        findString('\"');
-        findString('\'');
 
         itrCurrent = itrLast;
     }
