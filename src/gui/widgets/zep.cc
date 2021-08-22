@@ -23,11 +23,30 @@
 #include <GLFW/glfw3.h>
 
 #include "gui/gui.h"
+#include "zep/regress.h"
 
 static float dpi_pixel_height_from_point_size(float pointSize, float pixelScaleY) {
     const auto fontDotsPerInch = 72.0f;
     auto inches = pointSize / fontDotsPerInch;
     return inches * (pixelScaleY * 96.0f);
+}
+
+PCSX::Widgets::ZepEditor::ZepEditor(const std::string& name)
+    : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""))) {
+    m_editor->RegisterCallback(this);
+
+    Zep::ZepRegressExCommand::Register(*m_editor);
+
+    // Repl
+    Zep::ZepReplExCommand::Register(*m_editor, this);
+    Zep::ZepReplEvaluateOuterCommand::Register(*m_editor, this);
+    Zep::ZepReplEvaluateInnerCommand::Register(*m_editor, this);
+    Zep::ZepReplEvaluateCommand::Register(*m_editor, this);
+
+    ZepSyntax_Lua::registerSyntax(m_editor);
+
+    m_editor->InitWithText(name, "\n");
+    m_editor->SetGlobalMode(Zep::ZepMode_Standard::StaticName());
 }
 
 void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
@@ -196,5 +215,108 @@ void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
                 buffer.GetMode()->AddKeyPress(io.InputQueueCharacters[n], mod);
             }
         }
+    }
+}
+
+std::string PCSX::Widgets::ZepEditor::ReplParse(Zep::ZepBuffer& buffer, const Zep::GlyphIterator& cursorOffset,
+                                                Zep::ReplParseType type) {
+    ZEP_UNUSED(cursorOffset);
+    ZEP_UNUSED(type);
+
+    Zep::GlyphRange range;
+    if (type == Zep::ReplParseType::OuterExpression) {
+        range = buffer.GetExpression(Zep::ExpressionType::Outer, cursorOffset, {'('}, {')'});
+    } else if (type == Zep::ReplParseType::SubExpression) {
+        range = buffer.GetExpression(Zep::ExpressionType::Inner, cursorOffset, {'('}, {')'});
+    } else {
+        range = Zep::GlyphRange(buffer.Begin(), buffer.End());
+    }
+
+    if (range.first >= range.second) return "<No Expression>";
+
+    const auto& text = buffer.GetWorkingBuffer();
+    auto eval = std::string(text.begin() + range.first.Index(), text.begin() + range.second.Index());
+
+    // Flash the evaluated expression
+    Zep::FlashType flashType = Zep::FlashType::Flash;
+    float time = 1.0f;
+    buffer.BeginFlash(time, flashType, range);
+
+    //    auto ret = chibi_repl(scheme, NULL, eval);
+    //    ret = RTrim(ret);
+
+    //    GetEditor().SetCommandText(ret);
+    //    return ret;
+
+    return "";
+}
+
+std::string PCSX::Widgets::ZepEditor::ReplParse(const std::string& str) {
+    //    auto ret = chibi_repl(scheme, NULL, str);
+    //    ret = RTrim(ret);
+    //    return ret;
+    return "";
+}
+
+bool PCSX::Widgets::ZepEditor::ReplIsFormComplete(const std::string& str, int& indent) {
+    int count = 0;
+    for (auto& ch : str) {
+        if (ch == '(') count++;
+        if (ch == ')') count--;
+    }
+
+    if (count < 0) {
+        indent = -1;
+        return false;
+    } else if (count == 0) {
+        return true;
+    }
+
+    int count2 = 0;
+    indent = 1;
+    for (auto& ch : str) {
+        if (ch == '(') count2++;
+        if (ch == ')') count2--;
+        if (count2 == count) {
+            break;
+        }
+        indent++;
+    }
+    return false;
+}
+
+void PCSX::Widgets::ZepEditor::Notify(std::shared_ptr<Zep::ZepMessage> message) {
+    if (message->messageId == Zep::Msg::GetClipBoard) {
+        message->str = ImGui::GetClipboardText();
+        message->handled = true;
+    } else if (message->messageId == Zep::Msg::SetClipBoard) {
+        ImGui::SetClipboardText(message->str.c_str());
+        message->handled = true;
+    } else if (message->messageId == Zep::Msg::RequestQuit) {
+        // hahano.gif
+    } else if (message->messageId == Zep::Msg::ToolTip) {
+#if 0
+        auto spTipMsg = std::static_pointer_cast<Zep::ToolTipMessage>(message);
+        if (spTipMsg->location.Valid() && spTipMsg->pBuffer) {
+            auto pSyntax = spTipMsg->pBuffer->GetSyntax();
+            if (pSyntax) {
+                if (pSyntax->GetSyntaxAt(spTipMsg->location).foreground == Zep::ThemeColor::Identifier) {
+                    auto spMarker = std::make_shared<Zep::RangeMarker>(*spTipMsg->pBuffer);
+                    spMarker->SetDescription("This is an identifier");
+                    spMarker->SetHighlightColor(Zep::ThemeColor::Identifier);
+                    spMarker->SetTextColor(Zep::ThemeColor::Text);
+                    spTipMsg->spMarker = spMarker;
+                    spTipMsg->handled = true;
+                } else if (pSyntax->GetSyntaxAt(spTipMsg->location).foreground == Zep::ThemeColor::Keyword) {
+                    auto spMarker = std::make_shared<Zep::RangeMarker>(*spTipMsg->pBuffer);
+                    spMarker->SetDescription("This is a keyword");
+                    spMarker->SetHighlightColor(Zep::ThemeColor::Keyword);
+                    spMarker->SetTextColor(Zep::ThemeColor::Text);
+                    spTipMsg->spMarker = spMarker;
+                    spTipMsg->handled = true;
+                }
+            }
+        }
+#endif
     }
 }

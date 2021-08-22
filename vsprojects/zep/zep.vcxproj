@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\third_party\zep\extensions\repl\mode_repl.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\buffer.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\commands.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\display.cpp" />
@@ -174,6 +175,7 @@
     <ClCompile Include="..\..\third_party\zep\src\window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\third_party\zep\extensions\repl\mode_repl.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\buffer.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\commands.h" />

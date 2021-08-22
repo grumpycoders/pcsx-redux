@@ -22,6 +22,7 @@
 #include <optional>
 
 #include "gui/widgets/zep-lua.h"
+#include "repl/mode_repl.h"
 #include "zep/editor.h"
 #include "zep/filesystem.h"
 #include "zep/imgui/display_imgui.h"
@@ -35,17 +36,9 @@ namespace PCSX {
 class GUI;
 namespace Widgets {
 
-class ZepEditor final : public Zep::IZepComponent {
+class ZepEditor final : public Zep::IZepComponent, public Zep::IZepReplProvider {
   public:
-    ZepEditor(const std::string &name)
-        : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""))) {
-        m_editor->RegisterCallback(this);
-
-        ZepSyntax_Lua::registerSyntax(m_editor);
-
-        m_editor->InitWithText(name, "\n");
-        m_editor->SetGlobalMode(Zep::ZepMode_Standard::StaticName());
-    }
+    ZepEditor(const std::string &name);
 
     virtual ~ZepEditor() {}
 
@@ -81,6 +74,12 @@ class ZepEditor final : public Zep::IZepComponent {
     std::unique_ptr<Zep::ZepEditor> m_editor;
     std::optional<decltype(m_editor->GetMRUBuffer()->GetLastUpdateTime())> m_lastUpdateTime;
     std::optional<float> m_dpiScale;
+
+    virtual std::string ReplParse(Zep::ZepBuffer& buffer, const Zep::GlyphIterator& cursorOffset,
+                                  Zep::ReplParseType type) override;
+    virtual std::string ReplParse(const std::string& str) override;
+    virtual bool ReplIsFormComplete(const std::string& str, int& indent) override;
+    virtual void Notify(std::shared_ptr<Zep::ZepMessage> message) override;
 };
 
 }  // namespace Widgets
