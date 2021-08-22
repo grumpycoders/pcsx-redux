@@ -29,6 +29,7 @@ CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS += -Ithird_party/luv/src
 CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
+CPPFLAGS += -Ithird_party/zep/extensions
 CPPFLAGS += -Ithird_party/zep/include
 CPPFLAGS += -Ithird_party/zstr/src
 CPPFLAGS += -Ithird_party/xbyak/xbyak
