@@ -164,6 +164,12 @@ public:
             PCSX::g_system->message("[Dynarec] Error allocating memory");
             return false;
         }
+
+        if (!gen.setRWX()) {
+            PCSX::g_system->message("[Dynarec] Failed to allocate executable memory");
+            return false;
+        }
+
         m_regs[0].markConst(0); // $zero is always zero!
         m_needsStackFrame = false;
 

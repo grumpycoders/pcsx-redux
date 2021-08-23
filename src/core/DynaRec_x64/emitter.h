@@ -31,12 +31,16 @@ constexpr uint32_t codeCacheSize = 32 * 1024 * 1024;
 static uint8_t s_codeCache[codeCacheSize + 0x1000]; 
 
 struct Emitter final : public CodeGenerator {                   
-    Emitter() : CodeGenerator(codeCacheSize, s_codeCache) { // Initialize emitter and memory
-        setProtectMode(PROTECT_RWE); // Mark emitter memory as readadable/writeable/executable
-    }
+    Emitter() : CodeGenerator(codeCacheSize, s_codeCache) {}
 
     template <typename T>
     void callFunc (T& func) {
         call (reinterpret_cast<void*>(&func));
+    }
+
+    // Tries to mark the emitter memory as readable/writeable/executable without throwing an exception.
+    // Returns whether or not it succeeded
+    bool setRWX() { 
+        return setProtectMode(PROTECT_RWE, false);
     }
 };

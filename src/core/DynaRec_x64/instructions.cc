@@ -56,7 +56,7 @@ void DynaRecCPU::recADDU() {
                 case 1:
                     gen.inc(m_regs[_Rd_].allocatedReg);
                     break;
-                case -1:
+                case 0xFFFFFFFF:
                     gen.dec(m_regs[_Rd_].allocatedReg);
                     break;
                 default:
@@ -74,7 +74,7 @@ void DynaRecCPU::recADDU() {
                 case 1:
                     gen.inc(m_regs[_Rd_].allocatedReg);
                     break;
-                case -1:
+                case 0xFFFFFFFF:
                     gen.dec(m_regs[_Rd_].allocatedReg);
                     break;
                 default:
@@ -111,7 +111,7 @@ void DynaRecCPU::recADDIU() {
                 case 1:
                     gen.inc(m_regs[_Rt_].allocatedReg);
                     break;
-                case -1:
+                case 0xFFFFFFFF:
                     gen.dec(m_regs[_Rt_].allocatedReg);
                     break;
                 default:
@@ -157,7 +157,7 @@ void DynaRecCPU::recSUBU() {
                 case 1:
                     gen.dec(m_regs[_Rd_].allocatedReg);
                     break;
-                case -1:
+                case 0xFFFFFFFF:
                     gen.inc(m_regs[_Rd_].allocatedReg);
                     break;
                 default:
