@@ -797,8 +797,7 @@ void DynaRecCPU::recCOP0() {
 // REC_SYS(COP2);
 void DynaRecCPU::recCOP2() {
     Label label;
-    gen.mov(eax, dword[&m_psxRegs.CP0.n.Status]);
-    gen.and_(eax, 0x40000000);
+    gen.test(dword[&m_psxRegs.CP0.n.Status], 0x40000000); // Check if COP2 is enabled in SR, skip opcode otherwise
     gen.jz(label);
 
     func_t func = m_pRecCP2[_Funct_];

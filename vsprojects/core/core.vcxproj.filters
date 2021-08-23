@@ -141,6 +141,9 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\cdriso.h">
