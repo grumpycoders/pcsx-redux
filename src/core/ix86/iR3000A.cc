@@ -917,7 +917,7 @@ void X86DynaRecCPU::recSLTIU() {
     maybeCancelDelayedLoad(_Rt_);
 
     if (IsConst(_Rs_)) {
-        MapConst(_Rt_, m_iRegs[_Rs_].k < (uint32_t) _Imm_);
+        MapConst(_Rt_, m_iRegs[_Rs_].k < (uint32_t)_Imm_);
     } else {
         m_iRegs[_Rt_].state = ST_UNK;
 

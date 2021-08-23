@@ -38,7 +38,7 @@ namespace Widgets {
 
 class ZepEditor final : public Zep::IZepComponent, public Zep::IZepReplProvider {
   public:
-    ZepEditor(const std::string &name);
+    ZepEditor(const std::string& name);
 
     virtual ~ZepEditor() {}
 
@@ -47,11 +47,11 @@ class ZepEditor final : public Zep::IZepComponent, public Zep::IZepReplProvider 
         m_editor.reset();
     }
 
-    void draw(GUI *gui);
+    void draw(GUI* gui);
 
-    virtual Zep::ZepEditor &GetEditor() const override final { return *m_editor; }
+    virtual Zep::ZepEditor& GetEditor() const override final { return *m_editor; }
 
-    void setText(const std::string &str) {
+    void setText(const std::string& str) {
         auto buffer = m_editor->GetMRUBuffer();
         buffer->SetText(str);
     }
