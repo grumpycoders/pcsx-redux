@@ -111,7 +111,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         m_pc += 4; // Increment recompiler PC
         count++;   // Increment instruction count
 
-        auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
+        const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(); // Jump into the handler to recompile it
 
         //const bool isOtherActive = m_delayedLoadInfo[m_currentDelayedLoad].active;
@@ -140,7 +140,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
 }
 
 void DynaRecCPU::recSpecial() {
-    auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)();                             // Jump into the handler to recompile it
+    const auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
+    (*this.*func)(); // Jump into the handler to recompile it
 }
 #endif // DYNAREC_X86_64

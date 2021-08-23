@@ -780,34 +780,34 @@ void DynaRecCPU::recNULL() {
 
 // REC_SYS(SPECIAL);
 void DynaRecCPU::recSPECIAL() {
-    func_t func = m_pRecSPC[_Funct_];
+    const auto func = m_pRecSPC[_Funct_];
     (*this.*func)();
 }
 
 void DynaRecCPU::recREGIMM() {
-    func_t func = m_pRecREG[_Rt_];
+    const auto func = m_pRecREG[_Rt_];
     (*this.*func)();
 }
 
 void DynaRecCPU::recCOP0() {
-    func_t func = m_pRecCP0[_Rs_];
+    const auto func = m_pRecCP0[_Rs_];
     (*this.*func)();
 }
 
 // REC_SYS(COP2);
 void DynaRecCPU::recCOP2() {
-    Label label;
+    Label end;
     gen.test(dword[&m_psxRegs.CP0.n.Status], 0x40000000); // Check if COP2 is enabled in SR, skip opcode otherwise
-    gen.jz(label);
+    gen.jz(end);
 
-    func_t func = m_pRecCP2[_Funct_];
+    const auto func = m_pRecCP2[_Funct_];
     (*this.*func)();
 
-    gen.L(label);
+    gen.L(end);
 }
 
 void DynaRecCPU::recBASIC() {
-    func_t func = m_pRecCP2BSC[_Rs_];
+    const auto func = m_pRecCP2BSC[_Rs_];
     (*this.*func)();
 }
 

@@ -56,7 +56,7 @@ using namespace Xbyak;
 using namespace Xbyak::util;
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
-    typedef void (DynaRecCPU::*func_t)();  // A function pointer to a dynarec member function, used for m_recBSC
+    using func_t = void(DynaRecCPU::*)();  // A function pointer to a dynarec member function, used for the recompilation LUTs
   private:
     DynarecCallback** m_recompilerLUT;
     DynarecCallback* m_ramBlocks;  // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
@@ -241,6 +241,7 @@ public:
     void recBLEZ();
     void recBREAK();
     void recCOP0();
+    void recCOP2();
     void recDIV();
     void recDIVU();
     void recJ();
@@ -289,6 +290,8 @@ public:
     void recXOR();
     void recXORI();
     void recException(Exception e);
+
+    void recGTEMove();
     
     template <bool readSR>
     void testSoftwareInterrupt();
@@ -330,7 +333,7 @@ public:
         &DynaRecCPU::recBEQ, &DynaRecCPU::recBNE, &DynaRecCPU::recBLEZ, &DynaRecCPU::recBGTZ,  // 04
         &DynaRecCPU::recADDIU, &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI, &DynaRecCPU::recSLTIU,  // 08
         &DynaRecCPU::recANDI, &DynaRecCPU::recORI,     &DynaRecCPU::recXORI, &DynaRecCPU::recLUI,      // 0c
-        &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recCOP0, &DynaRecCPU::recUnknown, &DynaRecCPU::recCOP2, &DynaRecCPU::recUnknown,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
@@ -356,6 +359,25 @@ public:
         &DynaRecCPU::recADD, &DynaRecCPU::recADDU, &DynaRecCPU::recSUB, &DynaRecCPU::recSUBU,  // 20
         &DynaRecCPU::recAND, &DynaRecCPU::recOR, &DynaRecCPU::recXOR, &DynaRecCPU::recNOR,  // 24
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSLT, &DynaRecCPU::recSLTU,  // 28
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 38
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 3c
+    };
+
+    const func_t m_recGTE[64] = {
+        &DynaRecCPU::recGTEMove, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 00
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 04
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 0c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 20
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 24
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 2c
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34
