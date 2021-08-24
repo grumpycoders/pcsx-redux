@@ -115,10 +115,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     Register m_regs[32];
     std::array <HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     
+    
+    template <bool load = true>
+    void reserveReg(int index);
+    void allocateRegWithoutLoad(int reg);
     void allocateReg(int reg);
     void allocateReg(int reg1, int reg2);
     void allocateReg(int reg1, int reg2, int reg3);
-    void reserveReg(int index);
+
     void flushRegs();
     void spillRegisterCache();
     unsigned int m_allocatedRegisters = 0; // how many registers have been allocated in this block?
@@ -237,19 +241,19 @@ public:
     void recSpecial();
 
     void recADD();
-    void recADDU();
     void recADDIU();
+    void recADDU();
     void recAND();
     void recANDI();
     void recBEQ();
-    void recBNE();
     void recBGTZ();
     void recBLEZ();
+    void recBNE();
     void recBREAK();
     void recCFC2();
-    void recCTC2();
     void recCOP0();
     void recCOP2();
+    void recCTC2();
     void recDIV();
     void recDIVU();
     void recJ();
@@ -260,16 +264,17 @@ public:
     void recLBU();
     void recLH();
     void recLHU();
+    void recLUI();
     void recLW();
+    void recLWC2();
     void recLWL();
     void recLWR();
-    void recLUI();
     void recMFC0();
     void recMFC2();
-    void recMTC0();
-    void recMTC2();
     void recMFHI();
     void recMFLO();
+    void recMTC0();
+    void recMTC2();
     void recMTHI();
     void recMTLO();
     void recMULT();
@@ -293,10 +298,11 @@ public:
     void recSRLV();
     void recSUB();
     void recSUBU();
-    void recSYSCALL();
     void recSW();
+    void recSWC2();
     void recSWL();
     void recSWR();
+    void recSYSCALL();
     void recXOR();
     void recXORI();
     void recException(Exception e);

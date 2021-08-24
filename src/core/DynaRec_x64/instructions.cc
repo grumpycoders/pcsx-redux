@@ -750,8 +750,7 @@ void DynaRecCPU::recompileLoad() {
     }
 
     if (_Rt_) {
-        allocateReg(_Rt_);  // Allocate $rt after calling the read function, otherwise call() might flush it. 
-                            // TODO: Don't load register if it hasn't been loaded
+        allocateRegWithoutLoad(_Rt_);  // Allocate $rt after calling the read function, otherwise call() might flush it. 
         m_regs[_Rt_].setWriteback(true);
         
         switch (size) {
@@ -1729,7 +1728,7 @@ void DynaRecCPU::recDIVU() {
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFLO() {
     maybeCancelDelayedLoad(_Rd_);
-    allocateReg(_Rd_); // TODO: Don't load register if it hasn't been loaded
+    allocateRegWithoutLoad(_Rd_);
     m_regs[_Rd_].setWriteback(true);
 
     gen.mov(m_regs[_Rd_].allocatedReg, dword[contextPointer + LO_OFFSET]);
@@ -1738,7 +1737,7 @@ void DynaRecCPU::recMFLO() {
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFHI() {
     maybeCancelDelayedLoad(_Rd_);
-    allocateReg(_Rd_); // TODO: Don't load register if it hasn't been loaded
+    allocateRegWithoutLoad(_Rd_);
     m_regs[_Rd_].setWriteback(true);
 
     gen.mov(m_regs[_Rd_].allocatedReg, dword[contextPointer + HI_OFFSET]);

@@ -98,7 +98,7 @@ void DynaRecCPU::recMTC2() {
     if (m_regs[_Rt_].isConst()) {
         gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], m_regs[_Rt_].val);
     } else {
-        allocateReg(_Rt_); // TODO: Don't load register if it hasn't been loaded
+        allocateRegWithoutLoad(_Rt_);
         gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg);
     }
 }
@@ -110,7 +110,7 @@ void DynaRecCPU::recMFC2() {
             abort();
     }
 
-    allocateReg(_Rt_); // TODO: Don't load register if it hasn't been loaded
+    allocateRegWithoutLoad(_Rt_);
     gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
 }
 
@@ -121,7 +121,7 @@ void DynaRecCPU::recCFC2() {
             abort();
     }
 
-    allocateReg(_Rt_);  // TODO: Don't load register if it hasn't been loaded
+    allocateRegWithoutLoad(_Rt_);
     gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)]);
 }
 
@@ -135,27 +135,27 @@ void DynaRecCPU::rec##name() {                    \
     call(name##Wrapper);                          \
 }
 
-GTE_FALLBACK(RTPS);
-GTE_FALLBACK(NCLIP);
-GTE_FALLBACK(OP);
-GTE_FALLBACK(DPCS);
-GTE_FALLBACK(INTPL);
-GTE_FALLBACK(MVMVA);
-GTE_FALLBACK(NCDS);
-GTE_FALLBACK(CDP);
-GTE_FALLBACK(NCDT);
-GTE_FALLBACK(NCCS);
-GTE_FALLBACK(CC);
-GTE_FALLBACK(NCS);
-GTE_FALLBACK(NCT);
-GTE_FALLBACK(SQR);
-GTE_FALLBACK(DCPL);
-GTE_FALLBACK(DPCT);
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);
-GTE_FALLBACK(RTPT);
+GTE_FALLBACK(CC);
+GTE_FALLBACK(CDP);
+GTE_FALLBACK(DCPL);
+GTE_FALLBACK(DPCS);
+GTE_FALLBACK(DPCT);
 GTE_FALLBACK(GPF);
 GTE_FALLBACK(GPL);
+GTE_FALLBACK(INTPL);
+GTE_FALLBACK(MVMVA);
+GTE_FALLBACK(NCCS);
 GTE_FALLBACK(NCCT);
+GTE_FALLBACK(NCDS);
+GTE_FALLBACK(NCDT);
+GTE_FALLBACK(NCLIP);
+GTE_FALLBACK(NCS);
+GTE_FALLBACK(NCT);
+GTE_FALLBACK(OP);
+GTE_FALLBACK(RTPS);
+GTE_FALLBACK(RTPT);
+GTE_FALLBACK(SQR);
 
 #endif  // DYNAREC_X86_64

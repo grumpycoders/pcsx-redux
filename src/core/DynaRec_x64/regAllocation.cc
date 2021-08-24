@@ -24,7 +24,8 @@
 #if defined(DYNAREC_X86_64)
 
 // Map the guest register corresponding to the index to a host register
-// Used internally by the allocateReg functions
+// Used internally by the allocateReg functions. Don't use it directly
+template <bool load>
 void DynaRecCPU::reserveReg(int index) {
     const auto regToAllocate = allocateableRegisters[m_allocatedRegisters];  // Fetch the next host reg to be allocated
     m_regs[index].allocatedReg = regToAllocate;
@@ -38,7 +39,10 @@ void DynaRecCPU::reserveReg(int index) {
         m_hostRegs[m_allocatedRegisters].restore = true;  // Mark this register as "To be restored"
     }
 
-    gen.mov(regToAllocate, dword[contextPointer + GPR_OFFSET(index)]);  // Load reg
+    // For certain instructions like loads, we don't want to load the reg because it'll get instantly overwritten
+    if constexpr (load) {
+        gen.mov(regToAllocate, dword[contextPointer + GPR_OFFSET(index)]);  // Load reg
+    }
     m_hostRegs[m_allocatedRegisters].mappedReg = index;
     m_allocatedRegisters++;  // Advance our register allcoator
 }
@@ -132,6 +136,15 @@ void DynaRecCPU::allocateReg(int reg) {
     }
 }
 
+void DynaRecCPU::allocateRegWithoutLoad(int reg) {
+    if (!m_regs[reg].isAllocated()) {
+        if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
+            spillRegisterCache();
+        }
+        reserveReg<false>(reg);
+    }
+}
+
 void DynaRecCPU::allocateReg(int reg1, int reg2) {
 start:
     if (reg1 == reg2) {
@@ -214,37 +227,7 @@ start:
         }
     }
 
-    else if (reg1 == reg3) {  // Reg1 and 3 are the same, 2 is different
-        if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-            reserveReg(reg2);
-        }
-
-        else if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-        }
-
-        else if (!m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg2);
-        }
-    }
-
-    else if (reg2 == reg3) {  // Reg2 and 3 are the same, 1 is different
+    else if (reg1 == reg3 || reg2 == reg3) {  // Reg1 and 3 are the same or reg2 and 3 are the sane
         if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
             if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
                 spillRegisterCache();
