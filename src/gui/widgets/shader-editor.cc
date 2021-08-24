@@ -35,7 +35,7 @@ lua_Number PCSX::Widgets::ShaderEditor::s_index = 0;
 
 static const GLchar *const c_defaultVertexShader = GL_SHADER_VERSION R"(
 // The Vertex Shader isn't necessarily very useful, but is still provided here.
-precision mediump float;
+precision highp float;
 layout (location = 0) in vec2 Position;
 layout (location = 1) in vec2 UV;
 layout (location = 2) in vec4 Color;
@@ -51,7 +51,7 @@ void main() {
 
 static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
 // The Pixel Shader is most likely what the user will want to change.
-precision mediump float;
+precision highp float;
 uniform sampler2D Texture;
 in vec2 Frag_UV;
 in vec4 Frag_Color;
@@ -99,8 +99,8 @@ end
 -- from either the global state, or the locally computed attributes
 -- from the two functions above.
 --
--- The last four parameters will only exist for non-ImGui renders.
-function BindAttributes(textureID, shaderProgramID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
+-- The last six parameters will only exist for non-ImGui renders.
+function BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
 end
 )";
 
@@ -109,7 +109,7 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_v
     : m_baseFilename(base), m_index(++s_index) {
     std::filesystem::path f = base;
     {
-        f.replace_extension("glslv");
+        f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
         if (in) {
             std::ostringstream code;
@@ -121,7 +121,7 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, std::string_v
         }
     }
     {
-        f.replace_extension("glslp");
+        f.replace_extension("frag");
         std::ifstream in(f, std::ifstream::in);
         if (in) {
             std::ostringstream code;
@@ -302,12 +302,12 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
 
     if (m_autosave) {
         {
-            f.replace_extension("glslv");
+            f.replace_extension("vert");
             std::ofstream out(f, std::ofstream::out);
             out << m_vertexShaderEditor.getText();
         }
         {
-            f.replace_extension("glslp");
+            f.replace_extension("frag");
             std::ofstream out(f, std::ofstream::out);
             out << m_pixelShaderEditor.getText();
         }
@@ -739,12 +739,14 @@ void PCSX::Widgets::ShaderEditor::render(GLuint textureID, const ImVec2 &texSize
                 L->setfenv();
                 L->push(static_cast<lua_Number>(textureID));
                 L->push(lua_Number(m_shaderProgram));
+                L->push(srcLoc.x);
+                L->push(srcLoc.y);
                 L->push(srcSize.x);
                 L->push(srcSize.y);
                 L->push(dstSize.x);
                 L->push(dstSize.y);
                 try {
-                    L->pcall(6);
+                    L->pcall(8);
                     bool gotGLerror = false;
                     GLenum glError = GL_NO_ERROR;
                     while ((glError = glGetError()) != GL_NO_ERROR) {
