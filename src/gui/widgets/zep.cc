@@ -291,7 +291,8 @@ bool PCSX::Widgets::ZepEditor::ReplIsFormComplete(const std::string& str, int& i
 
 void PCSX::Widgets::ZepEditor::Notify(std::shared_ptr<Zep::ZepMessage> message) {
     if (message->messageId == Zep::Msg::GetClipBoard) {
-        message->str = ImGui::GetClipboardText();
+        const char* clip = ImGui::GetClipboardText();
+        message->str = clip ? clip : "";
         message->handled = true;
     } else if (message->messageId == Zep::Msg::SetClipBoard) {
         ImGui::SetClipboardText(message->str.c_str());
