@@ -386,7 +386,7 @@ public:
         &DynaRecCPU::recLBU, &DynaRecCPU::recLHU, &DynaRecCPU::recLWR, &DynaRecCPU::recUnknown,  // 24
         &DynaRecCPU::recSB, &DynaRecCPU::recSH, &DynaRecCPU::recSWL, &DynaRecCPU::recSW,       // 28
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recSWR, &DynaRecCPU::recUnknown,  // 2c
-        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 30
+        &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recLWC2, &DynaRecCPU::recUnknown,  // 30
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 34
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 38
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 3c

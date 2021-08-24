@@ -36,6 +36,11 @@ class GTE {
         // CPU[Rt] = GTE_D[Rd]
         return MFC2_internal(_Rd_);
     }
+
+    uint32_t MFC2(int index) {
+        return MFC2_internal(index);
+    }
+
     uint32_t CFC2() {
         // CPU[Rt] = GTE_C[Rd]
         return PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;

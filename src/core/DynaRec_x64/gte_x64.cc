@@ -25,6 +25,8 @@
 #define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_psxRegs.CP2D.r[(reg)] - (uintptr_t)&m_psxRegs)
 
 void DynaRecCPU::recCOP2() {
+    setupStackFrame(); // Set up a stack frame outside the conditional block
+
     Label end;
     gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000); // Check SR to see if COP2 (GTE) is enabled
     gen.jz(end); // Skip the opcode if not
@@ -109,9 +111,15 @@ void DynaRecCPU::recCTC2() {
 
 void DynaRecCPU::recMTC2() {
     switch (_Rd_) {
-        default:
-            fmt::print("Write to GTE data register {}\n", _Rd_);
+        case 15:
+        case 28:
+        case 30:
+            fmt::print("Unimplemented MTC2 to GTE data register {}\n", _Rd_);
             abort();
+            break;
+
+        case 31:
+            return;
     }
 
     if (m_regs[_Rt_].isConst()) {
@@ -122,27 +130,53 @@ void DynaRecCPU::recMTC2() {
     }
 }
 
+static uint32_t MFC2Wrapper(int reg) {
+    return PCSX::g_emulator->m_gte->MFC2(reg);
+}
+
 void DynaRecCPU::recMFC2() {
-    switch (_Rd_) {
-        default:
-            fmt::print("Read from GTE data register{}\n", _Rd_);
-            abort();
-    }
+    gen.mov(arg1, _Rd_);
+    call<false>(MFC2Wrapper); // No need for a stack frame as recCOP2 sets it up for us
 
     allocateRegWithoutLoad(_Rt_);
-    gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+    gen.mov(m_regs[_Rt_].allocatedReg, eax);
 }
 
 void DynaRecCPU::recCFC2() {
-    switch (_Rd_) {
-        default:
-            fmt::print("Read from GTE control register{}\n", _Rd_);
-            abort();
-    }
-
     allocateRegWithoutLoad(_Rt_);
     gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)]);
 }
+
+void DynaRecCPU::recLWC2() {
+    Label end;
+    setupStackFrame(); // This instruction might skipped, so set up the stack frame  outside the conditional block
+    gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000);  // Check SR to see if COP2 is enabled
+    gen.jz(end); // Skip the opcode if not
+
+    if (m_regs[_Rs_].isConst()) { // Store address in arg1
+        gen.mov(arg1, m_regs[_Rs_].val);
+    } else {
+        allocateReg(_Rs_);
+        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
+    }
+
+    call<false>(psxMemRead32Wrapper); // Read a value from memory. No need to set up a stack frame as we did it before
+    switch (_Rt_) {
+        case 15:
+        case 28:
+        case 30:
+            fmt::print("Unimplemented LWC2 to GTE data register {}\n", _Rt_);
+            abort();
+            break;
+    }
+    
+    if (_Rt_ != 31) {
+        gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rt_)], eax);
+    }
+
+    gen.L(end);
+}
+
 
 #define GTE_FALLBACK(name) \
 static void name##Wrapper(uint32_t instruction) { \
@@ -151,9 +185,10 @@ static void name##Wrapper(uint32_t instruction) { \
                                                   \
 void DynaRecCPU::rec##name() {                    \
     gen.mov(arg1, m_psxRegs.code);                \
-    call(name##Wrapper);                          \
+    call<false>(name##Wrapper);                   \
 }
 
+// Note: The GTE recompiler functions don't set up a stack frame, because recCOP2 does it already
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);
 GTE_FALLBACK(CC);
