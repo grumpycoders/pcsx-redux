@@ -246,6 +246,8 @@ public:
     void recBGTZ();
     void recBLEZ();
     void recBREAK();
+    void recCFC2();
+    void recCTC2();
     void recCOP0();
     void recCOP2();
     void recDIV();
@@ -263,7 +265,9 @@ public:
     void recLWR();
     void recLUI();
     void recMFC0();
+    void recMFC2();
     void recMTC0();
+    void recMTC2();
     void recMFHI();
     void recMFLO();
     void recMTHI();
@@ -297,34 +301,30 @@ public:
     void recXORI();
     void recException(Exception e);
 
+    // GTE instructions
     void recGTEMove();
-    void recMTC2();
-    void recMFC2();
-    void recCTC2();
-    void recCFC2();
-    void recRTPS();
-    void recNCLIP();
-    void recOP();
-    void recDPCS();
-    void recINTPL();
-    void recMVMVA();
-    void recNCDS();
-    void recCDP();
-    void recNCDT();
-    void recNCCS();
-    void recCC();
-    void recNCS();
-    void recNCT();
-    void recSQR();
-    void recDCPL();
-    void recDPCT();
     void recAVSZ3();
     void recAVSZ4();
-    void recRTPT();
+    void recCC();
+    void recCDP();
+    void recDCPL();
+    void recDPCS();
+    void recDPCT();
     void recGPF();
     void recGPL();
+    void recINTPL();
+    void recMVMVA();
+    void recNCCS();
     void recNCCT();
-
+    void recNCDS();
+    void recNCDT();
+    void recNCLIP();
+    void recNCS();
+    void recNCT();
+    void recOP();
+    void recRTPS();
+    void recRTPT();
+    void recSQR();
     
     template <bool readSR>
     void testSoftwareInterrupt();
