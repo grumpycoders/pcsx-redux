@@ -41,7 +41,7 @@ static void Complain(const char* msg) {
     if (!d) return;
 
     int s = DefaultScreen(d);
-    Window w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 100, 600, 1, BlackPixel(d, s), WhitePixel(d, s));
+    Window w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 600, 100, 1, BlackPixel(d, s), WhitePixel(d, s));
     XSelectInput(d, w, ExposureMask | KeyPressMask);
     XMapWindow(d, w);
 
