@@ -107,15 +107,15 @@ typedef struct {
 } SVector2D;
 
 typedef struct {
-    int16_t z, unused;
+    int16_t z, padding;
 } SVector2Dz;
 
 typedef struct {
-    int16_t x, y, z, unused;
+    int16_t x, y, z, padding;
 } SVector3D;
 
 typedef struct {
-    int16_t x, y, z, unused;
+    int16_t x, y, z, padding;
 } LVector3D;
 
 typedef struct {
@@ -123,7 +123,7 @@ typedef struct {
 } CBGR;
 
 typedef struct {
-    int16_t m11, m12, m13, m21, m22, m23, m31, m32, m33, unused;
+    int16_t m11, m12, m13, m21, m22, m23, m31, m32, m33, padding;
 } SMatrix3D;
 
 typedef union {

@@ -50,10 +50,15 @@ void DynaRecCPU::recCTC2() {
             case 30:
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], (uint32_t)(int16_t)m_regs[_Rt_].val);
                 break;
-            default:
-                fmt::print("Unimplemented write to COP2 control register {}\n", _Rd_);
+
+            case 31:
+                fmt::print("[GTE] Wrote to FLAG\n");
                 abort();
+                break;
+
+            default:
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], m_regs[_Rt_].val);
+                break;
         }
 
     } else {
@@ -70,10 +75,15 @@ void DynaRecCPU::recCTC2() {
                 gen.movsx(eax, m_regs[_Rt_].allocatedReg.cvt16()); // Sign extend value from 16 to 32 bits
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], eax);
                 break;
-            default:
-                fmt::print("Unimplemented write to COP2 control register {}\n", _Rd_);
+
+            case 31:
+                fmt::print("[GTE] Wrote to FLAG\n");
                 abort();
+                break;
+
+            default:
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg);
+                break;
         }
     }
 }
