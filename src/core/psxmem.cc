@@ -432,7 +432,7 @@ void *PCSX::Memory::psxMemPointer(uint32_t mem) {
     t = mem >> 16;
     if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
         if ((mem & 0xffff) < 0x400)
-            return (void *)&g_psxH[mem];
+            return (void *)&g_psxH[mem & 0x3FF];
         else
             return NULL;
     } else {

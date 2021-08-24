@@ -177,6 +177,29 @@ void DynaRecCPU::recLWC2() {
     gen.L(end);
 }
 
+void DynaRecCPU::recSWC2() {
+    Label end;
+    setupStackFrame();  // This instruction might skipped, so set up the stack frame  outside the conditional block
+    gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000);  // Check SR to see if COP2 is enabled
+    gen.jz(end);                                                    // Skip the opcode if not
+
+    gen.mov(arg1, _Rt_);
+    call<false>(MFC2Wrapper);  // Fetch the COP2 data reg in eax
+
+    // Address in arg1
+    if (m_regs[_Rs_].isConst()) {
+        gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
+    } else {
+        allocateReg(_Rs_);
+        gen.lea(arg1, dword [m_regs[_Rs_].allocatedReg + _Imm_]);
+    }
+
+    gen.mov(arg2, eax); // Value to write in arg2
+    call<false>(psxMemWrite32Wrapper);
+
+    gen.L(end);
+}
+
 
 #define GTE_FALLBACK(name) \
 static void name##Wrapper(uint32_t instruction) { \
