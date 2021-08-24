@@ -35,7 +35,6 @@ DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
 }
 
 void DynaRecCPU::execute() {
-    InterceptBIOS(m_psxRegs.pc);
     if (!isPcValid(m_psxRegs.pc)) {
         error();
         return;
@@ -83,6 +82,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
 
     *callback = (DynarecCallback) gen.getCurr();
     loadContext(); // Load a pointer to our CPU context
+    handleKernelCall(); // Check if this is a kernel call vector, emit some extra code in that case.
 
     auto shouldContinue = [&]() {
         if (m_nextIsDelaySlot) {
@@ -113,13 +113,6 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
 
         const auto func = m_recBSC[m_psxRegs.code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(); // Jump into the handler to recompile it
-
-        //const bool isOtherActive = m_delayedLoadInfo[m_currentDelayedLoad].active;
-        //processDelayedLoad();
-        //if (isOtherActive) {
-        //    gen.mov(esi, edi);
-        //    gen.shr(ebx, 16);
-        //}
     }
     
     flushRegs();
@@ -142,5 +135,31 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
 void DynaRecCPU::recSpecial() {
     const auto func = m_recSPC[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
     (*this.*func)(); // Jump into the handler to recompile it
+}
+
+// Checks if the block being compiled is one of the kernel call vectors
+// If so, emit a call to "InterceptBIOS", which handles the kernel call debugger features
+void DynaRecCPU::handleKernelCall() {
+    const uint32_t pc = m_psxRegs.pc & 0x1fffff;
+    const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
+    if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
+        return;  // Mask out the segment, return if not a kernel call vector
+
+    switch (pc) {  // Handle the A0/B0/C0 vectors
+        case 0xA0:
+            loadThisPointer(arg1.cvt64());
+            call(interceptKernelCallWrapper<0xA0>);
+            break;
+
+        case 0xB0:
+            loadThisPointer(arg1.cvt64());
+            call(interceptKernelCallWrapper<0xB0>);
+            break;
+
+        case 0xC0:
+            loadThisPointer(arg1.cvt64());
+            call(interceptKernelCallWrapper<0xC0>);
+            break;
+    }
 }
 #endif // DYNAREC_X86_64

@@ -128,6 +128,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     unsigned int m_allocatedRegisters = 0; // how many registers have been allocated in this block?
 
     void prepareForCall();
+    void handleKernelCall();
 
 public:
     DynaRecCPU() : R3000Acpu("x86-64 DynaRec") {}
@@ -218,6 +219,11 @@ public:
   private:
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) {
         that->psxException(e, bd);
+    }
+
+    template <uint32_t pc>
+    static void interceptKernelCallWrapper(DynaRecCPU* that) { 
+        that->InterceptBIOS<false>(pc); 
     }
 
     // Check if we're executing from valid memory
