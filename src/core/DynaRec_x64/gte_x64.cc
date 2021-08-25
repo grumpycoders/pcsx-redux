@@ -59,8 +59,6 @@ void DynaRecCPU::recGTEMove() {
 
 void DynaRecCPU::recCTC2() {
     if (m_regs[_Rt_].isConst()) {
-        gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], m_regs[_Rt_].val);
-
         switch (_Rd_) {
             case 4: // These registers are signed 16-bit values. Reading from them returns their value sign-extended to 32 bits
             case 12:
@@ -125,7 +123,7 @@ void DynaRecCPU::recMTC2() {
     if (m_regs[_Rt_].isConst()) {
         gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], m_regs[_Rt_].val);
     } else {
-        allocateRegWithoutLoad(_Rt_);
+        allocateReg(_Rt_);
         gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg);
     }
 }
@@ -154,7 +152,7 @@ void DynaRecCPU::recLWC2() {
     gen.jz(end); // Skip the opcode if not
 
     if (m_regs[_Rs_].isConst()) { // Store address in arg1
-        gen.mov(arg1, m_regs[_Rs_].val);
+        gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
         gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
