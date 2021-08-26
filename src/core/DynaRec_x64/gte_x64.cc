@@ -137,11 +137,14 @@ void DynaRecCPU::recMFC2() {
     call<false>(MFC2Wrapper); // No need for a stack frame as recCOP2 sets it up for us
 
     allocateRegWithoutLoad(_Rt_);
+    m_regs[_Rt_].setWriteback(true);
     gen.mov(m_regs[_Rt_].allocatedReg, eax);
 }
 
 void DynaRecCPU::recCFC2() {
     allocateRegWithoutLoad(_Rt_);
+    m_regs[_Rt_].setWriteback(true);
+
     gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)]);
 }
 
@@ -198,15 +201,14 @@ void DynaRecCPU::recSWC2() {
     gen.L(end);
 }
 
-
 #define GTE_FALLBACK(name) \
-static void name##Wrapper(uint32_t instruction) { \
-    PCSX::g_emulator->m_gte->name(instruction);   \
-}                                                 \
-                                                  \
-void DynaRecCPU::rec##name() {                    \
-    gen.mov(arg1, m_psxRegs.code);                \
-    call<false>(name##Wrapper);                   \
+static void name##Wrapper(uint32_t instruction) {  \
+    PCSX::g_emulator->m_gte->name(instruction);    \
+}                                                  \
+                                                   \
+void DynaRecCPU::rec##name() {                     \
+    gen.mov(arg1, m_psxRegs.code);                 \
+    call<false>(name##Wrapper);                    \
 }
 
 // Note: The GTE recompiler functions don't set up a stack frame, because recCOP2 does it already

@@ -144,7 +144,8 @@ class Memory {
     void psxMemWrite8(uint32_t mem, uint8_t value);
     void psxMemWrite16(uint32_t mem, uint16_t value);
     void psxMemWrite32(uint32_t mem, uint32_t value);
-    void *psxMemPointer(uint32_t mem);
+    void *psxMemPointerRead(uint32_t address);
+    void *psxMemPointerWrite(uint32_t address);
 
     void setLuts();
 

@@ -728,6 +728,28 @@ template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad() {
     if (m_regs[_Rs_].isConst()) { // Store the address in first argument register
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerRead(addr);
+
+        if (pointer != nullptr) {
+            allocateRegWithoutLoad(_Rt_);
+            m_regs[_Rt_].setWriteback(true);
+            gen.mov(rax, (uintptr_t) pointer);
+
+            switch (size) {
+                case 8:
+                    signExtend ? gen.movsx(m_regs[_Rt_].allocatedReg, Xbyak::util::byte[rax])
+                               : gen.movzx(m_regs[_Rt_].allocatedReg, Xbyak::util::byte[rax]);
+                    break;
+                case 16:
+                    signExtend ? gen.movsx(m_regs[_Rt_].allocatedReg, word[rax]) : gen.movzx(m_regs[_Rt_].allocatedReg, word[rax]);
+                    break;
+                case 32:
+                    gen.mov(m_regs[_Rt_].allocatedReg, dword[rax]);
+                    break;
+            }
+            return;
+        }
+
         gen.mov(arg1, addr);
     } else {
         allocateReg(_Rs_);
@@ -932,7 +954,8 @@ void DynaRecCPU::recLWR(){
 void DynaRecCPU::recSB() {
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointer(addr);
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
+
         if (pointer != nullptr) {
             gen.mov(rax, (uintptr_t)pointer);
             if (m_regs[_Rt_].isConst()) {
@@ -973,7 +996,7 @@ void DynaRecCPU::recSB() {
 void DynaRecCPU::recSH() {
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointer(addr);
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
         if (pointer != nullptr) {
             gen.mov(rax, (uintptr_t)pointer);
             if (m_regs[_Rt_].isConst()) {
@@ -1020,7 +1043,7 @@ void DynaRecCPU::recSW() {
 
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
-        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointer(addr);
+        const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
         if (pointer != nullptr) {
             gen.mov(rax, (uintptr_t) pointer);
             if (m_regs[_Rt_].isConst()) {

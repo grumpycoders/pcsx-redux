@@ -543,12 +543,12 @@ int PCSX::GTE::docop2(int op) {
     int mx;
     int32_t h_over_sz3 = 0;
 
-    lm = GTE_LM(gteop);
-    s_sf = GTE_SF(gteop);
+    lm = GTE_LM(gteop(op));
+    s_sf = GTE_SF(gteop(op));
 
     FLAG = 0;
 
-    switch (GTE_FUNCT(gteop)) {
+    switch (GTE_FUNCT(gteop(op))) {
         case 0x00:
         case 0x01:
             GTE_LOG("%08x GTE: RTPS|", op);
@@ -632,9 +632,9 @@ int PCSX::GTE::docop2(int op) {
 
         case 0x12:
             GTE_LOG("%08x GTE: MVMVA|", op);
-            mx = GTE_MX(gteop);
-            v = GTE_V(gteop);
-            cv = GTE_CV(gteop);
+            mx = GTE_MX(gteop(op));
+            v = GTE_V(gteop(op));
+            cv = GTE_CV(gteop(op));
 
             switch (cv) {
                 case 2:

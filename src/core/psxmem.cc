@@ -425,22 +425,35 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     }
 }
 
-void *PCSX::Memory::psxMemPointer(uint32_t mem) {
-    char *p;
-    uint32_t t;
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            return (void *)&g_psxH[mem & 0x3FF];
+void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
+    const auto page = address >> 16;
+    if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400)
+            return &g_psxH[address & 0x3FF];
         else
-            return NULL;
+            return nullptr;
     } else {
-        p = (char *)(g_psxMemWLUT[t]);
-        if (p != NULL) {
-            return (void *)(p + (mem & 0xffff));
+        const auto pointer = (char *)(g_psxMemRLUT[page]);
+        if (pointer != nullptr) {
+            return (void *)(pointer + (address & 0xffff));
         }
-        return NULL;
+        return nullptr;
+    }
+}
+
+void *PCSX::Memory::psxMemPointerWrite(uint32_t address) {
+    const auto page = address >> 16;
+    if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400)
+            return &g_psxH[address & 0x3FF];
+        else
+            return nullptr;
+    } else {
+        const auto pointer = (char *)(g_psxMemWLUT[page]);
+        if (pointer != nullptr) {
+            return (void *)(pointer + (address & 0xffff));
+        }
+        return nullptr;
     }
 }
 
