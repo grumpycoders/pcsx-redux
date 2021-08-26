@@ -136,16 +136,22 @@ void DynaRecCPU::recMFC2() {
     gen.mov(arg1, _Rd_);
     call<false>(MFC2Wrapper); // No need for a stack frame as recCOP2 sets it up for us
 
-    allocateRegWithoutLoad(_Rt_);
-    m_regs[_Rt_].setWriteback(true);
-    gen.mov(m_regs[_Rt_].allocatedReg, eax);
+    if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
+        allocateRegWithoutLoad(_Rt_);
+        m_regs[_Rt_].setWriteback(true);
+        gen.mov(m_regs[_Rt_].allocatedReg, eax);
+    }
 }
 
 void DynaRecCPU::recCFC2() {
-    allocateRegWithoutLoad(_Rt_);
-    m_regs[_Rt_].setWriteback(true);
+    if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
+        allocateRegWithoutLoad(_Rt_);
+        m_regs[_Rt_].setWriteback(true);
 
-    gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)]);
+        gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)]);
+    }
 }
 
 void DynaRecCPU::recLWC2() {

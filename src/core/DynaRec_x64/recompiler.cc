@@ -91,7 +91,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         if (m_stopCompiling) {
             return false;
         }
-        if (count >= MAX_BLOCK_SIZE && !m_delayedLoadInfo[0].active && !m_delayedLoadInfo[1].active) {
+        if (count >= MAX_BLOCK_SIZE) { // TODO: Check delay slots here
             return false;
         }
         return true;
@@ -101,7 +101,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        const auto p = (uint8_t*)PSXM(m_pc); // Fetch instruction
+        const auto p = (uint8_t*) PSXM(m_pc); // Fetch instruction
         if (p == nullptr) { // Error if it can't be fetched
             error();
             return;

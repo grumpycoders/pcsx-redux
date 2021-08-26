@@ -730,7 +730,7 @@ void DynaRecCPU::recompileLoad() {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerRead(addr);
 
-        if (pointer != nullptr) {
+        if (pointer != nullptr && _Rt_ != 0) {
             allocateRegWithoutLoad(_Rt_);
             m_regs[_Rt_].setWriteback(true);
             gen.mov(rax, (uintptr_t) pointer);
@@ -796,6 +796,10 @@ void DynaRecCPU::recLHU() { recompileLoad<16, false>(); }
 void DynaRecCPU::recLW()  { recompileLoad<32, true>(); }
 
 void DynaRecCPU::recLWL() {
+    if (!_Rt_) {
+        error();
+    }
+
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {
@@ -874,6 +878,10 @@ void DynaRecCPU::recLWL() {
 }
 
 void DynaRecCPU::recLWR(){
+    if (!_Rt_) {
+        error();
+    }
+
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {
@@ -1442,8 +1450,11 @@ void DynaRecCPU::recJAL() {
 
 void DynaRecCPU::recJALR() {
     recJR();
-    maybeCancelDelayedLoad(_Rd_);
-    markConst(_Rd_, m_pc + 4); // Link
+
+    if (_Rd_) {
+        maybeCancelDelayedLoad(_Rd_);
+        markConst(_Rd_, m_pc + 4);  // Link
+    }
 }
 
 void DynaRecCPU::recJR() {
@@ -1643,8 +1654,8 @@ void DynaRecCPU::recDIV() {
         }
 
         if (m_regs[_Rs_].isConst()) {
-            gen.mov(dword[contextPointer + LO_OFFSET], (int32_t)m_regs[_Rt_].val / (int32_t)m_regs[_Rs_].val);
-            gen.mov(dword[contextPointer + HI_OFFSET], (int32_t)m_regs[_Rt_].val % (int32_t)m_regs[_Rs_].val);
+            gen.mov(dword[contextPointer + LO_OFFSET], (int32_t)m_regs[_Rs_].val / (int32_t)m_regs[_Rt_].val);
+            gen.mov(dword[contextPointer + HI_OFFSET], (int32_t)m_regs[_Rs_].val % (int32_t)m_regs[_Rt_].val);
             return;
         }
 
@@ -1706,8 +1717,8 @@ void DynaRecCPU::recDIVU() {
         }
 
         if (m_regs[_Rs_].isConst()) {
-            gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rt_].val / m_regs[_Rs_].val);
-            gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rt_].val % m_regs[_Rs_].val);
+            gen.mov(dword[contextPointer + LO_OFFSET], m_regs[_Rs_].val / m_regs[_Rt_].val);
+            gen.mov(dword[contextPointer + HI_OFFSET], m_regs[_Rs_].val % m_regs[_Rt_].val);
             return;
         }
 
@@ -1750,6 +1761,8 @@ void DynaRecCPU::recDIVU() {
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFLO() {
+    BAILZERO(_Rd_);
+
     maybeCancelDelayedLoad(_Rd_);
     allocateRegWithoutLoad(_Rd_);
     m_regs[_Rd_].setWriteback(true);
@@ -1759,6 +1772,8 @@ void DynaRecCPU::recMFLO() {
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFHI() {
+    BAILZERO(_Rd_);
+
     maybeCancelDelayedLoad(_Rd_);
     allocateRegWithoutLoad(_Rd_);
     m_regs[_Rd_].setWriteback(true);
