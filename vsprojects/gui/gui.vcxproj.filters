@@ -64,6 +64,9 @@
     <ClCompile Include="..\..\src\gui\widgets\zep-lua.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\shaders\crt-lottes.cc">
+      <Filter>Source Files\shaders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h">
@@ -126,6 +129,9 @@
     <ClInclude Include="..\..\src\gui\widgets\zep-lua.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\shaders\crt-lottes.h">
+      <Filter>Header Files\shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -148,6 +154,12 @@
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{400fe0a4-9b79-4497-8575-c20e964a0afe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\shaders">
+      <UniqueIdentifier>{1cd115bb-3bd6-458b-b975-aa581edfae1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\shaders">
+      <UniqueIdentifier>{0cad5476-633f-4e3c-a62f-2b4e47639d85}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

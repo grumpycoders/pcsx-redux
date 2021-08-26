@@ -156,6 +156,12 @@ PCSX::Widgets::ShaderEditor::~ShaderEditor() {
     }
 }
 
+void PCSX::Widgets::ShaderEditor::setDefaults() {
+    m_vertexShaderEditor.setText(c_defaultVertexShader);
+    m_pixelShaderEditor.setText(c_defaultPixelShader);
+    m_luaEditor.setText(c_defaultLuaInvoker);
+}
+
 std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std::string_view> &mandatoryAttributes) {
     GLint status = 0;
 
@@ -340,6 +346,91 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
 }
 
 bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
+    if (!m_show) return false;
+    if (!ImGui::Begin(title.data(), &m_show)) return false;
+    ImGui::Checkbox(_("Auto reload"), &m_autoreload);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Auto save"), &m_autosave);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Show all"), &m_showAll);
+    ImGui::SameLine();
+    if (ImGui::Button(_("Configure shader"))) {
+        setConfigure();
+    }
+    auto contents = ImGui::GetContentRegionAvail();
+    ImGuiStyle &style = ImGui::GetStyle();
+    const float heightSeparator = style.ItemSpacing.y;
+    float footerHeight = heightSeparator * 2 + 5 * ImGui::GetTextLineHeightWithSpacing();
+    float width = contents.x / 3 - style.ItemInnerSpacing.x;
+    gui->useMonoFont();
+    if (m_showAll) {
+        ImVec2 size = {width, contents.y - footerHeight};
+        ImGui::BeginChild("VertexShaderEditor", size);
+        m_vertexShaderEditor.draw(gui);
+        ImGui::EndChild();
+        ImGui::SameLine();
+        ImGui::BeginChild("PixelShaderEditor", size);
+        m_pixelShaderEditor.draw(gui);
+        ImGui::EndChild();
+        ImGui::SameLine();
+        ImGui::BeginChild("LuaInvoker", size);
+        m_luaEditor.draw(gui);
+        ImGui::EndChild();
+    } else {
+        if (ImGui::BeginTabBar("MyTabBar")) {
+            ImVec2 size = {contents.x, contents.y - footerHeight};
+            if (ImGui::BeginTabItem(_("Vertex Shader"))) {
+                ImGui::BeginChild("VertexShaderEditor", size);
+                m_vertexShaderEditor.draw(gui);
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("Pixel Shader"))) {
+                ImGui::BeginChild("PixelShaderEditor", size);
+                m_pixelShaderEditor.draw(gui);
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(_("Lua Invoker"))) {
+                ImGui::BeginChild("LuaInvoker", size);
+                m_luaEditor.draw(gui);
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+    }
+    ImGui::PopFont();
+    ImGui::BeginChild("Errors", ImVec2(0, 0), true);
+    ImGui::Text("%s", m_errorMessage.c_str());
+    if (m_displayError) {
+        for (auto &msg : m_lastLuaErrors) {
+            ImGui::TextUnformatted(msg.c_str());
+        }
+    }
+    ImGui::EndChild();
+
+    ImGui::End();
+
+    return m_vertexShaderEditor.hasTextChanged() || m_pixelShaderEditor.hasTextChanged() ||
+           m_luaEditor.hasTextChanged();
+}
+
+void PCSX::Widgets::ShaderEditor::setConfigure(bool configure) {
+    auto &L = g_emulator->m_lua;
+    int top = L->gettop();
+    getRegistry(L);
+    L->push(m_index);
+    L->gettable();
+    L->push("configureme");
+    L->push(configure);
+    L->settable();
+    while (top < L->gettop()) {
+        L->pop();
+    }
+}
+
+void PCSX::Widgets::ShaderEditor::configure() {
     auto &Lorg = g_emulator->m_lua;
     bool config = false;
     {
@@ -401,83 +492,47 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
             Lorg->pop();
         }
     }
-    if (!m_show) return false;
-    if (!ImGui::Begin(title.data(), &m_show)) return false;
-    ImGui::Checkbox(_("Auto reload"), &m_autoreload);
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Auto save"), &m_autosave);
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Show all"), &m_showAll);
-    ImGui::SameLine();
-    if (ImGui::Checkbox(_("Configure shader"), &config)) {
+}
+
+void PCSX::Widgets::ShaderEditor::reset() {
+    auto &Lorg = g_emulator->m_lua;
+    {
         int top = Lorg->gettop();
-        getRegistry(Lorg);
-        Lorg->push(m_index);
-        Lorg->gettable();
-        Lorg->push("configureme");
-        Lorg->push(config);
-        Lorg->settable();
+        auto L = Lorg->thread();
+        getRegistry(L);
+        L->push(m_index);
+        L->gettable();
+        if (L->istable()) {
+            L->push("Reset");
+            L->gettable();
+            if (L->isfunction()) {
+                L->copy(-2);
+                L->setfenv();
+                try {
+                    L->pcall();
+                    bool gotGLerror = false;
+                    GLenum glError = GL_NO_ERROR;
+                    while ((glError = glGetError()) != GL_NO_ERROR) {
+                        std::string msg = "glError: ";
+                        msg += PCSX::GUI::glErrorToString(glError);
+                        m_lastLuaErrors.push_back(msg);
+                        gotGLerror = true;
+                    }
+                    if (gotGLerror) throw("OpenGL error while running Lua code");
+                } catch (...) {
+                    getRegistry(Lorg);
+                    Lorg->push(m_index);
+                    Lorg->gettable();
+                    Lorg->push("Reset");
+                    Lorg->push();
+                    Lorg->settable();
+                }
+            }
+        }
         while (top < Lorg->gettop()) {
             Lorg->pop();
         }
     }
-    auto contents = ImGui::GetContentRegionAvail();
-    ImGuiStyle &style = ImGui::GetStyle();
-    const float heightSeparator = style.ItemSpacing.y;
-    float footerHeight = heightSeparator * 2 + 5 * ImGui::GetTextLineHeightWithSpacing();
-    float width = contents.x / 3 - style.ItemInnerSpacing.x;
-    gui->useMonoFont();
-    if (m_showAll) {
-        ImVec2 size = {width, contents.y - footerHeight};
-        ImGui::BeginChild("VertexShaderEditor", size);
-        m_vertexShaderEditor.draw(gui);
-        ImGui::EndChild();
-        ImGui::SameLine();
-        ImGui::BeginChild("PixelShaderEditor", size);
-        m_pixelShaderEditor.draw(gui);
-        ImGui::EndChild();
-        ImGui::SameLine();
-        ImGui::BeginChild("LuaInvoker", size);
-        m_luaEditor.draw(gui);
-        ImGui::EndChild();
-    } else {
-        if (ImGui::BeginTabBar("MyTabBar")) {
-            ImVec2 size = {contents.x, contents.y - footerHeight};
-            if (ImGui::BeginTabItem(_("Vertex Shader"))) {
-                ImGui::BeginChild("VertexShaderEditor", size);
-                m_vertexShaderEditor.draw(gui);
-                ImGui::EndChild();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem(_("Pixel Shader"))) {
-                ImGui::BeginChild("PixelShaderEditor", size);
-                m_pixelShaderEditor.draw(gui);
-                ImGui::EndChild();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem(_("Lua Invoker"))) {
-                ImGui::BeginChild("LuaInvoker", size);
-                m_luaEditor.draw(gui);
-                ImGui::EndChild();
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-    }
-    ImGui::PopFont();
-    ImGui::BeginChild("Errors", ImVec2(0, 0), true);
-    ImGui::Text("%s", m_errorMessage.c_str());
-    if (m_displayError) {
-        for (auto &msg : m_lastLuaErrors) {
-            ImGui::TextUnformatted(msg.c_str());
-        }
-    }
-    ImGui::EndChild();
-
-    ImGui::End();
-
-    return m_vertexShaderEditor.hasTextChanged() || m_pixelShaderEditor.hasTextChanged() ||
-           m_luaEditor.hasTextChanged();
 }
 
 void PCSX::Widgets::ShaderEditor::getRegistry(std::unique_ptr<Lua> &L) {

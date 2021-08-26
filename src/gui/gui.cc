@@ -51,6 +51,7 @@
 #include "flags.h"
 #include "gpu/soft/externals.h"
 #include "gui/resources.h"
+#include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -438,6 +439,9 @@ end)(jit.status()))
     m_biosEditor.title = []() { return _("BIOS"); };
     m_biosEditor.show = false;
 
+    m_offscreenShaderEditor.compile();
+    m_outputShaderEditor.compile();
+
     startFrame();
     m_currentTexture = 1;
     flip();
@@ -573,10 +577,11 @@ void PCSX::GUI::endFrame() {
     glfwGetFramebufferSize(m_window, &w, &h);
     m_renderSize = ImVec2(w, h);
     normalizeDimensions(m_renderSize, m_renderRatio);
-    m_renderSize.x = std::max(m_renderSize.x, 1.0f);
-    m_renderSize.y = std::max(m_renderSize.y, 1.0f);
 
     bool changed = false;
+
+    m_offscreenShaderEditor.configure();
+    m_outputShaderEditor.configure();
 
     if (m_fullscreenRender) {
         ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
@@ -765,6 +770,33 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
+                if (ImGui::BeginMenu(_("Shader presets"))) {
+                    if (ImGui::MenuItem(_("Default shader"))) {
+                        m_offscreenShaderEditor.setDefaults();
+                        m_offscreenShaderEditor.compile();
+                        m_offscreenShaderEditor.reset();
+                        m_outputShaderEditor.setDefaults();
+                        m_outputShaderEditor.compile();
+                        m_outputShaderEditor.reset();
+                    }
+                    if (ImGui::MenuItem(_("CRT-lottes shader"))) {
+                        m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert(),
+                                                        Shaders::CrtLottes::Offscreen::frag(),
+                                                        Shaders::CrtLottes::Offscreen::lua());
+                        m_offscreenShaderEditor.compile();
+                        m_offscreenShaderEditor.reset();
+                        m_outputShaderEditor.setText(Shaders::CrtLottes::Output::vert(),
+                                                     Shaders::CrtLottes::Output::frag(),
+                                                     Shaders::CrtLottes::Output::lua());
+                        m_outputShaderEditor.compile();
+                        m_outputShaderEditor.reset();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::MenuItem(_("Configure Shaders"))) {
+                    m_offscreenShaderEditor.setConfigure();
+                    m_outputShaderEditor.setConfigure();
+                }
                 ImGui::EndMenu();
             }
             ImGui::Separator();
