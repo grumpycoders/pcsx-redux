@@ -91,6 +91,8 @@ end
 -- as the shader editor, but regardless of the status of the
 -- shader editor window. Its purpose is to potentially display
 -- a piece of UI to let the user interact with the shader program.
+
+-- Returning true from it will cause the environment to be saved.
 function Draw()
 end
 
@@ -287,7 +289,19 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
             }
             if (!gotGLerror) {
                 m_displayError = false;
-                // if no error, remember the newest Lua code
+                // if no error, reload settings
+                json settings;
+                try {
+                    f.replace_extension("json");
+                    std::ifstream in(f);
+                    if (in.is_open()) {
+                        in >> settings;
+                    }
+                } catch (...) {
+                }
+                L->fromJson(settings);
+
+                // and remember the newest Lua code
                 L->settable();
             }
         } catch (...) {
@@ -327,6 +341,7 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(const std::vector<std
 
 bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
     auto &Lorg = g_emulator->m_lua;
+    bool config = false;
     {
         int top = Lorg->gettop();
         auto L = Lorg->thread();
@@ -334,12 +349,19 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
         L->push(m_index);
         L->gettable();
         if (L->istable()) {
+            L->push("configureme");
+            L->gettable();
+            if (L->isboolean()) {
+                config = L->toboolean();
+            }
+            L->pop();
             L->push("Draw");
             L->gettable();
             if (L->isfunction()) {
                 L->copy(-2);
                 L->setfenv();
                 try {
+                    int top = L->gettop() - 1;
                     L->pcall();
                     bool gotGLerror = false;
                     GLenum glError = GL_NO_ERROR;
@@ -350,6 +372,21 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
                         gotGLerror = true;
                     }
                     if (gotGLerror) throw("OpenGL error while running Lua code");
+
+                    if (top != L->gettop()) {
+                        bool changed = L->toboolean(top + 1);
+                        if (changed) {
+                            auto j = L->toJson(-2);
+                            if (j.is_object()) {
+                                auto i = j.find("shaderProgramID");
+                                if (i != j.end()) j.erase(i);
+                            }
+                            std::filesystem::path f = m_baseFilename;
+                            f.replace_extension("json");
+                            std::ofstream out(f, std::ofstream::out);
+                            out << std::setw(2) << j << std::endl;
+                        }
+                    }
                 } catch (...) {
                     getRegistry(Lorg);
                     Lorg->push(m_index);
@@ -371,6 +408,19 @@ bool PCSX::Widgets::ShaderEditor::draw(std::string_view title, GUI *gui) {
     ImGui::Checkbox(_("Auto save"), &m_autosave);
     ImGui::SameLine();
     ImGui::Checkbox(_("Show all"), &m_showAll);
+    ImGui::SameLine();
+    if (ImGui::Checkbox(_("Configure shader"), &config)) {
+        int top = Lorg->gettop();
+        getRegistry(Lorg);
+        Lorg->push(m_index);
+        Lorg->gettable();
+        Lorg->push("configureme");
+        Lorg->push(config);
+        Lorg->settable();
+        while (top < Lorg->gettop()) {
+            Lorg->pop();
+        }
+    }
     auto contents = ImGui::GetContentRegionAvail();
     ImGuiStyle &style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
