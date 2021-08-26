@@ -180,6 +180,7 @@
     <ClCompile Include="..\..\src\gui\gui.cc" />
     <ClCompile Include="..\..\src\gui\resources-unix.cc" />
     <ClCompile Include="..\..\src\gui\resources-win32.cc" />
+    <ClCompile Include="..\..\src\gui\shaders\crt-lottes.cc" />
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc" />
     <ClCompile Include="..\..\src\gui\widgets\assembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc" />
@@ -202,6 +203,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
     <ClInclude Include="..\..\src\gui\resources.h" />
+    <ClInclude Include="..\..\src\gui\shaders\crt-lottes.h" />
     <ClInclude Include="..\..\src\gui\widgets\assembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
