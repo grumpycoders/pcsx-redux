@@ -24,7 +24,10 @@
 #include <string>
 
 #include "core/psxemulator.h"
+#include "json.hpp"
 #include "lua.hpp"
+
+using json = nlohmann::json;
 
 namespace PCSX {
 
@@ -210,6 +213,9 @@ class Lua {
     void concat(int n = 2) { lua_concat(L, n); }
 
     void displayStack(bool error = false);
+
+    json toJson(int t = -1);
+    void fromJson(const json&, int t = -1);
 
     std::string escapeString(const std::string&);
     void load(const std::string& str, const std::string& name, bool docall = true);
