@@ -48,11 +48,13 @@ uniform sampler2D Texture;
 
 uniform vec2 u_srcSize;
 uniform vec2 u_dstSize;
-uniform float u_shadowmask;
+uniform float u_mask;
 uniform float u_warp;
+uniform int u_masktype;
+uniform bool u_grey;
 
-float maskDark = 1.0 - u_shadowmask;
-float maskLight = 1.0 + u_shadowmask;
+float maskDark = 1.0 - u_mask;
+float maskLight = 1.0 + u_mask;
 vec2 c_warp = vec2(u_warp / 32.0, u_warp / 24.0);
 
 vec2 warp(vec2 pos) {
@@ -69,8 +71,21 @@ vec3 toGrey(vec3 rgb) {
 }
 
 vec3 mask(vec2 pos) {
-    pos *= u_srcSize * vec2(2.0);
+    pos *= u_srcSize;
     vec3 m = vec3(maskDark);
+
+    switch(u_masktype) {
+        case 1:
+            pos *= 2.0;
+            break;
+        case 2:
+            break;
+        case 3:
+            pos = pos - fract(pos);
+            pos.x += pos.y * 3.0;
+            break;
+    }
+
     pos.x = fract(pos.x / 6.0);
     if (pos.x < 0.333) m.r = maskLight;
     else if (pos.x < 0.666) m.g = maskLight;
@@ -89,7 +104,11 @@ vec3 fetch(vec2 pos) {
 in vec2 Frag_UV;
 layout (location = 0) out vec4 Out_Color;
 void main() {
-    Out_Color.rgb = fetch(warp(Frag_UV.st)) * mask(Frag_UV.st);
+    Out_Color.rgb = fetch(warp(Frag_UV.st));
+    if (u_grey) {
+        Out_Color.rgb = toGrey(Out_Color.rgb);
+    }
+    Out_Color.rgb *= mask(Frag_UV.st);
     Out_Color.a = 1.0;
 }
 )";
@@ -100,21 +119,27 @@ std::string_view PCSX::Shaders::CrtLottes::Output::lua() {
 local locSrcSize = -1
 local locDstSize = -1
 local locWarp = -1
-local locShadowmask = -1
+local locMask = -1
+local locMaskType = -1
+local locGrey = -1
 
 local srcSize = { X = 0, Y = 0 }
 local dstSize = { X = 0, Y = 0 }
 
 function Reset()
     warp = 1.0
-    shadowmask = 0.5
+    mask = 0.5
+    masktype = 1
+    grey = false
 end
 
 function Constructor(shaderProgramID)
     locSrcSize = gl.glGetUniformLocation(shaderProgramID, 'u_srcSize')
     locDstSize = gl.glGetUniformLocation(shaderProgramID, 'u_dstSize')
     locWarp = gl.glGetUniformLocation(shaderProgramID, 'u_warp')
-    locShadowmask = gl.glGetUniformLocation(shaderProgramID, 'u_shadowmask')
+    locMask = gl.glGetUniformLocation(shaderProgramID, 'u_mask')
+    locMaskType = gl.glGetUniformLocation(shaderProgramID, 'u_masktype')
+    locGrey = gl.glGetUniformLocation(shaderProgramID, 'u_grey')
     Reset()
 end
 Constructor(shaderProgramID)
@@ -137,10 +162,24 @@ function Draw()
         return true
     end
 
-    lc, warp = imgui.SliderFloat('Warp', warp, 0.0, 8.0, '%0.3f')
+    lc, warp = imgui.SliderFloat('Warp intensity', warp, 0.0, 8.0, '%0.3f')
     if (lc) then changed = true end
-    lc, shadowmask = imgui.SliderFloat('Shadowmask', shadowmask, 0.0, 1.0, '%0.3f')
+    lc, mask = imgui.SliderFloat('Mask intensity', mask, 0.0, 1.0, '%0.3f')
     if (lc) then changed = true end
+    lc, grey = imgui.Checkbox('Greyscale', grey)
+    if (lc) then changed = true end
+    local masknames = {'Trinitron', 'Trinitron 2x', 'Trio'}
+    local maskname = masknames[masktype]
+    shoulddraw = imgui.BeginCombo('Mask type', maskname)
+    if (shoulddraw) then
+        for i = 1, 3 do
+            if (imgui.Selectable(masknames[i], i == masktype)) then
+                masktype = i
+                changed = true
+            end
+        end
+        imgui.EndCombo()
+    end
 
     if (imgui.Button('Reset')) then
         Reset()
@@ -155,7 +194,9 @@ function BindAttributes(textureID, shaderProgramID)
     gl.glUniform2f(locSrcSize, srcSize.X, srcSize.Y)
     gl.glUniform2f(locDstSize, dstSize.X, dstSize.Y)
     gl.glUniform1f(locWarp, warp)
-    gl.glUniform1f(locShadowmask, shadowmask)
+    gl.glUniform1f(locMask, mask)
+    gl.glUniform1i(locMaskType, masktype)
+    gl.glUniform1i(locGrey, grey and 1 or 0)
 end
 )";
 }
