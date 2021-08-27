@@ -149,6 +149,10 @@ class GUI final {
         } else {
             vec.x = vec.y / ratio;
         }
+        vec.x = roundf(vec.x);
+        vec.y = roundf(vec.y);
+        vec.x = std::max(vec.x, 1.0f);
+        vec.y = std::max(vec.y, 1.0f);
     }
 
     const ImVec2 &getRenderSize() { return m_renderSize; }
@@ -274,6 +278,7 @@ class GUI final {
 
   public:
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
+    ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
 
     struct {
         bool empty() const { return filename.empty(); }

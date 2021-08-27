@@ -23,10 +23,11 @@
 
 #include <filesystem>
 
-#include "ImGuiColorTextEdit/TextEditor.h"
-#include "core/stacktrace.h"
+#include "gui/widgets/zep.h"
 
 namespace PCSX {
+
+class GUI;
 
 namespace Widgets {
 
@@ -35,10 +36,10 @@ class LuaEditor {
     LuaEditor(bool& show);
     bool& m_show;
 
-    void draw(const char* title);
+    void draw(const char* title, GUI* gui);
 
   private:
-    TextEditor m_text;
+    ZepEditor m_text = {"pcsx.lua"};
     std::vector<std::string> m_lastErrors;
     bool m_displayError = false;
     bool m_autoreload = true;

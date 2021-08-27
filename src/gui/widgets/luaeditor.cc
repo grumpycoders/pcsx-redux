@@ -38,17 +38,16 @@
 #include "support/file.h"
 
 PCSX::Widgets::LuaEditor::LuaEditor(bool& show) : m_show(show) {
-    m_text.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua());
     std::ifstream in("pcsx.lua", std::ifstream::in);
     if (in) {
         std::ostringstream code;
         code << in.rdbuf();
         in.close();
-        m_text.SetText(code.str());
+        m_text.setText(code.str());
     }
 }
 
-void PCSX::Widgets::LuaEditor::draw(const char* title) {
+void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
         return;
@@ -59,9 +58,11 @@ void PCSX::Widgets::LuaEditor::draw(const char* title) {
     ImGui::Checkbox(_("Auto reload"), &m_autoreload);
     ImGui::SameLine();
     ImGui::Checkbox(_("Auto save"), &m_autosave);
-
-    m_text.Render(_("Lua Source"), ImVec2(0, -ImGui::GetTextLineHeightWithSpacing() * 5));
-    if (m_text.IsTextChanged()) {
+    ImVec2 size(0, -ImGui::GetTextLineHeightWithSpacing() * 5);
+    ImGui::BeginChild("LuaSource", size);
+    m_text.draw(gui);
+    ImGui::EndChild();
+    if (m_text.hasTextChanged()) {
         if (m_autoreload) {
             m_lastErrors.clear();
             auto oldNormalPrinter = L->normalPrinter;
@@ -69,7 +70,7 @@ void PCSX::Widgets::LuaEditor::draw(const char* title) {
             L->normalPrinter = [](const std::string&) {};
             L->errorPrinter = [this](const std::string& msg) { m_lastErrors.push_back(msg); };
             try {
-                L->load(m_text.GetText(), "pcsx.lua", false);
+                L->load(m_text.getText(), "pcsx.lua", false);
                 L->pcall();
                 bool gotGLerror = false;
                 GLenum glError = GL_NO_ERROR;
@@ -89,7 +90,7 @@ void PCSX::Widgets::LuaEditor::draw(const char* title) {
 
         if (m_autosave) {
             std::ofstream out("pcsx.lua", std::ofstream::out);
-            out << m_text.GetText();
+            out << m_text.getText();
         }
     }
 

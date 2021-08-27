@@ -30,7 +30,7 @@
 #include "core/r3000a.h"
 #include "fmt/format.h"
 
-void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
+void PCSX::Widgets::Source::draw(const char* title, uint32_t pc, PCSX::GUI* gui) {
     auto switchSource = [this](std::filesystem::path path, int line) mutable -> bool {
         if (!std::filesystem::exists(path)) {
             if (path.is_absolute()) path = path.relative_path();
@@ -52,13 +52,15 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
             if (!src.is_open()) return false;
 
             std::string str((std::istreambuf_iterator<char>(src)), std::istreambuf_iterator<char>());
-            m_text.SetText(str);
+            m_text.setText(str);
         }
+        /*
         TextEditor::Coordinates c;
         c.mLine = line - 1;
         c.mColumn = 1;
         if (c.mLine < 0) c.mLine = 0;
         m_text.SetCursorPosition(c);
+        */
         return true;
     };
 
@@ -81,10 +83,10 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
             }
         }
 
-        if (!found) m_text.SetText("No source found for address");
+        if (!found) m_text.setText("No source found for address");
     }
 
-    m_text.Render(_("Source"));
+    m_text.draw(gui);
 
     ImGui::End();
 
@@ -94,7 +96,7 @@ void PCSX::Widgets::Source::draw(const char* title, uint32_t pc) {
             std::string label;
             label = fmt::format("{:2}: @{:08x}/{:08x} {}:{}", l++, e.pc, e.sp, e.path.string(), e.line);
             if (ImGui::Button(label.c_str()) && !switchSource(e.path, e.line)) {
-                m_text.SetText("Source not found");
+                m_text.setText("Source not found");
             }
         }
     }

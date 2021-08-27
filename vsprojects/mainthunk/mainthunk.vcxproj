@@ -259,9 +259,6 @@
     <ProjectReference Include="..\imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\ImGuiColorTextEdit\ImGuiColorTextEdit.vcxproj">
-      <Project>{cbf9b825-f140-4a02-8a3f-059103d6ca90}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\imgui_lua_bindings\imgui_lua_bindings.vcxproj">
       <Project>{a2833ccc-1df0-4679-8b6d-4ab8cbb66e3a}</Project>
     </ProjectReference>
@@ -297,6 +294,9 @@
     </ProjectReference>
     <ProjectReference Include="..\tracy\tracy.vcxproj">
       <Project>{95de2266-7ce9-44bd-9e7b-dca2b9586d01}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\zep\zep.vcxproj">
+      <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
     </ProjectReference>
     <ProjectReference Include="..\zlib\zlib.vcxproj">
       <Project>{3125e078-7261-48c4-803e-4b29ceeaa56b}</Project>

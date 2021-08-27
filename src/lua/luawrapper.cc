@@ -478,3 +478,92 @@ void PCSX::Lua::displayStack(bool error) {
     }
     pop();
 }
+
+json PCSX::Lua::toJson(int t) {
+    if (!istable(t)) return {};
+    if (t < 0) t = gettop() + t + 1;
+    push();
+    json ret = {};
+    while (next(t) != 0) {
+        auto keytype = type(-2);
+        auto valtype = type(-1);
+        bool keyvalid = false;
+        bool valvalid = false;
+        std::string key;
+        json val;
+        switch (keytype) {
+            case LUA_TSTRING:
+                keyvalid = true;
+                key = tostring(-2);
+                break;
+        }
+        switch (valtype) {
+            case LUA_TNUMBER: {
+                valvalid = true;
+                auto num = tonumber(-1);
+                double fractpart, intpart;
+                fractpart = modf(num, &intpart);
+                if (fractpart == 0.0) {
+                    val = static_cast<int>(intpart);
+                } else {
+                    val = num;
+                }
+            } break;
+            case LUA_TBOOLEAN:
+                valvalid = true;
+                val = toboolean(-1);
+                break;
+            case LUA_TSTRING:
+                valvalid = true;
+                val = tostring(-1);
+                break;
+            case LUA_TTABLE:
+                valvalid = true;
+                val = toJson(-1);
+                break;
+        }
+        pop();
+        if (keyvalid && valvalid) {
+            ret[key] = val;
+        }
+    }
+
+    return ret;
+}
+
+void PCSX::Lua::fromJson(const json& j, int t) {
+    if (!istable(t)) return;
+    if (t < 0) t = gettop() + t + 1;
+    if (!j.is_object()) return;
+
+    for (auto it = j.begin(); it != j.end(); it++) {
+        switch (it.value().type()) {
+            case json::value_t::number_integer:
+                push(it.key());
+                push(lua_Number(it.value().get<int>()));
+                settable(t);
+                break;
+            case json::value_t::number_float:
+                push(it.key());
+                push(it.value().get<float>());
+                settable(t);
+                break;
+            case json::value_t::boolean:
+                push(it.key());
+                push(it.value().get<bool>());
+                settable(t);
+                break;
+            case json::value_t::string:
+                push(it.key());
+                push(it.value().get<std::string>());
+                settable(t);
+                break;
+            case json::value_t::object:
+                push(it.key());
+                newtable();
+                fromJson(it.value(), -1);
+                settable(t);
+                break;
+        }
+    }
+}

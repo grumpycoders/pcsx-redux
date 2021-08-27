@@ -17,23 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#import <Cocoa/Cocoa.h>
+#pragma once
 
-extern "C" void Complain(const char* message) {
-    NSAlert* alert = [[NSAlert alloc] init];
+#include "zep/editor.h"
+#include "zep/syntax.h"
 
-    [alert setMessageText:@"Fatal Error"];
-    [alert setInformativeText:[NSString stringWithCString:message encoding:[NSString defaultCStringEncoding]]];
+namespace PCSX {
+namespace Widgets {
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
-    [alert setAlertStyle:NSAlertStyleCritical];
-#else
-    [alert setAlertStyle:NSCriticalAlertStyle];
-#endif
-    [alert addButtonWithTitle:@"OK"];
+class ZepSyntax_Lua final : public Zep::ZepSyntax {
+    using tSyntaxFactory = std::function<std::shared_ptr<Zep::ZepSyntax>(Zep::ZepBuffer*)>;
 
-    [[alert window] setLevel:NSModalPanelWindowLevel];
+  public:
+    ZepSyntax_Lua(Zep::ZepBuffer& buffer);
+    static void registerSyntax(std::unique_ptr<Zep::ZepEditor>& editor);
+    virtual void UpdateSyntax() override;
+};
 
-    [alert runModal];
-    [alert release];
-}
+}  // namespace Widgets
+}  // namespace PCSX

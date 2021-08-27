@@ -17,23 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#import <Cocoa/Cocoa.h>
+#pragma once
 
-extern "C" void Complain(const char* message) {
-    NSAlert* alert = [[NSAlert alloc] init];
+#include <string_view>
 
-    [alert setMessageText:@"Fatal Error"];
-    [alert setInformativeText:[NSString stringWithCString:message encoding:[NSString defaultCStringEncoding]]];
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
-    [alert setAlertStyle:NSAlertStyleCritical];
-#else
-    [alert setAlertStyle:NSCriticalAlertStyle];
-#endif
-    [alert addButtonWithTitle:@"OK"];
-
-    [[alert window] setLevel:NSModalPanelWindowLevel];
-
-    [alert runModal];
-    [alert release];
-}
+namespace PCSX {
+namespace Shaders {
+namespace CrtLottes {
+namespace Output {
+std::string_view vert();
+std::string_view frag();
+std::string_view lua();
+}  // namespace Output
+namespace Offscreen {
+std::string_view vert();
+std::string_view frag();
+std::string_view lua();
+}  // namespace Offscreen
+}  // namespace CrtLottes
+}  // namespace Shaders
+}  // namespace PCSX
