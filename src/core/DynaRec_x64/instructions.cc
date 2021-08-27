@@ -1322,7 +1322,7 @@ void DynaRecCPU::recCOP0() {
 void DynaRecCPU::recMFC0() {
     BAILZERO(_Rt_);
     maybeCancelDelayedLoad(_Rt_);
-    allocateReg(_Rt_);
+    allocateRegWithoutLoad(_Rt_);
     m_regs[_Rt_].setWriteback(true);
 
     gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP0_OFFSET(_Rd_)]);
