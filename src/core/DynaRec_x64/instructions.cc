@@ -983,7 +983,7 @@ void DynaRecCPU::recSB() {
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
         }
 
-        gen.mov(arg1, addr);  // Address to write to in arg1   TODO: Optimize
+        gen.mov(arg1, addr);  // Address to write to in arg1 TODO: Optimize
         call(psxMemWrite8Wrapper);
     }
 
@@ -1434,7 +1434,7 @@ void DynaRecCPU::recBNE() {
 }
 
 void DynaRecCPU::recJ() {
-    const uint32_t target = _Target_ * 4 + (m_pc & 0xf0000000);
+    const uint32_t target = (m_pc & 0xf0000000) | (_Target_ << 2);
     m_nextIsDelaySlot = true;
     m_stopCompiling = true;
     m_pcWrittenBack = true;

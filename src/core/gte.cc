@@ -438,7 +438,7 @@ static int32_t Lm_B3(int32_t a, int lm) { return LIM(a, 0x7fff, -0x8000 * !lm, (
 static int32_t Lm_B3_sf(int64_t value, int sf, int lm) {
     int32_t value_sf = gte_shift(value, sf);
     int32_t value_12 = gte_shift(value, 1);
-    int max = 0x7fff;
+    constexpr int max = 0x7fff;
     int min = 0;
     if (lm == 0) min = -0x8000;
 
@@ -524,8 +524,8 @@ static int32_t Lm_G2_ia(int64_t a) {
 static int32_t Lm_H(int64_t value, int sf) {
     int64_t value_sf = gte_shift(value, sf);
     int32_t value_12 = gte_shift(value, 1);
-    int max = 0x1000;
-    int min = 0x0000;
+    constexpr int max = 0x1000;
+    constexpr int min = 0x0000;
 
     if (value_sf < min || value_sf > max) FLAG |= (1 << 12);
 
