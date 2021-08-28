@@ -191,7 +191,6 @@ public:
     virtual void Shutdown() final {
         printf("Bye\n");
         dumpBuffer();
-        if (gen.getCode() == nullptr) return; // This should never be true
         delete[] m_recompilerLUT;
         delete[] m_ramBlocks;
         delete[] m_biosBlocks;
