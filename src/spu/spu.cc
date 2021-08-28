@@ -748,11 +748,12 @@ void PCSX::SPU::impl::MainThread() {
         // feed the sound
         // wanna have around 1/60 sec (16.666 ms) updates
 
-        if (iCycle++ > 16) {
-            m_sound.feedStreamData((uint8_t *)pSpuBuffer, ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer));
-            pS = (int16_t *)pSpuBuffer;
-            iCycle = 0;
-        }
+        //        if (iCycle++ > 16) {
+        m_sound.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
+                               (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(MiniAudio::Frame));
+        pS = (int16_t *)pSpuBuffer;
+        iCycle = 0;
+        //        }
     }
 
     // end of big main loop...

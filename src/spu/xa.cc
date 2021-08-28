@@ -244,5 +244,5 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
         }
     }
 
-    m_sound.feedStreamData((uint8_t *)XABuffer, (XAFeed - XABuffer) * sizeof(uint32_t), 1);
+    m_sound.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
 }

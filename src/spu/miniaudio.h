@@ -19,22 +19,46 @@
 
 #pragma once
 
+#include <array>
+
+#define MA_NO_DECODING
+#define MA_NO_ENCODING
+#define MA_NO_WAV
+#define MA_NO_FLAC
+#define MA_NO_MP3
+#define MA_NO_GENERATION
+
 #include "miniaudio/miniaudio.h"
+#include "support/circular.h"
+#include "support/eventbus.h"
 
 namespace PCSX {
 namespace SPU {
 
 class MiniAudio {
   public:
-    MiniAudio(bool& muted) : m_muted(muted) {}
-    void setup();
+    struct Frame {
+        int16_t L = 0, R = 0;
+    };
+    MiniAudio(bool& muted);
+    void setup() {}
     void remove();
+    void feedStreamData(const Frame* data, size_t frames, unsigned streamId = 0) {
+        m_streams.at(streamId).enqueue(data, frames);
+    }
+    size_t getBytesBuffered(unsigned streamId = 0) { return m_streams.at(streamId).buffered(); }
 
   private:
+    static constexpr unsigned STREAMS = 2;
     bool& m_muted;
-    void callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount);
+    void callback(ma_device* device, float* output, ma_uint32 frameCount);
 
     ma_device m_device;
+    EventBus::Listener m_listener;
+
+    typedef Circular<Frame> Stream;
+    std::array<Stream, STREAMS> m_streams;
+    typedef std::array<Frame, Stream::BUFFER_SIZE> Buffer;
 };
 
 }  // namespace SPU
