@@ -99,7 +99,6 @@
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
-#include "spu/sdlsound.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals

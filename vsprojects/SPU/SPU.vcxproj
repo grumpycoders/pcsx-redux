@@ -187,8 +187,8 @@
     <ClCompile Include="..\..\src\spu\cfg.cc" />
     <ClCompile Include="..\..\src\spu\debug.cc" />
     <ClCompile Include="..\..\src\spu\dma.cc" />
-    <ClCompile Include="..\..\src\spu\sdlsound.cc" />
     <ClCompile Include="..\..\src\spu\freeze.cc" />
+    <ClCompile Include="..\..\src\spu\miniaudio.cc" />
     <ClCompile Include="..\..\src\spu\registers.cc" />
     <ClCompile Include="..\..\src\spu\reverb.cc" />
     <ClCompile Include="..\..\src\spu\spu.cc" />
@@ -198,8 +198,8 @@
     <ClInclude Include="..\..\src\spu\adsr.h" />
     <ClInclude Include="..\..\src\spu\gauss.h" />
     <ClInclude Include="..\..\src\spu\interface.h" />
-    <ClInclude Include="..\..\src\spu\sdlsound.h" />
     <ClInclude Include="..\..\src\spu\externals.h" />
+    <ClInclude Include="..\..\src\spu\miniaudio.h" />
     <ClInclude Include="..\..\src\spu\registers.h" />
     <ClInclude Include="..\..\src\spu\types.h" />
   </ItemGroup>
