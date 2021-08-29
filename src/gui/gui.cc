@@ -342,9 +342,6 @@ end)(jit.status()))
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
-        g_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
-        g_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
-        g_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
         PCSX::g_emulator->m_gpu->setDither(emuSettings.get<Emulator::SettingDither>());
 
         auto argPath1 = m_args.get<std::string>("memcard1");
