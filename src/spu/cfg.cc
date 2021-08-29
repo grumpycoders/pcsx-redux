@@ -49,7 +49,6 @@ from the main CPU to the SPU. This includes
 XA audio and audio tracks.)"));
     const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
-    changed |= ImGui::Checkbox(_("Change streaming pitch"), &settings.get<StreamingPitch>().value);
     ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
 in sync, by changing its pitch. Consumes more CPU.)"));
     changed |= ImGui::Checkbox(_("Pause SPU waiting for CPU IRQ"), &settings.get<SPUIRQWait>().value);

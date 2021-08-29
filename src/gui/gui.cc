@@ -29,7 +29,6 @@
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <SDL.h>
 #include <assert.h>
 
 #include <algorithm>
@@ -91,8 +90,7 @@ void PCSX::GUI::bindVRAMTexture() {
 void PCSX::GUI::checkGL() {
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
-        SDL_TriggerBreakpoint();
-        abort();
+        throw std::runtime_error("Got OpenGL error");
     }
 }
 

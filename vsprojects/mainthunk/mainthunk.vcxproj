@@ -277,12 +277,6 @@
     <ProjectReference Include="..\main\main.vcxproj">
       <Project>{36d6f879-f4cb-477e-bb87-33d867eddb0a}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\SDLmain\SDLmain.vcxproj">
-      <Project>{da956fd3-e142-46f2-9dd5-c78bebb56b7a}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\SDL\SDL.vcxproj">
-      <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\soft\soft.vcxproj">
       <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>
