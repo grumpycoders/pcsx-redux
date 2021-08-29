@@ -19,7 +19,10 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <array>
+#include <atomic>
 
 #define MA_NO_DECODING
 #define MA_NO_ENCODING
@@ -47,6 +50,12 @@ class MiniAudio {
         return m_streams.at(streamId).enqueue(data, frames);
     }
     size_t getBytesBuffered(unsigned streamId = 0) { return m_streams.at(streamId).buffered(); }
+    uint32_t getCurrentFrames() { return m_frames.load(); }
+    void waitForGoal(uint32_t goal) {
+        auto triggered = m_triggered.load();
+        m_goalpost.store(goal);
+        m_triggered.wait(triggered);
+    }
 
   private:
     static constexpr unsigned STREAMS = 2;
@@ -59,6 +68,10 @@ class MiniAudio {
     typedef Circular<Frame> Stream;
     std::array<Stream, STREAMS> m_streams;
     typedef std::array<Frame, Stream::BUFFER_SIZE> Buffer;
+    std::atomic<uint32_t> m_frames = 0;
+    std::atomic<uint32_t> m_goalpost = 0;
+    std::atomic<uint32_t> m_triggered = 0;
+    uint32_t m_previousGoalpost = 0;
 };
 
 }  // namespace SPU

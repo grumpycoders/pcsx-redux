@@ -86,6 +86,7 @@ class Counters {
 
     uint32_t m_hSyncCount = 0;
     uint32_t m_spuSyncCount = 0;
+    uint32_t m_audioFrames = 0;
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
 

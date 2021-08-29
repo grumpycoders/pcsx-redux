@@ -173,6 +173,7 @@ struct psxRegisters {
     uint32_t pc;     /* Program counter */
     uint32_t code;   /* The instruction */
     uint32_t cycle;
+    uint32_t previousCycles;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
     uint32_t intTargets[32];

@@ -68,6 +68,7 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
     for (unsigned i = 0; i < STREAMS; i++) {
         size_t a = m_streams[i].dequeue(buffers[i].data(), frameCount);
         for (size_t f = a; a < frameCount; a++) {
+            // maybe warn about underflow? tho it's fine if it happens on stream 1 (cdda)
             buffers[i][f] = {};
         }
     }
@@ -81,4 +82,13 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
         output[f * 2 + 0] = l;
         output[f * 2 + 1] = r;
     }
+
+    auto total = m_frames.fetch_add(frameCount);
+    auto goalpost = m_goalpost.load();
+    if (goalpost == m_previousGoalpost) return;
+
+    if (((int32_t)(goalpost - total)) > 0) return;
+    m_previousGoalpost = goalpost;
+    m_triggered++;
+    m_triggered.notify_one();
 }

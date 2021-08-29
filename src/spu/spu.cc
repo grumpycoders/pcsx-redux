@@ -452,7 +452,7 @@ void PCSX::SPU::impl::MainThread() {
             iSecureStart = 0;  // 0: no new channel should start
 
         while (!iSecureStart && !bEndThread &&           // no new start? no thread end?
-               (m_sound.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
+               (m_audioOut.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
         {
             iSecureStart = 0;  // reset secure
 
@@ -751,7 +751,7 @@ void PCSX::SPU::impl::MainThread() {
         if (iCycle++ > 16) {
             bool done = false;
             while (!done) {
-                done = m_sound.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
+                done = m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
                                               (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(MiniAudio::Frame));
                 if (bEndThread) {
                     bThreadEnded = 1;
@@ -927,7 +927,7 @@ bool PCSX::SPU::impl::open() {
 
     //    ReadConfig();  // read user stuff
 
-    m_sound.setup();  // setup sound (before init!)
+    m_audioOut.setup();  // setup sound (before init!)
 
     SetupStreams();  // prepare streaming
 
@@ -950,7 +950,7 @@ long PCSX::SPU::impl::close(void) {
     bSPUIsOpen = 0;  // no more open
 
     RemoveThread();    // no more feeding
-    m_sound.remove();  // no more sound handling
+    m_audioOut.remove();  // no more sound handling
     RemoveStreams();   // no more streaming
 
     return 0;

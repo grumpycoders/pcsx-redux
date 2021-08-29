@@ -35,7 +35,7 @@ namespace PCSX {
 
 namespace SPU {
 
-class impl : public SPUInterface {
+class impl final : public SPUInterface {
   public:
     using json = nlohmann::json;
     bool open() final;
@@ -71,6 +71,8 @@ class impl : public SPUInterface {
             settings.reset();
         }
     }
+    uint32_t getCurrentFrames() { return m_audioOut.getCurrentFrames(); }
+    void waitForGoal(uint32_t goal) { m_audioOut.waitForGoal(goal); }
 
   private:
     // sound buffer sizes
@@ -204,7 +206,7 @@ class impl : public SPUInterface {
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
     ADSR m_adsr;
-    MiniAudio m_sound = {settings.get<Mute>().value};
+    MiniAudio m_audioOut = {settings.get<Mute>().value};
     xa_decode_t m_cdda;
 
     // debug window
