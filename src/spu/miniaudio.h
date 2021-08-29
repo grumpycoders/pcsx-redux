@@ -35,6 +35,12 @@
 #include "support/circular.h"
 #include "support/eventbus.h"
 
+#ifdef _MSC_VER
+#define HAS_ATOMIC_WAIT 1
+#else
+#define HAS_ATOMIC_WAIT 0
+#endif
+
 namespace PCSX {
 namespace SPU {
 
@@ -52,9 +58,19 @@ class MiniAudio {
     size_t getBytesBuffered(unsigned streamId = 0) { return m_streams.at(streamId).buffered(); }
     uint32_t getCurrentFrames() { return m_frames.load(); }
     void waitForGoal(uint32_t goal) {
+#if HAS_ATOMIC_WAIT
+        // for once, Visual Studio is better than clang/gcc/libc++/libstdc++. Its C++20
+        // support contain the appropriate wait/notify on atomics, so we can do this:
         auto triggered = m_triggered.load();
         m_goalpost.store(goal);
         m_triggered.wait(triggered);
+#else
+        // and until the rest of the world catches on, we'll have to do this instead:
+        std::unique_lock<std::mutex> l(m_mu);
+        auto triggered = m_triggered;
+        m_goalpost = goal;
+        m_cv.wait(l, [this, triggered]() { return m_triggered != triggered; });
+#endif
     }
 
   private:
@@ -69,8 +85,15 @@ class MiniAudio {
     std::array<Stream, STREAMS> m_streams;
     typedef std::array<Frame, Stream::BUFFER_SIZE> Buffer;
     std::atomic<uint32_t> m_frames = 0;
+#if HAS_ATOMIC_WAIT
     std::atomic<uint32_t> m_goalpost = 0;
     std::atomic<uint32_t> m_triggered = 0;
+#else
+    uint32_t m_goalpost = 0;
+    uint32_t m_triggered = 0;
+    std::mutex m_mu;
+    std::condition_variable m_cv;
+#endif
     uint32_t m_previousGoalpost = 0;
 };
 

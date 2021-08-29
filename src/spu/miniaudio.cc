@@ -84,6 +84,8 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
     }
 
     auto total = m_frames.fetch_add(frameCount);
+
+#if HAS_ATOMIC_WAIT
     auto goalpost = m_goalpost.load();
     if (goalpost == m_previousGoalpost) return;
 
@@ -91,4 +93,14 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
     m_previousGoalpost = goalpost;
     m_triggered++;
     m_triggered.notify_one();
+#else
+    std::unique_lock<std::mutex> l(m_mu);
+    auto goalpost = m_goalpost;
+    if (goalpost == m_previousGoalpost) return;
+
+    if (((int32_t)(goalpost - total)) > 0) return;
+    m_previousGoalpost = goalpost;
+    m_triggered++;
+    m_cv.notify_one();
+#endif
 }
