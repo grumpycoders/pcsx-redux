@@ -53,7 +53,7 @@ class Circular {
     }
     size_t dequeue(T* data, size_t N) {
         std::unique_lock<std::mutex> l(m_mu);
-        N = std::max(N, bufferedLocked());
+        N = std::min(N, bufferedLocked());
         dequeueSafe(data, N);
 
         return N;
