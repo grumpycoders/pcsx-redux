@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory.h>
+
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
@@ -80,7 +82,7 @@ class Circular {
             enqueueSafe(data, subLen);
             enqueueSafe(data + subLen, N - subLen);
         } else {
-            memcpy(m_buffer + end, data, N);
+            memcpy(m_buffer + end, data, N * sizeof(T));
             end += N;
             if (end == BUFFER_SIZE) end = 0;
             m_end = end;
@@ -93,7 +95,7 @@ class Circular {
             dequeueSafe(data, subLen);
             dequeueSafe(data + subLen, N - subLen);
         } else {
-            memcpy(data, m_buffer + begin, N);
+            memcpy(data, m_buffer + begin, N * sizeof(T));
             begin += N;
             if (begin == BUFFER_SIZE) begin = 0;
             m_begin = begin;
