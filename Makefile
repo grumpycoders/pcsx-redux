@@ -10,7 +10,7 @@ PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv zlib free
 
 LOCALES := fr
 
-CXXFLAGS += -std=c++20
+CXXFLAGS += -std=c++2a
 CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
