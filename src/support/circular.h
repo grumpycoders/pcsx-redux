@@ -22,13 +22,14 @@
 #include <memory.h>
 
 #include <algorithm>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
 
 namespace PCSX {
 
-template <typename T, size_t BS = 1024>
+template <typename T, size_t BS = 2048>
 class Circular {
   public:
     static constexpr size_t BUFFER_SIZE = BS;
@@ -40,13 +41,15 @@ class Circular {
         std::unique_lock<std::mutex> l(m_mu);
         return bufferedLocked();
     }
-    void enqueue(const T* data, size_t N) {
-        if (N > (BUFFER_SIZE / 2)) {
+    bool enqueue(const T* data, size_t N) {
+        if (N > BUFFER_SIZE) {
             throw std::runtime_error("Trying to enqueue too much data");
         }
         std::unique_lock<std::mutex> l(m_mu);
-        m_cv.wait(l, [this, N]() -> bool { return N < availableLocked(); });
-        enqueueSafe(data, N);
+        using namespace std::chrono_literals;
+        bool safe = m_cv.wait_for(l, 200ms, [this, N]() -> bool { return N < availableLocked(); });
+        if (safe) enqueueSafe(data, N);
+        return safe;
     }
     size_t dequeue(T* data, size_t N) {
         std::unique_lock<std::mutex> l(m_mu);

@@ -43,8 +43,8 @@ class MiniAudio {
     MiniAudio(bool& muted);
     void setup() {}
     void remove();
-    void feedStreamData(const Frame* data, size_t frames, unsigned streamId = 0) {
-        m_streams.at(streamId).enqueue(data, frames);
+    bool feedStreamData(const Frame* data, size_t frames, unsigned streamId = 0) {
+        return m_streams.at(streamId).enqueue(data, frames);
     }
     size_t getBytesBuffered(unsigned streamId = 0) { return m_streams.at(streamId).buffered(); }
 

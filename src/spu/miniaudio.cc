@@ -59,6 +59,9 @@ PCSX::SPU::MiniAudio::MiniAudio(bool& muted) : m_muted(muted), m_listener(g_syst
 void PCSX::SPU::MiniAudio::remove() { ma_device_uninit(&m_device); }
 
 void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 frameCount) {
+    if (frameCount > Stream::BUFFER_SIZE) {
+        throw std::runtime_error("Too many frames requested by miniaudio");
+    }
     std::array<Buffer, STREAMS> buffers;
     const bool muted = m_muted;
 
