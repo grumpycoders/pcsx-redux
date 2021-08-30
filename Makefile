@@ -6,7 +6,7 @@ UNAME_S := $(shell uname -s)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv sdl2 zlib freetype2
+PACKAGES := glfw3 libavcodec libavformat libavutil libswresample libuv zlib freetype2
 
 LOCALES := fr
 

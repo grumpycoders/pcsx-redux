@@ -19,15 +19,16 @@
 
 #pragma once
 
-#include <SDL.h>
 #include <stdint.h>
+
+#include <thread>
 
 #include "core/decode_xa.h"
 #include "core/spu.h"
 #include "core/sstate.h"
 #include "json.hpp"
 #include "spu/adsr.h"
-#include "spu/sdlsound.h"
+#include "spu/miniaudio.h"
 #include "spu/types.h"
 #include "support/settings.h"
 
@@ -35,7 +36,7 @@ namespace PCSX {
 
 namespace SPU {
 
-class impl : public SPUInterface {
+class impl final : public SPUInterface {
   public:
     using json = nlohmann::json;
     bool open() final;
@@ -71,6 +72,8 @@ class impl : public SPUInterface {
             settings.reset();
         }
     }
+    uint32_t getCurrentFrames() { return m_audioOut.getCurrentFrames(); }
+    void waitForGoal(uint32_t goal) { m_audioOut.waitForGoal(goal); }
 
   private:
     // sound buffer sizes
@@ -84,11 +87,6 @@ class impl : public SPUInterface {
 
     // spu
     void MainThread();
-    static int MainThreadTrampoline(void *arg) {
-        impl *that = static_cast<impl *>(arg);
-        that->MainThread();
-        return 0;
-    }
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();
@@ -137,14 +135,13 @@ class impl : public SPUInterface {
     // user settings
     typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
     typedef Setting<int, TYPESTRING("Volume"), 3> Volume;
-    typedef Setting<bool, TYPESTRING("Pitch"), false> StreamingPitch;
     typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
     typedef Setting<int, TYPESTRING("Reverb"), 2> Reverb;
     typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
     typedef Setting<bool, TYPESTRING("Mono")> Mono;
     typedef Setting<bool, TYPESTRING("DBufIRQ")> DBufIRQ;
     typedef Setting<bool, TYPESTRING("Mute")> Mute;
-    Settings<Streaming, Volume, StreamingPitch, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute> settings;
+    Settings<Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute> settings;
 
     // MAIN infos struct for each channel
 
@@ -161,7 +158,7 @@ class impl : public SPUInterface {
     int bThreadEnded = 0;
     int bSpuInit = 0;
 
-    SDL_Thread *hMainThread;
+    std::thread hMainThread;
     uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
@@ -204,12 +201,12 @@ class impl : public SPUInterface {
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
     ADSR m_adsr;
-    SDLsound m_sound = {settings.get<Mute>().value};
+    MiniAudio m_audioOut = {settings.get<Mute>().value};
     xa_decode_t m_cdda;
 
     // debug window
     unsigned m_selectedChannel = 0;
-    uint32_t m_lastUpdated = 0;
+    std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated;
     static const unsigned DEBUG_SAMPLES = 1024;
     enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];
     float m_channelDebugData[MAXCHAN][DEBUG_SAMPLES];

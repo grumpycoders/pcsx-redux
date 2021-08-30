@@ -93,13 +93,13 @@
 //
 //*************************************************************************//
 
-#include <SDL.h>
+#include <chrono>
+#include <thread>
 
 #include "spu/adsr.h"
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
-#include "spu/sdlsound.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
@@ -414,27 +414,19 @@ inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
 // basically the whole sound processing is done in this fat func!
 ////////////////////////////////////////////////////////////////////////
 
-// 5 ms waiting phase, if buffer is full and no new sound has to get started
-// .. can be made smaller (smallest val: 1 ms), but bigger waits give
-// better performance
-
-#define PAUSE_W 5
-#define PAUSE_L 5000
-
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::MainThread() {
-    int s_1, s_2, fa, ns, voldiv = settings.get<Volume>();
+    int s_1, s_2, fa, ns;
     uint8_t *start;
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
     int bIRQReturn = 0;
     SPUCHAN *pChannel;
 
-    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
-
     while (!bEndThread)  // until we are shutting down
     {
+        int voldiv = 4 - settings.get<Volume>();
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
         // enuff free place in the dsound/oss buffer to
@@ -452,12 +444,13 @@ void PCSX::SPU::impl::MainThread() {
         } else
             iSecureStart = 0;  // 0: no new channel should start
 
-        while (!iSecureStart && !bEndThread &&           // no new start? no thread end?
-               (m_sound.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
+        while (!iSecureStart && !bEndThread &&              // no new start? no thread end?
+               (m_audioOut.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
         {
             iSecureStart = 0;  // reset secure
 
-            SDL_Delay(PAUSE_W);  // sleep for x ms
+            using namespace std::chrono_literals;
+            std::this_thread::sleep_for(5ms);
 
             if (dwNewChannel)
                 iSecureStart =
@@ -597,10 +590,13 @@ void PCSX::SPU::impl::MainThread() {
 
                             if (bIRQReturn)  // special return for "spu irq - wait for cpu action"
                             {
+                                using namespace std::chrono_literals;
                                 bIRQReturn = 0;
-                                Uint32 dwWatchTime = SDL_GetTicks() + 2500;
+                                auto dwWatchTime = std::chrono::steady_clock::now() + 2500ms;
 
-                                while (iSpuAsyncWait && !bEndThread && SDL_GetTicks() < dwWatchTime) SDL_Delay(1);
+                                while (iSpuAsyncWait && !bEndThread && std::chrono::steady_clock::now() < dwWatchTime) {
+                                    std::this_thread::sleep_for(1ms);
+                                }
                             }
 
                             ////////////////////////////////////////////
@@ -750,7 +746,16 @@ void PCSX::SPU::impl::MainThread() {
         // wanna have around 1/60 sec (16.666 ms) updates
 
         if (iCycle++ > 16) {
-            m_sound.feedStreamData((uint8_t *)pSpuBuffer, ((uint8_t *)pS) - ((uint8_t *)pSpuBuffer));
+            bool done = false;
+            while (!done) {
+                done =
+                    m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
+                                              (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(MiniAudio::Frame));
+                if (bEndThread) {
+                    bThreadEnded = 1;
+                    return;
+                }
+            }
             pS = (int16_t *)pSpuBuffer;
             iCycle = 0;
         }
@@ -831,7 +836,7 @@ void PCSX::SPU::impl::SetupThread() {
     bThreadEnded = 0;
     bSpuInit = 1;  // flag: we are inited
 
-    hMainThread = SDL_CreateThread(PCSX::SPU::impl::MainThreadTrampoline, "SPU Thread", this);
+    hMainThread = std::thread([this]() { MainThread(); });
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -841,12 +846,13 @@ void PCSX::SPU::impl::SetupThread() {
 void PCSX::SPU::impl::RemoveThread() {
     bEndThread = 1;  // raise flag to end thread
 
+    using namespace std::chrono_literals;
     while (!bThreadEnded) {
-        SDL_Delay(5L);
+        std::this_thread::sleep_for(5ms);
     }  // -> wait till thread has ended
-    SDL_Delay(5L);
+    std::this_thread::sleep_for(5ms);
 
-    SDL_WaitThread(hMainThread, NULL);
+    hMainThread.join();
 
     bThreadEnded = 0;  // no more spu is running
     bSpuInit = 0;
@@ -920,7 +926,7 @@ bool PCSX::SPU::impl::open() {
 
     //    ReadConfig();  // read user stuff
 
-    m_sound.setup();  // setup sound (before init!)
+    m_audioOut.setup();  // setup sound (before init!)
 
     SetupStreams();  // prepare streaming
 
@@ -928,7 +934,7 @@ bool PCSX::SPU::impl::open() {
 
     bSPUIsOpen = 1;
 
-    m_lastUpdated = SDL_GetTicks();
+    m_lastUpdated = std::chrono::steady_clock::now();
 
     return true;
 }
@@ -942,9 +948,9 @@ long PCSX::SPU::impl::close(void) {
 
     bSPUIsOpen = 0;  // no more open
 
-    RemoveThread();    // no more feeding
-    m_sound.remove();  // no more sound handling
-    RemoveStreams();   // no more streaming
+    RemoveThread();       // no more feeding
+    m_audioOut.remove();  // no more sound handling
+    RemoveStreams();      // no more streaming
 
     return 0;
 }

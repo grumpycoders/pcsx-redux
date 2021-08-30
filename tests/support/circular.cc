@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2021 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,47 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "support/circular.h"
 
-#include <SDL.h>
+#include <stdint.h>
 
-namespace PCSX {
+#include "gtest/gtest.h"
 
-namespace SPU {
+TEST(Circular, Basic) {
+    PCSX::Circular<uint32_t> circ;
 
-class SDLsound {
-  public:
-    SDLsound(bool& muted) : m_muted(muted) {}
-    void setup();
-    void remove();
-    unsigned long getBytesBuffered(unsigned streamId = 0);
-    unsigned long getFreeBytes(unsigned streamId = 0) { return BUFFER_SIZE - getBytesBuffered(streamId); }
-    void feedStreamData(unsigned char* pSound, long lBytes, unsigned streamId = 0);
+    uint32_t data[500];
 
-  private:
-    void callback(Uint8* stream, int len);
-    static void callbackTrampoline(void* userdata, Uint8* stream, int len) {
-        SDLsound* that = static_cast<SDLsound*>(userdata);
-        that->callback(stream, len);
+    for (unsigned i = 0; i < 500; i++) {
+        data[i] = i;
     }
-    void dequeueLocked(uint8_t* stream, size_t len, unsigned streamId);
-    void enqueueLocked(const uint8_t* data, size_t len, unsigned streamId);
 
-    static const size_t BUFFER_SIZE = 32 * 1024 * 4;
+    bool success;
+    size_t size;
 
-    SDL_AudioDeviceID m_dev = 0;
+    success = circ.enqueue(data, 500);
+    EXPECT_TRUE(success);
 
-    struct {
-        uint32_t ptrBegin = 0, ptrEnd = 0;
-        uint8_t buffer[BUFFER_SIZE];
-        SDL_mutex* mutex;
-        SDL_cond* condition;
-    } m_streams[2];
+    size = circ.buffered();
+    EXPECT_EQ(size, 500);
+    size = circ.available();
+    EXPECT_EQ(size, circ.BUFFER_SIZE - 500);
 
-    SDL_AudioSpec m_specs;
-    bool& m_muted;
-};
+    size = circ.dequeue(data, 300);
+    EXPECT_EQ(size, 300);
 
-}  // namespace SPU
+    for (unsigned i = 0; i < 300; i++) {
+        EXPECT_EQ(data[i], i);
+    }
 
-}  // namespace PCSX
+    size = circ.dequeue(data, 300);
+    EXPECT_EQ(size, 200);
+
+    for (unsigned i = 0; i < 200; i++) {
+        EXPECT_EQ(data[i], i + 300);
+    }
+}
