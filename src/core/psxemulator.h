@@ -169,6 +169,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
+    typedef Setting<int, TYPESTRING("Scaler"), 100> SettingScaler;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
@@ -184,8 +185,8 @@ class Emulator {
     typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
 
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
-             SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingCDDA,
+             SettingFastBoot, SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
              SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither>
         settings;
     class PcsxConfig {

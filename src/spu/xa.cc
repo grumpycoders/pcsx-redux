@@ -50,8 +50,9 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
 
     xapGlobal = xap;  // store info for save states
 
-    iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
-    if (!iSize) return;                             // none? bye
+    iSize = ((4410000 * xap->nsamples) / xap->freq);  // get size
+    iSize /= g_emulator->settings.get<Emulator::SettingScaler>();
+    if (!iSize) return;  // none? bye
 
     assert(iSize <= 32 * 1024);
 

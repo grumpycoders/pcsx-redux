@@ -1163,6 +1163,14 @@ bool PCSX::GUI::configure() {
             if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
         }
         ImGui::Separator();
+        if (ImGui::Button(_("Reset Scaler"))) {
+            changed = true;
+            settings.get<Emulator::SettingScaler>() = 100;
+        }
+        float scale = settings.get<Emulator::SettingScaler>();
+        scale /= 100.0f;
+        changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 10.0f);
+        settings.get<Emulator::SettingScaler>() = scale * 100.0f;
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
