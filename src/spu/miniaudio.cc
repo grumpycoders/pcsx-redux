@@ -67,7 +67,7 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
 
     for (unsigned i = 0; i < STREAMS; i++) {
         size_t a = m_streams[i].dequeue(buffers[i].data(), frameCount);
-        for (size_t f = a; a < frameCount; a++) {
+        for (size_t f = (muted ? 0 : a); f < frameCount; f++) {
             // maybe warn about underflow? tho it's fine if it happens on stream 1 (cdda)
             buffers[i][f] = {};
         }

@@ -39,10 +39,10 @@ static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
-    int sinc, spos, i, iSize, iPlace, vl, vr;
+    int sinc, spos, i, iSize, iPlace, vl, vr, voldiv = 4 - settings.get<Volume>();
 
-    uint32_t XABuffer[32 * 1024];
-    uint32_t *XAFeed = XABuffer;
+    MiniAudio::Frame XABuffer[32 * 1024];
+    MiniAudio::Frame *XAFeed = XABuffer;
 
     iPlace = 32 * 1024;
 
@@ -89,7 +89,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 }
             }
 
-            *XAFeed++ = l;
+            MiniAudio::Frame f;
+            f.L = static_cast<int16_t>(l & 0xffff) / voldiv;
+            f.R = static_cast<int16_t>(l >> 16) / voldiv;
+            *XAFeed++ = f;
             spos += sinc;
         }
     } else {
@@ -119,7 +122,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 l = s;
             }
 
-            *XAFeed++ = (l | (l << 16));
+            MiniAudio::Frame f;
+            f.L = static_cast<int16_t>(l) / voldiv;
+            f.R = f.L;
+            *XAFeed++ = f;
             spos += sinc;
         }
     }

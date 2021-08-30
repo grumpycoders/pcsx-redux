@@ -417,7 +417,7 @@ inline int PCSX::SPU::impl::iGetInterpolationVal(SPUCHAN *pChannel) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::MainThread() {
-    int s_1, s_2, fa, ns, voldiv = settings.get<Volume>();
+    int s_1, s_2, fa, ns;
     uint8_t *start;
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
@@ -426,6 +426,7 @@ void PCSX::SPU::impl::MainThread() {
 
     while (!bEndThread)  // until we are shutting down
     {
+        int voldiv = 4 - settings.get<Volume>();
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
         // enuff free place in the dsound/oss buffer to
