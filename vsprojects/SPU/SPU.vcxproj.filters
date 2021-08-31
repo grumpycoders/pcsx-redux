@@ -42,7 +42,7 @@
     <ClCompile Include="..\..\src\spu\adsr.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\spu\sdlsound.cc">
+    <ClCompile Include="..\..\src\spu\miniaudio.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,9 +56,6 @@
     <ClInclude Include="..\..\src\spu\registers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\spu\sdlsound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\spu\gauss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -66,6 +63,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\spu\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\spu\miniaudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

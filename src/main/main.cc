@@ -17,8 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL.h>
-
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -147,10 +145,6 @@ int pcsxMain(int argc, char **argv) {
     std::filesystem::path binDir = self.parent_path();
     system->setBinDir(binDir);
     system->loadAllLocales();
-
-    if (SDL_Init(SDL_INIT_AUDIO) != 0) {
-        abort();
-    }
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();

@@ -29,7 +29,6 @@
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <SDL.h>
 #include <assert.h>
 
 #include <algorithm>
@@ -91,8 +90,7 @@ void PCSX::GUI::bindVRAMTexture() {
 void PCSX::GUI::checkGL() {
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
-        SDL_TriggerBreakpoint();
-        abort();
+        throw std::runtime_error("Got OpenGL error");
     }
 }
 
@@ -342,9 +340,6 @@ end)(jit.status()))
             emuSettings.get<Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
-        g_useFrameLimit = emuSettings.get<Emulator::SettingFrameLimit>();
-        g_useFrameSkip = emuSettings.get<Emulator::SettingFrameskip>();
-        g_SSSPSXLimit = emuSettings.get<Emulator::SettingSSSPSXLimit>();
         PCSX::g_emulator->m_gpu->setDither(emuSettings.get<Emulator::SettingDither>());
 
         auto argPath1 = m_args.get<std::string>("memcard1");
@@ -1168,6 +1163,14 @@ bool PCSX::GUI::configure() {
             if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
         }
         ImGui::Separator();
+        if (ImGui::Button(_("Reset Scaler"))) {
+            changed = true;
+            settings.get<Emulator::SettingScaler>() = 100;
+        }
+        float scale = settings.get<Emulator::SettingScaler>();
+        scale /= 100.0f;
+        changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 10.0f);
+        settings.get<Emulator::SettingScaler>() = scale * 100.0f;
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
