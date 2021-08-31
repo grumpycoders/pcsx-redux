@@ -198,6 +198,7 @@ bool PCSX::SaveStates::load(const std::string& data) {
     PCSX::g_emulator->m_psxCpu->Reset();
     state.commit();
     g_emulator->m_psxCpu->m_psxRegs.lowestTarget = g_emulator->m_psxCpu->m_psxRegs.cycle;
+    g_emulator->m_psxCpu->m_psxRegs.previousCycles = g_emulator->m_psxCpu->m_psxRegs.cycle;
     g_emulator->m_gpu->load(state.get<GPUField>());
     g_emulator->m_spu->load(state.get<SPUField>());
     g_emulator->m_cdrom->load();

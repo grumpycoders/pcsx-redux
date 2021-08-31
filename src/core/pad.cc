@@ -22,10 +22,10 @@
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-#include <fmt/format.h>
 #include <memory.h>
 
 #include "core/system.h"
+#include "fmt/format.h"
 #include "imgui.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "support/file.h"
@@ -431,7 +431,8 @@ bool PCSX::Pads::Pad::configure() {
                 hasToPop = true;
             }
 
-            const auto keyName = fmt::format ("{}##{}", glfwKeyToString(getButtonFromGUIIndex(i)), i); // THe name of the mapped key
+            const auto keyName =
+                fmt::format("{}##{}", glfwKeyToString(getButtonFromGUIIndex(i)), i);  // THe name of the mapped key
             if (ImGui::Button(keyName.c_str(), ImVec2{-1, 0})) {
                 m_buttonToWait = i;
             }

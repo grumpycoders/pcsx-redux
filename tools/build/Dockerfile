@@ -25,7 +25,6 @@ RUN apt install -y libavformat-dev
 RUN apt install -y libavutil-dev
 RUN apt install -y libfreetype-dev
 RUN apt install -y libglfw3-dev
-RUN apt install -y libsdl2-dev
 RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev
 RUN apt install -y zlib1g-dev

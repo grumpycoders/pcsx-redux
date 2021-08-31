@@ -99,7 +99,6 @@
 
 #include "gpu/soft/draw.h"
 
-#include <SDL.h>
 #include <stdint.h>
 
 #include "GL/gl3w.h"
@@ -194,200 +193,11 @@ void ShowGunCursor(unsigned char *surf) {
 static void checkGL() {
     volatile GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
-        SDL_TriggerBreakpoint();
-        abort();
+        throw std::runtime_error("Got OpenGL error");
     }
 }
 
-static const GLchar *passThroughVS = GL_SHADER_VERSION R"(
-in vec2 in_Position;
-in vec2 in_Texcoord;
-
-out highp vec2 v_texcoord;
-void main(void) {
-  gl_Position = vec4(in_Position.x, in_Position.y, 0.0, 1.0);
-  v_texcoord = in_Texcoord;
-}
-)";
-
-static const GLchar *PS_16 = GL_SHADER_VERSION R"(
-precision highp float;
-in highp vec2 v_texcoord;
-
-out vec4 FragColor;
-
-uniform sampler2D s_texture;
-
-void main(void) {
-    FragColor = texture(s_texture, v_texcoord);
-    FragColor.a = 1.f;
-}
-)";
-
-static const GLchar *PS_24 = GL_SHADER_VERSION R"(
-precision highp float;
-in highp vec2 v_texcoord;
-
-out vec4 FragColor;
-
-uniform sampler2D s_texture;
-
-void main(void) {
-    FragColor = texture(s_texture, v_texcoord);
-    FragColor.a = 1.f;
-}
-)";
-
-static GLuint compileShader(const char *VS, const char *PS) {
-    GLuint vertexshader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexshader, 1, &VS, 0);
-    glCompileShader(vertexshader);
-    GLint IsCompiled_VS = 0;
-    glGetShaderiv(vertexshader, GL_COMPILE_STATUS, &IsCompiled_VS);
-    if (IsCompiled_VS == 0) {
-        GLint maxLength;
-        glGetShaderiv(vertexshader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *vertexInfoLog = (char *)malloc(maxLength);
-
-        glGetShaderInfoLog(vertexshader, maxLength, &maxLength, vertexInfoLog);
-
-        SDL_TriggerBreakpoint();
-        assert(false);
-
-        free(vertexInfoLog);
-    }
-
-    GLuint fragmentshader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentshader, 1, &PS, 0);
-    glCompileShader(fragmentshader);
-    GLint IsCompiled_PS = 0;
-    glGetShaderiv(fragmentshader, GL_COMPILE_STATUS, &IsCompiled_PS);
-    if (IsCompiled_PS == 0) {
-        GLint maxLength;
-        glGetShaderiv(fragmentshader, GL_INFO_LOG_LENGTH, &maxLength);
-        char *fragmentInfoLog = (char *)malloc(maxLength);
-
-        glGetShaderInfoLog(fragmentshader, maxLength, &maxLength, fragmentInfoLog);
-
-        SDL_TriggerBreakpoint();
-        assert(false);
-
-        free(fragmentInfoLog);
-    }
-
-    GLuint shaderprogram = glCreateProgram();
-    glAttachShader(shaderprogram, vertexshader);
-    glAttachShader(shaderprogram, fragmentshader);
-
-    glLinkProgram(shaderprogram);
-
-    GLint IsLinked = 0;
-    glGetProgramiv(shaderprogram, GL_LINK_STATUS, &IsLinked);
-    assert(IsLinked);
-
-    return shaderprogram;
-}
-
-struct s_vertexData {
-    float positions[3];
-    float textures[2];
-};
-
-static GLuint vao_handle = 0;
-static GLuint shaderprogram16 = 0;
-static GLuint shaderprogram24 = 0;
-static GLuint vertexp = 0;
-static GLuint texcoordp = 0;
-static GLuint vbo = 0;
 static GLuint vramTexture = 0;
-
-static void DrawFullscreenQuad(int is24Bit) {
-    glBindVertexArray(vao_handle);
-
-    if (is24Bit) {
-        glUseProgram(shaderprogram24);
-    } else {
-        glUseProgram(shaderprogram16);
-    }
-
-    float xRatio = 1 / 1024.f;
-    if (is24Bit) {
-        xRatio = (1 / 1.5f) * (1.f / 1024.f);
-    }
-
-    float startX = PSXDisplay.DisplayPosition.x * xRatio;
-    float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.f;
-
-    s_vertexData quadVertices[6];
-
-    quadVertices[0].positions[0] = -1;
-    quadVertices[0].positions[1] = -1;
-    quadVertices[0].positions[2] = 0;
-    quadVertices[0].textures[0] = startX;
-    quadVertices[0].textures[1] = PSXDisplay.DisplayPosition.y / 512.f;
-
-    quadVertices[1].positions[0] = 1;
-    quadVertices[1].positions[1] = -1;
-    quadVertices[1].positions[2] = 0;
-    quadVertices[1].textures[0] = startX + width;
-    quadVertices[1].textures[1] = PSXDisplay.DisplayPosition.y / 512.f;
-
-    quadVertices[2].positions[0] = 1;
-    quadVertices[2].positions[1] = 1;
-    quadVertices[2].positions[2] = 0;
-    quadVertices[2].textures[0] = startX + width;
-    quadVertices[2].textures[1] = PSXDisplay.DisplayEnd.y / 512.f;
-
-    quadVertices[3].positions[0] = -1;
-    quadVertices[3].positions[1] = -1;
-    quadVertices[3].positions[2] = 0;
-    quadVertices[3].textures[0] = startX;
-    quadVertices[3].textures[1] = PSXDisplay.DisplayPosition.y / 512.f;
-
-    quadVertices[4].positions[0] = -1;
-    quadVertices[4].positions[1] = 1;
-    quadVertices[4].positions[2] = 0;
-    quadVertices[4].textures[0] = startX;
-    quadVertices[4].textures[1] = PSXDisplay.DisplayEnd.y / 512.f;
-
-    quadVertices[5].positions[0] = 1;
-    quadVertices[5].positions[1] = 1;
-    quadVertices[5].positions[2] = 0;
-    quadVertices[5].textures[0] = startX + width;
-    quadVertices[5].textures[1] = PSXDisplay.DisplayEnd.y / 512.f;
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    checkGL();
-    glBufferData(GL_ARRAY_BUFFER, sizeof(s_vertexData) * 6, &quadVertices[0], GL_STATIC_DRAW);
-    checkGL();
-
-    glDisable(GL_CULL_FACE);
-    checkGL();
-    glDisable(GL_DEPTH_TEST);
-    checkGL();
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    checkGL();
-    glVertexAttribPointer(vertexp, 3, GL_FLOAT, GL_FALSE, sizeof(s_vertexData),
-                          (void *)&((s_vertexData *)NULL)->positions);
-    checkGL();
-    glEnableVertexAttribArray(vertexp);
-    checkGL();
-
-    if (texcoordp != -1) {
-        glVertexAttribPointer(texcoordp, 2, GL_FLOAT, GL_FALSE, sizeof(s_vertexData),
-                              (void *)&((s_vertexData *)NULL)->textures);
-        glEnableVertexAttribArray(texcoordp);
-    }
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    checkGL();
-
-    // cleanup!
-    glUseProgram(0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
 
 void DoBufferSwap() {
     m_gui->setViewport();
@@ -397,22 +207,27 @@ void DoBufferSwap() {
 
     if (PSXDisplay.RGB24) {
         glBindTexture(GL_TEXTURE_2D, vramTexture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
         checkGL();
-
-        DrawFullscreenQuad(PSXDisplay.RGB24);
-    } else {
-        m_gui->bindVRAMTexture();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        DrawFullscreenQuad(PSXDisplay.RGB24);
     }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    float xRatio = PSXDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
+
+    float startX = PSXDisplay.DisplayPosition.x * xRatio;
+    float startY = PSXDisplay.DisplayPosition.y / 512.0f;
+    float width = (PSXDisplay.DisplayEnd.x - PSXDisplay.DisplayPosition.x) / 1024.0f;
+    float height = (PSXDisplay.DisplayEnd.y - PSXDisplay.DisplayPosition.y) / 512.0f;
+
+    GLint textureID;
+
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureID);
+    m_gui->m_offscreenShaderEditor.render(textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
+                                          m_gui->getRenderSize());
 
     glBindTexture(GL_TEXTURE_2D, 0);
     checkGL();
@@ -449,18 +264,6 @@ uint32_t ulInitDisplay(void) {
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     checkGL();
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
-    checkGL();
-    glGenVertexArrays(1, &vao_handle);
-    checkGL();
-    shaderprogram16 = compileShader(passThroughVS, PS_16);
-    vertexp = glGetAttribLocation(shaderprogram16, (const GLchar *)"in_Position");
-    texcoordp = glGetAttribLocation(shaderprogram16, (const GLchar *)"in_Texcoord");
-    checkGL();
-    shaderprogram24 = compileShader(passThroughVS, PS_24);
-    assert(vertexp == glGetAttribLocation(shaderprogram24, (const GLchar *)"in_Position"));
-    assert(texcoordp == glGetAttribLocation(shaderprogram24, (const GLchar *)"in_Texcoord"));
-    checkGL();
-    glGenBuffers(1, &vbo);
     checkGL();
     return 1;
 }

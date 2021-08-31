@@ -38,6 +38,7 @@
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/shader-editor.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
@@ -152,7 +153,13 @@ class GUI final {
         } else {
             vec.x = vec.y / ratio;
         }
+        vec.x = roundf(vec.x);
+        vec.y = roundf(vec.y);
+        vec.x = std::max(vec.x, 1.0f);
+        vec.y = std::max(vec.y, 1.0f);
     }
+
+    const ImVec2 &getRenderSize() { return m_renderSize; }
 
   private:
     GLFWwindow *m_window = nullptr;
@@ -261,7 +268,6 @@ class GUI final {
     void draculaTheme();
     void oliveTheme();
 
-    PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
@@ -275,8 +281,29 @@ class GUI final {
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
+    Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
   public:
+    Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
+    ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
+
+    struct {
+        bool empty() const { return filename.empty(); }
+        void set(const PCSX::u8string &newfilename) {
+            filename = newfilename;
+            pauseAfterLoad = !g_system->running();
+            if (!empty()) {
+                g_system->start();
+            }
+        }
+        PCSX::u8string &&get() { return std::move(filename); }
+        bool hasToPause() { return pauseAfterLoad; }
+
+      private:
+        PCSX::u8string filename;
+        bool pauseAfterLoad = true;
+    } m_exeToLoad;
+
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };

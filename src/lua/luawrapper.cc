@@ -35,7 +35,11 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
 
 PCSX::Lua::Lua() : L(lua_open()) {
     assert(("Couldn't create Lua VM", L));
+    lua_atpanic(L, [](lua_State* L) -> int { throw std::runtime_error(lua_tostring(L, 1)); });
     setCallWrap(callwrap);
+    push("_THREADS");
+    newtable();
+    settable(LUA_REGISTRYINDEX);
 }
 
 PCSX::Lua& PCSX::Lua::operator=(Lua&& oL) noexcept {
@@ -111,6 +115,29 @@ void PCSX::Lua::open_string() {
     int n = gettop();
     luaopen_string(L);
     while (n < gettop()) pop();
+}
+
+std::unique_ptr<PCSX::Lua> PCSX::Lua::thread(bool saveit) {
+    checkstack();
+    lua_State* L1 = lua_newthread(L);
+    if (saveit) {                     // -1 = thread
+        push("_THREADS");             // -2 = thread, -1 = "_THREADS"
+        gettable(LUA_REGISTRYINDEX);  // -2 = thread, -1 = _THREADS
+        push(L1);                     // -3 = thread, -2 = _THREADS, -1 = key-Lt
+        copy(-3);                     // -4 = thread, -3 = _THREADS, -2 = key-Lt, -1 = thread
+        settable();                   // -2 = thread, -1 = _THREADS
+        pop();                        // -1 = thread
+    }
+    return std::make_unique<Lua>(L1);
+}
+
+void PCSX::Lua::weaken() {
+    push("_THREADS");             // -1 = "_THREADS"
+    gettable(LUA_REGISTRYINDEX);  // -1 = _THREADS
+    push(L);                      // -2 = _THREADS, -1 = key-Lt
+    push();                       // -3 = _THREADS, -2 = key-Lt, -1 = nil
+    settable();                   // -1 = _THREADS
+    pop();
 }
 
 void PCSX::Lua::setCallWrap(lua_CallWrapper wrapper) {
@@ -450,4 +477,93 @@ void PCSX::Lua::displayStack(bool error) {
         }
     }
     pop();
+}
+
+json PCSX::Lua::toJson(int t) {
+    if (!istable(t)) return {};
+    if (t < 0) t = gettop() + t + 1;
+    push();
+    json ret = {};
+    while (next(t) != 0) {
+        auto keytype = type(-2);
+        auto valtype = type(-1);
+        bool keyvalid = false;
+        bool valvalid = false;
+        std::string key;
+        json val;
+        switch (keytype) {
+            case LUA_TSTRING:
+                keyvalid = true;
+                key = tostring(-2);
+                break;
+        }
+        switch (valtype) {
+            case LUA_TNUMBER: {
+                valvalid = true;
+                auto num = tonumber(-1);
+                double fractpart, intpart;
+                fractpart = modf(num, &intpart);
+                if (fractpart == 0.0) {
+                    val = static_cast<int>(intpart);
+                } else {
+                    val = num;
+                }
+            } break;
+            case LUA_TBOOLEAN:
+                valvalid = true;
+                val = toboolean(-1);
+                break;
+            case LUA_TSTRING:
+                valvalid = true;
+                val = tostring(-1);
+                break;
+            case LUA_TTABLE:
+                valvalid = true;
+                val = toJson(-1);
+                break;
+        }
+        pop();
+        if (keyvalid && valvalid) {
+            ret[key] = val;
+        }
+    }
+
+    return ret;
+}
+
+void PCSX::Lua::fromJson(const json& j, int t) {
+    if (!istable(t)) return;
+    if (t < 0) t = gettop() + t + 1;
+    if (!j.is_object()) return;
+
+    for (auto it = j.begin(); it != j.end(); it++) {
+        switch (it.value().type()) {
+            case json::value_t::number_integer:
+                push(it.key());
+                push(lua_Number(it.value().get<int>()));
+                settable(t);
+                break;
+            case json::value_t::number_float:
+                push(it.key());
+                push(it.value().get<float>());
+                settable(t);
+                break;
+            case json::value_t::boolean:
+                push(it.key());
+                push(it.value().get<bool>());
+                settable(t);
+                break;
+            case json::value_t::string:
+                push(it.key());
+                push(it.value().get<std::string>());
+                settable(t);
+                break;
+            case json::value_t::object:
+                push(it.key());
+                newtable();
+                fromJson(it.value(), -1);
+                settable(t);
+                break;
+        }
+    }
 }

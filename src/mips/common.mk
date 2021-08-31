@@ -50,6 +50,8 @@ CPPFLAGS += -g
 CPPFLAGS += $(CPPFLAGS_$(BUILD))
 LDFLAGS += $(LDFLAGS_$(BUILD))
 
+CXXFLAGS += -fno-exceptions -fno-rtti
+
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
 all: dep $(BINDIR)$(TARGET).$(TYPE)

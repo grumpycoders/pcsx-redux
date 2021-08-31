@@ -1,3 +1,5 @@
+R"(
+
 When the various source files use the words "PCSX-Redux authors", they
 refer to the following list, in no particular order:
 
@@ -58,3 +60,5 @@ Extra code
 iCatButler
 Neill Corlett
 Vincent "Yaz0r" Hamm
+
+)"

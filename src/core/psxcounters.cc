@@ -31,7 +31,7 @@
 /******************************************************************************/
 
 template <typename... Args>
-void verboseLog(int32_t level, const char *str, const Args &... args) {
+void verboseLog(int32_t level, const char *str, const Args &...args) {
     PSXHW_LOG(str, args...);
 }
 
@@ -142,9 +142,32 @@ void PCSX::Counters::psxRcntReset(uint32_t index) {
 }
 
 void PCSX::Counters::psxRcntUpdate() {
-    uint32_t cycle;
+    const uint32_t cycle = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
 
-    cycle = PCSX::g_emulator->m_psxCpu->m_psxRegs.cycle;
+    {
+        uint32_t prev = g_emulator->m_psxCpu->m_psxRegs.previousCycles;
+        uint64_t diff;
+        if (cycle > prev) {
+            diff = cycle - prev;
+        } else {
+            diff = std::numeric_limits<uint32_t>::max();
+            diff += cycle + 1;
+            diff -= prev;
+        }
+        diff *= 4410000;
+        diff /= g_emulator->settings.get<Emulator::SettingScaler>();
+        diff /= g_emulator->m_psxClockSpeed;
+        uint32_t target = m_audioFrames + diff;
+        uint32_t newFrames = g_emulator->m_spu->getCurrentFrames();
+        int32_t framesDiff = target - newFrames;
+        if (framesDiff > 0) {
+            g_emulator->m_psxCpu->m_psxRegs.previousCycles = cycle;
+            g_emulator->m_spu->waitForGoal(target);
+            m_audioFrames = target;
+        } else if (framesDiff < -100000) {
+            m_audioFrames = newFrames;
+        }
+    }
 
     // rcnt 0.
     if (cycle - m_rcnts[0].cycleStart >= m_rcnts[0].cycle) {
@@ -160,7 +183,6 @@ void PCSX::Counters::psxRcntUpdate() {
     if (cycle - m_rcnts[2].cycleStart >= m_rcnts[2].cycle) {
         psxRcntReset(2);
     }
-
     // rcnt base.
     if (cycle - m_rcnts[3].cycleStart >= m_rcnts[3].cycle) {
         psxRcntReset(3);
@@ -378,6 +400,8 @@ void PCSX::Counters::psxRcntInit() {
     m_hSyncCount = 0;
     m_spuSyncCount = 0;
 
+    m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
+
     psxRcntSet();
 }
 
@@ -425,4 +449,6 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
         m_rcnts[1].rate = (PCSX::g_emulator->m_psxClockSpeed /
                            (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
                             m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+
+    m_audioFrames = g_emulator->m_spu->getCurrentFrames();
 }

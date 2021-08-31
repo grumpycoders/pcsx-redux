@@ -24,7 +24,10 @@
 #include <string>
 
 #include "core/psxemulator.h"
+#include "json.hpp"
 #include "lua.hpp"
+
+using json = nlohmann::json;
 
 namespace PCSX {
 
@@ -57,6 +60,9 @@ class Lua {
     void open_package();
     void open_string();
     void open_table();
+
+    std::unique_ptr<Lua> thread(bool saveit = false);
+    void weaken();
 
     int wrap_open(openlualib_t open) {
         int n = gettop();
@@ -208,6 +214,9 @@ class Lua {
 
     void displayStack(bool error = false);
 
+    json toJson(int t = -1);
+    void fromJson(const json&, int t = -1);
+
     std::string escapeString(const std::string&);
     void load(const std::string& str, const std::string& name, bool docall = true);
     int yield(int nresults = 0) { return lua_yield(L, nresults); }
@@ -220,6 +229,11 @@ class Lua {
     int sethook(lua_Hook func, int mask, int count) { return lua_sethook(L, func, mask, count); }
 
     lua_State* getState() { return L; }
+
+    void getfenv(int index = -1) { lua_getfenv(L, index); }
+    int setfenv(int index = -2) { return lua_setfenv(L, index); }
+
+    bool newmetatable(const char* name) { return luaL_newmetatable(L, name) != 0; }
 
   private:
     lua_State* L;

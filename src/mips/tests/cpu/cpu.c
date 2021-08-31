@@ -43,6 +43,8 @@ CESTER_BODY(
     uint32_t cpu_LWR_LWL_half(uint32_t buff[], uint32_t initial);
     uint32_t cpu_LWR_LWL_nodelay(uint32_t buff[], uint32_t initial);
     uint32_t cpu_LWR_LWL_delayed(uint32_t buff[], uint32_t initial);
+    uint32_t linkandload();
+    uint32_t lwandlink();
 )
 
 CESTER_TEST(cpu_LWR_LWL_half, test_instance,
@@ -53,7 +55,7 @@ CESTER_TEST(cpu_LWR_LWL_half, test_instance,
     cester_assert_uint_eq(0x88bbccdd, out);
 )
 
-CESTER_TEST(cpu_LWR_LWL_nodelay, test_instance,
+CESTER_SKIP_TEST(cpu_LWR_LWL_nodelay, test_instance,
     uint32_t buff[2] = {0x11223344, 0x55667788};
     // lwl and lwr are interlocked, so if you run both
     // right after another, on the same register, they
@@ -73,7 +75,7 @@ CESTER_TEST(cpu_LWR_LWL_delayed, test_instance,
     cester_assert_uint_eq(0x88112233, out);
 )
 
-CESTER_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
+CESTER_SKIP_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
     // running a branch in a branch delay slot is technically
     // not allowed, but some games still do this, and the
     // behavior is deterministic; read the assembly code
@@ -84,7 +86,7 @@ CESTER_TEST(cpu_BRANCH_BRANCH_slot, test_instance,
     cester_assert_uint_eq(9, out);
 )
 
-CESTER_TEST(cpu_JUMP_JUMP_slot, test_instance,
+CESTER_SKIP_TEST(cpu_JUMP_JUMP_slot, test_instance,
     // while branches are relative PC adjustments, jumps
     // are absolute; this is technically the same test as
     // above, but without the relative quirkness
@@ -164,4 +166,11 @@ CESTER_TEST(cpu_DIVU_by_zero, test_instance,
 
     cester_assert_int_eq(42, hi);
     cester_assert_int_eq(-1, lo);
+)
+
+CESTER_TEST(links, test_instance,
+    uint32_t r = linkandload();
+    cester_assert_uint_eq(0, r);
+    r = lwandlink();
+    cester_assert_uint_ne(0, r);
 )

@@ -249,9 +249,9 @@ sub generateImguiGeneric {
           }
           push(@funcArgs, $name);
         #const ImVec2& with default or not
-        } elsif ($args[$i] =~ m/^ *const ImVec2& ([^ ]*) *(= * ImVec2 [^ ]* [^ ]*|) *$/) {
+        } elsif ($args[$i] =~ m/^ *const ImVec2& +([^ ]*) *(= * ImVec2 [^ ]* +[^ ]*|) *$/) {
           my $name = $1;
-          if ($2 =~ m/^= * ImVec2 ([^ ]*) ([^ ]*)$/) {
+          if ($2 =~ m/^= * ImVec2 ([^ ]*) +([^ ]*)$/) {
             push(@before, "OPTIONAL_IM_VEC_2_ARG($name, $1, $2)");
           } else {
             push(@before, "IM_VEC_2_ARG($name)");
@@ -263,9 +263,9 @@ sub generateImguiGeneric {
           push(@before, "IM_VEC_2_ARG($name)");
           push(@funcArgs, $name);
         #const ImVec4& with default or not
-        } elsif ($args[$i] =~ m/^ *const ImVec4& ([^ ]*) *(= * ImVec4 [^ ]* [^ ]* [^ ]* [^ ]*|) *$/) {
+        } elsif ($args[$i] =~ m/^ *const ImVec4& +([^ ]*) *(= * ImVec4 [^ ]* +[^ ]* +[^ ]* +[^ ]*|) *$/) {
           my $name = $1;
-          if ($2 =~ m/^= * ImVec4 ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*)$/) {
+          if ($2 =~ m/^= * ImVec4 +([^ ]*) +([^ ]*) +([^ ]*) +([^ ]*)$/) {
             push(@before, "OPTIONAL_IM_VEC_4_ARG($name, $1, $2, $3, $4)");
           } else {
             push(@before, "IM_VEC_4_ARG($name)");
@@ -273,7 +273,7 @@ sub generateImguiGeneric {
           push(@funcArgs, $name);
           # one of the various enums
           # we are handling these as ints
-        } elsif ($args[$i] =~ m/^ *(ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiKey|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags) ([^ ]*)( = 0|) *$/) {
+        } elsif ($args[$i] =~ m/^ *(ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiKey|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags|ImGuiSliderFlags|ImDrawFlags|ImGuiButtonFlags|ImGuiColorEditFlags|ImGuiComboFlags|ImGuiDockNodeFlags|ImGuiDragDropFlags|ImGuiPopupFlags|ImGuiTabBarFlags|ImGuiTabItemFlags|ImGuiTableColumnFlags|ImGuiTableFlags|ImGuiTableRowFlags|ImGuiTreeNodeFlags) ([^ ]*)( = 0|) *$/) {
          #These are ints
          my $name = $2;
           if ($3 =~ m/^ = 0$/) {

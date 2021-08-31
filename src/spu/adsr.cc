@@ -38,37 +38,34 @@
 #include "spu/externals.h"
 #include "spu/interface.h"
 
-////////////////////////////////////////////////////////////////////////
-// ADSR func
-////////////////////////////////////////////////////////////////////////
-
-PCSX::SPU::ADSR::Table::Table()  // INIT ADSR
-{
-    uint32_t r, rs, rd;
+// Init ADSR
+PCSX::SPU::ADSR::Table::Table() {
     memset(m_table, 0,
            sizeof(uint32_t) * 160);  // build the rate table according to Neill's rules (see at bottom of file)
 
-    r = 3;
-    rs = 1;
-    rd = 0;
+    uint32_t r = 3;
+    uint32_t rs = 1;
+    uint32_t rd = 0;
 
-    for (int i = 32; i < 160; i++)  // we start at pos 32 with the real values... everything before is 0
-    {
+    // we start at pos 32 with the real values... everything before is 0
+    for (int i = 32; i < 160; i++) {
         if (r < 0x3FFFFFFF) {
             r += rs;
             rd++;
+
             if (rd == 5) {
                 rd = 1;
                 rs *= 2;
             }
         }
-        if (r > 0x3FFFFFFF) r = 0x3FFFFFFF;
+
+        if (r > 0x3FFFFFFF) {
+            r = 0x3FFFFFFF;
+        }
 
         m_table[i] = r;
     }
 }
-
-////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
 {
@@ -76,8 +73,6 @@ void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
     pChannel->ADSRX.get<exState>().value = 0;
     pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
 }
-
-////////////////////////////////////////////////////////////////////////
 
 int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
     uint32_t disp;

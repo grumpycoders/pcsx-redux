@@ -44,10 +44,16 @@ typedef decltype(std::filesystem::path().u8string()) u8string;
 namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};
+struct LogMessage {
+    LogClass logClass;
+    std::string message;
+};
 namespace ExecutionFlow {
 struct ShellReached {};
 struct Run {};
-struct Pause {};
+struct Pause {
+    bool exception = false;
+};
 struct SoftReset {};
 struct HardReset {};
 }  // namespace ExecutionFlow
@@ -106,10 +112,10 @@ class System {
         m_running = false;
         m_eventBus->signal(Events::ExecutionFlow::Pause{});
     }
-    void pause() {
+    void pause(bool exception = false) {
         if (!m_running) return;
         m_running = false;
-        m_eventBus->signal(Events::ExecutionFlow::Pause{});
+        m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
     }
     void resume() {
         if (m_running) return;

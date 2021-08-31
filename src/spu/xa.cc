@@ -27,6 +27,8 @@
 //
 //*************************************************************************//
 
+#include <algorithm>
+
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
@@ -39,10 +41,10 @@ static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
-    int sinc, spos, i, iSize, iPlace, vl, vr;
+    int sinc, spos, i, iSize, iPlace, vl, vr, voldiv = 4 - settings.get<Volume>();
 
-    uint32_t XABuffer[32 * 1024];
-    uint32_t *XAFeed = XABuffer;
+    MiniAudio::Frame XABuffer[32 * 1024];
+    MiniAudio::Frame *XAFeed = XABuffer;
 
     iPlace = 32 * 1024;
 
@@ -51,49 +53,11 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     xapGlobal = xap;  // store info for save states
 
     iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
-    if (!iSize) return;                             // none? bye
+    iSize *= 100;
+    iSize /= std::min(100, g_emulator->settings.get<Emulator::SettingScaler>().value);
+    if (!iSize) return;  // none? bye
 
-    SDL_assert_always(iSize <= 32 * 1024);
-
-    //----------------------------------------------------//
-    if (settings.get<StreamingPitch>())  // pitch change option?
-    {
-        static uint32_t dwLT = 0;
-        static uint32_t dwFPS = 0;
-        static int iFPSCnt = 0;
-        static int iLastSize = 0;
-        static uint32_t dwL1 = 0;
-        uint32_t dw = SDL_GetTicks(), dw1, dw2;
-
-        iPlace = iSize;
-
-        dwFPS += dw - dwLT;
-        iFPSCnt++;
-
-        dwLT = dw;
-
-        if (iFPSCnt >= 10) {
-            if (!dwFPS) dwFPS = 1;
-            dw1 = 1000000 / dwFPS;
-            if (dw1 >= (dwL1 - 100) && dw1 <= (dwL1 + 100))
-                dw1 = dwL1;
-            else
-                dwL1 = dw1;
-            dw2 = (xap->freq * 100 / xap->nsamples);
-            if ((!dw1) || ((dw2 + 100) >= dw1))
-                iLastSize = 0;
-            else {
-                iLastSize = iSize * dw2 / dw1;
-                if (iLastSize > iPlace) iLastSize = iPlace;
-                iSize = iLastSize;
-            }
-            iFPSCnt = 0;
-            dwFPS = 0;
-        } else {
-            if (iLastSize) iSize = iLastSize;
-        }
-    }
-    //----------------------------------------------------//
+    assert(iSize <= 32 * 1024);
 
     spos = 0x10000L;
     sinc = (xap->nsamples << 16) / iSize;  // calc freq by num / size
@@ -102,147 +66,73 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
         uint32_t *pS = (uint32_t *)xap->pcm;
         uint32_t l = 0;
 
-        if (settings.get<StreamingPitch>()) {
-            int32_t l1, l2;
-            int16_t s;
-            for (i = 0; i < iSize; i++) {
-                if (settings.get<Interpolation>() == 2) {
-                    while (spos >= 0x10000L) {
-                        l = *pS++;
-                        gauss_window[gauss_ptr] = (int16_t)loword(l);
-                        gauss_window[4 + gauss_ptr] = (int16_t)hiword(l);
-                        gauss_ptr = (gauss_ptr + 1) & 3;
-                        spos -= 0x10000L;
-                    }
-                    vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
-                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
-                    l = (vr >> 11) & 0xffff;
-                    vr = (Gauss::gauss[vl] * gvalr0()) & ~2047;
-                    vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
-                    vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
-                    vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
-                    l |= vr << 5;
-                } else {
-                    while (spos >= 0x10000L) {
-                        l = *pS++;
-                        spos -= 0x10000L;
-                    }
+        for (i = 0; i < iSize; i++) {
+            if (settings.get<Interpolation>() == 2) {
+                while (spos >= 0x10000L) {
+                    l = *pS++;
+                    gauss_window[gauss_ptr] = (int16_t)loword(l);
+                    gauss_window[4 + gauss_ptr] = (int16_t)hiword(l);
+                    gauss_ptr = (gauss_ptr + 1) & 3;
+                    spos -= 0x10000L;
                 }
-
-                s = (int16_t)loword(l);
-                l1 = s;
-                l1 = (l1 * iPlace) / iSize;
-                if (l1 < -32767) l1 = -32767;
-                if (l1 > 32767) l1 = 32767;
-                s = (int16_t)hiword(l);
-                l2 = s;
-                l2 = (l2 * iPlace) / iSize;
-                if (l2 < -32767) l2 = -32767;
-                if (l2 > 32767) l2 = 32767;
-                l = (l1 & 0xffff) | (l2 << 16);
-
-                *XAFeed++ = l;
-                spos += sinc;
-            }
-        } else {
-            for (i = 0; i < iSize; i++) {
-                if (settings.get<Interpolation>() == 2) {
-                    while (spos >= 0x10000L) {
-                        l = *pS++;
-                        gauss_window[gauss_ptr] = (int16_t)loword(l);
-                        gauss_window[4 + gauss_ptr] = (int16_t)hiword(l);
-                        gauss_ptr = (gauss_ptr + 1) & 3;
-                        spos -= 0x10000L;
-                    }
-                    vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
-                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
-                    l = (vr >> 11) & 0xffff;
-                    vr = (Gauss::gauss[vl] * gvalr0()) & ~2047;
-                    vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
-                    vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
-                    vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
-                    l |= vr << 5;
-                } else {
-                    while (spos >= 0x10000L) {
-                        l = *pS++;
-                        spos -= 0x10000L;
-                    }
+                vl = (spos >> 6) & ~3;
+                vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
+                vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
+                vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
+                vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
+                l = (vr >> 11) & 0xffff;
+                vr = (Gauss::gauss[vl] * gvalr0()) & ~2047;
+                vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
+                vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
+                vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
+                l |= vr << 5;
+            } else {
+                while (spos >= 0x10000L) {
+                    l = *pS++;
+                    spos -= 0x10000L;
                 }
-
-                *XAFeed++ = l;
-                spos += sinc;
             }
+
+            MiniAudio::Frame f;
+            f.L = static_cast<int16_t>(l & 0xffff) / voldiv;
+            f.R = static_cast<int16_t>(l >> 16) / voldiv;
+            *XAFeed++ = f;
+            spos += sinc;
         }
     } else {
         uint16_t *pS = (uint16_t *)xap->pcm;
         uint32_t l;
         int16_t s = 0;
 
-        if (settings.get<StreamingPitch>()) {
-            int32_t l1;
-            for (i = 0; i < iSize; i++) {
-                if (settings.get<Interpolation>() == 2) {
-                    while (spos >= 0x10000L) {
-                        gauss_window[gauss_ptr] = (int16_t)*pS++;
-                        gauss_ptr = (gauss_ptr + 1) & 3;
-                        spos -= 0x10000L;
-                    }
-                    vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
-                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
-                    l1 = s = vr >> 11;
-                    l1 &= 0xffff;
-                } else {
-                    while (spos >= 0x10000L) {
-                        s = *pS++;
-                        spos -= 0x10000L;
-                    }
-                    l1 = s;
+        for (i = 0; i < iSize; i++) {
+            if (settings.get<Interpolation>() == 2) {
+                while (spos >= 0x10000L) {
+                    gauss_window[gauss_ptr] = (int16_t)*pS++;
+                    gauss_ptr = (gauss_ptr + 1) & 3;
+                    spos -= 0x10000L;
                 }
-
-                l1 = (l1 * iPlace) / iSize;
-                if (l1 < -32767) l1 = -32767;
-                if (l1 > 32767) l1 = 32767;
-                l = (l1 & 0xffff) | (l1 << 16);
-                *XAFeed++ = l;
-                spos += sinc;
-            }
-        } else {
-            for (i = 0; i < iSize; i++) {
-                if (settings.get<Interpolation>() == 2) {
-                    while (spos >= 0x10000L) {
-                        gauss_window[gauss_ptr] = (int16_t)*pS++;
-                        gauss_ptr = (gauss_ptr + 1) & 3;
-                        spos -= 0x10000L;
-                    }
-                    vl = (spos >> 6) & ~3;
-                    vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
-                    vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
-                    vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
-                    vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
-                    l = s = vr >> 11;
-                    l &= 0xffff;
-                } else {
-                    while (spos >= 0x10000L) {
-                        s = *pS++;
-                        spos -= 0x10000L;
-                    }
-                    l = s;
+                vl = (spos >> 6) & ~3;
+                vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
+                vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
+                vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
+                vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
+                l = s = vr >> 11;
+                l &= 0xffff;
+            } else {
+                while (spos >= 0x10000L) {
+                    s = *pS++;
+                    spos -= 0x10000L;
                 }
-
-                *XAFeed++ = (l | (l << 16));
-                spos += sinc;
+                l = s;
             }
+
+            MiniAudio::Frame f;
+            f.L = static_cast<int16_t>(l) / voldiv;
+            f.R = f.L;
+            *XAFeed++ = f;
+            spos += sinc;
         }
     }
 
-    m_sound.feedStreamData((uint8_t *)XABuffer, (XAFeed - XABuffer) * sizeof(uint32_t), 1);
+    m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
 }

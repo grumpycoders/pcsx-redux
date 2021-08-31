@@ -115,21 +115,6 @@ bool PCSX::SoftGPU::SoftPrim::configure() {
             g_emulator->settings.get<Emulator::SettingDither>() = m_useDither;
         }
 
-        if (ImGui::Checkbox("Use framelimit", &g_useFrameLimit)) {
-            changed = true;
-            g_emulator->settings.get<Emulator::SettingFrameLimit>() = g_useFrameLimit;
-        }
-
-        if (ImGui::Checkbox("Use frameskip", &g_useFrameSkip)) {
-            changed = true;
-            g_emulator->settings.get<Emulator::SettingFrameskip>() = g_useFrameSkip;
-        }
-
-        if (ImGui::Checkbox("SSSPSXLimit", &g_SSSPSXLimit)) {
-            changed = true;
-            g_emulator->settings.get<Emulator::SettingSSSPSXLimit>() = g_SSSPSXLimit;
-        }
-
         ImGui::End();
     }
 
