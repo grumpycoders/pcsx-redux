@@ -449,4 +449,6 @@ void PCSX::Counters::load(const PCSX::SaveStates::Counters &counters) {
         m_rcnts[1].rate = (PCSX::g_emulator->m_psxClockSpeed /
                            (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
                             m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+
+    m_audioFrames = g_emulator->m_spu->getCurrentFrames();
 }

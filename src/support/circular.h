@@ -29,7 +29,7 @@
 
 namespace PCSX {
 
-template <typename T, size_t BS = 4096>
+template <typename T, size_t BS = 8192>
 class Circular {
   public:
     static constexpr size_t BUFFER_SIZE = BS;

@@ -27,6 +27,8 @@
 //
 //*************************************************************************//
 
+#include <algorithm>
+
 #include "spu/externals.h"
 #include "spu/gauss.h"
 #include "spu/interface.h"
@@ -50,8 +52,9 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
 
     xapGlobal = xap;  // store info for save states
 
-    iSize = ((4410000 * xap->nsamples) / xap->freq);  // get size
-    iSize /= g_emulator->settings.get<Emulator::SettingScaler>();
+    iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
+    iSize *= 100;
+    iSize /= std::min(100, g_emulator->settings.get<Emulator::SettingScaler>().value);
     if (!iSize) return;  // none? bye
 
     assert(iSize <= 32 * 1024);
