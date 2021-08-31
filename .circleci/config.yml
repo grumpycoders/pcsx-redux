@@ -55,6 +55,7 @@ jobs:
       CXX: clang++-11
       LD: clang++-11
       LLVM_PROFILE_FILE: /tmp/llvm_profile/profile-%p.profraw
+      CC_TEST_REPORTER_ID: 5d447cced9cd352889d94f10881ca01c0070004fbf6dea93cac366b32e6e0acd
       BUILD: Coverage
     steps:
       - checkout
@@ -62,6 +63,12 @@ jobs:
           name: submodules
           command: |
             git submodule update --init --recursive
+      - run:
+          name: Setup Code Climate test-reporter
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+            ./cc-test-reporter before-build
       - run-with-retry/run-with-retry:
           command: |
             make -j 2 all pcsx-redux-tests
@@ -75,15 +82,21 @@ jobs:
           command: |
             xvfb-run catchsegv ./pcsx-redux-tests
       - run:
-          name: Merge code coverage
+          name: Merge Code coverage
           command: |
             llvm-profdata-11 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
       - run:
-          name: Convert code coverage
+          name: Convert Code coverage
           command: |
             llvm-cov-11 show ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.txt
       - run:
-          name: Upload Code Coverage
+          name: Upload Code Coverage - Code Climate
+          command: |
+            ./cc-test-reporter format-coverage -t gcov -o codeclimate.gcov.json ./coverage.txt
+            ./cc-test-reporter sum-coverage codeclimate.*.json
+            ./cc-test-reporter upload-coverage || true
+      - run:
+          name: Upload Code Coverage - codecov
           command: |
             bash <(curl -s https://codecov.io/bash)
 
