@@ -39,7 +39,7 @@ class ShaderEditor {
     ShaderEditor(const std::string& base, std::string_view dVS = "", std::string_view dPS = "",
                  std::string_view dL = "");
     [[nodiscard]] std::optional<GLuint> compile(const std::vector<std::string_view>& mandatoryAttributes = {});
-    
+
     ~ShaderEditor();
 
     bool m_show = false;
