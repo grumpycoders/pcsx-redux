@@ -75,17 +75,17 @@ jobs:
           command: |
             xvfb-run catchsegv ./pcsx-redux-tests
       - run:
-          name: Merge code coverage
+          name: Merge Code coverage
           command: |
             llvm-profdata-11 merge -sparse /tmp/llvm_profile/profile-*.profraw -o coverage.profdata
       - run:
-          name: Convert code coverage
+          name: Convert Code coverage
           command: |
-            llvm-cov-11 show ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.txt
+            llvm-cov-11 export --format=lcov ./pcsx-redux-tests -instr-profile=coverage.profdata > coverage.info
       - run:
-          name: Upload Code Coverage
+          name: Upload Code Coverage - codecov
           command: |
-            bash <(curl -s https://codecov.io/bash)
+            bash <(curl -s https://codecov.io/bash) -f coverage.info
 
 workflows:
   version: 2
