@@ -103,7 +103,7 @@ class MiniAudio {
     ma_device m_device;
     EventBus::Listener m_listener;
 
-    typedef Circular<Frame> VoiceStream;
+    typedef Circular<Frame, 2 * 1024> VoiceStream;
     VoiceStream m_voicesStream;
     Circular<Frame, 16 * 1024> m_audioStream;
     typedef std::array<Frame, VoiceStream::BUFFER_SIZE> Buffer;
