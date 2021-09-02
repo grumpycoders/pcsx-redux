@@ -59,14 +59,17 @@ PCSX::SPU::MiniAudio::MiniAudio(bool& muted) : m_muted(muted), m_listener(g_syst
 void PCSX::SPU::MiniAudio::remove() { ma_device_uninit(&m_device); }
 
 void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 frameCount) {
-    if (frameCount > Stream::BUFFER_SIZE) {
+    if (frameCount > VoiceStream::BUFFER_SIZE) {
         throw std::runtime_error("Too many frames requested by miniaudio");
     }
     std::array<Buffer, STREAMS> buffers;
     const bool muted = m_muted;
 
+    static_assert(STREAMS == 2);
+
     for (unsigned i = 0; i < STREAMS; i++) {
-        size_t a = m_streams[i].dequeue(buffers[i].data(), frameCount);
+        size_t a = i == 0 ? m_voicesStream.dequeue(buffers[i].data(), frameCount)
+                          : m_audioStream.dequeue(buffers[i].data(), frameCount);
         for (size_t f = (muted ? 0 : a); f < frameCount; f++) {
             // maybe warn about underflow? tho it's fine if it happens on stream 1 (cdda)
             buffers[i][f] = {};
