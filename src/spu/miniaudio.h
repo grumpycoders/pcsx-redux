@@ -53,9 +53,31 @@ class MiniAudio {
     void setup() {}
     void remove();
     bool feedStreamData(const Frame* data, size_t frames, unsigned streamId = 0) {
-        return m_streams.at(streamId).enqueue(data, frames);
+        switch (streamId) {
+            case 0:
+                return m_voicesStream.enqueue(data, frames);
+                break;
+            case 1:
+                return m_audioStream.enqueue(data, frames);
+                break;
+            default:
+                throw std::runtime_error("Invalid stream ID");
+                return false;
+        }
     }
-    size_t getBytesBuffered(unsigned streamId = 0) { return m_streams.at(streamId).buffered(); }
+    size_t getBytesBuffered(unsigned streamId = 0) {
+        switch (streamId) {
+            case 0:
+                return m_voicesStream.buffered();
+                break;
+            case 1:
+                return m_audioStream.buffered();
+                break;
+            default:
+                throw std::runtime_error("Invalid stream ID");
+                return false;
+        }
+    }
     uint32_t getCurrentFrames() { return m_frames.load(); }
     void waitForGoal(uint32_t goal) {
 #if HAS_ATOMIC_WAIT
@@ -81,9 +103,10 @@ class MiniAudio {
     ma_device m_device;
     EventBus::Listener m_listener;
 
-    typedef Circular<Frame> Stream;
-    std::array<Stream, STREAMS> m_streams;
-    typedef std::array<Frame, Stream::BUFFER_SIZE> Buffer;
+    typedef Circular<Frame> VoiceStream;
+    VoiceStream m_voicesStream;
+    Circular<Frame, 16 * 1024> m_audioStream;
+    typedef std::array<Frame, VoiceStream::BUFFER_SIZE> Buffer;
     std::atomic<uint32_t> m_frames = 0;
 #if HAS_ATOMIC_WAIT
     std::atomic<uint32_t> m_goalpost = 0;
