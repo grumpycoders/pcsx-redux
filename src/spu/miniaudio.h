@@ -54,6 +54,7 @@ class MiniAudio {
         int16_t L = 0, R = 0;
     };
     MiniAudio(SettingsType& settings);
+    ma_uint32 getFrameCount() { return m_frameCount.load(); }
     void reinit() {
         uninit();
         init();
@@ -136,6 +137,8 @@ class MiniAudio {
 
     std::vector<std::string> m_backends;
     std::vector<std::string> m_devices;
+
+    std::atomic<ma_uint32> m_frameCount;
 };
 
 }  // namespace SPU

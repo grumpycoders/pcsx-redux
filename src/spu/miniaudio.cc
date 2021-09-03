@@ -123,6 +123,7 @@ void PCSX::SPU::MiniAudio::init() {
 void PCSX::SPU::MiniAudio::uninit() { ma_device_uninit(&m_device); }
 
 void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 frameCount) {
+    m_frameCount.store(frameCount);
     if (frameCount > VoiceStream::BUFFER_SIZE) {
         throw std::runtime_error("Too many frames requested by miniaudio");
     }

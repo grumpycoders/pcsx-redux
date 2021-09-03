@@ -62,6 +62,8 @@ class impl final : public SPUInterface {
     // num of channels
     static const size_t MAXCHAN = 24;
 
+    uint32_t getFrameCount() override { return m_audioOut.getFrameCount(); }
+
     void debug() final;
     bool configure() final;
     json getCfg() final { return settings.serialize(); }
