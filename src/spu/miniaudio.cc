@@ -50,7 +50,6 @@ PCSX::SPU::MiniAudio::MiniAudio(PCSX::SPU::SettingsType& settings)
 }
 
 void PCSX::SPU::MiniAudio::init() {
-    ma_context context;
     ma_backend backends[ma_backend_null + 1];
     unsigned count = 0;
     bool found = false;
@@ -69,7 +68,7 @@ void PCSX::SPU::MiniAudio::init() {
     if (!found) {
         m_settings.get<Backend>().reset();
     }
-    if (ma_context_init(backends, count, NULL, &context) != MA_SUCCESS) {
+    if (ma_context_init(backends, count, NULL, &m_context) != MA_SUCCESS) {
         throw std::runtime_error("Error initializing miniaudio context");
     }
 
@@ -84,7 +83,7 @@ void PCSX::SPU::MiniAudio::init() {
     userContext.config = ma_device_config_init(ma_device_type_playback);
 
     ma_context_enumerate_devices(
-        &context,
+        &m_context,
         [](ma_context* pContext, ma_device_type deviceType, const ma_device_info* pInfo, void* pUserData) -> ma_bool32 {
             if (deviceType != ma_device_type_playback) return true;
             UserContext* userContext = reinterpret_cast<UserContext*>(pUserData);
@@ -115,7 +114,7 @@ void PCSX::SPU::MiniAudio::init() {
     };
     config.pUserData = this;
 
-    if (ma_device_init(NULL, &config, &m_device) != MA_SUCCESS) {
+    if (ma_device_init(&m_context, &config, &m_device) != MA_SUCCESS) {
         throw std::runtime_error("Unable to initialize audio device");
     }
 }

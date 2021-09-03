@@ -117,6 +117,7 @@ class MiniAudio {
     void uninit();
 
     ma_device m_device;
+    ma_context m_context;
     EventBus::Listener m_listener;
 
     typedef Circular<Frame, 2 * 1024> VoiceStream;
