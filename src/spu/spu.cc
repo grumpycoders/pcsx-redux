@@ -926,8 +926,6 @@ bool PCSX::SPU::impl::open() {
 
     //    ReadConfig();  // read user stuff
 
-    m_audioOut.setup();  // setup sound (before init!)
-
     SetupStreams();  // prepare streaming
 
     SetupThread();  // timer for feeding data
@@ -949,7 +947,6 @@ long PCSX::SPU::impl::close(void) {
     bSPUIsOpen = 0;  // no more open
 
     RemoveThread();       // no more feeding
-    m_audioOut.remove();  // no more sound handling
     RemoveStreams();      // no more streaming
 
     return 0;

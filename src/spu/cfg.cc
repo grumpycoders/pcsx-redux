@@ -42,6 +42,38 @@ bool PCSX::SPU::impl::configure() {
         return false;
     }
     bool changed = false;
+    bool deviceChanged = false;
+    auto backends = m_audioOut.getBackends();
+    auto devices = m_audioOut.getDevices();
+
+    std::string currentBackend = settings.get<Backend>();
+    std::string currentDevice = settings.get<Device>();
+    if (ImGui::BeginCombo(_("Backend"), currentBackend.c_str())) {
+        for (auto &b : backends) {
+            if (ImGui::Selectable(b.c_str(), currentBackend == b)) {
+                settings.get<Backend>() = b;
+                deviceChanged = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::BeginCombo(_("Device"), currentDevice.c_str())) {
+        for (auto &d : devices) {
+            if (ImGui::Selectable(d.c_str(), currentDevice == d)) {
+                settings.get<Device>() = d;
+                deviceChanged = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    deviceChanged |= ImGui::Checkbox(_("Use Null Sync"), &settings.get<NullSync>().value);
+    ShowHelpMarker(_(R"(More precise CPU-SPU synchronization,
+at the cost of extra power required.)"));
+    if (deviceChanged) {
+        m_audioOut.reinit();
+    }
+    changed = deviceChanged;
+
     changed |= ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value);
     changed |= ImGui::Checkbox(_("Enable streaming"), &settings.get<Streaming>().value);
     ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
