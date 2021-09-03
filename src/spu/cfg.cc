@@ -53,7 +53,6 @@ bool PCSX::SPU::impl::configure() {
             if (ImGui::Selectable(b.c_str(), currentBackend == b)) {
                 settings.get<Backend>() = b;
                 deviceChanged = true;
-                changed = true;
             }
         }
         ImGui::EndCombo();
@@ -63,15 +62,17 @@ bool PCSX::SPU::impl::configure() {
             if (ImGui::Selectable(d.c_str(), currentDevice == d)) {
                 settings.get<Device>() = d;
                 deviceChanged = true;
-                changed = true;
             }
         }
         ImGui::EndCombo();
     }
-
+    deviceChanged |= ImGui::Checkbox(_("Use Null Sync"), &settings.get<NullSync>().value);
+    ShowHelpMarker(_(R"(More precise CPU-SPU synchronization,
+at the cost of extra power required.)"));
     if (deviceChanged) {
         m_audioOut.reinit();
     }
+    changed = deviceChanged;
 
     changed |= ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value);
     changed |= ImGui::Checkbox(_("Enable streaming"), &settings.get<Streaming>().value);

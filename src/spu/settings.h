@@ -26,6 +26,7 @@ namespace SPU {
 
 typedef SettingString<TYPESTRING("Backend"), TYPESTRING("Default")> Backend;
 typedef SettingString<TYPESTRING("Device"), TYPESTRING("Default")> Device;
+typedef Setting<bool, TYPESTRING("UseNullSync"), false> NullSync;
 typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
 typedef Setting<int, TYPESTRING("Volume"), 3> Volume;
 typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
@@ -34,7 +35,7 @@ typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
 typedef Setting<bool, TYPESTRING("Mono")> Mono;
 typedef Setting<bool, TYPESTRING("DBufIRQ")> DBufIRQ;
 typedef Setting<bool, TYPESTRING("Mute")> Mute;
-typedef Settings<Backend, Device, Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute>
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute>
     SettingsType;
 
 }  // namespace SPU

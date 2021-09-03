@@ -62,6 +62,10 @@ class MiniAudio {
             if (ma_device_start(&m_device) != MA_SUCCESS) {
                 throw std::runtime_error("Unable to start audio device");
             }
+            if (!m_settings.get<NullSync>()) return;
+            if (ma_device_start(&m_deviceNull) != MA_SUCCESS) {
+                throw std::runtime_error("Unable to start NULL audio device");
+            }
         }
     }
     const std::vector<std::string>& getBackends() { return m_backends; }
@@ -113,11 +117,16 @@ class MiniAudio {
     static constexpr unsigned STREAMS = 2;
     SettingsType& m_settings;
     void callback(ma_device* device, float* output, ma_uint32 frameCount);
+    void callbackNull(ma_device* device, float* output, ma_uint32 frameCount);
     void init();
     void uninit();
 
-    ma_device m_device;
     ma_context m_context;
+    ma_device_config m_config;
+    ma_device m_device;
+    ma_context m_contextNull;
+    ma_device_config m_configNull;
+    ma_device m_deviceNull;
     EventBus::Listener m_listener;
 
     typedef Circular<Frame, 2 * 1024> VoiceStream;
