@@ -50,14 +50,27 @@ sudo trizen -S gdb-multiarch
 #### target
 
   This is the path to your `.elf` executable :  
+```json
+   "target": "HelloWorld.elf",
+```
   https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L9 
 
 #### gdbpath
 
   This the path to the `gdb-multiarch` executable:  
+```json
+   "gdbpath": "/usr/bin/gdb-multiarch",
+```
   https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L10
 
 #### autorun
+
+```json
+   "autorun": [
+    "target remote localhost:3333",
+    [...]
+    "load HelloWorld.elf",
+```
 
   Make sure that `"load your-file.elf"` corresponds to the `"target"` value.  
   
