@@ -50,3 +50,5 @@ nav:
     - 'gdb-server.md'
     - 'mips_api.md'
     - 'CPU_trace_dump.md'
+    - 'web_server.md'
+    
