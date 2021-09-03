@@ -8,3 +8,14 @@
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace !important;
   }
 }
+
+.md-grid {
+    max-width: 65rem;
+}
+.md-typeset table:not([class]) th {
+  background-color: var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset table:not([class]) {
+  background-color: var(--md-default-fg-color--lightest);
+}
