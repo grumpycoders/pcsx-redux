@@ -50,7 +50,7 @@ PCSX::SPU::MiniAudio::MiniAudio(PCSX::SPU::SettingsType& settings)
             throw std::runtime_error("Unable to stop audio device");
         };
         if (!ma_device_is_started(&m_deviceNull)) return;
-        if (ma_device_stop(&m_device) != MA_SUCCESS) {
+        if (ma_device_stop(&m_deviceNull) != MA_SUCCESS) {
             throw std::runtime_error("Unable to stop NULL audio device");
         };
     });
