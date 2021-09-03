@@ -29,6 +29,17 @@ plugins:
   - search
   - with-pdf:
       output_path: pcsx-redux.pdf
+  - mkdocs-simple-hooks:
+      hooks:
+        on_pre_build: "hooks:build_onepage"
 
 extra_css:
     - css/extra.css
+
+nav:
+    - 'index.md'
+    - 'menus.md'
+    - 'compiling.md'
+    - 'cli_flags.md'
+    - 'gdb-server.md'
+    - 'mips_api.md'
