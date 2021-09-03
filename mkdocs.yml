@@ -33,6 +33,12 @@ plugins:
       hooks:
         on_pre_build: "hooks:build_onepage"
 
+markdown_extensions:
+  - pymdownx.highlight:
+      linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+
 extra_css:
     - css/extra.css
 
@@ -43,3 +49,4 @@ nav:
     - 'cli_flags.md'
     - 'gdb-server.md'
     - 'mips_api.md'
+    - 'CPU_trace_dump.md'

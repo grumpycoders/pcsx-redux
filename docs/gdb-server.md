@@ -19,7 +19,7 @@ You need `gdb-multiarch` on your system :
 
 ### Windows
 
-Download a pre-compiled version from here : (https://static.grumpycoder.net/pixel/gdb-multiarch-windows/)
+Download a pre-compiled version from here : [https://static.grumpycoder.net/pixel/gdb-multiarch-windows/](https://static.grumpycoder.net/pixel/gdb-multiarch-windows/)
 
 ### GNU/Linux
 
@@ -37,7 +37,8 @@ sudo trizen -S gdb-multiarch
 
 ### MS VScode
 
-  * Install the `Native debug`  extension : https://marketplace.visualstudio.com/items?itemName=webfreak.debug
+  * Install the `Native debug`  extension :  
+  [https://marketplace.visualstudio.com/items?itemName=webfreak.debug](https://marketplace.visualstudio.com/items?itemName=webfreak.debug)
 
 ![VScode native debg extension](./images/vscode_native_debug.png)  
 
@@ -53,7 +54,7 @@ sudo trizen -S gdb-multiarch
 ```json
    "target": "HelloWorld.elf",
 ```
-  https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L9 
+  [https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L9](https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L9) 
 
 #### gdbpath
 
@@ -61,7 +62,7 @@ sudo trizen -S gdb-multiarch
 ```json
    "gdbpath": "/usr/bin/gdb-multiarch",
 ```
-  https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L10
+  [https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L10](https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L10)
 
 #### autorun
 
@@ -74,11 +75,11 @@ sudo trizen -S gdb-multiarch
 
   Make sure that `"load your-file.elf"` corresponds to the `"target"` value.  
   
-  https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L15
+  [https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L15](https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L15)
   
   By default, using `localhost` should work, but if encountering trouble, try using your computer's local IP (e.g; 192.168.x.x, 10.0.x.x, etc.)
 
-  https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L13
+  [https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L13](https://github.com/NDR008/VSCodePSX/blob/d70658b5ad420685367de4f3c18b89d72535631e/get_started/.vscode/launch.json#L13)
 
 ![gdb debugging](./images/pcsx-gdb-debug.png)
 
