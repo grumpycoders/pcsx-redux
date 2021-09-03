@@ -38,8 +38,10 @@ Source : https://github.com/grumpycoders/pcsx-redux/blob/main/src/mips/common/cr
 The following functions are available :
 
 | Function | Usage |
-| :-: | :-: | 
-|`pcsx_putc(int c)` | Print `c` to console/stdout. |  | 
+| :- | :- | 
+|`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. |  | 
 |`pcsx_debugbreak()` | Break execution ( Pause emulation ). | 
 |`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. |  | 
 |`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` |
+
+![pcsx_message() in action](./images/pcsx_message.png)
