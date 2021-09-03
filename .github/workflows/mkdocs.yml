@@ -28,5 +28,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CUSTOM_DOMAIN: pcsx-redux.consoledev.net
           CONFIG_FILE: mkdocs.yml
-          EXTRA_PACKAGES: build-base cairo cairo-gobject fontconfig gdk-pixbuf jpeg-dev libffi-dev msttcorefonts-installer pango zlib-dev
+          EXTRA_PACKAGES: build-base cairo cairo-gobject fontconfig gdk-pixbuf jpeg-dev libffi-dev msttcorefonts-installer pango zlib-dev openjpeg openjpeg-dev
           POST_INSTALL: update-ms-fonts && fc-cache -f
