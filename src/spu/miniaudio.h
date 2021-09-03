@@ -23,15 +23,19 @@
 
 #include <array>
 #include <atomic>
+#include <string>
+#include <vector>
 
+#define MA_NO_CUSTOM
 #define MA_NO_DECODING
 #define MA_NO_ENCODING
-#define MA_NO_WAV
 #define MA_NO_FLAC
-#define MA_NO_MP3
 #define MA_NO_GENERATION
+#define MA_NO_MP3
+#define MA_NO_WAV
 
 #include "miniaudio/miniaudio.h"
+#include "spu/settings.h"
 #include "support/circular.h"
 #include "support/eventbus.h"
 
@@ -49,9 +53,23 @@ class MiniAudio {
     struct Frame {
         int16_t L = 0, R = 0;
     };
-    MiniAudio(bool& muted);
-    void setup() {}
-    void remove();
+    MiniAudio(SettingsType& settings);
+    ma_uint32 getFrameCount() { return m_frameCount.load(); }
+    void reinit() {
+        uninit();
+        init();
+        if (g_system->running()) {
+            if (ma_device_start(&m_device) != MA_SUCCESS) {
+                throw std::runtime_error("Unable to start audio device");
+            }
+            if (!m_settings.get<NullSync>()) return;
+            if (ma_device_start(&m_deviceNull) != MA_SUCCESS) {
+                throw std::runtime_error("Unable to start NULL audio device");
+            }
+        }
+    }
+    const std::vector<std::string>& getBackends() { return m_backends; }
+    const std::vector<std::string>& getDevices() { return m_devices; }
     bool feedStreamData(const Frame* data, size_t frames, unsigned streamId = 0) {
         switch (streamId) {
             case 0:
@@ -97,10 +115,18 @@ class MiniAudio {
 
   private:
     static constexpr unsigned STREAMS = 2;
-    bool& m_muted;
+    SettingsType& m_settings;
     void callback(ma_device* device, float* output, ma_uint32 frameCount);
+    void callbackNull(ma_device* device, float* output, ma_uint32 frameCount);
+    void init();
+    void uninit();
 
+    ma_context m_context;
+    ma_device_config m_config;
     ma_device m_device;
+    ma_context m_contextNull;
+    ma_device_config m_configNull;
+    ma_device m_deviceNull;
     EventBus::Listener m_listener;
 
     typedef Circular<Frame, 2 * 1024> VoiceStream;
@@ -118,6 +144,11 @@ class MiniAudio {
     std::condition_variable m_cv;
 #endif
     uint32_t m_previousGoalpost = 0;
+
+    std::vector<std::string> m_backends;
+    std::vector<std::string> m_devices;
+
+    std::atomic<ma_uint32> m_frameCount;
 };
 
 }  // namespace SPU

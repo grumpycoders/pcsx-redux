@@ -32,7 +32,8 @@ static float dpi_pixel_height_from_point_size(float pointSize, float pixelScaleY
 }
 
 PCSX::Widgets::ZepEditor::ZepEditor(const std::string& name)
-    : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""))) {
+    : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""),
+                                                Zep::ZepEditorFlags::DisableThreads)) {
     m_editor->RegisterCallback(this);
 
     Zep::ZepRegressExCommand::Register(*m_editor);

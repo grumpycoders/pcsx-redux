@@ -62,6 +62,8 @@ class impl final : public SPUInterface {
     // num of channels
     static const size_t MAXCHAN = 24;
 
+    uint32_t getFrameCount() override { return m_audioOut.getFrameCount(); }
+
     void debug() final;
     bool configure() final;
     json getCfg() final { return settings.serialize(); }
@@ -133,15 +135,7 @@ class impl final : public SPUInterface {
     uint8_t *pMixIrq = 0;
 
     // user settings
-    typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
-    typedef Setting<int, TYPESTRING("Volume"), 3> Volume;
-    typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
-    typedef Setting<int, TYPESTRING("Reverb"), 2> Reverb;
-    typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
-    typedef Setting<bool, TYPESTRING("Mono")> Mono;
-    typedef Setting<bool, TYPESTRING("DBufIRQ")> DBufIRQ;
-    typedef Setting<bool, TYPESTRING("Mute")> Mute;
-    Settings<Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute> settings;
+    SettingsType settings;
 
     // MAIN infos struct for each channel
 
@@ -201,7 +195,7 @@ class impl final : public SPUInterface {
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
     ADSR m_adsr;
-    MiniAudio m_audioOut = {settings.get<Mute>().value};
+    MiniAudio m_audioOut = {settings};
     xa_decode_t m_cdda;
 
     // debug window
