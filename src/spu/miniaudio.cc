@@ -23,12 +23,87 @@
 #include <stdexcept>
 
 #include "core/system.h"
+#include "spu/interface.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio/miniaudio.h"
 
-PCSX::SPU::MiniAudio::MiniAudio(bool& muted) : m_muted(muted), m_listener(g_system->m_eventBus) {
-    ma_device_config config = ma_device_config_init(ma_device_type_playback);
+PCSX::SPU::MiniAudio::MiniAudio(PCSX::SPU::SettingsType& settings)
+    : m_settings(settings), m_listener(g_system->m_eventBus) {
+    for (unsigned i = 0; i <= ma_backend_null; i++) {
+        ma_backend b = ma_backend(i);
+        if (ma_is_backend_enabled(b)) {
+            m_backends.push_back(ma_get_backend_name(b));
+        }
+    }
+    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
+        if (ma_device_start(&m_device) != MA_SUCCESS) {
+            throw std::runtime_error("Unable to start audio device");
+        }
+    });
+    m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
+        if (ma_device_stop(&m_device) != MA_SUCCESS) {
+            throw std::runtime_error("Unable to stop audio device");
+        };
+    });
+    m_listener.listen<Events::SettingsLoaded>([this](const auto& event) { init(); });
+}
+
+void PCSX::SPU::MiniAudio::init() {
+    ma_context context;
+    ma_backend backends[ma_backend_null + 1];
+    unsigned count = 0;
+    bool found = false;
+    ma_backend selected = ma_backend_null;
+    for (unsigned i = 0; i <= ma_backend_null; i++) {
+        ma_backend b = ma_backend(i);
+        if (!ma_is_backend_enabled(b)) continue;
+        backends[count++] = b;
+        if (ma_get_backend_name(b) == m_settings.get<Backend>().value) {
+            found = true;
+            count = 1;
+            backends[0] = b;
+            break;
+        }
+    }
+    if (!found) {
+        m_settings.get<Backend>().reset();
+    }
+    if (ma_context_init(backends, count, NULL, &context) != MA_SUCCESS) {
+        throw std::runtime_error("Error initializing miniaudio context");
+    }
+
+    m_devices.clear();
+    struct UserContext {
+        MiniAudio* miniAudio;
+        ma_device_config config;
+        bool found = false;
+    };
+    UserContext userContext;
+    userContext.miniAudio = this;
+    userContext.config = ma_device_config_init(ma_device_type_playback);
+
+    ma_context_enumerate_devices(
+        &context,
+        [](ma_context* pContext, ma_device_type deviceType, const ma_device_info* pInfo, void* pUserData) -> ma_bool32 {
+            if (deviceType != ma_device_type_playback) return true;
+            UserContext* userContext = reinterpret_cast<UserContext*>(pUserData);
+            userContext->miniAudio->m_devices.push_back(pInfo->name);
+            if (pInfo->name == userContext->miniAudio->m_settings.get<Device>().value) {
+                userContext->config.playback.pDeviceID = &pInfo->id;
+                userContext->found = true;
+            }
+            return true;
+        },
+        &userContext);
+
+    if (!userContext.found) {
+        m_settings.get<Device>().reset();
+    }
+
+    ma_device_config& config = userContext.config;
+    config.aaudio.usage = ma_aaudio_usage_game;
+    config.wasapi.noAutoConvertSRC = true;
     config.playback.format = ma_format_f32;
     config.playback.channels = 2;
     config.sampleRate = 44100;
@@ -43,27 +118,16 @@ PCSX::SPU::MiniAudio::MiniAudio(bool& muted) : m_muted(muted), m_listener(g_syst
     if (ma_device_init(NULL, &config, &m_device) != MA_SUCCESS) {
         throw std::runtime_error("Unable to initialize audio device");
     }
-
-    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
-        if (ma_device_start(&m_device) != MA_SUCCESS) {
-            throw std::runtime_error("Unable to start audio device");
-        }
-    });
-    m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
-        if (ma_device_stop(&m_device) != MA_SUCCESS) {
-            throw std::runtime_error("Unable to stop audio device");
-        };
-    });
 }
 
-void PCSX::SPU::MiniAudio::remove() { ma_device_uninit(&m_device); }
+void PCSX::SPU::MiniAudio::uninit() { ma_device_uninit(&m_device); }
 
 void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 frameCount) {
     if (frameCount > VoiceStream::BUFFER_SIZE) {
         throw std::runtime_error("Too many frames requested by miniaudio");
     }
     std::array<Buffer, STREAMS> buffers;
-    const bool muted = m_muted;
+    const bool muted = m_settings.get<Mute>();
 
     static_assert(STREAMS == 2);
 
