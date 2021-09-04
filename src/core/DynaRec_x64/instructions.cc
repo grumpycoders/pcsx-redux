@@ -1148,7 +1148,7 @@ void DynaRecCPU::recSWL() {
         gen.lea(rcx, qword[rip + MASKS_AND_SHIFTS]); // Base to mask and shift lookup table in rcx
         gen.mov(rcx, qword[rcx + rdx * 8]);  // Load the mask and shift from LUT by indexing using the bottom 2 bits of the unaligned addr.
         
-        gen.mov(arg2, m_regs[_Rt_].val); // edx = $rt
+        gen.mov(arg2, m_regs[_Rt_].val); // arg2 = $rt
         gen.shr(arg2, cl); // Shift rt value
         gen.shr(rcx, 32); // rcx = mask now
         gen.and_(eax, ecx); // Mask read value
@@ -1181,7 +1181,7 @@ void DynaRecCPU::recSWL() {
         gen.lea(rcx, qword[rip + MASKS_AND_SHIFTS]); // Base to mask and shift lookup table in rcx
         gen.mov(rcx, qword[rcx + rdx * 8]);  // Load the mask and shift from LUT by indexing using the bottom 2 bits of the unaligned addr.
         
-        gen.mov(arg2, m_regs[_Rt_].allocatedReg); // edx = $rt
+        gen.mov(arg2, m_regs[_Rt_].allocatedReg); // arg2 = $rt
         gen.shr(arg2, cl); // Shift rt value
         gen.shr(rcx, 32); // rcx = mask now
         gen.and_(eax, ecx); // Mask read value
