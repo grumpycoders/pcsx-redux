@@ -1,1 +1,3 @@
 mkdocs-with-pdf
+mkdocs-simple-hooks
+pyyaml
