@@ -434,7 +434,7 @@ int main() {
             wasError = 0;
             startLerp(LERP_TO_IDLE);
         }
-        waitVSync(idle);
+        waitVSync(1, idle);
         flip(0, s_bg);
         render();
     }

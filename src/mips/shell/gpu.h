@@ -44,7 +44,7 @@ union GPUPoint {
 
 void initGPU(int isPAL);
 void flip(int doubleBuffer, const union Color bg);
-void waitVSync(void (*idle)());
+void waitVSync(int interlaced, void (*idle)());
 
 // we shift by 17 instead of 24 to do a scaling of 128
 // therefore a typical square of (-1,-1)-(1,1) would

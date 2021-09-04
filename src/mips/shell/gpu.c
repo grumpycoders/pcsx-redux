@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include "common/hardware/gpu.h"
 #include "common/hardware/hwregs.h"
+#include "common/hardware/pcsxhw.h"
 #include "common/hardware/irq.h"
 
 static int s_frame = 0;
@@ -58,14 +59,27 @@ void flip(int doubleBuffer, const union Color bg) {
     }
 }
 
-void waitVSync(void (*idle)()) {
-    uint32_t imask = IMASK;
+void waitVSync(int interlaced, void (*idle)()) {
+    if (!interlaced || pcsx_present()) {
+        uint32_t imask = IMASK;
 
-    IMASK = imask | IRQ_VBLANK;
+        IMASK = imask | IRQ_VBLANK;
 
-    while ((IREG & IRQ_VBLANK) == 0) idle();
-    IREG &= ~IRQ_VBLANK;
-    IMASK = imask;
+        while ((IREG & IRQ_VBLANK) == 0) idle();
+        IREG &= ~IRQ_VBLANK;
+        IMASK = imask;
+    } else {
+        static int lastField = 0;
+        while (1) {
+            uint32_t stat = GPU_STATUS;
+            int isDrawingEven = (stat & 0x80000000) == 0;
+            int isMaskingEven = (stat & 0x00002000) == 0;
+            if (lastField && isDrawingEven && !isMaskingEven) break;
+            if (!lastField && !isDrawingEven && isMaskingEven) break;
+            idle();
+        }
+        lastField = !lastField;
+    }
 }
 
 void initGPU(int isPAL) {
@@ -79,9 +93,9 @@ void initGPU(int isPAL) {
         .hResolutionExtended = HRE_NORMAL,
     };
     setDisplayMode(&config);
-    setHorizontalRange(7, 0xa00);
-    setVerticalRange(10, 250);
-    setDisplayArea(0, 0);
+    setHorizontalRange(0, 0xa00);
+    setVerticalRange(16, 255);
+    setDisplayArea(0, 2);
     setDrawingArea(0, 0, WIDTH, HEIGHT);
     setDrawingOffset(0, 0);
 }
