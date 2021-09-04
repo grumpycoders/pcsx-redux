@@ -371,8 +371,8 @@ static void render() {
         startPolygonCommand(&cmd);
         sendGPUVertex(&v[c_modelQuads[f][0]]);
         sendGPUVertex(&v[c_modelQuads[f][1]]);
-        sendGPUVertex(&v[c_modelQuads[f][2]]);
         sendGPUVertex(&v[c_modelQuads[f][3]]);
+        sendGPUVertex(&v[c_modelQuads[f][2]]);
     }
 }
 
@@ -380,6 +380,7 @@ static int s_scheduleBoot = 0;
 static int s_bootFrames = 0;
 
 int main() {
+    ramsyscall_printf("*** OpenBIOS tiny shell - starting ***\n");
     int wasLocked = enterCriticalSection();
     int isPAL = (*((char *)0xbfc7ff52) == 'E');
     s_FPS = isPAL ? 50 : 60;
@@ -416,7 +417,7 @@ int main() {
             startLerp(LERP_TO_ERROR);
         } else if (isSuccess && !wasSuccess) {
             if (!isCDAudio()) {
-                ramsyscall_printf("*** Data is acceptable, booting now. ***");
+                ramsyscall_printf("*** Data is acceptable, booting now. ***\n");
                 s_scheduleBoot = 1;
             } else {
                 // todo: play audio cd
