@@ -134,8 +134,8 @@ static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t
 static void SPUUnMute() { SPU_CTRL = 0xc000; }
 
 static void SPUSetVoiceVolume(int voiceID, uint16_t left, uint16_t right) {
-    SPU_VOICES[voiceID].volumeLeft = left;
-    SPU_VOICES[voiceID].volumeRight = right;
+    SPU_VOICES[voiceID].volumeLeft = left >> 2;
+    SPU_VOICES[voiceID].volumeRight = right >> 2;
 }
 
 static void SPUSetStartAddress(int voiceID, uint32_t spuAddr) { SPU_VOICES[voiceID].sampleStartAddr = spuAddr >> 3; }
