@@ -168,7 +168,6 @@ static void complete() {
             ramsyscall_printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x (%s)\n",
                               idResponse[0], idResponse[1], idResponse[2], idResponse[3], idResponse[4], idResponse[5],
                               idResponse[6], idResponse[7], &idResponse[4]);
-            s_retries = 0;
             CDROM_REG0 = 0;
             CDROM_REG2 = 0;
             CDROM_REG1 = CDL_SETMODE;
@@ -237,7 +236,6 @@ static void acknowledge() {
             CDROM_REG1;
             CDROM_REG1;
             s_state = CD_GETID;
-            s_retries = 0;
             CDROM_REG0 = 0;
             CDROM_REG1 = CDL_GETID;
             break;
@@ -276,25 +274,18 @@ static void end() {
 
 static void discError() {
     ramsyscall_printf("(TS) cds::discError() - state: %s, retries: %i\n", c_stateMsg[s_state], s_retries);
-    switch (s_state) {
-        case CD_GETTN:
-        case CD_GETID: {
-            uint8_t idResponse[2];
-            CDROM_REG0 = 0;
-            for (unsigned i = 0; i < 2; i++) idResponse[i] = CDROM_REG1_UC;
-            ramsyscall_printf("(TS) cds::discError: response: %02x %02x\n", idResponse[0], idResponse[1]);
-            ramsyscall_printf("(TS) cds::discError: error during %s, trying again.\n", c_stateMsg[s_state]);
-            ramsyscall_printf("**** no recognizable CD inserted ****\n");
-            // todo: check audio
-            s_retries++;
-            s_wait = 1;
-            return;
-        }
+    uint8_t idResponse[2];
+    CDROM_REG0 = 0;
+    for (unsigned i = 0; i < 2; i++) idResponse[i] = CDROM_REG1_UC;
+    ramsyscall_printf("(TS) cds::discError: response: %02x %02x\n", idResponse[0], idResponse[1]);
+    ramsyscall_printf("(TS) cds::discError: error during %s, trying again.\n", c_stateMsg[s_state]);
+    ramsyscall_printf("**** no recognizable CD inserted ****\n");
+    // todo: check audio
+    if (s_retries++ == 30) {
+        ramsyscall_printf("(TS) cds::discError: restarting from scratch.\n");
+        s_state = CD_RESET;
     }
-    ramsyscall_printf("(TS) cds::discError: restarting from scratch.\n");
-    s_retries++;
     s_wait = 1;
-    s_state = CD_RESET;
 }
 
 void checkCD(unsigned fps) {

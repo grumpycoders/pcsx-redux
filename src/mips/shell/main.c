@@ -431,6 +431,7 @@ int main() {
                 // todo: play audio cd
             }
         } else if (!isError && wasError) {
+            wasError = 0;
             startLerp(LERP_TO_IDLE);
         }
         waitVSync(idle);
