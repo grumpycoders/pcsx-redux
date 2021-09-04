@@ -154,7 +154,7 @@ void BuildDispMenu(int iInc) {
 
     strcpy(szMenuBuf, "   FL   FS   DI   GF        ");  // main menu items
 
-    if (UseFrameLimit)  // set marks
+    if (g_useFrameLimit)  // set marks
     {
         if (iFrameLimit == 1)
             szMenuBuf[2] = '+';
@@ -163,7 +163,7 @@ void BuildDispMenu(int iInc) {
     }
     if (iFastFwd)
         szMenuBuf[7] = '~';
-    else if (UseFrameSkip)
+    else if (g_useFrameSkip)
         szMenuBuf[7] = '*';
 
     if (dwActFixes) szMenuBuf[17] = '*';
@@ -222,7 +222,7 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
             bInitCap = true;
 
 #ifdef _WIN32
-            if (iFrameLimit == 1 && UseFrameLimit && GetAsyncKeyState(VK_SHIFT) & 32768) {
+            if (iFrameLimit == 1 && g_useFrameLimit && GetAsyncKeyState(VK_SHIFT) & 32768) {
                 fFrameRate += iStep;
                 if (fFrameRate < 3.0f) fFrameRate = 3.0f;
                 SetAutoFrameCap();
@@ -230,14 +230,14 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
             }
 #endif
 
-            if (UseFrameLimit) iType = iFrameLimit;
+            if (g_useFrameLimit) iType = iFrameLimit;
             iType += iStep;
             if (iType < 0) iType = 2;
             if (iType > 2) iType = 0;
             if (iType == 0)
-                UseFrameLimit = 0;
+                g_useFrameLimit = 0;
             else {
-                UseFrameLimit = 1;
+                g_useFrameLimit = 1;
                 iFrameLimit = iType;
                 SetAutoFrameCap();
             }
@@ -246,26 +246,26 @@ void SwitchDispMenu(int iStep)  // SWITCH DISP MENU
         case 1:  // frame skip
             bInitCap = true;
             if (iStep > 0) {
-                if (!UseFrameSkip) {
-                    UseFrameSkip = 1;
+                if (!g_useFrameSkip) {
+                    g_useFrameSkip = 1;
                     iFastFwd = 0;
                 } else {
                     if (!iFastFwd)
                         iFastFwd = 1;
                     else {
-                        UseFrameSkip = 0;
+                        g_useFrameSkip = 0;
                         iFastFwd = 0;
                     }
                 }
             } else {
-                if (!UseFrameSkip) {
-                    UseFrameSkip = 1;
+                if (!g_useFrameSkip) {
+                    g_useFrameSkip = 1;
                     iFastFwd = 1;
                 } else {
                     if (iFastFwd)
                         iFastFwd = 0;
                     else {
-                        UseFrameSkip = 0;
+                        g_useFrameSkip = 0;
                         iFastFwd = 0;
                     }
                 }

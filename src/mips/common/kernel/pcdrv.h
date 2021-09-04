@@ -95,7 +95,7 @@ static inline int PClseek(int fd, int offset, int wheel) {
     register int a1 asm("a1") = fd;
     register int v0 asm("v0");
     register int v1 asm("v1");
-    __asm__ volatile("break 0, 0x106\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
+    __asm__ volatile("break 0, 0x107\n" : "=r"(v0), "=r"(v1) : "r"(a0), "r"(a1), "r"(a2), "r"(a3));
     if (v0 == 0) return v1;
     return -1;
 }

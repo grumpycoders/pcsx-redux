@@ -44,15 +44,24 @@ typedef decltype(std::filesystem::path().u8string()) u8string;
 namespace Events {
 struct SettingsLoaded {};
 struct Quitting {};
+struct LogMessage {
+    LogClass logClass;
+    std::string message;
+};
 namespace ExecutionFlow {
 struct ShellReached {};
 struct Run {};
-struct Pause {};
+struct Pause {
+    bool exception = false;
+};
 struct SoftReset {};
 struct HardReset {};
 }  // namespace ExecutionFlow
 struct CreatedVRAMTexture {
     unsigned int id;
+};
+struct Keyboard {
+    int key, scancode, action, mods;
 };
 }  // namespace Events
 
@@ -103,10 +112,10 @@ class System {
         m_running = false;
         m_eventBus->signal(Events::ExecutionFlow::Pause{});
     }
-    void pause() {
+    void pause(bool exception = false) {
         if (!m_running) return;
         m_running = false;
-        m_eventBus->signal(Events::ExecutionFlow::Pause{});
+        m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
     }
     void resume() {
         if (m_running) return;
@@ -130,16 +139,12 @@ class System {
         return ret->second.c_str();
     }
 
+    bool findResource(std::function<bool(const std::filesystem::path &path)> walker, const std::filesystem::path &name,
+                      const std::filesystem::path &releasePath, const std::filesystem::path &sourcePath);
     void loadAllLocales() {
         for (auto &l : LOCALES) {
-            if (loadLocale(l.first, m_binDir / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, std::filesystem::current_path() / "i18n" / l.second.filename)) {
-            } else if (loadLocale(l.first, m_binDir / l.second.filename)) {
-            } else if (loadLocale(l.first,
-                                  std::filesystem::current_path() / ".." / ".." / "i18n" / l.second.filename)) {
-            } else {
-                loadLocale(l.first, std::filesystem::current_path() / l.second.filename);
-            }
+            findResource([name = l.first, this](std::filesystem::path filename) { return loadLocale(name, filename); },
+                         l.second.filename, "i18n", "i18n");
         }
     }
 

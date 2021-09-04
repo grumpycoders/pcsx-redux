@@ -83,6 +83,7 @@
 
 #include "gpu/soft/prim.h"
 
+#include "core/psxemulator.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
@@ -101,20 +102,22 @@ int iUseFixes;
 // ??
 bool bDoVSyncUpdate = false;
 
-bool PCSX::SoftGPU::SoftPrim::configure(bool *show) {
+bool PCSX::SoftGPU::SoftPrim::configure() {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Soft GPU configuration", show)) {
+    static const char *ditherValues[] = {"No dithering (fastest)", "Game-dependent dithering (slow)",
+                                         "Always dither g-shaded polygons (slowest)"};
+
+    if (ImGui::Begin("Soft GPU configuration")) {
+        if (ImGui::Combo("Dithering", &m_useDither, ditherValues, 3)) {
+            changed = true;
+            g_emulator->settings.get<Emulator::SettingDither>() = m_useDither;
+        }
+
         ImGui::End();
     }
-    static const char *ditherValues[] = {"No dithering (fastest)", "Game dependend dithering (slow)",
-                                         "Always dither g-shaded polygons (slowest)"};
-    changed |= ImGui::Combo("Dithering", &iUseDither, ditherValues, 3);
-    changed |= ImGui::Checkbox("UseFrameLimit", &UseFrameLimit);
-    changed |= ImGui::Checkbox("UseFrameSkip", &UseFrameSkip);
-    changed |= ImGui::Checkbox("SSSPSXLimit", &bSSSPSXLimit);
-    ImGui::End();
+
     return changed;
 }
 
@@ -140,7 +143,7 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
             lGPUstatusRet = (lGPUstatusRet & 0xffffe000) | (gdata & 0x1fff);
 
             // tekken dithering? right now only if dithering is forced by user
-            if (iUseDither == 2)
+            if (m_useDither == 2)
                 iDither = 2;
             else
                 iDither = 0;
@@ -154,11 +157,11 @@ inline void PCSX::SoftGPU::SoftPrim::UpdateGlobalTP(uint16_t gdata) {
 
     usMirror = gdata & 0x3000;
 
-    if (iUseDither == 2) {
+    if (m_useDither == 2) {
         iDither = 2;
     } else {
         if (gdata & 200)
-            iDither = iUseDither;
+            iDither = m_useDither;
         else
             iDither = 0;
     }
@@ -199,7 +202,7 @@ inline void PCSX::SoftGPU::SoftPrim::SetRenderMode(uint32_t DrawAttributes) {
 // (so one triangle can be drawn, the other one discarded).
 // Also, y drawing is wrapped at 512 one time,
 // then it will get negative (and therefore not drawn). The
-// 'CheckCoord' funcs are a simple (not comlete!) approach to
+// 'CheckCoord' funcs are a simple (not complete!) approach to
 // do things right, I will add a better detection soon... the
 // current approach will be easier to do in hw/accel plugins, imho
 
@@ -677,7 +680,7 @@ void PCSX::SoftGPU::SoftPrim::primMoveImage(unsigned char *baseAddr) {
     /*
      if(!PSXDisplay.Interlaced)                            // stupid frame skip stuff
       {
-       if(UseFrameSkip &&
+       if(g_useFrameSkip &&
           imageX1<PSXDisplay.DisplayEnd.x &&
           imageSX>=PSXDisplay.DisplayPosition.x &&
           imageY1<PSXDisplay.DisplayEnd.y &&

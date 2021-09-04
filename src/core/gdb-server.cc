@@ -27,6 +27,8 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
+#include "fmt/format.h"
+#include "magic_enum/include/magic_enum.hpp"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
@@ -99,7 +101,9 @@ PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
     m_loop = srv->loop;
     uv_tcp_init(m_loop, &m_tcp);
     m_tcp.data = this;
+    m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { m_exception = false; });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
+        m_exception = event.exception;
         if (m_waitingForShell) {
             // This is a bit of a problem. If there's any remaining
             // breakpoint, we just blow past them. I'm not sure
@@ -115,10 +119,20 @@ PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
     });
     m_listener.listen<Events::ExecutionFlow::ShellReached>([this](const auto& event) {
         if (!m_waitingForShell) return;
-        g_system->printf("Shell reached in gdb-server, pausing execution now.\n");
+        g_system->log(LogClass::GDB, "Shell reached in gdb-server, pausing execution now.\n");
         m_waitingForShell = false;
         g_system->pause();
         write("OK");
+    });
+    m_listener.listen<Events::LogMessage>([this](const auto& event) {
+        auto& emuSettings = PCSX::g_emulator->settings;
+        auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
+        auto gdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
+        if (gdbLog == Emulator::DebugSettings::GdbLog::None) return;
+        if ((gdbLog == Emulator::DebugSettings::GdbLog::TTY) && (event.logClass != LogClass::MIPS)) return;
+        if (event.logClass == LogClass::GDB) return;
+        auto msg = fmt::format("PCSX::{}>{}", magic_enum::enum_name(event.logClass), event.message);
+        writeEscaped(std::move(msg));
     });
 }
 
@@ -422,7 +436,7 @@ std::string PCSX::GdbClient::dumpOneRegister(int n) {
     } else if (n == 36) {
         value = regs.CP0.n.Cause;
     } else if (n == 37) {
-        value = regs.pc;
+        value = m_exception ? regs.CP0.n.EPC : regs.pc;
     }
 
     return dumpValue(value);
@@ -454,7 +468,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
 void PCSX::GdbClient::processCommand() {
     if (m_ackEnabled) sendAck();
     if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerTrace>()) {
-        g_system->printf("GDB --> PCSX %s\n", m_cmd.c_str());
+        g_system->log(LogClass::GDB, "GDB --> PCSX %s\n", m_cmd.c_str());
     }
     static const std::string qSupported = "qSupported:";
     static const std::string qXferFeatures = "qXfer:features:read:target.xml:";
@@ -667,20 +681,12 @@ void PCSX::GdbClient::processCommand() {
     } else if (Misc::startsWith(m_cmd, qXferThreads)) {
         writePaged("<?xml version=\"1.0\"?><threads></threads>", m_cmd.substr(qXferThreads.length()));
     } else {
-        g_system->printf("Unknown GDB command: %s\n", m_cmd.c_str());
+        g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
         write("");
     }
 }
 
 void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
-    if (!m_sentBanner) {
-        writeEscaped("");
-        writeEscaped("");
-        writeEscaped("PCSX-Redux GDB server\n");
-        writeEscaped("");
-        writeEscaped("");
-        m_sentBanner = true;
-    }
     if (Misc::startsWith(cmd, "reset")) {
         g_emulator->m_psxCpu->psxReset();
         writeEscaped("Emulation reset\n");
@@ -696,6 +702,9 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
                 // let's not reply to gdb just yet, until we've reached the shell
                 // and are ready to load a binary.
                 return;
+            } else if (words[1] == "hard") {
+                writeEscaped("Emulation hard-reset\n");
+                g_system->hardReset();
             }
         }
     }

@@ -50,6 +50,8 @@ CPPFLAGS += -g
 CPPFLAGS += $(CPPFLAGS_$(BUILD))
 LDFLAGS += $(LDFLAGS_$(BUILD))
 
+CXXFLAGS += -fno-exceptions -fno-rtti
+
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
 all: dep $(BINDIR)$(TARGET).$(TYPE)
@@ -81,7 +83,7 @@ endif
 	touch $@
 
 DEPS := $(patsubst %.cpp, %.dep,$(filter %.cpp,$(SRCS)))
-DEPS := $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
+DEPS += $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
 DEPS +=	$(patsubst %.c,   %.dep,$(filter %.c,$(SRCS)))
 DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 

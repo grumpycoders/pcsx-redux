@@ -25,33 +25,36 @@ RUN apt install -y libavformat-dev
 RUN apt install -y libavutil-dev
 RUN apt install -y libfreetype-dev
 RUN apt install -y libglfw3-dev
-RUN apt install -y libsdl2-dev
 RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev
 RUN apt install -y zlib1g-dev
 
 # CI utilities
-RUN apt install -y curl
+RUN apt install -y curl wget
 RUN apt install -y xvfb
-
-# 32 bits
-#RUN dpkg --add-architecture i386
-#RUN apt update
-#RUN apt install -y libc6:i386
-#RUN apt install -y libstdc++6:i386
-
-# 32 bits development packages
-#RUN apt install -y libavcodec-dev:i386
-#RUN apt install -y libavformat-dev:i386
-#RUN apt install -y libavutil-dev:i386
-#RUN apt install -y libfreetype-dev:i386
-# Doesn't exist, and likely never will
-# https://bugs.launchpad.net/ubuntu/+source/glfw3/+bug/1881946
-#RUN apt install -y libglfw3-dev:i386
-#RUN apt install -y libsdl2-dev:i386
-#RUN apt install -y libswresample-dev:i386
-#RUN apt install -y libuv1-dev:i386
-#RUN apt install -y zlib1g-dev:i386
+RUN apt install -y python3-pip python3-setuptools patchelf desktop-file-utils libgdk-pixbuf2.0-dev fakeroot strace
+WORKDIR /tmp
+RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage && \
+    chmod +x /tmp/appimagetool-x86_64.AppImage && \
+    cd /opt && /tmp/appimagetool-x86_64.AppImage --appimage-extract && \
+    mv squashfs-root appimage-tool.AppDir && \
+    ln -s /opt/appimage-tool.AppDir/AppRun /usr/bin/appimagetool && \
+    rm /tmp/appimagetool-x86_64.AppImage
+WORKDIR /
+RUN pip3 install appimage-builder
+RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 14.17.0
+RUN mkdir -p /usr/local/nvm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash \
+    && . $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+RUN . $NVM_DIR/nvm.sh && npm install -g appcenter-cli
+RUN apt install -y zip
 
 RUN mkdir /project
+RUN mkdir -p /home/coder/dconf
+RUN chmod a+rwx /home/coder/dconf
 WORKDIR /project

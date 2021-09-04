@@ -86,18 +86,18 @@ class Cheats;
 class Counters;
 class Debug;
 class GdbServer;
-class WebServer;
 class GPU;
 class GTE;
 class HW;
+class Lua;
 class MDEC;
 class Memory;
-class PAD;
+class Pads;
 class R3000Acpu;
 class SIO;
 class SPUInterface;
 class System;
-class Lua;
+class WebServer;
 
 class Emulator;
 extern Emulator* g_emulator;
@@ -128,6 +128,12 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> LoggingCDROM;
         typedef Setting<bool, TYPESTRING("GdbServer"), false> GdbServer;
         typedef Setting<bool, TYPESTRING("GdbManifest"), true> GdbManifest;
+        enum class GdbLog {
+            None,
+            TTY,
+            All,
+        };
+        typedef Setting<GdbLog, TYPESTRING("GdbLog"), GdbLog::TTY> GdbLogSetting;
         typedef Setting<int, TYPESTRING("GdbServerPort"), 3333> GdbServerPort;
         typedef Setting<bool, TYPESTRING("GdbServerTrace"), false> GdbServerTrace;
         typedef Setting<bool, TYPESTRING("WebServer"), false> WebServer;
@@ -145,7 +151,7 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
         typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
-                         GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
+                         GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
                          KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
                          KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
                          KernelCallC0_00_1f, PCdrv, PCdrvBase>
@@ -163,6 +169,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
+    typedef Setting<int, TYPESTRING("Scaler"), 100> SettingScaler;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<CDDAType, TYPESTRING("CDDA"), CDDA_ENABLED_LE> SettingCDDA;
@@ -174,10 +181,13 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
+    typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
+    typedef Setting<int, TYPESTRING("Dither"), 2> SettingDither;
+
     Settings<SettingStdout, SettingLogfile, SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe,
-             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingCDDA, SettingFastBoot,
-             SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
-             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB>
+             SettingXa, SettingSpuIrq, SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingCDDA,
+             SettingFastBoot, SettingDebugSettings, SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted,
+             SettingMcd2Inserted, SettingBiosOverlay, SettingDynarec, Setting8MB, SettingGUITheme, SettingDither>
         settings;
     class PcsxConfig {
       public:
@@ -221,23 +231,22 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
-    std::unique_ptr<Memory> m_psxMem;
-    std::unique_ptr<R3000Acpu> m_psxCpu;
-    std::unique_ptr<Counters> m_psxCounters;
-    std::unique_ptr<GTE> m_gte;
-    std::unique_ptr<SIO> m_sio;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<Cheats> m_cheats;
-    std::unique_ptr<MDEC> m_mdec;
-    std::unique_ptr<GPU> m_gpu;
-    std::unique_ptr<GdbServer> m_gdbServer;
-    std::unique_ptr<WebServer> m_webServer;
+    std::unique_ptr<Counters> m_psxCounters;
     std::unique_ptr<Debug> m_debug;
+    std::unique_ptr<GdbServer> m_gdbServer;
+    std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GTE> m_gte;
     std::unique_ptr<HW> m_hw;
-    std::unique_ptr<SPUInterface> m_spu;
-    std::unique_ptr<PAD> m_pad1;
-    std::unique_ptr<PAD> m_pad2;
     std::unique_ptr<Lua> m_lua;
+    std::unique_ptr<MDEC> m_mdec;
+    std::unique_ptr<Memory> m_psxMem;
+    std::unique_ptr<Pads> m_pads;
+    std::unique_ptr<R3000Acpu> m_psxCpu;
+    std::unique_ptr<SIO> m_sio;
+    std::unique_ptr<SPUInterface> m_spu;
+    std::unique_ptr<WebServer> m_webServer;
 
     uv_loop_t m_loop;
 

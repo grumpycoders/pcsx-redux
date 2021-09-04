@@ -38,6 +38,7 @@
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/registers.h"
+#include "gui/widgets/shader-editor.h"
 #include "gui/widgets/source.h"
 #include "gui/widgets/types.h"
 #include "gui/widgets/vram-viewer.h"
@@ -60,8 +61,23 @@ namespace PCSX {
 enum class LogClass : unsigned;
 
 class GUI final {
+    // imgui can't handle more than one "instance", so...
+    static GUI *s_gui;
+    void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
+    static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        s_gui->glfwKeyCallback(window, key, scancode, action, mods);
+    }
+    void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+
   public:
-    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {}
+    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+        assert(s_gui == nullptr);
+        s_gui = this;
+    }
+    ~GUI() {
+        assert(s_gui == this);
+        s_gui = nullptr;
+    }
     void init();
     void close();
     void update(bool vsync = false);
@@ -125,7 +141,7 @@ class GUI final {
     void endFrame();
 
     bool configure();
-    void showThemes();  // Theme window : Allows for custom imgui themes
+    bool showThemes();  // Theme window : Allows for custom imgui themes
     void about();
     void interruptsScaler();
 
@@ -137,7 +153,13 @@ class GUI final {
         } else {
             vec.x = vec.y / ratio;
         }
+        vec.x = roundf(vec.x);
+        vec.y = roundf(vec.y);
+        vec.x = std::max(vec.x, 1.0f);
+        vec.y = std::max(vec.y, 1.0f);
     }
+
+    const ImVec2 &getRenderSize() { return m_renderSize; }
 
   private:
     GLFWwindow *m_window = nullptr;
@@ -174,8 +196,9 @@ class GUI final {
     typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
+    typedef Setting<int, TYPESTRING("GUITheme"), 0> GUITheme;
     Settings<Fullscreen, FullscreenRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize>
+             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, MainFontSize, MonoFontSize, GUITheme>
         settings;
     bool &m_fullscreenRender = {settings.get<FullscreenRender>().value};
     bool &m_showMenu = {settings.get<ShowMenu>().value};
@@ -237,14 +260,11 @@ class GUI final {
 
     void shellReached();
 
-    // ImGui themes: Defined in themes/imgui_themes.c
-    const char *curr_item = "Default";
     void apply_theme(int n);
     void cherry_theme();
     void mono_theme();
     void dracula_theme();
 
-    PCSX::u8string m_exeToLoad;
     Notifier m_notifier = {[]() { return _("Notification"); }};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
@@ -258,8 +278,29 @@ class GUI final {
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
 
     bool m_reloadFonts = true;
+    Widgets::ShaderEditor m_outputShaderEditor = {"output"};
 
   public:
+    Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
+    ImFont *getMono() { return m_monoFont ? m_monoFont : ImGui::GetIO().Fonts[0].Fonts[0]; }
+
+    struct {
+        bool empty() const { return filename.empty(); }
+        void set(const PCSX::u8string &newfilename) {
+            filename = newfilename;
+            pauseAfterLoad = !g_system->running();
+            if (!empty()) {
+                g_system->start();
+            }
+        }
+        PCSX::u8string &&get() { return std::move(filename); }
+        bool hasToPause() { return pauseAfterLoad; }
+
+      private:
+        PCSX::u8string filename;
+        bool pauseAfterLoad = true;
+    } m_exeToLoad;
+
     void useMainFont() { ImGui::PushFont(m_mainFont); }
     void useMonoFont() { ImGui::PushFont(m_monoFont); }
 };

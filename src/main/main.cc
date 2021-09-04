@@ -17,8 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL.h>
-
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -38,7 +36,7 @@
 
 static PCSX::GUI *s_gui;
 
-class SystemImpl : public PCSX::System {
+class SystemImpl final : public PCSX::System {
     virtual void biosPutc(int c) final {
         if (c == '\r') return;
         m_putcharBuffer += std::string(1, c);
@@ -51,6 +49,7 @@ class SystemImpl : public PCSX::System {
         if (s_gui->addLog(PCSX::LogClass::UI, s)) {
             if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
             if (m_enableStdout) ::printf("%s", s.c_str());
+            m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
         }
         s_gui->addNotification(s.c_str());
     }
@@ -59,12 +58,14 @@ class SystemImpl : public PCSX::System {
         if (!s_gui->addLog(logClass, s)) return;
         if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
         if (m_enableStdout) ::printf("%s", s.c_str());
+        m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
     }
 
     virtual void printf(const std::string &s) final {
         if (!s_gui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         if (m_logfile) fprintf(m_logfile, "%s", s.c_str());
         if (m_enableStdout) ::printf("%s", s.c_str());
+        m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
 
     virtual void update(bool vsync = false) final {
@@ -80,6 +81,12 @@ class SystemImpl : public PCSX::System {
     virtual void hardReset() final {
         // debugger or UI is requesting a reset
         PCSX::g_emulator->EmuReset();
+
+        // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
+        s_gui->setViewport();
+        s_gui->bindVRAMTexture();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV,
+                        PCSX::g_emulator->m_gpu->getVRAM());
     }
 
     virtual void close() final {
@@ -139,10 +146,6 @@ int pcsxMain(int argc, char **argv) {
     system->setBinDir(binDir);
     system->loadAllLocales();
 
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) != 0) {
-        abort();
-    }
-
     s_gui = new PCSX::GUI(args);
     s_gui->init();
     system->m_enableStdout = emulator->settings.get<PCSX::Emulator::SettingStdout>();
@@ -164,13 +167,14 @@ int pcsxMain(int argc, char **argv) {
     emulator->EmuReset();
 
     if (args.get<bool>("run", false)) system->start();
+    s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
 
     auto luaexecs = args.values("exec");
     for (auto &luaexec : luaexecs) {
         try {
             emulator->m_lua->load(luaexec.data(), "cmdline", false);
             emulator->m_lua->pcall();
-        } catch (std::runtime_error &e) {
+        } catch (std::exception &e) {
             if (args.get<bool>("lua_stdout", false)) {
                 fprintf(stderr, "%s\n", e.what());
             }

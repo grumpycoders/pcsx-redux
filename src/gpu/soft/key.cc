@@ -144,8 +144,8 @@ LRESULT KeyWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             if (wParam == (WPARAM)szGPUKeys[8]) {
                 iFastFwd = 1 - iFastFwd;
                 bSkipNextFrame = false;
-                UseFrameSkip = iFastFwd;
-                UseFrameLimit = !iFastFwd;
+                g_useFrameSkip = iFastFwd;
+                g_useFrameLimit = !iFastFwd;
                 BuildDispMenu(0);
                 break;
             }
@@ -291,8 +291,8 @@ void GPUkeypressed(int keycode) {
         case 0x60: {
             iFastFwd = 1 - iFastFwd;
             bSkipNextFrame = false;
-            UseFrameSkip = iFastFwd;
-            UseFrameLimit = !iFastFwd;
+            g_useFrameSkip = iFastFwd;
+            g_useFrameLimit = !iFastFwd;
             BuildDispMenu(0);
             break;
         }

@@ -131,7 +131,6 @@
 #include "gpu/soft/cfg.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
-#include "gpu/soft/fps.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/interface.h"
 #include "gpu/soft/key.h"
@@ -351,8 +350,8 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 
     szDebugText[0] = 0;  // init debug text buffer
 
-    psxVSecure = (unsigned char *)malloc((iGPUHeight * 2) * 1024 +
-                                         (1024 * 1024));  // always alloc one extra MB for soft drawing funcs security
+    psxVSecure = new uint8_t[(iGPUHeight * 2) * 1024 +
+                             (1024 * 1024)]();  // always alloc one extra MB for soft drawing funcs security
     if (!psxVSecure) return -1;
 
     //!!! ATTENTION !!!
@@ -366,10 +365,7 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 
     psxVuw_eom = psxVuw + 1024 * iGPUHeight;  // pre-calc of end of vram
 
-    memset(psxVSecure, 0x00, (iGPUHeight * 2) * 1024 + (1024 * 1024));
     memset(lGPUInfoVals, 0x00, 16 * sizeof(uint32_t));
-
-    SetFPSHandler();
 
     PSXDisplay.RGB24 = false;  // init some stuff
     PSXDisplay.Interlaced = false;
@@ -410,19 +406,6 @@ int32_t PCSX::SoftGPU::impl::init()  // GPU INIT
 int32_t PCSX::SoftGPU::impl::open(GUI *gui)  // GPU OPEN
 {
     m_gui = gui;
-#if 0
-    SetKeyHandler();  // sub-class window
-
-    if (bChangeWinMode)
-        ReadWinSizeConfig();  // alt+enter toggle?
-    else                      // or first time startup?
-    {
-        ReadGPUConfig();  // read registry
-        InitFPS();
-    }
-#else
-    InitFPS();
-#endif
 
     bDoVSyncUpdate = true;
 
@@ -450,9 +433,9 @@ int32_t PCSX::SoftGPU::impl::close()  // GPU CLOSE
 
 int32_t PCSX::SoftGPU::impl::shutdown()  // GPU SHUTDOWN
 {
-    free(psxVSecure);
+    delete[] psxVSecure;
 
-    return 0;  // nothinh to do
+    return 0;  // nothing to do
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -467,50 +450,7 @@ void updateDisplay(void)  // UPDATE DISPLAY
         return;                // -> and bye
     }
 
-    if (dwActFixes & 32)  // pc fps calculation fix
-    {
-        if (UseFrameLimit)
-            PCFrameCap();  // -> brake
-                           //        if (UseFrameSkip || ulKeybits & KEY_SHOWFPS) PCcalcfps();
-    }
-
-    //    if (ulKeybits & KEY_SHOWFPS)  // make fps display buf
-    //    {
-    //        sprintf(szDispBuf, "FPS %06.2f", fps_cur);
-    //    }
-
-    if (iFastFwd)  // fastfwd ?
-    {
-        static int fpscount;
-        UseFrameSkip = 1;
-
-        if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
-        if (fpscount % 6)                     // -> skip 6/7 frames
-            bSkipNextFrame = true;
-        else
-            bSkipNextFrame = false;
-        fpscount++;
-        if (fpscount >= (int)fFrameRateHz) fpscount = 0;
-        return;
-    }
-
-    if (UseFrameSkip)  // skip ?
-    {
-        if (!bSkipNextFrame) DoBufferSwap();  // -> to skip or not to skip
-        if (dwActFixes & 0xa0)                // -> pc fps calculation fix/old skipping fix
-        {
-            if ((fps_skip < fFrameRateHz) && !(bSkipNextFrame))  // -> skip max one in a row
-            {
-                bSkipNextFrame = true;
-                fps_skip = fFrameRateHz;
-            } else
-                bSkipNextFrame = false;
-        } else
-            FrameSkip();
-    } else  // no skip ?
-    {
-        DoBufferSwap();  // -> swap
-    }
+    DoBufferSwap();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -634,10 +574,6 @@ void updateDisplayIfChanged(void)  // UPDATE DISPLAY IF CHANGED
         PreviousPSXDisplay.DisplayPosition.y + PSXDisplay.DisplayMode.y + PreviousPSXDisplay.DisplayModeNew.y;
 
     ChangeDispOffsetsX();
-
-    if (iFrameLimit == 2) SetAutoFrameCap();  // -> set it
-
-    if (UseFrameSkip) updateDisplay();  // stupid stuff when frame skipping enabled
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -682,9 +618,6 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
     }
     if (!(dwActFixes & 1)) lGPUstatusRet ^= 0x80000000;  // odd/even bit
 
-    if (!(dwActFixes & 32))  // std fps limitation?
-        CheckFrameRate();
-
     if (PSXDisplay.Interlaced)  // interlaced mode?
     {
         if (bDoVSyncUpdate && PSXDisplay.DisplayMode.x > 0 && PSXDisplay.DisplayMode.y > 0) {
@@ -694,11 +627,11 @@ void PCSX::SoftGPU::impl::updateLace()  // VSYNC
     {
         if (dwActFixes & 64)  // lazy screen update fix
         {
-            if (bDoLazyUpdate && !UseFrameSkip) updateDisplay();
+            if (bDoLazyUpdate) updateDisplay();
             bDoLazyUpdate = false;
         } else {
-            if (bDoVSyncUpdate && !UseFrameSkip)  // some primitives drawn?
-                updateDisplay();                  // -> update display
+            // some primitives drawn?
+            if (bDoVSyncUpdate) updateDisplay();  // -> update display
         }
     }
 
@@ -853,7 +786,6 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 
             if (!(PSXDisplay.Interlaced))  // stupid frame skipping option
             {
-                if (UseFrameSkip) updateDisplay();
                 if (dwActFixes & 64) bDoLazyUpdate = true;
             }
         }
@@ -981,7 +913,7 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
 __inline void FinishedVRAMWrite(void) {
     /*
     // NEWX
-     if(!PSXDisplay.Interlaced && UseFrameSkip)            // stupid frame skipping
+     if(!PSXDisplay.Interlaced && g_useFrameSkip)            // stupid frame skipping
       {
        VRAMWrite.Width +=VRAMWrite.x;
        VRAMWrite.Height+=VRAMWrite.y;
@@ -1325,16 +1257,6 @@ extern "C" int32_t softGPUconfigure(void) { return 0; }
 ////////////////////////////////////////////////////////////////////////
 
 void SetFixes(void) {
-    bool bOldPerformanceCounter = UsePerformanceCounter;  // store curr timer mode
-
-    if (dwActFixes & 0x10)  // check fix 0x10
-        UsePerformanceCounter = false;
-    else
-        SetFPSHandler();
-
-    if (bOldPerformanceCounter != UsePerformanceCounter)  // we have change it?
-        InitFPS();                                        // -> init fps again
-
     if (dwActFixes & 0x02)
         sDispWidths[4] = 384;
     else
@@ -1579,22 +1501,6 @@ extern "C" void softGPUshowScreenPic(unsigned char *pMem) {
 ////////////////////////////////////////////////////////////////////////
 
 void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
-
-////////////////////////////////////////////////////////////////////////
-
-void GPUsetframelimit(uint32_t option) {
-    bInitCap = true;
-
-    if (option == 1) {
-        UseFrameLimit = 1;
-        UseFrameSkip = 0;
-        iFrameLimit = 2;
-        SetAutoFrameCap();
-        // BuildDispMenu(0);
-    } else {
-        UseFrameLimit = 0;
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////
 

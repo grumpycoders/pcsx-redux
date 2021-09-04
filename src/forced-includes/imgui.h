@@ -24,10 +24,13 @@ extern "C" {
 #endif
 
 void pcsxStaticImguiUserError(const char* msg);
+void pcsxStaticImguiAssert(int exp, const char* expression);
 
 #ifdef __cplusplus
 }
 #endif
 
-#define IM_ASSERT_USER_ERROR(_EXP, _MSG) \
-    if (!(_EXP)) pcsxStaticImguiUserError((_MSG))
+#define IM_ASSERT_USER_ERROR(EXP, MSG) \
+    if (!(EXP)) pcsxStaticImguiUserError((MSG))
+
+#define IM_ASSERT(EXP) pcsxStaticImguiAssert(!!(EXP), "ImGui assert: " #EXP " is false")

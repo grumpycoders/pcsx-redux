@@ -13,18 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\ix86">
-      <UniqueIdentifier>{164a5747-c6dc-4952-817d-711e8dddd973}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\ix86">
       <UniqueIdentifier>{f3ac4441-f8d0-4cf2-8c18-a1a8df1e5c67}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\core\ix86\iR3000A.cc">
-      <Filter>Source Files\ix86</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\core\ix86\ix86.cc">
       <Filter>Source Files\ix86</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\cdriso.cc">
@@ -182,9 +176,6 @@
     <ClInclude Include="..\..\src\core\ppf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\psemu_plugin_defs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\psxcounters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -208,9 +199,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\system.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\core\ix86\ix86.h">
-      <Filter>Header Files\ix86</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\psxemulator.h">
       <Filter>Header Files</Filter>

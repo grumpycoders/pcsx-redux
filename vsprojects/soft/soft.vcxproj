@@ -180,7 +180,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\gpu\soft\cfg.cc" />
     <ClCompile Include="..\..\src\gpu\soft\draw.cc" />
-    <ClCompile Include="..\..\src\gpu\soft\fps.cc" />
     <ClCompile Include="..\..\src\gpu\soft\gpu.cc" />
     <ClCompile Include="..\..\src\gpu\soft\key.cc" />
     <ClCompile Include="..\..\src\gpu\soft\menu.cc" />
@@ -192,7 +191,6 @@
     <ClInclude Include="..\..\src\gpu\soft\cfg.h" />
     <ClInclude Include="..\..\src\gpu\soft\draw.h" />
     <ClInclude Include="..\..\src\gpu\soft\externals.h" />
-    <ClInclude Include="..\..\src\gpu\soft\fps.h" />
     <ClInclude Include="..\..\src\gpu\soft\gpu.h" />
     <ClInclude Include="..\..\src\gpu\soft\interface.h" />
     <ClInclude Include="..\..\src\gpu\soft\key.h" />
@@ -201,6 +199,17 @@
     <ClInclude Include="..\..\src\gpu\soft\resource.h" />
     <ClInclude Include="..\..\src\gpu\soft\soft.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.0-beta3a\build\native\luajit.native.targets'))" />
+  </Target>
 </Project>

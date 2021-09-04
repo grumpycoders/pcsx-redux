@@ -205,24 +205,6 @@ extern int iRumbleTime;
 extern int iMPos;
 extern bool bTransparent;
 
-// key.c
-// extern uint32_t ulKeybits;
-// extern char szGPUKeys[];
-
-// fps.c
-extern bool bInitCap;
-extern bool UseFrameLimit;
-extern bool UseFrameSkip;
-extern float fFrameRate;
-extern int iFrameLimit;
-extern float fFrameRateHz;
-extern float fps_skip;
-extern float fps_cur;
-extern bool UsePerformanceCounter;
-extern bool bSSSPSXLimit;
-
-// key.c
-
 // cfg.c
 extern char *pConfigFile;
 

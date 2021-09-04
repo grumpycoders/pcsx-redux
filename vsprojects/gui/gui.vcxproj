@@ -180,6 +180,7 @@
     <ClCompile Include="..\..\src\gui\gui.cc" />
     <ClCompile Include="..\..\src\gui\resources-unix.cc" />
     <ClCompile Include="..\..\src\gui\resources-win32.cc" />
+    <ClCompile Include="..\..\src\gui\shaders\crt-lottes.cc" />
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc" />
     <ClCompile Include="..\..\src\gui\widgets\assembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc" />
@@ -192,13 +193,17 @@
     <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luainspector.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\shader-editor.cc" />
     <ClCompile Include="..\..\src\gui\widgets\source.cc" />
     <ClCompile Include="..\..\src\gui\widgets\types.cc" />
     <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\zep-lua.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\zep.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
     <ClInclude Include="..\..\src\gui\resources.h" />
+    <ClInclude Include="..\..\src\gui\shaders\crt-lottes.h" />
     <ClInclude Include="..\..\src\gui\widgets\assembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
@@ -210,9 +215,12 @@
     <ClInclude Include="..\..\src\gui\widgets\luaeditor.h" />
     <ClInclude Include="..\..\src\gui\widgets\luainspector.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
+    <ClInclude Include="..\..\src\gui\widgets\shader-editor.h" />
     <ClInclude Include="..\..\src\gui\widgets\source.h" />
     <ClInclude Include="..\..\src\gui\widgets\types.h" />
     <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />
+    <ClInclude Include="..\..\src\gui\widgets\zep-lua.h" />
+    <ClInclude Include="..\..\src\gui\widgets\zep.h" />
     <ClInclude Include="..\..\third_party\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <ItemGroup>

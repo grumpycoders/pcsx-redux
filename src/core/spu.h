@@ -64,6 +64,9 @@ class SPUInterface {
     virtual bool configure() = 0;
     virtual void save(SaveStates::SPU &) = 0;
     virtual void load(const SaveStates::SPU &) = 0;
+    virtual uint32_t getCurrentFrames() = 0;
+    virtual void waitForGoal(uint32_t goal) = 0;
+    virtual uint32_t getFrameCount() = 0;
 
     bool m_showDebug = false;
     bool m_showCfg = false;

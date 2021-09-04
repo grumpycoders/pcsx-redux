@@ -173,6 +173,7 @@ struct psxRegisters {
     uint32_t pc;     /* Program counter */
     uint32_t code;   /* The instruction */
     uint32_t cycle;
+    uint32_t previousCycles;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
     uint32_t intTargets[32];
@@ -254,25 +255,6 @@ struct psxRegisters {
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
 #define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
-
-/*
-The "SetLink" mechanism uses the delayed load. This may sound counter intuitive, but this is the only way to
-properly handle this specific sequence of instructions:
-
-    beq someFalseCondition, out
-    lw  $ra, someOffset($sp)
-    jal someFunction
-    nop
-    [...]
-out:
-    jr  $ra
-    nop
-
-Without the change, the lw $ra will apply itself after jal happens, thus overriding the value the jal will
-have loaded into this register. This probably means this is also how the real CPU handles this, otherwise,
-this wouldn't work at all.
-*/
-#define _SetLink(x) delayedLoad(x, _PC_ + 4);  // Sets the return address in the link register
 
 class R3000Acpu {
   public:
@@ -392,10 +374,16 @@ class R3000Acpu {
     void logA0KernelCall(uint32_t call);
     void logB0KernelCall(uint32_t call);
     void logC0KernelCall(uint32_t call);
-    inline void InterceptBIOS() {
-        const uint32_t pc = m_psxRegs.pc & 0x1fffff;
-        const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
-        if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+
+    template <bool checkPC = true>
+    inline void InterceptBIOS(uint32_t currentPC) {
+        const uint32_t pc = currentPC & 0x1fffff;
+
+        if constexpr (checkPC) {
+            const uint32_t base = (currentPC >> 20) & 0xffc;
+            if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) return;
+        }
+
         const auto r = m_psxRegs.GPR.n;
 
         // Intercepts write, puts, putc, and putchar.
@@ -406,7 +394,36 @@ class R3000Acpu {
         // printf, but interpreting it is awful. The hope is it'd
         // eventually call one of these 4 functions.
         const uint32_t call = r.t1 & 0xff;
-        if (pc == 0xb0) {
+        if (pc == 0xa0) {
+            switch (call) {
+                case 0x03: {  // write
+                    if (r.a0 != 1) break;
+                    uint8_t *str = PSXM(r.a1);
+                    uint32_t size = r.a2;
+                    m_psxRegs.GPR.n.v0 = size;
+                    while (size--) {
+                        g_system->biosPutc(*str++);
+                    }
+                    break;
+                }
+                case 0x09: {  // putc
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3c: {  // putchar
+                    g_system->biosPutc(r.a0);
+                    break;
+                }
+                case 0x3e: {  // puts
+                    uint8_t *str = PSXM(r.a0);
+                    uint8_t c;
+                    while ((c = *str++) != 0) {
+                        g_system->biosPutc(c);
+                    }
+                    break;
+                }
+            }
+        } else if (pc == 0xb0) {
             switch (call) {
                 case 0x35: {  // write
                     if (r.a0 != 1) break;
