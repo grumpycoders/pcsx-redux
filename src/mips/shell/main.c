@@ -199,7 +199,8 @@ static void applyLerps() {
 
 static void startLerp(enum LerpID lerpID) {
     s_lerps[0].p = s_lerps[1].p = s_lerps[2].p = s_lerps[3].p = s_lerps[4].p = s_lerps[5].p = 0;
-    s_lerps[0].speed = s_lerps[1].speed = s_lerps[3].speed = s_lerps[4].speed = s_lerps[5].speed = s_quarterSecLerpSpeed;
+    s_lerps[0].speed = s_lerps[1].speed = s_lerps[3].speed = s_lerps[4].speed = s_lerps[5].speed =
+        s_quarterSecLerpSpeed;
     s_lerps[0].c.s = *s_lerps[0].c.r;
     s_lerps[1].c.s = *s_lerps[1].c.r;
     s_lerps[2].c.s = *s_lerps[2].c.r;
@@ -379,6 +380,11 @@ static void render() {
 static int s_scheduleBoot = 0;
 static int s_bootFrames = 0;
 
+static void idle() {
+    checkCD(0);
+    checkSPU();
+}
+
 int main() {
     ramsyscall_printf("*** OpenBIOS tiny shell - starting ***\n");
     int wasLocked = enterCriticalSection();
@@ -408,14 +414,16 @@ int main() {
         }
         applyLerps();
         calculateFrame();
-        int wasError = isCDError();
-        int wasSuccess = isCDSuccess();
         checkCD(s_FPS);
         int isError = isCDError();
         int isSuccess = isCDSuccess();
+        static int wasError = 0;
+        static int wasSuccess = 0;
         if (isError && !wasError) {
+            wasError = 1;
             startLerp(LERP_TO_ERROR);
         } else if (isSuccess && !wasSuccess) {
+            wasSuccess = 1;
             if (!isCDAudio()) {
                 ramsyscall_printf("*** Data is acceptable, booting now. ***\n");
                 s_scheduleBoot = 1;
@@ -425,7 +433,7 @@ int main() {
         } else if (!isError && wasError) {
             startLerp(LERP_TO_IDLE);
         }
-        waitVSync(checkSPU);
+        waitVSync(idle);
         flip(0, s_bg);
         render();
     }

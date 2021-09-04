@@ -59,7 +59,7 @@ static unsigned s_wait = 0;
 static unsigned s_retries = 0;
 static uint8_t s_sector[2048];
 
-static enum {
+enum CdState {
     CD_ERROR,
     CD_RESET,
     CD_INIT,
@@ -76,7 +76,9 @@ static enum {
     CD_READ_ROOT_PAUSE,
     CD_SUCCESS_DATA,
     CD_SUCCESS_AUDIO,
-} s_state;
+};
+
+static enum CdState s_state;
 
 static const char* const c_stateMsg[] = {
     "CD_ERROR",          "CD_RESET",          "CD_INIT",           "CD_GETTN",         "CD_GETID",
@@ -160,21 +162,15 @@ static void complete() {
             break;
         case CD_GETID: {
             CDROM_REG0 = 0;
-            uint8_t idResponse[8] = {stat};
+            uint8_t idResponse[9] = {stat};
             for (unsigned i = 1; i < 8; i++) idResponse[i] = CDROM_REG1_UC;
-            ramsyscall_printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x\n", idResponse[0],
-                              idResponse[1], idResponse[2], idResponse[3], idResponse[4], idResponse[5], idResponse[6],
-                              idResponse[7]);
-            if ((idResponse[0] != 2) || (idResponse[1] != 0) || (idResponse[3] != 0)) {
-                ramsyscall_printf("(TS) cds::complete: unexpected response to getID, trying again.\n");
-                ramsyscall_printf("**** no recognizable CD inserted ****\n");
-                s_retries++;
-                s_wait = 1;
-                break;
-            }
+            idResponse[8] = 0;
+            ramsyscall_printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x (%s)\n",
+                              idResponse[0], idResponse[1], idResponse[2], idResponse[3], idResponse[4], idResponse[5],
+                              idResponse[6], idResponse[7], &idResponse[4]);
             s_retries = 0;
             CDROM_REG0 = 0;
-            CDROM_REG2 = 0x80;
+            CDROM_REG2 = 0;
             CDROM_REG1 = CDL_SETMODE;
             s_state = CD_SETMODE;
             break;
@@ -182,7 +178,9 @@ static void complete() {
         case CD_READ_PVD_PAUSE: {
             if (s_sector[0] != 1 || s_sector[1] != 'C' || s_sector[2] != 'D' || s_sector[3] != '0' ||
                 s_sector[4] != '0' || s_sector[5] != '1' || s_sector[6] != 1) {
-                ramsyscall_printf("(TS) cds::complete: invalid PVD. Restarting sequence.\n");
+                ramsyscall_printf(
+                    "(TS) cds::complete: invalid PVD (%02x %02x %02x %02x %02x %02x %02x %02x). Restarting sequence.\n",
+                    s_sector[0], s_sector[1], s_sector[2], s_sector[3], s_sector[4], s_sector[5], s_sector[6]);
                 ramsyscall_printf("**** invalid CD inserted - replace to continue ****\n");
                 s_state = CD_RESET;
                 s_wait = 1;
@@ -226,7 +224,13 @@ static void complete() {
 
 static void acknowledge() {
     uint8_t stat = 0xff;
+    enum CdState oldState = s_state;
     switch (s_state) {
+        case CD_RESET:
+        case CD_INIT:
+            CDROM_REG0 = 0;
+            stat = CDROM_REG1_UC;
+            break;
         case CD_GETTN:
             CDROM_REG0 = 0;
             stat = CDROM_REG1_UC;
@@ -262,7 +266,7 @@ static void acknowledge() {
             CDROM_REG1 = CDL_READN;
             break;
     }
-    ramsyscall_printf("(TS) cds::acknowledge() - state: %s, status: %02x\n", c_stateMsg[s_state], stat);
+    ramsyscall_printf("(TS) cds::acknowledge() - state: %s, status: %02x\n", c_stateMsg[oldState], stat);
 }
 
 static void end() {
@@ -272,17 +276,20 @@ static void end() {
 
 static void discError() {
     ramsyscall_printf("(TS) cds::discError() - state: %s, retries: %i\n", c_stateMsg[s_state], s_retries);
-    if (s_state == CD_GETID) {
-        uint8_t idResponse[2];
-        CDROM_REG0 = 0;
-        for (unsigned i = 0; i < 2; i++) idResponse[i] = CDROM_REG1_UC;
-        ramsyscall_printf("(TS) cds::discError: response: %02x %02x\n", idResponse[0], idResponse[1]);
-        ramsyscall_printf("(TS) cds::discError: error during getID, trying again.\n");
-        ramsyscall_printf("**** no recognizable CD inserted ****\n");
-        // todo: check audio
-        s_retries++;
-        s_wait = 1;
-        return;
+    switch (s_state) {
+        case CD_GETTN:
+        case CD_GETID: {
+            uint8_t idResponse[2];
+            CDROM_REG0 = 0;
+            for (unsigned i = 0; i < 2; i++) idResponse[i] = CDROM_REG1_UC;
+            ramsyscall_printf("(TS) cds::discError: response: %02x %02x\n", idResponse[0], idResponse[1]);
+            ramsyscall_printf("(TS) cds::discError: error during %s, trying again.\n", c_stateMsg[s_state]);
+            ramsyscall_printf("**** no recognizable CD inserted ****\n");
+            // todo: check audio
+            s_retries++;
+            s_wait = 1;
+            return;
+        }
     }
     ramsyscall_printf("(TS) cds::discError: restarting from scratch.\n");
     s_retries++;
@@ -293,7 +300,9 @@ static void discError() {
 void checkCD(unsigned fps) {
     switch (s_state) {
         case CD_READ_PVD_DMA: {
-            if ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0) return;
+            if ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0) {
+                ramsyscall_printf("(TS) checkCD: PVD read DMA still pending.\n");
+            }
             uint32_t dicr = DICR;
             dicr &= 0x00ffffff;
             dicr |= 0x88000000;
@@ -304,7 +313,9 @@ void checkCD(unsigned fps) {
             break;
         }
         case CD_READ_ROOT_DMA: {
-            if ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0) return;
+            if ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0) {
+                ramsyscall_printf("(TS) checkCD: root read DMA still pending.\n");
+            }
             uint32_t dicr = DICR;
             dicr &= 0x00ffffff;
             dicr |= 0x88000000;
@@ -314,15 +325,21 @@ void checkCD(unsigned fps) {
             s_state = CD_READ_ROOT_PAUSE;
             break;
         }
+        case CD_SUCCESS_DATA:
+            return;
     }
     if (s_wait) {
-        if (s_wait++ >= fps) {
+        if (fps != 0 && (s_wait++ >= fps)) {
             ramsyscall_printf("(TS) checkCD(), timeout expired.\n");
             s_wait = 0;
             switch (s_state) {
                 case CD_RESET:
                 case CD_INIT:
                     initCD();
+                    break;
+                case CD_GETTN:
+                    CDROM_REG0 = 0;
+                    CDROM_REG1 = CDL_GETTN;
                     break;
                 case CD_GETID:
                     CDROM_REG0 = 0;
