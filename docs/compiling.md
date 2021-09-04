@@ -14,6 +14,10 @@ will take care of downloading them automatically for you on the first build.
 
 Note: If you get an error saying `hresult e_fail has been returned from a call to a com component`, you might need to delete the .suo file in vsproject/vs, restart Visual Studio and retry.
 
+#### Openbios
+
+Using [Visual Studio Code](https://code.visualstudio.com/), one can use the task "make_openbios" to compile: CTRL-P then `task make_openbios` to compile.
+
 ## Linux
 
 ### Compiling with Docker
@@ -45,20 +49,29 @@ sudo pacman -S clang git make pkg-config ffmpeg libuv zlib glfw-x11 curl xorg-se
 
 You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
 
-Building OpenBIOS on Linux can be done with `./dockermake.sh -C src/mips/openbios`, or using the `g++-mipsel-linux-gnu` package with `make -C src/mips/openbios`.  
-
 If you have a different mips compiler, you'll need to override some variables, such as `PREFIX=mipsel-none-elf FORMAT=elf32-littlemips`.  
 
-### MacOS
-You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
+#### Openbios
 
-Compiling OpenBIOS will require a mips compiler, that you can generate using the following commands:
+Building [OpenBIOS](./openbios.md) on Linux can be done with docker : `./dockermake.sh openbios`,  
+or using `make`, with the `g++-mipsel-linux-gnu` package installed ; `make openbios`.  
+
+### MacOS
+You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages.  
+Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies.
+
+Run `make` to build.  
+
+Compiling  [OpenBIOS](./openbios.md) will require a mips compiler, that you can generate using the following commands:  
+
+#### Openbios
+
 ```bash
 brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
 brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
 ```
 
-Then, you can compile OpenBIOS using `make -C ./src/mips/openbios`.
+Then, you can compile  [OpenBIOS](./openbios.md) using `make -C ./src/mips/openbios`.
 
 ## Compiling PSX code
 

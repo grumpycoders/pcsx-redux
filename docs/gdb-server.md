@@ -12,7 +12,6 @@ Make sure the debugger is also enabled.
 
 ![enable debugger/gdb](./images/pcsx_enable_debugger.png)  
 
-
 ## GDB setup
 
 You need `gdb-multiarch` on your system :
@@ -93,7 +92,7 @@ You can find the debugging facilities  in the `Debug` menu ;
 
 ![geany program setup](./images/geany-gdb-scope-menu.png)
 
-You can find the plugin's documentation here : https://plugins.geany.org/scope.html
+You can find the plugin's documentation here : [https://plugins.geany.org/scope.html](https://plugins.geany.org/scope.html)
 
 #### .gdbinit
 
@@ -106,9 +105,27 @@ monitor reset shellhalt
 load /path/to/your/executable.elf
 ```
 
-### Plugin configuration 
+#### Plugin configuration 
 
 In Geany : `Debug > Setup Program` :  
 
 ![geany program setup](./images/geany-gdb-scope-options.png)
 
+## Beginning Debugging
+
+Launch `pcsx-redux`, then run the debugger from your IDE. It should load the `elf` file, and execute until the next breakpoint.
+
+### Starting debugging in Geany
+
+<video width="640" height="360" controls>
+  <source src="https://archive.org/download/pcsx_redux_geany_gdb/pcsx_redux_geany_gdb.webm" type="video/webm">
+Your browser does not support the video tag.
+</video>
+
+Source :  
+[https://archive.org/details/pcsx_redux_geany_gdb](https://archive.org/details/pcsx_redux_geany_gdb)
+
+
+## Additional tools
+
+[https://github.com/cyrus-and/gdb-dashboard/](https://github.com/cyrus-and/gdb-dashboard/)

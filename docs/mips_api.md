@@ -39,9 +39,12 @@ The following functions are available :
 
 | Function | Usage |
 | :- | :- | 
-|`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. |  | 
+|`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. | 
 |`pcsx_debugbreak()` | Break execution ( Pause emulation ). | 
-|`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. |  | 
-|`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` |
+|`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. | 
+|`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` | 
+|`pcsx_present()` | Returns 1 if code is running in pcsx-redux |
+
+Example of a UI dialog created with `pcsx_message()` :  
 
 ![pcsx_message() in action](./images/pcsx_message.png)
