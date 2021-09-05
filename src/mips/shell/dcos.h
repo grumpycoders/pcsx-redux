@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,33 +24,40 @@ SOFTWARE.
 
 */
 
-#include "openbios/shell/shell.h"
+#pragma once
 
-#include <memory.h>
-#include <string.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
-#include "openbios/kernel/flushcache.h"
+// 2kB
+extern int32_t g_cosTable[512];
+static const unsigned int DC_2PI = 2048;
+static const unsigned int DC_PI = 1024;
+static const unsigned int DC_PI2 = 512;
+static const unsigned int DC_PI4 = 256;
 
-extern const uint8_t _binary_shell_bin_start[];
-extern const uint8_t _binary_shell_bin_end[];
-extern const uint32_t _binary_psexe_bin_start[];
-extern const uint32_t _binary_psexe_bin_end[];
+static inline int32_t dCos(unsigned int t) {
+    t %= DC_2PI;
+    int32_t r;
 
-int startShell(uint32_t arg) {
-#ifdef OPENBIOS_USE_EMBEDDED_PSEXE
-    if (strncmp("PS-X EXE", (const char *)_binary_psexe_bin_start, 8) == 0) {
-        const uint32_t *header = _binary_psexe_bin_start;
-        memcpy((uint8_t *)header[6], &_binary_psexe_bin_start[512], header[7]);
-        flushCache();
-        ((void (*)(int, char **))header[4])(0, NULL);
+    if (t < DC_PI2) {
+        r = g_cosTable[t];
+    } else if (t < DC_PI) {
+        r = -g_cosTable[DC_PI - 1 - t];
+    } else if (t < (DC_PI + DC_PI2)) {
+        r = -g_cosTable[t - DC_PI];
+    } else {
+        r = g_cosTable[DC_2PI - 1 - t];
     }
-#endif
-#ifdef OPENBIOS_FASTBOOT
-    return 0;
-#else
-    memcpy((uint32_t *)0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
-    flushCache();
-    return ((int (*)(int))0x80030000)(arg);
-#endif
+
+    return r;
 }
+
+// sin(x) = cos(x - pi / 2)
+static inline int32_t dSin(unsigned int t) {
+    t %= DC_2PI;
+
+    if (t < DC_PI2) return dCos(t + DC_2PI - DC_PI2);
+    return dCos(t - DC_PI2);
+}
+
+void generateCosTable();

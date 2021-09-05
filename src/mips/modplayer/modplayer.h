@@ -145,3 +145,6 @@ void MOD_Relocate(uint8_t* buffer);
 // is between 0 and 63. You can simulate KeyOff by simply
 // setting the volume of the voice to 0.
 void MOD_PlayNote(unsigned voiceID, unsigned sampleID, unsigned note, int16_t volume);
+
+// Added API to reset the SPU and silence everything.
+void MOD_Silence();

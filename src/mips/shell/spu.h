@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,13 @@ SOFTWARE.
 
 */
 
-#include "common/hardware/cop0.h"
+#pragma once
 
-int main() { return 0; }
+void initSPU();
+void checkSPU();
+void uninitSPU();
+
+void spuSchedulePing();
+void spuScheduleIdle();
+void spuScheduleOutro();
+void spuScheduleError();

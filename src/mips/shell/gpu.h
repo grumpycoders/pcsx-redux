@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2020 PCSX-Redux authors
+Copyright (c) 2021 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,33 +24,38 @@ SOFTWARE.
 
 */
 
-#include "openbios/shell/shell.h"
+#pragma once
 
-#include <memory.h>
-#include <string.h>
+#include <stdint.h>
 
-#include "common/compiler/stdint.h"
-#include "openbios/kernel/flushcache.h"
+#include "common/hardware/gpu.h"
+#include "common/hardware/hwregs.h"
+#include "shell/math.h"
 
-extern const uint8_t _binary_shell_bin_start[];
-extern const uint8_t _binary_shell_bin_end[];
-extern const uint32_t _binary_psexe_bin_start[];
-extern const uint32_t _binary_psexe_bin_end[];
+#define WIDTH 640
+#define HEIGHT 480
 
-int startShell(uint32_t arg) {
-#ifdef OPENBIOS_USE_EMBEDDED_PSEXE
-    if (strncmp("PS-X EXE", (const char *)_binary_psexe_bin_start, 8) == 0) {
-        const uint32_t *header = _binary_psexe_bin_start;
-        memcpy((uint8_t *)header[6], &_binary_psexe_bin_start[512], header[7]);
-        flushCache();
-        ((void (*)(int, char **))header[4])(0, NULL);
-    }
-#endif
-#ifdef OPENBIOS_FASTBOOT
-    return 0;
-#else
-    memcpy((uint32_t *)0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
-    flushCache();
-    return ((int (*)(int))0x80030000)(arg);
-#endif
+union GPUPoint {
+    uint32_t packed;
+    struct {
+        int16_t x, y;
+    };
+};
+
+void initGPU(int isPAL);
+void flip(int doubleBuffer, const union Color bg);
+void waitVSync(int interlaced, void (*idle)());
+
+// we shift by 17 instead of 24 to do a scaling of 128
+// therefore a typical square of (-1,-1)-(1,1) would
+// end up as a 256x256 pixels one
+static inline void sendGPUVertex(struct Vertex2D *v) {
+    union GPUPoint p;
+    int32_t x = v->x >> 17;
+    int32_t y = v->y >> 17;
+    // adjust ratio for proper 4:3 output view
+    y = y * HEIGHT * 4 / (WIDTH * 3);
+    p.x = x + WIDTH / 2;
+    p.y = y + HEIGHT / 2;
+    GPU_DATA = p.packed;
 }
