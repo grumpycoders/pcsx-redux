@@ -4,6 +4,7 @@ TYPE = bin
 SRCS = \
 ../common/crt0/crt0.s \
 ../common/syscalls/printf.s \
+blip.hit \
 cdrom.c \
 dcos.c \
 gpu.c \
