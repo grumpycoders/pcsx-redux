@@ -46,7 +46,11 @@ int startShell(uint32_t arg) {
         ((void (*)(int, char **))header[4])(0, NULL);
     }
 #endif
+#ifdef OPENBIOS_FASTBOOT
+    return 0;
+#else
     memcpy((uint32_t *)0x80030000, _binary_shell_bin_start, _binary_shell_bin_end - _binary_shell_bin_start);
     flushCache();
     return ((int (*)(int))0x80030000)(arg);
+#endif
 }
