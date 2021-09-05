@@ -124,7 +124,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
             biosPath = f->filename();
         }
     }
-    
+
     if (!f->failed()) {
         f->read(g_psxR, bios_size);
         f->close();

@@ -946,8 +946,8 @@ long PCSX::SPU::impl::close(void) {
 
     bSPUIsOpen = 0;  // no more open
 
-    RemoveThread();       // no more feeding
-    RemoveStreams();      // no more streaming
+    RemoveThread();   // no more feeding
+    RemoveStreams();  // no more streaming
 
     return 0;
 }
