@@ -281,7 +281,7 @@ static void discError() {
     ramsyscall_printf("(TS) cds::discError: error during %s, trying again.\n", c_stateMsg[s_state]);
     ramsyscall_printf("**** no recognizable CD inserted ****\n");
     // todo: check audio
-    if (s_retries++ == 30) {
+    if (s_retries++ == 20) {
         ramsyscall_printf("(TS) cds::discError: restarting from scratch.\n");
         s_state = CD_RESET;
     }

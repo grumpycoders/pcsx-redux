@@ -24,5 +24,87 @@ SOFTWARE.
 
 */
 
-void initSPU() {}
-void checkSPU() {}
+#include <stdint.h>
+
+#include "common/hardware/hwregs.h"
+#include "common/syscalls/syscalls.h"
+#include "modplayer/modplayer.h"
+
+#define printf ramsyscall_printf
+
+extern struct MODFileFormat _binary_blip_hit_start;
+
+static uint16_t s_nextCounter = 0;
+static uint16_t s_oldMode = 0;
+static int s_idle = 1;
+
+int spuIsIntro() { return MOD_CurrentPattern == 0; }
+
+void initSPU() {
+    s_oldMode = COUNTERS[1].mode;
+    COUNTERS[1].mode = 0x0100;
+    MOD_Load(&_binary_blip_hit_start);
+    printf("(TS) SPU: Loaded %02d Channels, %02d Orders\n", MOD_Channels, MOD_SongLength);
+    s_nextCounter = COUNTERS[1].value + MOD_hblanks;
+}
+
+void checkSPU() {
+    if (((int16_t)(s_nextCounter - COUNTERS[1].value)) <= 0) {
+        MOD_Poll();
+        s_nextCounter += MOD_hblanks;
+
+        if (MOD_CurrentOrder != 0) {
+            if (MOD_CurrentRow == 60) {
+                MOD_CurrentRow = 59;
+            }
+        }
+        static unsigned row = 0xffffffff;
+        static unsigned order = 0xffffffff;
+        static unsigned pattern = 0xffffffff;
+        if (row != MOD_CurrentRow || order != MOD_CurrentOrder || pattern != MOD_CurrentPattern) {
+            row = MOD_CurrentRow;
+            order = MOD_CurrentOrder;
+            pattern = MOD_CurrentPattern;
+            printf("(TS) SPU: Row: %02d, Order: %02d, Pattern: %02d\n", row, order, pattern);
+        }
+    }
+}
+
+void uninitSPU() {
+    COUNTERS[1].mode = s_oldMode;
+    MOD_Silence();
+}
+
+void spuSchedulePing() {
+    printf("(TS) SPU: scheduling ping\n");
+    if (!s_idle) return;
+    if (MOD_CurrentOrder < 1) return;
+    if ((MOD_CurrentOrder == 1) && (MOD_CurrentRow < 31)) return;
+
+    MOD_ChangeOrderNextTick = 1;
+    MOD_NextOrder = 2;
+}
+
+void spuScheduleIdle() {
+    printf("(TS) SPU: scheduling idle\n");
+    if (s_idle) return;
+    s_idle = 1;
+    MOD_ChangeOrderNextTick = 1;
+    MOD_NextOrder = 2;
+}
+
+void spuScheduleOutro() {
+    printf("(TS) SPU: scheduling outro\n");
+    s_idle = 0;
+    if (MOD_CurrentOrder < 1) return;
+    if ((MOD_CurrentOrder == 1) && (MOD_CurrentRow < 31)) return;
+    MOD_ChangeOrderNextTick = 1;
+    MOD_NextOrder = 3;
+}
+
+void spuScheduleError() {
+    printf("(TS) SPU: scheduling error\n");
+    s_idle = 0;
+    MOD_ChangeOrderNextTick = 1;
+    MOD_NextOrder = 4;
+}

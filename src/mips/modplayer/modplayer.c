@@ -272,6 +272,13 @@ uint32_t MOD_Load(const struct MODFileFormat* module) {
     return 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1);
 }
 
+void MOD_Silence() {
+    SPUInit();
+    for (unsigned i = 0; i < 24; i++) {
+        SPUResetVoice(i);
+    }
+}
+
 void MOD_Relocate(uint8_t* s1) {
     if (MOD_ModuleData == s1) return;
     unsigned maxPatternID = 0;

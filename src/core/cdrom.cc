@@ -496,6 +496,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_seeked = SEEK_DONE;
             if (m_irq == 0) {
                 m_stat = Complete;
+                m_suceeded = true;
                 setIrq();
             }
 
@@ -662,6 +663,7 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlForward:
                 // TODO: error 80 if stopped
                 m_stat = Complete;
+                m_suceeded = true;
 
                 // GameShark CD Player: Calls 2x + Play 2x
                 if (m_fastForward == 0) {
@@ -675,6 +677,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlBackward:
                 m_stat = Complete;
+                m_suceeded = true;
 
                 // GameShark CD Player: Calls 2x + Play 2x
                 if (m_fastBackward == 0) {
@@ -697,6 +700,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlStandby + 0x100:
                 m_stat = Complete;
+                m_suceeded = true;
                 break;
 
             case CdlStop:
@@ -723,6 +727,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_statP &= ~STATUS_ROTATING;
                 m_result[0] = m_statP;
                 m_stat = Complete;
+                m_suceeded = true;
                 break;
 
             case CdlPause:
@@ -744,6 +749,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_statP &= ~STATUS_READ;
                 m_result[0] = m_statP;
                 m_stat = Complete;
+                m_suceeded = true;
                 break;
 
             case CdlInit:
@@ -754,6 +760,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlInit + 0x100:
                 m_stat = Complete;
+                m_suceeded = true;
                 break;
 
             case CdlMute:
@@ -804,6 +811,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlReadT + 0x100:
                 m_stat = Complete;
+                m_suceeded = true;
                 break;
 
             case CdlGetTN:
@@ -898,6 +906,7 @@ class CDRomImpl : public PCSX::CDRom {
 
                 strncpy((char *)&m_result[4], "PCSX", 4);
                 m_stat = Complete;
+                m_suceeded = true;
                 break;
 
             case CdlReset:
@@ -922,6 +931,7 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlReadToc + 0x100:
                 m_stat = Complete;
+                m_suceeded = true;
                 no_busy_error = 1;
                 break;
 

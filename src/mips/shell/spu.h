@@ -28,3 +28,9 @@ SOFTWARE.
 
 void initSPU();
 void checkSPU();
+void uninitSPU();
+
+void spuSchedulePing();
+void spuScheduleIdle();
+void spuScheduleOutro();
+void spuScheduleError();

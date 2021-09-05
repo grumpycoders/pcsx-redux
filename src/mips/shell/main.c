@@ -252,6 +252,7 @@ static void calculateFrame() {
     if ((counter + 4 * s_FPS) % (5 * s_FPS) == 1) {
         s_hullFrame = 0;
         s_hull = convexHull(v, 8);
+        spuSchedulePing();
     }
     struct Matrix3D transform;
     if (phase == 0) {
@@ -405,10 +406,11 @@ int main() {
                 startLerp(LERP_TO_SUCCESS);
                 s_xRotAccel = s_yRotAccel = s_zRotAccel = 2503;
             } else if (bootFrames == s_FPS) {
+                spuScheduleOutro();
                 startLerp(LERP_TO_OUTRO);
             } else if (bootFrames == (s_FPS * 2)) {
                 startLerp(LERP_TO_BLACK);
-            } else if (bootFrames == (s_FPS * 3)) {
+            } else if (bootFrames == (s_FPS * 4)) {
                 break;
             }
         }
@@ -421,6 +423,7 @@ int main() {
         static int wasSuccess = 0;
         if (isError && !wasError) {
             wasError = 1;
+            spuScheduleError();
             startLerp(LERP_TO_ERROR);
         } else if (isSuccess && !wasSuccess) {
             wasSuccess = 1;
@@ -432,11 +435,13 @@ int main() {
             }
         } else if (!isError && wasError) {
             wasError = 0;
+            spuScheduleIdle();
             startLerp(LERP_TO_IDLE);
         }
         waitVSync(1, idle);
         flip(0, s_bg);
         render();
     }
+    uninitSPU();
     if (!wasLocked) leaveCriticalSection();
 }
