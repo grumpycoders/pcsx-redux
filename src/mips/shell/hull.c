@@ -24,10 +24,11 @@ SOFTWARE.
 
 */
 
+#include "shell/hull.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
-#include "shell/hull.h"
 #include "shell/math.h"
 
 static inline void swap(struct Vertex2D *v1, struct Vertex2D *v2) {
@@ -58,7 +59,7 @@ static inline int distSq(struct Vertex2D p1, struct Vertex2D p2) {
     return dx * dx + dy * dy;
 }
 
-static struct Vertex2D * s_v0;
+static struct Vertex2D *s_v0;
 
 static int compare(struct Vertex2D *p1, struct Vertex2D *p2) {
     if (p1 == p2) return 0;
@@ -78,9 +79,9 @@ static void qsort(struct Vertex2D *base, size_t nmemb) {
         for (;;) {
             while (compare(&base[c], &base[a]) > 0) a++; /* Look for one >= middle */
             while (compare(&base[c], &base[b]) < 0) b--; /* Look for one <= middle */
-            if (a >= b) break;                                             /* We found no pair */
-            swap(&base[a], &base[b]);                                      /* swap them */
-            if (c == a) /* Keep track of middle element */
+            if (a >= b) break;                           /* We found no pair */
+            swap(&base[a], &base[b]);                    /* swap them */
+            if (c == a)                                  /* Keep track of middle element */
                 c = b;
             else if (c == b)
                 c = a;

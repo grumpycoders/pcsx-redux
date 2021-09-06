@@ -28,8 +28,8 @@ SOFTWARE.
 
 #include "common/hardware/gpu.h"
 #include "common/hardware/hwregs.h"
-#include "common/hardware/pcsxhw.h"
 #include "common/hardware/irq.h"
+#include "common/hardware/pcsxhw.h"
 
 static int s_frame = 0;
 
