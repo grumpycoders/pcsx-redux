@@ -32,24 +32,26 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "common/util/util.h"
 
+#define printf(...)
+
 static void hexdump(const void* data_, unsigned size) {
     const uint8_t* data = (const uint8_t*)data_;
     char ascii[17];
     ascii[16] = 0;
     for (unsigned i = 0; i < size; i++) {
-        if (i % 16 == 0) ramsyscall_printf("%08x  |", i);
-        ramsyscall_printf("%02X ", data[i]);
+        if (i % 16 == 0) printf("%08x  |", i);
+        printf("%02X ", data[i]);
         ascii[i % 16] = data[i] >= ' ' && data[i] <= '~' ? data[i] : '.';
         unsigned j = i + 1;
         if ((j % 8 == 0) || (j == size)) {
-            ramsyscall_printf(" ");
+            printf(" ");
             if (j % 16 == 0) {
-                ramsyscall_printf("|  %s \n", ascii);
+                printf("|  %s \n", ascii);
             } else if (j == size) {
                 ascii[j % 16] = 0;
-                if (j % 16 <= 8) ramsyscall_printf(" ");
-                for (j %= 16; j < 16; j++) ramsyscall_printf("   ");
-                ramsyscall_printf("|  %s \n", ascii);
+                if (j % 16 <= 8) printf(" ");
+                for (j %= 16; j < 16; j++) printf("   ");
+                printf("|  %s \n", ascii);
             }
         }
     }
@@ -81,14 +83,14 @@ enum CdState {
 static enum CdState s_state;
 
 static const char* const c_stateMsg[] = {
-    "CD_ERROR",          "CD_RESET",          "CD_INIT",           "CD_GETTN",         "CD_GETID",
-    "CD_SETMODE",        "CD_SETLOC_TO_PVD",  "CD_SETLOC_TO_ROOT", "CD_READ_PVD",      "CD_READ_PVD_DMA",
-    "CD_READ_PVD_PAUSE", "CD_SETLOC_TO_ROOT", "CD_READ_ROOT",      "CD_READ_ROOT_DMA", "CD_READ_ROOT_PAUSE",
-    "CD_SUCCESS_DATA",   "CD_SUCCESS_AUDIO",
+    "CD_ERROR",         "CD_RESET",           "CD_INIT",           "CD_GETTN",
+    "CD_GETID",         "CD_SETMODE",         "CD_SETLOC_TO_PVD",  "CD_READ_PVD",
+    "CD_READ_PVD_DMA",  "CD_READ_PVD_PAUSE",  "CD_SETLOC_TO_ROOT", "CD_READ_ROOT",
+    "CD_READ_ROOT_DMA", "CD_READ_ROOT_PAUSE", "CD_SUCCESS_DATA",   "CD_SUCCESS_AUDIO",
 };
 
 void initCD() {
-    ramsyscall_printf("(TS) initCD()\n");
+    printf("(TS) initCD()\n");
     CDROM_REG0 = 1;
     CDROM_REG3 = 0x1f;
     CDROM_REG0 = 1;
@@ -124,18 +126,18 @@ static void startDmaOneSector() {
 }
 
 static void dataReady() {
-    ramsyscall_printf("(TS) cds::dataReady() - state: %s\n", c_stateMsg[s_state]);
+    printf("(TS) cds::dataReady() - state: %s\n", c_stateMsg[s_state]);
     CDROM_REG0 = 0;
     uint8_t stat = CDROM_REG1_UC;
     switch (s_state) {
         case CD_READ_PVD: {
-            ramsyscall_printf("(TS) cds::read PVD successfully\n");
+            printf("(TS) cds::read PVD successfully\n");
             startDmaOneSector();
             s_state = CD_READ_PVD_DMA;
             break;
         }
         case CD_READ_ROOT: {
-            ramsyscall_printf("(TS) cds::read root successfully\n");
+            printf("(TS) cds::read root successfully\n");
             startDmaOneSector();
             s_state = CD_READ_ROOT_DMA;
             break;
@@ -146,7 +148,7 @@ static void dataReady() {
 static void complete() {
     CDROM_REG0 = 0;
     uint8_t stat = CDROM_REG1_UC;
-    ramsyscall_printf("(TS) cds::complete() - state: %s, status: %02x\n", c_stateMsg[s_state], stat);
+    printf("(TS) cds::complete() - state: %s, status: %02x\n", c_stateMsg[s_state], stat);
     switch (s_state) {
         case CD_RESET:
             s_state = CD_INIT;
@@ -165,7 +167,7 @@ static void complete() {
             uint8_t idResponse[9] = {stat};
             for (unsigned i = 1; i < 8; i++) idResponse[i] = CDROM_REG1_UC;
             idResponse[8] = 0;
-            ramsyscall_printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x (%s)\n",
+            printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x (%s)\n",
                               idResponse[0], idResponse[1], idResponse[2], idResponse[3], idResponse[4], idResponse[5],
                               idResponse[6], idResponse[7], &idResponse[4]);
             CDROM_REG0 = 0;
@@ -175,12 +177,13 @@ static void complete() {
             break;
         }
         case CD_READ_PVD_PAUSE: {
-            if (s_sector[0] != 1 || s_sector[1] != 'C' || s_sector[2] != 'D' || s_sector[3] != '0' ||
-                s_sector[4] != '0' || s_sector[5] != '1' || s_sector[6] != 1) {
-                ramsyscall_printf(
+            if (s_sector[1] != 'C' || s_sector[2] != 'D' || s_sector[3] != '0' || s_sector[4] != '0' ||
+                s_sector[5] != '1' || s_sector[6] != 1) {
+                printf(
                     "(TS) cds::complete: invalid PVD (%02x %02x %02x %02x %02x %02x %02x %02x). Restarting sequence.\n",
-                    s_sector[0], s_sector[1], s_sector[2], s_sector[3], s_sector[4], s_sector[5], s_sector[6]);
-                ramsyscall_printf("**** invalid CD inserted - replace to continue ****\n");
+                    s_sector[0], s_sector[1], s_sector[2], s_sector[3], s_sector[4], s_sector[5], s_sector[6],
+                    s_sector[7]);
+                printf("**** invalid CD inserted - replace to continue ****\n");
                 s_state = CD_RESET;
                 s_wait = 1;
                 break;
@@ -199,7 +202,7 @@ static void complete() {
             break;
         }
         case CD_READ_ROOT_PAUSE: {
-            ramsyscall_printf("(TS) cds::complete: root sector read complete.\n");
+            printf("(TS) cds::complete: root sector read complete.\n");
             uint8_t* ptr = s_sector;
             int foundBoot = 0;
             while ((ptr < (s_sector + sizeof(s_sector))) && ptr[0] && !foundBoot) {
@@ -210,8 +213,8 @@ static void complete() {
             }
 
             if (!foundBoot) {
-                ramsyscall_printf("(TS) cds::complete: root sector invalid. Restarting sequence\n");
-                ramsyscall_printf("**** invalid CD inserted - replace to continue ****\n");
+                printf("(TS) cds::complete: root sector invalid. Restarting sequence\n");
+                printf("**** invalid CD inserted - replace to continue ****\n");
                 s_state = CD_RESET;
                 s_wait = 1;
             } else {
@@ -264,25 +267,25 @@ static void acknowledge() {
             CDROM_REG1 = CDL_READN;
             break;
     }
-    ramsyscall_printf("(TS) cds::acknowledge() - state: %s, status: %02x\n", c_stateMsg[oldState], stat);
+    printf("(TS) cds::acknowledge() - state: %s, status: %02x\n", c_stateMsg[oldState], stat);
 }
 
 static void end() {
-    ramsyscall_printf("(TS) cds::end() - state: %s\n", c_stateMsg[s_state]);
+    printf("(TS) cds::end() - state: %s\n", c_stateMsg[s_state]);
     s_state = CD_ERROR;
 }
 
 static void discError() {
-    ramsyscall_printf("(TS) cds::discError() - state: %s, retries: %i\n", c_stateMsg[s_state], s_retries);
+    printf("(TS) cds::discError() - state: %s, retries: %i\n", c_stateMsg[s_state], s_retries);
     uint8_t idResponse[2];
     CDROM_REG0 = 0;
     for (unsigned i = 0; i < 2; i++) idResponse[i] = CDROM_REG1_UC;
-    ramsyscall_printf("(TS) cds::discError: response: %02x %02x\n", idResponse[0], idResponse[1]);
-    ramsyscall_printf("(TS) cds::discError: error during %s, trying again.\n", c_stateMsg[s_state]);
-    ramsyscall_printf("**** no recognizable CD inserted ****\n");
+    printf("(TS) cds::discError: response: %02x %02x\n", idResponse[0], idResponse[1]);
+    printf("(TS) cds::discError: error during %s, trying again.\n", c_stateMsg[s_state]);
+    printf("**** no recognizable CD inserted ****\n");
     // todo: check audio
     if (s_retries++ == 20) {
-        ramsyscall_printf("(TS) cds::discError: restarting from scratch.\n");
+        printf("(TS) cds::discError: restarting from scratch.\n");
         s_state = CD_RESET;
     }
     s_wait = 1;
@@ -292,26 +295,28 @@ void checkCD(unsigned fps) {
     switch (s_state) {
         case CD_READ_PVD_DMA: {
             if ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0) {
-                ramsyscall_printf("(TS) checkCD: PVD read DMA still pending.\n");
+                printf("(TS) checkCD: PVD read DMA still pending.\n");
+                break;
             }
             uint32_t dicr = DICR;
             dicr &= 0x00ffffff;
             dicr |= 0x88000000;
             DICR = dicr;
-            ramsyscall_printf("(TS) checkCD: PVD read DMA completed.\n");
+            printf("(TS) checkCD: PVD read DMA completed.\n");
             // hexdump(s_sector, 2048);
             s_state = CD_READ_PVD_PAUSE;
             break;
         }
         case CD_READ_ROOT_DMA: {
             if ((DMA_CTRL[DMA_CDROM].CHCR & 0x01000000) != 0) {
-                ramsyscall_printf("(TS) checkCD: root read DMA still pending.\n");
+                printf("(TS) checkCD: root read DMA still pending.\n");
+                break;
             }
             uint32_t dicr = DICR;
             dicr &= 0x00ffffff;
             dicr |= 0x88000000;
             DICR = dicr;
-            ramsyscall_printf("(TS) checkCD: root read DMA completed.\n");
+            printf("(TS) checkCD: root read DMA completed.\n");
             // hexdump(s_sector, 2048);
             s_state = CD_READ_ROOT_PAUSE;
             break;
@@ -321,7 +326,7 @@ void checkCD(unsigned fps) {
     }
     if (s_wait) {
         if (fps != 0 && (s_wait++ >= fps)) {
-            ramsyscall_printf("(TS) checkCD(), timeout expired.\n");
+            printf("(TS) checkCD(), timeout expired.\n");
             s_wait = 0;
             switch (s_state) {
                 case CD_RESET:
