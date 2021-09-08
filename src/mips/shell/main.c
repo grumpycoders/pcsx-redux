@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include "common/hardware/hwregs.h"
+#include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
 #include "shell/cdrom.h"
 #include "shell/dcos.h"
@@ -425,6 +426,7 @@ int main() {
             wasError = 1;
             spuScheduleError();
             startLerp(LERP_TO_ERROR);
+            pcsx_message("Invalid disc inserted, or no disc.\nUse File->Open ISO to insert a valid PlayStation disc.");
         } else if (isSuccess && !wasSuccess) {
             wasSuccess = 1;
             if (!isCDAudio()) {
