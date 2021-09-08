@@ -93,7 +93,6 @@ SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/http-parser/http_parser.c
 SRCS += third_party/luv/src/luv.c
 SRCS += third_party/tracy/TracyClient.cpp
-SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
@@ -102,12 +101,18 @@ SRCS += third_party/zep/src/mcommon/string/stringutils.cpp
 ifeq ($(UNAME_S),Darwin)
     SRCS += src/main/complain.mm
 endif
+SUPPORT_SRCS := $(call rwildcard,src/support/,*.cc)
+SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
+SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
 OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
 OBJECTS += $(patsubst %.mm,%.o,$(filter %.mm,$(SRCS)))
 OBJECTS += third_party/luajit/src/libluajit.a
 
+SUPPORT_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS)))
+SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
+SUPPORT_OBJECTS += third_party/luajit/src/libluajit.a
 NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
 IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
 
@@ -207,11 +212,11 @@ pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
-psyq-obj-parser: $(NONMAIN_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
-	$(LD) -o $@ $(NONMAIN_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
+psyq-obj-parser: $(SUPPORT_OBJECTS) tools/psyq-obj-parser/psyq-obj-parser.cc
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/psyq-obj-parser/psyq-obj-parser.cc -Ithird_party/ELFIO
 
-ps1-packer: $(NONMAIN_OBJECTS) tools/ps1-packer/ps1-packer.cc
-	$(LD) -o $@ $(NONMAIN_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
+ps1-packer: $(SUPPORT_OBJECTS) tools/ps1-packer/ps1-packer.cc
+	$(LD) -o $@ $(SUPPORT_OBJECTS) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tools/ps1-packer/ps1-packer.cc
 
 .PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage
 
