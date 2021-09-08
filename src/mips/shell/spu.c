@@ -30,7 +30,7 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "modplayer/modplayer.h"
 
-#define printf ramsyscall_printf
+#define printf(...)
 
 extern struct MODFileFormat _binary_blip_hit_start;
 
