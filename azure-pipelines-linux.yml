@@ -57,18 +57,18 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.D/UNIROM_RELEASE_8.0.D.zip
+      wget https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1/releases/download/8.0.I/UNIROM_BOOTDISC_8.0.I.zip
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'UNIROM_RELEASE_8.0.D.zip'
+    archiveFilePatterns: 'UNIROM_RELEASE_8.0.I.zip'
     destinationFolder: 'unirom'
     cleanDestinationFolder: true
 
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom/UNIROM_B.exe'
+    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom/stuff/unirom_b.exe'
 
 - task: Bash@3
   inputs:
@@ -92,7 +92,7 @@ steps:
 - task: Bash@3
   inputs:
     filePath: 'dockermake.sh'
-    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom/UNIROM_B.exe BOOT=cart'
+    arguments: '-C src/mips/openbios -j FASTBOOT=true EMBED_PSEXE=../../../unirom/stuff/unirom_b.exe BOOT=cart'
 
 - task: Bash@3
   inputs:
