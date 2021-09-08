@@ -61,7 +61,7 @@ steps:
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'UNIROM_RELEASE_8.0.I.zip'
+    archiveFilePatterns: 'UNIROM_BOOTDISC_8.0.I.zip'
     destinationFolder: 'unirom'
     cleanDestinationFolder: true
 
