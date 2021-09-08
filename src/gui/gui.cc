@@ -330,7 +330,7 @@ end)(jit.status()))
         setFullscreen(m_fullscreen);
         const auto currentTheme =
             g_emulator->settings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
-        apply_theme(currentTheme);
+        applyTheme(currentTheme);
 
         if (emuSettings.get<Emulator::SettingMcd1>().empty()) {
             emuSettings.get<Emulator::SettingMcd1>() = MAKEU8(u8"memcard1.mcd");
@@ -508,8 +508,24 @@ void PCSX::GUI::startFrame() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     checkGL();
 
+    // Check hotkeys (TODO: Make configurable)
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
     if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) { // Save to quick-save slot
+        zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
+        save << SaveStates::save();
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) { // Load from quick-save slot
+        const auto saveStateName = buildSaveStateFilename(0);
+        loadSaveState(saveStateName);
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_F3)) g_system->start(); // Start system
+    if (ImGui::IsKeyPressed(GLFW_KEY_PAUSE) || ImGui::IsKeyPressed(GLFW_KEY_F4)) g_system->pause(); // Pause system
+    if (ImGui::IsKeyPressed(GLFW_KEY_F5)) g_system->softReset(); // Soft reset
+    if (ImGui::IsKeyPressed(GLFW_KEY_F6)) g_system->hardReset(); // Hard reset
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -633,41 +649,12 @@ void PCSX::GUI::endFrame() {
                     SaveStates::ProtoFile::dumpSchema(schema);
                 }
 
-                auto buildSaveStateFilename = [](int i) {
-                    // the ID of the game. Every savestate is marked with the ID of the game it's from.
-                    const auto gameID = g_emulator->m_cdromId;
-
-                    // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
-                    // EXEs don't have proper IDs
-                    if (gameID[0] != 0) {
-                        // For games with an ID of SLUS00213 for example, this will generate a state named
-                        // SLUS00213.sstate
-                        return fmt::format("{}.sstate{}", gameID, i);
-                    } else {
-                        // For games without IDs, identify them via filename
-                        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
-                        const auto lastFile = iso.empty() ? "BIOS" : iso.string();
-                        return fmt::format("{}.sstate{}", lastFile, i);
-                    }
-                };
-
-                auto loadSaveState = [](const std::filesystem::path& filename) {
-                    if (!std::filesystem::exists(std::filesystem::path(filename))) return;
-                    zstr::ifstream save(filename.string(), std::ios::binary);
-                    std::ostringstream os;
-                    constexpr unsigned buff_size = 1 << 16;
-                    char* buff = new char[buff_size];
-                    while (true) {
-                        save.read(buff, buff_size);
-                        std::streamsize cnt = save.gcount();
-                        if (cnt == 0) break;
-                        os.write(buff, cnt);
-                    }
-                    delete[] buff;
-                    SaveStates::load(os.str());
-                };
-
                 if (ImGui::BeginMenu(_("Save state slots"))) {
+                    if (ImGui::MenuItem(_("Quick-save slot"), "F1")) {
+                        zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
+                        save << SaveStates::save();
+                    }
+
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) {
@@ -680,6 +667,8 @@ void PCSX::GUI::endFrame() {
                 }
 
                 if (ImGui::BeginMenu(_("Load state slots"))) {
+                    if (ImGui::MenuItem(_("Quick-save slot"), "F2")) loadSaveState(buildSaveStateFilename(0));
+
                     for (auto i = 1; i < 10; i++) {
                         const auto str = fmt::format(_("Slot {}"), i);
                         if (ImGui::MenuItem(str.c_str())) loadSaveState(buildSaveStateFilename(i));
@@ -729,16 +718,16 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
-                if (ImGui::MenuItem(_("Start"), nullptr, nullptr, !g_system->running())) {
+                if (ImGui::MenuItem(_("Start"), "F3", nullptr, !g_system->running())) {
                     g_system->start();
                 }
-                if (ImGui::MenuItem(_("Pause"), nullptr, nullptr, g_system->running())) {
+                if (ImGui::MenuItem(_("Pause"), "F4", nullptr, g_system->running())) {
                     g_system->pause();
                 }
-                if (ImGui::MenuItem(_("Soft Reset"))) {
+                if (ImGui::MenuItem(_("Soft Reset"), "F5")) {
                     g_system->softReset();
                 }
-                if (ImGui::MenuItem(_("Hard Reset"))) {
+                if (ImGui::MenuItem(_("Hard Reset"), "F6")) {
                     g_system->hardReset();
                 }
                 ImGui::EndMenu();
@@ -1420,8 +1409,8 @@ void PCSX::GUI::interruptsScaler() {
 }
 
 bool PCSX::GUI::showThemes() {
-    static const char* imgui_themes[6] = {"Default", "Classic", "Light",
-                                          "Cherry",  "Mono",    "Dracula"};  // Used for theme combo box
+    static const char* imgui_themes[] = {"Default", "Classic", "Light",
+                                          "Cherry",  "Mono", "Dracula", "Olive"};  // Used for theme combo box
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
 
@@ -1431,7 +1420,7 @@ bool PCSX::GUI::showThemes() {
             if (ImGui::Selectable(imgui_themes[n], selected)) {
                 currentTheme = n;
                 changed = true;
-                apply_theme(n);
+                applyTheme(n);
             }
             if (selected) {
                 ImGui::SetItemDefaultFocus();
@@ -1541,3 +1530,40 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     free(extension);
 }
+
+std::string PCSX::GUI::buildSaveStateFilename(int i) {
+    // the ID of the game. Every savestate is marked with the ID of the game it's from.
+    const auto gameID = g_emulator->m_cdromId;
+
+    // Check if the game has a non-NULL ID or a game hasn't been loaded. Some stuff like PS-X
+    // EXEs don't have proper IDs
+    if (gameID[0] != 0) {
+        // For games with an ID of SLUS00213 for example, this will generate a state named
+        // SLUS00213.sstate
+        return fmt::format("{}.sstate{}", gameID, i);
+    } else {
+        // For games without IDs, identify them via filename
+        const auto& iso = PCSX::g_emulator->m_cdrom->m_iso.getIsoPath().filename();
+        const auto lastFile = iso.empty() ? "BIOS" : iso.string();
+        return fmt::format("{}.sstate{}", lastFile, i);
+    }
+}
+
+void PCSX::GUI::loadSaveState (const std::filesystem::path& filename) {
+    if (!std::filesystem::exists(std::filesystem::path(filename))) return; // Return if the savestate doesn't exist
+
+    zstr::ifstream save(filename.string(), std::ios::binary);
+    std::ostringstream os;
+    constexpr unsigned buff_size = 1 << 16;
+    char* buff = new char[buff_size];
+
+    while (true) {
+        save.read(buff, buff_size);
+        std::streamsize cnt = save.gcount();
+        if (cnt == 0) break;
+         os.write(buff, cnt);
+    }
+                    
+    delete[] buff;
+    SaveStates::load(os.str());
+};
