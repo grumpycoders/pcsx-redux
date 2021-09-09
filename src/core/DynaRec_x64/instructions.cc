@@ -533,12 +533,10 @@ void DynaRecCPU::recSLLV() {
         m_regs[_Rd_].setWriteback(true);
         gen.mov(ecx, m_regs[_Rs_].allocatedReg); // Shift amount in ecx
 
-        if (_Rt_ == _Rd_) {
-            gen.shl(m_regs[_Rd_].allocatedReg, cl);
-        } else {
+        if (_Rt_ != _Rd_) {
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-            gen.shl(m_regs[_Rd_].allocatedReg, cl);
         }
+        gen.shl(m_regs[_Rd_].allocatedReg, cl);
     }
 }
 
@@ -591,12 +589,10 @@ void DynaRecCPU::recSRAV() {
         m_regs[_Rd_].setWriteback(true);
         gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
 
-        if (_Rt_ == _Rd_) {
-            gen.sar(m_regs[_Rd_].allocatedReg, cl);
-        } else {
+        if (_Rt_ != _Rd_) {
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-            gen.sar(m_regs[_Rd_].allocatedReg, cl);
         }
+        gen.sar(m_regs[_Rd_].allocatedReg, cl);
     }
 }
 
@@ -649,12 +645,11 @@ void DynaRecCPU::recSRLV() {
         m_regs[_Rd_].setWriteback(true);
         
         gen.mov(ecx, m_regs[_Rs_].allocatedReg);  // Shift amount in ecx
-        if (_Rt_ == _Rd_) {
-            gen.shr(m_regs[_Rd_].allocatedReg, cl);
-        } else {
+
+        if (_Rt_ != _Rd_) {
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-            gen.shr(m_regs[_Rd_].allocatedReg, cl);
         }
+        gen.shr(m_regs[_Rd_].allocatedReg, cl);
     }
 }
 

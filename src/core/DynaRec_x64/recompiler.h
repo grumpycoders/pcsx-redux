@@ -203,8 +203,9 @@ public:
 
     // TODO: Make it less slow and bad
     // Possibly clear blocks more aggressively
-    virtual void Clear(uint32_t addr, uint32_t size) final { 
-        memset((void*) getBlockPointer(addr), 0, size * sizeof(DynarecCallback));
+    // Note: This relies on the behavior in psxmem.cc which calls Clear after force-aligning the address
+    virtual void Clear(uint32_t addr, uint32_t size) final {
+        std::memset((void*) getBlockPointer(addr), 0, size * sizeof(DynarecCallback));
     }
 
     virtual void SetPGXPMode(uint32_t pgxpMode) final {}
