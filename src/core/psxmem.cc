@@ -250,7 +250,7 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
             return *(uint8_t *)(p + (mem & 0xffff));
         } else {
             PSXMEM_LOG("err lb %8.8lx\n", mem);
-            return 0;
+            return 0xff;
         }
     }
 }
@@ -278,7 +278,7 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
             return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
         } else {
             PSXMEM_LOG("err lh %8.8lx\n", mem);
-            return 0;
+            return 0xffff;
         }
     }
 }
@@ -308,7 +308,7 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
             if (m_writeok) {
                 PSXMEM_LOG("err lw %8.8lx\n", mem);
             }
-            return 0;
+            return 0xffffffff;
         }
     }
 }
