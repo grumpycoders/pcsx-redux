@@ -29,6 +29,7 @@
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/callstacks.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/events.h"
@@ -256,11 +257,13 @@ class GUI final {
     Widgets::Events m_events;
     Widgets::KernelLog m_kernelLog;
 
+    Widgets::CallStacks m_callstacks;
+
     EventBus::Listener m_listener;
 
     void shellReached();
     std::string buildSaveStateFilename(int i);
-    void loadSaveState(const std::filesystem::path& filename);
+    void loadSaveState(const std::filesystem::path &filename);
 
     void applyTheme(int theme);
     void cherryTheme();

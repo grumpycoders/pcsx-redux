@@ -39,7 +39,6 @@ static uint32_t someRand(uint32_t& a) {
 
 struct TreeElement;
 typedef PCSX::Intrusive::Tree<uint32_t, TreeElement> TreeType;
-struct HashtableType;
 typedef PCSX::Intrusive::HashTable<uint32_t, TreeElement> HashTableType;
 struct TreeElement : public TreeType::Node, public HashTableType::Node {
     TreeElement(uint32_t tag = 0) : m_tag(tag) {}
@@ -214,4 +213,77 @@ TEST(IntervalTree, BasicInterval) {
     tree.destroyAll();
     EXPECT_TRUE(tree.empty());
     EXPECT_TRUE(hashtable.empty());
+}
+
+TEST(IntervalTree, Disjoint) {
+    TreeType tree;
+    auto e0 = tree.insert(10, 20, new TreeElement(0));
+    auto e1 = tree.insert(30, 40, new TreeElement(1));
+
+    EXPECT_EQ(tree.size(), 2);
+
+    HashTableType hashtable;
+
+    {
+        auto i = tree.find(20, 30);
+        while (i != tree.end()) {
+            hashtable.insert(i->m_tag, &*i);
+            i++;
+        }
+
+        EXPECT_EQ(hashtable.size(), 2);
+    }
+    hashtable.clear();
+
+    {
+        auto i = tree.find(50, 60);
+        while (i != tree.end()) {
+            hashtable.insert(i->m_tag, &*i);
+            i++;
+        }
+
+        EXPECT_EQ(hashtable.size(), 0);
+    }
+    hashtable.clear();
+
+    {
+        auto i = tree.find(5, 6);
+        while (i != tree.end()) {
+            hashtable.insert(i->m_tag, &*i);
+            i++;
+        }
+        EXPECT_EQ(hashtable.size(), 0);
+    }
+
+    tree.destroyAll();
+}
+
+TEST(IntervalTree, Fuzzy) {
+    TreeType tree;
+    auto e0 = tree.insert(10, 20, new TreeElement(0));
+    auto e1 = tree.insert(30, 40, new TreeElement(1));
+
+    EXPECT_EQ(tree.size(), 2);
+
+    {
+        auto i = tree.find(10);
+        EXPECT_NE(i, tree.end());
+    }
+
+    {
+        auto i = tree.find(15);
+        EXPECT_EQ(i, tree.end());
+    }
+
+    HashTableType hashtable;
+    {
+        auto i = tree.find(15, TreeType::INTERVAL_SEARCH);
+        while (i != tree.end()) {
+            hashtable.insert(i->m_tag, &*i);
+            i++;
+        }
+        EXPECT_EQ(hashtable.size(), 1);
+    }
+
+    tree.destroyAll();
 }

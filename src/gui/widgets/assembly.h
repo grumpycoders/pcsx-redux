@@ -23,13 +23,16 @@
 
 #include <list>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
+#include "support/eventbus.h"
 
 struct MemoryEditor;
 
@@ -43,7 +46,8 @@ namespace Widgets {
 class Assembly : private Disasm {
   public:
     Assembly(MemoryEditor* mainMemoryEditor, MemoryEditor* hwMemoryEditor)
-        : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
+        : m_listener(g_system->m_eventBus), m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
+        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     void draw(GUI* gui, psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title);
@@ -51,6 +55,7 @@ class Assembly : private Disasm {
     bool m_show = false;
 
   private:
+    EventBus::Listener m_listener;
     bool m_followPC = false;
     bool m_pseudoFilling = true;
     bool m_pseudo = true;
@@ -92,8 +97,7 @@ class Assembly : private Disasm {
     bool m_notchAfterSkip[2] = {false, false};
     psxRegisters* m_registers;
     uint32_t m_currentAddr = 0;
-    bool m_jumpToPC = false;
-    uint32_t m_jumpToPCValue = 0;
+    std::optional<uint32_t> m_jumpToPC;
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
 

@@ -86,8 +86,8 @@ class Tree final : public BaseTree {
             Tree<Key, T, limits>* tree = dynamic_cast<Tree<Key, T, limits>*>(m_tree);
             tree->unlink(this);
         }
-        const Key& getLow() { return m_low; }
-        const Key& getHigh() { return m_high; }
+        const Key& getLow() const { return m_low; }
+        const Key& getHigh() const { return m_high; }
 
       private:
         int cmpMin(const Key& o) const {
@@ -216,7 +216,7 @@ class Tree final : public BaseTree {
         nil->m_high = nil->m_max = limits::max();
     }
 
-    unsigned size() { return m_count; }
+    unsigned size() const { return m_count; }
     iterator begin() {
         BaseNode* min = m_root;
         while (min->m_left != &m_nil) min = min->m_left;
@@ -285,12 +285,15 @@ class Tree final : public BaseTree {
         }
         return const_iterator(dynamic_cast<Node*>(p), m_nil);
     }
+    enum IntervalSearch { INTERVAL_SEARCH };
+    iterator find(const Key& key, IntervalSearch) { return find(key, key); }
+    const_iterator find(const Key& key, IntervalSearch) const { return find(key, key); }
     iterator find(const Key& low, const Key& high) {
         Node interval;
         interval.m_low = interval.m_min = low;
         interval.m_high = interval.m_max = high;
         BaseNode* first = m_root;
-        while (first != &m_nil && first->overlapsMax(&interval)) first = first->m_left;
+        while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(&interval)) first = first->m_left;
         iterator ret(dynamic_cast<Node*>(first), interval);
         if (!ret->overlaps(&interval)) ret++;
         return ret;
@@ -300,7 +303,7 @@ class Tree final : public BaseTree {
         interval.m_low = interval.m_min = low;
         interval.m_high = interval.m_max = high;
         const BaseNode* first = m_root;
-        while (first != &m_nil && first->overlapsMax(&interval)) first = first->m_left;
+        while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(&interval)) first = first->m_left;
         const_iterator ret(dynamic_cast<Node*>(first), interval);
         if (!ret->overlaps(&interval)) ret++;
         return ret;
@@ -333,7 +336,7 @@ class Tree final : public BaseTree {
 
         m_count--;
     }
-    bool contains(Node* node) { return this == node->m_root; }
+    bool contains(Node* node) const { return this == node->m_root; }
     void destroyAll() {
         while (m_count) delete m_root;
     }

@@ -275,8 +275,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) {
-        m_jumpToPC = true;
-        m_jumpToPCValue = value;
+        m_jumpToPC = value;
     }
     ImGui::PopStyleVar();
 }
@@ -379,16 +378,14 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     if (symbols.size() == 0) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
+            m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
     } else {
         std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(longLabel.c_str())) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
+            m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
     }
@@ -520,19 +517,6 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     ImGui::SameLine();
     ImGui::Text(_("In ISR: %s"), g_emulator->m_psxCpu->m_inISR ? "yes" : "no");
-    if (!g_system->running()) {
-        if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
-            g_emulator->m_debug->stepOver();
-        } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
-            if (ImGui::GetIO().KeyShift) {
-                g_emulator->m_debug->stepOut();
-            } else {
-                g_emulator->m_debug->stepIn();
-            }
-        } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
-            g_system->resume();
-        }
-    }
 
     gui->useMonoFont();
 
@@ -837,8 +821,8 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     drawList->ChannelsMerge();
     ImGui::EndChild();
     ImGui::PopFont();
-    if (m_jumpToPC) {
-        std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPCValue);
+    if (m_jumpToPC.has_value()) {
+        std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPC);
     }
     ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
     if (ImGui::InputText(_("Address"), m_jumpAddressString, 20,
@@ -846,8 +830,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
         char* endPtr;
         uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);
         if (*m_jumpAddressString && !*endPtr) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = jumpAddress;
+            m_jumpToPC = jumpAddress;
         }
     }
     static const char* baseStrs[] = {"00000000", "80000000", "a0000000"};
@@ -868,7 +851,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-    if (m_followPC || m_jumpToPC) {
+    if (m_followPC || m_jumpToPC.has_value()) {
         if (m_followPC) {
             uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
             switch (basePC) {
@@ -883,10 +866,10 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                     break;
             }
         }
-        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
+        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPC.value()) : pc) / 4;
         double scroll_to_px = pctopx * clipper.ItemsHeight;
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
-        m_jumpToPC = false;
+        m_jumpToPC.reset();
     }
     ImGui::EndChild();
     ImGui::End();
@@ -934,8 +917,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                     std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
                     std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {
-                        m_jumpToPC = true;
-                        m_jumpToPCValue = symbol.second;
+                        m_jumpToPC = symbol.second;
                     }
                     ImGui::SameLine();
                     if (ImGui::Button(dataLabel.c_str())) {

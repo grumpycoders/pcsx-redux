@@ -77,12 +77,6 @@ void PCSX::Debug::processBefore() {
     const bool isJRK0 = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
                         ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 26;
 
-    if (m_stepping) {
-        m_oldSteppingJumps = m_steppingJumps;
-        if (isJAL || isJALR) m_steppingJumps++;
-        if (isJRRA || isJRK0) m_steppingJumps--;
-    }
-
     if (m_mapping_e) {
         markMap(pc, MAP_EXEC);
         if (isJAL) markMap(_JumpTarget_, MAP_EXEC_JAL);
@@ -94,41 +88,29 @@ void PCSX::Debug::processAfter() {
     const uint32_t& pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
     checkBP(pc, BE);
 
-    if (m_stepping) {
-        const bool gotException = pc == 0x80000080 || pc == 0xbfc00180;
-        if (gotException) m_steppingJumps += 2;  // there ought to be two jr $k0
+    if (m_step == STEP_NONE) return;
+    if (!m_wasInISR && g_emulator->m_psxCpu->m_inISR) return;
 
-        auto none = m_breakpoints.end();
-        switch (m_stepType) {
-            case STEP_IN:
-                triggerBP(none, _("Step in"));
-                break;
-            case STEP_OVER:
-                if (m_steppingJumps == 0) {
-                    if (m_oldSteppingJumps == 0) {
-                        triggerBP(none, _("Step over"));
-                    } else {
-                        queueBP(_("Step over"));
-                    }
-                }
-                break;
-            case STEP_OUT:
-                if (m_steppingJumps == -1) queueBP(_("Step out"));
-                break;
-        }
-        m_oldSteppingJumps = m_steppingJumps;
+    auto none = m_breakpoints.end();
+    switch (m_step) {
+        case STEP_IN:
+            triggerBP(none, _("Step in"));
+            break;
+        case STEP_OVER:
+            break;
+        case STEP_OUT:
+            break;
     }
 }
 
 void PCSX::Debug::startStepping() {
     if (PCSX::g_system->running()) return;
-    m_stepping = true;
-    m_steppingJumps = 0;
+    m_wasInISR = g_emulator->m_psxCpu->m_inISR;
     g_system->resume();
 }
 
 void PCSX::Debug::triggerBP(bpiterator bp, const char* reason) {
-    m_stepping = false;
+    m_step = STEP_NONE;
     if (bp != m_breakpoints.end() && bp->second.m_temporary) {
         m_lastBP = m_breakpoints.end();
         m_breakpoints.erase(bp);

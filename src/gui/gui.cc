@@ -39,6 +39,7 @@
 
 #include "core/binloader.h"
 #include "core/cdrom.h"
+#include "core/debug.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/pad.h"
@@ -512,20 +513,38 @@ void PCSX::GUI::startFrame() {
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
     if (io.KeyAlt && ImGui::IsKeyPressed(GLFW_KEY_ENTER)) setFullscreen(!m_fullscreen);
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) { // Save to quick-save slot
+    if (ImGui::IsKeyPressed(GLFW_KEY_F1)) {  // Save to quick-save slot
         zstr::ofstream save(buildSaveStateFilename(0), std::ios::binary);
         save << SaveStates::save();
     }
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) { // Load from quick-save slot
+    if (ImGui::IsKeyPressed(GLFW_KEY_F2)) {  // Load from quick-save slot
         const auto saveStateName = buildSaveStateFilename(0);
         loadSaveState(saveStateName);
     }
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_F3)) g_system->start(); // Start system
-    if (ImGui::IsKeyPressed(GLFW_KEY_PAUSE) || ImGui::IsKeyPressed(GLFW_KEY_F4)) g_system->pause(); // Pause system
-    if (ImGui::IsKeyPressed(GLFW_KEY_F5)) g_system->softReset(); // Soft reset
-    if (ImGui::IsKeyPressed(GLFW_KEY_F6)) g_system->hardReset(); // Hard reset
+    if (!g_system->running()) {
+        if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
+            g_emulator->m_debug->stepOver();
+        } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
+            if (ImGui::GetIO().KeyShift) {
+                g_emulator->m_debug->stepOut();
+            } else {
+                g_emulator->m_debug->stepIn();
+            }
+        } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
+            g_system->resume();
+        }
+    } else {
+        if (ImGui::IsKeyPressed(GLFW_KEY_PAUSE) || ImGui::IsKeyPressed(GLFW_KEY_F6)) g_system->pause();
+    }
+    if (ImGui::IsKeyPressed(GLFW_KEY_F8)) {
+        if (ImGui::GetIO().KeyShift) {
+            g_system->hardReset();
+        } else {
+            g_system->softReset();
+        }
+    }
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -718,16 +737,16 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Emulation"))) {
-                if (ImGui::MenuItem(_("Start"), "F3", nullptr, !g_system->running())) {
+                if (ImGui::MenuItem(_("Start"), "F5", nullptr, !g_system->running())) {
                     g_system->start();
                 }
-                if (ImGui::MenuItem(_("Pause"), "F4", nullptr, g_system->running())) {
+                if (ImGui::MenuItem(_("Pause"), "F6", nullptr, g_system->running())) {
                     g_system->pause();
                 }
-                if (ImGui::MenuItem(_("Soft Reset"), "F5")) {
+                if (ImGui::MenuItem(_("Soft Reset"), "F8")) {
                     g_system->softReset();
                 }
-                if (ImGui::MenuItem(_("Hard Reset"), "F6")) {
+                if (ImGui::MenuItem(_("Hard Reset"), "shift-F8")) {
                     g_system->hardReset();
                 }
                 ImGui::EndMenu();
@@ -804,6 +823,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Show Registers"), nullptr, &m_registers.m_show);
                 ImGui::MenuItem(_("Show Assembly"), nullptr, &m_assembly.m_show);
                 ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
+                ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
                 ImGui::MenuItem(_("Breakpoint on vsync"), nullptr, &m_breakOnVSync);
                 if (ImGui::BeginMenu(_("Memory Editors"))) {
                     for (auto& editor : m_mainMemEditors) {
@@ -950,6 +970,9 @@ void PCSX::GUI::endFrame() {
     }
     if (m_kernelLog.m_show) {
         changed |= m_kernelLog.draw(g_emulator->m_psxCpu.get(), _("Kernel Calls"));
+    }
+    if (m_callstacks.m_show) {
+        m_callstacks.draw(_("Callstacks"), this);
     }
 
     {
@@ -1409,8 +1432,8 @@ void PCSX::GUI::interruptsScaler() {
 }
 
 bool PCSX::GUI::showThemes() {
-    static const char* imgui_themes[] = {"Default", "Classic", "Light",
-                                          "Cherry",  "Mono", "Dracula", "Olive"};  // Used for theme combo box
+    static const char* imgui_themes[] = {"Default", "Classic", "Light", "Cherry",
+                                         "Mono",    "Dracula", "Olive"};  // Used for theme combo box
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
 
@@ -1549,8 +1572,8 @@ std::string PCSX::GUI::buildSaveStateFilename(int i) {
     }
 }
 
-void PCSX::GUI::loadSaveState (const std::filesystem::path& filename) {
-    if (!std::filesystem::exists(std::filesystem::path(filename))) return; // Return if the savestate doesn't exist
+void PCSX::GUI::loadSaveState(const std::filesystem::path& filename) {
+    if (!std::filesystem::exists(std::filesystem::path(filename))) return;  // Return if the savestate doesn't exist
 
     zstr::ifstream save(filename.string(), std::ios::binary);
     std::ostringstream os;
@@ -1561,9 +1584,9 @@ void PCSX::GUI::loadSaveState (const std::filesystem::path& filename) {
         save.read(buff, buff_size);
         std::streamsize cnt = save.gcount();
         if (cnt == 0) break;
-         os.write(buff, cnt);
+        os.write(buff, cnt);
     }
-                    
+
     delete[] buff;
     SaveStates::load(os.str());
 };

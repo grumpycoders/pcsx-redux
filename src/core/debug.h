@@ -60,15 +60,15 @@ class Debug {
     };
 
     void stepIn() {
-        m_stepType = STEP_IN;
+        m_step = STEP_IN;
         startStepping();
     }
     void stepOver() {
-        m_stepType = STEP_OVER;
+        m_step = STEP_OVER;
         startStepping();
     }
     void stepOut() {
-        m_stepType = STEP_OUT;
+        m_step = STEP_OUT;
         startStepping();
     }
 
@@ -120,13 +120,13 @@ class Debug {
     bool m_queuedBP = false;
 
     enum {
+        STEP_NONE,
         STEP_IN,
         STEP_OVER,
         STEP_OUT,
-    } m_stepType;
-    bool m_stepping = false;
-    int m_steppingJumps = 0;
-    int m_oldSteppingJumps = 0;
+    } m_step;
+
+    bool m_wasInISR = false;
 };
 
 }  // namespace PCSX
