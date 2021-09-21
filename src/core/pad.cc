@@ -18,11 +18,14 @@
  ***************************************************************************/
 
 #define GLFW_INCLUDE_NONE
+#define _USE_MATH_DEFINES
 #include "core/pad.h"
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <memory.h>
+
+#include <cmath>
 
 #include "core/system.h"
 #include "fmt/format.h"
@@ -146,23 +149,24 @@ void PCSX::Pads::Pad::map() {
     m_padMapping[15] = m_settings.get<Controller_PadSquare>();    // SQUARE
 }
 
-static const float TRIGGER_THRESHOLD = 0.85;
-static const float AXIS_THRESHOLD = 0.75;
+static constexpr float THRESHOLD = 0.85;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
 bool PCSX::Pads::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
     int mapped = m_padMapping[button];
     switch (mapped) {
         case GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER:
-            return state->axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] >= TRIGGER_THRESHOLD;
+            return state->axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] >= THRESHOLD;
         case GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER:
-            return state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] >= TRIGGER_THRESHOLD;
+            return state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] >= THRESHOLD;
         case GLFW_GAMEPAD_BUTTON_INVALID:
             return false;
         default:
             return state->buttons[mapped];
     }
 }
+
+static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
 uint16_t PCSX::Pads::Pad::getButtons() {
     if (!m_settings.get<SettingConnected>()) return 0xffff;
@@ -204,10 +208,44 @@ uint16_t PCSX::Pads::Pad::getButtons() {
     for (unsigned i = 0; i < 16; i++) {
         buttons[i] = isControllerButtonPressed(i, &state);
     }
-    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] >= AXIS_THRESHOLD) buttons[6] = true;
-    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] >= AXIS_THRESHOLD) buttons[5] = true;
-    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] <= -AXIS_THRESHOLD) buttons[4] = true;
-    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] <= -AXIS_THRESHOLD) buttons[7] = true;
+    {
+        float x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
+        float y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
+        float ds = x * x + y * y;
+        if (ds >= THRESHOLD * THRESHOLD) {
+            float d = std::sqrt(ds);
+            x /= d;
+            y /= d;
+            float a = 0;
+            if ((x * x) > (y * y)) {
+                a = std::acos(x);
+                if (y < 0) a = π(2.0f) - a;
+            } else {
+                a = std::asin(y);
+                if (x < 0) {
+                    a = π() - a;
+                } else if (y < 0) {
+                    a = π(2.0f) + a;
+                }
+            }
+            if ((a < π(2.5f / 8.0f)) || (a >= π(13.5f / 8.0f))) {
+                // right
+                buttons[5] = true;
+            }
+            if ((π(1.5f / 8.0f) <= a) && (a < π(6.5f / 8.0f))) {
+                // up
+                buttons[4] = true;
+            }
+            if ((π(5.5f / 8.0f) <= a) && (a < π(10.5f / 8.0f))) {
+                // left
+                buttons[7] = true;
+            }
+            if ((π(9.5f / 8.0f) <= a) && (a < π(14.5f / 8.0f))) {
+                // down
+                buttons[6] = true;
+            }
+        }
+    }
     uint16_t result = 0;
     for (unsigned i = 0; i < 16; i++) result |= !buttons[i] << i;
 
