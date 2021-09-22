@@ -164,7 +164,7 @@ void PCSX::Counters::psxRcntUpdate() {
             g_emulator->m_psxCpu->m_psxRegs.previousCycles = cycle;
             g_emulator->m_spu->waitForGoal(target);
             m_audioFrames = target;
-        } else if (framesDiff < -100000) {
+        } else if (framesDiff < -2000000000) {
             m_audioFrames = newFrames;
         }
     }
