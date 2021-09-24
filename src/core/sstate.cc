@@ -19,6 +19,7 @@
 
 #include "core/sstate.h"
 
+#include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
@@ -156,12 +157,21 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         Counters {},
         MDEC {},
         PCdrvFilesField {},
+        CallStacks {},
     };
     // clang-format on
 }
 
+namespace PCSX {
+struct SaveStateWrapper {
+    SaveStateWrapper(SaveStates::SaveState& state_) : state(state_) {}
+    SaveStates::SaveState& state;
+};
+}  // namespace PCSX
+
 std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
+    SaveStateWrapper wrapper(state);
 
     state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v2";
     state.get<SaveStateInfoField>().get<Version>().value = 2;
@@ -176,9 +186,27 @@ std::string PCSX::SaveStates::save() {
         state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
     });
 
+    g_emulator->m_callStacks->serialize(&wrapper);
+
     Protobuf::OutSlice slice;
     state.serialize(&slice);
     return slice.finalize();
+}
+
+void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
+    using namespace SaveStates;
+    auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
+    for (auto& callstack : getCallstacks()) {
+        SaveStates::CallStack sscallstack{};
+        sscallstack.get<LowSP>().value = callstack.getLow();
+        sscallstack.get<HighSP>().value = callstack.getHigh();
+        sscallstack.get<CallstackIsCurrent>().value = &callstack == m_current;
+        for (auto& call : callstack.calls) {
+            sscallstack.get<Calls>().value.emplace_back(call.ra, call.sp);
+        }
+        callstacks.emplace_back(sscallstack);
+    }
+    w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value = m_currentSP;
 }
 
 bool PCSX::SaveStates::load(const std::string& data) {
@@ -195,6 +223,7 @@ bool PCSX::SaveStates::load(const std::string& data) {
         return false;
     }
 
+    SaveStateWrapper wrapper(state);
     PCSX::g_emulator->m_psxCpu->Reset();
     state.commit();
     g_emulator->m_psxCpu->m_psxRegs.lowestTarget = g_emulator->m_psxCpu->m_psxRegs.cycle;
@@ -232,6 +261,32 @@ bool PCSX::SaveStates::load(const std::string& data) {
             g_emulator->m_psxCpu->restorePCdrvFile(filename, fd);
         }
     }
+    g_emulator->m_callStacks->deserialize(&wrapper);
 
     return true;
+}
+
+void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
+    using namespace SaveStates;
+    m_callstacks.destroyAll();
+
+    auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
+    m_current = nullptr;
+
+    for (auto& sscallstack : callstacks) {
+        auto& calls = sscallstack.get<Calls>().value;
+        uint32_t lowSP = sscallstack.get<LowSP>().value;
+        uint32_t highSP = sscallstack.get<HighSP>().value;
+        bool isCurrent = sscallstack.get<CallstackIsCurrent>().value;
+        CallStack* callstack = new CallStack();
+        for (auto& call : calls) {
+            uint32_t ra = call.get<CallRA>().value;
+            uint32_t sp = call.get<CallSP>().value;
+            callstack->calls.push_back(new CallStack::Call(sp, ra));
+        }
+        if (isCurrent) m_current = callstack;
+        m_callstacks.insert(lowSP, highSP, callstack);
+    }
+
+    m_currentSP = w->state.get<SaveStates::CallStacksField>().get<CallStacksCurrentSP>().value;
 }

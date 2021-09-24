@@ -254,14 +254,27 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("create"), 3> PCdrvCreate;
 typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate> PCdrvFile;
 typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdrvFilesField;
 
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 1> CallRA;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 2> CallSP;
+typedef Protobuf::Message<TYPESTRING("Call"), CallRA, CallSP> Call;
+typedef Protobuf::RepeatedVariableField<Call, TYPESTRING("calls"), 1> Calls;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("low"), 2> LowSP;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("high"), 3> HighSP;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("iscurrent"), 4> CallstackIsCurrent;
+typedef Protobuf::Message<TYPESTRING("Calls"), Calls, LowSP, HighSP, CallstackIsCurrent> CallStack;
+typedef Protobuf::RepeatedVariableField<CallStack, TYPESTRING("CallStacks"), 1> CallStacksMessageField;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("currentSP"), 2> CallStacksCurrentSP;
+typedef Protobuf::Message<TYPESTRING("CallStacks"), CallStacksMessageField, CallStacksCurrentSP> CallStacks;
+typedef Protobuf::MessageField<CallStacks, TYPESTRING("callstacks"), 14> CallStacksField;
+
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
                           GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField,
-                          PCdrvFilesField>
+                          PCdrvFilesField, CallStacksField>
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, SaveState>
+                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

@@ -28,6 +28,8 @@
 
 namespace PCSX {
 
+struct SaveStateWrapper;
+
 class CallStacks {
   public:
     struct CallStack;
@@ -51,6 +53,9 @@ class CallStacks {
 
     const CallStack& getCurrent() { return *m_current; }
     const TreeType& getCallstacks() { return m_callstacks; }
+
+    void serialize(SaveStateWrapper*);
+    void deserialize(const SaveStateWrapper*);
 
   private:
     TreeType m_callstacks;
