@@ -202,7 +202,7 @@ void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
         sscallstack.get<HighSP>().value = callstack.getHigh();
         sscallstack.get<CallstackIsCurrent>().value = &callstack == m_current;
         for (auto& call : callstack.calls) {
-            sscallstack.get<Calls>().value.emplace_back(call.ra, call.sp);
+            sscallstack.get<Calls>().value.emplace_back(call.ra, call.sp, call.shadow);
         }
         callstacks.emplace_back(sscallstack);
     }
@@ -282,7 +282,8 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
         for (auto& call : calls) {
             uint32_t ra = call.get<CallRA>().value;
             uint32_t sp = call.get<CallSP>().value;
-            callstack->calls.push_back(new CallStack::Call(sp, ra));
+            bool shadow = call.get<Shadow>().value;
+            callstack->calls.push_back(new CallStack::Call(sp, ra, shadow));
         }
         if (isCurrent) m_current = callstack;
         m_callstacks.insert(lowSP, highSP, callstack);

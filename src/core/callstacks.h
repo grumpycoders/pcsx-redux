@@ -43,8 +43,9 @@ class CallStacks {
         struct Call;
         typedef Intrusive::List<Call> ListType;
         struct Call : public ListType::Node {
-            Call(uint32_t sp_, uint32_t ra_) : sp(sp_), ra(ra_) {}
+            Call(uint32_t sp_, uint32_t ra_, bool shadow_) : sp(sp_), ra(ra_), shadow(shadow_) {}
             uint32_t sp, ra;
+            bool shadow;
         };
         ~CallStack() { calls.destroyAll(); }
         ListType calls;
@@ -73,7 +74,7 @@ class CallStacks {
         });
     }
     void setSP(uint32_t oldSP, uint32_t newSP);
-    void offsetSP(uint32_t oldSP, int16_t offset);
+    void offsetSP(uint32_t oldSP, int32_t offset);
     void storeRA(uint32_t sp, uint32_t ra);
     void loadRA(uint32_t sp);
     void potentialRA(uint32_t ra);

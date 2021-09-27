@@ -478,8 +478,12 @@ void InterpretedCPU::psxADD(uint32_t code) {
     auto rs = _rRs_;
     auto rt = _rRt_;
     uint32_t res = rs + rt;
-    if (_Rt_ == 29) {
-        PCSX::g_emulator->m_callStacks->setSP(_rRt_, res);
+    if (_Rd_ == 29) {
+        if ((_Rs_ == 29) || (_Rt_ == 29)) {
+            PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
+        } else {
+            PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
+        }
     }
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -500,11 +504,15 @@ void InterpretedCPU::psxADD(uint32_t code) {
 void InterpretedCPU::psxADDU(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRs_) + _u32(_rRt_);
+    uint32_t res = _u32(_rRs_) + _u32(_rRt_);
     if (_Rd_ == 29) {
-        PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
+        if ((_Rs_ == 29) || (_Rt_ == 29)) {
+            PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
+        } else {
+            PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
+        }
     }
-    _rRd_ = newValue;
+    _rRd_ = res;
 }  // Rd = Rs + Rt
 void InterpretedCPU::psxSUB(uint32_t code) {
     if (!_Rd_) return;
@@ -513,7 +521,11 @@ void InterpretedCPU::psxSUB(uint32_t code) {
     auto rt = _rRt_;
     uint32_t res = rs - rt;
     if (_Rd_ == 29) {
-        PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
+        if (_Rs_ == 29) {
+            PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
+        } else {
+            PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
+        }
     }
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -533,11 +545,15 @@ void InterpretedCPU::psxSUB(uint32_t code) {
 void InterpretedCPU::psxSUBU(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRs_) - _u32(_rRt_);
+    uint32_t res = _u32(_rRs_) - _u32(_rRt_);
     if (_Rd_ == 29) {
-        PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
+        if (_Rs_ == 29) {
+            PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
+        } else {
+            PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
+        }
     }
-    _rRd_ = newValue;
+    _rRd_ = res;
 }  // Rd = Rs - Rt
 void InterpretedCPU::psxAND(uint32_t code) {
     if (!_Rd_) return;

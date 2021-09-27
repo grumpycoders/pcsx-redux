@@ -20,16 +20,25 @@
 #include "core/callstacks.h"
 
 #include "core/logger.h"
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "core/system.h"
 
 #if 0
 template <typename... Args>
 static void debugLog(const char* format, const Args&... args) {
+    PCSX::g_system->log(PCSX::LogClass::SYSTEM, "%08x: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc);
     PCSX::g_system->log(PCSX::LogClass::SYSTEM, format, args...);
 }
 #else
 #define debugLog(...)
 #endif
+
+template <typename... Args>
+static void normalLog(const char* format, const Args&... args) {
+    PCSX::g_system->log(PCSX::LogClass::SYSTEM, "%08x: ", PCSX::g_emulator->m_psxCpu->m_psxRegs.pc);
+    PCSX::g_system->log(PCSX::LogClass::SYSTEM, format, args...);
+}
 
 void PCSX::CallStacks::setSP(uint32_t oldSP, uint32_t newSP) {
     debugLog("[CSDBG] setSP(0x%08x, 0x%08x)\n", oldSP, newSP);
@@ -55,7 +64,7 @@ void PCSX::CallStacks::setSP(uint32_t oldSP, uint32_t newSP) {
     todelete.destroyAll();
 }
 
-void PCSX::CallStacks::offsetSP(uint32_t oldSP, int16_t offset) {
+void PCSX::CallStacks::offsetSP(uint32_t oldSP, int32_t offset) {
     uint32_t lowSP = oldSP + offset;
     uint32_t highSP = oldSP;
     m_currentSP = lowSP;
@@ -68,54 +77,83 @@ void PCSX::CallStacks::offsetSP(uint32_t oldSP, int16_t offset) {
         debugLog("[CSDBG] offsetSP: adjusting high pointer to 0x%08x\n", highSP);
     }
     if (lowSP > highSP) {
-        g_system->log(LogClass::SYSTEM, "[CS] inconsistent stack offset (low = 0x%08x, high = 0x%08x)\n", lowSP,
-                      highSP);
+        debugLog("[CSDBG] inconsistent stack offset; adjusting (low = 0x%08x, high = 0x%08x)\n", lowSP, highSP);
+        highSP = lowSP;
     }
+    m_callstacks.unlink(m_current);
+    auto callstacks = m_callstacks.find(lowSP, highSP);
+    ListType todelete;
+    while (callstacks != m_callstacks.end()) {
+        debugLog("[CSDBG] deleting intersecting stack\n", callstacks->getLow(), callstacks->getHigh());
+        todelete.push_back(&*callstacks);
+        callstacks++;
+    }
+    todelete.destroyAll();
     m_callstacks.insert(lowSP, highSP, m_current);
     auto& calls = m_current->calls;
+    CallStack::Call* maybeShadow = nullptr;
     while (true) {
-        if (calls.size() == 0) break;
+        if ((calls.size() == 0) || ((calls.size() == 1) && maybeShadow)) break;
         auto last = --calls.end();
+        if (maybeShadow) last--;
         if (last->sp >= lowSP) break;
-        debugLog("[CSDBG] offsetSP: deleting call to 0x%08x from 0x%08x\n", last->ra, last->sp);
-        delete &*last;
-        m_current->ra = 0;
+        if (maybeShadow) {
+            debugLog("[CSDBG] offsetSP: deleting shadow space call to 0x%08x from 0x%08x\n", maybeShadow->ra,
+                     maybeShadow->sp);
+            delete maybeShadow;
+            maybeShadow = nullptr;
+        }
+        if (last->shadow) {
+            maybeShadow = &*last;
+        } else {
+            debugLog("[CSDBG] offsetSP: deleting call to 0x%08x from 0x%08x\n", last->ra, last->sp);
+            delete &*last;
+            m_current->ra = 0;
+        }
     }
 }
 
 void PCSX::CallStacks::storeRA(uint32_t sp, uint32_t ra) {
     if (!m_current) {
-        g_system->log(LogClass::SYSTEM, "[CS] Got 0x%08x written to 0x%08x, but we don't have a callstack for it.\n",
-                      ra, sp);
+        normalLog("[CS] Got 0x%08x written to 0x%08x, but we don't have a callstack for it.\n", ra, sp);
         return;
     }
-    if ((m_current->getHigh() < sp) || (m_current->getLow() > sp)) {
-        g_system->log(
-            LogClass::SYSTEM,
-            "[CS] Got 0x%08x written to 0x%08x, but it's out of bounds of our current stack (0x%08x - 0x%08x).\n", ra,
-            sp, m_current->getLow(), m_current->getHigh());
-        return;
+    uint32_t low = m_current->getLow();
+    uint32_t high = m_current->getHigh();
+    bool shadow = false;
+    if ((high < sp) || (low > sp)) {
+        if ((low - 16) > sp) {
+            g_system->log(
+                LogClass::SYSTEM,
+                "[CS] Got 0x%08x written to 0x%08x, but it's out of bounds of our current stack (0x%08x - 0x%08x).\n",
+                ra, sp, low, high);
+            return;
+        }
+        shadow = true;
     }
     m_current->ra = 0;
-    debugLog("[CSDBG] storeRA: creating call to 0x%08x from 0x%08x on stack 0x%08x\n", ra, sp, m_current->getHigh());
-    m_current->calls.push_back(new CallStack::Call(sp, ra));
+    if (shadow) {
+        debugLog("[CSDBG] storeRA: creating shadow space call to 0x%08x from 0x%08x on stack 0x%08x\n", ra, sp, high);
+    } else {
+        debugLog("[CSDBG] storeRA: creating call to 0x%08x from 0x%08x on stack 0x%08x\n", ra, sp, high);
+    }
+    m_current->calls.push_back(new CallStack::Call(sp, ra, shadow));
 }
 
 void PCSX::CallStacks::loadRA(uint32_t sp) {
     if (!m_current) {
-        g_system->log(LogClass::SYSTEM, "[CS] Got a RA load from 0x%08x, but we don't have any active stack.\n", sp);
+        normalLog("[CS] Got a RA load from 0x%08x, but we don't have any active stack.\n", sp);
         return;
     }
     auto& calls = m_current->calls;
     if (calls.size() == 0) {
-        g_system->log(LogClass::SYSTEM, "[CS] Got a RA load from 0x%08x, but current stack is empty.\n", sp);
+        normalLog("[CS] Got a RA load from 0x%08x, but current stack is empty.\n", sp);
         return;
     }
     auto last = --calls.end();
     if (last->sp != sp) {
-        g_system->log(LogClass::SYSTEM,
-                      "[CS] Got a RA load from 0x%08x, but the active stack's at 0x%08x (ra: 0x%08x, size = %i)\n", sp,
-                      last->sp, last->ra, calls.size());
+        normalLog("[CS] Got a RA load from 0x%08x, but the active stack's at 0x%08x (ra: 0x%08x, size = %i)\n", sp,
+                  last->sp, last->ra, calls.size());
     }
 }
 
