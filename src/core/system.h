@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 
+#include <chrono>
 #include <filesystem>
 #include <limits>
 #include <map>
@@ -37,9 +38,17 @@ namespace PCSX {
 
 enum class LogClass : unsigned;
 
-// a hack, until c++-20 is fully adopted everywhere.
+// a hack, until C++-20 is fully adopted everywhere.
 typedef decltype(std::filesystem::path().u8string()) u8string;
 #define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
+
+// another hack, until C++-20 properly gets std::chrono::clock_cast
+template<typename DstTP, typename SrcTP, typename DstClk = typename DstTP::clock, typename SrcClk = typename SrcTP::clock>
+DstTP ClockCast(const SrcTP tp) {
+    const auto srcNow = SrcClk::now();
+    const auto dstNow = DstClk::now();
+    return dstNow + (tp - srcNow);
+}
 
 namespace Events {
 struct SettingsLoaded {};

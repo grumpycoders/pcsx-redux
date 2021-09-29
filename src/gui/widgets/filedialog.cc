@@ -148,7 +148,7 @@ bool PCSX::Widgets::FileDialog::draw() {
                 } else {
                     try {
                         auto lastWrite = std::filesystem::last_write_time(p);
-                        auto lastWriteSystemClock = std::chrono::clock_cast<std::chrono::system_clock>(lastWrite);
+                        auto lastWriteSystemClock = ClockCast<std::chrono::system_clock::time_point>(lastWrite);
                         std::time_t dateTime = std::chrono::system_clock::to_time_t(lastWriteSystemClock);
                         const std::tm* converted = std::localtime(&dateTime);
                         std::ostringstream formatted;
