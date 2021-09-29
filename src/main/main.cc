@@ -132,6 +132,15 @@ int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     const flags::args args(argc, argv);
 
+#if defined(_WIN32) || defined(_WIN64)
+    if (args.get<bool>("stdout")) {
+        AllocConsole();
+        freopen("CONIN$", "r", stdin);
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+#endif
+
     if (args.get<bool>("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
         return 0;
