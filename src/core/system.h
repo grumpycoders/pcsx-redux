@@ -45,9 +45,11 @@ typedef decltype(std::filesystem::path().u8string()) u8string;
 // another hack, until C++-20 properly gets std::chrono::clock_cast
 template<typename DstTP, typename SrcTP, typename DstClk = typename DstTP::clock, typename SrcClk = typename SrcTP::clock>
 DstTP ClockCast(const SrcTP tp) {
-    const auto srcNow = SrcClk::now();
-    const auto dstNow = DstClk::now();
-    return dstNow + (tp - srcNow);
+    const SrcTP srcNow = SrcClk::now();
+    const DstTP dstNow = DstClk::now();
+    const std::chrono::system_clock::duration delta = tp - srcNow;
+    const DstTP ret = dstNow + delta;
+    return ret;
 }
 
 namespace Events {
