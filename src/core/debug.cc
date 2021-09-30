@@ -67,34 +67,89 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
     return false;
 }
 
-void PCSX::Debug::processBefore() {
-    const uint32_t& pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
-    const bool isJAL = (PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 3;
-    const bool isJALR = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3F) == 9);
-    const bool isJRRA = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 31;
-    const bool isJRK0 = ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code >> 26) == 0) &&
-                        ((PCSX::g_emulator->m_psxCpu->m_psxRegs.code & 0x3f) == 8) && _Rs_ == 26;
+void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code) {
+    const uint32_t basic = code >> 26;
+    const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x30);
 
-    if (m_mapping_e) {
-        markMap(pc, MAP_EXEC);
-        if (isJAL) markMap(_JumpTarget_, MAP_EXEC_JAL);
-        if (isJALR) markMap(_Rd_, MAP_EXEC_JAL);
+    checkBP(newPC, BreakpointType::Exec, 4);
+    if (m_breakmp_e && !isMapMarked(newPC, MAP_EXEC)) {
+        triggerBP(nullptr, _("Execution map"));
     }
-}
+    if (m_mapping_e) {
+        const bool isJAL = basic == 3;
+        const bool isJALR = (basic == 0) && ((code & 0x3F) == 9);
+        const uint32_t target = (code & 0x03ffffff) * 4 + (oldPC & 0xf0000000);
+        const uint32_t rd = (code >> 11) & 0x1f;
+        markMap(oldPC, MAP_EXEC);
+        if (isJAL) markMap(target, MAP_EXEC_JAL);
+        if (isJALR) markMap(g_emulator->m_psxCpu->m_psxRegs.GPR.r[rd], MAP_EXEC_JAL);
+    }
 
-void PCSX::Debug::processAfter() {
-    const uint32_t& pc = PCSX::g_emulator->m_psxCpu->m_psxRegs.pc;
-    checkBP(pc, BE);
+    if (isAnyLoadOrStore) {
+        const bool isLB = basic == 0x20;
+        const bool isLH = basic == 0x21;
+        const bool isLWL = basic == 0x22;
+        const bool isLW = basic == 0x23;
+        const bool isLBU = basic == 0x24;
+        const bool isLHU = basic == 0x25;
+        const bool isLWR = basic == 0x26;
+        const bool isSB = basic == 0x28;
+        const bool isSH = basic == 0x29;
+        const bool isSWL = basic == 0x2a;
+        const bool isSW = basic == 0x2b;
+        const bool isSWR = basic == 0x2e;
+        uint32_t offset = g_emulator->m_psxCpu->m_psxRegs.GPR.r[(code >> 21) & 0x1f] + int16_t(code);
+        if (isLWL || isLWR || isSWR || isSWL) offset &= ~3;
+        if (isLB || isLBU) {
+            checkBP(offset, BreakpointType::Read, 1);
+            if (m_breakmp_r8 && !isMapMarked(offset, MAP_R8)) {
+                triggerBP(nullptr, _("Read 8 map"));
+            }
+            if (m_mapping_r8) markMap(offset, MAP_R8);
+        }
+        if (isLH || isLHU) {
+            checkBP(offset, BreakpointType::Read, 2);
+            if (m_breakmp_r16 && !isMapMarked(offset, MAP_R16)) {
+                triggerBP(nullptr, _("Read 16 map"));
+            }
+            if (m_mapping_r16) markMap(offset, MAP_R16);
+        }
+        if (isLW || isLWR || isLWL) {
+            checkBP(offset, BreakpointType::Read, 4);
+            if (m_breakmp_r32 && !isMapMarked(offset, MAP_R32)) {
+                triggerBP(nullptr, _("Read 32 map"));
+            }
+            if (m_mapping_r32) markMap(offset, MAP_R32);
+        }
+        if (isSB) {
+            checkBP(offset, BreakpointType::Write, 1);
+            if (m_breakmp_w8 && !isMapMarked(offset, MAP_W8)) {
+                triggerBP(nullptr, _("Write 8 map"));
+            }
+            if (m_mapping_w8) markMap(offset, MAP_W8);
+        }
+        if (isSH) {
+            checkBP(offset, BreakpointType::Write, 2);
+            if (m_breakmp_w16 && !isMapMarked(offset, MAP_W16)) {
+                triggerBP(nullptr, _("Write 16 map"));
+            }
+            if (m_mapping_w16) markMap(offset, MAP_W16);
+        }
+        if (isSW || isSWR || isSWL) {
+            checkBP(offset, BreakpointType::Write, 4);
+            if (m_breakmp_w32 && !isMapMarked(offset, MAP_W32)) {
+                triggerBP(nullptr, _("Write 32 map"));
+            }
+            if (m_mapping_w32) markMap(offset, MAP_W32);
+        }
+    }
 
     if (m_step == STEP_NONE) return;
     if (!m_wasInISR && g_emulator->m_psxCpu->m_inISR) return;
 
-    auto none = m_breakpoints.end();
     switch (m_step) {
         case STEP_IN:
-            triggerBP(none, _("Step in"));
+            triggerBP(nullptr, _("Step in"));
             break;
         case STEP_OVER:
             break;
@@ -109,56 +164,32 @@ void PCSX::Debug::startStepping() {
     g_system->resume();
 }
 
-void PCSX::Debug::triggerBP(bpiterator bp, const char* reason) {
-    m_step = STEP_NONE;
-    if (bp != m_breakpoints.end() && bp->second.m_temporary) {
-        m_lastBP = m_breakpoints.end();
-        m_breakpoints.erase(bp);
-    } else {
-        m_lastBP = bp;
+bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view reason) {
+    uint32_t pc = g_emulator->m_psxCpu->m_psxRegs.pc;
+    bool keepBP = true;
+    std::string name;
+    m_lastBP = nullptr;
+    if (bp) {
+        name = bp->name();
+        keepBP = bp->trigger();
+        if (keepBP) m_lastBP = bp;
     }
-    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s\n"), g_emulator->m_psxCpu->m_psxRegs.pc, reason);
-    PCSX::g_system->pause();
+    if (g_system->running()) return keepBP;
+    m_step = STEP_NONE;
+    g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s\n"), pc, name.empty() ? reason : name);
+    return keepBP;
 }
 
-void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, const char* reason) {
+void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, unsigned width) {
     auto none = m_breakpoints.end();
+    address &= ~0xe0000000;
 
-    if (m_queuedBP) {
-        triggerBP(none, m_queuedBPReason.c_str());
-        m_queuedBP = false;
+    BreakpointUserListType todelete;
+    for (auto it = m_breakpoints.find(address, address + width - 1); it != m_breakpoints.end(); it++) {
+        if (it->type() != type) continue;
+        if (!triggerBP(&*it)) todelete.push_back(&*it);
     }
-    auto [begin, end] = m_breakpoints.equal_range(address);
-    for (auto it = begin; it != end; it++) {
-        if (it->second.enabled() && (it->second.m_type == type) && (it->first == address)) {
-            if (!reason) reason = s_breakpoint_type_names[type]();
-            triggerBP(it, reason);
-            break;
-        }
-    }
-
-    if (m_breakmp_e && type == BE && !isMapMarked(address, MAP_EXEC)) {
-        triggerBP(none, _("Execution map"));
-    } else if (m_breakmp_r8 && type == BR1 && !isMapMarked(address, MAP_R8)) {
-        triggerBP(none, _("Read 8 map"));
-    } else if (m_breakmp_r16 && type == BR2 && !isMapMarked(address, MAP_R16)) {
-        triggerBP(none, _("Read 16 map"));
-    } else if (m_breakmp_r32 && type == BR4 && !isMapMarked(address, MAP_R32)) {
-        triggerBP(none, _("Read 32 map"));
-    } else if (m_breakmp_w8 && type == BW1 && !isMapMarked(address, MAP_W8)) {
-        triggerBP(none, _("Write 8 map"));
-    } else if (m_breakmp_w16 && type == BW2 && !isMapMarked(address, MAP_W16)) {
-        triggerBP(none, _("Write 16 map"));
-    } else if (m_breakmp_w32 && type == BW4 && !isMapMarked(address, MAP_W32)) {
-        triggerBP(none, _("Write 32 map"));
-    }
-
-    if (m_mapping_r8 && type == BR1) markMap(address, MAP_R8);
-    if (m_mapping_r16 && type == BR2) markMap(address, MAP_R16);
-    if (m_mapping_r32 && type == BR4) markMap(address, MAP_R32);
-    if (m_mapping_w8 && type == BW1) markMap(address, MAP_W8);
-    if (m_mapping_w16 && type == BW2) markMap(address, MAP_W16);
-    if (m_mapping_w32 && type == BW4) markMap(address, MAP_W32);
+    todelete.destroyAll();
 }
 
 std::string PCSX::Debug::generateFlowIDC() {
@@ -185,4 +216,9 @@ std::string PCSX::Debug::generateMarkIDC() {
     }
     ss << "}\r\n";
     return ss.str();
+}
+
+std::string PCSX::Debug::Breakpoint::name() const {
+    return fmt::format("{:08x}::{}::{} ({})", address() | base(), s_breakpoint_type_names[unsigned(m_type)](), width(),
+                       m_source);
 }

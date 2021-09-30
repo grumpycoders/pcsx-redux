@@ -156,6 +156,14 @@ class Tree final : public BaseTree {
             m_interval.m_high = src.m_interval.m_high;
             m_interval.m_max = src.m_interval.m_max;
         }
+        IteratorBase& operator=(const IteratorBase& src) {
+            m_node = src.m_node;
+            m_interval.m_min = src.m_interval.m_min;
+            m_interval.m_low = src.m_interval.m_low;
+            m_interval.m_high = src.m_interval.m_high;
+            m_interval.m_max = src.m_interval.m_max;
+            return *this;
+        }
         IteratorBase(Base* node, Base& interval) : m_node(node) {
             static_assert(std::is_base_of<Base, Derived>::value);
             m_interval.m_min = interval.m_min;
@@ -304,7 +312,7 @@ class Tree final : public BaseTree {
         interval.m_high = interval.m_max = high;
         const BaseNode* first = m_root;
         while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(&interval)) first = first->m_left;
-        const_iterator ret(dynamic_cast<Node*>(first), interval);
+        const_iterator ret(dynamic_cast<const Node*>(first), interval);
         if (!ret->overlaps(&interval)) ret++;
         return ret;
     }

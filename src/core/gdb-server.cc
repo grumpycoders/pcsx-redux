@@ -610,13 +610,18 @@ void PCSX::GdbClient::processCommand() {
                 //  4 = 32-bits MIPS
                 //  5 = 32-bits microMIPS
                 if (action == Action::ADD) {
-                    g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::BE);
+                    auto bp = g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Exec, 4, _("GDB client"));
+                    m_breakpoints.push_back(bp);
                 } else {
-                    auto range = g_emulator->m_debug->findBreakpoints(addr);
-                    for (auto it = range.first; it != range.second; it++) {
-                        if (it->second.type() == Debug::BreakpointType::BE) {
-                            g_emulator->m_debug->eraseBP(it);
-                            break;
+                    auto& tree = g_emulator->m_debug->getTree();
+                    auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
+                    while (bp != tree.end()) {
+                        if (bp->type() == Debug::BreakpointType::Exec &&
+                            !bp->Debug::BreakpointUserListType::Node::isLinked()) {
+                            bp++;
+                        } else {
+                            g_emulator->m_debug->removeBreakpoint(&*bp);
+                            bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
                         }
                     }
                 }

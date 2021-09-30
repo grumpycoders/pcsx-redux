@@ -1509,6 +1509,7 @@ void PCSX::GUI::update(bool vsync) {
 
 void PCSX::GUI::shellReached() {
     auto& regs = g_emulator->m_psxCpu->m_psxRegs;
+    uint32_t oldPC = regs.pc;
     if (g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()) regs.pc = regs.GPR.n.ra;
 
     if (m_exeToLoad.empty()) return;
@@ -1523,6 +1524,10 @@ void PCSX::GUI::shellReached() {
 
     if (m_exeToLoad.hasToPause()) {
         g_system->pause();
+    }
+
+    if (oldPC != regs.pc) {
+
     }
 }
 

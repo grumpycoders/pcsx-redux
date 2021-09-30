@@ -585,31 +585,23 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
             process(
                 addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
         }
+        auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
-            Debug::bpiterator currentBP;
+            const Debug::Breakpoint* currentBP = nullptr;
             prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
-                PCSX::g_emulator->m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
-                    uint32_t addr = dispAddr;
-                    uint32_t bpAddr = it->first;
-                    uint32_t base = (addr >> 20) & 0xffc;
-                    uint32_t bpBase = (bpAddr >> 20) & 0xffc;
-                    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-                        addr &= 0x1fffff;
-                    }
-                    if ((bpBase == 0x000) || (bpBase == 0x800) || (bpBase == 0xa00)) {
-                        bpAddr &= 0x1fffff;
-                    }
-                    if ((it->second.type() == Debug::BE) && (addr == bpAddr)) {
+
+                for (auto intersect = tree.find(dispAddr & ~0xe0000000, Debug::BreakpointTreeType::INTERVAL_SEARCH);
+                     intersect != tree.end(); intersect++) {
+                    if (intersect->type() == Debug::BreakpointType::Exec) {
                         hasBP = true;
-                        isBPEnabled = it->second.enabled();
-                        currentBP = it;
-                        return false;
+                        isBPEnabled = intersect->enabled();
+                        currentBP = &*intersect;
+                        break;
                     }
-                    return true;
-                });
+                }
 
                 m_currentAddr = dispAddr;
                 uint8_t b[4];
@@ -689,17 +681,21 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
-                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE, true);
+                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
+                                                           [](const Debug::Breakpoint* bp) {
+                                                               g_system->pause();
+                                                               return false;
+                                                           });
                         ImGui::CloseCurrentPopup();
-                        PCSX::g_system->resume();
+                        g_system->resume();
                     });
                     DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
-                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE);
+                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
                     DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
-                        PCSX::g_emulator->m_debug->eraseBP(currentBP);
+                        g_emulator->m_debug->removeBreakpoint(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
                     });

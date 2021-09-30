@@ -1659,16 +1659,15 @@ inline void InterpretedCPU::execBlock() {
             m_nextIsDelaySlot = false;
         }
         // TODO: throw an exception here if pc is out of range
-        uint32_t *codePtr = Read_ICache(m_psxRegs.pc);
+        const uint32_t pc = m_psxRegs.pc;
+        uint32_t *codePtr = Read_ICache(pc);
         // TODO: throw an exception here if we don't have a pointer
         uint32_t code = m_psxRegs.code = codePtr ? SWAP_LE32(*codePtr) : 0;
 
         if constexpr (trace) {
-            std::string ins = PCSX::Disasm::asString(code, 0, m_psxRegs.pc, nullptr, true);
+            std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
             PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins.c_str());
         }
-
-        if constexpr (debug) PCSX::g_emulator->m_debug->processBefore();
 
         m_psxRegs.pc += 4;
         m_psxRegs.cycle += PCSX::Emulator::BIAS;
@@ -1695,7 +1694,7 @@ inline void InterpretedCPU::execBlock() {
             InterceptBIOS<true>(m_psxRegs.pc);
             psxBranchTest();
         }
-        if constexpr (debug) PCSX::g_emulator->m_debug->processAfter();
+        if constexpr (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, code);
     } while (!ranDelaySlot && !debug);
 }
 
