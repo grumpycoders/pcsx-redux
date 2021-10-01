@@ -324,8 +324,8 @@ end)(jit.status()))
             PCSX::g_emulator->m_spu->setCfg(j);
             PCSX::g_emulator->m_pads->setCfg(j);
         } else {
-            saveCfg();
             PCSX::g_emulator->m_pads->setDefaults();
+            saveCfg();
         }
 
         setFullscreen(m_fullscreen);

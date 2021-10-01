@@ -386,7 +386,7 @@ declare(disSLT) {
     uint8_t nextIns = nextCode >> 26;
     uint8_t nextRt = (nextCode >> 16) & 0x1f;
     uint8_t nextRs = (nextCode >> 21) & 0x1f;
-    uint16_t nextImm = nextCode & 0xffff;
+    int16_t nextImm = nextCode & 0xffff;
     if (skipNext && (nextIns == 0x05) && (_Rd_ == nextRs) && (_Rd_ == 1) && (nextRt == 0)) {
         // (slt $at, x, y) + (bne $at, $0, dest) = (blt x, y, dest)
         dOpCode("blt");
@@ -406,7 +406,7 @@ declare(disSLTU) {
     uint8_t nextIns = nextCode >> 26;
     uint8_t nextRt = (nextCode >> 16) & 0x1f;
     uint8_t nextRs = (nextCode >> 21) & 0x1f;
-    uint16_t nextImm = nextCode & 0xffff;
+    int16_t nextImm = nextCode & 0xffff;
     if (skipNext && (nextIns == 0x05) && (_Rd_ == nextRs) && (_Rd_ == 1) && (nextRt == 0)) {
         // (sltu $at, x, y) + (bne $at, $0, dest) = (bltu x, y, dest)
         dOpCode("bltu");
