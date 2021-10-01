@@ -57,7 +57,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     char **argv;
     int argc;
 
-    argvw = CommandLineToArgvW(lpCmdLine, &argc);
+    argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (!argvw) return -1;
     argv = (char **)calloc(argc + 1, sizeof(*argv));
     if (!argv) return -1;
