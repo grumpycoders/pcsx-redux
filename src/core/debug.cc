@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <sstream>
 
+#include "core/callstacks.h"
 #include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
@@ -148,13 +149,14 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code) {
     if (!m_wasInISR && g_emulator->m_psxCpu->m_inISR) return;
 
     switch (m_step) {
-        case STEP_IN:
+        case STEP_IN: {
             triggerBP(nullptr, _("Step in"));
-            break;
-        case STEP_OVER:
-            break;
-        case STEP_OUT:
-            break;
+        } break;
+        case STEP_OVER: {
+        } break;
+        case STEP_OUT: {
+            if (!m_stepperHasBreakpoint) triggerBP(nullptr, _("Step out (no callstack)"));
+        }
     }
 }
 
@@ -173,6 +175,8 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view reason) {
         name = bp->name();
         keepBP = bp->trigger();
         if (keepBP) m_lastBP = bp;
+    } else {
+        g_system->pause();
     }
     if (g_system->running()) return keepBP;
     m_step = STEP_NONE;
@@ -221,4 +225,28 @@ std::string PCSX::Debug::generateMarkIDC() {
 std::string PCSX::Debug::Breakpoint::name() const {
     return fmt::format("{:08x}::{}::{} ({})", address() | base(), s_breakpoint_type_names[unsigned(m_type)](), width(),
                        m_source);
+}
+
+void PCSX::Debug::stepOut() {
+    m_step = STEP_OUT;
+    startStepping();
+    if (!g_emulator->m_callStacks->hasCurrent()) return;
+    auto& callstack = g_emulator->m_callStacks->getCurrent();
+    if ((callstack.calls.size() == 0) && (callstack.ra == 0)) return;
+
+    auto call = callstack.calls.end();
+    call--;
+    uint32_t fp = call->fp;
+    uint32_t ra = call->ra;
+
+    if (ra == 0) return;
+    if (fp == 0) return;
+
+    addBreakpoint(ra, BreakpointType::Exec, 4, _("Step Out"), [fp, this](const Breakpoint* bp) {
+        if (g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp != fp) return true;
+        g_system->pause();
+        m_stepperHasBreakpoint = false;
+        return false;
+    });
+    m_stepperHasBreakpoint = true;
 }

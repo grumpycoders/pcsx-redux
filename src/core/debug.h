@@ -91,10 +91,7 @@ class Debug {
         m_step = STEP_OVER;
         startStepping();
     }
-    void stepOut() {
-        m_step = STEP_OUT;
-        startStepping();
-    }
+    void stepOut();
 
     bool m_mapping_e = false;
     bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
@@ -142,6 +139,8 @@ class Debug {
         STEP_OVER,
         STEP_OUT,
     } m_step;
+
+    bool m_stepperHasBreakpoint = false;
 
     bool m_wasInISR = false;
     Breakpoint* m_lastBP = nullptr;

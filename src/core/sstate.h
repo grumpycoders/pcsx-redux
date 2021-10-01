@@ -256,13 +256,17 @@ typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdr
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 1> CallRA;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 2> CallSP;
-typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("shadow"), 3> Shadow;
-typedef Protobuf::Message<TYPESTRING("Call"), CallRA, CallSP, Shadow> Call;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 3> CallFP;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("shadow"), 4> Shadow;
+typedef Protobuf::Message<TYPESTRING("Call"), CallRA, CallSP, CallFP, Shadow> Call;
 typedef Protobuf::RepeatedVariableField<Call, TYPESTRING("calls"), 1> Calls;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("low"), 2> LowSP;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("high"), 3> HighSP;
-typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("iscurrent"), 4> CallstackIsCurrent;
-typedef Protobuf::Message<TYPESTRING("Calls"), Calls, LowSP, HighSP, CallstackIsCurrent> CallStack;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 4> PresumedRA;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("fp"), 5> PresumedFP;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("iscurrent"), 6> CallstackIsCurrent;
+typedef Protobuf::Message<TYPESTRING("Calls"), Calls, LowSP, HighSP, PresumedRA, PresumedFP, CallstackIsCurrent>
+    CallStack;
 typedef Protobuf::RepeatedVariableField<CallStack, TYPESTRING("CallStacks"), 1> CallStacksMessageField;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("currentSP"), 2> CallStacksCurrentSP;
 typedef Protobuf::Message<TYPESTRING("CallStacks"), CallStacksMessageField, CallStacksCurrentSP> CallStacks;

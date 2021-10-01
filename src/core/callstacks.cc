@@ -109,6 +109,7 @@ void PCSX::CallStacks::offsetSP(uint32_t oldSP, int32_t offset) {
             debugLog("[CSDBG] offsetSP: deleting call to 0x%08x from 0x%08x\n", last->ra, last->sp);
             delete &*last;
             m_current->ra = 0;
+            m_current->fp = 0;
         }
     }
 }
@@ -131,13 +132,18 @@ void PCSX::CallStacks::storeRA(uint32_t sp, uint32_t ra) {
         }
         shadow = true;
     }
+    uint32_t fp = 0;
+    if (m_current->ra = ra) {
+        fp = m_current->fp;
+    }
     m_current->ra = 0;
+    m_current->fp = 0;
     if (shadow) {
         debugLog("[CSDBG] storeRA: creating shadow space call to 0x%08x from 0x%08x on stack 0x%08x\n", ra, sp, high);
     } else {
         debugLog("[CSDBG] storeRA: creating call to 0x%08x from 0x%08x on stack 0x%08x\n", ra, sp, high);
     }
-    m_current->calls.push_back(new CallStack::Call(sp, ra, shadow));
+    m_current->calls.push_back(new CallStack::Call(sp, fp, ra, shadow));
 }
 
 void PCSX::CallStacks::loadRA(uint32_t sp) {
@@ -157,12 +163,13 @@ void PCSX::CallStacks::loadRA(uint32_t sp) {
     }
 }
 
-void PCSX::CallStacks::potentialRA(uint32_t ra) {
+void PCSX::CallStacks::potentialRA(uint32_t ra, uint32_t sp) {
     if (!m_current && m_currentSP) {
         offsetSP(m_currentSP, 0);
     }
     if (m_current) {
         debugLog("[CSDBG] potentialRA: to 0x%08x\n", ra);
         m_current->ra = ra;
+        m_current->fp = sp;
     }
 }

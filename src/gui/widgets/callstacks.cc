@@ -58,6 +58,26 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.sp});
             }
+            ImGui::SameLine();
+            ImGui::TextUnformatted(" :: ");
+            ImGui::SameLine();
+            label = fmt::format("0x{:08x}", call.fp);
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.fp});
+            }
+        }
+        if (stack.ra != 0) {
+            std::string label = fmt::format("0x{:08x}", stack.ra);
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{stack.ra});
+            }
+            ImGui::SameLine();
+            ImGui::TextUnformatted(" :: ");
+            ImGui::SameLine();
+            label = fmt::format("0x{:08x}", stack.fp);
+            if (ImGui::Button(label.c_str())) {
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{stack.fp});
+            }
         }
         ImGui::TreePop();
     }

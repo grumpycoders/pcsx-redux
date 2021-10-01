@@ -43,15 +43,16 @@ class CallStacks {
         struct Call;
         typedef Intrusive::List<Call> ListType;
         struct Call : public ListType::Node {
-            Call(uint32_t sp_, uint32_t ra_, bool shadow_) : sp(sp_), ra(ra_), shadow(shadow_) {}
-            uint32_t sp, ra;
+            Call(uint32_t sp_, uint32_t fp_, uint32_t ra_, bool shadow_) : sp(sp_), fp(fp_), ra(ra_), shadow(shadow_) {}
+            uint32_t sp, fp, ra;
             bool shadow;
         };
         ~CallStack() { calls.destroyAll(); }
         ListType calls;
-        uint32_t ra = 0;
+        uint32_t ra = 0, fp = 0;
     };
 
+    bool hasCurrent() { return m_current; }
     const CallStack& getCurrent() { return *m_current; }
     const TreeType& getCallstacks() { return m_callstacks; }
 
@@ -77,7 +78,7 @@ class CallStacks {
     void offsetSP(uint32_t oldSP, int32_t offset);
     void storeRA(uint32_t sp, uint32_t ra);
     void loadRA(uint32_t sp);
-    void potentialRA(uint32_t ra);
+    void potentialRA(uint32_t ra, uint32_t sp);
 };
 
 }  // namespace PCSX

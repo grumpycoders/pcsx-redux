@@ -663,15 +663,16 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
     if (_i32(_rRs_) op 0) {       \
         doBranch(_BranchTarget_); \
     }
-#define RepZBranchLinki32(op)                                \
-    {                                                        \
-        uint32_t ra = m_psxRegs.pc + 4;                      \
-        m_psxRegs.GPR.r[31] = ra;                            \
-        maybeCancelDelayedLoad(31);                          \
-        if (_i32(_rRs_) op 0) {                              \
-            doBranch(_BranchTarget_);                        \
-            PCSX::g_emulator->m_callStacks->potentialRA(ra); \
-        }                                                    \
+#define RepZBranchLinki32(op)                                    \
+    {                                                            \
+        uint32_t ra = m_psxRegs.pc + 4;                          \
+        m_psxRegs.GPR.r[31] = ra;                                \
+        maybeCancelDelayedLoad(31);                              \
+        if (_i32(_rRs_) op 0) {                                  \
+            uint32_t sp = m_psxRegs.GPR.n.sp;                    \
+            doBranch(_BranchTarget_);                            \
+            PCSX::g_emulator->m_callStacks->potentialRA(ra, sp); \
+        }                                                        \
     }
 
 void InterpretedCPU::psxBGEZ(uint32_t code) { RepZBranchi32(>=) }         // Branch if Rs >= 0
@@ -839,7 +840,7 @@ void InterpretedCPU::psxJAL(uint32_t code) {
     uint32_t ra = m_psxRegs.pc + 4;
     m_psxRegs.GPR.r[31] = ra;
     doBranch(_JumpTarget_);
-    PCSX::g_emulator->m_callStacks->potentialRA(ra);
+    PCSX::g_emulator->m_callStacks->potentialRA(ra, m_psxRegs.GPR.n.sp);
 }
 
 /*********************************************************
@@ -871,7 +872,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
         uint32_t ra = m_psxRegs.pc + 4;
         _rRd_ = ra;
         if (_Rd_ == 31) {
-            PCSX::g_emulator->m_callStacks->potentialRA(ra);
+            PCSX::g_emulator->m_callStacks->potentialRA(ra, m_psxRegs.GPR.n.sp);
         }
     }
 

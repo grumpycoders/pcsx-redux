@@ -200,9 +200,11 @@ void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
         SaveStates::CallStack sscallstack{};
         sscallstack.get<LowSP>().value = callstack.getLow();
         sscallstack.get<HighSP>().value = callstack.getHigh();
+        sscallstack.get<PresumedRA>().value = callstack.ra;
+        sscallstack.get<PresumedFP>().value = callstack.fp;
         sscallstack.get<CallstackIsCurrent>().value = &callstack == m_current;
         for (auto& call : callstack.calls) {
-            sscallstack.get<Calls>().value.emplace_back(call.ra, call.sp, call.shadow);
+            sscallstack.get<Calls>().value.emplace_back(call.ra, call.sp, call.fp, call.shadow);
         }
         callstacks.emplace_back(sscallstack);
     }
@@ -277,13 +279,18 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
         auto& calls = sscallstack.get<Calls>().value;
         uint32_t lowSP = sscallstack.get<LowSP>().value;
         uint32_t highSP = sscallstack.get<HighSP>().value;
+        uint32_t ra = sscallstack.get<PresumedRA>().value;
+        uint32_t fp = sscallstack.get<PresumedFP>().value;
         bool isCurrent = sscallstack.get<CallstackIsCurrent>().value;
         CallStack* callstack = new CallStack();
+        callstack->ra = ra;
+        callstack->fp = fp;
         for (auto& call : calls) {
             uint32_t ra = call.get<CallRA>().value;
             uint32_t sp = call.get<CallSP>().value;
+            uint32_t fp = call.get<CallFP>().value;
             bool shadow = call.get<Shadow>().value;
-            callstack->calls.push_back(new CallStack::Call(sp, ra, shadow));
+            callstack->calls.push_back(new CallStack::Call(sp, fp, ra, shadow));
         }
         if (isCurrent) m_current = callstack;
         m_callstacks.insert(lowSP, highSP, callstack);
