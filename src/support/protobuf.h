@@ -679,9 +679,9 @@ struct RepeatedVariableField<FieldType, irqus::typestring<C...>, fieldNumberValu
         value.resize(++count);
         if (FieldType::wireType == 2) {
             InSlice subSlice = slice->getSubSlice(slice->getVarInt());
-            value[count].deserialize(&subSlice, FieldType::wireType);
+            value[count - 1].deserialize(&subSlice, FieldType::wireType);
         } else {
-            value[count].deserialize(slice, wireType);
+            value[count - 1].deserialize(slice, wireType);
         }
     }
 };
