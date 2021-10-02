@@ -26,6 +26,7 @@
 #include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "core/r3000a.h"
 
 enum {
@@ -264,3 +265,5 @@ void PCSX::Debug::stepOut() {
     });
     m_stepperHasBreakpoint = true;
 }
+
+void PCSX::Debug::updatedPC(uint32_t pc) { process(pc, pc, PSXMu32(pc), false); }

@@ -38,6 +38,7 @@
 #include <unordered_set>
 
 #include "core/binloader.h"
+#include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gdb-server.h"
@@ -1527,7 +1528,8 @@ void PCSX::GUI::shellReached() {
     }
 
     if (oldPC != regs.pc) {
-
+        g_emulator->m_callStacks->potentialRA(regs.pc, regs.GPR.n.sp);
+        g_emulator->m_debug->updatedPC(regs.pc);
     }
 }
 
