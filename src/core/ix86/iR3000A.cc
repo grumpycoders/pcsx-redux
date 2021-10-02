@@ -742,7 +742,7 @@ void X86DynaRecCPU::execute() {
     m_psxRegs.pc = (*recFunc)();
     psxBranchTest();
 
-    if (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, m_psxRegs.code);
+    if (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, m_psxRegs.code, false);
 }
 
 void X86DynaRecCPU::Execute() {
