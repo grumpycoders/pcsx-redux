@@ -439,6 +439,45 @@ end)(jit.status()))
     m_offscreenShaderEditor.compile();
     m_outputShaderEditor.compile();
 
+    m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
+        const uint32_t base = (event.address >> 20) & 0xffc;
+        const uint32_t real = event.address & 0x7fffff;
+        const uint32_t size = event.size;
+        auto changeDataType = [](MemoryEditor* editor, int size) {
+            bool isSigned = false;
+            switch (editor->PreviewDataType) {
+                case ImGuiDataType_S8:
+                case ImGuiDataType_S16:
+                case ImGuiDataType_S32:
+                case ImGuiDataType_S64:
+                    isSigned = true;
+                    break;
+            }
+            switch (size) {
+                case 1:
+                    editor->PreviewDataType = isSigned ? ImGuiDataType_S8 : ImGuiDataType_U8;
+                    break;
+                case 2:
+                    editor->PreviewDataType = isSigned ? ImGuiDataType_S16 : ImGuiDataType_U16;
+                    break;
+                case 4:
+                    editor->PreviewDataType = isSigned ? ImGuiDataType_S32 : ImGuiDataType_U32;
+                    break;
+            }
+        };
+        if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
+            if (real < 0x00800000) {
+                m_mainMemEditors[0].editor.GotoAddrAndHighlight(real, real + size);
+                changeDataType(&m_mainMemEditors[0].editor, size);
+            }
+        } else if (base == 0x1f8) {
+            if (real >= 0x1000 && real < 0x3000) {
+                m_hwrEditor.editor.GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
+                changeDataType(&m_hwrEditor.editor, size);
+            }
+        }
+    });
+
     startFrame();
     m_currentTexture = 1;
     flip();

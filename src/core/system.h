@@ -64,6 +64,7 @@ struct JumpToPC {
 };
 struct JumpToMemory {
     uint32_t address;
+    unsigned size;
 };
 }  // namespace GUI
 struct CreatedVRAMTexture {

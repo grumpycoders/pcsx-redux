@@ -227,7 +227,7 @@ class GUI final {
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
-    Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
+    Widgets::Assembly m_assembly;
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};

@@ -32,10 +32,10 @@
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "imgui_stdlib.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
@@ -295,42 +295,8 @@ uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
         return dummy;
     }
 }
-void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, int size) {
-    uint32_t base = (addr >> 20) & 0xffc;
-    uint32_t real = addr & 0x7fffff;
-    auto changeDataType = [](MemoryEditor* editor, int size) {
-        bool isSigned = false;
-        switch (editor->PreviewDataType) {
-            case ImGuiDataType_S8:
-            case ImGuiDataType_S16:
-            case ImGuiDataType_S32:
-            case ImGuiDataType_S64:
-                isSigned = true;
-                break;
-        }
-        switch (size) {
-            case 1:
-                editor->PreviewDataType = isSigned ? ImGuiDataType_S8 : ImGuiDataType_U8;
-                break;
-            case 2:
-                editor->PreviewDataType = isSigned ? ImGuiDataType_S16 : ImGuiDataType_U16;
-                break;
-            case 4:
-                editor->PreviewDataType = isSigned ? ImGuiDataType_S32 : ImGuiDataType_U32;
-                break;
-        }
-    };
-    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        if (real < 0x00800000) {
-            m_mainMemoryEditor->GotoAddrAndHighlight(real, real + size);
-            changeDataType(m_mainMemoryEditor, size);
-        }
-    } else if (base == 0x1f8) {
-        if (real >= 0x1000 && real < 0x3000) {
-            m_hwMemoryEditor->GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
-            changeDataType(m_hwMemoryEditor, size);
-        }
-    }
+void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size) {
+    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size});
 }
 
 void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {

@@ -60,14 +60,14 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             ImGui::SameLine();
             label = fmt::format("0x{:08x}", call.sp);
             if (ImGui::Button(label.c_str())) {
-                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.sp});
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.sp, 4});
             }
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
             label = fmt::format("0x{:08x}", call.fp);
             if (ImGui::Button(label.c_str())) {
-                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.fp});
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.fp, 1});
             }
         }
         if (stack.ra != 0) {
@@ -84,7 +84,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             ImGui::SameLine();
             label = fmt::format("0x{:08x}", stack.fp);
             if (ImGui::Button(label.c_str())) {
-                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{stack.fp});
+                g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{stack.fp, 1});
             }
         }
         ImGui::TreePop();
