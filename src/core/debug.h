@@ -36,6 +36,9 @@ class Debug {
         []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
     enum class BreakpointType { Exec, Read, Write };
 
+    void checkDMAread(unsigned c, uint32_t address, uint32_t len) { checkBP(address, BreakpointType::Read, len); }
+    void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) { checkBP(address, BreakpointType::Write, len); }
+
   private:
     void checkBP(uint32_t address, BreakpointType type, uint32_t width);
 

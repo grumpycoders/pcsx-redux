@@ -23,6 +23,7 @@
 
 #include "core/psxdma.h"
 
+#include "core/debug.h"
 #include "spu/interface.h"
 
 // Dma0/1 in Mdec.c
@@ -45,7 +46,12 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
                 PSXDMA_LOG("*** DMA4 SPU - mem2spu *** NULL Pointer!!!\n");
                 break;
             }
-            PCSX::g_emulator->m_spu->writeDMAMem(ptr, (bcr >> 16) * (bcr & 0xffff) * 2);
+            size = (bcr >> 16) * (bcr & 0xffff) * 2;
+            PCSX::g_emulator->m_spu->writeDMAMem(ptr, size);
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                    .get<PCSX::Emulator::DebugSettings::Debug>()) {
+                PCSX::g_emulator->m_debug->checkDMAread(4, madr, size * 2);
+            }
 
             // Jungle Book - max 0.333x DMA length
             // Harry Potter and the Philosopher's Stone - max 0.5x DMA length
@@ -63,7 +69,11 @@ void psxDma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
             PCSX::g_emulator->m_spu->readDMAMem(ptr, size);
-            PCSX::g_emulator->m_psxCpu->Clear(madr, size);
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                    .get<PCSX::Emulator::DebugSettings::Debug>()) {
+                PCSX::g_emulator->m_debug->checkDMAwrite(4, madr, size * 2);
+            }
+            PCSX::g_emulator->m_psxCpu->Clear(madr, size * 2);
 
 #if 1
             scheduleSPUDMAIRQ((bcr >> 16) * (bcr & 0xffff) / 2);
@@ -105,6 +115,10 @@ void psxDma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         }
         mem++;
         *mem = 0xffffff;
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                .get<PCSX::Emulator::DebugSettings::Debug>()) {
+            PCSX::g_emulator->m_debug->checkDMAwrite(6, madr, size * 4);
+        }
 
 #if 1
         scheduleGPUOTCDMAIRQ(size);

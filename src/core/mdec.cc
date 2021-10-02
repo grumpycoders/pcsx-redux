@@ -20,6 +20,9 @@
 
 #include "core/mdec.h"
 
+#include "core/debug.h"
+#include "core/psxemulator.h"
+
 #define AAN_CONST_BITS 12
 #define AAN_PRESCALE_BITS 16
 
@@ -405,6 +408,9 @@ void PCSX::MDEC::psxDma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     mdec.reg1 |= MDEC1_STP;
 
     size = (bcr >> 16) * (bcr & 0xffff);
+    if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+        g_emulator->m_debug->checkDMAread(0, adr, size * 4);
+    }
 
     switch (cmd >> 28) {
         case 0x3:  // decode
@@ -476,6 +482,9 @@ void PCSX::MDEC::psxDma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     size *= 4;
     /* I guess the memory speed is limitating */
     dmacnt = size;
+    if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+        g_emulator->m_debug->checkDMAwrite(1, adr, size);
+    }
 
     if (!(mdec.reg1 & MDEC1_BUSY)) {
         /* add to pending */
