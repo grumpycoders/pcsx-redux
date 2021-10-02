@@ -61,7 +61,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = 0;
-    footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
+    footerHeight += (heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing()) * 4;
     float glyphWidth = ImGui::GetFontSize();
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
@@ -106,21 +106,16 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     }
     ImGui::EndChild();
     if (toErase) g_emulator->m_debug->removeBreakpoint(toErase);
-    ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
-    ImGui::InputText("##address", m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
-    ImGui::SameLine();
+    ImGui::InputText(_("Address"), m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
     if (ImGui::BeginCombo(_("Breakpoint Type"), Debug::s_breakpoint_type_names[m_breakpointType]())) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             if (ImGui::Selectable(Debug::s_breakpoint_type_names[i](), m_breakpointType == i)) {
                 m_breakpointType = i;
             }
         }
         ImGui::EndCombo();
     }
-    ImGui::SameLine();
     ImGui::SliderInt(_("Breakpoint Width"), &m_breakpointWidth, 1, 4);
-    ImGui::PopItemWidth();
-    ImGui::SameLine();
     if (ImGui::Button(_("Add Breakpoint"))) {
         char* endPtr;
         uint32_t breakpointAddress = strtoul(m_bpAddressString, &endPtr, 16);

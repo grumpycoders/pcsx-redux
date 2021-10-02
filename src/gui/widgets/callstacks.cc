@@ -34,6 +34,10 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
 
     gui->useMonoFont();
 
+    ImGui::TextUnformatted("    low SP    -   high sp  ");
+    ImGui::TextUnformatted("      ra       :: stack pointer ::  stack frame");
+    ImGui::Separator();
+
     auto& callstacks = g_emulator->m_callStacks;
     auto& current = callstacks->getCurrent();
 
@@ -71,6 +75,10 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{stack.ra});
             }
+            ImGui::SameLine();
+            ImGui::TextUnformatted(" :: ");
+            ImGui::SameLine();
+            ImGui::TextDisabled("<heuristic>");
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
