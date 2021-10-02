@@ -323,6 +323,7 @@ class R3000Acpu {
         uint32_t pcValue = 0;
         bool active = false;
         bool pcActive = false;
+        bool fromLink = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
     uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
@@ -337,10 +338,11 @@ class R3000Acpu {
         auto &ref = delayedLoadRef(reg, mask);
         ref = value;
     }
-    void delayedPCLoad(uint32_t value) {
+    void delayedPCLoad(uint32_t value, bool fromLink) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.pcActive = true;
         delayedLoad.pcValue = value;
+        delayedLoad.fromLink = fromLink;
     }
 
   protected:

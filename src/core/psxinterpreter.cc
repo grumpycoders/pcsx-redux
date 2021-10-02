@@ -124,7 +124,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 
     template <bool debug, bool trace>
     void execBlock();
-    void doBranch(uint32_t target);
+    void doBranch(uint32_t target, bool fromLink);
 
     void MTC0(int reg, uint32_t val);
 
@@ -369,9 +369,9 @@ GTE_WR(CTC2);
 
 // These macros are used to assemble the repassembler functions
 
-inline void InterpretedCPU::doBranch(uint32_t target) {
+inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
-    delayedPCLoad(target);
+    delayedPCLoad(target, fromLink);
 }
 
 /*********************************************************
@@ -659,9 +659,9 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
  * Register branch logic                                  *
  * Format:  OP rs, offset                                 *
  *********************************************************/
-#define RepZBranchi32(op)         \
-    if (_i32(_rRs_) op 0) {       \
-        doBranch(_BranchTarget_); \
+#define RepZBranchi32(op)                \
+    if (_i32(_rRs_) op 0) {              \
+        doBranch(_BranchTarget_, false); \
     }
 #define RepZBranchLinki32(op)                                    \
     {                                                            \
@@ -670,7 +670,7 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
         maybeCancelDelayedLoad(31);                              \
         if (_i32(_rRs_) op 0) {                                  \
             uint32_t sp = m_psxRegs.GPR.n.sp;                    \
-            doBranch(_BranchTarget_);                            \
+            doBranch(_BranchTarget_, true);                      \
             PCSX::g_emulator->m_callStacks->potentialRA(ra, sp); \
         }                                                        \
     }
@@ -825,7 +825,7 @@ void InterpretedCPU::psxRFE(uint32_t code) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 #define RepBranchi32(op) \
-    if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_);
+    if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_, false);
 
 void InterpretedCPU::psxBEQ(uint32_t code) { RepBranchi32(==) }  // Branch if Rs == Rt
 void InterpretedCPU::psxBNE(uint32_t code) { RepBranchi32(!=) }  // Branch if Rs != Rt
@@ -834,12 +834,12 @@ void InterpretedCPU::psxBNE(uint32_t code) { RepBranchi32(!=) }  // Branch if Rs
  * Jump to target                                         *
  * Format:  OP target                                     *
  *********************************************************/
-void InterpretedCPU::psxJ(uint32_t code) { doBranch(_JumpTarget_); }
+void InterpretedCPU::psxJ(uint32_t code) { doBranch(_JumpTarget_, false); }
 void InterpretedCPU::psxJAL(uint32_t code) {
     maybeCancelDelayedLoad(31);
     uint32_t ra = m_psxRegs.pc + 4;
     m_psxRegs.GPR.r[31] = ra;
-    doBranch(_JumpTarget_);
+    doBranch(_JumpTarget_, true);
     PCSX::g_emulator->m_callStacks->potentialRA(ra, m_psxRegs.GPR.n.sp);
 }
 
@@ -862,7 +862,7 @@ void InterpretedCPU::psxJR(uint32_t code) {
         }
     }
 
-    doBranch(_rRs_ & ~3);  // the "& ~3" word-aligns the jump address
+    doBranch(_rRs_ & ~3, false);  // the "& ~3" word-aligns the jump address
 }
 
 void InterpretedCPU::psxJALR(uint32_t code) {
@@ -891,7 +891,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
         }
     }
 
-    doBranch(temp & ~3);  // the "& ~3" force aligns the address
+    doBranch(temp & ~3, true);  // the "& ~3" force aligns the address
 }
 
 /*********************************************************
@@ -1685,9 +1685,12 @@ inline void InterpretedCPU::execBlock() {
             m_psxRegs.GPR.r[delayedLoad.index] = reg;
             delayedLoad.active = false;
         }
+        bool fromLink = false;
         if (delayedLoad.pcActive) {
             m_psxRegs.pc = delayedLoad.pcValue;
+            fromLink = delayedLoad.fromLink;
             delayedLoad.pcActive = false;
+            delayedLoad.fromLink = false;
         }
         if (m_inDelaySlot) {
             m_inDelaySlot = false;
@@ -1695,7 +1698,7 @@ inline void InterpretedCPU::execBlock() {
             InterceptBIOS<true>(m_psxRegs.pc);
             psxBranchTest();
         }
-        if constexpr (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, code);
+        if constexpr (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, code, fromLink);
     } while (!ranDelaySlot && !debug);
 }
 

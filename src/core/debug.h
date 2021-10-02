@@ -37,14 +37,14 @@ class Debug {
     enum class BreakpointType { Exec, Read, Write };
 
   private:
-    void checkBP(uint32_t address, BreakpointType type, unsigned width);
+    void checkBP(uint32_t address, BreakpointType type, uint32_t width);
 
   public:
     // call this if PC is being set, like when the emulation is being reset, or when doing fastboot
     void updatedPC(uint32_t newPC);
     // call this as soon as possible after any instruction is run, with the oldPC, the newPC, and
     // the opcode that was just executed
-    void process(uint32_t oldPC, uint32_t newPC, uint32_t code);
+    void process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool linked);
     std::string generateFlowIDC();
     std::string generateMarkIDC();
 

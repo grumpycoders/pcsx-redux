@@ -62,7 +62,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
                 DelaySlotMask { g_emulator->m_psxCpu->m_delayedLoadInfo[0].mask },
                 DelaySlotPcValue { g_emulator->m_psxCpu->m_delayedLoadInfo[0].pcValue },
                 DelaySlotActive { g_emulator->m_psxCpu->m_delayedLoadInfo[0].active },
-                DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[0].pcActive }
+                DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[0].pcActive },
+                DelaySlotFromLink { g_emulator->m_psxCpu->m_delayedLoadInfo[0].fromLink }
             },
             DelaySlotInfo2 {
                 DelaySlotIndex { g_emulator->m_psxCpu->m_delayedLoadInfo[1].index },
@@ -70,7 +71,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
                 DelaySlotMask { g_emulator->m_psxCpu->m_delayedLoadInfo[1].mask },
                 DelaySlotPcValue { g_emulator->m_psxCpu->m_delayedLoadInfo[1].pcValue },
                 DelaySlotActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].active },
-                DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].pcActive }
+                DelaySlotPcActive { g_emulator->m_psxCpu->m_delayedLoadInfo[1].pcActive },
+                DelaySlotFromLink { g_emulator->m_psxCpu->m_delayedLoadInfo[1].fromLink }
             },
             CurrentDelayedLoad { g_emulator->m_psxCpu->m_currentDelayedLoad },
             IntTargetsField { g_emulator->m_psxCpu->m_psxRegs.intTargets },

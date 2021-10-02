@@ -68,7 +68,7 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
     return false;
 }
 
-void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code) {
+void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool linked) {
     const uint32_t basic = code >> 26;
     const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x30);
 
@@ -153,6 +153,20 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code) {
             triggerBP(nullptr, _("Step in"));
         } break;
         case STEP_OVER: {
+            if (!m_stepperHasBreakpoint) {
+                if (linked) {
+                    uint32_t sp = g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp;
+                    m_stepperHasBreakpoint = true;
+                    addBreakpoint(oldPC + 4, BreakpointType::Exec, 4, _("Step Over"), [sp, this](const Breakpoint* bp) {
+                        if (sp != g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp) return true;
+                        g_system->pause();
+                        m_stepperHasBreakpoint = false;
+                        return false;
+                    });
+                } else {
+                    triggerBP(nullptr, _("Step over"));
+                }
+            }
         } break;
         case STEP_OUT: {
             if (!m_stepperHasBreakpoint) triggerBP(nullptr, _("Step out (no callstack)"));
@@ -184,7 +198,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view reason) {
     return keepBP;
 }
 
-void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, unsigned width) {
+void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width) {
     auto none = m_breakpoints.end();
     address &= ~0xe0000000;
 
