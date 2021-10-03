@@ -951,7 +951,7 @@ msgstr ""
 msgid "Load Size"
 msgstr "  Taille"
 
-#: src/gui/widgets/assembly.h:65
+#: src/gui/widgets/assembly.h:64
 msgid "Load Symbols"
 msgstr "Charger les Symboles"
 
