@@ -45,7 +45,7 @@ struct Emitter final : public CodeGenerator {
         const auto cpu = Xbyak::util::Cpu();
 
         hasLZCNT = cpu.has(Xbyak::util::Cpu::tLZCNT);
-        hasAVX = cpu.has(Xbyak::util::Cpu::tLZCNT);
+        hasAVX = cpu.has(Xbyak::util::Cpu::tAVX);
     }
 
     template <typename T>
