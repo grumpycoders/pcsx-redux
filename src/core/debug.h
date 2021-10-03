@@ -25,6 +25,7 @@
 
 #include "core/psxemulator.h"
 #include "core/system.h"
+#include "fmt/format.h"
 #include "support/list.h"
 #include "support/tree.h"
 
@@ -36,11 +37,17 @@ class Debug {
         []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
     enum class BreakpointType { Exec, Read, Write };
 
-    void checkDMAread(unsigned c, uint32_t address, uint32_t len) { checkBP(address, BreakpointType::Read, len); }
-    void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) { checkBP(address, BreakpointType::Write, len); }
+    void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
+        std::string cause = fmt::format("DMA channel {} read", c);
+        checkBP(address, BreakpointType::Read, len, cause);
+    }
+    void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) {
+        std::string cause = fmt::format("DMA channel {} write", c);
+        checkBP(address, BreakpointType::Write, len, cause);
+    }
 
   private:
-    void checkBP(uint32_t address, BreakpointType type, uint32_t width);
+    void checkBP(uint32_t address, BreakpointType type, uint32_t width, std::string_view cause = "");
 
   public:
     // call this if PC is being set, like when the emulation is being reset, or when doing fastboot
