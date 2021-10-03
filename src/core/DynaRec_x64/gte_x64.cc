@@ -112,6 +112,18 @@ void DynaRecCPU::recCTC2() {
 void DynaRecCPU::recMTC2() {
     switch (_Rd_) {
         case 15:
+            gen.mov(rax, qword[contextPointer + COP2_DATA_OFFSET(13)]); // SXY0 = SXY1 and SXY1 = SXY2
+            gen.mov(qword[contextPointer + COP2_DATA_OFFSET(12)], rax);
+
+            // SXY2 = val
+            if (m_regs[_Rt_].isConst()) {
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(14)], m_regs[_Rt_].val);
+            } else {
+                allocateReg(_Rt_);
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(14)], m_regs[_Rt_].allocatedReg);
+            }
+            return;
+            
         case 28:
             fmt::print("Unimplemented MTC2 to GTE data register {}\n", _Rd_);
             abort();
