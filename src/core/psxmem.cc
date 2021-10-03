@@ -427,6 +427,7 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
 
 void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
     const auto page = address >> 16;
+    
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
             return &g_psxH[address & 0x3FF];
@@ -443,6 +444,7 @@ void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
 
 void *PCSX::Memory::psxMemPointerWrite(uint32_t address) {
     const auto page = address >> 16;
+
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
             return &g_psxH[address & 0x3FF];

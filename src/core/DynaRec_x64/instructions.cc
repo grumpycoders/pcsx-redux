@@ -223,7 +223,7 @@ void DynaRecCPU::recSLTU() {
         m_regs[_Rd_].setWriteback(true);
 
         gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
-        gen.setae(al);
+        gen.seta(al);
         gen.movzx(m_regs[_Rd_].allocatedReg, al);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rd_, _Rs_);
@@ -253,7 +253,7 @@ void DynaRecCPU::recSLT() {
         m_regs[_Rd_].setWriteback(true);
 
         gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
-        gen.setge(al);
+        gen.setg(al);
         gen.movzx(m_regs[_Rd_].allocatedReg, al);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rd_, _Rs_);
@@ -725,7 +725,7 @@ void DynaRecCPU::recompileLoad() {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerRead(addr);
 
-        if (pointer != nullptr && _Rt_ != 0) {
+        if (pointer != nullptr && (_Rt_) != 0) {
             allocateRegWithoutLoad(_Rt_);
             m_regs[_Rt_].setWriteback(true);
             gen.mov(rax, (uintptr_t) pointer);
