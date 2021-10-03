@@ -18,10 +18,14 @@
  ***************************************************************************/
 
 #pragma once
+#include "core/r3000a.h"
+
+#ifdef DYNAREC_X86_64
 #include "xbyak.h"
+#include "xbyak_util.h"
 #ifdef __APPLE__
 #include <sys/mman.h> // For mmap
-#endif
+#endif // __APPLE__
 
 using namespace Xbyak;
 using namespace Xbyak::util;
@@ -31,13 +35,21 @@ constexpr uint32_t codeCacheSize = 32 * 1024 * 1024;
 
 // Allocate a bit more memory to be safe.
 // This has to be static so JIT code will be close enough to the executable to address stuff with rip-relative accesses
-alignas(4096) static uint8_t s_codeCache[codeCacheSize + 0x1000]; 
+alignas(4096) static uint8_t s_codeCache[codeCacheSize + 0x1000];
 
-struct Emitter final : public CodeGenerator {                   
-    Emitter() : CodeGenerator(codeCacheSize, s_codeCache) {}
+struct Emitter final : public CodeGenerator {
+    bool hasAVX = false;
+    bool hasLZCNT = false;
+    
+    Emitter() : CodeGenerator(codeCacheSize, s_codeCache) {
+        const auto cpu = Xbyak::util::Cpu();
+
+        hasLZCNT = cpu.has(Xbyak::util::Cpu::tLZCNT);
+        hasAVX = cpu.has(Xbyak::util::Cpu::tLZCNT);
+    }
 
     template <typename T>
-    void callFunc (T& func) {
+    void callFunc(T& func) {
         call (reinterpret_cast<void*>(&func));
     }
 
@@ -53,3 +65,4 @@ struct Emitter final : public CodeGenerator {
         return setProtectMode(PROTECT_RWE, false);
     }
 };
+#endif // DYNAREC_X86_64

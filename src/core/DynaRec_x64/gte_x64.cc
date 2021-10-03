@@ -113,9 +113,33 @@ void DynaRecCPU::recMTC2() {
     switch (_Rd_) {
         case 15:
         case 28:
-        case 30:
             fmt::print("Unimplemented MTC2 to GTE data register {}\n", _Rd_);
             abort();
+            break;
+
+        case 30:
+            if (m_regs[_Rt_].isConst()) {
+                const auto result = PCSX::GTE::countLeadingBits(m_regs[_Rt_].val);
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], result); // Set LZCR
+            } else {
+                allocateReg(_Rt_);
+
+                gen.mov(eax, m_regs[_Rt_].allocatedReg); // eax = value to count leading bits of
+                gen.mov(edx, eax); // value = ~value if the msb is set
+                gen.sar(edx, 31);
+                gen.xor_(eax, edx);
+
+                if (gen.hasLZCNT) { // Count leading zeroes (Return 32 if the input is zero)
+                    gen.lzcnt(eax, eax);
+                } else { // If our CPU doesn't have LZCNT
+                    gen.bsr(eax, eax); // eax = 31 - CLZ(value)
+                    gen.mov(edx, 63); // Set eax to 63 if the input was 0
+                    gen.cmovz(eax, edx);
+                    gen.xor_(eax, 31); // Subtract the value from 31
+                }
+
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], eax); // Write result to LZCR
+            }
             break;
 
         case 31:
