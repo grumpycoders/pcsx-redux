@@ -778,7 +778,6 @@ void DynaRecCPU::recNULL() {
  * Format:  table[something....]                          *
  *********************************************************/
 
-// REC_SYS(SPECIAL);
 void DynaRecCPU::recSPECIAL() {
     const auto func = m_pRecSPC[_Funct_];
     (*this.*func)();

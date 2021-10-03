@@ -267,19 +267,6 @@
 #define CV2(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 6].sd : 0)
 #define CV3(n) (n < 3 ? PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[(n << 3) + 7].sd : 0)
 
-static uint32_t gte_leadingzerocount(uint32_t lzcs) {
-    uint32_t lzcr = 0;
-
-    if ((lzcs & 0x80000000) == 0) lzcs = ~lzcs;
-
-    while ((lzcs & 0x80000000) != 0) {
-        lzcr++;
-        lzcs <<= 1;
-    }
-
-    return lzcr;
-}
-
 static int32_t LIM(int32_t value, int32_t max, int32_t min, uint32_t flag) {
     if (value > max) {
         FLAG |= flag;
@@ -343,7 +330,7 @@ void PCSX::GTE::MTC2_internal(uint32_t value, int reg) {
             break;
 
         case 30:
-            LZCR = gte_leadingzerocount(value);
+            LZCR = countLeadingBits(value);
             break;
 
         case 31:
@@ -408,9 +395,10 @@ static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
             0x20, 0x1f, 0x1e, 0x1e, 0x1d, 0x1d, 0x1c, 0x1b, 0x1b, 0x1a, 0x19, 0x19, 0x18, 0x18, 0x17, 0x16, 0x16, 0x15,
             0x15, 0x14, 0x14, 0x13, 0x12, 0x12, 0x11, 0x11, 0x10, 0x0f, 0x0f, 0x0e, 0x0e, 0x0d, 0x0d, 0x0c, 0x0c, 0x0b,
             0x0a, 0x0a, 0x09, 0x09, 0x08, 0x08, 0x07, 0x07, 0x06, 0x06, 0x05, 0x05, 0x04, 0x04, 0x03, 0x03, 0x02, 0x02,
-            0x01, 0x01, 0x00, 0x00, 0x00};
+            0x01, 0x01, 0x00, 0x00, 0x00
+        };
 
-        int shift = gte_leadingzerocount(denominator) - 16;
+        int shift = PCSX::GTE::countLeadingBits(denominator) - 16;
 
         int r1 = (denominator << shift) & 0x7fff;
         int r2 = table[((r1 + 0x40) >> 7)] + 0x101;
