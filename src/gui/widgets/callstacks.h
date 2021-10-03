@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2021 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -21,24 +21,17 @@
 
 namespace PCSX {
 
+class GUI;
+
 namespace Widgets {
 
-class Breakpoints {
-  public:
-    void draw(const char* title);
-    bool m_show = false;
+class Assembly;
 
-  private:
-    bool m_filterE = true;
-    bool m_filterR1 = true;
-    bool m_filterR2 = true;
-    bool m_filterR4 = true;
-    bool m_filterW1 = true;
-    bool m_filterW2 = true;
-    bool m_filterW4 = true;
-    char m_bpAddressString[20];
-    int m_breakpointType = 0;
-    int m_breakpointWidth = 1;
+class CallStacks {
+  public:
+    void draw(const char* title, GUI*);
+
+    bool m_show = false;
 };
 
 }  // namespace Widgets

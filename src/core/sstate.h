@@ -66,8 +66,9 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("value"), 2> DelaySlotVa
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pc_value"), 3> DelaySlotPcValue;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("active"), 4> DelaySlotActive;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("pc_active"), 5> DelaySlotPcActive;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("from_link"), 7> DelaySlotFromLink;
 typedef Protobuf::Message<TYPESTRING("DelaySlotInfo"), DelaySlotIndex, DelaySlotValue, DelaySlotMask, DelaySlotPcValue,
-                          DelaySlotActive, DelaySlotPcActive>
+                          DelaySlotActive, DelaySlotPcActive, DelaySlotFromLink>
     DelaySlotInfo;
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_1"), 14> DelaySlotInfo1;
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 15> DelaySlotInfo2;
@@ -254,14 +255,32 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("create"), 3> PCdrvCreate;
 typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate> PCdrvFile;
 typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdrvFilesField;
 
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 1> CallRA;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 2> CallSP;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("sp"), 3> CallFP;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("shadow"), 4> Shadow;
+typedef Protobuf::Message<TYPESTRING("Call"), CallRA, CallSP, CallFP, Shadow> Call;
+typedef Protobuf::RepeatedVariableField<Call, TYPESTRING("calls"), 1> Calls;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("low"), 2> LowSP;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("high"), 3> HighSP;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 4> PresumedRA;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("fp"), 5> PresumedFP;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("iscurrent"), 6> CallstackIsCurrent;
+typedef Protobuf::Message<TYPESTRING("Calls"), Calls, LowSP, HighSP, PresumedRA, PresumedFP, CallstackIsCurrent>
+    CallStack;
+typedef Protobuf::RepeatedVariableField<CallStack, TYPESTRING("CallStacks"), 1> CallStacksMessageField;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("currentSP"), 2> CallStacksCurrentSP;
+typedef Protobuf::Message<TYPESTRING("CallStacks"), CallStacksMessageField, CallStacksCurrentSP> CallStacks;
+typedef Protobuf::MessageField<CallStacks, TYPESTRING("callstacks"), 14> CallStacksField;
+
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
                           GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField,
-                          PCdrvFilesField>
+                          PCdrvFilesField, CallStacksField>
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, SaveState>
+                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

@@ -93,7 +93,7 @@ typedef enum { VALID_HALF = (1 << 0) } PGXP_half_flags;
 
 // typedef enum
 //{
-#define NONE 0
+//#define NONE 0
 #define ALL 0xFFFFFFFF
 #define VALID 1
 #define VALID_0 (VALID << 0)

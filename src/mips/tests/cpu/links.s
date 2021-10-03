@@ -52,3 +52,20 @@ linkandload:
 1:
     jr    $t0
     move  $v0, $ra
+
+    .global nolink
+    .type nolink, @function
+
+nolink:
+    move  $t0, $ra
+    move  $ra, $0
+
+    bltzal $0, 1f
+    nop
+
+    jr    $t0
+    move  $v0, $ra
+
+1:
+    jr    $t0
+    move  $v0, $0
