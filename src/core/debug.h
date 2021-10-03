@@ -20,57 +20,88 @@
 #pragma once
 
 #include <functional>
-#include <map>
 #include <string>
+#include <string_view>
 
 #include "core/psxemulator.h"
 #include "core/system.h"
+#include "fmt/format.h"
+#include "support/list.h"
+#include "support/tree.h"
 
 namespace PCSX {
 
 class Debug {
   public:
-    enum BreakpointType { BE, BR1, BR2, BR4, BW1, BW2, BW4 };
     static inline std::function<const char*()> s_breakpoint_type_names[] = {
-        []() { return _("Exec"); },       []() { return _("Read Byte"); },  []() { return _("Read Half"); },
-        []() { return _("Read Word"); },  []() { return _("Write Byte"); }, []() { return _("Write Half"); },
-        []() { return _("Write Word"); },
-    };
+        []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
+    enum class BreakpointType { Exec, Read, Write };
 
-    void processBefore();
-    void processAfter();
-    void checkBP(uint32_t address, BreakpointType type, const char* reason = nullptr);
+    void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
+        std::string cause = fmt::format("DMA channel {} read", c);
+        checkBP(address, BreakpointType::Read, len, cause);
+    }
+    void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) {
+        std::string cause = fmt::format("DMA channel {} write", c);
+        checkBP(address, BreakpointType::Write, len, cause);
+    }
+
+  private:
+    void checkBP(uint32_t address, BreakpointType type, uint32_t width, std::string_view cause = "");
+
+  public:
+    // call this if PC is being set, like when the emulation is being reset, or when doing fastboot
+    void updatedPC(uint32_t newPC);
+    // call this as soon as possible after any instruction is run, with the oldPC, the newPC, and
+    // the opcode that was just executed
+    void process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool linked);
     std::string generateFlowIDC();
     std::string generateMarkIDC();
 
-    class Breakpoint {
+    class Breakpoint;
+    typedef Intrusive::Tree<uint32_t, Breakpoint> BreakpointTreeType;
+    typedef Intrusive::List<Breakpoint> BreakpointUserListType;
+
+    typedef std::function<bool(const Breakpoint*)> BreakpointInvoker;
+
+    class Breakpoint : public BreakpointTreeType::Node, public BreakpointUserListType::Node {
       public:
+        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base)
+            : m_type(type), m_source(source), m_invoker(invoker), m_base(base) {}
+        std::string name() const;
         BreakpointType type() const { return m_type; }
+        unsigned width() const { return getHigh() - getLow() + 1; }
+        uint32_t address() const { return getLow(); }
         bool enabled() const { return m_enabled; }
         void enable() const { m_enabled = true; }
         void disable() const { m_enabled = false; }
-        Breakpoint(BreakpointType type, bool temporary = false) : m_type(type), m_temporary(temporary) {}
-        Breakpoint() : m_type(BE), m_temporary(true) {}
+        const std::string& source() const { return m_source; }
+        uint32_t base() const { return m_base; }
 
       private:
-        BreakpointType m_type;
-        bool m_temporary;
+        bool trigger() {
+            if (m_enabled) return m_invoker(this);
+            return true;
+        }
+
+        const BreakpointType m_type;
+        const std::string m_source;
+        const BreakpointInvoker m_invoker;
+        uint32_t m_base;
         mutable bool m_enabled = true;
+
         friend class Debug;
     };
 
     void stepIn() {
-        m_stepType = STEP_IN;
+        m_step = STEP_IN;
         startStepping();
     }
     void stepOver() {
-        m_stepType = STEP_OVER;
+        m_step = STEP_OVER;
         startStepping();
     }
-    void stepOut() {
-        m_stepType = STEP_OUT;
-        startStepping();
-    }
+    void stepOut();
 
     bool m_mapping_e = false;
     bool m_mapping_r8 = false, m_mapping_r16 = false, m_mapping_r32 = false;
@@ -81,52 +112,48 @@ class Debug {
 
   private:
     void startStepping();
-    typedef std::multimap<uint32_t, Breakpoint> BreakpointList;
 
   public:
-    typedef BreakpointList::const_iterator bpiterator;
-    inline void addBreakpoint(uint32_t address, BreakpointType type, bool temporary = false) {
-        m_breakpoints.insert({address, {type, temporary}});
+    inline Breakpoint* addBreakpoint(
+        uint32_t address, BreakpointType type, unsigned width, const std::string& source,
+        BreakpointInvoker invoker = [](const Breakpoint* self) {
+            g_system->pause();
+            return true;
+        }) {
+        uint32_t base = address & 0xe0000000;
+        address &= ~0xe0000000;
+        return &*m_breakpoints.insert(address, address + width - 1, new Breakpoint(type, source, invoker, base));
     }
-    inline auto findBreakpoints(uint32_t address) { return m_breakpoints.equal_range(address); }
-    inline void forEachBP(std::function<bool(bpiterator)> lambda) {
-        for (auto i = m_breakpoints.begin(); i != m_breakpoints.end(); i++) {
-            if (!lambda(i)) return;
-        }
+    const BreakpointTreeType& getTree() { return m_breakpoints; }
+    const Breakpoint* lastBP() { return m_lastBP; }
+    void removeBreakpoint(const Breakpoint* bp) {
+        if (m_lastBP == bp) m_lastBP = nullptr;
+        delete const_cast<Breakpoint*>(bp);
     }
-    inline bool isValidBP(bpiterator pos) { return m_breakpoints.end() != pos; }
-    inline void eraseBP(bpiterator pos) { m_breakpoints.erase(pos); }
-    inline bpiterator lastBP() { return m_lastBP; }
-    inline bpiterator endBP() { return m_breakpoints.end(); }
 
   private:
-    BreakpointList m_breakpoints;
-    bpiterator m_lastBP = m_breakpoints.end();
+    bool triggerBP(Breakpoint* bp, std::string_view reason = "");
+    BreakpointTreeType m_breakpoints;
 
-    uint8_t m_mainMemoryMap[0x00200000];
+    uint8_t m_mainMemoryMap[0x00800000];
     uint8_t m_biosMemoryMap[0x00080000];
     uint8_t m_parpMemoryMap[0x00010000];
     uint8_t m_scratchPadMap[0x00000400];
 
     void markMap(uint32_t address, int mask);
     bool isMapMarked(uint32_t address, int mask);
-    void triggerBP(bpiterator bp, const char* reason);
-    void queueBP(const char* reason) {
-        m_queuedBP = true;
-        m_queuedBPReason = reason;
-    }
-
-    std::string m_queuedBPReason;
-    bool m_queuedBP = false;
 
     enum {
+        STEP_NONE,
         STEP_IN,
         STEP_OVER,
         STEP_OUT,
-    } m_stepType;
-    bool m_stepping = false;
-    int m_steppingJumps = 0;
-    int m_oldSteppingJumps = 0;
+    } m_step;
+
+    bool m_stepperHasBreakpoint = false;
+
+    bool m_wasInISR = false;
+    Breakpoint* m_lastBP = nullptr;
 };
 
 }  // namespace PCSX

@@ -83,7 +83,7 @@ endif
 	touch $@
 
 DEPS := $(patsubst %.cpp, %.dep,$(filter %.cpp,$(SRCS)))
-DEPS := $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
+DEPS += $(patsubst %.cc,  %.dep,$(filter %.cc,$(SRCS)))
 DEPS +=	$(patsubst %.c,   %.dep,$(filter %.c,$(SRCS)))
 DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 

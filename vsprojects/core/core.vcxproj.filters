@@ -143,6 +143,8 @@
     </ClCompile>
     <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
+    <ClCompile Include="..\..\src\core\callstacks.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -262,6 +264,8 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h">
       <Filter>Header Files\DynaRec_x64</Filter>
+    <ClInclude Include="..\..\src\core\callstacks.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

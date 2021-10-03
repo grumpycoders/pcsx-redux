@@ -18,6 +18,7 @@
 
 #include "core/gpu.h"
 
+#include "core/debug.h"
 #include "core/pgxp_mem.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
@@ -108,7 +109,10 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // BA blocks * BS words (word = 32-bits)
             size = (bcr >> 16) * (bcr & 0xffff);
             readDataMem(ptr, size);
-            PCSX::g_emulator->m_psxCpu->Clear(madr, size);
+            g_emulator->m_psxCpu->Clear(madr, size);
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+                g_emulator->m_debug->checkDMAwrite(2, madr, size * 4);
+            }
 #if 1
             // already 32-bit word size ((size * 4) / 4)
             scheduleGPUDMAIRQ(size);
@@ -127,6 +131,9 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             if (ptr == nullptr) {
                 PSXDMA_LOG("*** DMA2 GPU - mem2vram *** NULL Pointer!!!\n");
                 break;
+            }
+            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+                g_emulator->m_debug->checkDMAread(2, madr, size * 4);
             }
             pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
             writeDataMem(ptr, size);

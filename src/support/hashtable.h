@@ -128,7 +128,7 @@ class HashTable final {
         m_bits = initLog;
     }
 
-    unsigned size() { return m_count; }
+    unsigned size() const { return m_count; }
     iterator begin() { return iterator(findFirst()); }
     const_iterator begin() const { return const_iterator(findFirst()); }
     const_iterator cbegin() const { return const_iterator(findFirst()); }
@@ -213,7 +213,7 @@ class HashTable final {
         node->unlinkInternal();
         m_count--;
     }
-    bool contains(Node* node) { return this == node->m_parent; }
+    bool contains(Node* node) const { return this == node->m_parent; }
     void destroyAll() {
         for (auto& i : m_array) destroyAll(i);
         auto oldSize = m_array.size();

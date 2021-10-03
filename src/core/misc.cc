@@ -33,7 +33,7 @@
 #include "spu/interface.h"
 
 // FIXME: should be put in a more global header.
-#if defined(__linux__) || defined(__MACOSX__)
+#if defined(__linux__) || defined(__APPLE__)
 #define strnicmp strncasecmp
 #endif
 

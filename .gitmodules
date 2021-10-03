@@ -1,9 +1,6 @@
 [submodule "third_party/zlib"]
 	path = third_party/zlib
 	url = https://github.com/madler/zlib.git
-[submodule "third_party/SDL"]
-	path = third_party/SDL
-	url = https://github.com/SDL-mirror/SDL.git
 [submodule "third_party/imgui"]
 	path = third_party/imgui
 	url = https://github.com/ocornut/imgui.git
@@ -64,3 +61,6 @@
 [submodule "third_party/zep"]
 	path = third_party/zep
 	url = https://github.com/nicolasnoble/zep.git
+[submodule "third_party/miniaudio"]
+	path = third_party/miniaudio
+	url = https://github.com/mackron/miniaudio.git

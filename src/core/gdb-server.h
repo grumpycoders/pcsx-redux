@@ -24,6 +24,7 @@
 #include <cstdarg>
 #include <string>
 
+#include "core/debug.h"
 #include "core/psxemulator.h"
 #include "support/eventbus.h"
 #include "support/hashtable.h"
@@ -35,7 +36,10 @@ namespace PCSX {
 class GdbClient : public Intrusive::List<GdbClient>::Node {
   public:
     GdbClient(uv_tcp_t* srv);
-    ~GdbClient() { assert(m_requests.size() == 0); }
+    ~GdbClient() {
+        assert(m_requests.size() == 0);
+        m_breakpoints.destroyAll();
+    }
     typedef Intrusive::List<GdbClient> ListType;
 
     bool accept(uv_tcp_t* srv) {
@@ -243,6 +247,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     uint8_t m_crc;
     EventBus::Listener m_listener;
     uv_loop_t* m_loop;
+    Debug::BreakpointUserListType m_breakpoints;
 };
 
 class GdbServer {

@@ -727,9 +727,10 @@ void DynaRecCPU::flushCache() {
 }
 
 void DynaRecCPU::execute() {
-    const auto recFunc = (DynarecCallback *)PC_REC(m_psxRegs.pc);
-
-    if (!IsPcValid(m_psxRegs.pc)) {
+    const uint32_t pc = m_psxRegs.pc;
+    const auto recFunc = (DynarecCallback *)PC_REC(pc);
+    
+    if (!IsPcValid(pc)) {
         recError();
         return;
     }
@@ -737,12 +738,11 @@ void DynaRecCPU::execute() {
     const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                             .get<PCSX::Emulator::DebugSettings::Debug>();
 
-    if (debug) PCSX::g_emulator->m_debug->processBefore();
     if (*recFunc == nullptr) recRecompile();
     m_psxRegs.pc = (*recFunc)();
     psxBranchTest();
 
-    if (debug) PCSX::g_emulator->m_debug->processAfter();
+    if (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, m_psxRegs.code, false);
 }
 
 void DynaRecCPU::Execute() {

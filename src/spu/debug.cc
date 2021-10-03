@@ -17,17 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL.h>
-
 #include "imgui.h"
 #include "spu/interface.h"
 
 void PCSX::SPU::impl::debug() {
-    uint32_t now = SDL_GetTicks();
-    uint32_t delta = now - m_lastUpdated;
-    while (delta >= 50) {
-        m_lastUpdated += 50;
-        delta -= 50;
+    auto delta = std::chrono::steady_clock::now() - m_lastUpdated;
+    using namespace std::chrono_literals;
+    while (delta >= 50ms) {
+        m_lastUpdated += 50ms;
+        delta -= 50ms;
         for (unsigned ch = 0; ch < MAXCHAN; ch++) {
             if (!s_chan[ch].data.get<Chan::On>().value) {
                 m_channelDebugTypes[ch][m_currentDebugSample] = EMPTY;

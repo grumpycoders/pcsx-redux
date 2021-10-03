@@ -53,9 +53,9 @@ uniform float u_warp;
 uniform int u_masktype;
 uniform bool u_grey;
 
-float maskDark = 1.0 - u_mask;
-float maskLight = 1.0 + u_mask;
-vec2 c_warp = vec2(u_warp / 32.0, u_warp / 24.0);
+float maskDark;
+float maskLight;
+vec2 c_warp;
 
 vec2 warp(vec2 pos) {
     pos = pos * 2.0 - 1.0;
@@ -104,6 +104,10 @@ vec3 fetch(vec2 pos) {
 in vec2 Frag_UV;
 layout (location = 0) out vec4 Out_Color;
 void main() {
+    maskDark = 1.0 - u_mask;
+    maskLight = 1.0 + u_mask;
+    c_warp = vec2(u_warp / 32.0, u_warp / 24.0);
+
     Out_Color.rgb = fetch(warp(Frag_UV.st));
     if (u_grey) {
         Out_Color.rgb = toGrey(Out_Color.rgb);
@@ -239,8 +243,8 @@ uniform bool u_scanlines;
 layout (location = 0) out vec4 Out_Color;
 
 vec2 c_scale = vec2(1024.0, 512.0);
-vec2 c_res = u_srcSize * c_scale;
-vec2 c_pixelUV = c_scale * (Frag_UV - u_srcLoc);
+vec2 c_res;
+vec2 c_pixelUV;
 
 // sRGB to Linear.
 // Assuming using sRGB typed textures this should not be needed.
@@ -322,6 +326,9 @@ vec3 tri(vec2 pos) {
 }
 
 void main() {
+    c_res = u_srcSize * c_scale;
+    c_pixelUV = c_scale * (Frag_UV - u_srcLoc);
+
     vec2 pos = c_pixelUV;
     if (u_enabled) {
         Out_Color.rgb = tri(pos);

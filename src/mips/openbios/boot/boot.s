@@ -69,6 +69,7 @@ _reset:
     /* jumping over the interrupt vector. */
     j     _boot
 
+.ascii "OpenBIOS"
 
     .section .text, "ax", @progbits
     .align 2

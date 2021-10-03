@@ -17,8 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <SDL.h>
-
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -77,11 +75,13 @@ class SystemImpl final : public PCSX::System {
 
     virtual void softReset() final {
         // debugger or UI is requesting a reset
+        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
         PCSX::g_emulator->m_psxCpu->psxReset();
     }
 
     virtual void hardReset() final {
         // debugger or UI is requesting a reset
+        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
         PCSX::g_emulator->EmuReset();
 
         // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
@@ -134,6 +134,15 @@ int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     const flags::args args(argc, argv);
 
+#if defined(_WIN32) || defined(_WIN64)
+    if (args.get<bool>("stdout")) {
+        AllocConsole();
+        freopen("CONIN$", "r", stdin);
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+#endif
+
     if (args.get<bool>("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
         return 0;
@@ -147,10 +156,6 @@ int pcsxMain(int argc, char **argv) {
     std::filesystem::path binDir = self.parent_path();
     system->setBinDir(binDir);
     system->loadAllLocales();
-
-    if (SDL_Init(SDL_INIT_AUDIO) != 0) {
-        abort();
-    }
 
     s_gui = new PCSX::GUI(args);
     s_gui->init();

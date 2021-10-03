@@ -132,7 +132,7 @@ class WebServer {
     static void onNewConnectionTrampoline(uv_stream_t* server, int status);
     void onNewConnection(int status);
     static void closeCB(uv_handle_t* handle);
-    WebServerStatus m_serverStatus;
+    WebServerStatus m_serverStatus = SERVER_STOPPED;
     uv_tcp_t m_server;
     uv_loop_t* m_loop;
     WebClient::ListType m_clients;

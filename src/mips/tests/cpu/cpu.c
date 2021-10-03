@@ -45,6 +45,7 @@ CESTER_BODY(
     uint32_t cpu_LWR_LWL_delayed(uint32_t buff[], uint32_t initial);
     uint32_t linkandload();
     uint32_t lwandlink();
+    uint32_t nolink();
 )
 
 CESTER_TEST(cpu_LWR_LWL_half, test_instance,
@@ -172,5 +173,10 @@ CESTER_TEST(links, test_instance,
     uint32_t r = linkandload();
     cester_assert_uint_eq(0, r);
     r = lwandlink();
+    cester_assert_uint_ne(0, r);
+)
+
+CESTER_TEST(nolink, test_instance,
+    uint32_t r = nolink();
     cester_assert_uint_ne(0, r);
 )

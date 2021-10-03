@@ -53,6 +53,8 @@ void PCSX::R3000Acpu::psxReset() {
 
     m_psxRegs.pc = 0xbfc00000;  // Start in bootstrap
 
+    g_emulator->m_debug->updatedPC(0xbfc00000);
+
     m_psxRegs.CP0.r[12] = 0x10900000;  // COP0 enabled | BEV = 1 | TS = 1
     m_psxRegs.CP0.r[15] = 0x00000002;  // PRevID = Revision ID, same as R3000A
 

@@ -29,6 +29,7 @@
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/callstacks.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/events.h"
@@ -48,7 +49,11 @@
 #include "support/eventbus.h"
 #include "support/settings.h"
 
+#if defined(__APPLE__)
 #define GL_SHADER_VERSION "#version 410\n"
+#else
+#define GL_SHADER_VERSION "#version 300 es\n"
+#endif
 
 struct GLFWwindow;
 
@@ -222,7 +227,7 @@ class GUI final {
     MemoryEditorWrapper m_hwrEditor;
     MemoryEditorWrapper m_biosEditor;
     Widgets::Registers m_registers;
-    Widgets::Assembly m_assembly = {&m_mainMemEditors[0].editor, &m_hwrEditor.editor};
+    Widgets::Assembly m_assembly;
     Widgets::FileDialog m_openIsoFileDialog = {[]() { return _("Open Image"); }};
     Widgets::FileDialog m_openBinaryDialog = {[]() { return _("Open Binary"); }};
     Widgets::FileDialog m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
@@ -252,14 +257,19 @@ class GUI final {
     Widgets::Events m_events;
     Widgets::KernelLog m_kernelLog;
 
+    Widgets::CallStacks m_callstacks;
+
     EventBus::Listener m_listener;
 
     void shellReached();
+    std::string buildSaveStateFilename(int i);
+    void loadSaveState(const std::filesystem::path &filename);
 
-    void apply_theme(int n);
-    void cherry_theme();
-    void mono_theme();
-    void dracula_theme();
+    void applyTheme(int theme);
+    void cherryTheme();
+    void monoTheme();
+    void draculaTheme();
+    void oliveTheme();
 
     Notifier m_notifier = {[]() { return _("Notification"); }};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};

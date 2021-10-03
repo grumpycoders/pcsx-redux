@@ -99,7 +99,6 @@
 
 #include "gpu/soft/draw.h"
 
-#include <SDL.h>
 #include <stdint.h>
 
 #include "GL/gl3w.h"
@@ -194,8 +193,7 @@ void ShowGunCursor(unsigned char *surf) {
 static void checkGL() {
     volatile GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
-        SDL_TriggerBreakpoint();
-        abort();
+        throw std::runtime_error("Got OpenGL error");
     }
 }
 
