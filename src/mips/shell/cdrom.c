@@ -167,9 +167,9 @@ static void complete() {
             uint8_t idResponse[9] = {stat};
             for (unsigned i = 1; i < 8; i++) idResponse[i] = CDROM_REG1_UC;
             idResponse[8] = 0;
-            printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x (%s)\n",
-                              idResponse[0], idResponse[1], idResponse[2], idResponse[3], idResponse[4], idResponse[5],
-                              idResponse[6], idResponse[7], &idResponse[4]);
+            printf("(TS) cds::complete: response: %02x %02x %02x %02x %02x %02x %02x %02x (%s)\n", idResponse[0],
+                   idResponse[1], idResponse[2], idResponse[3], idResponse[4], idResponse[5], idResponse[6],
+                   idResponse[7], &idResponse[4]);
             CDROM_REG0 = 0;
             CDROM_REG2 = 0;
             CDROM_REG1 = CDL_SETMODE;
