@@ -49,7 +49,7 @@ template <typename DstTP, typename SrcTP, typename DstClk = typename DstTP::cloc
 DstTP ClockCast(const SrcTP tp) {
     const SrcTP srcNow = SrcClk::now();
     const DstTP dstNow = DstClk::now();
-    return std::chrono::time_point_cast<typename DstClk::duration>(tp - SrcTP + DstTP);
+    return std::chrono::time_point_cast<typename DstClk::duration>(tp - srcNow + dstNow);
 }
 
 namespace Events {
