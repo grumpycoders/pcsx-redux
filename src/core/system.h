@@ -42,7 +42,6 @@ enum class LogClass : unsigned;
 typedef decltype(std::filesystem::path().u8string()) u8string;
 #define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
 
-
 // another hack, until C++-20 properly gets std::chrono::clock_cast
 template <typename DstTP, typename SrcTP, typename DstClk = typename DstTP::clock,
           typename SrcClk = typename SrcTP::clock>
