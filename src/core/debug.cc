@@ -71,7 +71,7 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
 
 void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool linked) {
     const uint32_t basic = code >> 26;
-    const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x30);
+    const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x3b);
 
     checkBP(newPC, BreakpointType::Exec, 4);
     if (m_breakmp_e && !isMapMarked(newPC, MAP_EXEC)) {
@@ -91,14 +91,14 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool li
         const bool isLB = basic == 0x20;
         const bool isLH = basic == 0x21;
         const bool isLWL = basic == 0x22;
-        const bool isLW = basic == 0x23;
+        const bool isLW = (basic == 0x23) || (basic == 0x32);
         const bool isLBU = basic == 0x24;
         const bool isLHU = basic == 0x25;
         const bool isLWR = basic == 0x26;
         const bool isSB = basic == 0x28;
         const bool isSH = basic == 0x29;
         const bool isSWL = basic == 0x2a;
-        const bool isSW = basic == 0x2b;
+        const bool isSW = (basic == 0x2b) || (basic == 0x3a);
         const bool isSWR = basic == 0x2e;
         uint32_t offset = g_emulator->m_psxCpu->m_psxRegs.GPR.r[(code >> 21) & 0x1f] + int16_t(code);
         if (isLWL || isLWR || isSWR || isSWL) offset &= ~3;
