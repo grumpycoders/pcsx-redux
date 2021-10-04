@@ -23,15 +23,16 @@
 
 #include <list>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "gui/widgets/dwarf.h"
 #include "gui/widgets/filedialog.h"
-
-struct MemoryEditor;
+#include "support/eventbus.h"
 
 namespace PCSX {
 
@@ -42,8 +43,8 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly(MemoryEditor* mainMemoryEditor, MemoryEditor* hwMemoryEditor)
-        : m_mainMemoryEditor(mainMemoryEditor), m_hwMemoryEditor(hwMemoryEditor) {
+    Assembly() : m_listener(g_system->m_eventBus) {
+        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     void draw(GUI* gui, psxRegisters* registers, Memory* memory, Dwarf* dwarf, const char* title);
@@ -51,6 +52,7 @@ class Assembly : private Disasm {
     bool m_show = false;
 
   private:
+    EventBus::Listener m_listener;
     bool m_followPC = false;
     bool m_pseudoFilling = true;
     bool m_pseudo = true;
@@ -60,15 +62,13 @@ class Assembly : private Disasm {
     char m_jumpAddressString[20];
     std::map<uint32_t, std::string> m_symbols;
     FileDialog m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
-    MemoryEditor* m_mainMemoryEditor = nullptr;
-    MemoryEditor* m_hwMemoryEditor = nullptr;
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
     // Disasm section
     void sameLine();
     void comma();
     uint8_t* ptr(uint32_t addr);
-    void jumpToMemory(uint32_t addr, int size);
+    void jumpToMemory(uint32_t addr, unsigned size);
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
@@ -92,8 +92,7 @@ class Assembly : private Disasm {
     bool m_notchAfterSkip[2] = {false, false};
     psxRegisters* m_registers;
     uint32_t m_currentAddr = 0;
-    bool m_jumpToPC = false;
-    uint32_t m_jumpToPCValue = 0;
+    std::optional<uint32_t> m_jumpToPC;
     Memory* m_memory;
     uint32_t m_ramBase = 0x80000000;
 

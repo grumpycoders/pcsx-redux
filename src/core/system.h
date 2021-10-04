@@ -65,9 +65,19 @@ struct Run {};
 struct Pause {
     bool exception = false;
 };
-struct SoftReset {};
-struct HardReset {};
+struct Reset {
+    bool hard = false;
+};
 }  // namespace ExecutionFlow
+namespace GUI {
+struct JumpToPC {
+    uint32_t pc;
+};
+struct JumpToMemory {
+    uint32_t address;
+    unsigned size;
+};
+}  // namespace GUI
 struct CreatedVRAMTexture {
     unsigned int id;
 };

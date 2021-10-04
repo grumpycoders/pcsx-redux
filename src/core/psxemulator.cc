@@ -19,6 +19,7 @@
 
 #include "core/psxemulator.h"
 
+#include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cheat.h"
 #include "core/debug.h"
@@ -53,7 +54,8 @@ PCSX::Emulator::Emulator()
       m_hw(new PCSX::HW()),
       m_spu(new PCSX::SPU::impl()),
       m_pads(new PCSX::Pads()),
-      m_lua(new PCSX::Lua()) {
+      m_lua(new PCSX::Lua()),
+      m_callStacks(new PCSX::CallStacks) {
     m_lua->open_base();
     m_lua->open_bit();
     m_lua->open_debug();

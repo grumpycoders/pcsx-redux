@@ -81,6 +81,7 @@ typedef intptr_t ssize_t;
 
 namespace PCSX {
 
+class CallStacks;
 class CDRom;
 class Cheats;
 class Counters;
@@ -231,6 +232,7 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
+    std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<Cheats> m_cheats;
     std::unique_ptr<Counters> m_psxCounters;

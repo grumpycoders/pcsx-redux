@@ -57,83 +57,37 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGui::Checkbox(_("Break on word write map"), &debugger->m_breakmp_w32);
     ImGui::Separator();
     ImGui::TextUnformatted(_("Breakpoints"));
-    if (ImGui::Button(_("Show all breakpoints"))) {
-        m_filterE = m_filterR1 = m_filterR2 = m_filterR4 = m_filterW1 = m_filterW2 = m_filterW4 = true;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(_("Show no breakpoints"))) {
-        m_filterE = m_filterR1 = m_filterR2 = m_filterR4 = m_filterW1 = m_filterW2 = m_filterW4 = false;
-    }
-    ImGui::Checkbox(_("Show exec BPs"), &m_filterE);
-    ImGui::Checkbox(_("Show byte read BPs     "), &m_filterR1);
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Show half read BPs     "), &m_filterR2);
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Show word read BPs     "), &m_filterR4);
-    ImGui::Checkbox(_("Show byte write BPs    "), &m_filterW1);
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Show half write BPs    "), &m_filterW2);
-    ImGui::SameLine();
-    ImGui::Checkbox(_("Show word write BPs    "), &m_filterW4);
 
     ImGuiStyle& style = ImGui::GetStyle();
     const float heightSeparator = style.ItemSpacing.y;
     float footerHeight = 0;
-    footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
+    footerHeight += (heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing()) * 4;
     float glyphWidth = ImGui::GetFontSize();
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     ImGui::BeginChild("BreakpointsList", ImVec2(0, -footerHeight), true);
-    Debug::bpiterator eraseBP = debugger->endBP();
-    debugger->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
-        switch (it->second.type()) {
-            case Debug::BreakpointType::BE:
-                if (!m_filterE) return true;
-                break;
-            case Debug::BreakpointType::BR1:
-                if (!m_filterR1) return true;
-                break;
-            case Debug::BreakpointType::BR2:
-                if (!m_filterR2) return true;
-                break;
-            case Debug::BreakpointType::BR4:
-                if (!m_filterR4) return true;
-                break;
-            case Debug::BreakpointType::BW1:
-                if (!m_filterW1) return true;
-                break;
-            case Debug::BreakpointType::BW2:
-                if (!m_filterW2) return true;
-                break;
-            case Debug::BreakpointType::BW4:
-                if (!m_filterW4) return true;
-                break;
-        }
+    const Debug::Breakpoint* toErase = nullptr;
+    auto& tree = debugger->getTree();
+    for (auto bp = tree.begin(); bp != tree.end(); bp++) {
         ImVec2 pos = ImGui::GetCursorScreenPos();
-        if (it->second.enabled()) {
-            ImGui::Text("  %8.8x - %-20s", it->first, PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
+        std::string name = bp->name();
+        if (bp->enabled()) {
+            ImGui::Text("  %s", name.c_str());
         } else {
-            ImGui::TextDisabled("  %8.8x - %-20s", it->first,
-                                PCSX::Debug::s_breakpoint_type_names[it->second.type()]());
+            ImGui::TextDisabled("  %s", name.c_str());
         }
         ImGui::SameLine();
-        std::string buttonLabel = _("Remove##");
-        buttonLabel += it->first;
-        buttonLabel += Debug::s_breakpoint_type_names[it->second.type()]();
-        if (ImGui::Button(buttonLabel.c_str())) eraseBP = it;
+        std::string buttonLabel = _("Remove##") + name;
+        if (ImGui::Button(buttonLabel.c_str())) toErase = &*bp;
         ImGui::SameLine();
-        if (it->second.enabled()) {
-            buttonLabel = _("Disable##");
-            buttonLabel += it->first;
-            buttonLabel += Debug::s_breakpoint_type_names[it->second.type()]();
-            if (ImGui::Button(buttonLabel.c_str())) it->second.disable();
+        if (bp->enabled()) {
+            buttonLabel = _("Disable##") + name;
+            if (ImGui::Button(buttonLabel.c_str())) bp->disable();
         } else {
-            buttonLabel = _("Enable##");
-            buttonLabel += it->first;
-            buttonLabel += Debug::s_breakpoint_type_names[it->second.type()]();
-            if (ImGui::Button(buttonLabel.c_str())) it->second.enable();
+            buttonLabel = _("Enable##") + name;
+            if (ImGui::Button(buttonLabel.c_str())) bp->enable();
         }
-        if (debugger->lastBP() != it) return true;
+        if (debugger->lastBP() != &*bp) continue;
         ImVec2 a, b, c, d, e;
         const float dist = glyphWidth / 2;
         const float w2 = ImGui::GetTextLineHeight() / 4;
@@ -149,31 +103,25 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         e.y = pos.y + ImGui::GetTextLineHeight() / 2 + w2;
         drawList->AddTriangleFilled(a, b, c, ImColor(s_currentColor));
         drawList->AddRectFilled(d, e, ImColor(s_currentColor));
-
-        return true;
-    });
-    ImGui::EndChild();
-    if (debugger->isValidBP(eraseBP)) {
-        debugger->eraseBP(eraseBP);
     }
-    ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
-    ImGui::InputText("##address", m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
-    ImGui::SameLine();
+    ImGui::EndChild();
+    if (toErase) g_emulator->m_debug->removeBreakpoint(toErase);
+    ImGui::InputText(_("Address"), m_bpAddressString, 20, ImGuiInputTextFlags_CharsHexadecimal);
     if (ImGui::BeginCombo(_("Breakpoint Type"), Debug::s_breakpoint_type_names[m_breakpointType]())) {
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 3; i++) {
             if (ImGui::Selectable(Debug::s_breakpoint_type_names[i](), m_breakpointType == i)) {
                 m_breakpointType = i;
             }
         }
         ImGui::EndCombo();
     }
-    ImGui::PopItemWidth();
-    ImGui::SameLine();
+    ImGui::SliderInt(_("Breakpoint Width"), &m_breakpointWidth, 1, 4);
     if (ImGui::Button(_("Add Breakpoint"))) {
         char* endPtr;
         uint32_t breakpointAddress = strtoul(m_bpAddressString, &endPtr, 16);
         if (*m_bpAddressString && !*endPtr) {
-            debugger->addBreakpoint(breakpointAddress, Debug::BreakpointType(m_breakpointType));
+            debugger->addBreakpoint(breakpointAddress, Debug::BreakpointType(m_breakpointType), m_breakpointWidth,
+                                    _("GUI"));
         }
     }
     ImGui::End();

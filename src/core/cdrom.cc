@@ -24,8 +24,10 @@
 #include "core/cdrom.h"
 
 #include "core/cdriso.h"
+#include "core/debug.h"
 #include "core/ppf.h"
 #include "core/psxdma.h"
+#include "core/psxemulator.h"
 #include "magic_enum/include/magic_enum.hpp"
 #include "spu/interface.h"
 
@@ -1443,6 +1445,10 @@ class CDRomImpl : public PCSX::CDRom {
                     ptr[i] = m_transfer[m_transferIndex];
                     m_transferIndex++;
                     adjustTransferIndex();
+                }
+                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                        .get<PCSX::Emulator::DebugSettings::Debug>()) {
+                    PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, cdsize);
                 }
                 PCSX::g_emulator->m_psxCpu->Clear(madr, cdsize / 4);
                 // burst vs normal

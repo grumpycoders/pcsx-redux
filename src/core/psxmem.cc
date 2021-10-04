@@ -23,11 +23,42 @@
 
 #include "core/psxmem.h"
 
-#include "core/debug.h"
+#include <zlib.h>
+
+#include <map>
+#include <string_view>
+
 #include "core/psxhw.h"
 #include "core/r3000a.h"
 #include "mips/common/util/encoder.hh"
 #include "support/file.h"
+
+static const std::map<uint32_t, std::string_view> s_knownBioses = {
+    {0x1002e6b5, "SCPH-1002 (EU)"},
+    {0x1ac46cf1, "SCPH-5000 (JP)"},
+    {0x24e21a0e, "SCPH-7003 (US)"},
+    {0x38f5c1fe, "SCPH-1000 (JP)"},
+    {0x42ea6879, "SCPH-1002 - DTLH-3002 (EU)"},
+    {0x48ba1524, "????"},
+    {0x4e501b56, "SCPH-5502 - SCPH-5552 (2) (EU)"},
+    {0x560e2da1, "????"},
+    {0x61e5b760, "SCPH-7001 (US)"},
+    {0x649db764, "SCPH-7502 (EU)"},
+    {0x68d2dd36, "????"},
+    {0x68ee15cc, "SCPH-5502 - SCPH-5552 (EU)"},
+    {0x7de956a4, "SCPH-101"},
+    {0x80a156a8, "????"},
+    {0x9e7d4faa, "SCPH-3000 (JP)"},
+    {0x9eff111b, "SCPH-7000 (JP)"},
+    {0xa6cf18fe, "SCPH-5500 (JP)"},
+    {0xa8e56981, "SCPH-3500 (JP)"},
+    {0xb6ef0d64, "????"},
+    {0xd10b6509, "????"},
+    {0xdaa2e0a6, "SCPH-1001 - DTLH-3000 (US)"},
+    {0xe7ca4fad, "????"},
+    {0xf380c9ff, "SCPH-5000"},
+    {0xfb4afc11, "SCPH-5000 (2)"},
+};
 
 int PCSX::Memory::psxMemInit() {
     int i;
@@ -135,6 +166,16 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
             if (entry.valid()) PCSX::g_system->printf(_("BIOS entry point: %s\n"), entry.get_description());
         }
         PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
+    }
+    uint32_t adler = adler32(0L, Z_NULL, 0);
+    m_biosAdler32 = adler = adler32(adler, g_psxR, bios_size);
+    auto it = s_knownBioses.find(adler);
+    if (it != s_knownBioses.end()) {
+        g_system->printf(_("Known BIOS detected: %s (%08x)\n"), it->second, adler);
+    } else if (strncmp((const char *)&g_psxR[0x78], "OpenBIOS", 8) == 0) {
+        g_system->printf(_("OpenBIOS detected (%08x)\n"), adler);
+    } else {
+        g_system->printf(_("Unknown bios loaded (%08x)\n"), adler);
     }
 
     for (auto &overlay : g_emulator->settings.get<Emulator::SettingBiosOverlay>()) {
@@ -244,9 +285,6 @@ uint8_t PCSX::Memory::psxMemRead8(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR1);
-            }
             return *(uint8_t *)(p + (mem & 0xffff));
         } else {
             PSXMEM_LOG("err lb %8.8lx\n", mem);
@@ -272,9 +310,6 @@ uint16_t PCSX::Memory::psxMemRead16(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR2);
-            }
             return SWAP_LEu16(*(uint16_t *)(p + (mem & 0xffff)));
         } else {
             PSXMEM_LOG("err lh %8.8lx\n", mem);
@@ -300,9 +335,6 @@ uint32_t PCSX::Memory::psxMemRead32(uint32_t mem) {
     } else {
         p = (char *)(g_psxMemRLUT[t]);
         if (p != NULL) {
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BR4);
-            }
             return SWAP_LEu32(*(uint32_t *)(p + (mem & 0xffff)));
         } else {
             if (m_writeok) {
@@ -330,9 +362,6 @@ void PCSX::Memory::psxMemWrite8(uint32_t mem, uint8_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW1);
-            }
             *(uint8_t *)(p + (mem & 0xffff)) = value;
             PCSX::g_emulator->m_psxCpu->Clear((mem & (~3)), 1);
         } else {
@@ -358,9 +387,6 @@ void PCSX::Memory::psxMemWrite16(uint32_t mem, uint16_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW2);
-            }
             *(uint16_t *)(p + (mem & 0xffff)) = SWAP_LEu16(value);
             PCSX::g_emulator->m_psxCpu->Clear((mem & (~3)), 1);
         } else {
@@ -387,9 +413,6 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     } else {
         p = (char *)(g_psxMemWLUT[t]);
         if (p != NULL) {
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                PCSX::g_emulator->m_debug->checkBP(mem, PCSX::Debug::BW4);
-            }
             *(uint32_t *)(p + (mem & 0xffff)) = SWAP_LEu32(value);
             PCSX::g_emulator->m_psxCpu->Clear(mem, 1);
         } else {
@@ -458,4 +481,10 @@ void PCSX::Memory::setLuts() {
         memset(g_psxMemWLUT + 0x8000, 0, 0x80 * sizeof(void *));
         memset(g_psxMemWLUT + 0xa000, 0, 0x80 * sizeof(void *));
     }
+}
+
+std::string_view PCSX::Memory::getBiosVersionString() {
+    auto it = s_knownBioses.find(m_biosAdler32);
+    if (it == s_knownBioses.end()) return "Unknown";
+    return it->second;
 }

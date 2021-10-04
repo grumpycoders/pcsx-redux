@@ -43,6 +43,7 @@ enum class LogClass : unsigned {
     IRQ,            // irq scheduling and triggering information
     KERNEL,         // kernel logs
     GDB,            // GDB logs
+    SYSTEM,         // system logs from the emulator itself
 };
 
 template <LogClass logClass, bool enabled>

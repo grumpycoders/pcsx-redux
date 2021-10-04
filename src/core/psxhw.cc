@@ -23,10 +23,13 @@
 
 #include "core/psxhw.h"
 
+#include <stdint.h>
+
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/logger.h"
 #include "core/mdec.h"
+#include "core/psxemulator.h"
 #include "spu/interface.h"
 
 // Vampire Hunter D hack
@@ -501,13 +504,16 @@ inline void PCSX::HW::psxDma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PCSX::g_emulator->m_cdrom->dma(madr, bcr, chcr);
 }
 
-#define DmaExec(n)                                                                                              \
-    {                                                                                                           \
-        HW_DMA##n##_CHCR = SWAP_LEu32(value);                                                                   \
-                                                                                                                \
-        if (SWAP_LEu32(HW_DMA##n##_CHCR) & 0x01000000 && SWAP_LEu32(HW_DMA_PCR) & (8 << (n * 4))) {             \
-            psxDma##n(SWAP_LEu32(HW_DMA##n##_MADR), SWAP_LEu32(HW_DMA##n##_BCR), SWAP_LEu32(HW_DMA##n##_CHCR)); \
-        }                                                                                                       \
+#define DmaExec(n)                                                           \
+    {                                                                        \
+        HW_DMA##n##_CHCR = SWAP_LEu32(value);                                \
+                                                                             \
+        if (value & 0x01000000 && SWAP_LEu32(HW_DMA_PCR) & (8 << (n * 4))) { \
+            uint32_t madr = SWAP_LEu32(HW_DMA##n##_MADR);                    \
+            uint32_t bcr = SWAP_LEu32(HW_DMA##n##_BCR);                      \
+            uint32_t chcr = value;                                           \
+            psxDma##n(madr, bcr, chcr);                                      \
+        }                                                                    \
     }
 
 void PCSX::HW::psxHwWrite32(uint32_t add, uint32_t value) {

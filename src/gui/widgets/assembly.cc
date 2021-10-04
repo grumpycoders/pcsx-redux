@@ -32,10 +32,10 @@
 #include "core/disr3000a.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
-#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "imgui_stdlib.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
@@ -275,8 +275,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) {
-        m_jumpToPC = true;
-        m_jumpToPCValue = value;
+        m_jumpToPC = value;
     }
     ImGui::PopStyleVar();
 }
@@ -296,42 +295,8 @@ uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
         return dummy;
     }
 }
-void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, int size) {
-    uint32_t base = (addr >> 20) & 0xffc;
-    uint32_t real = addr & 0x7fffff;
-    auto changeDataType = [](MemoryEditor* editor, int size) {
-        bool isSigned = false;
-        switch (editor->PreviewDataType) {
-            case ImGuiDataType_S8:
-            case ImGuiDataType_S16:
-            case ImGuiDataType_S32:
-            case ImGuiDataType_S64:
-                isSigned = true;
-                break;
-        }
-        switch (size) {
-            case 1:
-                editor->PreviewDataType = isSigned ? ImGuiDataType_S8 : ImGuiDataType_U8;
-                break;
-            case 2:
-                editor->PreviewDataType = isSigned ? ImGuiDataType_S16 : ImGuiDataType_U16;
-                break;
-            case 4:
-                editor->PreviewDataType = isSigned ? ImGuiDataType_S32 : ImGuiDataType_U32;
-                break;
-        }
-    };
-    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        if (real < 0x00800000) {
-            m_mainMemoryEditor->GotoAddrAndHighlight(real, real + size);
-            changeDataType(m_mainMemoryEditor, size);
-        }
-    } else if (base == 0x1f8) {
-        if (real >= 0x1000 && real < 0x3000) {
-            m_hwMemoryEditor->GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
-            changeDataType(m_hwMemoryEditor, size);
-        }
-    }
+void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size) {
+    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size});
 }
 
 void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
@@ -379,16 +344,14 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     if (symbols.size() == 0) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(label)) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
+            m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
     } else {
         std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(longLabel.c_str())) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = value;
+            m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
     }
@@ -520,19 +483,6 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     DButton(_("Step Out"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepOut(); });
     ImGui::SameLine();
     ImGui::Text(_("In ISR: %s"), g_emulator->m_psxCpu->m_inISR ? "yes" : "no");
-    if (!g_system->running()) {
-        if (ImGui::IsKeyPressed(GLFW_KEY_F10)) {
-            g_emulator->m_debug->stepOver();
-        } else if (ImGui::IsKeyPressed(GLFW_KEY_F11)) {
-            if (ImGui::GetIO().KeyShift) {
-                g_emulator->m_debug->stepOut();
-            } else {
-                g_emulator->m_debug->stepIn();
-            }
-        } else if (ImGui::IsKeyPressed(GLFW_KEY_F5)) {
-            g_system->resume();
-        }
-    }
 
     gui->useMonoFont();
 
@@ -601,31 +551,23 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
             process(
                 addr, [](uint32_t, const char*, uint32_t) {}, &dummy);
         }
+        auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
             uint32_t addr = x * 4;
-            Debug::bpiterator currentBP;
+            const Debug::Breakpoint* currentBP = nullptr;
             prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
-                PCSX::g_emulator->m_debug->forEachBP([&](PCSX::Debug::bpiterator it) mutable {
-                    uint32_t addr = dispAddr;
-                    uint32_t bpAddr = it->first;
-                    uint32_t base = (addr >> 20) & 0xffc;
-                    uint32_t bpBase = (bpAddr >> 20) & 0xffc;
-                    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-                        addr &= 0x1fffff;
-                    }
-                    if ((bpBase == 0x000) || (bpBase == 0x800) || (bpBase == 0xa00)) {
-                        bpAddr &= 0x1fffff;
-                    }
-                    if ((it->second.type() == Debug::BE) && (addr == bpAddr)) {
+
+                for (auto intersect = tree.find(dispAddr & ~0xe0000000, Debug::BreakpointTreeType::INTERVAL_SEARCH);
+                     intersect != tree.end(); intersect++) {
+                    if (intersect->type() == Debug::BreakpointType::Exec) {
                         hasBP = true;
-                        isBPEnabled = it->second.enabled();
-                        currentBP = it;
-                        return false;
+                        isBPEnabled = intersect->enabled();
+                        currentBP = &*intersect;
+                        break;
                     }
-                    return true;
-                });
+                }
 
                 m_currentAddr = dispAddr;
                 uint8_t b[4];
@@ -705,17 +647,21 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                 contextMenuTitle += dispAddr;
                 if (ImGui::BeginPopupContextItem(contextMenuTitle.c_str())) {
                     DButton(_("Run to cursor"), !PCSX::g_system->running(), [&]() mutable {
-                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE, true);
+                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
+                                                           [](const Debug::Breakpoint* bp) {
+                                                               g_system->pause();
+                                                               return false;
+                                                           });
                         ImGui::CloseCurrentPopup();
-                        PCSX::g_system->resume();
+                        g_system->resume();
                     });
                     DButton(_("Set Breakpoint here"), !hasBP, [&]() mutable {
-                        PCSX::g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BE);
+                        g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
                         ImGui::CloseCurrentPopup();
                         hasBP = true;
                     });
                     DButton(_("Remove breakpoint from here"), hasBP, [&]() mutable {
-                        PCSX::g_emulator->m_debug->eraseBP(currentBP);
+                        g_emulator->m_debug->removeBreakpoint(currentBP);
                         ImGui::CloseCurrentPopup();
                         hasBP = false;
                     });
@@ -837,8 +783,8 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     drawList->ChannelsMerge();
     ImGui::EndChild();
     ImGui::PopFont();
-    if (m_jumpToPC) {
-        std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPCValue);
+    if (m_jumpToPC.has_value()) {
+        std::snprintf(m_jumpAddressString, 19, "%08x", m_jumpToPC);
     }
     ImGui::PushItemWidth(10 * glyphWidth + style.FramePadding.x);
     if (ImGui::InputText(_("Address"), m_jumpAddressString, 20,
@@ -846,8 +792,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
         char* endPtr;
         uint32_t jumpAddress = strtoul(m_jumpAddressString, &endPtr, 16);
         if (*m_jumpAddressString && !*endPtr) {
-            m_jumpToPC = true;
-            m_jumpToPCValue = jumpAddress;
+            m_jumpToPC = jumpAddress;
         }
     }
     static const char* baseStrs[] = {"00000000", "80000000", "a0000000"};
@@ -868,7 +813,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-    if (m_followPC || m_jumpToPC) {
+    if (m_followPC || m_jumpToPC.has_value()) {
         if (m_followPC) {
             uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
             switch (basePC) {
@@ -883,10 +828,10 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                     break;
             }
         }
-        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPCValue) : pc) / 4;
+        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPC.value()) : pc) / 4;
         double scroll_to_px = pctopx * clipper.ItemsHeight;
         ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
-        m_jumpToPC = false;
+        m_jumpToPC.reset();
     }
     ImGui::EndChild();
     ImGui::End();
@@ -934,8 +879,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
                     std::string dataLabel = fmt::format(_("Data##{}{:08x}"), symbol.first, symbol.second);
                     std::string dwarfLabel = fmt::format(_("DWARF##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {
-                        m_jumpToPC = true;
-                        m_jumpToPCValue = symbol.second;
+                        m_jumpToPC = symbol.second;
                     }
                     ImGui::SameLine();
                     if (ImGui::Button(dataLabel.c_str())) {

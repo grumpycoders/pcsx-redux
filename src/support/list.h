@@ -127,7 +127,7 @@ class List final {
         m_tail.m_prev = &m_head;
     }
 
-    unsigned size() { return m_count; }
+    unsigned size() const { return m_count; }
     iterator begin() { return iterator(m_head.m_next); }
     const_iterator begin() const { return const_iterator(m_head.m_next); }
     const_iterator cbegin() const { return const_iterator(m_head.m_next); }
@@ -194,7 +194,7 @@ class List final {
         node->unlinkInternal();
         m_count--;
     }
-    bool contains(Node* node) { return this == node->m_parent; }
+    bool contains(Node* node) const { return this == node->m_parent; }
     void destroyAll() {
         while (m_count) delete m_head.m_next;
     }

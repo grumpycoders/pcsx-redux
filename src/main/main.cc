@@ -75,11 +75,13 @@ class SystemImpl final : public PCSX::System {
 
     virtual void softReset() final {
         // debugger or UI is requesting a reset
+        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
         PCSX::g_emulator->m_psxCpu->psxReset();
     }
 
     virtual void hardReset() final {
         // debugger or UI is requesting a reset
+        m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
         PCSX::g_emulator->EmuReset();
 
         // Upon hard-reset, clear the VRAM texture displayed by the VRAM viewers as well
@@ -131,6 +133,15 @@ using json = nlohmann::json;
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     const flags::args args(argc, argv);
+
+#if defined(_WIN32) || defined(_WIN64)
+    if (args.get<bool>("stdout")) {
+        AllocConsole();
+        freopen("CONIN$", "r", stdin);
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+#endif
 
     if (args.get<bool>("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);

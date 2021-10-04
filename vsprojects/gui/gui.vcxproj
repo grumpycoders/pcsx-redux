@@ -184,6 +184,7 @@
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc" />
     <ClCompile Include="..\..\src\gui\widgets\assembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\callstacks.cc" />
     <ClCompile Include="..\..\src\gui\widgets\console.cc" />
     <ClCompile Include="..\..\src\gui\widgets\dwarf.cc" />
     <ClCompile Include="..\..\src\gui\widgets\events.cc" />
@@ -206,6 +207,7 @@
     <ClInclude Include="..\..\src\gui\shaders\crt-lottes.h" />
     <ClInclude Include="..\..\src\gui\widgets\assembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h" />
+    <ClInclude Include="..\..\src\gui\widgets\callstacks.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
     <ClInclude Include="..\..\src\gui\widgets\dwarf.h" />
     <ClInclude Include="..\..\src\gui\widgets\events.h" />

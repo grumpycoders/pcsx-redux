@@ -21,14 +21,77 @@
 
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "main/main.h"
 
+static std::pair<int, std::string> loopMain(int argc, char **argv) {
+    int r = 0;
+    std::string errorMsg;
+    do {
+        try {
+            r = pcsxMain(argc, argv);
+        } catch (std::exception &e) {
+            errorMsg = e.what();
+            r = -1;
+        } catch (...) {
+            errorMsg = "An unknown exception occured.";
+            r = -1;
+        }
+    } while (r == 0x12eb007);
+
+    return {r, errorMsg};
+}
+
 #if defined(_WIN32) || defined(_WIN64)
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-static void Complain(const char* msg) { MessageBoxA(nullptr, msg, "Error", MB_ICONERROR | MB_OK); }
-#elif defined(__APPLE__) && defined(__MACH__)
+// Please, clang-format, stop being stubborn and let this windows.h
+// header first. Yes, I know it's wrong, blame Microsoft.
+#include <shellapi.h>
+
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
+                      _In_ int nCmdShow) {
+    LPWSTR *argvw;
+    char **argv;
+    int argc;
+
+    argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (!argvw) return -1;
+    argv = (char **)calloc(argc + 1, sizeof(*argv));
+    if (!argv) return -1;
+    for (int i = 0; i < argc; i++) {
+        int needed;
+        char *str;
+
+        needed = WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1, NULL, 0, NULL, NULL);
+        if (needed <= 0) {
+            argv[i] = nullptr;
+            continue;
+        }
+        str = (char *)calloc(needed, sizeof(char));
+        WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1, reinterpret_cast<LPSTR>(str), needed, NULL, NULL);
+        argv[i] = str;
+    }
+    argv[argc] = nullptr;
+    LocalFree(argvw);
+
+    auto [r, errorMsg] = loopMain(argc, argv);
+
+    if (!errorMsg.empty()) {
+        r = -1;
+        fprintf(stderr, "%s\n", errorMsg.c_str());
+
+        MessageBoxA(nullptr, errorMsg.c_str(), "Error", MB_ICONERROR | MB_OK);
+    }
+
+    for (int i = 0; i < argc; i++) free(argv[i]);
+    free(argv);
+    return r;
+}
+#else
+#if defined(__APPLE__) && defined(__MACH__)
 extern "C" void Complain(const char* msg);
 #else
 #include <X11/Xlib.h>
@@ -57,21 +120,8 @@ static void Complain(const char* msg) {
     return;
 }
 #endif
-
 int main(int argc, char** argv) {
-    int r = 0;
-    std::string errorMsg;
-    do {
-        try {
-            r = pcsxMain(argc, argv);
-        } catch (std::exception& e) {
-            errorMsg = e.what();
-            r = -1;
-        } catch (...) {
-            errorMsg = "An unknown exception occured.";
-            r = -1;
-        }
-    } while (r == 0x12eb007);
+    auto [r, errorMsg] = loopMain(argc, argv);
 
     if (errorMsg.empty()) return r;
 
@@ -81,3 +131,4 @@ int main(int argc, char** argv) {
 
     return -1;
 }
+#endif

@@ -128,6 +128,8 @@
 
 #endif
 
+#include "core/debug.h"
+#include "core/psxemulator.h"
 #include "gpu/soft/cfg.h"
 #include "gpu/soft/draw.h"
 #include "gpu/soft/externals.h"
@@ -1302,6 +1304,9 @@ int32_t PCSX::SoftGPU::impl::dmaChain(uint32_t *baseAddrL, uint32_t addr) {
 
         dmaMem = addr + 4;
 
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_emulator->m_debug->checkDMAread(2, addr, (count + 1) * 4);
+        }
         if (count > 0) writeDataMem(&baseAddrL[dmaMem >> 2], count);
 
         addr = baseAddrL[addr >> 2] & 0xffffff;
