@@ -1,8 +1,8 @@
 class MipselNoneElfBinutils < Formula
   desc "FSF Binutils for mipsel cross development"
   homepage "https://www.gnu.org/software/binutils/"
-  url "https://ftp.gnu.org/gnu/binutils/binutils-2.36.1.tar.gz"
-  sha256 "e68edeaaeb6ca9687b6dcbaedd1b376506baad2d48de26a885fc5ab6acb839da"
+  url "https://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
+  sha256 "c44968b97cd86499efbc4b4ab7d98471f673e5414c554ef54afa930062dbbfcb"
 
   def install
     system "./configure", "--target=mipsel-none-elf",
