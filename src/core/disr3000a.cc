@@ -731,11 +731,11 @@ declare(disNCCT) { dOpCode("gte::ncct"); }
 declare(disMFC2) {
     dOpCode("mfc2");
     GPR(_Rt_);
-    CP2C(_Rd_);
+    CP2D(_Rd_);
 }
 declare(disMTC2) {
     dOpCode("mtc2");
-    CP2C(_Rd_);
+    CP2D(_Rd_);
     GPR(_Rt_);
 }
 declare(disCFC2) {
