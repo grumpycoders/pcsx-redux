@@ -22,15 +22,15 @@ msgid ""
 "could not open: %s\n"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:267
+#: src/gui/widgets/filedialog.cc:265
 msgid "  Date & Time"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:211
+#: src/gui/widgets/filedialog.cc:209
 msgid "  File"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:239
+#: src/gui/widgets/filedialog.cc:237
 msgid "  Size"
 msgstr ""
 
@@ -276,7 +276,7 @@ msgstr ""
 msgid "Callstacks"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:347 src/gui/widgets/registers.cc:208
+#: src/gui/widgets/filedialog.cc:345 src/gui/widgets/registers.cc:208
 msgid "Cancel"
 msgstr ""
 
@@ -495,7 +495,7 @@ msgstr ""
 msgid "Device type"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:190
+#: src/gui/widgets/filedialog.cc:188
 msgid "Directories"
 msgstr ""
 
@@ -683,7 +683,7 @@ msgstr ""
 msgid "Filename"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:207
+#: src/gui/widgets/filedialog.cc:205
 msgid "Files"
 msgstr ""
 
@@ -773,7 +773,7 @@ msgstr ""
 msgid "Hide all"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:176
+#: src/gui/widgets/filedialog.cc:174
 msgid "Home"
 msgstr ""
 
@@ -1111,7 +1111,7 @@ msgstr ""
 msgid "Notification"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:338
+#: src/gui/widgets/filedialog.cc:336
 msgid "OK"
 msgstr ""
 
@@ -1324,7 +1324,7 @@ msgstr ""
 msgid "Right"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:181
+#: src/gui/widgets/filedialog.cc:179
 msgid "Roots"
 msgstr ""
 
@@ -1789,26 +1789,26 @@ msgstr ""
 msgid "Write 8 map"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:273
+#: src/gui/widgets/filedialog.cc:271
 msgid "^ Date & Time"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:217
+#: src/gui/widgets/filedialog.cc:215
 msgid "^ File"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:245
+#: src/gui/widgets/filedialog.cc:243
 msgid "^ Size"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:270
+#: src/gui/widgets/filedialog.cc:268
 msgid "v Date & Time"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:214
+#: src/gui/widgets/filedialog.cc:212
 msgid "v File"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:242
+#: src/gui/widgets/filedialog.cc:240
 msgid "v Size"
 msgstr ""
