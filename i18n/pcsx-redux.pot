@@ -214,7 +214,7 @@ msgstr ""
 msgid "Breakpoint on vsync"
 msgstr ""
 
-#: src/core/debug.cc:198
+#: src/core/debug.cc:199
 #, c-format
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr ""
@@ -648,7 +648,7 @@ msgstr ""
 msgid "Exec"
 msgstr ""
 
-#: src/core/debug.cc:78
+#: src/core/debug.cc:79
 msgid "Execution map"
 msgstr ""
 
@@ -1248,15 +1248,15 @@ msgstr ""
 msgid "Read"
 msgstr ""
 
-#: src/core/debug.cc:115
+#: src/core/debug.cc:116
 msgid "Read 16 map"
 msgstr ""
 
-#: src/core/debug.cc:122
+#: src/core/debug.cc:123
 msgid "Read 32 map"
 msgstr ""
 
-#: src/core/debug.cc:108
+#: src/core/debug.cc:109
 msgid "Read 8 map"
 msgstr ""
 
@@ -1544,25 +1544,25 @@ msgstr ""
 msgid "Step In"
 msgstr ""
 
-#: src/core/debug.cc:260 src/gui/widgets/assembly.cc:417
+#: src/core/debug.cc:279 src/gui/widgets/assembly.cc:417
 #: src/gui/widgets/assembly.cc:483
 msgid "Step Out"
 msgstr ""
 
-#: src/core/debug.cc:161 src/gui/widgets/assembly.cc:415
+#: src/core/debug.cc:162 src/gui/widgets/assembly.cc:415
 #: src/gui/widgets/assembly.cc:481
 msgid "Step Over"
 msgstr ""
 
-#: src/core/debug.cc:154
+#: src/core/debug.cc:155
 msgid "Step in"
 msgstr ""
 
-#: src/core/debug.cc:173
+#: src/core/debug.cc:174
 msgid "Step out (no callstack)"
 msgstr ""
 
-#: src/core/debug.cc:168
+#: src/core/debug.cc:169
 msgid "Step over"
 msgstr ""
 
@@ -1777,15 +1777,15 @@ msgstr ""
 msgid "Write"
 msgstr ""
 
-#: src/core/debug.cc:136
+#: src/core/debug.cc:137
 msgid "Write 16 map"
 msgstr ""
 
-#: src/core/debug.cc:143
+#: src/core/debug.cc:144
 msgid "Write 32 map"
 msgstr ""
 
-#: src/core/debug.cc:129
+#: src/core/debug.cc:130
 msgid "Write 8 map"
 msgstr ""
 
