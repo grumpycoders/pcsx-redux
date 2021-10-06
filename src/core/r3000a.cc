@@ -63,13 +63,13 @@ void PCSX::R3000Acpu::psxReset() {
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
-void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
+void PCSX::R3000Acpu::psxException(uint32_t code, bool bd, bool cop0) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     unsigned ec = (code >> 2) & 0x1f;
     auto e = magic_enum::enum_cast<Exception>(ec);
     if (e.has_value()) {
-        if (debugSettings.get<Emulator::DebugSettings::PCdrv>() && (e.value() == Exception::Break)) {
+        if (!cop0 && debugSettings.get<Emulator::DebugSettings::PCdrv>() && (e.value() == Exception::Break)) {
             uint32_t code = (PSXMu32(m_psxRegs.pc) >> 6) & 0xfffff;
             auto& regs = m_psxRegs.GPR.n;
             switch (code) {
@@ -240,6 +240,8 @@ void PCSX::R3000Acpu::psxException(uint32_t code, bool bd) {
     } else {
         m_psxRegs.pc = 0x80000080;
     }
+
+    if (cop0) m_psxRegs.pc -= 0x40;
 
     // Set the Cause
     m_psxRegs.CP0.n.Cause = code;
