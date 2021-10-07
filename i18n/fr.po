@@ -43,15 +43,15 @@ msgstr ""
 "\n"
 "Impossible d'ouvrir : %s\n"
 
-#: src/gui/widgets/filedialog.cc:267
+#: src/gui/widgets/filedialog.cc:265
 msgid "  Date & Time"
 msgstr "  Date & Heure"
 
-#: src/gui/widgets/filedialog.cc:211
+#: src/gui/widgets/filedialog.cc:209
 msgid "  File"
 msgstr "  Fichier"
 
-#: src/gui/widgets/filedialog.cc:239
+#: src/gui/widgets/filedialog.cc:237
 msgid "  Size"
 msgstr "  Taille"
 
@@ -241,7 +241,7 @@ msgstr "Breakpoints"
 msgid "Breakpoint on vsync"
 msgstr "Breakpoints sur de nouveaux syscalls"
 
-#: src/core/debug.cc:198
+#: src/core/debug.cc:199
 #, c-format
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr ""
@@ -303,7 +303,7 @@ msgstr ""
 msgid "Callstacks"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:347 src/gui/widgets/registers.cc:208
+#: src/gui/widgets/filedialog.cc:345 src/gui/widgets/registers.cc:208
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -525,7 +525,7 @@ msgstr ""
 msgid "Device type"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:190
+#: src/gui/widgets/filedialog.cc:188
 msgid "Directories"
 msgstr "Répertoires"
 
@@ -686,7 +686,7 @@ msgstr "Erreur lors du décodage de la trame audio\n"
 msgid "Exec"
 msgstr ""
 
-#: src/core/debug.cc:78
+#: src/core/debug.cc:79
 #, fuzzy
 msgid "Execution map"
 msgstr "Break on execution map"
@@ -725,7 +725,7 @@ msgstr "Fichiers"
 msgid "Filename"
 msgstr "Fichier"
 
-#: src/gui/widgets/filedialog.cc:207
+#: src/gui/widgets/filedialog.cc:205
 msgid "Files"
 msgstr "Fichiers"
 
@@ -816,7 +816,7 @@ msgstr "Aide"
 msgid "Hide all"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:176
+#: src/gui/widgets/filedialog.cc:174
 msgid "Home"
 msgstr "Origine"
 
@@ -1163,7 +1163,7 @@ msgstr "Sans - plus rapide"
 msgid "Notification"
 msgstr "Configuration"
 
-#: src/gui/widgets/filedialog.cc:338
+#: src/gui/widgets/filedialog.cc:336
 msgid "OK"
 msgstr "OK"
 
@@ -1304,15 +1304,15 @@ msgstr "Base de la RAM"
 msgid "Read"
 msgstr ""
 
-#: src/core/debug.cc:115
+#: src/core/debug.cc:116
 msgid "Read 16 map"
 msgstr ""
 
-#: src/core/debug.cc:122
+#: src/core/debug.cc:123
 msgid "Read 32 map"
 msgstr ""
 
-#: src/core/debug.cc:108
+#: src/core/debug.cc:109
 msgid "Read 8 map"
 msgstr ""
 
@@ -1383,7 +1383,7 @@ msgstr "Réverbération"
 msgid "Right"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:181
+#: src/gui/widgets/filedialog.cc:179
 msgid "Roots"
 msgstr "Racines"
 
@@ -1616,26 +1616,26 @@ msgstr ""
 msgid "Step In"
 msgstr "Step In"
 
-#: src/core/debug.cc:260 src/gui/widgets/assembly.cc:417
+#: src/core/debug.cc:279 src/gui/widgets/assembly.cc:417
 #: src/gui/widgets/assembly.cc:483
 msgid "Step Out"
 msgstr "Step Out"
 
-#: src/core/debug.cc:161 src/gui/widgets/assembly.cc:415
+#: src/core/debug.cc:162 src/gui/widgets/assembly.cc:415
 #: src/gui/widgets/assembly.cc:481
 msgid "Step Over"
 msgstr "Step Over"
 
-#: src/core/debug.cc:154
+#: src/core/debug.cc:155
 #, fuzzy
 msgid "Step in"
 msgstr "Step In"
 
-#: src/core/debug.cc:173
+#: src/core/debug.cc:174
 msgid "Step out (no callstack)"
 msgstr ""
 
-#: src/core/debug.cc:168
+#: src/core/debug.cc:169
 #, fuzzy
 msgid "Step over"
 msgstr "Step Over"
@@ -1866,39 +1866,39 @@ msgstr ""
 msgid "Write"
 msgstr ""
 
-#: src/core/debug.cc:136
+#: src/core/debug.cc:137
 msgid "Write 16 map"
 msgstr ""
 
-#: src/core/debug.cc:143
+#: src/core/debug.cc:144
 msgid "Write 32 map"
 msgstr ""
 
-#: src/core/debug.cc:129
+#: src/core/debug.cc:130
 msgid "Write 8 map"
 msgstr ""
 
-#: src/gui/widgets/filedialog.cc:273
+#: src/gui/widgets/filedialog.cc:271
 msgid "^ Date & Time"
 msgstr "^ Date & Heure"
 
-#: src/gui/widgets/filedialog.cc:217
+#: src/gui/widgets/filedialog.cc:215
 msgid "^ File"
 msgstr "^ Fichier"
 
-#: src/gui/widgets/filedialog.cc:245
+#: src/gui/widgets/filedialog.cc:243
 msgid "^ Size"
 msgstr "^ Taille"
 
-#: src/gui/widgets/filedialog.cc:270
+#: src/gui/widgets/filedialog.cc:268
 msgid "v Date & Time"
 msgstr "v Date & Heure"
 
-#: src/gui/widgets/filedialog.cc:214
+#: src/gui/widgets/filedialog.cc:212
 msgid "v File"
 msgstr "v Fichier"
 
-#: src/gui/widgets/filedialog.cc:242
+#: src/gui/widgets/filedialog.cc:240
 msgid "v Size"
 msgstr "v Taille"
 

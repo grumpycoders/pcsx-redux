@@ -69,9 +69,10 @@ bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
     return false;
 }
 
-void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool linked) {
-    const uint32_t basic = code >> 26;
+void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint32_t newCode, bool linked) {
+    const uint32_t basic = newCode >> 26;
     const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x3b);
+    const auto& regs = g_emulator->m_psxCpu->m_psxRegs;
 
     checkBP(newPC, BreakpointType::Exec, 4);
     if (m_breakmp_e && !isMapMarked(newPC, MAP_EXEC)) {
@@ -79,12 +80,12 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool li
     }
     if (m_mapping_e) {
         const bool isJAL = basic == 3;
-        const bool isJALR = (basic == 0) && ((code & 0x3F) == 9);
-        const uint32_t target = (code & 0x03ffffff) * 4 + (oldPC & 0xf0000000);
-        const uint32_t rd = (code >> 11) & 0x1f;
-        markMap(oldPC, MAP_EXEC);
+        const bool isJALR = (basic == 0) && ((newCode & 0x3F) == 9);
+        const uint32_t target = (newCode & 0x03ffffff) * 4 + (newPC & 0xf0000000);
+        const uint32_t rd = (newCode >> 11) & 0x1f;
+        markMap(newPC, MAP_EXEC);
         if (isJAL) markMap(target, MAP_EXEC_JAL);
-        if (isJALR) markMap(g_emulator->m_psxCpu->m_psxRegs.GPR.r[rd], MAP_EXEC_JAL);
+        if (isJALR) markMap(regs.GPR.r[rd], MAP_EXEC_JAL);
     }
 
     if (isAnyLoadOrStore) {
@@ -100,7 +101,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool li
         const bool isSWL = basic == 0x2a;
         const bool isSW = (basic == 0x2b) || (basic == 0x3a);
         const bool isSWR = basic == 0x2e;
-        uint32_t offset = g_emulator->m_psxCpu->m_psxRegs.GPR.r[(code >> 21) & 0x1f] + int16_t(code);
+        uint32_t offset = regs.GPR.r[(newCode >> 21) & 0x1f] + int16_t(newCode);
         if (isLWL || isLWR || isSWR || isSWL) offset &= ~3;
         if (isLB || isLBU) {
             checkBP(offset, BreakpointType::Read, 1);
@@ -156,7 +157,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool li
         case STEP_OVER: {
             if (!m_stepperHasBreakpoint) {
                 if (linked) {
-                    uint32_t sp = g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp;
+                    uint32_t sp = regs.GPR.n.sp;
                     m_stepperHasBreakpoint = true;
                     addBreakpoint(oldPC + 4, BreakpointType::Exec, 4, _("Step Over"), [sp, this](const Breakpoint* bp) {
                         if (sp != g_emulator->m_psxCpu->m_psxRegs.GPR.n.sp) return true;
@@ -200,6 +201,24 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view cause) {
 }
 
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, std::string_view cause) {
+    auto& cpu = g_emulator->m_psxCpu;
+    const auto& regs = cpu->m_psxRegs;
+    if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
+        if (type == BreakpointType::Exec && ((regs.CP0.n.DCIC & 0x01000000) == 0x01000000)) {
+            if (((regs.CP0.n.BPC ^ address) & regs.CP0.n.BPCM) == 0) {
+                cpu->psxException(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+            }
+        } else if ((type == BreakpointType::Read) && ((regs.CP0.n.DCIC & 0x06000000) == 0x06000000)) {
+            if (((regs.CP0.n.BDA ^ address) & regs.CP0.n.BDAM) == 0) {
+                cpu->psxException(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+            }
+        } else if ((type == BreakpointType::Write) && ((regs.CP0.n.DCIC & 0x0a000000) == 0x0a000000)) {
+            if (((regs.CP0.n.BDA ^ address) & regs.CP0.n.BDAM) == 0) {
+                cpu->psxException(R3000Acpu::Exception::Break, cpu->m_inDelaySlot, true);
+            }
+        }
+    }
+
     auto none = m_breakpoints.end();
     address &= ~0xe0000000;
 
@@ -266,4 +285,4 @@ void PCSX::Debug::stepOut() {
     m_stepperHasBreakpoint = true;
 }
 
-void PCSX::Debug::updatedPC(uint32_t pc) { process(pc, pc, PSXMu32(pc), false); }
+void PCSX::Debug::updatedPC(uint32_t pc) { process(pc, pc, PSXMu32(pc), PSXMu32(pc), false); }
