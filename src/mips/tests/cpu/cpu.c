@@ -111,6 +111,7 @@ CESTER_BEFORE_ALL(cpu_tests,
 
 CESTER_AFTER_ALL(cpu_tests,
     uninstallExceptionHandlers();
+    syscall_flushCache();
     if (s_interruptsWereEnabled) leaveCriticalSection();
 )
 
