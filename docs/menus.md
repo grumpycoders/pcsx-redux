@@ -32,10 +32,10 @@ The menu bar holds some informations :
 
 ![emulation menu](./images/pcsx_menu_emu.png)
 
-  * Start : Start execution
-  * Pause : Pause execution
-  * Soft reset : Calls Redux's CPU reset function, which jumps to the BIOS entrypoint (0xBFC00000), resets some COP0 registers and the general purpose registers, and resets some IO. Does not clear vram.
-  * Hard reset : Similar to a reboot of the PSX.
+  * Start (F5): Start execution
+  * Pause (F6): Pause execution
+  * Soft reset (F8): Calls Redux's CPU reset function, which jumps to the BIOS entrypoint (0xBFC00000), resets some COP0 registers and the general purpose registers, and resets some IO. Does not clear vram.
+  * Hard reset (Shift-F8): Similar to a reboot of the PSX.
 
 ## Configuration
 
@@ -56,3 +56,9 @@ The menu bar holds some informations :
 
   * Show Imgui demo
   * About
+
+## GPU infos
+
+The 'About' dialog available in the 'Help' menu has a 'OpenGl information' tab that will give you informations on GPU currently used by the program.
+
+![GPU infos](./images/gpu_infos.png)
