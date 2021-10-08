@@ -67,6 +67,13 @@
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
+#ifdef _WIN32
+extern "C" {
+_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
