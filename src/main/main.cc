@@ -109,7 +109,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual std::optional<bool> getArg(std::string arg) {
+    virtual std::optional<bool> getArg(std::string arg) final {
         return m_args.get<bool>(arg);
     }
 
