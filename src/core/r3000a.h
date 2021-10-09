@@ -180,12 +180,12 @@ enum {
 };
 
 struct psxRegisters {
-    psxGPRRegs GPR;  /* General Purpose Registers */
-    psxCP0Regs CP0;  /* Coprocessor0 Registers */
-    psxCP2Data CP2D; /* Cop2 data registers */
-    psxCP2Ctrl CP2C; /* Cop2 control registers */
-    uint32_t pc;     /* Program counter */
-    uint32_t code;   /* The instruction */
+    psxGPRRegs GPR;  // General Purpose Registers
+    psxCP0Regs CP0;  // COP0 Registers
+    psxCP2Data CP2D; // COP2 data registers
+    psxCP2Ctrl CP2C; // COP2 control registers
+    uint32_t pc;     // Program counter
+    uint32_t code;   // The current instruction
     uint32_t cycle;
     uint32_t previousCycles;
     uint32_t interrupt;
@@ -225,7 +225,7 @@ struct psxRegisters {
 
 #endif
 
-/**** R3000A Instruction Macros ****/
+// R3000A Instruction Macros
 #define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register

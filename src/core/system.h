@@ -27,6 +27,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "fmt/printf.h"
 #include "imgui.h"
@@ -140,6 +141,8 @@ class System {
         m_eventBus->signal(Events::Quitting{});
         purgeAllEvents();
     }
+
+    virtual std::optional<bool> getArg(std::string arg) { return std::nullopt; }
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 

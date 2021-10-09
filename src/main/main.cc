@@ -109,6 +109,10 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
+    virtual std::optional<bool> getArg(std::string arg) {
+        return m_args.get<bool>(arg);
+    }
+
     std::string m_putcharBuffer;
     FILE *m_logfile = nullptr;
 

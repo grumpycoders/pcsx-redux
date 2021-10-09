@@ -55,7 +55,7 @@ struct Emitter final : public CodeGenerator {
 
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
     int64_t getRemainingSize() {
-        return codeCacheSize - getSize();
+        return (int64_t) codeCacheSize - (int64_t) getSize();
     }
 
     // Tries to mark the emitter memory as readable/writeable/executable without throwing an exception.
