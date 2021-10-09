@@ -22,11 +22,8 @@
 #define BAILZERO(x) if (!(x)) { return; }
 
 void DynaRecCPU::recUnknown() {
-    dumpBuffer();
-    fmt::print("Unknown instruction for dynarec - address {:08X}, instruction {:08X}\n", m_pc, m_psxRegs.code);
-    abort();
     PCSX::g_system->message("Unknown instruction for dynarec - address %08x, instruction %08x\n", m_pc, m_psxRegs.code);
-    error();
+    recException(Exception::ReservedInstruction);
 }
 
 void DynaRecCPU::recLUI() {
@@ -1303,7 +1300,7 @@ void DynaRecCPU::recCOP0() {
             break;
         default:
             fmt::print("Unimplemented cop0 op {}\n", _Rs_);
-            abort();
+            recUnknown()
             break;
     }
 }

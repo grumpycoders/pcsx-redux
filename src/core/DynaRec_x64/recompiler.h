@@ -189,8 +189,6 @@ public:
     }
     
     virtual void Shutdown() final {
-        printf("Bye\n");
-        dumpBuffer();
         delete[] m_recompilerLUT;
         delete[] m_ramBlocks;
         delete[] m_biosBlocks;
