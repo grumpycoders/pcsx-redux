@@ -53,6 +53,11 @@ struct Emitter final : public CodeGenerator {
         call (reinterpret_cast<void*>(&func));
     }
 
+    // Returns a signed integer that shows how many bytes of free space are left in the code buffer
+    int64_t getRemainingSize() {
+        return codeCacheSize - getSize();
+    }
+
     // Tries to mark the emitter memory as readable/writeable/executable without throwing an exception.
     // Returns whether or not it succeeded
     bool setRWX() {
