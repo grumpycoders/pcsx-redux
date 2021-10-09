@@ -1300,7 +1300,7 @@ void DynaRecCPU::recCOP0() {
             break;
         default:
             fmt::print("Unimplemented cop0 op {}\n", _Rs_);
-            recUnknown()
+            recUnknown();
             break;
     }
 }
