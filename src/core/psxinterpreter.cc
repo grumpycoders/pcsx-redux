@@ -1654,6 +1654,8 @@ void InterpretedCPU::Shutdown() {}
 template <bool debug, bool trace>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
+    std::optional<uint32_t> newCode;
+    uint32_t newPC = 0;
     do {
         if (m_nextIsDelaySlot) {
             m_inDelaySlot = true;
@@ -1661,9 +1663,23 @@ inline void InterpretedCPU::execBlock() {
         }
         // TODO: throw an exception here if pc is out of range
         const uint32_t pc = m_psxRegs.pc;
-        uint32_t *codePtr = Read_ICache(pc);
+        uint32_t code;
         // TODO: throw an exception here if we don't have a pointer
-        uint32_t code = m_psxRegs.code = codePtr ? SWAP_LE32(*codePtr) : 0;
+        auto getCode = [this](uint32_t pc) {
+            uint32_t *codePtr = Read_ICache(pc);
+            return codePtr ? SWAP_LE32(*codePtr) : 0;
+        };
+        if constexpr (debug) {
+            if (newCode.has_value() && newPC == pc) {
+                code = newCode.value();
+            } else {
+                code = getCode(pc);
+            }
+        } else {
+            code = getCode(pc);
+        }
+
+        m_psxRegs.code = code;
 
         if constexpr (trace) {
             std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
@@ -1698,7 +1714,12 @@ inline void InterpretedCPU::execBlock() {
             InterceptBIOS<true>(m_psxRegs.pc);
             psxBranchTest();
         }
-        if constexpr (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, code, fromLink);
+        if constexpr (debug) {
+            newPC = m_psxRegs.pc;
+            uint32_t newCodeVal = getCode(newPC);
+            newCode = newCodeVal;
+            PCSX::g_emulator->m_debug->process(pc, newPC, code, newCodeVal, fromLink);
+        }
     } while (!ranDelaySlot && !debug);
 }
 

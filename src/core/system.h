@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 
+#include <chrono>
 #include <filesystem>
 #include <limits>
 #include <map>
@@ -38,9 +39,18 @@ namespace PCSX {
 
 enum class LogClass : unsigned;
 
-// a hack, until c++-20 is fully adopted everywhere.
+// a hack, until C++-20 is fully adopted everywhere.
 typedef decltype(std::filesystem::path().u8string()) u8string;
 #define MAKEU8(x) reinterpret_cast<const decltype(PCSX::u8string::value_type()) *>(x)
+
+// another hack, until C++-20 properly gets std::chrono::clock_cast
+template <typename DstTP, typename SrcTP, typename DstClk = typename DstTP::clock,
+          typename SrcClk = typename SrcTP::clock>
+DstTP ClockCast(const SrcTP tp) {
+    const SrcTP srcNow = SrcClk::now();
+    const DstTP dstNow = DstClk::now();
+    return std::chrono::time_point_cast<typename DstClk::duration>(tp - srcNow + dstNow);
+}
 
 namespace Events {
 struct SettingsLoaded {};
@@ -86,21 +96,21 @@ class System {
     virtual void biosPutc(int c) = 0;
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &...args) {
+    void printf(const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         printf(s);
     }
     virtual void printf(const std::string &) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &...args) {
+    void log(LogClass logClass, const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, s);
     }
     virtual void log(LogClass, const std::string &) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &...args) {
+    void message(const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         message(s);
     }

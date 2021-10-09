@@ -52,9 +52,10 @@ class Debug {
   public:
     // call this if PC is being set, like when the emulation is being reset, or when doing fastboot
     void updatedPC(uint32_t newPC);
-    // call this as soon as possible after any instruction is run, with the oldPC, the newPC, and
-    // the opcode that was just executed
-    void process(uint32_t oldPC, uint32_t newPC, uint32_t code, bool linked);
+    // call this as soon as possible after any instruction is run, with the oldPC, the newPC,
+    // the opcode that was just executed, the next opcode to run, and a boolean to tell if we just
+    // jumped around because of a previous "and link" opcode.
+    void process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint32_t newCode, bool linked);
     std::string generateFlowIDC();
     std::string generateMarkIDC();
 

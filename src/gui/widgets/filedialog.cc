@@ -147,11 +147,9 @@ bool PCSX::Widgets::FileDialog::draw() {
                     m_directories.push_back(p.path().filename().u8string());
                 } else {
                     try {
-                        auto status = p.status();
                         auto lastWrite = std::filesystem::last_write_time(p);
-                        auto timeSinceEpoch = lastWrite.time_since_epoch();
-                        auto count = timeSinceEpoch.count();
-                        std::time_t dateTime = count / 100000000;
+                        auto lastWriteSystemClock = ClockCast<std::chrono::system_clock::time_point>(lastWrite);
+                        std::time_t dateTime = std::chrono::system_clock::to_time_t(lastWriteSystemClock);
                         const std::tm* converted = std::localtime(&dateTime);
                         std::ostringstream formatted;
                         formatted << std::put_time(converted, "%c");

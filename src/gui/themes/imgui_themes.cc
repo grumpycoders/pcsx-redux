@@ -197,7 +197,7 @@ void PCSX::GUI::draculaTheme() {
     style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.18431373f, 0.39607847f, 0.79215693f, 0.90f);
 }
 
-void PCSX::GUI::oliveTheme() { // Theme by metasprite
+void PCSX::GUI::oliveTheme() {  // Theme by metasprite
     ImGui::StyleColorsDark();   // Reset styles
 
     ImVec4* colors = ImGui::GetStyle().Colors;
@@ -231,7 +231,7 @@ void PCSX::GUI::oliveTheme() { // Theme by metasprite
     colors[ImGuiCol_Separator] = ImVec4(0.14f, 0.16f, 0.11f, 1.00f);
     colors[ImGuiCol_SeparatorHovered] = ImVec4(0.54f, 0.57f, 0.51f, 1.00f);
     colors[ImGuiCol_SeparatorActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
-    colors[ImGuiCol_ResizeGrip] = ImVec4(0.19f, 0.23f, 0.18f, 0.00f); // grip invis
+    colors[ImGuiCol_ResizeGrip] = ImVec4(0.19f, 0.23f, 0.18f, 0.00f);  // grip invis
     colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.54f, 0.57f, 0.51f, 1.00f);
     colors[ImGuiCol_ResizeGripActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
     colors[ImGuiCol_Tab] = ImVec4(0.35f, 0.42f, 0.31f, 1.00f);

@@ -9,6 +9,10 @@ AppDir:
     version: HEAD
     exec: usr/bin/pcsx-redux
     exec_args: $@
+  runtime:
+    env:
+      __NV_PRIME_RENDER_OFFLOAD: 1
+      __GLX_VENDOR_LIBRARY_NAME: nvidia
   apt:
     arch:
     - amd64

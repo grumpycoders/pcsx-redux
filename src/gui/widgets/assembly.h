@@ -43,8 +43,7 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly()
-        : m_listener(g_system->m_eventBus) {
+    Assembly() : m_listener(g_system->m_eventBus) {
         m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }

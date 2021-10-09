@@ -38,10 +38,15 @@ CPPFLAGS += -I../../../../third_party/uC-sdk/os/include
 CPPFLAGS += -I../../../../third_party/libcester/include
 CPPFLAGS += -I../../openbios/uC-sdk-glue
 
+ifeq ($(PCSX_TESTS),true)
+CPPFLAGS += -DPCSX_TESTS=1
+endif
+
 SRCS += \
 ../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
 branchbranch.s \
+exceptions.cpp \
 cpu.c \
 links.s \
 lwlr.s \
