@@ -1038,12 +1038,6 @@ void DynaRecCPU::recSH() {
 }
 
 void DynaRecCPU::recSW() {
-    // Hack: The only place where cache isolation should be enabled is the BIOS' flushcache
-    // So in that case we don't even compile SWs. This shouldn't break except perhaps with unofficial BIOSes
-    if (m_psxRegs.CP0.n.Status & 0x10000) {
-        return;
-    }
-
     if (m_regs[_Rs_].isConst()) {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);

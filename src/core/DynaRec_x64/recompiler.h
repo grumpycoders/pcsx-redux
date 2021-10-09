@@ -221,6 +221,16 @@ public:
         that->psxException(e, bd);
     }
 
+    static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
+
+    void inlineClear (uint32_t address) {
+        if (isPcValid(address & ~3)) {
+            loadThisPointer(arg1.cvt64());
+            gen.mov(arg2, address & ~3);
+            call(recClearWrapper);
+        }
+    }
+
     template <uint32_t pc>
     static void interceptKernelCallWrapper(DynaRecCPU* that) { 
         that->InterceptBIOS<false>(pc); 
