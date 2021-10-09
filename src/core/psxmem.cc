@@ -456,8 +456,21 @@ void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
             return &g_psxH[address & 0x3FF];
-        else
-            return nullptr;
+        else {
+            switch (address) { // IO regs that are safe to read from directly
+                case 0x1f801080: case 0x1f801084: case 0x1f801088: case 0x1f801090:
+                case 0x1f801094: case 0x1f801098: case 0x1f8010A0: case 0x1f8010A4:
+                case 0x1f8010A8: case 0x1f8010B0: case 0x1f8010B4: case 0x1f8010B8:
+                case 0x1f8010C0: case 0x1f8010C4: case 0x1f8010C8: case 0x1f8010D0:
+                case 0x1f8010D4: case 0x1f8010D8: case 0x1f8010E0: case 0x1f8010E4:
+                case 0x1f8010E8: case 0x1f801070: case 0x1f801074: case 0x1f8010f0:
+                case 0x1f8010f4:
+                    return &g_psxH[address & 0xffff];
+                    
+                default:
+                    return nullptr;
+            }
+        }
     } else {
         const auto pointer = (char *)(g_psxMemRLUT[page]);
         if (pointer != nullptr) {
@@ -473,8 +486,18 @@ void *PCSX::Memory::psxMemPointerWrite(uint32_t address) {
     if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400)
             return &g_psxH[address & 0x3FF];
-        else
-            return nullptr;
+        else {
+            switch (address) { // IO regs that are safe to write to directly
+                case 0x1f801080: case 0x1f801084: case 0x1f801090: case 0x1f801094:
+                case 0x1f8010A0: case 0x1f8010A4: case 0x1f8010B0: case 0x1f8010B4:
+                case 0x1f8010C0: case 0x1f8010C4: case 0x1f8010D0: case 0x1f8010D4:
+                case 0x1f8010E0: case 0x1f8010E4: case 0x1f801074: case 0x1f8010f0:
+                    return &g_psxH[address & 0xffff];
+                    
+                default:
+                    return nullptr;
+            }
+        }
     } else {
         const auto pointer = (char *)(g_psxMemWLUT[page]);
         if (pointer != nullptr) {
