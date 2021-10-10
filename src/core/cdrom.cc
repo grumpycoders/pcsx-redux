@@ -46,7 +46,7 @@ class CDRomImpl : public PCSX::CDRom {
         CdlStandby = 7,
         CdlStop = 8,
         CdlPause = 9,
-        CdlInit = 10,
+        CdlReset = 10,
         CdlMute = 11,
         CdlDemute = 12,
         CdlSetfilter = 13,
@@ -64,7 +64,7 @@ class CDRomImpl : public PCSX::CDRom {
         CdlTest = 25,
         CdlID = 26,
         CdlReadS = 27,
-        CdlReset = 28,
+        CdlInit = 28,
         CdlGetQ = 29,
         CdlReadToc = 30,
     };
@@ -769,13 +769,15 @@ class CDRomImpl : public PCSX::CDRom {
                 m_suceeded = true;
                 break;
 
-            case CdlInit:
-                AddIrqQueue(CdlInit + 0x100, cdReadTime * 6);
+            case CdlReset:
+                m_muted = false;
+                m_mode = 0x20; /* This fixes This is Football 2, Pooh's Party lockups */
+                AddIrqQueue(CdlReset + 0x100, 4100000); // 4100000 is from Mednafen
                 no_busy_error = 1;
                 start_rotating = 1;
                 break;
 
-            case CdlInit + 0x100:
+            case CdlReset + 0x100:
                 m_stat = Complete;
                 m_suceeded = true;
                 break;
@@ -925,7 +927,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_suceeded = true;
                 break;
 
-            case CdlReset:
+            case CdlInit:
                 // yes, it really sets STATUS_SHELLOPEN
                 m_statP |= STATUS_SHELLOPEN;
                 m_driveState = DRIVESTATE_RESCAN_CD;
@@ -1310,8 +1312,8 @@ class CDRomImpl : public PCSX::CDRom {
                 StopReading();
                 break;
 
-            case CdlReset:
             case CdlInit:
+            case CdlReset:
                 m_seeked = SEEK_DONE;
                 StopCdda();
                 StopReading();
