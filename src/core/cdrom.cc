@@ -51,7 +51,7 @@ class CDRomImpl : public PCSX::CDRom {
         CdlDemute = 12,
         CdlSetfilter = 13,
         CdlSetmode = 14,
-        CdlGetmode = 15,
+        CdlGetparam = 15,
         CdlGetlocL = 16,
         CdlGetlocP = 17,
         CdlReadT = 18,
@@ -778,13 +778,12 @@ class CDRomImpl : public PCSX::CDRom {
                 no_busy_error = 1;
                 break;
 
-            case CdlGetmode:
-                SetResultSize(6);
+            case CdlGetparam:
+                SetResultSize(5);
                 m_result[1] = m_mode;
-                m_result[2] = m_file;
-                m_result[3] = m_channel;
-                m_result[4] = 0;
-                m_result[5] = 0;
+                m_result[2] = 0;
+                m_result[3] = m_file;
+                m_result[4] = m_channel;
                 no_busy_error = 1;
                 break;
 
