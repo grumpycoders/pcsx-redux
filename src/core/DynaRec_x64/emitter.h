@@ -39,13 +39,15 @@ alignas(4096) static uint8_t s_codeCache[codeCacheSize + 0x1000];
 
 struct Emitter final : public CodeGenerator {
     bool hasAVX = false;
+    bool hasBMI2 = false;
     bool hasLZCNT = false;
     
     Emitter() : CodeGenerator(codeCacheSize, s_codeCache) {
         const auto cpu = Xbyak::util::Cpu();
 
-        hasLZCNT = cpu.has(Xbyak::util::Cpu::tLZCNT);
         hasAVX = cpu.has(Xbyak::util::Cpu::tAVX);
+        hasBMI2 = cpu.has(Xbyak::util::Cpu::tBMI2);
+        hasLZCNT = cpu.has(Xbyak::util::Cpu::tLZCNT);
     }
 
     template <typename T>
