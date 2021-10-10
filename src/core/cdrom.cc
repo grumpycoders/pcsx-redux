@@ -458,9 +458,18 @@ class CDRomImpl : public PCSX::CDRom {
 
             StopCdda();
         } else if (m_mode & MODE_REPORT) {
+            m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
             m_result[0] = m_statP;
             m_result[1] = m_subq.track;
             m_result[2] = m_subq.index;
+            unsigned abs_lev_chselect = m_subq.absolute[1] & 0x01;
+            uint32_t abs_lev_max = 0;
+            int16_t * data = reinterpret_cast<int16_t *>(m_transfer);
+            for (unsigned i = 0; i < 588; i++) {
+                abs_lev_max = std::max<uint16_t>(abs_lev_max, std::abs(data[i * 2 + abs_lev_chselect]));
+            }
+            abs_lev_max = std::min<uint32_t>(abs_lev_max, 32767U);
+            abs_lev_max |= abs_lev_chselect << 15;
 
             if (m_subq.absolute[2] & 0x10) {
                 m_result[3] = m_subq.relative[0];
@@ -472,8 +481,8 @@ class CDRomImpl : public PCSX::CDRom {
                 m_result[5] = m_subq.absolute[2];
             }
 
-            m_result[6] = 0;
-            m_result[7] = 0;
+            m_result[6] = abs_lev_max & 0xff;
+            m_result[7] = abs_lev_max >> 8;
 
             // Rayman: Logo freeze (resultready + dataready)
             m_resultReady = 1;
@@ -523,9 +532,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (!m_play) return;
 
-        if (!m_muted) {
-            m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
-
+        if (!m_muted && (m_mode & (MODE_REPORT))) {
             attenuate((int16_t *)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
             PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
         }
