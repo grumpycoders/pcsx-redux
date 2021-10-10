@@ -147,6 +147,13 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
             hard = SIO1_readBaud16();
             SIO1_LOG("sio1 read16 %x; ret = %x\n", add & 0xf, hard);
             return hard;
+#else
+		/* Fixes Armored Core misdetecting the Link cable being detected.
+		 * We want to turn that thing off and force it to do local multiplayer instead.
+		 * Thanks Sony for the fix, they fixed it in their PS Classic fork.
+		 */
+		case 0x1f801054:
+			return 0x80;
 #endif
         case 0x1f801100:
             hard = PCSX::g_emulator->m_psxCounters->psxRcntRcount(0);
