@@ -1265,15 +1265,24 @@ class CDRomImpl : public PCSX::CDRom {
 
         switch (m_cmd) {
             case CdlSetloc:
-                for (i = 0; i < 3; i++) set_loc[i] = btoi(m_param[i]);
+                CDROM_LOG("CDROM setloc command (%02X, %02X, %02X)\n", m_param[0], m_param[1], m_param[2]);
+                // MM must be BCD, SS must be BCD and <0x60, FF must be BCD and <0x75
+                if (((m_param[0] & 0x0F) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0F) > 0x09) || (m_param[1] >= 0x60) || ((m_param[2] & 0x0F) > 0x09) || (m_param[2] >= 0x75))
+                {
+                    CDROM_LOG("Invalid/out of range seek to %02X:%02X:%02X\n", m_param[0], m_param[1], m_param[2]);
+                }
+                else
+                {
+                    for (i = 0; i < 3; i++) set_loc[i] = btoi(m_param[i]);
 
-                i = msf2sec(m_setSectorPlay);
-                i = abs(i - (int)msf2sec(set_loc));
-                if (i > 16) m_seeked = SEEK_PENDING;
+                    i = msf2sec(m_setSectorPlay);
+                    i = abs(i - (int)msf2sec(set_loc));
+                    if (i > 16) m_seeked = SEEK_PENDING;
 
-                memcpy(m_setSector, set_loc, 3);
-                m_setSector[3] = 0;
-                m_setlocPending = 1;
+                    memcpy(m_setSector, set_loc, 3);
+                    m_setSector[3] = 0;
+                    m_setlocPending = 1;
+                }
                 break;
 
             case CdlReadN:
