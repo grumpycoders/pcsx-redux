@@ -739,7 +739,26 @@ class CDRomImpl : public PCSX::CDRom {
                 InuYasha - Feudal Fairy Tale: slower
                 - Fixes battles
                 */
-                AddIrqQueue(CdlPause + 0x100, cdReadTime * 3);
+                /*
+                * Gameblabla -
+                * The timings are based on hardware tests and were taken from Duckstation.
+                * A couple of notes :
+                * Gundam Battle Assault 2 in PAL mode (this includes the PAL release) needs a high enough delay
+                * if not, the game will either crash after the FMV intro or upon starting a new game.
+                * 
+                */
+                if (m_driveState == DRIVESTATE_STANDBY)
+                {
+                    /* Gameblabla -
+                    * Dead or Alive needs this condition and a shorter delay otherwise : if you pause ingame, music will not resume. */
+                    delay = 7000;
+				}
+				else
+				{
+                    delay = (((m_mode & MODE_SPEED) ? 2 : 1) * (1000000));
+                    scheduleCDPlayIRQ((m_mode & MODE_SPEED) ? cdReadTime / 2 : cdReadTime);
+				}
+                AddIrqQueue(CdlPause + 0x100, delay);
                 m_ctrl |= 0x80;
                 break;
 
