@@ -21,8 +21,8 @@
 #include "main/main.h"
 
 TEST(Basic, Meta) {
-    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-loadexe",
-                        "src/mips/tests/basic/basic.ps-exe");
+    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-loadexe", "src/mips/tests/basic/basic.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
