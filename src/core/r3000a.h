@@ -359,7 +359,6 @@ class R3000Acpu {
     static inline const uint32_t SWR_MASK[4] = {0, 0xff, 0xffff, 0xffffff};
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
-        if (!g_system->running()) return false;
         if (!m_shellStarted) {
             uint32_t &pc = m_psxRegs.pc;
             if (pc == 0x80030000) {
@@ -367,7 +366,7 @@ class R3000Acpu {
                 g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
             }
         }
-        return true;
+        return g_system->running();
     }
     void logA0KernelCall(uint32_t call);
     void logB0KernelCall(uint32_t call);

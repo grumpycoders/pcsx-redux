@@ -693,7 +693,7 @@ void PCSX::GdbClient::processCommand() {
 
 void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
     if (Misc::startsWith(cmd, "reset")) {
-        g_emulator->m_psxCpu->psxReset();
+        g_system->softReset();
         writeEscaped("Emulation reset\n");
         auto words = Misc::split(cmd, " ");
         if (words.size() == 2) {
