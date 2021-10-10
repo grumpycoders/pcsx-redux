@@ -1802,6 +1802,7 @@ void DynaRecCPU::recSYSCALL() {
 }
 
 void DynaRecCPU::recBREAK() {
+    flushRegs(); // For PCDRV support, we need to flush all registers before handling the exception.
     recException(Exception::Break);
 }
 

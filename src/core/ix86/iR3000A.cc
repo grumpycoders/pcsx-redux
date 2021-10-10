@@ -735,13 +735,12 @@ void DynaRecCPU::execute() {
         return;
     }
 
-    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                            .get<PCSX::Emulator::DebugSettings::Debug>();
-
     if (*recFunc == nullptr) recRecompile();
     m_psxRegs.pc = (*recFunc)();
     psxBranchTest();
 
+    const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                            .get<PCSX::Emulator::DebugSettings::Debug>();
     if (debug) PCSX::g_emulator->m_debug->process(pc, m_psxRegs.pc, m_psxRegs.code, PSXMu32(m_psxRegs.pc), false);
 }
 
@@ -2411,7 +2410,10 @@ void DynaRecCPU::recException(Exception e) {
 
 void DynaRecCPU::recSYSCALL() { recException(Exception::Syscall); }
 
-void DynaRecCPU::recBREAK() { recException(Exception::Break); }
+void DynaRecCPU::recBREAK() {
+    iFlushRegs(); // For PCDRV support, we need to flush all registers before handling the exception.
+    recException(Exception::Break);
+}
 
 void DynaRecCPU::recMFHI() {
     // Rd = Hi
