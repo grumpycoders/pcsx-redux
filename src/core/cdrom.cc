@@ -587,10 +587,6 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         switch (irq) {
-            case CdlSync:
-                // TOOD: sometimes/always return error?
-                break;
-
             case CdlGetStat:
                 if (m_driveState != DRIVESTATE_LID_OPEN) m_statP &= ~STATUS_SHELLOPEN;
                 no_busy_error = 1;
@@ -1004,7 +1000,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_result[0] = m_statP;
                 start_rotating = 1;
                 break;
-
+            case CdlSync:
             default:
                 CDROM_LOG("Invalid command: %02x\n", irq);
                 error = ERROR_INVALIDCMD;
