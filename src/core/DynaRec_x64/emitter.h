@@ -55,6 +55,14 @@ struct Emitter final : public CodeGenerator {
         call (reinterpret_cast<void*>(&func));
     }
 
+    void moveAndAdd(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        if (value != 0) {
+            lea(dest, dword[source + value]);
+        } else {
+            mov(dest, source);
+        }
+    }
+
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
     int64_t getRemainingSize() {
         return (int64_t) codeCacheSize - (int64_t) getSize();
