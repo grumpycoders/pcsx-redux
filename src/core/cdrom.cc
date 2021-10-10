@@ -855,7 +855,9 @@ class CDRomImpl : public PCSX::CDRom {
                     m_result[0] = m_statP;
                     m_result[1] = itob(m_resultTD[2]);
                     m_result[2] = itob(m_resultTD[1]);
-                    m_result[3] = itob(m_resultTD[0]);
+                    /* According to Nocash's documentation, the function doesn't care about ff.
+                    * This can be seen also in Mednafen's implementation. */
+                    //m_result[3] = itob(m_resultTD[0]);
                 }
                 break;
 
