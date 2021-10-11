@@ -20,7 +20,14 @@
 #include "gtest/gtest.h"
 #include "main/main.h"
 
-TEST(libc, Meta) {
+TEST(libc, Interpreter) {
+    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-loadexe", "src/mips/tests/libc/libc.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
+TEST(libc, Dynarec) {
     MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
                         "-loadexe", "src/mips/tests/libc/libc.ps-exe");
     int ret = invoker.invoke();
