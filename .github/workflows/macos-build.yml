@@ -33,6 +33,9 @@ jobs:
     needs: build-openbios
     steps:
     - uses: actions/checkout@v1
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
@@ -83,6 +86,9 @@ jobs:
     if: github.event_name == 'push'
     steps:
     - uses: actions/checkout@v1
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install node
       uses: actions/setup-node@v2
       with:
