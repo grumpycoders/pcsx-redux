@@ -25,11 +25,12 @@
 #include <fstream>
 #include <optional>
 
+#include "fmt/format.h"
+#include "tracy/Tracy.hpp"
+#include "spu/interface.h"
 #include "core/gpu.h"
 #include "emitter.h"
-#include "fmt/format.h"
 #include "regAllocation.h"
-#include "tracy/Tracy.hpp"
 
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_psxRegs.hostRegisterCache[(x)] - (uintptr_t)&m_psxRegs)
@@ -43,6 +44,10 @@
 static uint8_t psxMemRead8Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead8(address); }
 static uint16_t psxMemRead16Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead16(address); }
 static uint32_t psxMemRead32Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead32(address); }
+
+static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) { 
+    PCSX::g_emulator->m_spu->writeRegister(addr, value);
+}
 
 static void psxMemWrite8Wrapper(uint32_t address, uint8_t value) {
     PCSX::g_emulator->m_psxMem->psxMemWrite8(address, value);

@@ -1041,6 +1041,31 @@ void DynaRecCPU::recSH() {
             return;
         }
 
+        else if (addr == 0x1f801070) { // I_STAT
+            gen.mov(rax, (uint64_t) &PCSX::g_emulator->m_psxMem->g_psxH[0x1070]);
+            if (m_regs[_Rt_].isConst()) {
+                gen.and_(word[rax], m_regs[_Rt_].val & 0xFFFF);
+            } else {
+                allocateReg(_Rt_);
+                gen.and_(word[rax], m_regs[_Rt_].allocatedReg.cvt16());
+            }
+
+            return;
+        }
+
+        else if (addr >= 0x1f801c00 && addr < 0x1f801e00) { // SPU registers
+            gen.mov(arg1, addr);
+            if (m_regs[_Rt_].isConst()) {
+                gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+            } else {
+                allocateReg(_Rt_);
+                gen.mov(arg2, m_regs[_Rt_].allocatedReg);
+            }
+
+            call(SPU_writeRegisterWrapper);
+            return;
+        }
+
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
             gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
@@ -1081,6 +1106,9 @@ void DynaRecCPU::recSW() {
 
             return;
         }
+        
+        else if (addr >= 0x1f800000 && addr < 0x1f810000)
+            fmt::print("Missed constant 32-bit write @ {:08X}\n", addr);
 
         if (m_regs[_Rt_].isConst()) { // Value to write in arg2
             gen.mov(arg2, m_regs[_Rt_].val);

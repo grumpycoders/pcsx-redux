@@ -57,13 +57,13 @@ uint32_t psxRcntRcountWrapper(uint32_t index) { return PCSX::g_emulator->m_psxCo
 uint32_t psxRcntRmodeWrapper(uint32_t index) { return PCSX::g_emulator->m_psxCounters->psxRcntRmode(index); }
 uint32_t psxRcntRtargetWrapper(uint32_t index) { return PCSX::g_emulator->m_psxCounters->psxRcntRtarget(index); }
 
-unsigned long GPU_readDataWrapper() { return PCSX::g_emulator->m_gpu->readData(); }
-unsigned long GPU_readStatusWrapper() { return PCSX::g_emulator->m_gpu->readStatus(); }
+uint32_t GPU_readDataWrapper() { return PCSX::g_emulator->m_gpu->readData(); }
+uint32_t GPU_readStatusWrapper() { return PCSX::g_emulator->m_gpu->readStatus(); }
 void GPU_writeDataWrapper(uint32_t gdata) { PCSX::g_emulator->m_gpu->writeData(gdata); }
-void GPU_writeStatusWrapper(unsigned long gdata) { PCSX::g_emulator->m_gpu->writeStatus(gdata); }
+void GPU_writeStatusWrapper(uint32_t gdata) { PCSX::g_emulator->m_gpu->writeStatus(gdata); }
 
-unsigned short SPUreadRegisterWrapper(unsigned long addr) { return PCSX::g_emulator->m_spu->readRegister(addr); }
-void SPUwriteRegisterWrapper(unsigned long addr, unsigned short value) {
+uint16_t SPU_readRegisterWrapper(uint32_t addr) { return PCSX::g_emulator->m_spu->readRegister(addr); }
+void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
@@ -1640,7 +1640,7 @@ void DynaRecCPU::recLHU() {
             if (addr >= 0x1f801c00 && addr < 0x1f801e00) {
                 if (!_Rt_) return;
                 gen.push(dword, addr);
-                gen.call(SPUreadRegisterWrapper);
+                gen.call(SPU_readRegisterWrapper);
                 gen.movzx(edi, ax);
                 gen.add(esp, 4);
                 return;
@@ -1969,7 +1969,7 @@ void DynaRecCPU::recSH() {
                     gen.push(dword[&m_psxRegs.GPR.r[_Rt_]]);
                 }
                 gen.push(dword, addr);
-                gen.call(SPUwriteRegisterWrapper);
+                gen.call(SPU_writeRegisterWrapper);
                 gen.add(esp, 8);
                 return;
             }
