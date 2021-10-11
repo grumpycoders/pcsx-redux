@@ -1106,9 +1106,6 @@ void DynaRecCPU::recSW() {
 
             return;
         }
-        
-        else if (addr >= 0x1f800000 && addr < 0x1f810000)
-            fmt::print("Missed constant 32-bit write @ {:08X}\n", addr);
 
         if (m_regs[_Rt_].isConst()) { // Value to write in arg2
             gen.mov(arg2, m_regs[_Rt_].val);
