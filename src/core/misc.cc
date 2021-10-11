@@ -273,9 +273,8 @@ bool CheckCdrom() {
     }
 
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
-        if (
-			((PCSX::g_emulator->m_cdromId[0] == 's' || PCSX::g_emulator->m_cdromId[0] == 'S') && 
-			(PCSX::g_emulator->m_cdromId[2] == 'e' || PCSX::g_emulator->m_cdromId[2] == 'E')) ||
+        if (((PCSX::g_emulator->m_cdromId[0] == 's' || PCSX::g_emulator->m_cdromId[0] == 'S') &&
+             (PCSX::g_emulator->m_cdromId[2] == 'e' || PCSX::g_emulator->m_cdromId[2] == 'E')) ||
             !strncmp(PCSX::g_emulator->m_cdromId, "DTLS3035", 8) ||
             !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
             !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;

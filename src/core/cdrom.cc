@@ -464,7 +464,7 @@ class CDRomImpl : public PCSX::CDRom {
             m_result[2] = m_subq.index;
             unsigned abs_lev_chselect = m_subq.absolute[1] & 0x01;
             uint32_t abs_lev_max = 0;
-            int16_t * data = reinterpret_cast<int16_t *>(m_transfer);
+            int16_t *data = reinterpret_cast<int16_t *>(m_transfer);
             for (unsigned i = 0; i < 588; i++) {
                 abs_lev_max = std::max<uint16_t>(abs_lev_max, std::abs(data[i * 2 + abs_lev_chselect]));
             }
@@ -747,24 +747,22 @@ class CDRomImpl : public PCSX::CDRom {
                 - Fixes battles
                 */
                 /*
-                * Gameblabla -
-                * The timings are based on hardware tests and were taken from Duckstation.
-                * A couple of notes :
-                * Gundam Battle Assault 2 in PAL mode (this includes the PAL release) needs a high enough delay
-                * if not, the game will either crash after the FMV intro or upon starting a new game.
-                * 
-                */
-                if (m_driveState == DRIVESTATE_STANDBY)
-                {
+                 * Gameblabla -
+                 * The timings are based on hardware tests and were taken from Duckstation.
+                 * A couple of notes :
+                 * Gundam Battle Assault 2 in PAL mode (this includes the PAL release) needs a high enough delay
+                 * if not, the game will either crash after the FMV intro or upon starting a new game.
+                 *
+                 */
+                if (m_driveState == DRIVESTATE_STANDBY) {
                     /* Gameblabla -
-                    * Dead or Alive needs this condition and a shorter delay otherwise : if you pause ingame, music will not resume. */
+                     * Dead or Alive needs this condition and a shorter delay otherwise : if you pause ingame, music
+                     * will not resume. */
                     delay = 7000;
-				}
-				else
-				{
+                } else {
                     delay = (((m_mode & MODE_SPEED) ? 2 : 1) * (1000000));
                     scheduleCDPlayIRQ((m_mode & MODE_SPEED) ? cdReadTime / 2 : cdReadTime);
-				}
+                }
                 AddIrqQueue(CdlPause + 0x100, delay);
                 m_ctrl |= 0x80;
                 break;
@@ -778,8 +776,8 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlReset:
                 m_muted = false;
-                m_mode = 0x20; /* This fixes This is Football 2, Pooh's Party lockups */
-                AddIrqQueue(CdlReset + 0x100, 4100000); // 4100000 is from Mednafen
+                m_mode = 0x20;                           /* This fixes This is Football 2, Pooh's Party lockups */
+                AddIrqQueue(CdlReset + 0x100, 4100000);  // 4100000 is from Mednafen
                 no_busy_error = 1;
                 start_rotating = 1;
                 break;
@@ -863,8 +861,8 @@ class CDRomImpl : public PCSX::CDRom {
                     m_result[1] = itob(m_resultTD[2]);
                     m_result[2] = itob(m_resultTD[1]);
                     /* According to Nocash's documentation, the function doesn't care about ff.
-                    * This can be seen also in Mednafen's implementation. */
-                    //m_result[3] = itob(m_resultTD[0]);
+                     * This can be seen also in Mednafen's implementation. */
+                    // m_result[3] = itob(m_resultTD[0]);
                 }
                 break;
 
@@ -1296,12 +1294,10 @@ class CDRomImpl : public PCSX::CDRom {
             case CdlSetloc:
                 CDROM_LOG("CDROM setloc command (%02X, %02X, %02X)\n", m_param[0], m_param[1], m_param[2]);
                 // MM must be BCD, SS must be BCD and <0x60, FF must be BCD and <0x75
-                if (((m_param[0] & 0x0F) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0F) > 0x09) || (m_param[1] >= 0x60) || ((m_param[2] & 0x0F) > 0x09) || (m_param[2] >= 0x75))
-                {
+                if (((m_param[0] & 0x0F) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0F) > 0x09) ||
+                    (m_param[1] >= 0x60) || ((m_param[2] & 0x0F) > 0x09) || (m_param[2] >= 0x75)) {
                     CDROM_LOG("Invalid/out of range seek to %02X:%02X:%02X\n", m_param[0], m_param[1], m_param[2]);
-                }
-                else
-                {
+                } else {
                     for (i = 0; i < 3; i++) set_loc[i] = btoi(m_param[i]);
 
                     i = msf2sec(m_setSectorPlay);
