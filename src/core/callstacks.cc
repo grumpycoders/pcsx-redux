@@ -133,7 +133,7 @@ void PCSX::CallStacks::storeRA(uint32_t sp, uint32_t ra) {
         shadow = true;
     }
     uint32_t fp = 0;
-    if (m_current->ra = ra) {
+    if (m_current->ra == ra) {
         fp = m_current->fp;
     }
     m_current->ra = 0;
