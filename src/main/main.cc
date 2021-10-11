@@ -183,6 +183,7 @@ int pcsxMain(int argc, char **argv) {
 
     if (args.get<bool>("run", false)) system->start();
     s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
+    if (s_gui->m_exeToLoad.empty()) s_gui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
 
     auto luaexecs = args.values("exec");
     for (auto &luaexec : luaexecs) {

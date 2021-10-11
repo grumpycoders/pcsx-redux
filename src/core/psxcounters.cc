@@ -359,7 +359,7 @@ uint32_t PCSX::Counters::psxRcntRtarget(uint32_t index) {
 
 void PCSX::Counters::psxHsyncCalculate() {
     m_HSyncTotal[PCSX::Emulator::PSX_TYPE_NTSC] = 263;
-    m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL] = 313;
+    m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL] = 314;  // actually one more on odd lines for PAL
     if (PCSX::g_emulator->config().VSyncWA) {
         m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] =
             m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] / PCSX::Emulator::BIAS;

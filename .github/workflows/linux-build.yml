@@ -1,0 +1,47 @@
+name: Linux CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: grumpycoders/pcsx-redux-build:latest
+      env:
+        CC: clang-11
+        CXX: clang++-11
+        LD: clang++-11
+        TEST_RESULTS: /tmp/test-results
+    steps:
+      - uses: actions/checkout@v1
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch submodules
+        run: git submodule update --init --recursive
+      - run: |
+          make -j 2 all pcsx-redux-tests
+          make -C src/mips/tests -j 2 PCSX_TESTS=true
+          make -C src/mips/openbios -j 2 clean all
+      - name: Packaging
+        run: |
+          make install install-openbios DESTDIR=AppDir/usr
+          appimage-builder --skip-tests
+      - name: Test
+        run: |
+          export GTEST_OUTPUT=xml:${TEST_RESULTS}/
+          mkdir -p $TEST_RESULTS
+          xvfb-run catchsegv ./pcsx-redux-tests
+      - name: Deploy
+        if: github.event_name == 'push'
+        env:
+          APPCENTER_ACCESS_TOKEN: ${{ secrets.LINUX_APPCENTER_ACCESS_TOKEN }}
+        run: |
+          . /usr/local/nvm/nvm.sh
+          export BUILD=`git rev-parse HEAD | cut -c 1-8`
+          zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
+          appcenter distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64 --disable-telemetry
