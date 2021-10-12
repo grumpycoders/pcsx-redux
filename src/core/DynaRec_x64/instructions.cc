@@ -1428,7 +1428,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
 
     gen.mov(arg2, dword[contextPointer + COP0_OFFSET(13)]); // arg2 = CAUSE
     gen.and_(eax, arg2);
-    gen.and_(eax, 0x300);                             // Check if an interrupt was force-fired
+    gen.test(eax, 0x300);                             // Check if an interrupt was force-fired
     gen.jz(label, CodeGenerator::LabelType::T_NEAR);  // Skip to the end if not
 
     // Fire the interrupt if it was triggered
