@@ -59,28 +59,28 @@ class GTE {
     void LWC2(uint32_t code) { MTC2_internal(PCSX::g_emulator->m_psxMem->psxMemRead32(gteoB), _Rt_); }
     void SWC2(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite32(gteoB, MFC2_internal(_Rt_)); }
 
-    void RTPS(uint32_t code) { docop2(gteop(code)); }
-    void NCLIP(uint32_t code) { docop2(gteop(code)); }
-    void OP(uint32_t code) { docop2(gteop(code)); }
-    void DPCS(uint32_t code) { docop2(gteop(code)); }
-    void INTPL(uint32_t code) { docop2(gteop(code)); }
-    void MVMVA(uint32_t code) { docop2(gteop(code)); }
-    void NCDS(uint32_t code) { docop2(gteop(code)); }
-    void CDP(uint32_t code) { docop2(gteop(code)); }
-    void NCDT(uint32_t code) { docop2(gteop(code)); }
-    void NCCS(uint32_t code) { docop2(gteop(code)); }
-    void CC(uint32_t code) { docop2(gteop(code)); }
-    void NCS(uint32_t code) { docop2(gteop(code)); }
-    void NCT(uint32_t code) { docop2(gteop(code)); }
-    void SQR(uint32_t code) { docop2(gteop(code)); }
-    void DCPL(uint32_t code) { docop2(gteop(code)); }
-    void DPCT(uint32_t code) { docop2(gteop(code)); }
-    void AVSZ3(uint32_t code) { docop2(gteop(code)); }
-    void AVSZ4(uint32_t code) { docop2(gteop(code)); }
-    void RTPT(uint32_t code) { docop2(gteop(code)); }
-    void GPF(uint32_t code) { docop2(gteop(code)); }
-    void GPL(uint32_t code) { docop2(gteop(code)); }
-    void NCCT(uint32_t code) { docop2(gteop(code)); }
+    void RTPS(uint32_t code);
+    void NCLIP(uint32_t code);
+    void OP(uint32_t code);
+    void DPCS(uint32_t code);
+    void INTPL(uint32_t code);
+    void MVMVA(uint32_t code);
+    void NCDS(uint32_t code);
+    void CDP(uint32_t code);
+    void NCDT(uint32_t code);
+    void NCCS(uint32_t code);
+    void CC(uint32_t code);
+    void NCS(uint32_t code);
+    void NCT(uint32_t code);
+    void SQR(uint32_t code);
+    void DCPL(uint32_t code);
+    void DPCT(uint32_t code);
+    void AVSZ3(uint32_t code);
+    void AVSZ4(uint32_t code);
+    void RTPT(uint32_t code);
+    void GPF(uint32_t code);
+    void GPL(uint32_t code);
+    void NCCT(uint32_t code);
 
     // If MSB is set, return the number of leading ones, else return the number of leading zeroes
     // For an input of 0, 32 is returned
@@ -126,7 +126,7 @@ class GTE {
     int32_t A2(/*int44*/ int64_t a);
     int32_t A3(/*int44*/ int64_t a);
     int64_t F(int64_t a);
-    int docop2(int op);
+    int docop2(uint32_t op);
 
     uint32_t MFC2_internal(int reg);
     void MTC2_internal(uint32_t value, int reg);
