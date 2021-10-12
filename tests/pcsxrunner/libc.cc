@@ -28,7 +28,7 @@ TEST(libc, Interpreter) {
 }
 
 TEST(libc, Dynarec) {
-    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+    MainInvoker invoker("-run", "-stdout", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
                         "-loadexe", "src/mips/tests/libc/libc.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
