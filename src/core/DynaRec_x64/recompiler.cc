@@ -79,6 +79,8 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     m_pcWrittenBack = false;
     m_pc = m_psxRegs.pc;
 
+    const auto startingPC = m_pc;
+
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block
 
@@ -122,6 +124,17 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     }
     
     flushRegs();
+    if (!m_pcWrittenBack) {
+        gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
+    }
+
+     // If this was the block at 0x8003'0000 (Start of shell) send the GUI a "shell reached" signal
+     // This must happen after the PC is written back, otherwise our PC after sideloading will be overriden.
+    if (startingPC == 0x80030000) {
+        loadThisPointer(arg1.cvt64());
+        call(signalShellReached);
+    }
+
     if constexpr (isWindows()) {
         if (m_needsStackFrame) {
             gen.add(rsp, 32);  // Deallocate shadow stack space on Windows
@@ -129,11 +142,8 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         }
     }
 
-    if (!m_pcWrittenBack) {
-        gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
-    }
-
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
+
     gen.pop(contextPointer); // Restore our context pointer register
     gen.ret();
 }
@@ -145,16 +155,7 @@ void DynaRecCPU::recSpecial() {
 
 // Checks if the block being compiled is one of the kernel call vectors
 // If so, emit a call to "InterceptBIOS", which handles the kernel call debugger features
-// Also checks for pc==0x80030000, which signals that the shell has been reached
-// And an executable may safely be sideloaded. Must be called at the start of the block
 void DynaRecCPU::handleKernelCall() {
-    if (m_pc == 0x80030000) {
-        loadThisPointer(arg1.cvt64());
-        call(signalShellReached);
-
-        return;
-    }
-
     const uint32_t pc = m_pc & 0x1fffff;
     const uint32_t base = (m_pc >> 20) & 0xffc;
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
