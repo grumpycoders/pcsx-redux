@@ -27,7 +27,7 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() {
 
 /// Params: A program counter value
 /// Returns: A pointer to the host x64 code that points to the block that starts from the given PC
-DynarecCallback* DynaRecCPU::getBlockPointer (uint32_t pc) {
+DynarecCallback* DynaRecCPU::getBlockPointer(uint32_t pc) {
 	const auto base = m_recompilerLUT[pc >> 16];
 	const auto offset = (pc & 0xFFFF) >> 2; // Remove the 2 lower bits, they're guaranteed to be 0
 
@@ -48,6 +48,13 @@ void DynaRecCPU::execute() {
     const auto emittedCode = *recompilerFunc;
     (*emittedCode)();  // Jump to emitted code
     psxBranchTest(); // Check scheduler events
+}
+
+void DynaRecCPU::signalShellReached(DynaRecCPU* that) {
+    if (!that->m_shellStarted) {
+        that->m_shellStarted = true;
+        PCSX::g_system->m_eventBus->signal(PCSX::Events::ExecutionFlow::ShellReached{});
+    }
 }
 
 void DynaRecCPU::error() {
@@ -138,9 +145,18 @@ void DynaRecCPU::recSpecial() {
 
 // Checks if the block being compiled is one of the kernel call vectors
 // If so, emit a call to "InterceptBIOS", which handles the kernel call debugger features
+// Also checks for pc==0x80030000, which signals that the shell has been reached
+// And an executable may safely be sideloaded. Must be called at the start of the block
 void DynaRecCPU::handleKernelCall() {
-    const uint32_t pc = m_psxRegs.pc & 0x1fffff;
-    const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
+    if (m_pc == 0x80030000) {
+        loadThisPointer(arg1.cvt64());
+        call(signalShellReached);
+
+        return;
+    }
+
+    const uint32_t pc = m_pc & 0x1fffff;
+    const uint32_t base = (m_pc >> 20) & 0xffc;
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
         return;  // Mask out the segment, return if not a kernel call vector
 

@@ -204,7 +204,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     virtual void Execute() final {
         ZoneScoped;  // Tell the Tracy profiler to do its thing
-        while (hasToRun()) execute();
+        while (PCSX::g_system->running()) execute();
     }
 
     // TODO: Make it less slow and bad
@@ -222,10 +222,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         file.write((const char*)gen.getCode(), gen.getSize());       // Write the code buffer to the dump
     }
 
+
   private:
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
-
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
+
+    static void signalShellReached(DynaRecCPU* that);
 
     void inlineClear(uint32_t address) {
         if (isPcValid(address & ~3)) {

@@ -101,8 +101,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     void handleKernelCall() {
-        const uint32_t pc = m_psxRegs.pc & 0x1fffff;
-        const uint32_t base = (m_psxRegs.pc >> 20) & 0xffc;
+        const uint32_t pc = m_pc & 0x1fffff;
+        const uint32_t base = (m_pc >> 20) & 0xffc;
         if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
             return;  // Mask out the segment, return if not a kernel call vector
 
