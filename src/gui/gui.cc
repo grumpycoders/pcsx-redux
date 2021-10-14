@@ -67,6 +67,13 @@
 #include "tracy/Tracy.hpp"
 #include "zstr.hpp"
 
+#ifdef _WIN32
+extern "C" {
+_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+_declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
@@ -292,7 +299,7 @@ end)(jit.status()))
         auto& emuSettings = PCSX::g_emulator->settings;
         auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         json j;
-        if (cfg.is_open()) {
+        if (cfg.is_open() && !m_args.get<bool>("safe")) {
             try {
                 cfg >> j;
             } catch (...) {
@@ -360,7 +367,9 @@ end)(jit.status()))
         g_system->m_eventBus->signal(Events::SettingsLoaded{});
 
         std::filesystem::path isoToOpen = m_args.get<std::string>("iso", "");
-        PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
+        isoToOpen = m_args.get<std::string>("loadiso", "");
+        if (!isoToOpen.empty()) PCSX::g_emulator->m_cdrom->m_iso.setIsoPath(isoToOpen);
 
         auto argPCdrv = m_args.get<bool>("pcdrv");
         auto argPCdrvBase = m_args.get<std::string>("pcdrvbase");

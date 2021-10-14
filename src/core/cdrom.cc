@@ -46,12 +46,12 @@ class CDRomImpl : public PCSX::CDRom {
         CdlStandby = 7,
         CdlStop = 8,
         CdlPause = 9,
-        CdlInit = 10,
+        CdlReset = 10,
         CdlMute = 11,
         CdlDemute = 12,
         CdlSetfilter = 13,
         CdlSetmode = 14,
-        CdlGetmode = 15,
+        CdlGetparam = 15,
         CdlGetlocL = 16,
         CdlGetlocP = 17,
         CdlReadT = 18,
@@ -64,7 +64,7 @@ class CDRomImpl : public PCSX::CDRom {
         CdlTest = 25,
         CdlID = 26,
         CdlReadS = 27,
-        CdlReset = 28,
+        CdlInit = 28,
         CdlGetQ = 29,
         CdlReadToc = 30,
     };
@@ -458,9 +458,18 @@ class CDRomImpl : public PCSX::CDRom {
 
             StopCdda();
         } else if (m_mode & MODE_REPORT) {
+            m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
             m_result[0] = m_statP;
             m_result[1] = m_subq.track;
             m_result[2] = m_subq.index;
+            unsigned abs_lev_chselect = m_subq.absolute[1] & 0x01;
+            uint32_t abs_lev_max = 0;
+            int16_t *data = reinterpret_cast<int16_t *>(m_transfer);
+            for (unsigned i = 0; i < 588; i++) {
+                abs_lev_max = std::max<uint16_t>(abs_lev_max, std::abs(data[i * 2 + abs_lev_chselect]));
+            }
+            abs_lev_max = std::min<uint32_t>(abs_lev_max, 32767U);
+            abs_lev_max |= abs_lev_chselect << 15;
 
             if (m_subq.absolute[2] & 0x10) {
                 m_result[3] = m_subq.relative[0];
@@ -472,8 +481,8 @@ class CDRomImpl : public PCSX::CDRom {
                 m_result[5] = m_subq.absolute[2];
             }
 
-            m_result[6] = 0;
-            m_result[7] = 0;
+            m_result[6] = abs_lev_max & 0xff;
+            m_result[7] = abs_lev_max >> 8;
 
             // Rayman: Logo freeze (resultready + dataready)
             m_resultReady = 1;
@@ -523,9 +532,7 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (!m_play) return;
 
-        if (!m_muted) {
-            m_iso.readCDDA(m_setSectorPlay[0], m_setSectorPlay[1], m_setSectorPlay[2], m_transfer);
-
+        if (!m_muted && (m_mode & (MODE_REPORT))) {
             attenuate((int16_t *)m_transfer, CD_FRAMESIZE_RAW / 4, 1);
             PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, CD_FRAMESIZE_RAW);
         }
@@ -587,10 +594,6 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         switch (irq) {
-            case CdlSync:
-                // TOOD: sometimes/always return error?
-                break;
-
             case CdlGetStat:
                 if (m_driveState != DRIVESTATE_LID_OPEN) m_statP &= ~STATUS_SHELLOPEN;
                 no_busy_error = 1;
@@ -743,7 +746,24 @@ class CDRomImpl : public PCSX::CDRom {
                 InuYasha - Feudal Fairy Tale: slower
                 - Fixes battles
                 */
-                AddIrqQueue(CdlPause + 0x100, cdReadTime * 3);
+                /*
+                 * Gameblabla -
+                 * The timings are based on hardware tests and were taken from Duckstation.
+                 * A couple of notes :
+                 * Gundam Battle Assault 2 in PAL mode (this includes the PAL release) needs a high enough delay
+                 * if not, the game will either crash after the FMV intro or upon starting a new game.
+                 *
+                 */
+                if (m_driveState == DRIVESTATE_STANDBY) {
+                    /* Gameblabla -
+                     * Dead or Alive needs this condition and a shorter delay otherwise : if you pause ingame, music
+                     * will not resume. */
+                    delay = 7000;
+                } else {
+                    delay = (((m_mode & MODE_SPEED) ? 2 : 1) * (1000000));
+                    scheduleCDPlayIRQ((m_mode & MODE_SPEED) ? cdReadTime / 2 : cdReadTime);
+                }
+                AddIrqQueue(CdlPause + 0x100, delay);
                 m_ctrl |= 0x80;
                 break;
 
@@ -754,13 +774,15 @@ class CDRomImpl : public PCSX::CDRom {
                 m_suceeded = true;
                 break;
 
-            case CdlInit:
-                AddIrqQueue(CdlInit + 0x100, cdReadTime * 6);
+            case CdlReset:
+                m_muted = false;
+                m_mode = 0x20;                           /* This fixes This is Football 2, Pooh's Party lockups */
+                AddIrqQueue(CdlReset + 0x100, 4100000);  // 4100000 is from Mednafen
                 no_busy_error = 1;
                 start_rotating = 1;
                 break;
 
-            case CdlInit + 0x100:
+            case CdlReset + 0x100:
                 m_stat = Complete;
                 m_suceeded = true;
                 break;
@@ -782,13 +804,12 @@ class CDRomImpl : public PCSX::CDRom {
                 no_busy_error = 1;
                 break;
 
-            case CdlGetmode:
-                SetResultSize(6);
+            case CdlGetparam:
+                SetResultSize(5);
                 m_result[1] = m_mode;
-                m_result[2] = m_file;
-                m_result[3] = m_channel;
-                m_result[4] = 0;
-                m_result[5] = 0;
+                m_result[2] = 0;
+                m_result[3] = m_file;
+                m_result[4] = m_channel;
                 no_busy_error = 1;
                 break;
 
@@ -839,7 +860,9 @@ class CDRomImpl : public PCSX::CDRom {
                     m_result[0] = m_statP;
                     m_result[1] = itob(m_resultTD[2]);
                     m_result[2] = itob(m_resultTD[1]);
-                    m_result[3] = itob(m_resultTD[0]);
+                    /* According to Nocash's documentation, the function doesn't care about ff.
+                     * This can be seen also in Mednafen's implementation. */
+                    // m_result[3] = itob(m_resultTD[0]);
                 }
                 break;
 
@@ -911,7 +934,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_suceeded = true;
                 break;
 
-            case CdlReset:
+            case CdlInit:
                 // yes, it really sets STATUS_SHELLOPEN
                 m_statP |= STATUS_SHELLOPEN;
                 m_driveState = DRIVESTATE_RESCAN_CD;
@@ -1004,7 +1027,7 @@ class CDRomImpl : public PCSX::CDRom {
                 m_result[0] = m_statP;
                 start_rotating = 1;
                 break;
-
+            case CdlSync:
             default:
                 CDROM_LOG("Invalid command: %02x\n", irq);
                 error = ERROR_INVALIDCMD;
@@ -1269,15 +1292,22 @@ class CDRomImpl : public PCSX::CDRom {
 
         switch (m_cmd) {
             case CdlSetloc:
-                for (i = 0; i < 3; i++) set_loc[i] = btoi(m_param[i]);
+                CDROM_LOG("CDROM setloc command (%02X, %02X, %02X)\n", m_param[0], m_param[1], m_param[2]);
+                // MM must be BCD, SS must be BCD and <0x60, FF must be BCD and <0x75
+                if (((m_param[0] & 0x0F) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0F) > 0x09) ||
+                    (m_param[1] >= 0x60) || ((m_param[2] & 0x0F) > 0x09) || (m_param[2] >= 0x75)) {
+                    CDROM_LOG("Invalid/out of range seek to %02X:%02X:%02X\n", m_param[0], m_param[1], m_param[2]);
+                } else {
+                    for (i = 0; i < 3; i++) set_loc[i] = btoi(m_param[i]);
 
-                i = msf2sec(m_setSectorPlay);
-                i = abs(i - (int)msf2sec(set_loc));
-                if (i > 16) m_seeked = SEEK_PENDING;
+                    i = msf2sec(m_setSectorPlay);
+                    i = abs(i - (int)msf2sec(set_loc));
+                    if (i > 16) m_seeked = SEEK_PENDING;
 
-                memcpy(m_setSector, set_loc, 3);
-                m_setSector[3] = 0;
-                m_setlocPending = 1;
+                    memcpy(m_setSector, set_loc, 3);
+                    m_setSector[3] = 0;
+                    m_setlocPending = 1;
+                }
                 break;
 
             case CdlReadN:
@@ -1287,8 +1317,8 @@ class CDRomImpl : public PCSX::CDRom {
                 StopReading();
                 break;
 
-            case CdlReset:
             case CdlInit:
+            case CdlReset:
                 m_seeked = SEEK_DONE;
                 StopCdda();
                 StopReading();
