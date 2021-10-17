@@ -1001,7 +1001,7 @@ void DynaRecCPU::recSB() {
         }
 
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
@@ -1013,7 +1013,7 @@ void DynaRecCPU::recSB() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
@@ -1056,7 +1056,7 @@ void DynaRecCPU::recSH() {
         else if (addr >= 0x1f801c00 && addr < 0x1f801e00) { // SPU registers
             gen.mov(arg1, addr);
             if (m_regs[_Rt_].isConst()) {
-                gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+                gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
             } else {
                 allocateReg(_Rt_);
                 gen.mov(arg2, m_regs[_Rt_].allocatedReg);
@@ -1067,7 +1067,7 @@ void DynaRecCPU::recSH() {
         }
 
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt16());
@@ -1079,7 +1079,7 @@ void DynaRecCPU::recSH() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt16());
@@ -1108,7 +1108,7 @@ void DynaRecCPU::recSW() {
         }
 
         if (m_regs[_Rt_].isConst()) { // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val);
+            gen.moveImm(arg2, m_regs[_Rt_].val);
         } else {
             allocateReg(_Rt_);
             gen.mov(arg2, m_regs[_Rt_].allocatedReg);
@@ -1120,7 +1120,7 @@ void DynaRecCPU::recSW() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val);
+            gen.moveImm(arg2, m_regs[_Rt_].val);
         } else {
             allocateReg(_Rt_);
             gen.mov(arg2, m_regs[_Rt_].allocatedReg);
@@ -1373,7 +1373,11 @@ void DynaRecCPU::recMFC0() {
 
 // TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
 void DynaRecCPU::recMTC0() {
+    bool checkInterrupts = true;
+
     if (m_regs[_Rt_].isConst()) {
+        if (_Rd_ == 12 && ((m_regs[_Rt_].val & 1) == 0))
+            checkInterrupts = false;
         if (_Rd_ == 13) {
             gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].val & ~0xFC00);
         } else if (_Rd_ != 6 && _Rd_ != 14 &&_Rd_ != 15) { // Don't write to JUMPDEST, EPC or PRID
@@ -1385,13 +1389,13 @@ void DynaRecCPU::recMTC0() {
         allocateReg(_Rt_);
         if (_Rd_ == 13) {
             gen.and_(m_regs[_Rt_].allocatedReg, ~0xFC00);
+        } else if (_Rd_ != 6 && _Rd_ != 14 &&_Rd_ != 15) { // Don't write to JUMPDEST, EPC or PRID
+            gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg); // Write rt to the cop0 reg
         }
-
-        gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg); // Write rt to the cop0 reg
     }
 
     // Writing to SR/Cause can sometimes forcefully fire an interrupt. So we need to emit extra code to check.
-    if (_Rd_ == 12 || _Rd_ == 13) {
+    if (checkInterrupts && (_Rd_ == 12 || _Rd_ == 13)) {
         testSoftwareInterrupt<true>();
     }
 }
@@ -1434,7 +1438,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.cvt64());
-    gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
+    gen.moveImm(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
     call<false>(psxExceptionWrapper); // Call the exception wrapper function
 
@@ -1847,8 +1851,8 @@ void DynaRecCPU::recException(Exception e) {
     m_stopCompiling = true;
 
     loadThisPointer(arg1.cvt64()); // Pointer to this object in arg1
-    gen.mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2); // Exception type in arg2
-    gen.mov(arg3, (int32_t)m_inDelaySlot); // Store whether we're in a delay slot in arg3
+    gen.moveImm(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2); // Exception type in arg2
+    gen.moveImm(arg3, (int32_t)m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);  // PC for exception handler to use
 
     call(psxExceptionWrapper); // Call the exception wrapper

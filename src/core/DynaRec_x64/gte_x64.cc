@@ -171,7 +171,7 @@ static uint32_t MFC2Wrapper(int reg) {
 }
 
 void DynaRecCPU::recMFC2() {
-    gen.mov(arg1, _Rd_);
+    gen.moveImm(arg1, _Rd_);
     call<false>(MFC2Wrapper); // No need for a stack frame as recCOP2 sets it up for us
 
     if (_Rt_) {
@@ -228,7 +228,7 @@ void DynaRecCPU::recSWC2() {
     gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000);  // Check SR to see if COP2 is enabled
     gen.jz(end);                                                    // Skip the opcode if not
 
-    gen.mov(arg1, _Rt_);
+    gen.moveImm(arg1, _Rt_);
     call<false>(MFC2Wrapper);  // Fetch the COP2 data reg in eax
 
     // Address in arg1

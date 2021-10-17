@@ -55,11 +55,23 @@ struct Emitter final : public CodeGenerator {
         call (reinterpret_cast<void*>(&func));
     }
 
+    // Adds "value" to "source" and stores the result in dest
+    // Uses lea if the value is non-zero, or mov otherwise
     void moveAndAdd(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
         if (value != 0) {
             lea(dest, dword[source + value]);
         } else {
             mov(dest, source);
+        }
+    }
+
+    // Moves "value" into "dest". Optimizes the move to xor dest, dest if value is 0.
+    // Thrashes EFLAGS
+    void moveImm(Xbyak::Reg32 dest, uint32_t value) {
+        if (value == 0) {
+            xor_(dest, dest);
+        } else {
+            mov(dest, value);
         }
     }
 
