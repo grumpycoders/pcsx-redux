@@ -75,6 +75,12 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
+    void orImm(Xbyak::Reg32 dest, uint32_t value) {
+        if (value != 0) {
+            or_(dest, value);
+        }
+    }
+
     // Returns a signed integer that shows how many bytes of free space are left in the code buffer
     int64_t getRemainingSize() {
         return (int64_t) codeCacheSize - (int64_t) getSize();
