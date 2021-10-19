@@ -52,7 +52,12 @@ struct Emitter final : public CodeGenerator {
 
     template <typename T>
     void callFunc(T& func) {
-        call (reinterpret_cast<void*>(&func));
+        call(reinterpret_cast<void*>(&func));
+    }
+
+    template <typename T>
+    void jmpFunc(T& func) {
+        jmp(reinterpret_cast<void*>(&func));
     }
 
     // Adds "value" to "source" and stores the result in dest
@@ -124,6 +129,35 @@ struct Emitter final : public CodeGenerator {
                 moveReg(dest, source);
                 and_(dest, value);
                 break;
+        }
+    }
+
+    // Like callFunc, except it checks whether the function can be called with a relative call
+    // If it can't, it loads a pointer to the function in rax, then uses call rax
+    // We don't really need it because we've guaranteed all calls can be relative, but it's
+    // Nice to have
+    template <typename T>
+    void callFuncSafe(T& func) {
+        const size_t distance = (size_t)func - (size_t)getCurr();
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            callFunc(func);
+        } else {
+            mov(rax, (uint64_t)func);
+            call(rax);
+        }
+    }
+
+    // Similar to callFuncSafe, except it does a jmp instead
+    template <typename T>
+    void jmpFuncSafe(T& func) {
+        const size_t distance = (size_t)func - (size_t)getCurr();
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            jmpFunc(func);
+        } else {
+            mov(rax, (uint64_t)func);
+            jmp(rax);
         }
     }
 
