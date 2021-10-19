@@ -254,9 +254,7 @@ void DynaRecCPU::recSLT() {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
-        gen.setl(m_regs[_Rd_].allocatedReg.cvt8());
-        gen.movzx(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg.cvt8());
+        gen.setLess(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rd_, _Rs_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
