@@ -114,6 +114,8 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
+    // dest = source & value
+    // Optimizes to movzx or xor wherever possible
     void andImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
         switch (value) {
             case 0: 
@@ -129,6 +131,23 @@ struct Emitter final : public CodeGenerator {
                 moveReg(dest, source);
                 and_(dest, value);
                 break;
+        }
+    }
+
+    // dest = source << amount
+    // Optimizes to lea if appropriate
+    void shlImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, int amount) {
+        if (dest == source) {
+            shl(dest, amount);
+        } else {
+            if (amount == 1 || amount == 2 || amount == 3) {
+                lea(dest, dword[source * (1 << amount)]);
+            } else {
+                mov(dest, source);
+                if (amount != 0) {
+                    shl(dest, amount);
+                }
+            }
         }
     }
 

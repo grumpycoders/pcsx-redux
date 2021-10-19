@@ -484,13 +484,7 @@ void DynaRecCPU::recSLL() {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        if (_Rd_ != _Rt_) {
-            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        }
-        
-        if (_Sa_) {
-            gen.shl(m_regs[_Rd_].allocatedReg, _Sa_);
-        }
+        gen.shlImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
     }
 }
 
