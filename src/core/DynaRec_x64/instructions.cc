@@ -187,9 +187,7 @@ void DynaRecCPU::recSLTI() {
         allocateReg(_Rt_, _Rs_);
         m_regs[_Rt_].setWriteback(true);
         
-        gen.cmp(m_regs[_Rs_].allocatedReg, _Imm_);
-        gen.setl(al);
-        gen.movzx(m_regs[_Rt_].allocatedReg, al);
+        gen.setLess(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 }
 
@@ -320,8 +318,7 @@ void DynaRecCPU::recANDI() {
         } else {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
-            gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
-            gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
+            gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _ImmU_);
         }
     }
 }
@@ -1460,10 +1457,10 @@ void DynaRecCPU::recBNE() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rt_, _Rs_);
         gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -1592,10 +1589,10 @@ void DynaRecCPU::recBEQ() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rt_, _Rs_);
         gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);

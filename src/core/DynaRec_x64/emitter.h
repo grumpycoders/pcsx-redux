@@ -75,9 +75,55 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
+    // Logical or dest by value (Skip the or if value == 0)
     void orImm(Xbyak::Reg32 dest, uint32_t value) {
         if (value != 0) {
             or_(dest, value);
+        }
+    }
+
+    // Returns whether dest is equal to value via the zero flag
+    void cmpEqImm(Xbyak::Reg32 dest, uint32_t value) {
+        if (value == 0) {
+            test(dest, dest);
+        } else {
+            cmp(dest, value);
+        }
+    }
+
+    void moveReg(Xbyak::Reg32 dest, Xbyak::Reg32 source) {
+        if (dest != source) {
+            mov(dest, source);
+        }
+    }
+
+    // Set dest to 1 if source < value (signed). Otherwise set dest to 0
+    void setLess(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        if (value == 0) {
+            moveReg(dest, source);
+            shr(dest, 31);
+        } else {
+            cmp(source, value);
+            setl(al);
+            movzx(dest, al);
+        }
+    }
+
+    void andImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        switch (value) {
+            case 0: 
+                xor_(dest, dest);
+                break;
+            case 0xFF:
+                movzx(dest, source.cvt8());
+                break;
+            case 0xFFFF:
+                movzx(dest, source.cvt16());
+                break;
+            default:
+                moveReg(dest, source);
+                and_(dest, value);
+                break;
         }
     }
 
