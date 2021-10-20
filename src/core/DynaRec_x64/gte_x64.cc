@@ -202,7 +202,7 @@ void DynaRecCPU::recLWC2() {
         gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
-        gen.lea(arg1, dword[m_regs[_Rs_].allocatedReg + _Imm_]);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
     call<false>(psxMemRead32Wrapper); // Read a value from memory. No need to set up a stack frame as we did it before
