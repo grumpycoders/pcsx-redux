@@ -142,9 +142,7 @@ void DynaRecCPU::recSUBU() {
         allocateReg(_Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(eax, m_regs[_Rs_].val); // Left hand operand in eax
-        gen.sub(eax, m_regs[_Rt_].allocatedReg); // Subtract right hand operand
-        gen.mov(m_regs[_Rd_].allocatedReg, eax); // Store result
+        gen.reverseSub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);

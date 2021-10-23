@@ -151,6 +151,19 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
+    // dest = value - source
+    // Optimizes the value == 0 case, might thrash eax and EFLAGS
+    void reverseSub(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        if (value == 0) {
+            moveReg(dest, source);
+            neg(dest);
+        } else {
+            mov(eax, value);
+            sub(eax, source);
+            mov(dest, eax);
+        }
+    }
+
     // Like callFunc, except it checks whether the function can be called with a relative call
     // If it can't, it loads a pointer to the function in rax, then uses call rax
     // We don't really need it because we've guaranteed all calls can be relative, but it's
