@@ -132,9 +132,35 @@ void DynaRecCPU::recMTC2() {
             }
             break;
             
-        case 28:
-            fmt::print("Unimplemented MTC2 to GTE data register {}\n", _Rd_);
-            abort();
+        case 28: // IRGB
+            if (m_regs[_Rt_].isConst()) { // Calculate IR1/IR2/IR3 values and write them back
+                const auto value = m_regs[_Rt_].val;
+
+                const auto IR1 = (value & 0x1f) << 7;
+                const auto IR2 = (value & 0x3e0) << 2;
+                const auto IR3 = (value & 0x7c00) >> 3;
+
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(9)], IR1);
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(10)], IR2);
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(11)], IR3);
+            } else {
+                allocateReg(_Rt_);
+                gen.mov(eax, m_regs[_Rt_].allocatedReg);
+
+                gen.and_(eax, 0x1f); // Calculate IR1
+                gen.shl(eax, 7);
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(9)], eax);
+
+                gen.lea(eax, dword[4 * m_regs[_Rt_].allocatedReg]); // Calculate IR2
+                gen.and_(eax, 0xf80); // The above lea shifted eax by 2 first, so we adjust the mask
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(10)], eax);
+
+                gen.mov(eax, m_regs[_Rt_].allocatedReg); // Calculate IR3
+                gen.shr(eax, 3);
+                gen.and_(eax, 0xf80);
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(11)], eax);
+            }
+            
             break;
 
         case 30:
@@ -216,10 +242,26 @@ void DynaRecCPU::recLWC2() {
     call<false>(psxMemRead32Wrapper); // Read a value from memory. No need to set up a stack frame as we did it before
     switch (_Rt_) {
         case 15:
-        case 28:
         case 30:
             fmt::print("Unimplemented LWC2 to GTE data register {}\n", _Rt_);
             abort();
+            break;
+        
+        case 28: // IRGB
+            gen.mov(ecx, eax);
+
+            gen.and_(ecx, 0x1f); // Calculate IR1
+            gen.shl(ecx, 7);
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(9)], ecx);
+
+            gen.lea(ecx, dword[4 * rax]); // Calculate IR2
+            gen.and_(ecx, 0xf80); // The above lea shifted eax by 2 first, so we adjust the mask
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(10)], ecx);
+
+            gen.mov(ecx, eax); // Calculate IR3
+            gen.shr(ecx, 3);
+            gen.and_(ecx, 0xf80);
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(11)], ecx);
             break;
     }
     
