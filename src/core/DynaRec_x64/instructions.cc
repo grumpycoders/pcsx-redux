@@ -89,7 +89,7 @@ void DynaRecCPU::recADDU() {
         } else if (_Rt_ == _Rd_) {  // Rd+= Rs
             gen.add(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
         } else {  // Rd = Rs + Rt
-            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg + m_regs[_Rt_].allocatedReg]);
+            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg.cvt64() + m_regs[_Rt_].allocatedReg.cvt64()]);
         }
     }
 }
@@ -161,7 +161,7 @@ void DynaRecCPU::recSUBU() {
                     gen.sub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
             }
         } else {
-            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg - m_regs[_Rt_].val]);
+            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg.cvt64() - m_regs[_Rt_].val]);
         }
     } else {
         allocateReg(_Rd_, _Rs_, _Rt_);

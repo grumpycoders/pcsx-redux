@@ -286,7 +286,7 @@ void DynaRecCPU::recSWC2() {
         gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
-        gen.lea(arg1, dword [m_regs[_Rs_].allocatedReg + _Imm_]);
+        gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
     gen.mov(arg2, eax); // Value to write in arg2

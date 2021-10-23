@@ -64,7 +64,7 @@ struct Emitter final : public CodeGenerator {
     // Uses lea if the value is non-zero, or mov otherwise
     void moveAndAdd(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
         if (value != 0) {
-            lea(dest, dword[source + value]);
+            lea(dest, dword[source.cvt64() + value]);
         } else {
             mov(dest, source);
         }
