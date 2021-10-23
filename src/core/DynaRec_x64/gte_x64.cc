@@ -72,10 +72,14 @@ void DynaRecCPU::recCTC2() {
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], (uint32_t)(int16_t)m_regs[_Rt_].val);
                 break;
 
-            case 31:
-                fmt::print("[GTE] Wrote to FLAG\n");
-                abort();
+            case 31: { // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
+                uint32_t value = m_regs[_Rt_].val & 0x7ffff000;
+                if ((value & 0x7f87e000) != 0) {
+                    value |= 0x80000000;
+                }
+                gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(31)], value);
                 break;
+            }
 
             default:
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], m_regs[_Rt_].val);
@@ -97,9 +101,13 @@ void DynaRecCPU::recCTC2() {
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], eax);
                 break;
 
-            case 31:
-                fmt::print("[GTE] Wrote to FLAG\n");
-                abort();
+            case 31: // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
+                gen.mov(ecx, m_regs[_Rt_].allocatedReg);
+                gen.and_(ecx, 0x7ffff000);
+                gen.lea(eax, dword[rcx - 0x80000000]);
+                gen.test(m_regs[_Rt_].allocatedReg, 0x7f87e000);
+                gen.cmove(eax, ecx);
+                gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(31)], eax);
                 break;
 
             default:
@@ -122,7 +130,7 @@ void DynaRecCPU::recMTC2() {
                 allocateReg(_Rt_);
                 gen.mov(dword[contextPointer + COP2_DATA_OFFSET(14)], m_regs[_Rt_].allocatedReg);
             }
-            return;
+            break;
             
         case 28:
             fmt::print("Unimplemented MTC2 to GTE data register {}\n", _Rd_);
