@@ -228,6 +228,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             std::ofstream out("DynarecOutput.map");
             out << m_symbols;
             m_symbols.clear();
+            dumpBuffer();
         }
     }
 
