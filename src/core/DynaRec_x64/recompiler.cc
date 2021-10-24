@@ -220,7 +220,7 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
     }
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
-    gen.jmp(m_returnFromBlock);
+    gen.jmpFunc(m_returnFromBlock);
     return true;
 }
 
