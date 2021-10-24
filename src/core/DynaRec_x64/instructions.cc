@@ -1358,11 +1358,7 @@ void DynaRecCPU::recMFC0() {
 
 // TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
 void DynaRecCPU::recMTC0() {
-    bool checkInterrupts = true;
-
     if (m_regs[_Rt_].isConst()) {
-        if (_Rd_ == 12 && ((m_regs[_Rt_].val & 1) == 0))
-            checkInterrupts = false;
         if (_Rd_ == 13) {
             gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].val & ~0xFC00);
         } else if (_Rd_ != 6 && _Rd_ != 14 &&_Rd_ != 15) { // Don't write to JUMPDEST, EPC or PRID
@@ -1380,7 +1376,7 @@ void DynaRecCPU::recMTC0() {
     }
 
     // Writing to SR/Cause can sometimes forcefully fire an interrupt. So we need to emit extra code to check.
-    if (checkInterrupts && (_Rd_ == 12 || _Rd_ == 13)) {
+    if (_Rd_ == 12 || _Rd_ == 13) {
         testSoftwareInterrupt<true>();
     }
 }
