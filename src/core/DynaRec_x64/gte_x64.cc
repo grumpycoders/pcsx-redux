@@ -24,8 +24,6 @@
 #define COP2_CONTROL_OFFSET(reg) ((uintptr_t) &m_psxRegs.CP2C.r[(reg)] - (uintptr_t) &m_psxRegs)
 #define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_psxRegs.CP2D.r[(reg)] - (uintptr_t)&m_psxRegs)
 
-// TODO: If a GTE instruction gets skipped because COP2 is disabled, the register allocator will very likely break
-// By backing up and allocating a reg inside the (skipped) instruction handler, then restoring a junk value into it in the epilogue
 void DynaRecCPU::recCOP2() {
     Label end;
     gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000); // Check SR to see if COP2 (GTE) is enabled

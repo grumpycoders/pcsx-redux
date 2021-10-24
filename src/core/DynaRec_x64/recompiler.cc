@@ -59,7 +59,8 @@ void DynaRecCPU::error() {
 
 void DynaRecCPU::flushCache() {
     gen.reset();    // Reset the emitter's code pointer and code size variables
-    gen.align(16);  // Align next block
+    emitDispatcher(); // Re-emit dispatcher
+
     std::memset(m_biosBlocks, 0, 0x80000 / 4 * sizeof(DynarecCallback));  // Delete all BIOS blocks
     std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
 }
@@ -67,13 +68,7 @@ void DynaRecCPU::flushCache() {
 void DynaRecCPU::emitDispatcher() {
     Xbyak::Label mainLoop, done;
 
-    // (Address of CPU state) - (address of recompiler object)
-    const uintptr_t offsetToRecompiler = (uintptr_t)&m_psxRegs - (uintptr_t)this;
-    // Offset of m_recompilerLUT in the dynarec object
-    const uintptr_t offsetToRecompilerLUT = (uintptr_t)&m_recompilerLUT[0] - (uintptr_t) this;
-
     gen.align(16);
-
     m_dispatcher = (DynarecCallback)gen.getCurr();
     gen.push(contextPointer); // Save context pointer register in stack (also align stack pointer)
     gen.mov(contextPointer, (uintptr_t)&m_psxRegs);  // Load context pointer
@@ -223,8 +218,8 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
         call(signalShellReached);
     }
     
-    gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
-    gen.jmpFunc(m_returnFromBlock);
+    gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
+    gen.jmp((void*)m_returnFromBlock);
     return true;
 }
 
