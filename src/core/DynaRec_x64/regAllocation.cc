@@ -33,12 +33,6 @@ void DynaRecCPU::reserveReg(int index) {
     m_regs[index].allocated = true; // Mark register as allocated
     m_regs[index].allocatedRegIndex = m_allocatedRegisters;
 
-    // If allocating a non-volatile that hasn't been allocated before, back it up in reg cache
-    if (!IS_VOLATILE(m_allocatedRegisters) && !m_hostRegs[m_allocatedRegisters].restore) {
-        gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(m_allocatedRegisters)], regToAllocate.cvt64());
-        m_hostRegs[m_allocatedRegisters].restore = true;  // Mark this register as "To be restored"
-    }
-
     // For certain instructions like loads, we don't want to load the reg because it'll get instantly overwritten
     if constexpr (load) {
         gen.mov(regToAllocate, dword[contextPointer + GPR_OFFSET(index)]);  // Load reg
@@ -68,21 +62,7 @@ void DynaRecCPU::flushRegs() {
         m_hostRegs[i].mappedReg = std::nullopt;
     }
 
-    for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i++) {  // Restore non volatiles
-        if (m_hostRegs[i].restore) {
-            gen.mov(allocateableRegisters[i].cvt64(), qword[contextPointer + HOST_REG_CACHE_OFFSET(i)]);
-            m_hostRegs[i].restore = false;
-        }
-    }
-
     m_allocatedRegisters = 0;
-}
-
-// Save the contextPointer register to the stack (aligning the stack at the same time)
-// And actually load the pointer to our context into it
-void DynaRecCPU::loadContext() {
-    gen.push(contextPointer);                       // Save context pointer register in stack
-    gen.mov(contextPointer, (uint64_t)&m_psxRegs);  // Load context pointer
 }
 
 // Spill the volatile allocated registers into guest registers in preparation for a call to a C++ function

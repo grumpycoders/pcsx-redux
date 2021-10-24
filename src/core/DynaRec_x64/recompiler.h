@@ -65,15 +65,17 @@ using namespace Xbyak::util;
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
     using func_t = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
-
+  
   private:
     DynarecCallback** m_recompilerLUT;
     DynarecCallback* m_ramBlocks;   // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
     DynarecCallback* m_biosBlocks;  // Pointers to compiled BIOS blocks
+
+    DynarecCallback m_dispatcher;
+    DynarecCallback m_returnFromBlock;
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC
 
-    bool m_needsStackFrame = false;  // Do we need to setup a stack frame? Usually needed when the block has C fallbacks
     bool m_stopCompiling;            // Should we stop compiling code?
     bool m_pcWrittenBack;            // Has the PC been written back already by a jump?
     uint32_t m_ramSize;              // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
@@ -115,7 +117,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     struct HostRegister {
         std::optional<int> mappedReg = std::nullopt;  // The register this is allocated to, if any
-        bool restore = false;                         // Did this register need to get restored after this block?
     };
 
     Register m_regs[32];
@@ -134,6 +135,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     void prepareForCall();
     void handleKernelCall();
+    void emitDispatcher();
 
   public:
     DynaRecCPU() : R3000Acpu("x86-64 DynaRec") {}
@@ -183,10 +185,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             return false;
         }
 
-        m_regs[0].markConst(0);  // $zero is always zero!
-        m_needsStackFrame = false;
-
+        m_regs[0].markConst(0);  // $zero is always zero
         gen.reset();
+        emitDispatcher();
+        
         return true;
     }
 
@@ -200,11 +202,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         delete[] m_recompilerLUT;
         delete[] m_ramBlocks;
         delete[] m_biosBlocks;
+        dumpBuffer();
     }
 
     virtual void Execute() final {
         ZoneScoped;  // Tell the Tracy profiler to do its thing
-        while (PCSX::g_system->running()) execute();
+        execute();
     }
 
     // TODO: Make it less slow and bad
@@ -228,6 +231,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
 
     static void signalShellReached(DynaRecCPU* that);
+    static void* recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
+        that->recompile(callback);
+        return *callback; // Return the address of the compiled block
+    }
+
+    static void recBranchTestWrapper(DynaRecCPU* that) {
+        that->psxBranchTest();
+    }
 
     void inlineClear(uint32_t address) {
         if (isPcValid(address & ~3)) {
@@ -248,7 +259,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recompile(DynarecCallback* callback);
     void error();
     void flushCache();
-    void loadContext();
     DynarecCallback* getBlockPointer(uint32_t pc);
 
     void maybeCancelDelayedLoad(uint32_t index) {
@@ -357,26 +367,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     template <bool readSR>
     void testSoftwareInterrupt();
 
-    // Sets up the shadow stack space on Windows for function calls
-    void setupStackFrame() {
-        if constexpr (isWindows()) {
-            if (!m_needsStackFrame) {
-                m_needsStackFrame = true;
-                gen.sub(rsp, 32);
-            }
-        }
-    }
-
     // Prepare for a call to a C++ function and then actually emit it
-    // setupStack: Tells us if we should check whether we need to set up a stack frame for this call.
-    // Should only be false for instructions that use conditional calls, as the stack frame should be set up
-    // unconditionally in that case
-    template <bool setupStack = true, typename T>
+    template <typename T>
     void call(T& func) {
-        if constexpr (setupStack) {
-            setupStackFrame();
-        }
-
         prepareForCall();
         gen.callFunc(func);
     }

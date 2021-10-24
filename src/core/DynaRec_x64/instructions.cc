@@ -1407,7 +1407,6 @@ void DynaRecCPU::testSoftwareInterrupt() {
     }
 
     m_stopCompiling = true;
-    setupStackFrame(); // This function uses a conditional call, so we will have to set up a stack frame separately and unconditionally.
 
     if constexpr (loadSR) {
         gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]);  // eax = SR
@@ -1425,7 +1424,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     loadThisPointer(arg1.cvt64());
     gen.moveImm(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
-    call<false>(psxExceptionWrapper); // Call the exception wrapper function
+    call(psxExceptionWrapper); // Call the exception wrapper function
 
     gen.L(label);
 }
