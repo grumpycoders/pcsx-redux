@@ -67,13 +67,7 @@ void DynaRecCPU::flushCache() {
 void DynaRecCPU::emitDispatcher() {
     Xbyak::Label mainLoop, done;
 
-    // (Address of CPU state) - (address of recompiler object)
-    const uintptr_t offsetToRecompiler = (uintptr_t)&m_psxRegs - (uintptr_t)this;
-    // Offset of m_recompilerLUT in the dynarec object
-    const uintptr_t offsetToRecompilerLUT = (uintptr_t)&m_recompilerLUT[0] - (uintptr_t) this;
-
     gen.align(16);
-
     m_dispatcher = (DynarecCallback)gen.getCurr();
     gen.push(contextPointer); // Save context pointer register in stack (also align stack pointer)
     gen.mov(contextPointer, (uintptr_t)&m_psxRegs);  // Load context pointer
