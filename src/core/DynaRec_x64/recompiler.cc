@@ -59,7 +59,8 @@ void DynaRecCPU::error() {
 
 void DynaRecCPU::flushCache() {
     gen.reset();    // Reset the emitter's code pointer and code size variables
-    gen.align(16);  // Align next block
+    emitDispatcher(); // Re-emit dispatcher
+
     std::memset(m_biosBlocks, 0, 0x80000 / 4 * sizeof(DynarecCallback));  // Delete all BIOS blocks
     std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
 }
@@ -213,8 +214,8 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
         call(signalShellReached);
     }
     
-    gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
-    gen.jmpFunc(m_returnFromBlock);
+    gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
+    gen.jmp((void*)m_returnFromBlock);
     return true;
 }
 
