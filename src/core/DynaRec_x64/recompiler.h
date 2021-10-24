@@ -45,7 +45,7 @@ static uint8_t psxMemRead8Wrapper(uint32_t address) { return PCSX::g_emulator->m
 static uint16_t psxMemRead16Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead16(address); }
 static uint32_t psxMemRead32Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead32(address); }
 
-static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) { 
+static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
@@ -70,6 +70,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback** m_recompilerLUT;
     DynarecCallback* m_ramBlocks;   // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
     DynarecCallback* m_biosBlocks;  // Pointers to compiled BIOS blocks
+    DynarecCallback* m_dummyBlocks; // This is where invalid pages will point
 
     DynarecCallback m_dispatcher;
     DynarecCallback m_returnFromBlock;
@@ -157,6 +158,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         // in a region of memory is REGION_SIZE / 4
         m_ramBlocks = new DynarecCallback[m_ramSize / 4]();
         m_biosBlocks = new DynarecCallback[biosSize / 4]();
+        m_dummyBlocks = new DynarecCallback[0x10000 / 4](); // Allocate one page worth of dummy blocks
+
+        for (auto page = 0; page < 0x10000; page++) {
+            m_recompilerLUT[page] = &m_dummyBlocks[0];
+        }
 
         // For every 64KB page of memory, we can have 64*1024/4 unique blocks = 0x4000
         // Hence the multiplications below
@@ -202,6 +208,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         delete[] m_recompilerLUT;
         delete[] m_ramBlocks;
         delete[] m_biosBlocks;
+        delete[] m_dummyBlocks;
         dumpBuffer();
     }
 
@@ -231,9 +238,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
 
     static void signalShellReached(DynaRecCPU* that);
-    static void* recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
-        that->recompile(callback);
-        return *callback; // Return the address of the compiled block
+    static bool recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
+        return that->recompile(callback);
     }
 
     static void recBranchTestWrapper(DynaRecCPU* that) {
@@ -256,7 +262,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
     void execute();
-    void recompile(DynarecCallback* callback);
+    bool recompile(DynarecCallback* callback);
     void error();
     void flushCache();
     DynarecCallback* getBlockPointer(uint32_t pc);

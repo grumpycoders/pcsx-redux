@@ -103,8 +103,6 @@ void DynaRecCPU::emitDispatcher() {
     // Load the base pointer of the recompiler LUT to rax
     gen.mov(rax, (uintptr_t) m_recompilerLUT);
     gen.mov(rax, qword[rax + rcx * 8]); // Load base pointer to recompiler LUT page in rax
-    gen.test(rax, rax); // Make sure this is a valid page for the PC to be in. Error if not
-    gen.jz(done); // If it is not, we instantly stop execution and return
     gen.mov(rcx, qword[rax + rdx * 8]); // Pointer to block in rcx
 
     gen.test(rcx, rcx); // Check if block needs to be compiled
@@ -141,12 +139,20 @@ void DynaRecCPU::emitDispatcher() {
     gen.L(compile);
     loadThisPointer(arg1.cvt64());
     gen.lea(arg2.cvt64(), qword[rax + rdx * 8]); // Pointer to callback
-    gen.callFunc(recRecompileWrapper); // Call recompilation function, pointer to new block in rax
-    gen.jmp(rax); // Jump to compiled block
+    gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], arg2.cvt64()); // Cache pointer to callback
+
+    gen.callFunc(recRecompileWrapper); // Call recompilation function. al = 1 if successful
+    gen.test(al, al);
+    gen.jz(done);
+
+    gen.mov(rdx, qword[contextPointer + HOST_REG_CACHE_OFFSET(0)]); // Restore pointer to callback
+    gen.jmp(qword[rdx]); // Jump to compiled block
 }
 
-
-void DynaRecCPU::recompile(DynarecCallback* callback) {
+// Compile a block, write address of compiled code to *callback
+// Returns whether or not compilation was successful
+// Compilation will fail if the PC is pointing to invalid memory
+bool DynaRecCPU::recompile(DynarecCallback* callback) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -156,6 +162,9 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     m_pc = m_psxRegs.pc;
 
     const auto startingPC = m_pc;
+    if (callback - m_dummyBlocks < (0x10000 / 4)) { // Return false if this is pointing to one of the invalid blocks
+        return false;
+    }
 
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block
@@ -164,7 +173,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         flushCache();
     }
 
-    *callback = (DynarecCallback) gen.getCurr();
+    *callback = (DynarecCallback)gen.getCurr();
     handleKernelCall(); // Check if this is a kernel call vector, emit some extra code in that case.
 
     auto shouldContinue = [&]() {
@@ -187,7 +196,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         const auto p = (uint8_t*) PSXM(m_pc); // Fetch instruction
         if (p == nullptr) { // Error if it can't be fetched
             error();
-            return;
+            return false;
         }
 
         m_psxRegs.code = *(uint32_t*)p; // Actually read the instruction
@@ -212,6 +221,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
     gen.jmp(m_returnFromBlock);
+    return true;
 }
 
 void DynaRecCPU::recSpecial() {
