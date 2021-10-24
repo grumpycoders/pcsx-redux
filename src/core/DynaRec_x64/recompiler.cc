@@ -111,18 +111,20 @@ void DynaRecCPU::emitDispatcher() {
     gen.jnz(mainLoop); // Go back to the start of main loop if it is, otherwise return
 
     // Code for when the block is done
-    // Restore all non-volatiles
     gen.L(done);
+    
+    // Deallocate shadow stack space on Windows
+    if constexpr (isWindows()) {
+        gen.add(rsp, 32);
+    }
+
+    // Restore all non-volatiles
     for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i--) {
         const auto reg = allocateableNonVolatiles[i];
         gen.pop(reg.cvt64());
     }
     gen.mov(runningPointer, qword[contextPointer + HOST_REG_CACHE_OFFSET(ALLOCATEABLE_NON_VOLATILE_COUNT)]);
 
-    // Deallocate shadow stack space on Windows
-    if constexpr (isWindows()) {
-        gen.add(rsp, 32);
-    }
     gen.pop(contextPointer); // Restore our context pointer
     gen.ret(); // Return
 
