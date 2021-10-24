@@ -508,7 +508,7 @@ void DynaRecCPU::recSLLV() {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        if (gen.hasBMI2) {
+        if (gen.hasBMI2 && (_Rd_ != _Rs_)) {
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
             gen.shlx(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
         }
@@ -576,7 +576,7 @@ void DynaRecCPU::recSRAV() {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        if (gen.hasBMI2) {
+        if (gen.hasBMI2 && (_Rd_ != _Rs_)) {
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
             gen.sarx(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
         } else {
@@ -641,7 +641,7 @@ void DynaRecCPU::recSRLV() {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        if (gen.hasBMI2) {
+        if (gen.hasBMI2 && (_Rd_ != _Rs_)) {
             gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
             gen.shrx(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
         }
