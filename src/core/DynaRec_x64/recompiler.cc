@@ -65,7 +65,7 @@ void DynaRecCPU::flushCache() {
 }
 
 void DynaRecCPU::emitDispatcher() {
-    Xbyak::Label mainLoop, done, compile;
+    Xbyak::Label mainLoop, done;
 
     // (Address of CPU state) - (address of recompiler object)
     const uintptr_t offsetToRecompiler = (uintptr_t)&m_psxRegs - (uintptr_t)this;
@@ -76,7 +76,7 @@ void DynaRecCPU::emitDispatcher() {
 
     m_dispatcher = (DynarecCallback)gen.getCurr();
     gen.push(contextPointer); // Save context pointer register in stack (also align stack pointer)
-    gen.mov(contextPointer, (uint64_t)&m_psxRegs);  // Load context pointer
+    gen.mov(contextPointer, (uintptr_t)&m_psxRegs);  // Load context pointer
     
     // Back up all our allocateable volatile regs
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0); // Make sure we've got an even number of regs
@@ -103,11 +103,7 @@ void DynaRecCPU::emitDispatcher() {
     // Load the base pointer of the recompiler LUT to rax
     gen.mov(rax, (uintptr_t) m_recompilerLUT);
     gen.mov(rax, qword[rax + rcx * 8]); // Load base pointer to recompiler LUT page in rax
-    gen.mov(rcx, qword[rax + rdx * 8]); // Pointer to block in rcx
-
-    gen.test(rcx, rcx); // Check if block needs to be compiled
-    gen.jz(compile);
-    gen.jmp(rcx); // Jump to compiled block
+    gen.jmp(qword[rax + rdx * 8]); // Jump to block
 
     // Code to be executed after each block
     // Blocks will jmp to here
@@ -122,7 +118,7 @@ void DynaRecCPU::emitDispatcher() {
     // Code for when the block is done
     // Restore all non-volatiles
     gen.L(done);
-    for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT-1; i >= 0; i--) {
+    for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i--) {
         const auto reg = allocateableNonVolatiles[i];
         gen.pop(reg.cvt64());
     }
@@ -135,8 +131,12 @@ void DynaRecCPU::emitDispatcher() {
     gen.pop(contextPointer); // Restore our context pointer
     gen.ret(); // Return
 
-    // Code for when the block to be executed needs to be compiled
-    gen.L(compile);
+    // Code for when the block to be executed needs to be compiled.
+    // rax = Base pointer to the page of m_recompilerLUT we're executing from
+    // rdx = Index into the page
+    gen.align(16);
+    m_uncompiledBlock = (DynarecCallback)gen.getCurr();
+
     loadThisPointer(arg1.cvt64());
     gen.lea(arg2.cvt64(), qword[rax + rdx * 8]); // Pointer to callback
     gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], arg2.cvt64()); // Cache pointer to callback

@@ -72,8 +72,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback* m_biosBlocks;  // Pointers to compiled BIOS blocks
     DynarecCallback* m_dummyBlocks; // This is where invalid pages will point
 
-    DynarecCallback m_dispatcher;
-    DynarecCallback m_returnFromBlock;
+    // Functions written in raw assembly
+    DynarecCallback m_dispatcher; // Pointer to our assembly dispatcher
+    DynarecCallback m_returnFromBlock; // Pointer to the code that will be executed when returning from a block
+    DynarecCallback m_uncompiledBlock; // Pointer to the code that will be executed when jumping to an uncompiled block
+
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC
 
@@ -156,11 +159,26 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
         // Instructions need to be on 4-byte boundaries. So the amount of valid block entrypoints
         // in a region of memory is REGION_SIZE / 4
-        m_ramBlocks = new DynarecCallback[m_ramSize / 4]();
-        m_biosBlocks = new DynarecCallback[biosSize / 4]();
-        m_dummyBlocks = new DynarecCallback[0x10000 / 4](); // Allocate one page worth of dummy blocks
+        m_ramBlocks = new DynarecCallback[m_ramSize / 4];
+        m_biosBlocks = new DynarecCallback[biosSize / 4];
+        m_dummyBlocks = new DynarecCallback[0x10000 / 4]; // Allocate one page worth of dummy blocks
+        
+        gen.reset();
+        emitDispatcher(); // Emit our assembly dispatcher
 
-        for (auto page = 0; page < 0x10000; page++) {
+        for (auto i = 0; i < m_ramSize / 4; i++) { // Mark all RAM blocks as uncompiled
+            m_ramBlocks[i] = m_uncompiledBlock;
+        }
+
+        for (auto i = 0; i < biosSize / 4; i++) { // Mark all BIOS blocks as uncompiled
+            m_biosBlocks[i] = m_uncompiledBlock;
+        }
+
+        for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as uncompiled
+            m_dummyBlocks[i] = m_uncompiledBlock;
+        }
+
+        for (auto page = 0; page < 0x10000; page++) { // Default all pages to dummy blocks
             m_recompilerLUT[page] = &m_dummyBlocks[0];
         }
 
@@ -180,21 +198,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             m_recompilerLUT[page + 0xBFC0] = pointer;
         }
 
-        if (m_ramBlocks == nullptr || m_biosBlocks == nullptr || gen.getCode() == nullptr ||
-            m_recompilerLUT == nullptr) {
-            PCSX::g_system->message("[Dynarec] Error allocating memory");
-            return false;
-        }
-
         if (!gen.setRWX()) {
             PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
             return false;
         }
 
         m_regs[0].markConst(0);  // $zero is always zero
-        gen.reset();
-        emitDispatcher();
-        
         return true;
     }
 
@@ -221,7 +230,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Possibly clear blocks more aggressively
     // Note: This relies on the behavior in psxmem.cc which calls Clear after force-aligning the address
     virtual void Clear(uint32_t addr, uint32_t size) final {
-        std::memset((void*)getBlockPointer(addr), 0, size * sizeof(DynarecCallback));
+        auto pointer = getBlockPointer(addr);
+        for (auto i = 0; i < size; i++) {
+            *pointer++ = m_uncompiledBlock;
+        }
     }
 
     virtual void SetPGXPMode(uint32_t pgxpMode) final {}
