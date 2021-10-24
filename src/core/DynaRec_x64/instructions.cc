@@ -89,7 +89,7 @@ void DynaRecCPU::recADDU() {
         } else if (_Rt_ == _Rd_) {  // Rd+= Rs
             gen.add(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
         } else {  // Rd = Rs + Rt
-            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg + m_regs[_Rt_].allocatedReg]);
+            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg.cvt64() + m_regs[_Rt_].allocatedReg.cvt64()]);
         }
     }
 }
@@ -142,9 +142,7 @@ void DynaRecCPU::recSUBU() {
         allocateReg(_Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(eax, m_regs[_Rs_].val); // Left hand operand in eax
-        gen.sub(eax, m_regs[_Rt_].allocatedReg); // Subtract right hand operand
-        gen.mov(m_regs[_Rd_].allocatedReg, eax); // Store result
+        gen.reverseSub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
@@ -161,7 +159,7 @@ void DynaRecCPU::recSUBU() {
                     gen.sub(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
             }
         } else {
-            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg - m_regs[_Rt_].val]);
+            gen.lea(m_regs[_Rd_].allocatedReg, dword[m_regs[_Rs_].allocatedReg.cvt64() - m_regs[_Rt_].val]);
         }
     } else {
         allocateReg(_Rd_, _Rs_, _Rt_);
@@ -187,9 +185,7 @@ void DynaRecCPU::recSLTI() {
         allocateReg(_Rt_, _Rs_);
         m_regs[_Rt_].setWriteback(true);
         
-        gen.cmp(m_regs[_Rs_].allocatedReg, _Imm_);
-        gen.setl(al);
-        gen.movzx(m_regs[_Rt_].allocatedReg, al);
+        gen.setLess(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 }
 
@@ -256,9 +252,7 @@ void DynaRecCPU::recSLT() {
         allocateReg(_Rd_, _Rs_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
-        gen.setl(m_regs[_Rd_].allocatedReg.cvt8());
-        gen.movzx(m_regs[_Rd_].allocatedReg, m_regs[_Rd_].allocatedReg.cvt8());
+        gen.setLess(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rd_, _Rs_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -320,8 +314,7 @@ void DynaRecCPU::recANDI() {
         } else {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
-            gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
-            gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
+            gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg, _ImmU_);
         }
     }
 }
@@ -337,14 +330,14 @@ void DynaRecCPU::recNOR() {
         m_regs[_Rd_].setWriteback(true);
 
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
         gen.not_(m_regs[_Rd_].allocatedReg);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
         gen.not_(m_regs[_Rd_].allocatedReg);
     } else {
         allocateReg(_Rs_, _Rd_, _Rt_);
@@ -374,13 +367,13 @@ void DynaRecCPU::recOR() {
         m_regs[_Rd_].setWriteback(true);
 
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
         gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        gen.or_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rs_, _Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -415,9 +408,7 @@ void DynaRecCPU::recORI() {
             allocateReg(_Rt_, _Rs_);
             m_regs[_Rt_].setWriteback(true);
             gen.mov(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
-            if (_ImmU_) {
-                gen.or_(m_regs[_Rt_].allocatedReg, _ImmU_);
-            }
+            gen.orImm(m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     }
 }
@@ -491,13 +482,7 @@ void DynaRecCPU::recSLL() {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        if (_Rd_ != _Rt_) {
-            gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        }
-        
-        if (_Sa_) {
-            gen.shl(m_regs[_Rd_].allocatedReg, _Sa_);
-        }
+        gen.shlImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, _Sa_);
     }
 }
 
@@ -1001,7 +986,7 @@ void DynaRecCPU::recSB() {
         }
 
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
@@ -1013,7 +998,7 @@ void DynaRecCPU::recSB() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt8());
@@ -1056,7 +1041,7 @@ void DynaRecCPU::recSH() {
         else if (addr >= 0x1f801c00 && addr < 0x1f801e00) { // SPU registers
             gen.mov(arg1, addr);
             if (m_regs[_Rt_].isConst()) {
-                gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+                gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
             } else {
                 allocateReg(_Rt_);
                 gen.mov(arg2, m_regs[_Rt_].allocatedReg);
@@ -1067,7 +1052,7 @@ void DynaRecCPU::recSH() {
         }
 
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt16());
@@ -1079,7 +1064,7 @@ void DynaRecCPU::recSH() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val & 0xFFFF);
+            gen.moveImm(arg2, m_regs[_Rt_].val & 0xFFFF);
         } else {
             allocateReg(_Rt_);
             gen.movzx(arg2, m_regs[_Rt_].allocatedReg.cvt16());
@@ -1108,7 +1093,7 @@ void DynaRecCPU::recSW() {
         }
 
         if (m_regs[_Rt_].isConst()) { // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val);
+            gen.moveImm(arg2, m_regs[_Rt_].val);
         } else {
             allocateReg(_Rt_);
             gen.mov(arg2, m_regs[_Rt_].allocatedReg);
@@ -1120,7 +1105,7 @@ void DynaRecCPU::recSW() {
 
     else {
         if (m_regs[_Rt_].isConst()) {  // Value to write in arg2
-            gen.mov(arg2, m_regs[_Rt_].val);
+            gen.moveImm(arg2, m_regs[_Rt_].val);
         } else {
             allocateReg(_Rt_);
             gen.mov(arg2, m_regs[_Rt_].allocatedReg);
@@ -1373,7 +1358,11 @@ void DynaRecCPU::recMFC0() {
 
 // TODO: Handle all COP0 register writes properly. Don't treat read-only field as writeable!
 void DynaRecCPU::recMTC0() {
+    bool checkInterrupts = true;
+
     if (m_regs[_Rt_].isConst()) {
+        if (_Rd_ == 12 && ((m_regs[_Rt_].val & 1) == 0))
+            checkInterrupts = false;
         if (_Rd_ == 13) {
             gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].val & ~0xFC00);
         } else if (_Rd_ != 6 && _Rd_ != 14 &&_Rd_ != 15) { // Don't write to JUMPDEST, EPC or PRID
@@ -1385,13 +1374,13 @@ void DynaRecCPU::recMTC0() {
         allocateReg(_Rt_);
         if (_Rd_ == 13) {
             gen.and_(m_regs[_Rt_].allocatedReg, ~0xFC00);
+        } else if (_Rd_ != 6 && _Rd_ != 14 &&_Rd_ != 15) { // Don't write to JUMPDEST, EPC or PRID
+            gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg); // Write rt to the cop0 reg
         }
-
-        gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_regs[_Rt_].allocatedReg); // Write rt to the cop0 reg
     }
 
     // Writing to SR/Cause can sometimes forcefully fire an interrupt. So we need to emit extra code to check.
-    if (_Rd_ == 12 || _Rd_ == 13) {
+    if (checkInterrupts && (_Rd_ == 12 || _Rd_ == 13)) {
         testSoftwareInterrupt<true>();
     }
 }
@@ -1418,7 +1407,6 @@ void DynaRecCPU::testSoftwareInterrupt() {
     }
 
     m_stopCompiling = true;
-    setupStackFrame(); // This function uses a conditional call, so we will have to set up a stack frame separately and unconditionally.
 
     if constexpr (loadSR) {
         gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]);  // eax = SR
@@ -1434,9 +1422,9 @@ void DynaRecCPU::testSoftwareInterrupt() {
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.cvt64());
-    gen.mov(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
+    gen.moveImm(arg3, (int32_t) m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4); // PC for exception handler to use
-    call<false>(psxExceptionWrapper); // Call the exception wrapper function
+    call(psxExceptionWrapper); // Call the exception wrapper function
 
     gen.L(label);
 }
@@ -1458,10 +1446,10 @@ void DynaRecCPU::recBNE() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rt_, _Rs_);
         gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -1590,10 +1578,10 @@ void DynaRecCPU::recBEQ() {
         return;
     } else if (m_regs[_Rs_].isConst()) {
         allocateReg(_Rt_);
-        gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
+        gen.cmpEqImm(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_);
-        gen.cmp(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
+        gen.cmpEqImm(m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rt_, _Rs_);
         gen.cmp(m_regs[_Rt_].allocatedReg, m_regs[_Rs_].allocatedReg);
@@ -1847,8 +1835,8 @@ void DynaRecCPU::recException(Exception e) {
     m_stopCompiling = true;
 
     loadThisPointer(arg1.cvt64()); // Pointer to this object in arg1
-    gen.mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2); // Exception type in arg2
-    gen.mov(arg3, (int32_t)m_inDelaySlot); // Store whether we're in a delay slot in arg3
+    gen.moveImm(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2); // Exception type in arg2
+    gen.moveImm(arg3, (int32_t)m_inDelaySlot); // Store whether we're in a delay slot in arg3
     gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);  // PC for exception handler to use
 
     call(psxExceptionWrapper); // Call the exception wrapper

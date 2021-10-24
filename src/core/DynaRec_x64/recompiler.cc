@@ -20,6 +20,7 @@
 #include "recompiler.h"
 
 #if defined(DYNAREC_X86_64)
+#include <cassert>
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() {
     return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU());
@@ -40,14 +41,7 @@ void DynaRecCPU::execute() {
         return;
     }
 
-    auto recompilerFunc = getBlockPointer(m_psxRegs.pc);
-    if (*recompilerFunc == nullptr) { // Check if this block has been compiled, compile it if not
-        recompile(recompilerFunc);
-    }
-
-    const auto emittedCode = *recompilerFunc;
-    (*emittedCode)();  // Jump to emitted code
-    psxBranchTest(); // Check scheduler events
+    (*m_dispatcher)(); // Jump to emitted code
 }
 
 void DynaRecCPU::signalShellReached(DynaRecCPU* that) {
@@ -66,11 +60,99 @@ void DynaRecCPU::error() {
 void DynaRecCPU::flushCache() {
     gen.reset();    // Reset the emitter's code pointer and code size variables
     gen.align(16);  // Align next block
-    std::memset(m_biosBlocks, 0, 0x080000 / 4 * sizeof(DynarecCallback));  // Delete all BIOS blocks
+    std::memset(m_biosBlocks, 0, 0x80000 / 4 * sizeof(DynarecCallback));  // Delete all BIOS blocks
     std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
 }
 
-void DynaRecCPU::recompile(DynarecCallback* callback) {
+void DynaRecCPU::emitDispatcher() {
+    Xbyak::Label mainLoop, done;
+
+    // (Address of CPU state) - (address of recompiler object)
+    const uintptr_t offsetToRecompiler = (uintptr_t)&m_psxRegs - (uintptr_t)this;
+    // Offset of m_recompilerLUT in the dynarec object
+    const uintptr_t offsetToRecompilerLUT = (uintptr_t)&m_recompilerLUT[0] - (uintptr_t) this;
+
+    gen.align(16);
+
+    m_dispatcher = (DynarecCallback)gen.getCurr();
+    gen.push(contextPointer); // Save context pointer register in stack (also align stack pointer)
+    gen.mov(contextPointer, (uintptr_t)&m_psxRegs);  // Load context pointer
+    
+    // Back up all our allocateable volatile regs
+    static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0); // Make sure we've got an even number of regs
+    for (auto i = 0; i < ALLOCATEABLE_NON_VOLATILE_COUNT; i++) {
+        const auto reg = allocateableNonVolatiles[i];
+        gen.push(reg.cvt64());
+    }
+    gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(ALLOCATEABLE_NON_VOLATILE_COUNT)], runningPointer); // Backup running pointer
+    gen.mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr()); // Load pointer to "running" variable
+
+    // Allocate shadow stack space on Windows
+    if constexpr (isWindows()) {
+        gen.sub(rsp, 32);
+    }
+
+    // This is the "execute until we're not running anymore" loop
+    gen.L(mainLoop);
+    gen.mov(ecx, dword[contextPointer + PC_OFFSET]); // eax = pc >> 16
+    gen.mov(edx, ecx); // edx = (pc & 0xFFFF) >> 2
+    gen.shr(ecx, 16);
+    gen.shr(edx, 2);
+    gen.and_(edx, 0x3fff);
+
+    // Load the base pointer of the recompiler LUT to rax
+    gen.mov(rax, (uintptr_t) m_recompilerLUT);
+    gen.mov(rax, qword[rax + rcx * 8]); // Load base pointer to recompiler LUT page in rax
+    gen.jmp(qword[rax + rdx * 8]); // Jump to block
+
+    // Code to be executed after each block
+    // Blocks will jmp to here
+    gen.align(16);
+    m_returnFromBlock = (DynarecCallback)gen.getCurr();
+
+    loadThisPointer(arg1.cvt64()); // Poll events
+    gen.call(recBranchTestWrapper);
+    gen.test(Xbyak::util::byte[runningPointer], 1); // Check if PCSX::g_system->running is true
+    gen.jnz(mainLoop); // Go back to the start of main loop if it is, otherwise return
+
+    // Code for when the block is done
+    // Restore all non-volatiles
+    gen.L(done);
+    for (int i = ALLOCATEABLE_NON_VOLATILE_COUNT - 1; i >= 0; i--) {
+        const auto reg = allocateableNonVolatiles[i];
+        gen.pop(reg.cvt64());
+    }
+    gen.mov(runningPointer, qword[contextPointer + HOST_REG_CACHE_OFFSET(ALLOCATEABLE_NON_VOLATILE_COUNT)]);
+
+    // Deallocate shadow stack space on Windows
+    if constexpr (isWindows()) {
+        gen.add(rsp, 32);
+    }
+    gen.pop(contextPointer); // Restore our context pointer
+    gen.ret(); // Return
+
+    // Code for when the block to be executed needs to be compiled.
+    // rax = Base pointer to the page of m_recompilerLUT we're executing from
+    // rdx = Index into the page
+    gen.align(16);
+    m_uncompiledBlock = (DynarecCallback)gen.getCurr();
+
+    loadThisPointer(arg1.cvt64());
+    gen.lea(arg2.cvt64(), qword[rax + rdx * 8]); // Pointer to callback
+    gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], arg2.cvt64()); // Cache pointer to callback
+
+    gen.callFunc(recRecompileWrapper); // Call recompilation function. al = 1 if successful
+    gen.test(al, al);
+    gen.jz(done);
+
+    gen.mov(rdx, qword[contextPointer + HOST_REG_CACHE_OFFSET(0)]); // Restore pointer to callback
+    gen.jmp(qword[rdx]); // Jump to compiled block
+}
+
+// Compile a block, write address of compiled code to *callback
+// Returns whether or not compilation was successful
+// Compilation will fail if the PC is pointing to invalid memory
+bool DynaRecCPU::recompile(DynarecCallback* callback) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -83,6 +165,9 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
     if constexpr (SYMBOLS_ENABLED) {
         symbols += fmt::format("{} recompile_{:08X}\n", (void*) gen.getCurr(), m_pc);
     }
+    if (callback - m_dummyBlocks < (0x10000 / 4)) { // Return false if this is pointing to one of the invalid blocks
+        return false;
+    }
 
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block
@@ -91,8 +176,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         flushCache();
     }
 
-    *callback = (DynarecCallback) gen.getCurr();
-    loadContext(); // Load a pointer to our CPU context
+    *callback = (DynarecCallback)gen.getCurr();
     handleKernelCall(); // Check if this is a kernel call vector, emit some extra code in that case.
 
     auto shouldContinue = [&]() {
@@ -115,7 +199,7 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         const auto p = (uint8_t*) PSXM(m_pc); // Fetch instruction
         if (p == nullptr) { // Error if it can't be fetched
             error();
-            return;
+            return false;
         }
 
         m_psxRegs.code = *(uint32_t*)p; // Actually read the instruction
@@ -137,18 +221,10 @@ void DynaRecCPU::recompile(DynarecCallback* callback) {
         loadThisPointer(arg1.cvt64());
         call(signalShellReached);
     }
-
-    if constexpr (isWindows()) {
-        if (m_needsStackFrame) {
-            gen.add(rsp, 32);  // Deallocate shadow stack space on Windows
-            m_needsStackFrame = false;
-        }
-    }
-
+    
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles
-
-    gen.pop(contextPointer); // Restore our context pointer register
-    gen.ret();
+    gen.jmpFunc(m_returnFromBlock);
+    return true;
 }
 
 void DynaRecCPU::recSpecial() {

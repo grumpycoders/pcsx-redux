@@ -52,14 +52,144 @@ struct Emitter final : public CodeGenerator {
 
     template <typename T>
     void callFunc(T& func) {
-        call (reinterpret_cast<void*>(&func));
+        call(reinterpret_cast<void*>(&func));
     }
 
+    template <typename T>
+    void jmpFunc(T& func) {
+        jmp(reinterpret_cast<void*>(&func));
+    }
+
+    // Adds "value" to "source" and stores the result in dest
+    // Uses lea if the value is non-zero, or mov otherwise
     void moveAndAdd(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
         if (value != 0) {
-            lea(dest, dword[source + value]);
+            lea(dest, dword[source.cvt64() + value]);
         } else {
             mov(dest, source);
+        }
+    }
+
+    // Moves "value" into "dest". Optimizes the move to xor dest, dest if value is 0.
+    // Thrashes EFLAGS
+    void moveImm(Xbyak::Reg32 dest, uint32_t value) {
+        if (value == 0) {
+            xor_(dest, dest);
+        } else {
+            mov(dest, value);
+        }
+    }
+
+    // Logical or dest by value (Skip the or if value == 0)
+    void orImm(Xbyak::Reg32 dest, uint32_t value) {
+        if (value != 0) {
+            or_(dest, value);
+        }
+    }
+
+    // Returns whether dest is equal to value via the zero flag
+    void cmpEqImm(Xbyak::Reg32 dest, uint32_t value) {
+        if (value == 0) {
+            test(dest, dest);
+        } else {
+            cmp(dest, value);
+        }
+    }
+
+    void moveReg(Xbyak::Reg32 dest, Xbyak::Reg32 source) {
+        if (dest != source) {
+            mov(dest, source);
+        }
+    }
+
+    // Set dest to 1 if source < value (signed). Otherwise set dest to 0
+    void setLess(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        if (value == 0) {
+            moveReg(dest, source);
+            shr(dest, 31);
+        } else {
+            cmp(source, value);
+            setl(al);
+            movzx(dest, al);
+        }
+    }
+
+    // dest = source & value
+    // Optimizes to movzx or xor wherever possible
+    void andImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        switch (value) {
+            case 0: 
+                xor_(dest, dest);
+                break;
+            case 0xFF:
+                movzx(dest, source.cvt8());
+                break;
+            case 0xFFFF:
+                movzx(dest, source.cvt16());
+                break;
+            default:
+                moveReg(dest, source);
+                and_(dest, value);
+                break;
+        }
+    }
+
+    // dest = source << amount
+    // Optimizes to lea if appropriate
+    void shlImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, int amount) {
+        if (dest == source) {
+            shl(dest, amount);
+        } else {
+            if (amount == 1 || amount == 2 || amount == 3) {
+                lea(dest, dword[source * (1 << amount)]);
+            } else {
+                mov(dest, source);
+                if (amount != 0) {
+                    shl(dest, amount);
+                }
+            }
+        }
+    }
+
+    // dest = value - source
+    // Optimizes the value == 0 case, might thrash eax and EFLAGS
+    void reverseSub(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        if (value == 0) {
+            moveReg(dest, source);
+            neg(dest);
+        } else {
+            mov(eax, value);
+            sub(eax, source);
+            mov(dest, eax);
+        }
+    }
+
+    // Like callFunc, except it checks whether the function can be called with a relative call
+    // If it can't, it loads a pointer to the function in rax, then uses call rax
+    // We don't really need it because we've guaranteed all calls can be relative, but it's
+    // Nice to have
+    template <typename T>
+    void callFuncSafe(T& func) {
+        const size_t distance = (size_t)func - (size_t)getCurr();
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            callFunc(func);
+        } else {
+            mov(rax, (uint64_t)func);
+            call(rax);
+        }
+    }
+
+    // Similar to callFuncSafe, except it does a jmp instead
+    template <typename T>
+    void jmpFuncSafe(T& func) {
+        const size_t distance = (size_t)func - (size_t)getCurr();
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            jmpFunc(func);
+        } else {
+            mov(rax, (uint64_t)func);
+            jmp(rax);
         }
     }
 
