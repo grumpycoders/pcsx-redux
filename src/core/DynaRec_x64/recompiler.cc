@@ -163,8 +163,9 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
 
     const auto startingPC = m_pc;
     if constexpr (SYMBOLS_ENABLED) {
-        symbols += fmt::format("{} recompile_{:08X}\n", (void*) gen.getCurr(), m_pc);
+        m_symbols += fmt::format("{} recompile_{:08X}\n", (void*) gen.getCurr(), m_pc);
     }
+    
     if (callback - m_dummyBlocks < (0x10000 / 4)) { // Return false if this is pointing to one of the invalid blocks
         return false;
     }

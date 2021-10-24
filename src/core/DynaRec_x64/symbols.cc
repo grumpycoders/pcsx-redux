@@ -24,10 +24,10 @@
 #include "fmt/format.h"
 
 #define REGISTER_VARIABLE(variable, name, size) \
-symbols += fmt::format("{} {} {}\n", (void*) &(variable), (name), (size))
+m_symbols += fmt::format("{} {} {}\n", (void*) &(variable), (name), (size))
 
 #define REGISTER_FUNCTION(function, name) \
-symbols += fmt::format("{} {}\n", (void*) &(function), (name));
+m_symbols += fmt::format("{} {}\n", (void*) &(function), (name));
 
 void DynaRecCPU::makeSymbols() {
     static constexpr std::array<const char*, 34> GPRs = {
@@ -63,9 +63,9 @@ void DynaRecCPU::makeSymbols() {
         "COP0_TagLo",    "COP0_TagHi",    "COP0_ErrorEPC", "COP0_MissingAgain",     // 1c
     };
 
-    symbols += fmt::format("{}\n", (void*) gen.getCode()); // Base of code buffer
-    symbols += fmt::format("{} psxRegs 10000 .data\n", (void*) &m_psxRegs); // Register register segment
-    symbols += fmt::format("endsegs()\n"); // Stop registering segments
+    m_symbols += fmt::format("{}\n", (void*) gen.getCode()); // Base of code buffer
+    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*) &m_psxRegs); // Register register segment
+    m_symbols += fmt::format("endsegs()\n"); // Stop registering segments
 
     for (auto i = 0; i < 34; i++) {
         REGISTER_VARIABLE(m_psxRegs.GPR.r[i], GPRs[i], 4);
@@ -95,6 +95,13 @@ void DynaRecCPU::makeSymbols() {
     REGISTER_FUNCTION(recClearWrapper, "recompiler_clear");
     REGISTER_FUNCTION(signalShellReached, "signal_shell_reached");
     REGISTER_FUNCTION(SPU_writeRegisterWrapper, "spu_write_register");
+    
+    REGISTER_FUNCTION(m_dispatcher, "dispatcher");
+    REGISTER_FUNCTION(m_returnFromBlock, "return_from_block");
+    REGISTER_FUNCTION(m_uncompiledBlock, "uncompiled_block");
+    REGISTER_FUNCTION(recBranchTestWrapper, "branch_test_wrapper");
 }
 
+#undef REGISTER_VARIABLE
+#undef REGISTER_FUNCTION
 #endif // DYNAREC_X86_64

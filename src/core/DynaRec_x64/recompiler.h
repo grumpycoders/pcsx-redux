@@ -226,8 +226,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
         if constexpr (SYMBOLS_ENABLED) {
             std::ofstream out("DynarecOutput.map");
-            out << symbols;
-            symbols.clear();
+            out << m_symbols;
+            m_symbols.clear();
         }
     }
 
@@ -290,7 +290,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback* getBlockPointer(uint32_t pc);
 
     static constexpr bool SYMBOLS_ENABLED = true;
-    std::string symbols;
+    std::string m_symbols;
     
     void makeSymbols();
 
