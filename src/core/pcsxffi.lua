@@ -32,19 +32,63 @@ typedef struct {
     uint32_t pc;
 } psxRegisters;
 
+enum BreakpointType { Exec, Read, Write };
+
 void* getMemPtr();
 void* getRomPtr();
 void* getScratchPtr();
 psxRegisters* getRegisters();
+void* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
+void enableBreakpoint(void*);
+void disableBreakpoint(void*);
+bool breakpointEnabled(void*);
+void removeBreakpoint(void*);
+void pauseEmulator();
+void resumeEmulator();
+void softResetEmulator();
+void hardResetEmulator();
 ]]
 
 local C = ffi.load 'PCSX'
+
+local function garbageCollect(bp)
+    C.removeBreakpoint(bp.wrapper)
+    bp.invokercb:free()
+end
+
+local meta = { __gc = garbageCollect }
+
+local function defaultInvoker()
+    C.pauseEmulator()
+    return true
+end
+
+local function addBreakpoint(address, type, width, cause, invoker)
+    if cause == nil then cause = '' end
+    if invoker == nil then invoker = defaultInvoker end
+    local invokercb = ffi.cast('bool (*)()', invoker)
+    local wrapper = C.addBreakpoint(address, type, width, cause, invokercb)
+    local bp = {
+        wrapper = wrapper,
+        invokercb = invokercb,
+    }
+    setmetatable(bp, meta)
+    return bp
+end
 
 PCSX = {
     getMemPtr = C.getMemPtr,
     getRomPtr = C.getRomPtr,
     getScratchPtr = C.getScratchPtr,
     getRegisters = C.getRegisters,
+    addBreakpoint = addBreakpoint,
+    enableBreakpoint = function(bp) C.enableBreakpoint(bp.wrapper) end,
+    disableBreakpoint = function(bp) C.disableBreakpoint(bp.wrapper) end,
+    breakpointEnabled = function(bp) return C.breakpointEnabled(bp.wrapper) end,
+    pauseEmulator = C.pauseEmulator,
+    resumeEmulator = C.resumeEmulator,
+    softResetEmulator = C.softResetEmulator,
+    hardResetEmulator = C.hardResetEmulator,
 }
 
 -- )EOF"

@@ -25,11 +25,49 @@
 #include "core/r3000a.h"
 #include "lua/luawrapper.h"
 
-static void setBreakpoint() {}
-static void* getMemPtr() { return PCSX::g_emulator->m_psxMem->g_psxM; }
-static void* getRomPtr() { return PCSX::g_emulator->m_psxMem->g_psxR; }
-static void* getScratchPtr() { return PCSX::g_emulator->m_psxMem->g_psxH; }
-static void* getRegisters() { return &PCSX::g_emulator->m_psxCpu->m_psxRegs; }
+namespace {
+
+struct LuaBreakpoint {
+    PCSX::Debug::BreakpointUserListType wrapper;
+};
+
+void setBreakpoint() {}
+void* getMemPtr() { return PCSX::g_emulator->m_psxMem->g_psxM; }
+void* getRomPtr() { return PCSX::g_emulator->m_psxMem->g_psxR; }
+void* getScratchPtr() { return PCSX::g_emulator->m_psxMem->g_psxH; }
+void* getRegisters() { return &PCSX::g_emulator->m_psxCpu->m_psxRegs; }
+LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
+                             bool (*invoker)()) {
+    LuaBreakpoint* ret = new LuaBreakpoint();
+    auto* bp =
+        PCSX::g_emulator->m_debug->addBreakpoint(address, type, width, std::string("Lua Breakpoint ") + cause,
+                                                 [invoker](const PCSX::Debug::Breakpoint* self) { return invoker(); });
+
+    ret->wrapper.push_back(bp);
+    return ret;
+}
+void enableBreakpoint(LuaBreakpoint* wrapper) {
+    if (wrapper->wrapper.size() == 0) return;
+    wrapper->wrapper.begin()->enable();
+}
+void disableBreakpoint(LuaBreakpoint* wrapper) {
+    if (wrapper->wrapper.size() == 0) return;
+    wrapper->wrapper.begin()->disable();
+}
+bool breakpointEnabled(LuaBreakpoint* wrapper) {
+    if (wrapper->wrapper.size() == 0) return false;
+    return wrapper->wrapper.begin()->enabled();
+}
+void removeBreakpoint(LuaBreakpoint* wrapper) {
+    wrapper->wrapper.destroyAll();
+    delete wrapper;
+}
+void pauseEmulator() { PCSX::g_system->pause(); }
+void resumeEmulator() { PCSX::g_system->resume(); }
+void softResetEmulator() { PCSX::g_system->softReset(); }
+void hardResetEmulator() { PCSX::g_system->hardReset(); }
+
+}  // namespace
 
 template <typename T, size_t S>
 static void registerSymbol(PCSX::Lua* L, const char (&name)[S], const T ptr) {
@@ -56,6 +94,15 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);
+    REGISTER(L, addBreakpoint);
+    REGISTER(L, enableBreakpoint);
+    REGISTER(L, disableBreakpoint);
+    REGISTER(L, breakpointEnabled);
+    REGISTER(L, removeBreakpoint);
+    REGISTER(L, pauseEmulator);
+    REGISTER(L, resumeEmulator);
+    REGISTER(L, softResetEmulator);
+    REGISTER(L, hardResetEmulator);
     L->settable();
     L->pop();
 }
