@@ -127,8 +127,6 @@ void DynaRecCPU::emitDispatcher() {
 
     loadThisPointer(arg1.cvt64());
     gen.lea(arg2.cvt64(), qword[rax + rdx * 8]); // Pointer to callback
-    gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], arg2.cvt64()); // Cache pointer to callback
-
     gen.callFunc(recRecompileWrapper); // Call recompilation function. Returns pointer to emitted code
     gen.jmp(rax);
 
