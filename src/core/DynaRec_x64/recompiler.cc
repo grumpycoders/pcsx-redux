@@ -35,15 +35,6 @@ DynarecCallback* DynaRecCPU::getBlockPointer(uint32_t pc) {
 	return &base[offset];
 }
 
-void DynaRecCPU::execute() {
-    if (!isPcValid(m_psxRegs.pc)) {
-        error();
-        return;
-    }
-
-    (*m_dispatcher)(); // Jump to emitted code
-}
-
 void DynaRecCPU::signalShellReached(DynaRecCPU* that) {
     if (!that->m_shellStarted) {
         that->m_shellStarted = true;
@@ -106,7 +97,7 @@ void DynaRecCPU::emitDispatcher() {
     m_returnFromBlock = (DynarecCallback)gen.getCurr();
 
     loadThisPointer(arg1.cvt64()); // Poll events
-    gen.call(recBranchTestWrapper);
+    gen.callFunc(recBranchTestWrapper);
     gen.test(Xbyak::util::byte[runningPointer], 1); // Check if PCSX::g_system->running is true
     gen.jnz(mainLoop); // Go back to the start of main loop if it is, otherwise return
 
@@ -138,18 +129,22 @@ void DynaRecCPU::emitDispatcher() {
     gen.lea(arg2.cvt64(), qword[rax + rdx * 8]); // Pointer to callback
     gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], arg2.cvt64()); // Cache pointer to callback
 
-    gen.callFunc(recRecompileWrapper); // Call recompilation function. al = 1 if successful
-    gen.test(al, al);
-    gen.jz(done);
+    gen.callFunc(recRecompileWrapper); // Call recompilation function. Returns pointer to emitted code
+    gen.jmp(rax);
 
-    gen.mov(rdx, qword[contextPointer + HOST_REG_CACHE_OFFSET(0)]); // Restore pointer to callback
-    gen.jmp(qword[rdx]); // Jump to compiled block
+    // Code for when the block we've jumped to is invalid. Throws an error and exits
+    gen.align(16);
+    m_invalidBlock = (DynarecCallback)gen.getCurr();
+
+    loadThisPointer(arg1.cvt64()); // Throw recompiler error
+    gen.callFunc(recErrorWrapper);
+    gen.jmp(done); // Exit
 }
 
 // Compile a block, write address of compiled code to *callback
 // Returns whether or not compilation was successful
 // Compilation will fail if the PC is pointing to invalid memory
-bool DynaRecCPU::recompile(DynarecCallback* callback) {
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -159,10 +154,6 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
     m_pc = m_psxRegs.pc;
 
     const auto startingPC = m_pc;
-    if (callback - m_dummyBlocks < (0x10000 / 4)) { // Return false if this is pointing to one of the invalid blocks
-        return false;
-    }
-
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block
 
@@ -170,7 +161,8 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
         flushCache();
     }
 
-    *callback = (DynarecCallback)gen.getCurr();
+    const auto pointer = (DynarecCallback)gen.getCurr(); // Pointer to emitted code
+    *callback = pointer;
     handleKernelCall(); // Check if this is a kernel call vector, emit some extra code in that case.
 
     auto shouldContinue = [&]() {
@@ -190,13 +182,12 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
-        const auto p = (uint8_t*) PSXM(m_pc); // Fetch instruction
+        const auto p = (uint32_t*) PSXM(m_pc); // Fetch instruction
         if (p == nullptr) { // Error if it can't be fetched
-            error();
-            return false;
+            return m_invalidBlock;
         }
 
-        m_psxRegs.code = *(uint32_t*)p; // Actually read the instruction
+        m_psxRegs.code = *p; // Actually read the instruction
         m_pc += 4; // Increment recompiler PC
         count++;   // Increment instruction count
 
@@ -218,7 +209,7 @@ bool DynaRecCPU::recompile(DynarecCallback* callback) {
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
     gen.jmp((void*)m_returnFromBlock);
-    return true;
+    return pointer;
 }
 
 void DynaRecCPU::recSpecial() {

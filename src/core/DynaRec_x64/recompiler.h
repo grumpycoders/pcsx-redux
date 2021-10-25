@@ -76,6 +76,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_dispatcher; // Pointer to our assembly dispatcher
     DynarecCallback m_returnFromBlock; // Pointer to the code that will be executed when returning from a block
     DynarecCallback m_uncompiledBlock; // Pointer to the code that will be executed when jumping to an uncompiled block
+    DynarecCallback m_invalidBlock; // Pointer to the code that will be executed the PC is invalid
 
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC
@@ -174,8 +175,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             m_biosBlocks[i] = m_uncompiledBlock;
         }
 
-        for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as uncompiled
-            m_dummyBlocks[i] = m_uncompiledBlock;
+        for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as invalid
+            m_dummyBlocks[i] = m_invalidBlock;
         }
 
         for (auto page = 0; page < 0x10000; page++) { // Default all pages to dummy blocks
@@ -223,7 +224,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     virtual void Execute() final {
         ZoneScoped;  // Tell the Tracy profiler to do its thing
-        execute();
+        (*m_dispatcher)(); // Jump to assembly dispatcher
     }
 
     // TODO: Make it less slow and bad
@@ -248,14 +249,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
   private:
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
-
+    static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }
+    static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
+    
     static void signalShellReached(DynaRecCPU* that);
-    static bool recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
         return that->recompile(callback);
-    }
-
-    static void recBranchTestWrapper(DynaRecCPU* that) {
-        that->psxBranchTest();
     }
 
     void inlineClear(uint32_t address) {
@@ -273,11 +272,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
-    void execute();
-    bool recompile(DynarecCallback* callback);
+
+    DynarecCallback* getBlockPointer(uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback);
     void error();
     void flushCache();
-    DynarecCallback* getBlockPointer(uint32_t pc);
 
     void maybeCancelDelayedLoad(uint32_t index) {
         const unsigned other = m_currentDelayedLoad ^ 1;
