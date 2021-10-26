@@ -47,6 +47,7 @@ void pauseEmulator();
 void resumeEmulator();
 void softResetEmulator();
 void hardResetEmulator();
+void luaMessage(const char* msg, bool error);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -65,8 +66,14 @@ end
 
 local function addBreakpoint(address, type, width, cause, invoker)
     if cause == nil then cause = '' end
-    if invoker == nil then invoker = defaultInvoker end
-    local invokercb = ffi.cast('bool (*)()', invoker)
+    local invokercb = defaultInvoker
+    if invoker ~= nil then
+        invokercb = function()
+            local ret = invoker()
+            if ret then return true else return false end
+        end
+    end
+    local invokercb = ffi.cast('bool (*)()', invokercb)
     local wrapper = C.addBreakpoint(address, type, width, cause, invokercb)
     local bp = {
         wrapper = wrapper,
@@ -90,5 +97,21 @@ PCSX = {
     softResetEmulator = C.softResetEmulator,
     hardResetEmulator = C.hardResetEmulator,
 }
+
+function print(...)
+    local s = ''
+    for i, v in ipairs({...}) do
+        s = s .. tostring(v) .. ' '
+    end
+    C.luaMessage(s, false)
+end
+
+function printError(...)
+    local s = ''
+    for i, v in ipairs({...}) do
+        s = s .. tostring(v) .. ' '
+    end
+    C.luaMessage(s, true)
+end
 
 -- )EOF"

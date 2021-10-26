@@ -180,38 +180,6 @@ void PCSX::GUI::init() {
             }
         }
     });
-    auto printer = [this](Lua L, bool error) -> int {
-        int n = L.gettop();
-        std::string s;
-
-        for (int i = 1; i <= n; i++) {
-            if (i > 1) s += " ";
-            if (L.isstring(i)) {
-                s += L.tostring(i);
-            } else {
-                L.getglobal("tostring");
-                L.copy(i);
-                L.pcall(1);
-                s += L.tostring(-1);
-                L.pop();
-            }
-        }
-        if (error) {
-            m_luaConsole.addError(s);
-        } else {
-            m_luaConsole.addLog(s);
-        }
-        if (m_args.get<bool>("lua_stdout", false)) {
-            if (error) {
-                fprintf(stderr, "%s\n", s.c_str());
-            } else {
-                fprintf(stdout, "%s\n", s.c_str());
-            }
-        }
-        return 0;
-    };
-    g_emulator->m_lua->declareFunc("print", [printer](Lua L) { return printer(L, false); });
-    g_emulator->m_lua->declareFunc("printError", [printer](Lua L) { return printer(L, true); });
     g_emulator->m_lua->load(R"(
 print("PCSX-Redux Lua Console")
 print(jit.version)

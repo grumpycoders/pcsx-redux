@@ -66,6 +66,7 @@ void pauseEmulator() { PCSX::g_system->pause(); }
 void resumeEmulator() { PCSX::g_system->resume(); }
 void softResetEmulator() { PCSX::g_system->softReset(); }
 void hardResetEmulator() { PCSX::g_system->hardReset(); }
+void luaMessage(const char* msg, bool error) { PCSX::g_system->luaMessage(msg, error); }
 
 }  // namespace
 
@@ -103,6 +104,7 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, resumeEmulator);
     REGISTER(L, softResetEmulator);
     REGISTER(L, hardResetEmulator);
+    REGISTER(L, luaMessage);
     L->settable();
     L->pop();
 }
