@@ -52,8 +52,14 @@ void DynaRecCPU::flushCache() {
     gen.reset();    // Reset the emitter's code pointer and code size variables
     emitDispatcher(); // Re-emit dispatcher
 
-    std::memset(m_biosBlocks, 0, 0x80000 / 4 * sizeof(DynarecCallback));  // Delete all BIOS blocks
-    std::memset(m_ramBlocks, 0, m_ramSize / 4 * sizeof(DynarecCallback)); // Delete all RAM blocks
+    for (auto i = 0; i < m_ramSize / 4; i++) { // Mark all RAM blocks as uncompiled
+        m_ramBlocks[i] = m_uncompiledBlock;
+    }
+
+    constexpr int biosSize = 0x80000;
+    for (auto i = 0; i < biosSize / 4; i++) { // Mark all BIOS blocks as uncompiled
+        m_biosBlocks[i] = m_uncompiledBlock;
+    }
 }
 
 void DynaRecCPU::emitDispatcher() {
@@ -207,6 +213,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback) {
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
     gen.jmp((void*)m_returnFromBlock);
+    dumpBuffer();
     return pointer;
 }
 

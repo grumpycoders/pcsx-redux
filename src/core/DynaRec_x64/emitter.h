@@ -141,7 +141,7 @@ struct Emitter final : public CodeGenerator {
             shl(dest, amount);
         } else {
             if (amount == 1 || amount == 2 || amount == 3) {
-                lea(dest, dword[source * (1 << amount)]);
+                lea(dest, dword[source.cvt64() * (1 << amount)]);
             } else {
                 mov(dest, source);
                 if (amount != 0) {
