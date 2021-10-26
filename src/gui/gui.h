@@ -89,6 +89,13 @@ class GUI final {
     bool addLog(LogClass logClass, const std::string &msg) {
         return m_log.addLog(magic_enum::enum_integer(logClass), msg);
     }
+    void addLuaLog(const std::string &msg, bool error) {
+        if (error) {
+            m_luaConsole.addError(msg);
+        } else {
+            m_luaConsole.addLog(msg);
+        }
+    }
     class Notifier {
       public:
         Notifier(std::function<const char *()> title) : m_title(title) {}
