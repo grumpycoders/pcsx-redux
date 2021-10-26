@@ -64,17 +64,36 @@ local function defaultInvoker()
     return true
 end
 
-local function addBreakpoint(address, type, width, cause, invoker)
+local validBpTypes = {
+    Exec = true,
+    Read = true,
+    Write = true,
+}
+
+local function addBreakpoint(address, bptype, width, cause, invoker)
+    if type(address) ~= 'number' then error 'PCSX.addBreakpoint needs an address' end
+    if bptype == nil then bptype = 'Exec' end
+    if not validBpTypes[bptype] then error 'PCSX.addBreakpoint needs a valid breakpoint type' end
+    if width == nil then width = 4 end
+    if type(width) ~= 'number' then error 'PCSX.addBreakpoint needs a width that is a number' end
     if cause == nil then cause = '' end
+    if type(cause) == 'function' and invoker == nil then
+        invoker = cause
+        cause = ''
+    end
+    if type(cause) ~= 'string' then error 'PCSX.addBreakpoint needs a cause that is a string' end
     local invokercb = defaultInvoker
     if invoker ~= nil then
+        if type(invoker) ~= 'function' then
+            error 'PCSX.addBreakpoint needs an invoker that is a function'
+        end
         invokercb = function()
             local ret = invoker()
-            if ret then return true else return false end
+            if ret == false then return false else return true end
         end
     end
     local invokercb = ffi.cast('bool (*)()', invokercb)
-    local wrapper = C.addBreakpoint(address, type, width, cause, invokercb)
+    local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
     local bp = {
         wrapper = wrapper,
         invokercb = invokercb,
