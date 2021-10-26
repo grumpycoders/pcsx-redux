@@ -93,7 +93,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.and_(edx, 0x3fff);
 
     // Load the base pointer of the recompiler LUT to rax
-    gen.mov(rax, (uintptr_t) m_recompilerLUT);
+    gen.mov(rax, (uintptr_t)m_recompilerLUT);
     gen.mov(rax, qword[rax + rcx * 8]); // Load base pointer to recompiler LUT page in rax
     gen.jmp(qword[rax + rdx * 8]); // Jump to block
 
@@ -213,7 +213,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback) {
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
     gen.jmp((void*)m_returnFromBlock);
-    dumpBuffer();
+
     return pointer;
 }
 

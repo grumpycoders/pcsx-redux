@@ -1658,7 +1658,8 @@ void DynaRecCPU::recBLEZ() {
 
 // TODO: Handle INT_MIN / -1
 void DynaRecCPU::recDIV() {
-    Label divisionByZero;
+    Label notIntMin, divisionByZero, end;
+    bool emitIntMinCheck = true;
 
     if (m_regs[_Rt_].isConst()) {     // Check divisor if constant
         if (m_regs[_Rt_].val == 0) {  // Handle case where divisor is 0
@@ -1678,11 +1679,18 @@ void DynaRecCPU::recDIV() {
             }
 
             return;
+        } else if (m_regs[_Rt_].val != 0xffffffff) {
+            emitIntMinCheck = false;
         }
 
         if (m_regs[_Rs_].isConst()) {
-            gen.mov(dword[contextPointer + LO_OFFSET], (int32_t)m_regs[_Rs_].val / (int32_t)m_regs[_Rt_].val);
-            gen.mov(dword[contextPointer + HI_OFFSET], (int32_t)m_regs[_Rs_].val % (int32_t)m_regs[_Rt_].val);
+            if (m_regs[_Rs_].val == 0x80000000 && m_regs[_Rt_].val == 0xffffffff) {
+                gen.mov(dword[contextPointer + LO_OFFSET], 0x80000000);
+                gen.mov(dword[contextPointer + HI_OFFSET], 0);
+            } else {
+                gen.mov(dword[contextPointer + LO_OFFSET], (int32_t)m_regs[_Rs_].val / (int32_t)m_regs[_Rt_].val);
+                gen.mov(dword[contextPointer + HI_OFFSET], (int32_t)m_regs[_Rs_].val % (int32_t)m_regs[_Rt_].val);
+            }
             return;
         }
 
@@ -1693,6 +1701,7 @@ void DynaRecCPU::recDIV() {
         if (m_regs[_Rs_].isConst()) {
             allocateReg(_Rt_);
             gen.mov(eax, m_regs[_Rs_].val);  // Dividend in eax
+            emitIntMinCheck = m_regs[_Rs_].val == 0x80000000;
         }
 
         else {
@@ -1705,20 +1714,32 @@ void DynaRecCPU::recDIV() {
         gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
     }
 
+    if (emitIntMinCheck) {
+        gen.cmp(eax, 0x80000000); // Check if dividend is INT_MIN
+        gen.jne(notIntMin); // Bail if not
+        gen.cmp(ecx, 0xffffffff); // Check if divisor is -1
+        gen.jne(notIntMin); // Bail if not
+
+        // Handle INT_MIN / -1
+        gen.mov(eax, 0x80000000); // Set lo to INT_MIN
+        gen.xor_(edx, edx); // Set hi to 0
+        gen.jmp(end);
+    }
+
+    gen.L(notIntMin);
     gen.cdq();      // Sign extend dividend to 64 bits in edx:eax
     gen.idiv(ecx);  // Signed division by divisor
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
-        Label end;
         gen.jmp(end, CodeGenerator::LabelType::T_NEAR);  // skip to the end if not a div by zero
         gen.L(divisionByZero);                           // Here starts our division by 0 handler
 
         gen.mov(edx, eax);  // Set hi to $rs
         gen.shr(eax, 31);
         gen.lea(eax, dword[rax + rax - 1]);  // Set lo to 1 or -1 depending on the sign of $rs
-
-        gen.L(end);
     }
+
+    gen.L(end);
 
     gen.mov(dword[contextPointer + LO_OFFSET], eax);  // Lo = quotient
     gen.mov(dword[contextPointer + HI_OFFSET], edx);  // Hi = remainder
