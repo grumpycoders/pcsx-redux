@@ -67,6 +67,11 @@ void resumeEmulator() { PCSX::g_system->resume(); }
 void softResetEmulator() { PCSX::g_system->softReset(); }
 void hardResetEmulator() { PCSX::g_system->hardReset(); }
 void luaMessage(const char* msg, bool error) { PCSX::g_system->luaMessage(msg, error); }
+void luaLog(const char* msg) { PCSX::g_system->log(PCSX::LogClass::LUA, msg); }
+void jumpToPC(uint32_t pc) { PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{pc}); }
+void jumpToMemory(uint32_t address, unsigned width) {
+    PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{address, width});
+}
 
 }  // namespace
 
@@ -105,6 +110,9 @@ static void registerAllSymbols(PCSX::Lua* L) {
     REGISTER(L, softResetEmulator);
     REGISTER(L, hardResetEmulator);
     REGISTER(L, luaMessage);
+    REGISTER(L, luaLog);
+    REGISTER(L, jumpToPC);
+    REGISTER(L, jumpToMemory);
     L->settable();
     L->pop();
 }

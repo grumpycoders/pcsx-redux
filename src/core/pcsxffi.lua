@@ -34,9 +34,9 @@ typedef struct {
 
 enum BreakpointType { Exec, Read, Write };
 
-void* getMemPtr();
-void* getRomPtr();
-void* getScratchPtr();
+uint8_t* getMemPtr();
+uint8_t* getRomPtr();
+uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
 void* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)());
 void enableBreakpoint(void*);
@@ -48,6 +48,9 @@ void resumeEmulator();
 void softResetEmulator();
 void hardResetEmulator();
 void luaMessage(const char* msg, bool error);
+void luaLog(const char* msg);
+void jumpToPC(uint32_t address);
+void jumpToMemory(uint32_t address, unsigned width);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -102,35 +105,47 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
     return bp
 end
 
+local function printLike(callback, ...)
+    local s = ''
+    for i, v in ipairs({...}) do
+        s = s .. tostring(v) .. ' '
+    end
+    callback(s)
+end
+
+local function jumpToPC(pc)
+    if type(pc) ~= 'number' then error 'PCSX.GUI.jumpToPC requires a numeric address' end
+    C.jumpToPC(pc)
+end
+
+local function jumpToMemory(address, width)
+    if type(address) ~= 'number' then error 'PCSX.GUI.jumpToMemory requires a numeric address' end
+    if width == nil then width = 1 end
+    if type(width) ~= 'number' then error 'PCSX.GUI.jumpToMemory requires a numeric width' end
+    C.jumpToMemory(address, width)
+end
+
 PCSX = {
-    getMemPtr = C.getMemPtr,
-    getRomPtr = C.getRomPtr,
-    getScratchPtr = C.getScratchPtr,
+    getMemPtr = function() return C.getMemPtr end,
+    getRomPtr = function() return C.getRomPtr end,
+    getScratchPtr = function() return C.getScratchPtr end,
     getRegisters = C.getRegisters,
     addBreakpoint = addBreakpoint,
     enableBreakpoint = function(bp) C.enableBreakpoint(bp.wrapper) end,
     disableBreakpoint = function(bp) C.disableBreakpoint(bp.wrapper) end,
     breakpointEnabled = function(bp) return C.breakpointEnabled(bp.wrapper) end,
-    pauseEmulator = C.pauseEmulator,
-    resumeEmulator = C.resumeEmulator,
-    softResetEmulator = C.softResetEmulator,
-    hardResetEmulator = C.hardResetEmulator,
+    pauseEmulator = function() C.pauseEmulator() end,
+    resumeEmulator = function() C.resumeEmulator() end,
+    softResetEmulator = function() C.softResetEmulator() end,
+    hardResetEmulator = function() C.hardResetEmulator() end,
+    log = function(...) printLike(C.luaLog, ...) end,
+    GUI = {
+        jumpToPC = jumpToPC,
+        jumpToMemory = jumpToMemory,
+    },
 }
 
-function print(...)
-    local s = ''
-    for i, v in ipairs({...}) do
-        s = s .. tostring(v) .. ' '
-    end
-    C.luaMessage(s, false)
-end
-
-function printError(...)
-    local s = ''
-    for i, v in ipairs({...}) do
-        s = s .. tostring(v) .. ' '
-    end
-    C.luaMessage(s, true)
-end
+print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
+printError = function(...) printLike(function(s) C.luaMessage(s, true) end, ...) end
 
 -- )EOF"
