@@ -32,7 +32,7 @@ static void mymemzero(void* memory, int size) {
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine,
                       _In_ int nCmdShow) {
     SHELLEXECUTEINFO sei;
-    HMODULE h = LoadLibrary(L"vcruntime140.dll");
+    HMODULE h = LoadLibrary(L"msvcp140_atomic_wait.dll");
 
     if (!h) {
         int ret =
