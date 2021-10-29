@@ -60,7 +60,7 @@
 	url = https://github.com/herumi/xbyak
 [submodule "third_party/zep"]
 	path = third_party/zep
-	url = https://github.com/nicolasnoble/zep.git
+	url = https://github.com/grumpycoders/zep.git
 [submodule "third_party/miniaudio"]
 	path = third_party/miniaudio
 	url = https://github.com/mackron/miniaudio.git
