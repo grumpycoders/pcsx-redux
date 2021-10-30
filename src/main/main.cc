@@ -68,6 +68,17 @@ class SystemImpl final : public PCSX::System {
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
 
+    virtual void luaMessage(const std::string &s, bool error) final {
+        s_gui->addLuaLog(s, error);
+        if (m_args.get<bool>("lua_stdout", false)) {
+            if (error) {
+                fprintf(stderr, "%s\n", s.c_str());
+            } else {
+                fprintf(stdout, "%s\n", s.c_str());
+            }
+        }
+    }
+
     virtual void update(bool vsync = false) final {
         // called on vblank to update states
         s_gui->update(vsync);

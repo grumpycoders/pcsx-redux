@@ -114,6 +114,8 @@ class System {
         message(s);
     }
     virtual void message(const std::string &) = 0;
+    // For the Lua output
+    virtual void luaMessage(const std::string &, bool error) = 0;
     // Called periodically; if vsync = true, this while the emulated hardware vsyncs
     virtual void update(bool vsync = false) = 0;
     // Close mem and plugins

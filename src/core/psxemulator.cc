@@ -28,6 +28,7 @@
 #include "core/gte.h"
 #include "core/mdec.h"
 #include "core/pad.h"
+#include "core/pcsxlua.h"
 #include "core/ppf.h"
 #include "core/r3000a.h"
 #include "core/web-server.h"
@@ -71,6 +72,7 @@ PCSX::Emulator::Emulator()
     m_lua->push("luv");
     luaopen_luv(m_lua->getState());
     m_lua->settable(LUA_GLOBALSINDEX);
+    LuaFFI::open_pcsx(m_lua.get());
 }
 
 PCSX::Emulator::~Emulator() {

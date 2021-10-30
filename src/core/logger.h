@@ -44,6 +44,7 @@ enum class LogClass : unsigned {
     KERNEL,         // kernel logs
     GDB,            // GDB logs
     SYSTEM,         // system logs from the emulator itself
+    LUA,            // logs emitted by the Lua VM
 };
 
 template <LogClass logClass, bool enabled>
