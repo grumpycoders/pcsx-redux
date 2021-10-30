@@ -742,20 +742,7 @@ void DynaRecCPU::recompileLoad() {
         if (pointer != nullptr && (_Rt_) != 0) {
             allocateRegWithoutLoad(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            gen.mov(rax, (uintptr_t) pointer);
-
-            switch (size) {
-                case 8:
-                    signExtend ? gen.movsx(m_regs[_Rt_].allocatedReg, Xbyak::util::byte[rax])
-                               : gen.movzx(m_regs[_Rt_].allocatedReg, Xbyak::util::byte[rax]);
-                    break;
-                case 16:
-                    signExtend ? gen.movsx(m_regs[_Rt_].allocatedReg, word[rax]) : gen.movzx(m_regs[_Rt_].allocatedReg, word[rax]);
-                    break;
-                case 32:
-                    gen.mov(m_regs[_Rt_].allocatedReg, dword[rax]);
-                    break;
-            }
+            load<size, signExtend>(m_regs[_Rt_].allocatedReg, pointer);
             return;
         }
 
@@ -974,12 +961,11 @@ void DynaRecCPU::recSB() {
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
 
         if (pointer != nullptr) {
-            gen.mov(rax, (uintptr_t)pointer);
             if (m_regs[_Rt_].isConst()) {
-                gen.mov(Xbyak::util::byte[rax], m_regs[_Rt_].val & 0xFF);
+                store<8>(m_regs[_Rt_].val & 0xFF, pointer);
             } else {
                 allocateReg(_Rt_);
-                gen.mov(Xbyak::util::byte[rax], m_regs[_Rt_].allocatedReg.cvt8());
+                store<8>(m_regs[_Rt_].allocatedReg.cvt8(), pointer);
             }
 
             return;
@@ -1015,12 +1001,11 @@ void DynaRecCPU::recSH() {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
         if (pointer != nullptr) {
-            gen.mov(rax, (uintptr_t)pointer);
             if (m_regs[_Rt_].isConst()) {
-                gen.mov(word[rax], m_regs[_Rt_].val & 0xFFFF);
+                store<16>(m_regs[_Rt_].val & 0xFFFF, pointer);
             } else {
                 allocateReg(_Rt_);
-                gen.mov(word[rax], m_regs[_Rt_].allocatedReg.cvt16());
+                store<16>(m_regs[_Rt_].allocatedReg.cvt16(), pointer);
             }
 
             return;
@@ -1081,12 +1066,11 @@ void DynaRecCPU::recSW() {
         const uint32_t addr = m_regs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_psxMem->psxMemPointerWrite(addr);
         if (pointer != nullptr) {
-            gen.mov(rax, (uintptr_t) pointer);
             if (m_regs[_Rt_].isConst()) {
-                gen.mov(dword[rax], m_regs[_Rt_].val);
+                store<32>(m_regs[_Rt_].val, pointer);
             } else {
                 allocateReg(_Rt_);
-                gen.mov(dword[rax], m_regs[_Rt_].allocatedReg);
+                store<32>(m_regs[_Rt_].allocatedReg, pointer);
             }
 
             return;
