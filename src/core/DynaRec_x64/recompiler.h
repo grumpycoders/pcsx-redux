@@ -351,7 +351,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Check if we're executing from valid memory
-    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
+    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
     DynarecCallback recompile(DynarecCallback* callback);
