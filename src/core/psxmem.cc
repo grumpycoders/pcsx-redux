@@ -103,7 +103,7 @@ int PCSX::Memory::psxMemInit() {
 }
 
 void PCSX::Memory::psxMemReset() {
-    const uint32_t bios_size = 0x00100000;
+    const uint32_t bios_size = 0x00080000;
     memset(g_psxM, 0, 0x00800000);
     memset(g_psxP, 0, 0x00010000);
     memset(g_psxR, 0, bios_size);
