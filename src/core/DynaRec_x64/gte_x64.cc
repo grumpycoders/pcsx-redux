@@ -229,6 +229,7 @@ void DynaRecCPU::recMFC2() {
             
             if (_Rt_) {
                 allocateRegWithoutLoad(_Rt_); // Reallocate the reg in case the call thrashed it
+                m_regs[_Rt_].setWriteback(true);
                 gen.mov(m_regs[_Rt_].allocatedReg, eax);
             }
             break;
