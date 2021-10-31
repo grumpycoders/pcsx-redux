@@ -201,14 +201,43 @@ static uint32_t MFC2Wrapper(int reg) {
 }
 
 void DynaRecCPU::recMFC2() {
-    gen.moveImm(arg1, _Rd_);
-    call(MFC2Wrapper); // No need for a stack frame as recCOP2 sets it up for us
-
     if (_Rt_) {
-        maybeCancelDelayedLoad(_Rt_);
         allocateRegWithoutLoad(_Rt_);
         m_regs[_Rt_].setWriteback(true);
-        gen.mov(m_regs[_Rt_].allocatedReg, eax);
+    }
+
+    const auto op = (_Rt_ == 0) ? eax : m_regs[_Rt_].allocatedReg;
+    switch (_Rd_) {
+        case 1: case 3: case 5: case 8: case 9: case 10: case 11:
+            gen.movsx(op, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], op);
+            break;
+
+        case 7: case 16: case 17: case 18: case 19:
+            gen.movzx(op, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], op);
+            break;
+        
+        case 15: // SXYP
+            gen.mov(op, dword[contextPointer + COP2_DATA_OFFSET(14)]); // Copy SXY2 to SXYP
+            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(15)], op);
+            break;
+
+        case 28: case 29:  // Fallback for IRGB/ORGB
+            gen.mov(arg1, _Rd_);
+            call(MFC2Wrapper);
+            
+            if (_Rt_) {
+                allocateRegWithoutLoad(_Rt_); // Reallocate the reg in case the call thrashed it
+                gen.mov(m_regs[_Rt_].allocatedReg, eax);
+            }
+            break;
+
+        default:
+            if (_Rt_) {
+                gen.mov(op, dword[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+            }
+            break;
     }
 }
 
