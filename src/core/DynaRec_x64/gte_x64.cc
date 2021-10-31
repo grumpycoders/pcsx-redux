@@ -206,21 +206,23 @@ void DynaRecCPU::recMFC2() {
         m_regs[_Rt_].setWriteback(true);
     }
 
-    const auto op = (_Rt_ == 0) ? eax : m_regs[_Rt_].allocatedReg;
     switch (_Rd_) {
         case 1: case 3: case 5: case 8: case 9: case 10: case 11:
-            gen.movsx(op, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
-            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], op);
+            if (_Rt_) {
+                gen.movsx(m_regs[_Rt_].allocatedReg, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+            }
             break;
 
         case 7: case 16: case 17: case 18: case 19:
-            gen.movzx(op, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
-            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rd_)], op);
+            if (_Rt_) {
+                gen.movzx(m_regs[_Rt_].allocatedReg, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+            }
             break;
         
-        case 15: // SXYP
-            gen.mov(op, dword[contextPointer + COP2_DATA_OFFSET(14)]); // Copy SXY2 to SXYP
-            gen.mov(dword[contextPointer + COP2_DATA_OFFSET(15)], op);
+        case 15: // Return SXY2 from SXYP
+            if (_Rt_) {
+                gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(14)]);
+            }
             break;
 
         case 28: case 29:  // Fallback for IRGB/ORGB
@@ -236,7 +238,7 @@ void DynaRecCPU::recMFC2() {
 
         default:
             if (_Rt_) {
-                gen.mov(op, dword[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
+                gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
             }
             break;
     }
