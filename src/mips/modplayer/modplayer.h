@@ -146,5 +146,12 @@ void MOD_Relocate(uint8_t* buffer);
 // setting the volume of the voice to 0.
 void MOD_PlayNote(unsigned voiceID, unsigned sampleID, unsigned note, int16_t volume);
 
+// Plays a sound effect
+// As opposed to MOD_PlayNote(), MOD_PlaySoundEffect()'s volume is absolute. 0 == mute, 63 == max SPU voice volume
+void MOD_PlaySoundEffect(unsigned channel, unsigned sampleID, unsigned note, int16_t volume);
+
 // Added API to reset the SPU and silence everything.
 void MOD_Silence();
+
+// Set MOD Volume to musicVolume, where musicVolume is between 0 and 65535.
+void MOD_SetMusicVolume(uint32_t musicVolume);
