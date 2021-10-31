@@ -10,5 +10,6 @@ timewarped.o \
 
 include ../common.mk
 
-timewarped.o: timewarped.hit
-	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips timewarped.hit timewarped.o
+# convert HIT files to bin
+%.o: %.hit
+	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips $< $@
