@@ -146,16 +146,15 @@ void DynaRecCPU::emitDispatcher() {
 }
 
 // Compile a block, write address of compiled code to *callback
-// Returns whether or not compilation was successful
-// Compilation will fail if the PC is pointing to invalid memory
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback) {
+// Returns the address of the compiled block
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
-    m_pc = m_psxRegs.pc;
+    m_pc = pc;
 
     const auto startingPC = m_pc;
     int count = 0; // How many instructions have we compiled?
