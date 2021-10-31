@@ -245,6 +245,86 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         file.write((const char*)gen.getCode(), gen.getSize());       // Write the code buffer to the dump
     }
 
+    // Sets dest to "pointer", using base pointer relative addressing if possible
+    void loadAddress(Xbyak::Reg64 dest, void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            gen.lea(dest, ptr[contextPointer + distance]);
+        } else {
+            gen.mov(dest, (uintptr_t)pointer);
+        }
+    }
+
+    // Loads a value into dest from the given pointer.
+    // Tries to use base pointer relative addressing, otherwise uses movabs
+    template<int size, bool signExtend>
+    void load(Xbyak::Reg32 dest, void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            switch (size) {
+                case 8:
+                    signExtend ? gen.movsx(dest, Xbyak::util::byte[contextPointer + distance])
+                               : gen.movzx(dest, Xbyak::util::byte[contextPointer + distance]);
+                    break;
+                case 16:
+                    signExtend ? gen.movsx(dest, word[contextPointer + distance]) : gen.movzx(dest, word[contextPointer + distance]);
+                    break;
+                case 32:
+                    gen.mov(dest, dword[contextPointer + distance]);
+                    break;
+            }
+        } else {
+            gen.mov(rax, (uintptr_t)pointer);
+            switch (size) {
+                case 8:
+                    signExtend ? gen.movsx(dest, Xbyak::util::byte[rax])
+                               : gen.movzx(dest, Xbyak::util::byte[rax]);
+                    break;
+                case 16:
+                    signExtend ? gen.movsx(dest, word[rax]) : gen.movzx(dest, word[rax]);
+                    break;
+                case 32:
+                    gen.mov(dest, dword[rax]);
+                    break;
+            }
+        }
+    }
+
+    // Stores of "size" bits into dest from the given pointer.
+    // Tries to use base pointer relative addressing, otherwise uses movabs
+    template<int size, typename T>
+    void store(T source, void* pointer) {
+        const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
+
+        if (Xbyak::inner::IsInInt32(distance)) {
+            switch (size) {
+                case 8:
+                    gen.mov(Xbyak::util::byte[contextPointer + distance], source);
+                    break;
+                case 16:
+                    gen.mov(word[contextPointer + distance], source);
+                    break;
+                case 32:
+                    gen.mov(dword[contextPointer + distance], source);
+                    break;
+            }
+        } else {
+            gen.mov(rax, (uintptr_t)pointer);
+            switch (size) {
+                case 8:
+                    gen.mov(Xbyak::util::byte[rax], source);
+                    break;
+                case 16:
+                    gen.mov(word[rax], source);
+                    break;
+                case 32:
+                    gen.mov(dword[rax], source);
+                    break;
+            }
+        }
+    }
 
   private:
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
@@ -271,7 +351,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Check if we're executing from valid memory
-    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != nullptr; }
+    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
     DynarecCallback recompile(DynarecCallback* callback);
