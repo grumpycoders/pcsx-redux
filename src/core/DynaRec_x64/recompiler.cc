@@ -213,7 +213,6 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
     if (m_linkedPC) {
         handleLinking();
-        m_linkedPC = std::nullopt;
     } else {
         gen.jmp((void*)m_returnFromBlock);
     }
@@ -257,19 +256,26 @@ void DynaRecCPU::handleLinking() {
     if (isPcValid(m_linkedPC.value())) {
         const auto nextPC = m_linkedPC.value();
         const auto nextBlockPointer = getBlockPointer(nextPC);
+        m_linkedPC = std::nullopt;
 
         if (*nextBlockPointer == m_uncompiledBlock) { // If the next block hasn't been compiled yet
             loadAddress(rax, nextBlockPointer);
             const auto pointer = (uint8_t*)gen.getCurr();
 
-            gen.cmp(dword[rax], 0xff000000); // The value will be patched later
+            // Check that the block hasn't been invalidated/moved
+            // The value will be patched later. Since all code is within the same 32MB segment,
+            // We can get away with only checking the low 32 bits of the block pointer
+            gen.cmp(dword[rax], 0xff000000);
             gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
             recompile(nextBlockPointer, nextPC); // Fallthrough to next block
 
-            *(uint32_t*)(pointer + 2) = (uint32_t)*nextBlockPointer;
-        } else { // If it has already been compiled, don't try linking
-            gen.jmp((void*)m_returnFromBlock);
-        }        
+            *(uint32_t*)(pointer + 2) = (uint32_t)*nextBlockPointer; // Patch comparison value
+        } else { // If it has already been compiled, link by jumping to the compiled code
+            loadAddress(rax, nextBlockPointer);
+            gen.cmp(dword[rax], (uint32_t)*nextBlockPointer);
+            gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
+            gen.jmp((void*)*nextBlockPointer); // Jump to linked block otherwise
+        }
     } else { // Can't link, so return to dispatcher
         gen.jmp((void*)m_returnFromBlock);
     }
