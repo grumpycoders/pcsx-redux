@@ -1451,6 +1451,7 @@ void DynaRecCPU::recJ() {
     m_pcWrittenBack = true;
 
     gen.mov(dword[contextPointer + PC_OFFSET], target);  // Write PC
+    m_linkedPC = target;
 }
 
 void DynaRecCPU::recJAL() {

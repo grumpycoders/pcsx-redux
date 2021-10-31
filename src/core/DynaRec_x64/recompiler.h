@@ -126,8 +126,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     Register m_regs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
+    std::optional<uint32_t> m_linkedPC = std::nullopt;
 
-    template <bool load = true>
+    template <bool shouldLoad = true>
     void reserveReg(int index);
     void allocateRegWithoutLoad(int reg);
     void allocateReg(int reg);
@@ -292,7 +293,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
-    // Stores of "size" bits into dest from the given pointer.
+    // Stores a value of "size" bits from "source" to the given pointer
     // Tries to use base pointer relative addressing, otherwise uses movabs
     template<int size, typename T>
     void store(T source, void* pointer) {
@@ -357,6 +358,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback recompile(DynarecCallback* callback, uint32_t pc);
     void error();
     void flushCache();
+    void handleLinking();
 
     void maybeCancelDelayedLoad(uint32_t index) {
         const unsigned other = m_currentDelayedLoad ^ 1;

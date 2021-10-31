@@ -211,7 +211,12 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     }
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
-    gen.jmp((void*)m_returnFromBlock);
+    if (m_linkedPC) {
+        handleLinking();
+        m_linkedPC = std::nullopt;
+    } else {
+        gen.jmp((void*)m_returnFromBlock);
+    }
     return pointer;
 }
 
@@ -243,6 +248,30 @@ void DynaRecCPU::handleKernelCall() {
             loadThisPointer(arg1.cvt64());
             call(interceptKernelCallWrapper<0xC0>);
             break;
+    }
+}
+
+// Emits a jump to the dispatcher if there's no block to link to.
+// Otherwise, handle linking blocks
+void DynaRecCPU::handleLinking() {
+    if (isPcValid(m_linkedPC.value())) {
+        const auto nextPC = m_linkedPC.value();
+        const auto nextBlockPointer = getBlockPointer(nextPC);
+
+        if (*nextBlockPointer == m_uncompiledBlock) { // If the next block hasn't been compiled yet
+            loadAddress(rax, nextBlockPointer);
+            const auto pointer = (uint8_t*)gen.getCurr();
+
+            gen.cmp(dword[rax], 0xff000000); // The value will be patched later
+            gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
+            recompile(nextBlockPointer, nextPC); // Fallthrough to next block
+
+            *(uint32_t*)(pointer + 2) = (uint32_t)*nextBlockPointer;
+        } else { // If it has already been compiled, don't try linking
+            gen.jmp((void*)m_returnFromBlock);
+        }        
+    } else { // Can't link, so return to dispatcher
+        gen.jmp((void*)m_returnFromBlock);
     }
 }
 #endif // DYNAREC_X86_64

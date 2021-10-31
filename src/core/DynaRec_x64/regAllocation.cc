@@ -25,7 +25,7 @@
 
 // Map the guest register corresponding to the index to a host register
 // Used internally by the allocateReg functions. Don't use it directly
-template <bool load>
+template <bool shouldLoad>
 void DynaRecCPU::reserveReg(int index) {
     const auto regToAllocate = allocateableRegisters[m_allocatedRegisters];  // Fetch the next host reg to be allocated
     m_regs[index].allocatedReg = regToAllocate;
@@ -34,7 +34,7 @@ void DynaRecCPU::reserveReg(int index) {
     m_regs[index].allocatedRegIndex = m_allocatedRegisters;
 
     // For certain instructions like loads, we don't want to load the reg because it'll get instantly overwritten
-    if constexpr (load) {
+    if constexpr (shouldLoad) {
         gen.mov(regToAllocate, dword[contextPointer + GPR_OFFSET(index)]);  // Load reg
     }
     m_hostRegs[m_allocatedRegisters].mappedReg = index;
