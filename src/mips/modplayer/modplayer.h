@@ -133,6 +133,11 @@ extern uint32_t MOD_hblanks;
 // }
 void MOD_Relocate(uint8_t* buffer);
 
+// Set MOD Volume to musicVolume, where musicVolume is between 0 and 65535.
+// Defaults to 16384, and won't be reset by a subsequent MOD_Load, as it
+// behaves as a master music volume throughout the lifetime of the app.
+void MOD_SetMusicVolume(uint32_t musicVolume);
+
 // Plays an arbitrary note from the MOD's samples bank.
 // The volume will always be centered, so the sample will
 // be monaural. The voiceID ideally should be set to a
@@ -143,8 +148,15 @@ void MOD_Relocate(uint8_t* buffer);
 // are three octaves available, which gives the 12*3=36
 // interval value of the note argument. The volume argument
 // is between 0 and 63. You can simulate KeyOff by simply
-// setting the volume of the voice to 0.
+// setting the volume of the voice to 0. The volume will
+// be affected by the music volume as set by the function above.
 void MOD_PlayNote(unsigned voiceID, unsigned sampleID, unsigned note, int16_t volume);
+
+// Plays a sound effect.
+// As opposed to MOD_PlayNote(), MOD_PlaySoundEffect()'s volume
+// won't be affected by the global volume setting.
+// 0 == mute, 63 == max SPU voice volume
+void MOD_PlaySoundEffect(unsigned channel, unsigned sampleID, unsigned note, int16_t volume);
 
 // Added API to reset the SPU and silence everything.
 void MOD_Silence();
