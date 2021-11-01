@@ -808,15 +808,14 @@ void MOD_PlayNote(unsigned channel, unsigned sampleID, unsigned note, int16_t vo
 }
 
 void MOD_PlaySoundEffect(unsigned channel, unsigned sampleID, unsigned note, int16_t volume) {
-    uint32_t s_prevVolume = s_masterVolume;
+    uint32_t prevVolume = s_masterVolume;
     s_masterVolume = 16384;
-    MOD_PlayNote( channel, sampleID, note, volume);
-    s_masterVolume = s_prevVolume;
+    MOD_PlayNote(channel, sampleID, note, volume);
+    s_masterVolume = prevVolume;
 }
 
 void MOD_SetMusicVolume(uint32_t musicVolume) {
     s_masterVolume = musicVolume;
-    const unsigned channels = MOD_Channels;
     for (unsigned channel = 0; channel < MOD_Channels; channel++) {
         SETVOICEVOLUME(channel, s_channelData[channel].volume);
     }
