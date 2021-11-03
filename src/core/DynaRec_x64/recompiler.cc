@@ -208,6 +208,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     if (startingPC == 0x80030000) {
         loadThisPointer(arg1.cvt64());
         call(signalShellReached);
+        m_linkedPC = std::nullopt;
     }
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
@@ -226,7 +227,13 @@ void DynaRecCPU::recSpecial() {
 
 // Checks if the block being compiled is one of the kernel call vectors
 // If so, emit a call to "InterceptBIOS", which handles the kernel call debugger features
+// Also handles fast booting by intercepting the shell reached signal and setting pc to $ra if fastboot is on
 void DynaRecCPU::handleKernelCall() {
+    if (m_pc == 0x80030000) {
+        handleFastboot();
+        return;
+    }
+
     const uint32_t pc = m_pc & 0x1fffff;
     const uint32_t base = (m_pc >> 20) & 0xffc;
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
@@ -279,5 +286,25 @@ void DynaRecCPU::handleLinking() {
     } else { // Can't link, so return to dispatcher
         gen.jmp((void*)m_returnFromBlock);
     }
+}
+
+void DynaRecCPU::handleFastboot() {
+    Xbyak::Label noFastBoot;
+
+    loadAddress(rax, &m_shellStarted); // Check if shell has already been reached
+    gen.cmp(Xbyak::util::byte[rax], 0);
+    gen.jnz(noFastBoot); // Don't fastboot if so
+
+    loadAddress(rax, &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingFastBoot>()); // Check if fastboot is on
+    gen.cmp(Xbyak::util::byte[rax], 0);
+    gen.je(noFastBoot);
+
+    loadThisPointer(arg1.cvt64()); // If fastbooting, call the signalShellReached function, set pc, and exit the block
+    call(signalShellReached);
+    gen.mov(eax, dword[contextPointer + GPR_OFFSET(31)]);
+    gen.mov(dword[contextPointer + PC_OFFSET], eax);
+    gen.jmp((void*)m_returnFromBlock);
+
+    gen.L(noFastBoot);
 }
 #endif // DYNAREC_X86_64
