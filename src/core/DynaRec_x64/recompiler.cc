@@ -212,7 +212,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     }
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
-    if (m_linkedPC) {
+    if (m_linkedPC && ENABLE_BLOCK_LINKING) {
         handleLinking();
     } else {
         gen.jmp((void*)m_returnFromBlock);
