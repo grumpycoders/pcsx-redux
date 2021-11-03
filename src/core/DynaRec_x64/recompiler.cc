@@ -267,16 +267,16 @@ void DynaRecCPU::handleLinking() {
 
         if (*nextBlockPointer == m_uncompiledBlock) { // If the next block hasn't been compiled yet
             loadAddress(rax, nextBlockPointer);
-            const auto pointer = (uint8_t*)gen.getCurr();
 
             // Check that the block hasn't been invalidated/moved
             // The value will be patched later. Since all code is within the same 32MB segment,
             // We can get away with only checking the low 32 bits of the block pointer
             gen.cmp(dword[rax], 0xff000000);
+            const auto pointer = (uint8_t*)gen.getCurr();
             gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
             recompile(nextBlockPointer, nextPC); // Fallthrough to next block
 
-            *(uint32_t*)(pointer + 2) = (uint32_t)*nextBlockPointer; // Patch comparison value
+            *(uint32_t*)(pointer - 4) = (uint32_t)*nextBlockPointer; // Patch comparison value
         } else { // If it has already been compiled, link by jumping to the compiled code
             loadAddress(rax, nextBlockPointer);
             gen.cmp(dword[rax], (uint32_t)*nextBlockPointer);
