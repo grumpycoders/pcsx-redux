@@ -276,7 +276,7 @@ void DynaRecCPU::handleLinking() {
             gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
             recompile(nextBlockPointer, nextPC); // Fallthrough to next block
 
-            *(uint32_t*)(pointer - 4) = (uint32_t)*nextBlockPointer; // Patch comparison value
+            *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer; // Patch comparison value
         } else { // If it has already been compiled, link by jumping to the compiled code
             loadAddress(rax, nextBlockPointer);
             gen.cmp(dword[rax], (uint32_t)*nextBlockPointer);
