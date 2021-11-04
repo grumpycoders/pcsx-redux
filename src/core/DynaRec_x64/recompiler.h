@@ -166,19 +166,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         m_dummyBlocks = new DynarecCallback[0x10000 / 4]; // Allocate one page worth of dummy blocks
         
         gen.reset();
-        emitDispatcher(); // Emit our assembly dispatcher
-
-        for (auto i = 0; i < m_ramSize / 4; i++) { // Mark all RAM blocks as uncompiled
-            m_ramBlocks[i] = m_uncompiledBlock;
-        }
-
-        for (auto i = 0; i < biosSize / 4; i++) { // Mark all BIOS blocks as uncompiled
-            m_biosBlocks[i] = m_uncompiledBlock;
-        }
-
-        for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as invalid
-            m_dummyBlocks[i] = m_invalidBlock;
-        }
 
         for (auto page = 0; page < 0x10000; page++) { // Default all pages to dummy blocks
             m_recompilerLUT[page] = &m_dummyBlocks[0];
@@ -203,6 +190,19 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         if (!gen.setRWX()) {
             PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
             return false;
+        }
+        emitDispatcher(); // Emit our assembly dispatcher
+
+        for (auto i = 0; i < m_ramSize / 4; i++) { // Mark all RAM blocks as uncompiled
+            m_ramBlocks[i] = m_uncompiledBlock;
+        }
+
+        for (auto i = 0; i < biosSize / 4; i++) { // Mark all BIOS blocks as uncompiled
+            m_biosBlocks[i] = m_uncompiledBlock;
+        }
+
+        for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as invalid
+            m_dummyBlocks[i] = m_invalidBlock;
         }
 
         m_regs[0].markConst(0);  // $zero is always zero
