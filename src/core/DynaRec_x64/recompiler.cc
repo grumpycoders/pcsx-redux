@@ -271,7 +271,7 @@ void DynaRecCPU::handleLinking() {
             // Check that the block hasn't been invalidated/moved
             // The value will be patched later. Since all code is within the same 32MB segment,
             // We can get away with only checking the low 32 bits of the block pointer
-            gen.cmp(dword[rax], 0xff000000);
+            gen.cmp(dword[rax], 0xcccccccc);
             const auto pointer = (uint8_t*)gen.getCurr();
             gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
             recompile(nextBlockPointer, nextPC); // Fallthrough to next block
