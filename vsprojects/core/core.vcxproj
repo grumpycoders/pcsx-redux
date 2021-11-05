@@ -199,6 +199,7 @@
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\misc.cc" />
     <ClCompile Include="..\..\src\core\pad.cc" />
+    <ClCompile Include="..\..\src\core\pcsxlua.cc" />
     <ClCompile Include="..\..\src\core\pgxp_cpu.cc" />
     <ClCompile Include="..\..\src\core\pgxp_debug.cc" />
     <ClCompile Include="..\..\src\core\pgxp_gte.cc" />
@@ -241,6 +242,7 @@
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\misc.h" />
     <ClInclude Include="..\..\src\core\pad.h" />
+    <ClInclude Include="..\..\src\core\pcsxlua.h" />
     <ClInclude Include="..\..\src\core\pgxp_cpu.h" />
     <ClInclude Include="..\..\src\core\pgxp_debug.h" />
     <ClInclude Include="..\..\src\core\pgxp_gte.h" />
@@ -262,6 +264,7 @@
     <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\core\pcsxffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

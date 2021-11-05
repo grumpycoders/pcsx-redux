@@ -133,9 +133,11 @@ static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t
 
 static void SPUUnMute() { SPU_CTRL = 0xc000; }
 
-static void SPUSetVoiceVolume(int voiceID, uint16_t left, uint16_t right) {
-    SPU_VOICES[voiceID].volumeLeft = left >> 2;
-    SPU_VOICES[voiceID].volumeRight = right >> 2;
+static uint32_t s_masterVolume = 16384;
+
+static void SPUSetVoiceVolume(int voiceID, uint32_t left, uint32_t right) {
+    SPU_VOICES[voiceID].volumeLeft = (left * s_masterVolume) >> 16;
+    SPU_VOICES[voiceID].volumeRight = (right * s_masterVolume) >> 16;
 }
 
 static void SPUSetStartAddress(int voiceID, uint32_t spuAddr) { SPU_VOICES[voiceID].sampleStartAddr = spuAddr >> 3; }
@@ -803,4 +805,18 @@ void MOD_PlayNote(unsigned channel, unsigned sampleID, unsigned note, int16_t vo
     channelData->note = note = note + s_spuInstrumentData[sampleID].finetune * 36;
     int32_t newPeriod = channelData->period = MOD_PeriodTable[note];
     SETVOICESAMPLERATE(channel, newPeriod);
+}
+
+void MOD_PlaySoundEffect(unsigned channel, unsigned sampleID, unsigned note, int16_t volume) {
+    uint32_t prevVolume = s_masterVolume;
+    s_masterVolume = 16384;
+    MOD_PlayNote(channel, sampleID, note, volume);
+    s_masterVolume = prevVolume;
+}
+
+void MOD_SetMusicVolume(uint32_t musicVolume) {
+    s_masterVolume = musicVolume;
+    for (unsigned channel = 0; channel < MOD_Channels; channel++) {
+        SETVOICEVOLUME(channel, s_channelData[channel].volume);
+    }
 }

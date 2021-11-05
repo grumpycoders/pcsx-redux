@@ -184,13 +184,7 @@ class Lua {
     void error(const std::string& msg) { error(msg.c_str()); }
 
     int type(int i = -1) { return lua_type(L, i); }
-    std::string typestring(int i = -1) {
-        static const std::map<int, std::string> strings = {
-            {LUA_TNIL, "nil"},           {LUA_TNUMBER, "number"}, {LUA_TBOOLEAN, "boolean"},
-            {LUA_TSTRING, "string"},     {LUA_TTABLE, "table"},   {LUA_TFUNCTION, "function"},
-            {LUA_TUSERDATA, "userdata"}, {LUA_TTHREAD, "thread"}, {LUA_TLIGHTUSERDATA, "lightuserdata"}};
-        return strings.find(lua_type(L, i))->second;
-    }
+    std::string_view typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }
     bool isnil(int i = -1) { return lua_isnil(L, i); }
     bool isboolean(int i = -1) { return lua_isboolean(L, i); }
     bool isnumber(int i = -1) { return lua_isnumber(L, i); }

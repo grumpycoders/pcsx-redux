@@ -213,6 +213,11 @@ constexpr uint32_t swr(Reg tgt, int16_t offset, Reg src) {
     return iclass(0b101110) | tgtVal(tgt) | srcVal(src) | o;
 }
 
+// cop0
+constexpr uint32_t mfc0(Reg tgt, uint8_t dst) { return iclass(0b010000) | tgtVal(tgt) | (dst << 11); }
+constexpr uint32_t mtc0(Reg tgt, uint8_t dst) { return iclass(0b010000) | (4 << 21) | tgtVal(tgt) | (dst << 11); }
+constexpr uint32_t rfe() { return 0x42000010; }
+
 // pseudo
 constexpr uint32_t nop() { return 0; }
 

@@ -71,3 +71,12 @@ fb.bat
 *.nam
 *.til
 *.idb
+
+# Runtime files in ./resources
+offscreen.frag
+offscreen.lua
+offscreen.vert
+output.frag
+output.lua
+output.vert
+pcsx.lua

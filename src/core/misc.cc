@@ -272,18 +272,6 @@ bool CheckCdrom() {
         }
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {  // autodetect system (pal or ntsc)
-        if (((PCSX::g_emulator->m_cdromId[0] == 's' || PCSX::g_emulator->m_cdromId[0] == 'S') &&
-             (PCSX::g_emulator->m_cdromId[2] == 'e' || PCSX::g_emulator->m_cdromId[2] == 'E')) ||
-            !strncmp(PCSX::g_emulator->m_cdromId, "DTLS3035", 8) ||
-            !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95001", 9) ||  // according to redump.org, these PAL
-            !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95007", 9) ||  // discs have a non-standard ID;
-            !strncmp(PCSX::g_emulator->m_cdromId, "PBPX95008", 9))    // add more serials if they are discovered.
-            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_PAL;  // pal
-        else
-            PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() = PCSX::Emulator::PSX_TYPE_NTSC;  // ntsc
-    }
-
     if (PCSX::g_emulator->config().OverClock == 0) {
         PCSX::g_emulator->m_psxClockSpeed = 33868800;  // 33.8688 MHz (stock)
     } else {

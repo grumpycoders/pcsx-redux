@@ -842,6 +842,14 @@ void PCSX::SoftGPU::impl::writeStatus(uint32_t gdata)  // WRITE STATUS
             PSXDisplay.RGB24New = (gdata & 0x10) ? true : false;       // if 1 - TrueColor
             PSXDisplay.InterlacedNew = (gdata & 0x20) ? true : false;  // if 1 - Interlace
 
+            if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
+                if (PSXDisplay.PAL) {
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
+                } else {
+                    g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_NTSC;
+                }
+            }
+
             lGPUstatusRet &= ~GPUSTATUS_WIDTHBITS;                               // Clear the width bits
             lGPUstatusRet |= (((gdata & 0x03) << 17) | ((gdata & 0x40) << 10));  // Set the width bits
 
