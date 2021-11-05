@@ -79,4 +79,7 @@ offscreen.vert
 output.frag
 output.lua
 output.vert
+vram-viewer.frag
+vram-viewer.lua
+vram-viewer.vert
 pcsx.lua
