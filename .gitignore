@@ -64,3 +64,12 @@ fb.bat
 
 # GPU dump files
 *.dump 
+
+# Runtime files in ./resources
+offscreen.frag
+offscreen.lua
+offscreen.vert
+output.frag
+output.lua
+output.vert
+pcsx.lua
