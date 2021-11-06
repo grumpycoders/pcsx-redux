@@ -141,6 +141,9 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
     <ClCompile Include="..\..\src\core\callstacks.cc">

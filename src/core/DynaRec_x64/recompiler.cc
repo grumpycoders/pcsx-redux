@@ -157,6 +157,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     m_pc = pc;
 
     const auto startingPC = m_pc;
+    if constexpr (SYMBOLS_ENABLED) {
+        m_symbols += fmt::format("{} recompile_{:08X}\n", (void*) gen.getCurr(), m_pc);
+    }
+    
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block
 

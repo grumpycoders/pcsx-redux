@@ -22,6 +22,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+#include <string>
 #include <fstream>
 #include <optional>
 
@@ -205,6 +206,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             m_dummyBlocks[i] = m_invalidBlock;
         }
 
+        if constexpr (SYMBOLS_ENABLED) {
+            makeSymbols();
+        }
+
         m_regs[0].markConst(0);  // $zero is always zero
         return true;
     }
@@ -220,7 +225,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         delete[] m_ramBlocks;
         delete[] m_biosBlocks;
         delete[] m_dummyBlocks;
-        dumpBuffer();
+
+        if constexpr (SYMBOLS_ENABLED) {
+            std::ofstream out("DynarecOutput.map");
+            out << m_symbols;
+            m_symbols.clear();
+            dumpBuffer();
+        }
     }
 
     virtual void Execute() final {
@@ -360,6 +371,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void flushCache();
     void handleLinking();
     void handleFastboot();
+
+    static constexpr bool SYMBOLS_ENABLED = true;
+    std::string m_symbols;
+    
+    void makeSymbols();
 
     void maybeCancelDelayedLoad(uint32_t index) {
         const unsigned other = m_currentDelayedLoad ^ 1;

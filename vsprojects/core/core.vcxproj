@@ -188,6 +188,7 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
+    <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\gte_x64.cc" />
     <ClCompile Include="..\..\src\core\elfloader.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
