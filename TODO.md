@@ -46,13 +46,12 @@ List of things to still do here, in no particular order.
 
 - CPU
   - Support CPU hotswap (interpreted / dynarec)
-  - Either make the dynarec generic (using a third party JIT engine), or create x64, arm and ppc versions out of the current x86 one.
+  - Either make the dynarec generic (using a third party JIT engine), or create arm and ppc versions out of the current x86-64 one.
   - Properly support exceptions in the interpreted CPU:
     - AdEL
     - AdES
     - IBE
     - DBE
-    - RI
     - CpU
     - Ov
    - Add Cop0 debug support.

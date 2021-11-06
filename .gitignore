@@ -83,3 +83,4 @@ vram-viewer.frag
 vram-viewer.lua
 vram-viewer.vert
 pcsx.lua
+DynarecOutput.map
