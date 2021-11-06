@@ -1183,6 +1183,7 @@ static void ShowHelpMarker(const char* desc) {
 bool PCSX::GUI::configure() {
     bool changed = false;
     bool selectBiosDialog = false;
+    bool showDynarecWarning = false;
     bool selectBiosOverlayDialog = false;
     auto& settings = g_emulator->settings;
     auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
@@ -1207,7 +1208,13 @@ bool PCSX::GUI::configure() {
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);
-        changed |= ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value);
+        if (ImGui::Checkbox(_("Dynarec CPU"), &settings.get<Emulator::SettingDynarec>().value)) {
+            changed = true;
+            if (debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() && settings.get<Emulator::SettingDynarec>()) {
+                showDynarecWarning = true;
+            }
+        }
+
         ShowHelpMarker(_(R"(Activates the dynamic-recompiler CPU core.
 It is significantly faster than the interpreted CPU,
 however it doesn't play nicely with the debugger.
@@ -1268,7 +1275,13 @@ faster by not displaying the logo.)"));
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
-        changed |= ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value);
+        if(ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
+            changed = true;
+            if (debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() && settings.get<Emulator::SettingDynarec>()) {
+                showDynarecWarning = true;
+            }
+        }
+        
         ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticable extend.)"));
@@ -1424,6 +1437,12 @@ The debugger might be required in some cases.)"));
                 .value = fileToOpen[0];
             changed = true;
         }
+    }
+
+    if (showDynarecWarning) {
+        addNotification(R"(Debugger and dynarec enabled at the same time. 
+Consider turning either one off, otherwise
+debugging features may not work)");
     }
     return changed;
 }
