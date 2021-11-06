@@ -264,7 +264,8 @@ void DynaRecCPU::handleKernelCall() {
 // Emits a jump to the dispatcher if there's no block to link to.
 // Otherwise, handle linking blocks
 void DynaRecCPU::handleLinking() {
-    if (isPcValid(m_linkedPC.value())) {
+    // Don't link unless the next PC is valid, and there's over 1MB of free space in the code cache
+    if (isPcValid(m_linkedPC.value()) && gen.getRemainingSize() > 0x100000) {
         const auto nextPC = m_linkedPC.value();
         const auto nextBlockPointer = getBlockPointer(nextPC);
         m_linkedPC = std::nullopt;
