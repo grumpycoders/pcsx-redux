@@ -206,7 +206,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             m_dummyBlocks[i] = m_invalidBlock;
         }
 
-        if constexpr (SYMBOLS_ENABLED) {
+        if constexpr (ENABLE_SYMBOLS) {
             makeSymbols();
         }
 
@@ -226,7 +226,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         delete[] m_biosBlocks;
         delete[] m_dummyBlocks;
 
-        if constexpr (SYMBOLS_ENABLED) {
+        if constexpr (ENABLE_SYMBOLS) {
             std::ofstream out("DynarecOutput.map");
             out << m_symbols;
             m_symbols.clear();
@@ -372,9 +372,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void handleLinking();
     void handleFastboot();
 
-    static constexpr bool SYMBOLS_ENABLED = true;
-    std::string m_symbols;
-    
+    std::string m_symbols;    
     void makeSymbols();
 
     void maybeCancelDelayedLoad(uint32_t index) {
@@ -556,5 +554,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     };
 
     static constexpr bool ENABLE_BLOCK_LINKING = true;
+    static constexpr bool ENABLE_SYMBOLS = false;
 };
 #endif  // DYNAREC_X86_64

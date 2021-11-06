@@ -96,10 +96,13 @@ void DynaRecCPU::makeSymbols() {
     REGISTER_FUNCTION(signalShellReached, "signal_shell_reached");
     REGISTER_FUNCTION(SPU_writeRegisterWrapper, "spu_write_register");
     REGISTER_FUNCTION(recBranchTestWrapper, "branch_test_wrapper");
+    REGISTER_FUNCTION(recErrorWrapper, "recompiler_error_wrapper");
+    REGISTER_FUNCTION(recRecompileWrapper, "recompiler_compile_wrapper");
 
-    m_symbols += fmt::format("{} dispatcher\n", (void*)m_dispatcher);
+    m_symbols += fmt::format("{} dispatcher_entry\n", (void*)m_dispatcher);
     m_symbols += fmt::format("{} return_from_block\n", (void*)m_returnFromBlock);
-    m_symbols += fmt::format("{} uncompiled_block\n", (void*)m_uncompiledBlock);
+    m_symbols += fmt::format("{} uncompiled_block_handler\n", (void*)m_uncompiledBlock);
+    m_symbols += fmt::format("{} invalid_block_handler\n", (void*)m_invalidBlock);
 }
 
 #undef REGISTER_VARIABLE

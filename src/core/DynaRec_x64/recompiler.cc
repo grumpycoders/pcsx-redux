@@ -157,7 +157,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     m_pc = pc;
 
     const auto startingPC = m_pc;
-    if constexpr (SYMBOLS_ENABLED) {
+    if constexpr (ENABLE_SYMBOLS) {
         m_symbols += fmt::format("{} recompile_{:08X}\n", (void*) gen.getCurr(), m_pc);
     }
     
