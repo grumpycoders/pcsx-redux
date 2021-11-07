@@ -54,11 +54,13 @@ CXXFLAGS += -fno-exceptions -fno-rtti
 
 OBJS += $(addsuffix .o, $(basename $(SRCS)))
 
-all: dep $(BINDIR)$(TARGET).$(TYPE)
+all: dep $(BINDIR)$(TARGET).$(TYPE) $(foreach ovl, $(OVERLAYSECTION), $(BINDIR)Overlay$(ovl))
+
+$(BINDIR)Overlay%: $(BINDIR)$(TARGET).elf
+	$(PREFIX)-objcopy -j $(@:$(BINDIR)Overlay%=%) -O binary $< $(BINDIR)Overlay$(@:$(BINDIR)Overlay%=%)
 
 $(BINDIR)$(TARGET).$(TYPE): $(BINDIR)$(TARGET).elf
 	$(PREFIX)-objcopy $(addprefix -R , $(OVERLAYSECTION)) -O binary $< $@
-	$(foreach ovl, $(OVERLAYSECTION), $(PREFIX)-objcopy -j $(ovl) -O binary $< $(BINDIR)Overlay$(ovl);)
 
 $(BINDIR)$(TARGET).elf: $(OBJS)
 ifneq ($(strip $(BINDIR)),)
