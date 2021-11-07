@@ -1422,6 +1422,7 @@ void DynaRecCPU::recBNE() {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
             gen.mov(dword[contextPointer + PC_OFFSET], target);
+            m_linkedPC = target;
         }
         return;
     } else if (m_regs[_Rs_].isConst()) {
@@ -1502,6 +1503,7 @@ void DynaRecCPU::recREGIMM() {
                 m_stopCompiling = true;
 
                 gen.mov(dword[contextPointer + PC_OFFSET], target);
+                m_linkedPC = target;
             }
         }
 
@@ -1511,6 +1513,7 @@ void DynaRecCPU::recREGIMM() {
                 m_stopCompiling = true;
 
                 gen.mov(dword[contextPointer + PC_OFFSET], target);
+                m_linkedPC = target;
             }
         }
 
@@ -1593,6 +1596,7 @@ void DynaRecCPU::recBGTZ() {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
             gen.mov(dword[contextPointer + PC_OFFSET], target);
+            m_linkedPC = target;
         }
         return;
     }
@@ -1625,6 +1629,7 @@ void DynaRecCPU::recBLEZ() {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
             gen.mov(dword[contextPointer + PC_OFFSET], target);
+            m_linkedPC = target;
         }
         return;
     }
