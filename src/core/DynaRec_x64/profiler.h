@@ -43,10 +43,10 @@ struct ProfilerEntry {
 };
 
 // Wrapper around a fixed-size vector
-template <size_t maxEntryCount>
+template <int maxEntryCount>
 class RecompilerProfiler {
     static_assert(maxEntryCount > 0, "Can't have a profiler with less than 1 entries");    
-    size_t m_entryCount;
+    int m_entryCount;
     std::vector<ProfilerEntry> m_entries;
     uint64_t m_totalCycles;
 
@@ -62,7 +62,7 @@ public:
 
     // Returns if there's enough space to fit an extra entry
     bool hasSpace() { return m_entryCount < maxEntryCount; }
-    size_t size() { return m_entryCount; }
+    int size() { return m_entryCount; }
     ProfilerEntry& back() { return m_entries[m_entryCount]; }
 
     // Sort entries in descending order

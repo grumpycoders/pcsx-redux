@@ -76,7 +76,7 @@ void DynaRecCPU::dumpProfileData() {
 
     // Sort blocks based on cycles spent in descending order
     m_profiler.sort();
-    const auto numberOfBlocks = std::min<size_t>(500, m_profiler.size());
+    const int numberOfBlocks = std::min<int>(500, m_profiler.size());
     const uint64_t totalCycles = m_profiler.totalCycles();
 
     for (int i = 0; i < numberOfBlocks; i++) {
