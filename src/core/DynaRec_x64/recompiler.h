@@ -31,6 +31,7 @@
 #include "spu/interface.h"
 #include "core/gpu.h"
 #include "emitter.h"
+#include "profiler.h"
 #include "regAllocation.h"
 
 
@@ -143,6 +144,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void prepareForCall();
     void handleKernelCall();
     void emitDispatcher();
+    void uncompileAll();
 
   public:
     DynaRecCPU() : R3000Acpu("x86-64 DynaRec") {}
@@ -193,14 +195,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             return false;
         }
         emitDispatcher(); // Emit our assembly dispatcher
-
-        for (auto i = 0; i < m_ramSize / 4; i++) { // Mark all RAM blocks as uncompiled
-            m_ramBlocks[i] = m_uncompiledBlock;
-        }
-
-        for (auto i = 0; i < biosSize / 4; i++) { // Mark all BIOS blocks as uncompiled
-            m_biosBlocks[i] = m_uncompiledBlock;
-        }
+        uncompileAll(); // Mark all blocks as uncompiled
 
         for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as invalid
             m_dummyBlocks[i] = m_invalidBlock;
@@ -208,6 +203,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
         if constexpr (ENABLE_SYMBOLS) {
             makeSymbols();
+        }
+
+        if constexpr (ENABLE_PROFILER) {
+            m_profiler.init();
         }
 
         m_regs[0].markConst(0);  // $zero is always zero
@@ -231,6 +230,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             out << m_symbols;
             m_symbols.clear();
             dumpBuffer();
+        }
+
+        if constexpr (ENABLE_PROFILER) {
+            dumpProfileData();
         }
     }
 
@@ -372,8 +375,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void handleLinking();
     void handleFastboot();
 
-    std::string m_symbols;    
+    std::string m_symbols;
+    RecompilerProfiler<10000000> m_profiler;
+
     void makeSymbols();
+    bool startProfiling(uint32_t pc);
+    void endProfiling();
+    void dumpProfileData();
 
     void maybeCancelDelayedLoad(uint32_t index) {
         const unsigned other = m_currentDelayedLoad ^ 1;
@@ -554,6 +562,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     };
 
     static constexpr bool ENABLE_BLOCK_LINKING = true;
+    static constexpr bool ENABLE_PROFILER = false;
     static constexpr bool ENABLE_SYMBOLS = false;
 };
 #endif  // DYNAREC_X86_64

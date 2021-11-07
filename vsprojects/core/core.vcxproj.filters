@@ -135,6 +135,9 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\DynaRec_x64\profiler.cc">
+      <Filter>Source Files\DynaRec_x64</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc">
       <Filter>Source Files\DynaRec_x64</Filter>
     </ClCompile>
@@ -263,6 +266,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h">
+      <Filter>Header Files\DynaRec_x64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h">
       <Filter>Header Files\DynaRec_x64</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h">

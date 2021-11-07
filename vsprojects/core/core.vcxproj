@@ -186,6 +186,7 @@
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\disr3000a.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\instructions.cc" />
+    <ClCompile Include="..\..\src\core\DynaRec_x64\profiler.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\recompiler.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc" />
@@ -232,6 +233,7 @@
     <ClInclude Include="..\..\src\core\decode_xa.h" />
     <ClInclude Include="..\..\src\core\disr3000a.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\emitter.h" />
+    <ClInclude Include="..\..\src\core\DynaRec_x64\profiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h" />
     <ClInclude Include="..\..\src\core\elfloader.h" />

@@ -48,18 +48,20 @@ void DynaRecCPU::error() {
     PCSX::g_system->message("Unrecoverable error while running recompiler\nProgram counter: %08X\n", m_pc);
 }
 
-void DynaRecCPU::flushCache() {
-    gen.reset();    // Reset the emitter's code pointer and code size variables
-    emitDispatcher(); // Re-emit dispatcher
-
+void DynaRecCPU::uncompileAll() {
+    constexpr int biosSize = 0x80000;
     for (auto i = 0; i < m_ramSize / 4; i++) { // Mark all RAM blocks as uncompiled
         m_ramBlocks[i] = m_uncompiledBlock;
     }
-
-    constexpr int biosSize = 0x80000;
     for (auto i = 0; i < biosSize / 4; i++) { // Mark all BIOS blocks as uncompiled
         m_biosBlocks[i] = m_uncompiledBlock;
     }
+}
+
+void DynaRecCPU::flushCache() {
+    gen.reset();    // Reset the emitter's code pointer and code size variables
+    emitDispatcher(); // Re-emit dispatcher
+    uncompileAll(); // Mark all blocks as uncompiled
 }
 
 void DynaRecCPU::emitDispatcher() {
@@ -76,7 +78,7 @@ void DynaRecCPU::emitDispatcher() {
         const auto reg = allocateableNonVolatiles[i];
         gen.push(reg.cvt64());
     }
-    gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(ALLOCATEABLE_NON_VOLATILE_COUNT)], runningPointer); // Backup running pointer
+    gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], runningPointer); // Backup running pointer
     gen.mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr()); // Load pointer to "running" variable
 
     // Allocate shadow stack space on Windows
@@ -120,7 +122,7 @@ void DynaRecCPU::emitDispatcher() {
         const auto reg = allocateableNonVolatiles[i];
         gen.pop(reg.cvt64());
     }
-    gen.mov(runningPointer, qword[contextPointer + HOST_REG_CACHE_OFFSET(ALLOCATEABLE_NON_VOLATILE_COUNT)]);
+    gen.mov(runningPointer, qword[contextPointer + HOST_REG_CACHE_OFFSET(0)]);
 
     gen.pop(contextPointer); // Restore our context pointer
     gen.ret(); // Return
@@ -168,7 +170,13 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
         flushCache();
     }
 
-    const auto pointer = (DynarecCallback)gen.getCurr(); // Pointer to emitted code
+    const auto pointer = gen.getCurr<DynarecCallback>(); // Pointer to emitted code
+    if constexpr (ENABLE_PROFILER) {
+        if (startProfiling(m_pc)) {
+            uncompileAll();
+        }
+    }
+    
     *callback = pointer;
     handleKernelCall(); // Check if this is a kernel call vector, emit some extra code in that case.
 
@@ -213,6 +221,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
         loadThisPointer(arg1.cvt64());
         call(signalShellReached);
         m_linkedPC = std::nullopt;
+    }
+    if constexpr (ENABLE_PROFILER) {
+        endProfiling();
     }
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
