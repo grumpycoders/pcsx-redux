@@ -1476,6 +1476,7 @@ void DynaRecCPU::recJR() {
 
     if (m_regs[_Rs_].isConst()) {
         gen.mov(dword[contextPointer + PC_OFFSET], m_regs[_Rs_].val & ~3);  // force align jump address
+        m_linkedPC = m_regs[_Rs_].val;
     } else {
         allocateReg(_Rs_);
         gen.and_(m_regs[_Rs_].allocatedReg, ~3); // Align jump address
@@ -1555,6 +1556,8 @@ void DynaRecCPU::recBEQ() {
             m_pcWrittenBack = true;
             m_stopCompiling = true;
             gen.mov(dword[contextPointer + PC_OFFSET], target);
+
+            m_linkedPC = target;
         }
         return;
     } else if (m_regs[_Rs_].isConst()) {

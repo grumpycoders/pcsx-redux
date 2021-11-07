@@ -172,7 +172,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
 
     const auto pointer = gen.getCurr<DynarecCallback>(); // Pointer to emitted code
     if constexpr (ENABLE_PROFILER) {
-        if (startProfiling(m_pc)) {
+        if (startProfiling(m_pc)) { // Uncompile all blocks if the profiler data overflower
             uncompileAll();
         }
     }
@@ -227,7 +227,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     }
     
     gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
-    if (m_linkedPC && ENABLE_BLOCK_LINKING) {
+    if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {
         gen.jmp((void*)m_returnFromBlock);
