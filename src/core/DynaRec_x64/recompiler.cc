@@ -68,7 +68,7 @@ void DynaRecCPU::emitDispatcher() {
     Xbyak::Label mainLoop, done;
 
     gen.align(16);
-    m_dispatcher = (DynarecCallback)gen.getCurr();
+    m_dispatcher = gen.getCurr<DynarecCallback>();
     gen.push(contextPointer); // Save context pointer register in stack (also align stack pointer)
     gen.mov(contextPointer, (uintptr_t)&m_psxRegs);  // Load context pointer
     
@@ -102,7 +102,7 @@ void DynaRecCPU::emitDispatcher() {
     // Code to be executed after each block
     // Blocks will jmp to here
     gen.align(16);
-    m_returnFromBlock = (DynarecCallback)gen.getCurr();
+    m_returnFromBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64()); // Poll events
     gen.callFunc(recBranchTestWrapper);
@@ -131,7 +131,7 @@ void DynaRecCPU::emitDispatcher() {
     // rax = Base pointer to the page of m_recompilerLUT we're executing from
     // rdx = Index into the page
     gen.align(16);
-    m_uncompiledBlock = (DynarecCallback)gen.getCurr();
+    m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64());
     gen.lea(arg2.cvt64(), qword[rax + rdx * 8]); // Pointer to callback
@@ -140,7 +140,7 @@ void DynaRecCPU::emitDispatcher() {
 
     // Code for when the block we've jumped to is invalid. Throws an error and exits
     gen.align(16);
-    m_invalidBlock = (DynarecCallback)gen.getCurr();
+    m_invalidBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64()); // Throw recompiler error
     gen.callFunc(recErrorWrapper);
@@ -160,7 +160,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
 
     const auto startingPC = m_pc;
     if constexpr (ENABLE_SYMBOLS) {
-        m_symbols += fmt::format("{} recompile_{:08X}\n", (void*) gen.getCurr(), m_pc);
+        m_symbols += fmt::format("{} recompile_{:08X}\n", gen.getCurr<void*>(), m_pc);
     }
     
     int count = 0; // How many instructions have we compiled?
@@ -288,7 +288,7 @@ void DynaRecCPU::handleLinking() {
             // The value will be patched later. Since all code is within the same 32MB segment,
             // We can get away with only checking the low 32 bits of the block pointer
             gen.cmp(dword[rax], 0xcccccccc);
-            const auto pointer = (uint8_t*)gen.getCurr();
+            const auto pointer = gen.getCurr<uint8_t*>();
             gen.jne((void*)m_returnFromBlock); // Return if the block addr changed
             recompile(nextBlockPointer, nextPC); // Fallthrough to next block
 
