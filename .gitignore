@@ -84,3 +84,4 @@ vram-viewer.lua
 vram-viewer.vert
 pcsx.lua
 DynarecOutput.map
+DynarecProfileData.txt
