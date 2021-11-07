@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #pragma once
-#include "recompiler.h"
+#include "core/r3000a.h"
 #if defined(DYNAREC_X86_64)
 
 #include <array>

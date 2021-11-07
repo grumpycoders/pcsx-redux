@@ -29,8 +29,8 @@ template <bool shouldLoad>
 void DynaRecCPU::reserveReg(int index) {
     const auto regToAllocate = allocateableRegisters[m_allocatedRegisters];  // Fetch the next host reg to be allocated
     m_regs[index].allocatedReg = regToAllocate;
-    m_regs[index].markUnknown(); // Mark the register's value as unknown if it were previously const propagated
-    m_regs[index].allocated = true; // Mark register as allocated
+    m_regs[index].markUnknown();     // Mark the register's value as unknown if it were previously const propagated
+    m_regs[index].allocated = true;  // Mark register as allocated
     m_regs[index].allocatedRegIndex = m_allocatedRegisters;
 
     // For certain instructions like loads, we don't want to load the reg because it'll get instantly overwritten

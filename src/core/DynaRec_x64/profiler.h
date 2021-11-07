@@ -29,36 +29,33 @@
 
 struct ProfilerEntry {
     uint32_t pc;
-    uint64_t cyclesSpent = 0; // Total amount of CPU cycles spent in this block
-    uint64_t timesInvoked = 0; // Total amount of times this block has been executed 
+    uint64_t cyclesSpent = 0;   // Total amount of CPU cycles spent in this block
+    uint64_t timesInvoked = 0;  // Total amount of times this block has been executed
 
     ProfilerEntry(uint64_t cyclesSpent, uint64_t timesInvoked, uint32_t pc)
         : cyclesSpent(cyclesSpent), timesInvoked(timesInvoked), pc(pc) {}
     ProfilerEntry() {}
 
     // Compare objects based on cyclesSpent (used for sorting entries)
-    bool operator > (const ProfilerEntry& other) const {
-        return (cyclesSpent > other.cyclesSpent);
-    }
+    bool operator>(const ProfilerEntry& other) const { return (cyclesSpent > other.cyclesSpent); }
 };
 
 // Wrapper around a fixed-size vector
 template <int maxEntryCount>
 class RecompilerProfiler {
-    static_assert(maxEntryCount > 0, "Can't have a profiler with less than 1 entries");    
+    static_assert(maxEntryCount > 0, "Can't have a profiler with less than 1 entries");
     int m_entryCount;
     std::vector<ProfilerEntry> m_entries;
     uint64_t m_totalCycles;
 
-public:
+  public:
     void init() {
-        m_entries.resize(maxEntryCount); // We don't do this in the constructor, because unlike init it gets called in release builds
+        m_entries.resize(maxEntryCount);  // We don't do this in the constructor, because unlike init it gets called in
+                                          // release builds
         m_entryCount = 0;
     }
 
-    void reset() {
-        m_entryCount = 0;
-    }
+    void reset() { m_entryCount = 0; }
 
     // Returns if there's enough space to fit an extra entry
     bool hasSpace() { return m_entryCount < maxEntryCount; }
@@ -67,7 +64,8 @@ public:
 
     // Sort entries in descending order
     void sort() {
-        std::partial_sort(m_entries.begin(), m_entries.begin() + m_entryCount, m_entries.end(), std::greater<ProfilerEntry>());
+        std::partial_sort(m_entries.begin(), m_entries.begin() + m_entryCount, m_entries.end(),
+                          std::greater<ProfilerEntry>());
     }
 
     // Check for possible overflows before calling
@@ -80,6 +78,6 @@ public:
     }
 
     uint64_t& totalCycles() { return m_totalCycles; }
-    ProfilerEntry& operator[] (int i) { return m_entries[i]; }
+    ProfilerEntry& operator[](int i) { return m_entries[i]; }
 };
-#endif // DYNAREC_X86_64
+#endif  // DYNAREC_X86_64
