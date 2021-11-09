@@ -22,18 +22,17 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
-#include <string>
 #include <fstream>
 #include <optional>
+#include <string>
 
-#include "fmt/format.h"
-#include "tracy/Tracy.hpp"
-#include "spu/interface.h"
 #include "core/gpu.h"
 #include "emitter.h"
+#include "fmt/format.h"
 #include "profiler.h"
 #include "regAllocation.h"
-
+#include "spu/interface.h"
+#include "tracy/Tracy.hpp"
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_psxRegs.hostRegisterCache[(x)] - (uintptr_t)&m_psxRegs)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)&m_psxRegs)
@@ -67,25 +66,25 @@ using namespace Xbyak::util;
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
     using func_t = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
-  
+
   private:
     DynarecCallback** m_recompilerLUT;
     DynarecCallback* m_ramBlocks;   // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
     DynarecCallback* m_biosBlocks;  // Pointers to compiled BIOS blocks
-    DynarecCallback* m_dummyBlocks; // This is where invalid pages will point
+    DynarecCallback* m_dummyBlocks;  // This is where invalid pages will point
 
     // Functions written in raw assembly
-    DynarecCallback m_dispatcher; // Pointer to our assembly dispatcher
-    DynarecCallback m_returnFromBlock; // Pointer to the code that will be executed when returning from a block
-    DynarecCallback m_uncompiledBlock; // Pointer to the code that will be executed when jumping to an uncompiled block
-    DynarecCallback m_invalidBlock; // Pointer to the code that will be executed the PC is invalid
+    DynarecCallback m_dispatcher;       // Pointer to our assembly dispatcher
+    DynarecCallback m_returnFromBlock;  // Pointer to the code that will be executed when returning from a block
+    DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
+    DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
 
     Emitter gen;
     uint32_t m_pc;  // Recompiler PC
 
-    bool m_stopCompiling;            // Should we stop compiling code?
-    bool m_pcWrittenBack;            // Has the PC been written back already by a jump?
-    uint32_t m_ramSize;              // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
+    bool m_stopCompiling;  // Should we stop compiling code?
+    bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
+    uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
@@ -156,7 +155,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
         m_ramSize = ramExpansion ? 0x800000 : 0x200000;
         const auto biosSize = 0x80000;
-        const auto ramPages =
+        const int ramPages =
             m_ramSize >> 16;  // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
 
         m_recompilerLUT = new DynarecCallback*[0x10000]();  // Split the 32-bit address space into 64KB pages, so
@@ -166,24 +165,24 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         // in a region of memory is REGION_SIZE / 4
         m_ramBlocks = new DynarecCallback[m_ramSize / 4];
         m_biosBlocks = new DynarecCallback[biosSize / 4];
-        m_dummyBlocks = new DynarecCallback[0x10000 / 4]; // Allocate one page worth of dummy blocks
-        
+        m_dummyBlocks = new DynarecCallback[0x10000 / 4];  // Allocate one page worth of dummy blocks
+
         gen.reset();
 
-        for (auto page = 0; page < 0x10000; page++) { // Default all pages to dummy blocks
+        for (int page = 0; page < 0x10000; page++) {  // Default all pages to dummy blocks
             m_recompilerLUT[page] = &m_dummyBlocks[0];
         }
 
         // For every 64KB page of memory, we can have 64*1024/4 unique blocks = 0x4000
         // Hence the multiplications below
-        for (auto page = 0; page < ramPages; page++) {         // Map RAM to the recompiler LUT
+        for (int page = 0; page < ramPages; page++) {          // Map RAM to the recompiler LUT
             const auto pointer = &m_ramBlocks[page * 0x4000];  // Get a pointer to the page of RAM blocks
             m_recompilerLUT[page + 0x0000] = pointer;          // Map KUSEG, KSEG0 and KSEG1 RAM respectively
             m_recompilerLUT[page + 0x8000] = pointer;
             m_recompilerLUT[page + 0xA000] = pointer;
         }
 
-        for (auto page = 0; page < 8; page++) {  // Map BIOS to recompiler LUT
+        for (int page = 0; page < 8; page++) {  // Map BIOS to recompiler LUT
             const auto pointer = &m_biosBlocks[page * 0x4000];
             m_recompilerLUT[page + 0x1FC0] = pointer;  // Map KUSEG, KSEG0 and KSEG1 BIOS respectively
             m_recompilerLUT[page + 0x9FC0] = pointer;
@@ -194,10 +193,10 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
             return false;
         }
-        emitDispatcher(); // Emit our assembly dispatcher
-        uncompileAll(); // Mark all blocks as uncompiled
+        emitDispatcher();  // Emit our assembly dispatcher
+        uncompileAll();    // Mark all blocks as uncompiled
 
-        for (auto i = 0; i < 0x10000 / 4; i++) { // Mark all dummy blocks as invalid
+        for (int i = 0; i < 0x10000 / 4; i++) {  // Mark all dummy blocks as invalid
             m_dummyBlocks[i] = m_invalidBlock;
         }
 
@@ -238,8 +237,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     virtual void Execute() final {
-        ZoneScoped;  // Tell the Tracy profiler to do its thing
-        (*m_dispatcher)(); // Jump to assembly dispatcher
+        ZoneScoped;         // Tell the Tracy profiler to do its thing
+        (*m_dispatcher)();  // Jump to assembly dispatcher
     }
 
     // TODO: Make it less slow and bad
@@ -273,7 +272,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     // Loads a value into dest from the given pointer.
     // Tries to use base pointer relative addressing, otherwise uses movabs
-    template<int size, bool signExtend>
+    template <int size, bool signExtend>
     void load(Xbyak::Reg32 dest, void* pointer) {
         const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
 
@@ -284,7 +283,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
                                : gen.movzx(dest, Xbyak::util::byte[contextPointer + distance]);
                     break;
                 case 16:
-                    signExtend ? gen.movsx(dest, word[contextPointer + distance]) : gen.movzx(dest, word[contextPointer + distance]);
+                    signExtend ? gen.movsx(dest, word[contextPointer + distance])
+                               : gen.movzx(dest, word[contextPointer + distance]);
                     break;
                 case 32:
                     gen.mov(dest, dword[contextPointer + distance]);
@@ -294,8 +294,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
             gen.mov(rax, (uintptr_t)pointer);
             switch (size) {
                 case 8:
-                    signExtend ? gen.movsx(dest, Xbyak::util::byte[rax])
-                               : gen.movzx(dest, Xbyak::util::byte[rax]);
+                    signExtend ? gen.movsx(dest, Xbyak::util::byte[rax]) : gen.movzx(dest, Xbyak::util::byte[rax]);
                     break;
                 case 16:
                     signExtend ? gen.movsx(dest, word[rax]) : gen.movzx(dest, word[rax]);
@@ -309,7 +308,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     // Stores a value of "size" bits from "source" to the given pointer
     // Tries to use base pointer relative addressing, otherwise uses movabs
-    template<int size, typename T>
+    template <int size, typename T>
     void store(T source, void* pointer) {
         const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
 
@@ -346,7 +345,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
     static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
-    
+
     static void signalShellReached(DynaRecCPU* that);
     static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
         return that->recompile(callback, that->m_psxRegs.pc);
