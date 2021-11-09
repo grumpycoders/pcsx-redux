@@ -159,15 +159,17 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     m_pc = pc;
 
     const auto startingPC = m_pc;
-    if constexpr (ENABLE_SYMBOLS) {
-        m_symbols += fmt::format("{} recompile_{:08X}\n", gen.getCurr<void*>(), m_pc);
-    }
-    
     int count = 0; // How many instructions have we compiled?
     gen.align(16);  // Align next block
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
+    }
+    
+    if constexpr (ENABLE_SYMBOLS) {
+        m_symbols += fmt::format("{} recompile_{:08X}\n", gen.getCurr<void*>(), m_pc);
+        // This is unnecessary, but it acts as a hint to the decompiler about the context pointer's value
+        gen.mov(contextPointer, (uintptr_t)&m_psxRegs);
     }
 
     const auto pointer = gen.getCurr<DynarecCallback>(); // Pointer to emitted code
