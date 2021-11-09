@@ -815,7 +815,7 @@ void DynaRecCPU::recLWL() {
         allocateReg(_Rt_); // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
         gen.mov(m_regs[_Rt_].allocatedReg, previousValue & mask); // Mask the previous $rt value
-        gen.shl(eax, shift); // Shift the value read from the aligned address
+        gen.shlImm(eax, shift); // Shift the value read from the aligned address
         gen.or_(m_regs[_Rt_].allocatedReg, eax); // Or $rt with shifted value
     } else if (m_regs[_Rs_].isConst()) { // Only address is constant
         const uint32_t address = m_regs[_Rs_].val + _Imm_;
@@ -828,8 +828,8 @@ void DynaRecCPU::recLWL() {
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
-        gen.and_(m_regs[_Rt_].allocatedReg, mask); // Mask the previous $rt value
-        gen.shl(eax, shift); // Shift the value read from the aligned address
+        gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, mask); // Mask the previous $rt value
+        gen.shlImm(eax, shift); // Shift the value read from the aligned address
         gen.or_(m_regs[_Rt_].allocatedReg, eax); // Or $rt with shifted value
     } else if (m_regs[_Rt_].isConst()) { // Only previous rt value is constant
         const uint32_t previousValue = m_regs[_Rt_].val;
@@ -910,7 +910,7 @@ void DynaRecCPU::recLWR(){
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_regs[_Rt_].setWriteback(true);
-        gen.and_(m_regs[_Rt_].allocatedReg, mask); // Mask the previous $rt value
+        gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, mask); // Mask the previous $rt value
         gen.shr(eax, shift); // Shift the value read from the aligned address
         gen.or_(m_regs[_Rt_].allocatedReg, eax); // Or $rt with shifted value
     } else if (m_regs[_Rt_].isConst()) { // Only previous rt value is constant
@@ -1116,7 +1116,7 @@ void DynaRecCPU::recSWL() {
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
         call(psxMemRead32Wrapper);
-        gen.and_(eax, mask); // Mask read value
+        gen.andImm(eax, eax, mask); // Mask read value
         gen.or_(eax, m_regs[_Rt_].val >> shift); // Shift $rt and or with read value
 
         gen.mov(arg1, alignedAddress); // Address in arg2 again
@@ -1130,7 +1130,7 @@ void DynaRecCPU::recSWL() {
 
         gen.mov(arg1, alignedAddress); // Address in arg1
         call(psxMemRead32Wrapper);
-        gen.and_(eax, mask); // Mask read value
+        gen.andImm(eax, eax, mask); // Mask read value
 
         gen.mov(arg1, alignedAddress); // Aligned address in arg1 again
         allocateReg(_Rt_);  // Allocate $rt
@@ -1222,7 +1222,7 @@ void DynaRecCPU::recSWR() {
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
         call(psxMemRead32Wrapper);
-        gen.and_(eax, mask); // Mask read value
+        gen.andImm(eax, eax, mask); // Mask read value
         gen.or_(eax, m_regs[_Rt_].val << shift); // Shift $rt and or with read value
 
         gen.mov(arg1, alignedAddress); // Address in arg2 again
@@ -1236,12 +1236,12 @@ void DynaRecCPU::recSWR() {
 
         gen.mov(arg1, alignedAddress); // Address in arg1
         call(psxMemRead32Wrapper);
-        gen.and_(eax, mask); // Mask read value
+        gen.andImm(eax, eax, mask); // Mask read value
 
         gen.mov(arg1, alignedAddress); // Aligned address in arg1 again
         allocateReg(_Rt_);  // Allocate $rt
         gen.mov(arg2, m_regs[_Rt_].allocatedReg); // Move rt to arg2
-        gen.shl(arg2, shift); // Shift rt value
+        gen.shlImm(arg2, shift); // Shift rt value
         gen.or_(arg2, eax); // Or with read value
         call(psxMemWrite32Wrapper); // Write back
     } else if (m_regs[_Rt_].isConst()) { // Only previous rt value is constant

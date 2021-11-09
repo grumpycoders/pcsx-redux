@@ -134,11 +134,21 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
+    // dest <<= amount
+    // Ignores shifts by 0, optimizes to add if possible
+    void shlImm(Xbyak::Reg32 dest, int amount) {
+        if (amount == 1) { // Optimize shift by 1 to add
+            add(dest, dest);
+        } else if (amount != 0) {
+            shl(dest, amount);
+        }
+    }
+
     // dest = source << amount
     // Optimizes to lea if appropriate
     void shlImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, int amount) {
         if (dest == source) {
-            shl(dest, amount);
+            shlImm(dest, amount);
         } else {
             if (amount == 1 || amount == 2 || amount == 3) {
                 lea(dest, dword[source.cvt64() * (1 << amount)]);
