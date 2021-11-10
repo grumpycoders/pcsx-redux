@@ -87,6 +87,13 @@ struct Emitter final : public CodeGenerator {
         }
     }
 
+    void orImm(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
+        moveReg(dest, source);
+        if (value != 0) {
+            or_(dest, value);
+        }
+    }
+
     // Returns whether dest is equal to value via the zero flag
     void cmpEqImm(Xbyak::Reg32 dest, uint32_t value) {
         if (value == 0) {

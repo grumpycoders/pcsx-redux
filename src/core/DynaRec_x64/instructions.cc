@@ -273,14 +273,12 @@ void DynaRecCPU::recAND() {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+        gen.andImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        gen.and_(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.andImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rs_, _Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
@@ -366,14 +364,12 @@ void DynaRecCPU::recOR() {
         allocateReg(_Rt_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg);
-        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].val);
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].allocatedReg, m_regs[_Rs_].val);
     } else if (m_regs[_Rt_].isConst()) {
         allocateReg(_Rs_, _Rd_);
         m_regs[_Rd_].setWriteback(true);
 
-        gen.mov(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg);
-        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rt_].val);
+        gen.orImm(m_regs[_Rd_].allocatedReg, m_regs[_Rs_].allocatedReg, m_regs[_Rt_].val);
     } else {
         allocateReg(_Rs_, _Rd_, _Rt_);
         m_regs[_Rd_].setWriteback(true);
