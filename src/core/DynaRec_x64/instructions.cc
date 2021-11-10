@@ -674,29 +674,30 @@ void DynaRecCPU::recMULT() {
     }
 
     if (m_regs[_Rs_].isConst()) {
-        gen.mov(eax, m_regs[_Rs_].val);
-
         if (m_regs[_Rt_].isConst()) {
-            gen.mov(edx, m_regs[_Rt_].val);
-            gen.imul(edx);
+            const uint64_t result = (int64_t)(int32_t)m_regs[_Rt_].val * (int64_t)(int32_t)m_regs[_Rs_].val;
+            gen.mov(dword[contextPointer + LO_OFFSET], (uint32_t)result);
+            gen.mov(dword[contextPointer + HI_OFFSET], (uint32_t)(result >> 32));
         } else {
             allocateReg(_Rt_);
-            gen.imul(m_regs[_Rt_].allocatedReg);
+            gen.movsxd(rax, m_regs[_Rt_].allocatedReg);
+            gen.imul(rax, rax, m_regs[_Rs_].val);
         }
     } else {
         if (m_regs[_Rt_].isConst()) {
             allocateReg(_Rs_);
-            gen.mov(eax, m_regs[_Rt_].val);
-            gen.imul(m_regs[_Rs_].allocatedReg);
+            gen.movsxd(rax, m_regs[_Rs_].allocatedReg);
+            gen.imul(rax, rax, m_regs[_Rt_].val);
         } else {
             allocateReg(_Rt_, _Rs_);
-            gen.mov(eax, m_regs[_Rs_].allocatedReg);
-            gen.imul(m_regs[_Rt_].allocatedReg);
+            gen.movsxd(rax, m_regs[_Rs_].allocatedReg);
+            gen.movsxd(rcx, m_regs[_Rt_].allocatedReg);
+            gen.imul(rax, rcx);
         }
     }
 
-    gen.mov(dword[contextPointer + LO_OFFSET], eax);
-    gen.mov(dword[contextPointer + HI_OFFSET], edx);
+    // Write 64-bit result to lo and hi at the same time
+    gen.mov(qword[contextPointer + LO_OFFSET], rax);
 }
 
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
