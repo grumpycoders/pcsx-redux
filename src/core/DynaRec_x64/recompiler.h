@@ -34,7 +34,7 @@
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
 
-#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_psxRegs.hostRegisterCache[(x)] - (uintptr_t)&m_psxRegs)
+#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)&m_psxRegs)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)&m_psxRegs)
 #define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)&m_psxRegs)
 #define PC_OFFSET ((uintptr_t)&m_psxRegs.pc - (uintptr_t)&m_psxRegs)
@@ -68,6 +68,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     using func_t = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
 
   private:
+    uint64_t m_hostRegisterCache[16]; // An array to backup non-volatile regs temporarily
+
     DynarecCallback** m_recompilerLUT;
     DynarecCallback* m_ramBlocks;   // Pointers to compiled RAM blocks (If nullptr then this block needs to be compiled)
     DynarecCallback* m_biosBlocks;  // Pointers to compiled BIOS blocks
@@ -273,7 +275,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Loads a value into dest from the given pointer.
     // Tries to use base pointer relative addressing, otherwise uses movabs
     template <int size, bool signExtend>
-    void load(Xbyak::Reg32 dest, void* pointer) {
+    void load(Xbyak::Reg32 dest, const void* pointer) {
         const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
 
         if (Xbyak::inner::IsInInt32(distance)) {
@@ -309,7 +311,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Stores a value of "size" bits from "source" to the given pointer
     // Tries to use base pointer relative addressing, otherwise uses movabs
     template <int size, typename T>
-    void store(T source, void* pointer) {
+    void store(T source, const void* pointer) {
         const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
 
         if (Xbyak::inner::IsInInt32(distance)) {

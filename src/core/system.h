@@ -123,7 +123,7 @@ class System {
     virtual void close() = 0;
     virtual void purgeAllEvents() = 0;
     bool running() { return m_running; }
-    bool* runningPtr() { return &m_running; }
+    const bool* runningPtr() { return &m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     void start() {

@@ -34,7 +34,7 @@ void DynaRecCPU::makeSymbols() {
         "r_zero", "r_at", "r_v0", "r_v1", "r_a0", "r_a1", "r_a2", "r_a3",  // 00
         "r_t0", "r_t1", "r_t2", "r_t3", "r_t4", "r_t5", "r_t6", "r_t7",  // 08
         "r_s0", "r_s1", "r_s2", "r_s3", "r_s4", "r_s5", "r_s6", "r_s7",  // 10
-        "r_t8", "r_t9", "r_k0", "r_k1", "r_gp", "r_sp", "r_fp", "r_ra",  // 18
+        "r_t8", "r_t9", "r_k0", "r_k1", "r_gp", "r_sp", "r_s8", "r_ra",  // 18
         "r_lo", "r_hi"
     };
 
@@ -63,8 +63,8 @@ void DynaRecCPU::makeSymbols() {
         "COP0_TagLo",    "COP0_TagHi",    "COP0_ErrorEPC", "COP0_MissingAgain",     // 1c
     };
 
-    m_symbols += fmt::format("{}\n", (void*) gen.getCode()); // Base of code buffer
-    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*) &m_psxRegs); // Register register segment
+    m_symbols += fmt::format("{}\n", gen.getCode<void*>()); // Base of code buffer
+    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*)&m_psxRegs); // Register register segment
     m_symbols += fmt::format("endsegs()\n"); // Stop registering segments
 
     for (auto i = 0; i < 34; i++) {
@@ -81,7 +81,7 @@ void DynaRecCPU::makeSymbols() {
     REGISTER_VARIABLE(m_psxRegs.pc, "m_pc", 4);
 
     for (int i = 0; i < 16; i++) { // Register host register cache
-        REGISTER_VARIABLE(m_psxRegs.hostRegisterCache[i], fmt::format("cached_host_reg_{}", i), 8);
+        REGISTER_VARIABLE(m_hostRegisterCache[i], fmt::format("cached_host_reg_{}", i), 8);
     }
 
     REGISTER_FUNCTION(psxMemRead8Wrapper, "read8");
