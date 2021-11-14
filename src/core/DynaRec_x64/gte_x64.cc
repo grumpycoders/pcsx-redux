@@ -21,18 +21,12 @@
 
 #if defined(DYNAREC_X86_64)
 #include "core/gte.h"
-#define COP2_CONTROL_OFFSET(reg) ((uintptr_t) &m_psxRegs.CP2C.r[(reg)] - (uintptr_t) &m_psxRegs)
+#define COP2_CONTROL_OFFSET(reg) ((uintptr_t)&m_psxRegs.CP2C.r[(reg)] - (uintptr_t)&m_psxRegs)
 #define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_psxRegs.CP2D.r[(reg)] - (uintptr_t)&m_psxRegs)
 
 void DynaRecCPU::recCOP2() {
-    Label end;
-    gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000); // Check SR to see if COP2 (GTE) is enabled
-    gen.jz(end); // Skip the opcode if not
-    
     const auto func = m_recGTE[m_psxRegs.code & 0x3F];  // Look up the opcode in our decoding LUT
-    (*this.*func)(); // Jump into the handler to recompile it
-
-    gen.L(end);
+    (*this.*func)();                                    // Jump into the handler to recompile it
 }
 
 void DynaRecCPU::recGTEMove() {
@@ -58,7 +52,8 @@ void DynaRecCPU::recGTEMove() {
 void DynaRecCPU::recCTC2() {
     if (m_regs[_Rt_].isConst()) {
         switch (_Rd_) {
-            case 4: // These registers are signed 16-bit values. Reading from them returns their value sign-extended to 32 bits
+            case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
+                     // 32 bits
             case 12:
             case 20:
             case 26:
@@ -68,7 +63,7 @@ void DynaRecCPU::recCTC2() {
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], (uint32_t)(int16_t)m_regs[_Rt_].val);
                 break;
 
-            case 31: { // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
+            case 31: {  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
                 uint32_t value = m_regs[_Rt_].val & 0x7ffff000;
                 if ((value & 0x7f87e000) != 0) {
                     value |= 0x80000000;
@@ -86,18 +81,19 @@ void DynaRecCPU::recCTC2() {
         allocateReg(_Rt_);
 
         switch (_Rd_) {
-            case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to 32 bits
+            case 4:  // These registers are signed 16-bit values. Reading from them returns their value sign-extended to
+                     // 32 bits
             case 12:
             case 20:
             case 26:
             case 27:
             case 29:
             case 30:
-                gen.movsx(eax, m_regs[_Rt_].allocatedReg.cvt16()); // Sign extend value from 16 to 32 bits
+                gen.movsx(eax, m_regs[_Rt_].allocatedReg.cvt16());  // Sign extend value from 16 to 32 bits
                 gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(_Rd_)], eax);
                 break;
 
-            case 31: // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
+            case 31:  // Write to FLAG - Set low 12 bits to 0 and fix up the error flag
                 gen.mov(ecx, m_regs[_Rt_].allocatedReg);
                 gen.and_(ecx, 0x7ffff000);
                 gen.lea(eax, dword[rcx - 0x80000000]);
@@ -116,7 +112,7 @@ void DynaRecCPU::recCTC2() {
 void DynaRecCPU::recMTC2() {
     switch (_Rd_) {
         case 15:
-            gen.mov(rax, qword[contextPointer + COP2_DATA_OFFSET(13)]); // SXY0 = SXY1 and SXY1 = SXY2
+            gen.mov(rax, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
             gen.mov(qword[contextPointer + COP2_DATA_OFFSET(12)], rax);
 
             // SXY2 = val
@@ -127,9 +123,9 @@ void DynaRecCPU::recMTC2() {
                 gen.mov(dword[contextPointer + COP2_DATA_OFFSET(14)], m_regs[_Rt_].allocatedReg);
             }
             break;
-            
-        case 28: // IRGB
-            if (m_regs[_Rt_].isConst()) { // Calculate IR1/IR2/IR3 values and write them back
+
+        case 28:                           // IRGB
+            if (m_regs[_Rt_].isConst()) {  // Calculate IR1/IR2/IR3 values and write them back
                 const auto value = m_regs[_Rt_].val;
 
                 const auto IR1 = (value & 0x1f) << 7;
@@ -143,44 +139,44 @@ void DynaRecCPU::recMTC2() {
                 allocateReg(_Rt_);
                 gen.mov(eax, m_regs[_Rt_].allocatedReg);
 
-                gen.and_(eax, 0x1f); // Calculate IR1
+                gen.and_(eax, 0x1f);  // Calculate IR1
                 gen.shl(eax, 7);
                 gen.mov(dword[contextPointer + COP2_DATA_OFFSET(9)], eax);
 
-                gen.lea(eax, dword[4 * m_regs[_Rt_].allocatedReg]); // Calculate IR2
-                gen.and_(eax, 0xf80); // The above lea shifted eax by 2 first, so we adjust the mask
+                gen.lea(eax, dword[4 * m_regs[_Rt_].allocatedReg]);  // Calculate IR2
+                gen.and_(eax, 0xf80);  // The above lea shifted eax by 2 first, so we adjust the mask
                 gen.mov(dword[contextPointer + COP2_DATA_OFFSET(10)], eax);
 
-                gen.mov(eax, m_regs[_Rt_].allocatedReg); // Calculate IR3
+                gen.mov(eax, m_regs[_Rt_].allocatedReg);  // Calculate IR3
                 gen.shr(eax, 3);
                 gen.and_(eax, 0xf80);
                 gen.mov(dword[contextPointer + COP2_DATA_OFFSET(11)], eax);
             }
-            
+
             break;
 
         case 30:
             if (m_regs[_Rt_].isConst()) {
                 const auto result = PCSX::GTE::countLeadingBits(m_regs[_Rt_].val);
-                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], result); // Set LZCR
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], result);  // Set LZCR
             } else {
                 allocateReg(_Rt_);
 
-                gen.mov(eax, m_regs[_Rt_].allocatedReg); // eax = value to count leading bits of
-                gen.mov(edx, eax); // value = ~value if the msb is set
+                gen.mov(eax, m_regs[_Rt_].allocatedReg);  // eax = value to count leading bits of
+                gen.mov(edx, eax);                        // value = ~value if the msb is set
                 gen.sar(edx, 31);
                 gen.xor_(eax, edx);
 
-                if (gen.hasLZCNT) { // Count leading zeroes (Return 32 if the input is zero)
+                if (gen.hasLZCNT) {  // Count leading zeroes (Return 32 if the input is zero)
                     gen.lzcnt(eax, eax);
-                } else { // If our CPU doesn't have LZCNT
-                    gen.bsr(eax, eax); // eax = 31 - CLZ(value)
-                    gen.mov(edx, 63); // Set eax to 63 if the input was 0
+                } else {                // If our CPU doesn't have LZCNT
+                    gen.bsr(eax, eax);  // eax = 31 - CLZ(value)
+                    gen.mov(edx, 63);   // Set eax to 63 if the input was 0
                     gen.cmovz(eax, edx);
-                    gen.xor_(eax, 31); // Subtract the value from 31
+                    gen.xor_(eax, 31);  // Subtract the value from 31
                 }
 
-                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], eax); // Write result to LZCR
+                gen.mov(dword[contextPointer + COP2_DATA_OFFSET(31)], eax);  // Write result to LZCR
             }
             break;
 
@@ -196,9 +192,7 @@ void DynaRecCPU::recMTC2() {
     }
 }
 
-static uint32_t MFC2Wrapper(int reg) {
-    return PCSX::g_emulator->m_gte->MFC2(reg);
-}
+static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
 void DynaRecCPU::recMFC2() {
     if (_Rt_) {
@@ -207,30 +201,41 @@ void DynaRecCPU::recMFC2() {
     }
 
     switch (_Rd_) {
-        case 1: case 3: case 5: case 8: case 9: case 10: case 11:
+        case 1:
+        case 3:
+        case 5:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
             if (_Rt_) {
                 gen.movsx(m_regs[_Rt_].allocatedReg, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
             }
             break;
 
-        case 7: case 16: case 17: case 18: case 19:
+        case 7:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
             if (_Rt_) {
                 gen.movzx(m_regs[_Rt_].allocatedReg, word[contextPointer + COP2_DATA_OFFSET(_Rd_)]);
             }
             break;
-        
-        case 15: // Return SXY2 from SXYP
+
+        case 15:  // Return SXY2 from SXYP
             if (_Rt_) {
                 gen.mov(m_regs[_Rt_].allocatedReg, dword[contextPointer + COP2_DATA_OFFSET(14)]);
             }
             break;
 
-        case 28: case 29:  // Fallback for IRGB/ORGB
+        case 28:
+        case 29:  // Fallback for IRGB/ORGB
             gen.mov(arg1, _Rd_);
             call(MFC2Wrapper);
-            
+
             if (_Rt_) {
-                allocateRegWithoutLoad(_Rt_); // Reallocate the reg in case the call thrashed it
+                allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
                 m_regs[_Rt_].setWriteback(true);
                 gen.mov(m_regs[_Rt_].allocatedReg, eax);
             }
@@ -255,55 +260,45 @@ void DynaRecCPU::recCFC2() {
 }
 
 void DynaRecCPU::recLWC2() {
-    Label end;
-    gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000);  // Check SR to see if COP2 is enabled
-    gen.jz(end); // Skip the opcode if not
-
-    if (m_regs[_Rs_].isConst()) { // Store address in arg1
+    if (m_regs[_Rs_].isConst()) {  // Store address in arg1
         gen.mov(arg1, m_regs[_Rs_].val + _Imm_);
     } else {
         allocateReg(_Rs_);
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(psxMemRead32Wrapper); // Read a value from memory. No need to set up a stack frame as we did it before
+    call(psxMemRead32Wrapper);  // Read a value from memory. No need to set up a stack frame as we did it before
     switch (_Rt_) {
         case 15:
         case 30:
             fmt::print("Unimplemented LWC2 to GTE data register {}\n", _Rt_);
             abort();
             break;
-        
-        case 28: // IRGB
+
+        case 28:  // IRGB
             gen.mov(ecx, eax);
 
-            gen.and_(ecx, 0x1f); // Calculate IR1
+            gen.and_(ecx, 0x1f);  // Calculate IR1
             gen.shl(ecx, 7);
             gen.mov(dword[contextPointer + COP2_DATA_OFFSET(9)], ecx);
 
-            gen.lea(ecx, dword[4 * rax]); // Calculate IR2
-            gen.and_(ecx, 0xf80); // The above lea shifted eax by 2 first, so we adjust the mask
+            gen.lea(ecx, dword[4 * rax]);  // Calculate IR2
+            gen.and_(ecx, 0xf80);          // The above lea shifted eax by 2 first, so we adjust the mask
             gen.mov(dword[contextPointer + COP2_DATA_OFFSET(10)], ecx);
 
-            gen.mov(ecx, eax); // Calculate IR3
+            gen.mov(ecx, eax);  // Calculate IR3
             gen.shr(ecx, 3);
             gen.and_(ecx, 0xf80);
             gen.mov(dword[contextPointer + COP2_DATA_OFFSET(11)], ecx);
             break;
     }
-    
+
     if (_Rt_ != 31) {
         gen.mov(dword[contextPointer + COP2_DATA_OFFSET(_Rt_)], eax);
     }
-
-    gen.L(end);
 }
 
 void DynaRecCPU::recSWC2() {
-    Label end;
-    gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x40000000);  // Check SR to see if COP2 is enabled
-    gen.jz(end);                                                    // Skip the opcode if not
-
     gen.moveImm(arg1, _Rt_);
     call(MFC2Wrapper);  // Fetch the COP2 data reg in eax
 
@@ -315,21 +310,17 @@ void DynaRecCPU::recSWC2() {
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
-    gen.mov(arg2, eax); // Value to write in arg2
+    gen.mov(arg2, eax);  // Value to write in arg2
     call(psxMemWrite32Wrapper);
-
-    gen.L(end);
 }
 
-#define GTE_FALLBACK(name) \
-static void name##Wrapper(uint32_t instruction) {  \
-    PCSX::g_emulator->m_gte->name(instruction);    \
-}                                                  \
-                                                   \
-void DynaRecCPU::rec##name() {                     \
-    gen.mov(arg1, m_psxRegs.code);                 \
-    call(name##Wrapper);                           \
-}
+#define GTE_FALLBACK(name)                                                                          \
+    static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
+                                                                                                    \
+    void DynaRecCPU::rec##name() {                                                                  \
+        gen.mov(arg1, m_psxRegs.code);                                                              \
+        call(name##Wrapper);                                                                        \
+    }
 
 // Note: The GTE recompiler functions don't set up a stack frame, because recCOP2 does it already
 GTE_FALLBACK(AVSZ3);
