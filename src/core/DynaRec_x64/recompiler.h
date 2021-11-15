@@ -91,6 +91,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
+    enum class LoadingMode { DoNotLoad, Load };
 
     struct Register {
         uint32_t val = 0;                    // The register's cached value used for constant propagation
@@ -132,7 +133,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
 
-    template <bool shouldLoad = true>
+    template <LoadingMode mode = LoadingMode::Load>
     void reserveReg(int index);
     void allocateRegWithoutLoad(int reg);
     void allocateReg(int reg);
