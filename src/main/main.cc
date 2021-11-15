@@ -130,7 +130,7 @@ class SystemImpl final : public PCSX::System {
   public:
     void setBinDir(std::filesystem::path path) { m_binDir = path; }
 
-    SystemImpl(const CommandLine::args &args) : m_args(args) {}
+    explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
     ~SystemImpl() {
         if (m_logfile) fclose(m_logfile);
     }
