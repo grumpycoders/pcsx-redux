@@ -1014,7 +1014,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
 }
 
 int main(int argc, char** argv) {
-    flags::args args(argc, argv);
+    CommandLine::args args(argc, argv);
     auto output = args.get<std::string>("o");
 
     auto inputs = args.positional();

@@ -28,12 +28,13 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <optional>
 
+#include "flags.h"
 #include "fmt/printf.h"
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
+
 
 namespace PCSX {
 
@@ -94,23 +95,25 @@ class System {
     virtual void hardReset() = 0;
     // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
+    virtual const CommandLine::args &getArgs() = 0;
+
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(s);
     }
     virtual void printf(const std::string &) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, s);
     }
     virtual void log(LogClass, const std::string &) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(s);
     }
@@ -123,7 +126,7 @@ class System {
     virtual void close() = 0;
     virtual void purgeAllEvents() = 0;
     bool running() { return m_running; }
-    const bool* runningPtr() { return &m_running; }
+    const bool *runningPtr() { return &m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     void start() {
@@ -154,8 +157,6 @@ class System {
         m_eventBus->signal(Events::Quitting{});
         purgeAllEvents();
     }
-
-    virtual std::optional<bool> getArg(std::string arg) { return std::nullopt; }
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
 

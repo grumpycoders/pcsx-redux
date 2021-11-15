@@ -58,7 +58,7 @@ static int16_t getLO(uint32_t v) {
 }
 
 int main(int argc, char** argv) {
-    flags::args args(argc, argv);
+    CommandLine::args args(argc, argv);
     auto output = args.get<std::string>("o");
 
     fmt::print(R"(

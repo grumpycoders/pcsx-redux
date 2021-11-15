@@ -71,7 +71,7 @@ class GUI final {
     void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
   public:
-    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+    GUI(const CommandLine::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
         assert(s_gui == nullptr);
         s_gui = this;
     }
@@ -249,7 +249,7 @@ class GUI final {
     bool m_showCfg = false;
     bool m_showUiCfg = false;
 
-    const flags::args &m_args;
+    const CommandLine::args &m_args;
 
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;

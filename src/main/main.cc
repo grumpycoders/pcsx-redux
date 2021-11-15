@@ -120,8 +120,8 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual std::optional<bool> getArg(std::string arg) final {
-        return m_args.get<bool>(arg);
+    virtual const CommandLine::args &getArgs() final {
+        return m_args;
     }
 
     std::string m_putcharBuffer;
@@ -130,7 +130,7 @@ class SystemImpl final : public PCSX::System {
   public:
     void setBinDir(std::filesystem::path path) { m_binDir = path; }
 
-    SystemImpl(const flags::args &args) : m_args(args) {}
+    SystemImpl(const CommandLine::args &args) : m_args(args) {}
     ~SystemImpl() {
         if (m_logfile) fclose(m_logfile);
     }
@@ -140,14 +140,14 @@ class SystemImpl final : public PCSX::System {
     }
 
     bool m_enableStdout = false;
-    const flags::args &m_args;
+    const CommandLine::args &m_args;
 };
 
 using json = nlohmann::json;
 
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
-    const flags::args args(argc, argv);
+    const CommandLine::args args(argc, argv);
 
 #if defined(_WIN32) || defined(_WIN64)
     if (args.get<bool>("stdout")) {
