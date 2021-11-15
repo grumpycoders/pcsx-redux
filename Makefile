@@ -187,7 +187,7 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o
-	$(MAKE) -C third_party/luajit clean
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
 
 gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc
