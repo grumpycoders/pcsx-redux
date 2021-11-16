@@ -88,7 +88,6 @@
 #include "gpu/soft/externals.h"
 #include "gpu/soft/gpu.h"
 #include "gpu/soft/soft.h"
-#include "imgui.h"
 
 ////////////////////////////////////////////////////////////////////////
 // globals
@@ -102,24 +101,6 @@ int iUseFixes;
 // ??
 bool bDoVSyncUpdate = false;
 
-bool PCSX::SoftGPU::SoftPrim::configure() {
-    bool changed = false;
-    ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-    static const char *ditherValues[] = {"No dithering (fastest)", "Game-dependent dithering (slow)",
-                                         "Always dither g-shaded polygons (slowest)"};
-
-    if (ImGui::Begin("Soft GPU configuration")) {
-        if (ImGui::Combo("Dithering", &m_useDither, ditherValues, 3)) {
-            changed = true;
-            g_emulator->settings.get<Emulator::SettingDither>() = m_useDither;
-        }
-
-        ImGui::End();
-    }
-
-    return changed;
-}
 
 static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
     return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
