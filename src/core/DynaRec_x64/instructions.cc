@@ -304,7 +304,7 @@ void DynaRecCPU::recANDI() {
         } else {
             allocateReg(_Rt_);
             m_regs[_Rt_].setWriteback(true);
-            gen.and_(m_regs[_Rt_].allocatedReg, _ImmU_);
+            gen.andImm(m_regs[_Rt_].allocatedReg, m_regs[_Rt_].allocatedReg, _ImmU_);
         }
     } else {
         if (m_regs[_Rs_].isConst()) {

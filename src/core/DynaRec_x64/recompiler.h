@@ -35,13 +35,13 @@
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
 
-#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)&m_psxRegs)
-#define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)&m_psxRegs)
-#define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)&m_psxRegs)
-#define PC_OFFSET ((uintptr_t)&m_psxRegs.pc - (uintptr_t)&m_psxRegs)
-#define LO_OFFSET ((uintptr_t)&m_psxRegs.GPR.n.lo - (uintptr_t)&m_psxRegs)
-#define HI_OFFSET ((uintptr_t)&m_psxRegs.GPR.n.hi - (uintptr_t)&m_psxRegs)
-#define CYCLE_OFFSET ((uintptr_t)&m_psxRegs.cycle - (uintptr_t)&m_psxRegs)
+#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
+#define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
+#define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)this)
+#define PC_OFFSET ((uintptr_t)&m_psxRegs.pc - (uintptr_t)this)
+#define LO_OFFSET ((uintptr_t)&m_psxRegs.GPR.n.lo - (uintptr_t)this)
+#define HI_OFFSET ((uintptr_t)&m_psxRegs.GPR.n.hi - (uintptr_t)this)
+#define CYCLE_OFFSET ((uintptr_t)&m_psxRegs.cycle - (uintptr_t)this)
 
 static uint8_t psxMemRead8Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead8(address); }
 static uint16_t psxMemRead16Wrapper(uint32_t address) { return PCSX::g_emulator->m_psxMem->psxMemRead16(address); }
@@ -186,7 +186,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     // Sets dest to "pointer", using base pointer relative addressing if possible
     void loadAddress(Xbyak::Reg64 dest, void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
 
         if (Xbyak::inner::IsInInt32(distance)) {
             gen.lea(dest, ptr[contextPointer + distance]);
@@ -199,7 +199,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Tries to use base pointer relative addressing, otherwise uses movabs
     template <int size, bool signExtend>
     void load(Xbyak::Reg32 dest, const void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
 
         if (Xbyak::inner::IsInInt32(distance)) {
             switch (size) {
@@ -235,7 +235,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Tries to use base pointer relative addressing, otherwise uses movabs
     template <int size, typename T>
     void store(T source, const void* pointer) {
-        const auto distance = (intptr_t)pointer - (intptr_t)&m_psxRegs;
+        const auto distance = (intptr_t)pointer - (intptr_t)this;
 
         if (Xbyak::inner::IsInInt32(distance)) {
             switch (size) {
@@ -422,7 +422,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     // Load a pointer to the JIT object in "reg" using lea with the context pointer
     void loadThisPointer(Xbyak::Reg64 reg) {
-        gen.lea(reg, qword[contextPointer - ((uintptr_t)&m_psxRegs - (uintptr_t)this)]);
+        gen.mov(reg, contextPointer);
     }
 
     template <int size, bool signExtend>
@@ -487,6 +487,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     static constexpr bool ENABLE_BLOCK_LINKING = true;
     static constexpr bool ENABLE_PROFILER = false;
-    static constexpr bool ENABLE_SYMBOLS = false;
+    static constexpr bool ENABLE_SYMBOLS = true;
 };
 #endif  // DYNAREC_X86_64

@@ -32,7 +32,7 @@ using namespace Xbyak::util;
 	   Starting by the available **non-volatile** regs, since those can be pushed and popped just once per block
 	   Then follow the volatile regs, which can sadly be bonked by any C-interop, which is why they're not preferred
 	*/
-    constexpr Reg64 contextPointer = rbp; // Pointer to CPU context
+    constexpr Reg64 contextPointer = rbp; // Pointer to the JIT object
     constexpr Reg64 runningPointer = rbx; // Pointer to "running" variable
     constexpr int ALLOCATEABLE_REG_COUNT = 8;
     constexpr int ALLOCATEABLE_NON_VOLATILE_COUNT = 6;

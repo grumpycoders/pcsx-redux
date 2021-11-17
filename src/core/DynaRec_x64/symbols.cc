@@ -64,7 +64,7 @@ void DynaRecCPU::makeSymbols() {
     };
 
     m_symbols += fmt::format("{}\n", gen.getCode<void*>()); // Base of code buffer
-    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*)&m_psxRegs); // Register register segment
+    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*)this); // Register register segment
     m_symbols += fmt::format("endsegs()\n"); // Stop registering segments
 
     for (auto i = 0; i < 34; i++) {

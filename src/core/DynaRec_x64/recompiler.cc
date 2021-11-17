@@ -28,7 +28,7 @@ bool DynaRecCPU::Init() {
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
     m_ramSize = ramExpansion ? 0x800000 : 0x200000;
     const auto biosSize = 0x80000;
-    
+
     // The amount of 64KB RAM pages. 0x80 with the ram expansion, 0x20 otherwise
     const int ramPages = m_ramSize >> 16;
 
@@ -156,7 +156,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.align(16);
     m_dispatcher = gen.getCurr<DynarecCallback>();
     gen.push(contextPointer);  // Save context pointer register in stack (also align stack pointer)
-    gen.mov(contextPointer, (uintptr_t)&m_psxRegs);  // Load context pointer
+    gen.mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
@@ -255,7 +255,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     if constexpr (ENABLE_SYMBOLS) {
         m_symbols += fmt::format("{} recompile_{:08X}\n", gen.getCurr<void*>(), m_pc);
         // This is unnecessary, but it acts as a hint to the decompiler about the context pointer's value
-        gen.mov(contextPointer, (uintptr_t)&m_psxRegs);
+        gen.mov(contextPointer, (uintptr_t)this);
     }
 
     const auto pointer = gen.getCurr<DynarecCallback>();  // Pointer to emitted code
