@@ -170,6 +170,9 @@ function DrawImguiFrame()
   doSliderInt(mem, 0x80078bbc, 'Health', -1, 3)
   doSliderInt(mem, 0x80075860, 'Jewels', 0, 65000)
   doSliderInt(mem, 0x80075750, 'Dragons', 0, 70)
+
+  -- Don't forget to close the ImGui window.
+  imgui.End()
 end
 ```
 
