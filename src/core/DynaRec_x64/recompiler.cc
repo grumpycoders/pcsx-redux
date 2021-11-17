@@ -242,7 +242,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
-    m_pc = pc;
+    m_pc = pc & ~3;
 
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
