@@ -1,4 +1,4 @@
-# PCSX-Redux's Lua API
+# Lua API
 
 PCSX-Redux features a Lua API that's available through either a direct Lua console, or a Lua editor, both available through the Debug menu.
 
@@ -94,7 +94,7 @@ PCSX.addBreakpoint(address, type, width, cause, invoker)
 
 **Important**: the return value of this function will be an object that represents the breakpoint itself. If this object gets garbage collected, the corresponding breakpoint will be removed. Thus it is important to store it somewhere that won't get garbage collected right away.
 
-The only mandatory argument is `address`, which will by default place an execution breakpoint at the corresponding address. The second argument `type` is an enum which can be represented by one of the 3 following strings: `'Exec'`, `'Read'`, `'Write'`, and will set the breakpoint type accordingly. The third argument `width` is the width of the breakpoint, which indicates how many bytes should intersect from the base address with operations done by the emulated CPU in order to actually trigger the breakpoint. The fourth argument `cause` is a string that will be displayed in the logs about why the breakpoint triggered. It will also be displayed in the Breakpoint Debug UI. And the fifth and final argument `invoker` is a Lua function that will be called whenever the breakpoint is triggered. By default, this will simply call `PCSX.pauseEmulator()`. If the invoker returns `false`, the breakpoint will be permanently removed.
+The only mandatory argument is `address`, which will by default place an execution breakpoint at the corresponding address. The second argument `type` is an enum which can be represented by one of the 3 following strings: `'Exec'`, `'Read'`, `'Write'`, and will set the breakpoint type accordingly. The third argument `width` is the width of the breakpoint, which indicates how many bytes should intersect from the base address with operations done by the emulated CPU in order to actually trigger the breakpoint. The fourth argument `cause` is a string that will be displayed in the logs about why the breakpoint triggered. It will also be displayed in the Breakpoint Debug UI. And the fifth and final argument `invoker` is a Lua function that will be called whenever the breakpoint is triggered. By default, this will simply call `PCSX.pauseEmulator()`. If the invoker returns `false`, the breakpoint will be permanently removed, permitting temporary breakpoints for example.
 
 The returned object will have a few methods attached to it:
 
@@ -104,3 +104,73 @@ The returned object will have a few methods attached to it:
 - `:remove()`
 
 A removed breakpoint will no longer have any effect whatsoever, and none of its methods will do anything. Remember it is possible for the user to still manually remove a breakpoint from the UI.
+
+## Case studies
+
+### Spyro: Year of the Dragon
+
+By looking up some of the [gameshark codes](https://www.cheatcc.com/psx/codes/spyroyotd.html) for this game, we can determine the following memory addresses:
+
+- `0x8007582c` is the number of lives.
+- `0x80078bbc` is the health of Spyro.
+- `0x80075860` is the number of unspent jewels available to the player.
+- `0x80075750` is the number of dragons Spyro released so far.
+
+With this, we can build a small UI to visualize and manipulate these values in real time:
+
+```lua
+-- Declare a helper function with the following arguments:
+--   mem: the ffi object representing the base pointer into the main RAM
+--   address: the address of the uint32_t to monitor and mutate
+--   name: the label to display in the UI
+--   min, max: the minimum and maximum values of the slider
+--
+-- This function is local as to not pollute the global namespace.
+local function doSliderInt(mem, address, name, min, max)
+  -- Clamping the address to the actual memory space, essentially
+  -- removing the upper bank address using a bitmask. The result
+  -- will still be a normal 32-bits value.
+  address = bit.band(address, 0x1fffff)
+  -- Computing the FFI pointer to the actual uint32_t location.
+  -- The result will be a new FFI pointer, directly into the emulator's
+  -- memory space, hopefully within normal accessible bounds. The
+  -- resulting type will be a cdata[uint8_t*].
+  local pointer = mem + address
+  -- Casting this pointer to a proper uint32_t pointer.
+  pointer = ffi.cast('uint32_t*', pointer)
+  -- Reading the value in memory
+  local value = pointer[0]
+  -- Drawing the ImGui slider
+  local changed
+  changed, value = imgui.SliderInt(name, value, min, max, '%d')
+  -- The ImGui Lua binding will first return a boolean indicating
+  -- if the user moved the slider. The second return value will be
+  -- the new value of the slider if it changed. Therefore we can
+  -- reassign the pointer accordingly.
+  if changed then pointer[0] = value end
+end
+
+-- Utilizing the DrawImguiFrame periodic function to draw our UI.
+-- We are declaring this function global so the emulator can
+-- properly call it periodically.
+function DrawImguiFrame()
+  -- This is typical ImGui paradigm to display a window
+  local show = imgui.Begin('Spyro internals', true)
+  if not show then imgui.End() return end
+
+  -- Grabbing the pointer to the main RAM, to avoid calling
+  -- the function for every pointer we want to change.
+  -- Note: it's not a good idea to hold onto this value between
+  -- calls to the Lua VM, as the memory can potentially move
+  -- within the emulator's memory space.
+  local mem = PCSX.getMemPtr()
+
+  -- Now calling our helper function for each of our pointer.
+  doSliderInt(mem, 0x8007582c, 'Lives', 0, 9)
+  doSliderInt(mem, 0x80078bbc, 'Health', -1, 3)
+  doSliderInt(mem, 0x80075860, 'Jewels', 0, 65000)
+  doSliderInt(mem, 0x80075750, 'Dragons', 0, 70)
+end
+```
+
+You can see this code in action [in this demo video](https://youtu.be/WeHXTLDy5rs).
