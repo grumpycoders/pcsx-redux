@@ -179,7 +179,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
-    void dumpBuffer() {
+    void dumpBuffer() const {
         std::ofstream file("DynarecOutput.dump", std::ios::binary);  // Make a file for our dump
         file.write(gen.getCode<const char*>(), gen.getSize());       // Write the code buffer to the dump
     }
@@ -487,6 +487,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     static constexpr bool ENABLE_BLOCK_LINKING = true;
     static constexpr bool ENABLE_PROFILER = false;
-    static constexpr bool ENABLE_SYMBOLS = true;
+    static constexpr bool ENABLE_SYMBOLS = false;
 };
 #endif  // DYNAREC_X86_64
