@@ -232,6 +232,9 @@ bool PCSX::SaveStates::load(const std::string& data) {
     state.commit();
     g_emulator->m_psxCpu->m_psxRegs.lowestTarget = g_emulator->m_psxCpu->m_psxRegs.cycle;
     g_emulator->m_psxCpu->m_psxRegs.previousCycles = g_emulator->m_psxCpu->m_psxRegs.cycle;
+    // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
+    // So we just force-align it here, since it's never meant to be misaligned
+    g_emulator->m_psxCpu->m_psxRegs.pc &= ~3;
     g_emulator->m_gpu->load(state.get<GPUField>());
     g_emulator->m_spu->load(state.get<SPUField>());
     g_emulator->m_cdrom->load();
