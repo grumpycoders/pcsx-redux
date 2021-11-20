@@ -48,7 +48,7 @@ powershell -c "& { iwr https://raw.githubusercontent.com/grumpycoders/pcsx-redux
 Then, open a new command prompt, and type the following:
 
 ```
-mips install latest
+mips install 11.2.0
 ```
 
 ### Linux
