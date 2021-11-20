@@ -180,7 +180,7 @@ function Install($Version) {
     $GdbURL = $GdbBaseURL + "gdb-multiarch-" + $Version.version + ".zip"
     $OutputGDB = $TempDir + "/gdb.zip"
     Write-Host "Downloading gdb package from $GdbURL..."
-    Invoke-WebRequest -ContentType "application/octet-stream" -Uri $ToolchainURL -OutFile $OutputGDB
+    Invoke-WebRequest -ContentType "application/octet-stream" -Uri $GdbURL -OutFile $OutputGDB
 
     Write-Host "Extracting toolchain package..."
     Expand-Archive -Path $OutputToolchain -DestinationPath $OutputDir -Force
