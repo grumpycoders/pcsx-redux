@@ -151,7 +151,7 @@ class impl final : public SPUInterface {
     std::mutex cbMtx;
     //std::mutex cbMtx;
 
-    CaptureBuffer *captureBuffer = nullptr;
+    CaptureBuffer captureBuffer;
 
     // user settings
     SettingsType settings;

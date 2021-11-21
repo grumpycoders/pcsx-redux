@@ -666,15 +666,15 @@ void PCSX::SPU::impl::MainThread() {
             for (ns = 0; ns < NSSIZE; ns++) {
                 // If there are no samples left in the temp buffer,
                 // we still HAVE to keep writing to the capture buffer.
-                if (captureBuffer->startIndex == captureBuffer->endIndex) {
-                    spuMem[captureBuffer->currIndex] = 0;
-                    spuMem[captureBuffer->currIndex + 0x200] = 0;
+                if (captureBuffer.startIndex == captureBuffer.endIndex) {
+                    spuMem[captureBuffer.currIndex] = 0;
+                    spuMem[captureBuffer.currIndex + 0x200] = 0;
                 } else {
-                    spuMem[captureBuffer->currIndex] = captureBuffer->CDCapLeft[captureBuffer->startIndex];
-                    spuMem[captureBuffer->currIndex + 0x200] = captureBuffer->CDCapRight[captureBuffer->startIndex];
-                    captureBuffer->startIndex = (captureBuffer->startIndex + 1) % CaptureBuffer::CB_SIZE;
+                    spuMem[captureBuffer.currIndex] = captureBuffer.CDCapLeft[captureBuffer.startIndex];
+                    spuMem[captureBuffer.currIndex + 0x200] = captureBuffer.CDCapRight[captureBuffer.startIndex];
+                    captureBuffer.startIndex = (captureBuffer.startIndex + 1) % CaptureBuffer::CB_SIZE;
                 }
-                captureBuffer->currIndex = (captureBuffer->currIndex + 1) % 0x200;
+                captureBuffer.currIndex = (captureBuffer.currIndex + 1) % 0x200;
             }
             cbMtx.unlock();
         }
@@ -827,7 +827,6 @@ void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
 
 long PCSX::SPU::impl::init(void) {
     spuMemC = (uint8_t *)spuMem;  // just small setup
-    captureBuffer = new CaptureBuffer();
 
     wipeChannels();
     return 0;

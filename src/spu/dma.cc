@@ -50,11 +50,11 @@ void PCSX::SPU::impl::unlockSPURAM() { cbMtx.unlock(); }
 
 void PCSX::SPU::impl::resetCaptureBuffer() {
     if (settings.get<DBufIRQ>().value) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
-    memset(captureBuffer->CDCapLeft, 0, CaptureBuffer::CB_SIZE);
-    memset(captureBuffer->CDCapRight, 0, CaptureBuffer::CB_SIZE);
-    captureBuffer->currIndex = 0;
-    captureBuffer->endIndex = 0;
-    captureBuffer->startIndex = 0;
+    memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
+    memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
+    captureBuffer.currIndex = 0;
+    captureBuffer.endIndex = 0;
+    captureBuffer.startIndex = 0;
 }
 
     // Main RAM -> SPU RAM DMA

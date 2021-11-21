@@ -101,9 +101,11 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
             int16_t rawSampleR = static_cast<int16_t>(l >> 16);
             if (pMixIrq) {
-                captureBuffer->CDCapLeft[captureBuffer->endIndex] = rawSampleL;
-                captureBuffer->CDCapRight[captureBuffer->endIndex] = rawSampleR;
-                captureBuffer->endIndex = (captureBuffer->endIndex + 1) % 0x200;
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = rawSampleL;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = rawSampleR;
+                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % 0x200;
+                if (captureBuffer.endIndex == captureBuffer.startIndex)
+                    g_system->printf(_("Capture buffer is overflowing.\n"));
             }
             f.L =  rawSampleL / voldiv;
             f.R = rawSampleR / voldiv;
@@ -142,10 +144,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             int16_t rawSampleL = static_cast<int16_t>(l);
             // Write the CD-XA samples (left/right) to a temporary buffer. Wrap around if necessary.
             if (pMixIrq) {
-                captureBuffer->CDCapLeft[captureBuffer->endIndex] = (uint16_t)rawSampleL;
-                captureBuffer->CDCapRight[captureBuffer->endIndex] = (uint16_t)rawSampleL;
-                captureBuffer->endIndex = (captureBuffer->endIndex + 1) % CaptureBuffer::CB_SIZE;
-                if (captureBuffer->endIndex == captureBuffer->startIndex)
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
+                if (captureBuffer.endIndex == captureBuffer.startIndex)
                     g_system->printf(_("Capture buffer is overflowing.\n"));
             }
 
