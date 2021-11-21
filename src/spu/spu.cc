@@ -423,9 +423,9 @@ void PCSX::SPU::impl::MainThread() {
     int ch, predict_nr, shift_factor, flags, d, s;
     int bIRQReturn = 0;
     SPUCHAN *pChannel;
-
     while (!bEndThread)  // until we are shutting down
     {
+
         int voldiv = 4 - settings.get<Volume>();
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
@@ -488,12 +488,14 @@ void PCSX::SPU::impl::MainThread() {
                     VoiceChangeFrequency(pChannel);
 
                 ns = 0;
+
                 while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
 
-                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
+                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) 
+                    {
                         if (pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
                         {
                             start = pChannel->pCurr;  // set up the current pos
@@ -521,7 +523,6 @@ void PCSX::SPU::impl::MainThread() {
                             start++;
 
                             // -------------------------------------- //
-
                             for (nSample = 0; nSample < 28; start++) {
                                 d = (int)*start;
                                 s = ((d & 0xf) << 12);
@@ -657,6 +658,27 @@ void PCSX::SPU::impl::MainThread() {
             ENDX:;
             }
         }
+
+        // TODO: Also add voice 1 and voice 3 sample data to capture buffer.
+        // Write from our temporary capture buffer to the actual SPU RAM.
+        if (pMixIrq) {
+            cbMtx.lock();
+            for (ns = 0; ns < NSSIZE; ns++) {
+                // If there are no samples left in the temp buffer,
+                // we still HAVE to keep writing to the capture buffer.
+                if (captureBuffer->startIndex == captureBuffer->endIndex) {
+                    spuMem[captureBuffer->currIndex] = 0;
+                    spuMem[captureBuffer->currIndex + 0x200] = 0;
+                } else {
+                    spuMem[captureBuffer->currIndex] = captureBuffer->CDCapLeft[captureBuffer->startIndex];
+                    spuMem[captureBuffer->currIndex + 0x200] = captureBuffer->CDCapRight[captureBuffer->startIndex];
+                    captureBuffer->startIndex = (captureBuffer->startIndex + 1) % CaptureBuffer::CB_SIZE;
+                }
+                captureBuffer->currIndex = (captureBuffer->currIndex + 1) % 0x200;
+            }
+            cbMtx.unlock();
+        }
+
 
         //---------------------------------------------------//
         //- here we have another 1 ms of sound data
@@ -805,6 +827,8 @@ void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
 
 long PCSX::SPU::impl::init(void) {
     spuMemC = (uint8_t *)spuMem;  // just small setup
+    captureBuffer = new CaptureBuffer();
+
     wipeChannels();
     return 0;
 }
@@ -890,7 +914,6 @@ void PCSX::SPU::impl::SetupStreams() {
         s_chan[i].pCurr = spuMemC;
     }
 
-    if (settings.get<DBufIRQ>().value) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -933,6 +956,8 @@ bool PCSX::SPU::impl::open() {
     bSPUIsOpen = 1;
 
     m_lastUpdated = std::chrono::steady_clock::now();
+
+    resetCaptureBuffer();
 
     return true;
 }

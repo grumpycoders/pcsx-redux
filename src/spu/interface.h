@@ -48,6 +48,9 @@ class impl final : public SPUInterface {
     // void playSample(uint8_t);
     void writeRegister(uint32_t, uint16_t) final;
     uint16_t readRegister(uint32_t) final;
+    void lockSPURAM() final;
+    void unlockSPURAM() final;
+    void resetCaptureBuffer() final;
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;
     virtual void playADPCMchannel(xa_decode_t *) final;
@@ -133,6 +136,22 @@ class impl final : public SPUInterface {
     uint8_t *pSpuIrq = 0;
     uint8_t *pSpuBuffer;
     uint8_t *pMixIrq = 0;
+
+
+    struct CaptureBuffer {
+        static const int CB_SIZE = 1024 * 8;
+        // These buffers have to be large enough to allow the CD-XA to stream in enough data.
+        uint16_t CDCapLeft[CB_SIZE] = {0};
+        uint16_t CDCapRight[CB_SIZE] = {0};
+
+        int32_t startIndex = 0;
+        int32_t endIndex = 0;
+        int32_t currIndex = 0;
+    };
+    std::mutex cbMtx;
+    //std::mutex cbMtx;
+
+    CaptureBuffer *captureBuffer = nullptr;
 
     // user settings
     SettingsType settings;

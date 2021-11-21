@@ -58,6 +58,9 @@ class SPUInterface {
     virtual void async(uint32_t) = 0;
     virtual void writeDMAMem(uint16_t *, int) = 0;
     virtual void readDMAMem(uint16_t *, int) = 0;
+    virtual void lockSPURAM() = 0;
+    virtual void unlockSPURAM() = 0;
+    virtual void resetCaptureBuffer() = 0;
     virtual json getCfg() = 0;
     virtual void setCfg(const json &j) = 0;
     virtual void debug() = 0;
