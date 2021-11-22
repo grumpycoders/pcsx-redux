@@ -45,6 +45,12 @@ If you want to compile OpenBIOS or other PS1 software, you need to install a MIP
 powershell -c "& { iwr https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"
 ```
 
+Then, open a new command prompt, and type the following:
+
+```
+mips install 11.2.0
+```
+
 ### Linux
 Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. You will also need a few libraries on your system for this to work. Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install.
 
