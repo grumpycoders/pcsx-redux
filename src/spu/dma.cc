@@ -29,14 +29,13 @@
 
 // SPU RAM -> Main RAM DMA
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) 
-        std::unique_lock<std::mutex> lock(cbMtx);
+    if (pMixIrq) cbMtx.lock();
 
     for (int i = 0; i < size; i++) {
         *mainMem++ = spuMem[spuAddr >> 1];  // Copy 2 bytes
         spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
     }
-
+    if (pMixIrq) cbMtx.unlock();
     iSpuAsyncWait = 0;
 }
 
@@ -55,17 +54,18 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
     captureBuffer.currIndex = 0;
     captureBuffer.endIndex = 0;
     captureBuffer.startIndex = 0;
+    capBufVoiceIndex = 0;
 }
 
     // Main RAM -> SPU RAM DMA
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq)
-        std::unique_lock<std::mutex> lock(cbMtx);
+    if (pMixIrq) cbMtx.lock();
 
     for (int i = 0; i < size; i++) {
         spuMem[spuAddr >> 1] = *mainMem++;  // Copy 2 bytes
         spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
     }
 
+    if (pMixIrq) cbMtx.unlock();
     iSpuAsyncWait = 0;
 }

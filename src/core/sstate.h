@@ -118,11 +118,13 @@ typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("stat"), 9> SPUStat;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbStartInd"), 10> CBStartIndex;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbCurrInd"), 11> CBCurrIndex;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbEndInd"), 12> CBEndIndex;
-typedef Protobuf::Field<Protobuf::FixedBytes<1024 * 8 * 2>, TYPESTRING("CBLeft"), 13> CBCDLeft;
-typedef Protobuf::Field<Protobuf::FixedBytes<1024 * 8 * 2>, TYPESTRING("CBRight"), 14> CBCDRight;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbVoiceInd"), 13> CBVoiceIndex;
+
+typedef Protobuf::Field<Protobuf::FixedBytes<1024 * 16 * 2>, TYPESTRING("CBLeft"), 14> CBCDLeft;
+typedef Protobuf::Field<Protobuf::FixedBytes<1024 * 16 * 2>, TYPESTRING("CBRight"), 15> CBCDRight;
 
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
-                          SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBCDLeft, CBCDRight>
+                          SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBVoiceIndex, CBCDLeft, CBCDRight>
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 

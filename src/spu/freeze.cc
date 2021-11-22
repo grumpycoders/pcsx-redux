@@ -68,6 +68,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::CBCurrIndex>().value = captureBuffer.currIndex;
     spu.get<SaveStates::CBEndIndex>().value = captureBuffer.endIndex;
     spu.get<SaveStates::CBStartIndex>().value = captureBuffer.startIndex;
+    spu.get<SaveStates::CBVoiceIndex>().value = capBufVoiceIndex;
 
     spu.get<SaveStates::SPURam>().copyFrom(reinterpret_cast<uint8_t *>(spuMem));
     spu.get<SaveStates::SPUPorts>().copyFrom(reinterpret_cast<uint8_t *>(regArea));
@@ -115,6 +116,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     captureBuffer.currIndex = spu.get<SaveStates::CBCurrIndex>().value;
     captureBuffer.endIndex = spu.get<SaveStates::CBEndIndex>().value;
     captureBuffer.startIndex = spu.get<SaveStates::CBStartIndex>().value;
+    capBufVoiceIndex = spu.get<SaveStates::CBVoiceIndex>().value;
 
     spu.get<SaveStates::SPURam>().copyTo(reinterpret_cast<uint8_t *>(spuMem));
     spu.get<SaveStates::SPUPorts>().copyTo(reinterpret_cast<uint8_t *>(regArea));

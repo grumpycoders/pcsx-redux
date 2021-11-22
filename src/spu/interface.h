@@ -92,6 +92,7 @@ class impl final : public SPUInterface {
 
     // spu
     void MainThread();
+    void writeCaptureBufferCD(int numbSamples);
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();
@@ -131,6 +132,7 @@ class impl final : public SPUInterface {
 
     // psx buffer / addresses
     uint16_t regArea[10000];
+    // Note that SPU ram is a uint16_t, so total size is 512KB.
     uint16_t spuMem[256 * 1024];
     uint8_t *spuMemC;
     uint8_t *pSpuIrq = 0;
@@ -139,7 +141,7 @@ class impl final : public SPUInterface {
 
 
     struct CaptureBuffer {
-        static const int CB_SIZE = 1024 * 8;
+        static const int CB_SIZE = 1024 * 16;
         // These buffers have to be large enough to allow the CD-XA to stream in enough data.
         uint16_t CDCapLeft[CB_SIZE] = {0};
         uint16_t CDCapRight[CB_SIZE] = {0};
@@ -149,10 +151,12 @@ class impl final : public SPUInterface {
         int32_t currIndex = 0;
     };
     std::mutex cbMtx;
-    //std::mutex cbMtx;
 
+    // The temporary cap buffer for CD Audio left/right.
     CaptureBuffer captureBuffer;
-
+    // The cap buffer index for voice 1 and voice 3.
+    int32_t capBufVoiceIndex = 0;
+   
     // user settings
     SettingsType settings;
 
