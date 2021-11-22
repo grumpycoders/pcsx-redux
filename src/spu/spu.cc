@@ -422,10 +422,13 @@ void PCSX::SPU::impl::MainThread() {
     unsigned int nSample;
     int ch, predict_nr, shift_factor, flags, d, s;
     int bIRQReturn = 0;
-    SPUCHAN *pChannel;
+    int32_t tmpCapVoice1Index = 0;
+    int32_t tmpCapVoice3Index = 0;
 
+    SPUCHAN *pChannel;
     while (!bEndThread)  // until we are shutting down
     {
+
         int voldiv = 4 - settings.get<Volume>();
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
@@ -468,6 +471,9 @@ void PCSX::SPU::impl::MainThread() {
             goto GOON;  // -> directly jump to the continue point
         }
 
+        tmpCapVoice1Index = capBufVoiceIndex;
+        tmpCapVoice3Index = capBufVoiceIndex;
+
         //--------------------------------------------------//
         //- main channel loop                              -//
         //--------------------------------------------------//
@@ -481,19 +487,35 @@ void PCSX::SPU::impl::MainThread() {
                     dwNewChannel &= ~(1 << ch);  // clear new channel bit
                 }
 
-                if (!pChannel->data.get<PCSX::SPU::Chan::On>().value) continue;  // channel not playing? next
+                if (!pChannel->data.get<PCSX::SPU::Chan::On>().value) {
+                    // Although the voices may stop outputting audio, the capture buffer is still filling up.
+                    if (pMixIrq && ch == 1) {
+                        std::unique_lock<std::mutex> lock(cbMtx);
+                        for (int c = 0; c < NSSIZE; c++) 
+                            spuMem[tmpCapVoice1Index + c + 0x400] = 0;
+                        tmpCapVoice1Index = (tmpCapVoice1Index + NSSIZE) % 0x200;
+                    } else if (pMixIrq && ch == 3) {
+                        std::unique_lock<std::mutex> lock(cbMtx);
+                        for (int c = 0; c < NSSIZE; c++) 
+                            spuMem[tmpCapVoice3Index + c + 0x600] = 0;
+                        tmpCapVoice3Index = (tmpCapVoice3Index + NSSIZE) % 0x200;
+                    }
+                    continue;  // channel not playing? next
+                } 
 
                 if (pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value !=
                     pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value)  // new psx frequency?
                     VoiceChangeFrequency(pChannel);
 
                 ns = 0;
+
                 while (ns < NSSIZE)  // loop until 1 ms of data is reached
                 {
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
 
-                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
+                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) 
+                    {
                         if (pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
                         {
                             start = pChannel->pCurr;  // set up the current pos
@@ -503,6 +525,17 @@ void PCSX::SPU::impl::MainThread() {
                                 pChannel->data.get<PCSX::SPU::Chan::On>().value = false;  // -> turn everything off
                                 pChannel->ADSRX.get<exVolume>().value = 0;
                                 pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
+                                // Although the voices may stop outputting audio, the capture buffer is still filling
+                                // up. At this point, ns samples are already filled, we need (NSSIZE-ns) more samples.
+                                if (pMixIrq && ch == 1) {
+                                    std::unique_lock<std::mutex> lock(cbMtx);
+                                    for (int c = ns; c < NSSIZE; c++) spuMem[tmpCapVoice1Index + c + 0x400] = 0;
+                                    tmpCapVoice1Index = (tmpCapVoice1Index + (NSSIZE-ns)) % 0x200;
+                                } else if (pMixIrq && ch == 3) {
+                                    std::unique_lock<std::mutex> lock(cbMtx);
+                                    for (int c = ns; c < NSSIZE; c++) spuMem[tmpCapVoice3Index + c + 0x600] = 0;
+                                    tmpCapVoice3Index = (tmpCapVoice3Index + (NSSIZE - ns)) % 0x200;
+                                }
                                 goto ENDX;  // -> and done for this channel
                             }
 
@@ -521,7 +554,6 @@ void PCSX::SPU::impl::MainThread() {
                             start++;
 
                             // -------------------------------------- //
-
                             for (nSample = 0; nSample < 28; start++) {
                                 d = (int)*start;
                                 s = ((d & 0xf) << 12);
@@ -620,7 +652,22 @@ void PCSX::SPU::impl::MainThread() {
                     else
                         fa = iGetInterpolationVal(pChannel);  // get sample val
 
-                    pChannel->data.get<PCSX::SPU::Chan::sval>().value = (m_adsr.mix(pChannel) * fa) / 1023;  // mix adsr
+
+                    int32_t mixedSample = (m_adsr.mix(pChannel) * fa) / 1023; // mix adsr
+                    pChannel->data.get<PCSX::SPU::Chan::sval>().value = mixedSample;  
+
+                    // Capture buffer should contain voice1/3 sample after any adsr processing but before volume processing?
+                    mixedSample = std::min(0xFFFF, std::max(-0xFFFF, mixedSample));
+                    if (pMixIrq && ch == 1) {
+                        std::unique_lock<std::mutex> lock(cbMtx);
+                        spuMem[tmpCapVoice1Index + 0x400] = mixedSample;
+                        tmpCapVoice1Index = (tmpCapVoice1Index + 1) % 0x200;
+                    }
+                    else if (pMixIrq && ch == 3) {
+                        std::unique_lock<std::mutex> lock(cbMtx);
+                        spuMem[tmpCapVoice3Index + 0x600] = mixedSample;
+                        tmpCapVoice3Index = (tmpCapVoice3Index + 1) % 0x200;
+                    }
 
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 2)  // fmod freq channel
                         iFMod[ns] = pChannel->data.get<PCSX::SPU::Chan::sval>()
@@ -657,6 +704,9 @@ void PCSX::SPU::impl::MainThread() {
             ENDX:;
             }
         }
+
+        // Write from our temporary capture buffer to the actual SPU RAM.
+        writeCaptureBufferCD(NSSIZE);
 
         //---------------------------------------------------//
         //- here we have another 1 ms of sound data
@@ -766,6 +816,32 @@ void PCSX::SPU::impl::MainThread() {
     bThreadEnded = 1;
 }
 
+void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
+    if (pMixIrq) {
+        std::unique_lock<std::mutex> lock(cbMtx);
+        for (int n = 0; n < numbSamples; n++) {
+            if (captureBuffer.startIndex == captureBuffer.endIndex) {
+                // If there are no samples left in the temp buffer,
+                // we still HAVE to keep writing to the capture buffer.
+                spuMem[captureBuffer.currIndex] = 0;
+                spuMem[captureBuffer.currIndex + 0x200] = 0;
+            } else {
+                spuMem[captureBuffer.currIndex] = captureBuffer.CDCapLeft[captureBuffer.startIndex];
+                spuMem[captureBuffer.currIndex + 0x200] = captureBuffer.CDCapRight[captureBuffer.startIndex];
+                captureBuffer.startIndex = (captureBuffer.startIndex + 1) % CaptureBuffer::CB_SIZE;
+            }
+            captureBuffer.currIndex = (captureBuffer.currIndex + 1) % 0x200;
+        }
+        // Update the capture buffer voice index, which in the end, should be the same as
+        // tmpCapVoice1Index, tmpCapVoice3Index and captureBuffer.currIndex.
+        // Unless I'm missing something in Pete's code.
+        /* capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % 0x200;
+        if ((tmpCapVoice1Index != tmpCapVoice3Index) || (tmpCapVoice3Index != captureBuffer.currIndex) ||
+            (captureBuffer.currIndex != capBufVoiceIndex))
+            g_system->log(LogClass::SPU, "Capture buffer indices are not the same.\n");*/
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -805,6 +881,7 @@ void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
 
 long PCSX::SPU::impl::init(void) {
     spuMemC = (uint8_t *)spuMem;  // just small setup
+
     wipeChannels();
     return 0;
 }
@@ -890,7 +967,6 @@ void PCSX::SPU::impl::SetupStreams() {
         s_chan[i].pCurr = spuMemC;
     }
 
-    if (settings.get<DBufIRQ>().value) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -933,6 +1009,8 @@ bool PCSX::SPU::impl::open() {
     bSPUIsOpen = 1;
 
     m_lastUpdated = std::chrono::steady_clock::now();
+
+    resetCaptureBuffer();
 
     return true;
 }
