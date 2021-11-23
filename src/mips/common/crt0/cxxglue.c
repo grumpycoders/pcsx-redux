@@ -1,3 +1,38 @@
+/*
+
+MIT License
+
+Copyright (c) 2021 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+/* Properly using C++ on the PSX requires a form of the libstdc++ that's
+typically called "freestanding", which isn't really buildable at the moment.
+See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100057 for details.
+This means however that using a full linux compiler such as the Ubuntu
+mipsel compiler package will bring in a libstdc++ that utilizes all of
+the existing libc. Properly filling in portions of the required ABI, while
+avoiding the bits that won't work can be tricky, but is doable. Using a
+freestanding compiler won't have the libstdc++, and this wouldn't work. */
+
 #include <stddef.h>
 
 typedef void (*fptr)();
