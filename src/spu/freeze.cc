@@ -62,7 +62,7 @@ typedef struct {
 void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     RemoveThread();
 
-    //Capture buffer
+    // Capture buffer
     spu.get<SaveStates::CBCDLeft>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
     spu.get<SaveStates::CBCDRight>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
     spu.get<SaveStates::CBCurrIndex>().value = captureBuffer.currIndex;
