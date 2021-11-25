@@ -1,0 +1,6 @@
+-m32
+-I.
+-I..
+-I../../../third_party/uC-sdk/libc/include
+-I../../../third_party/uC-sdk/os/include
+-IuC-sdk-glue
