@@ -120,9 +120,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    virtual const CommandLine::args &getArgs() final {
-        return m_args;
-    }
+    virtual const CommandLine::args &getArgs() final { return m_args; }
 
     std::string m_putcharBuffer;
     FILE *m_logfile = nullptr;

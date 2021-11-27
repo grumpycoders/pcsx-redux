@@ -155,7 +155,7 @@ void DynaRecCPU::emitDispatcher() {
 
     gen.align(16);
     m_dispatcher = gen.getCurr<DynarecCallback>();
-    gen.push(contextPointer);  // Save context pointer register in stack (also align stack pointer)
+    gen.push(contextPointer);                  // Save context pointer register in stack (also align stack pointer)
     gen.mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs

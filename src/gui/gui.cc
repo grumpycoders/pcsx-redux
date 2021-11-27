@@ -1287,13 +1287,13 @@ faster by not displaying the logo.)"));
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
-        if(ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
+        if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
             changed = true;
             if (debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() && settings.get<Emulator::SettingDynarec>()) {
                 showDynarecWarning = true;
             }
         }
-        
+
         ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticable extend.)"));
@@ -1452,7 +1452,7 @@ The debugger might be required in some cases.)"));
     }
 
     if (showDynarecWarning) {
-        addNotification(R"(Debugger and dynarec enabled at the same time. 
+        addNotification(R"(Debugger and dynarec enabled at the same time.
 Consider turning either one off, otherwise
 debugging features may not work)");
     }

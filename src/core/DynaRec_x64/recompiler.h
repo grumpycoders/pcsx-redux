@@ -421,9 +421,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     // Load a pointer to the JIT object in "reg" using lea with the context pointer
-    void loadThisPointer(Xbyak::Reg64 reg) {
-        gen.mov(reg, contextPointer);
-    }
+    void loadThisPointer(Xbyak::Reg64 reg) { gen.mov(reg, contextPointer); }
 
     template <int size, bool signExtend>
     void recompileLoad();
