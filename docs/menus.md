@@ -57,8 +57,8 @@ The menu bar holds some informations :
   * Show ImGui demo
   * About
 
-## GPU infos
+## GPU information
 
-The 'About' dialog available in the 'Help' menu has a 'OpenGl information' tab that displays information on the GPU currently used by the program, such as the supported OpenGL extensions.
+The 'About' dialog available in the 'Help' menu has an 'OpenGL information' tab that displays information on the GPU currently used by the program, such as the supported OpenGL extensions.
 
 ![GPU infos](./images/gpu_infos.png)
