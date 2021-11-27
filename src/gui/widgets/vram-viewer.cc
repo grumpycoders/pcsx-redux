@@ -193,7 +193,7 @@ void main() {
 }
 )";
 
-void PCSX::Widgets::VRAMViewer::compileShader(GUI * gui) {
+void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     auto ret = m_editor.compile(gui, {"i_position", "i_texUV"});
     if (!ret.has_value()) return;
 
@@ -221,7 +221,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI * gui) {
 
 PCSX::Widgets::VRAMViewer::VRAMViewer() { m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, ""); }
 
-void PCSX::Widgets::VRAMViewer::drawVRAM(GUI * gui, GLuint textureID) {
+void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     if (!m_shaderProgram) {
         compileShader(gui);
     }
@@ -352,7 +352,7 @@ void PCSX::Widgets::VRAMViewer::resetView() {
     m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
 }
 
-void PCSX::Widgets::VRAMViewer::draw(GUI * gui, unsigned int VRAMTexture) {
+void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
     if (m_show) {
         auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
