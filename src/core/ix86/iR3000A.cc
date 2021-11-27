@@ -63,9 +63,7 @@ void GPU_writeDataWrapper(uint32_t gdata) { PCSX::g_emulator->m_gpu->writeData(g
 void GPU_writeStatusWrapper(uint32_t gdata) { PCSX::g_emulator->m_gpu->writeStatus(gdata); }
 
 uint16_t SPU_readRegisterWrapper(uint32_t addr) { return PCSX::g_emulator->m_spu->readRegister(addr); }
-void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
-    PCSX::g_emulator->m_spu->writeRegister(addr, value);
-}
+void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) { PCSX::g_emulator->m_spu->writeRegister(addr, value); }
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
     inline uintptr_t PC_REC(uint32_t addr) {
@@ -729,7 +727,7 @@ void DynaRecCPU::flushCache() {
 void DynaRecCPU::execute() {
     const uint32_t pc = m_psxRegs.pc;
     const auto recFunc = (DynarecCallback *)PC_REC(pc);
-    
+
     if (!IsPcValid(pc)) {
         recError();
         return;
@@ -795,7 +793,7 @@ void DynaRecCPU::recCOP0() {
 // REC_SYS(COP2);
 void DynaRecCPU::recCOP2() {
     Label end;
-    gen.test(dword[&m_psxRegs.CP0.n.Status], 0x40000000); // Check if COP2 is enabled in SR, skip opcode otherwise
+    gen.test(dword[&m_psxRegs.CP0.n.Status], 0x40000000);  // Check if COP2 is enabled in SR, skip opcode otherwise
     gen.jz(end);
 
     const auto func = m_pRecCP2[_Funct_];
@@ -2411,7 +2409,7 @@ void DynaRecCPU::recException(Exception e) {
 void DynaRecCPU::recSYSCALL() { recException(Exception::Syscall); }
 
 void DynaRecCPU::recBREAK() {
-    iFlushRegs(); // For PCDRV support, we need to flush all registers before handling the exception.
+    iFlushRegs();  // For PCDRV support, we need to flush all registers before handling the exception.
     recException(Exception::Break);
 }
 
@@ -3229,7 +3227,5 @@ class DynaRecCPU : public PCSX::R3000Acpu {
 }  // namespace
 
 #if defined(DYNAREC_X86_32) || defined(DYNAREC_NONE)
-    std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() {
-        return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU());
-    }
+std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return std::unique_ptr<PCSX::R3000Acpu>(new DynaRecCPU()); }
 #endif
