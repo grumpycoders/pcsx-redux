@@ -43,12 +43,12 @@ class VRAMViewer {
     }
     void resetView();
 
-    void draw(GUI * gui, GLuint VRAMTexture);
+    void draw(GUI *gui, GLuint VRAMTexture);
 
   private:
     void drawEditor(GUI *gui);
     static inline const float RATIOS[] = {0.75f, 0.5f, 0.25f, 0.125f, 0.0625f, 0.03125f};
-    void drawVRAM(GUI * gui, GLuint textureID);
+    void drawVRAM(GUI *gui, GLuint textureID);
     void compileShader(GUI *gui);
     void modeChanged();
     static void imguiCBtrampoline(const ImDrawList *parentList, const ImDrawCmd *cmd) {
