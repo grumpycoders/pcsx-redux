@@ -85,6 +85,15 @@ The Lua code has the following 4 API functions available to it in order to contr
 - `PCSX.softResetEmulator()`
 - `PCSX.hardResetEmulator()`
 
+#### Messages
+The globals `print` and `printError` are available, and will display logs in the Lua Console. You can also use `PCSX.log` to display a line in the general Log window. All three functions should behave the way you'd expect from a `print` function in Lua.
+
+#### GUI
+You can move the cursor within the assembly window and the first memory view using the following two functions:
+
+- `PCSX.GUI.jumpToPC(pc)`
+- `PCSX.GUI.jumpToMemory(address[, width])`
+
 #### Breakpoints
 If the debugger is activated, and while using the interpreter, the Lua code can insert powerful breakpoints using the following API:
 
