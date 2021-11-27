@@ -43,7 +43,6 @@ void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
 // irqs? Will an irq be triggered, if new data is written to
 // the memory irq address?
 
-
 void PCSX::SPU::impl::lockSPURAM() { cbMtx.lock(); }
 void PCSX::SPU::impl::unlockSPURAM() { cbMtx.unlock(); }
 
@@ -57,7 +56,7 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
     capBufVoiceIndex = 0;
 }
 
-    // Main RAM -> SPU RAM DMA
+// Main RAM -> SPU RAM DMA
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
     if (pMixIrq) cbMtx.lock();
 

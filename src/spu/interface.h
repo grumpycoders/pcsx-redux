@@ -139,7 +139,6 @@ class impl final : public SPUInterface {
     uint8_t *pSpuBuffer;
     uint8_t *pMixIrq = 0;
 
-
     struct CaptureBuffer {
         static const int CB_SIZE = 1024 * 16;
         // These buffers have to be large enough to allow the CD-XA to stream in enough data.
@@ -156,7 +155,7 @@ class impl final : public SPUInterface {
     CaptureBuffer captureBuffer;
     // The cap buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
-   
+
     // user settings
     SettingsType settings;
 

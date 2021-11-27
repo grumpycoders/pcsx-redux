@@ -428,7 +428,6 @@ void PCSX::SPU::impl::MainThread() {
     SPUCHAN *pChannel;
     while (!bEndThread)  // until we are shutting down
     {
-
         int voldiv = 4 - settings.get<Volume>();
         //--------------------------------------------------//
         // ok, at the beginning we are looking if there is
@@ -491,17 +490,15 @@ void PCSX::SPU::impl::MainThread() {
                     // Although the voices may stop outputting audio, the capture buffer is still filling up.
                     if (pMixIrq && ch == 1) {
                         std::unique_lock<std::mutex> lock(cbMtx);
-                        for (int c = 0; c < NSSIZE; c++) 
-                            spuMem[tmpCapVoice1Index + c + 0x400] = 0;
+                        for (int c = 0; c < NSSIZE; c++) spuMem[tmpCapVoice1Index + c + 0x400] = 0;
                         tmpCapVoice1Index = (tmpCapVoice1Index + NSSIZE) % 0x200;
                     } else if (pMixIrq && ch == 3) {
                         std::unique_lock<std::mutex> lock(cbMtx);
-                        for (int c = 0; c < NSSIZE; c++) 
-                            spuMem[tmpCapVoice3Index + c + 0x600] = 0;
+                        for (int c = 0; c < NSSIZE; c++) spuMem[tmpCapVoice3Index + c + 0x600] = 0;
                         tmpCapVoice3Index = (tmpCapVoice3Index + NSSIZE) % 0x200;
                     }
                     continue;  // channel not playing? next
-                } 
+                }
 
                 if (pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value !=
                     pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value)  // new psx frequency?
@@ -514,8 +511,7 @@ void PCSX::SPU::impl::MainThread() {
                     if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
                         FModChangeFrequency(pChannel, ns);
 
-                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) 
-                    {
+                    while (pChannel->data.get<PCSX::SPU::Chan::spos>().value >= 0x10000L) {
                         if (pChannel->data.get<PCSX::SPU::Chan::SBPos>().value == 28)  // 28 reached?
                         {
                             start = pChannel->pCurr;  // set up the current pos
@@ -530,7 +526,7 @@ void PCSX::SPU::impl::MainThread() {
                                 if (pMixIrq && ch == 1) {
                                     std::unique_lock<std::mutex> lock(cbMtx);
                                     for (int c = ns; c < NSSIZE; c++) spuMem[tmpCapVoice1Index + c + 0x400] = 0;
-                                    tmpCapVoice1Index = (tmpCapVoice1Index + (NSSIZE-ns)) % 0x200;
+                                    tmpCapVoice1Index = (tmpCapVoice1Index + (NSSIZE - ns)) % 0x200;
                                 } else if (pMixIrq && ch == 3) {
                                     std::unique_lock<std::mutex> lock(cbMtx);
                                     for (int c = ns; c < NSSIZE; c++) spuMem[tmpCapVoice3Index + c + 0x600] = 0;
@@ -652,18 +648,17 @@ void PCSX::SPU::impl::MainThread() {
                     else
                         fa = iGetInterpolationVal(pChannel);  // get sample val
 
+                    int32_t mixedSample = (m_adsr.mix(pChannel) * fa) / 1023;  // mix adsr
+                    pChannel->data.get<PCSX::SPU::Chan::sval>().value = mixedSample;
 
-                    int32_t mixedSample = (m_adsr.mix(pChannel) * fa) / 1023; // mix adsr
-                    pChannel->data.get<PCSX::SPU::Chan::sval>().value = mixedSample;  
-
-                    // Capture buffer should contain voice1/3 sample after any adsr processing but before volume processing?
+                    // Capture buffer should contain voice1/3 sample after any adsr processing but before volume
+                    // processing?
                     mixedSample = std::min(0xFFFF, std::max(-0xFFFF, mixedSample));
                     if (pMixIrq && ch == 1) {
                         std::unique_lock<std::mutex> lock(cbMtx);
                         spuMem[tmpCapVoice1Index + 0x400] = mixedSample;
                         tmpCapVoice1Index = (tmpCapVoice1Index + 1) % 0x200;
-                    }
-                    else if (pMixIrq && ch == 3) {
+                    } else if (pMixIrq && ch == 3) {
                         std::unique_lock<std::mutex> lock(cbMtx);
                         spuMem[tmpCapVoice3Index + 0x600] = mixedSample;
                         tmpCapVoice3Index = (tmpCapVoice3Index + 1) % 0x200;
@@ -966,7 +961,6 @@ void PCSX::SPU::impl::SetupStreams() {
         s_chan[i].pStart = spuMemC;
         s_chan[i].pCurr = spuMemC;
     }
-
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -114,7 +114,7 @@ typedef Protobuf::RepeatedField<Channel, 24, TYPESTRING("channel"), 6> Channels;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("addr"), 7> SPUAddr;
 typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("ctrl"), 8> SPUCtrl;
 typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("stat"), 9> SPUStat;
-//Capture buffer
+// Capture buffer
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbStartInd"), 10> CBStartIndex;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbCurrInd"), 11> CBCurrIndex;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbEndInd"), 12> CBEndIndex;

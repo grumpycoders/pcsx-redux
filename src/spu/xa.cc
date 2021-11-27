@@ -100,13 +100,13 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
             int16_t rawSampleR = static_cast<int16_t>(l >> 16);
             if (pMixIrq) {
-                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t) rawSampleL ;
-                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t) rawSampleR;
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;
                 captureBuffer.endIndex = (captureBuffer.endIndex + 1) % 0x200;
                 if (captureBuffer.endIndex == captureBuffer.startIndex)
                     g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
             }
-            f.L =  rawSampleL / voldiv;
+            f.L = rawSampleL / voldiv;
             f.R = rawSampleR / voldiv;
 
             *XAFeed++ = f;

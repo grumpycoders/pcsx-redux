@@ -98,7 +98,8 @@ with some games, but slows SPU processing.)"));
     changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
     ShowHelpMarker(_("Downmixes stereo to mono."));
     changed |= ImGui::Checkbox(_("Capture/decode buffer IRQ"), &settings.get<DBufIRQ>().value);
-    ShowHelpMarker(_("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
+    ShowHelpMarker(
+        _("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
 
     ImGui::End();
     return changed;

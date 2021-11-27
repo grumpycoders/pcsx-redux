@@ -79,7 +79,6 @@ typedef Logger<LogClass::MEMORY, false> PSXMEM_LOGGER;
 typedef Logger<LogClass::IRQ, false> PSXIRQ_LOGGER;
 typedef Logger<LogClass::SPU, false> PSXSPU_LOGGER;
 
-
 }  // namespace PCSX
 
 #define SIO0_LOG(...)                                                                       \

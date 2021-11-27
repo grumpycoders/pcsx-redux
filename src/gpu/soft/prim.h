@@ -38,7 +38,6 @@ class SoftPrim : public SoftRenderer {
         }
     }
 
-
     inline void reset() {
         GlobalTextAddrX = 0;
         GlobalTextAddrY = 0;

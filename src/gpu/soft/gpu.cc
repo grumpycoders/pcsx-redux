@@ -138,8 +138,8 @@
 #include "gpu/soft/key.h"
 #include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
-#include "tracy/Tracy.hpp"
 #include "imgui.h"
+#include "tracy/Tracy.hpp"
 
 //#define SMALLDEBUG
 //#include <dbgout.h>
@@ -1519,7 +1519,6 @@ void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 ////////////////////////////////////////////////////////////////////////
 
 extern "C" void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig) {}
-
 
 bool PCSX::SoftGPU::impl::configure() {
     if (!m_showCfg) return false;
