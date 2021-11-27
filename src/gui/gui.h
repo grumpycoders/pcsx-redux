@@ -69,8 +69,21 @@ class GUI final {
         s_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
     void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+    void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
+    bool m_onlyLogGLErrors = false;
+    std::vector<std::string> m_glErrors;
 
   public:
+    void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
+    class ScopedOnlyLog {
+      public:
+        ScopedOnlyLog(GUI *gui) : m_gui(gui) { gui->setOnlyLogGLErrors(true); }
+        ~ScopedOnlyLog() { m_gui->setOnlyLogGLErrors(false); }
+
+      private:
+        GUI *m_gui = nullptr;
+    };
+    std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
     GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
         assert(s_gui == nullptr);
         s_gui = this;
@@ -123,8 +136,6 @@ class GUI final {
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
     void magicOpen(const char *path);
-
-    static void checkGL();
 
     static const char *glErrorToString(GLenum error) {
         static const std::map<GLenum, const char *> glErrorMap = {
