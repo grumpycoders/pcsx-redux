@@ -1,4 +1,4 @@
-# Compiling Pcsx-redux
+# Compiling PCSX-Redux
 
 ## Getting the sources
 The only location for the source is [on github](https://github.com/grumpycoders/pcsx-redux/). Clone recursively, as the project uses submodules: 
@@ -75,7 +75,7 @@ Then, you can compile  [OpenBIOS](./openbios.md) using `make -C ./src/mips/openb
 
 ## Compiling PSX code
 
-If you're only interested in compiling psx code, you can clone the pcsx-redux repo; 
+If you're only interested in compiling psx code, you can clone the PCSX-Redux repo; 
 ```bash
 git clone https://github.com/grumpycoders/pcsx-redux.git --recursive
 ```  

@@ -1,6 +1,6 @@
 # Openbios
 
-[Openbios](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios) is, as it's name imply, an open-source alternative to a retail PSX bios that can be non-trivial to dump.
+[Openbios](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios) is, as its name implies, an open-source alternative to a retail PSX bios that can be non-trivial to dump.
 
 ## Purposes of Openbios
 
@@ -12,7 +12,7 @@ See [this page](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/op
 
 ## Building
 
-It is compiled together with `pcsx-redux` or can be compiled on it's own.  
+It is compiled together with `pcsx-redux` or can be compiled on its own.  
 
 See the corresponding sections in [Compiling](./compiling.md) for instructions.  
 
