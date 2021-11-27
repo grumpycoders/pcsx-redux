@@ -88,7 +88,7 @@ uint8_t PCSX::HW::psxHwRead8(uint32_t add) {
             break;
         default:
             hard = psxHu8(add);
-            PSXHW_LOG("*Unkwnown 8bit read at address %x\n", add);
+            PSXHW_LOG("*Unknown 8bit read at address %x\n", add);
             return hard;
     }
 
@@ -208,7 +208,7 @@ uint16_t PCSX::HW::psxHwRead16(uint32_t add) {
                 hard = PCSX::g_emulator->m_spu->readRegister(add);
             } else {
                 hard = psxHu16(add);
-                PSXHW_LOG("*Unkwnown 16bit read at address %x\n", add);
+                PSXHW_LOG("*Unknown 16bit read at address %x\n", add);
             }
             return hard;
     }

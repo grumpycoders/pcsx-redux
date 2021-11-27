@@ -32,6 +32,20 @@
 #include "support/file.h"
 #include "support/hashtable.h"
 
+#if defined(__i386__) || defined(_M_IX86)
+    #define DYNAREC_X86_32
+#elif defined(__x86_64) || defined(_M_AMD64)
+    #define DYNAREC_X86_64
+#elif defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_ARCH_ISA_A64)
+    #define DYNAREC_NONE // Placeholder for AA64
+#elif defined(__arm__) || defined(_M_ARM)
+    #define DYNAREC_NONE // Placeholder for AA32
+#elif defined(__powerpc__) || defined(_M_PPC)
+    #define DYNAREC_NONE // Placeholder for PPC
+#else
+    #define DYNAREC_NONE
+#endif
+
 namespace PCSX {
 
 typedef union {
@@ -166,12 +180,12 @@ enum {
 };
 
 struct psxRegisters {
-    psxGPRRegs GPR;  /* General Purpose Registers */
-    psxCP0Regs CP0;  /* Coprocessor0 Registers */
-    psxCP2Data CP2D; /* Cop2 data registers */
-    psxCP2Ctrl CP2C; /* Cop2 control registers */
-    uint32_t pc;     /* Program counter */
-    uint32_t code;   /* The instruction */
+    psxGPRRegs GPR;  // General Purpose Registers
+    psxCP0Regs CP0;  // COP0 Registers
+    psxCP2Data CP2D; // COP2 data registers
+    psxCP2Ctrl CP2C; // COP2 control registers
+    uint32_t pc;     // Program counter
+    uint32_t code;   // The current instruction
     uint32_t cycle;
     uint32_t previousCycles;
     uint32_t interrupt;
@@ -210,7 +224,7 @@ struct psxRegisters {
 
 #endif
 
-/**** R3000A Instruction Macros ****/
+// R3000A Instruction Macros
 #define _PC_ PCSX::g_emulator->m_psxCpu->m_psxRegs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
@@ -556,7 +570,7 @@ class Cpus {
     static std::unique_ptr<R3000Acpu> DynaRec();
 
   private:
-    static std::unique_ptr<R3000Acpu> getX86DynaRec();
+    static std::unique_ptr<R3000Acpu> getDynaRec();
     static std::unique_ptr<R3000Acpu> getInterpreted();
 };
 

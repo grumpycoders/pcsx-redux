@@ -36,8 +36,12 @@
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
     g_system->printf(_("Copyright (C) 2019-2021 PCSX-Redux authors\n"));
+    const auto& args = g_system->getArgs();
 
-    if (g_emulator->settings.get<Emulator::SettingDynarec>()) g_emulator->m_psxCpu = Cpus::DynaRec();
+    if (args.get<bool>("interpreter")) g_emulator->m_psxCpu = Cpus::Interpreted();
+    else if (args.get<bool>("dynarec")) g_emulator->m_psxCpu = Cpus::DynaRec();
+    else if (g_emulator->settings.get<Emulator::SettingDynarec>()) g_emulator->m_psxCpu = Cpus::DynaRec();
+
     if (!g_emulator->m_psxCpu) g_emulator->m_psxCpu = Cpus::Interpreted();
 
     PGXP_Init();
@@ -352,7 +356,7 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
 }
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
-    std::unique_ptr<PCSX::R3000Acpu> cpu = getX86DynaRec();
+    std::unique_ptr<PCSX::R3000Acpu> cpu = getDynaRec();
     if (cpu->Implemented()) return cpu;
     return nullptr;
 }

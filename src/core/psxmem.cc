@@ -450,22 +450,60 @@ void PCSX::Memory::psxMemWrite32(uint32_t mem, uint32_t value) {
     }
 }
 
-void *PCSX::Memory::psxMemPointer(uint32_t mem) {
-    char *p;
-    uint32_t t;
-
-    t = mem >> 16;
-    if (t == 0x1f80 || t == 0x9f80 || t == 0xbf80) {
-        if ((mem & 0xffff) < 0x400)
-            return (void *)&g_psxH[mem];
-        else
-            return NULL;
-    } else {
-        p = (char *)(g_psxMemWLUT[t]);
-        if (p != NULL) {
-            return (void *)(p + (mem & 0xffff));
+const void *PCSX::Memory::psxMemPointerRead(uint32_t address) {
+    const auto page = address >> 16;
+    
+    if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400)
+            return &g_psxH[address & 0x3FF];
+        else {
+            switch (address) { // IO regs that are safe to read from directly
+                case 0x1f801080: case 0x1f801084: case 0x1f801088: case 0x1f801090:
+                case 0x1f801094: case 0x1f801098: case 0x1f8010a0: case 0x1f8010a4:
+                case 0x1f8010a8: case 0x1f8010b0: case 0x1f8010b4: case 0x1f8010b8:
+                case 0x1f8010c0: case 0x1f8010c4: case 0x1f8010c8: case 0x1f8010d0:
+                case 0x1f8010d4: case 0x1f8010d8: case 0x1f8010e0: case 0x1f8010e4:
+                case 0x1f8010e8: case 0x1f801070: case 0x1f801074: case 0x1f8010f0:
+                case 0x1f8010f4:
+                    return &g_psxH[address & 0xffff];
+                    
+                default:
+                    return nullptr;
+            }
         }
-        return NULL;
+    } else {
+        const auto pointer = (char *)(g_psxMemRLUT[page]);
+        if (pointer != nullptr) {
+            return (void *)(pointer + (address & 0xffff));
+        }
+        return nullptr;
+    }
+}
+
+const void *PCSX::Memory::psxMemPointerWrite(uint32_t address) {
+    const auto page = address >> 16;
+
+    if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400)
+            return &g_psxH[address & 0x3FF];
+        else {
+            switch (address) { // IO regs that are safe to write to directly
+                case 0x1f801080: case 0x1f801084: case 0x1f801090: case 0x1f801094:
+                case 0x1f8010a0: case 0x1f8010a4: case 0x1f8010b0: case 0x1f8010b4:
+                case 0x1f8010c0: case 0x1f8010c4: case 0x1f8010d0: case 0x1f8010d4:
+                case 0x1f8010e0: case 0x1f8010e4: case 0x1f801074: case 0x1f8010f0:
+                    return &g_psxH[address & 0xffff];
+                    
+                default:
+                    return nullptr;
+            }
+        }
+    } else {
+        const auto pointer = (char *)(g_psxMemWLUT[page]);
+        if (pointer != nullptr) {
+            return (void *)(pointer + (address & 0xffff));
+        }
+        return nullptr;
     }
 }
 

@@ -84,7 +84,7 @@ class GUI final {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI(const flags::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
+    GUI(const CommandLine::args &args) : m_args(args), m_listener(g_system->m_eventBus) {
         assert(s_gui == nullptr);
         s_gui = this;
     }
@@ -260,7 +260,7 @@ class GUI final {
     bool m_showCfg = false;
     bool m_showUiCfg = false;
 
-    const flags::args &m_args;
+    const CommandLine::args &m_args;
 
     Widgets::VRAMViewer m_mainVRAMviewer;
     Widgets::VRAMViewer m_clutVRAMviewer;

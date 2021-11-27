@@ -99,7 +99,7 @@ When Sony released the Playstation mini recently, I came to realize two things: 
 The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state. If you want to help with localization, you can find the translation project [on transifex](https://www.transifex.com/grumpycoders/pcsx-redux/languages/).
 
 ### What works?
-- x86 dynarec
+- x86 dynarec, x86-64 dynarec
 - interpreted CPU
 - software GPU
 - VRAM viewer and debugger
@@ -107,11 +107,11 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - memory cards
 - XBox controller support
 - save states
+- save state slots
 
 ### What still requires some work?
 - GLSL GPU
 - proper SPU multithreaded code
-- save state slots
 - memory card manager
 - better customization
 - more generic dynarec

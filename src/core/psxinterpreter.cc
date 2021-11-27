@@ -237,32 +237,32 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 
     /* GTE wrappers */
 #define GTE_WR(n) void gte##n(uint32_t code);
-    GTE_WR(LWC2);
-    GTE_WR(SWC2);
-    GTE_WR(RTPS);
-    GTE_WR(NCLIP);
-    GTE_WR(OP);
-    GTE_WR(DPCS);
-    GTE_WR(INTPL);
-    GTE_WR(MVMVA);
-    GTE_WR(NCDS);
-    GTE_WR(CDP);
-    GTE_WR(NCDT);
-    GTE_WR(NCCS);
-    GTE_WR(CC);
-    GTE_WR(NCS);
-    GTE_WR(NCT);
-    GTE_WR(SQR);
-    GTE_WR(DCPL);
-    GTE_WR(DPCT);
     GTE_WR(AVSZ3);
     GTE_WR(AVSZ4);
-    GTE_WR(RTPT);
+    GTE_WR(CC);
+    GTE_WR(CDP);
+    GTE_WR(CTC2);
+    GTE_WR(DCPL);
+    GTE_WR(DPCS);
+    GTE_WR(DPCT);
     GTE_WR(GPF);
     GTE_WR(GPL);
-    GTE_WR(NCCT);
+    GTE_WR(INTPL);
+    GTE_WR(LWC2);
     GTE_WR(MTC2);
-    GTE_WR(CTC2);
+    GTE_WR(MVMVA);
+    GTE_WR(NCCS);
+    GTE_WR(NCCT);
+    GTE_WR(NCDS);
+    GTE_WR(NCDT);
+    GTE_WR(NCLIP);
+    GTE_WR(NCS);
+    GTE_WR(NCT);
+    GTE_WR(OP);
+    GTE_WR(RTPS);
+    GTE_WR(RTPT);
+    GTE_WR(SQR);
+    GTE_WR(SWC2);
 #undef GTE_WR
 
     static const intFunc_t s_psxBSC[64];
