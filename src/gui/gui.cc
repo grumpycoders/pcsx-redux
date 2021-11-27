@@ -91,17 +91,7 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
 
 PCSX::GUI* PCSX::GUI::s_gui = nullptr;
 
-void PCSX::GUI::bindVRAMTexture() {
-    glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
-    checkGL();
-}
-
-void PCSX::GUI::checkGL() {
-    GLenum error = glGetError();
-    if (error != GL_NO_ERROR) {
-        throw std::runtime_error("Got OpenGL error");
-    }
-}
+void PCSX::GUI::bindVRAMTexture() { glBindTexture(GL_TEXTURE_2D, m_VRAMTexture); }
 
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
@@ -151,28 +141,65 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     return ret;
 }
 
+void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                                const GLchar* message) {
+    static std::map<GLenum, std::string_view> sourceToString = {
+        {GL_DEBUG_SOURCE_API, "API"},
+        {GL_DEBUG_SOURCE_WINDOW_SYSTEM, "Window System"},
+        {GL_DEBUG_SOURCE_SHADER_COMPILER, "Shader Compiler"},
+        {GL_DEBUG_SOURCE_THIRD_PARTY, "Third Party"},
+        {GL_DEBUG_SOURCE_APPLICATION, "Application"},
+        {GL_DEBUG_SOURCE_OTHER, "Other"},
+    };
+    static std::map<GLenum, std::string_view> typeToString = {
+        {GL_DEBUG_TYPE_ERROR, "Error"},
+        {GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR, "Deprecated Behavior"},
+        {GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR, "Undefined Behavior"},
+        {GL_DEBUG_TYPE_PORTABILITY, "Portability"},
+        {GL_DEBUG_TYPE_PERFORMANCE, "Performance"},
+        {GL_DEBUG_TYPE_OTHER, "Other"},
+        {GL_DEBUG_TYPE_MARKER, "Marker"},
+        {GL_DEBUG_TYPE_PUSH_GROUP, "{push}"},
+        {GL_DEBUG_TYPE_POP_GROUP, "{pop}"},
+    };
+    static std::map<GLenum, std::string_view> severityToString = {
+        {GL_DEBUG_SEVERITY_HIGH, "high"},
+        {GL_DEBUG_SEVERITY_MEDIUM, "medium"},
+        {GL_DEBUG_SEVERITY_LOW, "low"},
+    };
+    std::string fullmessage =
+        fmt::format("Got OpenGL callback from \"{}\", type \"{}\", severity {}: {}", sourceToString[source],
+                    typeToString[type], severityToString[severity], message);
+    if (m_onlyLogGLErrors) {
+        m_glErrors.push_back(fullmessage);
+    } else {
+        g_system->log(LogClass::UI, fullmessage);
+        if (type == GL_DEBUG_TYPE_ERROR) throw std::runtime_error(fullmessage);
+    }
+}
+
 void PCSX::GUI::init() {
     int result;
+
     LoadImguiBindings(g_emulator->m_lua->getState());
     s_imguiUserErrorFunctor = [this](const char* msg) {
         m_gotImguiUserError = true;
         m_imguiUserError = msg;
     };
     m_luaConsole.setCmdExec([this](const std::string& cmd) {
+        ScopedOnlyLog scopedOnlyLog(this);
         try {
             g_emulator->m_lua->load(cmd, "console", false);
             g_emulator->m_lua->pcall();
             bool gotGLerror = false;
-            GLenum glError = GL_NO_ERROR;
-            while ((glError = glGetError()) != GL_NO_ERROR) {
-                std::string msg = "glError: ";
-                msg += glErrorToString(glError);
-                m_luaConsole.addError(msg);
+            for (const auto& error : m_glErrors) {
+                m_luaConsole.addError(error);
                 if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", msg.c_str());
+                    fprintf(stderr, "%s\n", error.c_str());
                 }
                 gotGLerror = true;
             }
+            m_glErrors.clear();
         } catch (std::exception& e) {
             m_luaConsole.addError(e.what());
             if (m_args.get<bool>("lua_stdout", false)) {
@@ -370,19 +397,25 @@ end)(jit.status()))
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(
+        [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
+           GLvoid* userParam) {
+            GUI* self = reinterpret_cast<GUI*>(userParam);
+            self->glErrorCallback(source, type, id, severity, length, message);
+        },
+        this);
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 1024, 512);
-    checkGL();
     g_system->m_eventBus->signal(Events::CreatedVRAMTexture{m_VRAMTexture});
 
     // offscreen stuff
     glGenFramebuffers(1, &m_offscreenFrameBuffer);
     glGenTextures(2, m_offscreenTextures);
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
-    checkGL();
 
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
@@ -413,8 +446,8 @@ end)(jit.status()))
     m_biosEditor.title = []() { return _("BIOS"); };
     m_biosEditor.show = false;
 
-    m_offscreenShaderEditor.compile();
-    m_outputShaderEditor.compile();
+    m_offscreenShaderEditor.compile(this);
+    m_outputShaderEditor.compile(this);
 
     m_listener.listen<Events::GUI::JumpToMemory>([this](auto& event) {
         const uint32_t base = (event.address >> 20) & 0xffc;
@@ -524,7 +557,6 @@ void PCSX::GUI::startFrame() {
         saveCfg();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    checkGL();
 
     // Check hotkeys (TODO: Make configurable)
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) m_showMenu = !m_showMenu;
@@ -567,32 +599,22 @@ void PCSX::GUI::startFrame() {
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
 
 void PCSX::GUI::flip() {
-    checkGL();
-
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
-    checkGL();
     glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
-    checkGL();
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    checkGL();
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    checkGL();
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_renderSize.x, m_renderSize.y);
-    checkGL();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
-    checkGL();
     GLuint texture = m_offscreenTextures[m_currentTexture];
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-    checkGL();
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 
+    // this call seems to sometime fails when the window is minimized...?
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
-    // this check seems to sometime fails when the window is minimized...?
-    checkGL();
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
@@ -606,18 +628,15 @@ void PCSX::GUI::flip() {
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
-    checkGL();
 
     glDisable(GL_CULL_FACE);
     m_currentTexture = m_currentTexture ? 0 : 1;
-    checkGL();
 }
 
 void PCSX::GUI::endFrame() {
     auto& io = ImGui::GetIO();
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    checkGL();
     auto& emuSettings = PCSX::g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
 
@@ -628,8 +647,8 @@ void PCSX::GUI::endFrame() {
 
     bool changed = false;
 
-    m_offscreenShaderEditor.configure();
-    m_outputShaderEditor.configure();
+    m_offscreenShaderEditor.configure(this);
+    m_outputShaderEditor.configure(this);
 
     if (m_fullscreenRender) {
         ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
@@ -646,7 +665,7 @@ void PCSX::GUI::endFrame() {
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                          ImGuiWindowFlags_NoBringToFrontOnFocus);
-        m_outputShaderEditor.renderWithImgui(texture, m_renderSize, logicalRenderSize);
+        m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, logicalRenderSize);
         ImGui::End();
         ImGui::PopStyleVar(2);
     } else {
@@ -659,7 +678,7 @@ void PCSX::GUI::endFrame() {
             ImVec2 textureSize = ImGui::GetContentRegionAvail();
             normalizeDimensions(textureSize, m_renderRatio);
             ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
-            m_outputShaderEditor.renderWithImgui(texture, m_renderSize, textureSize);
+            m_outputShaderEditor.renderWithImgui(this, texture, m_renderSize, textureSize);
         }
         ImGui::End();
         if (!outputShown) m_fullscreenRender = true;
@@ -794,23 +813,23 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
                         m_offscreenShaderEditor.setDefaults();
-                        m_offscreenShaderEditor.compile();
-                        m_offscreenShaderEditor.reset();
+                        m_offscreenShaderEditor.compile(this);
+                        m_offscreenShaderEditor.reset(this);
                         m_outputShaderEditor.setDefaults();
-                        m_outputShaderEditor.compile();
-                        m_outputShaderEditor.reset();
+                        m_outputShaderEditor.compile(this);
+                        m_outputShaderEditor.reset(this);
                     }
                     if (ImGui::MenuItem(_("CRT-lottes shader"))) {
                         m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert(),
                                                         Shaders::CrtLottes::Offscreen::frag(),
                                                         Shaders::CrtLottes::Offscreen::lua());
-                        m_offscreenShaderEditor.compile();
-                        m_offscreenShaderEditor.reset();
+                        m_offscreenShaderEditor.compile(this);
+                        m_offscreenShaderEditor.reset(this);
                         m_outputShaderEditor.setText(Shaders::CrtLottes::Output::vert(),
                                                      Shaders::CrtLottes::Output::frag(),
                                                      Shaders::CrtLottes::Output::lua());
-                        m_outputShaderEditor.compile();
-                        m_outputShaderEditor.reset();
+                        m_outputShaderEditor.compile(this);
+                        m_outputShaderEditor.reset(this);
                     }
                     ImGui::EndMenu();
                 }
@@ -958,9 +977,9 @@ void PCSX::GUI::endFrame() {
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
-    m_mainVRAMviewer.draw(m_VRAMTexture, this);
-    m_clutVRAMviewer.draw(m_VRAMTexture, this);
-    for (auto& viewer : m_VRAMviewers) viewer.draw(m_VRAMTexture, this);
+    m_mainVRAMviewer.draw(this, m_VRAMTexture);
+    m_clutVRAMviewer.draw(this, m_VRAMTexture);
+    for (auto& viewer : m_VRAMviewers) viewer.draw(this, m_VRAMTexture);
 
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
@@ -1052,14 +1071,14 @@ void PCSX::GUI::endFrame() {
         m_source.draw(_("Source"), g_emulator->m_psxCpu->m_psxRegs.pc, this);
     }
 
-    if (m_outputShaderEditor.draw(_("Output Video"), this)) {
+    if (m_outputShaderEditor.draw(this, _("Output Video"))) {
         // maybe throttle this?
-        m_outputShaderEditor.compile();
+        m_outputShaderEditor.compile(this);
     }
 
-    if (m_offscreenShaderEditor.draw(_("Offscreen Render"), this)) {
+    if (m_offscreenShaderEditor.draw(this, _("Offscreen Render"))) {
         // maybe throttle this?
-        m_offscreenShaderEditor.compile();
+        m_offscreenShaderEditor.compile(this);
     }
 
     PCSX::g_emulator->m_spu->debug();
@@ -1106,19 +1125,18 @@ void PCSX::GUI::endFrame() {
     auto& L = g_emulator->m_lua;
     L->getfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     if (!L->isnil()) {
+        ScopedOnlyLog(this);
         try {
             L->pcall();
             bool gotGLerror = false;
-            GLenum glError = GL_NO_ERROR;
-            while ((glError = glGetError()) != GL_NO_ERROR) {
-                std::string msg = "glError: ";
-                msg += glErrorToString(glError);
-                m_luaConsole.addError(msg);
+            for (const auto& error : m_glErrors) {
+                m_luaConsole.addError(error);
                 if (m_args.get<bool>("lua_stdout", false)) {
-                    fprintf(stderr, "%s\n", msg.c_str());
+                    fprintf(stderr, "%s\n", error.c_str());
                 }
                 gotGLerror = true;
             }
+            m_glErrors.clear();
             if (gotGLerror) throw("OpenGL error while running Lua code");
         } catch (...) {
             L->push();
@@ -1131,17 +1149,13 @@ void PCSX::GUI::endFrame() {
 
     ImGui::Render();
     glViewport(0, 0, w, h);
-    checkGL();
     if (m_fullscreenRender) {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    checkGL();
     glClearDepthf(0.0f);
-    checkGL();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    checkGL();
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -1153,9 +1167,7 @@ void PCSX::GUI::endFrame() {
     }
 
     glfwSwapBuffers(m_window);
-    checkGL();
     glFlush();
-    checkGL();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
@@ -1481,7 +1493,6 @@ void PCSX::GUI::about() {
         ImGui::Separator();
         auto someString = [](const char* str, GLenum index) {
             const char* value = (const char*)glGetString(index);
-            checkGL();
             ImGui::TextWrapped("%s: %s", str, value);
         };
         if (ImGui::BeginTabBar("AboutTabs", ImGuiTabBarFlags_None)) {
@@ -1501,12 +1512,10 @@ void PCSX::GUI::about() {
                 someString(_("Shading language version"), GL_SHADING_LANGUAGE_VERSION);
                 GLint n, i;
                 glGetIntegerv(GL_NUM_EXTENSIONS, &n);
-                checkGL();
                 ImGui::TextUnformatted(_("Extensions:"));
                 ImGui::BeginChild("GLextensions", ImVec2(0, 0), true);
                 for (i = 0; i < n; i++) {
                     const char* extension = (const char*)glGetStringi(GL_EXTENSIONS, i);
-                    checkGL();
                     ImGui::Text("%s", extension);
                 }
                 ImGui::EndChild();

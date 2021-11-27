@@ -193,8 +193,8 @@ void main() {
 }
 )";
 
-void PCSX::Widgets::VRAMViewer::compileShader() {
-    auto ret = m_editor.compile({"i_position", "i_texUV"});
+void PCSX::Widgets::VRAMViewer::compileShader(GUI * gui) {
+    auto ret = m_editor.compile(gui, {"i_position", "i_texUV"});
     if (!ret.has_value()) return;
 
     m_shaderProgram = ret.value();
@@ -217,15 +217,13 @@ void PCSX::Widgets::VRAMViewer::compileShader() {
     m_attribLocation24shift = glGetUniformLocation(m_shaderProgram, "u_24shift");
     m_attribLocationVtxPos = glGetAttribLocation(m_shaderProgram, "i_position");
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
-
-    PCSX::GUI::checkGL();
 }
 
 PCSX::Widgets::VRAMViewer::VRAMViewer() { m_editor.setText(s_defaultVertexShader, s_defaultPixelShader, ""); }
 
-void PCSX::Widgets::VRAMViewer::drawVRAM(GLuint textureID) {
+void PCSX::Widgets::VRAMViewer::drawVRAM(GUI * gui, GLuint textureID) {
     if (!m_shaderProgram) {
-        compileShader();
+        compileShader(gui);
     }
     if (!m_shaderProgram) {
         throw std::runtime_error("Unable to compile VRAM viewer shader.");
@@ -295,9 +293,9 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GLuint textureID) {
 }
 
 void PCSX::Widgets::VRAMViewer::drawEditor(GUI *gui) {
-    bool changed = m_editor.draw(_("VRAM Shader Editor"), gui);
+    bool changed = m_editor.draw(gui, _("VRAM Shader Editor"));
     if (!changed) return;
-    compileShader();
+    compileShader(gui);
 }
 
 void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -344,7 +342,6 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glBindTexture(GL_TEXTURE_2D, m_textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    PCSX::GUI::checkGL();
 }
 
 void PCSX::Widgets::VRAMViewer::resetView() {
@@ -355,7 +352,7 @@ void PCSX::Widgets::VRAMViewer::resetView() {
     m_magnifyRadius = 150.0f * ImGui::GetWindowDpiScale();
 }
 
-void PCSX::Widgets::VRAMViewer::draw(unsigned int VRAMTexture, GUI *gui) {
+void PCSX::Widgets::VRAMViewer::draw(GUI * gui, unsigned int VRAMTexture) {
     if (m_show) {
         auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
         if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
@@ -401,7 +398,7 @@ void PCSX::Widgets::VRAMViewer::draw(unsigned int VRAMTexture, GUI *gui) {
                 }
                 ImGui::EndMenuBar();
             }
-            drawVRAM(VRAMTexture);
+            drawVRAM(gui, VRAMTexture);
         }
         ImGui::End();
     }
