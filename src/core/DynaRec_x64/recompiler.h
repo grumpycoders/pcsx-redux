@@ -66,7 +66,7 @@ using namespace Xbyak;
 using namespace Xbyak::util;
 
 class DynaRecCPU final : public PCSX::R3000Acpu {
-    using func_t = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
+    using recompilationFunc = void (DynaRecCPU::*)();  // A function pointer to a dynarec member function
 
   private:
     uint64_t m_hostRegisterCache[16];  // An array to backup non-volatile regs temporarily
@@ -428,7 +428,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     template <int size, bool signExtend>
     void recompileLoad();
 
-    const func_t m_recBSC[64] = {
+    const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00
         &DynaRecCPU::recBEQ,     &DynaRecCPU::recBNE,     &DynaRecCPU::recBLEZ,    &DynaRecCPU::recBGTZ,     // 04
         &DynaRecCPU::recADDIU,   &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI,    &DynaRecCPU::recSLTIU,    // 08
@@ -447,7 +447,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 3c
     };
 
-    const func_t m_recSPC[64] = {
+    const recompilationFunc m_recSPC[64] = {
         &DynaRecCPU::recSLL,     &DynaRecCPU::recUnknown, &DynaRecCPU::recSRL,     &DynaRecCPU::recSRA,      // 00
         &DynaRecCPU::recSLLV,    &DynaRecCPU::recUnknown, &DynaRecCPU::recSRLV,    &DynaRecCPU::recSRAV,     // 04
         &DynaRecCPU::recJR,      &DynaRecCPU::recJALR,    &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
@@ -466,7 +466,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 3c
     };
 
-    const func_t m_recGTE[64] = {
+    const recompilationFunc m_recGTE[64] = {
         &DynaRecCPU::recGTEMove, &DynaRecCPU::recRTPS,    &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 00
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recNCLIP,   &DynaRecCPU::recUnknown,  // 04
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 08
