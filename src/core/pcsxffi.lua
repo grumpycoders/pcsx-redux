@@ -56,8 +56,8 @@ void jumpToMemory(uint32_t address, unsigned width);
 local C = ffi.load 'PCSX'
 
 local function garbageCollect(bp)
-    C.removeBreakpoint(bp.wrapper)
-    bp.invokercb:free()
+    C.removeBreakpoint(bp._wrapper)
+    bp._invokercb:free()
 end
 
 local meta = { __gc = garbageCollect }
@@ -98,8 +98,12 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
     local invokercb = ffi.cast('bool (*)()', invokercb)
     local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
     local bp = {
-        wrapper = wrapper,
-        invokercb = invokercb,
+        _wrapper = wrapper,
+        _invokercb = invokercb,
+        enable = function(bp) C.enableBreakpoint(bp._wrapper) end,
+        disable = function(bp) C.disableBreakpoint(bp._wrapper) end,
+        isEnabled = function(bp) return C.breakpointEnabled(bp._wrapper) end,
+        remove = function(bp) garbageCollect(bp) end,
     }
     setmetatable(bp, meta)
     return bp
@@ -126,14 +130,11 @@ local function jumpToMemory(address, width)
 end
 
 PCSX = {
-    getMemPtr = function() return C.getMemPtr end,
-    getRomPtr = function() return C.getRomPtr end,
-    getScratchPtr = function() return C.getScratchPtr end,
-    getRegisters = C.getRegisters,
+    getMemPtr = function() return C.getMemPtr() end,
+    getRomPtr = function() return C.getRomPtr() end,
+    getScratchPtr = function() return C.getScratchPtr() end,
+    getRegisters = function() return C.getRegisters() end,
     addBreakpoint = addBreakpoint,
-    enableBreakpoint = function(bp) C.enableBreakpoint(bp.wrapper) end,
-    disableBreakpoint = function(bp) C.disableBreakpoint(bp.wrapper) end,
-    breakpointEnabled = function(bp) return C.breakpointEnabled(bp.wrapper) end,
     pauseEmulator = function() C.pauseEmulator() end,
     resumeEmulator = function() C.resumeEmulator() end,
     softResetEmulator = function() C.softResetEmulator() end,

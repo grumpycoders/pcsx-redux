@@ -38,7 +38,8 @@ class ShaderEditor {
   public:
     ShaderEditor(const std::string& base, std::string_view dVS = "", std::string_view dPS = "",
                  std::string_view dL = "");
-    [[nodiscard]] std::optional<GLuint> compile(const std::vector<std::string_view>& mandatoryAttributes = {});
+    [[nodiscard]] std::optional<GLuint> compile(GUI* gui,
+                                                const std::vector<std::string_view>& mandatoryAttributes = {});
 
     ~ShaderEditor();
 
@@ -51,15 +52,15 @@ class ShaderEditor {
     }
 
     void setDefaults();
-    void reset();
+    void reset(GUI*);
 
-    bool draw(std::string_view title, GUI* gui);
-    void renderWithImgui(ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
-    void render(GLuint textureID, const ImVec2& texSize, const ImVec2& srcLoc, const ImVec2& srcSize,
+    bool draw(GUI*, std::string_view title);
+    void renderWithImgui(GUI* gui, ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
+    void render(GUI*, GLuint textureID, const ImVec2& texSize, const ImVec2& srcLoc, const ImVec2& srcSize,
                 const ImVec2& dstSize);
 
     void setConfigure(bool configure = true);
-    void configure();
+    void configure(GUI*);
 
   private:
     std::string getVertexText() { return m_vertexShaderEditor.getText(); }
@@ -68,10 +69,6 @@ class ShaderEditor {
 
     void getRegistry(std::unique_ptr<Lua>& L);
 
-    static void imguiCBtrampoline(const ImDrawList* parentList, const ImDrawCmd* cmd) {
-        ShaderEditor* that = reinterpret_cast<ShaderEditor*>(cmd->UserCallbackData);
-        that->imguiCB(parentList, cmd);
-    }
     void imguiCB(const ImDrawList* parentList, const ImDrawCmd* cmd);
 
     const std::string m_baseFilename;
@@ -92,6 +89,8 @@ class ShaderEditor {
 
     GLuint m_vao = 0;
     GLuint m_vbo = 0;
+
+    GUI* m_cachedGui = nullptr;
 };
 
 }  // namespace Widgets

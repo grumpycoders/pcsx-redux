@@ -48,13 +48,7 @@ class impl final : public GPU {
     virtual void writeStatus(uint32_t gdata) final;
     virtual int32_t dmaChain(uint32_t *baseAddrL, uint32_t addr) final;
     virtual void updateLace() final;
-    virtual bool configure() final {
-        if (m_showCfg) {
-            return m_softPrim.configure();
-        } else {
-            return false;
-        }
-    }
+    virtual bool configure() final;
 
     virtual void save(SaveStates::GPU &gpu) final;
     virtual void load(const SaveStates::GPU &gpu) final;

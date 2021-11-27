@@ -69,18 +69,18 @@ void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
             auto oldErrorPrinter = L->errorPrinter;
             L->normalPrinter = [](const std::string&) {};
             L->errorPrinter = [this](const std::string& msg) { m_lastErrors.push_back(msg); };
+            GUI::ScopedOnlyLog scopedOnlyLog(gui);
             try {
                 L->load(m_text.getText(), "pcsx.lua", false);
                 L->pcall();
-                bool gotGLerror = false;
-                GLenum glError = GL_NO_ERROR;
-                while ((glError = glGetError()) != GL_NO_ERROR) {
-                    std::string msg = "glError: ";
-                    msg += PCSX::GUI::glErrorToString(glError);
-                    m_lastErrors.push_back(msg);
-                    gotGLerror = true;
+                auto errors = gui->getGLerrors();
+                if (errors.empty()) {
+                    m_displayError = false;
+                } else {
+                    for (const auto& error : errors) {
+                        m_lastErrors.push_back(error);
+                    }
                 }
-                if (!gotGLerror) m_displayError = false;
             } catch (...) {
                 m_displayError = true;
             }

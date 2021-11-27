@@ -138,6 +138,7 @@
 #include "gpu/soft/key.h"
 #include "gpu/soft/menu.h"
 #include "gpu/soft/prim.h"
+#include "imgui.h"
 #include "tracy/Tracy.hpp"
 
 //#define SMALLDEBUG
@@ -1518,3 +1519,23 @@ void GPUsetfix(uint32_t dwFixBits) { dwEmuFixes = dwFixBits; }
 ////////////////////////////////////////////////////////////////////////
 
 extern "C" void softGPUvisualVibration(uint32_t iSmall, uint32_t iBig) {}
+
+bool PCSX::SoftGPU::impl::configure() {
+    if (!m_showCfg) return false;
+    bool changed = false;
+    ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+    static const char *ditherValues[] = {"No dithering (fastest)", "Game-dependent dithering (slow)",
+                                         "Always dither g-shaded polygons (slowest)"};
+
+    if (ImGui::Begin(_("Soft GPU configuration"), &m_showCfg)) {
+        if (ImGui::Combo("Dithering", &m_softPrim.m_useDither, ditherValues, 3)) {
+            changed = true;
+            g_emulator->settings.get<Emulator::SettingDither>() = m_softPrim.m_useDither;
+        }
+
+        ImGui::End();
+    }
+
+    return changed;
+}

@@ -38,7 +38,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\lua\zlibffi.lua" />
-    <None Include="packages.config" />
     <None Include="..\..\src\lua\glffi-enum2.lua">
       <Filter>Source Files</Filter>
     </None>
@@ -63,5 +62,6 @@
     <None Include="..\..\src\lua\glffi-def4.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -62,6 +62,14 @@ typedef struct {
 void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     RemoveThread();
 
+    // Capture buffer
+    spu.get<SaveStates::CBCDLeft>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
+    spu.get<SaveStates::CBCDRight>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
+    spu.get<SaveStates::CBCurrIndex>().value = captureBuffer.currIndex;
+    spu.get<SaveStates::CBEndIndex>().value = captureBuffer.endIndex;
+    spu.get<SaveStates::CBStartIndex>().value = captureBuffer.startIndex;
+    spu.get<SaveStates::CBVoiceIndex>().value = capBufVoiceIndex;
+
     spu.get<SaveStates::SPURam>().copyFrom(reinterpret_cast<uint8_t *>(spuMem));
     spu.get<SaveStates::SPUPorts>().copyFrom(reinterpret_cast<uint8_t *>(regArea));
     auto &xa = spu.get<SaveStates::XAField>();
@@ -102,6 +110,13 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
 
 void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     RemoveThread();  // we stop processing while doing the save!
+
+    spu.get<SaveStates::CBCDLeft>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
+    spu.get<SaveStates::CBCDRight>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
+    captureBuffer.currIndex = spu.get<SaveStates::CBCurrIndex>().value;
+    captureBuffer.endIndex = spu.get<SaveStates::CBEndIndex>().value;
+    captureBuffer.startIndex = spu.get<SaveStates::CBStartIndex>().value;
+    capBufVoiceIndex = spu.get<SaveStates::CBVoiceIndex>().value;
 
     spu.get<SaveStates::SPURam>().copyTo(reinterpret_cast<uint8_t *>(spuMem));
     spu.get<SaveStates::SPUPorts>().copyTo(reinterpret_cast<uint8_t *>(regArea));

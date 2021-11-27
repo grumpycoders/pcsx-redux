@@ -59,6 +59,7 @@
 void updateDisplay(void);
 void SetAutoFrameCap(void);
 void SetFixes(void);
+bool configure();
 
 /////////////////////////////////////////////////////////////////////////////
 

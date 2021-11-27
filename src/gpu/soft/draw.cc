@@ -190,25 +190,16 @@ void ShowGunCursor(unsigned char *surf) {
     }
 }
 
-static void checkGL() {
-    volatile GLenum error = glGetError();
-    if (error != GL_NO_ERROR) {
-        throw std::runtime_error("Got OpenGL error");
-    }
-}
-
 static GLuint vramTexture = 0;
 
 void DoBufferSwap() {
     m_gui->setViewport();
     m_gui->bindVRAMTexture();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, psxVuw);
-    checkGL();
 
     if (PSXDisplay.RGB24) {
         glBindTexture(GL_TEXTURE_2D, vramTexture);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, psxVuw);
-        checkGL();
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -226,11 +217,10 @@ void DoBufferSwap() {
     GLint textureID;
 
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &textureID);
-    m_gui->m_offscreenShaderEditor.render(textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
+    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {1024.0f, 512.0f}, {startX, startY}, {width, height},
                                           m_gui->getRenderSize());
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    checkGL();
     m_gui->flip();
 }
 
@@ -260,11 +250,8 @@ void DXcleanup()  // DX CLEANUP
 uint32_t ulInitDisplay(void) {
     DXinitialize();  // init direct draw (not D3D... oh, well)
     glGenTextures(1, &vramTexture);
-    checkGL();
     glBindTexture(GL_TEXTURE_2D, vramTexture);
-    checkGL();
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, 1024, 512);
-    checkGL();
     return 1;
 }
 

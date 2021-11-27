@@ -44,6 +44,7 @@ void PCSX::HW::psxHwReset() {
     PCSX::g_emulator->m_mdec->mdecInit();  // initialize mdec decoder
     PCSX::g_emulator->m_cdrom->reset();
     PCSX::g_emulator->m_psxCounters->psxRcntInit();
+    PCSX::g_emulator->m_spu->resetCaptureBuffer();
 }
 
 uint8_t PCSX::HW::psxHwRead8(uint32_t add) {

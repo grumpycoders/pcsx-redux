@@ -46,10 +46,10 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                 if (counter >= 32) {
                     switch (counter) {
                         case 32:
-                            name = "hi";
+                            name = "lo";
                             break;
                         case 33:
-                            name = "lo";
+                            name = "hi";
                             break;
                         default:
                             name = "??";

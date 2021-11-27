@@ -13,6 +13,7 @@ Enabled/
 Disabled/
 
 .vs/
+.vscode/*.log
 
 ipch/
 *.aps

@@ -45,6 +45,7 @@ enum class LogClass : unsigned {
     GDB,            // GDB logs
     SYSTEM,         // system logs from the emulator itself
     LUA,            // logs emitted by the Lua VM
+    SPU,            // spu information
 };
 
 template <LogClass logClass, bool enabled>
@@ -71,10 +72,12 @@ typedef Logger<LogClass::SIO1, false> SIO1_LOGGER;
 typedef Logger<LogClass::GTE, false> GTE_LOGGER;
 typedef Logger<LogClass::CDROM, false> CDROM_LOGGER;
 typedef Logger<LogClass::CDROM_IO, false> CDROM_IO_LOGGER;
+
 typedef Logger<LogClass::HARDWARE, false> PSXHW_LOGGER;
 typedef Logger<LogClass::DMA, false> PSXDMA_LOGGER;
 typedef Logger<LogClass::MEMORY, false> PSXMEM_LOGGER;
 typedef Logger<LogClass::IRQ, false> PSXIRQ_LOGGER;
+typedef Logger<LogClass::SPU, false> PSXSPU_LOGGER;
 
 }  // namespace PCSX
 

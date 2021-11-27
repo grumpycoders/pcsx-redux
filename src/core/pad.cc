@@ -274,6 +274,11 @@ uint8_t PCSX::Pads::Pad::poll(uint8_t value) { return m_bufc > m_bufcount ? 0xff
 uint8_t PCSX::Pads::Pad::startPoll(PadDataS* pad) {
     m_bufc = 0;
 
+    if (!m_settings.get<SettingConnected>()) {
+        m_bufcount = 0;
+        return 0xff;
+    }
+
     switch (pad->controllerType) {
         case PSE_PAD_TYPE_MOUSE:
             m_mousepar[3] = pad->buttonStatus & 0xff;
