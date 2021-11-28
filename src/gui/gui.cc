@@ -398,13 +398,18 @@ end)(jit.status()))
     glfwSetJoystickCallback([](int jid, int event) { PCSX::g_emulator->m_pads->scanGamepads(); });
     ImGui_ImplOpenGL3_Init(GL_SHADER_VERSION);
     glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(
-        [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
-           GLvoid* userParam) {
-            GUI* self = reinterpret_cast<GUI*>(userParam);
-            self->glErrorCallback(source, type, id, severity, length, message);
-        },
-        this);
+    if (glDebugMessageCallback) {
+        glDebugMessageCallback(
+            [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
+               GLvoid* userParam) {
+                GUI* self = reinterpret_cast<GUI*>(userParam);
+                self->glErrorCallback(source, type, id, severity, length, message);
+            },
+            this);
+    } else {
+        g_system->log(LogClass::UI,
+                      _("Warning: OpenGL error reporting disabled. See About dialog for more information.\n"));
+    }
     glGenTextures(1, &m_VRAMTexture);
     glBindTexture(GL_TEXTURE_2D, m_VRAMTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1524,6 +1529,17 @@ void PCSX::GUI::about() {
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(_("OpenGL information"))) {
+                if (glDebugMessageCallback) {
+                    ImGui::TextUnformatted(_("OpenGL error reporting: enabled"));
+                } else {
+                    ImGui::TextUnformatted(_("OpenGL error reporting: disabled"));
+                    ShowHelpMarker(
+                        _("OpenGL error reporting has been disabled because your OpenGL driver is too old. Error "
+                          "reporting requires at least OpenGL 4.3. Please update your graphics drivers, or contact "
+                          "your GPU vendor for correct OpenGL drivers. Disabled OpenGL error reporting won't have a "
+                          "negative impact on the performances of this software, but user code such as the shader "
+                          "editor won't be able to properly report problems accurately."));
+                }
                 ImGui::Text(_("Core profile: %s"), m_hasCoreProfile ? "yes" : "no");
                 someString(_("Vendor"), GL_VENDOR);
                 someString(_("Renderer"), GL_RENDERER);
