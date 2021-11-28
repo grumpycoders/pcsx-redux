@@ -2,7 +2,7 @@
 
 ## Description
 
-Pcsx-redux has a special API that mips binaries can use : 
+PCSX-Redux has a special API that mips binaries can use : 
 
 ```cpp
 static __inline__ void pcsx_putc(int c) { *((volatile char* const)0x1f802080) = c; }
@@ -40,10 +40,10 @@ The following functions are available :
 | Function | Usage |
 | :- | :- | 
 |`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. | 
-|`pcsx_debugbreak()` | Break execution ( Pause emulation ). | 
+|`pcsx_debugbreak()` | Break execution (Pause emulation). | 
 |`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. | 
 |`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` | 
-|`pcsx_present()` | Returns 1 if code is running in pcsx-redux |
+|`pcsx_present()` | Returns 1 if code is running in PCSX-Redux |
 
 Example of a UI dialog created with `pcsx_message()` :  
 

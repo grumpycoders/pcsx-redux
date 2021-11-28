@@ -6,7 +6,7 @@ The GDB server allows you to set breakpoints  and control your PSX program's exe
 
 ![Enable gdb server](./images/gdb-server-enable.png)  
 
-In pcsx-redux:  `Configuration > Emulation > Enable GDB server`.   
+In PCSX-Redux:  `Configuration > Emulation > Enable GDB server`.   
 
 Make sure the debugger is also enabled.  
 

@@ -1,4 +1,4 @@
-# Pcsx-redux menus
+# PCSX-Redux menus
 
 The menu bar holds some informations :
 
@@ -22,9 +22,9 @@ The menu bar holds some informations :
   * Load global state
   * Open Lid : Simulate open lid
   * Close Lid : Simulate closed lid
-  * Open and Close Lid : Simulate open then closed lid
-  * MC1 inserted
-  * MC2 inserted
+  * Open and Close Lid : Simulate opening then closing the lid
+  * MC1 inserted: Insert or remove Memory Card 1
+  * MC2 inserted: Insert or remove Memory Card 2
   * Reboot : Restart emulator
   * Quit
 
@@ -42,23 +42,23 @@ The menu bar holds some informations :
 ![configuration menu](./images/pcsx_menu_config.png)
 
   * Emulation : Emulation settings
-  * GPU : graphical processor settings
-  * SPU : Sound processor settings
-  * UI : Change interface settings
+  * GPU : Graphics Processing Unit settings
+  * SPU : Sound Processing Unit settings
+  * UI : Change user interface settings (such as font size, language or UI theme)
   * Controls : Edit KB/Pad controls
   * Shader presets : Apply a shader preset
-  * Configure shaders : show shader editor
+  * Configure shaders : Show shader editor
 ## Debug
 
 ![debug menu](./images/pcsx_menu_debug.png)
 
 ## Help
 
-  * Show Imgui demo
+  * Show ImGui demo
   * About
 
-## GPU infos
+## GPU information
 
-The 'About' dialog available in the 'Help' menu has a 'OpenGl information' tab that will give you informations on GPU currently used by the program.
+The 'About' dialog available in the 'Help' menu has an 'OpenGL information' tab that displays information on the GPU currently used by the program, such as the supported OpenGL extensions.
 
 ![GPU infos](./images/gpu_infos.png)

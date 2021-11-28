@@ -2,7 +2,7 @@
 
 ## Setup 
 
-In pcsx-redux, make sure `Debug > Show logs` is enabled.
+In PCSX-Redux, make sure `Debug > Show logs` is enabled.
 
 In the 'Logs' window, hide all logs : `Displayed > Hide all`
 
