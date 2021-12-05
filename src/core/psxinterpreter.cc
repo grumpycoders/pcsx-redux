@@ -122,6 +122,9 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     cIntFunc_t *s_pPsxCP2 = NULL;
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
+    std::optional<uint32_t> m_newCode;
+    uint32_t m_newPC = 0;
+
     template <bool debug, bool trace>
     void execBlock();
     void doBranch(uint32_t target, bool fromLink);
@@ -1654,8 +1657,6 @@ void InterpretedCPU::Shutdown() {}
 template <bool debug, bool trace>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
-    std::optional<uint32_t> newCode;
-    uint32_t newPC = 0;
     do {
         if (m_nextIsDelaySlot) {
             m_inDelaySlot = true;
@@ -1670,8 +1671,8 @@ inline void InterpretedCPU::execBlock() {
             return codePtr ? SWAP_LE32(*codePtr) : 0;
         };
         if constexpr (debug) {
-            if (newCode.has_value() && newPC == pc) {
-                code = newCode.value();
+            if (m_newCode.has_value() && m_newPC == pc) {
+                code = m_newCode.value();
             } else {
                 code = getCode(pc);
             }
@@ -1715,10 +1716,10 @@ inline void InterpretedCPU::execBlock() {
             psxBranchTest();
         }
         if constexpr (debug) {
-            newPC = m_psxRegs.pc;
-            uint32_t newCodeVal = getCode(newPC);
-            newCode = newCodeVal;
-            PCSX::g_emulator->m_debug->process(pc, newPC, code, newCodeVal, fromLink);
+            m_newPC = m_psxRegs.pc;
+            uint32_t newCodeVal = getCode(m_newPC);
+            m_newCode = newCodeVal;
+            PCSX::g_emulator->m_debug->process(pc, m_newPC, code, newCodeVal, fromLink);
         }
     } while (!ranDelaySlot && !debug);
 }
