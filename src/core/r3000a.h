@@ -37,12 +37,18 @@
 #elif defined(__x86_64) || defined(_M_AMD64)
 #define DYNAREC_X86_64
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_ARCH_ISA_A64)
-#define DYNAREC_NONE  // Placeholder for AA64
+#define DYNAREC_AA64
 #elif defined(__arm__) || defined(_M_ARM)
 #define DYNAREC_NONE  // Placeholder for AA32
 #elif defined(__powerpc__) || defined(_M_PPC)
 #define DYNAREC_NONE  // Placeholder for PPC
 #else
+#define DYNAREC_NONE
+#endif
+
+// Disable AA64 JIT on Windows for now
+#if defined(DYNAREC_AA64) && (defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__))
+#undef DYNAREC_AA64
 #define DYNAREC_NONE
 #endif
 
