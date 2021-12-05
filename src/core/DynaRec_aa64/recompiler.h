@@ -77,18 +77,42 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
 
+    uint32_t m_pc;
     Emitter gen;
 
+    bool m_stopCompiling;  // Should we stop compiling code?
+    bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
+    uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
+    const int MAX_BLOCK_SIZE = 50;
+
+    enum class RegState { Unknown, Constant };
+
+    // Check if we're executing from valid memory
+    inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
+
+    DynarecCallback* getBlockPointer(uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc);
+    void error();
+    void flushCache();
+    void handleLinking();
+    void handleFastboot();
+    void uncompileAll();
+
   public:
-    DynaRecCPU() : R3000Acpu("x86 DynaRec") {}
-    virtual bool Implemented() final { return false; }
+    DynaRecCPU() : R3000Acpu("AA64 DynaRec") {}
+    virtual bool Implemented() final { return true; }
     virtual bool Init() final { return false; }
-    virtual void Reset() final { abort(); }
+    virtual void Reset() final;
     virtual void Execute() final { abort(); }
     virtual void Clear(uint32_t Addr, uint32_t Size) final { abort(); }
     virtual void Shutdown() final { abort(); }
-    virtual void SetPGXPMode(uint32_t pgxpMode) final { abort(); }
-    virtual bool isDynarec() final { abort(); }
+    virtual bool isDynarec() final { return true; }
+
+    virtual void SetPGXPMode(uint32_t pgxpMode) final {
+        if (pgxpMode != 0) {
+            throw std::runtime_error("PGXP not supported in x64 JIT");
+        }
+    }
 };
 
 #endif  // DYNAREC_AA64
