@@ -48,12 +48,9 @@
 #undef _rRs_
 #undef _rRt_
 #undef _rRd_
-#undef _rSa_
-#undef _rFs_
 #undef _c2dRs_
 #undef _c2dRt_
 #undef _c2dRd_
-#undef _c2dSa_
 #undef _rHi_
 #undef _rLo_
 #undef _JumpTarget_
@@ -77,13 +74,10 @@
 #define _rRs_ m_psxRegs.GPR.r[_Rs_]  // Rs register
 #define _rRt_ m_psxRegs.GPR.r[_Rt_]  // Rt register
 #define _rRd_ m_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ m_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ m_psxRegs.CP0.r[_Rd_]  // Fs register
 
 #define _c2dRs_ m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
 #define _c2dRt_ m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
 #define _c2dRd_ m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
 
 #define _rHi_ m_psxRegs.GPR.n.hi  // The HI register
 #define _rLo_ m_psxRegs.GPR.n.lo  // The LO register
@@ -1102,13 +1096,13 @@ void InterpretedCPU::psxSWR(uint32_t code) {
 void InterpretedCPU::psxMFC0(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoadRef(_Rt_)) = (int)_rFs_;
+    _i32(delayedLoadRef(_Rt_)) = (int)m_psxRegs.CP0.r[_Rd_];
 }
 
 void InterpretedCPU::psxCFC0(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoadRef(_Rt_)) = (int)_rFs_;
+    _i32(delayedLoadRef(_Rt_)) = (int)m_psxRegs.CP0.r[_Rd_];
 }
 
 void InterpretedCPU::psxTestSWInts() {
