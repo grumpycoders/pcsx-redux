@@ -182,7 +182,7 @@ void PCSX::Debug::startStepping() {
     g_system->resume();
 }
 
-bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view cause) {
+bool PCSX::Debug::triggerBP(Breakpoint* bp, const char* cause) {
     uint32_t pc = g_emulator->m_psxCpu->m_psxRegs.pc;
     bool keepBP = true;
     std::string name;
@@ -200,7 +200,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view cause) {
     return keepBP;
 }
 
-void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, std::string_view cause) {
+void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {
     auto& cpu = g_emulator->m_psxCpu;
     const auto& regs = cpu->m_psxRegs;
     if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {

@@ -122,9 +122,6 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     cIntFunc_t *s_pPsxCP2 = NULL;
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
-    std::optional<uint32_t> m_newCode;
-    uint32_t m_newPC = 0;
-
     template <bool debug, bool trace>
     void execBlock();
     void doBranch(uint32_t target, bool fromLink);
@@ -1670,15 +1667,7 @@ inline void InterpretedCPU::execBlock() {
             uint32_t *codePtr = Read_ICache(pc);
             return codePtr ? SWAP_LE32(*codePtr) : 0;
         };
-        if constexpr (debug) {
-            if (m_newCode.has_value() && m_newPC == pc) {
-                code = m_newCode.value();
-            } else {
-                code = getCode(pc);
-            }
-        } else {
-            code = getCode(pc);
-        }
+        code = getCode(pc);
 
         m_psxRegs.code = code;
 
@@ -1716,10 +1705,9 @@ inline void InterpretedCPU::execBlock() {
             psxBranchTest();
         }
         if constexpr (debug) {
-            m_newPC = m_psxRegs.pc;
-            uint32_t newCodeVal = getCode(m_newPC);
-            m_newCode = newCodeVal;
-            PCSX::g_emulator->m_debug->process(pc, m_newPC, code, newCodeVal, fromLink);
+            uint32_t newPC = m_psxRegs.pc;
+            uint32_t newCode = getCode(newPC);
+            PCSX::g_emulator->m_debug->process(pc, newPC, code, newCode, fromLink);
         }
     } while (!ranDelaySlot && !debug);
 }

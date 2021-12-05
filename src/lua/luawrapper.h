@@ -184,7 +184,7 @@ class Lua {
     void error(const std::string& msg) { error(msg.c_str()); }
 
     int type(int i = -1) { return lua_type(L, i); }
-    std::string_view typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }
+    const char* typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }
     bool isnil(int i = -1) { return lua_isnil(L, i); }
     bool isboolean(int i = -1) { return lua_isboolean(L, i); }
     bool isnumber(int i = -1) { return lua_isnumber(L, i); }

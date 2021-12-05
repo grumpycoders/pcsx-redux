@@ -342,9 +342,9 @@ std::optional<GLuint> PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     return shaderProgram;
 }
 
-bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, std::string_view title) {
+bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, const char *title) {
     if (!m_show) return false;
-    if (!ImGui::Begin(title.data(), &m_show)) return false;
+    if (!ImGui::Begin(title, &m_show)) return false;
     ImGui::Checkbox(_("Auto reload"), &m_autoreload);
     ImGui::SameLine();
     ImGui::Checkbox(_("Auto save"), &m_autosave);
