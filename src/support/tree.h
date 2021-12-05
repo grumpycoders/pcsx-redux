@@ -281,7 +281,8 @@ class Tree final : public BaseTree {
         while ((p != &m_nil) && ((c = p->cmp(&cmp)) != 0)) {
             p = c < 0 ? p->m_right : p->m_left;
         }
-        return iterator(dynamic_cast<Node*>(p), m_nil);
+        Node* ptr = p == &m_nil ? &m_nil : dynamic_cast<Node*>(p);
+        return iterator(ptr, m_nil);
     }
     const_iterator find(const Key& key) const {
         Node cmp;
@@ -291,7 +292,8 @@ class Tree final : public BaseTree {
         while ((p != &m_nil) && ((c = p->cmp(&cmp)) != 0)) {
             p = c < 0 ? p->m_right : p->m_left;
         }
-        return const_iterator(dynamic_cast<Node*>(p), m_nil);
+        const Node* ptr = p == &m_nil ? &m_nil : dynamic_cast<const Node*>(p);
+        return const_iterator(ptr, m_nil);
     }
     enum IntervalSearch { INTERVAL_SEARCH };
     iterator find(const Key& key, IntervalSearch) { return find(key, key); }
@@ -302,7 +304,8 @@ class Tree final : public BaseTree {
         interval.m_high = interval.m_max = high;
         BaseNode* first = m_root;
         while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(&interval)) first = first->m_left;
-        iterator ret(dynamic_cast<Node*>(first), interval);
+        Node* ptr = first == &m_nil ? &m_nil : dynamic_cast<Node*>(first);
+        iterator ret(ptr, interval);
         if (!ret->overlaps(&interval)) ret++;
         return ret;
     }
@@ -312,7 +315,8 @@ class Tree final : public BaseTree {
         interval.m_high = interval.m_max = high;
         const BaseNode* first = m_root;
         while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(&interval)) first = first->m_left;
-        const_iterator ret(dynamic_cast<const Node*>(first), interval);
+        const Node* ptr = first == &m_nil ? &m_nil : dynamic_cast<const Node*>(first);
+        const_iterator ret(ptr, interval);
         if (!ret->overlaps(&interval)) ret++;
         return ret;
     }
