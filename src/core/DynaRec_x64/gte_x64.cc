@@ -267,7 +267,7 @@ void DynaRecCPU::recLWC2() {
         gen.moveAndAdd(arg1, m_regs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(psxMemRead32Wrapper);  // Read a value from memory. No need to set up a stack frame as we did it before
+    call(psxMemRead32Wrapper);
     switch (_Rt_) {
         case 15:
         case 30:
@@ -322,7 +322,6 @@ void DynaRecCPU::recSWC2() {
         call(name##Wrapper);                                                                        \
     }
 
-// Note: The GTE recompiler functions don't set up a stack frame, because recCOP2 does it already
 GTE_FALLBACK(AVSZ3);
 GTE_FALLBACK(AVSZ4);
 GTE_FALLBACK(CC);
@@ -346,4 +345,5 @@ GTE_FALLBACK(RTPS);
 GTE_FALLBACK(RTPT);
 GTE_FALLBACK(SQR);
 
+#undef GTE_FALLBACK
 #endif  // DYNAREC_X86_64
