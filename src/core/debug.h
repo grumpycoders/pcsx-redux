@@ -21,7 +21,6 @@
 
 #include <functional>
 #include <string>
-#include <string_view>
 
 #include "core/psxemulator.h"
 #include "core/system.h"
@@ -39,15 +38,15 @@ class Debug {
 
     void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} read", c);
-        checkBP(address, BreakpointType::Read, len, cause);
+        checkBP(address, BreakpointType::Read, len, cause.c_str());
     }
     void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} write", c);
-        checkBP(address, BreakpointType::Write, len, cause);
+        checkBP(address, BreakpointType::Write, len, cause.c_str());
     }
 
   private:
-    void checkBP(uint32_t address, BreakpointType type, uint32_t width, std::string_view cause = "");
+    void checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause = "");
 
   public:
     // call this if PC is being set, like when the emulation is being reset, or when doing fastboot
@@ -133,7 +132,7 @@ class Debug {
     }
 
   private:
-    bool triggerBP(Breakpoint* bp, std::string_view reason = "");
+    bool triggerBP(Breakpoint* bp, const char* reason = "");
     BreakpointTreeType m_breakpoints;
 
     uint8_t m_mainMemoryMap[0x00800000];
