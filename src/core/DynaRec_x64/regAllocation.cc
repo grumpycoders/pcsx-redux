@@ -157,7 +157,7 @@ start:
             regsToAllocateCount++;
         }
     }
-    
+
     if (regsToAllocateCount != 0) {
         // Flush register cache if we're going to overflow it and restart alloc process
         if (m_allocatedRegisters + regsToAllocateCount >= ALLOCATEABLE_REG_COUNT) {
@@ -184,24 +184,14 @@ start:
     }
 }
 
-void DynaRecCPU::alloc_rt_rs() {
-    allocateRegisters<2, 0>({_Rt_, _Rs_}, {});
-}
+void DynaRecCPU::alloc_rt_rs() { allocateRegisters<2, 0>({_Rt_, _Rs_}, {}); }
 
-void DynaRecCPU::alloc_rt_wb_rd() {
-    allocateRegisters<1, 1>({_Rt_}, {_Rd_});
-}
+void DynaRecCPU::alloc_rt_wb_rd() { allocateRegisters<1, 1>({_Rt_}, {_Rd_}); }
 
-void DynaRecCPU::alloc_rs_wb_rd() {
-    allocateRegisters<1, 1>({_Rs_}, {_Rd_});
-}
+void DynaRecCPU::alloc_rs_wb_rd() { allocateRegisters<1, 1>({_Rs_}, {_Rd_}); }
 
-void DynaRecCPU::alloc_rs_wb_rt() {
-    allocateRegisters<1, 1>({_Rs_}, {_Rt_});
-}
+void DynaRecCPU::alloc_rs_wb_rt() { allocateRegisters<1, 1>({_Rs_}, {_Rt_}); }
 
-void DynaRecCPU::alloc_rt_rs_wb_rd() {
-    allocateRegisters<2, 1>({_Rt_, _Rs_}, {_Rd_});
-}
+void DynaRecCPU::alloc_rt_rs_wb_rd() { allocateRegisters<2, 1>({_Rt_, _Rs_}, {_Rd_}); }
 
 #endif  // DYNAREC_X86_64
