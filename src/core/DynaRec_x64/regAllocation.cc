@@ -184,14 +184,14 @@ start:
     }
 }
 
-void DynaRecCPU::alloc_rt_rs() { allocateRegisters<2, 0>({_Rt_, _Rs_}, {}); }
+void DynaRecCPU::alloc_rt_rs() { allocateRegisters<2, 0>({(int) _Rt_, (int)_Rs_}, {}); }
 
-void DynaRecCPU::alloc_rt_wb_rd() { allocateRegisters<1, 1>({_Rt_}, {_Rd_}); }
+void DynaRecCPU::alloc_rt_wb_rd() { allocateRegisters<1, 1>({(int)_Rt_}, {(int)_Rd_}); }
 
-void DynaRecCPU::alloc_rs_wb_rd() { allocateRegisters<1, 1>({_Rs_}, {_Rd_}); }
+void DynaRecCPU::alloc_rs_wb_rd() { allocateRegisters<1, 1>({(int)_Rs_}, {(int)_Rd_}); }
 
-void DynaRecCPU::alloc_rs_wb_rt() { allocateRegisters<1, 1>({_Rs_}, {_Rt_}); }
+void DynaRecCPU::alloc_rs_wb_rt() { allocateRegisters<1, 1>({(int)_Rs_}, {(int)_Rt_}); }
 
-void DynaRecCPU::alloc_rt_rs_wb_rd() { allocateRegisters<2, 1>({_Rt_, _Rs_}, {_Rd_}); }
+void DynaRecCPU::alloc_rt_rs_wb_rd() { allocateRegisters<2, 1>({(int)_Rt_, (int)_Rs_}, {(int)_Rd_}); }
 
 #endif  // DYNAREC_X86_64
