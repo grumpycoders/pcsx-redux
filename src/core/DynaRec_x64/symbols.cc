@@ -21,27 +21,26 @@
 
 #if defined(DYNAREC_X86_64)
 #include <array>
+
 #include "fmt/format.h"
 
 #define REGISTER_VARIABLE(variable, name, size) \
-m_symbols += fmt::format("{} {} {}\n", (void*) &(variable), (name), (size))
+    m_symbols += fmt::format("{} {} {}\n", (void*)&(variable), (name), (size))
 
-#define REGISTER_FUNCTION(function, name) \
-m_symbols += fmt::format("{} {}\n", (void*) &(function), (name));
+#define REGISTER_FUNCTION(function, name) m_symbols += fmt::format("{} {}\n", (void*)&(function), (name));
 
 void DynaRecCPU::makeSymbols() {
     static constexpr std::array<const char*, 34> GPRs = {
         "r_zero", "r_at", "r_v0", "r_v1", "r_a0", "r_a1", "r_a2", "r_a3",  // 00
-        "r_t0", "r_t1", "r_t2", "r_t3", "r_t4", "r_t5", "r_t6", "r_t7",  // 08
-        "r_s0", "r_s1", "r_s2", "r_s3", "r_s4", "r_s5", "r_s6", "r_s7",  // 10
-        "r_t8", "r_t9", "r_k0", "r_k1", "r_gp", "r_sp", "r_s8", "r_ra",  // 18
-        "r_lo", "r_hi"
-    };
+        "r_t0",   "r_t1", "r_t2", "r_t3", "r_t4", "r_t5", "r_t6", "r_t7",  // 08
+        "r_s0",   "r_s1", "r_s2", "r_s3", "r_s4", "r_s5", "r_s6", "r_s7",  // 10
+        "r_t8",   "r_t9", "r_k0", "r_k1", "r_gp", "r_sp", "r_s8", "r_ra",  // 18
+        "r_lo",   "r_hi"};
 
     static constexpr std::array<const char*, 32> COP2_dataRegs = {
         "GTE_vxy0", "GTE_vz0",  "GTE_vxy1", "GTE_vz1",  "GTE_vxy2", "GTE_vz2",  "GTE_rgb",  "GTE_otz",   // 00
-        "GTE_ir0",  "GTE_ir1",  "ir2",  "ir3",  "GTE_sxy0", "GTE_sxy1", "GTE_sxy2", "GTE_sxyp",  // 08
-        "GTE_sz0",  "GTE_sz1",  "sz2",  "sz3",  "GTE_rgb0", "GTE_rgb1", "GTE_rgb2", "GTE_res1",  // 10
+        "GTE_ir0",  "GTE_ir1",  "ir2",      "ir3",      "GTE_sxy0", "GTE_sxy1", "GTE_sxy2", "GTE_sxyp",  // 08
+        "GTE_sz0",  "GTE_sz1",  "sz2",      "sz3",      "GTE_rgb0", "GTE_rgb1", "GTE_rgb2", "GTE_res1",  // 10
         "GTE_mac0", "GTE_mac1", "GTE_mac2", "GTE_mac3", "GTE_irgb", "GTE_orgb", "GTE_lzcs", "GTE_lzcr",  // 18
     };
 
@@ -53,19 +52,19 @@ void DynaRecCPU::makeSymbols() {
     };
 
     static constexpr std::array<const char*, 32> COP0_regs = {
-        "COP0_Index",    "COP0_Random",   "COP0_EntryLo0", "COP0_EntryLo1",  // 00
-        "COP0_Context",  "COP0_PageMask", "COP0_Wired",    "COP0_Checkme",  // 04
-        "COP0_BadVAddr", "COP0_Count",    "COP0_EntryHi",  "COP0_Compare",   // 08
-        "COP0_Status",   "COP0_Cause",    "COP0_ExceptPC", "COP0_PRevID",    // 0c
-        "COP0_Config",   "COP0_LLAddr",   "COP0_WatchLo",  "COP0_WatchHi",   // 10
-        "COP0_XContext", "COP0_Dunno1",    "COP0_Dunno2",    "COP0_Dunno3",     // 14
-        "COP0_Dunno4",    "COP0_Dunno5",    "COP0_PErr",     "COP0_CacheErr",  // 18
-        "COP0_TagLo",    "COP0_TagHi",    "COP0_ErrorEPC", "COP0_MissingAgain",     // 1c
+        "COP0_Index",    "COP0_Random",   "COP0_EntryLo0", "COP0_EntryLo1",      // 00
+        "COP0_Context",  "COP0_PageMask", "COP0_Wired",    "COP0_Checkme",       // 04
+        "COP0_BadVAddr", "COP0_Count",    "COP0_EntryHi",  "COP0_Compare",       // 08
+        "COP0_Status",   "COP0_Cause",    "COP0_ExceptPC", "COP0_PRevID",        // 0c
+        "COP0_Config",   "COP0_LLAddr",   "COP0_WatchLo",  "COP0_WatchHi",       // 10
+        "COP0_XContext", "COP0_Dunno1",   "COP0_Dunno2",   "COP0_Dunno3",        // 14
+        "COP0_Dunno4",   "COP0_Dunno5",   "COP0_PErr",     "COP0_CacheErr",      // 18
+        "COP0_TagLo",    "COP0_TagHi",    "COP0_ErrorEPC", "COP0_MissingAgain",  // 1c
     };
 
-    m_symbols += fmt::format("{}\n", gen.getCode<void*>()); // Base of code buffer
-    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*)this); // Register register segment
-    m_symbols += fmt::format("endsegs()\n"); // Stop registering segments
+    m_symbols += fmt::format("{}\n", gen.getCode<void*>());             // Base of code buffer
+    m_symbols += fmt::format("{} psxRegs 10000 .data\n", (void*)this);  // Register register segment
+    m_symbols += fmt::format("endsegs()\n");                            // Stop registering segments
 
     for (auto i = 0; i < 34; i++) {
         REGISTER_VARIABLE(m_psxRegs.GPR.r[i], GPRs[i], 4);
@@ -80,7 +79,7 @@ void DynaRecCPU::makeSymbols() {
     REGISTER_VARIABLE(m_psxRegs.cycle, "m_cycles", 4);
     REGISTER_VARIABLE(m_psxRegs.pc, "m_pc", 4);
 
-    for (int i = 0; i < 16; i++) { // Register host register cache
+    for (int i = 0; i < 16; i++) {  // Register host register cache
         REGISTER_VARIABLE(m_hostRegisterCache[i], fmt::format("cached_host_reg_{}", i), 8);
     }
 
@@ -107,4 +106,4 @@ void DynaRecCPU::makeSymbols() {
 
 #undef REGISTER_VARIABLE
 #undef REGISTER_FUNCTION
-#endif // DYNAREC_X86_64
+#endif  // DYNAREC_X86_64

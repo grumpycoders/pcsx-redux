@@ -17,9 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <cassert>
-#include "recompiler.h"
 #include "regAllocation.h"
+
+#include <cassert>
+
+#include "recompiler.h"
 
 #if defined(DYNAREC_X86_64)
 

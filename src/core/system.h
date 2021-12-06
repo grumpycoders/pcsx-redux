@@ -35,7 +35,6 @@
 #include "support/djbhash.h"
 #include "support/eventbus.h"
 
-
 namespace PCSX {
 
 enum class LogClass : unsigned;
@@ -99,21 +98,21 @@ class System {
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &...args) {
+    void printf(const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         printf(s);
     }
     virtual void printf(const std::string &) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &...args) {
+    void log(LogClass logClass, const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, s);
     }
     virtual void log(LogClass, const std::string &) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &...args) {
+    void message(const char *format, const Args &... args) {
         std::string s = fmt::sprintf(format, args...);
         message(s);
     }

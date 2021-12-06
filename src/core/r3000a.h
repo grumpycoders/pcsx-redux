@@ -33,17 +33,17 @@
 #include "support/hashtable.h"
 
 #if defined(__i386__) || defined(_M_IX86)
-    #define DYNAREC_X86_32
+#define DYNAREC_X86_32
 #elif defined(__x86_64) || defined(_M_AMD64)
-    #define DYNAREC_X86_64
+#define DYNAREC_X86_64
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_ARCH_ISA_A64)
-    #define DYNAREC_NONE // Placeholder for AA64
+#define DYNAREC_NONE  // Placeholder for AA64
 #elif defined(__arm__) || defined(_M_ARM)
-    #define DYNAREC_NONE // Placeholder for AA32
+#define DYNAREC_NONE  // Placeholder for AA32
 #elif defined(__powerpc__) || defined(_M_PPC)
-    #define DYNAREC_NONE // Placeholder for PPC
+#define DYNAREC_NONE  // Placeholder for PPC
 #else
-    #define DYNAREC_NONE
+#define DYNAREC_NONE
 #endif
 
 namespace PCSX {
@@ -180,12 +180,12 @@ enum {
 };
 
 struct psxRegisters {
-    psxGPRRegs GPR;  // General Purpose Registers
-    psxCP0Regs CP0;  // COP0 Registers
-    psxCP2Data CP2D; // COP2 data registers
-    psxCP2Ctrl CP2C; // COP2 control registers
-    uint32_t pc;     // Program counter
-    uint32_t code;   // The current instruction
+    psxGPRRegs GPR;   // General Purpose Registers
+    psxCP0Regs CP0;   // COP0 Registers
+    psxCP2Data CP2D;  // COP2 data registers
+    psxCP2Ctrl CP2C;  // COP2 control registers
+    uint32_t pc;      // Program counter
+    uint32_t code;    // The current instruction
     uint32_t cycle;
     uint32_t previousCycles;
     uint32_t interrupt;
@@ -256,13 +256,10 @@ struct psxRegisters {
 #define _rRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
 #define _rRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
 #define _rRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
 
 #define _c2dRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
 #define _c2dRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
 #define _c2dRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
 
 #define _rHi_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
 #define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register

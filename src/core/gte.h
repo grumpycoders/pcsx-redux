@@ -26,7 +26,7 @@
 #undef NCCS
 
 #define gteoB (PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_] + _Imm_)
-#define gteop(instruction) ((instruction) & 0x1ffffff)
+#define gteop(instruction) ((instruction)&0x1ffffff)
 
 namespace PCSX {
 
@@ -37,22 +37,16 @@ class GTE {
         return MFC2_internal(_Rd_);
     }
 
-    uint32_t MFC2(int reg) {
-        return MFC2_internal(reg);
-    }
+    uint32_t MFC2(int reg) { return MFC2_internal(reg); }
 
     uint32_t CFC2() {
         // CPU[Rt] = GTE_C[Rd]
         return PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[_Rd_].d;
     }
 
-    void CTC2(uint32_t value, int reg) {
-        CTC2_internal(value, reg);
-    }
+    void CTC2(uint32_t value, int reg) { CTC2_internal(value, reg); }
 
-    void MTC2(uint32_t value, int reg) { 
-        MTC2_internal(value, reg);
-    }
+    void MTC2(uint32_t value, int reg) { MTC2_internal(value, reg); }
 
     void MTC2(uint32_t code) { MTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
     void CTC2(uint32_t code) { CTC2_internal(PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_], _Rd_); }
@@ -85,35 +79,34 @@ class GTE {
     // If MSB is set, return the number of leading ones, else return the number of leading zeroes
     // For an input of 0, 32 is returned
     static uint32_t countLeadingBits(uint32_t value) {
-        #ifdef __GNUC__
-            if (value & 0x80000000) {
-                value = ~value;
-            }
-            return (value == 0) ? 32 : __builtin_clz(value);
-        #elif defined (_MSC_VER)
-            if (value & 0x80000000) {
-                value = ~value;
-            }
+#ifdef __GNUC__
+        if (value & 0x80000000) {
+            value = ~value;
+        }
+        return (value == 0) ? 32 : __builtin_clz(value);
+#elif defined(_MSC_VER)
+        if (value & 0x80000000) {
+            value = ~value;
+        }
 
-            if (value == 0)
-                return 32;
+        if (value == 0) return 32;
 
-            unsigned long count;
-            _BitScanReverse(&count, value);
-            return 31 - count;
-        #else
-            if ((value & 0x80000000) == 0) {
-                value = ~value;
-            }
+        unsigned long count;
+        _BitScanReverse(&count, value);
+        return 31 - count;
+#else
+        if ((value & 0x80000000) == 0) {
+            value = ~value;
+        }
 
-            uint32_t count = 0;
-            while ((value & 0x80000000) != 0) {
-                count++;
-                value <<= 1;
-            }
+        uint32_t count = 0;
+        while ((value & 0x80000000) != 0) {
+            count++;
+            value <<= 1;
+        }
 
-            return count;
-        #endif
+        return count;
+#endif
     }
 
   private:
