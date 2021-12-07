@@ -401,12 +401,16 @@ class Tree final {
         Interval m_interval;
     };
 
-    Node m_nil;
-
   public:
     typedef IteratorBase<T, Node> iterator;
     typedef IteratorBase<const T, const Node> const_iterator;
 
+  private:
+    Node m_nil;
+    iterator m_end = nullptr;
+    const_iterator m_cend = nullptr;
+
+  public:
     Tree() {
         Node* nil = &m_nil;
         nil->m_left = nil;
@@ -414,6 +418,9 @@ class Tree final {
         nil->m_parent = nil;
         nil->m_tree = nullptr;
         m_root = nil;
+
+        m_end = iterator(&m_nil);
+        m_cend = const_iterator(&m_nil);
     }
 
     unsigned size() const { return m_count; }
@@ -432,9 +439,9 @@ class Tree final {
         while (min->m_left != &m_nil) min = min->m_left;
         return const_iterator(min);
     }
-    iterator end() { return iterator(&m_nil); }
-    const_iterator end() const { return const_iterator(&m_nil); }
-    const_iterator cend() const { return const_iterator(&m_nil); }
+    iterator end() { return m_end; }
+    const_iterator end() const { return m_cend; }
+    const_iterator cend() const { return m_cend; }
     bool empty() const { return m_count == 0; }
     void clear() {
         while (m_count) unlink(m_root);
@@ -509,11 +516,11 @@ class Tree final {
     }
     void swap(Tree& tree) { std::swap(m_root, tree.m_root); }
     iterator buildIterator(Node* node) const {
-        if (!isLinked(node)) return end();
+        if (!isLinked(node)) return m_end;
         return iterator(node);
     }
     const_iterator buildConstIterator(Node* node) const {
-        if (!contains(node)) return end();
+        if (!contains(node)) return m_cend;
         return const_iterator(node);
     }
     void unlink(Node* const z) {
