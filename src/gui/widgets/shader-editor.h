@@ -45,16 +45,16 @@ class ShaderEditor {
 
     bool m_show = false;
 
-    void setText(std::string_view VS, std::string_view PS, std::string_view L) {
-        m_vertexShaderEditor.setText(VS.data());
-        m_pixelShaderEditor.setText(PS.data());
-        m_luaEditor.setText(L.data());
+    void setText(const char* VS, const char* PS, const char* L) {
+        m_vertexShaderEditor.setText(VS);
+        m_pixelShaderEditor.setText(PS);
+        m_luaEditor.setText(L);
     }
 
     void setDefaults();
     void reset(GUI*);
 
-    bool draw(GUI*, std::string_view title);
+    bool draw(GUI*, const char* title);
     void renderWithImgui(GUI* gui, ImTextureID textureID, const ImVec2& srcSize, const ImVec2& dstSize);
     void render(GUI*, GLuint textureID, const ImVec2& texSize, const ImVec2& srcLoc, const ImVec2& srcSize,
                 const ImVec2& dstSize);

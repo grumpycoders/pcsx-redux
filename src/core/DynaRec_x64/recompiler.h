@@ -135,10 +135,16 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <LoadingMode mode = LoadingMode::Load>
     void reserveReg(int index);
-    void allocateRegWithoutLoad(int reg);
     void allocateReg(int reg);
-    void allocateReg(int reg1, int reg2);
-    void allocateReg(int reg1, int reg2, int reg3);
+    void allocateRegWithoutLoad(int reg);
+
+    template <int T, int U>
+    void allocateRegisters(std::array<int, T> regsWithoutWb, std::array<int, U> regsWithWb);
+    void alloc_rt_rs();
+    void alloc_rt_wb_rd();
+    void alloc_rs_wb_rd();
+    void alloc_rs_wb_rt();
+    void alloc_rt_rs_wb_rd();
 
     void flushRegs();
     void spillRegisterCache();
@@ -184,6 +190,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         file.write(gen.getCode<const char*>(), gen.getSize());       // Write the code buffer to the dump
     }
 
+  private:
     // Sets dest to "pointer", using base pointer relative addressing if possible
     void loadAddress(Xbyak::Reg64 dest, void* pointer) {
         const auto distance = (intptr_t)pointer - (intptr_t)this;
@@ -265,7 +272,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         }
     }
 
-  private:
     static void psxExceptionWrapper(DynaRecCPU* that, int32_t e, int32_t bd) { that->psxException(e, bd); }
     static void recClearWrapper(DynaRecCPU* that, uint32_t address) { that->Clear(address, 1); }
     static void recBranchTestWrapper(DynaRecCPU* that) { that->psxBranchTest(); }

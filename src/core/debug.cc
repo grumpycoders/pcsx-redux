@@ -182,7 +182,7 @@ void PCSX::Debug::startStepping() {
     g_system->resume();
 }
 
-bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view cause) {
+bool PCSX::Debug::triggerBP(Breakpoint* bp, const char* cause) {
     uint32_t pc = g_emulator->m_psxCpu->m_psxRegs.pc;
     bool keepBP = true;
     std::string name;
@@ -200,7 +200,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, std::string_view cause) {
     return keepBP;
 }
 
-void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, std::string_view cause) {
+void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {
     auto& cpu = g_emulator->m_psxCpu;
     const auto& regs = cpu->m_psxRegs;
     if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
@@ -219,15 +219,14 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
         }
     }
 
-    auto none = m_breakpoints.end();
+    auto end = m_breakpoints.end();
     address &= ~0xe0000000;
 
-    BreakpointUserListType todelete;
-    for (auto it = m_breakpoints.find(address, address + width - 1); it != m_breakpoints.end(); it++) {
+    for (auto it = m_breakpoints.find(address, address + width - 1); it != end; it++) {
         if (it->type() != type) continue;
-        if (!triggerBP(&*it, cause)) todelete.push_back(&*it);
+        if (!triggerBP(&*it, cause)) m_todelete.push_back(&*it);
     }
-    todelete.destroyAll();
+    m_todelete.destroyAll();
 }
 
 std::string PCSX::Debug::generateFlowIDC() {
