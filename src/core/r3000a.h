@@ -262,13 +262,10 @@ struct psxRegisters {
 #define _rRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rs_]  // Rs register
 #define _rRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rt_]  // Rt register
 #define _rRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP0.r[_Rd_]  // Fs register
 
 #define _c2dRs_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
 #define _c2dRt_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
 #define _c2dRd_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
 
 #define _rHi_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.hi  // The HI register
 #define _rLo_ PCSX::g_emulator->m_psxCpu->m_psxRegs.GPR.n.lo  // The LO register

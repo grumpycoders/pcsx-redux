@@ -135,10 +135,16 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     template <LoadingMode mode = LoadingMode::Load>
     void reserveReg(int index);
-    void allocateRegWithoutLoad(int reg);
     void allocateReg(int reg);
-    void allocateReg(int reg1, int reg2);
-    void allocateReg(int reg1, int reg2, int reg3);
+    void allocateRegWithoutLoad(int reg);
+
+    template <int T, int U>
+    void allocateRegisters(std::array<int, T> regsWithoutWb, std::array<int, U> regsWithWb);
+    void alloc_rt_rs();
+    void alloc_rt_wb_rd();
+    void alloc_rs_wb_rd();
+    void alloc_rs_wb_rt();
+    void alloc_rt_rs_wb_rd();
 
     void flushRegs();
     void spillRegisterCache();

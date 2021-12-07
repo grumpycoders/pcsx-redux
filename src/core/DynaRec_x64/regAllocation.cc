@@ -114,7 +114,7 @@ void DynaRecCPU::allocateReg(int reg) {
         if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
             spillRegisterCache();
         }
-        reserveReg(reg);
+        reserveReg<LoadingMode::Load>(reg);
     }
 }
 
@@ -127,187 +127,71 @@ void DynaRecCPU::allocateRegWithoutLoad(int reg) {
     }
 }
 
-void DynaRecCPU::allocateReg(int reg1, int reg2) {
+// T: Number of regs without writeback we must allocate
+// U: Number of regs with writeback we must allocate
+// We want both of them to be compile-time constants for efficiency
+template <int T, int U>
+void DynaRecCPU::allocateRegisters(std::array<int, T> regsWithoutWb, std::array<int, U> regsWithWb) {
+    static_assert(T + U < ALLOCATEABLE_REG_COUNT, "Trying to allocate too many registers");
+
 start:
-    if (reg1 == reg2) {
-        if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-            }
-            reserveReg(reg1);
+    // Which specific regs we need to load
+    uint32_t regsToLoad = 0;
+    // Which specific regs we need to allocate without loading, with writeback
+    uint32_t regsToWriteback = 0;
+    // How many registers we need to load
+    int regsToAllocateCount = 0;
+
+    for (int i = 0; i < T; i++) {
+        const auto reg = regsWithoutWb[i];
+        if (!m_regs[reg].allocated && (regsToLoad & (1 << reg)) == 0) {
+            regsToLoad |= 1 << reg;
+            regsToAllocateCount++;
         }
-    } else {
-        if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
+    }
 
-            reserveReg(reg1);
-            reserveReg(reg2);
+    for (int i = 0; i < U; i++) {
+        const auto reg = regsWithWb[i];
+        if (!m_regs[reg].allocated && (regsToWriteback & (1 << reg)) == 0 && (regsToLoad & (1 << reg)) == 0) {
+            regsToWriteback |= 1 << reg;
+            regsToAllocateCount++;
+        }
+    }
+
+    if (regsToAllocateCount != 0) {
+        // Flush register cache if we're going to overflow it and restart alloc process
+        if (m_allocatedRegisters + regsToAllocateCount >= ALLOCATEABLE_REG_COUNT) {
+            flushRegs();
+            goto start;
         }
 
-        else if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
+        // Check which registers we need to load
+        for (int i = 0; i < T; i++) {
+            const auto reg = regsWithoutWb[i];
+            if ((regsToLoad & (1 << reg)) != 0 && !m_regs[reg].allocated) {
+                reserveReg<LoadingMode::Load>(reg);
             }
-
-            reserveReg(reg1);
         }
+    }
 
-        else if (!m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg2);
+    // Specify writeback for whatever regs we need to
+    for (int i = 0; i < U; i++) {
+        const auto reg = regsWithWb[i];
+        if (!m_regs[reg].allocated) {
+            reserveReg<LoadingMode::DoNotLoad>(reg);
         }
+        m_regs[reg].writeback = true;
     }
 }
 
-void DynaRecCPU::allocateReg(int reg1, int reg2, int reg3) {
-start:
-    if (reg1 == reg2 && reg1 == reg3) {  // All 3 regs are the same
-        if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-            }
+void DynaRecCPU::alloc_rt_rs() { allocateRegisters<2, 0>({(int) _Rt_, (int)_Rs_}, {}); }
 
-            reserveReg(reg1);
-        }
-    }
+void DynaRecCPU::alloc_rt_wb_rd() { allocateRegisters<1, 1>({(int)_Rt_}, {(int)_Rd_}); }
 
-    else if (reg1 == reg2) {  // Reg1 and 2 are the same, 3 is different
-        if (!m_regs[reg1].isAllocated() && !m_regs[reg3].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
+void DynaRecCPU::alloc_rs_wb_rd() { allocateRegisters<1, 1>({(int)_Rs_}, {(int)_Rd_}); }
 
-            reserveReg(reg1);
-            reserveReg(reg3);
-        }
+void DynaRecCPU::alloc_rs_wb_rt() { allocateRegisters<1, 1>({(int)_Rs_}, {(int)_Rt_}); }
 
-        else if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-        }
-
-        else if (!m_regs[reg3].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg3);
-        }
-    }
-
-    else if (reg1 == reg3 || reg2 == reg3) {  // Reg1 and 3 are the same or reg2 and 3 are the sane
-        if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-            reserveReg(reg2);
-        }
-
-        else if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-        }
-
-        else if (!m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg2);
-        }
-    }
-
-    else {  // All regs are different
-        if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated() && !m_regs[reg3].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 2) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-            reserveReg(reg2);
-            reserveReg(reg3);
-        }
-
-        else if (!m_regs[reg1].isAllocated() && !m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-            reserveReg(reg2);
-        }
-
-        else if (!m_regs[reg1].isAllocated() && !m_regs[reg3].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-            reserveReg(reg3);
-        }
-
-        else if (!m_regs[reg2].isAllocated() && !m_regs[reg3].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT - 1) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg2);
-            reserveReg(reg3);
-        }
-
-        else if (!m_regs[reg1].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg1);
-        }
-
-        else if (!m_regs[reg2].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg2);
-        }
-
-        else if (!m_regs[reg3].isAllocated()) {
-            if (m_allocatedRegisters >= ALLOCATEABLE_REG_COUNT) {
-                spillRegisterCache();
-                goto start;
-            }
-
-            reserveReg(reg3);
-        }
-    }
-}
+void DynaRecCPU::alloc_rt_rs_wb_rd() { allocateRegisters<2, 1>({(int)_Rt_, (int)_Rs_}, {(int)_Rd_}); }
 
 #endif  // DYNAREC_X86_64

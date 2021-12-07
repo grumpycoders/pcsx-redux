@@ -825,14 +825,14 @@ void PCSX::GUI::endFrame() {
                         m_outputShaderEditor.reset(this);
                     }
                     if (ImGui::MenuItem(_("CRT-lottes shader"))) {
-                        m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert(),
-                                                        Shaders::CrtLottes::Offscreen::frag(),
-                                                        Shaders::CrtLottes::Offscreen::lua());
+                        m_offscreenShaderEditor.setText(Shaders::CrtLottes::Offscreen::vert().data(),
+                                                        Shaders::CrtLottes::Offscreen::frag().data(),
+                                                        Shaders::CrtLottes::Offscreen::lua().data());
                         m_offscreenShaderEditor.compile(this);
                         m_offscreenShaderEditor.reset(this);
-                        m_outputShaderEditor.setText(Shaders::CrtLottes::Output::vert(),
-                                                     Shaders::CrtLottes::Output::frag(),
-                                                     Shaders::CrtLottes::Output::lua());
+                        m_outputShaderEditor.setText(Shaders::CrtLottes::Output::vert().data(),
+                                                     Shaders::CrtLottes::Output::frag().data(),
+                                                     Shaders::CrtLottes::Output::lua().data());
                         m_outputShaderEditor.compile(this);
                         m_outputShaderEditor.reset(this);
                     }
