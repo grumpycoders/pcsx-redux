@@ -154,6 +154,7 @@ class Debug {
 
     bool m_wasInISR = false;
     Breakpoint* m_lastBP = nullptr;
+    BreakpointUserListType m_todelete;
 };
 
 }  // namespace PCSX
