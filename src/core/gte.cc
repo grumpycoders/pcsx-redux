@@ -361,6 +361,14 @@ void PCSX::GTE::CTC2_internal(uint32_t value, int reg) {
     PCSX::g_emulator->m_psxCpu->m_psxRegs.CP2C.p[reg].d = value;
 }
 
+// Push a Z value to the Z-coordinate FIFO
+void PCSX::GTE::pushZ(uint16_t z) {
+    SZ0 = SZ1;
+    SZ1 = SZ2;
+    SZ2 = SZ3;
+    SZ3 = z;
+}
+
 static inline int64_t gte_shift(int64_t a, int sf) {
     if (sf > 0)
         return a >> 12;
@@ -536,10 +544,7 @@ void PCSX::GTE::RTPS(uint32_t op) {
     IR1 = Lm_B1(MAC1, lm);
     IR2 = Lm_B2(MAC2, lm);
     IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
-    SZ0 = SZ1;
-    SZ1 = SZ2;
-    SZ2 = SZ3;
-    SZ3 = Lm_D(s_mac3, 1);
+    pushZ(Lm_D(s_mac3, 1));
 
     const int32_t h_over_sz3 = Lm_E(gte_divide(H, SZ3));
     SXY0 = SXY1;
@@ -968,10 +973,8 @@ void PCSX::GTE::RTPT(uint32_t op) {
         IR1 = Lm_B1(MAC1, lm);
         IR2 = Lm_B2(MAC2, lm);
         IR3 = Lm_B3_sf(s_mac3, s_sf, lm);
-        SZ0 = SZ1;
-        SZ1 = SZ2;
-        SZ2 = SZ3;
-        SZ3 = Lm_D(s_mac3, 1);
+        pushZ(Lm_D(s_mac3, 1));
+
         h_over_sz3 = Lm_E(gte_divide(H, SZ3));
         SXY0 = SXY1;
         SXY1 = SXY2;
