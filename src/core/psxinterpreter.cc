@@ -227,37 +227,37 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     void psxCOP1(uint32_t code);
     void psxCOP2(uint32_t code);
     void psxCOP3(uint32_t code);
-    void psxBASIC(uint32_t code);
+    void gteMove(uint32_t code);
 
     /* GTE wrappers */
-#define GTE_WR(n) void gte##n(uint32_t code);
-    GTE_WR(AVSZ3);
-    GTE_WR(AVSZ4);
-    GTE_WR(CC);
-    GTE_WR(CDP);
-    GTE_WR(CTC2);
-    GTE_WR(DCPL);
-    GTE_WR(DPCS);
-    GTE_WR(DPCT);
-    GTE_WR(GPF);
-    GTE_WR(GPL);
-    GTE_WR(INTPL);
-    GTE_WR(LWC2);
-    GTE_WR(MTC2);
-    GTE_WR(MVMVA);
-    GTE_WR(NCCS);
-    GTE_WR(NCCT);
-    GTE_WR(NCDS);
-    GTE_WR(NCDT);
-    GTE_WR(NCLIP);
-    GTE_WR(NCS);
-    GTE_WR(NCT);
-    GTE_WR(OP);
-    GTE_WR(RTPS);
-    GTE_WR(RTPT);
-    GTE_WR(SQR);
-    GTE_WR(SWC2);
-#undef GTE_WR
+#define GTE_WRAPPER(n) void gte##n(uint32_t code) { PCSX::g_emulator->m_gte->n(code); }
+    GTE_WRAPPER(AVSZ3);
+    GTE_WRAPPER(AVSZ4);
+    GTE_WRAPPER(CC);
+    GTE_WRAPPER(CDP);
+    GTE_WRAPPER(CTC2);
+    GTE_WRAPPER(DCPL);
+    GTE_WRAPPER(DPCS);
+    GTE_WRAPPER(DPCT);
+    GTE_WRAPPER(GPF);
+    GTE_WRAPPER(GPL);
+    GTE_WRAPPER(INTPL);
+    GTE_WRAPPER(LWC2);
+    GTE_WRAPPER(MTC2);
+    GTE_WRAPPER(MVMVA);
+    GTE_WRAPPER(NCCS);
+    GTE_WRAPPER(NCCT);
+    GTE_WRAPPER(NCDS);
+    GTE_WRAPPER(NCDT);
+    GTE_WRAPPER(NCLIP);
+    GTE_WRAPPER(NCS);
+    GTE_WRAPPER(NCT);
+    GTE_WRAPPER(OP);
+    GTE_WRAPPER(RTPS);
+    GTE_WRAPPER(RTPT);
+    GTE_WRAPPER(SQR);
+    GTE_WRAPPER(SWC2);
+#undef GTE_WRAPPER
 
     static const intFunc_t s_psxBSC[64];
     static const intFunc_t s_psxSPC[64];
@@ -329,39 +329,6 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     static const intFunc_t s_pgxpPsxCP2BSC[32];
     static const intFunc_t s_pgxpPsxBSCMem[64];
 };
-
-/* GTE wrappers */
-#define GTE_WR(n) \
-    void InterpretedCPU::gte##n(uint32_t code) { PCSX::g_emulator->m_gte->n(code); }
-GTE_WR(LWC2);
-GTE_WR(SWC2);
-GTE_WR(RTPS);
-GTE_WR(NCLIP);
-GTE_WR(OP);
-GTE_WR(DPCS);
-GTE_WR(INTPL);
-GTE_WR(MVMVA);
-GTE_WR(NCDS);
-GTE_WR(CDP);
-GTE_WR(NCDT);
-GTE_WR(NCCS);
-GTE_WR(CC);
-GTE_WR(NCS);
-GTE_WR(NCT);
-GTE_WR(SQR);
-GTE_WR(DCPL);
-GTE_WR(DPCT);
-GTE_WR(AVSZ3);
-GTE_WR(AVSZ4);
-GTE_WR(RTPT);
-GTE_WR(GPF);
-GTE_WR(GPL);
-GTE_WR(NCCT);
-GTE_WR(MTC2);
-GTE_WR(CTC2);
-#undef GTE_WR
-
-// These macros are used to assemble the repassembler functions
 
 inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
@@ -1180,7 +1147,7 @@ void InterpretedCPU::psxCOP3(uint32_t code) {
     PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted to access COP3 from 0x%08x. Ignored\n"), m_psxRegs.pc - 4);
 }
 
-void InterpretedCPU::psxBASIC(uint32_t code) { (*this.*(s_pPsxCP2BSC[_Rs_]))(code); }
+void InterpretedCPU::gteMove(uint32_t code) { (*this.*(s_pPsxCP2BSC[_Rs_]))(code); }
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxBSC[64] = {
     &InterpretedCPU::psxSPECIAL, &InterpretedCPU::psxREGIMM, &InterpretedCPU::psxJ,    &InterpretedCPU::psxJAL,    // 00
@@ -1243,7 +1210,7 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP0[32] = {
 };
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP2[64] = {
-    &InterpretedCPU::psxBASIC, &InterpretedCPU::gteRTPS,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 00
+    &InterpretedCPU::gteMove, &InterpretedCPU::gteRTPS,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 00
     &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCLIP, &InterpretedCPU::psxNULL,  // 04
     &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 08
     &InterpretedCPU::gteOP,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 0c
