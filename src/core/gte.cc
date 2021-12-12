@@ -979,13 +979,6 @@ void PCSX::GTE::RTPT(uint32_t op) {
             F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)) >> 16);
         SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
 
-        // float tempMx = MAC1;
-        // float tempx = IR1;
-        // float temphow = (float)h_over_sz3 / (float)(1 << 16);
-
-        // float tempMz = MAC3;
-        // float tempZ = SZ3;
-        //
         PGXP_pushSXYZ2s(
             Lm_G1_ia((int64_t)OFX + (int64_t)(IR1 * h_over_sz3) * (PCSX::g_emulator->config().Widescreen ? 0.75 : 1)),
             Lm_G2_ia((int64_t)OFY + (int64_t)(IR2 * h_over_sz3)), std::max((int)SZ3, H / 2), SXY2);
