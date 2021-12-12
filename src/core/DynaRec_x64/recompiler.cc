@@ -205,7 +205,7 @@ void DynaRecCPU::emitDispatcher() {
     emitBlockLookup();                               // Otherwise, look up next block
 
     gen.align(16);
-    // Code for when the block is done
+    // Code for exiting JIT context
     gen.L(done);
 
     // Deallocate shadow stack space on Windows
