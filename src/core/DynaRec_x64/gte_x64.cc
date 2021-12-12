@@ -314,56 +314,76 @@ void DynaRecCPU::recSWC2() {
     call(psxMemWrite32Wrapper);
 }
 
-void DynaRecCPU::recAVSZ3() {
+template <bool isAVSZ4>
+void DynaRecCPU::recAVSZ() {
     Xbyak::Label noOverflow, label1, label2, end, checkIfBelowLim, notBelowLim;
 
-    constexpr Reg32 flag = arg1; // Register for FLAG
-    const Reg64 zsf3 = arg2.cvt64();
+    constexpr Reg32 flag = arg1;  // Register for FLAG
+    const Reg64 scaleFactor = arg2.cvt64();
 
-    gen.xor_(flag, flag); // Set FLAG to 0
-    gen.movsx(zsf3, word[contextPointer + COP2_CONTROL_OFFSET(29)]); // Load ZSF3
-    gen.movzx(eax, word[contextPointer + COP2_DATA_OFFSET(17)]); // eax = SZ1
+    gen.xor_(flag, flag);  // Set FLAG to 0
 
-    gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(18)]); // Load SZ2
-    gen.add(rax, arg3.cvt64()); // eax += SZ2
+    if constexpr (isAVSZ4) {  // Load SZF4 into scaleFactor if this is AVSZ4
+        gen.movsx(scaleFactor, word[contextPointer + COP2_CONTROL_OFFSET(30)]);
+    } else {  // Otherwise, load SZF3
+        gen.movsx(scaleFactor, word[contextPointer + COP2_CONTROL_OFFSET(29)]);
+    }
 
-    gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(19)]); // Load SZ3
-    gen.add(rax, arg3.cvt64()); // eax += SZ3
-    gen.imul(rax, zsf3); // rax = (SZ0 + SZ1 + SZ2) * ZSF3
+    // eax = SZ1 + SZ2 + SZ3
+    gen.movzx(eax, word[contextPointer + COP2_DATA_OFFSET(17)]);
+    gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(18)]);
+    gen.add(rax, arg3.cvt64());
+    gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(19)]);
+    gen.add(rax, arg3.cvt64());
 
-    gen.mov(dword[contextPointer + COP2_DATA_OFFSET(24)], eax); // MAC0 = eax
+    // eax += SZ0 for AVSZ4
+    if constexpr (isAVSZ4) {
+        gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(16)]);
+        gen.add(rax, arg3.cvt64());
+    }
+
+    // rax = (Sum of Z values) * scaleFactor
+    gen.imul(rax, scaleFactor);
+    // Set MAC0
+    gen.mov(dword[contextPointer + COP2_DATA_OFFSET(24)], eax);
     // Calculate flags if MAC0 result is larger than 31 bits
     gen.cmp(rax, 0x7fffffff);
     gen.jle(label1);
     gen.mov(flag, (1 << 31) | (1 << 16));
     gen.jmp(noOverflow);
-    
+
     gen.L(label1);
     gen.cmp(rax, 0x80000000);
     gen.jge(noOverflow);
     gen.mov(flag, (1 << 31) | (1 << 15));
     gen.L(noOverflow);
-    
+
     gen.shr(rax, 12);
-    // Saturate eax to [0, 0xffff] and set OTZ to that
-    gen.cmp(eax, 0x10000); // Check if above 0xffff
-    gen.jl(checkIfBelowLim); // If not, check if below
-    gen.or_(flag, (1 << 31) | (1 << 18)); // Set FLAG
-    gen.mov(word[contextPointer + COP2_DATA_OFFSET(7)], 0xffff); // Set OTZ to 0xffff
+    // Saturate eax to [0, 0xffff] and set OTZ to the saturated value
+
+    gen.cmp(eax, 0x10000);    // Check if above 0xffff
+    gen.jl(checkIfBelowLim);  // If not, check if below
+    // Set FLAG, set OTZ to 0xffff is MAC0 > 0xffff
+    gen.or_(flag, (1 << 31) | (1 << 18));
+    gen.mov(word[contextPointer + COP2_DATA_OFFSET(7)], 0xffff);
     gen.jmp(end);
 
-    gen.L(checkIfBelowLim); // Check if below 0
+    gen.L(checkIfBelowLim);  // Check if below 0
     gen.test(eax, eax);
     gen.jns(notBelowLim);
-    gen.or_(flag, (1 << 31) | (1 << 18)); // Set FLAG
-    gen.mov(word[contextPointer + COP2_DATA_OFFSET(7)], 0); // Set OTZ to 0
+    // Set FLAG, and set OTZ to 0 if MAC0 < 0
+    gen.or_(flag, (1 << 31) | (1 << 18));
+    gen.mov(word[contextPointer + COP2_DATA_OFFSET(7)], 0);
     gen.jmp(end);
-    
-    gen.L(notBelowLim); // handle the case where eax doesn't need to be saturated
+
+    gen.L(notBelowLim);  // handle the case where eax doesn't need to be saturated
     gen.mov(word[contextPointer + COP2_DATA_OFFSET(7)], ax);
     gen.L(end);
-    gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(31)], flag); // Writeback FLAG
+    gen.mov(dword[contextPointer + COP2_CONTROL_OFFSET(31)], flag);  // Writeback FLAG
 }
+
+void DynaRecCPU::recAVSZ3() { recAVSZ<false>(); }
+void DynaRecCPU::recAVSZ4() { recAVSZ<true>(); }
 
 #define GTE_FALLBACK(name)                                                                          \
     static void name##Wrapper(uint32_t instruction) { PCSX::g_emulator->m_gte->name(instruction); } \
@@ -373,7 +393,6 @@ void DynaRecCPU::recAVSZ3() {
         call(name##Wrapper);                                                                        \
     }
 
-GTE_FALLBACK(AVSZ4);
 GTE_FALLBACK(CC);
 GTE_FALLBACK(CDP);
 GTE_FALLBACK(DCPL);

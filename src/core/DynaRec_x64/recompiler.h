@@ -417,6 +417,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recRTPT();
     void recSQR();
 
+    template <bool isAVSZ4>
+    void recAVSZ();
+
     template <bool readSR>
     void testSoftwareInterrupt();
 
