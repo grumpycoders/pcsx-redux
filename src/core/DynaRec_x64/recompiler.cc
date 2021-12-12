@@ -152,6 +152,7 @@ void DynaRecCPU::flushCache() {
 
 void DynaRecCPU::emitDispatcher() {
     Xbyak::Label mainLoop, done;
+    const auto lutOffset = (size_t)m_recompilerLUT - (size_t)this;
 
     gen.align(16);
     m_dispatcher = gen.getCurr<DynarecCallback>();
@@ -173,17 +174,20 @@ void DynaRecCPU::emitDispatcher() {
     }
 
     // This is the "execute until we're not running anymore" loop
+    gen.align(16);
     gen.L(mainLoop);
     gen.mov(ecx, dword[contextPointer + PC_OFFSET]);  // eax = pc >> 16
-    gen.mov(edx, ecx);                                // edx = (pc & 0xFFFF) >> 2
-    // Load the base pointer of the recompiler LUT to rax
-    loadAddress(rax, m_recompilerLUT);
-    gen.shr(edx, 2);
+    gen.mov(edx, ecx);
     gen.shr(ecx, 16);
-    gen.and_(edx, 0x3fff);
+    gen.and_(edx, 0xfffc);  // edx = index into the recompiler LUT page, multiplied by 4
 
-    gen.mov(rax, qword[rax + rcx * 8]);  // Load base pointer to recompiler LUT page in rax
-    gen.jmp(qword[rax + rdx * 8]);       // Jump to block
+    if (Xbyak::inner::IsInInt32(lutOffset)) {
+        gen.mov(rax, qword[contextPointer + rcx * 8 + lutOffset]);  // Load base pointer to recompiler LUT page in rax
+    } else {
+        loadAddress(rax, m_recompilerLUT);
+        gen.mov(rax, qword[rax + rcx * 8]);  // Load base pointer to recompiler LUT page in rax
+    }
+    gen.jmp(qword[rax + rdx * 2]);  // Jump to block
 
     // Code to be executed after each block
     // Blocks will jmp to here
@@ -193,7 +197,12 @@ void DynaRecCPU::emitDispatcher() {
     loadThisPointer(arg1.cvt64());  // Poll events
     gen.callFunc(recBranchTestWrapper);
     gen.test(Xbyak::util::byte[runningPointer], 1);  // Check if PCSX::g_system->running is true
-    gen.jnz(mainLoop);                               // Go back to the start of main loop if it is, otherwise return
+    gen.jz(done);                                    // If it's not, return
+
+    // If it is, go back to the start of the loop. This optimizes for the fact
+    // That the mainLoop jump is more likely to be taken
+    gen.jmp(mainLoop);
+    gen.align(16);
 
     // Code for when the block is done
     gen.L(done);
@@ -215,12 +224,12 @@ void DynaRecCPU::emitDispatcher() {
 
     // Code for when the block to be executed needs to be compiled.
     // rax = Base pointer to the page of m_recompilerLUT we're executing from
-    // rdx = Index into the page
+    // rdx = Index into the page, multiplied by 4
     gen.align(16);
     m_uncompiledBlock = gen.getCurr<DynarecCallback>();
 
     loadThisPointer(arg1.cvt64());
-    gen.lea(arg2.cvt64(), qword[rax + rdx * 8]);  // Pointer to callback
+    gen.lea(arg2.cvt64(), qword[rax + rdx * 2]);  // Pointer to callback
     gen.callFunc(recRecompileWrapper);            // Call recompilation function. Returns pointer to emitted code
     gen.jmp(rax);
 
@@ -367,23 +376,33 @@ void DynaRecCPU::handleLinking() {
     if (isPcValid(m_linkedPC.value()) && gen.getRemainingSize() > 0x100000) {
         const auto nextPC = m_linkedPC.value();
         const auto nextBlockPointer = getBlockPointer(nextPC);
+        const auto nextBlockOffset = (size_t)nextBlockPointer - (size_t)this;
         m_linkedPC = std::nullopt;
 
         if (*nextBlockPointer == m_uncompiledBlock) {  // If the next block hasn't been compiled yet
-            loadAddress(rax, nextBlockPointer);
-
             // Check that the block hasn't been invalidated/moved
             // The value will be patched later. Since all code is within the same 32MB segment,
             // We can get away with only checking the low 32 bits of the block pointer
-            gen.cmp(dword[rax], 0xcccccccc);
+            if (Xbyak::inner::IsInInt32(nextBlockOffset)) {
+                gen.cmp(dword[contextPointer + nextBlockOffset], 0xcccccccc);
+            } else {
+                loadAddress(rax, nextBlockPointer);
+                gen.cmp(dword[rax], 0xcccccccc);
+            }
+            
             const auto pointer = gen.getCurr<uint8_t*>();
             gen.jne((void*)m_returnFromBlock);    // Return if the block addr changed
             recompile(nextBlockPointer, nextPC);  // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
-            loadAddress(rax, nextBlockPointer);
-            gen.cmp(dword[rax], (uint32_t)(uintptr_t)*nextBlockPointer);
+            if (Xbyak::inner::IsInInt32(nextBlockOffset)) {
+                gen.cmp(dword[contextPointer + nextBlockOffset], (uint32_t)(uintptr_t)*nextBlockPointer);
+            } else {
+                loadAddress(rax, nextBlockPointer);
+                gen.cmp(dword[rax], (uint32_t)(uintptr_t)*nextBlockPointer);
+            }
+
             gen.jne((void*)m_returnFromBlock);  // Return if the block addr changed
             gen.jmp((void*)*nextBlockPointer);  // Jump to linked block otherwise
         }
