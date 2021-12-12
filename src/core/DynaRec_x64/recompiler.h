@@ -304,6 +304,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void flushCache();
     void handleLinking();
     void handleFastboot();
+    void emitBlockLookup();
 
     std::string m_symbols;
     RecompilerProfiler<10000000> m_profiler;

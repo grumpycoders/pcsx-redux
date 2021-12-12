@@ -150,9 +150,27 @@ void DynaRecCPU::flushCache() {
     uncompileAll();    // Mark all blocks as uncompiled
 }
 
-void DynaRecCPU::emitDispatcher() {
-    Xbyak::Label mainLoop, done;
+void DynaRecCPU::emitBlockLookup() {
     const auto lutOffset = (size_t)m_recompilerLUT - (size_t)this;
+
+    gen.mov(ecx, dword[contextPointer + PC_OFFSET]);  // ecx = pc
+    gen.mov(edx, ecx);      // edx = pc
+    gen.shr(ecx, 16);       // ecx = pc >> 16
+    gen.and_(edx, 0xfffc);  // edx = index into the recompiler LUT page, multiplied by 4
+
+    // Load base pointer to recompiler LUT page in rax
+    // Using a single mov if possible
+    if (Xbyak::inner::IsInInt32(lutOffset)) {
+        gen.mov(rax, qword[contextPointer + rcx * 8 + lutOffset]);
+    } else {
+        loadAddress(rax, m_recompilerLUT);
+        gen.mov(rax, qword[rax + rcx * 8]);
+    }
+    gen.jmp(qword[rax + rdx * 2]);  // Jump to block
+}
+
+void DynaRecCPU::emitDispatcher() {
+    Xbyak::Label done;
 
     gen.align(16);
     m_dispatcher = gen.getCurr<DynarecCallback>();
@@ -173,21 +191,7 @@ void DynaRecCPU::emitDispatcher() {
         gen.sub(rsp, 32);
     }
 
-    // This is the "execute until we're not running anymore" loop
-    gen.align(16);
-    gen.L(mainLoop);
-    gen.mov(ecx, dword[contextPointer + PC_OFFSET]);  // eax = pc >> 16
-    gen.mov(edx, ecx);
-    gen.shr(ecx, 16);
-    gen.and_(edx, 0xfffc);  // edx = index into the recompiler LUT page, multiplied by 4
-
-    if (Xbyak::inner::IsInInt32(lutOffset)) {
-        gen.mov(rax, qword[contextPointer + rcx * 8 + lutOffset]);  // Load base pointer to recompiler LUT page in rax
-    } else {
-        loadAddress(rax, m_recompilerLUT);
-        gen.mov(rax, qword[rax + rcx * 8]);  // Load base pointer to recompiler LUT page in rax
-    }
-    gen.jmp(qword[rax + rdx * 2]);  // Jump to block
+    emitBlockLookup(); // Look up block
 
     // Code to be executed after each block
     // Blocks will jmp to here
@@ -198,12 +202,9 @@ void DynaRecCPU::emitDispatcher() {
     gen.callFunc(recBranchTestWrapper);
     gen.test(Xbyak::util::byte[runningPointer], 1);  // Check if PCSX::g_system->running is true
     gen.jz(done);                                    // If it's not, return
+    emitBlockLookup();                               // Otherwise, look up next block
 
-    // If it is, go back to the start of the loop. This optimizes for the fact
-    // That the mainLoop jump is more likely to be taken
-    gen.jmp(mainLoop);
     gen.align(16);
-
     // Code for when the block is done
     gen.L(done);
 
@@ -389,7 +390,7 @@ void DynaRecCPU::handleLinking() {
                 loadAddress(rax, nextBlockPointer);
                 gen.cmp(dword[rax], 0xcccccccc);
             }
-            
+
             const auto pointer = gen.getCurr<uint8_t*>();
             gen.jne((void*)m_returnFromBlock);    // Return if the block addr changed
             recompile(nextBlockPointer, nextPC);  // Fallthrough to next block
