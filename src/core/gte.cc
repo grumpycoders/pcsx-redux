@@ -566,8 +566,6 @@ void PCSX::GTE::RTPS(uint32_t op) {
 
 void PCSX::GTE::NCLIP(uint32_t op) {
     GTE_LOG("%08x GTE: NCLIP|", op);
-
-    s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
     if (PGXP_NLCIP_valid(SXY0, SXY1, SXY2))
@@ -942,7 +940,6 @@ void PCSX::GTE::DPCT(uint32_t op) {
 
 void PCSX::GTE::AVSZ3(uint32_t op) {
     GTE_LOG("%08x GTE: AVSZ3|", op);
-    s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
     MAC0 = F((int64_t)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
@@ -951,7 +948,6 @@ void PCSX::GTE::AVSZ3(uint32_t op) {
 
 void PCSX::GTE::AVSZ4(uint32_t op) {
     GTE_LOG("%08x GTE: AVSZ4|", op);
-    s_sf = GTE_SF(gteop(op));
     FLAG = 0;
 
     MAC0 = F((int64_t)(ZSF4 * SZ0) + (ZSF4 * SZ1) + (ZSF4 * SZ2) + (ZSF4 * SZ3));
