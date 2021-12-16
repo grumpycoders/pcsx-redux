@@ -89,4 +89,5 @@ vram-viewer.vert
 pcsx.lua
 DynarecOutput.map
 DynarecProfileData.txt
+DynarecDisassembly.txt
 sstate.proto

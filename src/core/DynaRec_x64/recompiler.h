@@ -35,6 +35,13 @@
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
 
+#include <stdio.h>
+#include <inttypes.h>
+#include <capstone/capstone.h>
+
+
+
+
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
 #define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)this)
@@ -188,6 +195,37 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void dumpBuffer() const {
         std::ofstream file("DynarecOutput.dump", std::ios::binary);  // Make a file for our dump
         file.write(gen.getCode<const char*>(), gen.getSize());       // Write the code buffer to the dump
+    }
+
+    void dis_cap() {
+        csh handle;
+        cs_insn *insn;
+        size_t count;
+
+        if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
+            PCSX::g_system->printf("ERROR: Failed to initialize capstone disassembler!\n");
+            return;
+        }
+        cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
+        count = cs_disasm(handle, gen.getCode<const uint8_t *>(), gen.getSize(), 0x00000000, 0, &insn);
+        FILE *disassembly = fopen("DynarecDisassembly.txt", "w");
+        if (count > 0) {
+            size_t j;
+            for (j = 0; j < count; j++) {
+//                printf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
+//                       insn[j].op_str);
+                fprintf(disassembly, "0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
+                        insn[j].op_str);
+//                PCSX::g_system->printf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
+//                                        insn[j].op_str);
+            }
+            fprintf(disassembly, "---END OF DUMP---\n");
+            cs_free(insn, count);
+        } else
+            PCSX::g_system->printf("ERROR: Failed to disassemble given code!\n");
+        fclose(disassembly);
+        cs_close(&handle);
+
     }
 
   private:
