@@ -6,6 +6,9 @@
 *.sln.docstates
 *.userprefs
 
+#Clion Files
+.idea/
+
 Debug/
 Release/
 ReleaseWithTracy/
