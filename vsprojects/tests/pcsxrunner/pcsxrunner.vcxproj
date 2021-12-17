@@ -219,6 +219,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\capstone\capstone_static.vcxproj">
+      <Project>{5b01d900-2359-44ca-9914-6b0c6afb7be7}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\core\core.vcxproj">
       <Project>{9372d878-f76c-418b-8e2a-8e9896ff575b}</Project>
     </ProjectReference>
