@@ -205,22 +205,10 @@ struct psxRegisters {
 #define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
 #define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
 
-#define _i16(x) reinterpret_cast<int16_t *>(&x)[1]
-#define _u16(x) reinterpret_cast<uint16_t *>(&x)[1]
-
-#define _i8(x) reinterpret_cast<int8_t *>(&x)[3]
-#define _u8(x) reinterpret_cast<uint8_t *>(&x)[3]
-
 #else
 
 #define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
 #define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#define _i16(x) reinterpret_cast<int16_t *>(&x)[0]
-#define _u16(x) reinterpret_cast<uint16_t *>(&x)[0]
-
-#define _i8(x) reinterpret_cast<int8_t *>(&x)[0]
-#define _u8(x) reinterpret_cast<uint8_t *>(&x)[0]
 
 #endif
 
