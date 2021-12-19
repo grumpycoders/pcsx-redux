@@ -91,7 +91,7 @@ void DynaRecCPU::Shutdown() {
     delete[] m_ramBlocks;
     delete[] m_biosBlocks;
     delete[] m_dummyBlocks;
-    dis_cap();
+
     if constexpr (ENABLE_SYMBOLS) {
         std::ofstream out("DynarecOutput.map");
         out << m_symbols;

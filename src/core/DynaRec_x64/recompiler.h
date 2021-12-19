@@ -170,11 +170,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual void Reset() final;
     virtual void Shutdown() final;
     virtual bool isDynarec() final { return true; }
-
     virtual void Execute() final {
         ZoneScoped;         // Tell the Tracy profiler to do its thing
         (*m_dispatcher)();  // Jump to assembly dispatcher
     }
+    virtual const uint8_t * getBufferPtr() final {return gen.getCode<const uint8_t *>();}
+    virtual const size_t getBufferSize() final {return gen.getSize();}
+
 
     // TODO: Make it less slow and bad
     // Possibly clear blocks more aggressively
@@ -195,37 +197,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void dumpBuffer() const {
         std::ofstream file("DynarecOutput.dump", std::ios::binary);  // Make a file for our dump
         file.write(gen.getCode<const char*>(), gen.getSize());       // Write the code buffer to the dump
-    }
-
-    void dis_cap() {
-        csh handle;
-        cs_insn *insn;
-        size_t count;
-
-        if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
-            PCSX::g_system->printf("ERROR: Failed to initialize capstone disassembler!\n");
-            return;
-        }
-        cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
-        count = cs_disasm(handle, gen.getCode<const uint8_t *>(), gen.getSize(), 0x00000000, 0, &insn);
-        FILE *disassembly = fopen("DynarecDisassembly.txt", "w");
-        if (count > 0) {
-            size_t j;
-            for (j = 0; j < count; j++) {
-//                printf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
-//                       insn[j].op_str);
-                fprintf(disassembly, "0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
-                        insn[j].op_str);
-//                PCSX::g_system->printf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
-//                                        insn[j].op_str);
-            }
-            fprintf(disassembly, "---END OF DUMP---\n");
-            cs_free(insn, count);
-        } else
-            PCSX::g_system->printf("ERROR: Failed to disassemble given code!\n");
-        fclose(disassembly);
-        cs_close(&handle);
-
     }
 
   private:
