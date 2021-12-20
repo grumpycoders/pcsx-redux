@@ -252,6 +252,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_pcWrittenBack = false;
+    m_linkedPC = std::nullopt;
     m_pc = pc & ~3;
 
     const auto startingPC = m_pc;
@@ -378,7 +379,6 @@ void DynaRecCPU::handleLinking() {
         const auto nextPC = m_linkedPC.value();
         const auto nextBlockPointer = getBlockPointer(nextPC);
         const auto nextBlockOffset = (size_t)nextBlockPointer - (size_t)this;
-        m_linkedPC = std::nullopt;
 
         if (*nextBlockPointer == m_uncompiledBlock) {  // If the next block hasn't been compiled yet
             // Check that the block hasn't been invalidated/moved
