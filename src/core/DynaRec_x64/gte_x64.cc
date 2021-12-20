@@ -316,7 +316,7 @@ void DynaRecCPU::recSWC2() {
 
 template <bool isAVSZ4>
 void DynaRecCPU::recAVSZ() {
-    Xbyak::Label noOverflow, label1, label2, end, checkIfBelowLim, notBelowLim;
+    Xbyak::Label noOverflow, label1, end, checkIfBelowLim, notBelowLim;
 
     constexpr Reg32 flag = arg1;  // Register for FLAG
     const Reg64 scaleFactor = arg2.cvt64();
