@@ -23,7 +23,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include <capstone/capstone.h>
-#include <stdio.h>
+//#include <stdio.h>
 #include <inttypes.h>
 
 void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
@@ -32,11 +32,12 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         ImGui::End();
         return;
     }
-//    PCSX::g_system->message("DOING THAT");
-    if (ImGui::Button("Dump Buffer")) {
+
+    if (ImGui::Button("Disassemble Buffer")) {
          m_tryDisassembly = true;
     }
-    ImGui::Checkbox("Output File", &m_outputFile);
+    // Will re-enable once file handling is implemented
+    // ImGui::Checkbox("Output to File", &m_outputFile);
 
     if (m_tryDisassembly)
         m_result = disassembleBuffer();
@@ -46,19 +47,19 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
             switch(m_result) {
                 case disassemblerResult::INVALID_BFR:
-                    ImGui::Text("CodeBuffer pointer is invalid");
+                    ImGui::Text("Code buffer pointer is null");
                     break;
                 case disassemblerResult::INVALID_BFR_SIZE:
-                    ImGui::Text("Bad Buffer Size");
+                    ImGui::Text("Invalid buffer size\nCheck logs");
                     break;
                 case disassemblerResult::CS_INIT_FAIL:
-                    ImGui::Text("Failed to initialize Capstone Disassembler\n Check Logs");
+                    ImGui::Text("Failed to initialize Capstone Disassembler\nCheck logs");
                     break;
                 case disassemblerResult::CS_DIS_FAIL:
-                    ImGui::Text("Failed to disassembler buffer\n Check Logs");
+                    ImGui::Text("Failed to disassemble buffer\nCheck logs");
                     break;
                 default: {
-                    ImGui::Text("Unknown Disassembler Error");
+                    ImGui::Text("Unknown Disassembler Error\nCheck logs");
                     break;
                 }
             }
@@ -72,7 +73,7 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
 
 
     if (ImGui::BeginPopupContextItem()) {
-        if (ImGui::MenuItem("Close Disassembly")) m_show = false;
+        if (ImGui::MenuItem("Close Disassembler")) m_show = false;
         ImGui::EndPopup();
     }
 
@@ -83,7 +84,7 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
 
     ImGui::Separator();
 
-//    // Options menu
+    // Options menu
     if (ImGui::BeginPopup("Options")) {
         ImGui::Checkbox("Auto-scroll", &m_autoScroll);
         ImGui::Checkbox("Mono", &m_mono);
@@ -93,66 +94,34 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     // Options, Filter
     if (ImGui::Button("Options")) ImGui::OpenPopup("Options");
     ImGui::Separator();
-//
-//    // Reserve enough left-over height for 1 separator + 1 input text
+
+    // Reserve enough left-over height for 1 separator + 1 input text
     if (m_mono) gui->useMonoFont();
     const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false,
                       ImGuiWindowFlags_HorizontalScrollbar);
-//
+
+
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));  // Tighten spacing
     if (copy_to_clipboard) ImGui::LogToClipboard();
     for (auto& item : m_items) {
-//        ImVec4 color;
-//        bool has_color = false;
-//        switch (item.first) {
-//            case LineType::ERRORMSG:
-//                color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
-//                has_color = true;
-//                break;
-//            case LineType::COMMAND:
-//                color = ImVec4(1.0f, 0.8f, 0.6f, 1.0f);
-//                has_color = true;
-//                break;
-//        }
-//        if (has_color) ImGui::PushStyleColor(ImGuiCol_Text, color);
         ImGui::TextUnformatted(item.c_str());
-//        if (has_color) ImGui::PopStyleColor();
     }
+
     if (copy_to_clipboard) ImGui::LogFinish();
-//
+
     if (m_scrollToBottom || (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())) {
         ImGui::SetScrollHereY(1.0f);
     }
     m_scrollToBottom = false;
-//
+
     ImGui::PopStyleVar();
     ImGui::EndChild();
     if (m_mono) ImGui::PopFont();
     ImGui::Separator();
-//
-//    // Command-line
-//    bool reclaim_focus = false;
-//    ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue |
-//                                           ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
-//    if (ImGui::InputText("Input", &InputBuf, input_text_flags, &TextEditCallbackStub, (void*)this)) {
-//        m_items.push_back(std::make_pair(LineType::COMMAND, "# " + InputBuf));
-//
-//        m_historyPos = -1;
-//        m_history.push_back(InputBuf);
-//
-//        // Process command
-//        m_cmdExec(InputBuf);
-//
-//        // On command input, we scroll to bottom even if AutoScroll==false
-//        m_scrollToBottom = true;
-//        InputBuf = "";
-//        reclaim_focus = true;
-//    }
 
     // Auto-focus on window apparition
     ImGui::SetItemDefaultFocus();
-//    if (reclaim_focus) ImGui::SetKeyboardFocusHere(-1);  // Auto focus previous widget
 
     ImGui::End();
 }
@@ -161,9 +130,11 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
     csh handle;
     cs_insn *insn;
     size_t count;
-    FILE *disassembly;
+
+    // Get pointer to code buffer along with size of buffer
     const uint8_t* buffer = PCSX::g_emulator->m_psxCpu->getBufferPtr();
     const size_t bufferSize = PCSX::g_emulator->m_psxCpu->getBufferSize();
+    // Check to ensure code buffer pointer is not null and size is not 0
     if (buffer == nullptr) {
         m_showError = true;
         m_tryDisassembly = false;
@@ -173,43 +144,38 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
         m_tryDisassembly = false;
         return PCSX::Widgets::Disassembly::disassemblerResult::INVALID_BFR_SIZE;
     }
-
+    // Attempt disassembly of code buffer
     if (m_tryDisassembly) {
-
+        // Attempt to initialize Capstone disassembler, if error log it and return
         if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
             PCSX::g_system->message("ERROR: Failed to initialize capstone disassembler!\n");
             m_tryDisassembly = false;
             return PCSX::Widgets::Disassembly::disassemblerResult::CS_INIT_FAIL;
         }
+        // Set SKIPDATA option as to not break disassembler
         cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
+        // Walk code buffer and try to disassemble
         count = cs_disasm(handle, buffer, bufferSize, 0x0, 0, &insn);
-        if (m_outputFile)
-            disassembly = fopen("DynarecDisassembly.txt", "a");
         if (count > 0) {
             size_t j;
             for (j = 0; j < count; j++) {
+                // Write instruction (address, mnemonic, and operand to string
                 std::string s = fmt::sprintf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
                                              insn[j].op_str);
-
-                if (m_outputFile) {
-                    if (!disassembly)
-                        PCSX::g_system->printf("Failed to open output file for disassembly");
-                    fprintf(disassembly, s.c_str());
-                }
-                addLog(s);
+                // Log each instruction to the disassembly window string vector
+                addInstruction(s);
             }
-
+            // Call free to clean up memory allocated by capstone
             cs_free(insn, count);
-            addLog("----End of disassembly----\n");
-            if (m_outputFile) {
-                fprintf(disassembly, "---END OF DUMP---\n");
-                fclose(disassembly);
-            }
+            // to show the end of the disassembly for the disassembled buffer
+            addInstruction("----End of disassembly----\n");
+        // If disassembly failed, log the error and close out disassembler
         } else {
             cs_close(&handle);
             m_tryDisassembly = false;
             return PCSX::Widgets::Disassembly::disassemblerResult::CS_DIS_FAIL;
         }
+        // Sucessful disassembly, clean up disassembler instance and return successful result
         cs_close(&handle);
         m_tryDisassembly = false;
         return PCSX::Widgets::Disassembly::disassemblerResult::SUCCESS;

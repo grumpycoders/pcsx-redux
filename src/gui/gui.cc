@@ -1063,7 +1063,7 @@ void PCSX::GUI::endFrame() {
     }
 
     if (m_disassembly.m_show) {
-        m_disassembly.draw(this, _("Dynarec Disassembly"));
+        m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
     if (m_breakpoints.m_show) {

@@ -32,12 +32,7 @@ class Disassembly {
 
 public:
     Disassembly() = default;
-
     void draw(GUI*, const char*);
-    void addLog(const std::string& str) {
-        if (m_items.size() >= 320000) m_items.clear();
-        m_items.push_back(str);
-    }
     bool m_show = false;
 
 
@@ -55,7 +50,10 @@ private:
     bool m_outputFile = false;
     disassemblerResult m_result = disassemblerResult::NONE;
     disassemblerResult disassembleBuffer();
-
+    void addInstruction(const std::string& str) {
+        if (m_items.size() >= 320000) m_items.clear();
+        m_items.push_back(str);
+    }
 };
 
 }  // namespace Widgets
