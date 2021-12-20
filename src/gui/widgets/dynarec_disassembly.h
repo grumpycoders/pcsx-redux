@@ -18,10 +18,10 @@
  ***************************************************************************/
 
 #pragma once
-#include "imgui.h"
 #include <string>
 #include <vector>
-#include <string>
+
+#include "imgui.h"
 
 namespace PCSX {
 class GUI;
@@ -29,16 +29,13 @@ class GUI;
 namespace Widgets {
 
 class Disassembly {
-
-public:
+  public:
     Disassembly() = default;
     void draw(GUI*, const char*);
     bool m_show = false;
 
-
-
-private:
-    enum class disassemblerResult {NONE, INVALID_BFR, INVALID_BFR_SIZE, CS_INIT_FAIL, CS_DIS_FAIL, SUCCESS};
+  private:
+    enum class disassemblerResult { NONE, INVALID_BFR, INVALID_BFR_SIZE, CS_INIT_FAIL, CS_DIS_FAIL, SUCCESS };
     std::vector<std::string> m_items;
     std::vector<std::string> m_history;
     int m_historyPos = -1;  // -1: new line, 0..History.Size-1 browsing history.

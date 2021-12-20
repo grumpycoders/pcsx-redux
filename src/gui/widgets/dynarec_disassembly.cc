@@ -19,10 +19,11 @@
 
 #include "gui/widgets/dynarec_disassembly.h"
 
+#include <capstone/capstone.h>
+
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
-#include <capstone/capstone.h>
 //#include <stdio.h>
 #include <inttypes.h>
 
@@ -34,18 +35,17 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     }
 
     if (ImGui::Button("Disassemble Buffer")) {
-         m_tryDisassembly = true;
+        m_tryDisassembly = true;
     }
     // Will re-enable once file handling is implemented
     // ImGui::Checkbox("Output to File", &m_outputFile);
 
-    if (m_tryDisassembly)
-        m_result = disassembleBuffer();
+    if (m_tryDisassembly) m_result = disassembleBuffer();
 
     if (m_showError) {
         ImGui::OpenPopup("Disassembler Error");
         if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            switch(m_result) {
+            switch (m_result) {
                 case disassemblerResult::INVALID_BFR:
                     ImGui::Text("Code buffer pointer is null");
                     break;
@@ -70,7 +70,6 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         }
         ImGui::EndPopup();
     }
-
 
     if (ImGui::BeginPopupContextItem()) {
         if (ImGui::MenuItem("Close Disassembler")) m_show = false;
@@ -101,7 +100,6 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false,
                       ImGuiWindowFlags_HorizontalScrollbar);
 
-
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));  // Tighten spacing
     if (copy_to_clipboard) ImGui::LogToClipboard();
     for (auto& item : m_items) {
@@ -128,7 +126,7 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
 
 PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disassembleBuffer() {
     csh handle;
-    cs_insn *insn;
+    cs_insn* insn;
     size_t count;
 
     // Get pointer to code buffer along with size of buffer
@@ -160,8 +158,8 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
             size_t j;
             for (j = 0; j < count; j++) {
                 // Write instruction (address, mnemonic, and operand to string
-                std::string s = fmt::sprintf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic,
-                                             insn[j].op_str);
+                std::string s =
+                    fmt::sprintf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
                 // Log each instruction to the disassembly window string vector
                 addInstruction(s);
             }
@@ -169,7 +167,7 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
             cs_free(insn, count);
             // to show the end of the disassembly for the disassembled buffer
             addInstruction("----End of disassembly----\n");
-        // If disassembly failed, log the error and close out disassembler
+            // If disassembly failed, log the error and close out disassembler
         } else {
             cs_close(&handle);
             m_tryDisassembly = false;
