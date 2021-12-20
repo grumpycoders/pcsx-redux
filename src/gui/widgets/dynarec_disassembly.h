@@ -21,8 +21,6 @@
 #include <string>
 #include <vector>
 
-#include "imgui.h"
-
 namespace PCSX {
 class GUI;
 
@@ -30,7 +28,6 @@ namespace Widgets {
 
 class Disassembly {
   public:
-    Disassembly() = default;
     void draw(GUI*, const char*);
     bool m_show = false;
 

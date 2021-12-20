@@ -20,12 +20,26 @@
 #include "gui/widgets/dynarec_disassembly.h"
 
 #include <capstone/capstone.h>
+#include <inttypes.h>
 
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 //#include <stdio.h>
-#include <inttypes.h>
+
+#if defined(DYNAREC_X86_32)
+#define CS_ARCH CS_ARCH_X86
+#define CS_MODE CS_MODE_32
+#elif defined(DYNAREC_X86_64)
+#define CS_ARCH CS_ARCH_X86
+#define CS_MODE CS_MODE_64
+#elif defined(DYNAREC_ARM_AA64)
+#define CS_ARCH CS ARCH ARM64
+#define CS_MODE CS_MODE_ARM
+#else
+#define CS_ARCH CS_ARCH_X86
+#define CS_MODE CS_MODE_32
+#endif
 
 void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
@@ -145,7 +159,7 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
     // Attempt disassembly of code buffer
     if (m_tryDisassembly) {
         // Attempt to initialize Capstone disassembler, if error log it and return
-        if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
+        if (cs_open(CS_ARCH, CS_MODE, &handle) != CS_ERR_OK) {
             PCSX::g_system->message("ERROR: Failed to initialize capstone disassembler!\n");
             m_tryDisassembly = false;
             return PCSX::Widgets::Disassembly::disassemblerResult::CS_INIT_FAIL;
@@ -173,7 +187,7 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
             m_tryDisassembly = false;
             return PCSX::Widgets::Disassembly::disassemblerResult::CS_DIS_FAIL;
         }
-        // Sucessful disassembly, clean up disassembler instance and return successful result
+        // Successful disassembly, clean up disassembler instance and return successful result
         cs_close(&handle);
         m_tryDisassembly = false;
         return PCSX::Widgets::Disassembly::disassemblerResult::SUCCESS;
