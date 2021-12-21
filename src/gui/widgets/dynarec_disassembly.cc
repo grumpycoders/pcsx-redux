@@ -25,21 +25,6 @@
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
-//#include <stdio.h>
-
-#if defined(DYNAREC_X86_32)
-#define CS_ARCH CS_ARCH_X86
-#define CS_MODE CS_MODE_32
-#elif defined(DYNAREC_X86_64)
-#define CS_ARCH CS_ARCH_X86
-#define CS_MODE CS_MODE_64
-#elif defined(DYNAREC_ARM_AA64)
-#define CS_ARCH CS ARCH ARM64
-#define CS_MODE CS_MODE_ARM
-#else
-#define CS_ARCH CS_ARCH_X86
-#define CS_MODE CS_MODE_32
-#endif
 
 void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
