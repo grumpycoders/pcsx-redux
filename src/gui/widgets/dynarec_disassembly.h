@@ -21,6 +21,22 @@
 #include <string>
 #include <vector>
 
+#include "core/r3000a.h"
+
+#if defined(DYNAREC_X86_32)
+#define CS_ARCH CS_ARCH_X86
+#define CS_MODE CS_MODE_32
+#elif defined(DYNAREC_X86_64)
+#define CS_ARCH CS_ARCH_X86
+#define CS_MODE CS_MODE_64
+#elif defined(DYNAREC_AA64)
+#define CS_ARCH CS ARCH ARM64
+#define CS_MODE CS_MODE_ARM
+#else
+#define CS_ARCH CS_ARCH_X86
+#define CS_MODE CS_MODE_32
+#endif
+
 namespace PCSX {
 class GUI;
 
