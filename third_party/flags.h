@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace flags {
+namespace CommandLine {
 namespace detail {
 using argument_map =
     std::unordered_multimap<std::string_view, std::optional<std::string_view>>;
@@ -220,4 +220,4 @@ struct args {
   const detail::parser parser_;
 };
 
-}  // namespace flags
+}  // namespace CommandLine

@@ -213,7 +213,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\support\file.cc" />
-    <ClCompile Include="..\..\src\support\tree.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\support\circular.h" />

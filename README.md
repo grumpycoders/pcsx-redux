@@ -61,13 +61,13 @@ If you're only interested in compiling psx code, you can simply clone the pcsx-r
  - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
 
 ```bash
-sudo pacman -S clang git make pkg-config ffmpeg libuv zlib glfw-x11 curl xorg-server-xvfb
+sudo pacman -S capstone clang git make pkg-config ffmpeg libuv zlib glfw-x11 curl xorg-server-xvfb
 ```
 The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
@@ -99,7 +99,7 @@ When Sony released the Playstation mini recently, I came to realize two things: 
 The codebase still requires a lot of cleanup, and the current product isn't properly usable yet. Despite that, a lot can already be achieved using the product in its current state. If you want to help with localization, you can find the translation project [on transifex](https://www.transifex.com/grumpycoders/pcsx-redux/languages/).
 
 ### What works?
-- x86 dynarec
+- x86 dynarec, x86-64 dynarec
 - interpreted CPU
 - software GPU
 - VRAM viewer and debugger
@@ -107,11 +107,11 @@ The codebase still requires a lot of cleanup, and the current product isn't prop
 - memory cards
 - XBox controller support
 - save states
+- save state slots
 
 ### What still requires some work?
 - GLSL GPU
 - proper SPU multithreaded code
-- save state slots
 - memory card manager
 - better customization
 - more generic dynarec

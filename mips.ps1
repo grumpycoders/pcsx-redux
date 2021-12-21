@@ -177,7 +177,7 @@ function Install($Version) {
     Write-Host "Downloading toolchain package from $ToolchainURL..."
     Invoke-WebRequest -ContentType "application/octet-stream" -Uri $ToolchainURL -OutFile $OutputToolchain
 
-    $GdbURL = $GdbBaseURL + "gdb-multiarch-" + $Version.version + ".zip"
+    $GdbURL = $GdbBaseURL + "gdb-multiarch-" + $Version.gdb + ".zip"
     $OutputGDB = $TempDir + "/gdb.zip"
     Write-Host "Downloading gdb package from $GdbURL..."
     Invoke-WebRequest -ContentType "application/octet-stream" -Uri $GdbURL -OutFile $OutputGDB

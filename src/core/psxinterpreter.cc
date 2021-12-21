@@ -48,12 +48,9 @@
 #undef _rRs_
 #undef _rRt_
 #undef _rRd_
-#undef _rSa_
-#undef _rFs_
 #undef _c2dRs_
 #undef _c2dRt_
 #undef _c2dRd_
-#undef _c2dSa_
 #undef _rHi_
 #undef _rLo_
 #undef _JumpTarget_
@@ -77,13 +74,10 @@
 #define _rRs_ m_psxRegs.GPR.r[_Rs_]  // Rs register
 #define _rRt_ m_psxRegs.GPR.r[_Rt_]  // Rt register
 #define _rRd_ m_psxRegs.GPR.r[_Rd_]  // Rd register
-#define _rSa_ m_psxRegs.GPR.r[_Sa_]  // Sa register
-#define _rFs_ m_psxRegs.CP0.r[_Rd_]  // Fs register
 
 #define _c2dRs_ m_psxRegs.CP2D.r[_Rs_]  // Rs cop2 data register
 #define _c2dRt_ m_psxRegs.CP2D.r[_Rt_]  // Rt cop2 data register
 #define _c2dRd_ m_psxRegs.CP2D.r[_Rd_]  // Rd cop2 data register
-#define _c2dSa_ m_psxRegs.CP2D.r[_Sa_]  // Sa cop2 data register
 
 #define _rHi_ m_psxRegs.GPR.n.hi  // The HI register
 #define _rLo_ m_psxRegs.GPR.n.lo  // The LO register
@@ -237,32 +231,32 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 
     /* GTE wrappers */
 #define GTE_WR(n) void gte##n(uint32_t code);
-    GTE_WR(LWC2);
-    GTE_WR(SWC2);
-    GTE_WR(RTPS);
-    GTE_WR(NCLIP);
-    GTE_WR(OP);
-    GTE_WR(DPCS);
-    GTE_WR(INTPL);
-    GTE_WR(MVMVA);
-    GTE_WR(NCDS);
-    GTE_WR(CDP);
-    GTE_WR(NCDT);
-    GTE_WR(NCCS);
-    GTE_WR(CC);
-    GTE_WR(NCS);
-    GTE_WR(NCT);
-    GTE_WR(SQR);
-    GTE_WR(DCPL);
-    GTE_WR(DPCT);
     GTE_WR(AVSZ3);
     GTE_WR(AVSZ4);
-    GTE_WR(RTPT);
+    GTE_WR(CC);
+    GTE_WR(CDP);
+    GTE_WR(CTC2);
+    GTE_WR(DCPL);
+    GTE_WR(DPCS);
+    GTE_WR(DPCT);
     GTE_WR(GPF);
     GTE_WR(GPL);
-    GTE_WR(NCCT);
+    GTE_WR(INTPL);
+    GTE_WR(LWC2);
     GTE_WR(MTC2);
-    GTE_WR(CTC2);
+    GTE_WR(MVMVA);
+    GTE_WR(NCCS);
+    GTE_WR(NCCT);
+    GTE_WR(NCDS);
+    GTE_WR(NCDT);
+    GTE_WR(NCLIP);
+    GTE_WR(NCS);
+    GTE_WR(NCT);
+    GTE_WR(OP);
+    GTE_WR(RTPS);
+    GTE_WR(RTPT);
+    GTE_WR(SQR);
+    GTE_WR(SWC2);
 #undef GTE_WR
 
     static const intFunc_t s_psxBSC[64];
@@ -1099,13 +1093,13 @@ void InterpretedCPU::psxSWR(uint32_t code) {
 void InterpretedCPU::psxMFC0(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoadRef(_Rt_)) = (int)_rFs_;
+    _i32(delayedLoadRef(_Rt_)) = (int)m_psxRegs.CP0.r[_Rd_];
 }
 
 void InterpretedCPU::psxCFC0(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoadRef(_Rt_)) = (int)_rFs_;
+    _i32(delayedLoadRef(_Rt_)) = (int)m_psxRegs.CP0.r[_Rd_];
 }
 
 void InterpretedCPU::psxTestSWInts() {
@@ -1654,8 +1648,6 @@ void InterpretedCPU::Shutdown() {}
 template <bool debug, bool trace>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
-    std::optional<uint32_t> newCode;
-    uint32_t newPC = 0;
     do {
         if (m_nextIsDelaySlot) {
             m_inDelaySlot = true;
@@ -1669,15 +1661,7 @@ inline void InterpretedCPU::execBlock() {
             uint32_t *codePtr = Read_ICache(pc);
             return codePtr ? SWAP_LE32(*codePtr) : 0;
         };
-        if constexpr (debug) {
-            if (newCode.has_value() && newPC == pc) {
-                code = newCode.value();
-            } else {
-                code = getCode(pc);
-            }
-        } else {
-            code = getCode(pc);
-        }
+        code = getCode(pc);
 
         m_psxRegs.code = code;
 
@@ -1715,10 +1699,9 @@ inline void InterpretedCPU::execBlock() {
             psxBranchTest();
         }
         if constexpr (debug) {
-            newPC = m_psxRegs.pc;
-            uint32_t newCodeVal = getCode(newPC);
-            newCode = newCodeVal;
-            PCSX::g_emulator->m_debug->process(pc, newPC, code, newCodeVal, fromLink);
+            uint32_t newPC = m_psxRegs.pc;
+            uint32_t newCode = getCode(newPC);
+            PCSX::g_emulator->m_debug->process(pc, newPC, code, newCode, fromLink);
         }
     } while (!ranDelaySlot && !debug);
 }

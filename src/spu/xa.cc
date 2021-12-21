@@ -62,6 +62,9 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     spos = 0x10000L;
     sinc = (xap->nsamples << 16) / iSize;  // calc freq by num / size
 
+    // We need the lock for capture buffers. The question is, do we put it here or in the inner loop?
+    if (pMixIrq) cbMtx.lock();
+
     if (xap->stereo) {
         uint32_t *pS = (uint32_t *)xap->pcm;
         uint32_t l = 0;
@@ -94,8 +97,18 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
 
             MiniAudio::Frame f;
-            f.L = static_cast<int16_t>(l & 0xffff) / voldiv;
-            f.R = static_cast<int16_t>(l >> 16) / voldiv;
+            int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
+            int16_t rawSampleR = static_cast<int16_t>(l >> 16);
+            if (pMixIrq) {
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;
+                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % 0x200;
+                if (captureBuffer.endIndex == captureBuffer.startIndex)
+                    g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
+            }
+            f.L = rawSampleL / voldiv;
+            f.R = rawSampleR / voldiv;
+
             *XAFeed++ = f;
             spos += sinc;
         }
@@ -127,12 +140,23 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
 
             MiniAudio::Frame f;
-            f.L = static_cast<int16_t>(l) / voldiv;
+            int16_t rawSampleL = static_cast<int16_t>(l);
+            // Write the CD-XA samples (left/right) to a temporary buffer. Wrap around if necessary.
+            if (pMixIrq) {
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
+                if (captureBuffer.endIndex == captureBuffer.startIndex)
+                    g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
+            }
+
+            f.L = rawSampleL / voldiv;
             f.R = f.L;
             *XAFeed++ = f;
             spos += sinc;
         }
     }
+    if (pMixIrq) cbMtx.unlock();
 
     m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
 }

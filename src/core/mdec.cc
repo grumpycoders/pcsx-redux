@@ -199,12 +199,12 @@ void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
 #define MDEC_END_OF_DATA 0xfe00
 
 unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
-    int i, k, q_scale, rl, used_col;
+    int k, q_scale, rl, used_col;
     int *iqtab;
 
     memset(blk, 0, 6 * DSIZE2 * sizeof(int));
     iqtab = iq_uv;
-    for (i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
         // decode blocks (Cr,Cb,Y1,Y2,Y3,Y4)
         if (i == 2) iqtab = iq_y;
 
@@ -290,21 +290,20 @@ inline void PCSX::MDEC::putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb)
 }
 
 inline void PCSX::MDEC::yuv2rgb15(int *blk, unsigned short *image) {
-    int x, y;
     int *Yblk = blk + DSIZE2 * 2;
     int *Crblk = blk;
     int *Cbblk = blk + DSIZE2;
 
     if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBnWMdec>()) {
-        for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 24) {
+        for (int y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 24) {
             if (y == 8) Yblk += DSIZE2;
-            for (x = 0; x < 4; x++, image += 2, Crblk++, Cbblk++, Yblk += 2) {
+            for (int x = 0; x < 4; x++, image += 2, Crblk++, Cbblk++, Yblk += 2) {
                 putquadrgb15(image, Yblk, *Crblk, *Cbblk);
                 putquadrgb15(image + 8, Yblk + DSIZE2, *(Crblk + 4), *(Cbblk + 4));
             }
         }
     } else {
-        for (y = 0; y < 16; y++, Yblk += 8, image += 16) {
+        for (int y = 0; y < 16; y++, Yblk += 8, image += 16) {
             if (y == 8) Yblk += DSIZE2;
             putlinebw15(image, Yblk);
             putlinebw15(image + 8, Yblk + DSIZE2);
@@ -347,21 +346,20 @@ static inline void putquadrgb24(uint8_t *image, int *Yblk, int Cr, int Cb) {
 }
 
 void yuv2rgb24(int *blk, uint8_t *image) {
-    int x, y;
     int *Yblk = blk + PCSX::MDEC::DSIZE2 * 2;
     int *Crblk = blk;
     int *Cbblk = blk + PCSX::MDEC::DSIZE2;
 
     if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingBnWMdec>()) {
-        for (y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
+        for (int y = 0; y < 16; y += 2, Crblk += 4, Cbblk += 4, Yblk += 8, image += 8 * 3 * 3) {
             if (y == 8) Yblk += PCSX::MDEC::DSIZE2;
-            for (x = 0; x < 4; x++, image += 6, Crblk++, Cbblk++, Yblk += 2) {
+            for (int x = 0; x < 4; x++, image += 6, Crblk++, Cbblk++, Yblk += 2) {
                 putquadrgb24(image, Yblk, *Crblk, *Cbblk);
                 putquadrgb24(image + 8 * 3, Yblk + PCSX::MDEC::DSIZE2, *(Crblk + 4), *(Cbblk + 4));
             }
         }
     } else {
-        for (y = 0; y < 16; y++, Yblk += 8, image += 16 * 3) {
+        for (int y = 0; y < 16; y++, Yblk += 8, image += 16 * 3) {
             if (y == 8) Yblk += PCSX::MDEC::DSIZE2;
             putlinebw24(image, Yblk);
             putlinebw24(image + 8 * 3, Yblk + PCSX::MDEC::DSIZE2);

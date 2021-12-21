@@ -101,7 +101,6 @@ int iUseFixes;
 // ??
 bool bDoVSyncUpdate = false;
 
-
 static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
     return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }

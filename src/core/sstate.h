@@ -104,6 +104,7 @@ typedef Protobuf::Message<TYPESTRING("XA"), XAFrequency, XANBits, XAStereo, XANS
     XA;
 typedef Protobuf::MessageField<XA, TYPESTRING("xa"), 3> XAField;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq"), 4> SPUIrq;
+
 typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("irqptr"), 5> SPUIrqPtr;
 typedef Protobuf::MessageField<::PCSX::SPU::Chan::Data, TYPESTRING("data"), 1> Data;
 typedef Protobuf::MessageField<::PCSX::SPU::ADSRInfo, TYPESTRING("adsr"), 2> ADSRInfo;
@@ -113,8 +114,17 @@ typedef Protobuf::RepeatedField<Channel, 24, TYPESTRING("channel"), 6> Channels;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("addr"), 7> SPUAddr;
 typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("ctrl"), 8> SPUCtrl;
 typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("stat"), 9> SPUStat;
+// Capture buffer
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbStartInd"), 10> CBStartIndex;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbCurrInd"), 11> CBCurrIndex;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbEndInd"), 12> CBEndIndex;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cbVoiceInd"), 13> CBVoiceIndex;
+
+typedef Protobuf::Field<Protobuf::FixedBytes<1024 * 16 * 2>, TYPESTRING("CBLeft"), 14> CBCDLeft;
+typedef Protobuf::Field<Protobuf::FixedBytes<1024 * 16 * 2>, TYPESTRING("CBRight"), 15> CBCDRight;
+
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
-                          SPUStat>
+                          SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBVoiceIndex, CBCDLeft, CBCDRight>
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 

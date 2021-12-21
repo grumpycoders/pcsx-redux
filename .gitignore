@@ -66,6 +66,13 @@ fb.bat
 # GPU dump files
 *.dump 
 
+# IDA database files
+*.id0
+*.id1
+*.nam
+*.til
+*.idb
+
 # Runtime files in ./resources
 offscreen.frag
 offscreen.lua
@@ -73,4 +80,10 @@ offscreen.vert
 output.frag
 output.lua
 output.vert
+vram-viewer.frag
+vram-viewer.lua
+vram-viewer.vert
 pcsx.lua
+DynarecOutput.map
+DynarecProfileData.txt
+sstate.proto

@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "flags.h"
 #include "fmt/printf.h"
 #include "imgui.h"
 #include "support/djbhash.h"
@@ -93,6 +94,8 @@ class System {
     virtual void hardReset() = 0;
     // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
+    virtual const CommandLine::args &getArgs() = 0;
+
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
     void printf(const char *format, const Args &... args) {
@@ -122,6 +125,7 @@ class System {
     virtual void close() = 0;
     virtual void purgeAllEvents() = 0;
     bool running() { return m_running; }
+    const bool *runningPtr() { return &m_running; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     void start() {

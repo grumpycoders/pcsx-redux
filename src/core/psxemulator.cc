@@ -94,7 +94,7 @@ void PCSX::Emulator::EmuReset() {
     m_cheats->FreeCheatSearchResults();
     m_cheats->FreeCheatSearchMem();
     m_psxMem->psxMemReset();
-
+    m_spu->resetCaptureBuffer();
     m_psxCpu->psxReset();
     m_gpu->clearVRAM();
     m_pads->shutdown();
