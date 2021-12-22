@@ -245,7 +245,7 @@ void DynaRecCPU::emitDispatcher() {
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -257,7 +257,10 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc) {
 
     const auto startingPC = m_pc;
     int count = 0;  // How many instructions have we compiled?
-    gen.align(16);  // Align next block
+
+    if (align) {
+        gen.align(16);  // Align next block
+    }
 
     if (gen.getSize() > codeCacheSize) {  // Flush JIT cache if we've gone above the acceptable size
         flushCache();
@@ -393,7 +396,7 @@ void DynaRecCPU::handleLinking() {
 
             const auto pointer = gen.getCurr<uint8_t*>();
             gen.jne((void*)m_returnFromBlock);    // Return if the block addr changed
-            recompile(nextBlockPointer, nextPC);  // Fallthrough to next block
+            recompile(nextBlockPointer, nextPC, false);  // Fallthrough to next block
 
             *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
