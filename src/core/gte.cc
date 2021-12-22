@@ -582,8 +582,8 @@ void PCSX::GTE::OP(uint32_t op) {
     MAC2 = A2((int64_t)(R33 * IR1) - (R11 * IR3));
     MAC3 = A3((int64_t)(R11 * IR2) - (R22 * IR1));
     IR1 = Lm_B1(MAC1, lm);
-    IR2 = Lm_B1(MAC2, lm);
-    IR3 = Lm_B1(MAC3, lm);
+    IR2 = Lm_B2(MAC2, lm);
+    IR3 = Lm_B3(MAC3, lm);
 }
 
 void PCSX::GTE::DPCS(uint32_t op) {
