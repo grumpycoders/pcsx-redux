@@ -331,9 +331,9 @@ void DynaRecCPU::recAVSZ() {
 
     // eax = SZ1 + SZ2 + SZ3
     gen.movzx(eax, word[contextPointer + COP2_DATA_OFFSET(17)]);
-    gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(18)]);
+    gen.movzx(arg3, word[contextPointer + COP2_DATA_OFFSET(18)]);
     gen.add(rax, arg3.cvt64());
-    gen.movzx(arg3.cvt64(), word[contextPointer + COP2_DATA_OFFSET(19)]);
+    gen.movzx(arg3, word[contextPointer + COP2_DATA_OFFSET(19)]);
     gen.add(rax, arg3.cvt64());
 
     // eax += SZ0 for AVSZ4
