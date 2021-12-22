@@ -30,7 +30,7 @@
 #define CS_ARCH CS_ARCH_X86
 #define CS_MODE CS_MODE_64
 #elif defined(DYNAREC_AA64)
-#define CS_ARCH CS ARCH ARM64
+#define CS_ARCH CS_ARCH_ARM64
 #define CS_MODE CS_MODE_ARM
 #else
 #define CS_ARCH CS_ARCH_X86
