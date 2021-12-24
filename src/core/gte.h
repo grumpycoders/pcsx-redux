@@ -124,6 +124,7 @@ class GTE {
     uint32_t MFC2_internal(int reg);
     void MTC2_internal(uint32_t value, int reg);
     void CTC2_internal(uint32_t value, int reg);
+    void pushZ(uint16_t z);
 };
 
 }  // namespace PCSX

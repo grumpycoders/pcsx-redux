@@ -227,37 +227,38 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     void psxCOP1(uint32_t code);
     void psxCOP2(uint32_t code);
     void psxCOP3(uint32_t code);
-    void psxBASIC(uint32_t code);
+    void gteMove(uint32_t code);
 
     /* GTE wrappers */
-#define GTE_WR(n) void gte##n(uint32_t code);
-    GTE_WR(AVSZ3);
-    GTE_WR(AVSZ4);
-    GTE_WR(CC);
-    GTE_WR(CDP);
-    GTE_WR(CTC2);
-    GTE_WR(DCPL);
-    GTE_WR(DPCS);
-    GTE_WR(DPCT);
-    GTE_WR(GPF);
-    GTE_WR(GPL);
-    GTE_WR(INTPL);
-    GTE_WR(LWC2);
-    GTE_WR(MTC2);
-    GTE_WR(MVMVA);
-    GTE_WR(NCCS);
-    GTE_WR(NCCT);
-    GTE_WR(NCDS);
-    GTE_WR(NCDT);
-    GTE_WR(NCLIP);
-    GTE_WR(NCS);
-    GTE_WR(NCT);
-    GTE_WR(OP);
-    GTE_WR(RTPS);
-    GTE_WR(RTPT);
-    GTE_WR(SQR);
-    GTE_WR(SWC2);
-#undef GTE_WR
+#define GTE_WRAPPER(n) \
+    void gte##n(uint32_t code) { PCSX::g_emulator->m_gte->n(code); }
+    GTE_WRAPPER(AVSZ3);
+    GTE_WRAPPER(AVSZ4);
+    GTE_WRAPPER(CC);
+    GTE_WRAPPER(CDP);
+    GTE_WRAPPER(CTC2);
+    GTE_WRAPPER(DCPL);
+    GTE_WRAPPER(DPCS);
+    GTE_WRAPPER(DPCT);
+    GTE_WRAPPER(GPF);
+    GTE_WRAPPER(GPL);
+    GTE_WRAPPER(INTPL);
+    GTE_WRAPPER(LWC2);
+    GTE_WRAPPER(MTC2);
+    GTE_WRAPPER(MVMVA);
+    GTE_WRAPPER(NCCS);
+    GTE_WRAPPER(NCCT);
+    GTE_WRAPPER(NCDS);
+    GTE_WRAPPER(NCDT);
+    GTE_WRAPPER(NCLIP);
+    GTE_WRAPPER(NCS);
+    GTE_WRAPPER(NCT);
+    GTE_WRAPPER(OP);
+    GTE_WRAPPER(RTPS);
+    GTE_WRAPPER(RTPT);
+    GTE_WRAPPER(SQR);
+    GTE_WRAPPER(SWC2);
+#undef GTE_WRAPPER
 
     static const intFunc_t s_psxBSC[64];
     static const intFunc_t s_psxSPC[64];
@@ -329,39 +330,6 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     static const intFunc_t s_pgxpPsxCP2BSC[32];
     static const intFunc_t s_pgxpPsxBSCMem[64];
 };
-
-/* GTE wrappers */
-#define GTE_WR(n) \
-    void InterpretedCPU::gte##n(uint32_t code) { PCSX::g_emulator->m_gte->n(code); }
-GTE_WR(LWC2);
-GTE_WR(SWC2);
-GTE_WR(RTPS);
-GTE_WR(NCLIP);
-GTE_WR(OP);
-GTE_WR(DPCS);
-GTE_WR(INTPL);
-GTE_WR(MVMVA);
-GTE_WR(NCDS);
-GTE_WR(CDP);
-GTE_WR(NCDT);
-GTE_WR(NCCS);
-GTE_WR(CC);
-GTE_WR(NCS);
-GTE_WR(NCT);
-GTE_WR(SQR);
-GTE_WR(DCPL);
-GTE_WR(DPCT);
-GTE_WR(AVSZ3);
-GTE_WR(AVSZ4);
-GTE_WR(RTPT);
-GTE_WR(GPF);
-GTE_WR(GPL);
-GTE_WR(NCCT);
-GTE_WR(MTC2);
-GTE_WR(CTC2);
-#undef GTE_WR
-
-// These macros are used to assemble the repassembler functions
 
 inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
@@ -609,19 +577,19 @@ void InterpretedCPU::psxSLTU(uint32_t code) {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 void InterpretedCPU::psxDIV(uint32_t code) {
-    if (!_i32(_rRt_)) {
-        _i32(_rHi_) = _i32(_rRs_);
-        if (_i32(_rRs_) & 0x80000000) {
-            _i32(_rLo_) = 1;
+    if (_rRt_ == 0) {
+        _rHi_ = _rRs_;
+        if (_rRs_ & 0x80000000) {
+            _rLo_ = 1;
         } else {
-            _i32(_rLo_) = 0xFFFFFFFF;
+            _rLo_ = 0xFFFFFFFF;
         }
-    } else if (_i32(_rRs_) == 0x80000000 && _i32(_rRt_) == 0xFFFFFFFF) {
-        _i32(_rLo_) = 0x80000000;
-        _i32(_rHi_) = 0;
+    } else if (_rRs_ == 0x80000000 && _rRt_ == 0xFFFFFFFF) {
+        _rLo_ = 0x80000000;
+        _rHi_ = 0;
     } else {
-        _i32(_rLo_) = _i32(_rRs_) / _i32(_rRt_);
-        _i32(_rHi_) = _i32(_rRs_) % _i32(_rRt_);
+        _rLo_ = (int32_t)_rRs_ / (int32_t)_rRt_;
+        _rHi_ = (int32_t)_rRs_ % (int32_t)_rRt_;
     }
 }
 
@@ -636,14 +604,14 @@ void InterpretedCPU::psxDIVU(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULT(uint32_t code) {
-    uint64_t res = (int64_t)((int64_t)_i32(_rRs_) * (int64_t)_i32(_rRt_));
+    uint64_t res = (int64_t)(int32_t)_rRs_ * (int64_t)(int32_t)_rRt_;
 
     m_psxRegs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
     m_psxRegs.GPR.n.hi = (uint32_t)((res >> 32) & 0xffffffff);
 }
 
 void InterpretedCPU::psxMULTU(uint32_t code) {
-    uint64_t res = (uint64_t)((uint64_t)_u32(_rRs_) * (uint64_t)_u32(_rRt_));
+    uint64_t res = (uint64_t)_rRs_ * (uint64_t)_rRt_;
 
     m_psxRegs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
     m_psxRegs.GPR.n.hi = (uint32_t)((res >> 32) & 0xffffffff);
@@ -662,7 +630,7 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
         uint32_t ra = m_psxRegs.pc + 4;                          \
         m_psxRegs.GPR.r[31] = ra;                                \
         maybeCancelDelayedLoad(31);                              \
-        if (_i32(_rRs_) op 0) {                                  \
+        if ((int32_t)_rRs_ op 0) {                               \
             uint32_t sp = m_psxRegs.GPR.n.sp;                    \
             doBranch(_BranchTarget_, true);                      \
             PCSX::g_emulator->m_callStacks->potentialRA(ra, sp); \
@@ -819,7 +787,7 @@ void InterpretedCPU::psxRFE(uint32_t code) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 #define RepBranchi32(op) \
-    if (_i32(_rRs_) op _i32(_rRt_)) doBranch(_BranchTarget_, false);
+    if ((int32_t)_rRs_ op (int32_t)_rRt_) doBranch(_BranchTarget_, false);
 
 void InterpretedCPU::psxBEQ(uint32_t code) { RepBranchi32(==) }  // Branch if Rs == Rt
 void InterpretedCPU::psxBNE(uint32_t code) { RepBranchi32(!=) }  // Branch if Rs != Rt
@@ -898,7 +866,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
 void InterpretedCPU::psxLB(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
-        _i32(delayedLoadRef(_Rt_)) = (signed char)PCSX::g_emulator->m_psxMem->psxMemRead8(_oB_);
+        _i32(delayedLoadRef(_Rt_)) = (int8_t)PCSX::g_emulator->m_psxMem->psxMemRead8(_oB_);
     } else {
         PCSX::g_emulator->m_psxMem->psxMemRead8(_oB_);
     }
@@ -1021,7 +989,7 @@ void InterpretedCPU::psxLWR(uint32_t code) {
     */
 }
 
-void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, _u8(_rRt_)); }
+void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_psxMem->psxMemWrite8(_oB_, (uint8_t)_rRt_); }
 void InterpretedCPU::psxSH(uint32_t code) {
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
             .get<PCSX::Emulator::DebugSettings::Debug>()) {
@@ -1034,7 +1002,7 @@ void InterpretedCPU::psxSH(uint32_t code) {
             return;
         }
     }
-    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, _u16(_rRt_));
+    PCSX::g_emulator->m_psxMem->psxMemWrite16(_oB_, (uint16_t)_rRt_);
 }
 
 void InterpretedCPU::psxSW(uint32_t code) {
@@ -1050,9 +1018,9 @@ void InterpretedCPU::psxSW(uint32_t code) {
         }
     }
     if ((_Rt_ == 31) && (_Rs_ == 29)) {
-        PCSX::g_emulator->m_callStacks->storeRA(_oB_, _u32(_rRt_));
+        PCSX::g_emulator->m_callStacks->storeRA(_oB_, _rRt_);
     }
-    PCSX::g_emulator->m_psxMem->psxMemWrite32(_oB_, _u32(_rRt_));
+    PCSX::g_emulator->m_psxMem->psxMemWrite32(_oB_, _rRt_);
 }
 
 void InterpretedCPU::psxSWL(uint32_t code) {
@@ -1180,7 +1148,7 @@ void InterpretedCPU::psxCOP3(uint32_t code) {
     PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted to access COP3 from 0x%08x. Ignored\n"), m_psxRegs.pc - 4);
 }
 
-void InterpretedCPU::psxBASIC(uint32_t code) { (*this.*(s_pPsxCP2BSC[_Rs_]))(code); }
+void InterpretedCPU::gteMove(uint32_t code) { (*this.*(s_pPsxCP2BSC[_Rs_]))(code); }
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxBSC[64] = {
     &InterpretedCPU::psxSPECIAL, &InterpretedCPU::psxREGIMM, &InterpretedCPU::psxJ,    &InterpretedCPU::psxJAL,    // 00
@@ -1243,22 +1211,22 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP0[32] = {
 };
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP2[64] = {
-    &InterpretedCPU::psxBASIC, &InterpretedCPU::gteRTPS,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 00
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCLIP, &InterpretedCPU::psxNULL,  // 04
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 08
-    &InterpretedCPU::gteOP,    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 0c
-    &InterpretedCPU::gteDPCS,  &InterpretedCPU::gteINTPL, &InterpretedCPU::gteMVMVA, &InterpretedCPU::gteNCDS,  // 10
-    &InterpretedCPU::gteCDP,   &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCDT,  &InterpretedCPU::psxNULL,  // 14
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCCS,  // 18
-    &InterpretedCPU::gteCC,    &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCS,   &InterpretedCPU::psxNULL,  // 1c
-    &InterpretedCPU::gteNCT,   &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 20
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 24
-    &InterpretedCPU::gteSQR,   &InterpretedCPU::gteDCPL,  &InterpretedCPU::gteDPCT,  &InterpretedCPU::psxNULL,  // 28
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::gteAVSZ3, &InterpretedCPU::gteAVSZ4, &InterpretedCPU::psxNULL,  // 2c
-    &InterpretedCPU::gteRTPT,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 30
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 34
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 38
-    &InterpretedCPU::psxNULL,  &InterpretedCPU::gteGPF,   &InterpretedCPU::gteGPL,   &InterpretedCPU::gteNCCT,  // 3c
+    &InterpretedCPU::gteMove, &InterpretedCPU::gteRTPS,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 00
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCLIP, &InterpretedCPU::psxNULL,  // 04
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 08
+    &InterpretedCPU::gteOP,   &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 0c
+    &InterpretedCPU::gteDPCS, &InterpretedCPU::gteINTPL, &InterpretedCPU::gteMVMVA, &InterpretedCPU::gteNCDS,  // 10
+    &InterpretedCPU::gteCDP,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCDT,  &InterpretedCPU::psxNULL,  // 14
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCCS,  // 18
+    &InterpretedCPU::gteCC,   &InterpretedCPU::psxNULL,  &InterpretedCPU::gteNCS,   &InterpretedCPU::psxNULL,  // 1c
+    &InterpretedCPU::gteNCT,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 20
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 24
+    &InterpretedCPU::gteSQR,  &InterpretedCPU::gteDCPL,  &InterpretedCPU::gteDPCT,  &InterpretedCPU::psxNULL,  // 28
+    &InterpretedCPU::psxNULL, &InterpretedCPU::gteAVSZ3, &InterpretedCPU::gteAVSZ4, &InterpretedCPU::psxNULL,  // 2c
+    &InterpretedCPU::gteRTPT, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 30
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 34
+    &InterpretedCPU::psxNULL, &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  &InterpretedCPU::psxNULL,  // 38
+    &InterpretedCPU::psxNULL, &InterpretedCPU::gteGPF,   &InterpretedCPU::gteGPL,   &InterpretedCPU::gteNCCT,  // 3c
 };
 
 const InterpretedCPU::intFunc_t InterpretedCPU::s_psxCP2BSC[32] = {
