@@ -54,7 +54,7 @@ sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel
 
  - Arch derivatives :
 
-The pcsx-redux-git can be installed from the AUR using your AUR helper of choice (e.g., paru):
+The `pcsx-redux-git` package can be installed from the AUR using your AUR helper of choice (e.g., paru):
 
 ```bash
 paru -S pcsx-redux-git
