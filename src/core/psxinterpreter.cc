@@ -102,7 +102,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
     }
-    virtual uint8_t * getBufferPtr() final {return nullptr;}
+    virtual const uint8_t * getBufferPtr() final {return nullptr;}
     virtual const size_t getBufferSize() final {return 0;}
 
     void psxTestSWInts();
