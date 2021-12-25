@@ -35,6 +35,13 @@
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
 
+#include <stdio.h>
+#include <inttypes.h>
+#include <capstone/capstone.h>
+
+
+
+
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
 #define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)this)
@@ -163,11 +170,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual void Reset() final;
     virtual void Shutdown() final;
     virtual bool isDynarec() final { return true; }
-
     virtual void Execute() final {
         ZoneScoped;         // Tell the Tracy profiler to do its thing
         (*m_dispatcher)();  // Jump to assembly dispatcher
     }
+    virtual const uint8_t * getBufferPtr() final {return gen.getCode<const uint8_t *>();}
+    virtual const size_t getBufferSize() final {return gen.getSize();}
+
 
     // TODO: Make it less slow and bad
     // Possibly clear blocks more aggressively
