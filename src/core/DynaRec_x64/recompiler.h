@@ -21,10 +21,6 @@
 #include "core/r3000a.h"
 
 #if defined(DYNAREC_X86_64)
-#include <capstone/capstone.h>
-#include <inttypes.h>
-#include <stdio.h>
-
 #include <array>
 #include <fstream>
 #include <optional>
