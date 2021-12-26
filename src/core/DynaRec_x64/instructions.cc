@@ -1602,7 +1602,6 @@ void DynaRecCPU::recBLEZ() {
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
 }
 
-// TODO: Handle INT_MIN / -1
 void DynaRecCPU::recDIV() {
     Label notIntMin, divisionByZero, end;
     bool emitIntMinCheck = true;
@@ -1735,7 +1734,7 @@ void DynaRecCPU::recDIVU() {
         gen.jz(divisionByZero, CodeGenerator::LabelType::T_NEAR);  // Jump to divisionByZero label if so
     }
 
-    gen.xor_(edx, edx);  // Set top 32 bits of dividend to
+    gen.xor_(edx, edx);  // Set top 32 bits of dividend to 0
     gen.div(ecx);        // Unsigned division by divisor
 
     if (!m_regs[_Rt_].isConst()) {  // Emit a division by 0 handler if the divisor is unknown at compile time
