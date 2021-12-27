@@ -167,7 +167,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         ZoneScoped;         // Tell the Tracy profiler to do its thing
         (*m_dispatcher)();  // Jump to assembly dispatcher
     }
-    virtual const uint8_t* getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    // For the GUI dynarec disassembly widget
+    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
     virtual const size_t getBufferSize() final { return gen.getSize(); }
 
     // TODO: Make it less slow and bad

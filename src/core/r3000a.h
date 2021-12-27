@@ -264,6 +264,7 @@ class R3000Acpu {
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
     virtual bool Implemented() = 0;
+    // For the GUI dynarec disassembly widget
     virtual const uint8_t *getBufferPtr() = 0;
     virtual const size_t getBufferSize() = 0;
 
