@@ -33,7 +33,7 @@ typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
 typedef Setting<int, TYPESTRING("Reverb"), 2> Reverb;
 typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
 typedef Setting<bool, TYPESTRING("Mono")> Mono;
-typedef Setting<bool, TYPESTRING("DBufIRQ")> DBufIRQ;
+typedef Setting<bool, TYPESTRING("DBufIRQ"), true> DBufIRQ;
 typedef Setting<bool, TYPESTRING("Mute")> Mute;
 typedef Settings<Backend, Device, NullSync, Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute>
     SettingsType;

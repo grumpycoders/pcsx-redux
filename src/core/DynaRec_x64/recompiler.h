@@ -35,13 +35,6 @@
 #include "spu/interface.h"
 #include "tracy/Tracy.hpp"
 
-#include <stdio.h>
-#include <inttypes.h>
-#include <capstone/capstone.h>
-
-
-
-
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
 #define GPR_OFFSET(x) ((uintptr_t)&m_psxRegs.GPR.r[(x)] - (uintptr_t)this)
 #define COP0_OFFSET(x) ((uintptr_t)&m_psxRegs.CP0.r[(x)] - (uintptr_t)this)
@@ -174,9 +167,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         ZoneScoped;         // Tell the Tracy profiler to do its thing
         (*m_dispatcher)();  // Jump to assembly dispatcher
     }
-    virtual const uint8_t * getBufferPtr() final {return gen.getCode<const uint8_t *>();}
-    virtual const size_t getBufferSize() final {return gen.getSize();}
-
+    virtual const uint8_t* getBufferPtr() final { return gen.getCode<const uint8_t*>(); }
+    virtual const size_t getBufferSize() final { return gen.getSize(); }
 
     // TODO: Make it less slow and bad
     // Possibly clear blocks more aggressively
@@ -308,11 +300,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true);
     void error();
     void flushCache();
     void handleLinking();
     void handleFastboot();
+    void emitBlockLookup();
 
     std::string m_symbols;
     RecompilerProfiler<10000000> m_profiler;
@@ -424,6 +417,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recRTPS();
     void recRTPT();
     void recSQR();
+
+    template <bool isAVSZ4>
+    void recAVSZ();
 
     template <bool readSR>
     void testSoftwareInterrupt();

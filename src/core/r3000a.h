@@ -19,9 +19,8 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 
@@ -31,6 +30,7 @@
 #include "core/psxmem.h"
 #include "support/file.h"
 #include "support/hashtable.h"
+
 
 #if defined(__i386__) || defined(_M_IX86)
 #define DYNAREC_X86_32
@@ -205,22 +205,10 @@ struct psxRegisters {
 #define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
 #define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
 
-#define _i16(x) reinterpret_cast<int16_t *>(&x)[1]
-#define _u16(x) reinterpret_cast<uint16_t *>(&x)[1]
-
-#define _i8(x) reinterpret_cast<int8_t *>(&x)[3]
-#define _u8(x) reinterpret_cast<uint8_t *>(&x)[3]
-
 #else
 
 #define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
 #define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#define _i16(x) reinterpret_cast<int16_t *>(&x)[0]
-#define _u16(x) reinterpret_cast<uint16_t *>(&x)[0]
-
-#define _i8(x) reinterpret_cast<int8_t *>(&x)[0]
-#define _u8(x) reinterpret_cast<uint8_t *>(&x)[0]
 
 #endif
 
@@ -276,7 +264,7 @@ class R3000Acpu {
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
     virtual bool Implemented() = 0;
-    virtual const uint8_t * getBufferPtr() = 0;
+    virtual const uint8_t *getBufferPtr() = 0;
     virtual const size_t getBufferSize() = 0;
 
     const std::string &getName() { return m_name; }
