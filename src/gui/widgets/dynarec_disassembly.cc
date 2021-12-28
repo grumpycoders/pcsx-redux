@@ -20,11 +20,12 @@
 #include "gui/widgets/dynarec_disassembly.h"
 
 #include <capstone/capstone.h>
+
 #include <cinttypes>
+#include <fstream>
 
 #include "gui/gui.h"
 #include "imgui.h"
-#include <fstream>
 
 int PCSX::Widgets::Disassembly::writeFile() {
     std::ofstream file;
@@ -32,24 +33,24 @@ int PCSX::Widgets::Disassembly::writeFile() {
     file.open("DynaRecDisassembly.txt", std::ios::app);
     // If file exists, write to it, otherwise return -1
     if (file) {
-        for (auto i=0; i<m_items.size(); ++i) {
-            file<<m_items[i];
+        for (auto i = 0; i < m_items.size(); ++i) {
+            file << m_items[i];
         }
     } else {
-        PCSX::g_system->printf("Error opening output file for disassembly.\n");
+        PCSX::g_system->printf("Disassembler Error: failed to open output file for disassembly.\n");
+        m_showError = true;
         return -1;
     }
     // Close out file
     file.close();
     // If bad bit is set, there was an error, return -1
     if (file.fail()) {
-        PCSX::g_system->printf("Error writing disassembly to file.\n");
+        PCSX::g_system->printf("Disassembler Error: failed to write disassembly to output file.\n");
+        m_showError = true;
         return -1;
     }
     return 0;
 }
-
-
 
 void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
@@ -59,46 +60,17 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     }
 
     if (ImGui::Button("Disassemble Buffer")) {
-        m_disResult = disassembleBuffer();
+        m_codeSize = disassembleBuffer();
     }
     ImGui::SameLine();
     if (ImGui::Button("Save to File")) {
-        m_fileResult = writeFile();
-    }
-
-    if (m_fileResult == -1) {
-        ImGui::OpenPopup("Disassembler Error");
-        if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Error writing disassembly to file.\nCheck Logs");
-            if (ImGui::Button("Close")) {
-                m_fileResult = 0;
-                ImGui::CloseCurrentPopup();
-            }
-        }
-        ImGui::EndPopup();
+        writeFile();
     }
 
     if (m_showError) {
         ImGui::OpenPopup("Disassembler Error");
         if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            switch (m_disResult) {
-                case disassemblerResult::INVALID_BFR_PTR:
-                    ImGui::Text("Code buffer pointer is null.");
-                    break;
-                case disassemblerResult::INVALID_BFR_SIZE:
-                    ImGui::Text("Invalid buffer size.\n");
-                    break;
-                case disassemblerResult::CS_INIT_FAIL:
-                    ImGui::Text("Failed to initialize Capstone Disassembler.\n");
-                    break;
-                case disassemblerResult::CS_DIS_FAIL:
-                    ImGui::Text("Failed to disassemble buffer.\n");
-                    break;
-                default: {
-                    ImGui::Text("Unknown Disassembler Error.\nCheck logs");
-                    break;
-                }
-            }
+            ImGui::Text("Disassembly Failed.\nCheck Logs");
             if (ImGui::Button("Close")) {
                 ImGui::CloseCurrentPopup();
                 m_showError = false;
@@ -112,12 +84,14 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         ImGui::EndPopup();
     }
 
-    ImGui::SameLine();
-    if (ImGui::SmallButton("Clear")) m_items.clear();
+    ImGui::Separator();
+
+    if (ImGui::SmallButton("Clear")) {
+        m_items.clear();
+        m_codeSize = 0;
+    }
     ImGui::SameLine();
     bool copy_to_clipboard = ImGui::SmallButton("Copy");
-
-    ImGui::Separator();
 
     // Options menu
     if (ImGui::BeginPopup("Options")) {
@@ -126,15 +100,17 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         ImGui::EndPopup();
     }
 
+    ImGui::SameLine();
     // Options, Filter
-    if (ImGui::Button("Options")) ImGui::OpenPopup("Options");
+    if (ImGui::SmallButton("Options")) ImGui::OpenPopup("Options");
+
+    ImGui::SameLine();
+    // Show buffer size returned from disassembly function
+    ImGui::Text("Code size: %.2fMB", (double)m_codeSize / (1024 * 1024));
     ImGui::Separator();
 
-    // Reserve enough left-over height for 1 separator + 1 input text
     if (m_mono) gui->useMonoFont();
-    const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
-    ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false,
-                      ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::BeginChild("ScrollingRegion", ImVec2(0, -4), false, ImGuiWindowFlags_HorizontalScrollbar);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));  // Tighten spacing
     if (copy_to_clipboard) ImGui::LogToClipboard();
@@ -160,7 +136,7 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     ImGui::End();
 }
 
-PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disassembleBuffer() {
+size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
     csh handle;
     cs_insn* insn;
     size_t count;
@@ -170,15 +146,19 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
     const size_t bufferSize = PCSX::g_emulator->m_psxCpu->getBufferSize();
     // Check to ensure code buffer pointer is not null and size is not 0
     if (buffer == nullptr) {
+        PCSX::g_system->printf("Disassembler Error: nullpointer to code buffer.\n");
         m_showError = true;
-        return PCSX::Widgets::Disassembly::disassemblerResult::INVALID_BFR_PTR;
+        return -1;
     } else if (bufferSize <= 0) {
+        PCSX::g_system->printf("Disassembler Error: Invalid code buffer size.\n");
         m_showError = true;
-        return PCSX::Widgets::Disassembly::disassemblerResult::INVALID_BFR_SIZE;
+        return -1;
     }
     // Attempt to initialize Capstone disassembler, if error log it and return
     if (cs_open(CS_ARCH, CS_MODE, &handle) != CS_ERR_OK) {
-        return PCSX::Widgets::Disassembly::disassemblerResult::CS_INIT_FAIL;
+        PCSX::g_system->printf("Disassembler Error: Failed to initialize Capstone.\n");
+        m_showError = true;
+        return -1;
     }
     // Set SKIPDATA option as to not break disassembler
     cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
@@ -200,10 +180,11 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
         // If disassembly failed, log the error and close out disassembler
     } else {
         cs_close(&handle);
+        PCSX::g_system->printf("Disassembler Error: Failed to disassemble buffer.\n");
         m_showError = true;
-        return PCSX::Widgets::Disassembly::disassemblerResult::CS_DIS_FAIL;
+        return -1;
     }
     // Successful disassembly, clean up disassembler instance and return successful result
     cs_close(&handle);
-    return PCSX::Widgets::Disassembly::disassemblerResult::SUCCESS;
+    return bufferSize;
 }
