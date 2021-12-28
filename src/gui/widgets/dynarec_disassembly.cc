@@ -30,7 +30,7 @@
 int PCSX::Widgets::Disassembly::writeFile() {
     std::ofstream file;
     // Open file - default location in resources directory
-    file.open("DynaRecDisassembly.txt", std::ios::app);
+    file.open("DynarecDisassembly.txt", std::ios::app);
     // If file exists, write to it, otherwise return -1
     if (file) {
         for (auto i = 0; i < m_items.size(); ++i) {
