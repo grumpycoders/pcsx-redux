@@ -24,6 +24,32 @@
 
 #include "gui/gui.h"
 #include "imgui.h"
+#include <fstream>
+
+int PCSX::Widgets::Disassembly::writeFile() {
+    std::ofstream file;
+    // Open file - default location in resources directory
+    file.open("DynaRecDisassembly.txt", std::ios::app);
+    // If file exists, write to it, otherwise return -1
+    if (file) {
+        for (auto i=0; i<m_items.size(); ++i) {
+            file<<m_items[i];
+        }
+    } else {
+        PCSX::g_system->printf("Error opening output file for disassembly.\n");
+        return -1;
+    }
+    // Close out file
+    file.close();
+    // If bad bit is set, there was an error, return -1
+    if (file.fail()) {
+        PCSX::g_system->printf("Error writing disassembly to file.\n");
+        return -1;
+    }
+    return 0;
+}
+
+
 
 void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
@@ -33,31 +59,43 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     }
 
     if (ImGui::Button("Disassemble Buffer")) {
-        m_tryDisassembly = true;
+        m_disResult = disassembleBuffer();
     }
-    // Will re-enable once file handling is implemented
-    // ImGui::Checkbox("Output to File", &m_outputFile);
+    ImGui::SameLine();
+    if (ImGui::Button("Save to File")) {
+        m_fileResult = writeFile();
+    }
 
-    if (m_tryDisassembly) m_result = disassembleBuffer();
+    if (m_fileResult == -1) {
+        ImGui::OpenPopup("Disassembler Error");
+        if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Error writing disassembly to file.\nCheck Logs");
+            if (ImGui::Button("Close")) {
+                m_fileResult = 0;
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::EndPopup();
+    }
 
     if (m_showError) {
         ImGui::OpenPopup("Disassembler Error");
         if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            switch (m_result) {
-                case disassemblerResult::INVALID_BFR:
-                    ImGui::Text("Code buffer pointer is null");
+            switch (m_disResult) {
+                case disassemblerResult::INVALID_BFR_PTR:
+                    ImGui::Text("Code buffer pointer is null.");
                     break;
                 case disassemblerResult::INVALID_BFR_SIZE:
-                    ImGui::Text("Invalid buffer size\nCheck logs");
+                    ImGui::Text("Invalid buffer size.\n");
                     break;
                 case disassemblerResult::CS_INIT_FAIL:
-                    ImGui::Text("Failed to initialize Capstone Disassembler\nCheck logs");
+                    ImGui::Text("Failed to initialize Capstone Disassembler.\n");
                     break;
                 case disassemblerResult::CS_DIS_FAIL:
-                    ImGui::Text("Failed to disassemble buffer\nCheck logs");
+                    ImGui::Text("Failed to disassemble buffer.\n");
                     break;
                 default: {
-                    ImGui::Text("Unknown Disassembler Error\nCheck logs");
+                    ImGui::Text("Unknown Disassembler Error.\nCheck logs");
                     break;
                 }
             }
@@ -133,47 +171,39 @@ PCSX::Widgets::Disassembly::disassemblerResult PCSX::Widgets::Disassembly::disas
     // Check to ensure code buffer pointer is not null and size is not 0
     if (buffer == nullptr) {
         m_showError = true;
-        m_tryDisassembly = false;
-        return PCSX::Widgets::Disassembly::disassemblerResult::INVALID_BFR;
+        return PCSX::Widgets::Disassembly::disassemblerResult::INVALID_BFR_PTR;
     } else if (bufferSize <= 0) {
         m_showError = true;
-        m_tryDisassembly = false;
         return PCSX::Widgets::Disassembly::disassemblerResult::INVALID_BFR_SIZE;
     }
-    // Attempt disassembly of code buffer
-    if (m_tryDisassembly) {
-        // Attempt to initialize Capstone disassembler, if error log it and return
-        if (cs_open(CS_ARCH, CS_MODE, &handle) != CS_ERR_OK) {
-            PCSX::g_system->message("ERROR: Failed to initialize capstone disassembler!\n");
-            m_tryDisassembly = false;
-            return PCSX::Widgets::Disassembly::disassemblerResult::CS_INIT_FAIL;
-        }
-        // Set SKIPDATA option as to not break disassembler
-        cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
-        // Walk code buffer and try to disassemble
-        count = cs_disasm(handle, buffer, bufferSize, 0x0, 0, &insn);
-        if (count > 0) {
-            size_t j;
-            for (j = 0; j < count; j++) {
-                // Write instruction (address, mnemonic, and operand to string
-                std::string s =
-                    fmt::sprintf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
-                // Log each instruction to the disassembly window string vector
-                addInstruction(s);
-            }
-            // Call free to clean up memory allocated by capstone
-            cs_free(insn, count);
-            // to show the end of the disassembly for the disassembled buffer
-            addInstruction("----End of disassembly----\n");
-            // If disassembly failed, log the error and close out disassembler
-        } else {
-            cs_close(&handle);
-            m_tryDisassembly = false;
-            return PCSX::Widgets::Disassembly::disassemblerResult::CS_DIS_FAIL;
-        }
-        // Successful disassembly, clean up disassembler instance and return successful result
-        cs_close(&handle);
-        m_tryDisassembly = false;
-        return PCSX::Widgets::Disassembly::disassemblerResult::SUCCESS;
+    // Attempt to initialize Capstone disassembler, if error log it and return
+    if (cs_open(CS_ARCH, CS_MODE, &handle) != CS_ERR_OK) {
+        return PCSX::Widgets::Disassembly::disassemblerResult::CS_INIT_FAIL;
     }
+    // Set SKIPDATA option as to not break disassembler
+    cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
+    // Walk code buffer and try to disassemble
+    count = cs_disasm(handle, buffer, bufferSize, 0x0, 0, &insn);
+    if (count > 0) {
+        size_t j;
+        for (j = 0; j < count; j++) {
+            // Write instruction (address, mnemonic, and operand to string
+            std::string s =
+                fmt::sprintf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
+            // Log each instruction to the disassembly window string vector
+            addInstruction(s);
+        }
+        // Call free to clean up memory allocated by capstone
+        cs_free(insn, count);
+        // to show the end of the disassembly for the disassembled buffer
+        addInstruction("----End of disassembly----\n");
+        // If disassembly failed, log the error and close out disassembler
+    } else {
+        cs_close(&handle);
+        m_showError = true;
+        return PCSX::Widgets::Disassembly::disassemblerResult::CS_DIS_FAIL;
+    }
+    // Successful disassembly, clean up disassembler instance and return successful result
+    cs_close(&handle);
+    return PCSX::Widgets::Disassembly::disassemblerResult::SUCCESS;
 }

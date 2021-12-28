@@ -20,7 +20,6 @@
 #pragma once
 #include <string>
 #include <vector>
-
 #include "core/r3000a.h"
 
 #if defined(DYNAREC_X86_32)
@@ -48,7 +47,8 @@ class Disassembly {
     bool m_show = false;
 
   private:
-    enum class disassemblerResult { NONE, INVALID_BFR, INVALID_BFR_SIZE, CS_INIT_FAIL, CS_DIS_FAIL, SUCCESS };
+    enum class disassemblerResult { NONE, INVALID_BFR_PTR, INVALID_BFR_SIZE,
+                                    CS_INIT_FAIL, CS_DIS_FAIL, SUCCESS };
     std::vector<std::string> m_items;
     std::vector<std::string> m_history;
     int m_historyPos = -1;  // -1: new line, 0..History.Size-1 browsing history.
@@ -56,14 +56,16 @@ class Disassembly {
     bool m_scrollToBottom = false;
     bool m_mono = true;
     bool m_showError = false;
-    bool m_tryDisassembly = false;
+    int m_fileResult;
     bool m_outputFile = false;
-    disassemblerResult m_result = disassemblerResult::NONE;
+    disassemblerResult m_disResult = disassemblerResult::NONE;
     disassemblerResult disassembleBuffer();
     void addInstruction(const std::string& str) {
         if (m_items.size() >= 320000) m_items.clear();
         m_items.push_back(str);
     }
+    int writeFile();
+
 };
 
 }  // namespace Widgets
