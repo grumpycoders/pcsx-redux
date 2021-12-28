@@ -58,15 +58,16 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         ImGui::End();
         return;
     }
-
+    // Disassemble button
     if (ImGui::Button("Disassemble Buffer")) {
         m_codeSize = disassembleBuffer();
     }
     ImGui::SameLine();
+    // Save to File button
     if (ImGui::Button("Save to File")) {
         writeFile();
     }
-
+    // Error popup
     if (m_showError) {
         ImGui::OpenPopup("Disassembler Error");
         if (ImGui::BeginPopupModal("Disassembler Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -78,14 +79,14 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
         }
         ImGui::EndPopup();
     }
-
+    // Close error popup
     if (ImGui::BeginPopupContextItem()) {
         if (ImGui::MenuItem("Close Disassembler")) m_show = false;
         ImGui::EndPopup();
     }
 
     ImGui::Separator();
-
+    // Clear items button
     if (ImGui::SmallButton("Clear")) {
         m_items.clear();
         m_codeSize = 0;
@@ -114,6 +115,7 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));  // Tighten spacing
     if (copy_to_clipboard) ImGui::LogToClipboard();
+    // Loop through vec and display each string item in scrolling region
     for (auto& item : m_items) {
         ImGui::TextUnformatted(item.c_str());
     }

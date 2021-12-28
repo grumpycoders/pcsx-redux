@@ -32,7 +32,7 @@
 #elif defined(DYNAREC_AA64)
 #define CS_ARCH CS_ARCH_ARM64
 #define CS_MODE CS_MODE_ARM
-#else
+#else  // Default to x86_32 if unknown architecture
 #define CS_ARCH CS_ARCH_X86
 #define CS_MODE CS_MODE_32
 #endif
@@ -57,6 +57,8 @@ class Disassembly {
     bool m_showError = false;
     bool m_outputFile = false;
     size_t m_codeSize = 0;
+
+    // Class Methods
     size_t disassembleBuffer();
     void addInstruction(const std::string& str) {
         if (m_items.size() >= 320000) m_items.clear();
