@@ -10,6 +10,12 @@ PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresam
 
 LOCALES := fr
 
+ifeq ($(wildcard third_party/zlib/zlib.h),)
+HAS_SUBMODULES = false
+else
+HAS_SUBMODULES = true
+endif
+
 CXXFLAGS += -std=c++2a
 CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
@@ -124,7 +130,16 @@ TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
 CP ?= cp
 MKDIRP ?= mkdir -p
 
-all: dep $(TARGET)
+all: check_submodules dep $(TARGET)
+
+ifeq ($(HAS_SUBMODULES),true)
+check_submodules:
+
+else
+check_submodules:
+	@echo "You need to clone this repository recursively, in order to get its submodules."
+	@false
+endif
 
 strip: all
 	strip $(TARGET)
@@ -229,7 +244,9 @@ dep: $(DEPS)
 ifneq ($(MAKECMDGOALS), regen-i18n)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), gitclean)
+ifeq ($(HAS_SUBMODULES), true)
 -include $(DEPS)
+endif
 endif
 endif
 endif
