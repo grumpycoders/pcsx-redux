@@ -29,17 +29,6 @@
 // TODO: add SioModePrescaler
 #define SIO_CYCLES (m_baudReg * 8)
 
-// rely on this for now - someone's actual testing
-//#define SIO_CYCLES (PCSX::g_emulator->m_psxClockSpeed / 57600)
-// PCSX 1.9.91
-//#define SIO_CYCLES 200
-// PCSX 1.9.91
-//#define SIO_CYCLES 270
-// ePSXe 1.6.0
-//#define SIO_CYCLES        535
-// ePSXe 1.7.0
-//#define SIO_CYCLES 635
-
 void PCSX::SIO::writePad(uint8_t value) {
     switch (m_padState) {
         case PAD_STATE_READ_TYPE:
@@ -485,14 +474,12 @@ void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr
 }
 
 void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
-    FILE *f;
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     struct stat buf;
     int s = MCD_SIZE;
-    int i = 0, j;
 
-    f = fopen(fname, "wb");
-    if (f == NULL) return;
+    const auto f = fopen(fname, "wb");
+    if (f == nullptr) return;
 
     if (stat(fname, &buf) != -1) {
         if ((buf.st_size == MCD_SIZE + 3904) || strstr(fname, ".gme")) {
@@ -519,7 +506,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
             s--;
             fputc('D', f);
             s--;
-            for (i = 0; i < 7; i++) {
+            for (int i = 0; i < 7; i++) {
                 fputc(0, f);
                 s--;
             }
@@ -533,7 +520,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
             s--;
             fputc('Q', f);
             s--;
-            for (i = 0; i < 14; i++) {
+            for (int i = 0; i < 14; i++) {
                 fputc(0xa0, f);
                 s--;
             }
@@ -551,7 +538,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
             s--;
             fputc('M', f);
             s--;
-            for (i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
                 fputc(1, f);
                 s--;
                 fputc(0, f);
@@ -575,7 +562,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
     fputc(0xe, f);
     s--;
 
-    for (i = 0; i < 15; i++) {  // 15 blocks
+    for (int i = 0; i < 15; i++) {  // 15 blocks
         fputc(0xa0, f);
         s--;
         fputc(0x00, f);
@@ -596,7 +583,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
         s--;
         fputc(0xff, f);
         s--;
-        for (j = 0; j < 117; j++) {
+        for (int j = 0; j < 117; j++) {
             fputc(0x00, f);
             s--;
         }
@@ -604,7 +591,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
         s--;
     }
 
-    for (i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; i++) {
         fputc(0xff, f);
         s--;
         fputc(0xff, f);
@@ -625,7 +612,7 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
         s--;
         fputc(0xff, f);
         s--;
-        for (j = 0; j < 118; j++) {
+        for (int j = 0; j < 118; j++) {
             fputc(0x00, f);
             s--;
         }
@@ -637,14 +624,12 @@ void PCSX::SIO::CreateMcd(const PCSX::u8string mcd) {
 }
 
 void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
-    FILE *f;
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
-    int i = 0;
     int s = MCD_SIZE;
 
     if (strstr(fname, ".gme")) {
-        f = fopen(fname, "wb");
-        if (f != NULL) {
+        auto f = fopen(fname, "wb");
+        if (f != nullptr) {
             fwrite(data - 3904, 1, MCD_SIZE + 3904, f);
             fclose(f);
         }
@@ -672,7 +657,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         s--;
         fputc('D', f);
         s--;
-        for (i = 0; i < 7; i++) {
+        for (int i = 0; i < 7; i++) {
             fputc(0, f);
             s--;
         }
@@ -686,7 +671,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         s--;
         fputc('Q', f);
         s--;
-        for (i = 0; i < 14; i++) {
+        for (int i = 0; i < 14; i++) {
             fputc(0xa0, f);
             s--;
         }
@@ -696,8 +681,8 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         while (s-- > (MCD_SIZE + 1)) fputc(0, f);
         fclose(f);
     } else if (strstr(fname, ".mem") || strstr(fname, ".vgs")) {
-        f = fopen(fname, "wb");
-        if (f != NULL) {
+        auto f = fopen(fname, "wb");
+        if (f != nullptr) {
             fwrite(data - 64, 1, MCD_SIZE + 64, f);
             fclose(f);
         }
@@ -711,7 +696,7 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         s--;
         fputc('M', f);
         s--;
-        for (i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             fputc(1, f);
             s--;
             fputc(0, f);
@@ -727,8 +712,8 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
         while (s-- > (MCD_SIZE + 1)) fputc(0, f);
         fclose(f);
     } else {
-        f = fopen(fname, "wb");
-        if (f != NULL) {
+        const auto f = fopen(fname, "wb");
+        if (f != nullptr) {
             fwrite(data, 1, MCD_SIZE, f);
             fclose(f);
         }
@@ -736,29 +721,24 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
 }
 
 void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
-    char *data = NULL, *ptr, *str, *sstr;
-    unsigned short clut[16];
-    unsigned short c;
-    int i, x;
+    char *data = nullptr;
+    uint16_t clut[16];
 
     memset(Info, 0, sizeof(McdBlock));
 
     if (mcd == 1) data = g_mcd1Data;
     if (mcd == 2) data = g_mcd2Data;
 
-    ptr = data + block * 8192 + 2;
-
+    char *ptr = data + block * 8192 + 2;
+    char *str = Info->Title;
+    char *sstr = Info->sTitle;
     Info->IconCount = *ptr & 0x3;
 
     ptr += 2;
+    int x = 0;
 
-    x = 0;
-
-    str = Info->Title;
-    sstr = Info->sTitle;
-
-    for (i = 0; i < 48; i++) {
-        c = *(ptr) << 8;
+    for (int i = 0; i < 48; i++) {
+        uint16_t c = (*ptr) << 8;
         c |= *(ptr + 1);
         if (!c) break;
 
@@ -811,12 +791,12 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
 
     ptr = data + block * 8192 + 0x60;  // icon palette data
 
-    for (i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++) {
         clut[i] = *((unsigned short *)ptr);
         ptr += 2;
     }
 
-    for (i = 0; i < Info->IconCount; i++) {
+    for (int i = 0; i < Info->IconCount; i++) {
         uint16_t *icon = &Info->Icon[i * 16 * 16];
 
         ptr = data + block * 8192 + 128 + 128 * i;  // icon data
