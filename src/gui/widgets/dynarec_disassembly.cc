@@ -171,7 +171,7 @@ size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
         for (j = 0; j < count; j++) {
             // Write instruction (address, mnemonic, and operand to string
             std::string s =
-                fmt::sprintf("0x%" PRIx64 ":\t%s\t\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
+                fmt::sprintf("%#010" PRIx64 ":\t\t%-12s\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
             // Log each instruction to the disassembly window string vector
             addInstruction(s);
         }
