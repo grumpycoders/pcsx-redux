@@ -1,0 +1,93 @@
+name: Report an issue with PCSX-Redux.
+description: Report an issue with PCSX-Redux.
+body:
+  - type: markdown
+    attributes:
+      value: |
+       This issue form is for reporting bugs only! If you have a feature or enhancement request, please make a proper feature request instead.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: >-
+        A clear and concise description of what the bug is.
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Expected behavior
+      description: >-
+        How the program should actually behave.
+  
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Steps to reproduce the bug
+      description: >-
+        Steps to reproduce the behavior
+      placeholder:
+        1. Go to '...'
+        
+        2. Click on '...'
+        
+        3. Press '...'
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Operating System
+      placeholder: (eg Windows 10, MacOS Big Sur, Ubuntu 20.04 LTS ...)
+      description: >
+        The OS of the system you're running Redux on
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: CPU model
+      placeholder: (eg Intel Core i7-7700K)
+      description: >
+        The CPU model of the system you're running PCSX-Redux on
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: GPU model
+      placeholder: (eg Nvidia GeForce GTX 980 Ti)
+      description: >
+        The GPU model of the system you're running PCSX-Redux on
+        
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: BIOS version
+      placeholder: (eg OpenBIOS, SCPH1001, etc)
+      description: >
+        The BIOS you're using to play games.
+
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: CPU emulation mode
+      description: >
+        If the menu bar says "Interpreted" on the top right, pick "Interpreter". Otherwise, pick "Recompiler"
+      options:
+        - Interpreter
+        - Recompiler
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Additional information
+      description: >-
+        If you have any additional information for us, use the field below. Feel free to share your memory card if you think it'd help us reproduce and debug your problem.
+        
+        For bugs where a screenshot or video would be useful (eg rendering or audio bugs), please attach one as well.
