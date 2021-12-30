@@ -32,7 +32,11 @@ This is yet another fork of the Playstation Emulator, PCSX. While the work here 
 The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
 
 ### Getting sources
-The only location for the source is [on github](https://github.com/grumpycoders/pcsx-redux/). Clone recursively, as the project uses submodules: `git clone https://github.com/grumpycoders/pcsx-redux.git --recursive`.
+The only location for the source is [on github](https://github.com/grumpycoders/pcsx-redux/).
+Clone recursively, as the project uses submodules:
+```
+git clone --recursive https://github.com/grumpycoders/pcsx-redux.git
+```
 
 ### Windows
 Install [Visual Studio 2022 Community Edition](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) using the `Desktop development with C++` workload. Open the file `vsprojects\pcsx-redux.sln`, select `pcsx-redux -> pcsx-redux`, right click, `Set as Startup Project`, and hit `F7` to build. The project follows the open-and-build paradigm with no extra step, so no specific dependency ought to be needed, as [NuGet](https://www.nuget.org/) will take care of downloading them automatically for you on the first build.
