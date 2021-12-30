@@ -81,7 +81,9 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
     }
     // Close error popup
     if (ImGui::BeginPopupContextItem()) {
-        if (ImGui::MenuItem("Close Disassembler")) m_show = false;
+        if (ImGui::MenuItem("Close Disassembler")) {
+            m_show = false;
+        }
         ImGui::EndPopup();
     }
 
@@ -103,24 +105,33 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
 
     ImGui::SameLine();
     // Options, Filter
-    if (ImGui::SmallButton("Options")) ImGui::OpenPopup("Options");
+    if (ImGui::SmallButton("Options")) {
+        ImGui::OpenPopup("Options");
+    }
 
     ImGui::SameLine();
     // Show buffer size returned from disassembly function
     ImGui::Text("Code size: %.2fMB", (double)m_codeSize / (1024 * 1024));
     ImGui::Separator();
 
-    if (m_mono) gui->useMonoFont();
+    if (m_mono) {
+        gui->useMonoFont();
+    }
+    // Scrolling child window containing diassembly output
     ImGui::BeginChild("ScrollingRegion", ImVec2(0, -4), false, ImGuiWindowFlags_HorizontalScrollbar);
-
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));  // Tighten spacing
-    if (copy_to_clipboard) ImGui::LogToClipboard();
+
+    if (copy_to_clipboard) {
+        ImGui::LogToClipboard();
+    }
     // Loop through vec and display each string item in scrolling region
     for (auto& item : m_items) {
         ImGui::TextUnformatted(item.c_str());
     }
 
-    if (copy_to_clipboard) ImGui::LogFinish();
+    if (copy_to_clipboard) {
+        ImGui::LogFinish();
+    }
 
     if (m_scrollToBottom || (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())) {
         ImGui::SetScrollHereY(1.0f);
@@ -129,7 +140,11 @@ void PCSX::Widgets::Disassembly::draw(GUI* gui, const char* title) {
 
     ImGui::PopStyleVar();
     ImGui::EndChild();
-    if (m_mono) ImGui::PopFont();
+
+    if (m_mono) {
+        ImGui::PopFont();
+    }
+
     ImGui::Separator();
 
     // Auto-focus on window apparition
