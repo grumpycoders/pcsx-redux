@@ -31,6 +31,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         return false;
     }
 
+    // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
     if (ImGui::Checkbox(_("Memory Card 1 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
         g_emulator->m_sio->interrupt();
@@ -43,19 +44,30 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         changed = true;
     }
 
+    static const char* cardNames[] = {_("Memory card 1"), _("Memory card 2")};
+    // Code below is slightly odd because m_selectedCart is 1-indexed while arrays are 0-indexed
+    if (ImGui::BeginCombo(_("Card"), cardNames[m_selectedCard - 1])) {
+        for (unsigned i = 0; i < 2; i++) {
+            if (ImGui::Selectable(cardNames[i], m_selectedCard == i + 1)) {
+                m_selectedCard = i + 1;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
     static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
                                              ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                                              ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
     PCSX::SIO::McdBlock block; // The current memory card block we're looking into
 
-    if (ImGui::BeginTable("Da thingz", 3, flags)) {
+    if (ImGui::BeginTable("Memory card information", 3, flags)) {
         ImGui::TableSetupColumn("Block number");
         ImGui::TableSetupColumn("Title");
         ImGui::TableSetupColumn("ID");
         ImGui::TableHeadersRow();
 
         for (auto i = 1; i < 16; i++) {
-            g_emulator->m_sio->GetMcdBlockInfo(1, i, &block);
+            g_emulator->m_sio->GetMcdBlockInfo(m_selectedCard, i, &block);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);

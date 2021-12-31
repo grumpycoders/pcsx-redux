@@ -27,6 +27,10 @@ class MemcardManager {
   public:
     bool draw(const char* title);
     bool m_show = false;
+
+  private:
+    int m_selectedCard = 1;
+    bool m_showMemoryEditor = false;
 };
 
 }  // namespace Widgets

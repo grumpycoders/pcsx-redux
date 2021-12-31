@@ -19,6 +19,7 @@
 
 #include "core/sio.h"
 
+#include <cassert>
 #include <sys/stat.h>
 
 #include "core/misc.h"
@@ -383,8 +384,7 @@ void PCSX::SIO::interrupt() {
 }
 
 void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
-    FILE *f;
-    char *data = NULL;
+    char *data = nullptr;
     const char *fname = reinterpret_cast<const char *>(str.c_str());
 
     if (mcd == 1) {
@@ -396,7 +396,7 @@ void PCSX::SIO::LoadMcd(int mcd, const PCSX::u8string str) {
         m_wasMcd2Inserted = false;
     }
 
-    f = fopen(fname, "rb");
+    FILE* f = fopen(fname, "rb");
     if (f == NULL) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
         CreateMcd(str);
@@ -721,13 +721,12 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
 }
 
 void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
-    char *data = nullptr;
     uint16_t clut[16];
 
     memset(Info, 0, sizeof(McdBlock));
 
-    if (mcd == 1) data = g_mcd1Data;
-    if (mcd == 2) data = g_mcd2Data;
+    char *data = GetMcdData(mcd);
+    assert(data != nullptr);
 
     char *ptr = data + block * 8192 + 2;
     char *str = Info->Title;
@@ -816,4 +815,15 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     strncpy(Info->ID, ptr, 12);
     ptr += 12;
     strncpy(Info->Name, ptr, 16);
+}
+
+char *PCSX::SIO::GetMcdData(int mcd) {
+    switch (mcd) {
+        case 1:
+            return g_mcd1Data;
+        case 2:
+            return g_mcd2Data;
+        default:
+            return nullptr;
+    }
 }
