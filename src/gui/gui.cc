@@ -760,14 +760,6 @@ void PCSX::GUI::endFrame() {
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem(_("Memory Card 1 inserted"), nullptr,
-                                    &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
-                    g_emulator->m_sio->interrupt();
-                }
-                if (ImGui::MenuItem(_("Memory Card 2 inserted"), nullptr,
-                                    &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
-                    g_emulator->m_sio->interrupt();
-                }
                 if (ImGui::MenuItem(_("Reboot"))) {
                     g_system->quit(0x12eb007);
                 }
@@ -811,6 +803,7 @@ void PCSX::GUI::endFrame() {
                         counter++;
                     }
                 }
+                ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show);
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
@@ -1049,6 +1042,10 @@ void PCSX::GUI::endFrame() {
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
             m_biosEditor.draw(PCSX::g_emulator->m_psxMem->g_psxR, 512 * 1024, 0xbfc00000);
         }
+    }
+
+    if (m_memcardManager.m_show) {
+        changed |= m_memcardManager.draw(_("Memory Card Manager"));
     }
 
     if (m_registers.m_show) {
