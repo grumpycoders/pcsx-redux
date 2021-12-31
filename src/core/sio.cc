@@ -241,7 +241,7 @@ void PCSX::SIO::write8(uint8_t value) {
                     // case 0x82: case 0x83: case 0x84: // Multitap memcard access
             m_statusReg |= RX_RDY;
 
-            memset(m_buffer, 0, 4);
+            std::memset(m_buffer, 0, 4);
             if ((m_ctrlReg & 0x2002) == 0x0002) {
                 if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>()) {
                     m_buffer[1] = m_wasMcd1Inserted ? 0 : MCDST_CHANGED;
@@ -723,12 +723,12 @@ void PCSX::SIO::ConvertMcd(const PCSX::u8string mcd, const char *data) {
 void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     uint16_t clut[16];
 
-    memset(Info, 0, sizeof(McdBlock));
+    std::memset(Info, 0, sizeof(McdBlock));
 
     char *data = GetMcdData(mcd);
     assert(data != nullptr);
 
-    char *ptr = data + block * 8192 + 2;
+    char *ptr = data + block * MCD_BLOCK_SIZE + 2;
     char *str = Info->Title;
     char *sstr = Info->sTitle;
     Info->IconCount = *ptr & 0x3;
@@ -788,7 +788,7 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     trim(str);
     trim(sstr);
 
-    ptr = data + block * 8192 + 0x60;  // icon palette data
+    ptr = data + block * MCD_BLOCK_SIZE + 0x60;  // icon palette data
 
     for (int i = 0; i < 16; i++) {
         clut[i] = *((unsigned short *)ptr);
@@ -798,7 +798,7 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     for (int i = 0; i < Info->IconCount; i++) {
         uint16_t *icon = &Info->Icon[i * 16 * 16];
 
-        ptr = data + block * 8192 + 128 + 128 * i;  // icon data
+        ptr = data + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
 
         for (x = 0; x < 16 * 16; x++) {
             icon[x++] = clut[*ptr & 0xf];
@@ -826,4 +826,15 @@ char *PCSX::SIO::GetMcdData(int mcd) {
         default:
             return nullptr;
     }
+}
+
+// Format a memory card block by clearing it with 0s
+// mcd: The memory card we want to use (1 or 2)
+// block: A block from 1 to 15 inclusive
+void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
+    char *data = GetMcdData(mcd);
+    assert(data != nullptr);
+
+    const size_t offset = block * MCD_BLOCK_SIZE;
+    std::memset(data + offset, 0, MCD_BLOCK_SIZE);
 }

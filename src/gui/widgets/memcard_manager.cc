@@ -19,6 +19,7 @@
 
 #include "core/sio.h"
 #include "core/system.h"
+#include "fmt/format.h"
 #include "gui/widgets/memcard_manager.h"
 
 PCSX::Widgets::MemcardManager::MemcardManager() {
@@ -66,10 +67,11 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
                                              ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
     PCSX::SIO::McdBlock block; // The current memory card block we're looking into
 
-    if (ImGui::BeginTable("Memory card information", 3, flags)) {
+    if (ImGui::BeginTable("Memory card information", 4, flags)) {
         ImGui::TableSetupColumn("Block number");
+        ImGui::TableSetupColumn("Image");
         ImGui::TableSetupColumn("Title");
-        ImGui::TableSetupColumn("ID");
+        ImGui::TableSetupColumn("Format");
         ImGui::TableHeadersRow();
 
         for (auto i = 1; i < 16; i++) {
@@ -79,9 +81,17 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("%d", i);
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(block.Title);
+            ImGui::Image(0, ImVec2(16, 16));
+
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%d", block.ID);
+            ImGui::Text(block.Title);
+            ImGui::TableSetColumnIndex(3);
+            // We have to suffix the name with ##number because Imgui can't handle
+            // multiple buttons with the same name well
+            const auto buttonName = fmt::format(_("Format##{}"), i);
+            if (ImGui::Button(buttonName.c_str())) {
+                g_emulator->m_sio->FormatMcdBlock(m_selectedCard, i);
+            }
         }
         ImGui::EndTable();
     }

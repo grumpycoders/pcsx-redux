@@ -104,8 +104,9 @@ class SIO {
     void writeMcd(uint8_t value);
 
   public:
-    static const uint64_t MCD_SECT_SIZE = 8 * 16;
-    static const uint64_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
+    static const size_t MCD_SECT_SIZE = 8 * 16;
+    static const size_t MCD_BLOCK_SIZE = 8192;
+    static const size_t MCD_SIZE = 1024 * MCD_SECT_SIZE;
 
     char g_mcd1Data[MCD_SIZE], g_mcd2Data[MCD_SIZE];
 
@@ -142,6 +143,7 @@ class SIO {
     } McdBlock;
 
     void GetMcdBlockInfo(int mcd, int block, McdBlock *info);
+    void FormatMcdBlock(int mcd, int block);
     char *GetMcdData(int mcd);
 
     static void SIO1irq(void) { psxHu32ref(0x1070) |= SWAP_LEu32(0x100); }
