@@ -427,6 +427,8 @@ end)(jit.status()))
     m_mainVRAMviewer.setMain();
     m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
     m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
+    m_memcardManager.init();
+
     unsigned counter = 1;
     for (auto& viewer : m_VRAMviewers) {
         viewer.setTitle([counter]() { return _("Vram Viewer #") + std::to_string(counter); });

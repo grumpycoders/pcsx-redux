@@ -19,6 +19,7 @@
 
 #include "core/sio.h"
 
+#include <algorithm> 
 #include <cassert>
 #include <sys/stat.h>
 
@@ -438,11 +439,10 @@ void PCSX::SIO::LoadMcds(const PCSX::u8string mcd1, const PCSX::u8string mcd2) {
 }
 
 void PCSX::SIO::SaveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
-    FILE *f;
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
+    FILE* f = fopen(fname, "r+b");
 
-    f = fopen(fname, "r+b");
-    if (f != NULL) {
+    if (f != nullptr) {
         struct stat buf;
 
         if (stat(fname, &buf) != -1) {
@@ -731,7 +731,7 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     char *ptr = data + block * MCD_BLOCK_SIZE + 2;
     char *str = Info->Title;
     char *sstr = Info->sTitle;
-    Info->IconCount = *ptr & 0x3;
+    Info->IconCount = std::max(1, *ptr & 0x3);
 
     ptr += 2;
     int x = 0;
@@ -788,21 +788,20 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     trim(str);
     trim(sstr);
 
-    ptr = data + block * MCD_BLOCK_SIZE + 0x60;  // icon palette data
+    // Read CLUT
+    ptr = data + block * MCD_BLOCK_SIZE + 0x60;
+    std::memcpy(clut, ptr, 16 * sizeof(uint16_t));
 
-    for (int i = 0; i < 16; i++) {
-        clut[i] = *((unsigned short *)ptr);
-        ptr += 2;
-    }
-
+    // Icons can have 1 to 3 frames of animation
     for (int i = 0; i < Info->IconCount; i++) {
         uint16_t *icon = &Info->Icon[i * 16 * 16];
-
         ptr = data + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
-
+        
+        // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
         for (x = 0; x < 16 * 16; x++) {
-            icon[x++] = clut[*ptr & 0xf];
-            icon[x] = clut[*ptr >> 4];
+            const uint8_t entry = (uint8_t)*ptr;
+            icon[x++] = clut[entry & 0xf] | (1 << 15);
+            icon[x] = clut[entry >> 4] | (1 << 15);
             ptr++;
         }
     }
@@ -837,4 +836,18 @@ void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
 
     const size_t offset = block * MCD_BLOCK_SIZE;
     std::memset(data + offset, 0, MCD_BLOCK_SIZE);
+}
+
+// Back up the entire memory card to a file
+// mcd: The memory card to back up (1 or 2)
+void PCSX::SIO::SaveMcd(int mcd) {
+    const auto data = GetMcdData(mcd);
+    
+    if (mcd == 1) {
+        const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string();
+        SaveMcd(path, data, 0, MCD_SIZE);
+    } else if (mcd == 2) {
+        const auto path = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string();
+        SaveMcd(path, data, 0, MCD_SIZE);
+    }
 }

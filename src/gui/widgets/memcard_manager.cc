@@ -27,6 +27,18 @@ PCSX::Widgets::MemcardManager::MemcardManager() {
     m_memoryEditor.OptUpperCaseHex = false;
 }
 
+void PCSX::Widgets::MemcardManager::init() {
+    // Initialize the OpenGL textures used for the icon images
+    // This can't happen in the constructor cause our context won't be ready yet
+    glGenTextures(15, m_iconTextures);
+    for (int i = 0; i < 15; i++) {
+        glBindTexture(GL_TEXTURE_2D, m_iconTextures[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB5_A1, 16, 16);
+    }
+}
+
 bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
@@ -50,6 +62,10 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         changed = true;
     }
     ImGui::Checkbox(_("Show memory card contents"), &m_showMemoryEditor);
+    ImGui::SameLine();
+    if (ImGui::Button(_("Save memory card to file"))) {
+        g_emulator->m_sio->SaveMcd(m_selectedCard);
+    }
 
     static const char* cardNames[] = {_("Memory card 1"), _("Memory card 2")};
     // Code below is slightly odd because m_selectedCart is 1-indexed while arrays are 0-indexed
@@ -81,7 +97,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("%d", i);
             ImGui::TableSetColumnIndex(1);
-            ImGui::Image(0, ImVec2(16, 16));
+            drawIcon(i, block.Icon);
 
             ImGui::TableSetColumnIndex(2);
             ImGui::Text(block.Title);
@@ -103,4 +119,11 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
     ImGui::End();
     return changed;
+}
+
+void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, uint16_t* icon) {
+    const auto texture = m_iconTextures[blockNumber - 1];
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, icon);
+    ImGui::Image((void*)texture, ImVec2(64, 64));
 }
