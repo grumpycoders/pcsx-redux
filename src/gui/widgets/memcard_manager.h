@@ -19,6 +19,7 @@
 
 #pragma once
 #include "imgui.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
 
 namespace PCSX {
 namespace Widgets {
@@ -27,10 +28,12 @@ class MemcardManager {
   public:
     bool draw(const char* title);
     bool m_show = false;
+    MemcardManager();
 
   private:
     int m_selectedCard = 1;
     bool m_showMemoryEditor = false;
+    MemoryEditor m_memoryEditor;
 };
 
 }  // namespace Widgets

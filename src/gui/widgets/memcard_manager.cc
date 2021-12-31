@@ -21,6 +21,11 @@
 #include "core/system.h"
 #include "gui/widgets/memcard_manager.h"
 
+PCSX::Widgets::MemcardManager::MemcardManager() {
+    m_memoryEditor.OptShowDataPreview = true;
+    m_memoryEditor.OptUpperCaseHex = false;
+}
+
 bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     bool changed = false;
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
@@ -43,6 +48,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         g_emulator->m_sio->interrupt();
         changed = true;
     }
+    ImGui::Checkbox(_("Show memory card contents"), &m_showMemoryEditor);
 
     static const char* cardNames[] = {_("Memory card 1"), _("Memory card 2")};
     // Code below is slightly odd because m_selectedCart is 1-indexed while arrays are 0-indexed
@@ -78,6 +84,11 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             ImGui::Text("%d", block.ID);
         }
         ImGui::EndTable();
+    }
+
+    if (m_showMemoryEditor) {
+        const auto data = g_emulator->m_sio->GetMcdData(m_selectedCard);
+        m_memoryEditor.DrawWindow(_("Memory Card Viewer"), data, PCSX::SIO::MCD_SIZE);
     }
 
     ImGui::End();
