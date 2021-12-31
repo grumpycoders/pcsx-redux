@@ -92,12 +92,24 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
         for (auto i = 1; i < 16; i++) {
             g_emulator->m_sio->GetMcdBlockInfo(m_selectedCard, i, &block);
+            int currentFrame = 0; // 1st frame = 0, 2nd frame = 1, 3rd frame = 2
+            const auto animationFrames = block.IconCount;
+
+            // Check if we should display the 3rd frame, then check if we should display the 2nd one
+            if (m_frameCount >= 40 && animationFrames == 3) {
+                currentFrame = 2;
+            } else if (m_frameCount >= 20 && animationFrames >= 2) {
+                currentFrame = 1;
+            }
+
+            // Pointer to the current frame. Skip 16x16 pixels for each frame
+            const auto icon = block.Icon + (currentFrame * 16 * 16);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("%d", i);
             ImGui::TableSetColumnIndex(1);
-            drawIcon(i, block.Icon);
+            drawIcon(i, icon);
 
             ImGui::TableSetColumnIndex(2);
             ImGui::Text(block.Title);
@@ -117,6 +129,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
         m_memoryEditor.DrawWindow(_("Memory Card Viewer"), data, PCSX::SIO::MCD_SIZE);
     }
 
+    m_frameCount = (m_frameCount + 1) % 60;
     ImGui::End();
     return changed;
 }

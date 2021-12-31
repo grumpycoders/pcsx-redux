@@ -807,7 +807,9 @@ void PCSX::GUI::endFrame() {
                         counter++;
                     }
                 }
-                ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show);
+                if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
+                    m_memcardManager.m_frameCount = 0; // Reset frame count when memcard manager is toggled
+                }
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);

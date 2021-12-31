@@ -30,6 +30,9 @@ class MemcardManager {
   public:
     bool draw(const char* title);
     bool m_show = false;
+    // The framecount from 0 to 59 inclusive. We need it to know which frame of multi-animation
+    // icons to display.
+    int m_frameCount = 0;
 
     MemcardManager();
     void init();
