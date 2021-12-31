@@ -87,7 +87,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual void SetPGXPMode(uint32_t pgxpMode) final;
     virtual bool isDynarec() final { return true; }
     // For the GUI dynarec disassembly widget
-    virtual const uint8_t *getBufferPtr final { return gen.getCode<const uint8_t *>(); }
+    virtual const uint8_t *getBufferPtr() final { return gen.getCode<const uint8_t *>(); }
     virtual const size_t getBufferSize() final { return gen.getSize(); }
 
     static void recClearWrapper(DynaRecCPU *that, uint32_t a, uint32_t s) { that->Clear(a, s); }
