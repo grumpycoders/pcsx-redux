@@ -834,10 +834,18 @@ void PCSX::SIO::FormatMcdBlock(int mcd, int block) {
     char *data = GetMcdData(mcd);
     assert(data != nullptr);
 
+    // Set the block data to 0
     const size_t offset = block * MCD_BLOCK_SIZE;
     std::memset(data + offset, 0, MCD_BLOCK_SIZE);
-}
 
+    // Fix up the corresponding directory frame in block 0.
+    const auto frame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    frame[0] = 0xa0;  // Code for a freshly formatted block
+    for (auto i = 1; i < 0x7f; i++) { // Zero the rest of the frame
+        frame[i] = 0;
+    }
+    frame[0x7f] = 0xa0; // xor checksum of frame
+}
 // Back up the entire memory card to a file
 // mcd: The memory card to back up (1 or 2)
 void PCSX::SIO::SaveMcd(int mcd) {
