@@ -796,7 +796,7 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
     for (int i = 0; i < Info->IconCount; i++) {
         uint16_t *icon = &Info->Icon[i * 16 * 16];
         ptr = data + block * MCD_BLOCK_SIZE + 128 + 128 * i;  // icon data
-        
+
         // Fetch each pixel, store it in the icon array in ABBBBBGGGGGRRRRR with the alpha bit set to 1
         for (x = 0; x < 16 * 16; x++) {
             const uint8_t entry = (uint8_t)*ptr;
@@ -806,14 +806,24 @@ void PCSX::SIO::GetMcdBlockInfo(int mcd, int block, McdBlock *Info) {
         }
     }
 
-    ptr = data + block * 128;
+    
+    // Parse directory frame info
+    const auto directoryFrame = (uint8_t *)data + block * MCD_SECT_SIZE;
+    Info->Flags = directoryFrame[0];
+    std::strncpy(Info->ID, (const char*) &directoryFrame[0xa], 12);
+    std::strncpy(Info->Name, (const char*) &directoryFrame[0x16], 16);
+    g_system->printf("ID: %s\nName: %s\n", Info->ID, Info->Name);
 
-    Info->Flags = *ptr;
+    const uint32_t fileSize =
+        directoryFrame[0x4] | (directoryFrame[0x5] << 8) | (directoryFrame[0x6] << 16) | (directoryFrame[0x7] << 24);
+    Info->Filesize = fileSize;
 
-    ptr += 0xa;
-    strncpy(Info->ID, ptr, 12);
-    ptr += 12;
-    strncpy(Info->Name, ptr, 16);
+    // Check if the block is marked as free in the directory frame and adjust the name/filename if so
+    if (Info->Flags == 0xa0) {
+        std::strcpy(Info->Title, "Free Block");
+        std::strcpy(Info->Name, "Empty File");
+        Info->Filesize = 0;
+    }
 }
 
 char *PCSX::SIO::GetMcdData(int mcd) {

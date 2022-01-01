@@ -138,6 +138,7 @@ class SIO {
         char sTitle[48 * 2 + 1];  // Title in Shift-JIS
         char ID[12 + 1];
         char Name[16 + 1];
+        uint32_t Filesize;
         uint32_t IconCount;
         uint16_t Icon[16 * 16 * 3];
         uint8_t Flags;

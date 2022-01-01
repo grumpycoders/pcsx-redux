@@ -71,6 +71,18 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     if (ImGui::Button(_("Save memory card to file"))) {
         g_emulator->m_sio->SaveMcd(m_selectedCard);
     }
+    ImGui::SameLine();
+    {
+        const int otherCard = (m_selectedCard == 1) ? 2 : 1;
+        const auto copyButtonText = fmt::format(_("Copy all to card {}"), otherCard);
+        if (ImGui::Button(copyButtonText.c_str())) {
+            const auto source = PCSX::g_emulator->m_sio->GetMcdData(m_selectedCard);
+            auto dest = PCSX::g_emulator->m_sio->GetMcdData(otherCard);
+
+            std::memcpy(dest, source, PCSX::SIO::MCD_SIZE);
+        }
+    }
+
     ImGui::SliderInt("Icon size", &m_iconSize, 16, 512);
 
     static const char* cardNames[] = {_("Memory card 1"), _("Memory card 2")};
@@ -89,10 +101,12 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
                                                   ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
     PCSX::SIO::McdBlock block; // The current memory card block we're looking into
 
-    if (ImGui::BeginTable("Memory card information", 4, flags)) {
+    if (ImGui::BeginTable("Memory card information", 6, flags)) {
         ImGui::TableSetupColumn("Block number");
         ImGui::TableSetupColumn("Icon");
         ImGui::TableSetupColumn("Title");
+        ImGui::TableSetupColumn("ID");
+        ImGui::TableSetupColumn("Filename");
         ImGui::TableSetupColumn("Action");
         ImGui::TableHeadersRow();
 
@@ -121,6 +135,10 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             ImGui::TableSetColumnIndex(2);
             ImGui::Text(block.Title);
             ImGui::TableSetColumnIndex(3);
+            ImGui::Text(block.ID);
+            ImGui::TableSetColumnIndex(4);
+            ImGui::Text("%s (%dKB)", block.Name, block.Filesize / 1024);
+            ImGui::TableSetColumnIndex(5);
 
             // We have to suffix the action button names with ##number because Imgui
             // can't handle multiple buttons with the same name well
@@ -169,6 +187,15 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     }
     
     if (ImGui::BeginPopupModal(m_pendingAction.popupText.c_str())) {
+        if (ImGui::BeginCombo(_("Destination card"), cardNames[m_pendingAction.targetCard - 1])) {
+            for (unsigned i = 0; i < 2; i++) {
+                if (ImGui::Selectable(cardNames[i], m_pendingAction.targetCard == i + 1)) {
+                    m_pendingAction.targetCard = i + 1;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
         if (ImGui::InputText(_("Block"), m_pendingAction.textInput, sizeof(m_pendingAction.textInput),
                              ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
             performAction();
@@ -210,22 +237,35 @@ void PCSX::Widgets::MemcardManager::performAction() {
     }
 
     switch (m_pendingAction.type) {
-        case Actions::Move: {
-            for (auto i = 0; i < PCSX::SIO::MCD_BLOCK_SIZE; i++) {
-                dest[i] = source[i];
-                source[i] = 0;
-            }
-        } break;
-
-        case Actions::Copy:
-            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);
+        case Actions::Move:
+            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE); // Copy source to dest
+            PCSX::g_emulator->m_sio->FormatMcdBlock(m_selectedCard, sourceBlock); // Format source
             break;
 
+        case Actions::Copy: {
+            const uint8_t* sourceFrame = data1 + sourceBlock * PCSX::SIO::MCD_SECT_SIZE;
+            uint8_t* destFrame = data2 + destBlock * PCSX::SIO::MCD_SECT_SIZE;
+
+            // Copy directory frame for source block to directory frame for dest block
+            std::memcpy(destFrame, sourceFrame, PCSX::SIO::MCD_SECT_SIZE);
+            // Copy source block to dest block
+            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);
+        } break;
+
         case Actions::Swap: {
+            uint8_t* sourceFrame = data1 + sourceBlock * PCSX::SIO::MCD_SECT_SIZE;
+            uint8_t* destFrame = data2 + destBlock * PCSX::SIO::MCD_SECT_SIZE;
+
+            // Swap the memory card blocks
             for (auto i = 0; i < PCSX::SIO::MCD_BLOCK_SIZE; i++) {
                 std::swap(dest[i], source[i]);
             }
-        }
+
+            // Swap the directory frames for the blocks
+            for (auto i = 0; i < PCSX::SIO::MCD_SECT_SIZE; i++) {
+                std::swap(sourceFrame[i], destFrame[i]);
+            }
+        } break;
     }
 
     m_pendingAction.type = Actions::None; // Cancel action
