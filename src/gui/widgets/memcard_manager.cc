@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <algorithm>
+#include <cstdlib>
 #include "core/sio.h"
 #include "core/system.h"
 #include "fmt/format.h"
@@ -41,6 +43,9 @@ void PCSX::Widgets::MemcardManager::init() {
 
 bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     bool changed = false;
+    Actions action = Actions::None;
+    int selectedBlock;
+
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 
@@ -66,6 +71,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     if (ImGui::Button(_("Save memory card to file"))) {
         g_emulator->m_sio->SaveMcd(m_selectedCard);
     }
+    ImGui::SliderInt("Icon size", &m_iconSize, 16, 512);
 
     static const char* cardNames[] = {_("Memory card 1"), _("Memory card 2")};
     // Code below is slightly odd because m_selectedCart is 1-indexed while arrays are 0-indexed
@@ -79,15 +85,15 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     }
 
     static constexpr ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
-                                             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
-                                             ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
+                                                  ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+                                                  ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
     PCSX::SIO::McdBlock block; // The current memory card block we're looking into
 
     if (ImGui::BeginTable("Memory card information", 4, flags)) {
         ImGui::TableSetupColumn("Block number");
-        ImGui::TableSetupColumn("Image");
+        ImGui::TableSetupColumn("Icon");
         ImGui::TableSetupColumn("Title");
-        ImGui::TableSetupColumn("Format");
+        ImGui::TableSetupColumn("Action");
         ImGui::TableHeadersRow();
 
         for (auto i = 1; i < 16; i++) {
@@ -104,6 +110,7 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
 
             // Pointer to the current frame. Skip 16x16 pixels for each frame
             const auto icon = block.Icon + (currentFrame * 16 * 16);
+            bool selected = i == 3;
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -114,11 +121,36 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
             ImGui::TableSetColumnIndex(2);
             ImGui::Text(block.Title);
             ImGui::TableSetColumnIndex(3);
-            // We have to suffix the name with ##number because Imgui can't handle
-            // multiple buttons with the same name well
-            const auto buttonName = fmt::format(_("Format##{}"), i);
-            if (ImGui::Button(buttonName.c_str())) {
+
+            // We have to suffix the action button names with ##number because Imgui
+            // can't handle multiple buttons with the same name well
+            auto buttonName = fmt::format(_("Format##{}"), i);
+            if (ImGui::SmallButton(buttonName.c_str())) {
                 g_emulator->m_sio->FormatMcdBlock(m_selectedCard, i);
+            }
+            ImGui::SameLine();
+            
+            buttonName = fmt::format(_("Copy##{}"), i);
+            if (ImGui::SmallButton(buttonName.c_str())) {
+                action = Actions::Copy;
+                selectedBlock = i;
+                m_pendingAction.popupText = fmt::format("Choose block to copy block {} to", selectedBlock);
+            }
+            ImGui::SameLine();
+            
+            buttonName = fmt::format(_("Move##{}"), i);
+            if (ImGui::SmallButton(buttonName.c_str())) {
+                action = Actions::Move;
+                selectedBlock = i;
+                m_pendingAction.popupText = fmt::format("Choose block to move block {} to", selectedBlock);
+            }
+            ImGui::SameLine();
+
+            buttonName = fmt::format(_("Swap##{}"), i);
+            if (ImGui::SmallButton(buttonName.c_str())) {
+                action = Actions::Swap;
+                selectedBlock = i;
+                m_pendingAction.popupText = fmt::format("Choose block to swap block {} with", selectedBlock);
             }
         }
         ImGui::EndTable();
@@ -127,6 +159,26 @@ bool PCSX::Widgets::MemcardManager::draw(const char* title) {
     if (m_showMemoryEditor) {
         const auto data = g_emulator->m_sio->GetMcdData(m_selectedCard);
         m_memoryEditor.DrawWindow(_("Memory Card Viewer"), data, PCSX::SIO::MCD_SIZE);
+    }
+
+    if (action != Actions::None) {
+        m_pendingAction.type = action;
+        m_pendingAction.targetCard = m_selectedCard; // Default to current card as the target for the action
+        m_pendingAction.sourceBlock = selectedBlock;
+        ImGui::OpenPopup(m_pendingAction.popupText.c_str());
+    }
+    
+    if (ImGui::BeginPopupModal(m_pendingAction.popupText.c_str())) {
+        if (ImGui::InputText(_("Block"), m_pendingAction.textInput, sizeof(m_pendingAction.textInput),
+                             ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+            performAction();
+            ImGui::CloseCurrentPopup();
+        } else if (ImGui::Button("Cancel")) {
+            m_pendingAction.type = Actions::None; // Cancel action
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     m_frameCount = (m_frameCount + 1) % 60;
@@ -138,5 +190,43 @@ void PCSX::Widgets::MemcardManager::drawIcon(int blockNumber, uint16_t* icon) {
     const auto texture = m_iconTextures[blockNumber - 1];
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, icon);
-    ImGui::Image((void*)texture, ImVec2(64, 64));
+    ImGui::Image((void*)texture, ImVec2(m_iconSize, m_iconSize));
+}
+
+// Perform the pending memory card action (Move, copy, swap)
+void PCSX::Widgets::MemcardManager::performAction() {
+    // Data of source and dest cards respectively
+    auto data1 = (uint8_t*)g_emulator->m_sio->GetMcdData(m_selectedCard);
+    auto data2 = (uint8_t*)g_emulator->m_sio->GetMcdData(m_pendingAction.targetCard);
+
+    const int sourceBlock = m_pendingAction.sourceBlock;
+    const int destBlock = std::atoi(m_pendingAction.textInput);
+    auto source = data1 + sourceBlock * PCSX::SIO::MCD_BLOCK_SIZE;
+    auto dest = data2 + destBlock * PCSX::SIO::MCD_BLOCK_SIZE;
+
+    if (destBlock > 15) { // Invalid block number, do nothing
+        m_pendingAction.type = Actions::None;
+        return;
+    }
+
+    switch (m_pendingAction.type) {
+        case Actions::Move: {
+            for (auto i = 0; i < PCSX::SIO::MCD_BLOCK_SIZE; i++) {
+                dest[i] = source[i];
+                source[i] = 0;
+            }
+        } break;
+
+        case Actions::Copy:
+            std::memcpy(dest, source, PCSX::SIO::MCD_BLOCK_SIZE);
+            break;
+
+        case Actions::Swap: {
+            for (auto i = 0; i < PCSX::SIO::MCD_BLOCK_SIZE; i++) {
+                std::swap(dest[i], source[i]);
+            }
+        }
+    }
+
+    m_pendingAction.type = Actions::None; // Cancel action
 }

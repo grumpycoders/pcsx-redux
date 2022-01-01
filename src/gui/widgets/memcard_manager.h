@@ -39,11 +39,27 @@ class MemcardManager {
 
   private:
     int m_selectedCard = 1;
+    int m_iconSize = 32; // The width and length of the icon images
+    int m_selectedBlock;
     bool m_showMemoryEditor = false;
     GLuint m_iconTextures[15];
     MemoryEditor m_memoryEditor;
 
+    enum class Actions { None, Format, Move, Copy, Swap };
+    struct {
+        Actions type = Actions::None;
+        // The block from m_selectedCard we will use as our source
+        int sourceBlock;
+        // The memory card (1 or 2) our operation will target
+        int targetCard;
+        // Buffer to store the title for our action popups
+        std::string popupText = "";
+        // Buffer to store user-provided block numbers. Needs to store 2 digits + a null terminator, so 3 chars
+        char textInput[3] = "";
+    } m_pendingAction;
+
     void drawIcon(int blockNumber, uint16_t* icon);
+    void performAction();
 };
 
 }  // namespace Widgets
